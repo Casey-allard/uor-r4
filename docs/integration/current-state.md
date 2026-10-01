@@ -93,15 +93,37 @@ unsupported by that channel; conflicts and eviction are also not absence.
 Only a proven absent read supplies `Memory: none.`. Unsupported handling here
 does not establish that the emitter reliably abstains.
 
-The real saved compiler/span adapter and ordinary-text CLI are still missing
-from the inspected compiler source at `caedf3ca`. Focused session fixtures can
-check transactions, token history and fresh-process model continuation; they
-cannot meet the integrated learned-input acceptance. Executed checks and exact
-delivery belong to [#962](https://github.com/UOR-Foundation/uor-r4/issues/962).
-The next dependency is the real adapter, followed by the bound emitter/session
-construction witness, including changed-source, NoRead and UpdateDisabled
-comparisons. Full #962 temporal/scope/conflict and capability acceptance stays
-open.
+**Saved compiler and first session witness (#1552 cards v18–v19):**
+`relation_compiler::SavedCompiler` implements `TurnCompiler`. It holds the word
+table and a learned value-span head, which sees words only through a frame
+vocabulary and so learns no value identity. Both are saved as one canonical
+artifact that binds the parameters (by f64 bits), labels, features, tokenizer
+and training provenance. Under `act_rule=span`, a decoded value makes a turn a
+statement and its absence makes it a query.
+
+`m-world session` runs 300 development conversations through the actual
+`GroundedSession` with `emit-1` and its own generated history. With training
+values only and development phrasings × development values, the measured
+default arm gives:
+- open relation 34/52;
+- closed relation 13/17;
+- open abstention 7/8.
+
+The controls are NoRead (8/52, 8/17) and write-disabled (1/52, 3/17). Five
+save/load continuations equal the uninterrupted runs. The reference-history E4
+route gave 36/52 and 2/17.
+
+Of the remaining 18 open misses, 14 are relation naming of development
+wordings, 3 are conflicts and 1 is an emission miss. MQAR has no channel in the
+one-entity session. This is one draw on one development cell, with raw
+paraphrase labels, not a gate or capability claim.
+
+The ordinary-text CLI is `grounded-session`, with `init`, `turn`, `chat` and
+`show`. Each command loads a sealed envelope in a fresh process, with the
+compiler taken from the envelope's own bytes, and saves a new envelope. Three
+development conversations replayed this way, one process per turn, match the
+in-process run on 14/14 turns: reply, action and recall. Full #962
+temporal/scope/conflict and capability acceptance stays open.
 
 **Learning-data diagnosis:** a deterministic 40-row stratified audit of the
 373 accepted `paraphrases-1` rows found actual inherited-label errors, including

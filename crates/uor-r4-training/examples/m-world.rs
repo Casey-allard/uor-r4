@@ -167,9 +167,17 @@ use uor_r4_training::milestone_world_v2_probe::{
     EXCLUSION_NGRAM,
 };
 use uor_r4_training::relation_compiler::{
-    collect, label, paraphrase_examples, score, trunk_features, Example, Lexicon, RelationRoute,
-    Softmax, SparseSoftmax, ACTS, NONE as RC_NONE,
+    collect, label, paraphrase_examples, score, trunk_features, ActRule, CompilerSettings, Example,
+    Lexicon, RelationRoute, SavedCompiler, Softmax, SparseSoftmax, ACTS, NONE as RC_NONE,
 };
+use uor_r4_training::stack_checkpoint::{
+    save_checkpoint, sealed_manifest_sha256, CheckpointIdentity, DataIdentity,
+};
+use uor_r4_training::stack_grounded_session::{
+    CompiledAction, ContextPolicy, GroundedSession, RecallDisposition, SessionLimits, SessionScope,
+    SourceSpan, TurnCompiler, TurnControls, TurnOutcome,
+};
+use uor_r4_training::stack_store::StackStore;
 
 fn invalid(message: impl Into<String>) -> TrainingError {
     TrainingError::Invalid(message.into())
@@ -2967,6 +2975,524 @@ fn probe_static(args: &Args, out: &Path) -> Result<()> {
 
 /// One of the amendment modes, if `mode` is one: parse its arguments, claim its
 /// report root, run, seal and verify.
+/// The action a user turn should compile to, from its typed intent and
+/// template (evaluator knowledge, used only to score).
+fn gold_action(compiler: &SavedCompiler, turn_text: &str, turn: &Turn2) -> Result<CompiledAction> {
+    let (relation, act) = label(turn);
+    if relation == RC_NONE {
+        return Ok(CompiledAction::Unresolved {
+            reason: "no relation".into(),
+        });
+    }
+    let id = compiler
+        .relation_id(&relation)
+        .ok_or_else(|| invalid(format!("relation {relation} has no store ID")))?;
+    let example = Example {
+        text: turn_text.to_owned(),
+        relation,
+        act,
+        template: turn.tag.template.clone(),
+    };
+    Ok(match (act, example.slot_span()) {
+        ("query", _) => CompiledAction::QueryCurrent { relation: id },
+        ("assert", Some((start, end))) => CompiledAction::Assert {
+            relation: id,
+            span: SourceSpan { start, end },
+        },
+        ("update", Some((start, end))) => CompiledAction::Correct {
+            relation: id,
+            span: SourceSpan { start, end },
+        },
+        _ => CompiledAction::Unresolved {
+            reason: "the statement's slot cannot be recovered".into(),
+        },
+    })
+}
+
+fn action_kind(action: &CompiledAction) -> &'static str {
+    match action {
+        CompiledAction::Assert { .. } => "assert",
+        CompiledAction::Correct { .. } => "correct",
+        CompiledAction::QueryCurrent { .. } => "query",
+        CompiledAction::Unresolved { .. } => "unresolved",
+    }
+}
+
+/// Exact-action agreement: the same kind, relation and value span, any
+/// unresolved reason.
+fn same_action(a: &CompiledAction, b: &CompiledAction) -> bool {
+    match (a, b) {
+        (CompiledAction::Unresolved { .. }, CompiledAction::Unresolved { .. }) => true,
+        _ => a == b,
+    }
+}
+
+/// `compiler-save`: fit the saved compiler of the grounded session (the
+/// relation/act table of `recall=route` plus the value-span head), write its
+/// artifact `compiler.json`, and score its actions on development phrasings.
+/// `values=train` (default) fits on training values only; `values=both` is
+/// `recall=route`'s draw (both value splits, so development values are seen).
+fn compiler_save(args: &Args, out: &Path) -> Result<()> {
+    let started = Instant::now();
+    if args.optional("world").as_deref() != Some("v2") {
+        return Err(invalid("compiler-save needs world=v2"));
+    }
+    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+    let train_conversations: usize = args.number("train_conversations", 2_000)?;
+    let eval_conversations: usize = args.number("eval_conversations", 1_000)?;
+    let seed: u64 = args.number("seed", 9_101)?;
+    let values = args.optional("values").unwrap_or_else(|| "train".into());
+    let settings = CompilerSettings {
+        act_rule: ActRule::parse(&args.optional("act_rule").unwrap_or_else(|| "table".into()))?,
+        ..CompilerSettings::default()
+    };
+    let tokenizer = load_tokenizer(&tokenizer_path)?;
+    let tokenizer_sha256 = sha256_file(&tokenizer_path)?;
+    let count = |text: &str| tokenizer.encode(text).len();
+    let mix = Mix {
+        mqar: 0.15,
+        copy: 0.05,
+        relation: 0.60,
+        other: 0.20,
+        ..Mix::default()
+    };
+    let draw = |cell: Cell, conversations: usize, seed: u64| -> Result<Vec<Example>> {
+        let mut world = MWorld2::new(&count, mix)?;
+        let mut rng = Rng::new(seed);
+        collect(&mut world, &mut rng, cell, conversations)
+    };
+    let mut train = Vec::new();
+    let draws: Vec<(Split, usize)> = match values.as_str() {
+        "train" => vec![(Split::Train, 2 * train_conversations)],
+        "both" => vec![
+            (Split::Train, train_conversations),
+            (Split::Development, train_conversations),
+        ],
+        other => return Err(invalid(format!("unknown values={other}"))),
+    };
+    for &(value, conversations) in &draws {
+        train.extend(draw(Cell::new(Split::Train, value), conversations, seed)?);
+    }
+    let turns = train.len();
+    let paraphrases = match args.optional("paraphrases") {
+        Some(list) => {
+            let (examples, record) = load_paraphrases(&list, &train)?;
+            train.extend(examples);
+            record
+        }
+        None => Value::Null,
+    };
+    let training = json!({
+        "world": "m-world-v2",
+        "world_digest": MWorld2::digest(),
+        "mix": "relation-heavy: mqar .15, copy .05, relation .60, other .20",
+        "phrasing": "train",
+        "values": values,
+        "draws": draws
+            .iter()
+            .map(|(value, conversations)| json!({
+                "value": format!("{value:?}").to_lowercase(),
+                "conversations": conversations,
+                "seed": seed,
+            }))
+            .collect::<Vec<_>>(),
+        "world_turns": turns,
+        "paraphrases": paraphrases,
+        "examples": train.len(),
+    });
+    let fit_started = Instant::now();
+    let saved = SavedCompiler::fit(&train, &tokenizer_sha256, training.clone(), settings)?;
+    let fit_seconds = fit_started.elapsed().as_secs_f64();
+    fs::write(out.join("compiler.json"), saved.bytes())?;
+    let mut cells = serde_json::Map::new();
+    for value in [Split::Development, Split::Train] {
+        let cell = Cell::new(Split::Development, value);
+        let examples = draw(cell, eval_conversations, seed + 1)?;
+        // (pass, of) tallies.
+        let mut tally: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+        let mut add = |key: String, pass: bool| {
+            let entry = tally.entry(key).or_default();
+            entry.0 += usize::from(pass);
+            entry.1 += 1;
+        };
+        let mut misses = Vec::new();
+        for example in &examples {
+            let (relation, act) = saved.route().classify(&example.text, None)?;
+            if example.relation != RC_NONE {
+                add("relation".into(), relation == example.relation);
+            }
+            add("act".into(), act == example.act);
+            let gold_span = example.slot_span();
+            let decoded = saved.span().decode(&example.text);
+            let writes = example.relation != RC_NONE && matches!(example.act, "assert" | "update");
+            if writes {
+                if let Some(gold) = gold_span {
+                    add("span/exact".into(), decoded == Some(gold));
+                }
+            } else {
+                add("span/no_write".into(), decoded.is_none());
+            }
+            let predicted = saved.action(&example.text)?;
+            let gold = gold_of(&saved, example)?;
+            let pass = same_action(&predicted, &gold);
+            add(format!("action/{}", action_kind(&gold)), pass);
+            if example.relation != RC_NONE {
+                add(format!("action/relation/{}", example.relation), pass);
+            }
+            if !pass && misses.len() < 40 {
+                misses.push(json!({
+                    "text": example.text, "gold": gold, "predicted": predicted,
+                }));
+            }
+        }
+        let rates: serde_json::Map<String, Value> = tally
+            .iter()
+            .map(|(key, &(pass, of))| (key.clone(), rate_json((pass, of))))
+            .collect();
+        println!(
+            "{:?} phrasing x {:?} values: {}",
+            cell.phrasing,
+            cell.value,
+            ["relation", "act", "span/exact", "span/no_write"]
+                .iter()
+                .map(|key| {
+                    let (pass, of) = tally.get(*key).copied().unwrap_or_default();
+                    format!("{key} {pass}/{of}")
+                })
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+        cells.insert(
+            format!("{:?}_x_{:?}", cell.phrasing, cell.value).to_lowercase(),
+            json!({"turns": examples.len(), "rates": rates, "first_misses": misses}),
+        );
+    }
+    let executable = std::env::current_exe()?;
+    let report = json!({
+        "schema": "uor-r4.m-world-compiler-save/1",
+        "executable_sha256": sha256_file(&executable)?,
+        "artifact": "compiler.json",
+        "artifact_sha256": saved.identity().artifact_sha256,
+        "identity": saved.identity(),
+        "training": training,
+        "settings": format!("{settings:?}"),
+        "fit_seconds": fit_seconds,
+        "evaluation": {
+            "draw": format!("relation-heavy mix, development phrasings, {eval_conversations} conversations per value split, seed {}", seed + 1),
+            "scope": "development phrasings; relation over turns naming a relation; act over every turn; span/exact over statements with a recoverable slot; span/no_write over queries and turns naming no relation; action is the exact compiled action (kind, relation and value span)",
+            "cells": cells,
+        },
+        "wall_seconds": started.elapsed().as_secs_f64(),
+    });
+    fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
+    Ok(())
+}
+
+/// The gold action of a labelled example (see [`gold_action`]).
+fn gold_of(compiler: &SavedCompiler, example: &Example) -> Result<CompiledAction> {
+    let turn = Turn2 {
+        intent: format!("{}_{}", example.relation, example.act),
+        category: Category2::Relation,
+        user: example.text.clone(),
+        reply: String::new(),
+        checks: Vec::new(),
+        tag: Tag {
+            template: example.template.clone(),
+            ..Tag::default()
+        },
+    };
+    gold_action(compiler, &example.text, &turn)
+}
+
+fn disposition_name(recall: &RecallDisposition) -> &'static str {
+    match recall {
+        RecallDisposition::NotRequested => "not_requested",
+        RecallDisposition::Value => "value",
+        RecallDisposition::Absent => "absent",
+        RecallDisposition::Disabled => "disabled",
+        RecallDisposition::Unsupported { .. } => "unsupported",
+    }
+}
+
+/// `session`: M-world development conversations through the actual grounded
+/// session (#962): the saved compiler (`compiler=`) predicts each user turn's
+/// action, the exact store applies it, and the emitter (`model_root=`'s
+/// model, saved as an inference checkpoint with an empty store) replies after
+/// its own generated history. Arms: `default` (read and write), `no_read`
+/// (no recall line enters the emitter) and `no_write` (statements are not
+/// stored). The first `reload=` conversations of the default arm are also run
+/// with a save and load at their middle turn, and must match.
+fn session(args: &Args, out: &Path) -> Result<()> {
+    let started = Instant::now();
+    if args.optional("world").as_deref() != Some("v2") {
+        return Err(invalid("session needs world=v2"));
+    }
+    let model_root = PathBuf::from(args.required("model_root")?);
+    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+    let compiler_path = PathBuf::from(args.required("compiler")?);
+    let conversations: usize = args.number("conversations", 300)?;
+    let seed: u64 = args.number("seed", 9_101)?;
+    let max_new_tokens: usize = args.number("max_new_tokens", 32)?;
+    let reload: usize = args.number("reload", 5)?;
+    let arms: Vec<String> = args
+        .optional("arms")
+        .unwrap_or_else(|| "default,no_read,no_write".into())
+        .split(',')
+        .map(str::to_owned)
+        .collect();
+    let controls_of = |arm: &str| -> Result<TurnControls> {
+        match arm {
+            "default" => Ok(TurnControls::default()),
+            "no_read" => Ok(TurnControls {
+                read: false,
+                write: true,
+            }),
+            "no_write" => Ok(TurnControls {
+                read: true,
+                write: false,
+            }),
+            other => Err(invalid(format!("unknown arm {other}"))),
+        }
+    };
+    for arm in &arms {
+        controls_of(arm)?;
+    }
+    let tokenizer_json = fs::read(&tokenizer_path)?;
+    let tokenizer = load_tokenizer(&tokenizer_path)?;
+    let compiler_bytes = fs::read(&compiler_path)?;
+    let compiler = SavedCompiler::from_bytes(compiler_bytes.clone())?;
+    let device = Device::Cpu;
+    // The emitter as a sealed inference checkpoint with an empty store. Its
+    // data identities are the training report's recorded inputs, bound by
+    // the report's sealed manifest.
+    let training_report: Value =
+        serde_json::from_slice(&fs::read(model_root.join("report.json"))?)?;
+    let mut data = Vec::new();
+    for input in training_report["inputs"]["train"]
+        .as_array()
+        .ok_or_else(|| invalid("the model's report records no training inputs"))?
+    {
+        let path = PathBuf::from(input["path"].as_str().unwrap_or_default());
+        let label = match (path.parent().and_then(Path::file_name), path.file_name()) {
+            (Some(parent), Some(name)) => {
+                format!("{}/{}", parent.to_string_lossy(), name.to_string_lossy())
+            }
+            _ => return Err(invalid("a training input has no file name")),
+        };
+        data.push(DataIdentity {
+            label,
+            bytes: input["bytes"]
+                .as_u64()
+                .ok_or_else(|| invalid("a training input has no byte count"))?,
+            sha256: input["sha256"]
+                .as_str()
+                .ok_or_else(|| invalid("a training input has no digest"))?
+                .to_owned(),
+        });
+    }
+    let identity = CheckpointIdentity::from_tokenizer(
+        &tokenizer_json,
+        data,
+        sealed_manifest_sha256(&model_root).map_err(|e| invalid(e.to_string()))?,
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    let (model, model_identity, _) =
+        load_model(&model_root.join("model"), &device, &Selection::default())?;
+    let checkpoint = out.join("checkpoint");
+    let store = StackStore::new(1, 8).map_err(|e| invalid(e.to_string()))?;
+    save_checkpoint(&checkpoint, &model, &identity, Some(&store))
+        .map_err(|e| invalid(e.to_string()))?;
+    drop(model);
+    let scope = SessionScope {
+        scope: b"m-world-v2".to_vec(),
+        entity: tokenizer.encode("user"),
+    };
+    let limits = SessionLimits {
+        max_new_tokens,
+        max_turns: 64,
+        max_source_bytes: 1 << 16,
+        max_history_tokens: 1 << 20,
+        max_store_records: 4_096,
+        context_policy: ContextPolicy::WholeCompletedTurns,
+    };
+    let open = |compiler: SavedCompiler| {
+        GroundedSession::from_checkpoint_path(
+            &checkpoint,
+            tokenizer_json.clone(),
+            compiler,
+            scope.clone(),
+            limits.clone(),
+            &device,
+        )
+        .map_err(|e| invalid(e.to_string()))
+    };
+    let count = |text: &str| tokenizer.encode(text).len();
+    let mut world = MWorld2::new(&count, Mix::default())?;
+    let mut rng = Rng::new(seed);
+    let drawn: Vec<Conversation2> = (0..conversations)
+        .map(|_| world.conversation(&mut rng, Split::Development))
+        .collect::<Result<_>>()?;
+    let mut arm_reports = serde_json::Map::new();
+    let mut default_outcomes: Vec<Vec<Option<TurnOutcome>>> = Vec::new();
+    for arm in &arms {
+        let controls = controls_of(arm)?;
+        let mut card = Scorecard::default();
+        let mut tally: BTreeMap<String, (usize, usize)> = BTreeMap::new();
+        let mut add = |key: String, pass: bool| {
+            let entry = tally.entry(key).or_default();
+            entry.0 += usize::from(pass);
+            entry.1 += 1;
+        };
+        let mut dispositions: BTreeMap<&str, usize> = BTreeMap::new();
+        let (mut errors, mut error_examples) = (0usize, Vec::new());
+        let (mut windowed, mut whole) = (0usize, 0usize);
+        let mut judged = Vec::with_capacity(conversations);
+        for (index, conversation) in drawn.iter().enumerate() {
+            let mut session = open(compiler.clone())?;
+            let mut all = true;
+            let mut rows = Vec::new();
+            let mut outcomes = Vec::new();
+            for turn in &conversation.turns {
+                let gold = gold_action(&compiler, &turn.user, turn)?;
+                let (pass, row, outcome) = match session.turn_with_controls(&turn.user, controls) {
+                    Ok(outcome) => {
+                        let pass = judge_v2(&turn.checks, &turn.user, &outcome.reply_text);
+                        *dispositions
+                            .entry(disposition_name(&outcome.recall))
+                            .or_default() += 1;
+                        windowed += usize::from(outcome.retained_from_turn > 0);
+                        let exact = same_action(&outcome.action, &gold);
+                        add(format!("action/{}", action_kind(&gold)), exact);
+                        let row = json!({
+                            "intent": turn.intent, "category": turn.category,
+                            "user": turn.user, "reply": outcome.reply_text, "pass": pass,
+                            "action": outcome.action, "gold_action": gold,
+                            "recall": disposition_name(&outcome.recall),
+                            "retained_from_turn": outcome.retained_from_turn,
+                            "stop": outcome.stop,
+                        });
+                        (pass, row, Some(outcome))
+                    }
+                    Err(error) => {
+                        errors += 1;
+                        if error_examples.len() < 20 {
+                            error_examples.push(json!({
+                                "conversation": index, "user": turn.user,
+                                "error": error.to_string(),
+                            }));
+                        }
+                        let row = json!({
+                            "intent": turn.intent, "category": turn.category,
+                            "user": turn.user, "pass": false, "gold_action": gold,
+                            "error": error.to_string(),
+                        });
+                        (false, row, None)
+                    }
+                };
+                all &= pass;
+                card.record(turn, pass);
+                rows.push(row);
+                outcomes.push(outcome);
+            }
+            whole += usize::from(all);
+            judged.push(json!({
+                "id": format!("mw2-{index:04}"), "kind": conversation.kind,
+                "all_pass": all, "turns": rows,
+            }));
+            if arm == "default" {
+                default_outcomes.push(outcomes);
+            }
+        }
+        let scores = card.to_json();
+        println!(
+            "arm {arm}: MQAR {}/{}; open relation {}/{}; closed relation {}/{}; \
+             open abstain {}/{}; errors {errors}",
+            scores["mqar"]["all"]["pass"],
+            scores["mqar"]["all"]["of"],
+            scores["relation"]["open"]["pass"],
+            scores["relation"]["open"]["of"],
+            scores["relation"]["closed"]["pass"],
+            scores["relation"]["closed"]["of"],
+            scores["relation"]["open_abstain"]["pass"],
+            scores["relation"]["open_abstain"]["of"],
+        );
+        let mut report = json!({
+            "controls": controls,
+            "conversations_all_pass": rate_json((whole, conversations)),
+            "compiler_actions": tally
+                .iter()
+                .map(|(key, &(pass, of))| (key.clone(), rate_json((pass, of))))
+                .collect::<serde_json::Map<_, _>>(),
+            "recall_dispositions": dispositions,
+            "turns_with_dropped_history": windowed,
+            "turn_errors": errors,
+            "first_turn_errors": error_examples,
+            "conversations": judged,
+        });
+        if let (Some(report), Some(scores)) = (report.as_object_mut(), scores.as_object()) {
+            report.extend(scores.clone());
+        }
+        arm_reports.insert(arm.clone(), report);
+    }
+    // Save/load continuity: the same turns with a save and a load from disk
+    // at the middle turn give the same outcomes.
+    let mut continuity = Vec::new();
+    for (index, conversation) in drawn.iter().enumerate().take(reload) {
+        let Some(expected) = default_outcomes.get(index) else {
+            break;
+        };
+        let middle = conversation.turns.len() / 2;
+        let mut first = open(compiler.clone())?;
+        let mut outcomes = Vec::new();
+        for turn in &conversation.turns[..middle] {
+            outcomes.push(first.turn(&turn.user).ok());
+        }
+        let root = out.join(format!("reload-{index:04}"));
+        first.save(&root).map_err(|e| invalid(e.to_string()))?;
+        drop(first);
+        let reloaded = SavedCompiler::from_bytes(compiler_bytes.clone())?;
+        let mut second =
+            GroundedSession::load(&root, reloaded, &device).map_err(|e| invalid(e.to_string()))?;
+        for turn in &conversation.turns[middle..] {
+            outcomes.push(second.turn(&turn.user).ok());
+        }
+        let equal = &outcomes == expected;
+        println!("reload mw2-{index:04} at turn {middle}: equal={equal}");
+        continuity.push(json!({
+            "id": format!("mw2-{index:04}"), "save_after_turn": middle,
+            "turns": conversation.turns.len(), "equal": equal,
+        }));
+    }
+    let executable = std::env::current_exe()?;
+    let report = json!({
+        "schema": "uor-r4.m-world-session/1",
+        "executable_sha256": sha256_file(&executable)?,
+        "world": "m-world-v2",
+        "world_digest": MWorld2::digest(),
+        "split": "development phrasings and values (evaluate's default cell)",
+        "seed": seed,
+        "conversations": conversations,
+        "mix": world.mix(),
+        "history": "generated: each turn follows the session's own earlier replies and recall lines",
+        "model_root": model_root.display().to_string(),
+        "model_identity": model_identity,
+        "checkpoint": "checkpoint",
+        "compiler": compiler_path.display().to_string(),
+        "compiler_identity": compiler.identity(),
+        "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+        "limits": limits,
+        "scope": "MQAR keys have no channel in the one-entity session: MQAR turns compile to unresolved and are scored without recall",
+        "arms": arm_reports,
+        "reload": {
+            "rule": "the default arm's first conversations, saved after the middle turn into a new sealed envelope and loaded from disk with a compiler reloaded from its bytes, in this process",
+            "conversations": continuity,
+        },
+        "wall_seconds": started.elapsed().as_secs_f64(),
+    });
+    fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
+    Ok(())
+}
+
 fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
     let cells: &[&str] = &[
         "out",
@@ -3022,8 +3548,33 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "select",
         "pointer_select",
     ];
+    let compiler_save_keys: &[&str] = &[
+        "out",
+        "world",
+        "tokenizer",
+        "train_conversations",
+        "eval_conversations",
+        "seed",
+        "values",
+        "paraphrases",
+        "act_rule",
+    ];
+    let session_keys: &[&str] = &[
+        "out",
+        "world",
+        "model_root",
+        "tokenizer",
+        "compiler",
+        "conversations",
+        "seed",
+        "max_new_tokens",
+        "reload",
+        "arms",
+    ];
     match mode {
         "compiler" => Some(claimed(rest, relation_compiler, compiler)),
+        "compiler-save" => Some(claimed(rest, compiler_save_keys, compiler_save)),
+        "session" => Some(claimed(rest, session_keys, session)),
         "evaluate-cells" => Some(claimed(rest, cells, evaluate_cells)),
         "baselines" => Some(claimed(rest, baseline, baselines)),
         "route" => Some(claimed(rest, baseline, route)),

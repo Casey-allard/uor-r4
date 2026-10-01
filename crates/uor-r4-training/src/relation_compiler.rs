@@ -40,7 +40,8 @@ pub struct Example {
     pub text: String,
     pub relation: String,
     pub act: &'static str,
-    /// The phrasing template the turn was drawn from, slot unfilled.
+    /// The phrasing template (or teacher paraphrase) the turn was drawn
+    /// from, slot unfilled.
     pub template: Option<String>,
 }
 
@@ -48,10 +49,19 @@ impl Example {
     /// The value filling the template's `{v}` slot in the text, if the turn
     /// has a one-slot template that the text matches.
     pub fn slot_value(&self) -> Option<&str> {
+        let (start, end) = self.slot_span()?;
+        Some(&self.text[start..end])
+    }
+
+    /// The half-open byte span of [`Self::slot_value`] in the text.
+    pub fn slot_span(&self) -> Option<(usize, usize)> {
         let template = self.template.as_deref()?;
         let (before, after) = template.split_once("{v}")?;
+        if after.contains("{v}") {
+            return None;
+        }
         let value = self.text.strip_prefix(before)?.strip_suffix(after)?;
-        (!value.trim().is_empty()).then_some(value)
+        (!value.trim().is_empty()).then_some((before.len(), before.len() + value.len()))
     }
 }
 
@@ -89,7 +99,8 @@ pub fn paraphrase_examples(jsonl: &str, training: &[Example]) -> Result<(Vec<Exa
         if !relation_names().contains(&relation) {
             return Err(invalid(format!("unknown paraphrase relation {relation}")));
         }
-        let text = if text.contains("{v}") {
+        let pattern = text;
+        let text = if pattern.contains("{v}") {
             let Some(pool) = values.get(relation).filter(|pool| !pool.is_empty()) else {
                 skipped += 1;
                 continue;
@@ -97,15 +108,15 @@ pub fn paraphrase_examples(jsonl: &str, training: &[Example]) -> Result<(Vec<Exa
             let i = next.entry(relation.to_owned()).or_default();
             let value = pool[*i % pool.len()];
             *i += 1;
-            text.replace("{v}", value)
+            pattern.replace("{v}", value)
         } else {
-            text.to_owned()
+            pattern.to_owned()
         };
         examples.push(Example {
             text,
             relation: relation.to_owned(),
             act,
-            template: None,
+            template: Some(pattern.to_owned()),
         });
     }
     Ok((examples, skipped))
@@ -482,6 +493,19 @@ impl SparseSoftmax {
         }
         best
     }
+
+    fn logit(&self, row: &[(usize, f64)], class: usize) -> f64 {
+        self.bias[class]
+            + row
+                .iter()
+                .map(|&(i, v)| self.weights[class * self.dim + i] * v)
+                .sum::<f64>()
+    }
+
+    /// Class 1's logit minus class 0's, for a two-class head.
+    fn margin(&self, row: &[(usize, f64)]) -> f64 {
+        self.logit(row, 1) - self.logit(row, 0)
+    }
 }
 
 /// The standardization of dense features appended to a sparse word row.
@@ -625,6 +649,21 @@ impl RelationRoute {
         })
     }
 
+    /// For a turn known to be a statement: `update` when the act head scores
+    /// it above `assert`, otherwise `assert`.
+    pub fn statement_act(&self, text: &str, dense: Option<&[f64]>) -> Result<&'static str> {
+        let row = route_row(&self.lexicon, self.trunk.as_ref(), text, dense)?;
+        // ACTS[0] is assert and ACTS[1] update.
+        let (assert, update) = (0, 1);
+        Ok(
+            if self.act_head.logit(&row, update) > self.act_head.logit(&row, assert) {
+                ACTS[update]
+            } else {
+                ACTS[assert]
+            },
+        )
+    }
+
     /// Whether the route reads trunk features beside the words.
     pub fn needs_trunk(&self) -> bool {
         self.trunk.is_some()
@@ -677,6 +716,712 @@ impl RelationRoute {
             }
         }
         Ok(None)
+    }
+}
+
+/// A word of a text and its half-open byte span in that text.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WordSpan {
+    pub start: usize,
+    pub end: usize,
+    /// Lowercased, with curly apostrophes made straight.
+    pub word: String,
+}
+
+fn is_apostrophe(c: char) -> bool {
+    matches!(c, '\'' | '\u{2018}' | '\u{2019}')
+}
+
+/// The words of `text` with their byte spans: the same words, in the same
+/// order, as the world's `words`, so a value can be cut from the unchanged
+/// source.
+pub fn word_spans(text: &str) -> Vec<WordSpan> {
+    let mut spans = Vec::new();
+    let mut push = |start: usize, end: usize| {
+        let piece = &text[start..end];
+        let lead = piece.len() - piece.trim_start_matches(is_apostrophe).len();
+        let trail = piece.len() - piece.trim_end_matches(is_apostrophe).len();
+        if lead + trail < piece.len() {
+            let (start, end) = (start + lead, end - trail);
+            spans.push(WordSpan {
+                start,
+                end,
+                word: text[start..end]
+                    .replace(['\u{2018}', '\u{2019}'], "'")
+                    .to_lowercase(),
+            });
+        }
+    };
+    let mut open = None;
+    for (i, c) in text.char_indices() {
+        let part = c.is_alphanumeric() || is_apostrophe(c);
+        match (part, open) {
+            (true, None) => open = Some(i),
+            (false, Some(start)) => {
+                push(start, i);
+                open = None;
+            }
+            _ => {}
+        }
+    }
+    if let Some(start) = open {
+        push(start, text.len());
+    }
+    spans
+}
+
+/// The value-span head: which words of a statement are its value. Each word
+/// is classified in or out of the value from its context, and the value is
+/// the contiguous run of at most `max_words` words whose summed margin is
+/// largest and positive; no such run means no write.
+///
+/// A word is seen only through the *frame* vocabulary: the training words
+/// that never fall inside a value. Any other word, a value word included,
+/// reads as `<v>`, so the head cannot recall a value it was trained on and
+/// must find values from their context, shape and position.
+pub struct SpanHead {
+    frame: std::collections::BTreeSet<String>,
+    index: BTreeMap<String, usize>,
+    head: SparseSoftmax,
+    max_words: usize,
+}
+
+/// The features of word `i` of `text`, by name.
+fn span_features(
+    frame: &std::collections::BTreeSet<String>,
+    text: &str,
+    words: &[WordSpan],
+    i: usize,
+) -> Vec<String> {
+    let at = |j: isize| -> &str {
+        match usize::try_from(j).ok().and_then(|j| words.get(j)) {
+            None if j < 0 => "<s>",
+            None => "</s>",
+            Some(word) if frame.contains(&word.word) => &word.word,
+            Some(_) => "<v>",
+        }
+    };
+    let j = i as isize;
+    let surface = &text[words[i].start..words[i].end];
+    let shape = if surface.chars().all(|c| c.is_ascii_digit()) {
+        "digit"
+    } else if surface.chars().next().is_some_and(char::is_uppercase) {
+        "cap"
+    } else {
+        "lower"
+    };
+    let position = if i == 0 {
+        "first"
+    } else if i + 1 == words.len() {
+        "last"
+    } else {
+        "mid"
+    };
+    vec![
+        format!("w0={}", at(j)),
+        format!("l1={}", at(j - 1)),
+        format!("l2={}", at(j - 2)),
+        format!("r1={}", at(j + 1)),
+        format!("r2={}", at(j + 2)),
+        format!("l1r1={}|{}", at(j - 1), at(j + 1)),
+        format!("shape={shape}|{position}"),
+    ]
+}
+
+/// Whether a turn with these labels writes a value.
+fn writes(relation: &str, act: &str) -> bool {
+    relation != NONE && matches!(act, "assert" | "update")
+}
+
+impl SpanHead {
+    /// Fit on labelled turns: a statement's slot words are in its value,
+    /// every other word, and every word of a query or of a turn naming no
+    /// relation, is out (the no-write credit). A statement whose slot cannot
+    /// be recovered from its template gives no supervision and is skipped.
+    pub fn fit(
+        train: &[Example],
+        steps: usize,
+        rate: f64,
+        l2: f64,
+        max_words: usize,
+    ) -> Result<Self> {
+        if max_words == 0 {
+            return Err(invalid("a value span needs at least one word"));
+        }
+        let mut labelled = Vec::new();
+        for example in train {
+            let slot = if writes(&example.relation, example.act) {
+                match example.slot_span() {
+                    Some(slot) => Some(slot),
+                    None => continue,
+                }
+            } else {
+                None
+            };
+            let words = word_spans(&example.text);
+            let inside: Vec<bool> = words
+                .iter()
+                .map(|w| slot.is_some_and(|(s, e)| w.start >= s && w.end <= e))
+                .collect();
+            labelled.push((example.text.as_str(), words, inside));
+        }
+        let (mut outside, mut inside) = (
+            std::collections::BTreeSet::new(),
+            std::collections::BTreeSet::new(),
+        );
+        for (_, words, marks) in &labelled {
+            for (word, &mark) in words.iter().zip(marks) {
+                if mark {
+                    inside.insert(word.word.clone());
+                } else {
+                    outside.insert(word.word.clone());
+                }
+            }
+        }
+        let frame: std::collections::BTreeSet<String> =
+            outside.difference(&inside).cloned().collect();
+        let mut index = BTreeMap::new();
+        let (mut rows, mut y) = (Vec::new(), Vec::new());
+        for (text, words, marks) in &labelled {
+            for (i, &mark) in marks.iter().enumerate() {
+                let mut row: Vec<(usize, f64)> = span_features(&frame, text, words, i)
+                    .into_iter()
+                    .map(|name| {
+                        let next = index.len();
+                        (*index.entry(name).or_insert(next), 1.0)
+                    })
+                    .collect();
+                row.sort_by_key(|&(i, _)| i);
+                row.dedup_by_key(|&mut (i, _)| i);
+                rows.push(row);
+                y.push(usize::from(mark));
+            }
+        }
+        let head = SparseSoftmax::fit(&rows, &y, 2, index.len().max(1), steps, rate, l2)?;
+        Ok(Self {
+            frame,
+            index,
+            head,
+            max_words,
+        })
+    }
+
+    fn row(&self, text: &str, words: &[WordSpan], i: usize) -> Vec<(usize, f64)> {
+        let mut row: Vec<(usize, f64)> = span_features(&self.frame, text, words, i)
+            .iter()
+            .filter_map(|name| self.index.get(name).map(|&i| (i, 1.0)))
+            .collect();
+        row.sort_by_key(|&(i, _)| i);
+        row.dedup_by_key(|&mut (i, _)| i);
+        row
+    }
+
+    /// The value's half-open byte span in `text`, or `None` for no write.
+    /// Ties keep the earlier, then the shorter, run.
+    pub fn decode(&self, text: &str) -> Option<(usize, usize)> {
+        let words = word_spans(text);
+        let margins: Vec<f64> = (0..words.len())
+            .map(|i| self.head.margin(&self.row(text, &words, i)))
+            .collect();
+        let mut best: Option<(f64, usize, usize)> = None;
+        for a in 0..words.len() {
+            let mut sum = 0.0;
+            for (b, margin) in margins.iter().enumerate().skip(a).take(self.max_words) {
+                sum += margin;
+                if sum > 0.0 && best.is_none_or(|(top, _, _)| sum > top) {
+                    best = Some((sum, a, b));
+                }
+            }
+        }
+        best.map(|(_, a, b)| (words[a].start, words[b].end))
+    }
+}
+
+/// The fitting settings of a saved compiler.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CompilerSettings {
+    pub table_steps: usize,
+    pub table_rate: f64,
+    pub table_l2: f64,
+    pub span_steps: usize,
+    pub span_rate: f64,
+    pub span_l2: f64,
+    pub span_max_words: usize,
+    pub act_rule: ActRule,
+}
+
+/// Which head decides whether a turn naming a relation is a statement or a
+/// query.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ActRule {
+    /// The table's act head names assert, update, query or none.
+    #[default]
+    Table,
+    /// A decoded value span makes the turn a statement, and the act head
+    /// only chooses assert or update; no span makes it a query.
+    Span,
+}
+
+impl ActRule {
+    pub fn parse(text: &str) -> Result<Self> {
+        match text {
+            "table" => Ok(Self::Table),
+            "span" => Ok(Self::Span),
+            other => Err(invalid(format!("unknown act rule {other}"))),
+        }
+    }
+}
+
+impl Default for CompilerSettings {
+    /// The table's settings are `recall=route`'s (E4); the span head's are
+    /// the same gradient settings, with values of at most four words.
+    fn default() -> Self {
+        Self {
+            table_steps: 400,
+            table_rate: 0.5,
+            table_l2: 1e-4,
+            span_steps: 400,
+            span_rate: 0.5,
+            span_l2: 1e-4,
+            span_max_words: 4,
+            act_rule: ActRule::Table,
+        }
+    }
+}
+
+pub const COMPILER_SCHEMA: &str = "uor-r4.relation-compiler/1";
+pub const COMPILER_LABEL_SCHEMA: &str = "m-world-v2.relations-acts/1";
+const COMPILER_FEATURES: &str = "table: words at standardized scale; span: frame words in a \
+     two-word window, the l1|r1 pair, shape and position";
+
+/// Serialize `f64`s by their bits, so a saved artifact reloads exactly.
+mod f64_bits {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+    pub fn serialize<S: Serializer>(values: &[f64], s: S) -> Result<S::Ok, S::Error> {
+        values
+            .iter()
+            .map(|v| v.to_bits())
+            .collect::<Vec<u64>>()
+            .serialize(s)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<f64>, D::Error> {
+        Ok(Vec::<u64>::deserialize(d)?
+            .into_iter()
+            .map(f64::from_bits)
+            .collect())
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HeadParts {
+    classes: usize,
+    dim: usize,
+    #[serde(with = "f64_bits")]
+    weights: Vec<f64>,
+    #[serde(with = "f64_bits")]
+    bias: Vec<f64>,
+}
+
+impl HeadParts {
+    fn of(head: &SparseSoftmax) -> Self {
+        Self {
+            classes: head.classes,
+            dim: head.dim,
+            weights: head.weights.clone(),
+            bias: head.bias.clone(),
+        }
+    }
+
+    fn head(self, classes: usize, dim: usize) -> Result<SparseSoftmax> {
+        if self.classes != classes
+            || self.dim != dim
+            || self.weights.len() != classes * dim
+            || self.bias.len() != classes
+            || self
+                .weights
+                .iter()
+                .chain(&self.bias)
+                .any(|v| !v.is_finite())
+        {
+            return Err(invalid(
+                "a saved head has the wrong shape or a non-finite weight",
+            ));
+        }
+        Ok(SparseSoftmax {
+            classes,
+            dim,
+            weights: self.weights,
+            bias: self.bias,
+        })
+    }
+}
+
+/// The saved artifact. Field order is the encoding; [`SavedCompiler`] loads
+/// only its own canonical bytes.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CompilerArtifact {
+    schema: String,
+    label_schema: String,
+    features: String,
+    /// The tokenizer whose token counts metered the training draws, and the
+    /// one the session's emitter must use.
+    tokenizer_sha256: String,
+    /// The table's relation labels in class order, [`NONE`] last.
+    relations: Vec<String>,
+    acts: Vec<String>,
+    /// The table's vocabulary in index order, and each word's scale.
+    words: Vec<String>,
+    #[serde(with = "f64_bits")]
+    word_scale: Vec<f64>,
+    relation_head: HeadParts,
+    act_head: HeadParts,
+    /// The span head's frame vocabulary, sorted, and features in index order.
+    span_frame: Vec<String>,
+    span_features: Vec<String>,
+    span_head: HeadParts,
+    span_max_words: usize,
+    table_steps: usize,
+    #[serde(with = "f64_bits")]
+    table_rate_l2: Vec<f64>,
+    span_steps: usize,
+    #[serde(with = "f64_bits")]
+    span_rate_l2: Vec<f64>,
+    /// Where the training turns came from (draws, files and digests).
+    training: Value,
+    /// `span` for [`ActRule::Span`]; absent for [`ActRule::Table`], so
+    /// artifacts saved before the rule existed keep their bytes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    act_rule: Option<String>,
+}
+
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+/// A fitted relation/act table and value-span head, loaded from its saved
+/// bytes: the compiler of the grounded session (#962, D19). It predicts
+/// from a turn's text alone; it never sees an evaluator label.
+#[derive(Clone)]
+pub struct SavedCompiler {
+    bytes: Vec<u8>,
+    inner: std::sync::Arc<(RelationRoute, SpanHead)>,
+    act_rule: ActRule,
+    identity: crate::stack_grounded_session::CompilerIdentity,
+}
+
+impl SavedCompiler {
+    /// Fit the table and the span head on `train` and save them, with
+    /// `training`, the provenance of `train`, as the artifact. The returned
+    /// compiler is loaded back from those bytes.
+    pub fn fit(
+        train: &[Example],
+        tokenizer_sha256: &str,
+        training: Value,
+        settings: CompilerSettings,
+    ) -> Result<Self> {
+        let route = RelationRoute::fit(
+            train,
+            settings.table_steps,
+            settings.table_rate,
+            settings.table_l2,
+        )?;
+        let span = SpanHead::fit(
+            train,
+            settings.span_steps,
+            settings.span_rate,
+            settings.span_l2,
+            settings.span_max_words,
+        )?;
+        let bytes = encode(&route, &span, tokenizer_sha256, training, settings)?;
+        Self::from_bytes(bytes)
+    }
+
+    /// Load a saved compiler. Only canonical bytes of this schema load.
+    pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
+        let artifact: CompilerArtifact = serde_json::from_slice(&bytes)?;
+        if artifact.schema != COMPILER_SCHEMA
+            || artifact.label_schema != COMPILER_LABEL_SCHEMA
+            || artifact.features != COMPILER_FEATURES
+        {
+            return Err(invalid("not a relation compiler of this schema"));
+        }
+        if !is_sha256(&artifact.tokenizer_sha256) {
+            return Err(invalid("the compiler's tokenizer digest is malformed"));
+        }
+        let distinct = |names: &[String]| {
+            names
+                .iter()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                == names.len()
+                && names.iter().all(|name| !name.is_empty())
+        };
+        if artifact.relations.len() < 2
+            || artifact.relations.last().map(String::as_str) != Some(NONE)
+            || !distinct(&artifact.relations)
+            || artifact.acts != ACTS
+            || !distinct(&artifact.words)
+            || artifact.word_scale.len() != artifact.words.len()
+            || artifact
+                .word_scale
+                .iter()
+                .any(|s| !s.is_finite() || *s <= 0.0)
+            || !distinct(&artifact.span_features)
+            || !artifact.span_frame.windows(2).all(|w| w[0] < w[1])
+            || artifact.span_max_words == 0
+            || artifact.table_rate_l2.len() != 2
+            || artifact.span_rate_l2.len() != 2
+        {
+            return Err(invalid(
+                "a saved compiler's labels or vocabularies are malformed",
+            ));
+        }
+        let settings = CompilerSettings {
+            table_steps: artifact.table_steps,
+            table_rate: artifact.table_rate_l2[0],
+            table_l2: artifact.table_rate_l2[1],
+            span_steps: artifact.span_steps,
+            span_rate: artifact.span_rate_l2[0],
+            span_l2: artifact.span_rate_l2[1],
+            span_max_words: artifact.span_max_words,
+            act_rule: match artifact.act_rule.as_deref() {
+                None => ActRule::Table,
+                Some("span") => ActRule::Span,
+                Some(_) => return Err(invalid("a saved compiler names an unknown act rule")),
+            },
+        };
+        let table_dim = artifact.words.len().max(1);
+        let lexicon = Lexicon {
+            index: artifact
+                .words
+                .iter()
+                .enumerate()
+                .map(|(i, w)| (w.clone(), i))
+                .collect(),
+            scale: artifact.word_scale,
+        };
+        let route = RelationRoute {
+            lexicon,
+            relation_head: artifact
+                .relation_head
+                .head(artifact.relations.len(), table_dim)?,
+            act_head: artifact.act_head.head(ACTS.len(), table_dim)?,
+            relations: artifact.relations,
+            trunk: None,
+        };
+        let span = SpanHead {
+            frame: artifact.span_frame.into_iter().collect(),
+            index: artifact
+                .span_features
+                .iter()
+                .enumerate()
+                .map(|(i, f)| (f.clone(), i))
+                .collect(),
+            head: artifact
+                .span_head
+                .head(2, artifact.span_features.len().max(1))?,
+            max_words: artifact.span_max_words,
+        };
+        if encode(
+            &route,
+            &span,
+            &artifact.tokenizer_sha256,
+            artifact.training.clone(),
+            settings,
+        )? != bytes
+        {
+            return Err(invalid("a saved compiler's bytes are not canonical"));
+        }
+        let relations = route
+            .relations
+            .iter()
+            .filter(|name| name.as_str() != NONE)
+            .enumerate()
+            .map(|(i, name)| {
+                Ok(crate::stack_grounded_session::RelationLabel {
+                    id: u32::try_from(i + 1).map_err(|_| invalid("too many relations"))?,
+                    name: name.clone(),
+                })
+            })
+            .collect::<Result<_>>()?;
+        let identity = crate::stack_grounded_session::CompilerIdentity {
+            schema: COMPILER_SCHEMA.to_owned(),
+            artifact_sha256: uor_r4_core::native_geometric::learner::realtext_support::sha256_hex(
+                &bytes,
+            ),
+            tokenizer_sha256: artifact.tokenizer_sha256,
+            label_schema: COMPILER_LABEL_SCHEMA.to_owned(),
+            relations,
+            encoder: None,
+        };
+        Ok(Self {
+            bytes,
+            inner: std::sync::Arc::new((route, span)),
+            act_rule: settings.act_rule,
+            identity,
+        })
+    }
+
+    pub fn act_rule(&self) -> ActRule {
+        self.act_rule
+    }
+
+    pub fn bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub fn route(&self) -> &RelationRoute {
+        &self.inner.0
+    }
+
+    pub fn span(&self) -> &SpanHead {
+        &self.inner.1
+    }
+
+    /// The store relation ID of a relation label: its 1-based position
+    /// among the table's relations, [`NONE`] excluded.
+    pub fn relation_id(&self, name: &str) -> Option<u32> {
+        self.identity
+            .relations
+            .iter()
+            .find(|label| label.name == name)
+            .map(|label| label.id)
+    }
+
+    /// The action for a user turn: a query of the named relation; a
+    /// statement or correction with the span head's value; or unresolved
+    /// when the table names no relation. Under [`ActRule::Table`] a turn is
+    /// also unresolved when the table names no act, or names a statement
+    /// whose value the span head does not mark.
+    pub fn action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
+        use crate::stack_grounded_session::{CompiledAction, SourceSpan};
+        let unresolved = |reason: &str| {
+            Ok(CompiledAction::Unresolved {
+                reason: reason.to_owned(),
+            })
+        };
+        let (relation, act) = self.route().classify(source, None)?;
+        if relation == NONE {
+            return unresolved("the table names no relation");
+        }
+        let id = self
+            .relation_id(relation)
+            .ok_or_else(|| invalid("the table named a relation outside its labels"))?;
+        if self.act_rule == ActRule::Span {
+            return Ok(match self.span().decode(source) {
+                None => CompiledAction::QueryCurrent { relation: id },
+                Some((start, end)) => {
+                    let span = SourceSpan { start, end };
+                    if self.route().statement_act(source, None)? == "update" {
+                        CompiledAction::Correct { relation: id, span }
+                    } else {
+                        CompiledAction::Assert { relation: id, span }
+                    }
+                }
+            });
+        }
+        match act {
+            "query" => Ok(CompiledAction::QueryCurrent { relation: id }),
+            "assert" | "update" => match self.span().decode(source) {
+                None => unresolved("the span head marks no value"),
+                Some((start, end)) => {
+                    let span = SourceSpan { start, end };
+                    Ok(if act == "assert" {
+                        CompiledAction::Assert { relation: id, span }
+                    } else {
+                        CompiledAction::Correct { relation: id, span }
+                    })
+                }
+            },
+            _ => unresolved("the table names no act"),
+        }
+    }
+}
+
+fn encode(
+    route: &RelationRoute,
+    span: &SpanHead,
+    tokenizer_sha256: &str,
+    training: Value,
+    settings: CompilerSettings,
+) -> Result<Vec<u8>> {
+    if route.trunk.is_some() {
+        return Err(invalid("a saved compiler has no trunk features"));
+    }
+    // JSON floats need not reload to the same bits; only the f64 fields
+    // above are stored by their bits.
+    fn has_float(value: &Value) -> bool {
+        match value {
+            Value::Number(n) => n.is_f64(),
+            Value::Array(items) => items.iter().any(has_float),
+            Value::Object(map) => map.values().any(has_float),
+            _ => false,
+        }
+    }
+    if has_float(&training) {
+        return Err(invalid(
+            "a compiler's training record holds integers and strings only",
+        ));
+    }
+    let mut words: Vec<(usize, &String)> =
+        route.lexicon.index.iter().map(|(w, &i)| (i, w)).collect();
+    words.sort();
+    let mut features: Vec<(usize, &String)> = span.index.iter().map(|(f, &i)| (i, f)).collect();
+    features.sort();
+    let artifact = CompilerArtifact {
+        schema: COMPILER_SCHEMA.to_owned(),
+        label_schema: COMPILER_LABEL_SCHEMA.to_owned(),
+        features: COMPILER_FEATURES.to_owned(),
+        tokenizer_sha256: tokenizer_sha256.to_owned(),
+        relations: route.relations.clone(),
+        acts: ACTS.iter().map(|a| (*a).to_owned()).collect(),
+        words: words.into_iter().map(|(_, w)| w.clone()).collect(),
+        word_scale: route.lexicon.scale.clone(),
+        relation_head: HeadParts::of(&route.relation_head),
+        act_head: HeadParts::of(&route.act_head),
+        span_frame: span.frame.iter().cloned().collect(),
+        span_features: features.into_iter().map(|(_, f)| f.clone()).collect(),
+        span_head: HeadParts::of(&span.head),
+        span_max_words: span.max_words,
+        table_steps: settings.table_steps,
+        table_rate_l2: vec![settings.table_rate, settings.table_l2],
+        span_steps: settings.span_steps,
+        span_rate_l2: vec![settings.span_rate, settings.span_l2],
+        training,
+        act_rule: match settings.act_rule {
+            ActRule::Table => None,
+            ActRule::Span => Some("span".to_owned()),
+        },
+    };
+    Ok(serde_json::to_vec(&artifact)?)
+}
+
+impl crate::stack_grounded_session::TurnCompiler for SavedCompiler {
+    fn identity(&self) -> &crate::stack_grounded_session::CompilerIdentity {
+        &self.identity
+    }
+
+    fn artifact_bytes(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    fn compile(
+        &self,
+        source: &str,
+    ) -> std::result::Result<
+        crate::stack_grounded_session::CompiledAction,
+        crate::stack_grounded_session::GroundedSessionError,
+    > {
+        self.action(source).map_err(|e| {
+            crate::stack_grounded_session::GroundedSessionError::Compiler(e.to_string())
+        })
     }
 }
 
@@ -933,6 +1678,218 @@ mod tests {
         );
         // The sparse fit refuses an index outside its width.
         assert!(SparseSoftmax::fit(&[vec![(3, 1.0)]], &[0], 2, 3, 1, 0.5, 0.0).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn word_spans_are_the_worlds_words_cut_from_the_source() {
+        for text in [
+            "My name is Zorvak.",
+            "  'Tis Ana’s dog, called ‘Rex’ -- or O'Neil?",
+            "Lucky 42, code-word: bliv.",
+            "''",
+            "Ünïcode Ök, naïve café",
+        ] {
+            let spans = word_spans(text);
+            assert_eq!(
+                spans.iter().map(|s| s.word.clone()).collect::<Vec<_>>(),
+                words(text),
+                "{text}"
+            );
+            for span in &spans {
+                assert!(text.is_char_boundary(span.start) && text.is_char_boundary(span.end));
+                assert_eq!(
+                    text[span.start..span.end]
+                        .replace(['\u{2018}', '\u{2019}'], "'")
+                        .to_lowercase(),
+                    span.word
+                );
+            }
+        }
+        assert_eq!(
+            word_spans("call me Kel.")[2],
+            WordSpan {
+                start: 8,
+                end: 11,
+                word: "kel".into()
+            }
+        );
+    }
+
+    fn templated(template: &str, value: &str, relation: &str, act: &'static str) -> Example {
+        Example {
+            text: template.replace("{v}", value),
+            relation: relation.into(),
+            act,
+            template: Some(template.into()),
+        }
+    }
+
+    fn small_world() -> Vec<Example> {
+        let mut train = Vec::new();
+        let names = ["Sam", "Tam", "Rook", "Vel", "Bram", "Ilo"];
+        let towns = ["Hobton", "Marsk", "Pelford", "Quill"];
+        for (i, name) in names.iter().enumerate() {
+            train.push(templated("My name is {v}.", name, "user_name", "assert"));
+            train.push(templated(
+                "Actually, my name is {v}.",
+                names[(i + 1) % names.len()],
+                "user_name",
+                "update",
+            ));
+            train.push(templated(
+                "Call me {v}, please.",
+                name,
+                "user_name",
+                "assert",
+            ));
+            train.push(templated("What is my name?", name, "user_name", "query"));
+            train.push(templated("The weather is nice today.", name, NONE, NONE));
+        }
+        for (i, town) in towns.iter().enumerate() {
+            train.push(templated("I grew up in {v}.", town, "hometown", "assert"));
+            train.push(templated(
+                "Sorry, I grew up in {v}.",
+                towns[(i + 1) % towns.len()],
+                "hometown",
+                "update",
+            ));
+            train.push(templated("Where am I from?", town, "hometown", "query"));
+        }
+        train
+    }
+
+    #[test]
+    fn the_span_head_finds_unseen_values_from_context_and_marks_no_write() -> Result<()> {
+        let train = small_world();
+        assert_eq!(train[0].slot_span(), Some((11, 14)));
+        assert_eq!(train[3].slot_span(), None);
+        let head = SpanHead::fit(&train, 300, 0.5, 1e-4, 4)?;
+        // Training values never enter the frame vocabulary.
+        assert!(!head.frame.contains("sam") && head.frame.contains("name"));
+        for (text, value) in [
+            ("My name is Zorvak.", Some("Zorvak")),
+            ("Actually, my name is Plimbo.", Some("Plimbo")),
+            ("I grew up in Dunmere.", Some("Dunmere")),
+            ("What is my name?", None),
+            ("Where am I from?", None),
+            ("The weather is nice today.", None),
+        ] {
+            let decoded = head.decode(text).map(|(s, e)| &text[s..e]);
+            assert_eq!(decoded, value, "{text}");
+        }
+        assert!(SpanHead::fit(&train, 1, 0.5, 0.0, 0).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn a_saved_compiler_reloads_exactly_and_compiles_turns() -> Result<()> {
+        use crate::stack_grounded_session::{CompiledAction, SourceSpan, TurnCompiler};
+        let train = small_world();
+        let tokenizer = "ab".repeat(32);
+        let training = json!({"draw": "small world", "turns": train.len()});
+        let saved = SavedCompiler::fit(
+            &train,
+            &tokenizer,
+            training.clone(),
+            CompilerSettings::default(),
+        )?;
+        let again = SavedCompiler::from_bytes(saved.bytes().to_vec())?;
+        assert_eq!(again.bytes(), saved.bytes());
+        assert_eq!(again.identity(), saved.identity());
+        // A refit from the same turns gives the same bytes.
+        let refit = SavedCompiler::fit(&train, &tokenizer, training, CompilerSettings::default())?;
+        assert_eq!(refit.bytes(), saved.bytes());
+        let identity = saved.identity();
+        assert_eq!(identity.tokenizer_sha256, tokenizer);
+        assert_eq!(identity.relations.len(), relation_names().len());
+        assert_eq!(identity.relations[0].id, 1);
+        let name = saved
+            .relation_id("user_name")
+            .ok_or_else(|| invalid("no id"))?;
+        let town = saved
+            .relation_id("hometown")
+            .ok_or_else(|| invalid("no id"))?;
+        let compile = |text: &str| saved.compile(text).map_err(|e| invalid(e.to_string()));
+        assert_eq!(
+            compile("My name is Zorvak.")?,
+            CompiledAction::Assert {
+                relation: name,
+                span: SourceSpan { start: 11, end: 17 }
+            }
+        );
+        assert_eq!(
+            compile("Sorry, I grew up in Dunmere.")?,
+            CompiledAction::Correct {
+                relation: town,
+                span: SourceSpan { start: 20, end: 27 }
+            }
+        );
+        assert_eq!(
+            compile("Where am I from?")?,
+            CompiledAction::QueryCurrent { relation: town }
+        );
+        assert!(matches!(
+            compile("The weather is nice today.")?,
+            CompiledAction::Unresolved { .. }
+        ));
+        // Only canonical bytes of this schema load.
+        let mut pretty: Value = serde_json::from_slice(saved.bytes())?;
+        assert!(SavedCompiler::from_bytes(serde_json::to_vec_pretty(&pretty)?).is_err());
+        pretty["acts"][0] = json!("tell");
+        assert!(SavedCompiler::from_bytes(serde_json::to_vec(&pretty)?).is_err());
+        assert!(SavedCompiler::fit(
+            &train,
+            &tokenizer,
+            json!({"rate": 0.5}),
+            CompilerSettings::default()
+        )
+        .is_err());
+        // The table rule writes no act-rule field, so its bytes predate it.
+        assert!(!String::from_utf8_lossy(saved.bytes()).contains("act_rule"));
+        Ok(())
+    }
+
+    #[test]
+    fn under_the_span_rule_a_value_makes_a_statement_and_none_a_query() -> Result<()> {
+        use crate::stack_grounded_session::{CompiledAction, SourceSpan, TurnCompiler};
+        let train = small_world();
+        let settings = CompilerSettings {
+            act_rule: ActRule::Span,
+            ..CompilerSettings::default()
+        };
+        let saved = SavedCompiler::fit(&train, &"cd".repeat(32), json!({}), settings)?;
+        assert_eq!(saved.act_rule(), ActRule::Span);
+        let again = SavedCompiler::from_bytes(saved.bytes().to_vec())?;
+        assert_eq!(again.act_rule(), ActRule::Span);
+        assert_eq!(again.bytes(), saved.bytes());
+        let name = saved
+            .relation_id("user_name")
+            .ok_or_else(|| invalid("no id"))?;
+        let compile = |text: &str| saved.compile(text).map_err(|e| invalid(e.to_string()));
+        assert_eq!(
+            compile("My name is Zorvak.")?,
+            CompiledAction::Assert {
+                relation: name,
+                span: SourceSpan { start: 11, end: 17 }
+            }
+        );
+        assert_eq!(
+            compile("Actually, my name is Plimbo.")?,
+            CompiledAction::Correct {
+                relation: name,
+                span: SourceSpan { start: 21, end: 27 }
+            }
+        );
+        assert_eq!(
+            compile("What is my name?")?,
+            CompiledAction::QueryCurrent { relation: name }
+        );
+        let mut artifact: Value = serde_json::from_slice(saved.bytes())?;
+        assert_eq!(artifact["act_rule"], "span");
+        artifact["act_rule"] = json!("guess");
+        assert!(SavedCompiler::from_bytes(serde_json::to_vec(&artifact)?).is_err());
+        assert!(ActRule::parse("span").is_ok() && ActRule::parse("both").is_err());
         Ok(())
     }
 
