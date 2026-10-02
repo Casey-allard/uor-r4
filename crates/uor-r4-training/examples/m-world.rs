@@ -3531,7 +3531,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         )
         .map_err(|e| invalid(e.to_string()))
         .map(|session| match &log_recall {
-            Some(recall) => session.with_log_recall(recall.clone()),
+            Some(recall) => session.with_log_recall("sieve", recall.clone()),
             None => session,
         })
     };
@@ -3660,8 +3660,15 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         first.save(&root).map_err(|e| invalid(e.to_string()))?;
         drop(first);
         let reloaded = load_compiler()?;
-        let mut second =
-            GroundedSession::load(&root, reloaded, &device).map_err(|e| invalid(e.to_string()))?;
+        let mut second = GroundedSession::load_with_log_recall(
+            &root,
+            reloaded,
+            &device,
+            log_recall
+                .clone()
+                .map(|recall| ("sieve".to_owned(), recall)),
+        )
+        .map_err(|e| invalid(e.to_string()))?;
         for turn in &conversation.turns[middle..] {
             outcomes.push(second.turn(&turn.user).ok());
         }

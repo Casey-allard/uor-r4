@@ -343,7 +343,7 @@ pub struct GroundedSession<C: TurnCompiler> {
     initial_commit: u64,
     history_ids: Vec<u32>,
     turns: Vec<TurnOutcome>,
-    log_recall: Option<LogRecall>,
+    log_recall: Option<(String, LogRecall)>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -357,6 +357,10 @@ struct SessionRecord {
     initial_commit: u64,
     history_ids: Vec<u32>,
     turns: Vec<TurnOutcome>,
+    /// The name of the log recall the session used, if any: a load must
+    /// supply the same provider, since its lines are part of the history.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    log_recall: Option<String>,
 }
 
 impl<C: TurnCompiler> GroundedSession<C> {
@@ -456,9 +460,11 @@ impl<C: TurnCompiler> GroundedSession<C> {
 
     /// Supply a recall line from the user turn log for turns that make no
     /// memory action (the compiler's unresolved turns), when reading is
-    /// enabled. Off by default.
-    pub fn with_log_recall(mut self, recall: LogRecall) -> Self {
-        self.log_recall = Some(recall);
+    /// enabled. Off by default. `name` identifies the provider in a saved
+    /// session, whose load must supply the same one
+    /// ([`Self::load_with_log_recall`]).
+    pub fn with_log_recall(mut self, name: &str, recall: LogRecall) -> Self {
+        self.log_recall = Some((name.to_owned(), recall));
         self
     }
 
@@ -745,7 +751,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
                 },
             ),
             MemoryEffect::Unresolved if read => match &self.log_recall {
-                Some(recall) => {
+                Some((_, recall)) => {
                     let log: Vec<&str> = prior.iter().map(|turn| turn.source.as_str()).collect();
                     match recall(&log, source) {
                         Some(value) if value != "none" && !value.contains('\r') => (
@@ -916,6 +922,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
                 .into(),
                 checkpoint_manifest_sha256: sealed_manifest_sha256(&checkpoint)?,
                 compiler: self.compiler_identity.clone(),
+                log_recall: self.log_recall.as_ref().map(|(name, _)| name.clone()),
                 scope: self.scope.clone(),
                 limits: self.limits.clone(),
                 initial_commit: self.initial_commit,
@@ -945,6 +952,18 @@ impl<C: TurnCompiler> GroundedSession<C> {
     /// The caller loads its actual adapter from `compiler.bin`. Its identity
     /// and complete artifact bytes must agree with the saved session.
     pub fn load(root: &Path, compiler: C, device: &Device) -> Result<Self, GroundedSessionError> {
+        Self::load_with_log_recall(root, compiler, device, None)
+    }
+
+    /// [`Self::load`] for a session saved with a log recall: the provider
+    /// must carry the recorded name, and is attached before the saved turns
+    /// are replayed. A session saved without one refuses a provider.
+    pub fn load_with_log_recall(
+        root: &Path,
+        compiler: C,
+        device: &Device,
+        log_recall: Option<(String, LogRecall)>,
+    ) -> Result<Self, GroundedSessionError> {
         report_output::verify(root)?;
         let expected = BTreeSet::from([
             report_output::ATTEMPT_FILE,
@@ -1011,6 +1030,21 @@ impl<C: TurnCompiler> GroundedSession<C> {
             record.scope,
             record.limits,
         )?;
+        match (&record.log_recall, &log_recall) {
+            (None, None) => {}
+            (Some(saved), Some((given, _))) if saved == given => {}
+            (Some(saved), _) => {
+                return Err(GroundedSessionError::Binding(format!(
+                    "the session used log recall {saved}; load it with that provider"
+                )))
+            }
+            (None, Some(_)) => {
+                return Err(GroundedSessionError::Binding(
+                    "the session used no log recall".into(),
+                ))
+            }
+        }
+        session.log_recall = log_recall;
         session.validate_history(record.initial_commit, &record.history_ids, &record.turns)?;
         session.initial_commit = record.initial_commit;
         session.history_ids = record.history_ids;
@@ -2402,10 +2436,10 @@ mod tests {
         let (base, session) = fixture("log-recall", 512, ContextPolicy::StrictFullHistory);
         // The provider names how many user turns preceded the query, so a
         // rebuilt line made from the wrong slice of the log would differ.
-        let mut session =
-            session.with_log_recall(std::sync::Arc::new(|log: &[&str], _query: &str| {
-                Some(log.len().to_string())
-            }));
+        let mut session = session.with_log_recall(
+            "count",
+            std::sync::Arc::new(|log: &[&str], _query: &str| Some(log.len().to_string())),
+        );
         let write = fixed_turn(&mut session, "put blue");
         assert!(matches!(write.memory, MemoryEffect::Write { .. }));
         assert_eq!(write.recall, RecallDisposition::NotRequested);
@@ -2422,6 +2456,39 @@ mod tests {
         // A read turn keeps the store's own recall.
         let query = fixed_turn(&mut session, "ask");
         assert_eq!(query.recall, RecallDisposition::Value);
+        // A saved session reloads only with the provider it used, replays
+        // every line exactly, and continues as the original does.
+        let snapshot = base.join("snapshot");
+        session.save(&snapshot).expect("save");
+        let count = || -> LogRecall {
+            std::sync::Arc::new(|log: &[&str], _query: &str| Some(log.len().to_string()))
+        };
+        assert!(GroundedSession::load(
+            &snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu
+        )
+        .is_err());
+        assert!(GroundedSession::load_with_log_recall(
+            &snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+            Some(("other".into(), count())),
+        )
+        .is_err());
+        let mut loaded = GroundedSession::load_with_log_recall(
+            &snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+            Some(("count".into(), count())),
+        )
+        .expect("reload with the provider");
+        assert_eq!(loaded.turns, session.turns);
+        assert_eq!(loaded.history_ids, session.history_ids);
+        let next = fixed_turn(&mut session, "hello");
+        let again = fixed_turn(&mut loaded, "hello");
+        assert_eq!(again.emitter_input_ids, next.emitter_input_ids);
+        assert_eq!(again.recall, RecallDisposition::LogValue);
         fs::remove_dir_all(base).expect("clean");
     }
 
