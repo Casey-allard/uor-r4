@@ -10,7 +10,8 @@
 //! m-world corpus world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [chat=CHAT_V0_TRAIN_DIR] \
 //!   [exclude=REQUESTS.json] [conversations=5600] [seed=1] \
 //!   [mqar_share=0.35] [copy_share=0.10] [relation_share=0.30] [other_share=0.25] \
-//!   [recall=off|oracle|sieve] [recall_at=reply|query] [context=256] [protocol=1|2]
+//!   [recall=off|oracle|sieve] [recall_at=reply|query] [context=256] [protocol=1|2] \
+//!   [paraphrases=A.jsonl[,B.jsonl...]] [paraphrase_share=0.5]
 //! m-world evaluate [world=v1] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
 //!   [panel=REQUESTS.json] [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
@@ -992,8 +993,54 @@ fn screen_documents(
 
 /// v2 corpus: M-world v2 training conversations, one document each, measured
 /// in this tokenizer's real tokens, optionally after the chat-v0 split.
+/// `paraphrases=A.jsonl[,B.jsonl...]` (rows with `source_template` and
+/// `text`, as `teacher-paraphrase` writes them) and `paraphrase_share=`
+/// (default 0.5): installed for this process's training draws before any
+/// conversation is drawn. Returns the manifest record, or `None` without
+/// `paraphrases=`.
+fn install_paraphrases(args: &Args) -> Result<Option<Value>> {
+    let Some(list) = args.optional("paraphrases") else {
+        return Ok(None);
+    };
+    let share: f64 = args.number("paraphrase_share", 0.5)?;
+    if !(0.0..=1.0).contains(&share) {
+        return Err(invalid("paraphrase_share must be in [0, 1]"));
+    }
+    let share_permille = (share * 1000.0).round() as usize;
+    let (mut pairs, mut files) = (Vec::new(), Vec::new());
+    for path in list.split(',').map(PathBuf::from) {
+        let text = fs::read_to_string(&path)?;
+        let mut rows = 0usize;
+        for line in text.lines().filter(|l| !l.trim().is_empty()) {
+            let row: Value = serde_json::from_str(line)?;
+            let field = |key: &str| {
+                row[key]
+                    .as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| invalid(format!("{}: a row without {key}", path.display())))
+            };
+            pairs.push((field("source_template")?, field("text")?));
+            rows += 1;
+        }
+        files.push(json!({
+            "path": path.display().to_string(),
+            "sha256": sha256_file(&path)?,
+            "rows": rows,
+        }));
+    }
+    let templates =
+        uor_r4_training::milestone_world_v2::install_train_paraphrases(&pairs, share_permille)?;
+    Ok(Some(json!({
+        "files": files,
+        "share_permille": share_permille,
+        "templates_with_wordings": templates,
+        "rule": "a training template's pick is replaced by one of its teacher wordings in share_permille of draws; development draws are unchanged",
+    })))
+}
+
 fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
     let started = Instant::now();
+    let paraphrases = install_paraphrases(args)?;
     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
     let conversations: usize = args.number("conversations", 5_600)?;
     let seed: u64 = args.number("seed", 1)?;
@@ -1314,6 +1361,7 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
             "split": "train",
             "seed": seed,
             "mix": world.mix(),
+            "train_paraphrases": paraphrases,
             "conversations": conversations,
             "responses": responses,
             "tokens": world_tokens.len(),
@@ -4006,6 +4054,8 @@ fn main() -> Result<()> {
                 "recall_at",
                 "context",
                 "protocol",
+                "paraphrases",
+                "paraphrase_share",
             ],
         )?,
         "evaluate" => Args::parse(
@@ -4054,9 +4104,12 @@ fn main() -> Result<()> {
         if v1
             && (recall != Recall::Off
                 || args.optional("recall_at").is_some()
-                || args.optional("context").is_some())
+                || args.optional("context").is_some()
+                || args.optional("paraphrases").is_some())
         {
-            return Err(invalid("recall=, recall_at= and context= need world=v2"));
+            return Err(invalid(
+                "recall=, recall_at=, context= and paraphrases= need world=v2",
+            ));
         }
         if recall == Recall::Off && args.optional("recall_at").is_some() {
             return Err(invalid("recall_at= needs recall=oracle or recall=sieve"));

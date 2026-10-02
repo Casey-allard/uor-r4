@@ -87,8 +87,8 @@ use sha2::{Digest, Sha256};
 
 use crate::milestone_world::{
     articles, capitalize, closer, contains_phrase, fill, instruction, number, opener, pick,
-    responsive, strings, words, Category, Check, MWorld, Phrasings, Split, Turn, ABSENT_ACCEPT,
-    ABSENT_REPLIES, ACK_WORDS, RELATIONS,
+    responsive, set_train_paraphrases, slots, strings, words, Category, Check, MWorld, Phrasings,
+    Split, TrainParaphrases, Turn, ABSENT_ACCEPT, ABSENT_REPLIES, ACK_WORDS, RELATIONS,
 };
 use crate::stack_tracking::Rng;
 use crate::{invalid, Result};
@@ -450,6 +450,79 @@ fn reserved() -> &'static BTreeSet<String> {
             set.extend(words(text));
         }
         set
+    })
+}
+
+/// Every user phrasing template of `split` in v1 and v2.
+fn split_templates(split: Split) -> BTreeSet<&'static str> {
+    let side = |p: &Phrasings| match split {
+        Split::Train => p.train,
+        Split::Development => p.development,
+    };
+    let mut all: BTreeSet<&'static str> = MWorld::templates(split).into_iter().collect();
+    for p in [&MQAR_LEAD, &MQAR_QUERY, &COPY] {
+        all.extend(side(p));
+    }
+    for rel in relations() {
+        for p in [rel.assert, rel.update, rel.query] {
+            all.extend(side(p));
+        }
+    }
+    all
+}
+
+/// Install training paraphrases for this process: `(source_template, text)`
+/// pairs, each source a training template of v1 or v2 and each text keeping
+/// exactly its source's slots. A text is drawn instead of its source in
+/// `share_permille` of that template's training picks; development picks are
+/// untouched. The reserved words are fixed first, so generated values are
+/// the same as without paraphrases. A text equal to any template is
+/// rejected. Returns the number of templates with wordings. Fails if a table
+/// is already installed.
+pub fn install_train_paraphrases(
+    pairs: &[(String, String)],
+    share_permille: usize,
+) -> Result<usize> {
+    reserved();
+    let paraphrases = train_paraphrases(pairs, share_permille)?;
+    let templates = paraphrases.by_template.len();
+    set_train_paraphrases(paraphrases)?;
+    Ok(templates)
+}
+
+/// The validated table [`install_train_paraphrases`] installs.
+fn train_paraphrases(
+    pairs: &[(String, String)],
+    share_permille: usize,
+) -> Result<TrainParaphrases> {
+    if share_permille > 1000 {
+        return Err(invalid("paraphrase share must be at most 1000 per mille"));
+    }
+    let train = split_templates(Split::Train);
+    let development = split_templates(Split::Development);
+    let mut by_template: BTreeMap<&'static str, Vec<&'static str>> = BTreeMap::new();
+    for (source, text) in pairs {
+        let source: &'static str = train.get(source.as_str()).copied().ok_or_else(|| {
+            invalid(format!(
+                "paraphrase source is no training template: {source}"
+            ))
+        })?;
+        if slots(source) != slots(text) {
+            return Err(invalid(format!(
+                "paraphrase changes the slots of {source:?}: {text:?}"
+            )));
+        }
+        if train.contains(text.as_str()) || development.contains(text.as_str()) {
+            return Err(invalid(format!("paraphrase is a world template: {text:?}")));
+        }
+        let wordings = by_template.entry(source).or_default();
+        if !wordings.contains(&text.as_str()) {
+            wordings.push(Box::leak(text.clone().into_boxed_str()));
+        }
+    }
+    Ok(TrainParaphrases {
+        share_permille,
+        by_template,
     })
 }
 
@@ -4405,5 +4478,78 @@ mod tests {
             }
         }
         println!("longest episode: {longest} tokens");
+    }
+
+    #[test]
+    fn training_paraphrases_are_validated_and_only_change_training_picks() {
+        let pair = |s: &str, t: &str| (s.to_owned(), t.to_owned());
+        let table = train_paraphrases(
+            &[
+                pair(
+                    "What letter does {x} start with?",
+                    "Which letter starts {x}?",
+                ),
+                pair("What is {a} plus {b}?", "How much is {a} and {b} together?"),
+            ],
+            1000,
+        )
+        .unwrap();
+        assert_eq!(table.by_template.len(), 2);
+        // Rejected: a changed slot, an unknown source, a world template as
+        // text, a development source and a share above one.
+        for (source, text) in [
+            ("What is {a} plus {b}?", "How much is {a} and seven?"),
+            ("Tell me a joke.", "Say something funny."),
+            ("What is {a} plus {b}?", "Sum {a} and {b}."),
+            ("Sum {a} and {b}.", "Total {a} with {b}."),
+        ] {
+            assert!(
+                train_paraphrases(&[pair(source, text)], 500).is_err(),
+                "{source}"
+            );
+        }
+        assert!(train_paraphrases(&[], 1001).is_err());
+
+        let first_letter = Phrasings {
+            train: &["What letter does {x} start with?"],
+            development: &["{x} begins with which letter?"],
+        };
+        let mut rng = Rng::new(7);
+        assert_eq!(
+            first_letter.pick_with(&mut rng, Split::Train, Some(&table)),
+            "Which letter starts {x}?"
+        );
+        // Development picks, and training templates without wordings, draw
+        // exactly as without paraphrases.
+        let other = Phrasings {
+            train: &["Spell the word {x}.", "How do you spell {x}?"],
+            development: &["What are the letters in {x}?"],
+        };
+        for (phrasings, split) in [
+            (&first_letter, Split::Development),
+            (&other, Split::Train),
+            (&other, Split::Development),
+        ] {
+            let (mut a, mut b) = (Rng::new(11), Rng::new(11));
+            for _ in 0..20 {
+                assert_eq!(
+                    phrasings.pick_with(&mut a, split, Some(&table)),
+                    phrasings.pick_with(&mut b, split, None)
+                );
+            }
+        }
+        // A zero share keeps every template.
+        let none = train_paraphrases(
+            &[pair(
+                "What letter does {x} start with?",
+                "Which letter starts {x}?",
+            )],
+            0,
+        )
+        .unwrap();
+        assert_eq!(
+            first_letter.pick_with(&mut rng, Split::Train, Some(&none)),
+            "What letter does {x} start with?"
+        );
     }
 }

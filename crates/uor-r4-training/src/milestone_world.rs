@@ -15,7 +15,8 @@
 //! final fit. Relation values also split (names, pets, cities), so a
 //! development recall cannot be a memorized training pair.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -248,10 +249,62 @@ pub(crate) struct Phrasings {
     pub(crate) development: &'static [&'static str],
 }
 
+/// Opt-in training paraphrases: other wordings of a training template (same
+/// intent, same slots), drawn instead of it in `share_permille` of training
+/// picks. Installed at most once per process, through
+/// `milestone_world_v2::install_train_paraphrases`; development picks never
+/// read it, and without it every draw is unchanged.
+pub(crate) struct TrainParaphrases {
+    pub(crate) share_permille: usize,
+    pub(crate) by_template: BTreeMap<&'static str, Vec<&'static str>>,
+}
+
+static TRAIN_PARAPHRASES: OnceLock<TrainParaphrases> = OnceLock::new();
+
+pub(crate) fn set_train_paraphrases(paraphrases: TrainParaphrases) -> Result<()> {
+    TRAIN_PARAPHRASES
+        .set(paraphrases)
+        .map_err(|_| invalid("training paraphrases are already installed"))
+}
+
+/// The sorted `{name}` slots of a template.
+pub(crate) fn slots(text: &str) -> Vec<&str> {
+    let mut found: Vec<&str> = text
+        .match_indices('{')
+        .filter_map(|(start, _)| {
+            let end = text[start..].find('}')?;
+            Some(&text[start..=start + end])
+        })
+        .collect();
+    found.sort_unstable();
+    found
+}
+
 impl Phrasings {
     pub(crate) fn pick(&self, rng: &mut Rng, split: Split) -> &'static str {
+        self.pick_with(rng, split, TRAIN_PARAPHRASES.get())
+    }
+
+    /// A pick under `paraphrases`: a training template with wordings is
+    /// replaced in `share_permille` of its draws (one extra draw decides); a
+    /// template without wordings, and every development pick, draws exactly
+    /// as without paraphrases.
+    pub(crate) fn pick_with(
+        &self,
+        rng: &mut Rng,
+        split: Split,
+        paraphrases: Option<&TrainParaphrases>,
+    ) -> &'static str {
         match split {
-            Split::Train => pick(rng, self.train),
+            Split::Train => {
+                let template = *pick(rng, self.train);
+                let installed = paraphrases
+                    .and_then(|p| Some((p.share_permille, p.by_template.get(template)?)));
+                match installed {
+                    Some((share, wordings)) if rng.below(1000) < share => *pick(rng, wordings),
+                    _ => template,
+                }
+            }
             Split::Development => pick(rng, self.development),
         }
     }
@@ -971,6 +1024,19 @@ const INSTRUCTIONS: [&Phrasings; 9] = [
     &SENTENCE,
 ];
 
+/// The intent names of [`INSTRUCTIONS`], in order.
+const INSTRUCTION_NAMES: [&str; 9] = [
+    "repeat",
+    "spell",
+    "count",
+    "add",
+    "opposite",
+    "list",
+    "first_letter",
+    "compare",
+    "sentence",
+];
+
 const SENTENCE_WORDS: &[&str] = &[
     "dog", "rain", "happy", "school", "apple", "garden", "music", "friend", "river", "blue",
 ];
@@ -1550,6 +1616,34 @@ impl MWorld {
         Err(invalid(
             "the exclusion list rejects every M-world conversation",
         ))
+    }
+
+    /// The non-relation phrasing tables by intent name (social, share, fact
+    /// and instruction): `(intent, train, development)`. Yes/no questions
+    /// are whole sentences with fixed answers, not templates, and are left
+    /// out.
+    pub fn chat_tables() -> Vec<(
+        &'static str,
+        &'static [&'static str],
+        &'static [&'static str],
+    )> {
+        let mut all = Vec::new();
+        for social in SOCIAL {
+            all.push((social.name, social.user.train, social.user.development));
+        }
+        all.push(("share_event", SHARE_EVENT.train, SHARE_EVENT.development));
+        all.push((
+            "share_feeling",
+            SHARE_FEELING.train,
+            SHARE_FEELING.development,
+        ));
+        for fact in FACTS {
+            all.push((fact.name, fact.user.train, fact.user.development));
+        }
+        for (name, table) in INSTRUCTION_NAMES.iter().zip(INSTRUCTIONS) {
+            all.push((*name, table.train, table.development));
+        }
+        all
     }
 
     /// Every user phrasing template of `split`, for disjointness checks.

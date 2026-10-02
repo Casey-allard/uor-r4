@@ -31,7 +31,7 @@ use serde_json::{json, Value};
 use uor_r4_core::report_output;
 use uor_r4_model_source::{HuggingFaceLlamaOracle, State, TeacherExecutionConfig};
 use uor_r4_tokenizer::ByteBpeTokenizer;
-use uor_r4_training::milestone_world::{normalized, Split};
+use uor_r4_training::milestone_world::{normalized, MWorld, Split};
 use uor_r4_training::milestone_world_v2::{Cell, MWorld2, Mix};
 use uor_r4_training::relation_compiler::{label, NONE};
 use uor_r4_training::sha256_file;
@@ -41,7 +41,6 @@ type Error = Box<dyn std::error::Error>;
 
 const IM_START: u32 = 1;
 const IM_END: u32 = 2;
-const SLOT: &str = "{v}";
 
 fn main() -> ExitCode {
     match run() {
@@ -57,7 +56,8 @@ struct Args(BTreeMap<String, String>);
 
 impl Args {
     fn parse() -> Result<Self, Error> {
-        const KEYS: [&str; 14] = [
+        const KEYS: [&str; 15] = [
+            "set",
             "out",
             "teacher",
             "ollama",
@@ -149,9 +149,46 @@ fn templates(
     Ok(found)
 }
 
-/// The words of a template with the slot as one word.
+/// The chat and instruction templates of `phrasing` (`set=chat`): every
+/// social, share, fact and instruction table, with the intent as the
+/// template's relation and `request` as its act.
+fn chat_templates(phrasing: Split) -> BTreeSet<Template> {
+    MWorld::chat_tables()
+        .into_iter()
+        .flat_map(|(intent, train, development)| {
+            let side = match phrasing {
+                Split::Train => train,
+                Split::Development => development,
+            };
+            side.iter().map(move |text| Template {
+                relation: intent.to_owned(),
+                act: "request",
+                text: (*text).to_owned(),
+            })
+        })
+        .collect()
+}
+
+/// The sorted `{name}` slots of a template or line.
+fn slots(text: &str) -> Vec<&str> {
+    let mut found: Vec<&str> = text
+        .match_indices('{')
+        .filter_map(|(start, _)| {
+            let end = text[start..].find('}')?;
+            Some(&text[start..=start + end])
+        })
+        .collect();
+    found.sort_unstable();
+    found
+}
+
+/// The words of a template with each slot as one word.
 fn slot_words(text: &str) -> Vec<String> {
-    normalized(&text.replace(SLOT, " slotvalue "))
+    let mut spaced = text.to_owned();
+    for slot in slots(text) {
+        spaced = spaced.replace(slot, &format!(" slot{} ", &slot[1..slot.len() - 1]));
+    }
+    normalized(&spaced)
         .split(' ')
         .filter(|w| !w.is_empty())
         .map(str::to_owned)
@@ -186,6 +223,26 @@ fn example(act: &str) -> (&'static str, &'static [&'static str]) {
                 "I switched to a {v}.",
             ],
         ),
+        // A chat or instruction request (`set=chat`), with and without a
+        // slot, on topics that are no M-world intent.
+        "request" => (
+            "How old is {x}?",
+            &[
+                "What is the age of {x}?",
+                "Do you know how old {x} is?",
+                "Tell me the age of {x}.",
+                "Can you say how old {x} is?",
+            ],
+        ),
+        "request_plain" => (
+            "Good luck!",
+            &[
+                "Best of luck!",
+                "I hope it goes well!",
+                "Wishing you luck!",
+                "Fingers crossed for you!",
+            ],
+        ),
         _ => (
             "What car do I drive?",
             &[
@@ -202,11 +259,19 @@ fn example(act: &str) -> (&'static str, &'static [&'static str]) {
 /// template of one act and slot shape (its teacher state is computed once),
 /// and the template's own suffix.
 fn prompt(template: &Template, per_template: usize) -> (String, String) {
-    let (sample, rewrites) = example(template.act);
-    let slot_rule = if template.text.contains(SLOT) {
-        format!(" Keep {SLOT} exactly as written, once in each line.")
-    } else {
-        String::new()
+    let slot_names = slots(&template.text);
+    let act = match template.act {
+        "request" if slot_names.is_empty() => "request_plain",
+        act => act,
+    };
+    let (sample, rewrites) = example(act);
+    let slot_rule = match slot_names.as_slice() {
+        [] => String::new(),
+        [one] => format!(" Keep {one} exactly as written, once in each line."),
+        many => format!(
+            " Keep {} exactly as written, each once in each line.",
+            many.join(" and ")
+        ),
     };
     (
         format!(
@@ -503,6 +568,11 @@ fn run() -> Result<(), Error> {
     let probe: bool = args.number("probe", false)?;
     let workers: usize = args.number("workers", 4)?;
     let probe_template: usize = args.number("probe_template", 0)?;
+    let chat = match args.0.get("set").map(String::as_str) {
+        None | Some("relation") => false,
+        Some("chat") => true,
+        Some(other) => return Err(format!("set must be relation or chat, got {other}").into()),
+    };
     if per_template == 0 || max_new == 0 || draws == 0 || top_k == 0 || temperature <= 0.0 {
         return Err("per_template, max_new, draws, top_k and temperature must be positive".into());
     }
@@ -515,6 +585,7 @@ fn run() -> Result<(), Error> {
         &world_tokenizer_path,
         workers,
         probe_template,
+        chat,
         (
             per_template,
             max_new,
@@ -545,6 +616,7 @@ fn generate_all(
     world_tokenizer_path: &Path,
     workers: NonZeroUsize,
     probe_template: usize,
+    chat: bool,
     (per_template, max_new, temperature, top_k, seed, draws, probe): (
         usize,
         usize,
@@ -560,8 +632,17 @@ fn generate_all(
         ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(world_tokenizer_path)?)
             .ok_or("world_tokenizer is not a supported tokenizer.json")?;
     let count = |text: &str| world_tokenizer.encode(text).len();
-    let train = templates(&count, Split::Train, draws, seed)?;
-    let development = templates(&count, Split::Development, draws, seed)?;
+    let (train, development) = if chat {
+        (
+            chat_templates(Split::Train),
+            chat_templates(Split::Development),
+        )
+    } else {
+        (
+            templates(&count, Split::Train, draws, seed)?,
+            templates(&count, Split::Development, draws, seed)?,
+        )
+    };
     let dev_texts: BTreeSet<String> = development
         .iter()
         .map(|t| slot_words(&t.text).join(" "))
@@ -575,9 +656,10 @@ fn generate_all(
         .map(|t| slot_words(&t.text).join(" "))
         .collect();
     println!(
-        "{} training and {} development relation templates",
+        "{} training and {} development {} templates",
         train.len(),
-        development.len()
+        development.len(),
+        if chat { "chat" } else { "relation" }
     );
     let tokenizer_path = teacher_dir.join("tokenizer.json");
     let loading = Instant::now();
@@ -652,8 +734,7 @@ fn generate_all(
                 continue;
             }
             tally.0 += 1;
-            let has_slot = template.text.contains(SLOT);
-            if line.matches(SLOT).count() != usize::from(has_slot) {
+            if slots(&line) != slots(&template.text) {
                 continue;
             }
             let words = slot_words(&line).join(" ");
@@ -714,8 +795,9 @@ fn generate_all(
             "per_template": per_template, "max_new": max_new, "temperature": temperature,
             "top_k": top_k, "seed": seed, "draws": draws, "probe": probe, "workers": workers.get(),
         },
+        "set": if chat { "chat" } else { "relation" },
         "templates": {"training": train.len(), "development_screen": development.len()},
-        "screen": "a line must keep {v} exactly when its template has it; it is dropped if it equals a training template, repeats within its reply, equals a development template or shares a four-word sequence with one (words lowercased, punctuation removed, {v} as one word)",
+        "screen": "a line must keep exactly its template's slots ({v}, {x}, {a}, {b}, {n}), each once; it is dropped if it equals a training template, repeats within its reply, equals a development template or shares a four-word sequence with one (words lowercased, punctuation removed, each slot as one word)",
         "per_relation_act": tallies
             .iter()
             .map(|(key, (lines, screened, kept, prompts))| (key.clone(), json!({
