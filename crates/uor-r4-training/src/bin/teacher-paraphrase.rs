@@ -57,9 +57,11 @@ struct Args(BTreeMap<String, String>);
 
 impl Args {
     fn parse() -> Result<Self, Error> {
-        const KEYS: [&str; 12] = [
+        const KEYS: [&str; 14] = [
             "out",
             "teacher",
+            "ollama",
+            "ollama_url",
             "world_tokenizer",
             "per_template",
             "max_new",
@@ -372,6 +374,90 @@ fn generate(
     Ok((out, position - prefix.len))
 }
 
+/// A local Ollama server (Metal on the M1) as the teacher engine.
+struct Ollama {
+    url: String,
+    model: String,
+}
+
+impl Ollama {
+    fn post(&self, path: &str, body: &Value) -> Result<Value, Error> {
+        use std::io::Write;
+        let mut child = std::process::Command::new("curl")
+            .args([
+                "-sS",
+                "--fail",
+                "-H",
+                "Content-Type: application/json",
+                "--data-binary",
+                "@-",
+            ])
+            .arg(format!("{}{path}", self.url))
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::piped())
+            .spawn()?;
+        child
+            .stdin
+            .take()
+            .ok_or("curl has no stdin")?
+            .write_all(body.to_string().as_bytes())?;
+        let output = child.wait_with_output()?;
+        if !output.status.success() {
+            return Err(format!("ollama {path} failed: {}", output.status).into());
+        }
+        Ok(serde_json::from_slice(&output.stdout)?)
+    }
+
+    /// The model's digest, which binds the teacher in the report.
+    fn digest(&self) -> Result<String, Error> {
+        let output = std::process::Command::new("curl")
+            .args(["-sS", "--fail"])
+            .arg(format!("{}/api/tags", self.url))
+            .output()?;
+        let tags: Value = serde_json::from_slice(&output.stdout)?;
+        tags["models"]
+            .as_array()
+            .and_then(|models| models.iter().find(|m| m["name"] == self.model.as_str()))
+            .and_then(|m| m["digest"].as_str())
+            .map(str::to_owned)
+            .ok_or_else(|| format!("ollama has no model {}", self.model).into())
+    }
+
+    /// One reply to `request`, sampled with the given settings and stopped at
+    /// the end of the first block of rewrites. Returns the text and the
+    /// generated token count.
+    fn reply(
+        &self,
+        request: &str,
+        max_new: usize,
+        temperature: f64,
+        top_k: usize,
+        seed: u64,
+    ) -> Result<(String, usize), Error> {
+        let response = self.post(
+            "/api/chat",
+            &json!({
+                "model": self.model,
+                "messages": [{"role": "user", "content": request}],
+                "stream": false,
+                "options": {
+                    "temperature": temperature,
+                    "top_k": top_k,
+                    "seed": seed,
+                    "num_predict": max_new,
+                    "stop": ["\n\n", "\nSentence", "\nRewrite"],
+                },
+            }),
+        )?;
+        let text = response["message"]["content"]
+            .as_str()
+            .ok_or("ollama returned no message")?
+            .to_owned();
+        let tokens = response["eval_count"].as_u64().unwrap_or(0) as usize;
+        Ok((text, tokens))
+    }
+}
+
 /// Clean one generated line: strip numbering, bullets and quotes.
 fn clean(line: &str) -> String {
     let mut text = line.trim();
@@ -395,7 +481,18 @@ fn run() -> Result<(), Error> {
     let started = Instant::now();
     let args = Args::parse()?;
     let out = args.path("out")?;
-    let teacher_dir = args.path("teacher")?;
+    let ollama = args.0.get("ollama").map(|model| Ollama {
+        url: args
+            .0
+            .get("ollama_url")
+            .cloned()
+            .unwrap_or_else(|| "http://127.0.0.1:11434".into()),
+        model: model.clone(),
+    });
+    let teacher_dir = match &ollama {
+        Some(_) => PathBuf::new(),
+        None => args.path("teacher")?,
+    };
     let world_tokenizer_path = args.path("world_tokenizer")?;
     let per_template: usize = args.number("per_template", 8)?;
     let max_new: usize = args.number("max_new", 160)?;
@@ -414,6 +511,7 @@ fn run() -> Result<(), Error> {
     let result = generate_all(
         &out,
         &teacher_dir,
+        ollama.as_ref(),
         &world_tokenizer_path,
         workers,
         probe_template,
@@ -443,6 +541,7 @@ fn run() -> Result<(), Error> {
 fn generate_all(
     out: &Path,
     teacher_dir: &Path,
+    ollama: Option<&Ollama>,
     world_tokenizer_path: &Path,
     workers: NonZeroUsize,
     probe_template: usize,
@@ -481,14 +580,22 @@ fn generate_all(
         development.len()
     );
     let tokenizer_path = teacher_dir.join("tokenizer.json");
-    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&tokenizer_path)?)
-        .ok_or("the teacher's tokenizer.json is not supported")?;
     let loading = Instant::now();
-    let oracle = HuggingFaceLlamaOracle::load_with_execution(
-        teacher_dir,
-        TeacherExecutionConfig::fixed_workers(workers),
-    )
-    .map_err(|e| format!("teacher load: {e:?}"))?;
+    // The local engine, unless a local Ollama server is the teacher.
+    let local = match ollama {
+        Some(_) => None,
+        None => {
+            let tokenizer =
+                ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&tokenizer_path)?)
+                    .ok_or("the teacher's tokenizer.json is not supported")?;
+            let oracle = HuggingFaceLlamaOracle::load_with_execution(
+                teacher_dir,
+                TeacherExecutionConfig::fixed_workers(workers),
+            )
+            .map_err(|e| format!("teacher load: {e:?}"))?;
+            Some((tokenizer, oracle))
+        }
+    };
     let load_seconds = loading.elapsed().as_secs_f64();
     let mut sampler = Sampler(seed);
     let mut kept = Vec::new();
@@ -501,29 +608,41 @@ fn generate_all(
     };
     // Teacher states after each distinct shared prefix, computed once.
     let mut prefixes: BTreeMap<String, Prefix> = BTreeMap::new();
-    for template in todo {
+    for (index, template) in todo.into_iter().enumerate() {
         let (prefix_text, suffix_text) = prompt(template, per_template);
         let clock = Instant::now();
-        if !prefixes.contains_key(&prefix_text) {
-            let ids = prefix_ids(&tokenizer, &prefix_text);
-            generated_tokens += ids.len();
-            prefixes.insert(prefix_text.clone(), run_prefix(&oracle, &ids, max_new)?);
-        }
-        let prefix = &prefixes[&prefix_text];
-        let suffix = suffix_ids(&tokenizer, &suffix_text);
-        let (reply, steps) = generate(
-            &oracle,
-            &tokenizer,
-            prefix,
-            &suffix,
-            max_new,
-            temperature,
-            top_k,
-            &mut sampler,
-        )?;
+        let (text, steps) = match (ollama, &local) {
+            (Some(engine), _) => engine.reply(
+                &format!("{prefix_text}{suffix_text}"),
+                max_new,
+                temperature,
+                top_k,
+                seed.wrapping_mul(1_000_003).wrapping_add(index as u64),
+            )?,
+            (None, Some((tokenizer, oracle))) => {
+                if !prefixes.contains_key(&prefix_text) {
+                    let ids = prefix_ids(tokenizer, &prefix_text);
+                    generated_tokens += ids.len();
+                    prefixes.insert(prefix_text.clone(), run_prefix(oracle, &ids, max_new)?);
+                }
+                let prefix = &prefixes[&prefix_text];
+                let suffix = suffix_ids(tokenizer, &suffix_text);
+                let (reply, steps) = generate(
+                    oracle,
+                    tokenizer,
+                    prefix,
+                    &suffix,
+                    max_new,
+                    temperature,
+                    top_k,
+                    &mut sampler,
+                )?;
+                (tokenizer.decode(&reply), steps)
+            }
+            (None, None) => return Err("no teacher engine".into()),
+        };
         generation_seconds += clock.elapsed().as_secs_f64();
         generated_tokens += steps;
-        let text = tokenizer.decode(&reply);
         let key = format!("{}/{}", template.relation, template.act);
         let tally = tallies.entry(key).or_default();
         let mut seen = BTreeSet::new();
@@ -573,11 +692,21 @@ fn generate_all(
     let report = json!({
         "schema": "uor-r4.teacher-paraphrase/1",
         "role": "offline teacher as a data source only; it never serves",
-        "teacher": {
-            "path": teacher_dir.display().to_string(),
-            "config_sha256": sha256_file(&teacher_dir.join("config.json"))?,
-            "model_sha256": sha256_file(&teacher_dir.join("model.safetensors"))?,
-            "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+        "teacher": match ollama {
+            Some(engine) => json!({
+                "engine": "ollama (local, Metal)",
+                "model": engine.model,
+                "digest": engine.digest()?,
+                "url": engine.url,
+                "sampling": "the server's sampler with these settings; seed is per template",
+            }),
+            None => json!({
+                "engine": "uor-r4-model-source",
+                "path": teacher_dir.display().to_string(),
+                "config_sha256": sha256_file(&teacher_dir.join("config.json"))?,
+                "model_sha256": sha256_file(&teacher_dir.join("model.safetensors"))?,
+                "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+            }),
         },
         "world_tokenizer_sha256": sha256_file(world_tokenizer_path)?,
         "executable_sha256": sha256_file(&std::env::current_exe()?)?,

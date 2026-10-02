@@ -200,6 +200,73 @@ pub fn trunk_features(
     Ok(features)
 }
 
+/// A frozen stack read as the compiler's encoder: its [`trunk_features`] of
+/// a user turn read alone, bound to its saved files by digest.
+pub struct Trunk {
+    model: StackModel,
+    tokenizer: uor_r4_tokenizer::ByteBpeTokenizer,
+    protocol: uor_r4_tokenizer::dialogue::DialogueProtocol,
+    tokenizer_sha256: String,
+    identity: crate::stack_grounded_session::EncoderIdentity,
+}
+
+impl Trunk {
+    /// Load the stack saved in `directory` (with its transport snap) and the
+    /// tokenizer it reads turns with.
+    pub fn load(
+        directory: &std::path::Path,
+        tokenizer_json: &[u8],
+        device: &candle_core::Device,
+    ) -> Result<Self> {
+        if StackModel::saved_served_representation(directory)?.is_some() {
+            return Err(invalid("a trunk is read in its float form, not served"));
+        }
+        let mut model = StackModel::load(directory, device)?;
+        model.set_transport_snap(StackModel::saved_transport_snap(directory)?)?;
+        let digest = |name: &str| -> Result<Option<String>> {
+            let path = directory.join(name);
+            path.exists().then(|| crate::sha256_file(&path)).transpose()
+        };
+        let identity = crate::stack_grounded_session::EncoderIdentity {
+            config_sha256: digest("config.json")?
+                .ok_or_else(|| invalid("a trunk needs config.json"))?,
+            model_sha256: digest("model.safetensors")?
+                .ok_or_else(|| invalid("a trunk needs model.safetensors"))?,
+            transport_sha256: digest("transport.json")?,
+        };
+        let tokenizer =
+            uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(tokenizer_json)
+                .ok_or_else(|| invalid("unreadable tokenizer.json"))?;
+        if tokenizer.vocab_size() != model.config.vocab_size {
+            return Err(invalid("the trunk and tokenizer vocabularies differ"));
+        }
+        let protocol = uor_r4_tokenizer::dialogue::DialogueProtocol::literal_roles_v1(&tokenizer)
+            .map_err(|e| invalid(format!("protocol: {e}")))?;
+        Ok(Self {
+            model,
+            tokenizer,
+            protocol,
+            tokenizer_sha256: uor_r4_core::native_geometric::learner::realtext_support::sha256_hex(
+                tokenizer_json,
+            ),
+            identity,
+        })
+    }
+
+    pub fn identity(&self) -> &crate::stack_grounded_session::EncoderIdentity {
+        &self.identity
+    }
+
+    /// The trunk's features of a user turn read alone.
+    pub fn features(&self, text: &str) -> Result<Vec<f64>> {
+        let encoder = self
+            .protocol
+            .bind(&self.tokenizer)
+            .map_err(|e| invalid(format!("protocol: {e}")))?;
+        trunk_features(&self.model, &encoder, self.protocol.bos_id, text)
+    }
+}
+
 /// Binary bag-of-words features over a fixed vocabulary.
 pub struct Lexicon {
     index: BTreeMap<String, usize>,
@@ -383,6 +450,21 @@ impl Softmax {
         let exp: Vec<f64> = logits.iter().map(|l| (l - top).exp()).collect();
         let total: f64 = exp.iter().sum();
         exp.iter().map(|e| e / total).collect()
+    }
+
+    /// The logits of a raw feature row.
+    fn logits(&self, row: &[f64]) -> Vec<f64> {
+        let row = self.standardize(row);
+        (0..self.classes)
+            .map(|c| {
+                self.bias[c]
+                    + self.weights[c * self.dim..(c + 1) * self.dim]
+                        .iter()
+                        .zip(&row)
+                        .map(|(w, v)| w * v)
+                        .sum::<f64>()
+            })
+            .collect()
     }
 
     /// The most probable class of a raw feature row (ties to the lower class).
@@ -948,6 +1030,39 @@ pub struct CompilerSettings {
     pub span_l2: f64,
     pub span_max_words: usize,
     pub act_rule: ActRule,
+    pub relation_mode: RelationMode,
+}
+
+/// Which heads name a turn's relation and act.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RelationMode {
+    /// The sparse word table.
+    #[default]
+    Table,
+    /// Dense softmax heads over a frozen [`Trunk`]'s features of the turn
+    /// and its binary words, standardized (E3's `combined` head). The
+    /// compiler then loads only with that trunk.
+    Combined,
+    /// The combined relation head names the relation; the table's act head
+    /// keeps the act (and, under [`ActRule::Span`], assert vs update).
+    CombinedRelation,
+    /// A stack fine-tuned on `compile-corpus` documents generates each
+    /// turn's op (`Op: assert user_name Ada`), and the value is located in
+    /// the turn's own text ([`parse_op`]). The table and span head are
+    /// saved alongside but not consulted.
+    OpModel,
+}
+
+impl RelationMode {
+    pub fn parse(text: &str) -> Result<Self> {
+        match text {
+            "table" => Ok(Self::Table),
+            "combined" => Ok(Self::Combined),
+            "combined_relation" => Ok(Self::CombinedRelation),
+            "op_model" => Ok(Self::OpModel),
+            other => Err(invalid(format!("unknown relation mode {other}"))),
+        }
+    }
 }
 
 /// Which head decides whether a turn naming a relation is a statement or a
@@ -985,7 +1100,88 @@ impl Default for CompilerSettings {
             span_l2: 1e-4,
             span_max_words: 4,
             act_rule: ActRule::Table,
+            relation_mode: RelationMode::Table,
         }
+    }
+}
+
+/// The system line that asks a stack to compile the next user turn.
+pub const COMPILE_PROMPT: &str = "Compile.";
+/// The longest op an op model may generate, in tokens.
+const OP_MAX_TOKENS: usize = 24;
+
+/// The op a labelled turn compiles to: `Op: none`, `Op: query <relation>`, or
+/// `Op: assert|update <relation> <value>` with the template's slot value.
+/// `None` for a statement whose slot cannot be recovered.
+pub fn op_text(example: &Example) -> Option<String> {
+    if example.relation == NONE || example.act == NONE {
+        return Some("Op: none".to_owned());
+    }
+    match example.act {
+        "query" => Some(format!("Op: query {}", example.relation)),
+        act => example
+            .slot_value()
+            .map(|value| format!("Op: {act} {} {}", example.relation, value.trim())),
+    }
+}
+
+/// The action of a generated op for `source`. A statement's value must occur
+/// in the source (exactly, else ignoring ASCII case), and its span is that
+/// occurrence; a statement whose value does not occur is a query of its
+/// relation (the turn holds no value to store); anything else is unresolved
+/// with a reason. `relation_id` maps
+/// a relation name to its store ID.
+pub fn parse_op(
+    text: &str,
+    source: &str,
+    relation_id: impl Fn(&str) -> Option<u32>,
+) -> crate::stack_grounded_session::CompiledAction {
+    use crate::stack_grounded_session::{CompiledAction, SourceSpan};
+    let unresolved = |reason: &str| CompiledAction::Unresolved {
+        reason: reason.to_owned(),
+    };
+    let Some(rest) = text.trim().strip_prefix("Op:") else {
+        return unresolved("the model produced no op");
+    };
+    let mut parts = rest.trim().splitn(3, ' ');
+    let (act, relation, value) = (parts.next(), parts.next(), parts.next());
+    let id = |name: &str| relation_id(name);
+    match (act, relation, value) {
+        (Some("none"), None, None) => unresolved("the op is none"),
+        (Some("query"), Some(name), None) => match id(name) {
+            Some(relation) => CompiledAction::QueryCurrent { relation },
+            None => unresolved("the op names an unknown relation"),
+        },
+        (Some(act @ ("assert" | "update")), Some(name), Some(value)) => {
+            let Some(relation) = id(name) else {
+                return unresolved("the op names an unknown relation");
+            };
+            let value = value.trim().trim_end_matches(['.', '!', '?', ',']).trim();
+            if value.is_empty() {
+                return unresolved("the op has an empty value");
+            }
+            let start = source.find(value).or_else(|| {
+                source
+                    .to_ascii_lowercase()
+                    .find(&value.to_ascii_lowercase())
+            });
+            // A turn that names a relation but holds no value for it cannot
+            // be stored; it asks for the stored one ("Remind me what my job
+            // is." generated as an assert with an invented value).
+            let Some(start) = start else {
+                return CompiledAction::QueryCurrent { relation };
+            };
+            let span = SourceSpan {
+                start,
+                end: start + value.len(),
+            };
+            if act == "assert" {
+                CompiledAction::Assert { relation, span }
+            } else {
+                CompiledAction::Correct { relation, span }
+            }
+        }
+        _ => unresolved("the op does not parse"),
     }
 }
 
@@ -1059,6 +1255,75 @@ impl HeadParts {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DenseParts {
+    classes: usize,
+    dim: usize,
+    #[serde(with = "f64_bits")]
+    mean: Vec<f64>,
+    #[serde(with = "f64_bits")]
+    scale: Vec<f64>,
+    #[serde(with = "f64_bits")]
+    weights: Vec<f64>,
+    #[serde(with = "f64_bits")]
+    bias: Vec<f64>,
+}
+
+impl DenseParts {
+    fn of(head: &Softmax) -> Self {
+        Self {
+            classes: head.classes,
+            dim: head.dim,
+            mean: head.mean.clone(),
+            scale: head.scale.clone(),
+            weights: head.weights.clone(),
+            bias: head.bias.clone(),
+        }
+    }
+
+    fn head(self, classes: usize, dim: usize) -> Result<Softmax> {
+        if self.classes != classes
+            || self.dim != dim
+            || self.mean.len() != dim
+            || self.scale.len() != dim
+            || self.weights.len() != classes * dim
+            || self.bias.len() != classes
+            || self
+                .mean
+                .iter()
+                .chain(&self.weights)
+                .chain(&self.bias)
+                .any(|v| !v.is_finite())
+            || self.scale.iter().any(|s| !s.is_finite() || *s <= 0.0)
+        {
+            return Err(invalid(
+                "a saved dense head has the wrong shape or a non-finite weight",
+            ));
+        }
+        Ok(Softmax {
+            classes,
+            dim,
+            mean: self.mean,
+            scale: self.scale,
+            weights: self.weights,
+            bias: self.bias,
+        })
+    }
+}
+
+/// The combined heads and the trunk they read.
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CombinedParts {
+    trunk: crate::stack_grounded_session::EncoderIdentity,
+    trunk_width: usize,
+    relation_head: DenseParts,
+    /// Absent under [`RelationMode::CombinedRelation`].
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    act_head: Option<DenseParts>,
+}
+
 /// The saved artifact. Field order is the encoding; [`SavedCompiler`] loads
 /// only its own canonical bytes.
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -1096,6 +1361,12 @@ struct CompilerArtifact {
     /// artifacts saved before the rule existed keep their bytes.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     act_rule: Option<String>,
+    /// Present for the combined relation modes only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    combined: Option<CombinedParts>,
+    /// The bound op model, for [`RelationMode::OpModel`] only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    op_model: Option<crate::stack_grounded_session::EncoderIdentity>,
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -1105,13 +1376,34 @@ fn is_sha256(value: &str) -> bool {
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
+/// The combined heads and the trunk they read.
+struct Combined {
+    trunk: Trunk,
+    relation_head: Softmax,
+    /// `None` under [`RelationMode::CombinedRelation`]: the table names acts.
+    act_head: Option<Softmax>,
+}
+
+impl Combined {
+    /// A turn's dense row: the trunk's features, then its binary words.
+    fn row(&self, lexicon: &Lexicon, text: &str) -> Result<Vec<f64>> {
+        let mut row = self.trunk.features(text)?;
+        row.extend(lexicon.features(text));
+        Ok(row)
+    }
+}
+
 /// A fitted relation/act table and value-span head, loaded from its saved
 /// bytes: the compiler of the grounded session (#962, D19). It predicts
-/// from a turn's text alone; it never sees an evaluator label.
+/// from a turn's text alone; it never sees an evaluator label. Under
+/// [`RelationMode::Combined`] dense heads over a frozen [`Trunk`] name the
+/// relation and act instead of the table.
 #[derive(Clone)]
 pub struct SavedCompiler {
     bytes: Vec<u8>,
     inner: std::sync::Arc<(RelationRoute, SpanHead)>,
+    combined: Option<std::sync::Arc<Combined>>,
+    op: Option<std::sync::Arc<Trunk>>,
     act_rule: ActRule,
     identity: crate::stack_grounded_session::CompilerIdentity,
 }
@@ -1126,6 +1418,17 @@ impl SavedCompiler {
         training: Value,
         settings: CompilerSettings,
     ) -> Result<Self> {
+        Self::fit_with(train, tokenizer_sha256, training, settings, None)
+    }
+
+    /// [`Self::fit`], with the trunk that [`RelationMode::Combined`] needs.
+    pub fn fit_with(
+        train: &[Example],
+        tokenizer_sha256: &str,
+        training: Value,
+        settings: CompilerSettings,
+        trunk: Option<Trunk>,
+    ) -> Result<Self> {
         let route = RelationRoute::fit(
             train,
             settings.table_steps,
@@ -1139,12 +1442,86 @@ impl SavedCompiler {
             settings.span_l2,
             settings.span_max_words,
         )?;
-        let bytes = encode(&route, &span, tokenizer_sha256, training, settings)?;
-        Self::from_bytes(bytes)
+        let (combined, op) = match (settings.relation_mode, trunk) {
+            (RelationMode::Table, None) => (None, None),
+            // The op model is trained separately (`compile-corpus`); the
+            // compiler binds it and reads its generated ops.
+            (RelationMode::OpModel, Some(trunk)) => (None, Some(trunk)),
+            (RelationMode::Combined | RelationMode::CombinedRelation, Some(trunk)) => {
+                let mut x = Vec::with_capacity(train.len());
+                for example in train {
+                    let mut row = trunk.features(&example.text)?;
+                    row.extend(route.lexicon.features(&example.text));
+                    x.push(row);
+                }
+                let relation_y: Vec<usize> = train
+                    .iter()
+                    .map(|e| {
+                        route
+                            .relations
+                            .iter()
+                            .position(|r| *r == e.relation)
+                            .unwrap_or(route.relations.len() - 1)
+                    })
+                    .collect();
+                let act_y: Vec<usize> = train
+                    .iter()
+                    .map(|e| {
+                        ACTS.iter()
+                            .position(|a| *a == e.act)
+                            .unwrap_or(ACTS.len() - 1)
+                    })
+                    .collect();
+                let fit = |y: &[usize], classes: usize| {
+                    Softmax::fit(
+                        &x,
+                        y,
+                        classes,
+                        settings.table_steps,
+                        settings.table_rate,
+                        settings.table_l2,
+                    )
+                };
+                let relation_head = fit(&relation_y, route.relations.len())?;
+                let act_head = match settings.relation_mode {
+                    RelationMode::Combined => Some(fit(&act_y, ACTS.len())?),
+                    _ => None,
+                };
+                (
+                    Some(Combined {
+                        trunk,
+                        relation_head,
+                        act_head,
+                    }),
+                    None,
+                )
+            }
+            (RelationMode::Table, Some(_)) => {
+                return Err(invalid("the table relation mode reads no trunk"))
+            }
+            (_, None) => return Err(invalid("this relation mode needs a trunk")),
+        };
+        let bytes = encode(
+            &route,
+            &span,
+            combined.as_ref(),
+            op.as_ref().map(|t| &t.identity),
+            tokenizer_sha256,
+            training,
+            settings,
+        )?;
+        Self::load(bytes, combined.map(|c| c.trunk).or(op))
     }
 
-    /// Load a saved compiler. Only canonical bytes of this schema load.
+    /// Load a saved compiler that reads no trunk. Only canonical bytes of
+    /// this schema load.
     pub fn from_bytes(bytes: Vec<u8>) -> Result<Self> {
+        Self::load(bytes, None)
+    }
+
+    /// Load a saved compiler with the trunk its combined heads read, which
+    /// must be the trunk, and read with the tokenizer, the artifact binds.
+    pub fn load(bytes: Vec<u8>, trunk: Option<Trunk>) -> Result<Self> {
         let artifact: CompilerArtifact = serde_json::from_slice(&bytes)?;
         if artifact.schema != COMPILER_SCHEMA
             || artifact.label_schema != COMPILER_LABEL_SCHEMA
@@ -1196,8 +1573,15 @@ impl SavedCompiler {
                 Some("span") => ActRule::Span,
                 Some(_) => return Err(invalid("a saved compiler names an unknown act rule")),
             },
+            relation_mode: match (&artifact.combined, &artifact.op_model) {
+                (None, None) => RelationMode::Table,
+                (None, Some(_)) => RelationMode::OpModel,
+                (Some(parts), _) if parts.act_head.is_some() => RelationMode::Combined,
+                (Some(_), _) => RelationMode::CombinedRelation,
+            },
         };
-        let table_dim = artifact.words.len().max(1);
+        let words = artifact.words.len();
+        let table_dim = words.max(1);
         let lexicon = Lexicon {
             index: artifact
                 .words
@@ -1229,9 +1613,52 @@ impl SavedCompiler {
                 .head(2, artifact.span_features.len().max(1))?,
             max_words: artifact.span_max_words,
         };
+        let op_model = artifact.op_model.clone();
+        let (combined, op) = match (artifact.combined, &op_model, trunk) {
+            (None, None, None) => (None, None),
+            (Some(_), Some(_), _) => {
+                return Err(invalid(
+                    "a compiler binds combined heads or an op model, not both",
+                ))
+            }
+            (None, Some(bound), Some(trunk)) => {
+                if *bound != trunk.identity || trunk.tokenizer_sha256 != artifact.tokenizer_sha256 {
+                    return Err(invalid(
+                        "the op model or its tokenizer is not the one the compiler binds",
+                    ));
+                }
+                (None, Some(trunk))
+            }
+            (Some(parts), None, Some(trunk)) => {
+                if parts.trunk != trunk.identity
+                    || trunk.tokenizer_sha256 != artifact.tokenizer_sha256
+                    || parts.trunk_width != 2 * trunk.model.config.width
+                {
+                    return Err(invalid(
+                        "the trunk or its tokenizer is not the one the compiler binds",
+                    ));
+                }
+                let dim = parts.trunk_width + words;
+                (
+                    Some(Combined {
+                        trunk,
+                        relation_head: parts.relation_head.head(route.relations.len(), dim)?,
+                        act_head: parts
+                            .act_head
+                            .map(|head| head.head(ACTS.len(), dim))
+                            .transpose()?,
+                    }),
+                    None,
+                )
+            }
+            (_, _, None) => return Err(invalid("this compiler needs its trunk to load")),
+            (None, None, Some(_)) => return Err(invalid("this compiler reads no trunk")),
+        };
         if encode(
             &route,
             &span,
+            combined.as_ref(),
+            op_model.as_ref(),
             &artifact.tokenizer_sha256,
             artifact.training.clone(),
             settings,
@@ -1259,11 +1686,16 @@ impl SavedCompiler {
             tokenizer_sha256: artifact.tokenizer_sha256,
             label_schema: COMPILER_LABEL_SCHEMA.to_owned(),
             relations,
-            encoder: None,
+            encoder: combined
+                .as_ref()
+                .map(|c| c.trunk.identity.clone())
+                .or(op_model),
         };
         Ok(Self {
             bytes,
             inner: std::sync::Arc::new((route, span)),
+            combined: combined.map(std::sync::Arc::new),
+            op: op.map(std::sync::Arc::new),
             act_rule: settings.act_rule,
             identity,
         })
@@ -1271,6 +1703,17 @@ impl SavedCompiler {
 
     pub fn act_rule(&self) -> ActRule {
         self.act_rule
+    }
+
+    pub fn relation_mode(&self) -> RelationMode {
+        if self.op.is_some() {
+            return RelationMode::OpModel;
+        }
+        match &self.combined {
+            None => RelationMode::Table,
+            Some(combined) if combined.act_head.is_some() => RelationMode::Combined,
+            Some(_) => RelationMode::CombinedRelation,
+        }
     }
 
     pub fn bytes(&self) -> &[u8] {
@@ -1295,31 +1738,157 @@ impl SavedCompiler {
             .map(|label| label.id)
     }
 
+    /// The op model's action for a turn read alone: the prompt is
+    /// `System: Compile.` and the turn, the op is decoded greedily up to EOS
+    /// ([`OP_MAX_TOKENS`] at most) and parsed by [`parse_op`].
+    fn op_action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
+        use crate::stack_grounded_session::CompiledAction;
+        use uor_r4_tokenizer::dialogue::Message;
+        let op = self
+            .op
+            .as_ref()
+            .ok_or_else(|| invalid("this compiler has no op model"))?;
+        let encoder = op
+            .protocol
+            .bind(&op.tokenizer)
+            .map_err(|e| invalid(format!("protocol: {e}")))?;
+        let prompt = encoder.encode_assistant_prefix(&[
+            Message {
+                role: "system",
+                content: COMPILE_PROMPT,
+            },
+            Message {
+                role: "user",
+                content: source,
+            },
+        ]);
+        if prompt.emitted_turns != 2 || prompt.special_token_occurrences != 0 {
+            return Ok(CompiledAction::Unresolved {
+                reason: "the turn does not encode as a compile prompt".into(),
+            });
+        }
+        if prompt.tokens.len() + OP_MAX_TOKENS + 1 > op.model.config.context {
+            return Ok(CompiledAction::Unresolved {
+                reason: "the turn is too long to compile".into(),
+            });
+        }
+        let reply = crate::stack_dialogue::greedy_reply(
+            &op.model,
+            &prompt.tokens,
+            OP_MAX_TOKENS,
+            op.protocol.eos_id,
+        )?;
+        let ids: Vec<u32> = reply
+            .ids
+            .iter()
+            .copied()
+            .filter(|&id| id != op.protocol.eos_id)
+            .collect();
+        let text = op.tokenizer.decode(&ids);
+        Ok(parse_op(&text, source, |name| self.relation_id(name)))
+    }
+
+    /// The relation and act the compiler's heads name for a turn: the
+    /// combined heads when it has them, otherwise the table.
+    pub fn classify(&self, source: &str) -> Result<(&str, &'static str)> {
+        if self.op.is_some() {
+            use crate::stack_grounded_session::CompiledAction;
+            let (id, act) = match self.op_action(source)? {
+                CompiledAction::Assert { relation, .. } => (relation, ACTS[0]),
+                CompiledAction::Correct { relation, .. } => (relation, ACTS[1]),
+                CompiledAction::QueryCurrent { relation }
+                | CompiledAction::Query { relation, .. } => (relation, ACTS[2]),
+                CompiledAction::Unresolved { .. } => return Ok((NONE, NONE)),
+            };
+            let name = self
+                .identity
+                .relations
+                .iter()
+                .find(|label| label.id == id)
+                .map(|label| label.name.as_str())
+                .ok_or_else(|| invalid("an op named a relation outside the labels"))?;
+            return Ok((name, act));
+        }
+        let row = self.combined_row(source)?;
+        self.classify_row(source, row.as_deref())
+    }
+
+    /// The combined heads' row of a turn (one trunk read), if they exist.
+    fn combined_row(&self, source: &str) -> Result<Option<Vec<f64>>> {
+        self.combined
+            .as_ref()
+            .map(|combined| combined.row(&self.route().lexicon, source))
+            .transpose()
+    }
+
+    fn classify_row(&self, source: &str, row: Option<&[f64]>) -> Result<(&str, &'static str)> {
+        match (&self.combined, row) {
+            (None, None) => self.route().classify(source, None),
+            (Some(combined), Some(row)) => Ok((
+                self.route().relations[combined.relation_head.predict(row)].as_str(),
+                match &combined.act_head {
+                    Some(head) => ACTS[head.predict(row)],
+                    None => self.route().classify(source, None)?.1,
+                },
+            )),
+            _ => Err(invalid(
+                "a combined row must accompany exactly combined heads",
+            )),
+        }
+    }
+
+    /// For a turn known to be a statement, `update` when the act head scores
+    /// it above `assert`, otherwise `assert`.
+    fn statement_act(&self, source: &str, row: Option<&[f64]>) -> Result<&'static str> {
+        match (&self.combined, row) {
+            (None, None) => self.route().statement_act(source, None),
+            (Some(combined), Some(row)) => {
+                let Some(head) = &combined.act_head else {
+                    return self.route().statement_act(source, None);
+                };
+                let logits = head.logits(row);
+                // ACTS[0] is assert and ACTS[1] update.
+                Ok(if logits[1] > logits[0] {
+                    ACTS[1]
+                } else {
+                    ACTS[0]
+                })
+            }
+            _ => Err(invalid(
+                "a combined row must accompany exactly combined heads",
+            )),
+        }
+    }
+
     /// The action for a user turn: a query of the named relation; a
     /// statement or correction with the span head's value; or unresolved
-    /// when the table names no relation. Under [`ActRule::Table`] a turn is
-    /// also unresolved when the table names no act, or names a statement
-    /// whose value the span head does not mark.
+    /// when the heads name no relation. Under [`ActRule::Table`] a turn is
+    /// also unresolved when the heads name no act, or name a statement whose
+    /// value the span head does not mark.
     pub fn action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
         use crate::stack_grounded_session::{CompiledAction, SourceSpan};
+        if self.op.is_some() {
+            return self.op_action(source);
+        }
         let unresolved = |reason: &str| {
             Ok(CompiledAction::Unresolved {
                 reason: reason.to_owned(),
             })
         };
-        let (relation, act) = self.route().classify(source, None)?;
+        let row = self.combined_row(source)?;
+        let (relation, act) = self.classify_row(source, row.as_deref())?;
         if relation == NONE {
-            return unresolved("the table names no relation");
+            return unresolved("the heads name no relation");
         }
         let id = self
             .relation_id(relation)
-            .ok_or_else(|| invalid("the table named a relation outside its labels"))?;
+            .ok_or_else(|| invalid("the heads named a relation outside the labels"))?;
         if self.act_rule == ActRule::Span {
             return Ok(match self.span().decode(source) {
                 None => CompiledAction::QueryCurrent { relation: id },
                 Some((start, end)) => {
                     let span = SourceSpan { start, end };
-                    if self.route().statement_act(source, None)? == "update" {
+                    if self.statement_act(source, row.as_deref())? == "update" {
                         CompiledAction::Correct { relation: id, span }
                     } else {
                         CompiledAction::Assert { relation: id, span }
@@ -1340,7 +1909,7 @@ impl SavedCompiler {
                     })
                 }
             },
-            _ => unresolved("the table names no act"),
+            _ => unresolved("the heads name no act"),
         }
     }
 }
@@ -1348,12 +1917,28 @@ impl SavedCompiler {
 fn encode(
     route: &RelationRoute,
     span: &SpanHead,
+    combined: Option<&Combined>,
+    op_model: Option<&crate::stack_grounded_session::EncoderIdentity>,
     tokenizer_sha256: &str,
     training: Value,
     settings: CompilerSettings,
 ) -> Result<Vec<u8>> {
     if route.trunk.is_some() {
-        return Err(invalid("a saved compiler has no trunk features"));
+        return Err(invalid("a saved compiler's table has no trunk features"));
+    }
+    let combined_mode = matches!(
+        settings.relation_mode,
+        RelationMode::Combined | RelationMode::CombinedRelation
+    );
+    if (settings.relation_mode == RelationMode::OpModel) != op_model.is_some() {
+        return Err(invalid("the relation mode and the op model disagree"));
+    }
+    if combined_mode != combined.is_some()
+        || combined.is_some_and(|c| {
+            c.act_head.is_some() != (settings.relation_mode == RelationMode::Combined)
+        })
+    {
+        return Err(invalid("the relation mode and the combined heads disagree"));
     }
     // JSON floats need not reload to the same bits; only the f64 fields
     // above are stored by their bits.
@@ -1399,6 +1984,13 @@ fn encode(
             ActRule::Table => None,
             ActRule::Span => Some("span".to_owned()),
         },
+        combined: combined.map(|c| CombinedParts {
+            trunk: c.trunk.identity.clone(),
+            trunk_width: 2 * c.trunk.model.config.width,
+            relation_head: DenseParts::of(&c.relation_head),
+            act_head: c.act_head.as_ref().map(DenseParts::of),
+        }),
+        op_model: op_model.cloned(),
     };
     Ok(serde_json::to_vec(&artifact)?)
 }
@@ -1891,6 +2483,277 @@ mod tests {
         assert!(SavedCompiler::from_bytes(serde_json::to_vec(&artifact)?).is_err());
         assert!(ActRule::parse("span").is_ok() && ActRule::parse("both").is_err());
         Ok(())
+    }
+
+    /// A byte-level tokenizer of 259 IDs: three specials, then the bytes.
+    fn byte_tokenizer() -> Result<Vec<u8>> {
+        let mut printable: Vec<u32> = (u32::from(b'!')..=u32::from(b'~')).collect();
+        printable.extend(0xA1..=0xAC);
+        printable.extend(0xAE..=0xFF);
+        let mut vocab = serde_json::Map::new();
+        let specials = ["<|bos|>", "<|eos|>", "<|unk|>"];
+        for (id, token) in specials.iter().enumerate() {
+            vocab.insert((*token).into(), json!(id));
+        }
+        let mut extra = 0;
+        for byte in 0u32..256 {
+            let code = if printable.contains(&byte) {
+                byte
+            } else {
+                extra += 1;
+                255 + extra
+            };
+            let symbol = char::from_u32(code).ok_or_else(|| invalid("alphabet"))?;
+            vocab.insert(symbol.to_string(), json!(byte + 3));
+        }
+        let added: Vec<Value> = specials
+            .iter()
+            .enumerate()
+            .map(|(id, token)| json!({"id": id, "content": token}))
+            .collect();
+        Ok(serde_json::to_vec(&json!({
+            "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+            "added_tokens": added,
+            "model": {"type": "BPE", "vocab": vocab, "merges": []}
+        }))?)
+    }
+
+    /// A tiny stack saved under a fresh temporary directory.
+    fn saved_trunk(name: &str, seed: u64) -> Result<std::path::PathBuf> {
+        use crate::geometric_stack::{ReadScore, StackArch, StackConfig};
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|e| invalid(e.to_string()))?
+            .as_nanos();
+        let directory = std::env::temp_dir().join(format!(
+            "uor-relation-compiler-{}-{nonce}-{name}",
+            std::process::id()
+        ));
+        let model = StackModel::new(
+            StackConfig {
+                arch: StackArch::Geometric,
+                vocab_size: 259,
+                width: 8,
+                heads: 2,
+                mlp_hidden: 16,
+                context: 96,
+                pattern: "ra".into(),
+                read: ReadScore::Lorentz,
+                rotation: true,
+                seed,
+                memory: None,
+                select: None,
+                pointer: None,
+            },
+            &candle_core::Device::Cpu,
+        )?;
+        model.save(&directory)?;
+        Ok(directory)
+    }
+
+    #[test]
+    fn combined_heads_load_only_with_the_trunk_they_were_fitted_on() -> Result<()> {
+        use crate::stack_grounded_session::TurnCompiler;
+        let device = candle_core::Device::Cpu;
+        let tokenizer = byte_tokenizer()?;
+        let digest =
+            uor_r4_core::native_geometric::learner::realtext_support::sha256_hex(&tokenizer);
+        let directory = saved_trunk("fitted", 7)?;
+        let train = small_world();
+        let settings = CompilerSettings {
+            act_rule: ActRule::Span,
+            relation_mode: RelationMode::Combined,
+            table_steps: 60,
+            ..CompilerSettings::default()
+        };
+        let saved = SavedCompiler::fit_with(
+            &train,
+            &digest,
+            json!({"draw": "small world"}),
+            settings,
+            Some(Trunk::load(&directory, &tokenizer, &device)?),
+        )?;
+        assert_eq!(saved.relation_mode(), RelationMode::Combined);
+        let encoder = saved
+            .identity()
+            .encoder
+            .clone()
+            .ok_or_else(|| invalid("no encoder identity"))?;
+        assert_eq!(
+            encoder.model_sha256,
+            crate::sha256_file(&directory.join("model.safetensors"))?
+        );
+        // The same trunk reloads the same compiler; none, or another, refuses.
+        let again = SavedCompiler::load(
+            saved.bytes().to_vec(),
+            Some(Trunk::load(&directory, &tokenizer, &device)?),
+        )?;
+        assert_eq!(again.bytes(), saved.bytes());
+        for text in [
+            "My name is Zorvak.",
+            "Where am I from?",
+            "The weather is nice today.",
+        ] {
+            assert_eq!(
+                again.compile(text).map_err(|e| invalid(e.to_string()))?,
+                saved.compile(text).map_err(|e| invalid(e.to_string()))?,
+                "{text}"
+            );
+        }
+        assert!(SavedCompiler::from_bytes(saved.bytes().to_vec()).is_err());
+        let other = saved_trunk("other", 8)?;
+        assert!(SavedCompiler::load(
+            saved.bytes().to_vec(),
+            Some(Trunk::load(&other, &tokenizer, &device)?)
+        )
+        .is_err());
+        // A table compiler reads no trunk.
+        let table = SavedCompiler::fit(&train, &digest, json!({}), CompilerSettings::default())?;
+        assert!(SavedCompiler::load(
+            table.bytes().to_vec(),
+            Some(Trunk::load(&directory, &tokenizer, &device)?)
+        )
+        .is_err());
+        assert!(RelationMode::parse("combined").is_ok() && RelationMode::parse("dense").is_err());
+        // The split mode: combined relation names, the table's acts.
+        let split = SavedCompiler::fit_with(
+            &train,
+            &digest,
+            json!({"draw": "small world"}),
+            CompilerSettings {
+                relation_mode: RelationMode::CombinedRelation,
+                ..settings
+            },
+            Some(Trunk::load(&directory, &tokenizer, &device)?),
+        )?;
+        assert_eq!(split.relation_mode(), RelationMode::CombinedRelation);
+        let artifact: Value = serde_json::from_slice(split.bytes())?;
+        assert!(artifact["combined"].get("act_head").is_none());
+        let split_again = SavedCompiler::load(
+            split.bytes().to_vec(),
+            Some(Trunk::load(&directory, &tokenizer, &device)?),
+        )?;
+        assert_eq!(split_again.relation_mode(), RelationMode::CombinedRelation);
+        for text in [
+            "My name is Zorvak.",
+            "Sorry, I grew up in Dunmere.",
+            "Where am I from?",
+        ] {
+            assert_eq!(
+                split.classify(text)?.1,
+                split.route().classify(text, None)?.1,
+                "{text}"
+            );
+            assert_eq!(
+                split_again
+                    .compile(text)
+                    .map_err(|e| invalid(e.to_string()))?,
+                split.compile(text).map_err(|e| invalid(e.to_string()))?
+            );
+        }
+        assert!(RelationMode::parse("combined_relation").is_ok());
+        // The op-model mode binds the model and reads its generated ops.
+        let op = SavedCompiler::fit_with(
+            &train,
+            &digest,
+            json!({"draw": "small world"}),
+            CompilerSettings {
+                relation_mode: RelationMode::OpModel,
+                ..settings
+            },
+            Some(Trunk::load(&directory, &tokenizer, &device)?),
+        )?;
+        assert_eq!(op.relation_mode(), RelationMode::OpModel);
+        let artifact: Value = serde_json::from_slice(op.bytes())?;
+        assert!(artifact["op_model"]["model_sha256"].is_string());
+        assert!(artifact.get("combined").is_none());
+        // An untrained stack's output is not an op: unresolved, not an error.
+        let action = op
+            .compile("My name is Zorvak.")
+            .map_err(|e| invalid(e.to_string()))?;
+        assert!(matches!(
+            action,
+            crate::stack_grounded_session::CompiledAction::Unresolved { .. }
+        ));
+        assert!(SavedCompiler::from_bytes(op.bytes().to_vec()).is_err());
+        assert!(SavedCompiler::load(
+            op.bytes().to_vec(),
+            Some(Trunk::load(&other, &tokenizer, &device)?)
+        )
+        .is_err());
+        assert!(SavedCompiler::load(
+            op.bytes().to_vec(),
+            Some(Trunk::load(&directory, &tokenizer, &device)?)
+        )
+        .is_ok());
+        let _ = std::fs::remove_dir_all(&directory);
+        let _ = std::fs::remove_dir_all(&other);
+        Ok(())
+    }
+
+    #[test]
+    fn ops_are_written_from_labels_and_parsed_against_the_source() {
+        use crate::stack_grounded_session::{CompiledAction, SourceSpan};
+        let train = small_world();
+        assert_eq!(
+            op_text(&train[0]).as_deref(),
+            Some("Op: assert user_name Sam")
+        );
+        assert_eq!(
+            op_text(&train[1]).as_deref(),
+            Some("Op: update user_name Tam")
+        );
+        assert_eq!(op_text(&train[3]).as_deref(), Some("Op: query user_name"));
+        assert_eq!(op_text(&train[4]).as_deref(), Some("Op: none"));
+        let ids = |name: &str| match name {
+            "user_name" => Some(1),
+            "hometown" => Some(4),
+            _ => None,
+        };
+        let source = "Actually, call me Zorvak.";
+        assert_eq!(
+            parse_op("Op: update user_name Zorvak", source, ids),
+            CompiledAction::Correct {
+                relation: 1,
+                span: SourceSpan { start: 18, end: 24 }
+            }
+        );
+        // Case may differ; a trailing period is ignored.
+        assert_eq!(
+            parse_op(" Op: assert user_name zorvak.", source, ids),
+            CompiledAction::Assert {
+                relation: 1,
+                span: SourceSpan { start: 18, end: 24 }
+            }
+        );
+        assert_eq!(
+            parse_op("Op: query hometown", "Where am I from?", ids),
+            CompiledAction::QueryCurrent { relation: 4 }
+        );
+        // A statement whose value is not in the turn asks for the stored one.
+        assert_eq!(
+            parse_op("Op: assert user_name Plimbo", source, ids),
+            CompiledAction::QueryCurrent { relation: 1 }
+        );
+        assert_eq!(
+            parse_op("Op: update hometown Oslo", "Remind me where I live.", ids),
+            CompiledAction::QueryCurrent { relation: 4 }
+        );
+        for (text, reason) in [
+            ("Op: none", "the op is none"),
+            ("Your name is Zorvak.", "the model produced no op"),
+            ("Op: query pet_kind", "the op names an unknown relation"),
+            ("Op: assert user_name", "the op does not parse"),
+            ("Op: query hometown extra", "the op does not parse"),
+        ] {
+            assert_eq!(
+                parse_op(text, source, ids),
+                CompiledAction::Unresolved {
+                    reason: reason.into()
+                },
+                "{text}"
+            );
+        }
     }
 
     #[test]
