@@ -138,8 +138,20 @@ pub fn episode_contract_at(
     vocab_size: usize,
     context: usize,
 ) -> Result<(DialogueProtocol, EpisodeContract)> {
-    let protocol =
-        DialogueProtocol::literal_roles_v1(tokenizer).map_err(|e| invalid(e.to_string()))?;
+    episode_contract_for(tokenizer, vocab_size, context, 1)
+}
+
+/// [`episode_contract_at`] under literal-role dialogue `version` (1 or 2,
+/// [`DialogueProtocol::literal_roles_version`]): the assistant marker that
+/// opens each scored response is that version's.
+pub fn episode_contract_for(
+    tokenizer: &ByteBpeTokenizer,
+    vocab_size: usize,
+    context: usize,
+    version: u8,
+) -> Result<(DialogueProtocol, EpisodeContract)> {
+    let protocol = DialogueProtocol::literal_roles_version(tokenizer, version)
+        .map_err(|e| invalid(e.to_string()))?;
     let encoder = protocol
         .bind(tokenizer)
         .map_err(|e| invalid(e.to_string()))?;

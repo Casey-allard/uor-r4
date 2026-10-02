@@ -48,7 +48,7 @@
 //!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
 //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
-//!   [max_new_tokens=96]
+//!   [max_new_tokens=96] [protocol=1|2]
 //! geometric-stack lut-chat artifact=ROOT/model.lut tokenizer=TOKENIZER.json out=NEW_REPORT_ROOT \
 //!   [requests=REQUESTS.json] [max_new_tokens=96] [temperature=0] [top_k=40] [top_p=1] [seed=1] \
 //!   [threads=1]
@@ -239,7 +239,7 @@ use uor_r4_training::geometric_stack::{
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
-    check_panel, development, episode_contract, episode_contract_at, greedy_reply, load_requests,
+    check_panel, development, episode_contract, episode_contract_for, greedy_reply, load_requests,
     reply_panel, trim, DialogueSplit, Reply, MAX_NEW_TOKENS,
 };
 use uor_r4_training::stack_export::{
@@ -3185,6 +3185,9 @@ struct DialogueSettings {
     max_seconds: f64,
     requests: Option<PathBuf>,
     max_new_tokens: usize,
+    /// `protocol=1|2`: the literal-role dialogue version of both corpora
+    /// (their assistant markers locate the scored responses).
+    protocol: u8,
 }
 
 impl DialogueSettings {
@@ -3201,6 +3204,9 @@ impl DialogueSettings {
             "dev_per_source": self.dev_per_source, "checkpoint_every": self.checkpoint_every,
             "requests": self.requests, "max_new_tokens": self.max_new_tokens,
         });
+        if self.protocol != 1 {
+            record["protocol"] = json!(self.protocol);
+        }
         // As given on the command line; only when given, so other runs'
         // records are unchanged. The configuration (`config`) has the result.
         if let Some(select) = &self.select {
@@ -3247,6 +3253,9 @@ impl DialogueSettings {
         });
         if self.qat {
             lineage["qat"] = json!({"codec": qat_codec().name()});
+        }
+        if self.protocol != 1 {
+            lineage["protocol"] = json!(self.protocol);
         }
         if let Some(snap) = self.transport_snap {
             lineage["transport_snap"] = snap.record();
@@ -3339,6 +3348,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "pointer_score",
             "pointer_select",
             "pointer_route",
+            "protocol",
         ],
     )?;
     // Validate the A1 options before anything is claimed or loaded.
@@ -3382,6 +3392,11 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         max_seconds: args.number("max_seconds", f64::INFINITY)?,
         requests: args.optional("requests").map(PathBuf::from),
         max_new_tokens: args.number("max_new_tokens", 32)?,
+        protocol: match args.optional("protocol").as_deref() {
+            None | Some("1") => 1,
+            Some("2") => 2,
+            Some(other) => return Err(invalid(format!("invalid protocol={other} (1 or 2)"))),
+        },
     };
     if settings.steps == 0
         || !(1..=64).contains(&settings.batch)
@@ -3613,9 +3628,9 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     }
     // Training episodes fill the model's context; the development panel stays
     // the retained study's 256-ID panel, so its scores stay comparable.
-    let (protocol, contract) = episode_contract_at(&tokenizer, vocab, config.context)?;
+    let (protocol, contract) = episode_contract_for(&tokenizer, vocab, config.context, s.protocol)?;
     let train = train_split.index_for(contract, s.policy)?;
-    let (_, dev_contract) = episode_contract(&tokenizer, vocab)?;
+    let (_, dev_contract) = episode_contract_for(&tokenizer, vocab, EPISODE_CONTEXT, s.protocol)?;
     let dev = dev_split.index(dev_contract)?;
     let panel = dialogue_development::select(&dev, s.dev_seed, s.dev_per_source)?;
     let requests = s.requests.as_deref().map(load_requests).transpose()?;
@@ -4245,7 +4260,8 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   [data_seed=] \\
   [steps=] \\
   [batch=] [lr=] [warmup=] [min_lr=] [weight_decay=] [clip=] [eval_every=] [dev_seed=] \\
-  [dev_per_source=] [checkpoint_every=] [resume=] [max_seconds=] [requests=] [max_new_tokens=]
+  [dev_per_source=] [checkpoint_every=] [resume=] [max_seconds=] [requests=] [max_new_tokens=] \\
+  [protocol=1|2]
 
   select=flock:WINDOW:K  every read row (geometric reads and the control's attention) softmaxes
                          over the sink (position 0), the last WINDOW positions and the K
@@ -4281,6 +4297,9 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          and ngram-ranked:WINDOW admit by the longest ordered n-let match
                          (n up to WINDOW) instead of any shared atom. Excludes
                          pointer_select=. With init=, replaces the saved head's route.
+  protocol=1|2           the literal-role dialogue version of both corpora (default 1); 2 puts
+                         the space after a role marker into the message (m-world corpus
+                         protocol=2), so a reply's first word can be copied from context.
   reports                each eval adds dev_pointer_mean_gate / dev_pointer_hit_rate /
                          dev_pointer_reachable_rate to the curve; all settings are in the saved
                          config.json and the report's config and flock_and_pointer.

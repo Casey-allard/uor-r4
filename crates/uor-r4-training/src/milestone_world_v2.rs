@@ -1097,12 +1097,15 @@ impl Mix {
 /// `DialogueProtocol::literal_roles_v1` encodes a document: BOS, then for each
 /// exchange "\n" (after the first), "User: ", the trimmed user text, "\n",
 /// "Assistant: ", the trimmed reply and EOS. `count` is the number of tokens of
-/// a text.
+/// a text. [`Meter::spaced`] counts version 2's layout instead.
 pub struct Meter<'a> {
     count: &'a dyn Fn(&str) -> usize,
     newline: usize,
     user: usize,
     assistant: usize,
+    /// Version 2: markers end at the colon and each content carries its
+    /// leading space.
+    spaced: bool,
 }
 
 impl<'a> Meter<'a> {
@@ -1112,12 +1115,29 @@ impl<'a> Meter<'a> {
             newline: count("\n"),
             user: count("User: "),
             assistant: count("Assistant: "),
+            spaced: false,
+        }
+    }
+
+    /// The meter of `DialogueProtocol::literal_roles_v2`'s layout: "User:"
+    /// and "Assistant:", each followed by " " and the trimmed content.
+    pub fn spaced(count: &'a dyn Fn(&str) -> usize) -> Self {
+        Self {
+            count,
+            newline: count("\n"),
+            user: count("User:"),
+            assistant: count("Assistant:"),
+            spaced: true,
         }
     }
 
     /// Tokens of a content text.
     pub fn text(&self, text: &str) -> usize {
-        (self.count)(text.trim())
+        if self.spaced {
+            (self.count)(&format!(" {}", text.trim()))
+        } else {
+            (self.count)(text.trim())
+        }
     }
 
     /// Tokens of the exchange at position `index` of a document.
@@ -4318,6 +4338,10 @@ mod tests {
         let protocol = DialogueProtocol::literal_roles_v1(&tokenizer).expect("a protocol");
         let encoder = protocol.bind(&tokenizer).expect("an encoder");
         let count = |text: &str| tokenizer.encode(text).len();
+        // Version 2 encodes the same conversations; its own meter counts them.
+        let spaced_protocol = DialogueProtocol::literal_roles_v2(&tokenizer).expect("version 2");
+        let spaced_encoder = spaced_protocol.bind(&tokenizer).expect("an encoder");
+        let spaced = Meter::spaced(&count);
         let mut world = MWorld2::new(&count, Mix::default()).expect("a world");
         let mut longest = 0;
         for split in [Split::Train, Split::Development] {
@@ -4344,6 +4368,12 @@ mod tests {
                 assert_eq!(
                     encoded.tokens.len(),
                     conversation.tokens,
+                    "{:?}",
+                    conversation.turns
+                );
+                assert_eq!(
+                    spaced_encoder.encode_document(&messages).tokens.len(),
+                    spaced.document(&conversation.turns),
                     "{:?}",
                     conversation.turns
                 );
