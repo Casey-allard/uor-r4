@@ -7564,6 +7564,50 @@ fn adam_step(
         });
 }
 
+/// [`adam_step`] on Metal, in place in the variable's and moments' buffers,
+/// with the same f32 operations in the same order.
+#[cfg(feature = "metal")]
+fn adam_step_metal(
+    device: &candle_core::MetalDevice,
+    var: &Var,
+    grad: &Tensor,
+    m: &Var,
+    v: &Var,
+    c: &AdamConstants,
+) -> Result<()> {
+    use crate::metal_stack_kernels::metal::{launch, Arg};
+    let gradient = metal_ready(grad)?;
+    let n = var.elem_count();
+    if gradient.elem_count() != n || m.elem_count() != n || v.elem_count() != n {
+        return Err(invalid("Metal AdamW sizes disagree"));
+    }
+    let (p, g, first, second) = (
+        metal_storage(var.as_tensor())?,
+        metal_storage(&gradient)?,
+        metal_storage(m.as_tensor())?,
+        metal_storage(v.as_tensor())?,
+    );
+    let constants = [
+        c.scale, c.beta1, c.rest1, c.beta2, c.rest2, c.correct1, c.correct2, c.epsilon, c.keep,
+        c.lr,
+    ]
+    .map(f32::to_bits);
+    launch(
+        device,
+        "adam_update",
+        n,
+        &[
+            Arg::Out(p.buffer()),
+            Arg::Out(first.buffer()),
+            Arg::Out(second.buffer()),
+            Arg::In(g.buffer()),
+            Arg::Words(&constants),
+            Arg::U32(n as u32),
+        ],
+    )?;
+    Ok(())
+}
+
 /// AdamW with global gradient-norm clipping and resumable moments.
 pub struct StackAdamW {
     pub beta1: f64,
@@ -7606,9 +7650,23 @@ impl StackAdamW {
         lr: f64,
     ) -> Result<f64> {
         let mut total = 0f64;
-        for var in model.variables().values() {
-            if let Some(grad) = grads.get(var.as_tensor()) {
-                total += f64::from(grad.sqr()?.sum_all()?.to_scalar::<f32>()?);
+        if matches!(model.device(), Device::Metal(_)) {
+            // One host synchronization for the whole norm: each variable's
+            // squared sum stays on the device, then their f32 sum is read.
+            let sums = model
+                .variables()
+                .values()
+                .filter_map(|var| grads.get(var.as_tensor()))
+                .map(|grad| grad.sqr()?.sum_all()?.reshape(1))
+                .collect::<candle_core::Result<Vec<_>>>()?;
+            if !sums.is_empty() {
+                total = f64::from(Tensor::cat(&sums, 0)?.sum_all()?.to_scalar::<f32>()?);
+            }
+        } else {
+            for var in model.variables().values() {
+                if let Some(grad) = grads.get(var.as_tensor()) {
+                    total += f64::from(grad.sqr()?.sum_all()?.to_scalar::<f32>()?);
+                }
             }
         }
         let norm = total.sqrt();
@@ -7648,6 +7706,11 @@ impl StackAdamW {
                 keep: keep as f32,
                 lr: lr as f32,
             };
+            #[cfg(feature = "metal")]
+            if let Device::Metal(device) = var.device() {
+                adam_step_metal(device, var, grad, m, v, &constants)?;
+                continue;
+            }
             let mut parameters = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
             let gradient = grad.flatten_all()?.to_vec1::<f32>()?;
             let mut first_moment = m.as_tensor().flatten_all()?.to_vec1::<f32>()?;
@@ -8151,6 +8214,209 @@ impl RecurrenceCore {
     }
 }
 
+/// Runs a three-input op's exact CPU forward on host copies of Metal inputs
+/// and returns the result as a Metal buffer. Used where a Metal kernel does
+/// not cover the op's configuration, so a Metal model computes exactly what
+/// the CPU model computes (unified memory makes the copies cheap).
+#[cfg(feature = "metal")]
+fn metal_via_host(
+    op: &impl CustomOp3,
+    inputs: [(&MetalStorage, &Layout); 3],
+) -> candle_core::Result<(MetalStorage, Shape)> {
+    let [(s1, l1), (s2, l2), (s3, l3)] = inputs;
+    let (c1, c2, c3) = (
+        s1.to_cpu_storage()?,
+        s2.to_cpu_storage()?,
+        s3.to_cpu_storage()?,
+    );
+    let (out, shape) = op.cpu_fwd(&c1, l1, &c2, l2, &c3, l3)?;
+    let CpuStorage::F32(values) = out else {
+        candle_core::bail!("{} host fallback expects F32 output", op.name());
+    };
+    let device = s1.device();
+    let buffer = device.new_buffer_with_data(&values)?;
+    Ok((
+        MetalStorage::new(buffer, device.clone(), values.len(), DType::F32),
+        shape,
+    ))
+}
+
+/// A Metal F32 tensor laid out contiguously from offset zero (copied only
+/// when it is not), for binding its whole buffer to a kernel.
+#[cfg(feature = "metal")]
+fn metal_ready(tensor: &Tensor) -> candle_core::Result<Tensor> {
+    if tensor.dtype() != DType::F32 {
+        candle_core::bail!("Metal stack kernels require F32 tensors");
+    }
+    if tensor.is_contiguous() && tensor.layout().start_offset() == 0 {
+        Ok(tensor.clone())
+    } else {
+        tensor.force_contiguous()
+    }
+}
+
+/// The Metal storage of a tensor prepared by [`metal_ready`].
+#[cfg(feature = "metal")]
+fn metal_storage(tensor: &Tensor) -> candle_core::Result<MetalStorage> {
+    let (storage, layout) = tensor.storage_and_layout();
+    if layout.start_offset() != 0 || !layout.is_contiguous() {
+        candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
+    }
+    match &*storage {
+        Storage::Metal(storage) => Ok(storage.clone()),
+        _ => candle_core::bail!("expected a Metal tensor"),
+    }
+}
+
+/// A gradient tensor over a fresh Metal buffer.
+#[cfg(feature = "metal")]
+fn metal_tensor(
+    buffer: Arc<candle_metal_kernels::metal::Buffer>,
+    device: &candle_core::MetalDevice,
+    shape: &Shape,
+) -> Tensor {
+    Tensor::from_storage(
+        Storage::Metal(MetalStorage::new(
+            buffer,
+            device.clone(),
+            shape.elem_count(),
+            DType::F32,
+        )),
+        shape.clone(),
+        candle_core::op::BackpropOp::none(),
+        false,
+    )
+}
+
+#[cfg(feature = "metal")]
+impl RecurrenceCore {
+    /// `log a` per lane computed on the device (no host synchronization).
+    fn metal_log_a(
+        &self,
+        device: &candle_core::MetalDevice,
+        parameters: &candle_metal_kernels::metal::Buffer,
+        parameter_offset: usize,
+    ) -> candle_core::Result<Arc<candle_metal_kernels::metal::Buffer>> {
+        use crate::metal_stack_kernels::metal::{launch, Arg};
+        let lanes = self.lanes();
+        let log_a = device.new_buffer(lanes, DType::F32, "recurrence_log_a")?;
+        launch(
+            device,
+            "recurrence_log_a",
+            lanes,
+            &[
+                Arg::InAt(parameters, parameter_offset),
+                Arg::Out(&log_a),
+                Arg::U32(self.width as u32),
+                Arg::U32(lanes as u32),
+            ],
+        )?;
+        Ok(log_a)
+    }
+
+    /// The exact backward on Metal: recomputes the forward states, sweeps
+    /// each (window, lane) in reverse, then reduces the windows' parameter
+    /// partials.
+    fn metal_bwd(
+        &self,
+        device: &candle_core::MetalDevice,
+        branches: &Tensor,
+        gates: &Tensor,
+        parameters: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<(Tensor, Tensor, Tensor)> {
+        use crate::metal_stack_kernels::metal::{call_recurrence_core_fwd, launch, Arg};
+        let (b, g, p, dy) = (
+            metal_ready(branches)?,
+            metal_ready(gates)?,
+            metal_ready(parameters)?,
+            metal_ready(grad)?,
+        );
+        let (time, width, lanes) = (self.time, self.width, self.lanes());
+        let gate_width = self.gate_width();
+        let param_len = self.parameter_len();
+        if b.elem_count() != self.batch * time * 2 * width
+            || g.elem_count() != self.batch * time * gate_width
+            || p.elem_count() != param_len
+            || dy.elem_count() != self.batch * time * width
+        {
+            candle_core::bail!("Metal recurrence backward inputs have the wrong sizes");
+        }
+        let (bs, gs, ps, ds) = (
+            metal_storage(&b)?,
+            metal_storage(&g)?,
+            metal_storage(&p)?,
+            metal_storage(&dy)?,
+        );
+        let log_a = self.metal_log_a(device, ps.buffer(), 0)?;
+        let total_state = self.batch * time * width;
+        let state = device.new_buffer(total_state, DType::F32, "recurrence_bwd_state")?;
+        let drive = device.new_buffer(total_state, DType::F32, "recurrence_bwd_drive")?;
+        let out = device.new_buffer(total_state, DType::F32, "recurrence_bwd_out")?;
+        call_recurrence_core_fwd(
+            device,
+            bs.buffer(),
+            gs.buffer(),
+            ps.buffer(),
+            &log_a,
+            &state,
+            &drive,
+            &out,
+            self.batch,
+            time,
+            width,
+            self.rotation,
+        )?;
+        let d_branches = device.new_buffer(b.elem_count(), DType::F32, "recurrence_d_branches")?;
+        let d_gates = device.new_buffer(g.elem_count(), DType::F32, "recurrence_d_gates")?;
+        let partials =
+            device.new_buffer(self.batch * param_len, DType::F32, "recurrence_partials")?;
+        let d_parameters = device.new_buffer(param_len, DType::F32, "recurrence_d_params")?;
+        launch(
+            device,
+            "recurrence_core_bwd",
+            self.batch * lanes,
+            &[
+                Arg::In(bs.buffer()),
+                Arg::In(gs.buffer()),
+                Arg::In(ps.buffer()),
+                Arg::In(&log_a),
+                Arg::In(&state),
+                Arg::In(&drive),
+                Arg::In(ds.buffer()),
+                Arg::Out(&d_branches),
+                Arg::Out(&d_gates),
+                Arg::Out(&partials),
+                Arg::U32(time as u32),
+                Arg::U32(width as u32),
+                Arg::U32(lanes as u32),
+                Arg::U32(gate_width as u32),
+                Arg::U32(u32::from(self.rotation)),
+                Arg::U32((self.batch * lanes) as u32),
+                Arg::U32(param_len as u32),
+            ],
+        )?;
+        launch(
+            device,
+            "recurrence_param_reduce",
+            param_len,
+            &[
+                Arg::In(&partials),
+                Arg::In(ps.buffer()),
+                Arg::Out(&d_parameters),
+                Arg::U32(self.batch as u32),
+                Arg::U32(param_len as u32),
+                Arg::U32(width as u32),
+            ],
+        )?;
+        Ok((
+            metal_tensor(d_branches, device, branches.shape()),
+            metal_tensor(d_gates, device, gates.shape()),
+            metal_tensor(d_parameters, device, parameters.shape()),
+        ))
+    }
+}
+
 impl CustomOp3 for RecurrenceCore {
     fn name(&self) -> &'static str {
         "geometric-stack-recurrence"
@@ -8208,7 +8474,7 @@ impl CustomOp3 for RecurrenceCore {
         l3: &Layout,
     ) -> candle_core::Result<(MetalStorage, Shape)> {
         if self.snap.is_some() {
-            candle_core::bail!("Metal RecurrenceCore currently does not support transport snap");
+            return metal_via_host(self, [(s1, l1), (s2, l2), (s3, l3)]);
         }
         if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 || s3.dtype() != DType::F32 {
             candle_core::bail!("Metal RecurrenceCore requires F32 dtype");
@@ -8246,15 +8512,7 @@ impl CustomOp3 for RecurrenceCore {
         let drive_buf = device.new_buffer(total_state, DType::F32, "recurrence_drive")?;
         let out_buf = device.new_buffer(total_state, DType::F32, "recurrence_out")?;
 
-        let param_tensor = Tensor::from_storage(
-            Storage::Metal(s3.clone()),
-            l3.shape().clone(),
-            candle_core::op::BackpropOp::none(),
-            false,
-        );
-        let param_vec = param_tensor.to_vec1::<f32>()?;
-        let log_a_vec = self.log_a(&param_vec);
-        let log_a_buf = device.new_buffer_with_data(&log_a_vec)?;
+        let log_a_buf = self.metal_log_a(device, s3.buffer(), 0)?;
 
         crate::metal_stack_kernels::metal::call_recurrence_core_fwd(
             device,
@@ -8285,6 +8543,12 @@ impl CustomOp3 for RecurrenceCore {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "metal")]
+        if let (Device::Metal(device), None) = (branches.device(), self.snap) {
+            let (d_branches, d_gates, d_parameters) =
+                self.metal_bwd(device, branches, gates, parameters, grad)?;
+            return Ok((Some(d_branches), Some(d_gates), Some(d_parameters)));
+        }
         let branch_values = branches.flatten_all()?.to_vec1::<f32>()?;
         let gate_values = gates.flatten_all()?.to_vec1::<f32>()?;
         let parameter_values = parameters.to_vec1::<f32>()?;
@@ -8967,6 +9231,300 @@ fn lorentz_distance(excess: f64) -> f64 {
     (e + (e * (e + 2.0)).sqrt()).ln_1p()
 }
 
+/// The device buffers of one recomputed read: probabilities [index, t, j]
+/// (j <= t used), NoRead probabilities, query and key lifts and, when asked
+/// for, the Lorentz excesses.
+#[cfg(feature = "metal")]
+struct MetalReadPass {
+    probabilities: Arc<candle_metal_kernels::metal::Buffer>,
+    null_probability: Arc<candle_metal_kernels::metal::Buffer>,
+    query_lift: Arc<candle_metal_kernels::metal::Buffer>,
+    key_lift: Arc<candle_metal_kernels::metal::Buffer>,
+    excess: Arc<candle_metal_kernels::metal::Buffer>,
+}
+
+#[cfg(feature = "metal")]
+impl FusedRead {
+    /// Whether the Metal kernels cover this configuration (RoPE and flock
+    /// selection run on the host).
+    fn metal_covered(&self) -> bool {
+        !self.rope && self.select.is_none()
+    }
+
+    fn metal_dims(&self) -> [u32; 8] {
+        [
+            self.batch as u32,
+            self.heads as u32,
+            self.time as u32,
+            self.key as u32,
+            self.value as u32,
+            u32::from(self.null),
+            u32::from(self.age),
+            u32::from(self.score == ReadScore::Lorentz),
+        ]
+    }
+
+    /// Scores and softmax of every row on the device. Inputs are bound at
+    /// byte offsets.
+    fn metal_pass(
+        &self,
+        device: &candle_core::MetalDevice,
+        query: (&candle_metal_kernels::metal::Buffer, usize),
+        kv: (&candle_metal_kernels::metal::Buffer, usize),
+        aux: (&candle_metal_kernels::metal::Buffer, usize),
+        keep_excess: bool,
+    ) -> candle_core::Result<MetalReadPass> {
+        use crate::metal_stack_kernels::metal::{launch, launch_groups, Arg};
+        let dims = self.metal_dims();
+        let rows = self.batch * self.heads * self.time;
+        let square = rows * self.time;
+        let lorentz = self.score == ReadScore::Lorentz;
+        let probabilities = device.new_buffer(square, DType::F32, "read_probabilities")?;
+        let null_probability = device.new_buffer(rows, DType::F32, "read_null_probability")?;
+        let lift_len = if lorentz { rows } else { 1 };
+        let query_lift = device.new_buffer(lift_len, DType::F32, "read_query_lift")?;
+        let key_lift = device.new_buffer(lift_len, DType::F32, "read_key_lift")?;
+        let write_excess = lorentz && keep_excess;
+        let excess = device.new_buffer(
+            if write_excess { square } else { 1 },
+            DType::F32,
+            "read_excess",
+        )?;
+        if lorentz {
+            launch(
+                device,
+                "read_lift",
+                rows,
+                &[
+                    Arg::InAt(query.0, query.1),
+                    Arg::InAt(kv.0, kv.1),
+                    Arg::Out(&query_lift),
+                    Arg::Out(&key_lift),
+                    Arg::Words(&dims),
+                ],
+            )?;
+        }
+        let tiles = self.time.div_ceil(16);
+        let geometry = [
+            self.key as u32,
+            0,
+            self.width() as u32,
+            0,
+            self.key as u32,
+            1,
+            u32::from(write_excess),
+        ];
+        launch_groups(
+            device,
+            "read_tile_inner",
+            (tiles, tiles, self.batch * self.heads),
+            (16, 16, 1),
+            &[
+                Arg::InAt(query.0, query.1),
+                Arg::InAt(kv.0, kv.1),
+                Arg::InAt(aux.0, aux.1),
+                Arg::In(&query_lift),
+                Arg::In(&key_lift),
+                Arg::Out(&probabilities),
+                Arg::Out(&excess),
+                Arg::Words(&dims),
+                Arg::Words(&geometry),
+            ],
+        )?;
+        launch(
+            device,
+            "read_softmax_simd",
+            32 * rows,
+            &[
+                Arg::Out(&probabilities),
+                Arg::InAt(aux.0, aux.1),
+                Arg::Out(&null_probability),
+                Arg::Words(&dims),
+            ],
+        )?;
+        Ok(MetalReadPass {
+            probabilities,
+            null_probability,
+            query_lift,
+            key_lift,
+            excess,
+        })
+    }
+
+    /// The exact backward on Metal.
+    fn metal_bwd(
+        &self,
+        device: &candle_core::MetalDevice,
+        query: &Tensor,
+        kv: &Tensor,
+        aux: &Tensor,
+        grad: &Tensor,
+    ) -> candle_core::Result<(Tensor, Tensor, Tensor)> {
+        use crate::metal_stack_kernels::metal::{launch, launch_groups, Arg};
+        let (q, kvt, a, dy) = (
+            metal_ready(query)?,
+            metal_ready(kv)?,
+            metal_ready(aux)?,
+            metal_ready(grad)?,
+        );
+        let rows = self.batch * self.heads * self.time;
+        if q.elem_count() != rows * self.key
+            || kvt.elem_count() != rows * self.width()
+            || dy.elem_count() != rows * self.value
+        {
+            candle_core::bail!("Metal read backward inputs have the wrong sizes");
+        }
+        let (qs, kvs, auxs, dys) = (
+            metal_storage(&q)?,
+            metal_storage(&kvt)?,
+            metal_storage(&a)?,
+            metal_storage(&dy)?,
+        );
+        let lorentz = self.score == ReadScore::Lorentz;
+        let pass = self.metal_pass(
+            device,
+            (qs.buffer(), 0),
+            (kvs.buffer(), 0),
+            (auxs.buffer(), 0),
+            true,
+        )?;
+        let dims = self.metal_dims();
+        let square = rows * self.time;
+        let ds = device.new_buffer(square, DType::F32, "read_ds")?;
+        let inner_grad = device.new_buffer(square, DType::F32, "read_inner_grad")?;
+        let row_len = if lorentz { rows } else { 1 };
+        let query_self = device.new_buffer(row_len, DType::F32, "read_query_self")?;
+        let row_beta = device.new_buffer(row_len, DType::F32, "read_row_beta")?;
+        let row_offset = device.new_buffer(row_len, DType::F32, "read_row_offset")?;
+        let key_self = device.new_buffer(row_len, DType::F32, "read_key_self")?;
+        let dq = device.new_buffer(q.elem_count(), DType::F32, "read_dq")?;
+        let dkv = device.new_buffer(kvt.elem_count(), DType::F32, "read_dkv")?;
+        let aux_parts = self.null || self.age || lorentz;
+        let d_aux = device.new_buffer(a.elem_count(), DType::F32, "read_d_aux")?;
+        let tiles = self.time.div_ceil(16);
+        let geometry = [
+            self.value as u32,
+            0,
+            self.width() as u32,
+            self.key as u32,
+            self.value as u32,
+            0,
+            0,
+        ];
+        launch_groups(
+            device,
+            "read_tile_inner",
+            (tiles, tiles, self.batch * self.heads),
+            (16, 16, 1),
+            &[
+                Arg::In(dys.buffer()),
+                Arg::In(kvs.buffer()),
+                Arg::In(auxs.buffer()),
+                Arg::In(&pass.query_lift),
+                Arg::In(&pass.key_lift),
+                Arg::Out(&ds),
+                Arg::Out(&pass.excess),
+                Arg::Words(&dims),
+                Arg::Words(&geometry),
+            ],
+        )?;
+        launch(
+            device,
+            "read_row_grad_simd",
+            32 * rows,
+            &[
+                Arg::In(&pass.probabilities),
+                Arg::Out(&ds),
+                Arg::Out(&inner_grad),
+                Arg::In(&pass.excess),
+                Arg::In(&pass.null_probability),
+                Arg::In(auxs.buffer()),
+                Arg::In(&pass.query_lift),
+                Arg::In(&pass.key_lift),
+                Arg::Out(&query_self),
+                Arg::Out(&row_beta),
+                Arg::Out(&row_offset),
+                Arg::Out(&d_aux),
+                Arg::Words(&dims),
+            ],
+        )?;
+        if lorentz {
+            launch(
+                device,
+                "read_key_self",
+                rows,
+                &[
+                    Arg::In(&inner_grad),
+                    Arg::In(&pass.query_lift),
+                    Arg::In(&pass.key_lift),
+                    Arg::Out(&key_self),
+                    Arg::Words(&dims),
+                ],
+            )?;
+        }
+        launch(
+            device,
+            "read_dq",
+            q.elem_count(),
+            &[
+                Arg::In(&inner_grad),
+                Arg::In(qs.buffer()),
+                Arg::In(kvs.buffer()),
+                Arg::In(&query_self),
+                Arg::Out(&dq),
+                Arg::Words(&dims),
+            ],
+        )?;
+        launch(
+            device,
+            "read_dkv",
+            kvt.elem_count(),
+            &[
+                Arg::In(&inner_grad),
+                Arg::In(&pass.probabilities),
+                Arg::In(qs.buffer()),
+                Arg::In(kvs.buffer()),
+                Arg::In(dys.buffer()),
+                Arg::In(&key_self),
+                Arg::Out(&dkv),
+                Arg::Words(&dims),
+            ],
+        )?;
+        if self.age {
+            launch(
+                device,
+                "read_dage",
+                self.heads * self.time,
+                &[Arg::In(&ds), Arg::Out(&d_aux), Arg::Words(&dims)],
+            )?;
+        }
+        if lorentz {
+            launch(
+                device,
+                "read_dbeta",
+                2 * self.heads,
+                &[
+                    Arg::In(&row_beta),
+                    Arg::In(&row_offset),
+                    Arg::Out(&d_aux),
+                    Arg::Words(&dims),
+                ],
+            )?;
+        }
+        let d_aux = if aux_parts {
+            metal_tensor(d_aux, device, aux.shape())
+        } else {
+            // The placeholder auxiliary input carries no gradient.
+            Tensor::zeros(aux.shape(), DType::F32, aux.device())?
+        };
+        Ok((
+            metal_tensor(dq, device, query.shape()),
+            metal_tensor(dkv, device, kv.shape()),
+            d_aux,
+        ))
+    }
+}
+
 impl CustomOp3 for FusedRead {
     fn name(&self) -> &'static str {
         "geometric-stack-read"
@@ -9027,10 +9585,8 @@ impl CustomOp3 for FusedRead {
         s3: &MetalStorage,
         l3: &Layout,
     ) -> candle_core::Result<(MetalStorage, Shape)> {
-        if self.score != ReadScore::Dot || self.null || self.age || self.rope {
-            candle_core::bail!(
-                "Metal FusedRead currently supports only ReadScore::Dot without null, age, or rope"
-            );
+        if !self.metal_covered() {
+            return metal_via_host(self, [(s1, l1), (s2, l2), (s3, l3)]);
         }
         if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 || s3.dtype() != DType::F32 {
             candle_core::bail!("Metal FusedRead requires F32 dtype");
@@ -9042,35 +9598,43 @@ impl CustomOp3 for FusedRead {
         let (time, value) = (self.time, self.value);
         let expected_query = self.batch * self.heads * time * self.key;
         let expected_kv = self.batch * self.heads * time * (self.key + value);
-        if l1.shape().elem_count() != expected_query || l2.shape().elem_count() != expected_kv {
+        let expected_aux = fused_aux_len(
+            self.batch, self.heads, time, self.score, self.null, self.age,
+        )
+        .max(1);
+        if l1.shape().elem_count() != expected_query
+            || l2.shape().elem_count() != expected_kv
+            || l3.shape().elem_count() != expected_aux
+        {
             candle_core::bail!(
                 "Metal FusedRead input element counts do not match declared dimensions"
             );
         }
-        if l1.start_offset() != 0
-            || !l1.is_contiguous()
-            || l2.start_offset() != 0
-            || !l2.is_contiguous()
-            || l3.start_offset() != 0
-            || !l3.is_contiguous()
-        {
-            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
+        if !l1.is_contiguous() || !l2.is_contiguous() || !l3.is_contiguous() {
+            candle_core::bail!("Metal FusedRead requires contiguous inputs");
         }
+        use crate::metal_stack_kernels::metal::{launch, Arg};
         let device = s1.device();
+        let bytes = DType::F32.size_in_bytes();
+        let (query, kv, aux) = (
+            (s1.buffer(), l1.start_offset() * bytes),
+            (s2.buffer(), l2.start_offset() * bytes),
+            (s3.buffer(), l3.start_offset() * bytes),
+        );
+        let pass = self.metal_pass(device, query, kv, aux, false)?;
         let total = self.batch * self.heads * time * value;
         let out_buf = device.new_buffer(total, DType::F32, "fused_read_out")?;
-
-        crate::metal_stack_kernels::metal::call_fused_read_fwd(
+        let dims = self.metal_dims();
+        launch(
             device,
-            s1.buffer(),
-            s2.buffer(),
-            s3.buffer(),
-            &out_buf,
-            self.batch,
-            self.heads,
-            time,
-            self.key,
-            value,
+            "read_mix",
+            total,
+            &[
+                Arg::In(&pass.probabilities),
+                Arg::InAt(kv.0, kv.1),
+                Arg::Out(&out_buf),
+                Arg::Words(&dims),
+            ],
         )?;
         Ok((
             MetalStorage::new(out_buf, device.clone(), total, DType::F32),
@@ -9086,6 +9650,13 @@ impl CustomOp3 for FusedRead {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "metal")]
+        if let Device::Metal(device) = query.device() {
+            if self.metal_covered() {
+                let (dq, dkv, d_aux) = self.metal_bwd(device, query, kv, aux, grad)?;
+                return Ok((Some(dq), Some(dkv), Some(d_aux)));
+            }
+        }
         let q_values = query.flatten_all()?.to_vec1::<f32>()?;
         let kv_values = kv.flatten_all()?.to_vec1::<f32>()?;
         let aux_values = aux.flatten_all()?.to_vec1::<f32>()?;
@@ -10403,6 +10974,19 @@ impl CustomOp3 for PointerMixture {
             CpuStorage::F32(vec![(sum / self.total()) as f32]),
             Shape::from(()),
         ))
+    }
+
+    #[cfg(feature = "metal")]
+    fn metal_fwd(
+        &self,
+        s1: &MetalStorage,
+        l1: &Layout,
+        s2: &MetalStorage,
+        l2: &Layout,
+        s3: &MetalStorage,
+        l3: &Layout,
+    ) -> candle_core::Result<(MetalStorage, Shape)> {
+        metal_via_host(self, [(s1, l1), (s2, l2), (s3, l3)])
     }
 
     fn bwd(

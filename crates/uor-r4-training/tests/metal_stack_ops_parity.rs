@@ -718,31 +718,6 @@ fn test_fused_read_parity() -> uor_r4_training::Result<()> {
     let max_diff = assert_finite_and_close(&c_vec, &m_vec, 1e-4, "FusedRead Dot");
     println!("FusedRead Dot max diff CPU vs Metal: {max_diff}");
 
-    // Verify semantic gating: Metal must reject unsupported options (e.g. null=true)
-    let null_gate = uor_r4_training::geometric_stack::fused_read(
-        &q_metal,
-        &k_metal,
-        &v_metal,
-        &aux_metal,
-        uor_r4_training::geometric_stack::ReadScore::Dot,
-        true,
-        false,
-        false,
-    );
-    assert!(null_gate.is_err(), "Metal FusedRead must reject null=true");
-
-    let lorentz_gate = uor_r4_training::geometric_stack::fused_read(
-        &q_metal,
-        &k_metal,
-        &v_metal,
-        &aux_metal,
-        uor_r4_training::geometric_stack::ReadScore::Lorentz,
-        false,
-        false,
-        false,
-    );
-    assert!(lorentz_gate.is_err(), "Metal FusedRead must reject Lorentz");
-
     Ok(())
 }
 
@@ -791,19 +766,6 @@ fn test_recurrence_core_parity() -> uor_r4_training::Result<()> {
 
     let max_diff = assert_finite_and_close(&c_vec, &m_vec, 1e-4, "RecurrenceCore");
     println!("RecurrenceCore max diff CPU vs Metal: {max_diff}");
-
-    // Verify snap gating on Metal: snap must return Err
-    let snap_gate = uor_r4_training::geometric_stack::recurrence_core(
-        &b_metal,
-        &g_metal,
-        &p_metal,
-        batch,
-        time,
-        width,
-        true,
-        Some(uor_r4_training::geometric_stack::TransportSnap::Icosian),
-    );
-    assert!(snap_gate.is_err(), "Metal RecurrenceCore must reject snap");
 
     Ok(())
 }
@@ -961,5 +923,329 @@ fn test_metal_stack_ops_rejections() -> uor_r4_training::Result<()> {
         "fused_read must reject dimension mismatch"
     );
 
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Backward parity of the recurrence core and the general fused read.
+// ---------------------------------------------------------------------------
+
+/// Deterministic pseudo-random values in [-scale, scale].
+#[cfg(feature = "metal")]
+fn noise(len: usize, seed: u64, scale: f32) -> Vec<f32> {
+    let mut state = seed
+        .wrapping_mul(6364136223846793005)
+        .wrapping_add(1442695040888963407);
+    (0..len)
+        .map(|_| {
+            state = state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            let unit = ((state >> 40) as f32) / ((1u64 << 24) as f32);
+            (2.0 * unit - 1.0) * scale
+        })
+        .collect()
+}
+
+/// Max absolute error and max error relative to the CPU tensor's largest
+/// magnitude; asserts finiteness and `relative < tol`.
+#[cfg(feature = "metal")]
+fn compare(cpu: &[f32], metal: &[f32], tol: f32, name: &str) -> (f32, f32) {
+    assert_eq!(cpu.len(), metal.len(), "{name}: length mismatch");
+    let mut max_abs = 0f32;
+    let mut peak = 0f32;
+    for (i, (&c, &m)) in cpu.iter().zip(metal).enumerate() {
+        assert!(
+            c.is_finite() && m.is_finite(),
+            "{name}[{i}]: cpu {c} metal {m}"
+        );
+        max_abs = max_abs.max((c - m).abs());
+        peak = peak.max(c.abs());
+    }
+    let relative = max_abs / peak.max(1e-6);
+    println!("{name}: max abs {max_abs:.3e}, max rel {relative:.3e} (peak {peak:.3e})");
+    assert!(relative < tol, "{name}: relative error {relative} >= {tol}");
+    (max_abs, relative)
+}
+
+#[cfg(feature = "metal")]
+fn values(t: &candle_core::Tensor) -> uor_r4_training::Result<Vec<f32>> {
+    Ok(t.flatten_all()?
+        .to_device(&candle_core::Device::Cpu)?
+        .to_vec1::<f32>()?)
+}
+
+/// Output and input gradients of the recurrence core for a weighted-sum loss.
+#[cfg(feature = "metal")]
+#[allow(clippy::too_many_arguments)]
+fn recurrence_run(
+    device: &candle_core::Device,
+    data: [&Vec<f32>; 4],
+    batch: usize,
+    time: usize,
+    width: usize,
+    rotation: bool,
+    gate_width: usize,
+) -> uor_r4_training::Result<Vec<Vec<f32>>> {
+    let p_len = 5 * width + width / 4;
+    let b = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        data[0].clone(),
+        (batch, time, 2 * width),
+        device,
+    )?)?;
+    let g = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        data[1].clone(),
+        (batch, time, gate_width),
+        device,
+    )?)?;
+    let p = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        data[2].clone(),
+        (p_len,),
+        device,
+    )?)?;
+    let w = candle_core::Tensor::from_vec(data[3].clone(), (batch, time, width), device)?;
+    let out = uor_r4_training::geometric_stack::recurrence_core(
+        b.as_tensor(),
+        g.as_tensor(),
+        p.as_tensor(),
+        batch,
+        time,
+        width,
+        rotation,
+        None,
+    )?;
+    let grads = out.mul(&w)?.sum_all()?.backward()?;
+    let mut results = vec![values(&out)?];
+    for var in [&b, &g, &p] {
+        results.push(values(grads.get(var.as_tensor()).expect("gradient"))?);
+    }
+    Ok(results)
+}
+
+#[cfg(feature = "metal")]
+#[test]
+fn test_recurrence_core_backward_parity() -> uor_r4_training::Result<()> {
+    let metal_dev = match candle_core::Device::new_metal(0) {
+        Ok(dev) => dev,
+        Err(_) => return Ok(()),
+    };
+    let cpu_dev = candle_core::Device::Cpu;
+    // (batch, time, width, rotation)
+    for (case, &(batch, time, width, rotation)) in [
+        (2usize, 7usize, 16usize, true),
+        (3, 13, 32, false),
+        (2, 37, 64, true),
+        (1, 5, 4, true),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let lanes = width / 4;
+        let gate_width = lanes + if rotation { width } else { 0 };
+        let seed = 100 + case as u64 * 10;
+        let b_data = noise(batch * time * 2 * width, seed, 1.0);
+        let mut g_data = noise(batch * time * gate_width, seed + 1, 1.5);
+        if rotation {
+            // Keep rotation quaternions away from zero norm.
+            for row in g_data.chunks_mut(gate_width) {
+                for lane in 0..lanes {
+                    row[lanes + 4 * lane] += 1.0;
+                }
+            }
+        }
+        let mut p_data = noise(5 * width + lanes, seed + 2, 0.5);
+        for (i, value) in p_data.iter_mut().enumerate().skip(5 * width) {
+            *value = -1.0 + 2.0 * (i % 5) as f32;
+        }
+        let w_data = noise(batch * time * width, seed + 3, 1.0);
+        let data = [&b_data, &g_data, &p_data, &w_data];
+        let cpu = recurrence_run(&cpu_dev, data, batch, time, width, rotation, gate_width)?;
+        let metal = recurrence_run(&metal_dev, data, batch, time, width, rotation, gate_width)?;
+        for (k, name) in ["out", "d_branches", "d_gates", "d_parameters"]
+            .iter()
+            .enumerate()
+        {
+            compare(
+                &cpu[k],
+                &metal[k],
+                1e-3,
+                &format!("RecurrenceCore b{batch} t{time} w{width} rot{rotation} {name}"),
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Output and input gradients of the fused read for a weighted-sum loss.
+#[cfg(feature = "metal")]
+#[allow(clippy::too_many_arguments)]
+fn read_run(
+    device: &candle_core::Device,
+    data: [&Vec<f32>; 5],
+    shape: (usize, usize, usize, usize, usize),
+    score: uor_r4_training::geometric_stack::ReadScore,
+    null: bool,
+    age: bool,
+) -> uor_r4_training::Result<Vec<Vec<f32>>> {
+    let (batch, heads, time, key, value) = shape;
+    let q = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        data[0].clone(),
+        (batch, heads, time, key),
+        device,
+    )?)?;
+    let k = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        data[1].clone(),
+        (batch, heads, time, key),
+        device,
+    )?)?;
+    let v = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        data[2].clone(),
+        (batch, heads, time, value),
+        device,
+    )?)?;
+    let aux_len = data[3].len();
+    let a = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        data[3].clone(),
+        (aux_len,),
+        device,
+    )?)?;
+    let w = candle_core::Tensor::from_vec(data[4].clone(), (batch, heads, time, value), device)?;
+    let out = uor_r4_training::geometric_stack::fused_read(
+        q.as_tensor(),
+        k.as_tensor(),
+        v.as_tensor(),
+        a.as_tensor(),
+        score,
+        null,
+        age,
+        false,
+    )?;
+    let grads = out.mul(&w)?.sum_all()?.backward()?;
+    let mut results = vec![values(&out)?];
+    for var in [&q, &k, &v, &a] {
+        results.push(values(grads.get(var.as_tensor()).expect("gradient"))?);
+    }
+    Ok(results)
+}
+
+#[cfg(feature = "metal")]
+#[test]
+fn test_fused_read_general_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::{fused_aux_len, ReadScore};
+    let metal_dev = match candle_core::Device::new_metal(0) {
+        Ok(dev) => dev,
+        Err(_) => return Ok(()),
+    };
+    let cpu_dev = candle_core::Device::Cpu;
+    let shapes = [
+        (2usize, 3usize, 13usize, 8usize, 9usize),
+        (1, 2, 37, 16, 16),
+        (2, 4, 5, 4, 5),
+        (1, 1, 1, 4, 4),
+    ];
+    let configs = [
+        (ReadScore::Dot, false, false),
+        (ReadScore::Dot, true, true),
+        (ReadScore::Lorentz, true, true),
+        (ReadScore::Lorentz, false, false),
+        (ReadScore::Lorentz, true, false),
+    ];
+    let mut case = 0u64;
+    for &shape in &shapes {
+        let (batch, heads, time, key, value) = shape;
+        for &(score, null, age) in &configs {
+            case += 1;
+            let seed = 1000 + 17 * case;
+            let q_data = noise(batch * heads * time * key, seed, 0.8);
+            let k_data = noise(batch * heads * time * key, seed + 1, 0.8);
+            let v_data = noise(batch * heads * time * value, seed + 2, 1.0);
+            let aux_len = fused_aux_len(batch, heads, time, score, null, age).max(1);
+            let mut aux_data = noise(aux_len, seed + 3, 0.5);
+            if score == ReadScore::Lorentz {
+                let base = aux_len - 2 * heads;
+                for h in 0..heads {
+                    // beta (already exponentiated) and offset.
+                    aux_data[base + h] = 0.7 + 0.3 * h as f32;
+                    aux_data[base + heads + h] = 0.2 * h as f32 - 0.1;
+                }
+            }
+            let w_data = noise(batch * heads * time * value, seed + 4, 1.0);
+            let data = [&q_data, &k_data, &v_data, &aux_data, &w_data];
+            let cpu = read_run(&cpu_dev, data, shape, score, null, age)?;
+            let metal = read_run(&metal_dev, data, shape, score, null, age)?;
+            for (k, name) in ["out", "dq", "dk", "dv", "d_aux"].iter().enumerate() {
+                compare(
+                    &cpu[k],
+                    &metal[k],
+                    1e-3,
+                    &format!(
+                        "FusedRead {score:?} null{null} age{age} b{batch} h{heads} t{time} k{key} v{value} {name}"
+                    ),
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Timing of the training-size read and recurrence, forward plus backward,
+/// on Metal and CPU. Run explicitly: `--ignored --nocapture`.
+#[cfg(feature = "metal")]
+#[test]
+#[ignore]
+fn bench_training_size_read_and_recurrence() -> uor_r4_training::Result<()> {
+    use std::time::Instant;
+    use uor_r4_training::geometric_stack::{fused_aux_len, ReadScore};
+    let metal_dev = match candle_core::Device::new_metal(0) {
+        Ok(dev) => dev,
+        Err(_) => return Ok(()),
+    };
+    let (batch, heads, time, key, value, width) = (16, 8, 384, 64, 64, 512);
+    let shape = (batch, heads, time, key, value);
+    let q = noise(batch * heads * time * key, 1, 0.5);
+    let k = noise(batch * heads * time * key, 2, 0.5);
+    let v = noise(batch * heads * time * value, 3, 1.0);
+    let mut aux = noise(
+        fused_aux_len(batch, heads, time, ReadScore::Lorentz, true, true),
+        4,
+        0.5,
+    );
+    let n = aux.len();
+    for h in 0..heads {
+        aux[n - 2 * heads + h] = 1.0;
+    }
+    let w = noise(batch * heads * time * value, 5, 1.0);
+    let lanes = width / 4;
+    let gate_width = lanes + width;
+    let b_data = noise(batch * time * 2 * width, 6, 1.0);
+    let g_data = noise(batch * time * gate_width, 7, 1.0);
+    let p_data = noise(5 * width + lanes, 8, 0.5);
+    let rw = noise(batch * time * width, 9, 1.0);
+    for device in [metal_dev.clone(), candle_core::Device::Cpu] {
+        for round in 0..3 {
+            let start = Instant::now();
+            read_run(
+                &device,
+                [&q, &k, &v, &aux, &w],
+                shape,
+                ReadScore::Lorentz,
+                true,
+                true,
+            )?;
+            let read = start.elapsed();
+            let start = Instant::now();
+            recurrence_run(
+                &device,
+                [&b_data, &g_data, &p_data, &rw],
+                batch,
+                time,
+                width,
+                true,
+                gate_width,
+            )?;
+            let recurrence = start.elapsed();
+            println!("{device:?} round {round}: read {read:?}, recurrence {recurrence:?}");
+        }
+    }
     Ok(())
 }

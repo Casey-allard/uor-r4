@@ -531,6 +531,796 @@ kernel void fused_read_fwd(
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// 8. Recurrence Core: log a on the device, exact backward, parameter reduction
+// ---------------------------------------------------------------------------
+
+// log(1 + x), accurate for small x (Goldberg's correction).
+inline float log1p_accurate(float x) {
+    float u = 1.0f + x;
+    if (u == 1.0f) return x;
+    return precise::log(u) * x / (u - 1.0f);
+}
+
+// GELU (tanh approximation) and its derivative, as the CPU `gelu`.
+inline float2 gelu_value_slope(float x) {
+    const float K = 0.7978846f;
+    const float C = 0.044715f;
+    float v = K * (x + C * x * x * x);
+    float t = precise::tanh(v);
+    float value = 0.5f * x * (1.0f + t);
+    float slope = 0.5f * (1.0f + t) + 0.5f * x * (1.0f - t * t) * K * (1.0f + 3.0f * C * x * x);
+    return float2(value, slope);
+}
+
+// log a = -softplus(-decay) per lane.
+kernel void recurrence_log_a(
+    device const float* params [[buffer(0)]],
+    device float* log_a [[buffer(1)]],
+    constant uint& width [[buffer(2)]],
+    constant uint& lanes [[buffer(3)]],
+    uint id [[thread_position_in_grid]]
+) {
+    if (id >= lanes) return;
+    float x = -params[5 * width + id];
+    float softplus = max(x, 0.0f) + log1p_accurate(precise::exp(-fabs(x)));
+    log_a[id] = -softplus;
+}
+
+// One thread per (window, lane): the reverse sweep of the CPU backward.
+// Writes d_branches and d_gates in full and the window's parameter partials
+// (taps, bias, d log a) into partials[window * param_len ..].
+kernel void recurrence_core_bwd(
+    device const float* branches [[buffer(0)]],
+    device const float* gates [[buffer(1)]],
+    device const float* params [[buffer(2)]],
+    device const float* log_a [[buffer(3)]],
+    device const float* state [[buffer(4)]],
+    device const float* drive [[buffer(5)]],
+    device const float* d_out [[buffer(6)]],
+    device float* d_branches [[buffer(7)]],
+    device float* d_gates [[buffer(8)]],
+    device float* partials [[buffer(9)]],
+    constant uint& time [[buffer(10)]],
+    constant uint& width [[buffer(11)]],
+    constant uint& lanes [[buffer(12)]],
+    constant uint& gate_width [[buffer(13)]],
+    constant uint& rotation [[buffer(14)]],
+    constant uint& total_lanes [[buffer(15)]],
+    constant uint& param_len [[buffer(16)]],
+    uint lane_id [[thread_position_in_grid]]
+) {
+    if (lane_id >= total_lanes) return;
+    uint b = lane_id / lanes;
+    uint lane = lane_id % lanes;
+    uint ch = 4 * lane;
+    uint two_w = 2 * width;
+    device const float* taps = params;
+    float la = log_a[lane];
+
+    for (uint t = 0; t < time; ++t) {
+        uint src = (b * time + t) * two_w + ch;
+        d_branches[src + 0] = 0.0f;
+        d_branches[src + 1] = 0.0f;
+        d_branches[src + 2] = 0.0f;
+        d_branches[src + 3] = 0.0f;
+    }
+
+    float4 held = float4(0.0f);
+    float4 q_next = float4(0.0f);
+    float4 d_bias = float4(0.0f);
+    float4 d_tap0 = float4(0.0f);
+    float4 d_tap1 = float4(0.0f);
+    float4 d_tap2 = float4(0.0f);
+    float4 d_tap3 = float4(0.0f);
+    float d_log_a = 0.0f;
+    float4 tap0 = float4(taps[0 * width + ch], taps[0 * width + ch + 1], taps[0 * width + ch + 2], taps[0 * width + ch + 3]);
+    float4 tap1 = float4(taps[1 * width + ch], taps[1 * width + ch + 1], taps[1 * width + ch + 2], taps[1 * width + ch + 3]);
+    float4 tap2 = float4(taps[2 * width + ch], taps[2 * width + ch + 1], taps[2 * width + ch + 2], taps[2 * width + ch + 3]);
+    float4 tap3 = float4(taps[3 * width + ch], taps[3 * width + ch + 1], taps[3 * width + ch + 2], taps[3 * width + ch + 3]);
+
+    for (int ti = int(time) - 1; ti >= 0; --ti) {
+        uint t = uint(ti);
+        uint row = b * time + t;
+        uint base = row * width + ch;
+        uint branch_row = row * two_w;
+        float4 st = float4(state[base], state[base + 1], state[base + 2], state[base + 3]);
+        float4 dy = float4(d_out[base], d_out[base + 1], d_out[base + 2], d_out[base + 3]);
+        float4 direct;
+        for (uint k = 0; k < 4; ++k) {
+            float2 vs = gelu_value_slope(branches[branch_row + width + ch + k]);
+            d_branches[branch_row + width + ch + k] = dy[k] * st[k] * vs.y;
+            direct[k] = dy[k] * vs.x;
+        }
+        // This position's transition.
+        uint gate_row = row * gate_width;
+        float opening = 1.0f / (1.0f + precise::exp(-gates[gate_row + lane]));
+        float lambda = precise::exp(8.0f * opening * la);
+        float complement = 1.0f - lambda * lambda;
+        bool clamped = complement < 1e-6f;
+        float keep = clamped ? 1e-3f : precise::sqrt(complement);
+        float4 unit = float4(1.0f, 0.0f, 0.0f, 0.0f);
+        float norm = 1.0f;
+        if (rotation != 0) {
+            uint r = gate_row + lanes + ch;
+            float4 raw = float4(gates[r], gates[r + 1], gates[r + 2], gates[r + 3]);
+            norm = precise::sqrt(raw.x * raw.x + raw.y * raw.y + raw.z * raw.z + raw.w * raw.w + 1e-6f);
+            unit = raw / norm;
+        }
+        float4 total = direct;
+        if (t + 1 < time) {
+            total += quat_mul(quat_conj(q_next), held);
+        }
+        held = total;
+        float4 c = float4(drive[base], drive[base + 1], drive[base + 2], drive[base + 3]);
+        float d_keep = dot(total, c);
+        float4 dd = keep * total;
+        float4 dq = float4(0.0f);
+        if (t > 0) {
+            uint prev = base - width;
+            float4 earlier = float4(state[prev], state[prev + 1], state[prev + 2], state[prev + 3]);
+            dq = quat_mul(total, quat_conj(earlier));
+        }
+        float d_lambda = dot(dq, unit);
+        if (!clamped) {
+            d_lambda -= d_keep * lambda / keep;
+        }
+        float d_log_lambda = d_lambda * lambda;
+        float d_opening = d_log_lambda * 8.0f * la;
+        d_log_a += d_log_lambda * 8.0f * opening;
+        d_gates[gate_row + lane] = d_opening * opening * (1.0f - opening);
+        if (rotation != 0) {
+            float4 du = dq * lambda;
+            float projection = dot(du, unit);
+            float4 dr = (du - unit * projection) / norm;
+            uint r = gate_row + lanes + ch;
+            d_gates[r] = dr.x;
+            d_gates[r + 1] = dr.y;
+            d_gates[r + 2] = dr.z;
+            d_gates[r + 3] = dr.w;
+        }
+        q_next = unit * lambda;
+        // Convolution: c_t = bias + sum_shift taps_shift * a_{t - shift}.
+        d_bias += dd;
+        for (uint shift = 0; shift < 4 && shift <= t; ++shift) {
+            uint src = (row - shift) * two_w + ch;
+            float4 a = float4(branches[src], branches[src + 1], branches[src + 2], branches[src + 3]);
+            float4 w = shift == 0 ? tap0 : (shift == 1 ? tap1 : (shift == 2 ? tap2 : tap3));
+            float4 contribution = dd * a;
+            if (shift == 0) d_tap0 += contribution;
+            else if (shift == 1) d_tap1 += contribution;
+            else if (shift == 2) d_tap2 += contribution;
+            else d_tap3 += contribution;
+            float4 back = w * dd;
+            d_branches[src] += back.x;
+            d_branches[src + 1] += back.y;
+            d_branches[src + 2] += back.z;
+            d_branches[src + 3] += back.w;
+        }
+    }
+    device float* p = partials + b * param_len;
+    for (uint k = 0; k < 4; ++k) {
+        p[0 * width + ch + k] = d_tap0[k];
+        p[1 * width + ch + k] = d_tap1[k];
+        p[2 * width + ch + k] = d_tap2[k];
+        p[3 * width + ch + k] = d_tap3[k];
+        p[4 * width + ch + k] = d_bias[k];
+    }
+    p[5 * width + lane] = d_log_a;
+}
+
+// Sums the windows' parameter partials; d log a / d decay = sigma(-decay).
+kernel void recurrence_param_reduce(
+    device const float* partials [[buffer(0)]],
+    device const float* params [[buffer(1)]],
+    device float* d_params [[buffer(2)]],
+    constant uint& batch [[buffer(3)]],
+    constant uint& param_len [[buffer(4)]],
+    constant uint& width [[buffer(5)]],
+    uint id [[thread_position_in_grid]]
+) {
+    if (id >= param_len) return;
+    float sum = 0.0f;
+    for (uint b = 0; b < batch; ++b) {
+        sum += partials[b * param_len + id];
+    }
+    if (id >= 5 * width) {
+        sum *= 1.0f / (1.0f + precise::exp(params[id]));
+    }
+    d_params[id] = sum;
+}
+
+// ---------------------------------------------------------------------------
+// 9. General Fused Read: Dot or Lorentz score, NoRead slot, age table
+// ---------------------------------------------------------------------------
+// dims: [batch, heads, time, key, value, null_on, age_on, lorentz]
+// Blocks are index = window * heads + head; rows are index * time + t; the
+// square scratch is [index, t, j] with j <= t used.
+
+struct ReadDims {
+    uint batch;
+    uint heads;
+    uint time;
+    uint key;
+    uint value;
+    uint null_on;
+    uint age_on;
+    uint lorentz;
+};
+
+inline uint read_age_offset(constant ReadDims& d) {
+    return d.null_on != 0 ? d.batch * d.heads * d.time : 0;
+}
+
+inline uint read_beta_offset(constant ReadDims& d) {
+    return read_age_offset(d) + (d.age_on != 0 ? d.heads * d.time : 0);
+}
+
+inline float read_distance(float e) {
+    float x = max(e, 1e-7f);
+    return log1p_accurate(x + precise::sqrt(x * (x + 2.0f)));
+}
+
+// Lifts sqrt(1 + |x|^2) of every query and key row.
+kernel void read_lift(
+    device const float* query [[buffer(0)]],
+    device const float* kv [[buffer(1)]],
+    device float* query_lift [[buffer(2)]],
+    device float* key_lift [[buffer(3)]],
+    constant ReadDims& d [[buffer(4)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint rows = d.batch * d.heads * d.time;
+    if (id >= rows) return;
+    device const float* q = query + id * d.key;
+    device const float* k = kv + id * (d.key + d.value);
+    float qq = 0.0f;
+    float kk = 0.0f;
+    for (uint c = 0; c < d.key; ++c) {
+        qq += q[c] * q[c];
+        kk += k[c] * k[c];
+    }
+    query_lift[id] = precise::sqrt(1.0f + qq);
+    key_lift[id] = precise::sqrt(1.0f + kk);
+}
+
+// Scores of every (index, t, j <= t); with `write_excess`, Lorentz excesses too.
+kernel void read_scores(
+    device const float* query [[buffer(0)]],
+    device const float* kv [[buffer(1)]],
+    device const float* aux [[buffer(2)]],
+    device const float* query_lift [[buffer(3)]],
+    device const float* key_lift [[buffer(4)]],
+    device float* scores [[buffer(5)]],
+    device float* excess [[buffer(6)]],
+    constant ReadDims& d [[buffer(7)]],
+    constant uint& write_excess [[buffer(8)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    uint total = d.batch * d.heads * time * time;
+    if (id >= total) return;
+    uint j = id % time;
+    uint row = id / time;
+    uint t = row % time;
+    if (j > t) return;
+    uint index = row / time;
+    uint head = index % d.heads;
+    uint width = d.key + d.value;
+    device const float* q = query + row * d.key;
+    device const float* k = kv + (index * time + j) * width;
+    float inner = 0.0f;
+    for (uint c = 0; c < d.key; ++c) {
+        inner += q[c] * k[c];
+    }
+    float age = d.age_on != 0 ? aux[read_age_offset(d) + head * time + (t - j)] : 0.0f;
+    float score;
+    if (d.lorentz != 0) {
+        float e = query_lift[row] * key_lift[index * time + j] - inner - 1.0f;
+        if (write_excess != 0) {
+            excess[id] = e;
+        }
+        uint beta_offset = read_beta_offset(d);
+        float beta = aux[beta_offset + head];
+        float offset = aux[beta_offset + d.heads + head];
+        score = -beta * (read_distance(e) - offset) + age;
+    } else {
+        score = inner * rsqrt(float(d.key)) + age;
+    }
+    scores[id] = score;
+}
+
+// Softmax of each row over j <= t and the NoRead slot, in place; the NoRead
+// probability goes to null_probability[row].
+kernel void read_softmax(
+    device float* scores [[buffer(0)]],
+    device const float* aux [[buffer(1)]],
+    device float* null_probability [[buffer(2)]],
+    constant ReadDims& d [[buffer(3)]],
+    uint row [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    if (row >= d.batch * d.heads * time) return;
+    uint t = row % time;
+    device float* s = scores + row * time;
+    float null_score = d.null_on != 0 ? aux[row] : -INFINITY;
+    float maximum = null_score;
+    for (uint j = 0; j <= t; ++j) {
+        maximum = max(maximum, s[j]);
+    }
+    float null_weight = d.null_on != 0 ? precise::exp(null_score - maximum) : 0.0f;
+    float total = null_weight;
+    for (uint j = 0; j <= t; ++j) {
+        float w = precise::exp(s[j] - maximum);
+        s[j] = w;
+        total += w;
+    }
+    float inverse = 1.0f / total;
+    for (uint j = 0; j <= t; ++j) {
+        s[j] *= inverse;
+    }
+    null_probability[row] = null_weight * inverse;
+}
+
+// out[index, t, v] = sum_{j <= t} p[t, j] value[j, v].
+kernel void read_mix(
+    device const float* probabilities [[buffer(0)]],
+    device const float* kv [[buffer(1)]],
+    device float* out [[buffer(2)]],
+    constant ReadDims& d [[buffer(3)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    if (id >= d.batch * d.heads * time * d.value) return;
+    uint v = id % d.value;
+    uint row = id / d.value;
+    uint t = row % time;
+    uint index = row / time;
+    uint width = d.key + d.value;
+    device const float* p = probabilities + row * time;
+    device const float* values = kv + index * time * width + d.key + v;
+    float accum = 0.0f;
+    for (uint j = 0; j <= t; ++j) {
+        accum += p[j] * values[j * width];
+    }
+    out[id] = accum;
+}
+
+// dp[index, t, j] = sum_v d_out[t, v] value[j, v], j <= t.
+kernel void read_dp(
+    device const float* d_out [[buffer(0)]],
+    device const float* kv [[buffer(1)]],
+    device float* dp [[buffer(2)]],
+    constant ReadDims& d [[buffer(3)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    if (id >= d.batch * d.heads * time * time) return;
+    uint j = id % time;
+    uint row = id / time;
+    uint t = row % time;
+    if (j > t) return;
+    uint index = row / time;
+    uint width = d.key + d.value;
+    device const float* g = d_out + row * d.value;
+    device const float* v = kv + (index * time + j) * width + d.key;
+    float accum = 0.0f;
+    for (uint c = 0; c < d.value; ++c) {
+        accum += g[c] * v[c];
+    }
+    dp[id] = accum;
+}
+
+// Per row: the softmax backward. Overwrites dp with ds = p (dp - <p, dp>),
+// writes the inner-product gradients g, the NoRead logit gradient (into
+// d_aux), and for Lorentz the query self coefficient and the row's beta and
+// offset partials.
+kernel void read_row_grad(
+    device const float* probabilities [[buffer(0)]],
+    device float* dp [[buffer(1)]],
+    device float* inner_grad [[buffer(2)]],
+    device const float* excess [[buffer(3)]],
+    device const float* null_probability [[buffer(4)]],
+    device const float* aux [[buffer(5)]],
+    device const float* query_lift [[buffer(6)]],
+    device const float* key_lift [[buffer(7)]],
+    device float* query_self [[buffer(8)]],
+    device float* row_beta [[buffer(9)]],
+    device float* row_offset [[buffer(10)]],
+    device float* d_aux [[buffer(11)]],
+    constant ReadDims& d [[buffer(12)]],
+    uint row [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    if (row >= d.batch * d.heads * time) return;
+    uint t = row % time;
+    uint index = row / time;
+    uint head = index % d.heads;
+    device const float* p = probabilities + row * time;
+    device float* g = dp + row * time;
+    device float* ig = inner_grad + row * time;
+    float row_dot = 0.0f;
+    for (uint j = 0; j <= t; ++j) {
+        row_dot += p[j] * g[j];
+    }
+    if (d.null_on != 0) {
+        d_aux[row] = -null_probability[row] * row_dot;
+    }
+    float scale = rsqrt(float(d.key));
+    float beta = 0.0f;
+    float offset = 0.0f;
+    if (d.lorentz != 0) {
+        uint beta_offset = read_beta_offset(d);
+        beta = aux[beta_offset + head];
+        offset = aux[beta_offset + d.heads + head];
+    }
+    float self_q = 0.0f;
+    float d_beta = 0.0f;
+    float d_offset = 0.0f;
+    float lq = d.lorentz != 0 ? query_lift[row] : 1.0f;
+    for (uint j = 0; j <= t; ++j) {
+        float ds = p[j] * (g[j] - row_dot);
+        g[j] = ds;
+        if (d.lorentz != 0) {
+            float e = excess[row * time + j];
+            d_beta -= ds * (read_distance(e) - offset);
+            d_offset += ds * beta;
+            if (e > 1e-7f) {
+                float de = -beta * ds / precise::sqrt(e * (e + 2.0f));
+                self_q += de * key_lift[index * time + j] / lq;
+                ig[j] = -de;
+            } else {
+                ig[j] = 0.0f;
+            }
+        } else {
+            ig[j] = ds * scale;
+        }
+    }
+    if (d.lorentz != 0) {
+        query_self[row] = self_q;
+        row_beta[row] = d_beta;
+        row_offset[row] = d_offset;
+    }
+}
+
+// Lorentz key self coefficient: sum_{t >= j} de[t, j] lift_q[t] / lift_k[j],
+// with de = -inner_grad.
+kernel void read_key_self(
+    device const float* inner_grad [[buffer(0)]],
+    device const float* query_lift [[buffer(1)]],
+    device const float* key_lift [[buffer(2)]],
+    device float* key_self [[buffer(3)]],
+    constant ReadDims& d [[buffer(4)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    if (id >= d.batch * d.heads * time) return;
+    uint j = id % time;
+    uint index = id / time;
+    float sum = 0.0f;
+    for (uint t = j; t < time; ++t) {
+        sum -= inner_grad[(index * time + t) * time + j] * query_lift[index * time + t];
+    }
+    key_self[id] = sum / key_lift[id];
+}
+
+// dq[index, t, c] = sum_{j <= t} g[t, j] key[j, c] (+ Lorentz self term).
+kernel void read_dq(
+    device const float* inner_grad [[buffer(0)]],
+    device const float* query [[buffer(1)]],
+    device const float* kv [[buffer(2)]],
+    device const float* query_self [[buffer(3)]],
+    device float* dq [[buffer(4)]],
+    constant ReadDims& d [[buffer(5)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    if (id >= d.batch * d.heads * time * d.key) return;
+    uint c = id % d.key;
+    uint row = id / d.key;
+    uint t = row % time;
+    uint index = row / time;
+    uint width = d.key + d.value;
+    device const float* g = inner_grad + row * time;
+    device const float* keys = kv + index * time * width + c;
+    float accum = 0.0f;
+    for (uint j = 0; j <= t; ++j) {
+        accum += g[j] * keys[j * width];
+    }
+    if (d.lorentz != 0) {
+        accum += query_self[row] * query[id];
+    }
+    dq[id] = accum;
+}
+
+// dkv[index, j, c]: keys sum_{t >= j} g[t, j] query[t, c] (+ Lorentz self
+// term); values sum_{t >= j} p[t, j] d_out[t, c - key].
+kernel void read_dkv(
+    device const float* inner_grad [[buffer(0)]],
+    device const float* probabilities [[buffer(1)]],
+    device const float* query [[buffer(2)]],
+    device const float* kv [[buffer(3)]],
+    device const float* d_out [[buffer(4)]],
+    device const float* key_self [[buffer(5)]],
+    device float* dkv [[buffer(6)]],
+    constant ReadDims& d [[buffer(7)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    uint width = d.key + d.value;
+    if (id >= d.batch * d.heads * time * width) return;
+    uint c = id % width;
+    uint row = id / width;
+    uint j = row % time;
+    uint index = row / time;
+    float accum = 0.0f;
+    if (c < d.key) {
+        for (uint t = j; t < time; ++t) {
+            accum += inner_grad[(index * time + t) * time + j] * query[(index * time + t) * d.key + c];
+        }
+        if (d.lorentz != 0) {
+            accum += key_self[row] * kv[id];
+        }
+    } else {
+        uint v = c - d.key;
+        for (uint t = j; t < time; ++t) {
+            accum += probabilities[(index * time + t) * time + j] * d_out[(index * time + t) * d.value + v];
+        }
+    }
+    dkv[id] = accum;
+}
+
+// Age-table gradient per (head, distance): sum over windows and positions
+// of ds[t, t - distance].
+kernel void read_dage(
+    device const float* ds [[buffer(0)]],
+    device float* d_aux [[buffer(1)]],
+    constant ReadDims& d [[buffer(2)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    if (id >= d.heads * time) return;
+    uint distance = id % time;
+    uint head = id / time;
+    float sum = 0.0f;
+    for (uint b = 0; b < d.batch; ++b) {
+        uint index = b * d.heads + head;
+        for (uint t = distance; t < time; ++t) {
+            sum += ds[(index * time + t) * time + (t - distance)];
+        }
+    }
+    d_aux[read_age_offset(d) + id] = sum;
+}
+
+// Lorentz beta and offset gradients per head from the rows' partials.
+kernel void read_dbeta(
+    device const float* row_beta [[buffer(0)]],
+    device const float* row_offset [[buffer(1)]],
+    device float* d_aux [[buffer(2)]],
+    constant ReadDims& d [[buffer(3)]],
+    uint id [[thread_position_in_grid]]
+) {
+    if (id >= 2 * d.heads) return;
+    uint head = id % d.heads;
+    device const float* source = id < d.heads ? row_beta : row_offset;
+    float sum = 0.0f;
+    for (uint b = 0; b < d.batch; ++b) {
+        uint index = b * d.heads + head;
+        for (uint t = 0; t < d.time; ++t) {
+            sum += source[index * d.time + t];
+        }
+    }
+    d_aux[read_beta_offset(d) + id] = sum;
+}
+
+// Tiled causal inner products of one block: out[index, t, j] for j <= t of
+// sum_c a[index * time + t][c] b[index * time + j][c] over `length`
+// columns. geom = [a_stride, a_offset, b_stride, b_offset, length, mode,
+// write_excess]. Mode 0 stores the raw product; mode 1 stores the read score
+// (Dot or Lorentz, with age) and, with write_excess, the Lorentz excess.
+// Threadgroups are 16 x 16 over (j tile, t tile, index); tiles wholly above
+// the diagonal exit at once.
+kernel void read_tile_inner(
+    device const float* a [[buffer(0)]],
+    device const float* b [[buffer(1)]],
+    device const float* aux [[buffer(2)]],
+    device const float* query_lift [[buffer(3)]],
+    device const float* key_lift [[buffer(4)]],
+    device float* out [[buffer(5)]],
+    device float* excess [[buffer(6)]],
+    constant ReadDims& d [[buffer(7)]],
+    constant uint* geom [[buffer(8)]],
+    uint3 group [[threadgroup_position_in_grid]],
+    uint3 local [[thread_position_in_threadgroup]]
+) {
+    uint jt = group.x;
+    uint tt = group.y;
+    if (jt > tt) return;
+    uint index = group.z;
+    uint time = d.time;
+    uint a_stride = geom[0];
+    uint a_offset = geom[1];
+    uint b_stride = geom[2];
+    uint b_offset = geom[3];
+    uint length = geom[4];
+    threadgroup float tile_a[16][17];
+    threadgroup float tile_b[16][17];
+    uint t = tt * 16 + local.y;
+    uint j = jt * 16 + local.x;
+    uint b_row = jt * 16 + local.y;
+    float acc = 0.0f;
+    for (uint c0 = 0; c0 < length; c0 += 16) {
+        uint c = c0 + local.x;
+        tile_a[local.y][local.x] = (t < time && c < length)
+            ? a[(index * time + t) * a_stride + a_offset + c] : 0.0f;
+        tile_b[local.y][local.x] = (b_row < time && c < length)
+            ? b[(index * time + b_row) * b_stride + b_offset + c] : 0.0f;
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        for (uint k = 0; k < 16; ++k) {
+            acc += tile_a[local.y][k] * tile_b[local.x][k];
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (t >= time || j > t) return;
+    uint slot = (index * time + t) * time + j;
+    if (geom[5] == 0) {
+        out[slot] = acc;
+        return;
+    }
+    uint head = index % d.heads;
+    float age = d.age_on != 0 ? aux[read_age_offset(d) + head * time + (t - j)] : 0.0f;
+    float score;
+    if (d.lorentz != 0) {
+        float e = query_lift[index * time + t] * key_lift[index * time + j] - acc - 1.0f;
+        if (geom[6] != 0) {
+            excess[slot] = e;
+        }
+        uint beta_offset = read_beta_offset(d);
+        float beta = aux[beta_offset + head];
+        float offset = aux[beta_offset + d.heads + head];
+        score = -beta * (read_distance(e) - offset) + age;
+    } else {
+        score = acc * rsqrt(float(d.key)) + age;
+    }
+    out[slot] = score;
+}
+
+// AdamW step in place; c = [scale, beta1, rest1, beta2, rest2, correct1,
+// correct2, epsilon, keep, lr], as the CPU `adam_step`.
+kernel void adam_update(
+    device float* p [[buffer(0)]],
+    device float* m [[buffer(1)]],
+    device float* v [[buffer(2)]],
+    device const float* g [[buffer(3)]],
+    constant float* c [[buffer(4)]],
+    constant uint& n [[buffer(5)]],
+    uint i [[thread_position_in_grid]]
+) {
+    if (i >= n) return;
+    float grad = g[i] * c[0];
+    float first = m[i] * c[1] + grad * c[2];
+    float second = v[i] * c[3] + (grad * grad) * c[4];
+    m[i] = first;
+    v[i] = second;
+    float step = (first * c[5]) / (precise::sqrt(second * c[6]) + c[7]);
+    p[i] = p[i] * c[8] - step * c[9];
+}
+
+// read_softmax with one SIMD group (32 threads) per row.
+kernel void read_softmax_simd(
+    device float* scores [[buffer(0)]],
+    device const float* aux [[buffer(1)]],
+    device float* null_probability [[buffer(2)]],
+    constant ReadDims& d [[buffer(3)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    uint row = id / 32;
+    uint lane = id % 32;
+    if (row >= d.batch * d.heads * time) return;
+    uint t = row % time;
+    device float* s = scores + row * time;
+    float null_score = d.null_on != 0 ? aux[row] : -INFINITY;
+    float maximum = null_score;
+    for (uint j = lane; j <= t; j += 32) {
+        maximum = max(maximum, s[j]);
+    }
+    maximum = simd_max(maximum);
+    float total = 0.0f;
+    for (uint j = lane; j <= t; j += 32) {
+        float w = precise::exp(s[j] - maximum);
+        s[j] = w;
+        total += w;
+    }
+    total = simd_sum(total);
+    float null_weight = d.null_on != 0 ? precise::exp(null_score - maximum) : 0.0f;
+    total += null_weight;
+    float inverse = 1.0f / total;
+    for (uint j = lane; j <= t; j += 32) {
+        s[j] *= inverse;
+    }
+    if (lane == 0) {
+        null_probability[row] = null_weight * inverse;
+    }
+}
+
+// read_row_grad with one SIMD group (32 threads) per row.
+kernel void read_row_grad_simd(
+    device const float* probabilities [[buffer(0)]],
+    device float* dp [[buffer(1)]],
+    device float* inner_grad [[buffer(2)]],
+    device const float* excess [[buffer(3)]],
+    device const float* null_probability [[buffer(4)]],
+    device const float* aux [[buffer(5)]],
+    device const float* query_lift [[buffer(6)]],
+    device const float* key_lift [[buffer(7)]],
+    device float* query_self [[buffer(8)]],
+    device float* row_beta [[buffer(9)]],
+    device float* row_offset [[buffer(10)]],
+    device float* d_aux [[buffer(11)]],
+    constant ReadDims& d [[buffer(12)]],
+    uint id [[thread_position_in_grid]]
+) {
+    uint time = d.time;
+    uint row = id / 32;
+    uint lane = id % 32;
+    if (row >= d.batch * d.heads * time) return;
+    uint t = row % time;
+    uint index = row / time;
+    uint head = index % d.heads;
+    device const float* p = probabilities + row * time;
+    device float* g = dp + row * time;
+    device float* ig = inner_grad + row * time;
+    float row_dot = 0.0f;
+    for (uint j = lane; j <= t; j += 32) {
+        row_dot += p[j] * g[j];
+    }
+    row_dot = simd_sum(row_dot);
+    if (d.null_on != 0 && lane == 0) {
+        d_aux[row] = -null_probability[row] * row_dot;
+    }
+    float scale = rsqrt(float(d.key));
+    float beta = 0.0f;
+    float offset = 0.0f;
+    if (d.lorentz != 0) {
+        uint beta_offset = read_beta_offset(d);
+        beta = aux[beta_offset + head];
+        offset = aux[beta_offset + d.heads + head];
+    }
+    float self_q = 0.0f;
+    float d_beta = 0.0f;
+    float d_offset = 0.0f;
+    float lq = d.lorentz != 0 ? query_lift[row] : 1.0f;
+    for (uint j = lane; j <= t; j += 32) {
+        float ds = p[j] * (g[j] - row_dot);
+        g[j] = ds;
+        if (d.lorentz != 0) {
+            float e = excess[row * time + j];
+            d_beta -= ds * (read_distance(e) - offset);
+            d_offset += ds * beta;
+            if (e > 1e-7f) {
+                float de = -beta * ds / precise::sqrt(e * (e + 2.0f));
+                self_q += de * key_lift[index * time + j] / lq;
+                ig[j] = -de;
+            } else {
+                ig[j] = 0.0f;
+            }
+        } else {
+            ig[j] = ds * scale;
+        }
+    }
+    if (d.lorentz != 0) {
+        self_q = simd_sum(self_q);
+        d_beta = simd_sum(d_beta);
+        d_offset = simd_sum(d_offset);
+        if (lane == 0) {
+            query_self[row] = self_q;
+            row_beta[row] = d_beta;
+            row_offset[row] = d_offset;
+        }
+    }
+}
 "#;
 
     // -----------------------------------------------------------------------
@@ -957,5 +1747,113 @@ kernel void fused_read_fwd(
         encoder.use_resource(out, MTLResourceUsage::Write);
         encoder.dispatch_thread_groups(grid, group);
         Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // Generic launcher for the recurrence backward and general read kernels.
+    // -----------------------------------------------------------------------
+
+    /// One bound argument of a kernel, in buffer-index order.
+    pub enum Arg<'a> {
+        /// A buffer the kernel only reads.
+        In(&'a Buffer),
+        /// A buffer the kernel only reads, bound from a byte offset.
+        InAt(&'a Buffer, usize),
+        /// A buffer the kernel writes (and possibly reads).
+        Out(&'a Buffer),
+        U32(u32),
+        /// A small constant struct of `uint`s (e.g. `ReadDims`).
+        Words(&'a [u32]),
+    }
+
+    /// Dispatches `name` over `threads` threads (a 1-D grid) with `args`
+    /// bound at indices 0, 1, ... in order.
+    pub fn launch(
+        device: &MetalDevice,
+        name: &str,
+        threads: usize,
+        args: &[Arg<'_>],
+    ) -> Result<()> {
+        if threads == 0 {
+            return Ok(());
+        }
+        dispatch(device, name, None, threads, args)
+    }
+
+    /// Dispatches `name` over `groups` threadgroups of `group` threads each.
+    pub fn launch_groups(
+        device: &MetalDevice,
+        name: &str,
+        groups: (usize, usize, usize),
+        group: (usize, usize, usize),
+        args: &[Arg<'_>],
+    ) -> Result<()> {
+        if groups.0 * groups.1 * groups.2 == 0 {
+            return Ok(());
+        }
+        dispatch(device, name, Some((groups, group)), 0, args)
+    }
+
+    fn dispatch(
+        device: &MetalDevice,
+        name: &str,
+        shape: Option<((usize, usize, usize), (usize, usize, usize))>,
+        threads: usize,
+        args: &[Arg<'_>],
+    ) -> Result<()> {
+        let pipeline = get_cache().get_or_compile(device, name)?;
+        if profiling() {
+            device.wait_until_completed()?;
+        }
+        let encoder = device.command_encoder()?;
+        encoder.set_compute_pipeline_state(&pipeline);
+        for (index, arg) in args.iter().enumerate() {
+            match arg {
+                Arg::In(buffer) => {
+                    set_param(&encoder, index, *buffer);
+                    encoder.use_resource(*buffer, MTLResourceUsage::Read);
+                }
+                Arg::InAt(buffer, offset) => {
+                    set_param(&encoder, index, (*buffer, *offset));
+                    encoder.use_resource(*buffer, MTLResourceUsage::Read);
+                }
+                Arg::Out(buffer) => {
+                    set_param(&encoder, index, *buffer);
+                    encoder.use_resource(*buffer, MTLResourceUsage::Read | MTLResourceUsage::Write);
+                }
+                Arg::U32(value) => set_param(&encoder, index, *value),
+                Arg::Words(words) => set_param(&encoder, index, *words),
+            }
+        }
+        let (grid, group) = match shape {
+            None => linear_split(&pipeline, threads),
+            Some((groups, group)) => (
+                MTLSize {
+                    width: groups.0,
+                    height: groups.1,
+                    depth: groups.2,
+                },
+                MTLSize {
+                    width: group.0,
+                    height: group.1,
+                    depth: group.2,
+                },
+            ),
+        };
+        encoder.dispatch_thread_groups(grid, group);
+        if profiling() {
+            drop(encoder);
+            let start = std::time::Instant::now();
+            device.wait_until_completed()?;
+            eprintln!("metal-kernel {name} {} us", start.elapsed().as_micros());
+        }
+        Ok(())
+    }
+
+    /// `UOR_METAL_PROFILE=1` synchronizes after each launched kernel and
+    /// reports its wall time on stderr (diagnostic only; it serializes the GPU).
+    fn profiling() -> bool {
+        static PROFILE: OnceLock<bool> = OnceLock::new();
+        *PROFILE.get_or_init(|| std::env::var_os("UOR_METAL_PROFILE").is_some())
     }
 }
