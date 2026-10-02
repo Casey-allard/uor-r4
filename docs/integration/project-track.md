@@ -80,6 +80,60 @@ are required for later promotion.
 
 ### Ordered deliverables and dependency graph
 
+The immediate native attention chain on [#1512](https://github.com/UOR-Foundation/uor-r4/issues/1512)
+remains geometric. Claude's dialogue/session integration on #1552 is concurrent
+product work and does not replace this mechanism track. Preserve offline donor
+weight and behavior compilation through contextual, value and output operators;
+embeddings alone are not assumed to contain reasoning.
+
+1. Retain exact occurrence/span identity and learned geometric capture. Learn
+   internal signed-H4 context state separately from its noninjective address
+   readout. Compile the learned transitions and contextual root/radius/presence
+   operations; test learning and compiler retention separately.
+2. Keep geometric compatibility scores integer through age, explicit NoRead,
+   normalization and weighted occurrence reduction. Preserve full declared
+   causal support; numerical lowering does not by itself supply learned values.
+3. Replace donor value and NoRead maps with learned geometric readouts. First
+   measure the proposed value alphabet's reconstruction loss on the unchanged
+   saved cases, without answers or source labels selecting packets. A coarse
+   single-root/dyadic representation failure justifies a bounded residual
+   representation if measured; it does not reject geometric attention. NoRead
+   remains a separately learned scalar in the same absolute score units.
+4. Learn compatible geometric output/combination operators and integrate natural
+   token spans, role, scope and temporal intent with the durable store/session.
+   Preserve exact payload references for copying and identity-sensitive reads.
+   A source address is not automatically a value frame, and cancellation is
+   not absence. Joint answer credit must reach the operators that need it;
+   declared supervised interface credit remains distinct from answer-only work.
+5. Complete selected candidate/parameter access and the native decoder, then
+   qualify the whole saved serving path on generated-history conversation and
+   coding/reasoning. Measure complete laptop cost at matched quality. Useful
+   component retention, geometric advantage, language capability and final
+   numerical/energy qualification remain separate decisions.
+
+The [completed K1 comparison](../evidence/geometric-value-native-2026-10-02.json)
+shows seed-1 frozen-decoder losses and seed-2 partial retention. The next
+representation decision is one bounded two-atom residual comparison, retaining
+a zero residual and all K1 candidates, with the same saved panels, scores,
+NoRead, coordinate width and decoder. Recovery supports a residual packet;
+improved reconstruction without answer recovery redirects effort to ordinary
+answer learning or a compatible decoder. Little improvement ends this residual
+comparison without starting a larger alphabet sweep. Native producer learning
+must separately expose retained state through the offline gradient path;
+detached trace IDs do not carry credit into earlier transitions. Value-root
+surrogates must preserve antipodal choice credit and declare zero/radius limits.
+
+For value compilation, keep the existing four coordinates per lane and sixteen
+per head until an explicit decoder-interface change. Packet status, exact
+occurrence/version identity and numeric coordinates are distinct. Assess
+representation adequacy before learned-input sufficiency: an oracle projection
+can receive the donor vector, whereas the eventual native producer must receive
+actual geometric latent state, token and typed span inputs. It cannot recover
+that state from an address assumed to be sufficient. Use the
+[mechanism-admissibility policy](mechanism-admissibility-2026-10.md) to diagnose
+representation, optimization, compilation and serving failures at their actual
+scope; do not use a budget stop or a small construction panel to retire a family.
+
 Each row is an obligation, not a claim that its predecessor is complete. Safe
 engineering and bounded discovery may proceed in parallel with explicit file
 ownership. Resource admission is separate from scientific priority.

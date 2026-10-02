@@ -2,6 +2,47 @@
 
 
 
+
+## Geometric value representation — measured K1 limitation, October 2
+
+The fixed-weight comparison replaces each four-coordinate donor value lane
+with its nearest signed-H4 root and dyadic radius packet (or present zero),
+then supplies decoded raw Q16 directly to the retained integer reader. It
+holds contextual scores, age, NoRead and occurrence weights exactly fixed.
+All four panels completed, with 927,232 actual read-coordinate error-bound
+checks and zero violations. Baseline behavior restores exactly after each
+comparison. [The receipt](../evidence/geometric-value-native-2026-10-02.json)
+binds source/executable/summaries and changed-row outcomes.
+
+| Saved seed | Original baseline / projected | Stress baseline / projected |
+|---|---|---|
+| 1 | 100 / 85 of 128 | 110 / 96 of 128 |
+| 2 | 128 / 128 of 128 | 127 / 127 of 128 |
+
+Seed 1 has 15 original and 14 stress correct-to-incorrect changes, plus
+three wrong-to-wrong changes. Seed 2 stress has one gain and one loss; equal
+127/128 totals do not qualify rowwise retention. Maximum donor-coordinate
+error reaches 73,955 Q16 units; maximum weighted-read error reaches 73,897.
+The exact H4 coordinate decoder is not the source of this coarse K1 loss.
+
+Do not admit this nearest-L2 K1 map as a preserving drop-in replacement for
+the frozen decoder. Do not retire K1 task learning or the geometric family:
+nearest reconstruction is not answer-optimized, and seed 2 original retains
+all answers. A bounded residual signed-root comparison can diagnose whether
+richer values remove the observed frozen-decoder distortion. Keep it separate
+from native input sufficiency, learned production and joint output adaptation.
+
+The next native producer must use actual token/retained-state/held-span inputs,
+not oracle donor values. Expose retained state differentiably during offline
+Rust training so ordinary answer credit can reach earlier transitions. Use an
+explicit decoded-prototype choice surrogate for value roots: a tangent-only
+rule can lose antipodal sign credit. Zero escape and radius credit need a
+declared bridge. NoRead and downstream output remain unfinished replacements.
+The current experiment is an oracle representation comparison with floating
+donor values and downstream layers, not full geometric serving or general
+language/energy qualification. Preserve all models, changed rows and failed
+fixture/orchestration attempts. Continue geometric attention on #1512.
+
 ## Native geometric weighted reader — loaded retention, October 2
 
 The integer weighted reader preserves all 512 answer predictions across both

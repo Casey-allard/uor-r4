@@ -1,0 +1,114 @@
+{
+  "schema": "uor-r4.geometric-value-measured/1",
+  "executed_source": "e026415f3e41f6c5cf8a55cf4285c1e42addf96a",
+  "executable_sha256": "ac71205a024a17e5bcd192eeefdc93686963d1e9ff3d080170f6c62e13131a8b",
+  "source_blobs_unchanged_after_rebase": [
+    "crates/uor-r4-integer/src/geometric_value.rs",
+    "crates/uor-r4-integer/src/lib.rs",
+    "crates/uor-r4-training/examples/attention-geometric-value-native.rs",
+    "crates/uor-r4-training/src/geometric_read_native.rs",
+    "crates/uor-r4-training/src/geometric_stack.rs",
+    "crates/uor-r4-training/src/geometric_value_native.rs",
+    "crates/uor-r4-training/src/lib.rs",
+    "docs/integration/project-track.md"
+  ],
+  "panels": [
+    {
+      "seed": "s1",
+      "panel": "original",
+      "summary_sha256": "365b4e28b17bdc7c5cee734f814c182e3257ca6dc68bbd56379a04a258ea60b1",
+      "baseline_answers": 100,
+      "changed_predictions": 16,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 5.783413648605347,
+      "maximum_answer_logit_delta": 1.4570596814155579,
+      "maximum_projected_coordinate_error_q16": 72771,
+      "maximum_read_error_q16": 69029,
+      "partial_chunk": null,
+      "projected_answers": 85,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 198912,
+      "unchanged_weight_bound_violations": 0,
+      "changed_row_outcomes": {
+        "gains": 0,
+        "losses": 15,
+        "wrong_to_wrong_changes": 1
+      }
+    },
+    {
+      "seed": "s1",
+      "panel": "stress",
+      "summary_sha256": "b925659fb3daec23082683d530e0ef483d83d1076dbeb4cdba3ddd8bef0c2169",
+      "baseline_answers": 110,
+      "changed_predictions": 16,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 5.162547588348389,
+      "maximum_answer_logit_delta": 1.9612617492675781,
+      "maximum_projected_coordinate_error_q16": 68726,
+      "maximum_read_error_q16": 67268,
+      "partial_chunk": null,
+      "projected_answers": 96,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 264704,
+      "unchanged_weight_bound_violations": 0,
+      "changed_row_outcomes": {
+        "gains": 0,
+        "losses": 14,
+        "wrong_to_wrong_changes": 2
+      }
+    },
+    {
+      "seed": "s2",
+      "panel": "original",
+      "summary_sha256": "ef84eecc43dc31324902c205bc397f695fb89950165f5d394fc4e0bb493155fd",
+      "baseline_answers": 128,
+      "changed_predictions": 0,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 4.741574903950095,
+      "maximum_answer_logit_delta": 2.475391685962677,
+      "maximum_projected_coordinate_error_q16": 73809,
+      "maximum_read_error_q16": 72542,
+      "partial_chunk": null,
+      "projected_answers": 128,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 198912,
+      "unchanged_weight_bound_violations": 0,
+      "changed_row_outcomes": {
+        "gains": 0,
+        "losses": 0,
+        "wrong_to_wrong_changes": 0
+      }
+    },
+    {
+      "seed": "s2",
+      "panel": "stress",
+      "summary_sha256": "773f94556b9856ce79e4c57a714ee84eea968db30f9b4c615e8f188bbf914e63",
+      "baseline_answers": 127,
+      "changed_predictions": 2,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 4.145071506500244,
+      "maximum_answer_logit_delta": 1.8525715470314026,
+      "maximum_projected_coordinate_error_q16": 73955,
+      "maximum_read_error_q16": 73897,
+      "partial_chunk": null,
+      "projected_answers": 127,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 264704,
+      "unchanged_weight_bound_violations": 0,
+      "changed_row_outcomes": {
+        "gains": 1,
+        "losses": 1,
+        "wrong_to_wrong_changes": 0
+      }
+    }
+  ],
+  "scope": "no-training oracle nearest-L2 K1 representation comparison with frozen scorer/weights/NoRead and decoder; NOT learned native value producer; no general language/complete serving/geometry advantage/energy claim"
+}

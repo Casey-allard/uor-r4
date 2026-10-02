@@ -196,10 +196,17 @@ struct ReadSource<'a> {
     context: Option<ContextInput<'a>>,
     native_reducer: Option<&'a crate::geometric_read_native::CompiledGeometricRead>,
     native_trace: NativeReadTraceSink<'a>,
+    native_value_projection: Option<NativeValueProjection<'a>>,
 }
 
 type NativeReadTraceSink<'a> =
     Option<&'a std::cell::RefCell<Option<crate::geometric_read_native::NativeReadTrace>>>;
+
+#[derive(Clone, Copy)]
+struct NativeValueProjection<'a> {
+    compiled: &'a crate::geometric_value_native::CompiledGeometricValues,
+    trace: &'a std::cell::RefCell<Option<crate::geometric_value_native::ValueProjectionTrace>>,
+}
 
 impl Default for ReadSource<'_> {
     fn default() -> Self {
@@ -212,6 +219,7 @@ impl Default for ReadSource<'_> {
             context: None,
             native_reducer: None,
             native_trace: None,
+            native_value_projection: None,
         }
     }
 }
@@ -2049,6 +2057,7 @@ impl StackModel {
                 context: None,
                 native_reducer: None,
                 native_trace: None,
+                native_value_projection: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2202,6 +2211,7 @@ impl StackModel {
                 context: None,
                 native_reducer: None,
                 native_trace: None,
+                native_value_projection: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2497,6 +2507,7 @@ impl StackModel {
             reducer,
             reset_each_token,
             None,
+            None,
         )?;
         let p = self.params()?;
         Ok(hidden.matmul(&p.head()?.t()?)?)
@@ -2530,6 +2541,7 @@ impl StackModel {
             reducer,
             reset_each_token,
             Some(&trace),
+            None,
         )?;
         let p = self.params()?;
         let logits = hidden.matmul(&p.head()?.t()?)?;
@@ -2537,6 +2549,58 @@ impl StackModel {
             .into_inner()
             .ok_or_else(|| invalid("native weighted read trace was not evaluated"))?;
         Ok((logits, trace))
+    }
+
+    /// Oracle representation comparison only. Packet selection sees actual
+    /// donor values and reconstruction error, never source or answer labels.
+    /// This diagnoses alphabet loss; it is not a learned native value producer.
+    pub fn forward_geometric_context_value_projection_native_with_trace(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        values: &crate::geometric_value_native::CompiledGeometricValues,
+        reset_each_token: bool,
+    ) -> Result<(
+        Tensor,
+        crate::geometric_read_native::NativeReadTrace,
+        crate::geometric_value_native::ValueProjectionTrace,
+    )> {
+        let read_trace = std::cell::RefCell::new(None);
+        let value_trace = std::cell::RefCell::new(None);
+        let (hidden, _) = self.hidden_geometric_context_read_native(
+            ids,
+            batch,
+            time,
+            None,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            reset_each_token,
+            Some(&read_trace),
+            Some(NativeValueProjection {
+                compiled: values,
+                trace: &value_trace,
+            }),
+        )?;
+        let p = self.params()?;
+        let logits = hidden.matmul(&p.head()?.t()?)?;
+        Ok((
+            logits,
+            read_trace
+                .into_inner()
+                .ok_or_else(|| invalid("projected native read trace absent"))?,
+            value_trace
+                .into_inner()
+                .ok_or_else(|| invalid("native value projection trace absent"))?,
+        ))
     }
 
     pub fn read_binding_masses_geometric_context_read_native(
@@ -2564,6 +2628,7 @@ impl StackModel {
             reducer,
             reset_each_token,
             None,
+            None,
         )?
         .1
         .ok_or_else(|| invalid("native weighted source observer was not evaluated"))
@@ -2582,6 +2647,7 @@ impl StackModel {
         reducer: &crate::geometric_read_native::CompiledGeometricRead,
         reset_each_token: bool,
         native_trace: NativeReadTraceSink<'_>,
+        native_value_projection: Option<NativeValueProjection<'_>>,
     ) -> Result<(Tensor, Option<Tensor>)> {
         self.validate_context_config(context.config())?;
         self.validate_context_dependencies(context, events, span, potential)?;
@@ -2603,6 +2669,7 @@ impl StackModel {
             Some(ContextInput::Native(&ctx.codes)),
             Some(reducer),
             native_trace,
+            native_value_projection,
         )
     }
 
@@ -2725,7 +2792,7 @@ impl StackModel {
         context: Option<ContextInput<'_>>,
     ) -> Result<(Tensor, Option<Tensor>)> {
         self.hidden_geometric_context_reduced(
-            ids, batch, time, control, target, compiled, potential, context, None, None,
+            ids, batch, time, control, target, compiled, potential, context, None, None, None,
         )
     }
 
@@ -2741,6 +2808,7 @@ impl StackModel {
         context: Option<ContextInput<'_>>,
         native_reducer: Option<&crate::geometric_read_native::CompiledGeometricRead>,
         native_trace: NativeReadTraceSink<'_>,
+        native_value_projection: Option<NativeValueProjection<'_>>,
     ) -> Result<(Tensor, Option<Tensor>)> {
         let span = self
             .geometric_span
@@ -2779,6 +2847,7 @@ impl StackModel {
                 context,
                 native_reducer,
                 native_trace,
+                native_value_projection,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -3130,15 +3199,48 @@ impl StackModel {
             batch,
             time,
         )?;
-        let output = crate::geometric_read_native::reduce_native(
-            &scores,
-            &null,
-            &values,
-            p.layer(layer, "read.age")?,
-            potential,
-            reducer,
-        )?;
         let value_width = values.dim(3)?;
+        let output = if let Some(projection) = source.native_value_projection {
+            if projection.compiled.metadata().layer != layer {
+                return Err(invalid("geometric value codec read layer differs"));
+            }
+            projection.compiled.validate_for(
+                p.layer(layer, "read.value.weight")?,
+                potential,
+                reducer,
+            )?;
+            let projected =
+                crate::geometric_value_native::project_native(&values, projection.compiled)?;
+            let output = crate::geometric_read_native::reduce_native_q16(
+                &scores,
+                &null,
+                &projected.trace.projected_q16,
+                value_width,
+                p.layer(layer, "read.age")?,
+                potential,
+                reducer,
+            )?;
+            let mut sink = projection
+                .trace
+                .try_borrow_mut()
+                .map_err(|_| invalid("geometric value projection trace already borrowed"))?;
+            if sink.is_some() {
+                return Err(invalid(
+                    "geometric value projection evaluated more than once",
+                ));
+            }
+            *sink = Some(projected.trace);
+            output
+        } else {
+            crate::geometric_read_native::reduce_native(
+                &scores,
+                &null,
+                &values,
+                p.layer(layer, "read.age")?,
+                potential,
+                reducer,
+            )?
+        };
         let target = binding
             .as_ref()
             .filter(|binding| binding.target.layer == layer)
@@ -3612,6 +3714,7 @@ impl StackModel {
                 context: None,
                 native_reducer: None,
                 native_trace: None,
+                native_value_projection: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -3970,6 +4073,7 @@ impl StackModel {
                 context: None,
                 native_reducer: None,
                 native_trace: None,
+                native_value_projection: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -4917,6 +5021,7 @@ impl StackModel {
                         context: None,
                         native_reducer: None,
                         native_trace: None,
+                        native_value_projection: None,
                     },
                 )?,
             };
@@ -10094,7 +10199,18 @@ mod tests {
     }
 
     fn tiny_span_model() -> Result<StackModel> {
-        let mut model = tiny_address_model()?;
+        tiny_span_model_with_width(16)
+    }
+
+    fn tiny_span_model_with_width(width: usize) -> Result<StackModel> {
+        let mut config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+        config.width = width;
+        let mut model = StackModel::new(config, &cpu())?;
+        model.set_read_identity_latch(ReadIdentityLatch::Held)?;
+        model.set_geometric_address(GeometricAddressConfig::new(
+            model.config.width,
+            model.config.heads,
+        )?)?;
         model.set_geometric_span(GeometricSpanConfig::new(model.config.width)?)?;
         // Construction-only controller: stable action markers occupy the
         // first lane, while two payloads have different static action lanes.
@@ -10304,7 +10420,8 @@ mod tests {
 
     #[test]
     fn native_geometric_context_reader_has_delayed_answer_credit_and_typed_reload() -> Result<()> {
-        let model = tiny_span_model()?;
+        // Match the retained value codec: two heads, four R4 lanes per head.
+        let model = tiny_span_model_with_width(32)?;
         let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
         let events = EventWeights::new(model.config.vocab_size, 2, 47)?;
         let lexical = events
@@ -10429,7 +10546,8 @@ mod tests {
         let teacher = model.geometric_context_teacher(&ids, 1, 10)?;
         let (old_teacher, _) = model.geometric_potential_inputs(&ids, 1, 10, &span)?;
         assert_eq!(bits(&teacher)?, bits(&old_teacher)?);
-        let wrong_heads = ContextWeights::new(model.config.vocab_size, model.config.width, 1, 82)?;
+        // Independently admitted four-lane configuration with incompatible head count.
+        let wrong_heads = ContextWeights::new(model.config.vocab_size, 16, 1, 82)?;
         assert!(model
             .forward_geometric_context(&ids, 1, 10, &wrong_heads, &event, &span, false)
             .is_err());
@@ -10492,6 +10610,47 @@ mod tests {
             observed[0].to_bits()
         );
         assert!((0.0..=1.0).contains(&raw.no_read_mass(0, 0, 9)?));
+        // The oracle codec changes only payload representation, preserving
+        // actual source/NoRead weights and exact integer payload trace bits.
+        let value_source = crate::geometric_value_native::ValueSourceBinding::from_directory(
+            &base, registry, &potential, &reducer, 2,
+        )?;
+        let value_codec =
+            crate::geometric_value_native::CompiledGeometricValues::compile(&value_source)?;
+        value_codec.save(&root.join("native-values"))?;
+        let value_codec = crate::geometric_value_native::CompiledGeometricValues::load(
+            &root.join("native-values"),
+            &value_source,
+        )?;
+        let (projected_logits, projected_read, projected_values) = model
+            .forward_geometric_context_value_projection_native_with_trace(
+                &ids,
+                1,
+                10,
+                &loaded,
+                &event,
+                &span,
+                &potential,
+                &reducer,
+                &value_codec,
+                false,
+            )?;
+        assert_eq!(projected_logits.dims(), reduced.dims());
+        assert_eq!(projected_values.donor_q16, raw.values_q16);
+        assert_eq!(projected_values.projected_q16, projected_read.values_q16);
+        for (old, projected) in raw.rows.iter().zip(&projected_read.rows) {
+            assert_eq!(old.occurrence_weights_q31, projected.occurrence_weights_q31);
+            assert_eq!(old.no_read_weight_q31, projected.no_read_weight_q31);
+            assert_eq!(old.total_weight_q31, projected.total_weight_q31);
+            assert_eq!(old.max_score_q24, projected.max_score_q24);
+        }
+        assert!(value_codec
+            .validate_for(
+                &p.layer(2, "read.value.weight")?.affine(1.0, 0.01)?,
+                &potential,
+                &reducer,
+            )
+            .is_err());
         // Observing an arbitrary source set cannot alter predictive parameters,
         // context, or history. The label channel is removed before read.out.
         let after_observation = model.forward_geometric_context_read_native(

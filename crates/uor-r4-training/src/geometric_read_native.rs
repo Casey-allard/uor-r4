@@ -501,17 +501,59 @@ pub fn reduce_native(
     {
         return Err(invalid("native read requires matching CPU F32 NoRead[B,H,T],values[B,H,T,V],Q24scores[B,H,T,T]"));
     }
-    let no_read_q24 = no_read
-        .flatten_all()?
-        .to_vec1::<f32>()?
-        .into_iter()
-        .map(quantize_score_q24)
-        .collect::<Result<Vec<_>>>()?;
     let values_q16 = values
         .flatten_all()?
         .to_vec1::<f32>()?
         .into_iter()
         .map(quantize_value_q16)
+        .collect::<Result<Vec<_>>>()?;
+    reduce_native_q16(
+        potential_q24,
+        no_read,
+        &values_q16,
+        value_width,
+        age,
+        potential,
+        compiled,
+    )
+}
+
+/// Offline bridge for already decoded integer geometric payloads. It avoids
+/// a Q16 -> F32 -> Q16 round trip, which loses low bits at large magnitudes.
+/// The actual Q16 inputs remain in the trace; tensor reconstruction occurs
+/// only after the native numerical result for the unfinished float decoder.
+pub fn reduce_native_q16(
+    potential_q24: &[i64],
+    no_read: &Tensor,
+    values_q16: &[i32],
+    value_width: usize,
+    age: &Tensor,
+    potential: &CompiledGeometricPotentials,
+    compiled: &CompiledGeometricRead,
+) -> Result<NativeReadOutput> {
+    compiled.validate_for(age, potential)?;
+    let (batch, heads, time) = no_read.dims3()?;
+    let positions = batch
+        .checked_mul(heads)
+        .and_then(|n| n.checked_mul(time))
+        .ok_or_else(|| invalid("native Q16 read input size overflow"))?;
+    if batch == 0
+        || time == 0
+        || time > compiled.metadata.context
+        || heads != compiled.metadata.heads
+        || value_width != compiled.metadata.value_width
+        || no_read.dtype() != DType::F32
+        || !no_read.device().is_cpu()
+        || positions.checked_mul(time) != Some(potential_q24.len())
+        || positions.checked_mul(value_width) != Some(values_q16.len())
+    {
+        return Err(invalid("native Q16 read requires matching CPU F32 NoRead[B,H,T],Q16values[B,H,T,V],Q24scores[B,H,T,T]"));
+    }
+    let no_read_q24 = no_read
+        .flatten_all()?
+        .to_vec1::<f32>()?
+        .into_iter()
+        .map(quantize_score_q24)
         .collect::<Result<Vec<_>>>()?;
     let mut kernel =
         NativeGeometricRead::new(compiled.metadata.context, value_width, &compiled.exp)
@@ -558,7 +600,7 @@ pub fn reduce_native(
             time,
             value_width,
             no_read_q24,
-            values_q16,
+            values_q16: values_q16.to_vec(),
             rows,
         },
     })
@@ -724,6 +766,45 @@ mod tests {
             CompiledGeometricRead::compile(&stale, &fixture.potential, &fixture.source).is_err()
         );
         assert!(CompiledGeometricRead::load(&artifact, &fixture.source).is_ok());
+        fs::remove_dir_all(fixture.directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_read_direct_q16_retains_bits_lost_by_float_payload_roundtrip() -> Result<()> {
+        let fixture = fixture(vec![0.; HEADS * CONTEXT])?;
+        let compiled = fixture.compile()?;
+        let high = (1_i32 << 30) + 1;
+        assert_ne!(
+            quantize_value_q16((f64::from(high) / 65_536.) as f32)?,
+            high
+        );
+        let null = Tensor::from_vec(vec![-40f32; HEADS], (1, HEADS, 1), &Device::Cpu)?;
+        let values = vec![high; HEADS * VALUE_WIDTH];
+        let output = reduce_native_q16(
+            &vec![0; HEADS],
+            &null,
+            &values,
+            VALUE_WIDTH,
+            fixture.age(),
+            &fixture.potential,
+            &compiled,
+        )?;
+        assert_eq!(output.trace.values_q16, values);
+        for row in output.trace.rows {
+            assert_eq!(row.no_read_weight_q31, 0);
+            assert_eq!(row.output_q16, vec![high; VALUE_WIDTH]);
+        }
+        assert!(reduce_native_q16(
+            &vec![0; HEADS],
+            &null,
+            &values[..values.len() - 1],
+            VALUE_WIDTH,
+            fixture.age(),
+            &fixture.potential,
+            &compiled,
+        )
+        .is_err());
         fs::remove_dir_all(fixture.directory)?;
         Ok(())
     }
