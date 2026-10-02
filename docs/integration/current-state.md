@@ -199,17 +199,24 @@ Claude retains the concurrent D19 session lane; geometric attention stays #1512.
 
 ## D19 grounded conversation session — measured best configuration, October 2
 
-The grounded session (#1552) now combines four merged or queued changes:
+The grounded session (#1552) now combines five merged changes:
 - the op-model compiler with its saved table, combined by
   `op_policy=unless_query` (#1598);
 - an exact prime-atom log recall for turns the compiler leaves unresolved
   (#1600), with its reload fix (#1604);
 - dialogue protocol 2, which puts the space after a role marker inside the
   message (#1591, #1597);
-- a protocol-2 copy of chat-v0 (#1602).
+- a protocol-2 copy of chat-v0 (#1602);
+- teacher paraphrases of the *training* chat, instruction and relation
+  templates in the M-world training corpus (#1618).
 
-The emitter is emit-5c: emit-1, then M-world recall-line, plain and
-instruction-heavy protocol-2 fine-tunes (iCloud store `results/claude/emit-5c`).
+The emitter is emit-6r: emit-4p2a plus 1,500 steps on the instruction-heavy
+protocol-2 recipe, with teacher wordings of 178 training templates (chat,
+instruction and relation) drawn in half of their training picks. The teacher
+is qwen2.5:1.5b on local Ollama, used as an offline data source only. Wordings are screened out if they equal a
+development template or share a four-word sequence with one. Replies remain
+the oracle's replies from the typed intent. The model is in the iCloud store as
+`results/claude/emit-6r`.
 
 Measured on M-world v2 development (300 conversations, seed 9101, one draw),
 with `max_new_tokens=64`:
@@ -217,25 +224,44 @@ with `max_new_tokens=64`:
 | Configuration | Copy | Instruction | MQAR | Relation | Responsive |
 |---|---|---|---|---|---|
 | emit-1 × table compiler (start of 2 October) | 0/33 | 8/98 | 20/109 | 60/83 | 442/752 |
-| **emit-5c × `unless_query` × `log_recall=sieve`** | **18/33** | **28/98** | **108/109** | **76/83** | **589/752** |
+| emit-5c × `unless_query` × `log_recall=sieve` | 18/33 | 28/98 | 108/109 | 76/83 | 589/752 |
+| emit-6p (chat paraphrases only) | 17/33 | 46/98 | 108/109 | 74/83 | 628/752 |
+| **emit-6r (chat and relation paraphrases)** | **17/33** | **43/98** | **108/109** | **74/83** | **647/752** |
 
-Relation detail: open 45/52, closed 17/17, open abstain 8/8. A save and
-fresh load of the previous best configuration (emit-4p2a) continued
-identically in 20/20 conversations.
+**Why paraphrases.** Evaluated alone, emit-5c answered its skills on the
+trained phrasings and failed the development phrasings:
 
-**Scope.** This is measured behaviour on the authored M-world world. It is
-not general prose, general reasoning or open-domain memory. The world's
-fixed vocabulary is the sieve's stop list. Instruction skills that the 2.1M
-model does not acquire from templates stay near zero: `add` 0/15 and
-`first_letter` 0/11. Every comparison above is paired on the same
-conversations; per-step records and McNemar counts are on #1552.
+| Skill | Trained phrasings | Development phrasings |
+|---|---|---|
+| `first_letter` | 6/6 | 0/11 |
+| `next_day` | 28/28 | 4/35 |
+| `identity` | 42/42 | 11/32 |
 
-**Next.** General instruction and chat capability needs more model or data
-scale. The memory path (compiler, store, log recall, reload) is the retained
-D19 deliverable.
+The gap was phrasing generalization, not capacity. With the chat paraphrases
+(emit-6p):
+- `next_day` rises from 4 to 16/35;
+- `animal_sound` from 6 to 17/22;
+- `first_letter` from 0 to 4/11;
+- `add` from 0 to 5/15.
 
+Assert acknowledgements inside relation conversations fell (`lucky_number`
+20 to 11/21). Adding the relation-template wordings (emit-6r) recovers them
+(`lucky_number` 20/21, `home` 12/12) and lifts Responsive to 647. `greet` and
+`identity` fall and Instruction moves from 46 to 43; at one seed these are
+within what another seed could change. Relation open is 43/52 in both
+paraphrase arms, against 45 for emit-5c.
 
+A save and fresh load of emit-6r continued identically in 20/20
+conversations, and the reloaded run reproduced every score above.
 
+**Scope.** This is measured behaviour on the authored M-world world, from one
+seed and one draw. It is not general prose, general reasoning or open-domain
+memory. The world's fixed vocabulary is the sieve's stop list. Every comparison
+above is paired on the same conversations; per-intent records are on #1552.
+
+**Next.** Arithmetic (`add`) stays weak even on trained phrasings. The memory
+path (compiler, store, log recall, reload) and the paraphrase data path are the
+retained D19 deliverables.
 
 
 ## Finite-action learning and geometric value producer — October 2
