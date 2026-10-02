@@ -99,6 +99,12 @@ embeddings alone are not assumed to contain reasoning.
    single-root/dyadic representation failure justifies a bounded residual
    representation if measured; it does not reject geometric attention. NoRead
    remains a separately learned scalar in the same absolute score units.
+   The [connected NoRead source and construction](geometric-no-read-2026-10-02.md)
+   now pass focused caller/gradient/reload/raw-Q24 checks and actual-parent
+   zero-update comparisons. Next is one fixed-dose answer-loss scalar fit with
+   frozen producers/output. Preserve all controls and changed rows; do not use
+   query-token/validity-collinear answer gains as proof of geometric history use.
+   Measure attribution separately without resetting addresses or values.
 4. Learn compatible geometric output/combination operators and integrate natural
    token spans, role, scope and temporal intent with the durable store/session.
    Preserve exact payload references for copying and identity-sensitive reads.

@@ -15,6 +15,7 @@ pub mod format;
 pub mod generation;
 pub mod geometric_context;
 pub mod geometric_event;
+pub mod geometric_no_read;
 pub mod geometric_potential;
 pub mod geometric_read;
 pub mod geometric_span;

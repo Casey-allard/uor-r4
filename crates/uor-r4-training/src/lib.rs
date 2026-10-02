@@ -26,6 +26,8 @@ pub mod flock_transport;
 pub mod geometric_address;
 pub mod geometric_context;
 pub mod geometric_event;
+pub mod geometric_no_read;
+pub mod geometric_no_read_native;
 pub mod geometric_potential_native;
 pub mod geometric_read;
 pub mod geometric_read_native;

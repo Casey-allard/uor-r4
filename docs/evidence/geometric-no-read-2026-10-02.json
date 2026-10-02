@@ -1,0 +1,1062 @@
+{
+  "schema": "uor-r4.geometric-no-read-source-construction/1",
+  "date": "2026-10-02",
+  "references": [
+    "#1512",
+    "#973"
+  ],
+  "source_base": "c43fe076e864c8e8e05106d80d24195359c2173a",
+  "source": {
+    "crates/uor-r4-integer/src/geometric_no_read.rs": {
+      "bytes": 15494,
+      "sha256": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3"
+    },
+    "crates/uor-r4-integer/src/lib.rs": {
+      "bytes": 4094,
+      "sha256": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d"
+    },
+    "crates/uor-r4-training/src/geometric_no_read.rs": {
+      "bytes": 15406,
+      "sha256": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c"
+    },
+    "crates/uor-r4-training/src/geometric_no_read_native.rs": {
+      "bytes": 33918,
+      "sha256": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c"
+    },
+    "crates/uor-r4-training/src/geometric_read_native.rs": {
+      "bytes": 41004,
+      "sha256": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d"
+    },
+    "crates/uor-r4-training/src/geometric_stack.rs": {
+      "bytes": 733810,
+      "sha256": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f"
+    },
+    "crates/uor-r4-training/src/lib.rs": {
+      "bytes": 30019,
+      "sha256": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33"
+    },
+    "crates/uor-r4-training/examples/attention-geometric-no-read.rs": {
+      "bytes": 15627,
+      "sha256": "0151b71042501f02678a6d4dd70f120a499149512112d54cc1704c2fe894f446"
+    }
+  },
+  "admission": {
+    "path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-no-read-20261002/source-work-card.md",
+    "identity": {
+      "bytes": 3731,
+      "sha256": "7b415287e9874efe765eb07a2e0670b0560d4b9e23510cc5a8cdc4aaa3bd799f"
+    },
+    "issue_comment": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5950551384"
+  },
+  "executions": {
+    "compare-1-s1-execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-no-read",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-no-read-20261002/compare-args-s1.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.090869667008519,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    },
+    "compare-1-s2-execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-no-read",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-no-read-20261002/compare-args-s2.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.8471239999926183,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    },
+    "example-build-1-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-no-read"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 69.00069808299304,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    },
+    "example-build-2-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-no-read"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.1774693340121303,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "0151b71042501f02678a6d4dd70f120a499149512112d54cc1704c2fe894f446"
+      },
+      "unchanged_source_after": true
+    },
+    "gradient-test-3-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "--release",
+        "--offline",
+        "geometric_no_read::tests::no_read_hard_forward_and_answer_gradient_reach_coefficients",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 92.021536833,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    },
+    "integer-tests-1-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-integer",
+        "--release",
+        "--offline",
+        "geometric_no_read::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 44.993104667000004,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "a03f41ff6d97ffaf6683fb6047bcf9e507d725fffec29e335bfe628518174359",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ba5ba6e2addbd898024360299dc9183e7552d82240bacecfd9dc2b86c25d4d0f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "8fa3c6fc820694da22a05822beaefd64bd3916c7fa6ddf49967491061cd0b0b8"
+      },
+      "unchanged_source_after": true
+    },
+    "integrated-test-1-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "--release",
+        "--offline",
+        "geometric_stack::tests::native_geometric_context_reader_has_delayed_answer_credit_and_typed_reload",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.4495154590113088,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    },
+    "raw-test-1-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "--release",
+        "--offline",
+        "geometric_read_native::tests::native_read_raw_null_preserves_q24_bits",
+        "--",
+        "--exact",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.49791670800186694,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "11455af6551061531381ef8fb897cb06db32e723c2723d3a5af2c56f1918b93c",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    },
+    "training-tests-1-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "no_read_",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 239.948035958,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "a03f41ff6d97ffaf6683fb6047bcf9e507d725fffec29e335bfe628518174359",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ba5ba6e2addbd898024360299dc9183e7552d82240bacecfd9dc2b86c25d4d0f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    },
+    "training-tests-2-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "--release",
+        "--offline",
+        "no_read_",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 95.30791674999999,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/lib.rs": "e3eb7d7065eb13dff2311deea310b44816fecb9469dbd3ed75fa406fc9d6415d",
+        "crates/uor-r4-training/src/geometric_no_read.rs": "a03f41ff6d97ffaf6683fb6047bcf9e507d725fffec29e335bfe628518174359",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "3b5d706c9481d724a0239540e388558a834a0ecdde5b43f155d2c57a5b480b8c",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "43625d67b644e01e39eca370c8691170a43fd0796d62ad7e58a5c36fb9180d4d",
+        "crates/uor-r4-training/src/geometric_stack.rs": "a189af33138edd20d27dca716635bc0f192f31b7dbc22ddf1a6cb12fcf624d2f",
+        "crates/uor-r4-training/src/lib.rs": "181c15667c4257b05a936e00f2949349270bf36fbec543c10c8104f458d95f33",
+        "crates/uor-r4-training/examples/attention-geometric-no-read.rs": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45"
+      },
+      "unchanged_source_after": true
+    }
+  },
+  "failed_attempt_scope": {
+    "training-tests-1": "Test-only E0624 private row helper; no tests ran. Repaired checked public rows access in fixture.",
+    "training-tests-2": "8 pass, 1 fail F64/F32 fixture copy; repaired explicit f32 fixture, named gradient-test-3 passes."
+  },
+  "focused_tests": {
+    "integer_unique_passes": 4,
+    "training_unique_passes": 9,
+    "additional_raw_and_integrated_passes": 2,
+    "claim_scope": "Focused construction, arithmetic, caller and admission evidence; not language quality."
+  },
+  "comparisons": [
+    {
+      "seed": 1,
+      "root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-no-read-20261002/compare-1-s1",
+      "report": {
+        "actual_answer_gradient": {
+          "answer_ce": 1.2987953424453735,
+          "episode_index": 0,
+          "per_head_family_l2": [
+            {
+              "bias": 3.416097058561718e-07,
+              "category": 9.662181581201637e-07,
+              "held_root": 9.662181825906186e-07,
+              "held_valid": 9.662181581201637e-07,
+              "retained_root": 9.662181785122093e-07,
+              "token": 3.416097058561718e-07
+            },
+            {
+              "bias": 0.0001753030373947695,
+              "category": 0.0004958318660177617,
+              "held_root": 0.0004958318731689792,
+              "held_valid": 0.0004958318660177617,
+              "retained_root": 0.0004958318719771096,
+              "token": 0.0001753030373947695
+            }
+          ],
+          "scope": "one actual saved-parent answer backward; saturation can yield small credit; no fit or general gradient guarantee",
+          "updates": 0
+        },
+        "complete": true,
+        "elapsed_seconds": 1.841174792,
+        "initialization": "all-zero-q4",
+        "no_read_metadata": {
+          "coefficient_policy": "signed-q4[-7,7]-reserved-minus8-reject;fixed-quarter-nat;canonical-F32-root-Q25;root-factor-Q24-round-ties-away-div8;direct-q-times2^22;no-free-wide-gain-or-offset/1",
+          "config": {
+            "heads": 2,
+            "latent_lanes_per_head": 4,
+            "vocabulary": 40
+          },
+          "dependency_metadata": {
+            "context": {
+              "bytes": 6116,
+              "sha256": "56e3da50b88a79dd432f73ee892e081793854bccf94a139e89a5f055ca4a5ecf"
+            },
+            "events": {
+              "bytes": 2560,
+              "sha256": "7d052b97af6ed1e4d1ac8178642534e858019f1782ab4e0bdd930fd9c836f72d"
+            },
+            "potential": {
+              "bytes": 3405,
+              "sha256": "0169cc7c3347bb88dc19216cfb70056d9f13e6b62943d80fb660d23271b8b0bf"
+            },
+            "reducer": {
+              "bytes": 1912,
+              "sha256": "f6efec6f95ea1e207012f1f776ef30637e094d4aad2a5a8eafb9426097587442"
+            },
+            "span": {
+              "bytes": 1683,
+              "sha256": "0fd6e43e223c3aa8691efd04bc2d7476c28b9e085677bdb5bcf516012ec152fd"
+            },
+            "values": {
+              "bytes": 19039,
+              "sha256": "20feafeda52f7ca18f23606b637f2f2d0baa738cce84c21cb432f3ade78e6d5a"
+            }
+          },
+          "expanded": {
+            "bytes": 20872,
+            "sha256": "3e3f10bc2b3daf3887f63db97716e276112cc28b739fc5d1b483b15f8026de77"
+          },
+          "expanded_entries": 5218,
+          "free_coefficients": 754,
+          "layer": 2,
+          "observation_basis": {
+            "bytes": 1920,
+            "sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7"
+          },
+          "packed": {
+            "bytes": 377,
+            "sha256": "43c2ae1019ad57912662c9bd170d8d6986299bad4ec76811e70c98c4a1ffe3b6"
+          },
+          "parameters": {
+            "coefficients": {
+              "f32_bytes_sha256": "2cdf06af022c6205a4ab4e5f4dca082be757655114755ba3445ac7c2e2799e85",
+              "shape": [
+                2,
+                377
+              ]
+            }
+          },
+          "producer_policy": "current-token;actual-post-update-retained-signed-roots;typed-context-radius-presence;prior-held-before-current-step-validity;native-Q24-null-zero-payload-common-denominator;no-donor-state-or-label-input/1",
+          "reference_arithmetic": "offline-F32-feature-matmul-sum;native-per-root-Q24-rounding-then-exact-i64-add;loaded-difference-measured-not-assumed-zero/1",
+          "schema": "uor-r4.geometric-no-read-native/1",
+          "source_files": {
+            "base/config.json": {
+              "bytes": 516,
+              "sha256": "456074d03418fe7ebdf175809c27412fdf6eb779820d430a90fa394ac7e156dd"
+            },
+            "base/geometric-address.json": {
+              "bytes": 984,
+              "sha256": "265dd024b05cad3151226a99f42981607e3f356a179391600289df1bfe78c6e0"
+            },
+            "base/geometric-span.json": {
+              "bytes": 1002,
+              "sha256": "d524715bf4f433cb0b10f9deea6c2d5ac1ad8239c05be673f3363ac935db6dba"
+            },
+            "base/model.safetensors": {
+              "bytes": 197344,
+              "sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa"
+            },
+            "context_native/context-tables-i32le.bin": {
+              "bytes": 3031040,
+              "sha256": "c8e35b501155a73e4eaefd0eedc992af60673a5254e9a77ba16cb09e8902a0e9"
+            },
+            "context_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "context_native/metadata.json": {
+              "bytes": 8228,
+              "sha256": "d517e15c6ee7b8fc56cddd2dc118cc3c1b5dc516caffdc496636f06ada324996"
+            },
+            "context_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "context_source/context-parameters.safetensors": {
+              "bytes": 420080,
+              "sha256": "b8b1053ecf378012ff6659ab0910cf6ae322e932aba425471cd2bbdeed83d178"
+            },
+            "context_source/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "context_source/metadata.json": {
+              "bytes": 7077,
+              "sha256": "e4563731f178a5bc81eda3d35445b032874907e7eeb095b39140973ca346cf7f"
+            },
+            "context_source/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "event_native/event-tables-i32le.bin": {
+              "bytes": 307840,
+              "sha256": "f37bcdc080743faf43d5f93b17902f15f3e1de6c97c7f8ff72a4addaf5a5d1ab"
+            },
+            "event_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "event_native/metadata.json": {
+              "bytes": 3232,
+              "sha256": "bfa86f64d03f044605c8cc6c5257edf6042ee2d926125749f93c401a9d189c93"
+            },
+            "event_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "event_source/event-parameters.safetensors": {
+              "bytes": 47248,
+              "sha256": "ad48d22662d28f1b9662927ad63e8093b034e349807a8f180ed837a51fbbf701"
+            },
+            "event_source/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "event_source/metadata.json": {
+              "bytes": 2477,
+              "sha256": "085190c5ec22dad12a2c6b66411960ca0fdefc5529d6cfac1cb29ebb53db0714"
+            },
+            "event_source/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "no_read_source/metadata.json": {
+              "bytes": 743,
+              "sha256": "b4f722a699a7a7b507c02cab1c39622229243130e3f75dfd3bb3e2650a268fa3"
+            },
+            "no_read_source/no-read-parameters.safetensors": {
+              "bytes": 3096,
+              "sha256": "d90af27cac23b92767467af63390b5aeb7b9cccf455a6debf7974e6d330d25f9"
+            },
+            "potential_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "potential_native/metadata.json": {
+              "bytes": 4288,
+              "sha256": "288f3cc587cb3a1c08ad81a538c4d7b05ba7a2e303807df36616f1f94270b846"
+            },
+            "potential_native/potential-i32le.bin": {
+              "bytes": 597760,
+              "sha256": "3145acb286a84cddc5306361ec2c2f24bda993153c0d2424a6555add3d17b656"
+            },
+            "potential_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "reducer_native/age-i64le.bin": {
+              "bytes": 2048,
+              "sha256": "c9fd0cec7d838ccc080c10d64a10b13db4fb8377ecf10723f5ce6f7ca6c98cd8"
+            },
+            "reducer_native/exp-u32le.bin": {
+              "bytes": 32776,
+              "sha256": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f"
+            },
+            "reducer_native/metadata.json": {
+              "bytes": 2187,
+              "sha256": "c7ec601226e69263d46d7e97e5a5baa4be7b52e7309433a72ad51fa9dc9bdb6b"
+            },
+            "reducer_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "span_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "span_native/metadata.json": {
+              "bytes": 1842,
+              "sha256": "9761ac7b8cd158617b6cc968ddcbd3e959d4a2fd5a57a947b745977d4c8ed1b7"
+            },
+            "span_native/token-actions.bin": {
+              "bytes": 320,
+              "sha256": "d4915e680119fd93975f7b68f95a52500e94e9d08f900da401d1e2d25a6fb624"
+            },
+            "span_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "value_native/metadata.json": {
+              "bytes": 25956,
+              "sha256": "9163ef2e732cec5356eb6a974cbc1a4071b7bbe438f03bd8e3ff3ab0e41a2732"
+            },
+            "value_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "value_native/value-tables-i32le.bin": {
+              "bytes": 4352000,
+              "sha256": "7dd81f31fee597afeeab498452bef8e0bcfd3befb5048df332f59a9dc045f6b1"
+            },
+            "value_source/metadata.json": {
+              "bytes": 1008,
+              "sha256": "44aea0a1b78249d35c1fcba4a31ef5f02fcf38adcd55d5b361aeead5be7d5f76"
+            },
+            "value_source/value-parameters.safetensors": {
+              "bytes": 516424,
+              "sha256": "497aabe82b26bc99945dc75e712760a215a36be5e396691f58d51d69dab69b55"
+            }
+          },
+          "table_layout": "packed-per-head(bias,token[V],retained[M,4],category[M,33],held[M,4],valid[M]);expanded-per-head(bias,token[V],retained[M,128],category[M,64],held[M,128],valid[M]);M=H*L;zero-root>=120/category>=33/1",
+          "tokenizer": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          }
+        },
+        "panels": [
+          {
+            "answers": {
+              "legacy": 98,
+              "native": 99,
+              "source": 99
+            },
+            "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+            "legacy_changed_from_saved_parent": 0,
+            "maximum_actual_position_logit_delta": 0.0001640021800994873,
+            "panel": "original",
+            "parent_rows_sha256": "eb541c7590c303b4a139742c3c95db6015743f16f33aae90772e5039662c4cae",
+            "requested_rows": 128,
+            "scored_rows": 128,
+            "source_native_answer_changes": 0
+          },
+          {
+            "answers": {
+              "legacy": 104,
+              "native": 104,
+              "source": 104
+            },
+            "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+            "legacy_changed_from_saved_parent": 0,
+            "maximum_actual_position_logit_delta": 0.0001647472381591797,
+            "panel": "stress",
+            "parent_rows_sha256": "da0ce9dd555e043e402339595ce2f49ee94c9137e076da66a71c2796a7588b9c",
+            "requested_rows": 128,
+            "scored_rows": 128,
+            "source_native_answer_changes": 0
+          }
+        ],
+        "parent_report_sha256": "75d3cf41b5b83513f0af703e66d8be8a9aab1db3fb849671f27a9d08b4517a03",
+        "schema": "uor-r4.geometric-no-read-construction/1",
+        "scope": "No fit. Loaded source real-softmax versus native LUT/Q24/Q16 composition; surrounding trunk/output remain float. Zero coefficients and positive-record grammar do not qualify learned quality or semantic abstention.",
+        "updates": 0
+      },
+      "report_identity": {
+        "bytes": 11304,
+        "sha256": "0c50a750d978959ae09032759c95be1ab0c50e7ecfa44aeac5937867c685999c"
+      },
+      "manifest_identity": {
+        "bytes": 2159,
+        "sha256": "f8fc92fab0907aada95ec4a5a3b673236e980dcac2b38cae2accd66d1bf9bcc2"
+      },
+      "row_comparisons": [
+        {
+          "panel": "original",
+          "rows_sha256": {
+            "bytes": 1963970,
+            "sha256": "d49328ba3a8613bb98cfc094f72ee2b23a7d8b41e4589a8d50adda21b8e1bc4c"
+          },
+          "gains": [
+            72,
+            102
+          ],
+          "losses": [
+            113
+          ],
+          "prediction_changes": [
+            {
+              "row": 72,
+              "legacy": 19,
+              "native": 23,
+              "answer": 23
+            },
+            {
+              "row": 102,
+              "legacy": 18,
+              "native": 28,
+              "answer": 28
+            },
+            {
+              "row": 113,
+              "legacy": 30,
+              "native": 22,
+              "answer": 30
+            }
+          ]
+        },
+        {
+          "panel": "stress",
+          "rows_sha256": {
+            "bytes": 2345463,
+            "sha256": "2a00bb9f738e3c8fb9b93d74ec9555eb33e1c6a2f4fa69dba4d325229db67987"
+          },
+          "gains": [],
+          "losses": [],
+          "prediction_changes": []
+        }
+      ],
+      "verify_status": "PASS from actual report_output::verify call before terminal zero; returned empty unlisted files, console count label corrected afterward"
+    },
+    {
+      "seed": 2,
+      "root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-no-read-20261002/compare-1-s2",
+      "report": {
+        "actual_answer_gradient": {
+          "answer_ce": 0.2260359525680542,
+          "episode_index": 0,
+          "per_head_family_l2": [
+            {
+              "bias": 4.565873723549885e-07,
+              "category": 1.2914241087854382e-06,
+              "held_root": 1.2914241236055375e-06,
+              "held_valid": 1.2914241087854382e-06,
+              "retained_root": 1.291424131015587e-06,
+              "token": 4.565873723549885e-07
+            },
+            {
+              "bias": 1.9013632481801324e-05,
+              "category": 5.3778673851482086e-05,
+              "held_root": 5.377867328621681e-05,
+              "held_valid": 5.3778673851482086e-05,
+              "retained_root": 5.377867300358417e-05,
+              "token": 1.9013632481801324e-05
+            }
+          ],
+          "scope": "one actual saved-parent answer backward; saturation can yield small credit; no fit or general gradient guarantee",
+          "updates": 0
+        },
+        "complete": true,
+        "elapsed_seconds": 1.821570333,
+        "initialization": "all-zero-q4",
+        "no_read_metadata": {
+          "coefficient_policy": "signed-q4[-7,7]-reserved-minus8-reject;fixed-quarter-nat;canonical-F32-root-Q25;root-factor-Q24-round-ties-away-div8;direct-q-times2^22;no-free-wide-gain-or-offset/1",
+          "config": {
+            "heads": 2,
+            "latent_lanes_per_head": 4,
+            "vocabulary": 40
+          },
+          "dependency_metadata": {
+            "context": {
+              "bytes": 6116,
+              "sha256": "cdb5945bd8f73e1b37a1af3d9f1d84266bc657671d90ac5683071362e6e373bb"
+            },
+            "events": {
+              "bytes": 2560,
+              "sha256": "b76a6f52316f994a2e1dcbb5a0945ec99771545951dcb16d74e84116786d5697"
+            },
+            "potential": {
+              "bytes": 3405,
+              "sha256": "f2f886ad13df41f88cb6319632a67050f945b3be5466fd804b85ecd97ebed79f"
+            },
+            "reducer": {
+              "bytes": 1912,
+              "sha256": "cdf9ff222f123082a128874cce898b2d9f049477a86dcaa1a2eaf824c00ba94f"
+            },
+            "span": {
+              "bytes": 1683,
+              "sha256": "ee4c570a3e6c2aa8064babd73619572fdcb37a9dc65606adb4a9b093519e6062"
+            },
+            "values": {
+              "bytes": 19039,
+              "sha256": "8036201357a8297b595dc4c9bead5840340e9182f26e20b61da70bf907eb5219"
+            }
+          },
+          "expanded": {
+            "bytes": 20872,
+            "sha256": "3e3f10bc2b3daf3887f63db97716e276112cc28b739fc5d1b483b15f8026de77"
+          },
+          "expanded_entries": 5218,
+          "free_coefficients": 754,
+          "layer": 2,
+          "observation_basis": {
+            "bytes": 1920,
+            "sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7"
+          },
+          "packed": {
+            "bytes": 377,
+            "sha256": "43c2ae1019ad57912662c9bd170d8d6986299bad4ec76811e70c98c4a1ffe3b6"
+          },
+          "parameters": {
+            "coefficients": {
+              "f32_bytes_sha256": "2cdf06af022c6205a4ab4e5f4dca082be757655114755ba3445ac7c2e2799e85",
+              "shape": [
+                2,
+                377
+              ]
+            }
+          },
+          "producer_policy": "current-token;actual-post-update-retained-signed-roots;typed-context-radius-presence;prior-held-before-current-step-validity;native-Q24-null-zero-payload-common-denominator;no-donor-state-or-label-input/1",
+          "reference_arithmetic": "offline-F32-feature-matmul-sum;native-per-root-Q24-rounding-then-exact-i64-add;loaded-difference-measured-not-assumed-zero/1",
+          "schema": "uor-r4.geometric-no-read-native/1",
+          "source_files": {
+            "base/config.json": {
+              "bytes": 516,
+              "sha256": "c37a4ca04737fbb953708495daeb6b7b7f65eb2843ea636f3bbcf8a7acb8ac1a"
+            },
+            "base/geometric-address.json": {
+              "bytes": 984,
+              "sha256": "77b565229bafb1f37948a861619ebac02abdaeea24c3c7f471d1d3f54b3a6bef"
+            },
+            "base/geometric-span.json": {
+              "bytes": 1002,
+              "sha256": "5fb588f0b64c37d88e55464cc21e645e8963e6734fa9747c9d5752664846ffe4"
+            },
+            "base/model.safetensors": {
+              "bytes": 197344,
+              "sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873"
+            },
+            "context_native/context-tables-i32le.bin": {
+              "bytes": 3031040,
+              "sha256": "9fb2f98fefa50ad12b244144624fa80f0dbbb62e987a2f1e5dc21b31c54c0b64"
+            },
+            "context_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "context_native/metadata.json": {
+              "bytes": 8228,
+              "sha256": "747095d5e46b9a7dd126875b348c3632f9e4d7a78996a070df13f4bf848d13b7"
+            },
+            "context_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "context_source/context-parameters.safetensors": {
+              "bytes": 420080,
+              "sha256": "784916febecd928d80a5792e93652a81b501a9c8ac0e4decdd633a480c48150e"
+            },
+            "context_source/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "context_source/metadata.json": {
+              "bytes": 7077,
+              "sha256": "7942ffab1f80d9b46570a0f4aa45190c2a716bcec091486048a0b099ecf37b4a"
+            },
+            "context_source/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "event_native/event-tables-i32le.bin": {
+              "bytes": 307840,
+              "sha256": "c2c86cb1f6ff3399c496d60263f5404e2b9b7046295bf9392b881f0da9de40bb"
+            },
+            "event_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "event_native/metadata.json": {
+              "bytes": 3232,
+              "sha256": "a8449b1559dff123bbcae2981a446244350f165ce10d0d7bb994abf3c94f2d91"
+            },
+            "event_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "event_source/event-parameters.safetensors": {
+              "bytes": 47248,
+              "sha256": "753fd2de85cdd00dd4bed80baddb10909bea9be8d0a38fb037cc654dc93801c3"
+            },
+            "event_source/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "event_source/metadata.json": {
+              "bytes": 2477,
+              "sha256": "2310ca11ad8a5821710fad84206c414d1d02d1f2e88d40497d8f6a795d612053"
+            },
+            "event_source/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "no_read_source/metadata.json": {
+              "bytes": 743,
+              "sha256": "b4f722a699a7a7b507c02cab1c39622229243130e3f75dfd3bb3e2650a268fa3"
+            },
+            "no_read_source/no-read-parameters.safetensors": {
+              "bytes": 3096,
+              "sha256": "d90af27cac23b92767467af63390b5aeb7b9cccf455a6debf7974e6d330d25f9"
+            },
+            "potential_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "potential_native/metadata.json": {
+              "bytes": 4288,
+              "sha256": "53c4adc0370a7425049d8a508488e32a2548019d87a6bfa5561f1f1b73916bb4"
+            },
+            "potential_native/potential-i32le.bin": {
+              "bytes": 597760,
+              "sha256": "8114b419ee72ade244e84634b543b14dc5228be5bf18a26e1d0519b2ba1a9b9f"
+            },
+            "potential_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "reducer_native/age-i64le.bin": {
+              "bytes": 2048,
+              "sha256": "268756b28ab3b03e84b1167bc9105da257174b1cc35c97f0ffcfc5463eb722c9"
+            },
+            "reducer_native/exp-u32le.bin": {
+              "bytes": 32776,
+              "sha256": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f"
+            },
+            "reducer_native/metadata.json": {
+              "bytes": 2187,
+              "sha256": "009b301ecb69b02ffa3d006164c86bf91c5f18f7cf690a4f4f95199768bd16b0"
+            },
+            "reducer_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "span_native/h4-tables.bin": {
+              "bytes": 15601,
+              "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+            },
+            "span_native/metadata.json": {
+              "bytes": 1842,
+              "sha256": "d5124582ae276ac8d775e5bcaf0662354ea4bcee39b76011a2b9a97a698ae36a"
+            },
+            "span_native/token-actions.bin": {
+              "bytes": 320,
+              "sha256": "e7ff1785991ab737eaea80e5b435421ca4b7e4dc0e1bcffbda9b43f69d67cc4e"
+            },
+            "span_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "value_native/metadata.json": {
+              "bytes": 25956,
+              "sha256": "39ab046d660688d0a198f6a2f4d1f36c27da116fd0c666d339e11416dc736cdf"
+            },
+            "value_native/tokenizer-identity.bin": {
+              "bytes": 315,
+              "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+            },
+            "value_native/value-tables-i32le.bin": {
+              "bytes": 4352000,
+              "sha256": "e0d1626a73ccaff8e6528ee9f93b90521f61ad9cef7340e4fa3108f87d931d55"
+            },
+            "value_source/metadata.json": {
+              "bytes": 1008,
+              "sha256": "66385c6a803081d887a8aaf7a3500a4e9d400998ca69d728764f03d8cbb28565"
+            },
+            "value_source/value-parameters.safetensors": {
+              "bytes": 516424,
+              "sha256": "d2482a5f01e49dc390d085eba73d288b936a4a7b2056162c97b73b1804289796"
+            }
+          },
+          "table_layout": "packed-per-head(bias,token[V],retained[M,4],category[M,33],held[M,4],valid[M]);expanded-per-head(bias,token[V],retained[M,128],category[M,64],held[M,128],valid[M]);M=H*L;zero-root>=120/category>=33/1",
+          "tokenizer": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          }
+        },
+        "panels": [
+          {
+            "answers": {
+              "legacy": 128,
+              "native": 128,
+              "source": 128
+            },
+            "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+            "legacy_changed_from_saved_parent": 0,
+            "maximum_actual_position_logit_delta": 0.0001926422119140625,
+            "panel": "original",
+            "parent_rows_sha256": "36ee91d6548088cd751e8978c8ec9a67d43b1798d55ebe2335ac9cfed10b7914",
+            "requested_rows": 128,
+            "scored_rows": 128,
+            "source_native_answer_changes": 0
+          },
+          {
+            "answers": {
+              "legacy": 128,
+              "native": 128,
+              "source": 128
+            },
+            "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+            "legacy_changed_from_saved_parent": 0,
+            "maximum_actual_position_logit_delta": 0.00019490718841552734,
+            "panel": "stress",
+            "parent_rows_sha256": "4810b1ffbe324b596a1934cc51c378b0a7065f7dbb5838f7a245f28313c9fcc2",
+            "requested_rows": 128,
+            "scored_rows": 128,
+            "source_native_answer_changes": 0
+          }
+        ],
+        "parent_report_sha256": "cc116d61309446ad15f145c9b77b419087eabfddb621518b58f11276f1a17506",
+        "schema": "uor-r4.geometric-no-read-construction/1",
+        "scope": "No fit. Loaded source real-softmax versus native LUT/Q24/Q16 composition; surrounding trunk/output remain float. Zero coefficients and positive-record grammar do not qualify learned quality or semantic abstention.",
+        "updates": 0
+      },
+      "report_identity": {
+        "bytes": 11321,
+        "sha256": "f14289d10582054d36f8f724fbc7d4771b14526d53a3c5d3e24b1dbf92851f18"
+      },
+      "manifest_identity": {
+        "bytes": 2159,
+        "sha256": "dfd3c07c0f4286951d23bf374de222a081390e54871f8f4d6e09c594f08a25a8"
+      },
+      "row_comparisons": [
+        {
+          "panel": "original",
+          "rows_sha256": {
+            "bytes": 1975112,
+            "sha256": "1357eed12a3c695e8aa853f869b2f710c1a8433f18ce13c0b22c2aef5d989fd7"
+          },
+          "gains": [],
+          "losses": [],
+          "prediction_changes": []
+        },
+        {
+          "panel": "stress",
+          "rows_sha256": {
+            "bytes": 2359524,
+            "sha256": "c50a9583490148e2e38cb2a6a02427ffa7c7df07cfbc92ac0a6fe680fd37da64"
+          },
+          "gains": [],
+          "losses": [],
+          "prediction_changes": []
+        }
+      ],
+      "verify_status": "PASS from actual report_output::verify call before terminal zero; returned empty unlisted files, console count label corrected afterward"
+    }
+  ],
+  "scalar_opcode_audit": {
+    "schema": "uor-r4.no-read-score-opcode/1",
+    "executable_sha256": "e6397705def1e0c425b0c7c4223876f801ac69cff7356e3acba9a59b35f3eefd",
+    "executable_bytes": 7138976,
+    "assembly_sha256": "379c7bd5117e1d69e5c720d73a88beaac9f30ed627dd6da3536203fbd6d67c20",
+    "symbol": "__RNvMs1_NtCs2G4opTJyFkE_14uor_r4_integer17geometric_no_readNtB5_21NativeGeometricNoRead5score",
+    "architecture": "mach-o arm64",
+    "instructions": 255,
+    "forbidden_multiplier_divide_float_instructions": [],
+    "direct_calls": [
+      {
+        "address": "100174a64",
+        "opcode": "bl",
+        "operands": "0x100437d20 <__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check>"
+      },
+      {
+        "address": "100174a84",
+        "opcode": "bl",
+        "operands": "0x100437d20 <__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check>"
+      },
+      {
+        "address": "100174a94",
+        "opcode": "bl",
+        "operands": "0x100437d20 <__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check>"
+      },
+      {
+        "address": "100174aa8",
+        "opcode": "bl",
+        "operands": "0x100437d20 <__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check>"
+      },
+      {
+        "address": "100174abc",
+        "opcode": "bl",
+        "operands": "0x100437d20 <__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check>"
+      }
+    ],
+    "scope": "Actual release scalar score symbol only. No multiply/divide/float or allocator calls in symbol. Direct calls are bounds-panic paths unreachable for private admitted tables and typed validated roots/categories. Admission/other kernels/whole-model and energy not certified."
+  },
+  "source_review": {
+    "identity": {
+      "bytes": 9217,
+      "sha256": "cbd6d84ad6aa14690cc5d8540a69d94ee98a3104b2b4e6fe49232d4fec700f68"
+    },
+    "scope": "Independent mathematical static source approval; predates test-only fixes and example trace/logging updates. Final exact-head review required for delivery."
+  },
+  "logging_correction": {
+    "previous_source_sha256": "304db44b23c4433ce0865625a74ceac2d38fa5f6d8e2e1e2de77b865265b6d45",
+    "reason": "report_output::verify returns empty unlisted-file vector on success; old print called it verified-file count. Both actual reports were sealed and verified successfully. Fix is logging only, no model/output/report changes.",
+    "executed_results_preserved": true
+  },
+  "resources": {
+    "shared_threads_ceiling": 8,
+    "shared_ram_gb_ceiling": 11,
+    "build_reservation_threads": 2,
+    "build_reservation_ram_gb": 3,
+    "comparison_reservation_threads": 2,
+    "comparison_reservation_ram_gb": 4,
+    "peak_rss": "NOT_MEASURED; reservations are not measured peak",
+    "new_root_mib_ceiling": 192,
+    "build_cache_gib_ceiling": 14,
+    "physical_reserve_mib": 128,
+    "no_read_fit_updates": 0,
+    "complete_elapsed_charge": "Cumulative ledger charged at delivery cutoff; no reset or agent double charge."
+  },
+  "remaining": [
+    "Actual NoRead learning and geometric attribution",
+    "Other value/potential coefficient widths",
+    "Floating trunk, residual, read.out and output",
+    "Bounded candidate/parameter access",
+    "Semantic absence and natural span/role/scope/temporal input",
+    "General conversation and coding/reasoning",
+    "Complete-path laptop energy"
+  ],
+  "next_action": "Declare one answer-only fixed-dose NoRead fit on frozen producer/output parents; do not require perfect imitation or retire geometry from zero initialization or saturated gradients."
+}

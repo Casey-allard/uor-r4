@@ -306,6 +306,11 @@ impl CompiledGeometricRead {
     pub fn metadata(&self) -> &GeometricReadMetadata {
         &self.metadata
     }
+    /// Admitted immutable score units; zero age is lag zero.
+    pub fn age_q24(&self) -> &[i64] {
+        &self.age
+    }
+
     pub fn validate_for(
         &self,
         age: &Tensor,
@@ -555,6 +560,53 @@ pub fn reduce_native_q16(
         .into_iter()
         .map(quantize_score_q24)
         .collect::<Result<Vec<_>>>()?;
+    reduce_native_raw_q24(
+        potential_q24,
+        &no_read_q24,
+        values_q16,
+        batch,
+        heads,
+        time,
+        value_width,
+        potential,
+        compiled,
+    )
+}
+
+/// Offline composition bridge for fully integer inputs. This preserves raw
+/// Q24 NoRead and Q16 payload bits; F32 is reconstructed only AFTER reduction.
+/// The caller binds the live producer/age identities before entering this API.
+/// Existing reducer metadata still means its original compiled age/exp source.
+pub fn reduce_native_raw_q24(
+    potential_q24: &[i64],
+    no_read_q24: &[i64],
+    values_q16: &[i32],
+    batch: usize,
+    heads: usize,
+    time: usize,
+    value_width: usize,
+    potential: &CompiledGeometricPotentials,
+    compiled: &CompiledGeometricRead,
+) -> Result<NativeReadOutput> {
+    let positions = batch
+        .checked_mul(heads)
+        .and_then(|x| x.checked_mul(time))
+        .ok_or_else(|| invalid("native raw read layout overflow"))?;
+    if batch == 0
+        || time == 0
+        || time > compiled.metadata.context
+        || heads != compiled.metadata.heads
+        || value_width != compiled.metadata.value_width
+        || positions != no_read_q24.len()
+        || positions.checked_mul(time) != Some(potential_q24.len())
+        || positions.checked_mul(value_width) != Some(values_q16.len())
+        || bound(&serde_json::to_vec_pretty(potential.metadata())?)
+            != compiled.metadata.potential_metadata
+    {
+        return Err(invalid(
+            "native raw Q24 read shape/potential identity differs",
+        ));
+    }
     let mut kernel =
         NativeGeometricRead::new(compiled.metadata.context, value_width, &compiled.exp)
             .map_err(|e| invalid(e.to_string()))?;
@@ -599,7 +651,7 @@ pub fn reduce_native_q16(
             heads,
             time,
             value_width,
-            no_read_q24,
+            no_read_q24: no_read_q24.to_vec(),
             values_q16: values_q16.to_vec(),
             rows,
         },
@@ -803,6 +855,49 @@ mod tests {
             fixture.age(),
             &fixture.potential,
             &compiled,
+        )
+        .is_err());
+        fs::remove_dir_all(fixture.directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_read_raw_null_preserves_q24_bits() -> Result<()> {
+        let fixture = fixture(vec![0.; HEADS * CONTEXT])?;
+        let compiled = fixture.compile()?;
+        let high = (1i64 << 30) + 1;
+        assert_ne!(quantize_score_q24((high as f64 / 16777216.) as f32)?, high);
+        let null = vec![high; HEADS];
+        let payload = vec![65536; HEADS * VALUE_WIDTH];
+        let scores = vec![high; HEADS];
+        let raw = reduce_native_raw_q24(
+            &scores,
+            &null,
+            &payload,
+            1,
+            HEADS,
+            1,
+            VALUE_WIDTH,
+            &fixture.potential,
+            &compiled,
+        )?;
+        assert_eq!(raw.trace.no_read_q24, null);
+        for row in raw.trace.rows {
+            assert_eq!(row.max_score_q24, high);
+            assert_eq!(row.no_read_weight_q31, WEIGHT_ONE);
+            assert_eq!(row.total_weight_q31, 2 * WEIGHT_ONE);
+            assert_eq!(row.output_q16, vec![32768; VALUE_WIDTH]);
+        }
+        assert!(reduce_native_raw_q24(
+            &scores,
+            &null[..1],
+            &payload,
+            1,
+            HEADS,
+            1,
+            VALUE_WIDTH,
+            &fixture.potential,
+            &compiled
         )
         .is_err());
         fs::remove_dir_all(fixture.directory)?;

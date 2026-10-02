@@ -1,5 +1,31 @@
 # Current UOR-R4 research state
 
+## Connected geometric NoRead — source and actual-parent construction, October 2
+
+Packed four-bit geometry-sensitive NoRead now enters the actual reader before
+floating read normalization and supplies raw Q24 to the common-denominator
+reducer. The offline answer-gradient learner and source-bound compiler/reloader
+are connected. Focused integer, training, raw-precision and integrated caller
+checks pass; the ARM64 release scalar score has no multiplier/divide/float or
+allocator call. That symbol inspection does not qualify the complete model.
+
+Both saved query-credit parents complete zero-update construction comparisons:
+legacy answers98/104 and128/128, geometric source/compiled99/104 and128/128,
+each128 original/stress rows. All512 historical-parent predictions are retained
+by the legacy branch; source/compiled answers agree. One actual backward per
+parent reaches all measured NoRead coefficient families. These are zero-q4
+construction results, not learned quality or semantic abstention.
+[Source and results](geometric-no-read-2026-10-02.md) ·
+[Receipt](../evidence/geometric-no-read-2026-10-02.json).
+
+Next on #1512: one fixed-dose answer-loss NoRead fit with frozen producers and
+output, preserving parents and row changes. Current query-token/validity
+collinearity prevents answer gains alone from proving geometric history use;
+measure scalar-only geometric attribution without changing addresses or values.
+No fit is run at this source checkpoint. Wider coefficients, trunk/output,
+semantic absence, bounded access and language/energy qualification remain open.
+Claude's D19/session track and offline donor compilation remain separate.
+
 ## Completed geometric query-credit comparison — October 2
 
 All four fixed640-update continuations finish from the two learned context/value

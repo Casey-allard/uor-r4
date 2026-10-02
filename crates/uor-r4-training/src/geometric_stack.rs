@@ -199,6 +199,20 @@ struct ReadSource<'a> {
     native_value_projection: Option<NativeValueProjection<'a>>,
     learned_values: Option<LearnedGeometricValues<'a>>,
     native_learned_values: Option<&'a [i32]>,
+    no_read: NoReadSource<'a>,
+}
+
+#[derive(Clone, Copy)]
+enum NoReadSource<'a> {
+    LegacyFloat,
+    LearnedTensor(&'a Tensor),
+    NativeQ24(&'a [i64]),
+}
+#[derive(Clone, Copy)]
+enum NoReadMode<'a> {
+    Legacy,
+    Learned(&'a crate::geometric_no_read::NoReadWeights),
+    Native(&'a crate::geometric_no_read_native::CompiledNoRead),
 }
 
 type NativeReadTraceSink<'a> =
@@ -233,6 +247,7 @@ impl Default for ReadSource<'_> {
             native_value_projection: None,
             learned_values: None,
             native_learned_values: None,
+            no_read: NoReadSource::LegacyFloat,
         }
     }
 }
@@ -2073,6 +2088,7 @@ impl StackModel {
                 native_value_projection: None,
                 learned_values: None,
                 native_learned_values: None,
+                no_read: NoReadSource::LegacyFloat,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2229,6 +2245,7 @@ impl StackModel {
                 native_value_projection: None,
                 learned_values: None,
                 native_learned_values: None,
+                no_read: NoReadSource::LegacyFloat,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2732,6 +2749,7 @@ impl StackModel {
     /// Loaded integer geometric value production from actual retained states
     /// and native span registers. No donor value tensor enters this read.
     /// NoRead, trunk and output are still the floating saved reference.
+    /// Preserved legacy null producer; payload/context are native components.
     pub fn forward_geometric_context_learned_values_native_with_trace(
         &self,
         ids: &[u32],
@@ -2749,6 +2767,119 @@ impl StackModel {
         crate::geometric_read_native::NativeReadTrace,
         crate::geometric_value_producer::ValueProducerTrace,
     )> {
+        let (logits, trace, values, _) = self.forward_geometric_no_read_mode(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            reset_each_token,
+            NoReadMode::Legacy,
+        )?;
+        Ok((
+            logits,
+            trace.ok_or_else(|| invalid("native learned read trace absent"))?,
+            values,
+        ))
+    }
+
+    /// Offline answer-gradient bridge: native frozen features/scores/payloads,
+    /// hard-q4 learned NoRead and differentiable real softmax. No integer backward.
+    pub fn forward_geometric_no_read(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read::NoReadWeights,
+        reset_each_token: bool,
+    ) -> Result<(Tensor, Tensor)> {
+        let (logits, _, _, null) = self.forward_geometric_no_read_mode(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            reset_each_token,
+            NoReadMode::Learned(no_read),
+        )?;
+        Ok((
+            logits,
+            null.ok_or_else(|| invalid("learned NoRead tensor absent"))?,
+        ))
+    }
+
+    /// Loaded native q4 null, with actual raw Q24 score and Q16 mixture trace.
+    pub fn forward_geometric_no_read_native_with_trace(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        reset_each_token: bool,
+    ) -> Result<(
+        Tensor,
+        crate::geometric_read_native::NativeReadTrace,
+        crate::geometric_value_producer::ValueProducerTrace,
+    )> {
+        let (logits, trace, values, _) = self.forward_geometric_no_read_mode(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            reset_each_token,
+            NoReadMode::Native(no_read),
+        )?;
+        Ok((
+            logits,
+            trace.ok_or_else(|| invalid("native NoRead trace absent"))?,
+            values,
+        ))
+    }
+
+    fn forward_geometric_no_read_mode(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        reset_each_token: bool,
+        no_read: NoReadMode<'_>,
+    ) -> Result<(
+        Tensor,
+        Option<crate::geometric_read_native::NativeReadTrace>,
+        crate::geometric_value_producer::ValueProducerTrace,
+        Option<Tensor>,
+    )> {
         self.validate_context_config(context.config())?;
         self.validate_context_dependencies(context, events, span, potential)?;
         producer.validate_native_context(context)?;
@@ -2762,6 +2893,30 @@ impl StackModel {
         let held =
             geometric_span_native::trace_native_events(ids, batch, time, &event.actions, span)?;
         let heads = self.config.heads;
+        match no_read {
+            NoReadMode::Native(n) => {
+                n.validate_dependencies(context, potential, reducer, producer, events, span)?
+            }
+            NoReadMode::Learned(n)
+                if n.config().vocabulary != self.config.vocab_size
+                    || n.config().heads != heads
+                    || n.config().latent_lanes_per_head != context.config().lanes_per_head =>
+            {
+                return Err(invalid("NoRead/context shape differs"))
+            }
+            _ => {}
+        }
+        let lanes = heads * context.config().lanes_per_head;
+        let learned = matches!(no_read, NoReadMode::Learned(_));
+        let feature_count = if learned { ids.len() * lanes } else { 0 };
+        let mut all_latent = Vec::with_capacity(feature_count);
+        let mut all_held = Vec::with_capacity(feature_count);
+        let mut span_valid = Vec::with_capacity(if learned { ids.len() } else { 0 });
+        let mut native_null = if matches!(no_read, NoReadMode::Native(_)) {
+            vec![0i64; batch * heads * time]
+        } else {
+            Vec::new()
+        };
         let mut raw = vec![0i32; batch * heads * time * 16];
         let mut packets =
             vec![
@@ -2792,6 +2947,31 @@ impl StackModel {
                         .collect::<Result<Vec<_>>>()
                 })
                 .transpose()?;
+            if learned {
+                all_latent.extend_from_slice(&latent);
+                span_valid.push(span_codes.is_some());
+                if let Some(held) = &span_codes {
+                    all_held.extend_from_slice(held);
+                } else {
+                    all_held.extend(std::iter::repeat_n(
+                        uor_r4_integer::h4_tables::H4Code::try_from(1)
+                            .map_err(|e| invalid(e.to_string()))?,
+                        lanes,
+                    ));
+                }
+            }
+            if let NoReadMode::Native(n) = no_read {
+                let scores = n.score(
+                    ids[row] as usize,
+                    &latent,
+                    &ctx.codes[row * lanes..(row + 1) * lanes],
+                    span_codes.as_deref(),
+                )?;
+                let (b, t) = (row / time, row % time);
+                for h in 0..heads {
+                    native_null[(b * heads + h) * time + t] = scores[h];
+                }
+            }
             let produced =
                 producer.produce(ids[row] as usize, &latent, span_codes.as_deref(), true)?;
             let (b, t) = (row / time, row % time);
@@ -2813,6 +2993,27 @@ impl StackModel {
                 }
             }
         }
+        let learned_null = match no_read {
+            NoReadMode::Learned(n) => Some(n.forward(crate::geometric_no_read::NoReadBatch {
+                ids,
+                batch,
+                time,
+                latent: &all_latent,
+                observed: &ctx.codes,
+                held: &all_held,
+                span_valid: &span_valid,
+            })?),
+            _ => None,
+        };
+        let null_source = match no_read {
+            NoReadMode::Legacy => NoReadSource::LegacyFloat,
+            NoReadMode::Learned(_) => NoReadSource::LearnedTensor(
+                learned_null
+                    .as_ref()
+                    .ok_or_else(|| invalid("learned NoRead result missing"))?,
+            ),
+            NoReadMode::Native(_) => NoReadSource::NativeQ24(&native_null),
+        };
         let p = self.params()?;
         let span_config = self
             .geometric_span
@@ -2837,6 +3038,7 @@ impl StackModel {
                 native_reducer: Some(reducer),
                 native_trace: Some(&read_trace),
                 native_learned_values: Some(&raw),
+                no_read: null_source,
                 ..ReadSource::default()
             },
         )?;
@@ -2844,9 +3046,7 @@ impl StackModel {
         let logits = hidden.matmul(&p.head()?.t()?)?;
         Ok((
             logits,
-            read_trace
-                .into_inner()
-                .ok_or_else(|| invalid("native learned read trace absent"))?,
+            read_trace.into_inner(),
             crate::geometric_value_producer::ValueProducerTrace {
                 batch,
                 heads,
@@ -2855,6 +3055,7 @@ impl StackModel {
                 packets,
                 values_q16: raw,
             },
+            learned_null,
         ))
     }
 
@@ -3156,6 +3357,7 @@ impl StackModel {
                 native_value_projection,
                 learned_values: None,
                 native_learned_values: None,
+                no_read: NoReadSource::LegacyFloat,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -3215,6 +3417,25 @@ impl StackModel {
         }
         let (batch, time, _) = x.dims3()?;
         let heads = self.config.heads;
+        if !matches!(source.no_read, NoReadSource::LegacyFloat) {
+            if capture.is_some() {
+                return Err(invalid(
+                    "native NoRead path does not expose legacy normalized-read capture",
+                ));
+            }
+            if source.native_learned_values.is_none() || source.native_value_projection.is_some() {
+                return Err(invalid(
+                    "native NoRead requires actual native learned values",
+                ));
+            }
+            let reducer = source
+                .native_reducer
+                .ok_or_else(|| invalid("native NoRead requires admitted reducer"))?;
+            let weights = self.address_weights(p, layer)?;
+            return self.read_geometric_reduced(
+                p, layer, None, batch, time, source, config, &weights, reducer, capture, binding,
+            );
+        }
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
         let prior = if matches!(source.context, Some(ContextInput::Native(_))) {
@@ -3284,7 +3505,17 @@ impl StackModel {
         let weights = self.address_weights(p, layer)?;
         if let Some(reducer) = source.native_reducer {
             return self.read_geometric_reduced(
-                p, layer, &u, source, config, &weights, reducer, capture, binding,
+                p,
+                layer,
+                Some(&u),
+                batch,
+                time,
+                source,
+                config,
+                &weights,
+                reducer,
+                capture,
+                binding,
             );
         }
         let mut scores = match source.native_potential {
@@ -3446,7 +3677,9 @@ impl StackModel {
         &self,
         p: &Params<'_>,
         layer: usize,
-        u: &Tensor,
+        u: Option<&Tensor>,
+        batch: usize,
+        time: usize,
         source: ReadSource<'_>,
         config: &GeometricAddressConfig,
         weights: &AddressWeights,
@@ -3454,11 +3687,18 @@ impl StackModel {
         capture: &mut Capture<'_>,
         binding: &mut Option<BindingCapture<'_>>,
     ) -> Result<Tensor> {
-        let (batch, time, _) = u.dims3()?;
         let potential = source
             .native_potential
             .ok_or_else(|| invalid("native reduction requires native geometric potentials"))?;
         potential.validate_for(weights, config)?;
+        reducer.validate_for(p.layer(layer, "read.age")?, potential)?;
+        if batch == 0
+            || time == 0
+            || time > reducer.metadata().context
+            || config.heads != reducer.metadata().heads
+        {
+            return Err(invalid("native read dimensions differ from reducer"));
+        }
         let current = match source.context {
             Some(ContextInput::Native(codes)) => codes,
             _ => return Err(invalid("native reduction requires typed native context")),
@@ -3526,14 +3766,77 @@ impl StackModel {
                 }
             }
         }
-        let null = Self::linear(u, p.layer(layer, "read.null.weight")?)?
-            .broadcast_add(p.layer(layer, "read.null.bias")?)?
-            .transpose(1, 2)?;
+        if let NoReadSource::LearnedTensor(null) = source.no_read {
+            let raw = source
+                .native_learned_values
+                .ok_or_else(|| invalid("learned NoRead native values missing"))?;
+            let width = reducer.metadata().value_width;
+            if null.dims() != [batch, heads, time]
+                || null.dtype() != DType::F32
+                || !null.device().is_cpu()
+                || raw.len() != batch * heads * time * width
+                || null
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .any(|x| !x.is_finite())
+            {
+                return Err(invalid(
+                    "learned NoRead/value shape or finite score differs",
+                ));
+            }
+            let mut fixed_scores = vec![-1e30f32; score_count];
+            for b in 0..batch {
+                for h in 0..heads {
+                    for q in 0..time {
+                        for k in 0..=q {
+                            let index = ((b * heads + h) * time + q) * time + k;
+                            let age = reducer.age_q24()[h * reducer.metadata().context + q - k];
+                            let sum = scores[index]
+                                .checked_add(age)
+                                .ok_or_else(|| invalid("learned NoRead score+age overflow"))?;
+                            fixed_scores[index] = (sum as f64 / 16777216.) as f32;
+                        }
+                    }
+                }
+            }
+            let fixed = Tensor::from_vec(fixed_scores, (batch, heads, time, time), &self.device)?;
+            let joined = Tensor::cat(&[&null.unsqueeze(3)?, &fixed], 3)?;
+            let values = Tensor::from_vec(
+                raw.iter()
+                    .map(|&x| (f64::from(x) / 65536.) as f32)
+                    .collect::<Vec<_>>(),
+                (batch, heads, time, width),
+                &self.device,
+            )?;
+            let (values, value_width) = self.read_binding_values(values, layer, binding)?;
+            let zero = Tensor::zeros((batch, heads, 1, values.dim(3)?), DType::F32, &self.device)?;
+            let values = Tensor::cat(&[&zero, &values], 2)?;
+            let read = candle_nn::ops::softmax(&joined, 3)?.matmul(&values)?;
+            return self.finish_geometric_read(p, layer, &read, value_width, capture, binding);
+        }
+        let null = match source.no_read {
+            NoReadSource::LegacyFloat => {
+                let u = u.ok_or_else(|| invalid("legacy NoRead normalized input missing"))?;
+                Some(
+                    Self::linear(u, p.layer(layer, "read.null.weight")?)?
+                        .broadcast_add(p.layer(layer, "read.null.bias")?)?
+                        .transpose(1, 2)?,
+                )
+            }
+            NoReadSource::NativeQ24(_) => None,
+            NoReadSource::LearnedTensor(_) => {
+                return Err(invalid("learned NoRead dispatch differs"))
+            }
+        };
         let values = if source.native_learned_values.is_some() {
             None
         } else {
             Some(self.heads(
-                &Self::linear(u, p.layer(layer, "read.value.weight")?)?,
+                &Self::linear(
+                    u.ok_or_else(|| invalid("legacy value normalized input missing"))?,
+                    p.layer(layer, "read.value.weight")?,
+                )?,
                 batch,
                 time,
             )?)
@@ -3549,15 +3852,34 @@ impl StackModel {
                     "native learned values cannot also use oracle projection",
                 ));
             }
-            crate::geometric_read_native::reduce_native_q16(
-                &scores,
-                &null,
-                raw,
-                value_width,
-                p.layer(layer, "read.age")?,
-                potential,
-                reducer,
-            )?
+            match source.no_read {
+                NoReadSource::NativeQ24(null) => {
+                    crate::geometric_read_native::reduce_native_raw_q24(
+                        &scores,
+                        null,
+                        raw,
+                        batch,
+                        heads,
+                        time,
+                        value_width,
+                        potential,
+                        reducer,
+                    )?
+                }
+                NoReadSource::LegacyFloat => crate::geometric_read_native::reduce_native_q16(
+                    &scores,
+                    null.as_ref()
+                        .ok_or_else(|| invalid("legacy null missing"))?,
+                    raw,
+                    value_width,
+                    p.layer(layer, "read.age")?,
+                    potential,
+                    reducer,
+                )?,
+                NoReadSource::LearnedTensor(_) => {
+                    return Err(invalid("learned null reached integer reduction"))
+                }
+            }
         } else if let Some(projection) = source.native_value_projection {
             let values = values
                 .as_ref()
@@ -3580,7 +3902,8 @@ impl StackModel {
             };
             let output = crate::geometric_read_native::reduce_native_q16(
                 &scores,
-                &null,
+                null.as_ref()
+                    .ok_or_else(|| invalid("legacy null missing"))?,
                 &projected.trace.projected_q16,
                 value_width,
                 p.layer(layer, "read.age")?,
@@ -3601,7 +3924,8 @@ impl StackModel {
         } else {
             crate::geometric_read_native::reduce_native(
                 &scores,
-                &null,
+                null.as_ref()
+                    .ok_or_else(|| invalid("legacy null missing"))?,
                 values
                     .as_ref()
                     .ok_or_else(|| invalid("native donor values absent"))?,
@@ -4086,6 +4410,7 @@ impl StackModel {
                 native_value_projection: None,
                 learned_values: None,
                 native_learned_values: None,
+                no_read: NoReadSource::LegacyFloat,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -4447,6 +4772,7 @@ impl StackModel {
                 native_value_projection: None,
                 learned_values: None,
                 native_learned_values: None,
+                no_read: NoReadSource::LegacyFloat,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -5397,6 +5723,7 @@ impl StackModel {
                         native_value_projection: None,
                         learned_values: None,
                         native_learned_values: None,
+                        no_read: NoReadSource::LegacyFloat,
                     },
                 )?,
             };
@@ -11132,6 +11459,184 @@ mod tests {
                 .is_err(),
             "different context artifact cannot feed compiled value head"
         );
+        // The connected q4 NoRead path uses these SAME actual frozen native
+        // producers, before the old normalized-read/null/value dependencies.
+        let null_weights =
+            crate::geometric_no_read::NoReadWeights::new(model.config.vocab_size, 2, 4)?;
+        let null_source = root.join("no-read-source");
+        null_weights.save(&null_source)?;
+        let finite_native_path = root.join("finite-native-context");
+        finite_native.save(&finite_native_path)?;
+        let native_values_path = root.join("native-learned-values");
+        let native_read_path = root.join("native-read");
+        let null_paths = crate::geometric_no_read_native::NoReadSourcePaths {
+            no_read_source: &null_source,
+            value: value_paths,
+            context_native: &finite_native_path,
+            value_native: &native_values_path,
+            reducer_native: &native_read_path,
+        };
+        let null_compiled = crate::geometric_no_read_native::CompiledNoRead::compile(
+            &null_weights,
+            null_paths,
+            registry,
+        )?;
+        null_compiled.save(&root.join("native-null"))?;
+        let null_compiled = crate::geometric_no_read_native::CompiledNoRead::load(
+            &root.join("native-null"),
+            null_paths,
+            registry,
+        )?;
+        let (null_source_logits, null_scores) = model.forward_geometric_no_read(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_weights,
+            false,
+        )?;
+        assert_eq!(null_scores.to_vec3::<f32>()?, vec![vec![vec![0.; 10]; 2]]);
+        let language = logits_cross_entropy(&null_source_logits.narrow(0, 9, 1)?, &[7], None)?;
+        let gradient = language.backward()?;
+        let coefficient = gradient
+            .get(null_weights.parameters()["coefficients"].as_tensor())
+            .ok_or_else(|| invalid("actual reader answer misses NoRead coefficients"))?;
+        let magnitude = coefficient.abs()?.max_all()?.to_scalar::<f32>()?;
+        assert!(
+            magnitude.is_finite() && magnitude > 0.,
+            "ordinary reader NoRead credit {magnitude}"
+        );
+        assert!(gradient
+            .get(&model.variables()["layers.02.read.null.weight"])
+            .is_none());
+        assert!(gradient
+            .get(&model.variables()["layers.02.read_norm.weight"])
+            .is_none());
+        let (null_logits, null_trace, null_values) = model
+            .forward_geometric_no_read_native_with_trace(
+                &ids,
+                1,
+                10,
+                &finite_native,
+                &event,
+                &span,
+                &potential,
+                &reducer,
+                &native_producer,
+                &null_compiled,
+                false,
+            )?;
+        assert_eq!(null_trace.no_read_q24, vec![0; 20]);
+        assert_eq!(null_values, native_values);
+        // Poison unused donor branches. Restore even if the forward rejects.
+        let mut held_parameters = Vec::new();
+        for suffix in [
+            "read.null.weight",
+            "read.null.bias",
+            "read_norm.weight",
+            "read.value.weight",
+        ] {
+            let name = layer_name(2, suffix);
+            let var = &model.variables()[&name];
+            held_parameters.push((name, var.as_tensor().copy()?));
+            var.set(&Tensor::full(f32::NAN, var.shape(), &cpu())?)?;
+        }
+        let poisoned = model.forward_geometric_no_read_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            false,
+        );
+        for (name, value) in held_parameters {
+            model.variables()[&name].set(&value)?;
+        }
+        let (poisoned_logits, poisoned_trace, _) = poisoned?;
+        assert_eq!(bits(&null_logits)?, bits(&poisoned_logits)?);
+        assert_eq!(null_trace, poisoned_trace);
+        let output = &model.variables()["layers.02.read.out.weight"];
+        let old_output = output.as_tensor().copy()?;
+        output.set(&Tensor::zeros(output.shape(), DType::F32, &cpu())?)?;
+        let disabled = model.forward_geometric_no_read_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            false,
+        );
+        output.set(&old_output)?;
+        assert_ne!(
+            bits(&null_logits)?,
+            bits(&disabled?.0)?,
+            "native read still drives output"
+        );
+        let mut future = ids;
+        future[9] = 2;
+        let future = model.forward_geometric_no_read_native_with_trace(
+            &future,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            false,
+        )?;
+        assert_eq!(
+            bits(&null_logits.narrow(0, 0, 9)?)?,
+            bits(&future.0.narrow(0, 0, 9)?)?
+        );
+        for h in 0..2 {
+            for q in 0..9 {
+                let previous = null_trace
+                    .rows
+                    .get(h * null_trace.time + q)
+                    .ok_or_else(|| invalid("NoRead fixture prior row missing"))?;
+                let changed = future
+                    .1
+                    .rows
+                    .get(h * future.1.time + q)
+                    .ok_or_else(|| invalid("NoRead fixture changed row missing"))?;
+                assert_eq!(previous, changed);
+            }
+        }
+        let reloaded_model = StackModel::load(&base, &cpu())?;
+        let reloaded_result = reloaded_model.forward_geometric_no_read_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            false,
+        )?;
+        assert_eq!(bits(&null_logits)?, bits(&reloaded_result.0)?);
+        assert_eq!(null_trace, reloaded_result.1);
+
         let reduced = model.forward_geometric_context_read_native(
             &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,
         )?;
