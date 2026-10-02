@@ -1,6 +1,27 @@
 # Current UOR-R4 research state
 
 
+
+## Native geometric weighted reader — loaded retention, October 2
+
+The integer weighted reader preserves all 512 answer predictions across both
+saved native-context models and both 128-row panels per model. Seed 1 retains
+100 original / 110 stress answers; seed 2 retains 128 / 127. Actual answer
+logits are close but not bit-identical. Maximum actual-position logit drift
+across the four panels is 0.000223205. Each panel restores the baseline exactly
+in all 16 chunks. The [measured receipt](../evidence/geometric-read-native-2026-10-02.json)
+binds the executed source, release executable and all summary identities.
+
+This component normalizes Q31 table weights and reduces Q16 occurrence values
+with widened integer arithmetic and exact restoring division. Preserve
+occurrence identity, null weight and cancellation separately; rounded zero is
+not absence. The actual prediction-producing trace is retained. Donor value
+and NoRead computation and downstream layers remain floating, so these results
+do not qualify complete integer/geometric serving, general language, geometry
+advantage or energy. Continue the geometric value representation comparison
+and then learned native value/NoRead production on #1512. No additional fit or
+repeat of the completed reader comparison is required by these results.
+
 ## Native geometric context — completed development study, October 2
 
 The learned latent signed-H4 context producer completed both fixed 640-update

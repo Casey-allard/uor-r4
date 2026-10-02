@@ -194,7 +194,12 @@ struct ReadSource<'a> {
     native_potential: Option<&'a CompiledGeometricPotentials>,
     event_control: Option<SpanEvents<'a>>,
     context: Option<ContextInput<'a>>,
+    native_reducer: Option<&'a crate::geometric_read_native::CompiledGeometricRead>,
+    native_trace: NativeReadTraceSink<'a>,
 }
+
+type NativeReadTraceSink<'a> =
+    Option<&'a std::cell::RefCell<Option<crate::geometric_read_native::NativeReadTrace>>>;
 
 impl Default for ReadSource<'_> {
     fn default() -> Self {
@@ -205,6 +210,8 @@ impl Default for ReadSource<'_> {
             native_potential: None,
             event_control: None,
             context: None,
+            native_reducer: None,
+            native_trace: None,
         }
     }
 }
@@ -2040,6 +2047,8 @@ impl StackModel {
                 native_potential: None,
                 event_control: None,
                 context: None,
+                native_reducer: None,
+                native_trace: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2191,6 +2200,8 @@ impl StackModel {
                 native_potential: potential,
                 event_control: None,
                 context: None,
+                native_reducer: None,
+                native_trace: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2459,6 +2470,142 @@ impl StackModel {
         Ok(hidden.matmul(&p.head()?.t()?)?)
     }
 
+    /// Native geometric scores, age, normalization and weighted payload
+    /// reduction. Float donor payload/NoRead production and the rest of the
+    /// model remain outside this numerical bridge.
+    pub fn forward_geometric_context_read_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        let (hidden, _) = self.hidden_geometric_context_read_native(
+            ids,
+            batch,
+            time,
+            None,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            reset_each_token,
+            None,
+        )?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Capture the raw native reduction trace from the SAME predictive pass.
+    /// This offline diagnostic accepts no source labels and does not persist
+    /// an override or modify weights. No second scorer is evaluated.
+    pub fn forward_geometric_context_read_native_with_trace(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        reset_each_token: bool,
+    ) -> Result<(Tensor, crate::geometric_read_native::NativeReadTrace)> {
+        let trace = std::cell::RefCell::new(None);
+        let (hidden, _) = self.hidden_geometric_context_read_native(
+            ids,
+            batch,
+            time,
+            None,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            reset_each_token,
+            Some(&trace),
+        )?;
+        let p = self.params()?;
+        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let trace = trace
+            .into_inner()
+            .ok_or_else(|| invalid("native weighted read trace was not evaluated"))?;
+        Ok((logits, trace))
+    }
+
+    pub fn read_binding_masses_geometric_context_read_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.hidden_geometric_context_read_native(
+            ids,
+            batch,
+            time,
+            Some(target),
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            reset_each_token,
+            None,
+        )?
+        .1
+        .ok_or_else(|| invalid("native weighted source observer was not evaluated"))
+    }
+
+    fn hidden_geometric_context_read_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: Option<&ReadBindingTarget>,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        reset_each_token: bool,
+        native_trace: NativeReadTraceSink<'_>,
+    ) -> Result<(Tensor, Option<Tensor>)> {
+        self.validate_context_config(context.config())?;
+        self.validate_context_dependencies(context, events, span, potential)?;
+        if reducer.metadata().layer != 2 {
+            return Err(invalid(
+                "native reduction artifact is bound to a different read layer",
+            ));
+        }
+        let ctx = geometric_context::trace_native(ids, batch, time, context, reset_each_token)?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        self.hidden_geometric_context_reduced(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&event.actions),
+            target,
+            Some(span),
+            Some(potential),
+            Some(ContextInput::Native(&ctx.codes)),
+            Some(reducer),
+            native_trace,
+        )
+    }
+
     pub fn read_binding_masses_geometric_context_native(
         &self,
         ids: &[u32],
@@ -2577,6 +2724,24 @@ impl StackModel {
         potential: Option<&CompiledGeometricPotentials>,
         context: Option<ContextInput<'_>>,
     ) -> Result<(Tensor, Option<Tensor>)> {
+        self.hidden_geometric_context_reduced(
+            ids, batch, time, control, target, compiled, potential, context, None, None,
+        )
+    }
+
+    fn hidden_geometric_context_reduced(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        control: SpanEvents<'_>,
+        target: Option<&ReadBindingTarget>,
+        compiled: Option<&CompiledSpanActions>,
+        potential: Option<&CompiledGeometricPotentials>,
+        context: Option<ContextInput<'_>>,
+        native_reducer: Option<&crate::geometric_read_native::CompiledGeometricRead>,
+        native_trace: NativeReadTraceSink<'_>,
+    ) -> Result<(Tensor, Option<Tensor>)> {
         let span = self
             .geometric_span
             .as_ref()
@@ -2612,6 +2777,8 @@ impl StackModel {
                 native_potential: potential,
                 event_control: Some(control),
                 context,
+                native_reducer,
+                native_trace,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2738,6 +2905,11 @@ impl StackModel {
             })
         };
         let weights = self.address_weights(p, layer)?;
+        if let Some(reducer) = source.native_reducer {
+            return self.read_geometric_reduced(
+                p, layer, &u, source, config, &weights, reducer, capture, binding,
+            );
+        }
         let mut scores = match source.native_potential {
             Some(compiled) => {
                 if source.native_span.is_none() {
@@ -2861,6 +3033,139 @@ impl StackModel {
             2,
         )?;
         let read = candle_nn::ops::softmax(&scores, 3)?.matmul(&value)?;
+        self.finish_geometric_read(p, layer, &read, value_width, capture, binding)
+    }
+
+    /// Offline saved-model bridge: only the weighted geometric reduction is
+    /// native here. The donor still produces NoRead and payload values.
+    fn read_geometric_reduced(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        u: &Tensor,
+        source: ReadSource<'_>,
+        config: &GeometricAddressConfig,
+        weights: &AddressWeights,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        capture: &mut Capture<'_>,
+        binding: &mut Option<BindingCapture<'_>>,
+    ) -> Result<Tensor> {
+        let (batch, time, _) = u.dims3()?;
+        let potential = source
+            .native_potential
+            .ok_or_else(|| invalid("native reduction requires native geometric potentials"))?;
+        potential.validate_for(weights, config)?;
+        let current = match source.context {
+            Some(ContextInput::Native(codes)) => codes,
+            _ => return Err(invalid("native reduction requires typed native context")),
+        };
+        let (span, ids) = source
+            .native_span
+            .ok_or_else(|| invalid("native reduction requires native spans"))?;
+        let events = match source.event_control {
+            Some(SpanEvents::Native(events)) => events,
+            _ => return Err(invalid("native reduction requires native events")),
+        };
+        let trace = geometric_span_native::trace_native_events(ids, batch, time, events, span)?;
+        let heads = config.heads;
+        let lanes = config.lanes_per_head;
+        let count = batch
+            .checked_mul(time)
+            .and_then(|n| n.checked_mul(heads))
+            .and_then(|n| n.checked_mul(lanes))
+            .ok_or_else(|| invalid("native reduction address shape overflow"))?;
+        if trace.lanes != heads * lanes
+            || trace.prior_codes.len() != batch * time
+            || current.len() != count
+        {
+            return Err(invalid("native reduction address layout differs"));
+        }
+        let mut content = Vec::with_capacity(count);
+        for row in trace.prior_codes {
+            for lane in 0..heads * lanes {
+                let code = match &row {
+                    Some(roots) => {
+                        if roots.len() != heads * lanes {
+                            return Err(invalid("native reduction span lane layout differs"));
+                        }
+                        uor_r4_integer::geometric_potential::AddressLane::new(roots[lane], 16, true)
+                    }
+                    None => uor_r4_integer::geometric_potential::AddressLane::new(1, 0, false),
+                }
+                .map_err(|e| invalid(e.to_string()))?;
+                content.push(code);
+            }
+        }
+        let score_count = batch
+            .checked_mul(heads)
+            .and_then(|n| n.checked_mul(time))
+            .and_then(|n| n.checked_mul(time))
+            .ok_or_else(|| invalid("native reduction score layout overflow"))?;
+        // This allocation is the offline full-window bridge, not the native
+        // row reducer's incremental serving scratch.
+        let mut scores = vec![0i64; score_count];
+        for b in 0..batch {
+            for head in 0..heads {
+                for query in 0..time {
+                    let q = ((b * time + query) * heads + head) * lanes;
+                    for key in 0..=query {
+                        let k = ((b * time + key) * heads + head) * lanes;
+                        scores[((b * heads + head) * time + query) * time + key] = potential
+                            .score_pair_codes(
+                                head,
+                                &content[q..q + lanes],
+                                &content[k..k + lanes],
+                                &current[q..q + lanes],
+                                &current[k..k + lanes],
+                            )?;
+                    }
+                }
+            }
+        }
+        let null = Self::linear(u, p.layer(layer, "read.null.weight")?)?
+            .broadcast_add(p.layer(layer, "read.null.bias")?)?
+            .transpose(1, 2)?;
+        let values = self.heads(
+            &Self::linear(u, p.layer(layer, "read.value.weight")?)?,
+            batch,
+            time,
+        )?;
+        let output = crate::geometric_read_native::reduce_native(
+            &scores,
+            &null,
+            &values,
+            p.layer(layer, "read.age")?,
+            potential,
+            reducer,
+        )?;
+        let value_width = values.dim(3)?;
+        let target = binding
+            .as_ref()
+            .filter(|binding| binding.target.layer == layer)
+            .map(|binding| binding.target);
+        let read = if let Some(target) = target {
+            // Labels observe raw normalized occurrence mass only AFTER the
+            // predictive reduction. This channel is removed before read.out.
+            let mut masses = vec![0f32; batch * heads * time];
+            for row in &target.rows {
+                masses[(row.batch * heads + target.head) * time + row.query] = output
+                    .trace
+                    .source_mass(row.batch, target.head, row.query, &row.sources)?;
+            }
+            let mass = Tensor::from_vec(masses, (batch, heads, time, 1), &self.device)?;
+            Tensor::cat(&[&output.read, &mass], 3)?
+        } else {
+            output.read
+        };
+        if let Some(sink) = source.native_trace {
+            let mut sink = sink
+                .try_borrow_mut()
+                .map_err(|_| invalid("native read trace is already borrowed"))?;
+            if sink.is_some() {
+                return Err(invalid("native read trace was produced more than once"));
+            }
+            *sink = Some(output.trace);
+        }
         self.finish_geometric_read(p, layer, &read, value_width, capture, binding)
     }
 
@@ -3305,6 +3610,8 @@ impl StackModel {
                 native_potential: None,
                 event_control: None,
                 context: None,
+                native_reducer: None,
+                native_trace: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -3661,6 +3968,8 @@ impl StackModel {
                 native_potential: None,
                 event_control: None,
                 context: None,
+                native_reducer: None,
+                native_trace: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -4606,6 +4915,8 @@ impl StackModel {
                         native_potential: None,
                         event_control: None,
                         context: None,
+                        native_reducer: None,
+                        native_trace: None,
                     },
                 )?,
             };
@@ -10129,6 +10440,66 @@ mod tests {
             .forward_geometric_context_native(
                 &ids, 1, 10, &loaded, &other, &span, &potential, false
             )
+            .is_err());
+        // Exercise the independently loaded native reduction through the
+        // actual model and observer, using the same source-bound fixture.
+        let read_source = crate::geometric_read_native::ReadSourceBinding::from_directory(
+            &base, registry, &potential, 2,
+        )?;
+        let reducer = crate::geometric_read_native::CompiledGeometricRead::compile(
+            p.layer(2, "read.age")?,
+            &potential,
+            &read_source,
+        )?;
+        reducer.save(&root.join("native-read"))?;
+        let reducer = crate::geometric_read_native::CompiledGeometricRead::load(
+            &root.join("native-read"),
+            &read_source,
+        )?;
+        let reduced = model.forward_geometric_context_read_native(
+            &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,
+        )?;
+        assert_eq!(reduced.dims(), compiled.dims());
+        assert!(reduced
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .iter()
+            .all(|v| v.is_finite()));
+        let target = ReadBindingTarget {
+            layer: 2,
+            head: 0,
+            rows: vec![ReadBinding {
+                batch: 0,
+                query: 9,
+                sources: vec![1, 2],
+            }],
+        };
+        let observed = model
+            .read_binding_masses_geometric_context_read_native(
+                &ids, 1, 10, &target, &loaded, &event, &span, &potential, &reducer, false,
+            )?
+            .to_vec1::<f32>()?;
+        assert_eq!(observed.len(), 1);
+        assert!(observed[0].is_finite() && (0.0..=1.0).contains(&observed[0]));
+        let (traced, raw) = model.forward_geometric_context_read_native_with_trace(
+            &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,
+        )?;
+        assert_eq!(bits(&traced)?, bits(&reduced)?);
+        assert_eq!((raw.batch, raw.heads, raw.time), (1, 2, 10));
+        assert_eq!(raw.rows.len(), 20);
+        assert_eq!(
+            raw.source_mass(0, 0, 9, &[1, 2])?.to_bits(),
+            observed[0].to_bits()
+        );
+        assert!((0.0..=1.0).contains(&raw.no_read_mass(0, 0, 9)?));
+        // Observing an arbitrary source set cannot alter predictive parameters,
+        // context, or history. The label channel is removed before read.out.
+        let after_observation = model.forward_geometric_context_read_native(
+            &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,
+        )?;
+        assert_eq!(bits(&reduced)?, bits(&after_observation)?);
+        assert!(reducer
+            .validate_for(&p.layer(2, "read.age")?.affine(1.0, 0.125)?, &potential,)
             .is_err());
         std::fs::remove_dir_all(root)?;
         Ok(())

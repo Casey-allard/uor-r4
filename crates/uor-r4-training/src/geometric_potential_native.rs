@@ -536,6 +536,28 @@ impl CompiledGeometricPotentials {
     pub fn metadata(&self) -> &PotentialMetadata {
         &self.metadata
     }
+    /// Score one admitted typed pair directly in Q24, without a tensor or
+    /// floating-point reconstruction. The surrounding caller must bind this
+    /// compiled object's metadata to its saved reader dependencies.
+    pub fn score_pair_codes(
+        &self,
+        head: usize,
+        query_content: &[AddressLane],
+        source_content: &[AddressLane],
+        query_context: &[AddressLane],
+        source_context: &[AddressLane],
+    ) -> Result<i64> {
+        self.native
+            .score(
+                head,
+                query_content,
+                source_content,
+                query_context,
+                source_context,
+                &self.algebra,
+            )
+            .map_err(|e| invalid(e.to_string()))
+    }
     pub fn error_bounds(&self) -> &[HeadScoreErrorBound] {
         &self.metadata.error_bounds
     }

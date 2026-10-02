@@ -47,7 +47,7 @@
 
 pub mod flock;
 mod format;
-mod kernels;
+pub(crate) mod kernels;
 mod session;
 #[cfg(test)]
 mod tests;
