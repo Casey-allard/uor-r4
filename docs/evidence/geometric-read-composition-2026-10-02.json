@@ -1,0 +1,695 @@
+{
+  "schema": "uor-r4.geometric-read-composition-evidence/1",
+  "source_sha256": {
+    "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+    "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+    "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+    "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+    "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+    "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+    "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+    "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+    "crates/uor-r4-training/examples/attention-geometric-composition.rs": "c9c992ad8f53b5dc363327b3830d725eaa209b363727d6dc46a398759c6a7465"
+  },
+  "construction_reports": {
+    "1": {
+      "causal_prefix": {
+        "exact_integer_prefix_equal": true,
+        "maximum_float_tail_prefix_logit_delta": 0.0,
+        "prefix_length": 36,
+        "scope": "exact integer per-head values/weights/null;unfinished float-tail difference reported without bit-parity assertion"
+      },
+      "compiled_metadata": {
+        "actual_bank_bytes": 320,
+        "config": {
+          "geometry_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "heads": 2,
+          "initialization": "fixed-v1;term0-left-right-identity-gain1/4;term1-left2-right3-gain-minus1/4;selector-selected-logit1-other0;no-data-selection/1",
+          "input_lanes": 4,
+          "output_lanes": 8,
+          "rule": "H2;head-output8-input4-term2;left*root*inverse(right);signed-q4[-7,7]/4-dimensionless;canonical-Q16-atoms;i64-sum-all-then-one-quarter-round-ties-away;no-presence-inference/1",
+          "schema": "uor-r4.geometric-composition-offline/1",
+          "surrogate": "hard-native-i64Q16-forward;conditional120-softmax-T1-full-transformed-K2-value-credit;other-selector-hard;gain-included;dimensionless-gain-shadow-hard-quarter-grid-identity-STE;post-update-project[-1.75,1.75];frozen-input-packets/1",
+          "terms_per_block": 2
+        },
+        "gains": {
+          "bytes": 64,
+          "sha256": "305f9abbf73886e80de03ee90177ffc173d62c259f5f6abe25ebcb8c36470f40"
+        },
+        "left": {
+          "bytes": 128,
+          "sha256": "8a1701f5b48bb1dd905e2241bb204ba67f00050eb5b5c3c2bfd2b8fdb5875ea3"
+        },
+        "no_read_metadata": {
+          "bytes": 7035,
+          "sha256": "1b41b1950feb656fc2b1707ac9c7f6d3cea77a0764ac7bba52c1fb9e6e257d5d"
+        },
+        "numerical_composition_schema": "uor-r4.geometric-composition-two-sided-k2-i64-q16/1",
+        "numerical_reducer_schema": "uor-r4.geometric-composed-read-i64-q16/1",
+        "output_width": 32,
+        "parameters": {
+          "gains": {
+            "f32_bytes_sha256": "7f88be45e5f37dbbc5a5266780075da76543901b4e1603b53210834790ce18c4",
+            "shape": [
+              128
+            ]
+          },
+          "left_logits": {
+            "f32_bytes_sha256": "3dd59b043b1f8d31f0987e3691cdc853b18dafdbc1e0acda5a744c689b63f9f4",
+            "shape": [
+              128,
+              120
+            ]
+          },
+          "right_logits": {
+            "f32_bytes_sha256": "8de035b26bc0197ca75ffe11ba8b6f4d6407c94db073926e6e33dbd01e03be84",
+            "shape": [
+              128,
+              120
+            ]
+          }
+        },
+        "payload_fractional_bits": 16,
+        "payload_storage_bits": 64,
+        "policy": "H2-input4-output8-K2;left*root*inverse(right);byte-signed-H4-IDs;q4[-7,7]-reserved-minus8-reject;dimensionless-quarter-gain;one-ties-away-quarter-after-all-atoms;separate-i64-Q16;per-head-original-age-exp-NoRead;checked-i128-shift-add-longdivision;head-sum-after-normalization/1",
+        "reducer_metadata": {
+          "bytes": 1912,
+          "sha256": "f6efec6f95ea1e207012f1f776ef30637e094d4aad2a5a8eafb9426097587442"
+        },
+        "right": {
+          "bytes": 128,
+          "sha256": "bd17467d5b4ab4307e4ae2a07437f346c6b6107ed9700d83b636f097f71c63c5"
+        },
+        "schema": "uor-r4.geometric-read-composition-native/1",
+        "source_files": {
+          "composition-parameters.safetensors": {
+            "bytes": 123616,
+            "sha256": "1b074e58e2446335de66b9529f51a991476ed122a82b97272fcead507db01e5c"
+          },
+          "metadata.json": {
+            "bytes": 1232,
+            "sha256": "28e2d490af8943d3884f7f66c2f8f3d0765a80ce82000fbf28a539fa7b051d04"
+          }
+        },
+        "tokenizer": {
+          "bytes": 315,
+          "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+        }
+      },
+      "complete": true,
+      "elapsed_seconds": 2.057402833,
+      "initialization": "fixed-asymmetric-geometry-bank;not-donor-projection-or-answer-selected",
+      "legacy_parent_rows_replayed": true,
+      "maximum_source_native_answer_logit_delta": 0.0001010894775390625,
+      "no_read_fit_report_sha256": "bfa6475445461ac4d783df5a14c8ed3d75bb27ce555970b489a2245eed21598d",
+      "optimizer_updates": 0,
+      "ordinary_answer_gradients": {
+        "gains": {
+          "l1": 17.343715695929973,
+          "nonzero": 128
+        },
+        "left_logits": {
+          "l1": 4.124140087677545,
+          "nonzero": 15360
+        },
+        "right_logits": {
+          "l1": 4.123484579495765,
+          "nonzero": 15360
+        }
+      },
+      "panels": [
+        {
+          "correct": {
+            "legacy": 24,
+            "native": 7,
+            "source": 7
+          },
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "name": "original",
+          "rows": 32,
+          "source_native_answer_matches": 32
+        },
+        {
+          "correct": {
+            "legacy": 22,
+            "native": 5,
+            "source": 5
+          },
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "name": "stress",
+          "rows": 32,
+          "source_native_answer_matches": 32
+        }
+      ],
+      "poison": {
+        "legacy_read_out_nan_bypassed": true
+      },
+      "quality_admission_gate": false,
+      "query_parent_report_sha256": "75d3cf41b5b83513f0af703e66d8be8a9aab1db3fb849671f27a9d08b4517a03",
+      "schema": "uor-r4.geometric-composition-construction/1",
+      "scope": "connected geometric read.out construction;float tail and wide producer coefficients remain;not learnedquality or whole-serving qualification",
+      "wrong_width_rejected": true
+    },
+    "2": {
+      "causal_prefix": {
+        "exact_integer_prefix_equal": true,
+        "maximum_float_tail_prefix_logit_delta": 0.0,
+        "prefix_length": 36,
+        "scope": "exact integer per-head values/weights/null;unfinished float-tail difference reported without bit-parity assertion"
+      },
+      "compiled_metadata": {
+        "actual_bank_bytes": 320,
+        "config": {
+          "geometry_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "heads": 2,
+          "initialization": "fixed-v1;term0-left-right-identity-gain1/4;term1-left2-right3-gain-minus1/4;selector-selected-logit1-other0;no-data-selection/1",
+          "input_lanes": 4,
+          "output_lanes": 8,
+          "rule": "H2;head-output8-input4-term2;left*root*inverse(right);signed-q4[-7,7]/4-dimensionless;canonical-Q16-atoms;i64-sum-all-then-one-quarter-round-ties-away;no-presence-inference/1",
+          "schema": "uor-r4.geometric-composition-offline/1",
+          "surrogate": "hard-native-i64Q16-forward;conditional120-softmax-T1-full-transformed-K2-value-credit;other-selector-hard;gain-included;dimensionless-gain-shadow-hard-quarter-grid-identity-STE;post-update-project[-1.75,1.75];frozen-input-packets/1",
+          "terms_per_block": 2
+        },
+        "gains": {
+          "bytes": 64,
+          "sha256": "305f9abbf73886e80de03ee90177ffc173d62c259f5f6abe25ebcb8c36470f40"
+        },
+        "left": {
+          "bytes": 128,
+          "sha256": "8a1701f5b48bb1dd905e2241bb204ba67f00050eb5b5c3c2bfd2b8fdb5875ea3"
+        },
+        "no_read_metadata": {
+          "bytes": 7035,
+          "sha256": "8061b98445c25b3a776c881ca90ca5c92bc7363af2fcf4298ce9fd3a43ef3e85"
+        },
+        "numerical_composition_schema": "uor-r4.geometric-composition-two-sided-k2-i64-q16/1",
+        "numerical_reducer_schema": "uor-r4.geometric-composed-read-i64-q16/1",
+        "output_width": 32,
+        "parameters": {
+          "gains": {
+            "f32_bytes_sha256": "7f88be45e5f37dbbc5a5266780075da76543901b4e1603b53210834790ce18c4",
+            "shape": [
+              128
+            ]
+          },
+          "left_logits": {
+            "f32_bytes_sha256": "3dd59b043b1f8d31f0987e3691cdc853b18dafdbc1e0acda5a744c689b63f9f4",
+            "shape": [
+              128,
+              120
+            ]
+          },
+          "right_logits": {
+            "f32_bytes_sha256": "8de035b26bc0197ca75ffe11ba8b6f4d6407c94db073926e6e33dbd01e03be84",
+            "shape": [
+              128,
+              120
+            ]
+          }
+        },
+        "payload_fractional_bits": 16,
+        "payload_storage_bits": 64,
+        "policy": "H2-input4-output8-K2;left*root*inverse(right);byte-signed-H4-IDs;q4[-7,7]-reserved-minus8-reject;dimensionless-quarter-gain;one-ties-away-quarter-after-all-atoms;separate-i64-Q16;per-head-original-age-exp-NoRead;checked-i128-shift-add-longdivision;head-sum-after-normalization/1",
+        "reducer_metadata": {
+          "bytes": 1912,
+          "sha256": "cdf9ff222f123082a128874cce898b2d9f049477a86dcaa1a2eaf824c00ba94f"
+        },
+        "right": {
+          "bytes": 128,
+          "sha256": "bd17467d5b4ab4307e4ae2a07437f346c6b6107ed9700d83b636f097f71c63c5"
+        },
+        "schema": "uor-r4.geometric-read-composition-native/1",
+        "source_files": {
+          "composition-parameters.safetensors": {
+            "bytes": 123616,
+            "sha256": "1b074e58e2446335de66b9529f51a991476ed122a82b97272fcead507db01e5c"
+          },
+          "metadata.json": {
+            "bytes": 1232,
+            "sha256": "28e2d490af8943d3884f7f66c2f8f3d0765a80ce82000fbf28a539fa7b051d04"
+          }
+        },
+        "tokenizer": {
+          "bytes": 315,
+          "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+        }
+      },
+      "complete": true,
+      "elapsed_seconds": 2.532476042,
+      "initialization": "fixed-asymmetric-geometry-bank;not-donor-projection-or-answer-selected",
+      "legacy_parent_rows_replayed": true,
+      "maximum_source_native_answer_logit_delta": 0.0002684593200683594,
+      "no_read_fit_report_sha256": "642c030a274b298d46e5b936b7d476f901292bd98975678e79d733af5136c62b",
+      "optimizer_updates": 0,
+      "ordinary_answer_gradients": {
+        "gains": {
+          "l1": 96.55702228005975,
+          "nonzero": 128
+        },
+        "left_logits": {
+          "l1": 23.912583582440195,
+          "nonzero": 15360
+        },
+        "right_logits": {
+          "l1": 23.911639349303087,
+          "nonzero": 15360
+        }
+      },
+      "panels": [
+        {
+          "correct": {
+            "legacy": 32,
+            "native": 0,
+            "source": 0
+          },
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "name": "original",
+          "rows": 32,
+          "source_native_answer_matches": 32
+        },
+        {
+          "correct": {
+            "legacy": 32,
+            "native": 4,
+            "source": 4
+          },
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "name": "stress",
+          "rows": 32,
+          "source_native_answer_matches": 32
+        }
+      ],
+      "poison": {
+        "legacy_read_out_nan_bypassed": true
+      },
+      "quality_admission_gate": false,
+      "query_parent_report_sha256": "cc116d61309446ad15f145c9b77b419087eabfddb621518b58f11276f1a17506",
+      "schema": "uor-r4.geometric-composition-construction/1",
+      "scope": "connected geometric read.out construction;float tail and wide producer coefficients remain;not learnedquality or whole-serving qualification",
+      "wrong_width_rejected": true
+    }
+  },
+  "actual_executions": {
+    "integer-tests-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-integer",
+        "--release",
+        "--offline",
+        "geometric_com",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 44.554667458000004,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "3e0faf2ae42ec013cb755b9f5611f91570aa7a6e8293f5e2614145f0752d2e87",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef"
+      },
+      "unchanged_source_after": false,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "integer-tests-2": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-integer",
+        "--release",
+        "--offline",
+        "--lib",
+        "geometric_com",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 16.252483917,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "integer-assembly-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "rustc",
+        "-p",
+        "uor-r4-integer",
+        "--release",
+        "--offline",
+        "--lib",
+        "--",
+        "--emit=asm"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 22.325830416,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "training-tests-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--lib",
+        "composition",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 243.111472584,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+        "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+        "crates/uor-r4-training/examples/attention-geometric-composition.rs": "72eebe979b6b839f76d901ca7c2cece2cbc37183189700ca5db803c6dd7d144f",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "integrated-test-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--lib",
+        "native_geometric_context_reader_has_delayed_answer_credit_and_typed_reload",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.127205791,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+        "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+        "crates/uor-r4-training/examples/attention-geometric-composition.rs": "72eebe979b6b839f76d901ca7c2cece2cbc37183189700ca5db803c6dd7d144f",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "example-build-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-composition"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 69.56052666599999,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+        "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+        "crates/uor-r4-training/examples/attention-geometric-composition.rs": "72eebe979b6b839f76d901ca7c2cece2cbc37183189700ca5db803c6dd7d144f",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "example-build-2": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-composition"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.051064125,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+        "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+        "crates/uor-r4-training/examples/attention-geometric-composition.rs": "c9c992ad8f53b5dc363327b3830d725eaa209b363727d6dc46a398759c6a7465",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "compare-1-s1": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-composition",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-20261002/args-s1.json"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 2.367983541,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+        "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+        "crates/uor-r4-training/examples/attention-geometric-composition.rs": "72eebe979b6b839f76d901ca7c2cece2cbc37183189700ca5db803c6dd7d144f",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 180142080,
+      "executable_sha256": "ba118257841fde8db877824f195a5020011915453e22ab2d064b7b79104c14f6"
+    },
+    "compare-2-s1": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-composition",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-20261002/args-s1-2.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.356226375,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+        "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+        "crates/uor-r4-training/examples/attention-geometric-composition.rs": "c9c992ad8f53b5dc363327b3830d725eaa209b363727d6dc46a398759c6a7465",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 182910976,
+      "executable_sha256": "3ba67ff1abab085fa4df8b636f3a896ea9ffc223a073d6b8e619021f9db27d59"
+    },
+    "compare-2-s2": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-composition",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-20261002/args-s2-2.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.5813136670000003,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-integer/src/lib.rs": "2bd3b18a0e813c938d78718ca460d8d2bb5089a5c98866bed8e076779f6877ef",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12",
+        "crates/uor-r4-training/src/lib.rs": "3b2bf44fe43ae330b7adbe7620e5d406badd25f74cd9a6d6a5d65c2e941031ee",
+        "crates/uor-r4-training/examples/attention-geometric-composition.rs": "c9c992ad8f53b5dc363327b3830d725eaa209b363727d6dc46a398759c6a7465",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 183369728,
+      "executable_sha256": "3ba67ff1abab085fa4df8b636f3a896ea9ffc223a073d6b8e619021f9db27d59"
+    }
+  },
+  "instruction_audit": {
+    "assembly_sha256": "796ed9b3c282b580248566810d5612c90b6fb5e588f1674ffac14cfec7b1a2f0",
+    "roots": [
+      "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer21geometric_compositionNtB5_26NativeGeometricComposition7compose",
+      "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer23geometric_composed_readNtB5_27NativeGeometricComposedRead6reduce",
+      "__RNvNtCs5Gu1rsvRqmE_14uor_r4_integer21geometric_composition9sum_heads"
+    ],
+    "scoped_same_object_callgraph": [
+      {
+        "symbol": "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer14geometric_readNtB5_19NativeGeometricRead6reduce",
+        "instructions": 248,
+        "banned_arithmetic": [],
+        "calls": [
+          "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels13stack_exp_neg",
+          "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels13stack_exp_neg",
+          "_bzero",
+          "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels13stack_mix_row",
+          "__RNvNtNtCsgtPOCBgevO_4core5slice5index16slice_index_fail",
+          "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels14stack_div_u128",
+          "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels14stack_div_u128",
+          "__RNvNtNtCsgtPOCBgevO_4core5slice5index16slice_index_fail",
+          "__RNvNtNtCsgtPOCBgevO_4core5slice5index16slice_index_fail",
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+        ]
+      },
+      {
+        "symbol": "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer21geometric_compositionNtB5_26NativeGeometricComposition7compose",
+        "instructions": 334,
+        "banned_arithmetic": [],
+        "calls": [
+          "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer15geometric_valueNtB5_21NativeGeometricValues6decode",
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+        ]
+      },
+      {
+        "symbol": "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer23geometric_composed_readNtB5_27NativeGeometricComposedRead6reduce",
+        "instructions": 239,
+        "banned_arithmetic": [],
+        "calls": [
+          "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer14geometric_readNtB5_19NativeGeometricRead6reduce",
+          "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels14stack_div_u128",
+          "_memcpy",
+          "__RNvNtNtCsgtPOCBgevO_4core5slice5index16slice_index_fail",
+          "__RNvNvNtCsgtPOCBgevO_4core5slice20copy_from_slice_impl17len_mismatch_fail"
+        ]
+      },
+      {
+        "symbol": "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer15geometric_valueNtB5_21NativeGeometricValues6decode",
+        "instructions": 22,
+        "banned_arithmetic": [],
+        "calls": [
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+        ]
+      },
+      {
+        "symbol": "__RNvNtCs5Gu1rsvRqmE_14uor_r4_integer21geometric_composition9sum_heads",
+        "instructions": 64,
+        "banned_arithmetic": [],
+        "calls": []
+      },
+      {
+        "symbol": "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels13stack_exp_neg",
+        "instructions": 39,
+        "banned_arithmetic": [],
+        "calls": [
+          "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels13stack_mul_u64"
+        ]
+      },
+      {
+        "symbol": "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels13stack_mix_row",
+        "instructions": 88,
+        "banned_arithmetic": [],
+        "calls": []
+      },
+      {
+        "symbol": "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels13stack_mul_u64",
+        "instructions": 69,
+        "banned_arithmetic": [],
+        "calls": []
+      },
+      {
+        "symbol": "__RNvNtNtCs5Gu1rsvRqmE_14uor_r4_integer5stack7kernels14stack_div_u128",
+        "instructions": 64,
+        "banned_arithmetic": [],
+        "calls": []
+      }
+    ],
+    "external_calls": [
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+      "__RNvNtNtCsgtPOCBgevO_4core5slice5index16slice_index_fail",
+      "__RNvNvNtCsgtPOCBgevO_4core5slice20copy_from_slice_impl17len_mismatch_fail",
+      "_bzero",
+      "_memcpy"
+    ],
+    "scope": "numerical composition+wide reducer+checked headsum and same-object direct callees; admission/format/model tail excluded"
+  },
+  "resource_limits": {
+    "source_wall_minutes": 120,
+    "build_model_minutes_within_source": 30,
+    "threads_build": 2,
+    "reserved_build_ram_gb": 3,
+    "threads_model": 2,
+    "reserved_model_ram_gb": 4,
+    "shared_threads": 8,
+    "shared_ram_gb": 11,
+    "new_research_mib": 256,
+    "archive_mib": 256,
+    "cache_gib": 14,
+    "worker_seconds": 900,
+    "storage_margin_mib": 128
+  },
+  "review_paths": [
+    "implementation-math-review.md",
+    "implementation-binding-review.md",
+    "construction-repair-review.md"
+  ],
+  "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-20261002",
+  "fit_run": false,
+  "scope": "connected geometric read.out replacement;zero-update construction;not learnedquality or complete nativeattention/serving",
+  "negative_scope": "untrained bank answer loss diagnoses initialization/emission compatibility, not family failure; controller alias restoration error preserved",
+  "cost_cutoff": {
+    "start_ms": 1790942699611,
+    "cutoff_ms": 1790945505622,
+    "charge_ms": 2806011,
+    "ledger_before": {
+      "cumulative_ms": 973816349,
+      "limit_ms": 1130000000
+    },
+    "ledger_after": {
+      "cumulative_ms": 976622360,
+      "limit_ms": 1130000000
+    },
+    "scope": "continuous source implementation/build/model checks/agents/review/preservation since priorfitcutoff; overlappingdraftfit preparation chargedonce; finalPRdelivery/archivecost aftercutoff remainsnextcontinuouscharge"
+  },
+  "routine_checks": {
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS"
+  }
+}

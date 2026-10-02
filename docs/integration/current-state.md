@@ -1,5 +1,34 @@
 # Current UOR-R4 research state
 
+## Connected geometric read.out composition — source and construction, October 2
+
+The two-term signed-H4 left/right transport bank now consumes the actual K2
+value packets, uses packed q4 dimensionless gains and a versioned i64-Q16 wide
+reader, preserves each head's score/age/NoRead denominator, and sums heads before
+the float tail. Both source/native StackModel callers bypass legacy read.out.
+The offline full-value conditional action surrogate and independent source-bound
+compiler/reloader are connected. Seven integer cases, four new learner/admission
+cases and the actual integrated fixture pass; scoped ARM64 numerical symbols
+have no float/mul/div/allocator calls.
+
+Both saved-parent zero-update runs complete32 original/32 stress rows perseed:
+untrained source/native7/5 and0/4, versus retained parent24/22 and32/32. All128
+source/native answers agree; all evaluated parent logits/predictions replay,
+and raw packets/null/occurrence weights stay unchanged. Ordinary answer CE
+reaches gains and both selectors on the first original row perseed. Independent
+NaN read.out bypass, exact integer-prefix and reload checks pass. A diagnostic
+Var-alias restore defect is repaired and its failed sealed attempt retained.
+[Source and results](geometric-read-composition-2026-10-02.md) ·
+[Receipt](../evidence/geometric-read-composition-2026-10-02.json).
+
+Next: bank-only answer-learning driver and actual B8 zero-update cost check,
+then a prospective fixed-dose card. No fit is run at this source checkpoint.
+Untrained quality cannot retire this restricted geometry family; K2 transports
+are not an arbitrary donor compiler. Preserve broader offline weight compilation.
+Wide producer/potential coefficients, float trunk/vocabulary output, semantic
+absence, bounded access and whole-language/energy qualification remain open.
+Claude's D19/session work is concurrent and does not redirect this track.
+
 ## Learned geometric NoRead — both fixed fits complete, October 2
 
 Both actual query-credit parents complete640 answer-only updates of the754

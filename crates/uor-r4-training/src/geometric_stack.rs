@@ -200,6 +200,7 @@ struct ReadSource<'a> {
     learned_values: Option<LearnedGeometricValues<'a>>,
     native_learned_values: Option<&'a [i32]>,
     no_read: NoReadSource<'a>,
+    composition: Option<ReadComposition<'a>>,
 }
 
 #[derive(Clone, Copy)]
@@ -213,6 +214,22 @@ enum NoReadMode<'a> {
     Legacy,
     Learned(&'a crate::geometric_no_read::NoReadWeights),
     Native(&'a crate::geometric_no_read_native::CompiledNoRead),
+}
+
+#[derive(Clone, Copy)]
+enum CompositionMode<'a> {
+    Learned(&'a crate::geometric_composition::CompositionWeights),
+    Native(&'a crate::geometric_composition_native::CompiledComposition),
+}
+#[derive(Clone, Copy)]
+enum ReadComposition<'a> {
+    Learned(&'a Tensor),
+    Native {
+        values: &'a [i64],
+        compiled: &'a crate::geometric_composition_native::CompiledComposition,
+        trace:
+            &'a std::cell::RefCell<Option<crate::geometric_composition_native::ComposedReadTrace>>,
+    },
 }
 
 type NativeReadTraceSink<'a> =
@@ -248,6 +265,7 @@ impl Default for ReadSource<'_> {
             learned_values: None,
             native_learned_values: None,
             no_read: NoReadSource::LegacyFloat,
+            composition: None,
         }
     }
 }
@@ -2089,6 +2107,7 @@ impl StackModel {
                 learned_values: None,
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
+                composition: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2246,6 +2265,7 @@ impl StackModel {
                 learned_values: None,
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
+                composition: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2880,6 +2900,122 @@ impl StackModel {
         crate::geometric_value_producer::ValueProducerTrace,
         Option<Tensor>,
     )> {
+        let (logits, read, values, null, _) = self.forward_geometric_composition_mode(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            reset_each_token,
+            no_read,
+            None,
+        )?;
+        Ok((logits, read, values, null))
+    }
+
+    /// Hard geometric composition with conditional finite-choice answer credit.
+    /// Frozen native scores/null and packets, real softmax training reduction;
+    /// the donor read.out is bypassed. The residual/trunk/output tail remains float.
+    pub fn forward_geometric_composition(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        composition: &crate::geometric_composition::CompositionWeights,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        Ok(self
+            .forward_geometric_composition_mode(
+                ids,
+                batch,
+                time,
+                context,
+                events,
+                span,
+                potential,
+                reducer,
+                producer,
+                reset_each_token,
+                NoReadMode::Native(no_read),
+                Some(CompositionMode::Learned(composition)),
+            )?
+            .0)
+    }
+
+    /// Native geometric composition and wide integer per-head weighted read.
+    /// Exact checked i64 head addition precedes the unfinished float model tail.
+    pub fn forward_geometric_composition_native_with_trace(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        composition: &crate::geometric_composition_native::CompiledComposition,
+        reset_each_token: bool,
+    ) -> Result<(
+        Tensor,
+        crate::geometric_composition_native::ComposedReadTrace,
+        crate::geometric_value_producer::ValueProducerTrace,
+    )> {
+        let (logits, _, values, _, trace) = self.forward_geometric_composition_mode(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            reset_each_token,
+            NoReadMode::Native(no_read),
+            Some(CompositionMode::Native(composition)),
+        )?;
+        Ok((
+            logits,
+            trace.ok_or_else(|| invalid("native composition trace missing"))?,
+            values,
+        ))
+    }
+
+    fn forward_geometric_composition_mode(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        reset_each_token: bool,
+        no_read: NoReadMode<'_>,
+        composition: Option<CompositionMode<'_>>,
+    ) -> Result<(
+        Tensor,
+        Option<crate::geometric_read_native::NativeReadTrace>,
+        crate::geometric_value_producer::ValueProducerTrace,
+        Option<Tensor>,
+        Option<crate::geometric_composition_native::ComposedReadTrace>,
+    )> {
         self.validate_context_config(context.config())?;
         self.validate_context_dependencies(context, events, span, potential)?;
         producer.validate_native_context(context)?;
@@ -2887,6 +3023,22 @@ impl StackModel {
             || reducer.metadata().layer != 2
         {
             return Err(invalid("native learned value reader layout differs"));
+        }
+        if let Some(mode) = composition {
+            if self.config.width != 32 || self.config.heads != 2 || time > 128 {
+                return Err(invalid(
+                    "composition requires two heads, width32 and context<=128",
+                ));
+            }
+            let NoReadMode::Native(null) = no_read else {
+                return Err(invalid("composition requires admitted native NoRead"));
+            };
+            match mode {
+                CompositionMode::Learned(weights) => weights.config().validate()?,
+                CompositionMode::Native(compiled) => compiled.validate_dependencies(
+                    context, potential, reducer, producer, events, span, null,
+                )?,
+            }
         }
         let ctx = geometric_context::trace_native(ids, batch, time, context, reset_each_token)?;
         let event = geometric_event::trace_native(ids, batch, time, events, false)?;
@@ -2993,6 +3145,38 @@ impl StackModel {
                 }
             }
         }
+        let values_trace = crate::geometric_value_producer::ValueProducerTrace {
+            batch,
+            heads,
+            time,
+            occurrence_valid: vec![true; batch * time],
+            packets,
+            values_q16: raw,
+        };
+        let composed_tensor = match composition {
+            Some(CompositionMode::Learned(weights)) => Some(weights.forward(&values_trace)?),
+            _ => None,
+        };
+        let composed_raw = match composition {
+            Some(CompositionMode::Native(compiled)) => Some(compiled.compose_trace(&values_trace)?),
+            _ => None,
+        };
+        let composition_trace = std::cell::RefCell::new(None);
+        let read_composition = match composition {
+            Some(CompositionMode::Learned(_)) => Some(ReadComposition::Learned(
+                composed_tensor
+                    .as_ref()
+                    .ok_or_else(|| invalid("composition tensor missing"))?,
+            )),
+            Some(CompositionMode::Native(compiled)) => Some(ReadComposition::Native {
+                values: composed_raw
+                    .as_deref()
+                    .ok_or_else(|| invalid("composition values missing"))?,
+                compiled,
+                trace: &composition_trace,
+            }),
+            None => None,
+        };
         let learned_null = match no_read {
             NoReadMode::Learned(n) => Some(n.forward(crate::geometric_no_read::NoReadBatch {
                 ids,
@@ -3037,7 +3221,8 @@ impl StackModel {
                 context: Some(ContextInput::Native(&ctx.codes)),
                 native_reducer: Some(reducer),
                 native_trace: Some(&read_trace),
-                native_learned_values: Some(&raw),
+                native_learned_values: Some(&values_trace.values_q16),
+                composition: read_composition,
                 no_read: null_source,
                 ..ReadSource::default()
             },
@@ -3047,15 +3232,9 @@ impl StackModel {
         Ok((
             logits,
             read_trace.into_inner(),
-            crate::geometric_value_producer::ValueProducerTrace {
-                batch,
-                heads,
-                time,
-                occurrence_valid: vec![true; batch * time],
-                packets,
-                values_q16: raw,
-            },
+            values_trace,
             learned_null,
+            composition_trace.into_inner(),
         ))
     }
 
@@ -3358,6 +3537,7 @@ impl StackModel {
                 learned_values: None,
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
+                composition: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -3765,6 +3945,104 @@ impl StackModel {
                     }
                 }
             }
+        }
+        if let Some(composition) = source.composition {
+            if heads != 2 || self.config.width != 32 || binding.is_some() {
+                return Err(invalid("composition requires H2/width32 and uses returned raw mass trace, not a binding channel"));
+            }
+            let NoReadSource::NativeQ24(null) = source.no_read else {
+                return Err(invalid("composition requires raw native NoRead"));
+            };
+            if null.len() != batch * heads * time {
+                return Err(invalid("composition null shape differs"));
+            }
+            return match composition {
+                ReadComposition::Learned(values) => {
+                    if values.dims() != [batch, heads, time, 32]
+                        || values.dtype() != DType::F32
+                        || !values.device().is_cpu()
+                    {
+                        return Err(invalid("composition value tensor shape differs"));
+                    }
+                    let mut fixed_scores = vec![f32::NEG_INFINITY; score_count];
+                    for b in 0..batch {
+                        for h in 0..heads {
+                            for q in 0..time {
+                                for k in 0..=q {
+                                    let index = ((b * heads + h) * time + q) * time + k;
+                                    let age =
+                                        reducer.age_q24()[h * reducer.metadata().context + q - k];
+                                    let sum = scores[index]
+                                        .checked_add(age)
+                                        .ok_or_else(|| invalid("composition score+age overflow"))?;
+                                    fixed_scores[index] = (sum as f64 / 16777216.) as f32;
+                                }
+                            }
+                        }
+                    }
+                    let fixed =
+                        Tensor::from_vec(fixed_scores, (batch, heads, time, time), &self.device)?;
+                    let null = Tensor::from_vec(
+                        null.iter()
+                            .map(|&x| (x as f64 / 16777216.) as f32)
+                            .collect::<Vec<_>>(),
+                        (batch, heads, time, 1),
+                        &self.device,
+                    )?;
+                    let joined = Tensor::cat(&[&null, &fixed], 3)?;
+                    let zero = Tensor::zeros((batch, heads, 1, 32), DType::F32, &self.device)?;
+                    let values = Tensor::cat(&[&zero, values], 2)?;
+                    // Source learning uses real softmax and F32 accumulation.
+                    // It is a declared surrogate, not integer-LUT bit parity.
+                    Ok(candle_nn::ops::softmax(&joined, 3)?
+                        .matmul(&values)?
+                        .sum(1)?)
+                }
+                ReadComposition::Native {
+                    values,
+                    compiled,
+                    trace,
+                } => {
+                    let output = crate::geometric_composition_native::reduce_composed_raw_q24(
+                        &scores, null, values, batch, heads, time, potential, reducer, compiled,
+                    )?;
+                    let mut summed = Vec::with_capacity(batch * time * 32);
+                    for b in 0..batch {
+                        for t in 0..time {
+                            let first = output
+                                .trace
+                                .rows
+                                .get((b * heads) * time + t)
+                                .ok_or_else(|| invalid("composition first head row absent"))?;
+                            let second = output
+                                .trace
+                                .rows
+                                .get((b * heads + 1) * time + t)
+                                .ok_or_else(|| invalid("composition second head row absent"))?;
+                            if first.output_q16.len() != 32 || second.output_q16.len() != 32 {
+                                return Err(invalid("composition head output width differs"));
+                            }
+                            for c in 0..32 {
+                                let value =
+                                    first.output_q16[c]
+                                        .checked_add(second.output_q16[c])
+                                        .ok_or_else(|| invalid("composition head-sum overflow"))?;
+                                summed.push((value as f64 / 65536.) as f32);
+                            }
+                        }
+                    }
+                    let result = Tensor::from_vec(summed, (batch, time, 32), &self.device)?;
+                    let mut sink = trace
+                        .try_borrow_mut()
+                        .map_err(|_| invalid("composition trace already borrowed"))?;
+                    if sink.is_some() {
+                        return Err(invalid("composition evaluated more than once"));
+                    }
+                    *sink = Some(output.trace);
+                    // Already in the residual frame: deliberately no read.out.
+                    Ok(result)
+                }
+            };
         }
         if let NoReadSource::LearnedTensor(null) = source.no_read {
             let raw = source
@@ -4411,6 +4689,7 @@ impl StackModel {
                 learned_values: None,
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
+                composition: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -4773,6 +5052,7 @@ impl StackModel {
                 learned_values: None,
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
+                composition: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -5724,6 +6004,7 @@ impl StackModel {
                         learned_values: None,
                         native_learned_values: None,
                         no_read: NoReadSource::LegacyFloat,
+                        composition: None,
                     },
                 )?,
             };
@@ -11636,6 +11917,164 @@ mod tests {
         )?;
         assert_eq!(bits(&null_logits)?, bits(&reloaded_result.0)?);
         assert_eq!(null_trace, reloaded_result.1);
+
+        // Connected geometric value-to-residual composition. The same actual
+        // packets and per-head score weights now bypass the donor read.out.
+        let composition = crate::geometric_composition::CompositionWeights::new()?;
+        let composition_source = root.join("composition-source");
+        composition.save(&composition_source)?;
+        let composition =
+            crate::geometric_composition::CompositionWeights::load(&composition_source)?;
+        let null_native_path = root.join("native-null");
+        let composition_paths = crate::geometric_composition_native::CompositionSourcePaths {
+            composition_source: &composition_source,
+            no_read: null_paths,
+            no_read_native: &null_native_path,
+        };
+        let composed = crate::geometric_composition_native::CompiledComposition::compile(
+            &composition,
+            composition_paths,
+            registry,
+        )?;
+        let composed_path = root.join("native-composition");
+        composed.save(&composed_path)?;
+        let composed = crate::geometric_composition_native::CompiledComposition::load(
+            &composed_path,
+            composition_paths,
+            registry,
+        )?;
+        let source_logits = model.forward_geometric_composition(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            &composition,
+            false,
+        )?;
+        let answer = logits_cross_entropy(&source_logits.narrow(0, 9, 1)?, &[7], None)?;
+        let gradients = answer.backward()?;
+        for (name, var) in composition.parameters() {
+            let values = gradients
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid(format!("composition answer gradient missing: {name}")))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(values.iter().all(|v| v.is_finite()));
+            assert!(
+                values.iter().any(|v| *v != 0.),
+                "composition answer gradient {name}"
+            );
+        }
+        assert!(
+            gradients.get(output.as_tensor()).is_none(),
+            "composition must bypass donor output map"
+        );
+        let composed_result = model.forward_geometric_composition_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            &composed,
+            false,
+        )?;
+        assert_eq!(composed_result.2, null_values);
+        assert_eq!(composed_result.1.no_read_q24, null_trace.no_read_q24);
+        assert_eq!(composed_result.1.rows.len(), null_trace.rows.len());
+        for (new, old) in composed_result.1.rows.iter().zip(&null_trace.rows) {
+            assert_eq!(new.occurrence_weights_q31, old.occurrence_weights_q31);
+            assert_eq!(new.no_read_weight_q31, old.no_read_weight_q31);
+            assert_eq!(new.total_weight_q31, old.total_weight_q31);
+            assert_eq!(new.max_score_q24, old.max_score_q24);
+        }
+        output.set(&Tensor::full(f32::NAN, output.shape(), &cpu())?)?;
+        let poisoned_source = model.forward_geometric_composition(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            &composition,
+            false,
+        );
+        let poisoned_native = model.forward_geometric_composition_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            &composed,
+            false,
+        );
+        output.set(&old_output)?;
+        assert_eq!(bits(&source_logits)?, bits(&poisoned_source?)?);
+        assert_eq!(bits(&composed_result.0)?, bits(&poisoned_native?.0)?);
+        let mut future_ids = ids;
+        future_ids[9] = 2;
+        let future_composed = model.forward_geometric_composition_native_with_trace(
+            &future_ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            &composed,
+            false,
+        )?;
+        assert_eq!(
+            bits(&composed_result.0.narrow(0, 0, 9)?)?,
+            bits(&future_composed.0.narrow(0, 0, 9)?)?
+        );
+        for h in 0..2 {
+            for q in 0..9 {
+                assert_eq!(
+                    composed_result.1.rows[h * 10 + q],
+                    future_composed.1.rows[h * 10 + q]
+                );
+            }
+        }
+        let reloaded_composed = reloaded_model.forward_geometric_composition_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            &null_compiled,
+            &composed,
+            false,
+        )?;
+        assert_eq!(bits(&composed_result.0)?, bits(&reloaded_composed.0)?);
+        assert_eq!(composed_result.1, reloaded_composed.1);
+        assert_eq!(composed_result.2, reloaded_composed.2);
 
         let reduced = model.forward_geometric_context_read_native(
             &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,

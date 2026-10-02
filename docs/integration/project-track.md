@@ -106,10 +106,16 @@ embeddings alone are not assumed to contain reasoning.
    answers retain all512 legacy-parent predictions; versus zero, seed1 restores
    one row and loses two. CE is mixed. Preserve fitted, zero and ablated scalar
    candidates; end this comparison. Query-token/validity collinearity prevents
-   attributing general geometric history use. Next inspect actual geometric
-   output/composition callers and remaining coefficient-width dependencies;
+   attributing general geometric history use. Next complete the connected geometric
+   output/composition learning and remaining coefficient-width dependencies;
    no additional scalar sweep is prescribed.
-4. Learn compatible geometric output/combination operators and integrate natural
+4. The [connected geometric read.out composition](geometric-read-composition-2026-10-02.md)
+   now supplies a native two-term H4 transport/q4 bank before per-head reduction.
+   Source/compiled construction and answer gradients pass; no optimizer fit is
+   run. Untrained answer losses cannot retire the restricted operator family.
+   Next build bank-only answer learning and measure actual B8 cost before its
+   prospective dose card; preserve offline donor compilation as a separate option.
+   Learn compatible geometric output/combination operators and integrate natural
    token spans, role, scope and temporal intent with the durable store/session.
    Preserve exact payload references for copying and identity-sensitive reads.
    A source address is not automatically a value frame, and cancellation is

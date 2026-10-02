@@ -306,6 +306,11 @@ impl CompiledGeometricRead {
     pub fn metadata(&self) -> &GeometricReadMetadata {
         &self.metadata
     }
+    /// Admitted immutable exp table for the separately versioned wide reducer.
+    pub fn exp_q31(&self) -> &[u32] {
+        &self.exp
+    }
+
     /// Admitted immutable score units; zero age is lag zero.
     pub fn age_q24(&self) -> &[i64] {
         &self.age

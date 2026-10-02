@@ -13,6 +13,8 @@ pub mod codec;
 pub mod config;
 pub mod format;
 pub mod generation;
+pub mod geometric_composed_read;
+pub mod geometric_composition;
 pub mod geometric_context;
 pub mod geometric_event;
 pub mod geometric_no_read;
