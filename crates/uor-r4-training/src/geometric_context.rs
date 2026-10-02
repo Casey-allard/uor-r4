@@ -19,10 +19,12 @@
 //! supervision. These are declared biased first-order surrogates, not argmax
 //! derivatives. Labels never enter forward or native state transitions.
 //!
-//! Native compilation expands finite factors to fixed Q24 integer lookup scores
-//! (nearest/ties-away; overflow rejected). These four-byte scores are not a
-//! four-bit linear-weight codec. Tensor reconstruction and the surrounding
-//! reader remain separately scoped offline/replay boundaries.
+//! Legacy native compilation expands unrestricted coefficients to Q24 lookup
+//! scores. The explicit q4 source instead packs signed quarter-nat coefficients
+//! and regenerates Q25-basis tables; wide derived scores are not free weights.
+//! Its hard recurrence/readout uses native choices on every forward, with full
+//! latent adjoints and connected readout logits for declared downstream finite
+//! observation credit. The float tail remains a separate boundary.
 
 use crate::geometric_address::{geometry_digest, AddressCode, GeometricAddressConfig};
 use crate::geometric_event::CompiledEvents;
@@ -41,7 +43,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use uor_r4_core::native_geometric::learner::{
     embedding::canonical_h4_roots,
     group_table::{group_table, ROW_STRIDE},
@@ -55,6 +57,10 @@ use uor_r4_integer::h4_tables::{
 };
 
 pub const SCHEMA: &str = "uor-r4.geometric-context/1";
+pub const Q4_SCHEMA: &str = "uor-r4.geometric-context-q4/1";
+pub const Q4_SURROGATE: &str = "nat-shadow-quarter-grid-identity-STE;fresh-current-packed-Q25-native-Q24-earliest-hard-state/action/readout;native-conditioned-full-latent-Hamilton-and-120-choice-credit;all-old-state-score-credit;connected-root120/category33-logits;downstream-finite-observation-input-credit/1";
+const Q4_PACKED_FILE: &str = "context-coefficients-q4.bin";
+const Q4_BASIS_FILE: &str = "context-basis-q25-i32le.bin";
 const RULE:&str="old-own+old-next-neighbor-within-head;120-earliest-argmax;right-group-update;synchronous;new-state-separate-root120-and-category33-readout;identity-reset/1";
 const SURROGATE:&str="latent-new-root-tangent;hard-hamilton;120-softmax-expected-action-root-T1;all-old-state-score-credit;emitted-root-tangent-softmax120;physical-radius-local-neighbor-softmax;absence-answer-stop/1";
 /// Full ambient latent-state credit is a declared biased discrete-choice
@@ -107,6 +113,8 @@ pub struct GeometricContextConfig {
     pub initialization: String,
     pub category_rule: String,
     pub temperature: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coefficient_policy: Option<String>,
 }
 impl GeometricContextConfig {
     pub fn new(vocab_size: usize, width: usize, heads: usize, seed: u64) -> Result<Self> {
@@ -135,11 +143,18 @@ impl GeometricContextConfig {
             initialization: INITIALIZATION.into(),
             category_rule: CATEGORY_RULE.into(),
             temperature: 1.,
+            coefficient_policy: None,
         })
     }
     pub fn validate(&self) -> Result<()> {
         let mut expected = Self::new(self.vocab_size, self.width, self.heads, self.seed)?;
         match self.surrogate.as_str() {
+            Q4_SURROGATE => {
+                expected.schema = Q4_SCHEMA.into();
+                expected.surrogate = Q4_SURROGATE.into();
+                expected.coefficient_policy =
+                    Some(uor_r4_integer::geometric_context_q4::POLICY.into());
+            }
             SURROGATE => {}
             FINITE_CHOICE_SURROGATE => expected.surrogate = FINITE_CHOICE_SURROGATE.into(),
             _ => return Err(invalid("unknown context backward surrogate")),
@@ -194,6 +209,13 @@ fn roots() -> &'static [[f64; 4]; 120] {
 }
 fn root(code: u8) -> [f64; 4] {
     roots()[usize::from(code)]
+}
+fn q4_roots() -> &'static [[f64; 4]; 120] {
+    static ROOTS: OnceLock<[[f64; 4]; 120]> = OnceLock::new();
+    ROOTS.get_or_init(|| {
+        uor_r4_integer::geometric_context_q4::canonical_basis_q25()
+            .map(|row| row.map(|x| f64::from(x) / 33554432.))
+    })
 }
 fn dot(a: [f64; 4], b: [f64; 4]) -> f64 {
     (0..4).map(|i| a[i] * b[i]).sum()
@@ -293,6 +315,15 @@ pub struct ContextWeights {
     config: GeometricContextConfig,
     parameters: BTreeMap<String, Var>,
 }
+/// Native choices are authoritative. The logits are differentiable q4 factor
+/// scores for the declared backward probabilities, not alternate hard selectors.
+pub struct ContextQ4Output {
+    pub latent_roots: Tensor,
+    pub root_logits: Tensor,
+    pub category_logits: Tensor,
+    pub trace: NativeContextTrace,
+}
+
 pub struct ContextOutput {
     pub root_logits: Tensor,
     pub category_logits: Tensor,
@@ -323,8 +354,101 @@ impl ContextWeights {
     /// new source configuration, rather than reinterpreting a legacy artifact.
     pub fn into_finite_choice(mut self) -> Result<Self> {
         self.validate()?;
+        if self.is_q4() {
+            return Err(invalid(
+                "strict context policy cannot downgrade to legacy finite-choice",
+            ));
+        }
         self.config.surrogate = FINITE_CHOICE_SURROGATE.into();
         Ok(self)
+    }
+    pub fn is_q4(&self) -> bool {
+        self.config.schema == Q4_SCHEMA && self.config.surrogate == Q4_SURROGATE
+    }
+    /// Explicit conversion preserves the legacy source and changes only this
+    /// consumed source's coefficient range/policy. Shadows are not snapped.
+    pub fn into_q4(mut self) -> Result<Self> {
+        self.validate()?;
+        self.project_shadow_range()?;
+        self.config.schema = Q4_SCHEMA.into();
+        self.config.surrogate = Q4_SURROGATE.into();
+        self.config.coefficient_policy = Some(uor_r4_integer::geometric_context_q4::POLICY.into());
+        self.validate()?;
+        Ok(self)
+    }
+    fn q4_config(&self) -> uor_r4_integer::geometric_context_q4::ContextQ4Config {
+        uor_r4_integer::geometric_context_q4::ContextQ4Config {
+            vocab_size: self.config.vocab_size,
+            heads: self.config.heads,
+            lanes_per_head: self.config.lanes_per_head,
+        }
+    }
+    pub fn packed_coefficients(&self) -> Result<Vec<u8>> {
+        if !self.is_q4() {
+            return Err(invalid("context source is not strict q4"));
+        }
+        self.validate()?;
+        let mut values = Vec::new();
+        for (name, _) in self
+            .q4_config()
+            .coefficient_shapes()
+            .map_err(|e| invalid(e.to_string()))?
+        {
+            values.extend(
+                self.parameters[&name]
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .into_iter()
+                    .map(|x| (x * 4.).round() as i8),
+            );
+        }
+        uor_r4_integer::geometric_context_q4::pack_coefficients(&values)
+            .map_err(|e| invalid(e.to_string()))
+    }
+    pub fn project_shadow_range(&self) -> Result<()> {
+        let mut pending = Vec::new();
+        for parameter in self.parameters.values() {
+            let values = parameter.flatten_all()?.to_vec1::<f32>()?;
+            if values.iter().any(|x| !x.is_finite()) {
+                return Err(invalid("nonfinite context shadow"));
+            }
+            pending.push((
+                parameter,
+                Tensor::from_vec(
+                    values
+                        .into_iter()
+                        .map(|x| x.clamp(-1.75, 1.75))
+                        .collect::<Vec<_>>(),
+                    parameter.shape(),
+                    &Device::Cpu,
+                )?,
+            ));
+        }
+        for (parameter, value) in pending {
+            parameter.set(&value)?;
+        }
+        Ok(())
+    }
+    fn coefficient(&self, name: &str) -> Result<Tensor> {
+        let value = self
+            .parameters
+            .get(name)
+            .ok_or_else(|| invalid("context coefficient missing"))?
+            .as_tensor();
+        if !self.is_q4() {
+            return Ok(value.clone());
+        }
+        let hard = Tensor::from_vec(
+            value
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .into_iter()
+                .map(|x| (x * 4.).round() * 0.25)
+                .collect::<Vec<_>>(),
+            value.shape(),
+            &Device::Cpu,
+        )?;
+        Ok((&hard + (value - value.detach())?)?)
     }
     fn from_config(config: GeometricContextConfig) -> Result<Self> {
         config.validate()?;
@@ -381,7 +505,7 @@ impl ContextWeights {
                 || v.flatten_all()?
                     .to_vec1::<f32>()?
                     .iter()
-                    .any(|x| !x.is_finite())
+                    .any(|x| !x.is_finite() || (self.is_q4() && x.abs() > 1.75))
             {
                 return Err(invalid(
                     "context parameter shape/type/device/finite value differs",
@@ -402,16 +526,17 @@ impl ContextWeights {
         let mut tokens = Vec::new();
         let mut basis = Vec::new();
         for f in 0..3 {
-            let token = self.parameters[TOKEN[f]]
+            let token = self
+                .coefficient(TOKEN[f])?
                 .reshape((self.config.vocab_size, self.config.lanes() * CLASSES[f]))?;
             tokens.push(if detach_token_readouts && f > 0 {
                 token.detach()
             } else {
                 token
             });
-            basis.push(self.parameters[OWN[f]].flatten_all()?);
+            basis.push(self.coefficient(OWN[f])?.flatten_all()?);
             if self.config.lanes_per_head > 1 {
-                basis.push(self.parameters[NEIGHBOR[f]].flatten_all()?);
+                basis.push(self.coefficient(NEIGHBOR[f])?.flatten_all()?);
             }
         }
         let rows = Tensor::cat(&tokens, 1)?
@@ -437,6 +562,7 @@ impl ContextWeights {
                 lanes_per_head: self.config.lanes_per_head,
                 reset,
                 finite_choice: self.config.surrogate == FINITE_CHOICE_SURROGATE,
+                native_steps: None,
             },
         )?)
     }
@@ -447,6 +573,11 @@ impl ContextWeights {
         time: usize,
         reset_each_token: bool,
     ) -> Result<ContextOutput> {
+        if self.is_q4() {
+            return Err(invalid(
+                "strict context requires explicit forward_q4 native choices",
+            ));
+        }
         let packed = self.packed(ids, batch, time, reset_each_token, false)?;
         let roots = packed.narrow(3, 0, 120)?.contiguous()?;
         let categories = packed.narrow(3, 120, 33)?.contiguous()?;
@@ -483,6 +614,100 @@ impl ContextWeights {
             ))?,
         })
     }
+    /// Current native integer choices condition the same recurrent autograd
+    /// graph. Logits are surrogate scores only; callers use the returned trace
+    /// for all hard state, readout, presence and downstream decisions.
+    pub fn forward_q4(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        reset_each_token: bool,
+    ) -> Result<ContextQ4Output> {
+        if !self.is_q4() {
+            return Err(invalid("context forward_q4 requires strict source"));
+        }
+        validate_ids(&self.config, ids, batch, time)?;
+        if batch > 32 || time > 128 {
+            return Err(invalid("context q4 graph requires batch<=32/time<=128"));
+        }
+        let packed_coefficients = self.packed_coefficients()?;
+        let codec = uor_r4_integer::geometric_context_q4::NativeContextQ4::new(
+            self.q4_config(),
+            &packed_coefficients,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let geometry = admit_geometry(PINNED)?;
+        let trace = trace_native_tables(
+            ids,
+            batch,
+            time,
+            &self.config,
+            codec.native(),
+            &geometry,
+            reset_each_token,
+        )?;
+        let mut steps = Vec::with_capacity(ids.len());
+        let lanes = self.config.lanes();
+        for b in 0..batch {
+            let mut old = [1; 8];
+            for t in 0..time {
+                if reset_each_token {
+                    old.fill(1);
+                }
+                let row = b * time + t;
+                let mut new = [1; 8];
+                let mut actions = [1; 8];
+                new[..lanes].copy_from_slice(&trace.states[row]);
+                actions[..lanes].copy_from_slice(&trace.actions[row]);
+                steps.push(Step { old, new, actions });
+                old = new;
+            }
+        }
+        let (rows, basis) = self.inputs(ids, batch, time, false)?;
+        if self.packed_coefficients()? != packed_coefficients {
+            return Err(invalid(
+                "context coefficients changed during native hard admission",
+            ));
+        }
+        let output = rows.apply_op2(
+            &basis,
+            ContextOp {
+                batch,
+                time,
+                heads: self.config.heads,
+                lanes_per_head: self.config.lanes_per_head,
+                reset: reset_each_token,
+                finite_choice: true,
+                native_steps: Some(Arc::new(steps)),
+            },
+        )?;
+        Ok(ContextQ4Output {
+            root_logits: output.narrow(3, 0, 120)?.contiguous()?.reshape((
+                batch,
+                time,
+                self.config.heads,
+                self.config.lanes_per_head,
+                120,
+            ))?,
+            category_logits: output.narrow(3, 120, 33)?.contiguous()?.reshape((
+                batch,
+                time,
+                self.config.heads,
+                self.config.lanes_per_head,
+                33,
+            ))?,
+            latent_roots: output.narrow(3, LATENT_OFFSET, 4)?.contiguous()?.reshape((
+                batch,
+                time,
+                self.config.heads,
+                self.config.lanes_per_head,
+                4,
+            ))?,
+            trace,
+        })
+    }
+
     pub fn float_trace(
         &self,
         ids: &[u32],
@@ -490,6 +715,11 @@ impl ContextWeights {
         time: usize,
         reset_each_token: bool,
     ) -> Result<ContextFloatTrace> {
+        if self.is_q4() {
+            return Err(invalid(
+                "strict context uses forward_q4 trace, not legacy float_trace",
+            ));
+        }
         let (rows, basis) = self.inputs(ids, batch, time, false)?;
         let op = ContextOp {
             batch,
@@ -498,6 +728,7 @@ impl ContextWeights {
             lanes_per_head: self.config.lanes_per_head,
             reset: reset_each_token,
             finite_choice: self.config.surrogate == FINITE_CHOICE_SURROGATE,
+            native_steps: None,
         };
         let (steps, output) = op.forward(
             &rows.flatten_all()?.to_vec1::<f32>()?,
@@ -557,6 +788,7 @@ impl ContextFloatTrace {
             .collect()
     }
 }
+#[derive(Clone)]
 struct Step {
     old: [u8; 8],
     new: [u8; 8],
@@ -569,8 +801,16 @@ struct ContextOp {
     lanes_per_head: usize,
     reset: bool,
     finite_choice: bool,
+    native_steps: Option<Arc<Vec<Step>>>,
 }
 impl ContextOp {
+    fn root(&self, code: u8) -> [f64; 4] {
+        if self.native_steps.is_some() {
+            q4_roots()[usize::from(code)]
+        } else {
+            root(code)
+        }
+    }
     fn lanes(&self) -> usize {
         self.heads * self.lanes_per_head
     }
@@ -601,12 +841,12 @@ impl ContextOp {
             let at = (lane * N + d) * 4;
             let mut z = f64::from(row[self.token_offset(f) + lane * N + d])
                 + dot(
-                    root(state[lane]),
+                    self.root(state[lane]),
                     std::array::from_fn(|i| f64::from(basis[self.basis_offset(f, false) + at + i])),
                 );
             if self.lanes_per_head > 1 {
                 z += dot(
-                    root(state[self.neighbor(lane)]),
+                    self.root(state[self.neighbor(lane)]),
                     std::array::from_fn(|i| f64::from(basis[self.basis_offset(f, true) + at + i])),
                 );
             }
@@ -637,15 +877,26 @@ impl ContextOp {
                 let row = &rows[at * n * 273..(at + 1) * n * 273];
                 let old = state;
                 let mut actions = [1; 8];
-                for lane in 0..n {
-                    actions[lane] = best(&self.scores::<120>(row, basis, &old, lane, 0)) as u8;
-                    state[lane] = group_table().product
-                        [usize::from(old[lane]) * ROW_STRIDE + usize::from(actions[lane])];
+                if let Some(native) = &self.native_steps {
+                    let step = native.get(at).ok_or_else(|| {
+                        candle_core::Error::Msg("native context step missing".into())
+                    })?;
+                    if step.old != old {
+                        candle_core::bail!("native context prior state differs");
+                    }
+                    state = step.new;
+                    actions = step.actions;
+                } else {
+                    for lane in 0..n {
+                        actions[lane] = best(&self.scores::<120>(row, basis, &old, lane, 0)) as u8;
+                        state[lane] = group_table().product
+                            [usize::from(old[lane]) * ROW_STRIDE + usize::from(actions[lane])];
+                    }
                 }
                 for lane in 0..n {
                     output.extend(self.scores::<120>(row, basis, &state, lane, 1));
                     output.extend(self.scores::<33>(row, basis, &state, lane, 2));
-                    output.extend(root(state[lane]));
+                    output.extend(self.root(state[lane]));
                 }
                 trace.push(Step {
                     old,
@@ -678,7 +929,7 @@ impl ContextOp {
             }
             let target = if neighbor { self.neighbor(lane) } else { lane };
             let at = self.basis_offset(f, neighbor) + (lane * n + class) * 4;
-            let q = root(state[target]);
+            let q = self.root(state[target]);
             for i in 0..4 {
                 db[at + i] += g * q[i];
                 state_gradient[target][i] += g * f64::from(basis[at + i]);
@@ -745,13 +996,17 @@ impl ContextOp {
                     let g = if self.finite_choice {
                         future[lane]
                     } else {
-                        tangent(root(step.new[lane]), future[lane])
+                        tangent(self.root(step.new[lane]), future[lane])
                     };
-                    let (direct, action_g) =
-                        hamilton_pullback(root(step.old[lane]), root(step.actions[lane]), g);
+                    let (direct, action_g) = hamilton_pullback(
+                        self.root(step.old[lane]),
+                        self.root(step.actions[lane]),
+                        g,
+                    );
                     add(&mut old_gradient[lane], direct);
                     let p = probabilities(&self.scores::<120>(row, basis, &step.old, lane, 0));
-                    let credit = std::array::from_fn::<_, 120, _>(|a| dot(action_g, roots()[a]));
+                    let credit =
+                        std::array::from_fn::<_, 120, _>(|a| dot(action_g, self.root(a as u8)));
                     let mean = (0..120).map(|a| p[a] * credit[a]).sum::<f64>();
                     for a in 0..120 {
                         self.score_pullback(
@@ -1178,6 +1433,37 @@ pub struct ContextSourceMetadata {
     pub tokenizer_sha256: String,
     pub algebra_payload_sha256: String,
     pub algebra_mathematical_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub q4: Option<ContextQ4Identity>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextQ4Identity {
+    pub schema: String,
+    pub policy: String,
+    pub packed_bytes: usize,
+    pub packed_sha256: String,
+    pub basis_sha256: String,
+}
+fn q4_basis_bytes() -> Vec<u8> {
+    uor_r4_integer::geometric_context_q4::canonical_basis_q25()
+        .iter()
+        .flatten()
+        .flat_map(|x| x.to_le_bytes())
+        .collect()
+}
+fn q4_identity(weights: &ContextWeights) -> Result<Option<ContextQ4Identity>> {
+    if !weights.is_q4() {
+        return Ok(None);
+    }
+    let packed = weights.packed_coefficients()?;
+    Ok(Some(ContextQ4Identity {
+        schema: uor_r4_integer::geometric_context_q4::SCHEMA.into(),
+        policy: uor_r4_integer::geometric_context_q4::POLICY.into(),
+        packed_bytes: packed.len(),
+        packed_sha256: sha256_bytes(&packed),
+        basis_sha256: sha256_bytes(&q4_basis_bytes()),
+    }))
 }
 fn source_metadata(
     weights: &ContextWeights,
@@ -1186,7 +1472,12 @@ fn source_metadata(
     tokenizer: &[u8],
 ) -> Result<ContextSourceMetadata> {
     Ok(ContextSourceMetadata {
-        schema: "uor-r4.geometric-context-source/1".into(),
+        schema: if weights.is_q4() {
+            "uor-r4.geometric-context-source/2"
+        } else {
+            "uor-r4.geometric-context-source/1"
+        }
+        .into(),
         config: weights.config.clone(),
         frozen,
         parameters: parameter_identities(weights)?,
@@ -1197,7 +1488,40 @@ fn source_metadata(
         algebra_payload_sha256: sha256_bytes(PINNED),
         algebra_mathematical_sha256: mathematical_sha256(PINNED)
             .map_err(|e| invalid(e.to_string()))?,
+        q4: q4_identity(weights)?,
     })
+}
+/// Saved inventories are schema-dispatched so dependency snapshots bind the
+/// strict packed/basis payloads, while legacy byte inventories remain unchanged.
+pub fn source_file_names(directory: &Path) -> Result<Vec<&'static str>> {
+    artifact_names(directory, false)
+}
+pub fn native_file_names(directory: &Path) -> Result<Vec<&'static str>> {
+    artifact_names(directory, true)
+}
+fn artifact_names(directory: &Path, native: bool) -> Result<Vec<&'static str>> {
+    let meta: serde_json::Value =
+        serde_json::from_slice(&fs::read(directory.join("metadata.json"))?)?;
+    let schema = meta
+        .get("schema")
+        .and_then(serde_json::Value::as_str)
+        .ok_or_else(|| invalid("context artifact schema missing"))?;
+    let strict = match (native, schema) {
+        (false, "uor-r4.geometric-context-source/1")
+        | (true, "uor-r4.geometric-context-native/1") => false,
+        (false, "uor-r4.geometric-context-source/2")
+        | (true, "uor-r4.geometric-context-native/2") => true,
+        _ => return Err(invalid("unknown context artifact schema")),
+    };
+    let mut names = if native {
+        NATIVE_FILES.to_vec()
+    } else {
+        SOURCE_FILES.to_vec()
+    };
+    if strict {
+        names.extend([Q4_PACKED_FILE, Q4_BASIS_FILE]);
+    }
+    Ok(names)
 }
 fn require_files(directory: &Path, files: &[&str]) -> Result<()> {
     let mut names = BTreeSet::new();
@@ -1237,15 +1561,25 @@ impl ContextWeights {
         admit_geometry(PINNED)?;
         let metadata =
             serde_json::to_vec_pretty(&source_metadata(self, &parameters, frozen, tokenizer)?)?;
-        write_new(
-            directory,
-            &[
-                (SOURCE_FILES[0], &metadata),
-                (SOURCE_FILES[1], &parameters),
-                (SOURCE_FILES[2], PINNED),
-                (SOURCE_FILES[3], tokenizer),
-            ],
-        )
+        let packed = if self.is_q4() {
+            self.packed_coefficients()?
+        } else {
+            Vec::new()
+        };
+        let basis = q4_basis_bytes();
+        let mut files = vec![
+            (SOURCE_FILES[0], metadata.as_slice()),
+            (SOURCE_FILES[1], parameters.as_slice()),
+            (SOURCE_FILES[2], PINNED),
+            (SOURCE_FILES[3], tokenizer),
+        ];
+        if self.is_q4() {
+            files.extend([
+                (Q4_PACKED_FILE, packed.as_slice()),
+                (Q4_BASIS_FILE, basis.as_slice()),
+            ]);
+        }
+        write_new(directory, &files)
     }
     pub fn load_source(
         directory: &Path,
@@ -1260,7 +1594,8 @@ fn load_source(
     paths: ContextSourcePaths<'_>,
     tokenizer: &[u8],
 ) -> Result<(ContextWeights, ContextSourceMetadata, Vec<u8>)> {
-    require_files(directory, &SOURCE_FILES)?;
+    let files = source_file_names(directory)?;
+    require_files(directory, &files)?;
     let metadata_bytes = fs::read(directory.join(SOURCE_FILES[0]))?;
     let saved: ContextSourceMetadata = serde_json::from_slice(&metadata_bytes)?;
     saved.config.validate()?;
@@ -1283,6 +1618,18 @@ fn load_source(
         return Err(invalid("context source tokenizer differs"));
     }
     let weights = restore_parameters(&saved.config, &parameters)?;
+    if weights.is_q4() {
+        let packed = weights.packed_coefficients()?;
+        if fs::metadata(directory.join(Q4_PACKED_FILE))?.len() != packed.len() as u64
+            || fs::metadata(directory.join(Q4_BASIS_FILE))?.len() != (120 * 4 * 4) as u64
+            || fs::read(directory.join(Q4_PACKED_FILE))? != packed
+            || fs::read(directory.join(Q4_BASIS_FILE))? != q4_basis_bytes()
+        {
+            return Err(invalid(
+                "strict context source packed/basis regeneration differs",
+            ));
+        }
+    }
     let expected = source_metadata(
         &weights,
         &parameters,
@@ -1310,6 +1657,31 @@ struct ExpandedContext {
 }
 impl ExpandedContext {
     fn compile(weights: &ContextWeights) -> Result<Self> {
+        if weights.is_q4() {
+            let codec = uor_r4_integer::geometric_context_q4::NativeContextQ4::new(
+                weights.q4_config(),
+                &weights.packed_coefficients()?,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+            let slices = codec.table_slices();
+            return Ok(Self {
+                token: [
+                    slices.token_transition.to_vec(),
+                    slices.token_root.to_vec(),
+                    slices.token_category.to_vec(),
+                ],
+                own: [
+                    slices.self_transition.to_vec(),
+                    slices.self_root.to_vec(),
+                    slices.self_category.to_vec(),
+                ],
+                neighbor: [
+                    slices.neighbor_transition.map(<[i32]>::to_vec),
+                    slices.neighbor_root.map(<[i32]>::to_vec),
+                    slices.neighbor_category.map(<[i32]>::to_vec),
+                ],
+            });
+        }
         let values = parameter_values(weights)?;
         let c = &weights.config;
         let n = c.lanes();
@@ -1415,7 +1787,18 @@ fn compiled_metadata(
 ) -> Result<CompiledContextMetadata> {
     let bytes = expanded.bytes();
     let stats = expanded.native(&source.config)?.stats();
-    Ok(CompiledContextMetadata{schema:"uor-r4.geometric-context-native/1".into(),source,source_metadata_sha256:sha256_bytes(source_bytes),coefficient_policy:POLICY.into(),table_layout:"transition,root,category;each(token[V,H,L,C],self[H,L,128,C],next-neighbor[H,L,128,C]-if-L>1);C128,128,64;zero-state>=120/action>=120/category>=33/1".into(),table_lengths:expanded.lengths(),table_bytes:bytes.len(),table_sha256:sha256_bytes(&bytes),coefficient_reads_per_token:stats.coefficient_reads})
+    let strict = source.q4.is_some();
+    Ok(CompiledContextMetadata {
+        schema: if strict { "uor-r4.geometric-context-native/2" } else { "uor-r4.geometric-context-native/1" }.into(),
+        source,
+        source_metadata_sha256: sha256_bytes(source_bytes),
+        coefficient_policy: if strict { uor_r4_integer::geometric_context_q4::POLICY } else { POLICY }.into(),
+        table_layout: "transition,root,category;each(token[V,H,L,C],self[H,L,128,C],next-neighbor[H,L,128,C]-if-L>1);C128,128,64;zero-state>=120/action>=120/category>=33/1".into(),
+        table_lengths: expanded.lengths(),
+        table_bytes: bytes.len(),
+        table_sha256: sha256_bytes(&bytes),
+        coefficient_reads_per_token: stats.coefficient_reads,
+    })
 }
 pub struct CompiledContext {
     metadata: CompiledContextMetadata,
@@ -1423,6 +1806,7 @@ pub struct CompiledContext {
     geometry: HistoricalH4Tables,
     table_bytes: Vec<u8>,
     tokenizer: Vec<u8>,
+    q4_packed: Option<Vec<u8>>,
 }
 impl CompiledContext {
     pub fn compile(
@@ -1445,6 +1829,11 @@ impl CompiledContext {
             table_bytes: expanded.bytes(),
             metadata: compiled_metadata(metadata, &metadata_bytes, &expanded)?,
             tokenizer: tokenizer.to_vec(),
+            q4_packed: if source.is_q4() {
+                Some(source.packed_coefficients()?)
+            } else {
+                None
+            },
         })
     }
     pub fn config(&self) -> &GeometricContextConfig {
@@ -1466,17 +1855,37 @@ impl CompiledContext {
         }
         Ok(())
     }
+    /// Training enrollment checks the saved operator contract, not equality to
+    /// its initial coefficients. The caller must use forward_q4/current tables;
+    /// immutable downstream dependencies still bind this admitted parent.
+    pub fn validate_q4_training(&self, weights: &ContextWeights) -> Result<()> {
+        weights.validate()?;
+        if !weights.is_q4()
+            || self.metadata.source.q4.is_none()
+            || self.q4_packed.is_none()
+            || weights.config != *self.config()
+        {
+            return Err(invalid("strict context training enrollment/config differs"));
+        }
+        weights.packed_coefficients()?;
+        Ok(())
+    }
     pub fn save(&self, directory: &Path) -> Result<()> {
         let metadata = serde_json::to_vec_pretty(&self.metadata)?;
-        write_new(
-            directory,
-            &[
-                (NATIVE_FILES[0], &metadata),
-                (NATIVE_FILES[1], &self.table_bytes),
-                (NATIVE_FILES[2], PINNED),
-                (NATIVE_FILES[3], &self.tokenizer),
-            ],
-        )
+        let basis = q4_basis_bytes();
+        let mut files = vec![
+            (NATIVE_FILES[0], metadata.as_slice()),
+            (NATIVE_FILES[1], self.table_bytes.as_slice()),
+            (NATIVE_FILES[2], PINNED),
+            (NATIVE_FILES[3], self.tokenizer.as_slice()),
+        ];
+        if let Some(packed) = &self.q4_packed {
+            files.extend([
+                (Q4_PACKED_FILE, packed.as_slice()),
+                (Q4_BASIS_FILE, basis.as_slice()),
+            ]);
+        }
+        write_new(directory, &files)
     }
     pub fn load(
         directory: &Path,
@@ -1484,7 +1893,8 @@ impl CompiledContext {
         paths: ContextSourcePaths<'_>,
         tokenizer: &[u8],
     ) -> Result<Self> {
-        require_files(directory, &NATIVE_FILES)?;
+        let files = native_file_names(directory)?;
+        require_files(directory, &files)?;
         let (source, metadata, metadata_bytes) = load_source(source_directory, paths, tokenizer)?;
         let expanded = ExpandedContext::compile(&source)?;
         let expected = compiled_metadata(metadata, &metadata_bytes, &expanded)?;
@@ -1506,16 +1916,32 @@ impl CompiledContext {
             ));
         }
         let geometry = admit_geometry(&fs::read(directory.join(NATIVE_FILES[2]))?)?;
+        let q4_packed = if source.is_q4() {
+            let packed = source.packed_coefficients()?;
+            if fs::metadata(directory.join(Q4_PACKED_FILE))?.len() != packed.len() as u64
+                || fs::metadata(directory.join(Q4_BASIS_FILE))?.len() != (120 * 4 * 4) as u64
+                || fs::read(directory.join(Q4_PACKED_FILE))? != packed
+                || fs::read(directory.join(Q4_BASIS_FILE))? != q4_basis_bytes()
+            {
+                return Err(invalid(
+                    "strict context native packed/basis regeneration differs",
+                ));
+            }
+            Some(packed)
+        } else {
+            None
+        };
         Ok(Self {
             metadata: saved,
             native: expanded.native(&source.config)?,
             geometry,
             table_bytes,
             tokenizer: tokenizer.to_vec(),
+            q4_packed,
         })
     }
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativeContextTrace {
     pub batch: usize,
     pub time: usize,
@@ -1535,8 +1961,26 @@ pub fn trace_native(
     compiled: &CompiledContext,
     reset_each_token: bool,
 ) -> Result<NativeContextTrace> {
-    validate_ids(compiled.config(), ids, batch, time)?;
-    let c = compiled.config();
+    trace_native_tables(
+        ids,
+        batch,
+        time,
+        compiled.config(),
+        &compiled.native,
+        &compiled.geometry,
+        reset_each_token,
+    )
+}
+fn trace_native_tables(
+    ids: &[u32],
+    batch: usize,
+    time: usize,
+    c: &GeometricContextConfig,
+    tables: &NativeContextTables,
+    geometry: &HistoricalH4Tables,
+    reset_each_token: bool,
+) -> Result<NativeContextTrace> {
+    validate_ids(c, ids, batch, time)?;
     let n = c.lanes();
     let mut state =
         NativeContextState::new(c.heads, c.lanes_per_head).map_err(|e| invalid(e.to_string()))?;
@@ -1559,11 +2003,7 @@ pub fn trace_native(
                 state.reset();
             }
             let step = state
-                .step(
-                    ids[b * time + t] as usize,
-                    &compiled.native,
-                    &compiled.geometry,
-                )
+                .step(ids[b * time + t] as usize, tables, geometry)
                 .map_err(|e| invalid(e.to_string()))?;
             trace
                 .states
@@ -1884,6 +2324,7 @@ mod tests {
             lanes_per_head: 4,
             reset: false,
             finite_choice: false,
+            native_steps: None,
         };
         assert_eq!(headring.neighbor(3), 0);
         assert_eq!(headring.neighbor(7), 4);
@@ -2321,6 +2762,232 @@ mod tests {
         high[0] = 128.;
         set(&weights, TC, high)?;
         assert!(ExpandedContext::compile(&weights).is_err());
+        Ok(())
+    }
+    fn strict_zero(vocab: usize, width: usize, heads: usize) -> Result<ContextWeights> {
+        let weights = ContextWeights::new(vocab, width, heads, 241)?.into_q4()?;
+        for (name, value) in weights.parameters() {
+            set(&weights, name, vec![0.; value.elem_count()])?;
+        }
+        Ok(weights)
+    }
+    #[test]
+    fn context_q4_native_trace_live_grid_noninjective_absence_and_prefix() -> Result<()> {
+        let weights = strict_zero(3, 4, 1)?;
+        let mut transitions = vec![0f32; 3 * 120];
+        for (token, action) in [(0, 1), (1, 3), (2, 1)] {
+            transitions[token * 120 + action] = 1.;
+        }
+        set(&weights, TT, transitions.clone())?;
+        let mut root_bias = vec![0f32; 3 * 120];
+        root_bias[1] = 1.;
+        root_bias[121] = 1.;
+        set(&weights, TR, root_bias)?;
+        let mut root_basis = vec![0f32; 120 * 4];
+        root_basis[4] = 0.5;
+        root_basis[5] = -0.5;
+        root_basis[12] = -0.5;
+        root_basis[13] = 0.5;
+        set(&weights, SR, root_basis)?;
+        let mut categories = vec![0f32; 3 * 33];
+        for row in categories.chunks_exact_mut(33) {
+            row[17] = 1.;
+        }
+        set(&weights, TC, categories.clone())?;
+        let ids = [0, 2, 1, 2];
+        let output = weights.forward_q4(&ids, 2, 2, false)?;
+        assert_eq!(
+            output.trace.states,
+            vec![vec![1], vec![1], vec![3], vec![3]]
+        );
+        assert_eq!(output.trace.codes[0], output.trace.codes[2]);
+        assert_ne!(output.trace.codes[1], output.trace.codes[3]);
+        let expanded = ExpandedContext::compile(&weights)?;
+        let expected = trace_native_tables(
+            &ids,
+            2,
+            2,
+            weights.config(),
+            &expanded.native(weights.config())?,
+            &admit_geometry(PINNED)?,
+            false,
+        )?;
+        assert_eq!(output.trace, expected);
+        let rendered: Vec<f32> = output
+            .trace
+            .states
+            .iter()
+            .flatten()
+            .flat_map(|&r| q4_roots()[usize::from(r)].map(|x| x as f32))
+            .collect();
+        assert_eq!(
+            output.latent_roots.flatten_all()?.to_vec1::<f32>()?,
+            rendered
+        );
+        // Absence is an observation, not a hidden-state reset. Keep raw root3
+        // under category0; canonical address root1 must not replace that trace.
+        categories[2 * 33] = 1.25;
+        set(&weights, TC, categories)?;
+        let absent = weights.forward_q4(&[1, 2, 0], 1, 3, false)?;
+        assert_eq!(absent.trace.states, vec![vec![3], vec![3], vec![3]]);
+        assert_eq!(absent.trace.emitted_roots[1], 3);
+        assert_eq!(absent.trace.categories[1], 0);
+        assert!(!absent.trace.codes[1].present());
+        assert_eq!(absent.trace.codes[1].root(), 1);
+        let prefix = weights.forward_q4(&[1, 2], 1, 2, false)?;
+        assert_eq!(&absent.trace.states[..2], prefix.trace.states.as_slice());
+        assert_eq!(&absent.trace.codes[..2], prefix.trace.codes.as_slice());
+        let reset = weights.forward_q4(&ids, 2, 2, true)?;
+        assert_eq!(reset.trace.codes[1], reset.trace.codes[3]);
+        transitions[2 * 120 + 1] = 0.;
+        transitions[2 * 120 + 5] = 0.13;
+        set(&weights, TT, transitions)?;
+        let changed = weights.forward_q4(&[1, 2], 1, 2, false)?;
+        assert_eq!(changed.trace.actions[1], vec![5]);
+        assert_eq!(changed.trace.states[1], vec![7], "right product i*j=k");
+        assert!(weights.forward(&[0], 1, 1, false).is_err());
+        assert!(weights.float_trace(&[0], 1, 1, false).is_err());
+        assert!(weights.forward_q4(&[3], 1, 1, false).is_err());
+        Ok(())
+    }
+    #[test]
+    fn context_q4_full_delayed_sign_credit_and_reset_cut() -> Result<()> {
+        let weights = strict_zero(2, 4, 1)?;
+        let mut transitions = vec![0f32; 240];
+        transitions[1] = 1.;
+        transitions[121] = 1.;
+        set(&weights, TT, transitions)?;
+        let loss = |reset| -> Result<Tensor> {
+            let out = weights.forward_q4(&[0, 1], 1, 2, reset)?;
+            let real = out
+                .latent_roots
+                .narrow(1, 1, 1)?
+                .reshape((1, 4))?
+                .narrow(1, 0, 1)?;
+            logits_cross_entropy(
+                &Tensor::cat(&[&real.affine(2., 0.)?, &real.affine(-2., 0.)?], 1)?,
+                &[1],
+                None,
+            )
+        };
+        for reset in [false, true] {
+            let g = loss(reset)?.backward()?;
+            let values = g
+                .get(weights.parameters[TT].as_tensor())
+                .ok_or_else(|| invalid("q4 delayed transition gradient absent"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(values[120] < 0. && values[121] > 0.);
+            if reset {
+                assert_eq!(norm(&values[..120]), 0.);
+            } else {
+                assert!(values[0] < 0. && values[1] > 0.);
+            }
+            for name in [TR, SR, TC, SC] {
+                assert_eq!(
+                    norm(
+                        &g.get(weights.parameters[name].as_tensor())
+                            .ok_or_else(|| invalid("packed readout zero gradient missing"))?
+                            .flatten_all()?
+                            .to_vec1::<f32>()?
+                    ),
+                    0.
+                );
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn context_q4_native_step_conditions_forward_and_backward_not_float_argmax() -> Result<()> {
+        // Inject an admitted-step-shaped fixture directly into the private op:
+        // surrogate logits prefer identity, but authoritative native choice is
+        // +i. This catches a backward replay that reselects from float scores.
+        let op = ContextOp {
+            batch: 1,
+            time: 1,
+            heads: 1,
+            lanes_per_head: 1,
+            reset: false,
+            finite_choice: true,
+            native_steps: Some(Arc::new(vec![Step {
+                old: [1; 8],
+                new: [3, 1, 1, 1, 1, 1, 1, 1],
+                actions: [3, 1, 1, 1, 1, 1, 1, 1],
+            }])),
+        };
+        let mut rows = vec![0f32; 273];
+        rows[1] = 1.;
+        let basis = vec![0f32; 273 * 4];
+        let (_, output) = op.forward(&rows, &basis)?;
+        assert_eq!(&output[LATENT_OFFSET..LATENT_OFFSET + 4], &[0., 1., 0., 0.]);
+        let mut upstream = vec![0f32; PACKED_WIDTH];
+        upstream[7] = 1.;
+        let (_, gradient) = op.backward(&rows, &basis, &upstream)?;
+        let at = op.basis_offset(1, false) + 7 * 4;
+        assert_eq!(&gradient[at..at + 4], &[0., 1., 0., 0.]);
+        assert_eq!(best(&op.scores::<120>(&rows, &basis, &[1; 8], 0, 0)), 1);
+        Ok(())
+    }
+    #[test]
+    fn context_q4_source_native_reload_policy_inventory_and_tamper() -> Result<()> {
+        let fixture = fixture()?;
+        let legacy = ContextWeights::new(4, 8, 1, 251)?;
+        let legacy_source = fixture.root.join("q4-legacy-source");
+        legacy.save_source(&legacy_source, fixture.paths(), REGISTRY)?;
+        assert_eq!(source_file_names(&legacy_source)?.len(), 4);
+        let legacy_bytes = fs::read(legacy_source.join("metadata.json"))?;
+        let legacy_json: serde_json::Value = serde_json::from_slice(&legacy_bytes)?;
+        assert!(legacy_json.get("q4").is_none());
+        assert!(legacy_json["config"].get("coefficient_policy").is_none());
+        let source = fixture.root.join("q4-source");
+        let native = fixture.root.join("q4-native");
+        let weights =
+            ContextWeights::load_source(&legacy_source, fixture.paths(), REGISTRY)?.into_q4()?;
+        weights.save_source(&source, fixture.paths(), REGISTRY)?;
+        assert_eq!(source_file_names(&source)?.len(), 6);
+        let loaded = ContextWeights::load_source(&source, fixture.paths(), REGISTRY)?;
+        assert_eq!(parameter_bytes(&weights)?, parameter_bytes(&loaded)?);
+        assert_eq!(
+            weights.packed_coefficients()?,
+            loaded.packed_coefficients()?
+        );
+        let compiled = CompiledContext::compile(&loaded, &source, fixture.paths(), REGISTRY)?;
+        compiled.save(&native)?;
+        assert_eq!(native_file_names(&native)?.len(), 6);
+        let replay = CompiledContext::load(&native, &source, fixture.paths(), REGISTRY)?;
+        let ids = [0, 1, 2, 3];
+        let graph = loaded.forward_q4(&ids, 1, 4, false)?;
+        assert_eq!(graph.trace, trace_native(&ids, 1, 4, &replay, false)?);
+        replay.validate_for(&loaded)?;
+        let mut tt = loaded.parameters[TT].flatten_all()?.to_vec1::<f32>()?;
+        tt[0] = 0.5;
+        set(&loaded, TT, tt)?;
+        assert!(replay.validate_for(&loaded).is_err());
+        replay.validate_q4_training(&loaded)?;
+        assert!(replay.validate_q4_training(&legacy).is_err());
+        let packed_path = source.join(Q4_PACKED_FILE);
+        let packed = fs::read(&packed_path)?;
+        let mut bad = packed.clone();
+        bad[0] = (bad[0] & 0xf0) | 8;
+        fs::write(&packed_path, &bad)?;
+        assert!(ContextWeights::load_source(&source, fixture.paths(), REGISTRY).is_err());
+        fs::write(&packed_path, &packed)?;
+        let basis_path = native.join(Q4_BASIS_FILE);
+        let basis = fs::read(&basis_path)?;
+        let mut bad = basis.clone();
+        bad[0] ^= 1;
+        fs::write(&basis_path, &bad)?;
+        assert!(CompiledContext::load(&native, &source, fixture.paths(), REGISTRY).is_err());
+        fs::write(&basis_path, &basis)?;
+        let metadata_path = source.join("metadata.json");
+        let meta = fs::read(&metadata_path)?;
+        let mut changed: serde_json::Value = serde_json::from_slice(&meta)?;
+        changed["config"]["coefficient_policy"] = serde_json::json!("unknown");
+        fs::write(&metadata_path, serde_json::to_vec_pretty(&changed)?)?;
+        assert!(ContextWeights::load_source(&source, fixture.paths(), REGISTRY).is_err());
+        fs::write(&metadata_path, &meta)?;
+        assert_eq!(legacy_bytes, fs::read(legacy_source.join("metadata.json"))?);
+        fs::remove_dir_all(fixture.root)?;
         Ok(())
     }
 }

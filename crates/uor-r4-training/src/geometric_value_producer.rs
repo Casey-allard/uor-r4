@@ -568,6 +568,79 @@ impl ValueProducerWeights {
         )
     }
 
+    /// Reuse the admitted native-choice packet emitter with a caller-owned input
+    /// graph. Frozen-producer callers build logits from detached coefficients;
+    /// this adapter attaches no coefficient graph or new packet selector.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn emit_q4_native_choices(
+        &self,
+        root_logits: &Tensor,
+        category_logits: &Tensor,
+        batch: usize,
+        time: usize,
+        occurrence_valid: &[bool],
+        roots: Vec<u8>,
+        categories: Vec<u8>,
+    ) -> Result<ValueProducerOutput> {
+        self.validate_parameters()?;
+        if !self.is_q4() || batch == 0 || time == 0 {
+            return Err(invalid(
+                "frozen value emitter requires nonempty strict q4 input",
+            ));
+        }
+        let rows = batch
+            .checked_mul(time)
+            .ok_or_else(|| invalid("frozen value emitter row overflow"))?;
+        let atoms = rows
+            .checked_mul(self.config.heads)
+            .and_then(|x| x.checked_mul(VALUE_LANES))
+            .and_then(|x| x.checked_mul(ATOMS))
+            .ok_or_else(|| invalid("frozen value emitter atom overflow"))?;
+        if occurrence_valid.len() != rows || roots.len() != atoms || categories.len() != atoms {
+            return Err(invalid(
+                "frozen value emitter choices/validity shape differs",
+            ));
+        }
+        atoms
+            .checked_mul(ROOTS.max(CATEGORIES))
+            .ok_or_else(|| invalid("frozen value emitter logit overflow"))?;
+        finite_tensor(
+            root_logits,
+            &[batch, time, self.config.heads, VALUE_LANES, ATOMS, ROOTS],
+        )?;
+        finite_tensor(
+            category_logits,
+            &[
+                batch,
+                time,
+                self.config.heads,
+                VALUE_LANES,
+                ATOMS,
+                CATEGORIES,
+            ],
+        )?;
+        let op = ValueEmit {
+            batch,
+            time,
+            heads: self.config.heads,
+            occurrence_valid: occurrence_valid.to_vec(),
+            q4_zero_escape: true,
+            native_choices: Some(NativeValueChoices { roots, categories }),
+            codec: Arc::clone(&self.codec),
+        };
+        let trace = op.trace(
+            &root_logits.flatten_all()?.to_vec1::<f32>()?,
+            &category_logits.flatten_all()?.to_vec1::<f32>()?,
+        )?;
+        let values = root_logits.apply_op2(category_logits, op)?;
+        Ok(ValueProducerOutput {
+            values,
+            root_logits: root_logits.clone(),
+            category_logits: category_logits.clone(),
+            trace,
+        })
+    }
+
     fn forward_with_choices(
         &self,
         ids: &[u32],

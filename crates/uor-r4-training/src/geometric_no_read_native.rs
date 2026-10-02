@@ -188,22 +188,12 @@ fn snapshot(paths: NoReadSourcePaths<'_>) -> Result<BTreeMap<String, BoundFile>>
         (
             "context_source",
             paths.value.context_source,
-            vec![
-                "metadata.json",
-                "context-parameters.safetensors",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_context::source_file_names(paths.value.context_source)?,
         ),
         (
             "context_native",
             paths.context_native,
-            vec![
-                "metadata.json",
-                "context-tables-i32le.bin",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_context::native_file_names(paths.context_native)?,
         ),
         (
             "base",

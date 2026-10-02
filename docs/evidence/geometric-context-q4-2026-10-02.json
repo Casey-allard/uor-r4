@@ -1,0 +1,1742 @@
+{
+  "schema": "uor-r4.geometric-context-q4-evidence/1",
+  "status": "BOTH_FIXED_CONSTRUCTIONS_COMPLETE_RETAIN_ALL_ROWS",
+  "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5956739882",
+  "source_base": "6a7b4def0f8427a15843d192fd6bc024a2f93f44",
+  "local_research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-q4-20261002",
+  "records": [
+    {
+      "seed": 1,
+      "report_directory": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-q4-20261002/construction-2-s1",
+      "report_sha256": "c0d4ca673dea64f9177360e9d96f0ff67685b7c12741cd30653c3ac117823c25",
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-context-q4",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-q4-20261002/args-s1-construction-2.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 33.896773083,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_context_q4.rs": "75f5166c09a17ad8ece08690ff0b2c49b4d92cbd64611ab24dbaa7b154a507a9",
+          "crates/uor-r4-integer/src/lib.rs": "b63c167b4bb2a9fd9e3218912bc2365c193eee7e7c5089ca3cb9aea19ca5702e",
+          "crates/uor-r4-training/src/geometric_context.rs": "9c26cb0ca67cb4959b52016a2cefbcdb7cc0cb96b3a89f42868a5a139b8d5be9",
+          "crates/uor-r4-training/src/geometric_context_credit.rs": "fe0b655fa02c68f7e1be8ef2caf51c296919a29585633ad9e90fb5d608ef408a",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "21bf33affcd68330fed86b10c769ce48d5c80c93148ec397e181d31622faa7ae",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "c2561bd06e21512d94434bd705abf256926264de3fa8fed1e7365ebea5053a5f",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "4fcf8f409c7178a73c186117c6bd20ae6af992c75f82f17d1757ab1406ef2778",
+          "crates/uor-r4-training/src/geometric_stack.rs": "b8826b634499ef461061b420a1afa128318c19baa221c10c0fb3611782df7692",
+          "crates/uor-r4-training/src/lib.rs": "a37fe163c6c4c6015a64568faab0dfad4cbd18ad1a92b2325627d023cbb12d7f",
+          "crates/uor-r4-training/examples/attention-geometric-context-q4.rs": "d2297119388c5accbeef3327e892b3b465564510c3ad2d82bcf9ca1ac489f755"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 758136832,
+        "executable_sha256": "b13e0feb2804a9a32636c0ece03bc4d5828ad72910d291705f4cc8e1b198fa1f"
+      },
+      "panels": [
+        {
+          "answers": {
+            "native": 93,
+            "parent": 112,
+            "source": 93
+          },
+          "gains": 1,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses": 20,
+          "maximum_actual_position_logit_delta": 0.00024056434631347656,
+          "mean_answer_ce": {
+            "native": 1.1219692863908985,
+            "parent": 0.9660685373841938,
+            "source": 1.1219696497630856
+          },
+          "panel": "original",
+          "parent_rows_sha256": "e3b7d03763fb6f2c06b9cf971ebf84a6400083c54c28efb3216d022af187332b",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        },
+        {
+          "answers": {
+            "native": 110,
+            "parent": 112,
+            "source": 110
+          },
+          "gains": 10,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses": 12,
+          "maximum_actual_position_logit_delta": 0.00025916099548339844,
+          "mean_answer_ce": {
+            "native": 1.1120531257683335,
+            "parent": 0.9360222609426291,
+            "source": 1.1120525422172307
+          },
+          "panel": "stress",
+          "parent_rows_sha256": "1d0b8055fb42856861f1caf52da72468154a84a707e6555fd0cb08948b774f86",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        }
+      ],
+      "gradients": [
+        {
+          "absolute_draw": 3200,
+          "actual_positions": 280,
+          "answer_ce": 1.009811520576477,
+          "answer_denominator": 8,
+          "batch_time": 40,
+          "elapsed_seconds": 0.769452125,
+          "exact_causal_score_pairs": 13120,
+          "families": {
+            "neighbor_category": {
+              "elements": 1056,
+              "l2": 4.607140358616076e-05,
+              "nonzero": 1056
+            },
+            "neighbor_root": {
+              "elements": 3840,
+              "l2": 0.000299858447651228,
+              "nonzero": 1920
+            },
+            "neighbor_transition": {
+              "elements": 3840,
+              "l2": 0.045095017525143076,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "elements": 1056,
+              "l2": 6.673810034786623e-05,
+              "nonzero": 1056
+            },
+            "self_root": {
+              "elements": 3840,
+              "l2": 0.0003185672502987721,
+              "nonzero": 1920
+            },
+            "self_transition": {
+              "elements": 3840,
+              "l2": 0.04719114397449567,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "elements": 10560,
+              "l2": 6.389051138454442e-05,
+              "nonzero": 8712
+            },
+            "token_root": {
+              "elements": 38400,
+              "l2": 0.0003589469164092575,
+              "nonzero": 15840
+            },
+            "token_transition": {
+              "elements": 38400,
+              "l2": 0.046792017672739786,
+              "nonzero": 31680
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 320,
+          "rng_after_diagnostic_draw": 11477628269183930594
+        },
+        {
+          "absolute_draw": 3201,
+          "actual_positions": 492,
+          "answer_ce": 1.5279511213302612,
+          "answer_denominator": 8,
+          "batch_time": 72,
+          "elapsed_seconds": 0.34162825,
+          "exact_causal_score_pairs": 42048,
+          "families": {
+            "neighbor_category": {
+              "elements": 1056,
+              "l2": 0.1036873193993956,
+              "nonzero": 1056
+            },
+            "neighbor_root": {
+              "elements": 3840,
+              "l2": 0.6761150837489072,
+              "nonzero": 1920
+            },
+            "neighbor_transition": {
+              "elements": 3840,
+              "l2": 137.93007995246566,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "elements": 1056,
+              "l2": 0.0941595503356606,
+              "nonzero": 1056
+            },
+            "self_root": {
+              "elements": 3840,
+              "l2": 0.7152664921722226,
+              "nonzero": 1920
+            },
+            "self_transition": {
+              "elements": 3840,
+              "l2": 144.7109936860147,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "elements": 10560,
+              "l2": 0.12153168108896809,
+              "nonzero": 9768
+            },
+            "token_root": {
+              "elements": 38400,
+              "l2": 0.7340168564598755,
+              "nonzero": 17640
+            },
+            "token_transition": {
+              "elements": 38400,
+              "l2": 131.11165380284376,
+              "nonzero": 35520
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 576,
+          "rng_after_diagnostic_draw": 17052478318131460056
+        }
+      ],
+      "route_diagnostics": [
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 1.009811520576477,
+          "elapsed_seconds": 0.200877208,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "neighbor_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "neighbor_transition": {
+              "attached": true,
+              "l2": 0.03756532229793918,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "self_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "self_transition": {
+              "attached": true,
+              "l2": 0.039528163968591094,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "token_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "token_transition": {
+              "attached": true,
+              "l2": 0.039692714345539004,
+              "nonzero": 31680
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "value_only",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 1.009811520576477,
+          "elapsed_seconds": 0.105891417,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": true,
+              "l2": 2.263777721212318e-05,
+              "nonzero": 924
+            },
+            "neighbor_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "neighbor_transition": {
+              "attached": true,
+              "l2": 0.0023125790145711606,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "attached": true,
+              "l2": 2.358882447518104e-05,
+              "nonzero": 924
+            },
+            "self_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "self_transition": {
+              "attached": true,
+              "l2": 0.002104973485969364,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "attached": true,
+              "l2": 1.9724723044897467e-05,
+              "nonzero": 231
+            },
+            "token_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "token_transition": {
+              "attached": true,
+              "l2": 0.0026025005227181272,
+              "nonzero": 31680
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "no_read_only",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            false,
+            true,
+            false
+          ]
+        },
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 1.009811520576477,
+          "elapsed_seconds": 0.125707625,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": true,
+              "l2": 4.166370968908246e-05,
+              "nonzero": 1056
+            },
+            "neighbor_root": {
+              "attached": true,
+              "l2": 0.000299858447651228,
+              "nonzero": 1920
+            },
+            "neighbor_transition": {
+              "attached": true,
+              "l2": 0.00935964478327203,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "attached": true,
+              "l2": 6.020844204455602e-05,
+              "nonzero": 1056
+            },
+            "self_root": {
+              "attached": true,
+              "l2": 0.0003185672502987721,
+              "nonzero": 1920
+            },
+            "self_transition": {
+              "attached": true,
+              "l2": 0.009505921670715236,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "attached": true,
+              "l2": 5.964339334161603e-05,
+              "nonzero": 8712
+            },
+            "token_root": {
+              "attached": true,
+              "l2": 0.0003589469164092575,
+              "nonzero": 15840
+            },
+            "token_transition": {
+              "attached": true,
+              "l2": 0.009627407518418075,
+              "nonzero": 31680
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "potential_only",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 1.009811520576477,
+          "elapsed_seconds": 0.086308208,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "neighbor_root": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "neighbor_transition": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "self_category": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "self_root": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "self_transition": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "token_category": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "token_root": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "token_transition": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "all_cut",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            false,
+            false,
+            false
+          ]
+        }
+      ],
+      "initial_training_rng": 17847168693577953940,
+      "next_training_rng": 17847168693577953940,
+      "compiled_metadata": {
+        "coefficient_policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+        "coefficient_reads_per_token": 6552,
+        "schema": "uor-r4.geometric-context-native/2",
+        "source": {
+          "algebra_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+          "algebra_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "config": {
+            "category_rule": "0=absent(root1,bin0);1..32=present(bin=category-1,radius=2^(bin-16));physical-nearest-midpoint-lower-clipped[-16,15]/1",
+            "coefficient_policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+            "geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+            "heads": 2,
+            "initialization": "xorshift64-seed;uniform[-.02,.02];transition-identity+.05;category17+1;nonzero-readout-bases/1",
+            "lanes_per_head": 4,
+            "rule": "old-own+old-next-neighbor-within-head;120-earliest-argmax;right-group-update;synchronous;new-state-separate-root120-and-category33-readout;identity-reset/1",
+            "schema": "uor-r4.geometric-context-q4/1",
+            "seed": 830101,
+            "surrogate": "nat-shadow-quarter-grid-identity-STE;fresh-current-packed-Q25-native-Q24-earliest-hard-state/action/readout;native-conditioned-full-latent-Hamilton-and-120-choice-credit;all-old-state-score-credit;connected-root120/category33-logits;downstream-finite-observation-input-credit/1",
+            "temperature": 1.0,
+            "vocab_size": 40,
+            "width": 32
+          },
+          "frozen": {
+            "address": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "norm_epsilon": 9.5367431640625e-07,
+              "radius_bins": 32,
+              "radius_min_exponent": -16,
+              "radius_rule": "physical-nearest-dyadic-midpoint-lower-clip[-16,15]-zero-separate/1",
+              "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+              "schema": "uor-r4.geometric-address/1",
+              "surrogate_rule": "hard-root-hamilton-normalized-ste;hard-radius-coefficient/local-physical-input;presence-stop/1"
+            },
+            "files": {
+              "base/config.json": {
+                "bytes": 516,
+                "sha256": "456074d03418fe7ebdf175809c27412fdf6eb779820d430a90fa394ac7e156dd"
+              },
+              "base/geometric-address.json": {
+                "bytes": 984,
+                "sha256": "265dd024b05cad3151226a99f42981607e3f356a179391600289df1bfe78c6e0"
+              },
+              "base/geometric-span.json": {
+                "bytes": 1002,
+                "sha256": "d524715bf4f433cb0b10f9deea6c2d5ac1ad8239c05be673f3363ac935db6dba"
+              },
+              "base/model.safetensors": {
+                "bytes": 197344,
+                "sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa"
+              },
+              "event_native/event-tables-i32le.bin": {
+                "bytes": 307840,
+                "sha256": "f37bcdc080743faf43d5f93b17902f15f3e1de6c97c7f8ff72a4addaf5a5d1ab"
+              },
+              "event_native/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "event_native/metadata.json": {
+                "bytes": 3232,
+                "sha256": "bfa86f64d03f044605c8cc6c5257edf6042ee2d926125749f93c401a9d189c93"
+              },
+              "event_native/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              },
+              "event_source/event-parameters.safetensors": {
+                "bytes": 47248,
+                "sha256": "ad48d22662d28f1b9662927ad63e8093b034e349807a8f180ed837a51fbbf701"
+              },
+              "event_source/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "event_source/metadata.json": {
+                "bytes": 2477,
+                "sha256": "085190c5ec22dad12a2c6b66411960ca0fdefc5529d6cfac1cb29ebb53db0714"
+              },
+              "event_source/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              },
+              "potential_native/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "potential_native/metadata.json": {
+                "bytes": 4474,
+                "sha256": "bdc3d158a5d79e7457c7af578f86b9b9decb29da8dc33847ff01587e29f3c9e0"
+              },
+              "potential_native/potential-coefficients-q4.bin": {
+                "bytes": 8320,
+                "sha256": "f3c40aa6fb31640c1c063881b240740267739303c35ef5dc7c459c99564114ea"
+              },
+              "potential_native/potential-i32le.bin": {
+                "bytes": 597760,
+                "sha256": "ecd9e7d087e80fc481c1f0a498308a02332c9b5f215a24099391ac2fbafc19a7"
+              },
+              "potential_native/potential-source-metadata.json": {
+                "bytes": 3600,
+                "sha256": "7f8282c2a2ea90f033d8e1901510e937924e8ea726a0b24da7810638eb7c1efe"
+              },
+              "potential_native/potential-source-parameters.safetensors": {
+                "bytes": 67112,
+                "sha256": "28ae35b042860b09c3deccf97226eb49d26f7a814963ba572d07a7f9f51162a5"
+              },
+              "potential_native/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              },
+              "span_native/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "span_native/metadata.json": {
+                "bytes": 1842,
+                "sha256": "9761ac7b8cd158617b6cc968ddcbd3e959d4a2fd5a57a947b745977d4c8ed1b7"
+              },
+              "span_native/token-actions.bin": {
+                "bytes": 320,
+                "sha256": "d4915e680119fd93975f7b68f95a52500e94e9d08f900da401d1e2d25a6fb624"
+              },
+              "span_native/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              }
+            }
+          },
+          "parameter_file_bytes": 420080,
+          "parameter_file_sha256": "1a0ba1f36224f0960d45b01594f52ef92c0db2cba043e33d3d641e66fb953325",
+          "parameters": [
+            {
+              "f32_bytes_sha256": "693922e5a6738f6c5867ae139aeb2fe81989b268675eb7ecb9a2fe7950bea1f1",
+              "name": "neighbor_category",
+              "shape": [
+                2,
+                4,
+                33,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "f190746beba69b0826c9e7122dc4febf299e97a29dd868cff0aae21fd62bacb4",
+              "name": "neighbor_root",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "0d4693eb3bbd5eedffa249100a4cf144bdd4e62f892dc724b38584382bd87772",
+              "name": "neighbor_transition",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "1c89dd1ce826ebfccd349eb6317995ffa383c5681854aee47ee19b07761bce10",
+              "name": "self_category",
+              "shape": [
+                2,
+                4,
+                33,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "7a06bfb80ced307983078ea0fe91865d4f784d930cd151dbfb2e20def71f1b60",
+              "name": "self_root",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "26abdc55646ac4d499ef1605d090d816c13c0549770fb828cb5246fe64d15efa",
+              "name": "self_transition",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "cf15cef64c1b08301d3a4a3d08fc218bab56935c72d073f1005d074ceb0bc136",
+              "name": "token_category",
+              "shape": [
+                40,
+                2,
+                4,
+                33
+              ]
+            },
+            {
+              "f32_bytes_sha256": "0be09822e4734f7562e574a85efea701139f0669a37c74551359d883bb426bf8",
+              "name": "token_root",
+              "shape": [
+                40,
+                2,
+                4,
+                120
+              ]
+            },
+            {
+              "f32_bytes_sha256": "221aefaf36426c968df710766564a9681d2c79399a18816860dd99e42b2cdd3f",
+              "name": "token_transition",
+              "shape": [
+                40,
+                2,
+                4,
+                120
+              ]
+            }
+          ],
+          "q4": {
+            "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+            "packed_bytes": 52416,
+            "packed_sha256": "c60fec78a619409265894401f6b897278a9dfe3ae95525d7b96a30b876a83a52",
+            "policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+            "schema": "uor-r4.geometric-context-q4/1"
+          },
+          "schema": "uor-r4.geometric-context-source/2",
+          "tokenizer_bytes": 315,
+          "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+        },
+        "source_metadata_sha256": "613fe831fb8e9cb5b0ddce236b89936722cb90d47729bccfa0cfe56b5440ede7",
+        "table_bytes": 3031040,
+        "table_layout": "transition,root,category;each(token[V,H,L,C],self[H,L,128,C],next-neighbor[H,L,128,C]-if-L>1);C128,128,64;zero-state>=120/action>=120/category>=33/1",
+        "table_lengths": [
+          40960,
+          131072,
+          131072,
+          40960,
+          131072,
+          131072,
+          20480,
+          65536,
+          65536
+        ],
+        "table_sha256": "324b038eacf2870fda3fc4b1caff3e0af84a0b20b6a0103aebfd49903c492b34"
+      },
+      "source_policy": {
+        "category_rule": "0=absent(root1,bin0);1..32=present(bin=category-1,radius=2^(bin-16));physical-nearest-midpoint-lower-clipped[-16,15]/1",
+        "coefficient_policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+        "geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+        "heads": 2,
+        "initialization": "xorshift64-seed;uniform[-.02,.02];transition-identity+.05;category17+1;nonzero-readout-bases/1",
+        "lanes_per_head": 4,
+        "rule": "old-own+old-next-neighbor-within-head;120-earliest-argmax;right-group-update;synchronous;new-state-separate-root120-and-category33-readout;identity-reset/1",
+        "schema": "uor-r4.geometric-context-q4/1",
+        "seed": 830101,
+        "surrogate": "nat-shadow-quarter-grid-identity-STE;fresh-current-packed-Q25-native-Q24-earliest-hard-state/action/readout;native-conditioned-full-latent-Hamilton-and-120-choice-credit;all-old-state-score-credit;connected-root120/category33-logits;downstream-finite-observation-input-credit/1",
+        "temperature": 1.0,
+        "vocab_size": 40,
+        "width": 32
+      },
+      "unchanged_numerical_files": {
+        "bank": [
+          "gains-q4.bin",
+          "left-roots.bin",
+          "right-roots.bin",
+          "tokenizer-identity.bin"
+        ],
+        "context": [
+          "h4-tables.bin",
+          "tokenizer-identity.bin"
+        ],
+        "no_read": [
+          "no-read-coefficients-q4.bin",
+          "no-read-expanded-q24-i32le.bin",
+          "observation-basis-q25-i32le.bin",
+          "tokenizer-identity.bin"
+        ],
+        "reducer": [
+          "age-i64le.bin",
+          "exp-u32le.bin",
+          "tokenizer-identity.bin"
+        ],
+        "value": [
+          "tokenizer-identity.bin",
+          "value-coefficients-q4.bin",
+          "value-tables-i32le.bin"
+        ]
+      }
+    },
+    {
+      "seed": 2,
+      "report_directory": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-q4-20261002/construction-1-s2",
+      "report_sha256": "8c70ee949778d2e2f85604dc518bef21961388e72061fd9039b9cae0fdc55eeb",
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-context-q4",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-q4-20261002/args-s2-construction.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 25.181377917000002,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_context_q4.rs": "75f5166c09a17ad8ece08690ff0b2c49b4d92cbd64611ab24dbaa7b154a507a9",
+          "crates/uor-r4-integer/src/lib.rs": "b63c167b4bb2a9fd9e3218912bc2365c193eee7e7c5089ca3cb9aea19ca5702e",
+          "crates/uor-r4-training/src/geometric_context.rs": "9c26cb0ca67cb4959b52016a2cefbcdb7cc0cb96b3a89f42868a5a139b8d5be9",
+          "crates/uor-r4-training/src/geometric_context_credit.rs": "fe0b655fa02c68f7e1be8ef2caf51c296919a29585633ad9e90fb5d608ef408a",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "21bf33affcd68330fed86b10c769ce48d5c80c93148ec397e181d31622faa7ae",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "c2561bd06e21512d94434bd705abf256926264de3fa8fed1e7365ebea5053a5f",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "4fcf8f409c7178a73c186117c6bd20ae6af992c75f82f17d1757ab1406ef2778",
+          "crates/uor-r4-training/src/geometric_stack.rs": "b8826b634499ef461061b420a1afa128318c19baa221c10c0fb3611782df7692",
+          "crates/uor-r4-training/src/lib.rs": "a37fe163c6c4c6015a64568faab0dfad4cbd18ad1a92b2325627d023cbb12d7f",
+          "crates/uor-r4-training/examples/attention-geometric-context-q4.rs": "d2297119388c5accbeef3327e892b3b465564510c3ad2d82bcf9ca1ac489f755"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 735838208,
+        "executable_sha256": "b13e0feb2804a9a32636c0ece03bc4d5828ad72910d291705f4cc8e1b198fa1f"
+      },
+      "panels": [
+        {
+          "answers": {
+            "native": 124,
+            "parent": 126,
+            "source": 124
+          },
+          "gains": 2,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses": 4,
+          "maximum_actual_position_logit_delta": 0.0002969503402709961,
+          "mean_answer_ce": {
+            "native": 0.44872190265638423,
+            "parent": 0.3932996526203383,
+            "source": 0.4487218585360334
+          },
+          "panel": "original",
+          "parent_rows_sha256": "37b1d677e84b8904e3da81c6f6a6fea4649cc7f1559ff4a1b863d4789bedf24c",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        },
+        {
+          "answers": {
+            "native": 119,
+            "parent": 128,
+            "source": 119
+          },
+          "gains": 0,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses": 9,
+          "maximum_actual_position_logit_delta": 0.00026041269302368164,
+          "mean_answer_ce": {
+            "native": 0.5735846754206135,
+            "parent": 0.380557639509418,
+            "source": 0.5735845166214584
+          },
+          "panel": "stress",
+          "parent_rows_sha256": "d1ef211d16a7b2ee03ca412d3e3817cfdb74eb6f08b96b1c397d5ab3e530b2a1",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        }
+      ],
+      "gradients": [
+        {
+          "absolute_draw": 3200,
+          "actual_positions": 264,
+          "answer_ce": 0.4646602272987366,
+          "answer_denominator": 8,
+          "batch_time": 40,
+          "elapsed_seconds": 0.6481525,
+          "exact_causal_score_pairs": 13120,
+          "families": {
+            "neighbor_category": {
+              "elements": 1056,
+              "l2": 4.709839602833722e-05,
+              "nonzero": 1056
+            },
+            "neighbor_root": {
+              "elements": 3840,
+              "l2": 0.0012420856495195267,
+              "nonzero": 2400
+            },
+            "neighbor_transition": {
+              "elements": 3840,
+              "l2": 0.040658063538266044,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "elements": 1056,
+              "l2": 4.962252778340924e-05,
+              "nonzero": 1056
+            },
+            "self_root": {
+              "elements": 3840,
+              "l2": 0.001225891865480599,
+              "nonzero": 2400
+            },
+            "self_transition": {
+              "elements": 3840,
+              "l2": 0.04247588753951146,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "elements": 10560,
+              "l2": 4.357988453049515e-05,
+              "nonzero": 9240
+            },
+            "token_root": {
+              "elements": 38400,
+              "l2": 0.0012781504196386268,
+              "nonzero": 20880
+            },
+            "token_transition": {
+              "elements": 38400,
+              "l2": 0.04379538275046692,
+              "nonzero": 33600
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 320,
+          "rng_after_diagnostic_draw": 14637661831363455831
+        },
+        {
+          "absolute_draw": 3201,
+          "actual_positions": 480,
+          "answer_ce": 0.5369040966033936,
+          "answer_denominator": 8,
+          "batch_time": 74,
+          "elapsed_seconds": 0.346668708,
+          "exact_causal_score_pairs": 44400,
+          "families": {
+            "neighbor_category": {
+              "elements": 1056,
+              "l2": 0.00010762794786130316,
+              "nonzero": 1056
+            },
+            "neighbor_root": {
+              "elements": 3840,
+              "l2": 0.0008557615606637844,
+              "nonzero": 2400
+            },
+            "neighbor_transition": {
+              "elements": 3840,
+              "l2": 76.68833672443498,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "elements": 1056,
+              "l2": 0.00011032000230677767,
+              "nonzero": 1056
+            },
+            "self_root": {
+              "elements": 3840,
+              "l2": 0.0008951317706942541,
+              "nonzero": 2400
+            },
+            "self_transition": {
+              "elements": 3840,
+              "l2": 74.96771298281443,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "elements": 10560,
+              "l2": 0.00011979315164450496,
+              "nonzero": 9768
+            },
+            "token_root": {
+              "elements": 38400,
+              "l2": 0.0008867496939538061,
+              "nonzero": 22080
+            },
+            "token_transition": {
+              "elements": 38400,
+              "l2": 78.67996064123022,
+              "nonzero": 35520
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 592,
+          "rng_after_diagnostic_draw": 14344005333449752929
+        }
+      ],
+      "route_diagnostics": [
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 0.4646602272987366,
+          "elapsed_seconds": 0.125399459,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "neighbor_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "neighbor_transition": {
+              "attached": true,
+              "l2": 0.037597397274403206,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "self_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "self_transition": {
+              "attached": true,
+              "l2": 0.03927574123069226,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "token_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "token_transition": {
+              "attached": true,
+              "l2": 0.0393198115823833,
+              "nonzero": 33600
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "value_only",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 0.4646602272987366,
+          "elapsed_seconds": 0.129112667,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": true,
+              "l2": 5.623694369588627e-10,
+              "nonzero": 1056
+            },
+            "neighbor_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "neighbor_transition": {
+              "attached": true,
+              "l2": 0.0012785260605279588,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "attached": true,
+              "l2": 5.491137505315341e-10,
+              "nonzero": 1056
+            },
+            "self_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "self_transition": {
+              "attached": true,
+              "l2": 0.001271747275541272,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "attached": true,
+              "l2": 5.745598416083002e-10,
+              "nonzero": 264
+            },
+            "token_root": {
+              "attached": true,
+              "l2": 0.0,
+              "nonzero": 0
+            },
+            "token_transition": {
+              "attached": true,
+              "l2": 0.00130359668752478,
+              "nonzero": 33600
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "no_read_only",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            false,
+            true,
+            false
+          ]
+        },
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 0.4646602272987366,
+          "elapsed_seconds": 0.10806125,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": true,
+              "l2": 4.709843703567501e-05,
+              "nonzero": 1056
+            },
+            "neighbor_root": {
+              "attached": true,
+              "l2": 0.0012420856495195267,
+              "nonzero": 2400
+            },
+            "neighbor_transition": {
+              "attached": true,
+              "l2": 0.017499013828767025,
+              "nonzero": 3840
+            },
+            "self_category": {
+              "attached": true,
+              "l2": 4.9622524104350394e-05,
+              "nonzero": 1056
+            },
+            "self_root": {
+              "attached": true,
+              "l2": 0.001225891865480599,
+              "nonzero": 2400
+            },
+            "self_transition": {
+              "attached": true,
+              "l2": 0.017755595872976378,
+              "nonzero": 3840
+            },
+            "token_category": {
+              "attached": true,
+              "l2": 4.357985723300604e-05,
+              "nonzero": 9240
+            },
+            "token_root": {
+              "attached": true,
+              "l2": 0.0012781504196386268,
+              "nonzero": 20880
+            },
+            "token_transition": {
+              "attached": true,
+              "l2": 0.017901050334720302,
+              "nonzero": 33600
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "potential_only",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            false,
+            false,
+            true
+          ]
+        },
+        {
+          "absolute_draw": 3200,
+          "answer_ce": 0.4646602272987366,
+          "elapsed_seconds": 0.081959291,
+          "family_gradients": {
+            "neighbor_category": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "neighbor_root": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "neighbor_transition": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "self_category": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "self_root": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "self_transition": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "token_category": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "token_root": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            },
+            "token_transition": {
+              "attached": false,
+              "l2": null,
+              "nonzero": null
+            }
+          },
+          "hard_logits_bits_equal": true,
+          "name": "all_cut",
+          "optimizer_updates": 0,
+          "routes_value_null_potential": [
+            false,
+            false,
+            false
+          ]
+        }
+      ],
+      "initial_training_rng": 8892160473256393877,
+      "next_training_rng": 8892160473256393877,
+      "compiled_metadata": {
+        "coefficient_policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+        "coefficient_reads_per_token": 6552,
+        "schema": "uor-r4.geometric-context-native/2",
+        "source": {
+          "algebra_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+          "algebra_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "config": {
+            "category_rule": "0=absent(root1,bin0);1..32=present(bin=category-1,radius=2^(bin-16));physical-nearest-midpoint-lower-clipped[-16,15]/1",
+            "coefficient_policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+            "geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+            "heads": 2,
+            "initialization": "xorshift64-seed;uniform[-.02,.02];transition-identity+.05;category17+1;nonzero-readout-bases/1",
+            "lanes_per_head": 4,
+            "rule": "old-own+old-next-neighbor-within-head;120-earliest-argmax;right-group-update;synchronous;new-state-separate-root120-and-category33-readout;identity-reset/1",
+            "schema": "uor-r4.geometric-context-q4/1",
+            "seed": 830102,
+            "surrogate": "nat-shadow-quarter-grid-identity-STE;fresh-current-packed-Q25-native-Q24-earliest-hard-state/action/readout;native-conditioned-full-latent-Hamilton-and-120-choice-credit;all-old-state-score-credit;connected-root120/category33-logits;downstream-finite-observation-input-credit/1",
+            "temperature": 1.0,
+            "vocab_size": 40,
+            "width": 32
+          },
+          "frozen": {
+            "address": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "norm_epsilon": 9.5367431640625e-07,
+              "radius_bins": 32,
+              "radius_min_exponent": -16,
+              "radius_rule": "physical-nearest-dyadic-midpoint-lower-clip[-16,15]-zero-separate/1",
+              "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+              "schema": "uor-r4.geometric-address/1",
+              "surrogate_rule": "hard-root-hamilton-normalized-ste;hard-radius-coefficient/local-physical-input;presence-stop/1"
+            },
+            "files": {
+              "base/config.json": {
+                "bytes": 516,
+                "sha256": "c37a4ca04737fbb953708495daeb6b7b7f65eb2843ea636f3bbcf8a7acb8ac1a"
+              },
+              "base/geometric-address.json": {
+                "bytes": 984,
+                "sha256": "77b565229bafb1f37948a861619ebac02abdaeea24c3c7f471d1d3f54b3a6bef"
+              },
+              "base/geometric-span.json": {
+                "bytes": 1002,
+                "sha256": "5fb588f0b64c37d88e55464cc21e645e8963e6734fa9747c9d5752664846ffe4"
+              },
+              "base/model.safetensors": {
+                "bytes": 197344,
+                "sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873"
+              },
+              "event_native/event-tables-i32le.bin": {
+                "bytes": 307840,
+                "sha256": "c2c86cb1f6ff3399c496d60263f5404e2b9b7046295bf9392b881f0da9de40bb"
+              },
+              "event_native/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "event_native/metadata.json": {
+                "bytes": 3232,
+                "sha256": "a8449b1559dff123bbcae2981a446244350f165ce10d0d7bb994abf3c94f2d91"
+              },
+              "event_native/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              },
+              "event_source/event-parameters.safetensors": {
+                "bytes": 47248,
+                "sha256": "753fd2de85cdd00dd4bed80baddb10909bea9be8d0a38fb037cc654dc93801c3"
+              },
+              "event_source/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "event_source/metadata.json": {
+                "bytes": 2477,
+                "sha256": "2310ca11ad8a5821710fad84206c414d1d02d1f2e88d40497d8f6a795d612053"
+              },
+              "event_source/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              },
+              "potential_native/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "potential_native/metadata.json": {
+                "bytes": 4474,
+                "sha256": "3ea84cd3f109bd90ce2aff2b44c741fcb6b60b3e18abd64e335c381178bb1f98"
+              },
+              "potential_native/potential-coefficients-q4.bin": {
+                "bytes": 8320,
+                "sha256": "072b4d8be9463477635f43bf8203554be0b0b81dc6da7d36866a8202e6cf75ee"
+              },
+              "potential_native/potential-i32le.bin": {
+                "bytes": 597760,
+                "sha256": "13f1e792ba320cf26afa9ef3148b4d2c27e82dd27abcccb42bf7bb1318ca7d90"
+              },
+              "potential_native/potential-source-metadata.json": {
+                "bytes": 3600,
+                "sha256": "bf5bd5421c7ccc96c4be5a75379e33ca169b35679669e66ce994475cc2167325"
+              },
+              "potential_native/potential-source-parameters.safetensors": {
+                "bytes": 67112,
+                "sha256": "c1a71f6bb0b0abf2fa89a70caef88fba50f80d57b595a907f708dd09ddbd1abc"
+              },
+              "potential_native/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              },
+              "span_native/h4-tables.bin": {
+                "bytes": 15601,
+                "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+              },
+              "span_native/metadata.json": {
+                "bytes": 1842,
+                "sha256": "d5124582ae276ac8d775e5bcaf0662354ea4bcee39b76011a2b9a97a698ae36a"
+              },
+              "span_native/token-actions.bin": {
+                "bytes": 320,
+                "sha256": "e7ff1785991ab737eaea80e5b435421ca4b7e4dc0e1bcffbda9b43f69d67cc4e"
+              },
+              "span_native/tokenizer-identity.bin": {
+                "bytes": 315,
+                "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+              }
+            }
+          },
+          "parameter_file_bytes": 420080,
+          "parameter_file_sha256": "077c5b0e22b3179fb4c0e8f7e7c09c47545a292dc1d16c5beb61604c7ec7d1d4",
+          "parameters": [
+            {
+              "f32_bytes_sha256": "d1d2b3575cd48c6860b0e77f9732cdf57f7e1f7ad2c108fdcbd1b3d5a3184d89",
+              "name": "neighbor_category",
+              "shape": [
+                2,
+                4,
+                33,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "9e68873cf54625fec36e71aaa0a8c691354eabb0f74589b205c1cec154820672",
+              "name": "neighbor_root",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "36e9e521c143ab749bf8e36a969e6fc8aa483efa03b6a8de6e316885e633bc67",
+              "name": "neighbor_transition",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "eaa9763b4e9c1310e6d0e2dd1eb1b99d9f5ed5ecb0736f9fb17f0d8d42de06fa",
+              "name": "self_category",
+              "shape": [
+                2,
+                4,
+                33,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "540b47f57643f92f79372222e704dbe8602c4200f2b3cdc704e15e1f35fa3caa",
+              "name": "self_root",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "093d732a389d6bea046a1f40e15daf68d5825e7414b4df8dc36da933f4b90ae5",
+              "name": "self_transition",
+              "shape": [
+                2,
+                4,
+                120,
+                4
+              ]
+            },
+            {
+              "f32_bytes_sha256": "b6fa3e86c09bb5f2c5c07c81dbf9bf5665722d75589357890e71a619131b1810",
+              "name": "token_category",
+              "shape": [
+                40,
+                2,
+                4,
+                33
+              ]
+            },
+            {
+              "f32_bytes_sha256": "098210d264a47884d48d9bf00a6356c1726c0a5badcd0c04a5f7e6a82fe6a76c",
+              "name": "token_root",
+              "shape": [
+                40,
+                2,
+                4,
+                120
+              ]
+            },
+            {
+              "f32_bytes_sha256": "ffd7549a586afa1105e1980093f84d0ece69e7fee08136408d225c980f8d5ffa",
+              "name": "token_transition",
+              "shape": [
+                40,
+                2,
+                4,
+                120
+              ]
+            }
+          ],
+          "q4": {
+            "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+            "packed_bytes": 52416,
+            "packed_sha256": "c8993626ce8bed5649ee99fc8f011787d35f25cbf72a462c326f464b7663da34",
+            "policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+            "schema": "uor-r4.geometric-context-q4/1"
+          },
+          "schema": "uor-r4.geometric-context-source/2",
+          "tokenizer_bytes": 315,
+          "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+        },
+        "source_metadata_sha256": "b4e76024b84ef114a3ed612e1bab842a863cd89ccac3e9ac3e2125d06ed1abb5",
+        "table_bytes": 3031040,
+        "table_layout": "transition,root,category;each(token[V,H,L,C],self[H,L,128,C],next-neighbor[H,L,128,C]-if-L>1);C128,128,64;zero-state>=120/action>=120/category>=33/1",
+        "table_lengths": [
+          40960,
+          131072,
+          131072,
+          40960,
+          131072,
+          131072,
+          20480,
+          65536,
+          65536
+        ],
+        "table_sha256": "725fe0112205eab1dc484c1947648918a03e463fb26d54f5eedb74b467792693"
+      },
+      "source_policy": {
+        "category_rule": "0=absent(root1,bin0);1..32=present(bin=category-1,radius=2^(bin-16));physical-nearest-midpoint-lower-clipped[-16,15]/1",
+        "coefficient_policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;token-shift22/basis-div8;per-factor-Q24-nearest-ties-away;transition-root-category/token-self-neighbor;L1-neighbor-omitted;root128-category64-zero-padding;no-centering/1",
+        "geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+        "heads": 2,
+        "initialization": "xorshift64-seed;uniform[-.02,.02];transition-identity+.05;category17+1;nonzero-readout-bases/1",
+        "lanes_per_head": 4,
+        "rule": "old-own+old-next-neighbor-within-head;120-earliest-argmax;right-group-update;synchronous;new-state-separate-root120-and-category33-readout;identity-reset/1",
+        "schema": "uor-r4.geometric-context-q4/1",
+        "seed": 830102,
+        "surrogate": "nat-shadow-quarter-grid-identity-STE;fresh-current-packed-Q25-native-Q24-earliest-hard-state/action/readout;native-conditioned-full-latent-Hamilton-and-120-choice-credit;all-old-state-score-credit;connected-root120/category33-logits;downstream-finite-observation-input-credit/1",
+        "temperature": 1.0,
+        "vocab_size": 40,
+        "width": 32
+      },
+      "unchanged_numerical_files": {
+        "bank": [
+          "gains-q4.bin",
+          "left-roots.bin",
+          "right-roots.bin",
+          "tokenizer-identity.bin"
+        ],
+        "context": [
+          "h4-tables.bin",
+          "tokenizer-identity.bin"
+        ],
+        "no_read": [
+          "no-read-coefficients-q4.bin",
+          "no-read-expanded-q24-i32le.bin",
+          "observation-basis-q25-i32le.bin",
+          "tokenizer-identity.bin"
+        ],
+        "reducer": [
+          "age-i64le.bin",
+          "exp-u32le.bin",
+          "tokenizer-identity.bin"
+        ],
+        "value": [
+          "tokenizer-identity.bin",
+          "value-coefficients-q4.bin",
+          "value-tables-i32le.bin"
+        ]
+      }
+    }
+  ],
+  "aggregate": {
+    "rows": 512,
+    "parent_answers": 478,
+    "source_answers": 446,
+    "native_answers": 446,
+    "gains": 13,
+    "losses": 45,
+    "optimizer_updates": 0,
+    "source_native_answer_changes": 0,
+    "maximum_actual_position_logit_delta": 0.0002969503402709961,
+    "actual_causal_q24_scores_compared": 1883664
+  },
+  "validation": {
+    "completed_focused_cases": 15,
+    "first_library_compile_failure": "missing typed potential endpoints; repaired",
+    "first_loaded_attempt": "First worker stopped pre-generation on legacy-only context admission; failure sealed, strict-q4 admission repaired, regression and completed constructions pass",
+    "standalone_model_build": "Repaired-source driver-build-2 and combined-source main-driver-build-1 both completed exit0; exact same-seed combined-source coexistence verified",
+    "checks": [
+      {
+        "receipt": "integer-tests-1-execution.json",
+        "sha256": "8d124791148554d9f6963ee117c4ddc14b19ec1652359fd541c173a0444be3f3",
+        "exit_code": 0,
+        "seconds": 96.538036292,
+        "source_unchanged": true
+      },
+      {
+        "receipt": "training-source-tests-2-execution.json",
+        "sha256": "20f1da9b3228c2428830cbc59aead0a6c338c907046259dd816336d11efca111",
+        "exit_code": 0,
+        "seconds": 147.58226987499998,
+        "source_unchanged": true
+      },
+      {
+        "receipt": "context-credit-tests-1-execution.json",
+        "sha256": "3c975e87e2358bc782950edda5f0abee69a0f2245fc83b59d1e4c7a189d44d2d",
+        "exit_code": 0,
+        "seconds": 0.297968208,
+        "source_unchanged": true
+      },
+      {
+        "receipt": "training-source-tests-1-execution.json",
+        "sha256": "6110b2fb8829dcb229c7c0efd958a39192008da328d08c1e1e1424ddf796572e",
+        "exit_code": 101,
+        "seconds": 689.430947625,
+        "source_unchanged": true
+      },
+      {
+        "receipt": "context-admission-tests-1-execution.json",
+        "sha256": "852a25cd0147a46a3032b2355d4296d614f6e4514fd4705a4128c06e6a7d8259",
+        "exit_code": 0,
+        "seconds": 227.840301333,
+        "source_unchanged": true
+      },
+      {
+        "receipt": "projection-1-s1-execution.json",
+        "sha256": "5b9028ad1f7b70627a41f5e289b786c380bfe7b6eb06bf103297e77b80081efd",
+        "exit_code": 1,
+        "seconds": 3.608757292,
+        "source_unchanged": true
+      },
+      {
+        "receipt": "driver-build-1-execution.json",
+        "sha256": "8fa82226701c52a2afcf01f6df89c9c145568f55c207722aea4f76945b35ae8a",
+        "exit_code": 0,
+        "seconds": 149.648413417,
+        "source_unchanged": true
+      }
+    ],
+    "completed_source_main_checks": {
+      "driver-build-2-execution.json": {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--example",
+          "attention-geometric-context-q4"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 269.07959895899995,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_context_q4.rs": "75f5166c09a17ad8ece08690ff0b2c49b4d92cbd64611ab24dbaa7b154a507a9",
+          "crates/uor-r4-integer/src/lib.rs": "b63c167b4bb2a9fd9e3218912bc2365c193eee7e7c5089ca3cb9aea19ca5702e",
+          "crates/uor-r4-training/src/geometric_context.rs": "9c26cb0ca67cb4959b52016a2cefbcdb7cc0cb96b3a89f42868a5a139b8d5be9",
+          "crates/uor-r4-training/src/geometric_context_credit.rs": "fe0b655fa02c68f7e1be8ef2caf51c296919a29585633ad9e90fb5d608ef408a",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "21bf33affcd68330fed86b10c769ce48d5c80c93148ec397e181d31622faa7ae",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "c2561bd06e21512d94434bd705abf256926264de3fa8fed1e7365ebea5053a5f",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "4fcf8f409c7178a73c186117c6bd20ae6af992c75f82f17d1757ab1406ef2778",
+          "crates/uor-r4-training/src/geometric_stack.rs": "b8826b634499ef461061b420a1afa128318c19baa221c10c0fb3611782df7692",
+          "crates/uor-r4-training/src/lib.rs": "a37fe163c6c4c6015a64568faab0dfad4cbd18ad1a92b2325627d023cbb12d7f",
+          "crates/uor-r4-training/examples/attention-geometric-context-q4.rs": "d2297119388c5accbeef3327e892b3b465564510c3ad2d82bcf9ca1ac489f755"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": null,
+        "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+      },
+      "main-context-tests-1-execution.json": {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--lib",
+          "context_q4_",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 476.27736425,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_context_q4.rs": "75f5166c09a17ad8ece08690ff0b2c49b4d92cbd64611ab24dbaa7b154a507a9",
+          "crates/uor-r4-integer/src/lib.rs": "b63c167b4bb2a9fd9e3218912bc2365c193eee7e7c5089ca3cb9aea19ca5702e",
+          "crates/uor-r4-training/src/geometric_context.rs": "9c26cb0ca67cb4959b52016a2cefbcdb7cc0cb96b3a89f42868a5a139b8d5be9",
+          "crates/uor-r4-training/src/geometric_context_credit.rs": "fe0b655fa02c68f7e1be8ef2caf51c296919a29585633ad9e90fb5d608ef408a",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "21bf33affcd68330fed86b10c769ce48d5c80c93148ec397e181d31622faa7ae",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "c2561bd06e21512d94434bd705abf256926264de3fa8fed1e7365ebea5053a5f",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "4fcf8f409c7178a73c186117c6bd20ae6af992c75f82f17d1757ab1406ef2778",
+          "crates/uor-r4-training/src/geometric_stack.rs": "45e169ad2873b371616e56e0b7045b094c816c671aeee449ae0bc5f969b825e1",
+          "crates/uor-r4-training/src/lib.rs": "a37fe163c6c4c6015a64568faab0dfad4cbd18ad1a92b2325627d023cbb12d7f",
+          "crates/uor-r4-training/examples/attention-geometric-context-q4.rs": "d2297119388c5accbeef3327e892b3b465564510c3ad2d82bcf9ca1ac489f755"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": null,
+        "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+      },
+      "main-credit-tests-1-execution.json": {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "test",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--lib",
+          "context_credit_",
+          "--",
+          "--test-threads=1"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 0.766584667,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_context_q4.rs": "75f5166c09a17ad8ece08690ff0b2c49b4d92cbd64611ab24dbaa7b154a507a9",
+          "crates/uor-r4-integer/src/lib.rs": "b63c167b4bb2a9fd9e3218912bc2365c193eee7e7c5089ca3cb9aea19ca5702e",
+          "crates/uor-r4-training/src/geometric_context.rs": "9c26cb0ca67cb4959b52016a2cefbcdb7cc0cb96b3a89f42868a5a139b8d5be9",
+          "crates/uor-r4-training/src/geometric_context_credit.rs": "fe0b655fa02c68f7e1be8ef2caf51c296919a29585633ad9e90fb5d608ef408a",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "21bf33affcd68330fed86b10c769ce48d5c80c93148ec397e181d31622faa7ae",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "c2561bd06e21512d94434bd705abf256926264de3fa8fed1e7365ebea5053a5f",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "4fcf8f409c7178a73c186117c6bd20ae6af992c75f82f17d1757ab1406ef2778",
+          "crates/uor-r4-training/src/geometric_stack.rs": "45e169ad2873b371616e56e0b7045b094c816c671aeee449ae0bc5f969b825e1",
+          "crates/uor-r4-training/src/lib.rs": "a37fe163c6c4c6015a64568faab0dfad4cbd18ad1a92b2325627d023cbb12d7f",
+          "crates/uor-r4-training/examples/attention-geometric-context-q4.rs": "d2297119388c5accbeef3327e892b3b465564510c3ad2d82bcf9ca1ac489f755"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": null,
+        "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+      },
+      "main-driver-build-1-execution.json": {
+        "command": [
+          "/Users/casey.allard/.cargo/bin/cargo",
+          "build",
+          "--offline",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--example",
+          "attention-geometric-context-q4"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 118.662402,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_context_q4.rs": "75f5166c09a17ad8ece08690ff0b2c49b4d92cbd64611ab24dbaa7b154a507a9",
+          "crates/uor-r4-integer/src/lib.rs": "b63c167b4bb2a9fd9e3218912bc2365c193eee7e7c5089ca3cb9aea19ca5702e",
+          "crates/uor-r4-training/src/geometric_context.rs": "9c26cb0ca67cb4959b52016a2cefbcdb7cc0cb96b3a89f42868a5a139b8d5be9",
+          "crates/uor-r4-training/src/geometric_context_credit.rs": "fe0b655fa02c68f7e1be8ef2caf51c296919a29585633ad9e90fb5d608ef408a",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "21bf33affcd68330fed86b10c769ce48d5c80c93148ec397e181d31622faa7ae",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "c2561bd06e21512d94434bd705abf256926264de3fa8fed1e7365ebea5053a5f",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "4fcf8f409c7178a73c186117c6bd20ae6af992c75f82f17d1757ab1406ef2778",
+          "crates/uor-r4-training/src/geometric_stack.rs": "45e169ad2873b371616e56e0b7045b094c816c671aeee449ae0bc5f969b825e1",
+          "crates/uor-r4-training/src/lib.rs": "a37fe163c6c4c6015a64568faab0dfad4cbd18ad1a92b2325627d023cbb12d7f",
+          "crates/uor-r4-training/examples/attention-geometric-context-q4.rs": "d2297119388c5accbeef3327e892b3b465564510c3ad2d82bcf9ca1ac489f755"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": null,
+        "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+      }
+    }
+  },
+  "limitations": [
+    "exposed authored development panels",
+    "fixed coefficient and Q25 basis conversion together",
+    "biased adjoints; finite gradients do not establish stability or fit readiness",
+    "event/age learned-coefficient contracts unfinished",
+    "float trunk/output and offline float learning graph retained",
+    "bounded full causal scans; no selected-access/energy/language qualification"
+  ],
+  "next": "Persistent integer attention session preserving exact existing occurrence and denominator semantics, no automatic context recovery fit",
+  "independent_review": {
+    "files": {
+      "independent-result-review.md": "36668305622b786fae63f1a78ac83ea96de6698de858eae3053cbd602d7d9b63",
+      "independent-row-diagnostic.json": "938037cfde40b8c5d903f0859cb712628f65c37314cb17ca307c8866cf90b705",
+      "independent-freeze-credit-audit.json": "cfb2c1becaf096493cfe0a71a6958fbff404bb5c31c33c880354f34747610afb",
+      "source-integration-review.md": "d6a376b733043ebb9ef2ce016d50de2c19e73bcdbd47faf96b717c3cfddc8e07",
+      "context-source-independent-review.md": "e9bcc2171a599c2974bd14abab9bde53795e0d07fcd7478097b21fc22275891d",
+      "credit-stability-and-incremental-session.md": "939ed4b3092d02467803be3c3af8abe44fc6a27c417ee2e423151e45017a39c7",
+      "next-boundary-note.md": "8773e491910a2571353f602bbf15890d0a02d72e2b995974384b5a445344b248"
+    },
+    "saved_rows_joined": 512,
+    "query_head_weights_denominators_reconstructed": 1024,
+    "losses_retaining_correct_source_majority": 28,
+    "losses_with_correct_source_mass_at_least_point9": 19,
+    "losses_with_target_payload_change": 45,
+    "scope": "Independent saved-data arithmetic/binding and source review, not a model/backward rerun or independent manifest BLAKE3 rehash"
+  },
+  "main_coexistence": {
+    "all_saved_rows_episodes_prefix_bytes_equal": {
+      "original-rows.json": true,
+      "stress-rows.json": true,
+      "original-episodes.json": true,
+      "stress-episodes.json": true,
+      "diagnostic-3200-episodes.json": true,
+      "diagnostic-3201-episodes.json": true,
+      "cheap-loaded-prefix.json": true
+    },
+    "panels_equal": true,
+    "gradient_and_route_numeric_records_equal": true,
+    "exact_rng_equal": true,
+    "execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-context-q4",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-q4-20261002/args-s1-construction-main.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 19.393312708,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_context_q4.rs": "75f5166c09a17ad8ece08690ff0b2c49b4d92cbd64611ab24dbaa7b154a507a9",
+        "crates/uor-r4-integer/src/lib.rs": "b63c167b4bb2a9fd9e3218912bc2365c193eee7e7c5089ca3cb9aea19ca5702e",
+        "crates/uor-r4-training/src/geometric_context.rs": "9c26cb0ca67cb4959b52016a2cefbcdb7cc0cb96b3a89f42868a5a139b8d5be9",
+        "crates/uor-r4-training/src/geometric_context_credit.rs": "fe0b655fa02c68f7e1be8ef2caf51c296919a29585633ad9e90fb5d608ef408a",
+        "crates/uor-r4-training/src/geometric_value_producer.rs": "21bf33affcd68330fed86b10c769ce48d5c80c93148ec397e181d31622faa7ae",
+        "crates/uor-r4-training/src/geometric_value_producer_native.rs": "c2561bd06e21512d94434bd705abf256926264de3fa8fed1e7365ebea5053a5f",
+        "crates/uor-r4-training/src/geometric_no_read_native.rs": "4fcf8f409c7178a73c186117c6bd20ae6af992c75f82f17d1757ab1406ef2778",
+        "crates/uor-r4-training/src/geometric_stack.rs": "45e169ad2873b371616e56e0b7045b094c816c671aeee449ae0bc5f969b825e1",
+        "crates/uor-r4-training/src/lib.rs": "a37fe163c6c4c6015a64568faab0dfad4cbd18ad1a92b2325627d023cbb12d7f",
+        "crates/uor-r4-training/examples/attention-geometric-context-q4.rs": "d2297119388c5accbeef3327e892b3b465564510c3ad2d82bcf9ca1ac489f755"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 801882112,
+      "executable_sha256": "cc737df235791ebf1df5f943aca9be4c04403d3406b72c4d4c9a0ab9ac84b93b"
+    },
+    "report_sha256": "9bb0361259023fbb1131141c5336a2383d3b3831ac51acbecc7c8237fe47fce4",
+    "scope": "Unchanged seed1 post-main-Metal coexistence only; not an additional independent quality draw"
+  },
+  "preservation": {
+    "local_files_verified": 217,
+    "local_bytes": 524767600,
+    "cloud_index_verified": true,
+    "cloud_archive_bytes": 525449216,
+    "cloud_archive_md5": "9c6a071a8af32ceb028872dd0ae18c8f",
+    "cloud_path": "icloud:UOR-R4/results/codex/geometric-context-q4-20261002.tar",
+    "archive_upload_download_md5_verified": true
+  },
+  "combined_source_review": {
+    "file": "source-rebind-10a4caef.md",
+    "sha256": "d170e626cdbeb34ce4d9b135b27404efe996cc8b8f2206551b352628afad6ad0",
+    "source_head": "10a4caef5e2eca2dccf23c7dd4482e08e8e0f367",
+    "scope": "Independent static and saved-output verification; no additional model rerun"
+  }
+}

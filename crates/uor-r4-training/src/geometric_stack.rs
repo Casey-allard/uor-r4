@@ -208,6 +208,7 @@ enum NoReadSource<'a> {
     LegacyFloat,
     LearnedTensor(&'a Tensor),
     NativeQ24(&'a [i64]),
+    ContextCredit { raw: &'a [i64], live: &'a Tensor },
 }
 #[derive(Clone, Copy)]
 enum NoReadMode<'a> {
@@ -234,6 +235,10 @@ enum CompositionMode<'a> {
 }
 #[derive(Clone, Copy)]
 enum ReadComposition<'a> {
+    ContextCredit {
+        values: &'a Tensor,
+        potential: &'a crate::geometric_potential_q4::PotentialQ4Output,
+    },
     LearnedPotential {
         values: &'a Tensor,
         weights: &'a crate::geometric_potential_q4::PotentialQ4Weights,
@@ -3114,6 +3119,216 @@ impl StackModel {
         ))
     }
 
+    /// Offline answer credit through the current native-selected context state,
+    /// frozen strict potential, values/bank and NoRead. The float trunk/reducer
+    /// remains an explicitly unfinished serving boundary.
+    #[allow(clippy::too_many_arguments)]
+    pub fn forward_geometric_q4_context(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        composition: &crate::geometric_composition_native::CompiledComposition,
+        context_weights: &geometric_context::ContextWeights,
+        value_weights: &crate::geometric_value_producer::ValueProducerWeights,
+        no_read_weights: &crate::geometric_no_read::NoReadWeights,
+        potential_weights: &crate::geometric_potential_q4::PotentialQ4Weights,
+        composition_weights: &crate::geometric_composition::CompositionWeights,
+        reset_each_token: bool,
+    ) -> Result<(
+        Tensor,
+        geometric_context::ContextQ4Output,
+        crate::geometric_potential_q4::PotentialQ4Output,
+        crate::geometric_value_producer::ValueProducerOutput,
+        crate::geometric_context_credit::NoReadCreditOutput,
+    )> {
+        self.forward_geometric_q4_context_routes(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            no_read,
+            composition,
+            context_weights,
+            value_weights,
+            no_read_weights,
+            potential_weights,
+            composition_weights,
+            reset_each_token,
+            [true; 3],
+        )
+    }
+
+    /// Diagnostic graph cuts in value/NoRead/potential order. All hard choices
+    /// remain unchanged; serving has no route-switch interface.
+    #[allow(clippy::too_many_arguments)]
+    pub fn forward_geometric_q4_context_routes(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        composition: &crate::geometric_composition_native::CompiledComposition,
+        context_weights: &geometric_context::ContextWeights,
+        value_weights: &crate::geometric_value_producer::ValueProducerWeights,
+        no_read_weights: &crate::geometric_no_read::NoReadWeights,
+        potential_weights: &crate::geometric_potential_q4::PotentialQ4Weights,
+        composition_weights: &crate::geometric_composition::CompositionWeights,
+        reset_each_token: bool,
+        credit_routes: [bool; 3],
+    ) -> Result<(
+        Tensor,
+        geometric_context::ContextQ4Output,
+        crate::geometric_potential_q4::PotentialQ4Output,
+        crate::geometric_value_producer::ValueProducerOutput,
+        crate::geometric_context_credit::NoReadCreditOutput,
+    )> {
+        self.validate_context_config(context.config())?;
+        self.validate_context_dependencies(context, events, span, potential)?;
+        context.validate_q4_training(context_weights)?;
+        producer.validate_native_context(context)?;
+        producer.validate_q4_frozen_source(value_weights)?;
+        no_read.validate_for(no_read_weights)?;
+        no_read.validate_dependencies(context, potential, reducer, producer, events, span)?;
+        potential.validate_q4_source(potential_weights)?;
+        composition.validate_for(composition_weights)?;
+        composition
+            .validate_dependencies(context, potential, reducer, producer, events, span, no_read)?;
+        if self.config.width != 32
+            || self.config.heads != 2
+            || time == 0
+            || time > 128
+            || reducer.metadata().layer != 2
+        {
+            return Err(invalid(
+                "context credit requires admitted H2/width32/context<=128 reader",
+            ));
+        }
+        let ctx = context_weights.forward_q4(ids, batch, time, reset_each_token)?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        let held =
+            geometric_span_native::trace_native_events(ids, batch, time, &event.actions, span)?;
+        let lanes = self.config.heads * context.config().lanes_per_head;
+        let count = ids
+            .len()
+            .checked_mul(lanes)
+            .ok_or_else(|| invalid("context credit held-code overflow"))?;
+        if held.prior_codes.len() != ids.len() || held.lanes != lanes {
+            return Err(invalid("context credit span layout differs"));
+        }
+        let mut held_codes = Vec::with_capacity(count);
+        let mut content = Vec::with_capacity(count);
+        let mut span_valid = Vec::with_capacity(ids.len());
+        for prior in &held.prior_codes {
+            span_valid.push(prior.is_some());
+            if prior.as_ref().is_some_and(|codes| codes.len() != lanes) {
+                return Err(invalid("context credit held span lane layout differs"));
+            }
+            for lane in 0..lanes {
+                let code = prior.as_ref().map(|codes| codes[lane]).unwrap_or(1);
+                held_codes.push(
+                    uor_r4_integer::h4_tables::H4Code::try_from(code)
+                        .map_err(|e| invalid(e.to_string()))?,
+                );
+                content.push(
+                    uor_r4_integer::geometric_potential::AddressLane::new(
+                        code,
+                        if prior.is_some() { 16 } else { 0 },
+                        prior.is_some(),
+                    )
+                    .map_err(|e| invalid(e.to_string()))?,
+                );
+            }
+        }
+        let valid = vec![true; ids.len()];
+        let mut values = crate::geometric_context_credit::frozen_value_forward(
+            value_weights,
+            ids,
+            &ctx,
+            &held_codes,
+            &span_valid,
+            &valid,
+        )?;
+        let mut null = crate::geometric_context_credit::frozen_no_read_forward(
+            no_read_weights,
+            ids,
+            &ctx,
+            &held_codes,
+            &span_valid,
+        )?;
+        let mut scores = crate::geometric_context_credit::frozen_potential_forward(
+            potential_weights,
+            &content,
+            &ctx,
+        )?;
+        if !credit_routes[0] {
+            values.values = values.values.detach();
+        }
+        if !credit_routes[1] {
+            null.scores = null.scores.detach();
+        }
+        if !credit_routes[2] {
+            scores.scores = scores.scores.detach();
+        }
+        let composed = composition_weights.forward_frozen_values(&values.values, &values.trace)?;
+        let p = self.params()?;
+        let span_config = self
+            .geometric_span
+            .as_ref()
+            .ok_or_else(|| invalid("context credit requires span configuration"))?;
+        span.validate_for(p.get("embedding.weight")?, span_config)?;
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let read_trace = std::cell::RefCell::new(None);
+        let x = self.layer_range_with_source(
+            &p,
+            tokens.clone(),
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Soft,
+            ReadSource {
+                tokens: Some(&tokens),
+                native_span: Some((span, ids)),
+                native_potential: Some(potential),
+                event_control: Some(SpanEvents::Native(&event.actions)),
+                context: Some(ContextInput::Native(&ctx.trace.codes)),
+                native_reducer: Some(reducer),
+                native_trace: Some(&read_trace),
+                native_learned_values: Some(&values.trace.values_q16),
+                composition: Some(ReadComposition::ContextCredit {
+                    values: &composed,
+                    potential: &scores,
+                }),
+                no_read: NoReadSource::ContextCredit {
+                    raw: &null.scores_q24,
+                    live: &null.scores,
+                },
+                ..ReadSource::default()
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        let logits = hidden.matmul(&p.head()?.t()?)?;
+        Ok((logits, ctx, scores, values, null))
+    }
+
     fn forward_geometric_composition_mode(
         &self,
         ids: &[u32],
@@ -4140,8 +4355,32 @@ impl StackModel {
             }
             _ => None,
         };
-        let learned_score_tensor = learned_potential.as_ref().map(|out| out.scores.clone());
-        let scores = if let Some(ref learned) = learned_potential {
+        let context_potential = match source.composition {
+            Some(ReadComposition::ContextCredit { potential, .. }) => Some(potential),
+            _ => None,
+        };
+        if matches!(source.no_read, NoReadSource::ContextCredit { .. })
+            != context_potential.is_some()
+        {
+            return Err(invalid(
+                "context credit requires coupled potential and NoRead graph",
+            ));
+        }
+        let learned_score_tensor = context_potential
+            .map(|out| out.scores.clone())
+            .or_else(|| learned_potential.as_ref().map(|out| out.scores.clone()));
+        let scores = if let Some(learned) = context_potential {
+            if learned.scores_q24.len() != score_count
+                || learned.scores.dims() != [batch, heads, time, time]
+                || learned.content_codes != content
+                || learned.context_codes != current
+            {
+                return Err(invalid(
+                    "context credit potential endpoints/score layout differ",
+                ));
+            }
+            learned.scores_q24.clone()
+        } else if let Some(ref learned) = learned_potential {
             learned.scores_q24.clone()
         } else {
             let mut scores = vec![0i64; score_count];
@@ -4178,15 +4417,17 @@ impl StackModel {
             if heads != 2 || self.config.width != 32 || binding.is_some() {
                 return Err(invalid("composition requires H2/width32 and uses returned raw mass trace, not a binding channel"));
             }
-            let NoReadSource::NativeQ24(null) = source.no_read else {
-                return Err(invalid("composition requires raw native NoRead"));
+            let null = match source.no_read {
+                NoReadSource::NativeQ24(raw) | NoReadSource::ContextCredit { raw, .. } => raw,
+                _ => return Err(invalid("composition requires raw native NoRead")),
             };
             if null.len() != batch * heads * time {
                 return Err(invalid("composition null shape differs"));
             }
             return match composition {
                 ReadComposition::Learned(values)
-                | ReadComposition::LearnedPotential { values, .. } => {
+                | ReadComposition::LearnedPotential { values, .. }
+                | ReadComposition::ContextCredit { values, .. } => {
                     if values.dims() != [batch, heads, time, 32]
                         || values.dtype() != DType::F32
                         || !values.device().is_cpu()
@@ -4226,6 +4467,18 @@ impl StackModel {
                         (batch, heads, time, 1),
                         &self.device,
                     )?;
+                    let null = if let NoReadSource::ContextCredit { live, .. } = source.no_read {
+                        if live.dims() != [batch, heads, time]
+                            || live.dtype() != DType::F32
+                            || !live.device().is_cpu()
+                        {
+                            return Err(invalid("context credit NoRead graph layout differs"));
+                        }
+                        let live = live.unsqueeze(3)?;
+                        (&null + (&live - live.detach())?)?
+                    } else {
+                        null
+                    };
                     let joined = Tensor::cat(&[&null, &fixed], 3)?;
                     let zero = Tensor::zeros((batch, heads, 1, 32), DType::F32, &self.device)?;
                     let values = Tensor::cat(&[&zero, values], 2)?;
@@ -4339,7 +4592,7 @@ impl StackModel {
                         .transpose(1, 2)?,
                 )
             }
-            NoReadSource::NativeQ24(_) => None,
+            NoReadSource::NativeQ24(_) | NoReadSource::ContextCredit { .. } => None,
             NoReadSource::LearnedTensor(_) => {
                 return Err(invalid("learned NoRead dispatch differs"))
             }
@@ -4368,7 +4621,7 @@ impl StackModel {
                 ));
             }
             match source.no_read {
-                NoReadSource::NativeQ24(null) => {
+                NoReadSource::NativeQ24(null) | NoReadSource::ContextCredit { raw: null, .. } => {
                     crate::geometric_read_native::reduce_native_raw_q24(
                         &scores,
                         null,

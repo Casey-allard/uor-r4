@@ -176,12 +176,7 @@ fn snapshot(paths: ValueProducerSourcePaths<'_>) -> Result<BTreeMap<String, Boun
         (
             "context_source",
             paths.context_source,
-            vec![
-                "metadata.json",
-                "context-parameters.safetensors",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_context::source_file_names(paths.context_source)?,
         ),
         (
             "base",
@@ -401,7 +396,7 @@ impl CompiledValueProducer {
         if cc.vocab_size != c.vocab_size
             || cc.heads != c.heads
             || cc.lanes_per_head != c.latent_lanes_per_head
-            || cc.surrogate != FINITE_CHOICE_SURROGATE
+            || !(cc.surrogate == FINITE_CHOICE_SURROGATE || context.is_q4())
         {
             return Err(invalid(
                 "value producer requires matching saved finite-choice context",
@@ -484,6 +479,22 @@ impl CompiledValueProducer {
     pub fn config(&self) -> &ValueProducerConfig {
         &self.metadata.config
     }
+    /// Admit frozen strict value coefficients independently of a live offline
+    /// context graph. The caller must also validate this artifact's immutable
+    /// compiled-context dependency; ordinary serving uses `validate_for`.
+    pub(crate) fn validate_q4_frozen_source(&self, weights: &ValueProducerWeights) -> Result<()> {
+        if !weights.is_q4()
+            || *weights.config() != self.metadata.config
+            || identities(weights.parameters())? != self.metadata.parameters
+            || self.packed_q4.as_ref() != Some(&weights.packed_coefficients()?)
+        {
+            return Err(invalid(
+                "frozen q4 value source differs from admitted artifact",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn validate_for(
         &self,
         weights: &ValueProducerWeights,
@@ -913,6 +924,41 @@ mod tests {
         f.value_source = f.root.join("value-source-q4");
         value.save_source(&f.value_source)?;
         Ok((f, value, context))
+    }
+
+    #[test]
+    fn context_q4_value_rebind_preserves_coefficients_and_exact_binding() -> Result<()> {
+        let (mut f, value, context) = q4_fixture()?;
+        let legacy = CompiledValueProducer::compile(f.paths(), REGISTRY)?;
+        let context = context.into_q4()?;
+        f.context_source = f.root.join("context-source-q4");
+        context.save_source(&f.context_source, f.dependencies(), REGISTRY)?;
+        let compiled = CompiledValueProducer::compile(f.paths(), REGISTRY)?;
+        assert_eq!(compiled.table_bytes, legacy.table_bytes);
+        assert_eq!(compiled.packed_q4, legacy.packed_q4);
+        assert_eq!(compiled.metadata.parameters, legacy.metadata.parameters);
+        assert_eq!(
+            crate::geometric_context::source_file_names(&f.context_source)?.len(),
+            6
+        );
+        let artifact = f.root.join("compiled-context-q4-value");
+        compiled.save(&artifact)?;
+        let restored = CompiledValueProducer::load(&artifact, f.paths(), REGISTRY)?;
+        restored.validate_for(&value, &context)?;
+        let native =
+            CompiledContext::compile(&context, &f.context_source, f.dependencies(), REGISTRY)?;
+        restored.validate_native_context(&native)?;
+        let variable = &context.parameters()["token_transition"];
+        let mut coefficients = variable.flatten_all()?.to_vec1::<f32>()?;
+        coefficients[0] = f32::from_bits(coefficients[0].to_bits() ^ 1);
+        variable.set(&Tensor::from_vec(
+            coefficients,
+            variable.shape(),
+            &Device::Cpu,
+        )?)?;
+        assert!(restored.validate_for(&value, &context).is_err());
+        fs::remove_dir_all(f.root)?;
+        Ok(())
     }
 
     #[test]

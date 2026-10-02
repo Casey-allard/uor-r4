@@ -1,5 +1,29 @@
 # Current UOR-R4 research state
 
+## Strict q4 geometric context — fixed construction and three-route credit complete, October 2
+
+Both saved potential parents complete native-conditioned q4 context conversion.
+Source/native choices and answers agree512/512; converted446/512 versus478/512
+parent retains13 gains and45 losses, with worse CE on all four development
+panels. All nine context families receive finite answer credit through frozen
+values, NoRead and compatibility; isolated cuts preserve hard logits and all-cut
+disconnects context. Long-draw transition-gradient norms are much larger, so
+connection is not fit/stability qualification. Zero optimizer updates, exact RNG
+preserved; all state/address/packet/score changes retained.
+
+Fifteen focused cases, release builds and both workers pass. Retained endpoint
+compile and legacy-only admission failures were repaired; completed workers
+33.897/25.181s at758136832/735838208B RSS. [Result and next boundary](geometric-context-q4-2026-10-02.md) ·
+[Evidence](../evidence/geometric-context-q4-2026-10-02.json).
+
+Retain both lineages; end conversion without an automatic context recovery dose.
+Next assemble a persistent integer attention session from existing primitives,
+preserving old-held timing, exact occurrences, absence/zero denominator support
+and separate head reductions. This removes whole-prefix reconstruction/Candle
+from the declared reader, not the float trunk/output. Event/age coefficient width,
+selected access and natural-language/session qualification remain unfinished.
+Coordinate shared CPU/Metal edits; stack_grounded_session.rs remains untouched.
+
 ## Strict q4 geometric attention potentials — fixed conversion complete, October 2
 
 Both saved q4-value parents now compile the existing seven-family paired-H4

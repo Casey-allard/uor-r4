@@ -129,10 +129,20 @@ embeddings alone are not assumed to contain reasoning.
    The [strict q4 potential construction](geometric-potential-q4-2026-10-02.md)
    now completes both saved-parent conversions with connected answer gradients
    and independent native reload. Retain both converted models and every changed
-   row; end construction without an automatic potential fit. Next lower the
-   retained context transition/observation coefficients, then event and age
-   factors, keeping internal state and observation distinct and measuring state,
-   address, payload and answer retention before learning admission.
+   row; end construction without an automatic potential fit. The
+   [strict q4 context construction](geometric-context-q4-2026-10-02.md) now retains
+   both conversions and complete three-route answer credit, alongside every
+   regression and the long-draw gradient-stability concern. End construction
+   without automatic recovery training. Next assemble one persistent integer
+   attention session using existing event/context/span/value/NoRead/potential/
+   reducer/bank primitives: compute each occurrence once and only the newest
+   query row. Preserve old-held timing, all absent/zero candidates, exact
+   occurrence identity and head-specific denominators; reject capacity overflow
+   explicitly before mutation. Compare the actual native whole-window reference
+   and unchanged Stack residual seam before any runtime/answer claim. Event and
+   age coefficient policies remain separate subsequent boundaries, along with
+   selected access and float trunk/output. Any context fit needs a causal case
+   and stability assessment; imperfect conversion does not retire geometry.
    Current-state owns exact results and next source selection. Packet-perfect
    donor imitation or perfect answer recovery is not an
    admission gate. No coefficient-scale/bank/selector/alphabet sweep.

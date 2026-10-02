@@ -16,6 +16,7 @@ pub mod generation;
 pub mod geometric_composed_read;
 pub mod geometric_composition;
 pub mod geometric_context;
+pub mod geometric_context_q4;
 pub mod geometric_event;
 pub mod geometric_no_read;
 pub mod geometric_potential;
