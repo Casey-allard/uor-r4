@@ -41,3 +41,26 @@ echo "[$(date -u +%H:%M:%SZ)] LM done rc=$?"
   max_seconds="${DIALOGUE_MAX_SECONDS:-10800}" > "$O/dialogue.log" 2>&1
 echo "[$(date -u +%H:%M:%SZ)] response phase done rc=$?"
 echo "FULLDOSE COMPLETE"
+
+# Measure, without waiting for a human. The objective is not "the fit ran" but
+# "the fit was measured and reported", and the measurement chain already exists
+# as post-epoch-eval.sh -- so it runs here rather than depending on someone
+# noticing the fit finished.
+#
+# This is deliberately non-fatal: if the fit died, post-epoch-eval refuses (it
+# requires a sealed report) and its refusal is the useful output. A failure here
+# must not lose the fact that the fit itself completed.
+echo "[$(date -u +%H:%M:%SZ)] measuring"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -x "$SELF/post-epoch-eval.sh" ]; then
+  "$SELF/post-epoch-eval.sh" "$O" fulldose >> "$O.eval.log" 2>&1 \
+    && echo "[$(date -u +%H:%M:%SZ)] measurement done -> $O.eval.log" \
+    || echo "[$(date -u +%H:%M:%SZ)] measurement FAILED (see $O.eval.log)"
+else
+  echo "[$(date -u +%H:%M:%SZ)] post-epoch-eval.sh not found beside the launcher"
+fi
+
+# Release the slot so the next lab is not blocked by a finished run.
+rm -f "$HOME/.local/share/uor-r4/locks/model-slot.json" 2>/dev/null \
+  && echo "[$(date -u +%H:%M:%SZ)] slot released"
+echo "FULLDOSE CHAIN COMPLETE"
