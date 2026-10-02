@@ -101,10 +101,14 @@ embeddings alone are not assumed to contain reasoning.
    remains a separately learned scalar in the same absolute score units.
    The [connected NoRead source and construction](geometric-no-read-2026-10-02.md)
    now pass focused caller/gradient/reload/raw-Q24 checks and actual-parent
-   zero-update comparisons. Next is one fixed-dose answer-loss scalar fit with
-   frozen producers/output. Preserve all controls and changed rows; do not use
-   query-token/validity-collinear answer gains as proof of geometric history use.
-   Measure attribution separately without resetting addresses or values.
+   zero-update comparisons. The [fixed answer-only scalar fit](geometric-no-read-fit-2026-10-02.md)
+   now completes both640-update seeds with frozen producers/output. Compiled
+   answers retain all512 legacy-parent predictions; versus zero, seed1 restores
+   one row and loses two. CE is mixed. Preserve fitted, zero and ablated scalar
+   candidates; end this comparison. Query-token/validity collinearity prevents
+   attributing general geometric history use. Next inspect actual geometric
+   output/composition callers and remaining coefficient-width dependencies;
+   no additional scalar sweep is prescribed.
 4. Learn compatible geometric output/combination operators and integrate natural
    token spans, role, scope and temporal intent with the durable store/session.
    Preserve exact payload references for copying and identity-sensitive reads.

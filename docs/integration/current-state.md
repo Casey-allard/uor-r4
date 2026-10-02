@@ -1,5 +1,30 @@
 # Current UOR-R4 research state
 
+## Learned geometric NoRead — both fixed fits complete, October 2
+
+Both actual query-credit parents complete640 answer-only updates of the754
+packed-q4 scalar shadows with producers/output frozen. Fitted source/native
+answers98/104 and128/128 reproduce all512 legacy-parent predictions; zero and
+scalar-geometry-ablated alternatives99/104 and128/128 remain retained. Against
+zero, seed1 restores113 and loses72/102. CE is mixed, and query-token/validity
+collinearity prevents a geometric advantage or semantic-absence claim.
+
+Source/native scalar error reaches11 Q24 units; loaded answers agree. Ordinary
+answer gradients, q4 changes, fixedRNG/draws, frozen producer identities and
+save/compile/reload are exercised. Two focused driver cases and both actual
+check-mode attempts pass; all640 backward batches perseed complete. All models,
+checkpoints, changed rows and controls are retained.
+[Completed result](geometric-no-read-fit-2026-10-02.md) ·
+[Receipt](../evidence/geometric-no-read-fit-2026-10-02.json).
+
+End this fixed-dose scalar comparison. Next is geometric output/composition
+design and a connected replacement selected from actual callers and retained
+mechanisms, with the outstanding value/potential coefficient-width obligations
+explicit. No additional NoRead dose/scale/selector sweep is prescribed. Float
+trunk/output, bounded access, natural inputs, semantic absence and whole-path
+language/energy qualification remain open. Claude's D19/session work and offline
+donor-weight/operator compilation remain separate and retained.
+
 ## Connected geometric NoRead — source and actual-parent construction, October 2
 
 Packed four-bit geometry-sensitive NoRead now enters the actual reader before
