@@ -24,6 +24,7 @@ pub mod dialogue_rounding_artifact;
 pub mod flock;
 pub mod flock_transport;
 pub mod geometric_address;
+pub mod geometric_context;
 pub mod geometric_event;
 pub mod geometric_potential_native;
 pub mod geometric_read;

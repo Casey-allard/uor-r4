@@ -1,5 +1,45 @@
 # Current UOR-R4 research state
 
+
+## Native geometric context — completed development study, October 2
+
+The learned latent signed-H4 context producer completed both fixed 640-update
+seeds, with batch 8, full causal contexts up to 128, width 32 and two heads.
+It separates retained group state from the noninjective address readout;
+absence in an emitted address does not erase retained state. Exact measured
+identities and panel totals are in the [executed receipt](../evidence/geometric-context-native-2026-10-02.json).
+
+| Saved seed | Original baseline / native / reset | Stress baseline / native / reset |
+|---|---|---|
+| 1 | 99 / 100 / 99 of 128 | 109 / 110 / 109 of 128 |
+| 2 | 128 / 128 / 128 of 128 | 128 / 127 / 127 of 128 |
+
+Hard-reference and independently loaded compiled execution have zero state,
+action, root, category, emitted-code and answer-prediction disagreements on
+all four panels. Donor-code imitation remains approximate. Seed 2's native
+stress error is pair 405, reversed order; reset corrects that row but instead
+misses pair 406. Equal aggregate scores therefore do not establish equal
+behavior or remove context sensitivity. Preserve these negative rows.
+
+The numerical context/scoring path uses bounded Q24 tables and integer
+operations. Donor floating computation still supplies values, NoRead and
+subsequent output layers. This is a retained implementation and measured
+finite-task result, not complete geometric serving or a predictive-advantage
+claim. The already-started debug study was preserved; it finished in
+7,001.02 seconds with no watchdog stop, within its declared 7,200-second
+model limit. Future training uses release builds under the shared #820
+capacity budget. No new context fit is justified by this aggregate result.
+
+The next integrated task is the existing native weighted reader and a
+fixed-weight geometric value representation comparison, followed by learned
+value/NoRead production. The value producer must receive actual retained
+geometric state and propagate ordinary answer credit into earlier state
+updates. Detached diagnostic state and emitted addresses alone do not meet
+that learning requirement. K1 representation loss, inadequate input state,
+learning failure and compiled drift require distinct decisions; none alone
+retires the geometric architecture. Codex owns this geometric track on #1512;
+Claude's dialogue/session work remains coordinated on #1552.
+
 ## Immediate owner correction — geometric attention, October 1
 
 The owner redirected current work to actual geometric attention while the SSD is reformatted. Use the internal drive and remove this lab's disposable worktree/build cache after protected delivery, preserving unique research and models. Grounded conversation/memory remains the alpha priority; it does not displace this immediate attention research. Offline weight-informed geometric recompilation remains a supported research route alongside native learning; donor knowledge must execute through the resulting geometric runtime, with measured retention.

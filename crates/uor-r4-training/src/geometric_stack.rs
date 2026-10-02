@@ -109,6 +109,7 @@ use uor_r4_lut::GROUP;
 
 use crate::flock::{self, FlockSelect};
 use crate::geometric_address::{self, AddressWeights, GeometricAddressConfig};
+use crate::geometric_context::{self, CompiledContext, ContextWeights};
 use crate::geometric_event::{self, CompiledEvents, EventWeights};
 use crate::geometric_potential_native::{self, CompiledGeometricPotentials};
 use crate::geometric_span::{self, GeometricSpanConfig, SpanPolicy};
@@ -180,12 +181,19 @@ enum SpanEvents<'a> {
 }
 
 #[derive(Clone, Copy)]
+enum ContextInput<'a> {
+    Training(&'a Tensor),
+    Native(&'a [uor_r4_integer::geometric_potential::AddressLane]),
+}
+
+#[derive(Clone, Copy)]
 struct ReadSource<'a> {
     tokens: Option<&'a Tensor>,
     span_policy: SpanPolicy,
     native_span: Option<(&'a CompiledSpanActions, &'a [u32])>,
     native_potential: Option<&'a CompiledGeometricPotentials>,
     event_control: Option<SpanEvents<'a>>,
+    context: Option<ContextInput<'a>>,
 }
 
 impl Default for ReadSource<'_> {
@@ -196,6 +204,7 @@ impl Default for ReadSource<'_> {
             native_span: None,
             native_potential: None,
             event_control: None,
+            context: None,
         }
     }
 }
@@ -2030,6 +2039,7 @@ impl StackModel {
                 native_span: None,
                 native_potential: None,
                 event_control: None,
+                context: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2180,6 +2190,7 @@ impl StackModel {
                 native_span: Some((compiled, ids)),
                 native_potential: potential,
                 event_control: None,
+                context: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2276,6 +2287,272 @@ impl StackModel {
         .ok_or_else(|| invalid("native event source observer absent"))
     }
 
+    fn validate_context_config(
+        &self,
+        config: &geometric_context::GeometricContextConfig,
+    ) -> Result<()> {
+        if config.vocab_size != self.config.vocab_size
+            || config.width != self.config.width
+            || config.heads != self.config.heads
+        {
+            return Err(invalid(
+                "context vocabulary/width/head partition differs from stack",
+            ));
+        }
+        let address = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("context requires geometric address configuration"))?;
+        if config.lanes_per_head != address.lanes_per_head || config.heads != address.heads {
+            return Err(invalid(
+                "context lane partition differs from address configuration",
+            ));
+        }
+        self.validate_geometric_address(address)
+    }
+
+    fn validate_context_dependencies(
+        &self,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+    ) -> Result<()> {
+        self.validate_context_config(context.config())?;
+        // Canonical metadata belongs to these immutable admitted objects and
+        // binds their payload hashes. This is boundary admission, not hot-loop
+        // numerical work or authentication of the artifact producer.
+        for (key, bytes) in [
+            (
+                "event_native/metadata.json",
+                serde_json::to_vec_pretty(events.metadata())?,
+            ),
+            (
+                "span_native/metadata.json",
+                serde_json::to_vec_pretty(span.metadata())?,
+            ),
+            (
+                "potential_native/metadata.json",
+                serde_json::to_vec_pretty(potential.metadata())?,
+            ),
+        ] {
+            let expected = context
+                .metadata()
+                .source
+                .frozen
+                .files
+                .get(key)
+                .ok_or_else(|| invalid("context frozen metadata binding absent"))?;
+            if bytes.len() != expected.bytes || crate::sha256_bytes(&bytes) != expected.sha256 {
+                return Err(invalid(
+                    "context frozen event/span/potential object differs",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Offline donor observation before contextual addressing. No old span
+    /// controller, source label or answer label supplies the contextual target.
+    pub fn geometric_context_teacher(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<Tensor> {
+        let address = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("context teacher requires geometric addressing"))?;
+        self.validate_geometric_address(address)?;
+        let p = self.params()?;
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_bound(&p, tokens, 0..2, &mut None, &mut None, LatchGates::Soft)?;
+        self.norm(&p, &x, &layer_name(2, "read_norm.weight"))
+    }
+
+    /// New geometric context gets ordinary answer credit through the frozen
+    /// floating reference scorer. Frozen native events supply capture; this
+    /// accepts no teacher addresses or events as forward inputs.
+    pub fn forward_geometric_context(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &ContextWeights,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.validate_context_config(context.config())?;
+        let output = context.forward(ids, batch, time, reset_each_token)?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        let (hidden, _) = self.hidden_geometric_context(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&event.actions),
+            None,
+            Some(span),
+            None,
+            Some(ContextInput::Training(&output.context)),
+        )?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    pub fn read_binding_masses_geometric_context(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        context: &ContextWeights,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.validate_context_config(context.config())?;
+        let output = context.forward(ids, batch, time, reset_each_token)?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        self.hidden_geometric_context(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&event.actions),
+            Some(target),
+            Some(span),
+            None,
+            Some(ContextInput::Training(&output.context)),
+        )?
+        .1
+        .ok_or_else(|| invalid("geometric context source observer absent"))
+    }
+
+    /// Integer context, event, span and geometric score components. No donor
+    /// tensor supplies addressing; the surrounding values/output stay float.
+    pub fn forward_geometric_context_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.validate_context_dependencies(context, events, span, potential)?;
+        let ctx = geometric_context::trace_native(ids, batch, time, context, reset_each_token)?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        let (hidden, _) = self.hidden_geometric_context(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&event.actions),
+            None,
+            Some(span),
+            Some(potential),
+            Some(ContextInput::Native(&ctx.codes)),
+        )?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    pub fn read_binding_masses_geometric_context_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.validate_context_dependencies(context, events, span, potential)?;
+        let ctx = geometric_context::trace_native(ids, batch, time, context, reset_each_token)?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        self.hidden_geometric_context(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&event.actions),
+            Some(target),
+            Some(span),
+            Some(potential),
+            Some(ContextInput::Native(&ctx.codes)),
+        )?
+        .1
+        .ok_or_else(|| invalid("native context source observer absent"))
+    }
+
+    /// Hard learned float producer through the same integer scorer, solely to
+    /// separate donor approximation from context table compilation drift.
+    pub fn forward_geometric_context_replay(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &ContextWeights,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.validate_context_config(context.config())?;
+        let codes = context
+            .float_trace(ids, batch, time, reset_each_token)?
+            .address_codes()?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        let (hidden, _) = self.hidden_geometric_context(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&event.actions),
+            None,
+            Some(span),
+            Some(potential),
+            Some(ContextInput::Native(&codes)),
+        )?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Hard learned float producer through the same integer scorer, solely to
+    /// separate donor approximation from context table compilation drift.
+    pub fn read_binding_masses_geometric_context_replay(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        context: &ContextWeights,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.validate_context_config(context.config())?;
+        let codes = context
+            .float_trace(ids, batch, time, reset_each_token)?
+            .address_codes()?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        self.hidden_geometric_context(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&event.actions),
+            Some(target),
+            Some(span),
+            Some(potential),
+            Some(ContextInput::Native(&codes)),
+        )?
+        .1
+        .ok_or_else(|| invalid("context replay source observer absent"))
+    }
+
     fn hidden_geometric_event(
         &self,
         ids: &[u32],
@@ -2285,6 +2562,20 @@ impl StackModel {
         target: Option<&ReadBindingTarget>,
         compiled: Option<&CompiledSpanActions>,
         potential: Option<&CompiledGeometricPotentials>,
+    ) -> Result<(Tensor, Option<Tensor>)> {
+        self.hidden_geometric_context(ids, batch, time, control, target, compiled, potential, None)
+    }
+
+    fn hidden_geometric_context(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        control: SpanEvents<'_>,
+        target: Option<&ReadBindingTarget>,
+        compiled: Option<&CompiledSpanActions>,
+        potential: Option<&CompiledGeometricPotentials>,
+        context: Option<ContextInput<'_>>,
     ) -> Result<(Tensor, Option<Tensor>)> {
         let span = self
             .geometric_span
@@ -2320,6 +2611,7 @@ impl StackModel {
                 native_span: compiled.map(|compiled| (compiled, ids)),
                 native_potential: potential,
                 event_control: Some(control),
+                context,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2381,62 +2673,69 @@ impl StackModel {
         let heads = self.config.heads;
         tap(capture, StackSite::Read(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "read_norm.weight"))?;
-        let prior = match &self.geometric_span {
-            Some(span) => {
-                if !matches!(gates, LatchGates::Soft) {
-                    return Err(invalid(
-                        "geometric spans do not use binary latch gate overrides",
-                    ));
-                }
-                let tokens = source.tokens.ok_or_else(|| {
-                    invalid("geometric spans require original selected token rows")
-                })?;
-                match source.event_control {
-                    Some(SpanEvents::Native(events)) => {
-                        let (compiled, ids) = source.native_span.ok_or_else(|| {
-                            invalid("native events require the compiled span dictionary")
-                        })?;
-                        if source.span_policy != SpanPolicy::Ordered {
-                            return Err(invalid("native events require ordered spans"));
-                        }
-                        geometric_span_native::produce_native_events(
-                            ids, batch, time, events, compiled,
-                        )?
+        let prior = if matches!(source.context, Some(ContextInput::Native(_))) {
+            None
+        } else {
+            Some(match &self.geometric_span {
+                Some(span) => {
+                    if !matches!(gates, LatchGates::Soft) {
+                        return Err(invalid(
+                            "geometric spans do not use binary latch gate overrides",
+                        ));
                     }
-                    control => {
-                        let predicted;
-                        let logits = match control {
-                            Some(SpanEvents::Training(logits)) => logits,
-                            None => {
-                                predicted = self.span_control_logits(p, layer, &u)?;
-                                &predicted
+                    let tokens = source.tokens.ok_or_else(|| {
+                        invalid("geometric spans require original selected token rows")
+                    })?;
+                    match source.event_control {
+                        Some(SpanEvents::Native(events)) => {
+                            let (compiled, ids) = source.native_span.ok_or_else(|| {
+                                invalid("native events require the compiled span dictionary")
+                            })?;
+                            if source.span_policy != SpanPolicy::Ordered {
+                                return Err(invalid("native events require ordered spans"));
                             }
-                            Some(SpanEvents::Native(_)) => {
-                                return Err(invalid("invalid native event branch"))
-                            }
-                        };
-                        match source.native_span {
-                            Some((compiled, ids)) => {
-                                if source.span_policy != SpanPolicy::Ordered {
-                                    return Err(invalid(
-                                        "native span replay does not accept LastToken",
-                                    ));
+                            geometric_span_native::produce_native_events(
+                                ids, batch, time, events, compiled,
+                            )?
+                        }
+                        control => {
+                            let predicted;
+                            let logits = match control {
+                                Some(SpanEvents::Training(logits)) => logits,
+                                None => {
+                                    predicted = self.span_control_logits(p, layer, &u)?;
+                                    &predicted
                                 }
-                                geometric_span_native::produce_native(
-                                    ids, batch, time, logits, compiled,
-                                )?
-                            }
-                            None => {
-                                geometric_span::produce(tokens, logits, span, source.span_policy)?
+                                Some(SpanEvents::Native(_)) => {
+                                    return Err(invalid("invalid native event branch"))
+                                }
+                            };
+                            match source.native_span {
+                                Some((compiled, ids)) => {
+                                    if source.span_policy != SpanPolicy::Ordered {
+                                        return Err(invalid(
+                                            "native span replay does not accept LastToken",
+                                        ));
+                                    }
+                                    geometric_span_native::produce_native(
+                                        ids, batch, time, logits, compiled,
+                                    )?
+                                }
+                                None => geometric_span::produce(
+                                    tokens,
+                                    logits,
+                                    span,
+                                    source.span_policy,
+                                )?,
                             }
                         }
                     }
                 }
-            }
-            None => {
-                self.read_latch_inputs(p, layer, &u, ReadIdentityLatch::Held, gates)?
-                    .0
-            }
+                None => {
+                    self.read_latch_inputs(p, layer, &u, ReadIdentityLatch::Held, gates)?
+                        .0
+                }
+            })
         };
         let weights = self.address_weights(p, layer)?;
         let mut scores = match source.native_potential {
@@ -2446,9 +2745,77 @@ impl StackModel {
                         "native geometric potentials require the compiled span producer",
                     ));
                 }
-                geometric_potential_native::score_native(&u, &prior, config, &weights, compiled)?
+                match source.context {
+                    Some(ContextInput::Native(current)) => {
+                        let (span, ids) = source
+                            .native_span
+                            .ok_or_else(|| invalid("typed context requires native spans"))?;
+                        let events = match source.event_control {
+                            Some(SpanEvents::Native(events)) => events,
+                            _ => return Err(invalid("typed context requires native events")),
+                        };
+                        let trace = geometric_span_native::trace_native_events(
+                            ids, batch, time, events, span,
+                        )?;
+                        if trace.lanes != config.heads * config.lanes_per_head {
+                            return Err(invalid("typed span lane layout differs"));
+                        }
+                        let mut content = Vec::with_capacity(current.len());
+                        for row in trace.prior_codes {
+                            for lane in 0..config.heads * config.lanes_per_head {
+                                let code = match &row {
+                                    Some(roots) => {
+                                        uor_r4_integer::geometric_potential::AddressLane::new(
+                                            roots[lane],
+                                            16,
+                                            true,
+                                        )
+                                    }
+                                    None => uor_r4_integer::geometric_potential::AddressLane::new(
+                                        1, 0, false,
+                                    ),
+                                }
+                                .map_err(|e| invalid(e.to_string()))?;
+                                content.push(code);
+                            }
+                        }
+                        geometric_potential_native::score_native_codes(
+                            current, &content, batch, time, config, &weights, compiled,
+                        )?
+                    }
+                    Some(ContextInput::Training(_)) => {
+                        return Err(invalid(
+                            "training context cannot use the nondifferentiable compiled scorer",
+                        ))
+                    }
+                    None => geometric_potential_native::score_native(
+                        &u,
+                        prior
+                            .as_ref()
+                            .ok_or_else(|| invalid("float prior absent"))?,
+                        config,
+                        &weights,
+                        compiled,
+                    )?,
+                }
             }
-            None => geometric_address::score(&u, &prior, config, &weights)?,
+            None => {
+                let current = match source.context {
+                    Some(ContextInput::Training(context)) => context,
+                    Some(ContextInput::Native(_)) => {
+                        return Err(invalid("typed context requires compiled potentials"))
+                    }
+                    None => &u,
+                };
+                geometric_address::score(
+                    current,
+                    prior
+                        .as_ref()
+                        .ok_or_else(|| invalid("float prior absent"))?,
+                    config,
+                    &weights,
+                )?
+            }
         };
         if scores.dims4()? != (batch, heads, time, time) {
             return Err(invalid(
@@ -2937,6 +3304,7 @@ impl StackModel {
                 native_span: None,
                 native_potential: None,
                 event_control: None,
+                context: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -3292,6 +3660,7 @@ impl StackModel {
                 native_span: None,
                 native_potential: None,
                 event_control: None,
+                context: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -4236,6 +4605,7 @@ impl StackModel {
                         native_span: None,
                         native_potential: None,
                         event_control: None,
+                        context: None,
                     },
                 )?,
             };
@@ -9618,6 +9988,149 @@ mod tests {
         };
         assert!(earlier(&ordered)? > 0.0);
         assert_eq!(earlier(&last)?, 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn native_geometric_context_reader_has_delayed_answer_credit_and_typed_reload() -> Result<()> {
+        let model = tiny_span_model()?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let events = EventWeights::new(model.config.vocab_size, 2, 47)?;
+        let lexical = events
+            .parameters()
+            .get("token_event")
+            .ok_or_else(|| invalid("event lexical parameter absent"))?;
+        let mut rows = vec![0f32; model.config.vocab_size * 4];
+        for id in 0..model.config.vocab_size {
+            rows[id * 4] = 4.;
+        }
+        for (id, action) in [(1, 1), (2, 2), (3, 2), (4, 3), (5, 0), (6, 0)] {
+            rows[id * 4..id * 4 + 4].fill(0.);
+            rows[id * 4 + action] = 4.;
+        }
+        lexical.set(&Tensor::from_vec(
+            rows,
+            (model.config.vocab_size, 4),
+            &cpu(),
+        )?)?;
+        assert_eq!(
+            events
+                .event_logits(&ids, 1, 10)?
+                .argmax(2)?
+                .to_vec2::<u32>()?[0],
+            vec![1, 2, 2, 3, 0, 1, 2, 2, 3, 0]
+        );
+        let root = std::env::temp_dir().join(format!(
+            "native-context-reader-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        let base = root.join("base");
+        model.save(&base)?;
+        let registry = b"native-context-reader-token-registry/1";
+        events.save_source(&root.join("event-source"), &base, registry)?;
+        let event = CompiledEvents::compile(&events, &root.join("event-source"), &base, registry)?;
+        let span_source = crate::geometric_span_native::SpanSourceBinding::from_files(
+            &base.join("model.safetensors"),
+            &base.join("config.json"),
+            registry,
+        )?;
+        let p = model.params()?;
+        let span = CompiledSpanActions::compile(
+            p.get("embedding.weight")?,
+            model
+                .geometric_span()
+                .ok_or_else(|| invalid("span absent"))?,
+            &span_source,
+        )?;
+        let potential_source =
+            crate::geometric_potential_native::PotentialSourceBinding::from_directory(
+                &base, registry,
+            )?;
+        let potential = CompiledGeometricPotentials::compile(
+            &model.geometric_address_potentials()?,
+            model
+                .geometric_address()
+                .ok_or_else(|| invalid("address absent"))?,
+            &potential_source,
+        )?;
+        event.save(&root.join("native-events"))?;
+        span.save(&root.join("native-span"))?;
+        potential.save(&root.join("native-potential"))?;
+        let context = ContextWeights::new(
+            model.config.vocab_size,
+            model.config.width,
+            model.config.heads,
+            81,
+        )?;
+        let trained =
+            model.forward_geometric_context(&ids, 1, 10, &context, &event, &span, false)?;
+        let language = logits_cross_entropy(&trained.narrow(0, 9, 1)?, &[7], None)?;
+        let gradients = language.backward()?;
+        let transition = context
+            .parameters()
+            .get("token_transition")
+            .ok_or_else(|| invalid("context transition absent"))?;
+        let gradient = gradients
+            .get(transition.as_tensor())
+            .ok_or_else(|| invalid("answer misses context transition"))?;
+        let early = gradient.get(2)?.abs()?.max_all()?.to_scalar::<f32>()?;
+        assert!(
+            early.is_finite() && early > 0.,
+            "answer-to-earlier-context transition {early}"
+        );
+        assert!(gradients
+            .get(&model.variables()["layers.02.read.span_control.weight"])
+            .is_none());
+        let base_path = root.join("base");
+        let event_source = root.join("event-source");
+        let event_native = root.join("native-events");
+        let span_native = root.join("native-span");
+        let potential_native = root.join("native-potential");
+        let paths = geometric_context::ContextSourcePaths {
+            base: &base_path,
+            event_source: &event_source,
+            event_native: &event_native,
+            span_native: &span_native,
+            potential_native: &potential_native,
+        };
+        context.save_source(&root.join("context-source"), paths, registry)?;
+        let reload = ContextWeights::load_source(&root.join("context-source"), paths, registry)?;
+        let native =
+            CompiledContext::compile(&reload, &root.join("context-source"), paths, registry)?;
+        native.save(&root.join("native-context"))?;
+        let loaded = CompiledContext::load(
+            &root.join("native-context"),
+            &root.join("context-source"),
+            paths,
+            registry,
+        )?;
+        let replay = model.forward_geometric_context_replay(
+            &ids, 1, 10, &reload, &event, &span, &potential, false,
+        )?;
+        let compiled = model.forward_geometric_context_native(
+            &ids, 1, 10, &loaded, &event, &span, &potential, false,
+        )?;
+        assert_eq!(bits(&replay)?, bits(&compiled)?);
+        let teacher = model.geometric_context_teacher(&ids, 1, 10)?;
+        let (old_teacher, _) = model.geometric_potential_inputs(&ids, 1, 10, &span)?;
+        assert_eq!(bits(&teacher)?, bits(&old_teacher)?);
+        let wrong_heads = ContextWeights::new(model.config.vocab_size, model.config.width, 1, 82)?;
+        assert!(model
+            .forward_geometric_context(&ids, 1, 10, &wrong_heads, &event, &span, false)
+            .is_err());
+        let other = EventWeights::new(model.config.vocab_size, 2, 83)?;
+        other.save_source(&root.join("other-events"), &base, registry)?;
+        let other = CompiledEvents::compile(&other, &root.join("other-events"), &base, registry)?;
+        assert!(model
+            .forward_geometric_context_native(
+                &ids, 1, 10, &loaded, &other, &span, &potential, false
+            )
+            .is_err());
+        std::fs::remove_dir_all(root)?;
         Ok(())
     }
 

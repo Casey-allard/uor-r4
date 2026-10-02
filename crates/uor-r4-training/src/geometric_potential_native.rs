@@ -35,7 +35,7 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
-use candle_core::{DType, Tensor};
+use candle_core::{DType, Device, Tensor};
 use safetensors::{Dtype as SafeDtype, SafeTensors};
 use serde::{Deserialize, Serialize};
 use uor_r4_core::native_geometric::learner::{
@@ -694,7 +694,35 @@ pub fn score_native(
     compiled.validate_for(weights, config)?;
     let trace = classify_inputs(current, prior, config)?;
     let (r, c) = (native_codes(&trace.current)?, native_codes(&trace.prior)?);
-    let (b, t, h, l) = (trace.batch, trace.time, trace.heads, trace.lanes);
+    score_native_codes(&r, &c, trace.batch, trace.time, config, weights, compiled)
+}
+
+/// Offline tensor bridge around direct typed integer scoring. Neither content
+/// nor context addresses are reconstructed or classified from floating point.
+/// The returned F32 scores feed the still-floating surrounding reader; this is
+/// not a complete native serving entry point.
+pub fn score_native_codes(
+    current: &[AddressLane],
+    prior: &[AddressLane],
+    batch: usize,
+    time: usize,
+    config: &GeometricAddressConfig,
+    weights: &AddressWeights,
+    compiled: &CompiledGeometricPotentials,
+) -> Result<Tensor> {
+    compiled.validate_for(weights, config)?;
+    let (b, t, h, l) = (batch, time, config.heads, config.lanes_per_head);
+    let count = b
+        .checked_mul(t)
+        .and_then(|n| n.checked_mul(h))
+        .and_then(|n| n.checked_mul(l))
+        .ok_or_else(|| invalid("typed geometric input size overflow"))?;
+    if b == 0 || t == 0 || current.len() != count || prior.len() != count {
+        return Err(invalid(
+            "typed geometric inputs differ from nonempty [B,T,H,L]",
+        ));
+    }
+    let (r, c) = (current, prior);
     let size = b
         .checked_mul(h)
         .and_then(|n| n.checked_mul(t))
@@ -724,7 +752,7 @@ pub fn score_native(
             }
         }
     }
-    Ok(Tensor::from_vec(output, (b, h, t, t), current.device())?)
+    Ok(Tensor::from_vec(output, (b, h, t, t), &Device::Cpu)?)
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
