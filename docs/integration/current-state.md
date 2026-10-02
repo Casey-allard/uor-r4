@@ -3,6 +3,50 @@
 
 
 
+
+## Bounded geometric residual values — next producer decision, October 2
+
+One fixed-first two-atom signed-H4 residual comparison completed on both
+saved models. It holds scores, age, NoRead, occurrence weights, coordinate width
+and decoder fixed, with no fitting or answer/source-label packet selection.
+The first atom is exactly K1; the zero residual preserves its representation.
+All 927,232 read-coordinate bounds pass and all 64 chunks restore the baseline.
+The [result receipt](../evidence/geometric-value-residual-2026-10-02.json) retains
+per-row comparisons against K1, the weighted reader and the precontext parent.
+
+| Seed / panel | Weighted baseline | K1 | Two atoms |
+|---|---|---|---|
+| 1 original | 100/128 | 85/128 | 97/128 |
+| 1 stress | 110/128 | 96/128 | 110/128 |
+| 2 original | 128/128 | 128/128 | 128/128 |
+| 2 stress | 127/128 | 127/128 | 127/128 |
+
+Seed 1 has 26 additional correct answers versus K1, comprising recovery of
+25 K1 baseline losses and one new gain. Three original baseline losses remain;
+stress has one baseline gain, one loss and one wrong-to-wrong change despite
+equal totals. Seed 2 preserves every weighted-baseline prediction but reverses
+K1's one gain/one loss on stress. Preserve those prior successful rows too.
+Maximum coordinate error falls from 73,955 to 34,486 Q16 units, but lane-L2
+improvement alone guarantees neither answer retention nor global K2 optimality.
+
+Retain the bounded two-atom representation for native producer learning; it
+is not a preserving drop-in map or a learned producer. End this representation
+comparison without an alphabet sweep. Next implement actual retained-state
+exposure and token/state/span-conditioned geometric values with ordinary answer
+credit, keeping NoRead/output as separate unfinished replacements. Offline
+donor targets remain useful; no donor vector or oracle search enters serving.
+
+Prospective source review found a specific tangent-credit limitation: with two
+identity group actions and a terminal sign-answer adjoint parallel to identity,
+projecting to the tangent kills both current finite-action and delayed state
+credit, although an antipodal action improves the answer. This is a reasoned
+counterexample, not an executed explanation of all prior failures. A new
+explicit finite-choice surrogate must preserve full adjoints through both the
+selected Hamilton path and action-choice credit. Keep the legacy policy and
+artifact identity, exact hard geometric forward, reset cuts and synchronous
+semantics. One focused delayed-credit test addresses this risk before a new
+value fit. No new context-only tuning programme follows.
+
 ## Geometric value representation — measured K1 limitation, October 2
 
 The fixed-weight comparison replaces each four-coordinate donor value lane

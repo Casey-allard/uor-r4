@@ -38,6 +38,9 @@ pub enum GeometricValueError {
     },
     InvalidExponent(i8),
     ArithmeticOverflow,
+    PairCoordinateOverflow {
+        coordinate: usize,
+    },
     AmbiguousCoordinate {
         root: usize,
         radius_bin: usize,
@@ -56,6 +59,7 @@ impl fmt::Display for GeometricValueError {
             Self::InvalidCoefficient { a, b } => write!(f, "geometric value coefficient ({a},{b}) exceeds the pinned H4 bounds"),
             Self::InvalidExponent(exponent) => write!(f, "geometric value exponent {exponent} is outside -16..=14"),
             Self::ArithmeticOverflow => write!(f, "geometric value table arithmetic overflow"),
+            Self::PairCoordinateOverflow { coordinate } => write!(f, "geometric value pair coordinate {coordinate} is outside signed Q16 i32"),
             Self::AmbiguousCoordinate { root, radius_bin, coordinate } => write!(f, "geometric value interval has ambiguous rounding at root {root}, radius {radius_bin}, coordinate {coordinate}"),
         }
     }
@@ -216,6 +220,35 @@ impl NativeGeometricValues {
             return [0; COORDINATES];
         }
         self.rows[(usize::from(packet.root.index()) << 5) + usize::from(packet.radius_bin)]
+    }
+
+    /// Decode one base atom plus one residual atom in the same fixed basis.
+    /// The sum of two already-rounded Q16 coordinates is exact in i64; there
+    /// is no second rounding, saturation or normalization. All coordinates
+    /// must fit i32 before a result is exposed. In particular, -2^31 is valid
+    /// while +2^31 is rejected. This numerical path allocates nothing.
+    ///
+    /// Both primitive packet identities remain authoritative. Cancellation
+    /// does not turn their states into PresentZero or Absent. The enclosing
+    /// occurrence owns aggregate validity separately from these coordinates;
+    /// this decoder never infers it from a zero sum. Absent atoms contribute
+    /// numerical zero, and a PresentZero residual preserves the K1 result.
+    #[inline(never)]
+    pub fn decode_pair(
+        &self,
+        base: ValuePacket,
+        residual: ValuePacket,
+    ) -> ValueResult<[i32; COORDINATES]> {
+        let base_coordinates = self.decode(base);
+        let residual_coordinates = self.decode(residual);
+        let mut result = [0; COORDINATES];
+        for coordinate in 0..COORDINATES {
+            let sum = i64::from(base_coordinates[coordinate])
+                + i64::from(residual_coordinates[coordinate]);
+            result[coordinate] = i32::try_from(sum)
+                .map_err(|_| GeometricValueError::PairCoordinateOverflow { coordinate })?;
+        }
+        Ok(result)
     }
 }
 
@@ -407,5 +440,78 @@ mod tests {
         assert_eq!(values.decode(packet)[coordinate], 0);
         assert_eq!(packet.state(), ValueState::PresentNonzero);
         assert_eq!(packet.root().index(), root as u8);
+    }
+
+    #[test]
+    fn geometric_value_pair_checks_positive_overflow_and_includes_negative_endpoint() {
+        let values = NativeGeometricValues::canonical().unwrap();
+        for coordinate in 0..COORDINATES {
+            let positive = ValuePacket::present_nonzero((2 * coordinate + 1) as u8, 30).unwrap();
+            let negative = ValuePacket::present_nonzero((2 * coordinate) as u8, 30).unwrap();
+            let before = values.decode(positive);
+            assert_eq!(
+                values.decode_pair(positive, positive),
+                Err(GeometricValueError::PairCoordinateOverflow { coordinate })
+            );
+            assert_eq!(values.decode(positive), before);
+            let mut expected = [0; COORDINATES];
+            expected[coordinate] = i32::MIN;
+            assert_eq!(values.decode_pair(negative, negative).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn geometric_value_pair_zero_residual_preserves_k1_and_explicit_states() {
+        let values = NativeGeometricValues::canonical().unwrap();
+        let zero = ValuePacket::present_zero();
+        let absent = ValuePacket::absent();
+        for base in [
+            absent,
+            zero,
+            ValuePacket::present_nonzero(1, 0).unwrap(),
+            ValuePacket::present_nonzero(0, 30).unwrap(),
+            ValuePacket::present_nonzero(24, 0).unwrap(),
+            ValuePacket::present_nonzero(119, 30).unwrap(),
+        ] {
+            assert_eq!(values.decode_pair(base, zero).unwrap(), values.decode(base));
+            assert_eq!(values.decode_pair(zero, base).unwrap(), values.decode(base));
+            assert_eq!(
+                values.decode_pair(base, absent).unwrap(),
+                values.decode(base)
+            );
+        }
+        assert_eq!(
+            values.decode_pair(absent, absent).unwrap(),
+            [0; COORDINATES]
+        );
+        assert_eq!(values.decode_pair(zero, zero).unwrap(), [0; COORDINATES]);
+        assert_eq!(absent.state(), ValueState::Absent);
+        assert_eq!(zero.state(), ValueState::PresentZero);
+    }
+
+    #[test]
+    fn geometric_value_pair_antipodal_cancellation_preserves_nonzero_atoms() {
+        let values = NativeGeometricValues::canonical().unwrap();
+        for root in [1usize, 3, 24, 53, 119] {
+            let opposite = H4_ROOT_COEFFICIENTS[root].map(|c| c.map(|x| -x));
+            let opposite_root = H4_ROOT_COEFFICIENTS
+                .iter()
+                .position(|candidate| *candidate == opposite)
+                .unwrap();
+            for radius_bin in [0, 16, 30] {
+                let base = ValuePacket::present_nonzero(root as u8, radius_bin).unwrap();
+                let residual =
+                    ValuePacket::present_nonzero(opposite_root as u8, radius_bin).unwrap();
+                assert_eq!(
+                    values.decode_pair(base, residual).unwrap(),
+                    [0; COORDINATES]
+                );
+                assert_eq!(base.state(), ValueState::PresentNonzero);
+                assert_eq!(residual.state(), ValueState::PresentNonzero);
+                assert_ne!(base.root(), residual.root());
+                assert_eq!(base.radius_bin(), radius_bin);
+                assert_eq!(residual.radius_bin(), radius_bin);
+            }
+        }
     }
 }

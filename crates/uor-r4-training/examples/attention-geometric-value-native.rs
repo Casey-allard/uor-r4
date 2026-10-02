@@ -1,5 +1,5 @@
 //! No-training representation comparison of actual Q16 donor values and
-//! reconstruction-only K1 signed-H4/dyadic packets. Source weights and NoRead
+//! reconstruction-only K1 or bounded K2 signed-H4/dyadic packets. Source weights and NoRead
 //! are unchanged. Oracle projection is not a learned native value producer.
 use candle_core::Device;
 use serde::{Deserialize, Serialize};
@@ -44,6 +44,7 @@ struct Episode {
     query_span: Vec<u32>,
 }
 struct Args {
+    residual: bool,
     model: PathBuf,
     context_source: PathBuf,
     context_native: PathBuf,
@@ -67,6 +68,11 @@ impl Args {
                 return Err(invalid("empty or repeated argument"));
             }
         }
+        let residual = match options.remove("representation").as_deref().unwrap_or("k1") {
+            "k1" => false,
+            "k2" => true,
+            _ => return Err(invalid("representation must be k1 or k2")),
+        };
         let max_seconds = options
             .remove("max_seconds")
             .unwrap_or_else(|| "900".into())
@@ -82,6 +88,7 @@ impl Args {
                 .ok_or_else(|| invalid(format!("missing {key}")))
         };
         let result = Self {
+            residual,
             model: path("model")?,
             context_source: path("context_source")?,
             context_native: path("context_native")?,
@@ -218,6 +225,7 @@ struct Row {
 }
 
 struct Loaded {
+    residual: bool,
     value_codec: uor_r4_training::geometric_value_native::CompiledGeometricValues,
     model: StackModel,
     context: CompiledContext,
@@ -261,19 +269,24 @@ fn score(loaded: &Loaded, episodes: &[Episode], out: &Path, deadline: Instant) -
             partial_chunk = Some(chunk);
             break;
         }
-        let (projected, trace, projection) = m
-            .forward_geometric_context_value_projection_native_with_trace(
-                &ids,
-                group.len(),
-                time,
-                &loaded.context,
-                &loaded.events,
-                &loaded.span,
-                &loaded.potential,
-                &loaded.reducer,
-                &loaded.value_codec,
-                false,
-            )?;
+        let value_forward = if loaded.residual {
+            StackModel::forward_geometric_context_value_residual_native_with_trace
+        } else {
+            StackModel::forward_geometric_context_value_projection_native_with_trace
+        };
+        let (projected, trace, projection) = value_forward(
+            m,
+            &ids,
+            group.len(),
+            time,
+            &loaded.context,
+            &loaded.events,
+            &loaded.span,
+            &loaded.potential,
+            &loaded.reducer,
+            &loaded.value_codec,
+            false,
+        )?;
         let projected = projected.to_vec2::<f32>()?;
         validate_logits(&projected, ids.len(), m.config.vocab_size)?;
         if trace.values_q16 != projection.projected_q16
@@ -425,7 +438,7 @@ fn run(args: &Args, start: Instant) -> Result<Value> {
     let exe = std::env::current_exe()?;
     write_json(
         &args.out.join("inputs.json"),
-        &json!({"artifacts":inputs,"evaluation_sha256":EVALUATION_SHA256,"stress_sha256":STRESS_SHA256,"executable":exe,"executable_sha256":sha256_file(&exe)?,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNAVAILABLE"),"maximum_seconds":args.max_seconds}),
+        &json!({"representation":if args.residual{"k2-first-fixed-greedy-residual"}else{"k1-nearest"},"artifacts":inputs,"evaluation_sha256":EVALUATION_SHA256,"stress_sha256":STRESS_SHA256,"executable":exe,"executable_sha256":sha256_file(&exe)?,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNAVAILABLE"),"maximum_seconds":args.max_seconds}),
     )?;
     if Instant::now() >= deadline {
         return Ok(
@@ -503,6 +516,7 @@ fn run(args: &Args, start: Instant) -> Result<Value> {
     )?;
     let metadata = value_codec.metadata().clone();
     let loaded = Loaded {
+        residual: args.residual,
         value_codec,
         model,
         context,
@@ -517,7 +531,7 @@ fn run(args: &Args, start: Instant) -> Result<Value> {
     let changes = original["changed_predictions"].as_u64().unwrap_or(0)
         + longer["changed_predictions"].as_u64().unwrap_or(0);
     Ok(
-        json!({"schema":"uor-r4.geometric-value-native-projection/1","complete":complete,"decision":if !complete{"PARTIAL_BUDGET_NO_QUALITY_VERDICT"}else if changes!=0{"K1_REPRESENTATION_CHANGED_RETAIN_ROWS"}else{"K1_ORACLE_REPRESENTATION_RETENTION_NOT_LEARNED_PRODUCER"},"value_codec":metadata,"original":original,"stress":longer,"elapsed_seconds":start.elapsed().as_secs_f64(),"training_steps":0,"maximum_seconds":args.max_seconds,"scope":"same nativecontext/event/span/potential/scalarNoRead/age/occurrenceweights; actualdonorQ16values versus reconstruction-only nearest K1 signedH4/dyadicradius packets; oracleprojection receives donorvalues, NOT learnednativeproducer; fullcausalvalues and original/stress authoreddevelopment panels; no source/answer labels in projection; downstreamread.out/trunk/head remainfloat; no natural-language, geometryadvantage or fullserving claim"}),
+        json!({"schema":"uor-r4.geometric-value-native-projection/1","complete":complete,"representation":if args.residual{"k2-first-fixed-greedy-residual"}else{"k1-nearest"},"decision":if !complete{"PARTIAL_BUDGET_NO_QUALITY_VERDICT"}else if changes!=0{"REPRESENTATION_CHANGED_RETAIN_ROWS"}else{"ORACLE_REPRESENTATION_RETENTION_NOT_LEARNED_PRODUCER"},"value_codec":metadata,"original":original,"stress":longer,"elapsed_seconds":start.elapsed().as_secs_f64(),"training_steps":0,"maximum_seconds":args.max_seconds,"scope":"same nativecontext/event/span/potential/scalarNoRead/age/occurrenceweights; actualdonorQ16values versus reconstruction-only signedH4/dyadicradius packets with declared K1 or fixed-first K2 residual; not globallyoptimal K2; oracleprojection receives donorvalues, NOT learnednativeproducer; fullcausalvalues and original/stress authoreddevelopment panels; no source/answer labels in projection; downstreamread.out/trunk/head remainfloat; no natural-language, geometryadvantage or fullserving claim"}),
     )
 }
 fn main() -> Result<()> {

@@ -111,17 +111,21 @@ embeddings alone are not assumed to contain reasoning.
    component retention, geometric advantage, language capability and final
    numerical/energy qualification remain separate decisions.
 
-The [completed K1 comparison](../evidence/geometric-value-native-2026-10-02.json)
-shows seed-1 frozen-decoder losses and seed-2 partial retention. The next
-representation decision is one bounded two-atom residual comparison, retaining
-a zero residual and all K1 candidates, with the same saved panels, scores,
-NoRead, coordinate width and decoder. Recovery supports a residual packet;
-improved reconstruction without answer recovery redirects effort to ordinary
-answer learning or a compatible decoder. Little improvement ends this residual
-comparison without starting a larger alphabet sweep. Native producer learning
-must separately expose retained state through the offline gradient path;
-detached trace IDs do not carry credit into earlier transitions. Value-root
-surrogates must preserve antipodal choice credit and declare zero/radius limits.
+The [completed K1](../evidence/geometric-value-native-2026-10-02.json) and
+[two-atom residual comparisons](../evidence/geometric-value-residual-2026-10-02.json)
+retain the bounded residual representation for native producer learning. The
+residual recovers most seed-1 losses and preserves seed-2 baseline predictions,
+but is not a preserving drop-in replacement; retain all changed and prior
+successful rows. End this representation comparison without an alphabet sweep.
+
+The next learning change jointly exposes actual retained state and repairs a
+specific finite-action credit risk. Detached trace IDs carry no earlier-state
+credit; unconditional tangent projection can also erase antipodal and delayed
+sign credit. Preserve exact hard group forward and legacy artifact meanings;
+bind a new explicitly biased full-adjoint finite-choice surrogate and check the
+specific delayed-credit path before fitting token/state/span-conditioned value
+packets. Value-root choice, zero escape and radius credit need their own declared
+bridge. NoRead remains separate, followed by compatible geometric output.
 
 For value compilation, keep the existing four coordinates per lane and sixteen
 per head until an explicit decoder-interface change. Packet status, exact

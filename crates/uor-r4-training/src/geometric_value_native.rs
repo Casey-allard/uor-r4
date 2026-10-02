@@ -1,4 +1,4 @@
-//! Source-bound K1 geometric value codec and OFFLINE donor projection.
+//! Source-bound K1 geometric value codec and OFFLINE K1 / residual K2 projection.
 //!
 //! This is a representation comparison, not a learned value producer. For
 //! each actual donor four-vector, it exhaustively minimizes squared distance
@@ -6,6 +6,10 @@
 //! root order, then increasing radius. Exact ties keep the first candidate.
 //! No answers, source labels, ranking weights, or NoRead scores enter that
 //! choice. NoRead and occurrence identities remain the caller's responsibility.
+//! Residual K2 fixes that exact K1 atom, then scans the same ordered alphabet
+//! against its residual, excluding pairs whose decoded sum does not fit i32.
+//! This is a bounded greedy extension, not a joint two-atom optimum. The zero
+//! second atom is always admissible, so per-lane squared error cannot increase.
 //!
 //! A projected lane always has donor_valid=true. A numerical vector cannot
 //! establish semantic ABSENT, and cancellation is not an absence flag.
@@ -26,9 +30,9 @@ use candle_core::{DType, Device, Tensor};
 use safetensors::{Dtype as SafeDtype, SafeTensors};
 use serde::{Deserialize, Serialize};
 use uor_r4_integer::geometric_value::{
-    NativeGeometricValues, ValuePacket, ValueState, COORDINATES, FRACTIONAL_BITS,
-    MAX_RADIUS_EXPONENT, MIN_RADIUS_EXPONENT, RADIUS_COUNT, RUNTIME_COORDINATE_BYTES, TABLE_BYTES,
-    TABLE_ENTRIES,
+    GeometricValueError, NativeGeometricValues, ValuePacket, ValueState, COORDINATES,
+    FRACTIONAL_BITS, MAX_RADIUS_EXPONENT, MIN_RADIUS_EXPONENT, RADIUS_COUNT,
+    RUNTIME_COORDINATE_BYTES, TABLE_BYTES, TABLE_ENTRIES,
 };
 use uor_r4_integer::h4_tables::{
     coefficients_sha256, mathematical_sha256, HistoricalH4Tables, ROOT_COUNT,
@@ -429,7 +433,14 @@ mod decimal_u128 {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ValueProjectionLane {
     pub donor_valid: bool,
+    /// The exact original nearest K1 atom, also retained unchanged in K2.
     pub packet: ValuePacketRecord,
+    /// None means K1. Some means residual K2, including a PRESENT_ZERO
+    /// fallback. Both atom states remain separate from aggregate validity;
+    /// cancellation does not relabel the atoms or imply semantic absence.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub residual_packet: Option<ValuePacketRecord>,
+    /// Final decoded coordinate sum minus the donor, in raw Q16 units.
     pub error_q16: [i64; 4],
     #[serde(with = "decimal_u128")]
     pub squared_error_q32: u128,
@@ -446,6 +457,8 @@ pub struct ValueProjectionTrace {
     /// [B,H,T,4] lanes, with no semantic source/answer labels.
     pub lanes: Vec<ValueProjectionLane>,
     pub unique_vectors: usize,
+    /// Exact squared distances evaluated for unique vectors, including both
+    /// scans in K2. Overflowing pairs are rejected before distance evaluation.
     pub candidate_distances: usize,
     pub max_abs_error_q16: u64,
     #[serde(with = "decimal_u128")]
@@ -486,6 +499,7 @@ fn project_lane(
         ValueProjectionLane {
             donor_valid: true,
             packet: ValuePacketRecord::from_packet(best.packet),
+            residual_packet: None,
             error_q16: std::array::from_fn(|i| {
                 i64::from(best.coordinates[i]) - i64::from(donor[i])
             }),
@@ -493,6 +507,55 @@ fn project_lane(
         },
         best.coordinates,
     )
+}
+
+fn residual_squared_error(residual: [i64; 4], candidate: [i32; 4]) -> u128 {
+    residual
+        .into_iter()
+        .zip(candidate)
+        .map(|(a, b)| {
+            // donor - first can exceed i32. Its difference from the second
+            // atom also stays widened until the exact square is accumulated.
+            let d = i128::from(a) - i128::from(b);
+            (d * d) as u128
+        })
+        .sum()
+}
+
+fn project_residual_lane(
+    donor: [i32; 4],
+    compiled: &CompiledGeometricValues,
+) -> Result<(ValueProjectionLane, [i32; 4], usize)> {
+    let (mut record, first_coordinates) = project_lane(donor, compiled);
+    let first = record.packet.packet()?;
+    let residual = std::array::from_fn(|i| i64::from(donor[i]) - i64::from(first_coordinates[i]));
+    let mut best = &compiled.candidates[0];
+    let mut best_sum = compiled
+        .native
+        .decode_pair(first, best.packet)
+        .map_err(|e| invalid(e.to_string()))?;
+    let mut error = residual_squared_error(residual, best.coordinates);
+    let mut distances = CANDIDATES + 1;
+    for candidate in compiled.candidates.iter().skip(1) {
+        // The actual integer decoder owns sum admissibility and the returned
+        // coordinates. No saturating addition, clipping or F32 roundtrip.
+        let sum = match compiled.native.decode_pair(first, candidate.packet) {
+            Ok(sum) => sum,
+            Err(GeometricValueError::PairCoordinateOverflow { .. }) => continue,
+            Err(error) => return Err(invalid(error.to_string())),
+        };
+        let proposed = residual_squared_error(residual, candidate.coordinates);
+        distances += 1;
+        if proposed < error {
+            best = candidate;
+            best_sum = sum;
+            error = proposed;
+        }
+    }
+    record.residual_packet = Some(ValuePacketRecord::from_packet(best.packet));
+    record.error_q16 = std::array::from_fn(|i| i64::from(best_sum[i]) - i64::from(donor[i]));
+    record.squared_error_q32 = error;
+    Ok((record, best_sum, distances))
 }
 
 /// Project actual Q16 donor values. Caching uses the exact four i32 values;
@@ -503,6 +566,31 @@ pub fn project_q16(
     heads: usize,
     time: usize,
     compiled: &CompiledGeometricValues,
+) -> Result<ValueProjectionOutput> {
+    project_q16_with_residual(values, batch, heads, time, compiled, false)
+}
+
+/// Project the exact K1 atom followed by one nearest residual atom. Candidate
+/// order and Q16 metric are unchanged; only pairs with an i32 coordinate sum
+/// are admissible. This is an offline oracle, not a learned value producer.
+/// Each trace lane has residual_packet=Some, even for a zero second atom.
+pub fn project_residual_q16(
+    values: &[i32],
+    batch: usize,
+    heads: usize,
+    time: usize,
+    compiled: &CompiledGeometricValues,
+) -> Result<ValueProjectionOutput> {
+    project_q16_with_residual(values, batch, heads, time, compiled, true)
+}
+
+fn project_q16_with_residual(
+    values: &[i32],
+    batch: usize,
+    heads: usize,
+    time: usize,
+    compiled: &CompiledGeometricValues,
+    residual: bool,
 ) -> Result<ValueProjectionOutput> {
     let count = batch
         .checked_mul(heads)
@@ -523,11 +611,24 @@ pub fn project_q16(
     let mut lanes = Vec::with_capacity(values.len() / COORDINATES);
     let mut total = 0u128;
     let mut maximum = 0u64;
+    let mut candidate_distances = 0usize;
     for input in values.chunks_exact(COORDINATES) {
         let donor = [input[0], input[1], input[2], input[3]];
-        let (record, coords) = cache
-            .entry(donor)
-            .or_insert_with(|| project_lane(donor, compiled));
+        let (record, coords) = match cache.entry(donor) {
+            std::collections::btree_map::Entry::Occupied(entry) => entry.into_mut(),
+            std::collections::btree_map::Entry::Vacant(entry) => {
+                let (record, coordinates, distances) = if residual {
+                    project_residual_lane(donor, compiled)?
+                } else {
+                    let (record, coordinates) = project_lane(donor, compiled);
+                    (record, coordinates, CANDIDATES)
+                };
+                candidate_distances = candidate_distances
+                    .checked_add(distances)
+                    .ok_or_else(|| invalid("value projection candidate counter overflow"))?;
+                entry.insert((record, coordinates))
+            }
+        };
         total = total
             .checked_add(record.squared_error_q32)
             .ok_or_else(|| invalid("value projection total squared error overflows u128"))?;
@@ -542,10 +643,6 @@ pub fn project_q16(
         lanes.push(record.clone());
         projected_q16.extend_from_slice(coords);
     }
-    let candidate_distances = cache
-        .len()
-        .checked_mul(CANDIDATES)
-        .ok_or_else(|| invalid("value projection candidate counter overflow"))?;
     let reconstructed: Vec<f32> = projected_q16
         .iter()
         .map(|&x| (f64::from(x) / 65_536.) as f32)
@@ -577,6 +674,23 @@ pub fn project_native(
     values: &Tensor,
     compiled: &CompiledGeometricValues,
 ) -> Result<ValueProjectionOutput> {
+    project_native_with_residual(values, compiled, false)
+}
+
+/// The same explicit F32-to-Q16 donor boundary as project_native, followed by
+/// the bounded residual K2 projection. Raw projected_q16 remains authoritative.
+pub fn project_residual_native(
+    values: &Tensor,
+    compiled: &CompiledGeometricValues,
+) -> Result<ValueProjectionOutput> {
+    project_native_with_residual(values, compiled, true)
+}
+
+fn project_native_with_residual(
+    values: &Tensor,
+    compiled: &CompiledGeometricValues,
+    residual: bool,
+) -> Result<ValueProjectionOutput> {
     let (batch, heads, time, width) = values.dims4()?;
     if width != VALUE_WIDTH || values.dtype() != DType::F32 || !values.device().is_cpu() {
         return Err(invalid("value projection needs CPU F32 donor[B,H,T,16]"));
@@ -587,7 +701,7 @@ pub fn project_native(
         .into_iter()
         .map(quantize_value_q16)
         .collect::<Result<Vec<_>>>()?;
-    project_q16(&q16, batch, heads, time, compiled)
+    project_q16_with_residual(&q16, batch, heads, time, compiled, residual)
 }
 
 #[cfg(test)]
@@ -869,6 +983,187 @@ mod tests {
             )?;
             assert!(project_native(&bad, &compiled).is_err());
         }
+        fs::remove_dir_all(fixture.directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_value_residual_zero_fallback_preserves_k1_and_trace_identity() -> Result<()> {
+        let fixture = fixture()?;
+        let compiled = CompiledGeometricValues::compile(&fixture.source)?;
+        let metadata_before = serde_json::to_vec(compiled.metadata())?;
+        let golden = compiled
+            .decode(ValuePacket::present_nonzero(24, 30).map_err(|e| invalid(e.to_string()))?);
+        for donor in [[0; 4], [65_536, 0, 0, 0], golden] {
+            let input = donor.repeat(HEADS * LANES_PER_HEAD);
+            let k1 = project_q16(&input, 1, HEADS, 1, &compiled)?;
+            let k2 = project_residual_q16(&input, 1, HEADS, 1, &compiled)?;
+            assert_eq!(k2.trace.projected_q16, input);
+            assert_eq!(k2.trace.sum_squared_error_q32, 0);
+            assert_eq!(k2.trace.unique_vectors, 1);
+            assert_eq!(k2.trace.candidate_distances, 2 * CANDIDATES);
+            for (base, residual) in k1.trace.lanes.iter().zip(&k2.trace.lanes) {
+                assert_eq!(base.packet, residual.packet);
+                assert!(base.residual_packet.is_none());
+                assert_eq!(
+                    residual.residual_packet,
+                    Some(ValuePacketRecord::from_packet(ValuePacket::present_zero()))
+                );
+                assert!(residual.donor_valid);
+            }
+            // Old K1 traces remain readable without a residual field; K2
+            // explicitly records even its zero second atom.
+            let k1_json = serde_json::to_value(&k1.trace)?;
+            assert!(k1_json["lanes"][0].get("residual_packet").is_none());
+            assert_eq!(
+                serde_json::from_value::<ValueProjectionTrace>(k1_json)?,
+                k1.trace
+            );
+            let k2_json = serde_json::to_value(&k2.trace)?;
+            assert!(k2_json["lanes"][0]["residual_packet"].is_object());
+            assert_eq!(
+                serde_json::from_value::<ValueProjectionTrace>(k2_json)?,
+                k2.trace
+            );
+        }
+        assert_eq!(serde_json::to_vec(compiled.metadata())?, metadata_before);
+        fs::remove_dir_all(fixture.directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_value_residual_rational_midpoints_keep_first_atom_and_earliest_ties() -> Result<()> {
+        let fixture = fixture()?;
+        let compiled = CompiledGeometricValues::compile(&fixture.source)?;
+        for sign in [-1, 1] {
+            // K1 ties at +/-1.5: retain +/-1, then add exactly +/-0.5.
+            let donor = [sign * 98_304, 0, 0, 0];
+            let (base, _) = project_lane(donor, &compiled);
+            let (residual, sum, distances) = project_residual_lane(donor, &compiled)?;
+            assert_eq!(residual.packet, base.packet);
+            assert_eq!(residual.packet.root, if sign < 0 { 0 } else { 1 });
+            assert_eq!(residual.packet.radius_bin, 16);
+            let atom = residual
+                .residual_packet
+                .as_ref()
+                .ok_or_else(|| invalid("missing residual atom"))?;
+            assert_eq!(atom.root, residual.packet.root);
+            assert_eq!(atom.radius_bin, 15);
+            assert_eq!(sum, donor);
+            assert_eq!(residual.squared_error_q32, 0);
+            assert_eq!(distances, 2 * CANDIDATES);
+
+            // +/-1.375 fixes K1 at +/-1; residual +/-0.375 lies exactly
+            // between radii 0.25 and 0.5. Keep the earlier radius 0.25.
+            let donor = [sign * 90_112, 0, 0, 0];
+            let (base, _) = project_lane(donor, &compiled);
+            let (residual, sum, _) = project_residual_lane(donor, &compiled)?;
+            assert_eq!(residual.packet, base.packet);
+            let atom = residual
+                .residual_packet
+                .as_ref()
+                .ok_or_else(|| invalid("missing residual atom"))?;
+            assert_eq!(atom.root, if sign < 0 { 0 } else { 1 });
+            assert_eq!(atom.radius_bin, 14);
+            assert_eq!(sum, [sign * 81_920, 0, 0, 0]);
+            assert_eq!(residual.squared_error_q32, 8_192u128.pow(2));
+        }
+        fs::remove_dir_all(fixture.directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_value_residual_rejects_overflow_and_retains_negative_endpoint() -> Result<()> {
+        let fixture = fixture()?;
+        let compiled = CompiledGeometricValues::compile(&fixture.source)?;
+        for coordinate in 0..COORDINATES {
+            let mut positive = [0; 4];
+            positive[coordinate] = i32::MAX;
+            let (base, base_coordinates) = project_lane(positive, &compiled);
+            assert_eq!(base_coordinates[coordinate], 1 << 30);
+            assert!(matches!(
+                compiled.native.decode_pair(base.packet.packet()?, base.packet.packet()?),
+                Err(GeometricValueError::PairCoordinateOverflow { coordinate: c }) if c == coordinate
+            ));
+            let (residual, sum, distances) = project_residual_lane(positive, &compiled)?;
+            assert_eq!(residual.packet, base.packet);
+            assert!(residual.squared_error_q32 <= base.squared_error_q32);
+            assert_eq!(residual.squared_error_q32, squared_error(positive, sum));
+            // Exactly the duplicated positive maximum axis atom overflows.
+            assert_eq!(distances, 2 * CANDIDATES - 1);
+
+            let mut negative = [0; 4];
+            negative[coordinate] = i32::MIN;
+            let (base, _) = project_lane(negative, &compiled);
+            let (residual, sum, distances) = project_residual_lane(negative, &compiled)?;
+            assert_eq!(residual.packet, base.packet);
+            assert_eq!(residual.residual_packet, Some(base.packet));
+            assert_eq!(sum, negative);
+            assert_eq!(residual.squared_error_q32, 0);
+            assert_eq!(distances, 2 * CANDIDATES);
+        }
+        fs::remove_dir_all(fixture.directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_value_residual_monotonic_full_layout_and_explicit_q16_boundary() -> Result<()> {
+        let fixture = fixture()?;
+        let compiled = CompiledGeometricValues::compile(&fixture.source)?;
+        let donors = [
+            [0; 4],
+            [98_304, 0, 0, 0],
+            [i32::MIN; 4],
+            [i32::MAX; 4],
+            [i32::MIN, i32::MAX, -98_304, 65_537],
+            [90_112, -32_771, 1_000_001, -123_456],
+            [1, -2, 3, -4],
+            [24_576, 49_152, -81_920, 131_071],
+        ];
+        let values: Vec<i32> = donors.into_iter().flatten().collect();
+        let k1 = project_q16(&values, 1, HEADS, 1, &compiled)?;
+        let k2 = project_residual_q16(&values, 1, HEADS, 1, &compiled)?;
+        assert_eq!(k2.projected.dims(), [1, HEADS, 1, VALUE_WIDTH]);
+        assert_eq!(k2.trace.donor_q16, values);
+        assert_eq!(k2.trace.lanes.len(), HEADS * LANES_PER_HEAD);
+        assert!(k2.trace.sum_squared_error_q32 <= k1.trace.sum_squared_error_q32);
+        for (index, (base, residual)) in k1.trace.lanes.iter().zip(&k2.trace.lanes).enumerate() {
+            assert_eq!(base.packet, residual.packet);
+            assert!(residual.donor_valid);
+            assert!(residual.squared_error_q32 <= base.squared_error_q32);
+            let second = residual
+                .residual_packet
+                .as_ref()
+                .ok_or_else(|| invalid("missing residual atom"))?;
+            assert_ne!(second.status, ValuePacketStatus::Absent);
+            let decoded = compiled
+                .native
+                .decode_pair(base.packet.packet()?, second.packet()?)
+                .map_err(|e| invalid(e.to_string()))?;
+            assert_eq!(
+                decoded,
+                k2.trace.projected_q16[index * COORDINATES..(index + 1) * COORDINATES]
+            );
+            assert_eq!(
+                residual.squared_error_q32,
+                squared_error(donors[index], decoded)
+            );
+        }
+        let small = vec![90_112; HEADS * VALUE_WIDTH];
+        let tensor = Tensor::from_vec(
+            small
+                .iter()
+                .map(|&x| x as f32 / 65_536.)
+                .collect::<Vec<_>>(),
+            (1, HEADS, 1, VALUE_WIDTH),
+            &Device::Cpu,
+        )?;
+        assert_eq!(
+            project_residual_native(&tensor, &compiled)?.trace,
+            project_residual_q16(&small, 1, HEADS, 1, &compiled)?.trace
+        );
+        assert!(project_residual_q16(&values[..values.len() - 1], 1, HEADS, 1, &compiled).is_err());
+        assert!(project_residual_q16(&values, 1, 1, 1, &compiled).is_err());
         fs::remove_dir_all(fixture.directory)?;
         Ok(())
     }

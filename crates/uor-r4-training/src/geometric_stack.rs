@@ -204,6 +204,7 @@ type NativeReadTraceSink<'a> =
 
 #[derive(Clone, Copy)]
 struct NativeValueProjection<'a> {
+    residual: bool,
     compiled: &'a crate::geometric_value_native::CompiledGeometricValues,
     trace: &'a std::cell::RefCell<Option<crate::geometric_value_native::ValueProjectionTrace>>,
 }
@@ -2571,6 +2572,72 @@ impl StackModel {
         crate::geometric_read_native::NativeReadTrace,
         crate::geometric_value_native::ValueProjectionTrace,
     )> {
+        self.forward_geometric_context_value_projection_mode_with_trace(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            values,
+            reset_each_token,
+            false,
+        )
+    }
+
+    /// Same frozen-weight oracle comparison, with one bounded residual atom.
+    pub fn forward_geometric_context_value_residual_native_with_trace(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        values: &crate::geometric_value_native::CompiledGeometricValues,
+        reset_each_token: bool,
+    ) -> Result<(
+        Tensor,
+        crate::geometric_read_native::NativeReadTrace,
+        crate::geometric_value_native::ValueProjectionTrace,
+    )> {
+        self.forward_geometric_context_value_projection_mode_with_trace(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            values,
+            reset_each_token,
+            true,
+        )
+    }
+
+    fn forward_geometric_context_value_projection_mode_with_trace(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        values: &crate::geometric_value_native::CompiledGeometricValues,
+        reset_each_token: bool,
+        residual: bool,
+    ) -> Result<(
+        Tensor,
+        crate::geometric_read_native::NativeReadTrace,
+        crate::geometric_value_native::ValueProjectionTrace,
+    )> {
         let read_trace = std::cell::RefCell::new(None);
         let value_trace = std::cell::RefCell::new(None);
         let (hidden, _) = self.hidden_geometric_context_read_native(
@@ -2586,6 +2653,7 @@ impl StackModel {
             reset_each_token,
             Some(&read_trace),
             Some(NativeValueProjection {
+                residual,
                 compiled: values,
                 trace: &value_trace,
             }),
@@ -3209,8 +3277,14 @@ impl StackModel {
                 potential,
                 reducer,
             )?;
-            let projected =
-                crate::geometric_value_native::project_native(&values, projection.compiled)?;
+            let projected = if projection.residual {
+                crate::geometric_value_native::project_residual_native(
+                    &values,
+                    projection.compiled,
+                )?
+            } else {
+                crate::geometric_value_native::project_native(&values, projection.compiled)?
+            };
             let output = crate::geometric_read_native::reduce_native_q16(
                 &scores,
                 &null,
@@ -10643,6 +10717,29 @@ mod tests {
             assert_eq!(old.no_read_weight_q31, projected.no_read_weight_q31);
             assert_eq!(old.total_weight_q31, projected.total_weight_q31);
             assert_eq!(old.max_score_q24, projected.max_score_q24);
+        }
+        let (residual_logits, residual_read, residual_values) = model
+            .forward_geometric_context_value_residual_native_with_trace(
+                &ids,
+                1,
+                10,
+                &loaded,
+                &event,
+                &span,
+                &potential,
+                &reducer,
+                &value_codec,
+                false,
+            )?;
+        assert_eq!(residual_logits.dims(), reduced.dims());
+        assert_eq!(residual_values.donor_q16, projected_values.donor_q16);
+        assert_eq!(residual_values.projected_q16, residual_read.values_q16);
+        assert!(residual_values.sum_squared_error_q32 <= projected_values.sum_squared_error_q32);
+        for (old, residual) in raw.rows.iter().zip(&residual_read.rows) {
+            assert_eq!(old.occurrence_weights_q31, residual.occurrence_weights_q31);
+            assert_eq!(old.no_read_weight_q31, residual.no_read_weight_q31);
+            assert_eq!(old.total_weight_q31, residual.total_weight_q31);
+            assert_eq!(old.max_score_q24, residual.max_score_q24);
         }
         assert!(value_codec
             .validate_for(

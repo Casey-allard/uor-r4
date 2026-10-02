@@ -1,0 +1,582 @@
+{
+  "schema": "uor-r4.geometric-value-residual-measured/1",
+  "executed_source": "7204cbb7fc01c7c2347a85b9af445f0fff0f0a08",
+  "executable_sha256": "c9c85161bb0c723921e84e2f260e1092ace8260a939ea38f56259fbf6ae411dc",
+  "panels": [
+    {
+      "seed": "s1",
+      "panel": "original",
+      "summary_sha256": "53c1d6c89a15167af2793174ed6141d8e1d14a39e43e1a88e55476414da3c32e",
+      "baseline_answers": 100,
+      "changed_predictions": 5,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 1.1709458827972412,
+      "maximum_answer_logit_delta": 0.4571240544319153,
+      "maximum_projected_coordinate_error_q16": 34291,
+      "maximum_read_error_q16": 34214,
+      "partial_chunk": null,
+      "projected_answers": 97,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 198912,
+      "unchanged_weight_bound_violations": 0
+    },
+    {
+      "seed": "s1",
+      "panel": "stress",
+      "summary_sha256": "8ae6211f4ee542d69881117be74953901dd7574e4c5f56c2a6ef354939e783a3",
+      "baseline_answers": 110,
+      "changed_predictions": 3,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 0.8000361919403076,
+      "maximum_answer_logit_delta": 0.6865139007568359,
+      "maximum_projected_coordinate_error_q16": 34283,
+      "maximum_read_error_q16": 33950,
+      "partial_chunk": null,
+      "projected_answers": 110,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 264704,
+      "unchanged_weight_bound_violations": 0
+    },
+    {
+      "seed": "s2",
+      "panel": "original",
+      "summary_sha256": "4611a94d818e519e5ab7e12afd3e95ae045a199fbcc80db79f8110ef6b60861c",
+      "baseline_answers": 128,
+      "changed_predictions": 0,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 1.8691179752349854,
+      "maximum_answer_logit_delta": 0.5560904294252396,
+      "maximum_projected_coordinate_error_q16": 34486,
+      "maximum_read_error_q16": 34401,
+      "partial_chunk": null,
+      "projected_answers": 128,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 198912,
+      "unchanged_weight_bound_violations": 0
+    },
+    {
+      "seed": "s2",
+      "panel": "stress",
+      "summary_sha256": "946fa204d04a33f05a9d34dc9cc77dcc829341a3f879d97c9885aa8ddbd8d7da",
+      "baseline_answers": 127,
+      "changed_predictions": 0,
+      "complete": true,
+      "maximum_actual_position_logit_delta": 1.1817503459751606,
+      "maximum_answer_logit_delta": 0.5986568927764893,
+      "maximum_projected_coordinate_error_q16": 33620,
+      "maximum_read_error_q16": 33501,
+      "partial_chunk": null,
+      "projected_answers": 127,
+      "reference_restored_chunks": 16,
+      "requested_rows": 128,
+      "scored_rows": 128,
+      "unchanged_weight_bound_checked_coordinates": 264704,
+      "unchanged_weight_bound_violations": 0
+    }
+  ],
+  "comparison_sha256": "7fa05831ce5f9bc82d78b84529f43ad837b60c926770711a109b1a9db84ab30e",
+  "comparison_rows": [
+    {
+      "seed": "s1",
+      "panel": "original",
+      "baseline_answers": 100,
+      "k1_answers": 85,
+      "k2_answers": 97,
+      "counts": {
+        "vs_weighted_baseline": {
+          "gains": 0,
+          "losses": 3,
+          "wrong_to_wrong_changes": 2,
+          "changes": 5
+        },
+        "vs_k1": {
+          "gains": 12,
+          "losses": 0,
+          "wrong_to_wrong_changes": 3,
+          "changes": 15
+        },
+        "vs_precontext_baseline": {
+          "gains": 0,
+          "losses": 2,
+          "wrong_to_wrong_changes": 2,
+          "changes": 4
+        }
+      },
+      "changed_rows": [
+        {
+          "index": 0,
+          "pair": 200,
+          "condition": "base",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 1,
+          "pair": 200,
+          "condition": "changed_query",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 19
+        },
+        {
+          "index": 2,
+          "pair": 200,
+          "condition": "swapped_values",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 7,
+          "pair": 201,
+          "condition": "reversed_order",
+          "answer": 24,
+          "precontext": 24,
+          "weighted": 24,
+          "k1": 26,
+          "k2": 24
+        },
+        {
+          "index": 48,
+          "pair": 212,
+          "condition": "base",
+          "answer": 31,
+          "precontext": 29,
+          "weighted": 29,
+          "k1": 23,
+          "k2": 29
+        },
+        {
+          "index": 51,
+          "pair": 212,
+          "condition": "reversed_order",
+          "answer": 31,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 23,
+          "k2": 29
+        },
+        {
+          "index": 75,
+          "pair": 402,
+          "condition": "reversed_order",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 92,
+          "pair": 407,
+          "condition": "base",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 19
+        },
+        {
+          "index": 102,
+          "pair": 409,
+          "condition": "swapped_values",
+          "answer": 28,
+          "precontext": 17,
+          "weighted": 17,
+          "k1": 17,
+          "k2": 18
+        },
+        {
+          "index": 106,
+          "pair": 410,
+          "condition": "swapped_values",
+          "answer": 25,
+          "precontext": 25,
+          "weighted": 25,
+          "k1": 24,
+          "k2": 25
+        },
+        {
+          "index": 107,
+          "pair": 410,
+          "condition": "reversed_order",
+          "answer": 24,
+          "precontext": 24,
+          "weighted": 24,
+          "k1": 26,
+          "k2": 24
+        },
+        {
+          "index": 109,
+          "pair": 411,
+          "condition": "changed_query",
+          "answer": 24,
+          "precontext": 24,
+          "weighted": 24,
+          "k1": 26,
+          "k2": 24
+        },
+        {
+          "index": 113,
+          "pair": 412,
+          "condition": "changed_query",
+          "answer": 30,
+          "precontext": 30,
+          "weighted": 30,
+          "k1": 20,
+          "k2": 30
+        },
+        {
+          "index": 115,
+          "pair": 412,
+          "condition": "reversed_order",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 117,
+          "pair": 413,
+          "condition": "changed_query",
+          "answer": 23,
+          "precontext": 19,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 19
+        },
+        {
+          "index": 119,
+          "pair": 413,
+          "condition": "reversed_order",
+          "answer": 30,
+          "precontext": 30,
+          "weighted": 30,
+          "k1": 20,
+          "k2": 30
+        },
+        {
+          "index": 121,
+          "pair": 414,
+          "condition": "changed_query",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 122,
+          "pair": 414,
+          "condition": "swapped_values",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        }
+      ]
+    },
+    {
+      "seed": "s1",
+      "panel": "stress",
+      "baseline_answers": 110,
+      "k1_answers": 96,
+      "k2_answers": 110,
+      "counts": {
+        "vs_weighted_baseline": {
+          "gains": 1,
+          "losses": 1,
+          "wrong_to_wrong_changes": 1,
+          "changes": 3
+        },
+        "vs_k1": {
+          "gains": 14,
+          "losses": 0,
+          "wrong_to_wrong_changes": 3,
+          "changes": 17
+        },
+        "vs_precontext_baseline": {
+          "gains": 2,
+          "losses": 1,
+          "wrong_to_wrong_changes": 1,
+          "changes": 4
+        }
+      },
+      "changed_rows": [
+        {
+          "index": 5,
+          "pair": 201,
+          "condition": "changed_query",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 7,
+          "pair": 201,
+          "condition": "reversed_order",
+          "answer": 28,
+          "precontext": 17,
+          "weighted": 17,
+          "k1": 17,
+          "k2": 18
+        },
+        {
+          "index": 23,
+          "pair": 205,
+          "condition": "reversed_order",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 24,
+          "pair": 206,
+          "condition": "base",
+          "answer": 31,
+          "precontext": 29,
+          "weighted": 29,
+          "k1": 23,
+          "k2": 29
+        },
+        {
+          "index": 27,
+          "pair": 206,
+          "condition": "reversed_order",
+          "answer": 31,
+          "precontext": 29,
+          "weighted": 29,
+          "k1": 23,
+          "k2": 29
+        },
+        {
+          "index": 49,
+          "pair": 212,
+          "condition": "changed_query",
+          "answer": 24,
+          "precontext": 24,
+          "weighted": 24,
+          "k1": 26,
+          "k2": 24
+        },
+        {
+          "index": 50,
+          "pair": 212,
+          "condition": "swapped_values",
+          "answer": 24,
+          "precontext": 24,
+          "weighted": 24,
+          "k1": 26,
+          "k2": 24
+        },
+        {
+          "index": 64,
+          "pair": 400,
+          "condition": "base",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 65,
+          "pair": 400,
+          "condition": "changed_query",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 66,
+          "pair": 400,
+          "condition": "swapped_values",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 67,
+          "pair": 400,
+          "condition": "reversed_order",
+          "answer": 23,
+          "precontext": 19,
+          "weighted": 19,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 68,
+          "pair": 401,
+          "condition": "base",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 19
+        },
+        {
+          "index": 70,
+          "pair": 401,
+          "condition": "swapped_values",
+          "answer": 30,
+          "precontext": 30,
+          "weighted": 30,
+          "k1": 20,
+          "k2": 30
+        },
+        {
+          "index": 71,
+          "pair": 401,
+          "condition": "reversed_order",
+          "answer": 23,
+          "precontext": 23,
+          "weighted": 23,
+          "k1": 19,
+          "k2": 23
+        },
+        {
+          "index": 81,
+          "pair": 404,
+          "condition": "changed_query",
+          "answer": 27,
+          "precontext": 27,
+          "weighted": 27,
+          "k1": 18,
+          "k2": 27
+        },
+        {
+          "index": 94,
+          "pair": 407,
+          "condition": "swapped_values",
+          "answer": 24,
+          "precontext": 24,
+          "weighted": 24,
+          "k1": 26,
+          "k2": 24
+        },
+        {
+          "index": 101,
+          "pair": 409,
+          "condition": "changed_query",
+          "answer": 17,
+          "precontext": 17,
+          "weighted": 17,
+          "k1": 22,
+          "k2": 17
+        },
+        {
+          "index": 118,
+          "pair": 413,
+          "condition": "swapped_values",
+          "answer": 25,
+          "precontext": 25,
+          "weighted": 25,
+          "k1": 24,
+          "k2": 25
+        }
+      ]
+    },
+    {
+      "seed": "s2",
+      "panel": "original",
+      "baseline_answers": 128,
+      "k1_answers": 128,
+      "k2_answers": 128,
+      "counts": {
+        "vs_weighted_baseline": {
+          "gains": 0,
+          "losses": 0,
+          "wrong_to_wrong_changes": 0,
+          "changes": 0
+        },
+        "vs_k1": {
+          "gains": 0,
+          "losses": 0,
+          "wrong_to_wrong_changes": 0,
+          "changes": 0
+        },
+        "vs_precontext_baseline": {
+          "gains": 0,
+          "losses": 0,
+          "wrong_to_wrong_changes": 0,
+          "changes": 0
+        }
+      },
+      "changed_rows": []
+    },
+    {
+      "seed": "s2",
+      "panel": "stress",
+      "baseline_answers": 127,
+      "k1_answers": 127,
+      "k2_answers": 127,
+      "counts": {
+        "vs_weighted_baseline": {
+          "gains": 0,
+          "losses": 0,
+          "wrong_to_wrong_changes": 0,
+          "changes": 0
+        },
+        "vs_k1": {
+          "gains": 1,
+          "losses": 1,
+          "wrong_to_wrong_changes": 0,
+          "changes": 2
+        },
+        "vs_precontext_baseline": {
+          "gains": 0,
+          "losses": 1,
+          "wrong_to_wrong_changes": 0,
+          "changes": 1
+        }
+      },
+      "changed_rows": [
+        {
+          "index": 87,
+          "pair": 405,
+          "condition": "reversed_order",
+          "answer": 20,
+          "precontext": 20,
+          "weighted": 16,
+          "k1": 20,
+          "k2": 16
+        },
+        {
+          "index": 91,
+          "pair": 406,
+          "condition": "reversed_order",
+          "answer": 19,
+          "precontext": 19,
+          "weighted": 19,
+          "k1": 17,
+          "k2": 19
+        }
+      ]
+    }
+  ],
+  "scope": "fixed-first greedy twoatom donor oracle; not learned producer or globalK2; same scores/null/decoder; no general language/fullserving/energy"
+}
