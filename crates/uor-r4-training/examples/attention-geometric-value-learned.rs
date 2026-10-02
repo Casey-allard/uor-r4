@@ -1,9 +1,15 @@
 //! Joint answer-credit continuation of retained geometric context and K2 values.
 //! Offline donor targets never enter the learned prediction interfaces.
+#[path = "attention-geometric-value-learned/continuation.rs"]
+mod continuation;
+#[path = "attention-geometric-value-learned/credit.rs"]
+mod credit;
 #[path = "attention-geometric-value-learned/data.rs"]
 mod data;
 use candle_core::{backprop::GradStore, Device, Tensor, Var};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW};
+use continuation::Continuation;
+use credit::AuxiliaryCredit;
 use data::{batch, draw, episode, noise, Episode, Rng};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -69,6 +75,9 @@ struct Args {
     stress: PathBuf,
     prior_k1: PathBuf,
     prior_k2: PathBuf,
+    continuation_parent: Option<PathBuf>,
+    teacher_replay: Option<PathBuf>,
+    auxiliary_credit: AuxiliaryCredit,
     out: PathBuf,
 }
 impl Args {
@@ -106,6 +115,19 @@ impl Args {
             .ok_or_else(|| invalid("evaluation_reserve_seconds required"))?
             .parse::<u64>()
             .map_err(|_| invalid("evaluation_reserve_seconds"))?;
+        let continuation_parent = o.remove("continuation_parent").map(PathBuf::from);
+        let teacher_replay = o.remove("teacher_replay").map(PathBuf::from);
+        let auxiliary_credit = match o.remove("auxiliary_credit").as_deref() {
+            None => AuxiliaryCredit::Legacy,
+            Some("query_read") => AuxiliaryCredit::QueryRead,
+            Some("uniform_matched_mass") => AuxiliaryCredit::UniformMatchedMass,
+            _ => return Err(invalid("auxiliary_credit query_read|uniform_matched_mass")),
+        };
+        if continuation_parent.is_some() != teacher_replay.is_some()
+            || continuation_parent.is_some() != (auxiliary_credit != AuxiliaryCredit::Legacy)
+        {
+            return Err(invalid("continuation_parent, teacher_replay and auxiliary_credit must be supplied together"));
+        }
         if !["fit", "check"].contains(&mode.as_str())
             || ![1, 2].contains(&seed)
             || steps == 0
@@ -120,6 +142,11 @@ impl Args {
         {
             return Err(invalid("mode fit/check; seed1/2; steps1..640; rate(0,.03]; explicit positive bounded deadline/reserve"));
         }
+        if continuation_parent.is_some() && mode == "fit" && steps != 640 {
+            return Err(invalid(
+                "declared paired continuation dose is 640 new updates",
+            ));
+        }
         let mut path = |key: &str| {
             o.remove(key)
                 .map(PathBuf::from)
@@ -132,6 +159,9 @@ impl Args {
             rate,
             max_seconds,
             evaluation_reserve_seconds,
+            continuation_parent,
+            teacher_replay,
+            auxiliary_credit,
             model: path("model")?,
             context_source: path("context_source")?,
             context_native: path("context_native")?,
@@ -304,6 +334,7 @@ struct Frozen {
     reducer: CompiledGeometricRead,
     codec: CompiledGeometricValues,
     tokenizer: Vec<u8>,
+    initial_native_values: Option<CompiledValueProducer>,
 }
 impl Frozen {
     fn load(a: &Args) -> Result<(Self, ContextWeights)> {
@@ -314,10 +345,17 @@ impl Frozen {
         if sha256_file(&a.model.join("model.safetensors"))? != expected {
             return Err(invalid("accepted seed/model mismatch"));
         }
-        let expected_context = [
-            "0a2f5f1903c4e4101ea2f2b9fef5062d73917e99ac6b9bda8bafceb7fcf7a3a8",
-            "fb8133d136af654488bff8f6c7d1e5be7444a9394e44a6da09d9bed5e8896f8a",
-        ][(a.seed - 1) as usize];
+        let expected_context = if a.continuation_parent.is_some() {
+            [
+                "102d6ec3ff84c06ff581831b63fbecf72e18fe328363f84bd0ea2d0a080c460c",
+                "3b1e0fbad2d8783c94b36b85c28532712427985dff02fcde9326d51100159b1b",
+            ]
+        } else {
+            [
+                "0a2f5f1903c4e4101ea2f2b9fef5062d73917e99ac6b9bda8bafceb7fcf7a3a8",
+                "fb8133d136af654488bff8f6c7d1e5be7444a9394e44a6da09d9bed5e8896f8a",
+            ]
+        }[(a.seed - 1) as usize];
         if sha256_file(&a.context_source.join("context-parameters.safetensors"))?
             != expected_context
         {
@@ -380,6 +418,7 @@ impl Frozen {
                 reducer,
                 codec,
                 tokenizer,
+                initial_native_values: None,
             },
             retained.into_finite_choice()?,
         ))
@@ -415,11 +454,13 @@ impl Frozen {
     }
 }
 
+#[derive(Clone)]
 struct Targets {
     roots: Vec<u32>,
     categories: Vec<u32>,
     root_weights: Vec<f32>,
     category_weights: Vec<f32>,
+    normalizer: Option<f64>,
 }
 impl Targets {
     fn from_trace(trace: &ValueProjectionTrace, lengths: &[usize]) -> Result<Self> {
@@ -436,6 +477,7 @@ impl Targets {
             categories: Vec::new(),
             root_weights: Vec::new(),
             category_weights: Vec::new(),
+            normalizer: None,
         };
         // Teacher B,H,T,lane -> predicted B,T,H,lane,atom. No token-role filter.
         for (b, &length) in lengths.iter().enumerate() {
@@ -471,23 +513,35 @@ impl Targets {
     }
     fn losses(&self, output: &ValueProducerOutput) -> Result<(Tensor, Tensor)> {
         let n = self.roots.len();
-        let root = if self.root_weights.iter().any(|&x| x > 0.) {
-            logits_cross_entropy(
-                &output.root_logits.reshape((n, 120))?,
-                &self.roots,
-                Some(&self.root_weights),
-            )?
-        } else {
-            output.root_logits.sum_all()?.affine(0., 0.)?
-        };
-        let category = logits_cross_entropy(
+        let root = credit::loss(
+            &output.root_logits.reshape((n, 120))?,
+            &self.roots,
+            &self.root_weights,
+            self.normalizer,
+        )?;
+        let category = credit::loss(
             &output.category_logits.reshape((n, 32))?,
             &self.categories,
-            Some(&self.category_weights),
+            &self.category_weights,
+            self.normalizer,
         )?;
         Ok((root, category))
     }
     fn bytes(&self) -> Vec<u8> {
+        if self.normalizer.is_some() {
+            return self
+                .roots
+                .iter()
+                .zip(&self.categories)
+                .zip(self.root_weights.iter().zip(&self.category_weights))
+                .flat_map(|((r, c), (rw, cw))| {
+                    let mut row = vec![*r as u8, *c as u8];
+                    row.extend(rw.to_le_bytes());
+                    row.extend(cw.to_le_bytes());
+                    row
+                })
+                .collect();
+        }
         self.roots
             .iter()
             .zip(&self.categories)
@@ -497,7 +551,14 @@ impl Targets {
     }
 }
 
-fn teacher(f: &Frozen, ids: &[u32], lengths: &[usize], time: usize) -> Result<(Targets, Value)> {
+fn teacher(
+    f: &Frozen,
+    ids: &[u32],
+    lengths: &[usize],
+    queries: &[usize],
+    time: usize,
+    policy: AuxiliaryCredit,
+) -> Result<(Targets, Targets, Value, Vec<u8>)> {
     let (_, trace) = f.model.forward_geometric_context_read_native_with_trace(
         ids,
         lengths.len(),
@@ -511,8 +572,10 @@ fn teacher(f: &Frozen, ids: &[u32], lengths: &[usize], time: usize) -> Result<(T
     )?;
     let projected =
         project_residual_q16(&trace.values_q16, lengths.len(), 2, time, &f.codec)?.trace;
-    let metadata = json!({"donor_q16_sha256":sha256_bytes(&projected.donor_q16.iter().copied().flat_map(i32::to_le_bytes).collect::<Vec<_>>()),"unique_vectors":projected.unique_vectors,"candidate_distances":projected.candidate_distances,"squared_error_q32":projected.sum_squared_error_q32.to_string(),"max_abs_error_q16":projected.max_abs_error_q16});
-    Ok((Targets::from_trace(&projected, lengths)?, metadata))
+    let legacy = Targets::from_trace(&projected, lengths)?;
+    let (targets, credit, raw) = credit::apply(&legacy, &trace, lengths, queries, policy)?;
+    let metadata = json!({"donor_q16_sha256":sha256_bytes(&projected.donor_q16.iter().copied().flat_map(i32::to_le_bytes).collect::<Vec<_>>()),"unique_vectors":projected.unique_vectors,"candidate_distances":projected.candidate_distances,"squared_error_q32":projected.sum_squared_error_q32.to_string(),"max_abs_error_q16":projected.max_abs_error_q16,"credit":credit,"boolean_target_masks_sha256":sha256_bytes(&legacy.bytes())});
+    Ok((targets, legacy, metadata, raw))
 }
 
 fn selected_packets(output: &ValueProducerOutput, lengths: &[usize], time: usize) -> Value {
@@ -551,6 +614,7 @@ struct Priors {
     donor_logits: Vec<Vec<f32>>,
     k1: Vec<u32>,
     k2: Vec<u32>,
+    continuation: Option<continuation::PanelReference>,
 }
 fn priors(a: &Args, panel_name: &str, episodes: &[Episode]) -> Result<Priors> {
     let p1 = a.prior_k1.join(panel_name).join("rows.json");
@@ -603,6 +667,7 @@ fn priors(a: &Args, panel_name: &str, episodes: &[Episode]) -> Result<Priors> {
         donor_logits: Vec::new(),
         k1: Vec::new(),
         k2: Vec::new(),
+        continuation: None,
     };
     for (i, ((x, y), e)) in left.iter().zip(&right).zip(episodes).enumerate() {
         if x.index != i
@@ -811,10 +876,43 @@ fn prefit(
             .to_vec2::<f32>()?;
         let answers = answer_rows(&logits, group, time)?;
         let donor_answers = answer_rows(&donor.to_vec2::<f32>()?, group, time)?;
+        let native_answers = if prior.continuation.is_some() {
+            let native = f
+                .initial_native_values
+                .as_ref()
+                .ok_or_else(|| invalid("continued native values absent"))?;
+            let (logits, _, _) = f
+                .model
+                .forward_geometric_context_learned_values_native_with_trace(
+                    &ids,
+                    group.len(),
+                    time,
+                    &f.parent,
+                    &f.events,
+                    &f.span,
+                    &f.potential,
+                    &f.reducer,
+                    native,
+                    false,
+                )?;
+            Some(answer_rows(&logits.to_vec2::<f32>()?, group, time)?)
+        } else {
+            None
+        };
         let produced = f.value_output(c, v, &ids, group.len(), time, false)?;
         for (b, e) in group.iter().enumerate() {
             let index = chunk * BATCH + b;
-            if donor_answers[b].0 != prior.donor[index]
+            if let Some(reference) = &prior.continuation {
+                reference.validate_initial(
+                    index,
+                    &answers[b],
+                    native_answers
+                        .as_ref()
+                        .and_then(|v| v.get(b))
+                        .ok_or_else(|| invalid("continued native row absent"))?,
+                    &donor_answers[b],
+                )?;
+            } else if donor_answers[b].0 != prior.donor[index]
                 || donor_answers[b]
                     .1
                     .iter()
@@ -831,12 +929,35 @@ fn prefit(
                     produced.trace.packets[at..at + 4].to_vec()
                 })
                 .collect::<Vec<_>>();
-            rows.push(json!({"index":index,"episode":e,"donor_prediction":donor_answers[b].0,"donor_answer_logits":donor_answers[b].1,"untrained_prediction":answers[b].0,"untrained_answer_logits":answers[b].1,"prior_k1":prior.k1[index],"prior_k2":prior.k2[index],"source_packets":packets,"donor_read":selected_trace(&donor_trace,b,e)?}));
+            let mut record = json!({"index":index,"episode":e,"donor_prediction":donor_answers[b].0,"donor_answer_logits":donor_answers[b].1,"prior_k1":prior.k1[index],"prior_k2":prior.k2[index],"source_packets":packets,"donor_read":selected_trace(&donor_trace,b,e)?});
+            if prior.continuation.is_some() {
+                record["continued_prediction"] = json!(answers[b].0);
+                record["continued_answer_logits"] = json!(answers[b].1);
+                record["continued_native"] = json!(native_answers.as_ref().and_then(|v| v.get(b)));
+            } else {
+                record["untrained_prediction"] = json!(answers[b].0);
+                record["untrained_answer_logits"] = json!(answers[b].1);
+            }
+            rows.push(record);
             predictions.push(answers[b].0);
         }
         write_json(&out.join("rows.json"), &rows)?;
     }
-    let summary = json!({"complete":rows.len()==limit,"requested_rows":limit,"scored_rows":rows.len(),"untrained_answers":predictions.iter().zip(episodes).filter(|(p,e)|**p==e.answer).count(),"donor_answers":prior.donor[..rows.len()].iter().zip(episodes).filter(|(p,e)|**p==e.answer).count(),"scope":"actual learned-head initialization, zero updates; frozen native donor comparison"});
+    let mut summary = json!({"complete":rows.len()==limit,"requested_rows":limit,"scored_rows":rows.len(),"donor_answers":rows.iter().zip(episodes).filter(|(r,e)|r["donor_prediction"]==e.answer).count()});
+    let correct = predictions
+        .iter()
+        .zip(episodes)
+        .filter(|(p, e)| **p == e.answer)
+        .count();
+    if prior.continuation.is_some() {
+        summary["continued_answers"] = json!(correct);
+        summary["scope"]=json!("saved learned parent, zero new updates; actual float/native logits and new-address donor bound to retained rows");
+    } else {
+        summary["untrained_answers"] = json!(correct);
+        summary["scope"] = json!(
+            "actual learned-head initialization, zero updates; frozen native donor comparison"
+        );
+    }
     write_json(&out.join("summary.json"), &summary)?;
     Ok((summary, predictions))
 }
@@ -992,12 +1113,20 @@ fn score(
             packet_diff += row_packet_diff;
             coordinate_diff += row_coord_diff;
             let p: Vec<u32> = predictions.iter().map(|x| x[b].0).collect();
-            for (name, old) in [
+            let mut comparisons = vec![
                 ("donor", prior.donor[index]),
                 ("k1", prior.k1[index]),
                 ("k2", prior.k2[index]),
                 ("initial", initial[index]),
-            ] {
+            ];
+            if let Some(c) = &prior.continuation {
+                comparisons.extend([
+                    ("learned_parent", c.learned[index].native_prediction),
+                    ("parent_address_donor", c.oracle[index].baseline_prediction),
+                    ("parent_address_k2", c.oracle[index].projected_prediction),
+                ]);
+            }
+            for (name, old) in comparisons {
                 *differences
                     .entry(format!("native_changed_from_{name}"))
                     .or_default() += usize::from(p[1] != old);
@@ -1009,7 +1138,7 @@ fn score(
                     .or_default() += usize::from(p[1] != e.answer && old == e.answer);
             }
             let source_packets=(0..2).map(|h|{let at=((b*2+h)*time+e.source)*4;json!({"float":float_values.packets[at..at+4],"native":native_values.packets[at..at+4],"native_reset":reset_values.packets[at..at+4]})}).collect::<Vec<_>>();
-            rows.push(json!({"index":index,"episode":e,"prior_donor":prior.donor[index],"prior_k1":prior.k1[index],"prior_k2":prior.k2[index],"initial":initial[index],"float_prediction":p[0],"native_prediction":p[1],"float_reset_prediction":p[2],"native_reset_prediction":p[3],"answer_logits":{"float":predictions[0][b].1,"native":predictions[1][b].1,"float_reset":predictions[2][b].1,"native_reset":predictions[3][b].1},"float_source_masses":[float_mass[0][b],float_mass[1][b]],"float_reset_source_masses":[reset_mass[0][b],reset_mass[1][b]],"native_read":selected_trace(&native_trace,b,e)?,"native_reset_read":selected_trace(&reset_trace,b,e)?,"source_packets":source_packets,"native_packet_disagreements":row_packet_diff,"native_coordinate_disagreements":row_coord_diff,"source_states":native_context.states[b*time+e.source],"query_states":native_context.states[b*time+e.query]}));
+            rows.push(json!({"index":index,"episode":e,"prior_donor":prior.donor[index],"prior_k1":prior.k1[index],"prior_k2":prior.k2[index],"initial":initial[index],"continued_parent":prior.continuation.as_ref().map(|c|json!({"learned":c.learned[index].native_prediction,"donor":c.oracle[index].baseline_prediction,"k2":c.oracle[index].projected_prediction})),"float_prediction":p[0],"native_prediction":p[1],"float_reset_prediction":p[2],"native_reset_prediction":p[3],"answer_logits":{"float":predictions[0][b].1,"native":predictions[1][b].1,"float_reset":predictions[2][b].1,"native_reset":predictions[3][b].1},"float_source_masses":[float_mass[0][b],float_mass[1][b]],"float_reset_source_masses":[reset_mass[0][b],reset_mass[1][b]],"native_read":selected_trace(&native_trace,b,e)?,"native_reset_read":selected_trace(&reset_trace,b,e)?,"source_packets":source_packets,"native_packet_disagreements":row_packet_diff,"native_coordinate_disagreements":row_coord_diff,"source_states":native_context.states[b*time+e.source],"query_states":native_context.states[b*time+e.query]}));
         }
         write_json(&out.join("rows.json"), &rows)?;
     }
@@ -1065,8 +1194,14 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     let fit_deadline = deadline - Duration::from_secs(a.evaluation_reserve_seconds);
     let evaluation = panel(&a.evaluation, EVAL_HASH, &a.out.join("evaluation.json"))?;
     let stress = panel(&a.stress, STRESS_HASH, &a.out.join("stress.json"))?;
-    let original_prior = priors(a, "original", &evaluation)?;
-    let stress_prior = priors(a, "stress", &stress)?;
+    let mut original_prior = priors(a, "original", &evaluation)?;
+    let mut stress_prior = priors(a, "stress", &stress)?;
+    let continuation = Continuation::load(a, &evaluation, &stress)?;
+    if let Some(c) = &continuation {
+        original_prior.continuation = Some(c.original.clone());
+        stress_prior.continuation = Some(c.stress.clone());
+        write_json(&a.out.join("continuation-parent.json"), &c.metadata)?;
+    }
     let mut inventory = BTreeMap::new();
     for (name, path) in [
         ("base", &a.model),
@@ -1082,28 +1217,35 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     let executable = std::env::current_exe()?;
     write_json(
         &a.out.join("inputs.json"),
-        &json!({"args":a,"artifacts":inventory,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNAVAILABLE"),"executable":executable,"executable_sha256":sha256_file(&executable)?,"data":"new sequential authored draws from unchanged context generator; pinned original/stress development panels","teacher_format":"per step u8 root,category,root_mask,category_mask tuples in B,T,H,lane,atom order; masks exclude padding and absent atoms; root excludes zero"}),
+        &json!({"args":a,"artifacts":inventory,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNAVAILABLE"),"executable":executable,"executable_sha256":sha256_file(&executable)?,"data":"new sequential authored draws from unchanged context generator; pinned original/stress development panels","teacher_format":if continuation.is_some(){"B,T,H,lane,atom: root:u8/category:u8/rootweight:LEf32/categoryweight:LEf32; query trace separate LEu64; frozen teacher masks"}else{"per step u8 root,category,root_mask,category_mask tuples in B,T,H,lane,atom order; masks exclude padding and absent atoms; root excludes zero"}}),
     )?;
     if Instant::now() >= fit_deadline {
         return Ok(json!({"complete":false,"decision":"PARTIAL_BEFORE_LOAD"}));
     }
-    let (f, context) = Frozen::load(a)?;
-    let values = ValueProducerWeights::new(40, 2, 4, 940100 + a.seed)?;
+    let (mut f, context) = Frozen::load(a)?;
+    let values = if let Some(c) = &continuation {
+        let (values, native) = c.values(a, &f, &context)?;
+        f.initial_native_values = Some(native);
+        values
+    } else {
+        ValueProducerWeights::new(40, 2, 4, 940100 + a.seed)?
+    };
     let context_before = parameter_hashes(context.parameters())?;
     let base_before = parameter_hashes(f.model.variables())?;
     let vars = trainable(&context, &values)?;
     write_json(
         &a.out.join("parameter-inventory.json"),
-        &json!({"trainable":vars.iter().map(|(n,v)|json!({"name":n,"shape":v.dims(),"elements":v.elem_count()})).collect::<Vec<_>>(),"context_before":context_before,"base_before":base_before,"value_config":values.config(),"context_config":context.config(),"optimizer":{"rate":a.rate,"beta1":0.9,"beta2":0.95,"eps":1e-8,"weight_decay":0.,"global_trainable_clip_l2":1.},"loss":"answer_mean + .1 * (root_actual_nonzero_mean + category_actual_valid_mean)"}),
+        &json!({"trainable":vars.iter().map(|(n,v)|json!({"name":n,"shape":v.dims(),"elements":v.elem_count()})).collect::<Vec<_>>(),"context_before":context_before,"base_before":base_before,"value_config":values.config(),"context_config":context.config(),"optimizer":{"rate":a.rate,"beta1":0.9,"beta2":0.95,"eps":1e-8,"weight_decay":0.,"global_trainable_clip_l2":1.},"value_before":parameter_hashes(values.parameters())?,"auxiliary_credit":a.auxiliary_credit,"loss":if continuation.is_some(){"answer_mean + .1*(root_weighted_numerator/J + category_weighted_numerator/J); J=B*H*4*2; matched eligible mass; NoRead attenuation retained; moments restarted"}else{"answer_mean + .1 * (root_actual_nonzero_mean + category_actual_valid_mean)"}}),
     )?;
-    let generator_seed = 940019 + a.seed;
+    let generator_seed = continuation.as_ref().map_or(940019 + a.seed, |c| c.rng);
+    let parent_updates = continuation.as_ref().map_or(0, |c| c.updates);
     checkpoint(
         a,
         &f,
         &context,
         &values,
         &a.out.join("initial"),
-        0,
+        parent_updates,
         generator_seed,
     )?;
     let limit = if a.mode == "check" { BATCH } else { 128 };
@@ -1164,7 +1306,10 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
             break;
         }
         let rng_before = rng.0;
-        let es = training_batch(&mut rng, step);
+        let absolute_step = parent_updates
+            .checked_add(step)
+            .ok_or_else(|| invalid("absolute step overflow"))?;
+        let es = training_batch(&mut rng, absolute_step);
         let (ids, targets, weights, time) = batch(&es);
         if time > 128 {
             return Err(invalid("training exceeds full causal context128"));
@@ -1176,12 +1321,21 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
             &json!({"step":step,"generator_before":rng_before,"generator_after":rng.0,"episodes":es,"time":time,"teacher_status":"PENDING"}),
         )?;
         let prep_start = Instant::now();
-        let (labels, teacher_metadata) = teacher(&f, &ids, &lengths, time)?;
+        let queries = es.iter().map(|e| e.query).collect::<Vec<_>>();
+        let (labels, legacy_labels, teacher_metadata, query_bytes) =
+            teacher(&f, &ids, &lengths, &queries, time, a.auxiliary_credit)?;
         let label_bytes = labels.bytes();
         fs::write(teacher_root.join(format!("{stem}.bin")), &label_bytes)?;
+        if !query_bytes.is_empty() {
+            fs::write(teacher_root.join(format!("{stem}.query.bin")), &query_bytes)?;
+            fs::write(
+                teacher_root.join(format!("{stem}.teacher.bin")),
+                legacy_labels.bytes(),
+            )?;
+        }
         write_json(
             &teacher_root.join(format!("{stem}.json")),
-            &json!({"step":step,"generator_before":rng_before,"generator_after":rng.0,"episodes":es,"time":time,"teacher":teacher_metadata,"target_sha256":sha256_bytes(&label_bytes),"target_bytes":label_bytes.len(),"order":"B,T,H,lane,atom; root/category/rootmask/categorymask bytes"}),
+            &json!({"step":step,"absolute_step":absolute_step,"generator_before":rng_before,"generator_after":rng.0,"episodes":es,"draw_sha256":sha256_bytes(&serde_json::to_vec(&es)?),"time":time,"teacher":teacher_metadata,"target_sha256":sha256_bytes(&label_bytes),"target_bytes":label_bytes.len(),"order":if labels.normalizer.is_some(){"B,T,H,lane,atom; root:u8/category:u8/rootweight:LEf32/categoryweight:LEf32"}else{"B,T,H,lane,atom; root/category/rootmask/categorymask bytes"}}),
         )?;
         preparation_seconds += prep_start.elapsed().as_secs_f64();
         batches_prepared += 1;
@@ -1195,6 +1349,12 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         let answer = logits_cross_entropy(&logits, &targets, Some(&weights))?;
         let output = f.value_output(&context, &values, &ids, BATCH, time, false)?;
         let (root, category) = labels.losses(&output)?;
+        let legacy_losses = if a.auxiliary_credit != AuxiliaryCredit::Legacy {
+            let (lr, lc) = legacy_labels.losses(&output)?;
+            Some([lr.to_scalar::<f32>()?, lc.to_scalar::<f32>()?])
+        } else {
+            None
+        };
         let auxiliary = (&root + &category)?.affine(0.1, 0.)?;
         let total = (&answer + &auxiliary)?;
         let record =
@@ -1247,7 +1407,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         min_time = min_time.min(time);
         training_seconds += train_start.elapsed().as_secs_f64();
         if record {
-            history.push(json!({"batch_step":step+1,"completed_updates":updates,"time":time,"actual_positions":lengths.iter().sum::<usize>(),"answer_denominator":weights.iter().sum::<f32>(),"root_denominator":labels.root_weights.iter().sum::<f32>(),"category_denominator":labels.category_weights.iter().sum::<f32>(),"answer_mean":losses[0],"root_mean":losses[1],"category_mean":losses[2],"scaled_auxiliary":0.1f64*(f64::from(losses[1])+f64::from(losses[2])),"total_loss":losses[3],"joint_answer_gradient_l2":pure,"scaled_auxiliary_gradient_l2":auxiliary_gradients,"unclipped_trainable_gradient_l2":norm,"selected_packets":selected_packets(&output,&lengths,time),"loss_timing":"pre-update; saved checkpoint after update","elapsed_seconds":start.elapsed().as_secs_f64()}));
+            history.push(json!({"batch_step":step+1,"completed_updates":updates,"time":time,"actual_positions":lengths.iter().sum::<usize>(),"answer_denominator":weights.iter().sum::<f32>(),"root_denominator":labels.normalizer.unwrap_or_else(||labels.root_weights.iter().map(|x|f64::from(*x)).sum()),"category_denominator":labels.normalizer.unwrap_or_else(||labels.category_weights.iter().map(|x|f64::from(*x)).sum()),"root_weight_sum":labels.root_weights.iter().map(|x|f64::from(*x)).sum::<f64>(),"category_weight_sum":labels.category_weights.iter().map(|x|f64::from(*x)).sum::<f64>(),"legacy_global_position_means":legacy_losses,"auxiliary_credit":a.auxiliary_credit,"absolute_batch_step":absolute_step+1,"cumulative_updates":parent_updates+updates,"answer_mean":losses[0],"root_mean":losses[1],"category_mean":losses[2],"scaled_auxiliary":0.1f64*(f64::from(losses[1])+f64::from(losses[2])),"total_loss":losses[3],"joint_answer_gradient_l2":pure,"scaled_auxiliary_gradient_l2":auxiliary_gradients,"unclipped_trainable_gradient_l2":norm,"selected_packets":selected_packets(&output,&lengths,time),"loss_timing":"pre-update; saved checkpoint after update","elapsed_seconds":start.elapsed().as_secs_f64()}));
             write_json(&a.out.join("history.json"), &history)?;
         }
         if a.mode == "fit" && (updates % 80 == 0 || last_checkpoint.elapsed().as_secs() >= 900) {
@@ -1258,7 +1418,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
                 &context,
                 &values,
                 &a.out.join(format!("checkpoint-{updates:04}")),
-                updates,
+                parent_updates + updates,
                 rng.0,
             )?;
             last_checkpoint = Instant::now();
@@ -1266,7 +1426,15 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     }
     check_frozen(&context, &context_before, &f.model, &base_before)?;
     let final_root = a.out.join("trained");
-    checkpoint(a, &f, &context, &values, &final_root, updates, rng.0)?;
+    checkpoint(
+        a,
+        &f,
+        &context,
+        &values,
+        &final_root,
+        parent_updates + updates,
+        rng.0,
+    )?;
     let loaded = compile_reload(a, &f, &final_root)?;
     if parameter_hashes(context.parameters())? != parameter_hashes(loaded.context.parameters())?
         || parameter_hashes(values.parameters())? != parameter_hashes(loaded.values.parameters())?
@@ -1315,7 +1483,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         "LEARNING_AND_LOADED_NATIVE_COMPARISON_MEASURED_RETAIN_ROWS"
     };
     Ok(
-        json!({"schema":"uor-r4.geometric-value-joint-learning/1","complete":complete,"decision":decision,"seed":a.seed,"mode":a.mode,"requested_updates":a.steps,"completed_updates":updates,"actual_training_episodes":episodes_count,"actual_training_positions":actual_positions,"padded_training_positions":padded_positions,"batches_prepared":batches_prepared,"completed_backward_batches":completed_backward_batches,"training_time_min":if min_time==usize::MAX{0}else{min_time},"training_time_max":max_time,"full_causal_context_ceiling":128,"value_coordinates_per_head":16,"batch_size":BATCH,"teacher_preparation_seconds":preparation_seconds,"forward_backward_update_seconds":training_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),"maximum_seconds":a.max_seconds,"evaluation_reserve_seconds":a.evaluation_reserve_seconds,"initial_original":initial_original,"initial_stress":initial_stress,"original":original,"stress":stress_result,"history":history,"scope":"new geometric value head and three retained context transition families learned jointly; unchanged observation coefficients may emit changed addresses from new states; auxiliary targets from frozen donor only in training; learned prediction contains no donor values; float training/ref NoRead/trunk/read.out/head remain; authored development panels not fresh holdout; reset only latent context, span preserved; no geometry advantage, general language, energy or complete integer serving claim"}),
+        json!({"schema":if continuation.is_some(){"uor-r4.geometric-value-query-credit/1"}else{"uor-r4.geometric-value-joint-learning/1"},"parent_updates":parent_updates,"cumulative_updates":parent_updates+updates,"auxiliary_credit":a.auxiliary_credit,"continuation_parent":continuation.as_ref().map(|c|&c.metadata),"complete":complete,"decision":decision,"seed":a.seed,"mode":a.mode,"requested_updates":a.steps,"completed_updates":updates,"actual_training_episodes":episodes_count,"actual_training_positions":actual_positions,"padded_training_positions":padded_positions,"batches_prepared":batches_prepared,"completed_backward_batches":completed_backward_batches,"training_time_min":if min_time==usize::MAX{0}else{min_time},"training_time_max":max_time,"full_causal_context_ceiling":128,"value_coordinates_per_head":16,"batch_size":BATCH,"teacher_preparation_seconds":preparation_seconds,"forward_backward_update_seconds":training_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),"maximum_seconds":a.max_seconds,"evaluation_reserve_seconds":a.evaluation_reserve_seconds,"initial_original":initial_original,"initial_stress":initial_stress,"original":original,"stress":stress_result,"history":history,"scope":if continuation.is_some(){"saved learned context and value parameters continued jointly with new optimizer moments; query-read versus uniform matched eligible mass; fixed parent teacher can become stale relative to changing student addresses; placement effects are joint, not sole payload causality; geometric alphabet/output unchanged; teacher only offline; authored development, no complete serving or general language claim"}else{"new geometric value head and three retained context transition families learned jointly; unchanged observation coefficients may emit changed addresses from new states; auxiliary targets from frozen donor only in training; learned prediction contains no donor values; float training/ref NoRead/trunk/read.out/head remain; authored development panels not fresh holdout; reset only latent context, span preserved; no geometry advantage, general language, energy or complete integer serving claim"}}),
     )
 }
 fn main() -> Result<()> {

@@ -137,7 +137,9 @@ readout, scorer, event/span controller, base/NoRead/output and alphabet fixed.
 Teacher labels and weights remain offline supervision, not serving features or
 gold source selection. Norms alone do not prove gradient opposition. Declare
 restart because Adam moments were not preserved; do not imply exact optimizer
-resume. This comparison is not yet implemented or executed.
+resume. The [continuation driver](geometric-query-credit-2026-10-02.md) is implemented
+and passes actual-parent construction checks; the substantive comparison has
+not run at that source checkpoint.
 
 Preserve every old and newly learned success/failure, including learned answers
 absent from the K2 oracle. Keep input sufficiency, additive-factor expressivity,

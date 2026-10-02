@@ -1,5 +1,23 @@
 # Current UOR-R4 research state
 
+## Query-read credit continuation — source and construction ready, October 2
+
+The opt-in Rust driver now reloads both actual learned context/value parents,
+restores exact saved RNG and compares query-read placement with uniform matched
+eligible mass, including NoRead and separate zero/root masks. Fresh Adam moments
+are declared; the old global-position mean remains a diagnostic. Three unique
+release cases pass after a preserved zero-graph repair. All four actual-parent
+construction checks complete zero updates/one backward batch, preserve parameter
+bits and measured hard choices on64 rows, and match paired draws/teacher streams.
+[Source result](geometric-query-credit-2026-10-02.md) ·
+[Receipt](../evidence/geometric-query-credit-driver-2026-10-02.json).
+
+The four640-update continuations are NOT_RUN at this source checkpoint. Their
+paired effect will concern joint learning, not isolated payload causality;
+transitions remain trainable. Preserve prior learned successes and scoped
+negatives. NoRead's float scalar is history-dependent; token-only lookup is not
+an exact replacement. Full native NoRead/output and language qualification remain.
+
 ## Learned geometric values — completed two-seed fit, October 2
 
 Both fixed 640-update joint fits complete from the accepted context parents.
@@ -24,7 +42,7 @@ training/data/controls/cost and row-level artifacts. Source #1609 is merged
 at `66d09f2ff981390e3b5f1ba0afe79b52e790a439`, with all six reviewed blobs
 verified. Next is one declared comparison of frozen-teacher query-read-weighted
 auxiliary credit against uniform credit at matched additional dose and initial
-artifacts, preserving answer loss and geometry. It is proposed, not run;
+artifacts, preserving answer loss and geometry. Its driver is implemented and construction-checked above, but the fit is not run;
 optimizer moments were not saved and any restart must be shared and declared.
 No perfect donor-imitation gate or automatic dose/selector/alphabet sweep.
 Claude retains the concurrent D19 session lane; geometric attention stays #1512.
