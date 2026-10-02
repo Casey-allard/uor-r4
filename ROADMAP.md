@@ -18,6 +18,18 @@ addressing (#973/#1512) and selected-access design (#963) share that path and ma
 advance in parallel. Infrastructure #1510 serves concrete execution needs.
 Track B #1509/#1518 remains parked, with its original failed parity preserved.
 
+**Immediate geometric mechanism work remains #1512.** Claude's #1552 session
+and dialogue-protocol work is concurrent and does not redirect this track.
+The retained chain is geometric capture → learned retained context → integer
+compatibility/normalization/reduction → learned geometric values and NoRead →
+geometric output/composition and bounded access. The value learning bridge and
+source-bound integer producer are implemented in #1608; joint fitting is the
+next task. Exact frozen-input donor imitation is not its acceptance gate.
+Preserve offline donor compilation, prior successful rows and negative evidence;
+keep learning, representation, compilation, whole serving and language claims
+separate. The canonical plan specifies the fixed primary-answer/auxiliary-packet
+objective and paired comparisons, without duplicating live status here.
+
 Claude, OpenCode–DeepSeek and owner-reauthorized Codex coordinate via #1511,
 #1512 and #1515. These are authorized participants, not assertions of process
 liveness. Refresh live claims/jobs before mutation. The owner's protected-merge

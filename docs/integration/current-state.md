@@ -43,6 +43,32 @@ D19 deliverable.
 
 ## Finite-action learning and geometric value producer — October 2
 
+[PR #1608](https://github.com/UOR-Foundation/uor-r4/pull/1608) merged at
+`2b598f23f4d286b38cccc79e22c6a1afcf207bd4`; main ancestry and all ten
+reviewed file blobs were verified. The independent review binds exact head
+`99a3b653a1c690744bcb5ed104b3bcf418078ccd`. Its receipt records 22 unique
+passing focused cases, with revised/rerun cases counted separately from unique
+coverage. These are component checks, not a new fit or complete serving claim.
+
+The next source task is the Rust joint-fit driver on #1512, continuing both
+accepted 640-update context parents and learning transition families plus
+geometric value factors. The context observation/readout and surrounding
+base/event/span/scorer/NoRead/output remain frozen. Answer cross entropy is
+primary; separately normalized offline K2 root/category supervision has fixed
+weight 0.1. Untrained, floating fitted, independently reloaded compiled and
+context-reset results will be compared row by row with donor/K1/K2 baselines.
+The driver is implemented and its release target-layout/mask fixture passes.
+Actual-parent construction checks complete on both seeds with zero optimizer
+updates: ordinary answer gradients reach transition and value families, source
+and native reloads execute, and all measured context/action/address/packet/Q16/
+answer differences are zero on eight original and eight stress rows per seed.
+The [driver receipt](../evidence/geometric-value-joint-driver-2026-10-02.json)
+binds the executed sources and executable. These are construction checks; the
+fit has not run. Data mass, substantive dose,
+checkpoints, evaluation reserve and complete cost must be declared before fit.
+Claude retains the concurrent GroundedSession/D19 lane; this work does not edit
+its session source or introduce serving q/k projections.
+
 The retained-state interface now exposes the actual post-update signed-H4
 roots through the same differentiable recurrence. A separately named,
 opt-in full-adjoint finite-choice policy carries current and delayed answer

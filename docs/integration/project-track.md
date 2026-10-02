@@ -117,26 +117,33 @@ retain the bounded residual representation for native producer learning. The
 residual recovers most seed-1 losses and preserves seed-2 baseline predictions,
 but is not a preserving drop-in replacement; retain all changed and prior
 successful rows. End this representation comparison without an alphabet sweep. The next
-learning bridge exposes actual retained roots and a separately bound finite
-choice surrogate, followed by the learned two-atom value head and its integer
-factor-table compiler. Check ordinary answer credit through the actual value
-path separately from address credit, and packet/compiler parity separately from
-learned quality. Preserve the legacy tangent policy and fitted artifacts; a
-successful gradient fixture does not qualify language or guarantee optimization. Retained trace
-aliases also make perfect donor reconstruction an invalid frozen-input gate.
-Use ordinary answer loss as the primary joint objective and declared packet
-supervision as auxiliary credit, including explicit zero-category escape. Keep
-learning, input sufficiency, finite-factor expressivity and F32/Q24 compilation
-retention as distinct decisions; preserve all prior row-level baselines.
+learning bridge and its source-bound finite-factor compiler are implemented in
+[PR #1608](https://github.com/UOR-Foundation/uor-r4/pull/1608), with focused
+executed interface, gradient, reload and arithmetic checks. They are not fitted
+language evidence. The next task continues both accepted 640-update context
+parents through the explicit consuming finite-choice conversion and jointly
+learns transition families and the two-atom value head. Keep the existing
+context observation/readout, scorer, event/span controller, donor trunk,
+NoRead and output interface frozen for this causal fit.
 
-The next learning change jointly exposes actual retained state and repairs a
-specific finite-action credit risk. Detached trace IDs carry no earlier-state
-credit; unconditional tangent projection can also erase antipodal and delayed
-sign credit. Preserve exact hard group forward and legacy artifact meanings;
-bind a new explicitly biased full-adjoint finite-choice surrogate and check the
-specific delayed-credit path before fitting token/state/span-conditioned value
-packets. Value-root choice, zero escape and radius credit need their own declared
-bridge. NoRead remains separate, followed by compatible geometric output.
+Use mean answer cross entropy as the primary objective plus 0.1 times the sum
+of separately normalized K2 root and category cross entropies on actual valid
+positions. Packet supervision is offline auxiliary credit, including explicit
+zero-category escape; perfect donor reconstruction is not an admission gate.
+Frozen retained inputs have donor-target aliases, including a verified
+same-input/same-answer witness. Keep input sufficiency, additive-factor
+expressivity, optimization and F32/Q24 compilation retention distinct.
+
+Before updates, record the untrained-head result. After fitting, independently
+reload the compiled context and values and compare every original/stress row
+against donor, K1 and K2 records, the floating learned path and context reset.
+Record pure answer gradients to value factors and transitions separately from
+auxiliary gradients. Preserve all prior successes and failures. Freeze dose,
+data mass, context access, resource limits, checkpoints and evaluation reserve
+before launch; incomplete runs cannot establish a family-wide negative.
+The opt-in finite-action policy remains a biased surrogate rather than an
+argmax derivative or optimization guarantee. NoRead and compatible geometric
+output remain subsequent obligations.
 
 For value compilation, keep the existing four coordinates per lane and sixteen
 per head until an explicit decoder-interface change. Packet status, exact

@@ -1,0 +1,75 @@
+{
+  "schema": "uor-r4.geometric-value-joint-driver/1",
+  "library_base_commit": "2b598f23f4d286b38cccc79e22c6a1afcf207bd4",
+  "sources": {
+    "crates/uor-r4-training/examples/attention-geometric-value-learned.rs": "6487df6ffb6208c3ed2a65a99d8369d2e7f6312702ad96a3570e18ed5ba57809",
+    "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+  },
+  "executable_sha256": "2423c58c4b03cc0d246f1a561de3b3fce430e63516cde4bead530565b447011c",
+  "compiled_source_commit_metadata": "UNAVAILABLE; source hashes and retained library base bind actual construction executable",
+  "checks": [
+    {
+      "seed": 1,
+      "root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/check-1-s1",
+      "report_sha256": "027b14e5399a3e7d3143d1282e32e1a4059a78f8a1cac7ca8a6ebc11a566f856",
+      "execution_receipt_sha256": "bdd5a51eafa7c9d3af12065073116d8d3f8c9d2826f938a1494594a378f4dd74",
+      "optimizer_updates": 0,
+      "completed_backward_batches": 1,
+      "actual_positions": 296,
+      "row_scope": "8 original +8 stress; construction only",
+      "joint_answer_gradient_l2": {
+        "context.neighbor_transition": 0.002145517652622348,
+        "context.self_transition": 0.0020721613657779994,
+        "context.token_transition": 0.0019024259700692178,
+        "value.neighbor_category": 0.08162280132262881,
+        "value.neighbor_root": 0.03654444620682111,
+        "value.own_category": 0.11249432930297278,
+        "value.own_root": 0.02590106294523245,
+        "value.span_category": 0.07706655007356245,
+        "value.span_root": 0.02973564324114858,
+        "value.span_valid_category": 0.09034342307351917,
+        "value.span_valid_root": 0.04066517097783556,
+        "value.token_category": 0.09683765645288425,
+        "value.token_root": 0.03923938755357532
+      },
+      "compiled_difference_counts": "all measured state/action/address/packet/Q16/answer differences zero",
+      "maximum_logit_delta": 0.00018310546875
+    },
+    {
+      "seed": 2,
+      "root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/check-1-s2",
+      "report_sha256": "2572cb6a7298e44a7bf350fa4b271aceb263d08f523b3b7a04321b884e6f9e61",
+      "execution_receipt_sha256": "b871d7575023461dc938d5199a5a538754e88535feaae3b961caa22f044f9874",
+      "optimizer_updates": 0,
+      "completed_backward_batches": 1,
+      "actual_positions": 288,
+      "row_scope": "8 original +8 stress; construction only",
+      "joint_answer_gradient_l2": {
+        "context.neighbor_transition": 0.006578031489841377,
+        "context.self_transition": 0.006549129492499899,
+        "context.token_transition": 0.006217840404244988,
+        "value.neighbor_category": 0.1383122158939669,
+        "value.neighbor_root": 0.10457105423297668,
+        "value.own_category": 0.14205928355870903,
+        "value.own_root": 0.10237091446503949,
+        "value.span_category": 0.14836558683025172,
+        "value.span_root": 0.07031338744133295,
+        "value.span_valid_category": 0.1374633946243872,
+        "value.span_valid_root": 0.11548152782552111,
+        "value.token_category": 0.15433348450754575,
+        "value.token_root": 0.08881392297470546
+      },
+      "compiled_difference_counts": "all measured state/action/address/packet/Q16/answer differences zero",
+      "maximum_logit_delta": 0.00011110305786132812
+    }
+  ],
+  "focused_unit_cases": 1,
+  "check_logs": {
+    "driver-tests-attempt-1.log": "081d8151b93a97c9ab08be2766eb5aeed3eb247127e0ceafece4d7cfb1dc37b3",
+    "driver-build-attempt-1.log": "ca09e9111eeb4e7ae98f34d55f345b3f5ae7a74c9dcae808d5497d2c8d715363",
+    "fmt-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "claim-wording-final.log": "78d71cb97c00d606a9a909d89a2f4f4e3b4be6b84af390f20c9fc50ec449922f"
+  },
+  "fit_status": "NOT_RUN",
+  "scope": "executed source/actual-parent interface and gradient checks; no optimizer updates, fitted quality, natural language, geometry advantage, full serving or energy qualification"
+}
