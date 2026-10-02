@@ -198,9 +198,14 @@ impl Default for TurnControls {
 pub enum RecallDisposition {
     NotRequested,
     Value,
+    /// No store recall applied; the session's log recall supplied the line
+    /// ([`GroundedSession::with_log_recall`]).
+    LogValue,
     Absent,
     Disabled,
-    Unsupported { reason: String },
+    Unsupported {
+        reason: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -318,6 +323,11 @@ convert!(TrainingError, Training);
 convert!(std::io::Error, Io);
 convert!(serde_json::Error, Json);
 
+/// An optional log recall: from the user turns before this one (oldest
+/// first) and this turn, the value an exact log of those turns gives, or
+/// `None`. It must be deterministic, since earlier turns' lines are rebuilt.
+pub type LogRecall = std::sync::Arc<dyn Fn(&[&str], &str) -> Option<String> + Send + Sync>;
+
 /// Model and store are private so a caller cannot change the computation or
 /// commit memory outside the transactional turn boundary.
 pub struct GroundedSession<C: TurnCompiler> {
@@ -333,6 +343,7 @@ pub struct GroundedSession<C: TurnCompiler> {
     initial_commit: u64,
     history_ids: Vec<u32>,
     turns: Vec<TurnOutcome>,
+    log_recall: Option<LogRecall>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -439,7 +450,16 @@ impl<C: TurnCompiler> GroundedSession<C> {
             initial_commit,
             history_ids,
             turns: Vec::new(),
+            log_recall: None,
         })
+    }
+
+    /// Supply a recall line from the user turn log for turns that make no
+    /// memory action (the compiler's unresolved turns), when reading is
+    /// enabled. Off by default.
+    pub fn with_log_recall(mut self, recall: LogRecall) -> Self {
+        self.log_recall = Some(recall);
+        self
     }
 
     pub fn compiler_identity(&self) -> &CompilerIdentity {
@@ -520,8 +540,13 @@ impl<C: TurnCompiler> GroundedSession<C> {
         )?;
         let (input, recall, retained_from_turn) =
             self.emitter_input(&self.turns, source, &effect, controls.read)?;
-        let (suffix, _) =
-            self.emitter_suffix(source, &effect, !self.turns.is_empty(), controls.read)?;
+        let (suffix, _) = self.emitter_suffix(
+            &self.turns,
+            source,
+            &effect,
+            !self.turns.is_empty(),
+            controls.read,
+        )?;
         let history_needed = self
             .history_ids
             .len()
@@ -678,6 +703,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
 
     fn emitter_suffix(
         &self,
+        prior: &[TurnOutcome],
         source: &str,
         effect: &MemoryEffect,
         has_history: bool,
@@ -718,6 +744,19 @@ impl<C: TurnCompiler> GroundedSession<C> {
                     reason: "the trained recall format has no history/eviction channel".into(),
                 },
             ),
+            MemoryEffect::Unresolved if read => match &self.log_recall {
+                Some(recall) => {
+                    let log: Vec<&str> = prior.iter().map(|turn| turn.source.as_str()).collect();
+                    match recall(&log, source) {
+                        Some(value) if value != "none" && !value.contains('\r') => (
+                            Some(format!("Memory: {value}.")),
+                            RecallDisposition::LogValue,
+                        ),
+                        _ => (None, RecallDisposition::NotRequested),
+                    }
+                }
+                None => (None, RecallDisposition::NotRequested),
+            },
             _ => (None, RecallDisposition::NotRequested),
         };
         let mut messages = vec![Message {
@@ -748,8 +787,13 @@ impl<C: TurnCompiler> GroundedSession<C> {
     ) -> Result<Vec<u32>, GroundedSessionError> {
         let mut history = vec![self.identity.protocol.bos_id];
         for (offset, turn) in turns[from..].iter().enumerate() {
-            let (suffix, _) =
-                self.emitter_suffix(&turn.source, &turn.memory, offset != 0, turn.controls.read)?;
+            let (suffix, _) = self.emitter_suffix(
+                &turns[..from + offset],
+                &turn.source,
+                &turn.memory,
+                offset != 0,
+                turn.controls.read,
+            )?;
             history.extend(suffix);
             history.extend(&turn.reply_ids);
             if turn.caller_eos_inserted {
@@ -772,7 +816,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
         let candidate = |from| -> Result<_, GroundedSessionError> {
             let mut input = self.closed_history(turns, from)?;
             let (suffix, disposition) =
-                self.emitter_suffix(source, effect, from < turns.len(), read)?;
+                self.emitter_suffix(turns, source, effect, from < turns.len(), read)?;
             let needed = input
                 .len()
                 .checked_add(suffix.len())
@@ -1129,8 +1173,13 @@ impl<C: TurnCompiler> GroundedSession<C> {
                     "turn commit differs from action trace".into(),
                 ));
             }
-            let (suffix, _) =
-                self.emitter_suffix(&turn.source, &turn.memory, index != 0, turn.controls.read)?;
+            let (suffix, _) = self.emitter_suffix(
+                &turns[..index],
+                &turn.source,
+                &turn.memory,
+                index != 0,
+                turn.controls.read,
+            )?;
             history.extend(suffix);
             history.extend(&reply.ids);
             if turn.caller_eos_inserted {
@@ -2345,6 +2394,34 @@ mod tests {
         assert!(matches!(unknown.memory, MemoryEffect::Unresolved));
         assert_eq!(unknown.recall, RecallDisposition::NotRequested);
         assert_eq!(session.store.commit(), before);
+        fs::remove_dir_all(base).expect("clean");
+    }
+
+    #[test]
+    fn log_recall_is_off_by_default_and_rebuilds_from_prior_turns_only() {
+        let (base, session) = fixture("log-recall", 512, ContextPolicy::StrictFullHistory);
+        // The provider names how many user turns preceded the query, so a
+        // rebuilt line made from the wrong slice of the log would differ.
+        let mut session =
+            session.with_log_recall(std::sync::Arc::new(|log: &[&str], _query: &str| {
+                Some(log.len().to_string())
+            }));
+        let write = fixed_turn(&mut session, "put blue");
+        assert!(matches!(write.memory, MemoryEffect::Write { .. }));
+        assert_eq!(write.recall, RecallDisposition::NotRequested);
+        let first = fixed_turn(&mut session, "hello");
+        assert_eq!(first.recall, RecallDisposition::LogValue);
+        assert!(session
+            .tokenizer
+            .decode(&first.emitter_input_ids)
+            .contains("User: hello\nSystem: Memory: 1.\nAssistant: "));
+        let second = fixed_turn(&mut session, "hello");
+        let text = session.tokenizer.decode(&second.emitter_input_ids);
+        assert!(text.contains("System: Memory: 1.\n"), "{text}");
+        assert!(text.contains("System: Memory: 2.\nAssistant: "), "{text}");
+        // A read turn keeps the store's own recall.
+        let query = fixed_turn(&mut session, "ask");
+        assert_eq!(query.recall, RecallDisposition::Value);
         fs::remove_dir_all(base).expect("clean");
     }
 

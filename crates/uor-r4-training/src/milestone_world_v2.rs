@@ -2123,8 +2123,15 @@ impl Rule {
 /// - **Value.** The words after the clause's first query atom up to the clause
 ///   end, without a leading copula; `None` if nothing follows.
 pub fn sieve_value(history: &[Turn2], query: &Turn2) -> Option<String> {
+    let log: Vec<&str> = history.iter().map(|turn| turn.user.as_str()).collect();
+    sieve_value_text(&log, &query.user)
+}
+
+/// [`sieve_value`] over plain user-turn texts (oldest first) and a query
+/// text: the same log, atoms, admission, ranking and value.
+pub fn sieve_value_text(history: &[&str], query: &str) -> Option<String> {
     let reserved = reserved_words();
-    let atoms: BTreeSet<String> = words(&query.user)
+    let atoms: BTreeSet<String> = words(query)
         .into_iter()
         .filter(|word| !reserved.contains(word))
         .collect();
@@ -2136,7 +2143,7 @@ pub fn sieve_value(history: &[Turn2], query: &Turn2) -> Option<String> {
     for (turn_index, turn) in history.iter().enumerate() {
         let mut clause = Vec::new();
         let mut clause_index = 0;
-        for (word, end) in clause_words(&turn.user) {
+        for (word, end) in clause_words(turn) {
             clause.push(word);
             if !end {
                 continue;

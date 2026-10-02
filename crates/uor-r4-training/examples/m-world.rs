@@ -3356,6 +3356,7 @@ fn disposition_name(recall: &RecallDisposition) -> &'static str {
     match recall {
         RecallDisposition::NotRequested => "not_requested",
         RecallDisposition::Value => "value",
+        RecallDisposition::LogValue => "log_value",
         RecallDisposition::Absent => "absent",
         RecallDisposition::Disabled => "disabled",
         RecallDisposition::Unsupported { .. } => "unsupported",
@@ -3459,8 +3460,20 @@ fn session(args: &Args, out: &Path) -> Result<()> {
                 .to_owned(),
         });
     }
-    let identity = CheckpointIdentity::from_tokenizer(
+    // The emitter is served in the dialogue protocol it was trained in: its
+    // training record names version 2 explicitly (`protocol`), else 1.
+    let protocol_version = match training_report["settings"]["protocol"].as_u64() {
+        None => 1u8,
+        Some(2) => 2,
+        Some(other) => {
+            return Err(invalid(format!(
+                "the emitter's training protocol {other} is unknown"
+            )))
+        }
+    };
+    let identity = CheckpointIdentity::from_tokenizer_version(
         &tokenizer_json,
+        protocol_version,
         data,
         sealed_manifest_sha256(&model_root).map_err(|e| invalid(e.to_string()))?,
     )
@@ -3484,6 +3497,20 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         max_store_records: 4_096,
         context_policy: ContextPolicy::WholeCompletedTurns,
     };
+    // log_recall=sieve: the exact prime-atom sieve over the user turns gives
+    // a recall line on turns the compiler leaves unresolved (default off).
+    let log_recall: Option<uor_r4_training::stack_grounded_session::LogRecall> =
+        match args.optional("log_recall").as_deref() {
+            None | Some("off") => None,
+            Some("sieve") => Some(std::sync::Arc::new(|log: &[&str], query: &str| {
+                uor_r4_training::milestone_world_v2::sieve_value_text(log, query)
+            })),
+            Some(other) => {
+                return Err(invalid(format!(
+                    "unknown log_recall={other} (off or sieve)"
+                )))
+            }
+        };
     let open = |compiler: GroundedCompiler| {
         GroundedSession::from_checkpoint_path(
             &checkpoint,
@@ -3494,6 +3521,10 @@ fn session(args: &Args, out: &Path) -> Result<()> {
             &device,
         )
         .map_err(|e| invalid(e.to_string()))
+        .map(|session| match &log_recall {
+            Some(recall) => session.with_log_recall(recall.clone()),
+            None => session,
+        })
     };
     let count = |text: &str| tokenizer.encode(text).len();
     let mut world = MWorld2::new(&count, Mix::default())?;
@@ -3650,6 +3681,8 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         "compiler_identity": compiler.identity(),
         "trunk": trunk_directory.as_ref().map(|d| d.display().to_string()),
         "op_policy": format!("{op_policy:?}"),
+        "log_recall": args.optional("log_recall").unwrap_or_else(|| "off".into()),
+        "dialogue_protocol_version": protocol_version,
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "limits": limits,
         "scope": "MQAR keys have no channel in the one-entity session: MQAR turns compile to unresolved and are scored without recall",
@@ -3898,6 +3931,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "arms",
         "trunk",
         "op_policy",
+        "log_recall",
     ];
     match mode {
         "compiler" => Some(claimed(rest, relation_compiler, compiler)),
