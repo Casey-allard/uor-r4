@@ -4044,11 +4044,13 @@ fn lut_chat_mode(arguments: &[String]) -> Result<()> {
             "top_p",
             "seed",
             "threads",
+            "oracle",
         ],
     )?;
     let artifact_path = PathBuf::from(args.required("artifact")?);
     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
     let requests_path = args.optional("requests").map(PathBuf::from);
+    let oracle_path = args.optional("oracle").map(PathBuf::from);
     let out = PathBuf::from(args.required("out")?);
     let max_new_tokens: usize = args.number("max_new_tokens", 32)?;
     let temperature: f64 = args.number("temperature", 0.0)?;
@@ -4061,7 +4063,15 @@ fn lut_chat_mode(arguments: &[String]) -> Result<()> {
             "max_new_tokens must be 1..{MAX_NEW_TOKENS}"
         )));
     }
-    let requests = requests_path.as_deref().map(load_requests).transpose()?;
+    let requests = requests_path
+        .as_deref()
+        .map(load_requests)
+        .transpose()?
+        .map(|requests| match oracle_path.as_deref() {
+            None => Ok(requests),
+            Some(path) => apply_oracle_turns(requests, path),
+        })
+        .transpose()?;
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         use uor_r4_lut::sampling::{Sampler, SamplingSettings};
@@ -4135,6 +4145,36 @@ fn lut_chat_mode(arguments: &[String]) -> Result<()> {
 /// comes back with the error that ended an interactive conversation, if one
 /// did, so its transcript is still written.
 #[allow(clippy::too_many_arguments)]
+/// Prepend one **oracle** turn per request, from a JSON object of
+/// `request id -> text`, so the value a memory row stores is present in the
+/// history as an explicit statement of the same relation.
+///
+/// This is the labelled upper bound for the value path: the model is given a
+/// statement to read from, so a failure cannot be blamed on the store not
+/// having the value. A turn is inserted rather than a token sequence so that
+/// the armoury's own role markers, separators and masking are used unchanged,
+/// and the row's real turns follow it in their original order.
+fn apply_oracle_turns(
+    mut requests: Vec<uor_r4_training::stack_dialogue::Request>,
+    path: &Path,
+) -> Result<Vec<uor_r4_training::stack_dialogue::Request>> {
+    let text = fs::read_to_string(path)?;
+    let mapping: Value = serde_json::from_str(&text)
+        .map_err(|e| invalid(format!("oracle file is not JSON: {e}")))?;
+    let map = mapping
+        .as_object()
+        .ok_or_else(|| invalid("the oracle file must be a JSON object of id -> statement"))?;
+    for request in &mut requests {
+        if let Some(statement) = map.get(&request.id) {
+            let statement = statement
+                .as_str()
+                .ok_or_else(|| invalid(format!("oracle {} is not a string", request.id)))?;
+            request.user_turns.insert(0, statement.to_string());
+        }
+    }
+    Ok(requests)
+}
+
 fn chat_with<S: Stepper>(
     new_session: &dyn Fn() -> S,
     exp: (&[u32], i32),
