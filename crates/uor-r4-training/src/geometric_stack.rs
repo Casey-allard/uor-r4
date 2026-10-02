@@ -109,6 +109,7 @@ use uor_r4_lut::GROUP;
 
 use crate::flock::{self, FlockSelect};
 use crate::geometric_address::{self, AddressWeights, GeometricAddressConfig};
+use crate::geometric_potential_native::{self, CompiledGeometricPotentials};
 use crate::geometric_span::{self, GeometricSpanConfig, SpanPolicy};
 use crate::geometric_span_native::{self, CompiledSpanActions};
 use crate::lut_export::{dequantize_matrix, quantize_matrix};
@@ -175,6 +176,7 @@ struct ReadSource<'a> {
     tokens: Option<&'a Tensor>,
     span_policy: SpanPolicy,
     native_span: Option<(&'a CompiledSpanActions, &'a [u32])>,
+    native_potential: Option<&'a CompiledGeometricPotentials>,
 }
 
 impl Default for ReadSource<'_> {
@@ -183,6 +185,7 @@ impl Default for ReadSource<'_> {
             tokens: None,
             span_policy: SpanPolicy::Ordered,
             native_span: None,
+            native_potential: None,
         }
     }
 }
@@ -2015,6 +2018,7 @@ impl StackModel {
                 tokens: Some(&tokens),
                 span_policy: SpanPolicy::LastToken,
                 native_span: None,
+                native_potential: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2031,7 +2035,8 @@ impl StackModel {
         time: usize,
         compiled: &CompiledSpanActions,
     ) -> Result<Tensor> {
-        let (hidden, _) = self.hidden_geometric_span_native(ids, batch, time, compiled, None)?;
+        let (hidden, _) =
+            self.hidden_geometric_span_native(ids, batch, time, compiled, None, None)?;
         let p = self.params()?;
         Ok(hidden.matmul(&p.head()?.t()?)?)
     }
@@ -2046,9 +2051,81 @@ impl StackModel {
         target: &ReadBindingTarget,
         compiled: &CompiledSpanActions,
     ) -> Result<Tensor> {
-        self.hidden_geometric_span_native(ids, batch, time, compiled, Some(target))?
+        self.hidden_geometric_span_native(ids, batch, time, compiled, Some(target), None)?
             .1
             .ok_or_else(|| invalid("native span source observer was not evaluated"))
+    }
+
+    /// Evaluate the existing reader with native token actions and compiled
+    /// signed-relative lookup/add potentials. Input production, normalization,
+    /// score reconstruction and surrounding computation remain floating point.
+    pub fn forward_geometric_potential_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+    ) -> Result<Tensor> {
+        let (hidden, _) =
+            self.hidden_geometric_span_native(ids, batch, time, span, None, Some(potential))?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Source labels observe the same native-potential reader; they do not
+    /// generate events, geometric codes or candidate scores.
+    pub fn read_binding_masses_geometric_potential_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+    ) -> Result<Tensor> {
+        self.hidden_geometric_span_native(ids, batch, time, span, Some(target), Some(potential))?
+            .1
+            .ok_or_else(|| invalid("native potential source observer was not evaluated"))
+    }
+
+    /// Actual learned potentials for source-bound offline compilation.
+    pub fn geometric_address_potentials(&self) -> Result<AddressWeights> {
+        let config = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("geometric address absent"))?;
+        self.validate_geometric_address(config)?;
+        self.address_weights(&self.params()?, 2)
+    }
+
+    /// Reproduce the exact pre-read subgraph to observe both scorer inputs.
+    /// No source/answer/action labels are accepted. The same normalization and
+    /// predicted span controller feed the native reader above.
+    pub fn geometric_potential_inputs(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        compiled: &CompiledSpanActions,
+    ) -> Result<(Tensor, Tensor)> {
+        let span = self
+            .geometric_span
+            .as_ref()
+            .ok_or_else(|| invalid("geometric span absent"))?;
+        let address = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("geometric address absent"))?;
+        self.validate_geometric_address(address)?;
+        let p = self.params()?;
+        compiled.validate_for(p.get("embedding.weight")?, span)?;
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_bound(&p, tokens, 0..2, &mut None, &mut None, LatchGates::Soft)?;
+        let current = self.norm(&p, &x, &layer_name(2, "read_norm.weight"))?;
+        let events = self.span_control_logits(&p, 2, &current)?;
+        let prior = geometric_span_native::produce_native(ids, batch, time, &events, compiled)?;
+        Ok((current, prior))
     }
 
     fn hidden_geometric_span_native(
@@ -2058,6 +2135,7 @@ impl StackModel {
         time: usize,
         compiled: &CompiledSpanActions,
         target: Option<&ReadBindingTarget>,
+        potential: Option<&CompiledGeometricPotentials>,
     ) -> Result<(Tensor, Option<Tensor>)> {
         let span = self
             .geometric_span
@@ -2089,6 +2167,7 @@ impl StackModel {
                 tokens: Some(&tokens),
                 span_policy: SpanPolicy::Ordered,
                 native_span: Some((compiled, ids)),
+                native_potential: potential,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2176,8 +2255,18 @@ impl StackModel {
                     .0
             }
         };
-        let mut scores =
-            geometric_address::score(&u, &prior, config, &self.address_weights(p, layer)?)?;
+        let weights = self.address_weights(p, layer)?;
+        let mut scores = match source.native_potential {
+            Some(compiled) => {
+                if source.native_span.is_none() {
+                    return Err(invalid(
+                        "native geometric potentials require the compiled span producer",
+                    ));
+                }
+                geometric_potential_native::score_native(&u, &prior, config, &weights, compiled)?
+            }
+            None => geometric_address::score(&u, &prior, config, &weights)?,
+        };
         if scores.dims4()? != (batch, heads, time, time) {
             return Err(invalid(
                 "geometric address scores differ from [batch,heads,time,time]",
@@ -2663,6 +2752,7 @@ impl StackModel {
                 tokens: Some(&x),
                 span_policy: SpanPolicy::Ordered,
                 native_span: None,
+                native_potential: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -3016,6 +3106,7 @@ impl StackModel {
                 tokens: Some(&x),
                 span_policy,
                 native_span: None,
+                native_potential: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -3958,6 +4049,7 @@ impl StackModel {
                         tokens: Some(&tokens),
                         span_policy: SpanPolicy::Ordered,
                         native_span: None,
+                        native_potential: None,
                     },
                 )?,
             };
@@ -9340,6 +9432,113 @@ mod tests {
         };
         assert!(earlier(&ordered)? > 0.0);
         assert_eq!(earlier(&last)?, 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn native_geometric_potential_reader_uses_saved_tables_and_refuses_stale_weights() -> Result<()>
+    {
+        use crate::geometric_potential_native::PotentialSourceBinding;
+        use crate::geometric_span_native::SpanSourceBinding;
+        let root = std::env::temp_dir().join(format!(
+            "native-potential-reader-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        let model = tiny_span_model()?;
+        model.save(&root)?;
+        let registry = b"test-token-registry/1";
+        let p = model.params()?;
+        let span_source = SpanSourceBinding::from_files(
+            &root.join("model.safetensors"),
+            &root.join("config.json"),
+            registry,
+        )?;
+        let span = CompiledSpanActions::compile(
+            p.get("embedding.weight")?,
+            model
+                .geometric_span()
+                .ok_or_else(|| invalid("span absent"))?,
+            &span_source,
+        )?;
+        let potential_source = PotentialSourceBinding::from_directory(&root, registry)?;
+        let config = model
+            .geometric_address()
+            .ok_or_else(|| invalid("address absent"))?;
+        let weights = model.geometric_address_potentials()?;
+        let potential = CompiledGeometricPotentials::compile(&weights, config, &potential_source)?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let before = bits(&model.forward(&ids, 1, 10)?)?;
+        let (current, prior) = model.geometric_potential_inputs(&ids, 1, 10, &span)?;
+        let expected_current = model.norm(
+            &p,
+            &model.run_layers(model.embed(&ids, 1, 10)?, 0..2)?,
+            "layers.02.read_norm.weight",
+        )?;
+        assert_eq!(bits(&current)?, bits(&expected_current)?);
+        let controller = model.geometric_span_control_logits(&ids, 1, 10)?;
+        let expected_prior = geometric_span::produce(
+            &model.embed(&ids, 1, 10)?,
+            &controller,
+            model
+                .geometric_span()
+                .ok_or_else(|| invalid("span absent"))?,
+            SpanPolicy::Ordered,
+        )?;
+        assert_eq!(bits(&prior)?, bits(&expected_prior)?);
+        let original_scores = geometric_address::score(&current, &prior, config, &weights)?;
+        let native_scores = geometric_potential_native::score_native(
+            &current, &prior, config, &weights, &potential,
+        )?;
+        assert_eq!(original_scores.dims(), native_scores.dims());
+        let native = model.forward_geometric_potential_native(&ids, 1, 10, &span, &potential)?;
+        assert_eq!(native.dims(), [10, model.config.vocab_size]);
+        assert!(native
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .iter()
+            .all(|x| x.is_finite()));
+        for head in 0..2 {
+            let target = ReadBindingTarget {
+                layer: 2,
+                head,
+                rows: vec![ReadBinding {
+                    batch: 0,
+                    query: 9,
+                    sources: vec![4],
+                }],
+            };
+            let masses = model
+                .read_binding_masses_geometric_potential_native(
+                    &ids, 1, 10, &target, &span, &potential,
+                )?
+                .to_vec1::<f32>()?;
+            assert_eq!(masses.len(), 1);
+            assert!(masses[0].is_finite() && (0.0..=1.0).contains(&masses[0]));
+        }
+        let legacy = tiny_address_model()?;
+        assert!(legacy
+            .forward_geometric_potential_native(&ids, 1, 10, &span, &potential)
+            .is_err());
+        let vars = model.variables();
+        let pair = vars
+            .get("layers.02.read.address.pair")
+            .ok_or_else(|| invalid("pair absent"))?;
+        let old = pair.as_tensor().copy()?;
+        pair.set(&old.affine(1.0, 0.001)?)?;
+        assert!(model
+            .forward_geometric_potential_native(&ids, 1, 10, &span, &potential)
+            .is_err());
+        pair.set(&old)?;
+        assert_eq!(bits(&model.forward(&ids, 1, 10)?)?, before);
+        assert_eq!(
+            bits(&model.forward_geometric_span_native(&ids, 1, 10, &span)?)?,
+            before
+        );
+        std::fs::remove_dir_all(root)?;
         Ok(())
     }
 

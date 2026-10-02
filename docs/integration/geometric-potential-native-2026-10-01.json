@@ -1,0 +1,632 @@
+{
+  "elapsed_seconds": 190.071448875,
+  "evaluation_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+  "maximum_seconds": 900,
+  "parent_report_sha256": "60f78851dd86b0063cca537eabd50aa2a3c092bd25b29de4f6db7ae5d2ef3db5",
+  "results": [
+    {
+      "decision": "BOUNDED_SCORE_AND_FIXED_DECISION_RETENTION",
+      "error_bounds": [
+        {
+          "absolute_term_sum": 23.25321377196839,
+          "compiled_gamma": 7.105427357601054e-15,
+          "f64_evaluation": 1.8174642341624939e-12,
+          "head": 0,
+          "lanes": 4,
+          "native_f32_rounding": 1.3859995965023996e-06,
+          "quantization": 8.344650268554688e-07,
+          "reference_f32_rounding": 1.3859995467644966e-06,
+          "reference_gamma": 7.105427357601508e-14,
+          "total": 3.6064659875866e-06
+        },
+        {
+          "absolute_term_sum": 4.808813914351089,
+          "compiled_gamma": 7.105427357601054e-15,
+          "f64_evaluation": 3.7585545739109316e-13,
+          "head": 1,
+          "lanes": 4,
+          "native_f32_rounding": 2.866276948938462e-07,
+          "quantization": 8.344650268554688e-07,
+          "reference_f32_rounding": 2.8662764515587296e-07,
+          "reference_gamma": 7.105427357601508e-14,
+          "total": 1.4077207427606457e-06
+        }
+      ],
+      "name": "GeometricSpan-Ordered-s1",
+      "native_potential_metadata": {
+        "address": {
+          "heads": 2,
+          "lanes_per_head": 4,
+          "norm_epsilon": 9.5367431640625e-07,
+          "radius_bins": 32,
+          "radius_min_exponent": -16,
+          "radius_rule": "physical-nearest-dyadic-midpoint-lower-clip[-16,15]-zero-separate/1",
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-address/1",
+          "surrogate_rule": "hard-root-hamilton-normalized-ste;hard-radius-coefficient/local-physical-input;presence-stop/1"
+        },
+        "address_sidecar_sha256": "265dd024b05cad3151226a99f42981607e3f356a179391600289df1bfe78c6e0",
+        "algebra_bytes": 15601,
+        "algebra_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "algebra_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "bound_rule": "S-raw-monomial-absolute;gamma64+gamma128L128;seven-Q24;both-F32-casts;positive-upward/1",
+        "coefficient_geometry_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "coefficients": [
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_unary",
+            "sha256": "ba9b9e89eb66792f5c230621a4141e33499f3a93c36f3b171afc32d354273ad7",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_unary",
+            "sha256": "1777d0e31dde633bdafda0397e6672e3025139ef6ef6c9cd5ea9e0baae295fb0",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 512,
+            "name": "layers.02.read.address.pair",
+            "sha256": "4e637e919537b9ef166fb8056e704dcc127ea9456c48c80851556e9630a9e5a0",
+            "shape": [
+              2,
+              4,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.content_radius",
+            "sha256": "3ffa2ca98747c4826bd6ef1e2b4c8b4054a3f45865a432036530564e974efd36",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.context_radius",
+            "sha256": "f727db53a92d41a724be537c4f359b698bde19485283ed4476b1ccbb7d3642c9",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_presence",
+            "sha256": "0b7051b38a0f18138c240ebcb04a9d055381b50dfbbb4a41b26be5b19bd8d3a9",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_presence",
+            "sha256": "1244dac4f22494ddfed724058d215c8cc35ed86dcc0cca4673455b5643fbc4bd",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          }
+        ],
+        "config_sha256": "456074d03418fe7ebdf175809c27412fdf6eb779820d430a90fa394ac7e156dd",
+        "error_bounds": [
+          {
+            "absolute_term_sum": 23.25321377196839,
+            "compiled_gamma": 7.105427357601054e-15,
+            "f64_evaluation": 1.8174642341624939e-12,
+            "head": 0,
+            "lanes": 4,
+            "native_f32_rounding": 1.3859995965023996e-06,
+            "quantization": 8.344650268554688e-07,
+            "reference_f32_rounding": 1.3859995467644966e-06,
+            "reference_gamma": 7.105427357601508e-14,
+            "total": 3.6064659875866e-06
+          },
+          {
+            "absolute_term_sum": 4.808813914351089,
+            "compiled_gamma": 7.105427357601054e-15,
+            "f64_evaluation": 3.7585545739109316e-13,
+            "head": 1,
+            "lanes": 4,
+            "native_f32_rounding": 2.866276948938462e-07,
+            "quantization": 8.344650268554688e-07,
+            "reference_f32_rounding": 2.8662764515587296e-07,
+            "reference_gamma": 7.105427357601508e-14,
+            "total": 1.4077207427606457e-06
+          }
+        ],
+        "fractional_bits": 24,
+        "model_sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+        "policy": "signed-i32-Q24;nearest-ties-away;one-round-per-family;no-centering;overflow-reject;head-lane-seven-families/1",
+        "schema": "uor-r4.native-geometric-potentials/1",
+        "table_bytes": 597760,
+        "table_entries": 149440,
+        "table_sha256": "3145acb286a84cddc5306361ec2c2f24bda993153c0d2424a6555add3d17b656",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569"
+      },
+      "native_span_metadata": {
+        "classification": "training-encode_lane-original-f32-promoted-f64;signed-nearest-root;lowest-index-tie;zero-identity/1",
+        "coefficient_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "config_sha256": "456074d03418fe7ebdf175809c27412fdf6eb779820d430a90fa394ac7e156dd",
+        "dictionary_bytes": 320,
+        "dictionary_sha256": "d4915e680119fd93975f7b68f95a52500e94e9d08f900da401d1e2d25a6fb624",
+        "embedding_sha256": "d8b335023b37a9ebe2f8cf577a9a8b78ec7e7f72c73d92f66553f0861dbb51e4",
+        "lanes": 8,
+        "model_sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+        "replay": "old-held;earliest-argmax-f32-controller;integer-dictionary-register;canonical-f32-reconstruction-only/1",
+        "schema": "uor-r4.native-span-actions/1",
+        "span": {
+          "action_order": [
+            "hold",
+            "open",
+            "append",
+            "commit"
+          ],
+          "norm_epsilon": 9.5367431640625e-07,
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-span/1",
+          "state_rule": "old-held;open-empty;append-open-right;commit-nonempty-close;unit-span-zero-absent/1",
+          "surrogate_rule": "selected-hamilton/token-normalized;softmax-branch-delta;flags-stop;output-tangent/1",
+          "width": 32
+        },
+        "span_config_sha256": "1b726a7205bb3aa975f547e422c336a2cd8532f43791c01f54368ff22f38c99b",
+        "table_bytes": 15601,
+        "table_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "table_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+        "vocab_size": 40,
+        "width": 32
+      },
+      "original": {
+        "baseline_answers": 99,
+        "full_logit_bit_mismatches": 184184,
+        "full_logit_max_error": 5.558133125305176e-06,
+        "head0_majority_changes": 0,
+        "head1_majority_changes": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 63,
+        "identical_source_mass_rows": 53,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 99,
+        "native_head0_source_majorities": 128,
+        "padded_positions": 7296,
+        "prediction_changes": 0,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 6400,
+        "ranking_changed_near_ties": 0,
+        "ranking_changes": 0,
+        "rows": 128,
+        "score_bound_violations": 0,
+        "score_bounds": [
+          3.6064659875866e-06,
+          1.4077207427606457e-06
+        ],
+        "score_max_errors": [
+          9.5367431640625e-07,
+          5.960464477539062e-07
+        ],
+        "score_pairs": 868864,
+        "unpadded_positions": 6216
+      },
+      "source_model_sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+      "stress": {
+        "baseline_answers": 109,
+        "full_logit_bit_mismatches": 251209,
+        "full_logit_max_error": 6.318092346191406e-06,
+        "head0_majority_changes": 0,
+        "head1_majority_changes": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 61,
+        "identical_source_mass_rows": 48,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 109,
+        "native_head0_source_majorities": 126,
+        "padded_positions": 10048,
+        "prediction_changes": 0,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 9152,
+        "ranking_changed_near_ties": 0,
+        "ranking_changes": 0,
+        "rows": 128,
+        "score_bound_violations": 0,
+        "score_bounds": [
+          3.6064659875866e-06,
+          1.4077207427606457e-06
+        ],
+        "score_max_errors": [
+          9.5367431640625e-07,
+          5.960464477539062e-07
+        ],
+        "score_pairs": 1657088,
+        "unpadded_positions": 8272
+      }
+    },
+    {
+      "decision": "BOUNDED_SCORE_AND_FIXED_DECISION_RETENTION",
+      "error_bounds": [
+        {
+          "absolute_term_sum": 23.688790128049973,
+          "compiled_gamma": 7.105427357601054e-15,
+          "f64_evaluation": 1.8515087518875847e-12,
+          "head": 0,
+          "lanes": 4,
+          "native_f32_rounding": 1.4119619704792016e-06,
+          "quantization": 8.344650268554688e-07,
+          "reference_f32_rounding": 1.4119619207413e-06,
+          "reference_gamma": 7.105427357601508e-14,
+          "total": 3.6583907695847236e-06
+        },
+        {
+          "absolute_term_sum": 5.799189550103675,
+          "compiled_gamma": 7.105427357601054e-15,
+          "f64_evaluation": 4.5326292089345524e-13,
+          "head": 1,
+          "lanes": 4,
+          "native_f32_rounding": 3.4565868285708116e-07,
+          "quantization": 8.344650268554688e-07,
+          "reference_f32_rounding": 3.456586331191117e-07,
+          "reference_gamma": 7.105427357601508e-14,
+          "total": 1.525782796094583e-06
+        }
+      ],
+      "name": "GeometricSpan-Ordered-s2",
+      "native_potential_metadata": {
+        "address": {
+          "heads": 2,
+          "lanes_per_head": 4,
+          "norm_epsilon": 9.5367431640625e-07,
+          "radius_bins": 32,
+          "radius_min_exponent": -16,
+          "radius_rule": "physical-nearest-dyadic-midpoint-lower-clip[-16,15]-zero-separate/1",
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-address/1",
+          "surrogate_rule": "hard-root-hamilton-normalized-ste;hard-radius-coefficient/local-physical-input;presence-stop/1"
+        },
+        "address_sidecar_sha256": "77b565229bafb1f37948a861619ebac02abdaeea24c3c7f471d1d3f54b3a6bef",
+        "algebra_bytes": 15601,
+        "algebra_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "algebra_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "bound_rule": "S-raw-monomial-absolute;gamma64+gamma128L128;seven-Q24;both-F32-casts;positive-upward/1",
+        "coefficient_geometry_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "coefficients": [
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_unary",
+            "sha256": "ffe9f4d0b865a6b280ea6d744614915573b4c4747df5cbc45d173ed63611167e",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_unary",
+            "sha256": "dc47ad495d05e674b1504b61efb06b41bc37c404e8781cc2ba1c6ab2599216cb",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 512,
+            "name": "layers.02.read.address.pair",
+            "sha256": "9d72679bedd6c39a2a97ab71592e7214185ef4b0febd44abc5656238f03bcddc",
+            "shape": [
+              2,
+              4,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.content_radius",
+            "sha256": "fc77eaa00ad9208db4b3e705769d515adce20eee51f26d8e7cbed856dddf7ec9",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.context_radius",
+            "sha256": "927d90ff082623dd66652c0f56755ed21d8c6cfa7b617607972a5517130406fa",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_presence",
+            "sha256": "4f8787b602e8d657ee6d5bc22daa799155d80dfa7b1c21d232cad89fc70beeb4",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_presence",
+            "sha256": "ae621b8a3d2a57108193d9b5b0d83ea872243e3234ae1ec89a41d7a3b9350d9c",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          }
+        ],
+        "config_sha256": "c37a4ca04737fbb953708495daeb6b7b7f65eb2843ea636f3bbcf8a7acb8ac1a",
+        "error_bounds": [
+          {
+            "absolute_term_sum": 23.688790128049973,
+            "compiled_gamma": 7.105427357601054e-15,
+            "f64_evaluation": 1.8515087518875847e-12,
+            "head": 0,
+            "lanes": 4,
+            "native_f32_rounding": 1.4119619704792016e-06,
+            "quantization": 8.344650268554688e-07,
+            "reference_f32_rounding": 1.4119619207413e-06,
+            "reference_gamma": 7.105427357601508e-14,
+            "total": 3.6583907695847236e-06
+          },
+          {
+            "absolute_term_sum": 5.799189550103675,
+            "compiled_gamma": 7.105427357601054e-15,
+            "f64_evaluation": 4.5326292089345524e-13,
+            "head": 1,
+            "lanes": 4,
+            "native_f32_rounding": 3.4565868285708116e-07,
+            "quantization": 8.344650268554688e-07,
+            "reference_f32_rounding": 3.456586331191117e-07,
+            "reference_gamma": 7.105427357601508e-14,
+            "total": 1.525782796094583e-06
+          }
+        ],
+        "fractional_bits": 24,
+        "model_sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+        "policy": "signed-i32-Q24;nearest-ties-away;one-round-per-family;no-centering;overflow-reject;head-lane-seven-families/1",
+        "schema": "uor-r4.native-geometric-potentials/1",
+        "table_bytes": 597760,
+        "table_entries": 149440,
+        "table_sha256": "8114b419ee72ade244e84634b543b14dc5228be5bf18a26e1d0519b2ba1a9b9f",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569"
+      },
+      "native_span_metadata": {
+        "classification": "training-encode_lane-original-f32-promoted-f64;signed-nearest-root;lowest-index-tie;zero-identity/1",
+        "coefficient_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "config_sha256": "c37a4ca04737fbb953708495daeb6b7b7f65eb2843ea636f3bbcf8a7acb8ac1a",
+        "dictionary_bytes": 320,
+        "dictionary_sha256": "e7ff1785991ab737eaea80e5b435421ca4b7e4dc0e1bcffbda9b43f69d67cc4e",
+        "embedding_sha256": "8569b342d9c3834f13b8c8a86e9cb523d19fff0748a7d9556e87a5b4a2704f3b",
+        "lanes": 8,
+        "model_sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+        "replay": "old-held;earliest-argmax-f32-controller;integer-dictionary-register;canonical-f32-reconstruction-only/1",
+        "schema": "uor-r4.native-span-actions/1",
+        "span": {
+          "action_order": [
+            "hold",
+            "open",
+            "append",
+            "commit"
+          ],
+          "norm_epsilon": 9.5367431640625e-07,
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-span/1",
+          "state_rule": "old-held;open-empty;append-open-right;commit-nonempty-close;unit-span-zero-absent/1",
+          "surrogate_rule": "selected-hamilton/token-normalized;softmax-branch-delta;flags-stop;output-tangent/1",
+          "width": 32
+        },
+        "span_config_sha256": "1b726a7205bb3aa975f547e422c336a2cd8532f43791c01f54368ff22f38c99b",
+        "table_bytes": 15601,
+        "table_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "table_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+        "vocab_size": 40,
+        "width": 32
+      },
+      "original": {
+        "baseline_answers": 128,
+        "full_logit_bit_mismatches": 182096,
+        "full_logit_max_error": 5.7220458984375e-06,
+        "head0_majority_changes": 0,
+        "head1_majority_changes": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 53,
+        "identical_source_mass_rows": 87,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 128,
+        "native_head0_source_majorities": 127,
+        "padded_positions": 7296,
+        "prediction_changes": 0,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 6400,
+        "ranking_changed_near_ties": 0,
+        "ranking_changes": 0,
+        "rows": 128,
+        "score_bound_violations": 0,
+        "score_bounds": [
+          3.6583907695847236e-06,
+          1.525782796094583e-06
+        ],
+        "score_max_errors": [
+          9.5367431640625e-07,
+          3.5762786865234375e-07
+        ],
+        "score_pairs": 868864,
+        "unpadded_positions": 6216
+      },
+      "source_model_sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+      "stress": {
+        "baseline_answers": 128,
+        "full_logit_bit_mismatches": 255366,
+        "full_logit_max_error": 5.0067901611328125e-06,
+        "head0_majority_changes": 0,
+        "head1_majority_changes": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 51,
+        "identical_source_mass_rows": 95,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 128,
+        "native_head0_source_majorities": 128,
+        "padded_positions": 10048,
+        "prediction_changes": 0,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 9152,
+        "ranking_changed_near_ties": 0,
+        "ranking_changes": 0,
+        "rows": 128,
+        "score_bound_violations": 0,
+        "score_bounds": [
+          3.6583907695847236e-06,
+          1.525782796094583e-06
+        ],
+        "score_max_errors": [
+          9.5367431640625e-07,
+          3.203749656677246e-07
+        ],
+        "score_pairs": 1657088,
+        "unpadded_positions": 8272
+      }
+    }
+  ],
+  "schema": "uor-r4.geometric-potential-native-replay/1",
+  "scope": "integer finite geometric scoring component; float producers/classification/reconstruction/age/NoRead/softmax/values/output remain; no full serving, donor reasoning transfer, geometry superiority or energy qualification",
+  "source_commit": "c69e496502641098588056b1a27dfcfb0600cf99",
+  "stress_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+  "training_updates": 0,
+  "execution_identity": {
+    "source_commit": "c69e496502641098588056b1a27dfcfb0600cf99",
+    "executable_sha256": "6b169f57b457a06c5e808068c1cc977f7941793852f7eb68a36323166c58921b",
+    "argv": [
+      "/Users/casey.allard/.cache/uor-r4-geometric-potential-native-target/debug/examples/attention-geometric-potential-native",
+      "out=/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1",
+      "parent=/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001",
+      "max_seconds=900"
+    ],
+    "profile": "dev; only training crate opt-level=3",
+    "started_utc": "2026-10-02T01:16:37.817924+00:00"
+  },
+  "execution_receipt": {
+    "elapsed_seconds": 198.611831959,
+    "exit_code": 0,
+    "watchdog_expired": false
+  },
+  "assembly": {
+    "source_commit": "c69e496502641098588056b1a27dfcfb0600cf99",
+    "architecture": "aarch64-apple-darwin",
+    "profile": "release",
+    "assembly_sha256": "724f44db4eed403d381b9db5be3b48a95cd8d4be72b3d05b96894b4695688a6a",
+    "function": "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer19geometric_potentialNtB5_21NativePotentialTables5score",
+    "instructions": 182,
+    "opcodes": [
+      "add",
+      "adrp",
+      "ands",
+      "b",
+      "b.eq",
+      "b.hs",
+      "b.ne",
+      "bl",
+      "cbz",
+      "cmp",
+      "csel",
+      "ldp",
+      "ldr",
+      "ldrb",
+      "ldrsw",
+      "ldur",
+      "ldurb",
+      "lsl",
+      "mov",
+      "orr",
+      "ret",
+      "stp",
+      "str",
+      "strb",
+      "subs",
+      "tst"
+    ],
+    "forbidden": [],
+    "calls": [
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check",
+      "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+    ],
+    "scope": "emitted score body; relative/compose inlined; defensive panic callees uninspected; not closed-callgraph or full-model qualification",
+    "decision": "NO_FORBIDDEN_OPCODES_IN_EMITTED_BODY",
+    "assembly_sha256_scope": "full emitted integer crate assembly",
+    "assembly_original_path": "/Users/casey.allard/.cache/uor-r4-geometric-potential-native-target/release/deps/uor_r4_integer-c979fee5f374c490.s",
+    "assembly_retained_gzip": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/full-integer-release-aarch64.s.gz",
+    "assembly_gzip_sha256": "fad3c625ba95a316374ca0244fec100c29a52a78922ef46c129e95dce3e76aa0",
+    "retained_body_path": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/potential-score-release-aarch64.s",
+    "retained_body_sha256": "93e38079659501965e4dbf787e7c68865fd1914e68ef528bd73d1e4c0c314b25"
+  },
+  "checks": {
+    "integer": 4,
+    "compiler": 4,
+    "stack_integration": 1,
+    "retained_interface": 1,
+    "evaluator": 1,
+    "total": 11,
+    "fmt": "PASS",
+    "diff": "PASS"
+  },
+  "max_rss_bytes": 157728768,
+  "peak_memory_footprint_bytes": 212828784,
+  "retained_root": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001",
+  "report_sha256": "bb08725ca484d1f3dcac693e8e844863309b0fe7898e9f89bbeb482d6759b531",
+  "manifest_sha256": "690ab8cbd36a5175110e2993af4aaed011104347deb6ab71193320548a5c8d2e",
+  "binary_preservation": {
+    "original_sha256": "6b169f57b457a06c5e808068c1cc977f7941793852f7eb68a36323166c58921b",
+    "gzip_sha256": "4b863ee4f494f5154d1baaefd29e0109611e70f90a695f551b615fac278fcebe",
+    "original_bytes": 24144168,
+    "gzip_bytes": 5553528,
+    "roundtrip": "BYTE_IDENTICAL"
+  }
+}
