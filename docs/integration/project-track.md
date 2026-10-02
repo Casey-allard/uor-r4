@@ -121,9 +121,13 @@ embeddings alone are not assumed to contain reasoning.
    tail frozen. The [strict q4 construction](geometric-value-q4-2026-10-02.md)
    now completes loaded projection451/512 versus467/512 parent and repairs the
    source/native hard-choice bridge: all512 packet/Q16 traces agree with native
-   outputs unchanged. Next preregister bounded answer-only value learning with
-   the learned bank and upstream/tail frozen; retain projection/parent rows and
-   CE. Packet-perfect donor imitation or perfect answer recovery is not an
+   outputs unchanged. The [fixed q4 answer fits](geometric-value-q4-fit-2026-10-02.md)
+   now complete640 updates perseed with bank/upstream/tail frozen. Retain both
+   learned candidates, projection and unrestricted parents, including every
+   gain/loss and CE. End this dose; advance the remaining attention coefficient
+   boundary through connected geometric source/compiler/learning/native callers.
+   Current-state owns exact results and next source selection. Packet-perfect
+   donor imitation or perfect answer recovery is not an
    admission gate. No coefficient-scale/bank/selector/alphabet sweep.
    Neither initialization nor a mixed fitted result retires geometry. Preserve
    offline donor compilation as a separate option.

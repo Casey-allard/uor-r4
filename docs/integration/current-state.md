@@ -1,5 +1,32 @@
 # Current UOR-R4 research state
 
+## Strict q4 geometric values — both fixed answer fits complete, October 2
+
+Both retained projection2 producers complete640 answer-only updates through the
+frozen learned H4 bank. Independently reloaded source/native answers112/113 and
+126/128 total479/512, versus451 projection and467 unrestricted parent. All four
+answer-CE panels improve against both controls;24 parent gains and12 losses are
+retained. All512 source/native packet/Q16 traces and answers agree; maximum
+actual-position logit drift0.000364304. Frozen numerical NoRead/bank payloads
+remain byte-identical. On the12 parent losses, head0 still assigns98.7506–99.9800%
+mass to the correct source; do not change addressing on that evidence.
+
+Two focused driver cases, release build and both actual zero-update check modes
+pass. Both640-backward fits finish; workers148.275/124.302s at512278528/478838784
+bytes peak RSS. Model context128/width32, actual episode lengths24–80/24–78,
+actual positions245330/245334 and padded286496/285824 remain separate measures.
+[Completed learning and limits](geometric-value-q4-fit-2026-10-02.md) ·
+[Receipt](../evidence/geometric-value-q4-fit-2026-10-02.json).
+
+Retain both learned q4 values and all controls; end the fixed dose and advance
+the remaining attention coefficient boundary in connected geometric operators.
+No automatic value/bank/selector/scale/alphabet sweep or vocabulary-head detour.
+Additional-dose controls, geometric superiority, heldout language and full native
+serving/energy are not established. Wider context/event/potential coefficients,
+float tail, selected access and natural-input/session integration remain open.
+Claude's D19 work does not redirect this track; stack_grounded_session.rs is
+untouched, and broader offline donor/operator compilation remains available.
+
 ## Strict q4 geometric values — loaded construction and hard bridge, October 2
 
 The K2 value producer now admits128,896 signed-four-bit coefficients at fixed

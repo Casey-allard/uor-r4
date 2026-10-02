@@ -1,0 +1,518 @@
+{
+  "schema": "uor-r4.geometric-value-q4-fit-evidence/1",
+  "status": "BOTH_FIXED_FITS_COMPLETE_RETAIN_MIXED_ROWS",
+  "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5954982171",
+  "records": [
+    {
+      "seed": 1,
+      "report_sha256": "f9c18b70e48e21429a58965fbb2c461d6e97942f81c2ab8c2cc5a700ba3cee3c",
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-value-q4-fit",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-q4-fit-20261002/args-s1-fit.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 148.27457641700002,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_value_q4.rs": "bcace5a71389f4a77153da60223d453b71d373b137c8f2e3d944c60e9d522674",
+          "crates/uor-r4-integer/src/lib.rs": "8a0943fd67488a7c47055f1d79654ecf8eee42f0ec5761df904a763973ff3d7b",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "53d9fb78368bffc5a5af893ae548c3a465def1ff0e8bc76f2cd092839199f1cd",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "5e7937b912f6fa1fd252689b2cd68cef5a2598deaa4e245a7cfee490cb8e0f45",
+          "crates/uor-r4-training/src/geometric_composition.rs": "ad13c7831a9e076b4f763dbf59ecd4bfd00129de38070949b52a9da314ea8443",
+          "crates/uor-r4-training/src/geometric_stack.rs": "29b8e6d6645bff8f2fd9a54d9635d124622df752b10cb98834b337ed7ecc641b",
+          "crates/uor-r4-training/examples/attention-geometric-value-q4-fit.rs": "8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02",
+          "crates/uor-r4-training/examples/attention-geometric-value-q4-fit/fit.rs": "6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 512278528,
+        "executable_sha256": "689f76e7f2ed172ea526d3bb51d1333ae771de8d5de8b60046d3ef0da600bb21"
+      },
+      "fit": {
+        "actual_positions": 245330,
+        "checkpoint_seconds": 0.089118668,
+        "clipped_updates": 0,
+        "completed": true,
+        "completed_backward_batches": 640,
+        "completed_updates": 640,
+        "elapsed_seconds": 110.177243417,
+        "forward_backward_update_seconds": 103.348694632,
+        "generator_state_semantics": "next RNG follows completed q4_value updates; AdamW moments are not serialized",
+        "initial_generator_state": 461503785751815875,
+        "maximum_batch_time": 80,
+        "maximum_episode_length": 80,
+        "minimum_batch_time": 36,
+        "minimum_episode_length": 24,
+        "next_generator_state": 17847168693577953940,
+        "observed_generator_state_after_draws": 17847168693577953940,
+        "padded_positions": 286496,
+        "preparation_seconds": 0.23761294800000013,
+        "prepared_batches": 640,
+        "prepared_episodes": 5120,
+        "total_projected_coordinates": 2669119,
+        "total_q4_flips": 72786
+      },
+      "panels": [
+        {
+          "answers": {
+            "native": 112,
+            "parent": 102,
+            "projection": 94,
+            "source": 112
+          },
+          "gains_from_parent": 11,
+          "gains_from_projection": 19,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses_from_parent": 1,
+          "losses_from_projection": 1,
+          "maximum_actual_position_logit_delta": 0.00024366378784179688,
+          "mean_answer_ce": {
+            "native": 0.9658440279465694,
+            "parent": 1.099174771944507,
+            "projection": 1.143259723935755,
+            "source": 0.965844495403623
+          },
+          "panel": "original",
+          "parent_rows_sha256": "a1f2244aa2b11bf9f5bd4f00810795bc0c319d2e2928b667a932761bbf206e28",
+          "projection_rows_sha256": "b21d3ac973e040ecbb2f1445c4942b4130f779807bfba070858838eb9954612e",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_trace_mismatches": 0
+        },
+        {
+          "answers": {
+            "native": 113,
+            "parent": 109,
+            "projection": 104,
+            "source": 113
+          },
+          "gains_from_parent": 13,
+          "gains_from_projection": 17,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses_from_parent": 9,
+          "losses_from_projection": 8,
+          "maximum_actual_position_logit_delta": 0.0003275275230407715,
+          "mean_answer_ce": {
+            "native": 0.9301974033259854,
+            "parent": 1.0914018426092145,
+            "projection": 1.1128369239688598,
+            "source": 0.930197609792371
+          },
+          "panel": "stress",
+          "parent_rows_sha256": "5b87ff1f2822907f876ce3311da8da10320c341e34d4e5c01c58e225fdae2bce",
+          "projection_rows_sha256": "6b892e92baef8333553ce74c571a1a4b908fb7054535dd3aa18a0962fbe3d0ed",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_trace_mismatches": 0
+        }
+      ],
+      "packed_sha256": "86e2e7a6fd12c8a3f5620a9be53f0f20d6ac29e0498c793034dc45988d463659",
+      "rebound_composition_numerical_files_unchanged": [
+        "gains-q4.bin",
+        "left-roots.bin",
+        "right-roots.bin",
+        "tokenizer-identity.bin"
+      ],
+      "rebound_no_read_numerical_files_unchanged": [
+        "no-read-coefficients-q4.bin",
+        "no-read-expanded-q24-i32le.bin",
+        "observation-basis-q25-i32le.bin",
+        "tokenizer-identity.bin"
+      ]
+    },
+    {
+      "seed": 2,
+      "report_sha256": "a341dcfbf9bf87e131be7936e92edbe36ce823e4cce983f25b21a2ec8150e6e6",
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-value-q4-fit",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-q4-fit-20261002/args-s2-fit.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 124.302321166,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_value_q4.rs": "bcace5a71389f4a77153da60223d453b71d373b137c8f2e3d944c60e9d522674",
+          "crates/uor-r4-integer/src/lib.rs": "8a0943fd67488a7c47055f1d79654ecf8eee42f0ec5761df904a763973ff3d7b",
+          "crates/uor-r4-training/src/geometric_value_producer.rs": "53d9fb78368bffc5a5af893ae548c3a465def1ff0e8bc76f2cd092839199f1cd",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "5e7937b912f6fa1fd252689b2cd68cef5a2598deaa4e245a7cfee490cb8e0f45",
+          "crates/uor-r4-training/src/geometric_composition.rs": "ad13c7831a9e076b4f763dbf59ecd4bfd00129de38070949b52a9da314ea8443",
+          "crates/uor-r4-training/src/geometric_stack.rs": "29b8e6d6645bff8f2fd9a54d9635d124622df752b10cb98834b337ed7ecc641b",
+          "crates/uor-r4-training/examples/attention-geometric-value-q4-fit.rs": "8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02",
+          "crates/uor-r4-training/examples/attention-geometric-value-q4-fit/fit.rs": "6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 478838784,
+        "executable_sha256": "689f76e7f2ed172ea526d3bb51d1333ae771de8d5de8b60046d3ef0da600bb21"
+      },
+      "fit": {
+        "actual_positions": 245334,
+        "checkpoint_seconds": 0.08817575000000001,
+        "clipped_updates": 0,
+        "completed": true,
+        "completed_backward_batches": 640,
+        "completed_updates": 640,
+        "elapsed_seconds": 97.736276542,
+        "forward_backward_update_seconds": 91.22584871300006,
+        "generator_state_semantics": "next RNG follows completed q4_value updates; AdamW moments are not serialized",
+        "initial_generator_state": 1220542080958524937,
+        "maximum_batch_time": 78,
+        "maximum_episode_length": 78,
+        "minimum_batch_time": 34,
+        "minimum_episode_length": 24,
+        "next_generator_state": 8892160473256393877,
+        "observed_generator_state_after_draws": 8892160473256393877,
+        "padded_positions": 285824,
+        "preparation_seconds": 0.22962879100000005,
+        "prepared_batches": 640,
+        "prepared_episodes": 5120,
+        "total_projected_coordinates": 3758681,
+        "total_q4_flips": 104512
+      },
+      "panels": [
+        {
+          "answers": {
+            "native": 126,
+            "parent": 128,
+            "projection": 127,
+            "source": 126
+          },
+          "gains_from_parent": 0,
+          "gains_from_projection": 1,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses_from_parent": 2,
+          "losses_from_projection": 2,
+          "maximum_actual_position_logit_delta": 0.00030159950256347656,
+          "mean_answer_ce": {
+            "native": 0.38976576509639305,
+            "parent": 0.4706871254010248,
+            "projection": 0.4862635847345097,
+            "source": 0.3897660854491143
+          },
+          "panel": "original",
+          "parent_rows_sha256": "8557d614f6f675abbc153f5508e5dc047dcd49d67cf749df74e20e2a5bde0f8f",
+          "projection_rows_sha256": "6f2a2f237bcfa7e5520d365e220936ad03aa772c72f784715e6708ff68553e94",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_trace_mismatches": 0
+        },
+        {
+          "answers": {
+            "native": 128,
+            "parent": 128,
+            "projection": 126,
+            "source": 128
+          },
+          "gains_from_parent": 0,
+          "gains_from_projection": 2,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses_from_parent": 0,
+          "losses_from_projection": 0,
+          "maximum_actual_position_logit_delta": 0.0003643035888671875,
+          "mean_answer_ce": {
+            "native": 0.3803569559419243,
+            "parent": 0.4581337070178101,
+            "projection": 0.4876680582852711,
+            "source": 0.3803570953511291
+          },
+          "panel": "stress",
+          "parent_rows_sha256": "e8d5a5da2926ff24af46623bbcc059b4a5992c7905d9ad70b78fb0c324d12e19",
+          "projection_rows_sha256": "2e795d74245f9b342f9d1ef260bf6ea665a2078c881cee4037f12b89c5e0904e",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_trace_mismatches": 0
+        }
+      ],
+      "packed_sha256": "b6a6ea5465ed85d60672738a4d4d7f6ce2b7b97c5990f415211c585005cd9ec4",
+      "rebound_composition_numerical_files_unchanged": [
+        "gains-q4.bin",
+        "left-roots.bin",
+        "right-roots.bin",
+        "tokenizer-identity.bin"
+      ],
+      "rebound_no_read_numerical_files_unchanged": [
+        "no-read-coefficients-q4.bin",
+        "no-read-expanded-q24-i32le.bin",
+        "observation-basis-q25-i32le.bin",
+        "tokenizer-identity.bin"
+      ]
+    }
+  ],
+  "checks": {
+    "driver-tests-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-value-q4-fit",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 345.418731875,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_value_q4.rs": "bcace5a71389f4a77153da60223d453b71d373b137c8f2e3d944c60e9d522674",
+        "crates/uor-r4-integer/src/lib.rs": "8a0943fd67488a7c47055f1d79654ecf8eee42f0ec5761df904a763973ff3d7b",
+        "crates/uor-r4-training/src/geometric_value_producer.rs": "53d9fb78368bffc5a5af893ae548c3a465def1ff0e8bc76f2cd092839199f1cd",
+        "crates/uor-r4-training/src/geometric_value_producer_native.rs": "5e7937b912f6fa1fd252689b2cd68cef5a2598deaa4e245a7cfee490cb8e0f45",
+        "crates/uor-r4-training/src/geometric_composition.rs": "ad13c7831a9e076b4f763dbf59ecd4bfd00129de38070949b52a9da314ea8443",
+        "crates/uor-r4-training/src/geometric_stack.rs": "29b8e6d6645bff8f2fd9a54d9635d124622df752b10cb98834b337ed7ecc641b",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit.rs": "8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit/fit.rs": "6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "driver-build-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-value-q4-fit"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 7.172749958000001,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_value_q4.rs": "bcace5a71389f4a77153da60223d453b71d373b137c8f2e3d944c60e9d522674",
+        "crates/uor-r4-integer/src/lib.rs": "8a0943fd67488a7c47055f1d79654ecf8eee42f0ec5761df904a763973ff3d7b",
+        "crates/uor-r4-training/src/geometric_value_producer.rs": "53d9fb78368bffc5a5af893ae548c3a465def1ff0e8bc76f2cd092839199f1cd",
+        "crates/uor-r4-training/src/geometric_value_producer_native.rs": "5e7937b912f6fa1fd252689b2cd68cef5a2598deaa4e245a7cfee490cb8e0f45",
+        "crates/uor-r4-training/src/geometric_composition.rs": "ad13c7831a9e076b4f763dbf59ecd4bfd00129de38070949b52a9da314ea8443",
+        "crates/uor-r4-training/src/geometric_stack.rs": "29b8e6d6645bff8f2fd9a54d9635d124622df752b10cb98834b337ed7ecc641b",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit.rs": "8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit/fit.rs": "6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "check-1-s1": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-value-q4-fit",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-q4-fit-20261002/args-s1-check.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 22.407496875,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_value_q4.rs": "bcace5a71389f4a77153da60223d453b71d373b137c8f2e3d944c60e9d522674",
+        "crates/uor-r4-integer/src/lib.rs": "8a0943fd67488a7c47055f1d79654ecf8eee42f0ec5761df904a763973ff3d7b",
+        "crates/uor-r4-training/src/geometric_value_producer.rs": "53d9fb78368bffc5a5af893ae548c3a465def1ff0e8bc76f2cd092839199f1cd",
+        "crates/uor-r4-training/src/geometric_value_producer_native.rs": "5e7937b912f6fa1fd252689b2cd68cef5a2598deaa4e245a7cfee490cb8e0f45",
+        "crates/uor-r4-training/src/geometric_composition.rs": "ad13c7831a9e076b4f763dbf59ecd4bfd00129de38070949b52a9da314ea8443",
+        "crates/uor-r4-training/src/geometric_stack.rs": "29b8e6d6645bff8f2fd9a54d9635d124622df752b10cb98834b337ed7ecc641b",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit.rs": "8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit/fit.rs": "6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 515194880,
+      "executable_sha256": "689f76e7f2ed172ea526d3bb51d1333ae771de8d5de8b60046d3ef0da600bb21"
+    },
+    "check-1-s2": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-value-q4-fit",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-q4-fit-20261002/args-s2-check.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 26.321246917,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_value_q4.rs": "bcace5a71389f4a77153da60223d453b71d373b137c8f2e3d944c60e9d522674",
+        "crates/uor-r4-integer/src/lib.rs": "8a0943fd67488a7c47055f1d79654ecf8eee42f0ec5761df904a763973ff3d7b",
+        "crates/uor-r4-training/src/geometric_value_producer.rs": "53d9fb78368bffc5a5af893ae548c3a465def1ff0e8bc76f2cd092839199f1cd",
+        "crates/uor-r4-training/src/geometric_value_producer_native.rs": "5e7937b912f6fa1fd252689b2cd68cef5a2598deaa4e245a7cfee490cb8e0f45",
+        "crates/uor-r4-training/src/geometric_composition.rs": "ad13c7831a9e076b4f763dbf59ecd4bfd00129de38070949b52a9da314ea8443",
+        "crates/uor-r4-training/src/geometric_stack.rs": "29b8e6d6645bff8f2fd9a54d9635d124622df752b10cb98834b337ed7ecc641b",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit.rs": "8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02",
+        "crates/uor-r4-training/examples/attention-geometric-value-q4-fit/fit.rs": "6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 528678912,
+      "executable_sha256": "689f76e7f2ed172ea526d3bb51d1333ae771de8d5de8b60046d3ef0da600bb21"
+    }
+  },
+  "lost_parent_rows": [
+    {
+      "seed": 1,
+      "panel": "original",
+      "index": 7,
+      "condition": "reversed_order",
+      "answer": 24,
+      "prediction": 26,
+      "source_position": 8,
+      "head0_source_mass": 0.999358799996518,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 5,
+      "condition": "changed_query",
+      "answer": 23,
+      "prediction": 19,
+      "source_position": 20,
+      "head0_source_mass": 0.9994212866892414,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 32,
+      "condition": "base",
+      "answer": 29,
+      "prediction": 23,
+      "source_position": 24,
+      "head0_source_mass": 0.9997081993643541,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 34,
+      "condition": "swapped_values",
+      "answer": 29,
+      "prediction": 23,
+      "source_position": 24,
+      "head0_source_mass": 0.9997081993643541,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 42,
+      "condition": "swapped_values",
+      "answer": 23,
+      "prediction": 19,
+      "source_position": 24,
+      "head0_source_mass": 0.999712379045525,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 55,
+      "condition": "reversed_order",
+      "answer": 17,
+      "prediction": 22,
+      "source_position": 18,
+      "head0_source_mass": 0.9992895395131015,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 57,
+      "condition": "changed_query",
+      "answer": 24,
+      "prediction": 26,
+      "source_position": 34,
+      "head0_source_mass": 0.9996367974163182,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 94,
+      "condition": "swapped_values",
+      "answer": 24,
+      "prediction": 26,
+      "source_position": 36,
+      "head0_source_mass": 0.9906967451279506,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 102,
+      "condition": "swapped_values",
+      "answer": 17,
+      "prediction": 22,
+      "source_position": 40,
+      "head0_source_mass": 0.9875064796323093,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "index": 111,
+      "condition": "reversed_order",
+      "answer": 29,
+      "prediction": 27,
+      "source_position": 54,
+      "head0_source_mass": 0.9993208442839586,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 2,
+      "panel": "original",
+      "index": 5,
+      "condition": "changed_query",
+      "answer": 16,
+      "prediction": 20,
+      "source_position": 12,
+      "head0_source_mass": 0.9998002349002331,
+      "all_frozen_reader_weights_identical": true
+    },
+    {
+      "seed": 2,
+      "panel": "original",
+      "index": 40,
+      "condition": "base",
+      "answer": 16,
+      "prediction": 20,
+      "source_position": 26,
+      "head0_source_mass": 0.9990896044761349,
+      "all_frozen_reader_weights_identical": true
+    }
+  ],
+  "source_sha256": {
+    "crates/uor-r4-training/examples/attention-geometric-value-q4-fit.rs": "8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02",
+    "crates/uor-r4-training/examples/attention-geometric-value-q4-fit/fit.rs": "6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6"
+  },
+  "scope": "Exposed authored development panels; extra640updates versus controls. No matched-extra-dose unrestricted fit, geometry advantage, heldout language, whole-runtime or energy claim. Float tail and wide upstream coefficients remain.",
+  "decision": "Retain both learned q4 value candidates, projection and unrestricted parents. End fixed dose; advance remaining attention coefficient boundary without selector/scale/alphabet sweep.",
+  "complete_cost_cutoff": {
+    "start_ms": 1790952281255,
+    "end_ms": 1790954719317,
+    "charged_ms": 2438062,
+    "before": {
+      "cumulative_ms": 983397993,
+      "limit_ms": 1130000000
+    },
+    "after": {
+      "cumulative_ms": 985836055,
+      "limit_ms": 1130000000
+    },
+    "scope": "All continuous q4-fit preparation/source/expert review/build/check modes/two fits/export/evaluation/lost-row inspection and delivery preparation through this cutoff, once across agents."
+  },
+  "reviews": {
+    "boundedfit-source-review.md": {
+      "sha256": "5f391674ee4238ffae6d98ceb31589c16ede46a57cb8038c7748b69d2aeeaadd",
+      "text": "# Independent source review: bounded strict-q4 value fit\n\n2026-10-02. Principal mathematician, nonauthor of the new driver/helper. Read-only source and retained identity inspection; no Cargo, model run, inference, optimizer update, Git operation or source mutation.\n\n**Verdict: source approved for the fixed work card #1512 comment5954982171. No unresolved material objective, continuation, selected-parameter or artifact-binding blocker found.** This is not an executed-check result or fit-quality verdict.\n\nFrozen source reviewed:\n\n- `attention-geometric-value-q4-fit.rs`: SHA256 `8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02`.\n- `attention-geometric-value-q4-fit/fit.rs`: SHA256 `6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6`.\n\n## Starting artifact and mathematical intervention\n\nThe driver loads each actual sealed projection2 q4 source without conversion or re-snapping its saved shadows. It pins the accepted composition report, repaired projection report, hard-forward policy, original query-read/NoRead lineage and exact initial RNG. I checked the projection report pins against current retained bytes:\n\n| Seed | Projection2 report SHA256 | Exact initial/next RNG |\n|---|---|---|\n| 1 | `70a3f1a16dee81c005d7bd67c073fa6a32fbb6427a5b9df1847a6835b7016351` | `461503785751815875` |\n| 2 | `d2d05603501524526ac657bbe332b0c87703cc9799c50472b2c4f45794bf895f` | `1220542080958524937` |\n\nThe sole learned intervention is the existing ten strict-q4 value-factor families: token/own/neighbor/span/span-valid root120/category32 coefficients, V40/H2/L4, exactly128896 shadows. The current packed grid and native state-code forward from the repaired bridge determine every hard training packet. The admitted compiled producer supplied to the offline caller anchors unchanged dependencies/configuration; it does not freeze the live hard coefficient choices. No new scale, alphabet, bank update or auxiliary target is introduced.\n\n## Objective and optimizer scope\n\nEach generated batch has eight episodes and exactly one weighted target at each episode's actual final answer marker. All other positions, including right padding, have weight0. `validate_batch` checks the final query position, marker34, target and full mask. The reused CrossEntropy implementation divides by the sum of weights, so the objective is mean answer CE with denominator8, not a padded-position mean or extra head/lane normalization.\n\nOptimizer construction selects only the ten named value Var objects after validating their full shapes and total scalar count. AdamW uses lr0.003, beta1=0.9, beta2=0.999, epsilon1e-8 and weight decay0. The global clipping norm includes only these selected gradients. All selected families must have a finite attached gradient; a numerically zero gradient is permitted. No positive-gradient-magnitude quality threshold is imposed. The model/base/context/bank may have unselected graph structure, but those Vars are not optimizer members.\n\nAfter each update the helper counts out-of-range shadows, projects to[-1.75,1.75], validates/exports the hard packed grid, and records hard-code changes, saturation, raw family norms at scheduled points and actual valid-token PresentZero counts. The actual answer forward uses native context/events/span/NoRead/address and the frozen selected-H4 bank adjoint. No packet-reconstruction, donor-label or query-weighted auxiliary loss is called by this driver.\n\n## Exact continuation and terminal partial semantics\n\nTraining absolute generator steps are2560..3199. The unchanged sampler alternates two/four facts by absolute-step parity. RNG values are read with serde_json `as_u64`; these identities are not passed through floating-point JSON conversion. Check mode draws two successive batches at2560/2561 and performs backwards but no optimizer update; it returns the original training RNG and independently verifies unchanged source hashes. Its consumed diagnostic RNG is recorded separately.\n\nFor fit mode, `next_generator_state` advances only after a completed update. If the deadline arrives after a batch draw but before its forward, the local RNG is restored to the pre-draw state; prepared/observed diagnostic counters remain explicitly separate. Checkpoint0, every80 completed updates and terminal partial/final snapshots retain exact source weights, completed-step count and RNG. Adam moments are not serialized, and the metadata correctly disclaims exact AdamW resume.\n\nOn a computation/update failure, the helper records the episode identity, pre-attempt source hashes, last completed count and error, and attempts exclusive preservation of current source separately from the last completed checkpoint. A partially updated failed attempt is explicitly not represented as a completed-step or exact-optimizer checkpoint. No implicit retry, dose reset or restart occurs.\n\nThe fixed duration ceiling includes preparation/prefit work; training stops300seconds before the overall limit, reserving final source/export/evaluation time. A short or incomplete run is retained without a quality verdict. The argument interval is a validation bound, not authority to enlarge the posted budget.\n\n## Baselines, final export and reporting\n\nBefore fitting, the driver independently loads native context/events/span/potential/reducer, both unrestricted and projected value artifacts, NoRead and composition envelopes. It validates actual source/live objects and checks that rebinding changed no NoRead/composition numerical files. The full128 original+128 stress prefit rows reproduce the actual unrestricted parent answer bits and the repaired projection source/native answer bits, native query readout/null trace and source/native packet trace equality. Episode and row identities are joined before accepting the baseline. There is no perfect recovery or aggregate-score promotion gate.\n\nAfter fitting, the current source is saved and independently reloaded with exact parameter-bit checks. The final native q4 artifact is compiled and loaded, then NoRead and composition dependency envelopes are regenerated and loaded around it. Their numerical files are required to remain byte-identical. The fitted live source is validated against the final compiled producer and actual frozen context before final behavior.\n\nFinal evaluation keeps all row predictions and logits for unrestricted parent, projection2 baseline, source fitted and native fitted outputs. It reports CE, separate gains/losses against both prior artifacts, source/native packet and coordinate mismatches, and maximum logit drift over actual positions. The complete frozen reader weights/null/denominators are compared per row. Frozen base tensors, bank parameters and all dependency files are rehashed at the end. Source F32 reduction and native integer reduction remain explicitly distinct despite identical producer hard choices.\n\nThese are exposed development panels. The451/512 projected baseline versus467/512 unrestricted parent motivates the fixed learning comparison; neither number is an acceptance threshold or held-out language qualification. Complete/check/fit/partial decisions remain separate, and no automatic extra dose follows.\n\n## Review corrections and necessary check scope\n\nTwo draft template defects were reported and repaired before this frozen review:\n\n1. Checkpoint metadata mislabeled the already frozen640 composition updates as q4-value updates. It now states `frozen_composition_updates:640`; newly completed q4 updates have their own field.\n2. The copied sampler unit test had an empty2560..1922 range and older RNG constants. It now exercises both actual starting states over2560..2562, validates two/four-fact masks and exact u64 serialization.\n\nThe two authored focused cases now cover nonvacuous sampler/mask/identity behavior and selected-only global clipping/optimizer/projection exclusion of a separate frozen Var. No additional test campaign is requested. Root's central compilation, these cases, actual loaded check modes and eventual fixed fits must provide the executed evidence; this review does not substitute for them.\n"
+    },
+    "fit-result-review.md": {
+      "sha256": "239798a81e773ffcf65ab9cb9798e9e4b7907d0282eb66a22f206b6874239855",
+      "text": "# Strict q4 value fit: independent result review\n\nReviewer: `/root/adoption_review_architecture`. I did not author the new fit driver or helper and independently reviewed their source and retained results. I previously authored the value artifact compiler; this review does not represent independent review of that compiler. No Cargo, model inference, optimization, Git mutation or source edit was performed for this review.\n\n**Decision: approve the completed component result for scoped delivery; no open invalidating finding.** Retain both fitted artifacts and all negative rows. The fixed answer-only fit improves aggregate development-panel accuracy from 451/512 for the projected q4 values to **479/512**, versus 467/512 for the unrestricted composition parent. All four panel mean answer cross-entropies also improve. This is useful task learning with strict q4 value coefficients, not complete parent preservation or a geometric advantage comparison.\n\n## Executed identities and evidence checked\n\nResearch root: `/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-q4-fit-20261002`.\n\n| Identity | SHA256 |\n| --- | --- |\n| Fit driver | `8175d315dbbe950ca73584b76dda4df3c8c7f69d2a9afa8aebcd8ecaf801ce02` |\n| Private fit helper | `6847d4374a66a1ee75badead69b59bc0f75de92f3a38277f9f8538bedec438d6` |\n| Executable | `689f76e7f2ed172ea526d3bb51d1333ae771de8d5de8b60046d3ef0da600bb21` |\n| Seed 1 completed report | `f9c18b70e48e21429a58965fbb2c461d6e97942f81c2ab8c2cc5a700ba3cee3c` |\n| Seed 2 completed report | `a341dcfbf9bf87e131be7936e92edbe36ce823e4cce983f25b21a2ec8150e6e6` |\n| Seed 1 manifest | `8157da53bfd5f3bb7f05cb476952b77235e08baef05902ebc158a20a5c3e5f15` |\n| Seed 2 manifest | `bb64d8a0cfb8a3f181c0ad3e82d3d4cd7c1e64b1775064a0d65dd2797b4c648f` |\n| Seed 1 history | `b544cfc4e2af764c2e0c605c4a2c6afa981cf8b300c1a2437f3bd37ac28556bb` |\n| Seed 2 history | `80c7d03d3130e14d38016545c176dddb00c34868d3dd3ee4c087d1951a70d1ff` |\n| Seed 1 final packed coefficients | `86e2e7a6fd12c8a3f5620a9be53f0f20d6ac29e0498c793034dc45988d463659` |\n| Seed 2 final packed coefficients | `b6a6ea5465ed85d60672738a4d4d7f6ce2b7b97c5990f415211c585005cd9ec4` |\n\nFor each seed, I independently verified the complete outer file closure, sizes and BLAKE3 identities of **714 sealed files**, all nine checkpoint seals (0,80,...,640), the actual bytes of 79 frozen dependency files, and 45 frozen base tensors. The two execution receipts record terminal exit 0, unchanged source and the executable above. Final source bytes equal checkpoint 640; checkpoint zero equals the admitted saved projection source. Final packed payload hashes equal the report and final history identities. The NoRead and composition envelopes were rebound, while their non-metadata numerical files remained byte-identical.\n\nAll 512 final evaluation rows and 512 corresponding prefit rows were joined by panel/index/episode to the retained projection and unrestricted parents. Saved historical logits match those parent records at F32 bits; the prefit source/native replay matches the repaired q4 projection. I checked saved finite logits, earliest-argmax predictions, source/native packet/Q16 mismatch records and unchanged query occurrence weights, NoRead weights, totals and maximum scores. Full-prefix comparison is executed-driver evidence; this audit does not claim an independent new replay of the model.\n\n## Rowwise result\n\nEach entry is correct answers out of 128. CE is independently recomputed from the saved final-query logits.\n\n| Seed/panel | Unrestricted parent | Q4 projection | Fitted source / native | Native CE: parent \u2192 projection \u2192 fit | Gains/losses vs parent | Gains/losses vs projection |\n| --- | ---: | ---: | ---: | --- | --- | --- |\n| 1 original | 102 | 94 | 112 / 112 | 1.099175 \u2192 1.143260 \u2192 0.965844 | 11 / 1 | 19 / 1 |\n| 1 stress | 109 | 104 | 113 / 113 | 1.091402 \u2192 1.112837 \u2192 0.930197 | 13 / 9 | 17 / 8 |\n| 2 original | 128 | 127 | 126 / 126 | 0.470687 \u2192 0.486264 \u2192 0.389766 | 0 / 2 | 1 / 2 |\n| 2 stress | 128 | 126 | 128 / 128 | 0.458134 \u2192 0.487668 \u2192 0.380357 | 0 / 0 | 2 / 0 |\n\nTotal: **24 gains and 12 losses versus the unrestricted parent; 39 gains and 11 losses versus projection.** Lower mean CE does not imply preservation of every greedy decision: seed 2 original loses two parent-correct rows while improving mean CE.\n\nComplete changed-row sets, with zero-based panel indices:\n\n- Seed 1 original, parent gains: 8,11,17,76,79,100,101,102,109,123,125; parent loss: 7. Projection gains: 8,11,54,71,76,79,84,87,93,100,101,102,109,110,113,114,119,123,125; projection loss: 7.\n- Seed 1 stress, parent gains: 4,7,12,15,17,18,27,38,97,99,109,110,116; parent losses: 5,32,34,42,55,57,94,102,111. Projection gains: 4,7,12,15,17,18,27,38,75,78,93,99,100,104,109,112,115; projection losses: 5,32,34,42,55,57,102,111.\n- Seed 2 original, no parent gain; parent losses: 5,40. Projection gain: 8; projection losses: 5,40.\n- Seed 2 stress, no change from the parent; projection gains: 12,15, with no loss.\n\nThe 12 parent losses have head-zero correct-source mass **0.9875064796323093 to 0.9998002349002331**. Their occurrence weights are unchanged. This localizes the changed failure to the value/composition/output path under fixed addressing; it does not identify a unique cause among emitted values, the frozen composition bank and downstream output geometry. High source mass alone is not sufficient to guarantee the answer, and it does not establish a representation-capacity limit.\n\nAll **512 source/native answer decisions agree**, and all recorded source/native packet and Q16 comparisons are equal. The surrounding float output computation is not bit-identical: maximum reported actual-position logit difference is **0.0003643035888671875**. Source/native CE differs slightly accordingly; exact whole-model float parity is not claimed.\n\n## Learning, frozen scope and checkpoints\n\nThe driver and raw histories agree on 640 additional B8 updates per seed, absolute batches 2560 through 3199, and **5,120 sampled episodes per seed**. These are draw counts, not unique histories. Both seeds complete 640 backwards and updates. Combined actual-token count is **490,664**; combined padded count is **572,320**. Actual episode lengths are 24\u201380 for seed 1 and 24\u201378 for seed 2; the separately configured context bound is 128.\n\nThe exact retained continuation RNG chains, written as decimal strings to avoid loss through JSON number coercion, are:\n\n- Seed 1: `\"461503785751815875\"` \u2192 `\"17847168693577953940\"`.\n- Seed 2: `\"1220542080958524937\"` \u2192 `\"8892160473256393877\"`.\n\nEvery retained training-input digest, batch identity and before/after RNG state matches its history and checkpoints. Check mode does not consume the continuation RNG. Checkpoints retain weights and the next batch RNG; **AdamW moments are not serialized, and exact optimizer resume is not claimed**.\n\nThe only optimized variables are the ten value-producer families, totaling **128,896 shadows**, under fixed q/4 coefficients and range projection. Context/event/span, address potentials, reducer, NoRead, composition, base and output parameters remain frozen. Answer CE has the declared eight-answer denominator and no auxiliary loss. All nine sampled gradient checkpoints have finite positive norms for all ten families, with the independently recomputed family-norm sum matching the reported global norm. No update triggered global clipping. There are 72,786 cumulative coefficient flips and 2,669,119 range-projection events for seed 1; seed 2 has 104,512 flips and 3,758,681 projection events. These are cumulative events, not distinct changed parameters.\n\nActual PresentZero atoms occur 4 times across 3 seed-one batches and 9 times across 7 seed-two batches. This is observed hard-branch usage, not isolated evidence that the zero-escape surrogate supplied nonzero credit or caused the improvement. The sampled gradients and final hard coefficient movement establish ordinary answer learning at the declared source/native boundary without proving every surrogate branch separately.\n\nBoth workers completed within the fixed limits. Worker wall times were **148.274576417 s** and **124.302321166 s**, totaling **272.576897583 s**; peak RSS was **512,278,528 B** and **478,838,784 B**. Fit-phase times were 110.177243417 s and 97.736276542 s; forward/backward/update times were 103.348694632 s and 91.225848713 s. Worker elapsed includes construction, checkpointing and evaluation and is distinct from total programme preparation/build/review/delivery cost. No partial result is promoted as complete.\n\n## Interpretation and next boundary\n\nRetain this as learned recovery from the fixed q4 projection with explicit row tradeoffs. The extra 640-update dose is part of the intervention. There is no matched extra-dose unrestricted control, so the higher aggregate score cannot establish q4 superiority or geometric advantage. The panels are exposed development panels, not held-out language/generalization evidence. Native geometric value production does not qualify the remaining float trunk, output or whole-model serving path.\n\nAdvance the next actual coefficient boundary instead of automatically adding another value-fit dose. A concrete candidate is the retained context producer: `geometric_context.rs` still declares independently rounded signed-i32 Q24 coefficients (policy at line 65 and `quantize`/`ExpandedContext::compile` at lines 1299/1312), including transition and separate root/category observation factors. Versioned packed-q4 source coefficients with canonical expansion and the same exact native hard-choice bridge would remove a real unrestricted learned dependency. Preserve internal-state/observation separation, signed roots, radius/presence and exact source identity; first measure the fixed conversion with the rest of this accepted path frozen. Context changes can alter both addresses and value/NoRead inputs, so that comparison must preserve both state/code and answer rows rather than infer a cause from totals. Any later recovery fit needs that concrete measured distinction, not an automatic repeat.\n\nEvent factors and relative-potential coefficients also remain separate wide learned dependencies; this result does not qualify them as q4 merely because their runtime tables are integer. No geometry-family retirement, general-language claim, universal decoder claim or complete native-serving claim follows from the remaining losses.\n\n"
+    }
+  },
+  "final_local_checks": {
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS"
+  }
+}
