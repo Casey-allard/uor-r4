@@ -1,5 +1,31 @@
 # Current UOR-R4 research state
 
+## Completed geometric query-credit comparison — October 2
+
+All four fixed640-update continuations finish from the two learned context/value
+parents. Query/compiled answers are98/104 and128/128; uniform/compiled89/103 and
+128/127, each original/stress panel128rows. Query gains20 and loses9 rows against
+uniform. Both improve their parents; seed2 original is saturated. Retain query
+as the provisional next continuation candidate and preserve both controls and
+all changed rows. End this allocation comparison without an auxiliary sweep.
+
+Actual paired input/RNG/teacher/credit audits and loaded float/compiled panels
+are retained in the [result](geometric-query-credit-result-2026-10-02.md) and
+[receipt](../evidence/geometric-query-credit-result-2026-10-02.json). Ordinary
+answer credit reaches13trained context/value families. All measured compiled
+state/action/address/packet/Q16/answer choices agree; the surrounding trunk,
+NoRead and output remain floating. Context reset preserves held spans and float
+history, changes addresses and values together, and has mixed seed1 effects.
+Correct dominant source does not guarantee compatible learned-value emission.
+
+Next on #1512: implement history-sensitive native NoRead with packed signed
+four-bit coefficients and fixed quarter-nat scale; derived Q24 tables must
+regenerate from the pinned geometric basis. Enter before float read normalization
+and feed raw Q24 into the common-denominator reducer. This candidate's code/fit
+is NOT_RUN. Semantic absence, wider value/potential coefficient qualification,
+output/trunk, bounded access and general language remain explicit obligations.
+Claude's D19/session lane remains parallel; offline donor compilation is retained.
+
 ## Query-read credit continuation — source and construction ready, October 2
 
 The opt-in Rust driver now reloads both actual learned context/value parents,

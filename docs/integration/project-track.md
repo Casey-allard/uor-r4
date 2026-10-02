@@ -128,18 +128,24 @@ payload substitutions with the new context recover many failures, including
 128/128 on both seed2 panels. Retain geometric addressing and the fixed K2
 alphabet; do not infer architecture failure or force exact imitation.
 
-The next specific learning hypothesis is auxiliary allocation: uniform packet
-credit mostly supervises positions outside stored values. Compare a fixed
-stop-gradient weighting from the frozen teacher's actual query-read distribution
-with uniform credit at matched additional dose, initial learned artifacts,
-optimizer restart, data and cost. Keep answer CE primary, context observation/
-readout, scorer, event/span controller, base/NoRead/output and alphabet fixed.
-Teacher labels and weights remain offline supervision, not serving features or
-gold source selection. Norms alone do not prove gradient opposition. Declare
-restart because Adam moments were not preserved; do not imply exact optimizer
-resume. The [continuation driver](geometric-query-credit-2026-10-02.md) is implemented
-and passes actual-parent construction checks; the substantive comparison has
-not run at that source checkpoint.
+The [fixed query-credit comparison](geometric-query-credit-result-2026-10-02.md)
+is complete. Retain query-weighted learning as the provisional continuation
+candidate, alongside both matched uniform controls and all regressions. This
+ends the allocation comparison; it does not establish geometric superiority,
+complete serving or isolated payload causality. Do not automatically sweep dose
+or auxiliary weights. Current state owns the measured rowwise outcomes.
+
+The next implementation is a history-sensitive **native NoRead producer** over
+actual token/retained signed roots, typed radius/presence and old-held span
+validity. Use packed signed four-bit coefficients with one fixed score scale;
+wide score tables must regenerate from those coefficients and the pinned basis.
+Select the native branch before floating normalization and retain raw Q24 scores,
+NoRead's zero payload and the common-denominator reduction. Train with actual
+answer credit; exact donor imitation is not the capability gate. Keep missing
+semantic-absence data, wider learned value/potential coefficients, trunk/output
+and complete candidate-access costs explicit. This implementation is NOT_RUN
+at the comparison checkpoint. Offline donor-informed compilation remains useful;
+no runtime Q/K or transformer path is restored.
 
 Preserve every old and newly learned success/failure, including learned answers
 absent from the K2 oracle. Keep input sufficiency, additive-factor expressivity,

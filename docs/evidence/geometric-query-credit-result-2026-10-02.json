@@ -1,0 +1,3557 @@
+{
+  "schema": "uor-r4.geometric-query-credit-result/1",
+  "source_commit": "6d48b350992a6944b95b32cc561b52996b3be5cc",
+  "source_merge": "fa47d0c57da769663ba765472a0f668cb5703974",
+  "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-query-weighted-aux-20261002",
+  "fixed_card": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5949916452",
+  "conditions": [
+    {
+      "name": "run-1-s1-query_read",
+      "report_sha256": "75d3cf41b5b83513f0af703e66d8be8a9aab1db3fb849671f27a9d08b4517a03",
+      "manifest_sha256": "862793e23e9500e85e8bcb391328e1a0e95344062d64244a7848449d4fbcb4d6",
+      "execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 203.56223175002378,
+        "sampled_peak_model_rss_kib": 439728,
+        "executable_sha256": "99f79e3a4cbea32ca1bc04ff01d77cd4e84519144711dd732d80804d85e1c7f3",
+        "source_sha256": {
+          "crates/uor-r4-training/examples/attention-geometric-value-learned.rs": "b36a7d8802c2067e889ad8a3741fa66bef1a8fd088f9edee07cd3392f4ecf7bc",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/credit.rs": "619783100c9339dae466653caa6da7d73f66ac81032360fea36963dd2da68661",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/continuation.rs": "cf3bac43a7a926d6f0d278267922bfe80c8c8301d952540bed99e5c98d1e45d3",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "args": {
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1/trained/native-context",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1/trained/context-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/native-events",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/event-source",
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s1/model",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-potentials",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-actions",
+          "mode": "fit",
+          "seed": "1",
+          "steps": "640",
+          "rate": "0.003",
+          "max_seconds": "1800",
+          "evaluation_reserve_seconds": "300",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/stress.json",
+          "prior_k1": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-codec-20261002/run-1-s1",
+          "prior_k2": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-query-weighted-aux-20261002/run-1-s1-query_read",
+          "continuation_parent": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1",
+          "teacher_replay": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/replay-1-s1",
+          "auxiliary_credit": "query_read"
+        },
+        "scope": "fixed640-update actual saved parent continuation, paired query/uniform credit allocation and independent final reload"
+      },
+      "data": {
+        "completed_updates": 640,
+        "cumulative_updates": 1280,
+        "actual_training_episodes": 5120,
+        "actual_training_positions": 245926,
+        "padded_training_positions": 287312,
+        "training_time_min": 36,
+        "training_time_max": 78,
+        "forward_backward_update_seconds": 127.61830299299986,
+        "teacher_preparation_seconds": 62.471635779000046,
+        "elapsed_seconds": 202.240759459
+      },
+      "original": {
+        "answers": {
+          "float_prediction": 98,
+          "float_reset_prediction": 93,
+          "native_prediction": 98,
+          "native_reset_prediction": 93
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.00019341707229614258,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 5069,
+        "parent_address_lane_changes": 5712,
+        "parent_state_position_changes": 5662,
+        "requested_rows": 128,
+        "reset_changed_predictions": 23,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 17,
+          "native_changed_from_initial": 42,
+          "native_changed_from_k1": 28,
+          "native_changed_from_k2": 18,
+          "native_changed_from_learned_parent": 42,
+          "native_changed_from_parent_address_donor": 18,
+          "native_changed_from_parent_address_k2": 18,
+          "native_gain_from_donor": 5,
+          "native_gain_from_initial": 26,
+          "native_gain_from_k1": 18,
+          "native_gain_from_k2": 8,
+          "native_gain_from_learned_parent": 26,
+          "native_gain_from_parent_address_donor": 6,
+          "native_gain_from_parent_address_k2": 8,
+          "native_loss_from_donor": 7,
+          "native_loss_from_initial": 6,
+          "native_loss_from_k1": 5,
+          "native_loss_from_k2": 7,
+          "native_loss_from_learned_parent": 6,
+          "native_loss_from_parent_address_donor": 7,
+          "native_loss_from_parent_address_k2": 7
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      },
+      "stress": {
+        "answers": {
+          "float_prediction": 104,
+          "float_reset_prediction": 95,
+          "native_prediction": 104,
+          "native_reset_prediction": 95
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.00013637542724609375,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 7044,
+        "parent_address_lane_changes": 7365,
+        "parent_state_position_changes": 7697,
+        "requested_rows": 128,
+        "reset_changed_predictions": 23,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 21,
+          "native_changed_from_initial": 44,
+          "native_changed_from_k1": 24,
+          "native_changed_from_k2": 22,
+          "native_changed_from_learned_parent": 44,
+          "native_changed_from_parent_address_donor": 21,
+          "native_changed_from_parent_address_k2": 22,
+          "native_gain_from_donor": 4,
+          "native_gain_from_initial": 29,
+          "native_gain_from_k1": 13,
+          "native_gain_from_k2": 4,
+          "native_gain_from_learned_parent": 29,
+          "native_gain_from_parent_address_donor": 4,
+          "native_gain_from_parent_address_k2": 4,
+          "native_loss_from_donor": 10,
+          "native_loss_from_initial": 9,
+          "native_loss_from_k1": 5,
+          "native_loss_from_k2": 10,
+          "native_loss_from_learned_parent": 9,
+          "native_loss_from_parent_address_donor": 10,
+          "native_loss_from_parent_address_k2": 9
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      }
+    },
+    {
+      "name": "run-1-s1-uniform_matched_mass",
+      "report_sha256": "7dd5b6a46066c55da294caf5916be37ea58bc32499b7bbfdd6dc803590702c8b",
+      "manifest_sha256": "3a5271adcfc117850c14119de5b66455922db2950d734466e6a6a29c0e7e3f86",
+      "execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 202.57135316700442,
+        "sampled_peak_model_rss_kib": 426976,
+        "executable_sha256": "99f79e3a4cbea32ca1bc04ff01d77cd4e84519144711dd732d80804d85e1c7f3",
+        "source_sha256": {
+          "crates/uor-r4-training/examples/attention-geometric-value-learned.rs": "b36a7d8802c2067e889ad8a3741fa66bef1a8fd088f9edee07cd3392f4ecf7bc",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/credit.rs": "619783100c9339dae466653caa6da7d73f66ac81032360fea36963dd2da68661",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/continuation.rs": "cf3bac43a7a926d6f0d278267922bfe80c8c8301d952540bed99e5c98d1e45d3",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "args": {
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1/trained/native-context",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1/trained/context-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/native-events",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/event-source",
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s1/model",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-potentials",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-actions",
+          "mode": "fit",
+          "seed": "1",
+          "steps": "640",
+          "rate": "0.003",
+          "max_seconds": "1800",
+          "evaluation_reserve_seconds": "300",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/stress.json",
+          "prior_k1": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-codec-20261002/run-1-s1",
+          "prior_k2": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-query-weighted-aux-20261002/run-1-s1-uniform_matched_mass",
+          "continuation_parent": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1",
+          "teacher_replay": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/replay-1-s1",
+          "auxiliary_credit": "uniform_matched_mass"
+        },
+        "scope": "fixed640-update actual saved parent continuation, paired query/uniform credit allocation and independent final reload"
+      },
+      "data": {
+        "completed_updates": 640,
+        "cumulative_updates": 1280,
+        "actual_training_episodes": 5120,
+        "actual_training_positions": 245926,
+        "padded_training_positions": 287312,
+        "training_time_min": 36,
+        "training_time_max": 78,
+        "forward_backward_update_seconds": 127.68302661199998,
+        "teacher_preparation_seconds": 62.157848375000015,
+        "elapsed_seconds": 201.952959167
+      },
+      "original": {
+        "answers": {
+          "float_prediction": 89,
+          "float_reset_prediction": 100,
+          "native_prediction": 89,
+          "native_reset_prediction": 100
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.00016289949417114258,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 5196,
+        "parent_address_lane_changes": 5988,
+        "parent_state_position_changes": 5701,
+        "requested_rows": 128,
+        "reset_changed_predictions": 30,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 22,
+          "native_changed_from_initial": 41,
+          "native_changed_from_k1": 24,
+          "native_changed_from_k2": 26,
+          "native_changed_from_learned_parent": 41,
+          "native_changed_from_parent_address_donor": 23,
+          "native_changed_from_parent_address_k2": 26,
+          "native_gain_from_donor": 1,
+          "native_gain_from_initial": 20,
+          "native_gain_from_k1": 9,
+          "native_gain_from_k2": 3,
+          "native_gain_from_learned_parent": 20,
+          "native_gain_from_parent_address_donor": 2,
+          "native_gain_from_parent_address_k2": 3,
+          "native_loss_from_donor": 12,
+          "native_loss_from_initial": 9,
+          "native_loss_from_k1": 5,
+          "native_loss_from_k2": 11,
+          "native_loss_from_learned_parent": 9,
+          "native_loss_from_parent_address_donor": 12,
+          "native_loss_from_parent_address_k2": 11
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      },
+      "stress": {
+        "answers": {
+          "float_prediction": 103,
+          "float_reset_prediction": 100,
+          "native_prediction": 103,
+          "native_reset_prediction": 100
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.00021255016326904297,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 7017,
+        "parent_address_lane_changes": 7515,
+        "parent_state_position_changes": 7732,
+        "requested_rows": 128,
+        "reset_changed_predictions": 28,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 17,
+          "native_changed_from_initial": 47,
+          "native_changed_from_k1": 22,
+          "native_changed_from_k2": 17,
+          "native_changed_from_learned_parent": 47,
+          "native_changed_from_parent_address_donor": 17,
+          "native_changed_from_parent_address_k2": 17,
+          "native_gain_from_donor": 2,
+          "native_gain_from_initial": 28,
+          "native_gain_from_k1": 11,
+          "native_gain_from_k2": 1,
+          "native_gain_from_learned_parent": 28,
+          "native_gain_from_parent_address_donor": 2,
+          "native_gain_from_parent_address_k2": 1,
+          "native_loss_from_donor": 9,
+          "native_loss_from_initial": 9,
+          "native_loss_from_k1": 4,
+          "native_loss_from_k2": 8,
+          "native_loss_from_learned_parent": 9,
+          "native_loss_from_parent_address_donor": 9,
+          "native_loss_from_parent_address_k2": 7
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      }
+    },
+    {
+      "name": "run-1-s2-query_read",
+      "report_sha256": "cc116d61309446ad15f145c9b77b419087eabfddb621518b58f11276f1a17506",
+      "manifest_sha256": "d319248bf587d32c0b4e1bfa9bc72abdf27daa512f04859934b52068614dd990",
+      "execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 202.72133320799912,
+        "sampled_peak_model_rss_kib": 419248,
+        "executable_sha256": "99f79e3a4cbea32ca1bc04ff01d77cd4e84519144711dd732d80804d85e1c7f3",
+        "source_sha256": {
+          "crates/uor-r4-training/examples/attention-geometric-value-learned.rs": "b36a7d8802c2067e889ad8a3741fa66bef1a8fd088f9edee07cd3392f4ecf7bc",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/credit.rs": "619783100c9339dae466653caa6da7d73f66ac81032360fea36963dd2da68661",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/continuation.rs": "cf3bac43a7a926d6f0d278267922bfe80c8c8301d952540bed99e5c98d1e45d3",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "args": {
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2/trained/native-context",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2/trained/context-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/native-events",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/event-source",
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s2/model",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-potentials",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-actions",
+          "mode": "fit",
+          "seed": "2",
+          "steps": "640",
+          "rate": "0.003",
+          "max_seconds": "1800",
+          "evaluation_reserve_seconds": "300",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/stress.json",
+          "prior_k1": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-codec-20261002/run-2-s2",
+          "prior_k2": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-query-weighted-aux-20261002/run-1-s2-query_read",
+          "continuation_parent": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2",
+          "teacher_replay": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/replay-1-s2",
+          "auxiliary_credit": "query_read"
+        },
+        "scope": "fixed640-update actual saved parent continuation, paired query/uniform credit allocation and independent final reload"
+      },
+      "data": {
+        "completed_updates": 640,
+        "cumulative_updates": 1280,
+        "actual_training_episodes": 5120,
+        "actual_training_positions": 245454,
+        "padded_training_positions": 286544,
+        "training_time_min": 36,
+        "training_time_max": 80,
+        "forward_backward_update_seconds": 127.65527094999992,
+        "teacher_preparation_seconds": 61.89528366499999,
+        "elapsed_seconds": 202.077229375
+      },
+      "original": {
+        "answers": {
+          "float_prediction": 128,
+          "float_reset_prediction": 81,
+          "native_prediction": 128,
+          "native_reset_prediction": 81
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.0001404285430908203,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 5788,
+        "parent_address_lane_changes": 5521,
+        "parent_state_position_changes": 5896,
+        "requested_rows": 128,
+        "reset_changed_predictions": 47,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 0,
+          "native_changed_from_initial": 6,
+          "native_changed_from_k1": 0,
+          "native_changed_from_k2": 0,
+          "native_changed_from_learned_parent": 6,
+          "native_changed_from_parent_address_donor": 0,
+          "native_changed_from_parent_address_k2": 0,
+          "native_gain_from_donor": 0,
+          "native_gain_from_initial": 6,
+          "native_gain_from_k1": 0,
+          "native_gain_from_k2": 0,
+          "native_gain_from_learned_parent": 6,
+          "native_gain_from_parent_address_donor": 0,
+          "native_gain_from_parent_address_k2": 0,
+          "native_loss_from_donor": 0,
+          "native_loss_from_initial": 0,
+          "native_loss_from_k1": 0,
+          "native_loss_from_k2": 0,
+          "native_loss_from_learned_parent": 0,
+          "native_loss_from_parent_address_donor": 0,
+          "native_loss_from_parent_address_k2": 0
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      },
+      "stress": {
+        "answers": {
+          "float_prediction": 128,
+          "float_reset_prediction": 72,
+          "native_prediction": 128,
+          "native_reset_prediction": 72
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.0001531839370727539,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 7851,
+        "parent_address_lane_changes": 8729,
+        "parent_state_position_changes": 7956,
+        "requested_rows": 128,
+        "reset_changed_predictions": 56,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 1,
+          "native_changed_from_initial": 6,
+          "native_changed_from_k1": 1,
+          "native_changed_from_k2": 1,
+          "native_changed_from_learned_parent": 6,
+          "native_changed_from_parent_address_donor": 0,
+          "native_changed_from_parent_address_k2": 0,
+          "native_gain_from_donor": 1,
+          "native_gain_from_initial": 6,
+          "native_gain_from_k1": 1,
+          "native_gain_from_k2": 1,
+          "native_gain_from_learned_parent": 6,
+          "native_gain_from_parent_address_donor": 0,
+          "native_gain_from_parent_address_k2": 0,
+          "native_loss_from_donor": 0,
+          "native_loss_from_initial": 0,
+          "native_loss_from_k1": 0,
+          "native_loss_from_k2": 0,
+          "native_loss_from_learned_parent": 0,
+          "native_loss_from_parent_address_donor": 0,
+          "native_loss_from_parent_address_k2": 0
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      }
+    },
+    {
+      "name": "run-1-s2-uniform_matched_mass",
+      "report_sha256": "c9536fbb47adb199232ffe55720da010fd68048a0af033888d911479f0f6e0ac",
+      "manifest_sha256": "e174ad9f5fbcf11fd69e0f0e0db12f52d791f5dc860c81175ffc9b09f08a1aa4",
+      "execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 203.8667727090069,
+        "sampled_peak_model_rss_kib": 422560,
+        "executable_sha256": "99f79e3a4cbea32ca1bc04ff01d77cd4e84519144711dd732d80804d85e1c7f3",
+        "source_sha256": {
+          "crates/uor-r4-training/examples/attention-geometric-value-learned.rs": "b36a7d8802c2067e889ad8a3741fa66bef1a8fd088f9edee07cd3392f4ecf7bc",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/credit.rs": "619783100c9339dae466653caa6da7d73f66ac81032360fea36963dd2da68661",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/continuation.rs": "cf3bac43a7a926d6f0d278267922bfe80c8c8301d952540bed99e5c98d1e45d3",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "args": {
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2/trained/native-context",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2/trained/context-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/native-events",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/event-source",
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s2/model",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-potentials",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-actions",
+          "mode": "fit",
+          "seed": "2",
+          "steps": "640",
+          "rate": "0.003",
+          "max_seconds": "1800",
+          "evaluation_reserve_seconds": "300",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/stress.json",
+          "prior_k1": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-codec-20261002/run-2-s2",
+          "prior_k2": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-query-weighted-aux-20261002/run-1-s2-uniform_matched_mass",
+          "continuation_parent": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2",
+          "teacher_replay": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/replay-1-s2",
+          "auxiliary_credit": "uniform_matched_mass"
+        },
+        "scope": "fixed640-update actual saved parent continuation, paired query/uniform credit allocation and independent final reload"
+      },
+      "data": {
+        "completed_updates": 640,
+        "cumulative_updates": 1280,
+        "actual_training_episodes": 5120,
+        "actual_training_positions": 245454,
+        "padded_training_positions": 286544,
+        "training_time_min": 36,
+        "training_time_max": 80,
+        "forward_backward_update_seconds": 127.74366509100008,
+        "teacher_preparation_seconds": 62.54728037599997,
+        "elapsed_seconds": 202.403332209
+      },
+      "original": {
+        "answers": {
+          "float_prediction": 128,
+          "float_reset_prediction": 80,
+          "native_prediction": 128,
+          "native_reset_prediction": 80
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.00015306472778320312,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 5310,
+        "parent_address_lane_changes": 4408,
+        "parent_state_position_changes": 5772,
+        "requested_rows": 128,
+        "reset_changed_predictions": 48,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 0,
+          "native_changed_from_initial": 6,
+          "native_changed_from_k1": 0,
+          "native_changed_from_k2": 0,
+          "native_changed_from_learned_parent": 6,
+          "native_changed_from_parent_address_donor": 0,
+          "native_changed_from_parent_address_k2": 0,
+          "native_gain_from_donor": 0,
+          "native_gain_from_initial": 6,
+          "native_gain_from_k1": 0,
+          "native_gain_from_k2": 0,
+          "native_gain_from_learned_parent": 6,
+          "native_gain_from_parent_address_donor": 0,
+          "native_gain_from_parent_address_k2": 0,
+          "native_loss_from_donor": 0,
+          "native_loss_from_initial": 0,
+          "native_loss_from_k1": 0,
+          "native_loss_from_k2": 0,
+          "native_loss_from_learned_parent": 0,
+          "native_loss_from_parent_address_donor": 0,
+          "native_loss_from_parent_address_k2": 0
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      },
+      "stress": {
+        "answers": {
+          "float_prediction": 127,
+          "float_reset_prediction": 76,
+          "native_prediction": 127,
+          "native_reset_prediction": 76
+        },
+        "complete": true,
+        "float_native_answer_changes": 0,
+        "maximum_actual_logit_delta": 0.00019216537475585938,
+        "native_action_position_disagreements": 0,
+        "native_address_lane_disagreements": 0,
+        "native_coordinate_disagreements": 0,
+        "native_packet_disagreements": 0,
+        "native_state_position_disagreements": 0,
+        "parent_action_position_changes": 7357,
+        "parent_address_lane_changes": 6687,
+        "parent_state_position_changes": 7872,
+        "requested_rows": 128,
+        "reset_changed_predictions": 52,
+        "rowwise_prior_comparisons": {
+          "native_changed_from_donor": 0,
+          "native_changed_from_initial": 5,
+          "native_changed_from_k1": 2,
+          "native_changed_from_k2": 0,
+          "native_changed_from_learned_parent": 5,
+          "native_changed_from_parent_address_donor": 1,
+          "native_changed_from_parent_address_k2": 1,
+          "native_gain_from_donor": 0,
+          "native_gain_from_initial": 5,
+          "native_gain_from_k1": 1,
+          "native_gain_from_k2": 0,
+          "native_gain_from_learned_parent": 5,
+          "native_gain_from_parent_address_donor": 0,
+          "native_gain_from_parent_address_k2": 0,
+          "native_loss_from_donor": 0,
+          "native_loss_from_initial": 0,
+          "native_loss_from_k1": 1,
+          "native_loss_from_k2": 0,
+          "native_loss_from_learned_parent": 0,
+          "native_loss_from_parent_address_donor": 1,
+          "native_loss_from_parent_address_k2": 1
+        },
+        "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+        "scored_rows": 128
+      }
+    }
+  ],
+  "decision": "RETAIN_QUERY_PROVISIONALLY_PRESERVE_CONTROLS_ADVANCE_NATIVE_NOREAD",
+  "paired_query_gains_losses": [
+    [
+      12,
+      3
+    ],
+    [
+      7,
+      6
+    ],
+    [
+      0,
+      0
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "compiled_scope": "Component retention in float surrounding model; not complete native serving or all-parameter four-bit qualification",
+  "no_read_design_sha256": "01af7a03a354cd8fbf408c3f80ab5330f02654f2d5023356eba9557738e129ac",
+  "adversarial_review_sha256": "73e6d02af755e535e2028a3b693903a1aae05219566f7826814d84d1b46b9a1b",
+  "independent_audit_sha256": "c6ac7bbf3875820c3436867c62efcc52ce70c476770729fd2491cdd64358d148",
+  "paired_step_audits": [
+    {
+      "seed": 1,
+      "steps": 640,
+      "groups_checked": 81920,
+      "family_groups_checked": 163840,
+      "primitive_targets": 4596992,
+      "padding_primitive_targets": 662176,
+      "zero_root_targets": 0,
+      "category_masked_actual_targets": 0,
+      "fractional_streams_differ_steps": 640,
+      "max_query_uniform_mass_difference": 8.334497358930548e-08,
+      "max_mass_rounding_error": 5.769104460817687e-08,
+      "max_tolerance_ratio": 0.34957426792793994,
+      "read_mass_min_by_head": [
+        0.9999495717301325,
+        0.038996721656559624
+      ],
+      "read_mass_max_by_head": [
+        0.9999999726100336,
+        0.09766531878043994
+      ],
+      "eligible_mass_sum_by_head_family": [
+        [
+          40959.99383553035,
+          40959.99383553035
+        ],
+        [
+          2723.313625589713,
+          2723.313625589713
+        ]
+      ],
+      "training_actual_positions": 245926,
+      "training_padded_positions": 287312,
+      "paired_input_stream_sha256": "85147040ab202f7f974ad9891247d0cf2ad010929982f70ab57db6e2c7c5887b",
+      "final_generator_state": "12355479550239716776"
+    },
+    {
+      "seed": 2,
+      "steps": 640,
+      "groups_checked": 81920,
+      "family_groups_checked": 163840,
+      "primitive_targets": 4584704,
+      "padding_primitive_targets": 657440,
+      "zero_root_targets": 0,
+      "category_masked_actual_targets": 0,
+      "fractional_streams_differ_steps": 640,
+      "max_query_uniform_mass_difference": 7.999213735843114e-08,
+      "max_mass_rounding_error": 5.721947726744503e-08,
+      "max_tolerance_ratio": 0.3355114925870238,
+      "read_mass_min_by_head": [
+        0.9999890834142979,
+        0.21159880845757303
+      ],
+      "read_mass_max_by_head": [
+        0.9999999725286777,
+        0.3825160837159721
+      ],
+      "eligible_mass_sum_by_head_family": [
+        [
+          40959.98380730565,
+          40959.98380730565
+        ],
+        [
+          12011.296003386286,
+          12011.296003386286
+        ]
+      ],
+      "training_actual_positions": 245454,
+      "training_padded_positions": 286544,
+      "paired_input_stream_sha256": "addb9bee5b77fc8999f59773b93a65a31fe7954bf2d769590af8940d6e00fc37",
+      "final_generator_state": "11629321088715907971"
+    }
+  ],
+  "rowwise_comparison": {
+    "pairs": [
+      {
+        "seed": 1,
+        "panel": "original",
+        "query_correct": 98,
+        "uniform_correct": 89,
+        "changes": [
+          {
+            "index": 0,
+            "pair": 200,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 2,
+            "pair": 200,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 3,
+            "pair": 200,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 7,
+            "pair": 201,
+            "condition": "reversed_order",
+            "answer": 24,
+            "query": 24,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 24,
+            "parent_address_k2": 24
+          },
+          {
+            "index": 24,
+            "pair": 206,
+            "condition": "base",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 29,
+            "pair": 207,
+            "condition": "changed_query",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 23,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 30,
+            "pair": 207,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 19,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 36,
+            "pair": 209,
+            "condition": "base",
+            "answer": 20,
+            "query": 30,
+            "uniform": 20,
+            "learned_parent": 20,
+            "historic_k2": 20,
+            "parent_address_k2": 20
+          },
+          {
+            "index": 51,
+            "pair": 212,
+            "condition": "reversed_order",
+            "answer": 31,
+            "query": 29,
+            "uniform": 23,
+            "learned_parent": 23,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          },
+          {
+            "index": 71,
+            "pair": 401,
+            "condition": "reversed_order",
+            "answer": 26,
+            "query": 26,
+            "uniform": 20,
+            "learned_parent": 25,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 76,
+            "pair": 403,
+            "condition": "base",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 79,
+            "pair": 403,
+            "condition": "reversed_order",
+            "answer": 31,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 29,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 81,
+            "pair": 404,
+            "condition": "changed_query",
+            "answer": 29,
+            "query": 27,
+            "uniform": 29,
+            "learned_parent": 29,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          },
+          {
+            "index": 92,
+            "pair": 407,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 19,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 95,
+            "pair": 407,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 19,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 101,
+            "pair": 409,
+            "condition": "changed_query",
+            "answer": 28,
+            "query": 17,
+            "uniform": 18,
+            "learned_parent": 18,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 102,
+            "pair": 409,
+            "condition": "swapped_values",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 17,
+            "historic_k2": 18,
+            "parent_address_k2": 18
+          },
+          {
+            "index": 104,
+            "pair": 410,
+            "condition": "base",
+            "answer": 24,
+            "query": 24,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 110,
+            "pair": 411,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 24,
+            "uniform": 25,
+            "learned_parent": 24,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 112,
+            "pair": 412,
+            "condition": "base",
+            "answer": 23,
+            "query": 19,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 116,
+            "pair": 413,
+            "condition": "base",
+            "answer": 30,
+            "query": 22,
+            "uniform": 30,
+            "learned_parent": 20,
+            "historic_k2": 30,
+            "parent_address_k2": 30
+          },
+          {
+            "index": 118,
+            "pair": 413,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 121,
+            "pair": 414,
+            "condition": "changed_query",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 29,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          }
+        ],
+        "query_gains": [
+          {
+            "index": 0,
+            "pair": 200,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 2,
+            "pair": 200,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 3,
+            "pair": 200,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 7,
+            "pair": 201,
+            "condition": "reversed_order",
+            "answer": 24,
+            "query": 24,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 24,
+            "parent_address_k2": 24
+          },
+          {
+            "index": 29,
+            "pair": 207,
+            "condition": "changed_query",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 23,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 30,
+            "pair": 207,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 19,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 71,
+            "pair": 401,
+            "condition": "reversed_order",
+            "answer": 26,
+            "query": 26,
+            "uniform": 20,
+            "learned_parent": 25,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 92,
+            "pair": 407,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 19,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 104,
+            "pair": 410,
+            "condition": "base",
+            "answer": 24,
+            "query": 24,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 110,
+            "pair": 411,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 24,
+            "uniform": 25,
+            "learned_parent": 24,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 118,
+            "pair": 413,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 121,
+            "pair": 414,
+            "condition": "changed_query",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 29,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          }
+        ],
+        "query_losses": [
+          {
+            "index": 36,
+            "pair": 209,
+            "condition": "base",
+            "answer": 20,
+            "query": 30,
+            "uniform": 20,
+            "learned_parent": 20,
+            "historic_k2": 20,
+            "parent_address_k2": 20
+          },
+          {
+            "index": 81,
+            "pair": 404,
+            "condition": "changed_query",
+            "answer": 29,
+            "query": 27,
+            "uniform": 29,
+            "learned_parent": 29,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          },
+          {
+            "index": 116,
+            "pair": 413,
+            "condition": "base",
+            "answer": 30,
+            "query": 22,
+            "uniform": 30,
+            "learned_parent": 20,
+            "historic_k2": 30,
+            "parent_address_k2": 30
+          }
+        ],
+        "both_wrong_changes": [
+          {
+            "index": 24,
+            "pair": 206,
+            "condition": "base",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 51,
+            "pair": 212,
+            "condition": "reversed_order",
+            "answer": 31,
+            "query": 29,
+            "uniform": 23,
+            "learned_parent": 23,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          },
+          {
+            "index": 76,
+            "pair": 403,
+            "condition": "base",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 79,
+            "pair": 403,
+            "condition": "reversed_order",
+            "answer": 31,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 29,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 95,
+            "pair": 407,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 19,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 101,
+            "pair": 409,
+            "condition": "changed_query",
+            "answer": 28,
+            "query": 17,
+            "uniform": 18,
+            "learned_parent": 18,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 102,
+            "pair": 409,
+            "condition": "swapped_values",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 17,
+            "historic_k2": 18,
+            "parent_address_k2": 18
+          },
+          {
+            "index": 112,
+            "pair": 412,
+            "condition": "base",
+            "answer": 23,
+            "query": 19,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          }
+        ],
+        "parent_alternate_success_retention": {
+          "historic_k2": {
+            "parent_alternate_rows": [
+              {
+                "index": 1,
+                "pair": 200,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 29,
+                "pair": 207,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 104,
+                "pair": 410,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 110,
+                "pair": 411,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 112,
+                "pair": 412,
+                "condition": "base",
+                "answer": 23,
+                "query": 19,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 117,
+                "pair": 413,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_retained": [
+              {
+                "index": 1,
+                "pair": 200,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 29,
+                "pair": 207,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 104,
+                "pair": 410,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 110,
+                "pair": 411,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 117,
+                "pair": 413,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_lost": [
+              {
+                "index": 112,
+                "pair": 412,
+                "condition": "base",
+                "answer": 23,
+                "query": 19,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "uniform_retained": [
+              {
+                "index": 1,
+                "pair": 200,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 117,
+                "pair": 413,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "uniform_lost": [
+              {
+                "index": 29,
+                "pair": 207,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 104,
+                "pair": 410,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 110,
+                "pair": 411,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 112,
+                "pair": 412,
+                "condition": "base",
+                "answer": 23,
+                "query": 19,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_new_alternates": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 24,
+                "learned_parent": 26,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 30,
+                "pair": 207,
+                "condition": "swapped_values",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 19,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 92,
+                "pair": 407,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 19,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "uniform_new_alternates": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 24,
+                "learned_parent": 26,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              }
+            ],
+            "parent_alternate_rows_count": 6,
+            "query_retained_count": 5,
+            "query_lost_count": 1,
+            "uniform_retained_count": 2,
+            "uniform_lost_count": 4,
+            "query_new_alternates_count": 3,
+            "uniform_new_alternates_count": 1
+          },
+          "parent_address_k2": {
+            "parent_alternate_rows": [
+              {
+                "index": 1,
+                "pair": 200,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 29,
+                "pair": 207,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 104,
+                "pair": 410,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 110,
+                "pair": 411,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 112,
+                "pair": 412,
+                "condition": "base",
+                "answer": 23,
+                "query": 19,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 117,
+                "pair": 413,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_retained": [
+              {
+                "index": 1,
+                "pair": 200,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 29,
+                "pair": 207,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 104,
+                "pair": 410,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 110,
+                "pair": 411,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 117,
+                "pair": 413,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_lost": [
+              {
+                "index": 112,
+                "pair": 412,
+                "condition": "base",
+                "answer": 23,
+                "query": 19,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "uniform_retained": [
+              {
+                "index": 1,
+                "pair": 200,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 117,
+                "pair": 413,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 23,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "uniform_lost": [
+              {
+                "index": 29,
+                "pair": 207,
+                "condition": "changed_query",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 104,
+                "pair": 410,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 110,
+                "pair": 411,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 112,
+                "pair": 412,
+                "condition": "base",
+                "answer": 23,
+                "query": 19,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_new_alternates": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 24,
+                "learned_parent": 26,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 30,
+                "pair": 207,
+                "condition": "swapped_values",
+                "answer": 23,
+                "query": 23,
+                "uniform": 19,
+                "learned_parent": 19,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 92,
+                "pair": 407,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 19,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "uniform_new_alternates": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 24,
+                "query": 24,
+                "uniform": 24,
+                "learned_parent": 26,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              }
+            ],
+            "parent_alternate_rows_count": 6,
+            "query_retained_count": 5,
+            "query_lost_count": 1,
+            "uniform_retained_count": 2,
+            "uniform_lost_count": 4,
+            "query_new_alternates_count": 3,
+            "uniform_new_alternates_count": 1
+          }
+        },
+        "cohorts": {
+          "condition": {
+            "base": {
+              "n": 32,
+              "query_correct": 22,
+              "uniform_correct": 21,
+              "query_gains": 3,
+              "query_losses": 2
+            },
+            "changed_query": {
+              "n": 32,
+              "query_correct": 25,
+              "uniform_correct": 24,
+              "query_gains": 2,
+              "query_losses": 1
+            },
+            "swapped_values": {
+              "n": 32,
+              "query_correct": 27,
+              "uniform_correct": 23,
+              "query_gains": 4,
+              "query_losses": 0
+            },
+            "reversed_order": {
+              "n": 32,
+              "query_correct": 24,
+              "uniform_correct": 21,
+              "query_gains": 3,
+              "query_losses": 0
+            }
+          },
+          "facts": {
+            "2": {
+              "n": 64,
+              "query_correct": 51,
+              "uniform_correct": 46,
+              "query_gains": 6,
+              "query_losses": 1
+            },
+            "4": {
+              "n": 64,
+              "query_correct": 47,
+              "uniform_correct": 43,
+              "query_gains": 6,
+              "query_losses": 2
+            }
+          },
+          "query_gap": {
+            "0": {
+              "n": 16,
+              "query_correct": 11,
+              "uniform_correct": 10,
+              "query_gains": 1,
+              "query_losses": 0
+            },
+            "1": {
+              "n": 36,
+              "query_correct": 31,
+              "uniform_correct": 28,
+              "query_gains": 4,
+              "query_losses": 1
+            },
+            "2": {
+              "n": 36,
+              "query_correct": 27,
+              "uniform_correct": 25,
+              "query_gains": 2,
+              "query_losses": 0
+            },
+            "3": {
+              "n": 20,
+              "query_correct": 14,
+              "uniform_correct": 13,
+              "query_gains": 2,
+              "query_losses": 1
+            },
+            "4": {
+              "n": 20,
+              "query_correct": 15,
+              "uniform_correct": 13,
+              "query_gains": 3,
+              "query_losses": 1
+            }
+          },
+          "target_write_gap": {
+            "0": {
+              "n": 26,
+              "query_correct": 21,
+              "uniform_correct": 19,
+              "query_gains": 3,
+              "query_losses": 1
+            },
+            "1": {
+              "n": 21,
+              "query_correct": 16,
+              "uniform_correct": 12,
+              "query_gains": 4,
+              "query_losses": 0
+            },
+            "2": {
+              "n": 26,
+              "query_correct": 20,
+              "uniform_correct": 21,
+              "query_gains": 1,
+              "query_losses": 2
+            },
+            "3": {
+              "n": 20,
+              "query_correct": 13,
+              "uniform_correct": 13,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 35,
+              "query_correct": 28,
+              "uniform_correct": 24,
+              "query_gains": 4,
+              "query_losses": 0
+            }
+          }
+        },
+        "changes_count": 23,
+        "query_gains_count": 12,
+        "query_losses_count": 3,
+        "both_wrong_changes_count": 8
+      },
+      {
+        "seed": 1,
+        "panel": "stress",
+        "query_correct": 104,
+        "uniform_correct": 103,
+        "changes": [
+          {
+            "index": 4,
+            "pair": 201,
+            "condition": "base",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 28,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 5,
+            "pair": 201,
+            "condition": "changed_query",
+            "answer": 23,
+            "query": 19,
+            "uniform": 23,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 12,
+            "pair": 203,
+            "condition": "base",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 17,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 15,
+            "pair": 203,
+            "condition": "reversed_order",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 18,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 17,
+            "pair": 204,
+            "condition": "changed_query",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 18,
+            "pair": 204,
+            "condition": "swapped_values",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 20,
+            "pair": 205,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 23,
+            "pair": 205,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 36,
+            "pair": 209,
+            "condition": "base",
+            "answer": 29,
+            "query": 27,
+            "uniform": 29,
+            "learned_parent": 29,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          },
+          {
+            "index": 50,
+            "pair": 212,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 25,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 24,
+            "parent_address_k2": 24
+          },
+          {
+            "index": 57,
+            "pair": 214,
+            "condition": "changed_query",
+            "answer": 24,
+            "query": 24,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 58,
+            "pair": 214,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 24,
+            "uniform": 25,
+            "learned_parent": 26,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 64,
+            "pair": 400,
+            "condition": "base",
+            "answer": 23,
+            "query": 19,
+            "uniform": 23,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 66,
+            "pair": 400,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 19,
+            "uniform": 23,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 68,
+            "pair": 401,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 71,
+            "pair": 401,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 19,
+            "uniform": 29,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 92,
+            "pair": 407,
+            "condition": "base",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 17,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 94,
+            "pair": 407,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 24,
+            "uniform": 25,
+            "learned_parent": 26,
+            "historic_k2": 24,
+            "parent_address_k2": 24
+          },
+          {
+            "index": 97,
+            "pair": 408,
+            "condition": "changed_query",
+            "answer": 22,
+            "query": 30,
+            "uniform": 22,
+            "learned_parent": 22,
+            "historic_k2": 22,
+            "parent_address_k2": 22
+          },
+          {
+            "index": 104,
+            "pair": 410,
+            "condition": "base",
+            "answer": 25,
+            "query": 25,
+            "uniform": 21,
+            "learned_parent": 25,
+            "historic_k2": 25,
+            "parent_address_k2": 25
+          },
+          {
+            "index": 108,
+            "pair": 411,
+            "condition": "base",
+            "answer": 29,
+            "query": 27,
+            "uniform": 29,
+            "learned_parent": 29,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          }
+        ],
+        "query_gains": [
+          {
+            "index": 20,
+            "pair": 205,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 23,
+            "pair": 205,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 23,
+            "uniform": 19,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 57,
+            "pair": 214,
+            "condition": "changed_query",
+            "answer": 24,
+            "query": 24,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 58,
+            "pair": 214,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 24,
+            "uniform": 25,
+            "learned_parent": 26,
+            "historic_k2": 26,
+            "parent_address_k2": 26
+          },
+          {
+            "index": 68,
+            "pair": 401,
+            "condition": "base",
+            "answer": 23,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 19,
+            "parent_address_k2": 19
+          },
+          {
+            "index": 94,
+            "pair": 407,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 24,
+            "uniform": 25,
+            "learned_parent": 26,
+            "historic_k2": 24,
+            "parent_address_k2": 24
+          },
+          {
+            "index": 104,
+            "pair": 410,
+            "condition": "base",
+            "answer": 25,
+            "query": 25,
+            "uniform": 21,
+            "learned_parent": 25,
+            "historic_k2": 25,
+            "parent_address_k2": 25
+          }
+        ],
+        "query_losses": [
+          {
+            "index": 5,
+            "pair": 201,
+            "condition": "changed_query",
+            "answer": 23,
+            "query": 19,
+            "uniform": 23,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 36,
+            "pair": 209,
+            "condition": "base",
+            "answer": 29,
+            "query": 27,
+            "uniform": 29,
+            "learned_parent": 29,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          },
+          {
+            "index": 64,
+            "pair": 400,
+            "condition": "base",
+            "answer": 23,
+            "query": 19,
+            "uniform": 23,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 66,
+            "pair": 400,
+            "condition": "swapped_values",
+            "answer": 23,
+            "query": 19,
+            "uniform": 23,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 97,
+            "pair": 408,
+            "condition": "changed_query",
+            "answer": 22,
+            "query": 30,
+            "uniform": 22,
+            "learned_parent": 22,
+            "historic_k2": 22,
+            "parent_address_k2": 22
+          },
+          {
+            "index": 108,
+            "pair": 411,
+            "condition": "base",
+            "answer": 29,
+            "query": 27,
+            "uniform": 29,
+            "learned_parent": 29,
+            "historic_k2": 29,
+            "parent_address_k2": 29
+          }
+        ],
+        "both_wrong_changes": [
+          {
+            "index": 4,
+            "pair": 201,
+            "condition": "base",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 28,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 12,
+            "pair": 203,
+            "condition": "base",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 17,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 15,
+            "pair": 203,
+            "condition": "reversed_order",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 18,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          },
+          {
+            "index": 17,
+            "pair": 204,
+            "condition": "changed_query",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 18,
+            "pair": 204,
+            "condition": "swapped_values",
+            "answer": 31,
+            "query": 23,
+            "uniform": 29,
+            "learned_parent": 23,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 50,
+            "pair": 212,
+            "condition": "swapped_values",
+            "answer": 24,
+            "query": 25,
+            "uniform": 26,
+            "learned_parent": 24,
+            "historic_k2": 24,
+            "parent_address_k2": 24
+          },
+          {
+            "index": 71,
+            "pair": 401,
+            "condition": "reversed_order",
+            "answer": 23,
+            "query": 19,
+            "uniform": 29,
+            "learned_parent": 19,
+            "historic_k2": 23,
+            "parent_address_k2": 23
+          },
+          {
+            "index": 92,
+            "pair": 407,
+            "condition": "base",
+            "answer": 28,
+            "query": 18,
+            "uniform": 17,
+            "learned_parent": 17,
+            "historic_k2": 17,
+            "parent_address_k2": 17
+          }
+        ],
+        "parent_alternate_success_retention": {
+          "historic_k2": {
+            "parent_alternate_rows": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 28,
+                "query": 18,
+                "uniform": 17,
+                "learned_parent": 28,
+                "historic_k2": 17,
+                "parent_address_k2": 17
+              },
+              {
+                "index": 57,
+                "pair": 214,
+                "condition": "changed_query",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 68,
+                "pair": 401,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 99,
+                "pair": 408,
+                "condition": "reversed_order",
+                "answer": 22,
+                "query": 30,
+                "uniform": 30,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "query_retained": [
+              {
+                "index": 57,
+                "pair": 214,
+                "condition": "changed_query",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 68,
+                "pair": 401,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_lost": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 28,
+                "query": 18,
+                "uniform": 17,
+                "learned_parent": 28,
+                "historic_k2": 17,
+                "parent_address_k2": 17
+              },
+              {
+                "index": 99,
+                "pair": 408,
+                "condition": "reversed_order",
+                "answer": 22,
+                "query": 30,
+                "uniform": 30,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "uniform_retained": [],
+            "uniform_lost": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 28,
+                "query": 18,
+                "uniform": 17,
+                "learned_parent": 28,
+                "historic_k2": 17,
+                "parent_address_k2": 17
+              },
+              {
+                "index": 57,
+                "pair": 214,
+                "condition": "changed_query",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 68,
+                "pair": 401,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 99,
+                "pair": 408,
+                "condition": "reversed_order",
+                "answer": 22,
+                "query": 30,
+                "uniform": 30,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "query_new_alternates": [
+              {
+                "index": 58,
+                "pair": 214,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 26,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 73,
+                "pair": 402,
+                "condition": "changed_query",
+                "answer": 26,
+                "query": 26,
+                "uniform": 26,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "uniform_new_alternates": [
+              {
+                "index": 73,
+                "pair": 402,
+                "condition": "changed_query",
+                "answer": 26,
+                "query": 26,
+                "uniform": 26,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "parent_alternate_rows_count": 4,
+            "query_retained_count": 2,
+            "query_lost_count": 2,
+            "uniform_retained_count": 0,
+            "uniform_lost_count": 4,
+            "query_new_alternates_count": 2,
+            "uniform_new_alternates_count": 1
+          },
+          "parent_address_k2": {
+            "parent_alternate_rows": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 28,
+                "query": 18,
+                "uniform": 17,
+                "learned_parent": 28,
+                "historic_k2": 17,
+                "parent_address_k2": 17
+              },
+              {
+                "index": 57,
+                "pair": 214,
+                "condition": "changed_query",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 68,
+                "pair": 401,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 99,
+                "pair": 408,
+                "condition": "reversed_order",
+                "answer": 22,
+                "query": 30,
+                "uniform": 30,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "query_retained": [
+              {
+                "index": 57,
+                "pair": 214,
+                "condition": "changed_query",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 68,
+                "pair": 401,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              }
+            ],
+            "query_lost": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 28,
+                "query": 18,
+                "uniform": 17,
+                "learned_parent": 28,
+                "historic_k2": 17,
+                "parent_address_k2": 17
+              },
+              {
+                "index": 99,
+                "pair": 408,
+                "condition": "reversed_order",
+                "answer": 22,
+                "query": 30,
+                "uniform": 30,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "uniform_retained": [],
+            "uniform_lost": [
+              {
+                "index": 4,
+                "pair": 201,
+                "condition": "base",
+                "answer": 28,
+                "query": 18,
+                "uniform": 17,
+                "learned_parent": 28,
+                "historic_k2": 17,
+                "parent_address_k2": 17
+              },
+              {
+                "index": 57,
+                "pair": 214,
+                "condition": "changed_query",
+                "answer": 24,
+                "query": 24,
+                "uniform": 26,
+                "learned_parent": 24,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 68,
+                "pair": 401,
+                "condition": "base",
+                "answer": 23,
+                "query": 23,
+                "uniform": 29,
+                "learned_parent": 23,
+                "historic_k2": 19,
+                "parent_address_k2": 19
+              },
+              {
+                "index": 99,
+                "pair": 408,
+                "condition": "reversed_order",
+                "answer": 22,
+                "query": 30,
+                "uniform": 30,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "query_new_alternates": [
+              {
+                "index": 58,
+                "pair": 214,
+                "condition": "swapped_values",
+                "answer": 24,
+                "query": 24,
+                "uniform": 25,
+                "learned_parent": 26,
+                "historic_k2": 26,
+                "parent_address_k2": 26
+              },
+              {
+                "index": 73,
+                "pair": 402,
+                "condition": "changed_query",
+                "answer": 26,
+                "query": 26,
+                "uniform": 26,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "uniform_new_alternates": [
+              {
+                "index": 73,
+                "pair": 402,
+                "condition": "changed_query",
+                "answer": 26,
+                "query": 26,
+                "uniform": 26,
+                "learned_parent": 22,
+                "historic_k2": 30,
+                "parent_address_k2": 30
+              }
+            ],
+            "parent_alternate_rows_count": 4,
+            "query_retained_count": 2,
+            "query_lost_count": 2,
+            "uniform_retained_count": 0,
+            "uniform_lost_count": 4,
+            "query_new_alternates_count": 2,
+            "uniform_new_alternates_count": 1
+          }
+        },
+        "cohorts": {
+          "condition": {
+            "base": {
+              "n": 32,
+              "query_correct": 24,
+              "uniform_correct": 24,
+              "query_gains": 3,
+              "query_losses": 3
+            },
+            "changed_query": {
+              "n": 32,
+              "query_correct": 28,
+              "uniform_correct": 29,
+              "query_gains": 1,
+              "query_losses": 2
+            },
+            "swapped_values": {
+              "n": 32,
+              "query_correct": 27,
+              "uniform_correct": 26,
+              "query_gains": 2,
+              "query_losses": 1
+            },
+            "reversed_order": {
+              "n": 32,
+              "query_correct": 25,
+              "uniform_correct": 24,
+              "query_gains": 1,
+              "query_losses": 0
+            }
+          },
+          "facts": {
+            "2": {
+              "n": 64,
+              "query_correct": 51,
+              "uniform_correct": 49,
+              "query_gains": 4,
+              "query_losses": 2
+            },
+            "4": {
+              "n": 64,
+              "query_correct": 53,
+              "uniform_correct": 54,
+              "query_gains": 3,
+              "query_losses": 4
+            }
+          },
+          "query_gap": {
+            "0": {
+              "n": 20,
+              "query_correct": 18,
+              "uniform_correct": 16,
+              "query_gains": 2,
+              "query_losses": 0
+            },
+            "1": {
+              "n": 16,
+              "query_correct": 14,
+              "uniform_correct": 14,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "2": {
+              "n": 4,
+              "query_correct": 4,
+              "uniform_correct": 4,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "3": {
+              "n": 12,
+              "query_correct": 11,
+              "uniform_correct": 10,
+              "query_gains": 2,
+              "query_losses": 1
+            },
+            "4": {
+              "n": 16,
+              "query_correct": 9,
+              "uniform_correct": 12,
+              "query_gains": 0,
+              "query_losses": 3
+            },
+            "5": {
+              "n": 12,
+              "query_correct": 10,
+              "uniform_correct": 10,
+              "query_gains": 1,
+              "query_losses": 1
+            },
+            "6": {
+              "n": 16,
+              "query_correct": 11,
+              "uniform_correct": 10,
+              "query_gains": 1,
+              "query_losses": 0
+            },
+            "7": {
+              "n": 16,
+              "query_correct": 15,
+              "uniform_correct": 14,
+              "query_gains": 1,
+              "query_losses": 0
+            },
+            "8": {
+              "n": 16,
+              "query_correct": 12,
+              "uniform_correct": 13,
+              "query_gains": 0,
+              "query_losses": 1
+            }
+          },
+          "target_write_gap": {
+            "0": {
+              "n": 15,
+              "query_correct": 11,
+              "uniform_correct": 12,
+              "query_gains": 0,
+              "query_losses": 1
+            },
+            "1": {
+              "n": 16,
+              "query_correct": 11,
+              "uniform_correct": 10,
+              "query_gains": 2,
+              "query_losses": 1
+            },
+            "2": {
+              "n": 14,
+              "query_correct": 12,
+              "uniform_correct": 13,
+              "query_gains": 0,
+              "query_losses": 1
+            },
+            "3": {
+              "n": 17,
+              "query_correct": 15,
+              "uniform_correct": 14,
+              "query_gains": 1,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 15,
+              "query_gains": 1,
+              "query_losses": 0
+            },
+            "5": {
+              "n": 8,
+              "query_correct": 6,
+              "uniform_correct": 6,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "6": {
+              "n": 13,
+              "query_correct": 10,
+              "uniform_correct": 10,
+              "query_gains": 1,
+              "query_losses": 1
+            },
+            "7": {
+              "n": 14,
+              "query_correct": 11,
+              "uniform_correct": 9,
+              "query_gains": 2,
+              "query_losses": 0
+            },
+            "8": {
+              "n": 15,
+              "query_correct": 12,
+              "uniform_correct": 14,
+              "query_gains": 0,
+              "query_losses": 2
+            }
+          }
+        },
+        "changes_count": 21,
+        "query_gains_count": 7,
+        "query_losses_count": 6,
+        "both_wrong_changes_count": 8
+      },
+      {
+        "seed": 2,
+        "panel": "original",
+        "query_correct": 128,
+        "uniform_correct": 128,
+        "changes": [],
+        "query_gains": [],
+        "query_losses": [],
+        "both_wrong_changes": [],
+        "parent_alternate_success_retention": {
+          "historic_k2": {
+            "parent_alternate_rows": [],
+            "query_retained": [],
+            "query_lost": [],
+            "uniform_retained": [],
+            "uniform_lost": [],
+            "query_new_alternates": [],
+            "uniform_new_alternates": [],
+            "parent_alternate_rows_count": 0,
+            "query_retained_count": 0,
+            "query_lost_count": 0,
+            "uniform_retained_count": 0,
+            "uniform_lost_count": 0,
+            "query_new_alternates_count": 0,
+            "uniform_new_alternates_count": 0
+          },
+          "parent_address_k2": {
+            "parent_alternate_rows": [],
+            "query_retained": [],
+            "query_lost": [],
+            "uniform_retained": [],
+            "uniform_lost": [],
+            "query_new_alternates": [],
+            "uniform_new_alternates": [],
+            "parent_alternate_rows_count": 0,
+            "query_retained_count": 0,
+            "query_lost_count": 0,
+            "uniform_retained_count": 0,
+            "uniform_lost_count": 0,
+            "query_new_alternates_count": 0,
+            "uniform_new_alternates_count": 0
+          }
+        },
+        "cohorts": {
+          "condition": {
+            "base": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 32,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "changed_query": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 32,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "swapped_values": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 32,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "reversed_order": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 32,
+              "query_gains": 0,
+              "query_losses": 0
+            }
+          },
+          "facts": {
+            "2": {
+              "n": 64,
+              "query_correct": 64,
+              "uniform_correct": 64,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 64,
+              "query_correct": 64,
+              "uniform_correct": 64,
+              "query_gains": 0,
+              "query_losses": 0
+            }
+          },
+          "query_gap": {
+            "0": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 16,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "1": {
+              "n": 36,
+              "query_correct": 36,
+              "uniform_correct": 36,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "2": {
+              "n": 36,
+              "query_correct": 36,
+              "uniform_correct": 36,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "3": {
+              "n": 20,
+              "query_correct": 20,
+              "uniform_correct": 20,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 20,
+              "query_correct": 20,
+              "uniform_correct": 20,
+              "query_gains": 0,
+              "query_losses": 0
+            }
+          },
+          "target_write_gap": {
+            "0": {
+              "n": 26,
+              "query_correct": 26,
+              "uniform_correct": 26,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "1": {
+              "n": 21,
+              "query_correct": 21,
+              "uniform_correct": 21,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "2": {
+              "n": 26,
+              "query_correct": 26,
+              "uniform_correct": 26,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "3": {
+              "n": 20,
+              "query_correct": 20,
+              "uniform_correct": 20,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 35,
+              "query_correct": 35,
+              "uniform_correct": 35,
+              "query_gains": 0,
+              "query_losses": 0
+            }
+          }
+        },
+        "changes_count": 0,
+        "query_gains_count": 0,
+        "query_losses_count": 0,
+        "both_wrong_changes_count": 0
+      },
+      {
+        "seed": 2,
+        "panel": "stress",
+        "query_correct": 128,
+        "uniform_correct": 127,
+        "changes": [
+          {
+            "index": 87,
+            "pair": 405,
+            "condition": "reversed_order",
+            "answer": 20,
+            "query": 20,
+            "uniform": 16,
+            "learned_parent": 16,
+            "historic_k2": 16,
+            "parent_address_k2": 20
+          }
+        ],
+        "query_gains": [
+          {
+            "index": 87,
+            "pair": 405,
+            "condition": "reversed_order",
+            "answer": 20,
+            "query": 20,
+            "uniform": 16,
+            "learned_parent": 16,
+            "historic_k2": 16,
+            "parent_address_k2": 20
+          }
+        ],
+        "query_losses": [],
+        "both_wrong_changes": [],
+        "parent_alternate_success_retention": {
+          "historic_k2": {
+            "parent_alternate_rows": [],
+            "query_retained": [],
+            "query_lost": [],
+            "uniform_retained": [],
+            "uniform_lost": [],
+            "query_new_alternates": [
+              {
+                "index": 87,
+                "pair": 405,
+                "condition": "reversed_order",
+                "answer": 20,
+                "query": 20,
+                "uniform": 16,
+                "learned_parent": 16,
+                "historic_k2": 16,
+                "parent_address_k2": 20
+              }
+            ],
+            "uniform_new_alternates": [],
+            "parent_alternate_rows_count": 0,
+            "query_retained_count": 0,
+            "query_lost_count": 0,
+            "uniform_retained_count": 0,
+            "uniform_lost_count": 0,
+            "query_new_alternates_count": 1,
+            "uniform_new_alternates_count": 0
+          },
+          "parent_address_k2": {
+            "parent_alternate_rows": [],
+            "query_retained": [],
+            "query_lost": [],
+            "uniform_retained": [],
+            "uniform_lost": [],
+            "query_new_alternates": [],
+            "uniform_new_alternates": [],
+            "parent_alternate_rows_count": 0,
+            "query_retained_count": 0,
+            "query_lost_count": 0,
+            "uniform_retained_count": 0,
+            "uniform_lost_count": 0,
+            "query_new_alternates_count": 0,
+            "uniform_new_alternates_count": 0
+          }
+        },
+        "cohorts": {
+          "condition": {
+            "base": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 32,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "changed_query": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 32,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "swapped_values": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 32,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "reversed_order": {
+              "n": 32,
+              "query_correct": 32,
+              "uniform_correct": 31,
+              "query_gains": 1,
+              "query_losses": 0
+            }
+          },
+          "facts": {
+            "2": {
+              "n": 64,
+              "query_correct": 64,
+              "uniform_correct": 64,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 64,
+              "query_correct": 64,
+              "uniform_correct": 63,
+              "query_gains": 1,
+              "query_losses": 0
+            }
+          },
+          "query_gap": {
+            "0": {
+              "n": 20,
+              "query_correct": 20,
+              "uniform_correct": 20,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "1": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 15,
+              "query_gains": 1,
+              "query_losses": 0
+            },
+            "2": {
+              "n": 4,
+              "query_correct": 4,
+              "uniform_correct": 4,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "3": {
+              "n": 12,
+              "query_correct": 12,
+              "uniform_correct": 12,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 16,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "5": {
+              "n": 12,
+              "query_correct": 12,
+              "uniform_correct": 12,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "6": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 16,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "7": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 16,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "8": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 16,
+              "query_gains": 0,
+              "query_losses": 0
+            }
+          },
+          "target_write_gap": {
+            "0": {
+              "n": 15,
+              "query_correct": 15,
+              "uniform_correct": 14,
+              "query_gains": 1,
+              "query_losses": 0
+            },
+            "1": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 16,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "2": {
+              "n": 14,
+              "query_correct": 14,
+              "uniform_correct": 14,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "3": {
+              "n": 17,
+              "query_correct": 17,
+              "uniform_correct": 17,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "4": {
+              "n": 16,
+              "query_correct": 16,
+              "uniform_correct": 16,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "5": {
+              "n": 8,
+              "query_correct": 8,
+              "uniform_correct": 8,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "6": {
+              "n": 13,
+              "query_correct": 13,
+              "uniform_correct": 13,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "7": {
+              "n": 14,
+              "query_correct": 14,
+              "uniform_correct": 14,
+              "query_gains": 0,
+              "query_losses": 0
+            },
+            "8": {
+              "n": 15,
+              "query_correct": 15,
+              "uniform_correct": 15,
+              "query_gains": 0,
+              "query_losses": 0
+            }
+          }
+        },
+        "changes_count": 1,
+        "query_gains_count": 1,
+        "query_losses_count": 0,
+        "both_wrong_changes_count": 0
+      }
+    ],
+    "parameter_changes": [
+      {
+        "condition": "run-1-s1-query_read",
+        "families": {
+          "context-source": {
+            "changed": [
+              "neighbor_transition",
+              "self_transition",
+              "token_transition"
+            ],
+            "unchanged": [
+              "neighbor_category",
+              "neighbor_root",
+              "self_category",
+              "self_root",
+              "token_category",
+              "token_root"
+            ],
+            "parent_sha256": "102d6ec3ff84c06ff581831b63fbecf72e18fe328363f84bd0ea2d0a080c460c",
+            "final_sha256": "b8b1053ecf378012ff6659ab0910cf6ae322e932aba425471cd2bbdeed83d178"
+          },
+          "value-source": {
+            "changed": [
+              "neighbor_category",
+              "neighbor_root",
+              "own_category",
+              "own_root",
+              "span_category",
+              "span_root",
+              "span_valid_category",
+              "span_valid_root",
+              "token_category",
+              "token_root"
+            ],
+            "unchanged": [],
+            "parent_sha256": "eb4ea56648b1ec0d3ffb982fc4e65f957dcecbf318974ca7723ab4ebfe11a7ef",
+            "final_sha256": "497aabe82b26bc99945dc75e712760a215a36be5e396691f58d51d69dab69b55"
+          }
+        }
+      },
+      {
+        "condition": "run-1-s1-uniform_matched_mass",
+        "families": {
+          "context-source": {
+            "changed": [
+              "neighbor_transition",
+              "self_transition",
+              "token_transition"
+            ],
+            "unchanged": [
+              "neighbor_category",
+              "neighbor_root",
+              "self_category",
+              "self_root",
+              "token_category",
+              "token_root"
+            ],
+            "parent_sha256": "102d6ec3ff84c06ff581831b63fbecf72e18fe328363f84bd0ea2d0a080c460c",
+            "final_sha256": "31736820924c0e56659c8c542115d92b6b6d9161f241257d0b67fe399d81081b"
+          },
+          "value-source": {
+            "changed": [
+              "neighbor_category",
+              "neighbor_root",
+              "own_category",
+              "own_root",
+              "span_category",
+              "span_root",
+              "span_valid_category",
+              "span_valid_root",
+              "token_category",
+              "token_root"
+            ],
+            "unchanged": [],
+            "parent_sha256": "eb4ea56648b1ec0d3ffb982fc4e65f957dcecbf318974ca7723ab4ebfe11a7ef",
+            "final_sha256": "3cbce1c47f9a4fe21b24354b27121e475eb036c4db8d214108807fe02d81604c"
+          }
+        }
+      },
+      {
+        "condition": "run-1-s2-query_read",
+        "families": {
+          "context-source": {
+            "changed": [
+              "neighbor_transition",
+              "self_transition",
+              "token_transition"
+            ],
+            "unchanged": [
+              "neighbor_category",
+              "neighbor_root",
+              "self_category",
+              "self_root",
+              "token_category",
+              "token_root"
+            ],
+            "parent_sha256": "3b1e0fbad2d8783c94b36b85c28532712427985dff02fcde9326d51100159b1b",
+            "final_sha256": "784916febecd928d80a5792e93652a81b501a9c8ac0e4decdd633a480c48150e"
+          },
+          "value-source": {
+            "changed": [
+              "neighbor_category",
+              "neighbor_root",
+              "own_category",
+              "own_root",
+              "span_category",
+              "span_root",
+              "span_valid_category",
+              "span_valid_root",
+              "token_category",
+              "token_root"
+            ],
+            "unchanged": [],
+            "parent_sha256": "a11472805275fd469ff38c826546f450246836d94840e43385a35a0c6c34d843",
+            "final_sha256": "d2482a5f01e49dc390d085eba73d288b936a4a7b2056162c97b73b1804289796"
+          }
+        }
+      },
+      {
+        "condition": "run-1-s2-uniform_matched_mass",
+        "families": {
+          "context-source": {
+            "changed": [
+              "neighbor_transition",
+              "self_transition",
+              "token_transition"
+            ],
+            "unchanged": [
+              "neighbor_category",
+              "neighbor_root",
+              "self_category",
+              "self_root",
+              "token_category",
+              "token_root"
+            ],
+            "parent_sha256": "3b1e0fbad2d8783c94b36b85c28532712427985dff02fcde9326d51100159b1b",
+            "final_sha256": "a813497b83e74caf407fb1efea29395c61653fc351af58ea8156cb8f5a1e67c9"
+          },
+          "value-source": {
+            "changed": [
+              "neighbor_category",
+              "neighbor_root",
+              "own_category",
+              "own_root",
+              "span_category",
+              "span_root",
+              "span_valid_category",
+              "span_valid_root",
+              "token_category",
+              "token_root"
+            ],
+            "unchanged": [],
+            "parent_sha256": "a11472805275fd469ff38c826546f450246836d94840e43385a35a0c6c34d843",
+            "final_sha256": "46b7726d0733b8a5bc7ebc06a33583846f9a6640aeab99fe92f3d176447a6dc2"
+          }
+        }
+      }
+    ],
+    "report_inventory": [
+      {
+        "condition": "run-1-s1-query_read",
+        "files": 2663,
+        "manifest_sha256": "862793e23e9500e85e8bcb391328e1a0e95344062d64244a7848449d4fbcb4d6"
+      },
+      {
+        "condition": "run-1-s1-uniform_matched_mass",
+        "files": 2663,
+        "manifest_sha256": "3a5271adcfc117850c14119de5b66455922db2950d734466e6a6a29c0e7e3f86"
+      },
+      {
+        "condition": "run-1-s2-query_read",
+        "files": 2663,
+        "manifest_sha256": "d319248bf587d32c0b4e1bfa9bc72abdf27daa512f04859934b52068614dd990"
+      },
+      {
+        "condition": "run-1-s2-uniform_matched_mass",
+        "files": 2663,
+        "manifest_sha256": "e174ad9f5fbcf11fd69e0f0e0db12f52d791f5dc860c81175ffc9b09f08a1aa4"
+      }
+    ]
+  },
+  "audit_totals": {
+    "aggregates": {
+      "query_correct": 458,
+      "uniform_correct": 447,
+      "query_gains": 20,
+      "query_losses": 9,
+      "prediction_changes": 45,
+      "both_wrong_changes": 16
+    },
+    "old": {
+      "query_read": {
+        "correct": 458,
+        "parent_correct": 406,
+        "parent_gains": 67,
+        "parent_losses": 15,
+        "historic_k2_gains": 13,
+        "historic_k2_losses": 17
+      },
+      "uniform_matched_mass": {
+        "correct": 447,
+        "parent_correct": 406,
+        "parent_gains": 59,
+        "parent_losses": 18,
+        "historic_k2_gains": 4,
+        "historic_k2_losses": 19
+      }
+    },
+    "elapsed_seconds": 812.7216908340342,
+    "rssmax": 439728,
+    "actual_positions": 982760,
+    "padded_positions": 1147712
+  },
+  "audit_limitations": [
+    "Gradient diagnostics are 20 recorded batches per arm, not all640 backward tensors.",
+    "Raw full-prefix source/native disagreement counters are source-produced report fields. Independent row checks reproduce answer choices, source packets/coordinate disagreement fields and exact integer source/NoRead fractions; no new inference or undisclosed full-prefix trace reconstruction.",
+    "Reported maximum logit drift covers all actual prefix positions. Independently recomputed answer-row drift is separately named.",
+    "Manifest inventory/lengths and report/manifest SHA256 checked; independent regeneration of every BLAKE3 not claimed.",
+    "No primitive zero/absence teacher target occurs in actual training draws; tests, not these draws, establish zero-mask edge behavior.",
+    "NoRead and trunk/output remain floating; wide Q24 table values do not establish D0-b four-bit free-weight qualification.",
+    "512 pooled rows include authored interventions and identical panels across policy/seed comparisons; no IID test or frontier/general-language inference."
+  ],
+  "independent_audit_note_sha256": "30ea278577408b95784f1d79ac019dc90ceb85cecbd32e54987cc6645f8cf278",
+  "integer_identity_encoding": "u64 RNG identifiers are exact decimal strings; derived-report numeric rounding repaired; raw fits unaffected"
+}
