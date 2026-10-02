@@ -26,7 +26,9 @@
 
 use crate::geometric_address::{geometry_digest, AddressCode, GeometricAddressConfig};
 use crate::geometric_event::CompiledEvents;
-use crate::geometric_potential_native::{CompiledGeometricPotentials, PotentialSourceBinding};
+use crate::geometric_potential_native::{
+    artifact_file_names, CompiledGeometricPotentials, PotentialSourceBinding,
+};
 use crate::geometric_span_native::{CompiledSpanActions, SpanSourceBinding};
 use crate::geometric_stack::{
     StackConfig, StackModel, GEOMETRIC_ADDRESS_RECORD, GEOMETRIC_SPAN_RECORD,
@@ -992,12 +994,10 @@ fn dependency_files(paths: ContextSourcePaths<'_>) -> Result<BTreeMap<String, Bo
         (
             "potential_native",
             paths.potential_native,
-            vec![
-                "metadata.json",
-                "potential-i32le.bin",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            // Strict potential /2 embeds the independent coefficient source;
+            // bind its packed and shadow bytes without adding a context cycle.
+            // Legacy /1 retains exactly its original four-file dependency map.
+            artifact_file_names(paths.potential_native)?,
         ),
     ] {
         for name in names {
@@ -2057,6 +2057,64 @@ mod tests {
         .save(&fixture.potential_native)?;
         Ok(fixture)
     }
+    #[test]
+    fn geometric_context_q4_potential_rebind_preserves_source_and_tables() -> Result<()> {
+        let fixture = fixture()?;
+        let old_source = fixture.root.join("old-context-source");
+        let weights = ContextWeights::new_finite_choice(4, 8, 1, 173)?;
+        weights.save_source(&old_source, fixture.paths(), REGISTRY)?;
+        let before = CompiledContext::compile(&weights, &old_source, fixture.paths(), REGISTRY)?;
+        let potential_source = fixture.root.join("q4-potential-source");
+        let potential_native = fixture.root.join("q4-potential-native");
+        let strict =
+            crate::geometric_potential_q4::PotentialQ4Weights::from_base(&fixture.base, REGISTRY)?;
+        strict.save(&potential_source)?;
+        let base = PotentialSourceBinding::from_directory(&fixture.base, REGISTRY)?;
+        CompiledGeometricPotentials::compile_q4(&strict, &potential_source, &base)?
+            .save(&potential_native)?;
+        let new_paths = ContextSourcePaths {
+            potential_native: &potential_native,
+            ..fixture.paths()
+        };
+        // Old source binding must fail with the new dependency; only an
+        // explicit re-save of the already admitted weights creates the envelope.
+        assert!(ContextWeights::load_source(&old_source, new_paths, REGISTRY).is_err());
+        let new_source = fixture.root.join("rebound-context-source");
+        let new_native = fixture.root.join("rebound-context-native");
+        weights.save_source(&new_source, new_paths, REGISTRY)?;
+        let after = CompiledContext::compile(&weights, &new_source, new_paths, REGISTRY)?;
+        after.save(&new_native)?;
+        let reload = CompiledContext::load(&new_native, &new_source, new_paths, REGISTRY)?;
+        assert_eq!(before.table_bytes, reload.table_bytes);
+        assert_eq!(
+            before.metadata.source.parameters,
+            reload.metadata.source.parameters
+        );
+        assert_eq!(
+            fs::read(old_source.join(SOURCE_FILES[1]))?,
+            fs::read(new_source.join(SOURCE_FILES[1]))?
+        );
+        assert_eq!(
+            reload
+                .metadata
+                .source
+                .frozen
+                .files
+                .keys()
+                .filter(|k| k.starts_with("potential_native/"))
+                .count(),
+            7
+        );
+        let ids = [0, 1, 2, 3, 3, 2, 1, 0];
+        let old_trace = trace_native(&ids, 2, 4, &before, false)?;
+        let new_trace = trace_native(&ids, 2, 4, &reload, false)?;
+        assert_eq!(old_trace.states, new_trace.states);
+        assert_eq!(old_trace.actions, new_trace.actions);
+        assert_eq!(old_trace.codes, new_trace.codes);
+        fs::remove_dir_all(fixture.root)?;
+        Ok(())
+    }
+
     #[test]
     fn geometric_context_source_reload_stale_and_resealed_tamper() -> Result<()> {
         let fixture = fixture()?;

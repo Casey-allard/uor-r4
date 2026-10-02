@@ -26,7 +26,7 @@ use uor_r4_integer::geometric_read::{
     NativeGeometricRead, EXP_STEP_LOG2, EXP_TABLE_LEN, MAX_CONTEXT, MAX_VALUE_WIDTH, WEIGHT_ONE,
 };
 
-use crate::geometric_potential_native::CompiledGeometricPotentials;
+use crate::geometric_potential_native::{CompiledGeometricPotentials, PotentialSourceBinding};
 use crate::geometric_stack::{
     StackArch, StackConfig, StackModel, GEOMETRIC_ADDRESS_RECORD, GEOMETRIC_SPAN_RECORD,
 };
@@ -122,6 +122,12 @@ impl ReadSourceBinding {
             .ok_or_else(|| invalid("native read requires saved geometric addressing"))?;
         StackModel::saved_geometric_span(directory)?
             .ok_or_else(|| invalid("native read requires saved geometric span producer"))?;
+        // Either admitted potential schema keeps the immutable donor/base
+        // identity separate from its numerical coefficient source. Rebinding
+        // changes only the metadata envelope, never age or exponent tables.
+        let potential_parent =
+            PotentialSourceBinding::from_directory(directory, tokenizer_identity)?;
+        potential.validate_base_source(&potential_parent)?;
         let meta = potential.metadata();
         if meta.model_sha256 != sha256_bytes(&source["model.safetensors"])
             || meta.config_sha256 != sha256_bytes(&source["config.json"])
@@ -744,6 +750,40 @@ mod tests {
             potential,
             source,
         })
+    }
+
+    #[test]
+    fn native_read_q4_potential_rebind_preserves_age_and_exponential_payloads() -> Result<()> {
+        let fixture = fixture(
+            (0..HEADS * CONTEXT)
+                .map(|i| i as f32 * 0.013 - 0.07)
+                .collect(),
+        )?;
+        let before = fixture.compile()?;
+        let base = fixture.directory.join("base");
+        let source_directory = fixture.directory.join("strict-potential-source");
+        let strict = crate::geometric_potential_q4::PotentialQ4Weights::from_base(&base, REGISTRY)?;
+        strict.save(&source_directory)?;
+        let potential_source = PotentialSourceBinding::from_directory(&base, REGISTRY)?;
+        let potential =
+            CompiledGeometricPotentials::compile_q4(&strict, &source_directory, &potential_source)?;
+        let rebound = ReadSourceBinding::from_directory(&base, REGISTRY, &potential, 2)?;
+        assert!(before.validate_for(fixture.age(), &potential).is_err());
+        let after = CompiledGeometricRead::compile(fixture.age(), &potential, &rebound)?;
+        assert_eq!(before.age, after.age);
+        assert_eq!(before.exp, after.exp);
+        assert_eq!(before.metadata.age_f32, after.metadata.age_f32);
+        assert_ne!(
+            before.metadata.potential_metadata,
+            after.metadata.potential_metadata
+        );
+        let artifact = fixture.directory.join("rebound-read");
+        after.save(&artifact)?;
+        let reload = CompiledGeometricRead::load(&artifact, &rebound)?;
+        assert_eq!(reload.metadata, after.metadata);
+        assert!(CompiledGeometricRead::load(&artifact, &fixture.source).is_err());
+        fs::remove_dir_all(fixture.directory)?;
+        Ok(())
     }
 
     #[test]

@@ -1,5 +1,27 @@
 # Current UOR-R4 research state
 
+## Strict q4 geometric attention potentials — fixed conversion complete, October 2
+
+Both saved q4-value parents now compile the existing seven-family paired-H4
+potential from16,640 packed signed-q4 coefficients at fixed q/4 nat units.
+Source/native answers agree512/512; native478/512 versus479/512 parent retains
+one seed1 stress loss and no gains. All1,883,664 causal raw Q24 scores match the
+loaded native scorer. All seven families receive finite positive answer gradients
+in four B8 diagnostics; zero optimizer updates and preserved training RNG.
+Context/reducer/value/NoRead/bank numerical files remain unchanged after rebinding.
+Twelve focused cases and the standalone release build pass; one type-annotation
+compile failure is retained and repaired. Both actual workers finish in10.229/
+12.462s. [Construction/result](geometric-potential-q4-2026-10-02.md) ·
+[Receipt](../evidence/geometric-potential-q4-2026-10-02.json).
+
+Retain strict q4 potential and both parents; end construction without an automatic
+potential recovery dose. Advance packed-q4 context transition/observation source
+with actual state/address/value/answer comparisons before learning admission.
+Event/age coefficients, selected access, float trunk/output and natural inputs
+remain unfinished. The owner-approved scale ladder and Claude Metal work on #820
+run concurrently; this component evidence neither qualifies strict whole-model
+serving nor retires geometric attention. stack_grounded_session.rs stays untouched.
+
 ## Strict q4 geometric values — both fixed answer fits complete, October 2
 
 Both retained projection2 producers complete640 answer-only updates through the

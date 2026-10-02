@@ -29,6 +29,13 @@
 //! or downstream answer changes. Masks can select fewer than seven terms but
 //! the bound always retains all seven. Higher-precision reinterpretations of
 //! irrational roots are not the reference addressed by this contract.
+//!
+//! Strict schema /2 instead binds a separate saved q4 coefficient source to
+//! the immutable original base. Packed quarter-nat coefficients regenerate all
+//! tables through the declared canonical Q25 observation basis. Its score
+//! magnitude bound is not the legacy F64-reference approximation bound above.
+//! The embedded coefficient source has no context dependency: context and
+//! reducer envelopes may be rebound without a provenance cycle.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -48,6 +55,7 @@ use uor_r4_integer::geometric_potential::{
     CONTENT_UNARY_OFFSET, CONTEXT_PRESENCE_OFFSET, CONTEXT_RADIUS_OFFSET, CONTEXT_UNARY_OFFSET,
     ENTRIES_PER_LANE, FRACTIONAL_BITS, PAIR_OFFSET,
 };
+use uor_r4_integer::geometric_potential_q4::{self, NativePotentialQ4, PotentialQ4Config};
 use uor_r4_integer::h4_classifier::H4_ROOT_COEFFICIENTS;
 use uor_r4_integer::h4_tables::{
     coefficients_sha256, mathematical_sha256, H4Code, HistoricalH4Tables, PAYLOAD_BYTES,
@@ -57,10 +65,18 @@ use uor_r4_integer::h4_tables::{
 use crate::geometric_address::{
     self, encode_lane, geometry_digest, AddressWeights, GeometricAddressConfig,
 };
+use crate::geometric_potential_q4::PotentialQ4Weights;
 use crate::geometric_stack::{StackModel, GEOMETRIC_ADDRESS_RECORD};
 use crate::{invalid, sha256_bytes, Result};
 
 pub const SCHEMA: &str = "uor-r4.native-geometric-potentials/1";
+pub const Q4_SCHEMA: &str = "uor-r4.native-geometric-potentials/2";
+const Q4_BOUND_RULE: &str = "strict-Q25-observation;absolute-score-at-most-21-nats-per-lane;no-legacy-F64-reference-error-bound/1";
+const Q4_FILES: [&str; 3] = [
+    "potential-coefficients-q4.bin",
+    "potential-source-metadata.json",
+    "potential-source-parameters.safetensors",
+];
 const POLICY:&str="signed-i32-Q24;nearest-ties-away;one-round-per-family;no-centering;overflow-reject;head-lane-seven-families/1";
 const BOUND_RULE: &str =
     "S-raw-monomial-absolute;gamma64+gamma128L128;seven-Q24;both-F32-casts;positive-upward/1";
@@ -463,6 +479,49 @@ pub struct PotentialMetadata {
     pub policy: String,
     pub bound_rule: String,
     pub error_bounds: Vec<HeadScoreErrorBound>,
+    /// Omitted from legacy serialization. The top-level coefficient identities
+    /// remain the immutable base lineage; these fields bind the new source.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub q4: Option<PotentialQ4Metadata>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PotentialBoundFile {
+    pub bytes: usize,
+    pub sha256: String,
+}
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PotentialQ4Metadata {
+    pub schema: String,
+    pub policy: String,
+    pub config: PotentialQ4Config,
+    pub coefficient_count: usize,
+    pub packed: PotentialBoundFile,
+    pub basis_q25: PotentialBoundFile,
+    pub source_metadata: PotentialBoundFile,
+    pub source_parameters: PotentialBoundFile,
+    pub absolute_score_bound_nats_per_lane: usize,
+}
+fn bound_file(bytes: &[u8]) -> PotentialBoundFile {
+    PotentialBoundFile {
+        bytes: bytes.len(),
+        sha256: sha256_bytes(bytes),
+    }
+}
+
+/// Exact expected files for the declared artifact schema. Unknown schemas and
+/// mixed legacy/strict metadata fail before callers snapshot dependencies.
+pub fn artifact_file_names(directory: &Path) -> Result<Vec<&'static str>> {
+    let saved: PotentialMetadata = serde_json::from_slice(&fs::read(directory.join(FILES[0]))?)?;
+    let mut names = FILES.to_vec();
+    match (saved.schema.as_str(), saved.q4.is_some()) {
+        (SCHEMA, false) => {}
+        (Q4_SCHEMA, true) => names.extend(Q4_FILES),
+        _ => return Err(invalid("unknown or inconsistent potential schema")),
+    }
+    Ok(names)
 }
 fn metadata(
     source: &PotentialSourceBinding,
@@ -496,6 +555,7 @@ fn metadata(
         policy: POLICY.into(),
         bound_rule: BOUND_RULE.into(),
         error_bounds,
+        q4: None,
     })
 }
 
@@ -506,6 +566,7 @@ pub struct CompiledGeometricPotentials {
     flat: Vec<i32>,
     algebra_bytes: Vec<u8>,
     tokenizer: Vec<u8>,
+    q4_source: Option<(Vec<u8>, Vec<u8>, Vec<u8>)>,
 }
 impl CompiledGeometricPotentials {
     pub fn compile(
@@ -531,10 +592,180 @@ impl CompiledGeometricPotentials {
             flat,
             algebra_bytes: PAYLOAD.to_vec(),
             tokenizer: source.tokenizer.clone(),
+            q4_source: None,
         })
     }
     pub fn metadata(&self) -> &PotentialMetadata {
         &self.metadata
+    }
+    pub fn is_q4(&self) -> bool {
+        self.metadata.schema == Q4_SCHEMA && self.metadata.q4.is_some()
+    }
+    /// Compile actual saved standalone coefficients; the original StackModel
+    /// remains provenance and is never rewritten to impersonate this source.
+    pub fn compile_q4(
+        weights: &PotentialQ4Weights,
+        source_directory: &Path,
+        base: &PotentialSourceBinding,
+    ) -> Result<Self> {
+        let source_meta = fs::read(source_directory.join("metadata.json"))?;
+        let source_parameters =
+            fs::read(source_directory.join("potential-q4-parameters.safetensors"))?;
+        let saved = PotentialQ4Weights::load(source_directory)?;
+        if weights.source_bytes()? != saved.source_bytes()? {
+            return Err(invalid(
+                "live strict potential source differs from saved coefficient bits",
+            ));
+        }
+        let compiled = Self::from_q4_source(base, source_meta.clone(), source_parameters.clone())?;
+        if source_meta != fs::read(source_directory.join("metadata.json"))?
+            || source_parameters
+                != fs::read(source_directory.join("potential-q4-parameters.safetensors"))?
+        {
+            return Err(invalid(
+                "strict potential source changed during compilation",
+            ));
+        }
+        compiled.validate_q4_source(weights)?;
+        Ok(compiled)
+    }
+
+    fn from_q4_source(
+        base: &PotentialSourceBinding,
+        source_meta: Vec<u8>,
+        source_parameters: Vec<u8>,
+    ) -> Result<Self> {
+        let source = PotentialQ4Weights::from_source_bytes(&source_meta, &source_parameters)?;
+        let parent = source.parent();
+        if parent.model_sha256 != base.model_sha256
+            || parent.config_sha256 != base.config_sha256
+            || parent.address_sidecar_sha256 != base.address_sidecar_sha256
+            || parent.tokenizer_sha256 != sha256_bytes(&base.tokenizer)
+            || parent.address != base.address
+            || parent.coefficients != base.identities
+            || source.config().heads != base.address.heads
+            || source.config().lanes_per_head != base.address.lanes_per_head
+        {
+            return Err(invalid(
+                "strict potential coefficient source has a different immutable parent",
+            ));
+        }
+        let packed = source.packed_coefficients()?;
+        let codec = NativePotentialQ4::new(*source.config(), &packed)
+            .map_err(|e| invalid(e.to_string()))?;
+        let flat = codec.expanded_q24().to_vec();
+        let native = codec.into_native().map_err(|e| invalid(e.to_string()))?;
+        let basis = geometric_potential_q4::canonical_basis_q25()
+            .into_iter()
+            .flatten()
+            .flat_map(i32::to_le_bytes)
+            .collect::<Vec<_>>();
+        let mut metadata = metadata(base, &flat, PAYLOAD, Vec::new())?;
+        metadata.schema = Q4_SCHEMA.into();
+        metadata.policy = geometric_potential_q4::POLICY.into();
+        metadata.bound_rule = Q4_BOUND_RULE.into();
+        metadata.q4 = Some(PotentialQ4Metadata {
+            schema: geometric_potential_q4::SCHEMA.into(),
+            policy: geometric_potential_q4::POLICY.into(),
+            config: *source.config(),
+            coefficient_count: source
+                .config()
+                .coefficient_count()
+                .map_err(|e| invalid(e.to_string()))?,
+            packed: bound_file(&packed),
+            basis_q25: bound_file(&basis),
+            source_metadata: bound_file(&source_meta),
+            source_parameters: bound_file(&source_parameters),
+            absolute_score_bound_nats_per_lane: 21,
+        });
+        Ok(Self {
+            metadata,
+            native,
+            algebra: admit_tables(PAYLOAD)?,
+            flat,
+            algebra_bytes: PAYLOAD.to_vec(),
+            tokenizer: base.tokenizer.clone(),
+            q4_source: Some((packed, source_meta, source_parameters)),
+        })
+    }
+
+    /// Validate immutable StackModel lineage. For strict artifacts this is
+    /// explicitly NOT equality of the new standalone learned coefficients.
+    pub fn validate_stack_parent(
+        &self,
+        weights: &AddressWeights,
+        config: &GeometricAddressConfig,
+    ) -> Result<()> {
+        let live = values(weights, config)?;
+        if config != &self.metadata.address
+            || identities(&live, config) != self.metadata.coefficients
+        {
+            return Err(invalid("potential immutable StackModel parent differs"));
+        }
+        Ok(())
+    }
+
+    /// Explicit live-learning boundary: only parent/config must remain fixed.
+    /// The caller must rebuild hard tables from these current source weights.
+    pub fn validate_q4_training(&self, weights: &PotentialQ4Weights) -> Result<()> {
+        let strict = self
+            .metadata
+            .q4
+            .as_ref()
+            .filter(|_| self.is_q4())
+            .ok_or_else(|| invalid("potential artifact is not strict q4"))?;
+        let parent = weights.parent();
+        if weights.config() != &strict.config
+            || parent.model_sha256 != self.metadata.model_sha256
+            || parent.config_sha256 != self.metadata.config_sha256
+            || parent.address_sidecar_sha256 != self.metadata.address_sidecar_sha256
+            || parent.tokenizer_sha256 != self.metadata.tokenizer_sha256
+            || parent.address != self.metadata.address
+            || parent.coefficients != self.metadata.coefficients
+        {
+            return Err(invalid(
+                "strict potential training source parent/config differs",
+            ));
+        }
+        // Admission of all live shadows and the declared fixed grid, without
+        // falsely equating changed coefficients to the initial artifact.
+        weights.packed_coefficients()?;
+        Ok(())
+    }
+
+    pub fn validate_q4_source(&self, weights: &PotentialQ4Weights) -> Result<()> {
+        self.validate_q4_training(weights)?;
+        let strict = self
+            .metadata
+            .q4
+            .as_ref()
+            .ok_or_else(|| invalid("strict potential metadata absent"))?;
+        let (source_meta, source_parameters) = weights.source_bytes()?;
+        if bound_file(&source_meta) != strict.source_metadata
+            || bound_file(&source_parameters) != strict.source_parameters
+            || bound_file(&weights.packed_coefficients()?) != strict.packed
+        {
+            return Err(invalid(
+                "strict potential artifact is stale for live source bits",
+            ));
+        }
+        Ok(())
+    }
+
+    /// Full original-base/tokenizer binding for downstream envelope admission.
+    pub fn validate_base_source(&self, source: &PotentialSourceBinding) -> Result<()> {
+        if self.metadata.model_sha256 != source.model_sha256
+            || self.metadata.config_sha256 != source.config_sha256
+            || self.metadata.address_sidecar_sha256 != source.address_sidecar_sha256
+            || self.metadata.address != source.address
+            || self.metadata.coefficients != source.identities
+            || self.tokenizer != source.tokenizer
+        {
+            return Err(invalid(
+                "potential artifact immutable base/tokenizer binding differs",
+            ));
+        }
+        Ok(())
     }
     /// Score one admitted typed pair directly in Q24, without a tensor or
     /// floating-point reconstruction. The surrounding caller must bind this
@@ -566,6 +797,9 @@ impl CompiledGeometricPotentials {
         weights: &AddressWeights,
         config: &GeometricAddressConfig,
     ) -> Result<()> {
+        if self.is_q4() {
+            return Err(invalid("strict potential requires explicit standalone source or StackModel parent validation"));
+        }
         let live = values(weights, config)?;
         if config != &self.metadata.address
             || identities(&live, config) != self.metadata.coefficients
@@ -585,10 +819,16 @@ impl CompiledGeometricPotentials {
         write(FILES[1], &table_bytes(&self.flat))?;
         write(FILES[2], &self.algebra_bytes)?;
         write(FILES[3], &self.tokenizer)?;
+        if let Some((packed, source_meta, source_parameters)) = &self.q4_source {
+            write(Q4_FILES[0], packed)?;
+            write(Q4_FILES[1], source_meta)?;
+            write(Q4_FILES[2], source_parameters)?;
+        }
         write(FILES[0], &serde_json::to_vec_pretty(&self.metadata)?)?;
         Ok(())
     }
     pub fn load(directory: &Path, source: &PotentialSourceBinding) -> Result<Self> {
+        let expected_files = artifact_file_names(directory)?;
         let mut names = BTreeSet::new();
         for entry in fs::read_dir(directory)? {
             let entry = entry?;
@@ -602,8 +842,11 @@ impl CompiledGeometricPotentials {
                     .map_err(|_| invalid("potential filename is not UTF-8"))?,
             );
         }
-        if names != FILES.iter().map(|s| s.to_string()).collect() {
+        if names != expected_files.iter().map(|s| s.to_string()).collect() {
             return Err(invalid("potential artifact file set differs"));
+        }
+        if expected_files.len() != FILES.len() {
+            return Self::load_q4(directory, source);
         }
         let flat = expand(&source.values, &source.address)?;
         let expected_bytes = table_bytes(&flat);
@@ -645,7 +888,51 @@ impl CompiledGeometricPotentials {
             flat,
             algebra_bytes,
             tokenizer: source.tokenizer.clone(),
+            q4_source: None,
         })
+    }
+
+    fn load_q4(directory: &Path, base: &PotentialSourceBinding) -> Result<Self> {
+        // Bound allocations by the validated immutable address dimensions.
+        let config = PotentialQ4Config {
+            heads: base.address.heads,
+            lanes_per_head: base.address.lanes_per_head,
+        };
+        let count = config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?;
+        if fs::metadata(directory.join(Q4_FILES[0]))?.len() != count.div_ceil(2) as u64
+            || fs::metadata(directory.join(Q4_FILES[1]))?.len() > 65_536
+            || fs::metadata(directory.join(Q4_FILES[2]))?.len() > (count * 4 + 32_768) as u64
+        {
+            return Err(invalid("strict potential source payload lengths differ"));
+        }
+        let expected = Self::from_q4_source(
+            base,
+            fs::read(directory.join(Q4_FILES[1]))?,
+            fs::read(directory.join(Q4_FILES[2]))?,
+        )?;
+        let saved: PotentialMetadata =
+            serde_json::from_slice(&fs::read(directory.join(FILES[0]))?)?;
+        let packed = &expected
+            .q4_source
+            .as_ref()
+            .ok_or_else(|| invalid("strict source absent"))?
+            .0;
+        if saved != expected.metadata
+            || fs::metadata(directory.join(FILES[1]))?.len() != expected.metadata.table_bytes as u64
+            || fs::metadata(directory.join(FILES[2]))?.len() != PAYLOAD_BYTES as u64
+            || fs::metadata(directory.join(FILES[3]))?.len() != base.tokenizer.len() as u64
+            || fs::read(directory.join(FILES[1]))? != table_bytes(&expected.flat)
+            || fs::read(directory.join(FILES[2]))? != expected.algebra_bytes
+            || fs::read(directory.join(FILES[3]))? != expected.tokenizer
+            || fs::read(directory.join(Q4_FILES[0]))? != *packed
+        {
+            return Err(invalid(
+                "strict potential differs from independent source/packed/table regeneration",
+            ));
+        }
+        Ok(expected)
     }
 }
 
@@ -903,11 +1190,107 @@ mod tests {
     }
 
     #[test]
+    fn native_potential_q4_source_reload_and_independent_resealed_refusal() -> Result<()> {
+        let (directory, model, base) = fixture()?;
+        let strict_source = directory.join("strict-source");
+        let artifact = directory.join("strict-native");
+        let strict = PotentialQ4Weights::from_base(&directory, &base.tokenizer)?;
+        strict.save(&strict_source)?;
+        let compiled = CompiledGeometricPotentials::compile_q4(&strict, &strict_source, &base)?;
+        assert!(compiled.is_q4());
+        assert!(compiled.error_bounds().is_empty());
+        assert_eq!(compiled.metadata.bound_rule, Q4_BOUND_RULE);
+        assert!(compiled
+            .validate_for(&weights(&model), base.config())
+            .is_err());
+        compiled.validate_stack_parent(&weights(&model), base.config())?;
+        compiled.validate_q4_source(&strict)?;
+        compiled.save(&artifact)?;
+        assert_eq!(artifact_file_names(&artifact)?.len(), 7);
+        let loaded = CompiledGeometricPotentials::load(&artifact, &base)?;
+        assert_eq!(loaded.metadata(), compiled.metadata());
+        assert_eq!(loaded.flat, compiled.flat);
+        let metadata_bytes = fs::read(artifact.join(FILES[0]))?;
+        let original = fs::read(artifact.join(FILES[1]))?;
+        let mut changed = original.clone();
+        changed[0] ^= 1;
+        fs::write(artifact.join(FILES[1]), &changed)?;
+        let mut resealed = compiled.metadata.clone();
+        resealed.table_sha256 = sha256_bytes(&changed);
+        fs::write(artifact.join(FILES[0]), serde_json::to_vec(&resealed)?)?;
+        assert!(CompiledGeometricPotentials::load(&artifact, &base).is_err());
+        fs::write(artifact.join(FILES[1]), original)?;
+        fs::write(artifact.join(FILES[0]), &metadata_bytes)?;
+        let original = fs::read(artifact.join(Q4_FILES[0]))?;
+        let mut changed = original.clone();
+        changed[0] ^= 1;
+        fs::write(artifact.join(Q4_FILES[0]), &changed)?;
+        let mut resealed = compiled.metadata.clone();
+        resealed
+            .q4
+            .as_mut()
+            .ok_or_else(|| invalid("test strict metadata absent"))?
+            .packed = bound_file(&changed);
+        fs::write(artifact.join(FILES[0]), serde_json::to_vec(&resealed)?)?;
+        assert!(CompiledGeometricPotentials::load(&artifact, &base).is_err());
+        fs::write(artifact.join(Q4_FILES[0]), original)?;
+        let mut unknown = compiled.metadata.clone();
+        unknown.policy.push_str("-unknown");
+        fs::write(artifact.join(FILES[0]), serde_json::to_vec(&unknown)?)?;
+        assert!(CompiledGeometricPotentials::load(&artifact, &base).is_err());
+        unknown.schema = "uor-r4.native-geometric-potentials/999".into();
+        fs::write(artifact.join(FILES[0]), serde_json::to_vec(&unknown)?)?;
+        assert!(CompiledGeometricPotentials::load(&artifact, &base).is_err());
+        fs::write(artifact.join(FILES[0]), metadata_bytes)?;
+        let different =
+            PotentialSourceBinding::from_directory(&directory, b"different token identity")?;
+        assert!(CompiledGeometricPotentials::load(&artifact, &different).is_err());
+        fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_potential_q4_same_grid_shadow_bits_and_parent_are_separate() -> Result<()> {
+        let (directory, model, base) = fixture()?;
+        let source_directory = directory.join("strict-source");
+        let strict = PotentialQ4Weights::from_base(&directory, &base.tokenizer)?;
+        strict.save(&source_directory)?;
+        let compiled = CompiledGeometricPotentials::compile_q4(&strict, &source_directory, &base)?;
+        let old_packed = strict.packed_coefficients()?;
+        let variable = &strict.parameters()["content_unary"];
+        let mut v = variable.flatten_all()?.to_vec1::<f32>()?;
+        v[0] = f32::from_bits(v[0].to_bits() ^ 1);
+        variable.set(&Tensor::from_vec(v, variable.shape(), &Device::Cpu)?)?;
+        assert_eq!(strict.packed_coefficients()?, old_packed);
+        assert!(compiled.validate_q4_source(&strict).is_err());
+        assert!(
+            CompiledGeometricPotentials::compile_q4(&strict, &source_directory, &base).is_err()
+        );
+        // Live training is a distinct explicit API; changed source bits are
+        // permitted there, but no old artifact equality is asserted.
+        compiled.validate_q4_training(&strict)?;
+        compiled.validate_stack_parent(&weights(&model), base.config())?;
+        let variable = &model.variables()[&names()[0]];
+        let mut v = variable.flatten_all()?.to_vec1::<f32>()?;
+        v[0] = f32::from_bits(v[0].to_bits() ^ 1);
+        variable.set(&Tensor::from_vec(v, variable.shape(), &Device::Cpu)?)?;
+        assert!(compiled
+            .validate_stack_parent(&weights(&model), base.config())
+            .is_err());
+        fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
     fn native_potential_source_reload_resealed_tamper_and_stale_weights() -> Result<()> {
         let (directory, model, source) = fixture()?;
         let config = source.config();
         let w = weights(&model);
         let compiled = CompiledGeometricPotentials::compile(&w, config, &source)?;
+        assert!(compiled.metadata.q4.is_none());
+        assert!(serde_json::to_value(&compiled.metadata)?
+            .get("q4")
+            .is_none());
         let artifact = directory.join("compiled");
         compiled.save(&artifact)?;
         assert!(compiled.save(&artifact).is_err());

@@ -1,0 +1,902 @@
+{
+  "schema": "uor-r4.geometric-potential-q4-evidence/1",
+  "status": "BOTH_FIXED_CONSTRUCTIONS_COMPLETE_RETAIN_MIXED_ROWS",
+  "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5955725742",
+  "source_base": "88c80b2a72da3cb46911cd670f92d80356a63ae8",
+  "local_research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-potential-q4-20261002",
+  "records": [
+    {
+      "seed": 1,
+      "report_sha256": "d53d8133a8990a811540007581c746e3874713308921542b03dc776d8e024c99",
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-potential-q4",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-potential-q4-20261002/args-s1-projection.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 10.229023084015353,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+          "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+          "crates/uor-r4-training/src/geometric_potential_q4.rs": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+          "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+          "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+          "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+          "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+          "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+          "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 332857344,
+        "executable_sha256": "850e7fc03d9b9415354f0520209446be96983957436456ae4bb9c8fd7eb2bc50"
+      },
+      "panels": [
+        {
+          "answers": {
+            "native": 112,
+            "parent": 112,
+            "source": 112
+          },
+          "gains": 0,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses": 0,
+          "maximum_actual_position_logit_delta": 0.00018513202667236328,
+          "mean_answer_ce": {
+            "native": 0.9660685373841938,
+            "parent": 0.9658440279465694,
+            "source": 0.9660688312437102
+          },
+          "panel": "original",
+          "parent_rows_sha256": "64c48c4f28c87767527c18289c5bc33354198bf43c00a082c666991b7fc4a016",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        },
+        {
+          "answers": {
+            "native": 112,
+            "parent": 113,
+            "source": 112
+          },
+          "gains": 0,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses": 1,
+          "maximum_actual_position_logit_delta": 0.0002262592315673828,
+          "mean_answer_ce": {
+            "native": 0.9360222609426291,
+            "parent": 0.9301974033259854,
+            "source": 0.9360219462208568
+          },
+          "panel": "stress",
+          "parent_rows_sha256": "68e0d2d517cc348f027b0d6a31d78c40ac828df8f12e89e72a675825a565a27b",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        }
+      ],
+      "gradients": [
+        {
+          "absolute_draw": 3200,
+          "actual_positions": 280,
+          "answer_ce": 1.0037119388580322,
+          "answer_denominator": 8,
+          "batch_time": 40,
+          "elapsed_seconds": 0.028304667,
+          "exact_causal_score_pairs": 13120,
+          "families": {
+            "content_presence": {
+              "elements": 32,
+              "l2": 0.0004432277451952399,
+              "nonzero": 16
+            },
+            "content_radius": {
+              "elements": 8192,
+              "l2": 0.0004291801127191154,
+              "nonzero": 8
+            },
+            "content_unary": {
+              "elements": 32,
+              "l2": 0.0004365935236998852,
+              "nonzero": 22
+            },
+            "context_presence": {
+              "elements": 32,
+              "l2": 0.0005398835696315057,
+              "nonzero": 8
+            },
+            "context_radius": {
+              "elements": 8192,
+              "l2": 0.00044253605991753105,
+              "nonzero": 25
+            },
+            "context_unary": {
+              "elements": 32,
+              "l2": 0.00041030206782248247,
+              "nonzero": 32
+            },
+            "pair": {
+              "elements": 128,
+              "l2": 0.0002862925805534896,
+              "nonzero": 88
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 320,
+          "rng_after_diagnostic_draw": 11477628269183930594
+        },
+        {
+          "absolute_draw": 3201,
+          "actual_positions": 492,
+          "answer_ce": 0.809057891368866,
+          "answer_denominator": 8,
+          "batch_time": 72,
+          "elapsed_seconds": 0.02160225,
+          "exact_causal_score_pairs": 42048,
+          "families": {
+            "content_presence": {
+              "elements": 32,
+              "l2": 0.0013065796960344887,
+              "nonzero": 16
+            },
+            "content_radius": {
+              "elements": 8192,
+              "l2": 0.0012855983072718104,
+              "nonzero": 8
+            },
+            "content_unary": {
+              "elements": 32,
+              "l2": 0.015610529936143293,
+              "nonzero": 26
+            },
+            "context_presence": {
+              "elements": 32,
+              "l2": 0.001518809164766718,
+              "nonzero": 8
+            },
+            "context_radius": {
+              "elements": 8192,
+              "l2": 0.006556626395572364,
+              "nonzero": 25
+            },
+            "context_unary": {
+              "elements": 32,
+              "l2": 0.0038050573618256095,
+              "nonzero": 32
+            },
+            "pair": {
+              "elements": 128,
+              "l2": 0.015242522847004603,
+              "nonzero": 104
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 576,
+          "rng_after_diagnostic_draw": 17052478318131460056
+        }
+      ],
+      "optimizer_updates": 0,
+      "training_rng_before": "17847168693577953940",
+      "training_rng_after": "17847168693577953940",
+      "exact_causal_score_pairs": 941832,
+      "all_frozen_packets_equal": true,
+      "all_frozen_no_read_equal": true,
+      "cheap_prefix": {
+        "full_time": 36,
+        "maximum_prefix_logit_delta": 0.0,
+        "native_float_tail_prefix_bits_equal": true,
+        "native_prefix_occurrence_equality": true,
+        "native_prefix_packet_equality": true,
+        "prefix_time": 18
+      },
+      "compiled_metadata": {
+        "address": {
+          "heads": 2,
+          "lanes_per_head": 4,
+          "norm_epsilon": 9.5367431640625e-07,
+          "radius_bins": 32,
+          "radius_min_exponent": -16,
+          "radius_rule": "physical-nearest-dyadic-midpoint-lower-clip[-16,15]-zero-separate/1",
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-address/1",
+          "surrogate_rule": "hard-root-hamilton-normalized-ste;hard-radius-coefficient/local-physical-input;presence-stop/1"
+        },
+        "address_sidecar_sha256": "265dd024b05cad3151226a99f42981607e3f356a179391600289df1bfe78c6e0",
+        "algebra_bytes": 15601,
+        "algebra_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "algebra_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "bound_rule": "strict-Q25-observation;absolute-score-at-most-21-nats-per-lane;no-legacy-F64-reference-error-bound/1",
+        "coefficient_geometry_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "coefficients": [
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_unary",
+            "sha256": "ba9b9e89eb66792f5c230621a4141e33499f3a93c36f3b171afc32d354273ad7",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_unary",
+            "sha256": "1777d0e31dde633bdafda0397e6672e3025139ef6ef6c9cd5ea9e0baae295fb0",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 512,
+            "name": "layers.02.read.address.pair",
+            "sha256": "4e637e919537b9ef166fb8056e704dcc127ea9456c48c80851556e9630a9e5a0",
+            "shape": [
+              2,
+              4,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.content_radius",
+            "sha256": "3ffa2ca98747c4826bd6ef1e2b4c8b4054a3f45865a432036530564e974efd36",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.context_radius",
+            "sha256": "f727db53a92d41a724be537c4f359b698bde19485283ed4476b1ccbb7d3642c9",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_presence",
+            "sha256": "0b7051b38a0f18138c240ebcb04a9d055381b50dfbbb4a41b26be5b19bd8d3a9",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_presence",
+            "sha256": "1244dac4f22494ddfed724058d215c8cc35ed86dcc0cca4673455b5643fbc4bd",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          }
+        ],
+        "config_sha256": "456074d03418fe7ebdf175809c27412fdf6eb779820d430a90fa394ac7e156dd",
+        "error_bounds": [],
+        "fractional_bits": 24,
+        "model_sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+        "policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;unary-div8/cross-div2^28/scalar-shift22;per-family-Q24-nearest-ties-away;no-centering;family-major-seven/1",
+        "q4": {
+          "absolute_score_bound_nats_per_lane": 21,
+          "basis_q25": {
+            "bytes": 1920,
+            "sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7"
+          },
+          "coefficient_count": 16640,
+          "config": {
+            "heads": 2,
+            "lanes_per_head": 4
+          },
+          "packed": {
+            "bytes": 8320,
+            "sha256": "f3c40aa6fb31640c1c063881b240740267739303c35ef5dc7c459c99564114ea"
+          },
+          "policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;unary-div8/cross-div2^28/scalar-shift22;per-family-Q24-nearest-ties-away;no-centering;family-major-seven/1",
+          "schema": "uor-r4.geometric-potential-q4/1",
+          "source_metadata": {
+            "bytes": 3600,
+            "sha256": "7f8282c2a2ea90f033d8e1901510e937924e8ea726a0b24da7810638eb7c1efe"
+          },
+          "source_parameters": {
+            "bytes": 67112,
+            "sha256": "28ae35b042860b09c3deccf97226eb49d26f7a814963ba572d07a7f9f51162a5"
+          }
+        },
+        "schema": "uor-r4.native-geometric-potentials/2",
+        "table_bytes": 597760,
+        "table_entries": 149440,
+        "table_sha256": "ecd9e7d087e80fc481c1f0a498308a02332c9b5f215a24099391ac2fbafc19a7",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569"
+      }
+    },
+    {
+      "seed": 2,
+      "report_sha256": "b34ee07f41d81b3d41ada501a8441233b978c41faa99f208a4d006984ceeec43",
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-potential-q4",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-potential-q4-20261002/args-s2-projection.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 12.462039749982068,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+          "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+          "crates/uor-r4-training/src/geometric_potential_q4.rs": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+          "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+          "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+          "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+          "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+          "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+          "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4",
+          "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 255606784,
+        "executable_sha256": "850e7fc03d9b9415354f0520209446be96983957436456ae4bb9c8fd7eb2bc50"
+      },
+      "panels": [
+        {
+          "answers": {
+            "native": 126,
+            "parent": 126,
+            "source": 126
+          },
+          "gains": 0,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses": 0,
+          "maximum_actual_position_logit_delta": 0.00022554397583007812,
+          "mean_answer_ce": {
+            "native": 0.3932996526203383,
+            "parent": 0.38976576509639305,
+            "source": 0.39329976853068654
+          },
+          "panel": "original",
+          "parent_rows_sha256": "367f3eff6531e7e6f314c482ee5b888a3e6c1d6f551a14895c8ffddfc8ebb936",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        },
+        {
+          "answers": {
+            "native": 128,
+            "parent": 128,
+            "source": 128
+          },
+          "gains": 0,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses": 0,
+          "maximum_actual_position_logit_delta": 0.0002620220184326172,
+          "mean_answer_ce": {
+            "native": 0.380557639509418,
+            "parent": 0.3803569559419243,
+            "source": 0.38055747646301535
+          },
+          "panel": "stress",
+          "parent_rows_sha256": "769ef9c0c9e4aae4981cbec754116ab758022a2c892dab4d8cc62ba683c4a74c",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0,
+          "source_native_packet_mismatches": 0
+        }
+      ],
+      "gradients": [
+        {
+          "absolute_draw": 3200,
+          "actual_positions": 264,
+          "answer_ce": 0.45752352476119995,
+          "answer_denominator": 8,
+          "batch_time": 40,
+          "elapsed_seconds": 0.041601042,
+          "exact_causal_score_pairs": 13120,
+          "families": {
+            "content_presence": {
+              "elements": 32,
+              "l2": 0.012493499451589429,
+              "nonzero": 16
+            },
+            "content_radius": {
+              "elements": 8192,
+              "l2": 0.008750814965593618,
+              "nonzero": 8
+            },
+            "content_unary": {
+              "elements": 32,
+              "l2": 0.008423775248573302,
+              "nonzero": 29
+            },
+            "context_presence": {
+              "elements": 32,
+              "l2": 0.00016606615099759142,
+              "nonzero": 8
+            },
+            "context_radius": {
+              "elements": 8192,
+              "l2": 0.06012276012722644,
+              "nonzero": 30
+            },
+            "context_unary": {
+              "elements": 32,
+              "l2": 0.10490111967696003,
+              "nonzero": 32
+            },
+            "pair": {
+              "elements": 128,
+              "l2": 0.07027818199972348,
+              "nonzero": 116
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 320,
+          "rng_after_diagnostic_draw": 14637661831363455831
+        },
+        {
+          "absolute_draw": 3201,
+          "actual_positions": 480,
+          "answer_ce": 0.6246798634529114,
+          "answer_denominator": 8,
+          "batch_time": 74,
+          "elapsed_seconds": 0.030763208,
+          "exact_causal_score_pairs": 44400,
+          "families": {
+            "content_presence": {
+              "elements": 32,
+              "l2": 0.006861627450727028,
+              "nonzero": 16
+            },
+            "content_radius": {
+              "elements": 8192,
+              "l2": 0.003303424457037517,
+              "nonzero": 8
+            },
+            "content_unary": {
+              "elements": 32,
+              "l2": 0.5183788149269424,
+              "nonzero": 29
+            },
+            "context_presence": {
+              "elements": 32,
+              "l2": 0.002710668835847622,
+              "nonzero": 8
+            },
+            "context_radius": {
+              "elements": 8192,
+              "l2": 0.47771511978728914,
+              "nonzero": 30
+            },
+            "context_unary": {
+              "elements": 32,
+              "l2": 0.3848061276406244,
+              "nonzero": 32
+            },
+            "pair": {
+              "elements": 128,
+              "l2": 0.6049855919563554,
+              "nonzero": 116
+            }
+          },
+          "optimizer_updates": 0,
+          "padded_positions": 592,
+          "rng_after_diagnostic_draw": 14344005333449752929
+        }
+      ],
+      "optimizer_updates": 0,
+      "training_rng_before": "8892160473256393877",
+      "training_rng_after": "8892160473256393877",
+      "exact_causal_score_pairs": 941832,
+      "all_frozen_packets_equal": true,
+      "all_frozen_no_read_equal": true,
+      "cheap_prefix": {
+        "full_time": 36,
+        "maximum_prefix_logit_delta": 0.0,
+        "native_float_tail_prefix_bits_equal": true,
+        "native_prefix_occurrence_equality": true,
+        "native_prefix_packet_equality": true,
+        "prefix_time": 18
+      },
+      "compiled_metadata": {
+        "address": {
+          "heads": 2,
+          "lanes_per_head": 4,
+          "norm_epsilon": 9.5367431640625e-07,
+          "radius_bins": 32,
+          "radius_min_exponent": -16,
+          "radius_rule": "physical-nearest-dyadic-midpoint-lower-clip[-16,15]-zero-separate/1",
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-address/1",
+          "surrogate_rule": "hard-root-hamilton-normalized-ste;hard-radius-coefficient/local-physical-input;presence-stop/1"
+        },
+        "address_sidecar_sha256": "77b565229bafb1f37948a861619ebac02abdaeea24c3c7f471d1d3f54b3a6bef",
+        "algebra_bytes": 15601,
+        "algebra_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "algebra_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "bound_rule": "strict-Q25-observation;absolute-score-at-most-21-nats-per-lane;no-legacy-F64-reference-error-bound/1",
+        "coefficient_geometry_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "coefficients": [
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_unary",
+            "sha256": "ffe9f4d0b865a6b280ea6d744614915573b4c4747df5cbc45d173ed63611167e",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_unary",
+            "sha256": "dc47ad495d05e674b1504b61efb06b41bc37c404e8781cc2ba1c6ab2599216cb",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 512,
+            "name": "layers.02.read.address.pair",
+            "sha256": "9d72679bedd6c39a2a97ab71592e7214185ef4b0febd44abc5656238f03bcddc",
+            "shape": [
+              2,
+              4,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.content_radius",
+            "sha256": "fc77eaa00ad9208db4b3e705769d515adce20eee51f26d8e7cbed856dddf7ec9",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 32768,
+            "name": "layers.02.read.address.context_radius",
+            "sha256": "927d90ff082623dd66652c0f56755ed21d8c6cfa7b617607972a5517130406fa",
+            "shape": [
+              2,
+              4,
+              32,
+              32
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.content_presence",
+            "sha256": "4f8787b602e8d657ee6d5bc22daa799155d80dfa7b1c21d232cad89fc70beeb4",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          },
+          {
+            "bytes": 128,
+            "name": "layers.02.read.address.context_presence",
+            "sha256": "ae621b8a3d2a57108193d9b5b0d83ea872243e3234ae1ec89a41d7a3b9350d9c",
+            "shape": [
+              2,
+              4,
+              4
+            ]
+          }
+        ],
+        "config_sha256": "c37a4ca04737fbb953708495daeb6b7b7f65eb2843ea636f3bbcf8a7acb8ac1a",
+        "error_bounds": [],
+        "fractional_bits": 24,
+        "model_sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+        "policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;unary-div8/cross-div2^28/scalar-shift22;per-family-Q24-nearest-ties-away;no-centering;family-major-seven/1",
+        "q4": {
+          "absolute_score_bound_nats_per_lane": 21,
+          "basis_q25": {
+            "bytes": 1920,
+            "sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7"
+          },
+          "coefficient_count": 16640,
+          "config": {
+            "heads": 2,
+            "lanes_per_head": 4
+          },
+          "packed": {
+            "bytes": 8320,
+            "sha256": "072b4d8be9463477635f43bf8203554be0b0b81dc6da7d36866a8202e6cf75ee"
+          },
+          "policy": "signed-q4[-7,7];reserved-minus8;fixed-quarter-nat;canonical-F32-Q25-observation;unary-div8/cross-div2^28/scalar-shift22;per-family-Q24-nearest-ties-away;no-centering;family-major-seven/1",
+          "schema": "uor-r4.geometric-potential-q4/1",
+          "source_metadata": {
+            "bytes": 3600,
+            "sha256": "bf5bd5421c7ccc96c4be5a75379e33ca169b35679669e66ce994475cc2167325"
+          },
+          "source_parameters": {
+            "bytes": 67112,
+            "sha256": "c1a71f6bb0b0abf2fa89a70caef88fba50f80d57b595a907f708dd09ddbd1abc"
+          }
+        },
+        "schema": "uor-r4.native-geometric-potentials/2",
+        "table_bytes": 597760,
+        "table_entries": 149440,
+        "table_sha256": "13f1e792ba320cf26afa9ef3148b4d2c27e82dd27abcccb42bf7bb1318ca7d90",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569"
+      }
+    }
+  ],
+  "aggregate": {
+    "native_correct": 478,
+    "parent_correct": 479,
+    "rows": 512,
+    "gains": 0,
+    "losses": 1,
+    "exact_causal_score_pairs": 1883664,
+    "source_native_answer_changes": 0,
+    "source_native_packet_mismatches": 0
+  },
+  "checks": {
+    "integer-tests-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-integer",
+        "--release",
+        "--offline",
+        "--lib",
+        "potential_q4_",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 35.33674520798377,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+        "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+        "crates/uor-r4-integer/src/geometric_potential.rs": "41e110efc9e088b800fc22de4b790491e91b07522c9bdd479cf64ff447bbdf85",
+        "crates/uor-r4-integer/src/geometric_no_read.rs": "09d589fb212a7ce20c77ba69a7c23433c10c2a2b396e15ce4c6cb8c3f4d5e0c3",
+        "crates/uor-r4-integer/src/h4_tables.rs": "4c08b3c4e5bd27635426f9057e10efc6e4d9f6c7c1fa81491cc62bf04838fa56"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "training-tests-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--lib",
+        "potential_q4_",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 309.60860900001717,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+        "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+        "crates/uor-r4-training/src/geometric_potential_q4.rs": "1e760b7a641c23d66c11bf42b1fe8e737d852c4b76fb6d01ce46d29dd6949a62",
+        "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+        "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+        "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+        "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+        "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "training-tests-2": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--lib",
+        "potential_q4_",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 165.00025545901735,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+        "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+        "crates/uor-r4-training/src/geometric_potential_q4.rs": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+        "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+        "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+        "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+        "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+        "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "rebinding-tests-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--lib",
+        "q4_potential_rebind_",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.7257587919884827,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+        "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+        "crates/uor-r4-training/src/geometric_potential_q4.rs": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+        "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+        "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+        "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+        "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+        "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "integrated-reader-test-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--lib",
+        "native_geometric_context_reader_has_delayed_answer_credit_and_typed_reload",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 7.712138458009576,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+        "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+        "crates/uor-r4-training/src/geometric_potential_q4.rs": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+        "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+        "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+        "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+        "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+        "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "example-build-1": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-potential-q4"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 146.9153764170187,
+      "source_sha256": {
+        "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+        "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+        "crates/uor-r4-training/src/geometric_potential_q4.rs": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+        "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+        "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+        "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+        "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+        "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    }
+  },
+  "compile_repair": {
+    "cause": "E0283 ambiguous iterator product comparison with usize due serde_json PartialEq",
+    "changed_file": "/Users/casey.allard/uor-r4-local/workspace/worktrees/geometric-value-residual-20261002/crates/uor-r4-training/src/geometric_potential_q4.rs",
+    "change": "shape.iter().product() -> shape.iter().product::<usize>()",
+    "before_sha256": "1e760b7a641c23d66c11bf42b1fe8e737d852c4b76fb6d01ce46d29dd6949a62",
+    "after_sha256": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+    "failed_attempt": "training-tests-1",
+    "quality_verdict": "NOT_RUN",
+    "retry": "training-tests-2",
+    "scope": "Type annotation only; no arithmetic, codec, graph, schema or fixed conditions changed."
+  },
+  "limits": {
+    "total_wall_seconds": 10800,
+    "build_check_aggregate_seconds": 2700,
+    "model_aggregate_seconds": 600,
+    "model_worker_seconds": 300,
+    "model_internal_seconds": 240,
+    "model_threads": 2,
+    "model_ram_bytes": 4294967296,
+    "shared_threads": 8,
+    "shared_ram_bytes": 11811160064,
+    "new_research_bytes": 268435456,
+    "storage_margin_bytes": 134217728
+  },
+  "scope": "Exposed development; coefficients and Q25 observation basis converted together. No optimizer, coefficient-only attribution, geometric-superiority, heldout-language or complete native/energy qualification.",
+  "continuous_cost_through_delivery_preparation": {
+    "start_ms": 1790954719317,
+    "end_ms": 1790958012578,
+    "charged_ms": 3293261,
+    "before": {
+      "cumulative_ms": 985836055,
+      "limit_ms": 1130000000
+    },
+    "after": {
+      "cumulative_ms": 989129316,
+      "limit_ms": 1130000000
+    },
+    "scope": "Continuous prior value-fit protected delivery/preservation/knowledge plus potential source, parallel review, failed/repaired checks, both constructions, documentation and delivery preparation; charged once across overlapping agents."
+  },
+  "final_local_checks": {
+    "cargo_fmt_check": "PASS",
+    "claim_wording": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "source_integration_review": {
+    "sha256": "7537bc2bef523f4856f638175a1b17d5126c08c1428723ebd7a397fb7ad469c3",
+    "body": "# Independent strict-potential source integration review\n\nStatus: static source review, 2026-10-02, for work card #1512 comment5955725742. **No remaining material source-level blocker found at the identities below.** Actual compilation, focused checks and saved-parent execution remain the root agent's responsibility. This is not an execution, delivery-head or model-quality approval.\n\nI independently read the compiler/admission changes authored by the architecture agent, the standalone training bridge and Stack path authored by the engineer, and the construction driver authored by the root. I authored the integer codec, so this note does **not** present that codec as independently reviewed by me. Its independent reviewer is the architecture agent.\n\n## Correctness findings\n\nThe strict /2 compiler embeds the current standalone coefficient source, packed q4 bytes and regenerated Q24 table payload, while retaining immutable original StackModel coefficient identities as lineage. Source hashes, fixed Q25 basis and source policy are checked independently. Reload reconstructs the coefficients, repacks, regenerates and compares all table bytes and metadata; resealed wide tables cannot substitute for the admitted source. The original /1 metadata omits the new optional field and keeps its four-file inventory. Strict metadata correctly omits the legacy same-F64-basis error bounds and declares the21nat/lane magnitude bound instead.\n\nThe distinction among validate_stack_parent, validate_q4_source and validate_q4_training is substantive and correct: the first verifies original saved/live base coefficients, the second requires the exact admitted current shadow bits, and the third permits explicit learning of the same standalone source family while requiring freshly rebuilt hard scores. Legacy validate_for rejects strict artifacts. This is not a silent stale-table validation bypass.\n\nContext re-admission records all seven strict artifact files, including embedded coefficient source, without making that coefficient source depend on the rebound context. Old context metadata fails under the new dependencies; unchanged admitted weights must be saved under the new binding. Reducer admission binds the new potential metadata and unchanged age/exp numerical payloads. The construction driver subsequently rebinds the value, NoRead and composition envelopes, comparing their nonmetadata files and relevant source parameter hashes.\n\nThe source bridge obtains hard scores from a freshly constructed NativePotentialQ4 for the current shadows and the actual typed content/context endpoints. Its declared backward is a first-order coefficient surrogate, not argmax differentiation: unary features use the pinned Q25 observation; cross features use their ordered outer product; radius/presence contribute only to their selected cells. Both endpoint-presence masks and the cross mask match the native scorer. All future entries have zero hard placeholders and zero coefficient credit. The coefficient derivative has nat-shadow scale1, not an accidental factor4 or Q24 scale.\n\nThe Stack caller retains native context/event/span/value/NoRead and the frozen composed payload. It reconstructs the exact checked integer score+age sum for hard forward, then adds live_score minus detached_live_score to attach only the declared adjoint. It masks future positions with negative infinity, includes the fixed null slot in the shared denominator, and sums separately normalized heads. No donor q/k, value or output map is introduced. Source learning uses real softmax/F32 reduction; native LUT/mixing is explicitly a distinct numerical reduction and cannot be declared globally bit-identical.\n\nThe expanded actual-reader fixture checks exact causal hard scores, actual ordinary-answer credit into the standalone coefficient graph, absence of credit to the frozen context/value/NoRead/bank Vars, read.out poison invariance, future-prefix causality and source reload. The three source-unit cases cover signed features, presence suppression, live coefficient refresh, denominator credit, future-zero credit and saved policy/refusal. These are meaningful checks at source level; this note does not claim they have run.\n\n## Construction driver\n\nThe driver claims its report root before model loading, verifies the four supplied sealed parents, pins the completed q4 value reports and replays the exact stored episode/answer-logit rows. I independently checked the two pinned report hashes against the retained files: seed1 f9c18b70e48e21429a58965fbb2c461d6e97942f81c2ab8c2cc5a700ba3cee3c and seed2 a341dcfbf9bf87e131be7936e92edbe36ce823e4cce983f25b21a2ec8150e6e6, both complete640-update parents.\n\nTwo generated B8 backward diagnostics use absolute draws3200/3201 and record actual versus padded positions and answer denominator8; they perform zero optimizer updates and return the original training RNG separately from the diagnostic RNG. Every actual causal source score is compared with the independently loaded native potential at the retained endpoints. Full original/stress rows preserve parent/source/native answers and logits, gains/losses, raw query weights/NoRead and exact frozen packet comparisons. Construction checks source/model/dependency hashes after evaluation. Bounds and finite shape checks cover the recorded logits/traces. Partial deadline output remains explicitly incomplete, with no quality verdict. The scopes correctly name both q4 coefficient conversion and the changed observation basis rather than claiming a coefficient-only causal intervention.\n\nThe cheap prefix probe records float-tail bit equality rather than silently claiming it; it requires native packet/occurrence-prefix identity. Full-model efficiency, language and held-out generalization remain unqualified. High correct-source mass on earlier lost rows does not support presenting this coefficient-width change as their retrieval repair.\n\n## Concrete issue found and resolved before freeze\n\nThe first draft of the coefficient backward passed AddressLane::root() u8 values directly to HistoricalH4Tables methods requiring H4Code. I reported the exact call sites to the engineer. The reviewed frozen source now performs checked H4Code conversions with Candle errors and preserves inverse(query)*key orientation. No source edits or execution were performed by this reviewer.\n\n## Reviewed byte identities\n\n- `crates/uor-r4-training/src/geometric_potential_q4.rs`: `1e760b7a641c23d66c11bf42b1fe8e737d852c4b76fb6d01ce46d29dd6949a62`.\n- `crates/uor-r4-training/src/geometric_stack.rs`: `05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20`.\n- `crates/uor-r4-training/src/geometric_potential_native.rs`: `508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d`.\n- `crates/uor-r4-training/src/geometric_context.rs`: `b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256`.\n- `crates/uor-r4-training/src/geometric_read_native.rs`: `85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944`.\n- `crates/uor-r4-training/examples/attention-geometric-potential-q4.rs`: `04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4`.\n",
+    "scope": "Static review; explicit one-line compile repair is separate."
+  },
+  "independent_result_review": {
+    "sha256": "bb2c9a8013cdfd39d9d39bf7e460a7124ebe4f3a68c89033803a4b617943f087",
+    "body": "# Independent strict-potential construction result review\n\nStatus: completed read-only result review, 2026-10-02. **The reported component-construction result is supported by the retained rows.** Both workers exited0 and completed all128 original plus128 stress episodes per seed, with zero optimizer updates. No new inference, Cargo, model run, Git operation or source mutation was performed for this review. This is not independent authorship review of the integer codec, which I authored; the earlier source-integration review covers the other authors' components.\n\n## Recounted behavior\n\n| Seed/panel | Parent | Q4 source | Q4 native | Gains/losses | Changed predictions |\n|---|---:|---:|---:|---:|---:|\n|1 original|112/128|112/128|112/128|0/0|0|\n|1 stress|113/128|112/128|112/128|0/1|1|\n|2 original|126/128|126/128|126/128|0/0|0|\n|2 stress|128/128|128/128|128/128|0/0|0|\n\nTotal native478/512 versus parent479/512; zero gains, one loss, one changed prediction. I recomputed each answer argmax and correctness from the saved40-way answer logits, joined every episode and parent answer-logit vector to the pinned preceding q4 value rows, and reproduced the reported counts. Source/native answer choices agree on all512 rows; frozen packet, source/native packet and frozen NoRead comparison flags are true throughout.\n\nRecomputed mean answer CE (parent -> native): seed1 original0.965844027947 ->0.966068537384; seed1 stress0.930197403326 ->0.936022260943; seed2 original0.389765765096 ->0.393299652620; seed2 stress0.380356955942 ->0.380557639509. Thus all four native mean CEs worsen slightly; unchanged aggregate accuracy alone would hide this. Source/native CE differs slightly, consistently with their declared different reduction arithmetic. The reported maximum actual-position source/native logit difference is0.0002620220184326172; this is not parent/native drift.\n\n## The single lost row\n\nSeed1 stress row99, pair408, condition reversed_order; four facts, write/query gaps8, correct source occurrence24 and answer-query position89. Expected token22 becomes token30 in both source and native outputs.\n\n- Head0 correct-source mass decreases from0.92311848120037 to0.9065539110965474. It remains the highest-weight occurrence before and after conversion. Runner-up occurrence66 increases from0.06935081778586363 to0.08532588586103342.\n- Head0 null mass decreases0.00024400173848670255 ->0.0001530270432637842. Its new source potential is exactly13nat; source-plus-frozen-age8.686792850494385nat equals the reported row maximum. The old maximum was8.23833853006363nat.\n- Head1 is mostly null:0.993680291903117 ->0.9890446751556312. Its source mass changes0.00007160521647507113 ->0.00011187780897821322; its occurrence ranking also changes while null remains dominant.\n- Target22 minus competitor30 logit margin changes+0.1477036476135254 ->\u22120.4928734302520752 native (source\u22120.49285435676574707).\n\nThis is a genuine downstream mixture sensitivity under the frozen coefficient/basis conversion. It is not evidence that the correct source became unavailable or ceased ranking first in head0, and it is not a source/native hard-score discrepancy. Both head mixtures change; the retained outputs do not isolate one head as the sole cause. Because coefficient-grid conversion and F64-to-Q25 observation conversion were bundled, the loss cannot be attributed solely to coefficient width. It remains a real negative, not a reason to retire the geometric mechanism or demand perfect parent imitation.\n\n## Learning, identities and preservation\n\nEach seed has two B8 zero-update backward diagnostics at absolute draws3200/3201. All seven coefficient-family L2 gradients are finite and positive in all four diagnostics (28 family instances). Individual unused cells remain allowed to have zero gradient. I checked the actual episode counts/positions, reported padding and answer denominator8; the recorded causal-score pair counts equal8*T*(T+1). Gradient connectivity and cost are measured here; optimizer recovery is NOT_RUN.\n\nBoth initial training RNGs equal their reported next training RNGs exactly: seed1 `17847168693577953940`, seed2 `8892160473256393877`. Diagnostic RNGs are separate (`17052478318131460056`, `14344005333449752929`). Python integer parsing was used for these identities; no lossy JavaScript Number conversion.\n\nFor every saved evaluation row I checked source-score layout2*T*T, future-zero placeholders, causal pair countT*(T+1), finite40-way logits, and both old/new query denominators equal the sum of all occurrence numerators plus the null numerator. Actual per-pair native/source score equality is checked by the reviewed driver before recording each row. I did not reconstruct a second scoring engine from the reports.\n\nI independently compared all17 listed frozen numerical payload files per seed across rebound context/reducer/value/NoRead/bank artifacts: exact byte equality. This complements the driver's source/model bit guards and row packet/null checks. Both cheap loaded prefixes have zero logit difference, exact prefix packet/occurrence agreement and reported float-tail bit equality for the first18 of36 tokens. That finite prefix check is not arbitrary-context qualification.\n\nEach outer manifest lists45 files; file closure and every declared size match the actual directories (36449377 and36552437 bytes excluding manifest). The executed driver sealed and called report_output::verify before its terminal0. I independently checked closure/size and SHA256 evidence/source/executable identities; I did not separately recompute manifest BLAKE3 digests because the available Python environment lacks that module. This scope does not replace the actual driver's verification with a claimed independent BLAKE3 check.\n\n## Compile repair and reviewed source scope\n\n`compile-repair-1.json` preserves failed training-tests-1 E0283: ambiguous iterator product comparison. The only change was `data.len() != shape.iter().product()` to `data.len() != shape.iter().product::<usize>()`. Reversing that exact annotation in the current source reproduces the previously reviewed source hash. Before1e760b7a641c23d66c11bf42b1fe8e737d852c4b76fb6d01ce46d29dd6949a62; afterfac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b. It changes no arithmetic, graph, schema or fixed condition; the failed build is not model-quality evidence.\n\nBoth execution receipts bind the same executable SHA256850e7fc03d9b9415354f0520209446be96983957436456ae4bb9c8fd7eb2bc50 and ten source hashes. I recomputed those source hashes and the actual executable hash; all match, and both receipts report unchanged_source_after=true. Worker wrapper times are10.229023084015353 and12.462039749982068 seconds; maximum resident sets332857344 and255606784 bytes. They are construction/replay costs, not serving-energy measurements.\n\nReport SHA256s: seed1 d53d8133a8990a811540007581c746e3874713308921542b03dc776d8e024c99; seed2 b34ee07f41d81b3d41ada501a8441233b978c41faa99f208a4d006984ceeec43. Manifest SHA256s: seed1 1721f2727e02d2da8922d10603c866e46afd17162d4091febcb951446f85e66d; seed2 405d6b41893e4262b61e1573337a8d809bc212de703b02163a656490e1387697.\n\n## Next decision\n\nRetain both q4 potential candidates and the one lost row, and close this fixed-conversion construction comparison. A potential fit could be considered later for an explicitly needed behavioral/calibration improvement, but nonzero gradients and one exposed-row regression do not by themselves require another optimizer dose. The present result already resolves the source-coefficient contract and the native/source hard-score bridge.\n\nProceed to the next separately admitted strict geometric producer boundary, preferably the context producer while preserving its latent/observable separation, synchronous exact signed-group transitions and independently bound fixed readouts. Keep the event/span controller frozen during that change so trajectory effects can be attributed. This is coefficient-contract progress, not an assumption that current address observations are Markov sufficient or that current failures are retrieval failures. Event/age and remaining float boundaries still require their own scope. Offline donor-weight compilation remains available, and neither this authored panel nor q4 packing establishes general language, geometry superiority, whole-model native execution or energy savings.\n"
+  },
+  "source_sha256": {
+    "crates/uor-r4-integer/src/lib.rs": "7b9ef7094fb56674c11f3a64991fb2d74f6b79d3d1c9beec99cb1b7e6b6eb155",
+    "crates/uor-r4-integer/src/geometric_potential_q4.rs": "5dfc137bb178fce1b11a1b1bcd39580412f1b37422de538bb2afc1e6badc514e",
+    "crates/uor-r4-training/src/geometric_context.rs": "b469854cbf5b9442c592ab9753a40b091af38e58c4f1eac11c84a0afb51f6256",
+    "crates/uor-r4-training/src/geometric_potential_native.rs": "508e75891613898f4ede30848b52a13b2e2b19f1cbabb3717ee0e4bc75e7f58d",
+    "crates/uor-r4-training/src/geometric_read_native.rs": "85497d4ee90c9db2a956382af197fc22718b83626208707c69b0fd52ea809944",
+    "crates/uor-r4-training/src/geometric_stack.rs": "05830fac14889cfca2b51d6059ef5860152260bd3e311286160d4d3173387f20",
+    "crates/uor-r4-training/src/lib.rs": "20af5b4593412acd56187f4364977867b925ceeedbb4023833365f4ec5589a6a",
+    "crates/uor-r4-training/src/geometric_potential_q4.rs": "fac315eb2d0d924080a07cdf02a8afc7024810009d08d76c95127a472b89256b",
+    "crates/uor-r4-training/examples/attention-geometric-potential-q4.rs": "04c0b7b56142c8bcf85391b36b1a689e1341c205c5408c581e391e27be29d6b4"
+  }
+}

@@ -126,6 +126,13 @@ embeddings alone are not assumed to contain reasoning.
    learned candidates, projection and unrestricted parents, including every
    gain/loss and CE. End this dose; advance the remaining attention coefficient
    boundary through connected geometric source/compiler/learning/native callers.
+   The [strict q4 potential construction](geometric-potential-q4-2026-10-02.md)
+   now completes both saved-parent conversions with connected answer gradients
+   and independent native reload. Retain both converted models and every changed
+   row; end construction without an automatic potential fit. Next lower the
+   retained context transition/observation coefficients, then event and age
+   factors, keeping internal state and observation distinct and measuring state,
+   address, payload and answer retention before learning admission.
    Current-state owns exact results and next source selection. Packet-perfect
    donor imitation or perfect answer recovery is not an
    admission gate. No coefficient-scale/bank/selector/alphabet sweep.

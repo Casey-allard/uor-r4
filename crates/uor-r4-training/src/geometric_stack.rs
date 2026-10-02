@@ -218,6 +218,11 @@ enum NoReadMode<'a> {
 
 #[derive(Clone, Copy)]
 enum CompositionMode<'a> {
+    LearnedPotential {
+        weights: &'a crate::geometric_potential_q4::PotentialQ4Weights,
+        composition: &'a crate::geometric_composition_native::CompiledComposition,
+        output: &'a std::cell::RefCell<Option<crate::geometric_potential_q4::PotentialQ4Output>>,
+    },
     Learned(&'a crate::geometric_composition::CompositionWeights),
     Native(&'a crate::geometric_composition_native::CompiledComposition),
     FrozenValues {
@@ -229,6 +234,11 @@ enum CompositionMode<'a> {
 }
 #[derive(Clone, Copy)]
 enum ReadComposition<'a> {
+    LearnedPotential {
+        values: &'a Tensor,
+        weights: &'a crate::geometric_potential_q4::PotentialQ4Weights,
+        output: &'a std::cell::RefCell<Option<crate::geometric_potential_q4::PotentialQ4Output>>,
+    },
     Learned(&'a Tensor),
     Native {
         values: &'a [i64],
@@ -3052,6 +3062,58 @@ impl StackModel {
         ))
     }
 
+    /// Current-packed q4 score credit through the actual denominator and frozen
+    /// native q4 values/H4 composition. Source reduction is real softmax/F32;
+    /// native inference remains the independently admitted integer reducer.
+    #[allow(clippy::too_many_arguments)]
+    pub fn forward_geometric_q4_potential(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        composition: &crate::geometric_composition_native::CompiledComposition,
+        weights: &crate::geometric_potential_q4::PotentialQ4Weights,
+        reset_each_token: bool,
+    ) -> Result<(
+        Tensor,
+        crate::geometric_potential_q4::PotentialQ4Output,
+        crate::geometric_value_producer::ValueProducerTrace,
+    )> {
+        let output = std::cell::RefCell::new(None);
+        let (logits, _, values, _, _) = self.forward_geometric_composition_mode(
+            ids,
+            batch,
+            time,
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            reset_each_token,
+            NoReadMode::Native(no_read),
+            Some(CompositionMode::LearnedPotential {
+                weights,
+                composition,
+                output: &output,
+            }),
+        )?;
+        Ok((
+            logits,
+            output
+                .into_inner()
+                .ok_or_else(|| invalid("q4 potential source output missing"))?,
+            values,
+        ))
+    }
+
     fn forward_geometric_composition_mode(
         &self,
         ids: &[u32],
@@ -3091,6 +3153,16 @@ impl StackModel {
                 return Err(invalid("composition requires admitted native NoRead"));
             };
             match mode {
+                CompositionMode::LearnedPotential {
+                    weights,
+                    composition,
+                    ..
+                } => {
+                    potential.validate_q4_training(weights)?;
+                    composition.validate_dependencies(
+                        context, potential, reducer, producer, events, span, null,
+                    )?;
+                }
                 CompositionMode::Learned(weights) => weights.config().validate()?,
                 CompositionMode::FrozenValues {
                     producer: weights,
@@ -3250,6 +3322,16 @@ impl StackModel {
             .map(|out| out.trace.clone())
             .unwrap_or(values_trace);
         let composed_tensor = match composition {
+            Some(CompositionMode::LearnedPotential { composition, .. }) => {
+                let raw = composition.compose_trace(&values_trace)?;
+                Some(Tensor::from_vec(
+                    raw.into_iter()
+                        .map(|v| (v as f64 / 65536.) as f32)
+                        .collect::<Vec<_>>(),
+                    (batch, heads, time, 32),
+                    &self.device,
+                )?)
+            }
             Some(CompositionMode::Learned(weights)) => Some(weights.forward(&values_trace)?),
             Some(CompositionMode::FrozenValues { composition, .. }) => Some(
                 composition.forward_frozen_values(
@@ -3268,6 +3350,15 @@ impl StackModel {
         };
         let composition_trace = std::cell::RefCell::new(None);
         let read_composition = match composition {
+            Some(CompositionMode::LearnedPotential {
+                weights, output, ..
+            }) => Some(ReadComposition::LearnedPotential {
+                values: composed_tensor
+                    .as_ref()
+                    .ok_or_else(|| invalid("fixed composition tensor missing"))?,
+                weights,
+                output,
+            }),
             Some(CompositionMode::Learned(_)) | Some(CompositionMode::FrozenValues { .. }) => {
                 Some(ReadComposition::Learned(
                     composed_tensor
@@ -3986,7 +4077,7 @@ impl StackModel {
         let potential = source
             .native_potential
             .ok_or_else(|| invalid("native reduction requires native geometric potentials"))?;
-        potential.validate_for(weights, config)?;
+        potential.validate_stack_parent(weights, config)?;
         reducer.validate_for(p.layer(layer, "read.age")?, potential)?;
         if batch == 0
             || time == 0
@@ -4043,24 +4134,45 @@ impl StackModel {
             .ok_or_else(|| invalid("native reduction score layout overflow"))?;
         // This allocation is the offline full-window bridge, not the native
         // row reducer's incremental serving scratch.
-        let mut scores = vec![0i64; score_count];
-        for b in 0..batch {
-            for head in 0..heads {
-                for query in 0..time {
-                    let q = ((b * time + query) * heads + head) * lanes;
-                    for key in 0..=query {
-                        let k = ((b * time + key) * heads + head) * lanes;
-                        scores[((b * heads + head) * time + query) * time + key] = potential
-                            .score_pair_codes(
-                                head,
-                                &content[q..q + lanes],
-                                &content[k..k + lanes],
-                                &current[q..q + lanes],
-                                &current[k..k + lanes],
-                            )?;
+        let learned_potential = match source.composition {
+            Some(ReadComposition::LearnedPotential { weights, .. }) => {
+                Some(weights.forward_codes(batch, time, &content, current)?)
+            }
+            _ => None,
+        };
+        let learned_score_tensor = learned_potential.as_ref().map(|out| out.scores.clone());
+        let scores = if let Some(ref learned) = learned_potential {
+            learned.scores_q24.clone()
+        } else {
+            let mut scores = vec![0i64; score_count];
+            for b in 0..batch {
+                for head in 0..heads {
+                    for query in 0..time {
+                        let q = ((b * time + query) * heads + head) * lanes;
+                        for key in 0..=query {
+                            let k = ((b * time + key) * heads + head) * lanes;
+                            scores[((b * heads + head) * time + query) * time + key] = potential
+                                .score_pair_codes(
+                                    head,
+                                    &content[q..q + lanes],
+                                    &content[k..k + lanes],
+                                    &current[q..q + lanes],
+                                    &current[k..k + lanes],
+                                )?;
+                        }
                     }
                 }
             }
+            scores
+        };
+        if let Some(ReadComposition::LearnedPotential { output, .. }) = source.composition {
+            let mut sink = output
+                .try_borrow_mut()
+                .map_err(|_| invalid("q4 potential output already borrowed"))?;
+            if sink.is_some() {
+                return Err(invalid("q4 potential evaluated more than once"));
+            }
+            *sink = learned_potential;
         }
         if let Some(composition) = source.composition {
             if heads != 2 || self.config.width != 32 || binding.is_some() {
@@ -4073,7 +4185,8 @@ impl StackModel {
                 return Err(invalid("composition null shape differs"));
             }
             return match composition {
-                ReadComposition::Learned(values) => {
+                ReadComposition::Learned(values)
+                | ReadComposition::LearnedPotential { values, .. } => {
                     if values.dims() != [batch, heads, time, 32]
                         || values.dtype() != DType::F32
                         || !values.device().is_cpu()
@@ -4098,6 +4211,14 @@ impl StackModel {
                     }
                     let fixed =
                         Tensor::from_vec(fixed_scores, (batch, heads, time, time), &self.device)?;
+                    // Preserve exact Q24 score+age hard values and their F32 cast;
+                    // the live potential Tensor supplies only the declared score
+                    // adjoint. Future entries are still masked by -infinity.
+                    let fixed = if let Some(live) = &learned_score_tensor {
+                        (&fixed + (live - live.detach())?)?
+                    } else {
+                        fixed
+                    };
                     let null = Tensor::from_vec(
                         null.iter()
                             .map(|&x| (x as f64 / 16777216.) as f32)
@@ -12367,6 +12488,166 @@ mod tests {
             assert_eq!(new.total_weight_q31, old.total_weight_q31);
             assert_eq!(new.max_score_q24, old.max_score_q24);
         }
+
+        // Standalone strict potential coefficients are the only new learned
+        // state. Rebind the frozen dependency envelopes without changing their
+        // numerical parameters, and exercise the actual shared denominator.
+        let score_source = root.join("strict-potential-source");
+        crate::geometric_potential_q4::PotentialQ4Weights::from_base(&base, registry)?
+            .save(&score_source)?;
+        let score_weights = crate::geometric_potential_q4::PotentialQ4Weights::load(&score_source)?;
+        let score_native_path = root.join("strict-potential-native");
+        CompiledGeometricPotentials::compile_q4(&score_weights, &score_source, &potential_source)?
+            .save(&score_native_path)?;
+        let score_native =
+            CompiledGeometricPotentials::load(&score_native_path, &potential_source)?;
+        let score_paths = geometric_context::ContextSourcePaths {
+            potential_native: &score_native_path,
+            ..paths
+        };
+        let score_context_source = root.join("strict-potential-context-source");
+        finite_context.save_source(&score_context_source, score_paths, registry)?;
+        let score_context = CompiledContext::compile(
+            &finite_context,
+            &score_context_source,
+            score_paths,
+            registry,
+        )?;
+        let score_context_path = root.join("strict-potential-context-native");
+        score_context.save(&score_context_path)?;
+        let score_read_source = crate::geometric_read_native::ReadSourceBinding::from_directory(
+            &base,
+            registry,
+            &score_native,
+            2,
+        )?;
+        let score_reducer = crate::geometric_read_native::CompiledGeometricRead::compile(
+            p.layer(2, "read.age")?,
+            &score_native,
+            &score_read_source,
+        )?;
+        let score_reducer_path = root.join("strict-potential-reducer");
+        score_reducer.save(&score_reducer_path)?;
+        let score_value_paths = crate::geometric_value_producer_native::ValueProducerSourcePaths {
+            value_source: &q4_source,
+            context_source: &score_context_source,
+            context_dependencies: score_paths,
+        };
+        let score_values = crate::geometric_value_producer_native::CompiledValueProducer::compile(
+            score_value_paths,
+            registry,
+        )?;
+        let score_values_path = root.join("strict-potential-values");
+        score_values.save(&score_values_path)?;
+        let score_null_paths = crate::geometric_no_read_native::NoReadSourcePaths {
+            no_read_source: &null_source,
+            value: score_value_paths,
+            context_native: &score_context_path,
+            value_native: &score_values_path,
+            reducer_native: &score_reducer_path,
+        };
+        let score_null = crate::geometric_no_read_native::CompiledNoRead::compile(
+            &null_weights,
+            score_null_paths,
+            registry,
+        )?;
+        let score_null_path = root.join("strict-potential-null");
+        score_null.save(&score_null_path)?;
+        let score_bank_paths = crate::geometric_composition_native::CompositionSourcePaths {
+            composition_source: &composition_source,
+            no_read: score_null_paths,
+            no_read_native: &score_null_path,
+        };
+        let score_bank = crate::geometric_composition_native::CompiledComposition::compile(
+            &composition,
+            score_bank_paths,
+            registry,
+        )?;
+        let strict_forward =
+            |model: &StackModel,
+             input: &[u32],
+             weights: &crate::geometric_potential_q4::PotentialQ4Weights| {
+                model.forward_geometric_q4_potential(
+                    input,
+                    1,
+                    10,
+                    &score_context,
+                    &event,
+                    &span,
+                    &score_native,
+                    &score_reducer,
+                    &score_values,
+                    &score_null,
+                    &score_bank,
+                    weights,
+                    false,
+                )
+            };
+        let strict = strict_forward(&model, &ids, &score_weights)?;
+        assert_eq!(
+            strict.2, native_q4.2,
+            "potential rebinding does not change value packets"
+        );
+        for h in 0..2 {
+            for q in 0..10 {
+                for k in 0..=q {
+                    let qi = (q * 2 + h) * 4;
+                    let ki = (k * 2 + h) * 4;
+                    assert_eq!(
+                        strict.1.scores_q24[(h * 10 + q) * 10 + k],
+                        score_native.score_pair_codes(
+                            h,
+                            &strict.1.content_codes[qi..qi + 4],
+                            &strict.1.content_codes[ki..ki + 4],
+                            &strict.1.context_codes[qi..qi + 4],
+                            &strict.1.context_codes[ki..ki + 4],
+                        )?
+                    );
+                }
+            }
+        }
+        let strict_gradient =
+            logits_cross_entropy(&strict.0.narrow(0, 9, 1)?, &[7], None)?.backward()?;
+        let mut score_credit = 0f64;
+        for var in score_weights.parameters().values() {
+            let g = strict_gradient
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("actual answer misses potential coefficient graph"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(g.iter().all(|x| x.is_finite()));
+            score_credit += g.iter().map(|&x| f64::from(x) * f64::from(x)).sum::<f64>();
+        }
+        assert!(
+            score_credit > 0.,
+            "actual denominator must credit standalone coefficients"
+        );
+        for var in composition
+            .parameters()
+            .values()
+            .chain(null_weights.parameters().values())
+            .chain(q4.parameters().values())
+            .chain(finite_context.parameters().values())
+        {
+            assert!(strict_gradient.get(var.as_tensor()).is_none());
+        }
+        let old_output = model.variables()["layers.02.read.out.weight"]
+            .as_tensor()
+            .copy()?;
+        let output = &model.variables()["layers.02.read.out.weight"];
+        output.set(&Tensor::full(f32::NAN, output.shape(), &cpu())?)?;
+        let poisoned_strict = strict_forward(&model, &ids, &score_weights);
+        output.set(&old_output)?;
+        assert_eq!(bits(&strict.0)?, bits(&poisoned_strict?.0)?);
+        let future_strict = strict_forward(&model, &future_ids, &score_weights)?;
+        assert_eq!(
+            bits(&strict.0.narrow(0, 0, 9)?)?,
+            bits(&future_strict.0.narrow(0, 0, 9)?)?
+        );
+        let loaded_scores = crate::geometric_potential_q4::PotentialQ4Weights::load(&score_source)?;
+        let restored_strict = strict_forward(&reloaded_model, &ids, &loaded_scores)?;
+        assert_eq!(bits(&strict.0)?, bits(&restored_strict.0)?);
+        assert_eq!(strict.1.scores_q24, restored_strict.1.scores_q24);
 
         let reduced = model.forward_geometric_context_read_native(
             &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,
