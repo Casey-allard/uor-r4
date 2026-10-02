@@ -1072,6 +1072,14 @@ impl CompiledEvents {
     pub fn metadata(&self) -> &CompiledEventMetadata {
         &self.metadata
     }
+    /// Immutable admitted tables for a persistent integer attention session.
+    pub fn native_tables(&self) -> &NativeEventTables {
+        &self.native
+    }
+    /// Exact pinned algebra; no mutable or unchecked table replacement.
+    pub fn geometry(&self) -> &HistoricalH4Tables {
+        &self.geometry
+    }
     pub fn validate_for(&self, weights: &EventWeights) -> Result<()> {
         if weights.config != *self.config()
             || parameter_identities(weights)? != self.metadata.source.parameters

@@ -476,6 +476,10 @@ impl CompiledValueProducer {
     pub fn metadata(&self) -> &CompiledValueProducerMetadata {
         &self.metadata
     }
+    /// Immutable admitted value producer; its artifact retains source policy.
+    pub fn native_kernel(&self) -> &NativeValueProducer {
+        &self.native
+    }
     pub fn config(&self) -> &ValueProducerConfig {
         &self.metadata.config
     }

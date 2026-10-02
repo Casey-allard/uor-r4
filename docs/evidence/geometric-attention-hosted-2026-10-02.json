@@ -1,0 +1,110 @@
+{
+  "schema": "uor-r4.hosted-attention-source-checks/1",
+  "integer_run": 37063718908,
+  "integer_source_head": "5e9dfb52c9e16266260710a8c71ec7bd86a48862",
+  "integer_tests": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0,
+    "release_build_seconds": 31.54,
+    "test_seconds": 0.04
+  },
+  "failed_driver_run": 37063718908,
+  "failure": "E0508 move of non-Copy retained packet; one-line borrow repair",
+  "successful_driver_run": 37064609925,
+  "driver_source_head": "e19bbd33dc3069c13b78376a566c5e530e1263cc",
+  "driver_build_seconds": 363,
+  "driver_binary_sha256": "4f355d320a784db17336128f14d835d5aa0c683f195b708ce41c53d2ab828b1d",
+  "driver_binary_bytes": 9119264,
+  "platform": "x86_64-unknown-linux-gnu",
+  "rust": "1.97.1",
+  "owned_changed_rust_sha_verified": 12,
+  "loaded_model_comparison": "PASS on512 exposed retained rows, independent saved-output review pending; see geometric-attention-loaded-2026-10-02.json",
+  "m1_runtime_allocation_opcodes": "PASS within declared successful fixture and19 emitted integer symbols at4a0b0224; loaded comparison NOT_RUN",
+  "optimizer_updates": 0,
+  "local_cargo_or_model": false,
+  "m1_run": 37065787933,
+  "m1_source_head": "594420422749b99e3147b0719a0310078352de78",
+  "m1_binary_sha256": "667d21830ea673ca4dd43e13cd013f81d94d073e3417a97ff6faf67f89290c86",
+  "m1_binary_bytes": 6193856,
+  "m1_integer_tests": {
+    "passed": 3,
+    "failed": 0,
+    "ignored": 0
+  },
+  "m1_allocation": {
+    "run": 37067431577,
+    "source": "d2df658835dd8af76e1b9b0f7a8b3fc4fb62a9af",
+    "test_sha256": "15452e9b7378bf32ee57c5b74b98c05e0047d0b9ab33c1d4a34ed1cc58b4ad4b",
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "pushes": 256,
+    "resets": 2,
+    "allocations": 0,
+    "allocated_bytes": 0,
+    "reallocations": 0,
+    "deallocations": 0,
+    "build_seconds": 41.35,
+    "test_seconds": 0.04,
+    "scope": "actual persistent session synthetic fixture successful push/reset; excludes admission, first-use, report/error paths, full-model serving"
+  },
+  "m1_opcode_prior": {
+    "integer_symbols": 19,
+    "multiply": 3,
+    "divide": 0,
+    "float_arithmetic_or_conversion": 0,
+    "fmov": 0,
+    "failure_scope": "NativeContextState descriptor indexing"
+  },
+  "m1_repair_run": 37067792966,
+  "m1_repair_tests": {
+    "run": 37067792966,
+    "source": "4a0b0224a21826e0f99e753e3bfb133bce9d8264",
+    "verified_integer_and_driver_source_sha": true,
+    "checks": {
+      "integer-tests": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      },
+      "context-tests": {
+        "passed": 5,
+        "failed": 0,
+        "ignored": 0
+      },
+      "allocation-tests": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    "allocation": {
+      "pushes": 256,
+      "resets": 2,
+      "allocations": 0,
+      "allocated_bytes": 0,
+      "reallocations": 0,
+      "deallocations": 0
+    },
+    "loaded_parent": "NOT_RUN"
+  },
+  "m1_repair_driver": {
+    "run": 37067792966,
+    "source": "4a0b0224a21826e0f99e753e3bfb133bce9d8264",
+    "binary_sha256": "a5abfdee0a3e92d7409df0fe25955011d94138d1fd01bad16fa59d55968e85de",
+    "binary_bytes": 6193856,
+    "source_hash_count": 145,
+    "native_arm64_verified": true,
+    "build_seconds": 622,
+    "loaded_parent": "NOT_RUN"
+  },
+  "m1_opcode_repaired": {
+    "integer_symbols": 19,
+    "multiply": 0,
+    "divide": 0,
+    "float_arithmetic_or_conversion": 0,
+    "fmov_register_transfers": 0,
+    "scope": "push and direct reachable integer symbols; external libc/panic unscanned"
+  }
+}

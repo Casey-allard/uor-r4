@@ -598,6 +598,13 @@ impl CompiledGeometricPotentials {
     pub fn metadata(&self) -> &PotentialMetadata {
         &self.metadata
     }
+    /// Immutable admitted relative-geometry score tables.
+    pub fn native_kernel(&self) -> &NativePotentialTables {
+        &self.native
+    }
+    pub fn geometry(&self) -> &HistoricalH4Tables {
+        &self.algebra
+    }
     pub fn is_q4(&self) -> bool {
         self.metadata.schema == Q4_SCHEMA && self.metadata.q4.is_some()
     }

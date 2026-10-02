@@ -1,5 +1,41 @@
 # Current UOR-R4 research state
 
+## Persistent integer attention — native runtime repair, October 2
+
+The [persistent session implementation](geometric-attention-session-2026-10-02.md)
+contains the integer occurrence cache/newest-row reader, strict admitted
+component adapter, CPU Stack residual bridge and retained-parent comparison
+driver. Hosted Linux and native M1 compilation pass. At source4a0b0224, native
+M1 passes3 session tests,5 context tests and the external allocation census:
+256 successful pushes and2 resets, with0 allocations/reallocations/deallocations.
+Construction, first-use and error/reporting paths are outside that census.
+Independent source review finds no material blocker.
+
+The first actual compiled integer call scan retains3 MADD instructions from
+48/104-byte context descriptor indexing. Private64/128-byte layout repair
+4a0b0224 preserves learned tables, artifacts and geometry; additional64-bit
+metadata is16*vocabulary+24*total_lanes bytes, max65,728B before allocator
+bookkeeping. The actual rebuilt M1 driver passes the19-symbol integer call scan:0
+multiply/divide/floating arithmetic/conversion/FMOV instructions, with the prior
+3-MADD failure retained. External libc/panic callees are
+unscanned and no complete serving claim follows.
+
+After DeepSeek exits, both retained lineages complete the native M1 replay:
+512/512 incremental whole-window comparisons preserve all actual-position
+logit bits and saved answers, retaining446/512 correct (s1 original93/stress110;
+s2 original124/stress119). B2 same-shape and short-prefix checks pass; mismatched
+valid value/context dependency is refused. Zero optimizer updates. The two
+workers take8.78s/9.46s external elapsed, with measured peak RSS843,300,864 /
+735,199,232 bytes. [Loaded receipt](../evidence/geometric-attention-loaded-2026-10-02.json).
+Independent saved-output review passes:512 answer vectors match bitwise,
+28,976 context/value traces and1,883,664 causal score pairs join exactly,
+57,952 head reductions reconstruct, and1,024 parent query heads match.
+Full-position equality remains an executed-driver assertion; this is fidelity
+on exposed retained panels, not a new quality improvement. No local Cargo or private artifact upload.
+Continue #1512 through protected delivery,
+then the remaining event/age coefficient boundary. Selected access and the
+float model tail remain explicit unfinished boundaries.
+
 ## Strict q4 geometric context — fixed construction and three-route credit complete, October 2
 
 Both saved potential parents complete native-conditioned q4 context conversion.

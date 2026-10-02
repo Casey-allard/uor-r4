@@ -121,6 +121,13 @@ pub struct ContextTableSlices<'a> {
 /// Counts describe owned learned coefficients, excluding table metadata,
 /// fixed group data and caller artifacts. Reads are logical inspections per
 /// token, not measured cache traffic or energy.
+///
+/// Private descriptors use power-of-two strides for runtime indexing. On a
+/// 64-bit target they occupy 64 bytes/token and 128 bytes/head-lane, compared
+/// with the former 48 and 104 bytes. Thus the layout repair adds 16*vocabulary
+/// + 24*(heads*lanes_per_head) bytes of descriptor storage (at most 65,728
+/// bytes), excluded from stored_bytes. Coefficient/artifact bytes are unchanged;
+/// allocator bookkeeping and alignment overhead are not included in this count.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ContextTableStats {
     pub stored_entries: usize,
@@ -207,6 +214,9 @@ fn rows<const N: usize>(values: &[i32]) -> Box<[[i32; N]]> {
         .into_boxed_slice()
 }
 
+// Private admission metadata only: a 64-byte stride permits shift addressing
+// instead of the observed M1 multiply for the former 48-byte descriptor.
+#[repr(align(64))]
 #[derive(Debug)]
 struct TokenTables {
     transition: Box<[[i32; ROOT_STRIDE]]>,
@@ -271,6 +281,9 @@ impl Factors {
     }
 }
 
+// The former 104-byte descriptor produced MADD during lane iteration. Padding
+// this private metadata to a power-of-two stride changes no numerical table.
+#[repr(align(128))]
 #[derive(Debug)]
 struct LaneTables {
     transition: Factors,
@@ -584,6 +597,25 @@ impl NativeContextState {
 mod tests {
     use super::*;
     type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    #[test]
+    fn native_geometric_context_descriptor_strides_are_power_of_two() {
+        use std::mem::{align_of, size_of};
+        assert!(size_of::<TokenTables>().is_power_of_two());
+        assert!(size_of::<LaneTables>().is_power_of_two());
+        assert_eq!(align_of::<TokenTables>(), 64);
+        assert_eq!(align_of::<LaneTables>(), 128);
+        #[cfg(target_pointer_width = "64")]
+        {
+            assert_eq!(size_of::<TokenTables>(), 64);
+            assert_eq!(size_of::<LaneTables>(), 128);
+            assert_eq!(
+                (size_of::<TokenTables>() - 48) * MAX_VOCAB
+                    + (size_of::<LaneTables>() - 104) * MAX_LANES,
+                65_728
+            );
+        }
+    }
 
     fn geometry() -> Result<HistoricalH4Tables, Box<dyn std::error::Error>> {
         let bytes = std::fs::read(concat!(

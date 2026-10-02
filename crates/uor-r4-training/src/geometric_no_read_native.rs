@@ -426,6 +426,10 @@ impl CompiledNoRead {
     pub fn metadata(&self) -> &CompiledNoReadMetadata {
         &self.metadata
     }
+    /// Immutable q4-derived numerical scalar for the admitted dependency set.
+    pub fn native_kernel(&self) -> &NativeGeometricNoRead {
+        &self.native
+    }
     pub fn validate_for(&self, weights: &NoReadWeights) -> Result<()> {
         if *weights.config() != self.config()
             || parameter_identities(weights.parameters())? != self.metadata.parameters

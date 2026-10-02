@@ -318,6 +318,13 @@ impl CompiledSpanActions {
     pub fn metadata(&self) -> &NativeSpanMetadata {
         &self.metadata
     }
+    /// Immutable admitted token actions; no token classification at serving.
+    pub fn dictionary(&self) -> &TokenActionDictionary {
+        &self.dictionary
+    }
+    pub fn geometry(&self) -> &HistoricalH4Tables {
+        &self.tables
+    }
     pub fn vocab_size(&self) -> usize {
         self.dictionary.vocab_size()
     }

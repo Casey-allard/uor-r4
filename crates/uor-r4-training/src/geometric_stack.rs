@@ -201,6 +201,9 @@ struct ReadSource<'a> {
     native_learned_values: Option<&'a [i32]>,
     no_read: NoReadSource<'a>,
     composition: Option<ReadComposition<'a>>,
+    // Admitted incremental reader output, already in the residual frame.
+    // Conversion to F32 occurs outside the integer session.
+    integer_residual: Option<(usize, &'a Tensor)>,
 }
 
 #[derive(Clone, Copy)]
@@ -287,6 +290,7 @@ impl Default for ReadSource<'_> {
             native_learned_values: None,
             no_read: NoReadSource::LegacyFloat,
             composition: None,
+            integer_residual: None,
         }
     }
 }
@@ -2129,6 +2133,7 @@ impl StackModel {
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
+                integer_residual: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2287,6 +2292,7 @@ impl StackModel {
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
+                integer_residual: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2972,6 +2978,70 @@ impl StackModel {
                 Some(CompositionMode::Learned(composition)),
             )?
             .0)
+    }
+
+    /// Run the admitted persistent integer reader once per occurrence and feed
+    /// its checked head sum into the existing residual site. This CPU bridge
+    /// retains the floating recurrence, MLP, final norm and vocabulary head;
+    /// neither this method nor its returned logits qualify integer model serving.
+    /// Each batch item has its own fresh session and exact untruncated history.
+    pub fn forward_geometric_attention_session(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        admitted: &crate::geometric_attention_native::CompiledGeometricAttention<'_>,
+    ) -> Result<Tensor> {
+        admitted.validate_stack(self)?;
+        let count = batch
+            .checked_mul(time)
+            .ok_or_else(|| invalid("incremental attention input shape overflow"))?;
+        if !self.device.is_cpu()
+            || batch == 0
+            || time == 0
+            || time > self.config.context
+            || ids.len() != count
+        {
+            return Err(invalid(
+                "incremental attention needs CPU batch*time ids within context",
+            ));
+        }
+        let mut residual = Vec::with_capacity(
+            count
+                .checked_mul(32)
+                .ok_or_else(|| invalid("incremental attention residual shape overflow"))?,
+        );
+        let mut session = admitted.session(time)?;
+        for window in ids.chunks_exact(time) {
+            session.reset();
+            for &token in window {
+                let step = session
+                    .push(token as usize)
+                    .map_err(|e| invalid(e.to_string()))?;
+                residual.extend(
+                    step.output_q16
+                        .iter()
+                        .map(|&value| (value as f64 / 65536.) as f32),
+                );
+            }
+        }
+        let residual = Tensor::from_vec(residual, (batch, time, 32), &self.device)?;
+        let p = self.params()?;
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_with_source(
+            &p,
+            tokens,
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Soft,
+            ReadSource {
+                integer_residual: Some((2, &residual)),
+                ..ReadSource::default()
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
     }
 
     /// Native geometric composition and wide integer per-head weighted read.
@@ -3960,6 +4030,7 @@ impl StackModel {
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
+                integer_residual: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -5180,6 +5251,7 @@ impl StackModel {
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
+                integer_residual: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -5311,7 +5383,18 @@ impl StackModel {
                 (StackArch::Transformer, _) => self.attention(p, layer, &x, capture)?,
                 (StackArch::Geometric, 'r') => self.recurrence(p, layer, &x, capture)?,
                 (StackArch::Geometric, _) => {
-                    self.geometric_read_with_source(p, layer, &x, capture, binding, gates, source)?
+                    if let Some((site, residual)) = source.integer_residual {
+                        if site != layer || residual.dims() != x.dims() {
+                            return Err(invalid(
+                                "incremental geometric reader residual site/shape differs",
+                            ));
+                        }
+                        residual.clone()
+                    } else {
+                        self.geometric_read_with_source(
+                            p, layer, &x, capture, binding, gates, source,
+                        )?
+                    }
                 }
             };
             x = x.add(&mixed)?;
@@ -5543,6 +5626,7 @@ impl StackModel {
                 native_learned_values: None,
                 no_read: NoReadSource::LegacyFloat,
                 composition: None,
+                integer_residual: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -6495,6 +6579,7 @@ impl StackModel {
                         native_learned_values: None,
                         no_read: NoReadSource::LegacyFloat,
                         composition: None,
+                        integer_residual: None,
                     },
                 )?,
             };

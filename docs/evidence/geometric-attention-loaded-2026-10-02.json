@@ -1,0 +1,149 @@
+{
+  "schema": "uor-r4.attention-session-loaded-comparison-receipt/1",
+  "rust_source": "4a0b0224a21826e0f99e753e3bfb133bce9d8264",
+  "binary_sha256": "a5abfdee0a3e92d7409df0fe25955011d94138d1fd01bad16fa59d55968e85de",
+  "rows": 512,
+  "correct": 446,
+  "lineages": [
+    {
+      "seed": 1,
+      "panels": [
+        {
+          "all_actual_position_logits_bits_equal": true,
+          "correct": 93,
+          "episodes_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "panel": "original",
+          "rows": 128
+        },
+        {
+          "all_actual_position_logits_bits_equal": true,
+          "correct": 110,
+          "episodes_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "panel": "stress",
+          "rows": 128
+        }
+      ],
+      "stack_interface_checks": {
+        "batch": 2,
+        "batch_time": 36,
+        "same_shape_native_reference_logits_bits_equal": true,
+        "short_prefix_tokens": 18
+      },
+      "mismatched_valid_value_context_dependency_refused": true,
+      "session_storage": {
+        "address_heap": 8192,
+        "inline": 20480,
+        "payload_heap": 65536,
+        "reducer_heap": 71752,
+        "span_heap": 16,
+        "total": 165976
+      },
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-attention-session-20261002/github-m1-layout-driver-1/attention-geometric-session",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-attention-session-20261002/args-s1.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 8.775845291,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_attention.rs": "b5f5516def9078a469be70e68a5f2c80de222bcec70ec5a44198d25c1ebbef50",
+          "crates/uor-r4-integer/src/geometric_context.rs": "91a308f0fa3190eee540f8b31384ae37449432f6d1c2382688273220f8c03fb9",
+          "crates/uor-r4-integer/src/lib.rs": "410c5d17e8a84e300acfb28c8af861bbe07f9515a0c6faa92878d17a8a3a1393",
+          "crates/uor-r4-integer/tests/geometric_attention_allocations.rs": "15452e9b7378bf32ee57c5b74b98c05e0047d0b9ab33c1d4a34ed1cc58b4ad4b",
+          "crates/uor-r4-training/examples/attention-geometric-session.rs": "77d1269e837e79fe34d158a903e113b36a7abe875abeef5fab33389ac8c114b9",
+          "crates/uor-r4-training/src/geometric_attention_native.rs": "a3e41a741b55dcc128caa2571e039f5b7aaba7056ccec0c20314d0d4bad56e2c",
+          "crates/uor-r4-training/src/geometric_context.rs": "4c1123897745f7941b48a943731b8c92fb07c3492a55f3344acdbcb530919475",
+          "crates/uor-r4-training/src/geometric_event.rs": "bc4ab1ae1267726ed58723ce04eab5d4dc471bbf44d4ac6a44856efb32efa9aa",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "ccd00d966c6202c1f83944cad84f4229327a0569629f1969bcdd220dd603f326",
+          "crates/uor-r4-training/src/geometric_potential_native.rs": "eeff8affc9950b1a6c7794601ae8a9a56339c77337d37af815243b0e4221ffd2",
+          "crates/uor-r4-training/src/geometric_span_native.rs": "5d3aa0a0546e58ef622685f733c3e60e94eb4803ab33045ac05c603210eaf990",
+          "crates/uor-r4-training/src/geometric_stack.rs": "c9f2d2da8fdafb2fef105e9debeb1dafdbaced1b260783625ed1797f8adb56ec",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "6666c4b2e81edf9723990557d4152cf1bd18588959d8b46c3050882b69ef8f7a",
+          "crates/uor-r4-training/src/lib.rs": "3f23e4b37067bbd95375d22656f2e34c31a1004c989382532db6e68f6d0e58a5"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 843300864,
+        "executable_sha256": "a5abfdee0a3e92d7409df0fe25955011d94138d1fd01bad16fa59d55968e85de"
+      },
+      "report_sha256": "4a2835212e7037fdbcdb4bf9964e42f3b30f8046d333229716b46136ff1b0d92"
+    },
+    {
+      "seed": 2,
+      "panels": [
+        {
+          "all_actual_position_logits_bits_equal": true,
+          "correct": 124,
+          "episodes_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "panel": "original",
+          "rows": 128
+        },
+        {
+          "all_actual_position_logits_bits_equal": true,
+          "correct": 119,
+          "episodes_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "panel": "stress",
+          "rows": 128
+        }
+      ],
+      "stack_interface_checks": {
+        "batch": 2,
+        "batch_time": 36,
+        "same_shape_native_reference_logits_bits_equal": true,
+        "short_prefix_tokens": 18
+      },
+      "mismatched_valid_value_context_dependency_refused": true,
+      "session_storage": {
+        "address_heap": 8192,
+        "inline": 20480,
+        "payload_heap": 65536,
+        "reducer_heap": 71752,
+        "span_heap": 16,
+        "total": 165976
+      },
+      "execution": {
+        "command": [
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-attention-session-20261002/github-m1-layout-driver-1/attention-geometric-session",
+          "/Users/casey.allard/uor-r4-local/workspace/research/geometric-attention-session-20261002/args-s2.json"
+        ],
+        "exit_code": 0,
+        "elapsed_seconds": 9.4587995,
+        "source_sha256": {
+          "crates/uor-r4-integer/src/geometric_attention.rs": "b5f5516def9078a469be70e68a5f2c80de222bcec70ec5a44198d25c1ebbef50",
+          "crates/uor-r4-integer/src/geometric_context.rs": "91a308f0fa3190eee540f8b31384ae37449432f6d1c2382688273220f8c03fb9",
+          "crates/uor-r4-integer/src/lib.rs": "410c5d17e8a84e300acfb28c8af861bbe07f9515a0c6faa92878d17a8a3a1393",
+          "crates/uor-r4-integer/tests/geometric_attention_allocations.rs": "15452e9b7378bf32ee57c5b74b98c05e0047d0b9ab33c1d4a34ed1cc58b4ad4b",
+          "crates/uor-r4-training/examples/attention-geometric-session.rs": "77d1269e837e79fe34d158a903e113b36a7abe875abeef5fab33389ac8c114b9",
+          "crates/uor-r4-training/src/geometric_attention_native.rs": "a3e41a741b55dcc128caa2571e039f5b7aaba7056ccec0c20314d0d4bad56e2c",
+          "crates/uor-r4-training/src/geometric_context.rs": "4c1123897745f7941b48a943731b8c92fb07c3492a55f3344acdbcb530919475",
+          "crates/uor-r4-training/src/geometric_event.rs": "bc4ab1ae1267726ed58723ce04eab5d4dc471bbf44d4ac6a44856efb32efa9aa",
+          "crates/uor-r4-training/src/geometric_no_read_native.rs": "ccd00d966c6202c1f83944cad84f4229327a0569629f1969bcdd220dd603f326",
+          "crates/uor-r4-training/src/geometric_potential_native.rs": "eeff8affc9950b1a6c7794601ae8a9a56339c77337d37af815243b0e4221ffd2",
+          "crates/uor-r4-training/src/geometric_span_native.rs": "5d3aa0a0546e58ef622685f733c3e60e94eb4803ab33045ac05c603210eaf990",
+          "crates/uor-r4-training/src/geometric_stack.rs": "c9f2d2da8fdafb2fef105e9debeb1dafdbaced1b260783625ed1797f8adb56ec",
+          "crates/uor-r4-training/src/geometric_value_producer_native.rs": "6666c4b2e81edf9723990557d4152cf1bd18588959d8b46c3050882b69ef8f7a",
+          "crates/uor-r4-training/src/lib.rs": "3f23e4b37067bbd95375d22656f2e34c31a1004c989382532db6e68f6d0e58a5"
+        },
+        "unchanged_source_after": true,
+        "measured_maximum_resident_set_bytes": 735199232,
+        "executable_sha256": "a5abfdee0a3e92d7409df0fe25955011d94138d1fd01bad16fa59d55968e85de"
+      },
+      "report_sha256": "5a81c89c7024fcbcbdf6fdb34cac9b7282bc589b1baa1ea5b4a5a61c08b40365"
+    }
+  ],
+  "optimizer_updates": 0,
+  "scope": "Persistent reader/whole-window and unchanged float-tail fidelity on retained exposed panels, not new model quality or whole serving/energy",
+  "independent_saved_output_review": {
+    "outcome": "PASS",
+    "audit_sha256": "2b9f27304416405319832b95da9f3bdfda770d6a0e66e3265430e14dddd3ae64",
+    "saved_answer_vectors_bit_equal": 512,
+    "unchanged_errors": 66,
+    "joined_token_context_value_traces": 28976,
+    "causal_potential_no_read_score_pairs": 1883664,
+    "reconstructed_head_normalizations_reductions": 57952,
+    "matched_parent_query_heads": 1024,
+    "mismatches": 0,
+    "audit_seconds": 18.52,
+    "limits": "Full-position logits and unsaved event/OLD-held fresh-reference comparisons, B2/short-prefix/reset/refusal are fail-closed executed-driver assertions, not independently replayed model outputs."
+  },
+  "all_position_logits_evidence": "fail-closed assertion executed in pinned driver before seal; only answer-position logit vectors persisted; independent saved-output joins are distinct"
+}

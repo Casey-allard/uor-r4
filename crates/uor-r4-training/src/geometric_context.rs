@@ -1842,6 +1842,14 @@ impl CompiledContext {
     pub fn metadata(&self) -> &CompiledContextMetadata {
         &self.metadata
     }
+    /// Immutable admitted tables for a persistent integer attention session.
+    pub fn native_tables(&self) -> &NativeContextTables {
+        &self.native
+    }
+    /// Exact pinned algebra; distinct from the finite Q25 observation basis.
+    pub fn geometry(&self) -> &HistoricalH4Tables {
+        &self.geometry
+    }
     pub fn vocab_size(&self) -> usize {
         self.config().vocab_size
     }
