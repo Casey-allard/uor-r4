@@ -76,7 +76,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uor_r4_core::native_geometric::learner::realtext_support::sha256_hex;
 use uor_r4_core::report_output;
-use uor_r4_tokenizer::dialogue::{DialogueError, DialogueProtocol, SCHEMA as DIALOGUE_SCHEMA};
+use uor_r4_tokenizer::dialogue::{
+    DialogueError, DialogueProtocol, SCHEMA as DIALOGUE_SCHEMA, SCHEMA_V2 as DIALOGUE_SCHEMA_V2,
+};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
 use crate::geometric_stack::{StackConfig, StackModel, TransportSnap, TRANSPORT_RECORD};
@@ -160,10 +162,23 @@ pub struct CheckpointIdentity {
 
 impl CheckpointIdentity {
     /// The identity of a model trained with `tokenizer_json` under the
-    /// literal-role dialogue protocol. The SHA-256, the CID and the protocol
-    /// all come from the same bytes.
+    /// version-1 literal-role dialogue protocol. The SHA-256, the CID and the
+    /// protocol all come from the same bytes. Existing callers retain their
+    /// original identity; version 2 requires explicit selection.
     pub fn from_tokenizer(
         tokenizer_json: &[u8],
+        data: Vec<DataIdentity>,
+        training_manifest_sha256: String,
+    ) -> Result<Self, StackCheckpointError> {
+        Self::from_tokenizer_version(tokenizer_json, 1, data, training_manifest_sha256)
+    }
+
+    /// Bind the explicitly selected literal-role protocol (1 or 2) to the
+    /// tokenizer bytes. Select the version used to train the model; this does
+    /// not convert model weights or migrate an existing transcript.
+    pub fn from_tokenizer_version(
+        tokenizer_json: &[u8],
+        version: u8,
         data: Vec<DataIdentity>,
         training_manifest_sha256: String,
     ) -> Result<Self, StackCheckpointError> {
@@ -172,7 +187,7 @@ impl CheckpointIdentity {
         let identity = Self {
             tokenizer_sha256: sha256_hex(tokenizer_json),
             tokenizer_cid: tokenizer.address(),
-            protocol: DialogueProtocol::literal_roles_v1(&tokenizer)?,
+            protocol: DialogueProtocol::literal_roles_version(&tokenizer, version)?,
             data,
             training_manifest_sha256,
         };
@@ -218,7 +233,7 @@ impl CheckpointIdentity {
                 "tokenizer_cid must be blake3: and 64 lowercase hex digits",
             ));
         }
-        if self.protocol.schema != DIALOGUE_SCHEMA {
+        if self.protocol.schema != DIALOGUE_SCHEMA && self.protocol.schema != DIALOGUE_SCHEMA_V2 {
             return Err(identity_error(format!(
                 "unsupported dialogue protocol {}",
                 self.protocol.schema
@@ -979,6 +994,82 @@ mod tests {
             Ok(_) => panic!("{} loaded", root.display()),
             Err(error) => error,
         }
+    }
+
+    #[test]
+    fn dialogue_protocol_versions_are_explicit_bound_and_reloadable() {
+        let (base, legacy) = fixture("dialogue-protocols");
+        let tokenizer = tokenizer_json(VOCAB);
+        let construct = |version| {
+            CheckpointIdentity::from_tokenizer_version(
+                &tokenizer,
+                version,
+                legacy.data.clone(),
+                legacy.training_manifest_sha256.clone(),
+            )
+        };
+        let v1 = construct(1).expect("explicit v1");
+        assert_eq!(legacy, v1);
+        assert_eq!(
+            serde_json::to_vec(&legacy).expect("legacy identity"),
+            serde_json::to_vec(&v1).expect("explicit identity")
+        );
+        let v2 = construct(2).expect("explicit v2");
+        assert_eq!(v2.protocol.schema, DIALOGUE_SCHEMA_V2);
+        assert_ne!(
+            v1.protocol.identity().expect("v1"),
+            v2.protocol.identity().expect("v2")
+        );
+        for version in [0, 3, u8::MAX] {
+            assert!(matches!(
+                construct(version),
+                Err(StackCheckpointError::Protocol(
+                    DialogueError::UnsupportedSchema(_)
+                ))
+            ));
+        }
+        let model = tiny_model();
+        for (name, identity) in [("v1", &v1), ("v2", &v2)] {
+            let root = base.join(name);
+            save_checkpoint(&root, &model, identity, None).expect("save protocol");
+            let loaded = load_checkpoint(&root, &Device::Cpu).expect("load protocol");
+            loaded
+                .identity()
+                .check_tokenizer(&tokenizer)
+                .expect("tokenizer binding");
+            assert_eq!(loaded.identity(), identity);
+            assert_eq!(loaded.record.schema, CHECKPOINT_SCHEMA);
+            assert_eq!(
+                loaded.record.protocol_identity,
+                identity.protocol.identity().expect("identity")
+            );
+            assert_eq!(logit_bits(&loaded.model), logit_bits(&model));
+        }
+        let mismatch = base.join("protocol-digest-mismatch");
+        reseal(&base.join("v2"), &mismatch, |root| {
+            edit_record(root, |record| {
+                record["identity"]["protocol"]["schema"] = json!(DIALOGUE_SCHEMA);
+            });
+        });
+        assert!(matches!(
+            load_error(&mismatch),
+            StackCheckpointError::Identity(_)
+        ));
+        // A matching digest does not admit an unsupported protocol schema.
+        let unknown = base.join("unknown-protocol");
+        reseal(&base.join("v2"), &unknown, |root| {
+            edit_record(root, |record| {
+                let mut protocol = v2.protocol.clone();
+                protocol.schema = "uor-r4.literal-role-dialogue/3".into();
+                record["identity"]["protocol"] = json!(protocol);
+                record["protocol_identity"] = json!(protocol.identity().expect("digest"));
+            });
+        });
+        assert!(matches!(
+            load_error(&unknown),
+            StackCheckpointError::Identity(_)
+        ));
+        fs::remove_dir_all(base).expect("clean");
     }
 
     #[test]

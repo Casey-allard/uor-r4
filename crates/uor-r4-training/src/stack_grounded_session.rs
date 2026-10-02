@@ -548,7 +548,8 @@ impl<C: TurnCompiler> GroundedSession<C> {
         };
         let caller_eos_inserted = !generated.eos;
         let text_end = generated.ids.len() - usize::from(generated.eos);
-        let reply_text = self.tokenizer.decode(&generated.ids[..text_end]);
+        let decoded = self.tokenizer.decode(&generated.ids[..text_end]);
+        let reply_text = self.identity.protocol.reply_text(&decoded).to_owned();
         let mut history = self.history_ids.clone();
         history.extend(suffix);
         history.extend(&generated.ids);
@@ -1020,8 +1021,9 @@ impl<C: TurnCompiler> GroundedSession<C> {
             };
             self.validate_reply(&reply)?;
             let text_end = reply.ids.len() - usize::from(eos);
+            let decoded = self.tokenizer.decode(&reply.ids[..text_end]);
             if turn.caller_eos_inserted == eos
-                || turn.reply_text != self.tokenizer.decode(&reply.ids[..text_end])
+                || turn.reply_text != self.identity.protocol.reply_text(&decoded)
             {
                 return Err(GroundedSessionError::Snapshot(
                     "reply text/closure disagrees with generated IDs".into(),
@@ -1520,6 +1522,16 @@ mod tests {
         policy: ContextPolicy,
         capacity: usize,
     ) -> (PathBuf, GroundedSession<TestCompiler>) {
+        fixture_with_protocol(name, context, policy, capacity, 1)
+    }
+
+    fn fixture_with_protocol(
+        name: &str,
+        context: usize,
+        policy: ContextPolicy,
+        capacity: usize,
+        version: u8,
+    ) -> (PathBuf, GroundedSession<TestCompiler>) {
         let base = scratch(name);
         fs::create_dir_all(&base).expect("base");
         let tokenizer = tokenizer_bytes();
@@ -1527,8 +1539,9 @@ mod tests {
         report_output::claim(&training).expect("claim");
         write_new(&training.join("test-only.json"), b"{\"fixture\":true}").expect("report");
         report_output::seal(&training).expect("seal");
-        let identity = CheckpointIdentity::from_tokenizer(
+        let identity = CheckpointIdentity::from_tokenizer_version(
             &tokenizer,
+            version,
             vec![DataIdentity {
                 label: "TEST_ONLY".into(),
                 bytes: 7,
@@ -1585,6 +1598,121 @@ mod tests {
 
     fn fixed_turn(session: &mut GroundedSession<TestCompiler>, source: &str) -> TurnOutcome {
         fixed_controlled(session, source, TurnControls::default())
+    }
+
+    #[test]
+    fn protocol_two_loaded_session_preserves_recall_segments_and_generated_ids() {
+        let (base, mut session) =
+            fixture_with_protocol("protocol-two", 256, ContextPolicy::StrictFullHistory, 8, 2);
+        assert_eq!(
+            session.identity.protocol.schema,
+            uor_r4_tokenizer::dialogue::SCHEMA_V2
+        );
+        let generated = vec![u32::from(b' ') + 3, u32::from(b'x') + 3];
+        let first = session
+            .turn_with("put blue", TurnControls::default(), |_, _, _, _| {
+                Ok(Reply {
+                    ids: generated.clone(),
+                    eos: false,
+                    cycle: None,
+                })
+            })
+            .expect("controlled leading-space reply");
+        assert_eq!(first.reply_ids, generated);
+        assert_eq!(first.reply_text, "x");
+        let closed = session.history_ids.clone();
+        assert!(closed.ends_with(&[generated[0], generated[1], session.identity.protocol.eos_id]));
+
+        // Exercise the loaded model for the recall turn, retaining its actual
+        // generated IDs; this is an interface witness, not a quality result.
+        let query = session
+            .turn("ask")
+            .expect("actual protocol-two recall reply");
+        assert_eq!(query.recall, RecallDisposition::Value);
+        let mut expected = closed;
+        for segment in [
+            "\n",
+            "User:",
+            " ask",
+            "\n",
+            "System:",
+            " Memory: blue.",
+            "\n",
+            "Assistant:",
+        ] {
+            expected.extend(session.tokenizer.encode(segment));
+        }
+        assert_eq!(query.emitter_input_ids, expected);
+        assert_eq!(query.retained_from_turn, 0);
+        assert_eq!(
+            query
+                .emitter_input_ids
+                .iter()
+                .filter(|&&id| id == session.identity.protocol.bos_id)
+                .count(),
+            1
+        );
+
+        let snapshot = base.join("snapshot");
+        session.save(&snapshot).expect("save protocol two");
+        let mut loaded = GroundedSession::load(
+            &snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("reload protocol two");
+        assert_eq!(loaded.identity, session.identity);
+        assert_eq!(loaded.turns, session.turns);
+        assert_eq!(loaded.history_ids, session.history_ids);
+        assert_eq!(
+            loaded.turn("ask").expect("loaded continuation"),
+            session.turn("ask").expect("continuation")
+        );
+
+        let raw_text = base.join("unstripped-reply-text");
+        resealed_snapshot(&snapshot, &raw_text, |record| {
+            record["turns"][0]["reply_text"] = json!(" x");
+        });
+        assert!(matches!(
+            GroundedSession::load(
+                &raw_text,
+                TestCompiler::new(&session.tokenizer_json),
+                &Device::Cpu,
+            ),
+            Err(GroundedSessionError::Snapshot(_))
+        ));
+        fs::remove_dir_all(base).expect("clean");
+    }
+
+    #[test]
+    fn protocol_one_keeps_leading_reply_space_and_identity() {
+        let (base, mut session) =
+            fixture("protocol-one-text", 128, ContextPolicy::StrictFullHistory);
+        let reply = session
+            .turn_with("hello", TurnControls::default(), |_, _, _, _| {
+                Ok(Reply {
+                    ids: vec![u32::from(b' ') + 3, u32::from(b'x') + 3],
+                    eos: false,
+                    cycle: None,
+                })
+            })
+            .expect("legacy reply");
+        assert_eq!(reply.reply_text, " x");
+        assert_eq!(
+            session.identity.protocol.schema,
+            uor_r4_tokenizer::dialogue::SCHEMA
+        );
+        let snapshot = base.join("snapshot");
+        session.save(&snapshot).expect("save legacy");
+        let loaded = GroundedSession::load(
+            &snapshot,
+            TestCompiler::new(&session.tokenizer_json),
+            &Device::Cpu,
+        )
+        .expect("reload legacy");
+        assert_eq!(loaded.turns, session.turns);
+        assert_eq!(loaded.history_ids, session.history_ids);
+        fs::remove_dir_all(base).expect("clean");
     }
 
     fn fixed_controlled(
