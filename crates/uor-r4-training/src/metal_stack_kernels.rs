@@ -387,7 +387,10 @@ inline float gelu_fwd(float x) {
     const float K = 0.7978846f;
     const float C = 0.044715f;
     float v = K * (x + C * x * x * x);
-    float t = tanh(v);
+    // precise::tanh of a clamped argument: the fast tanh overflows to NaN
+    // for large |v| (a ratio of overflowing exponentials), while tanh is
+    // exactly +-1 in f32 beyond |v| ~ 9, as the CPU computes it.
+    float t = precise::tanh(clamp(v, -20.0f, 20.0f));
     return 0.5f * x * (1.0f + t);
 }
 
@@ -548,7 +551,7 @@ inline float2 gelu_value_slope(float x) {
     const float K = 0.7978846f;
     const float C = 0.044715f;
     float v = K * (x + C * x * x * x);
-    float t = precise::tanh(v);
+    float t = precise::tanh(clamp(v, -20.0f, 20.0f));
     float value = 0.5f * x * (1.0f + t);
     float slope = 0.5f * (1.0f + t) + 0.5f * x * (1.0f - t * t) * K * (1.0f + 3.0f * C * x * x);
     return float2(value, slope);

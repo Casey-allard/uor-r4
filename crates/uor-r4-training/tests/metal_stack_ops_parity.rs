@@ -1249,3 +1249,56 @@ fn bench_training_size_read_and_recurrence() -> uor_r4_training::Result<()> {
     }
     Ok(())
 }
+
+/// The recurrence forward with a GELU gate far outside the usual range: the
+/// Metal output must stay finite and equal the CPU's (a fast `tanh` once
+/// returned NaN here and stopped a Metal training run at step 995).
+#[test]
+fn test_recurrence_core_large_gate_parity() -> uor_r4_training::Result<()> {
+    let metal_dev = match candle_core::Device::new_metal(0) {
+        Ok(dev) => dev,
+        Err(_) => return Ok(()),
+    };
+    let cpu_dev = candle_core::Device::Cpu;
+    let (batch, time, width) = (2, 9, 32);
+    let lanes = width / 4;
+    let gate_width = lanes + width;
+    let scales = [50.0f32, 120.0, 2000.0];
+    let b_data: Vec<f32> = (0..batch * time * 2 * width)
+        .map(|i| {
+            let wave = (i as f32 * 0.37).sin();
+            if (i / width) % 2 == 1 {
+                // The gate half of each row: large positive and negative values.
+                wave * scales[i % scales.len()]
+            } else {
+                wave * 0.5
+            }
+        })
+        .collect();
+    let g_data: Vec<f32> = (0..batch * time * gate_width)
+        .map(|i| (i as f32 * 0.02).cos() * 0.5)
+        .collect();
+    let p_len = (4 + 1) * width + lanes;
+    let p_data: Vec<f32> = (0..p_len).map(|i| (i as f32 * 0.03).sin() * 0.05).collect();
+    let run = |device: &candle_core::Device| -> uor_r4_training::Result<Vec<f32>> {
+        let b = candle_core::Tensor::from_vec(b_data.clone(), (batch, time, 2 * width), device)?;
+        let g = candle_core::Tensor::from_vec(g_data.clone(), (batch, time, gate_width), device)?;
+        let p = candle_core::Tensor::from_vec(p_data.clone(), (p_len,), device)?;
+        let out = uor_r4_training::geometric_stack::recurrence_core(
+            &b, &g, &p, batch, time, width, true, None,
+        )?;
+        Ok(out.flatten_all()?.to_vec1::<f32>()?)
+    };
+    let (cpu, metal) = (run(&cpu_dev)?, run(&metal_dev)?);
+    assert!(
+        metal.iter().all(|v| v.is_finite()),
+        "Metal output has nonfinite values"
+    );
+    let worst = cpu
+        .iter()
+        .zip(&metal)
+        .map(|(c, m)| (c - m).abs() / c.abs().max(1.0))
+        .fold(0f32, f32::max);
+    assert!(worst < 1e-3, "relative error {worst}");
+    Ok(())
+}
