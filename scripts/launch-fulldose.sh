@@ -29,7 +29,7 @@ mkdir -p "$O"
 "$B" train train="$P/train/tokens.u16" valid="$P/heldout/tokens.u16" tokenizer="$T" out="$O/lm" \
   arch=geometric pattern=rrarra read=lorentz rotation=true seed=1 init="$I" \
   steps=20149 batch=16 lr=0.004 warmup=1008 eval_every=2518 eval_windows=64 final_windows=256 \
-  checkpoint_every=2518 sample_tokens=0 > "$O/lm.log" 2>&1
+  checkpoint_every=2518 sample_tokens=0 max_seconds="${LM_MAX_SECONDS:-43200}" > "$O/lm.log" 2>&1
 echo "[$(date -u +%H:%M:%SZ)] LM done rc=$?"
 
 # Phase B: 8x the previous response dose, from the full-dose LM.
@@ -38,6 +38,6 @@ echo "[$(date -u +%H:%M:%SZ)] LM done rc=$?"
   dev_tokens="$P/heldout/tokens.u16" dev_mask="$P/heldout/response_mask.u8" dev_manifest="$P/heldout/manifest.json" \
   init="$O/lm/model" policy=full_prefix data_seed=20260929 steps=8192 batch=16 lr=0.001 \
   eval_every=512 dev_seed=20260930 dev_per_source=32 checkpoint_every=512 max_new_tokens=32 \
-  > "$O/dialogue.log" 2>&1
+  max_seconds="${DIALOGUE_MAX_SECONDS:-10800}" > "$O/dialogue.log" 2>&1
 echo "[$(date -u +%H:%M:%SZ)] response phase done rc=$?"
 echo "FULLDOSE COMPLETE"
