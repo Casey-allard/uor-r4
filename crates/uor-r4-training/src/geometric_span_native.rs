@@ -488,6 +488,29 @@ pub fn trace_native(
     compiled: &CompiledSpanActions,
 ) -> Result<NativeSpanTrace> {
     let decisions = actions(ids, batch, time, control_logits, compiled)?;
+    trace_native_events(ids, batch, time, &decisions, compiled)
+}
+
+/// Direct typed integer events enter the register without a float argmax.
+pub fn trace_native_events(
+    ids: &[u32],
+    batch: usize,
+    time: usize,
+    decisions: &[SpanAction],
+    compiled: &CompiledSpanActions,
+) -> Result<NativeSpanTrace> {
+    let count = batch
+        .checked_mul(time)
+        .ok_or_else(|| invalid("native event/span shape overflow"))?;
+    if batch == 0
+        || time == 0
+        || ids.len() != count
+        || decisions.len() != count
+        || ids.iter().any(|&id| id as usize >= compiled.vocab_size())
+    {
+        return Err(invalid("native event/span input shape or token differs"));
+    }
+
     let mut register = SpanRegister::new(compiled.lanes()).map_err(|e| invalid(e.to_string()))?;
     let mut trace = NativeSpanTrace {
         batch,
@@ -529,6 +552,36 @@ pub fn produce_native(
     compiled: &CompiledSpanActions,
 ) -> Result<Tensor> {
     let trace = trace_native(ids, batch, time, control_logits, compiled)?;
+    reconstruct_trace(ids, batch, time, &trace, compiled, control_logits.device())
+}
+
+/// Reconstruction remains outside the native event and register kernels.
+pub fn produce_native_events(
+    ids: &[u32],
+    batch: usize,
+    time: usize,
+    decisions: &[SpanAction],
+    compiled: &CompiledSpanActions,
+) -> Result<Tensor> {
+    let trace = trace_native_events(ids, batch, time, decisions, compiled)?;
+    reconstruct_trace(
+        ids,
+        batch,
+        time,
+        &trace,
+        compiled,
+        &candle_core::Device::Cpu,
+    )
+}
+
+fn reconstruct_trace(
+    ids: &[u32],
+    batch: usize,
+    time: usize,
+    trace: &NativeSpanTrace,
+    compiled: &CompiledSpanActions,
+    device: &candle_core::Device,
+) -> Result<Tensor> {
     let roots = canonical_h4_roots();
     let count = ids
         .len()
@@ -548,7 +601,7 @@ pub fn produce_native(
     Ok(Tensor::from_vec(
         output,
         (batch, time, compiled.metadata.width),
-        control_logits.device(),
+        device,
     )?)
 }
 

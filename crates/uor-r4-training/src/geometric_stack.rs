@@ -109,6 +109,7 @@ use uor_r4_lut::GROUP;
 
 use crate::flock::{self, FlockSelect};
 use crate::geometric_address::{self, AddressWeights, GeometricAddressConfig};
+use crate::geometric_event::{self, CompiledEvents, EventWeights};
 use crate::geometric_potential_native::{self, CompiledGeometricPotentials};
 use crate::geometric_span::{self, GeometricSpanConfig, SpanPolicy};
 use crate::geometric_span_native::{self, CompiledSpanActions};
@@ -119,6 +120,7 @@ use crate::stack_export::{
 use crate::stack_memory::{keys_aux_len, product_key_memory, MemoryConfig, MemoryScore};
 use crate::stack_prime_route::PrimeRegistry;
 use crate::{invalid, Result};
+use uor_r4_integer::geometric_span::SpanAction;
 
 /// Lower bound on `z - 1` in the Lorentz score. Below it the distance is
 /// clamped and carries no gradient.
@@ -172,11 +174,18 @@ enum LatchGates<'a> {
 /// Original selected token rows are separate from the contextual residual.
 /// A side-channel caller without that provenance cannot construct span actions.
 #[derive(Clone, Copy)]
+enum SpanEvents<'a> {
+    Training(&'a Tensor),
+    Native(&'a [SpanAction]),
+}
+
+#[derive(Clone, Copy)]
 struct ReadSource<'a> {
     tokens: Option<&'a Tensor>,
     span_policy: SpanPolicy,
     native_span: Option<(&'a CompiledSpanActions, &'a [u32])>,
     native_potential: Option<&'a CompiledGeometricPotentials>,
+    event_control: Option<SpanEvents<'a>>,
 }
 
 impl Default for ReadSource<'_> {
@@ -186,6 +195,7 @@ impl Default for ReadSource<'_> {
             span_policy: SpanPolicy::Ordered,
             native_span: None,
             native_potential: None,
+            event_control: None,
         }
     }
 }
@@ -2019,6 +2029,7 @@ impl StackModel {
                 span_policy: SpanPolicy::LastToken,
                 native_span: None,
                 native_potential: None,
+                event_control: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2168,6 +2179,147 @@ impl StackModel {
                 span_policy: SpanPolicy::Ordered,
                 native_span: Some((compiled, ids)),
                 native_potential: potential,
+                event_control: None,
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok((hidden, binding.and_then(|capture| capture.masses)))
+    }
+
+    /// Train the geometric event factors through this same reader. Events are
+    /// predicted from observed IDs and context, never supplied labels. The base
+    /// stack and answer path can remain frozen while these factors receive credit.
+    pub fn forward_geometric_event(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        events: &EventWeights,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        if events.config().vocab_size != self.config.vocab_size {
+            return Err(invalid("event vocabulary differs from model"));
+        }
+        let logits = if reset_each_token {
+            events.event_logits_reset_each_token(ids, batch, time)?
+        } else {
+            events.event_logits(ids, batch, time)?
+        };
+        let (hidden, _) = self.hidden_geometric_event(
+            ids,
+            batch,
+            time,
+            SpanEvents::Training(&logits),
+            None,
+            None,
+            None,
+        )?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Execute the native integer event controller and exact span register.
+    /// No float controller or reconstructed-logit argmax supplies these events.
+    /// The surrounding reader/output remains an offline floating-point boundary.
+    pub fn forward_geometric_event_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        if events.config().vocab_size != self.config.vocab_size {
+            return Err(invalid("compiled event vocabulary differs from model"));
+        }
+        let trace = geometric_event::trace_native(ids, batch, time, events, reset_each_token)?;
+        let (hidden, _) = self.hidden_geometric_event(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&trace.actions),
+            None,
+            Some(span),
+            Some(potential),
+        )?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    pub fn read_binding_masses_geometric_event_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        if events.config().vocab_size != self.config.vocab_size {
+            return Err(invalid("compiled event vocabulary differs from model"));
+        }
+        let trace = geometric_event::trace_native(ids, batch, time, events, reset_each_token)?;
+        self.hidden_geometric_event(
+            ids,
+            batch,
+            time,
+            SpanEvents::Native(&trace.actions),
+            Some(target),
+            Some(span),
+            Some(potential),
+        )?
+        .1
+        .ok_or_else(|| invalid("native event source observer absent"))
+    }
+
+    fn hidden_geometric_event(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        control: SpanEvents<'_>,
+        target: Option<&ReadBindingTarget>,
+        compiled: Option<&CompiledSpanActions>,
+        potential: Option<&CompiledGeometricPotentials>,
+    ) -> Result<(Tensor, Option<Tensor>)> {
+        let span = self
+            .geometric_span
+            .as_ref()
+            .ok_or_else(|| invalid("events require geometric spans"))?;
+        let address = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("events require geometric addressing"))?;
+        self.validate_geometric_address(address)?;
+        let p = self.params()?;
+        if let Some(compiled) = compiled {
+            compiled.validate_for(p.get("embedding.weight")?, span)?;
+        }
+        if let Some(target) = target {
+            self.validate_binding(batch, time, target)?;
+        }
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let mut binding = target.map(|target| BindingCapture {
+            target,
+            masses: None,
+        });
+        let x = self.layer_range_with_source(
+            &p,
+            tokens.clone(),
+            0..self.config.layers(),
+            &mut None,
+            &mut binding,
+            LatchGates::Soft,
+            ReadSource {
+                tokens: Some(&tokens),
+                span_policy: SpanPolicy::Ordered,
+                native_span: compiled.map(|compiled| (compiled, ids)),
+                native_potential: potential,
+                event_control: Some(control),
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2239,15 +2391,46 @@ impl StackModel {
                 let tokens = source.tokens.ok_or_else(|| {
                     invalid("geometric spans require original selected token rows")
                 })?;
-                let logits = self.span_control_logits(p, layer, &u)?;
-                match source.native_span {
-                    Some((compiled, ids)) => {
+                match source.event_control {
+                    Some(SpanEvents::Native(events)) => {
+                        let (compiled, ids) = source.native_span.ok_or_else(|| {
+                            invalid("native events require the compiled span dictionary")
+                        })?;
                         if source.span_policy != SpanPolicy::Ordered {
-                            return Err(invalid("native span replay does not accept LastToken"));
+                            return Err(invalid("native events require ordered spans"));
                         }
-                        geometric_span_native::produce_native(ids, batch, time, &logits, compiled)?
+                        geometric_span_native::produce_native_events(
+                            ids, batch, time, events, compiled,
+                        )?
                     }
-                    None => geometric_span::produce(tokens, &logits, span, source.span_policy)?,
+                    control => {
+                        let predicted;
+                        let logits = match control {
+                            Some(SpanEvents::Training(logits)) => logits,
+                            None => {
+                                predicted = self.span_control_logits(p, layer, &u)?;
+                                &predicted
+                            }
+                            Some(SpanEvents::Native(_)) => {
+                                return Err(invalid("invalid native event branch"))
+                            }
+                        };
+                        match source.native_span {
+                            Some((compiled, ids)) => {
+                                if source.span_policy != SpanPolicy::Ordered {
+                                    return Err(invalid(
+                                        "native span replay does not accept LastToken",
+                                    ));
+                                }
+                                geometric_span_native::produce_native(
+                                    ids, batch, time, logits, compiled,
+                                )?
+                            }
+                            None => {
+                                geometric_span::produce(tokens, logits, span, source.span_policy)?
+                            }
+                        }
+                    }
                 }
             }
             None => {
@@ -2753,6 +2936,7 @@ impl StackModel {
                 span_policy: SpanPolicy::Ordered,
                 native_span: None,
                 native_potential: None,
+                event_control: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -3107,6 +3291,7 @@ impl StackModel {
                 span_policy,
                 native_span: None,
                 native_potential: None,
+                event_control: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -4050,6 +4235,7 @@ impl StackModel {
                         span_policy: SpanPolicy::Ordered,
                         native_span: None,
                         native_potential: None,
+                        event_control: None,
                     },
                 )?,
             };
@@ -9432,6 +9618,139 @@ mod tests {
         };
         assert!(earlier(&ordered)? > 0.0);
         assert_eq!(earlier(&last)?, 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn native_geometric_event_reader_has_language_credit_and_direct_integer_events() -> Result<()> {
+        let model = tiny_span_model()?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let events = EventWeights::new(model.config.vocab_size, 2, 47)?;
+        let lexical = events
+            .parameters()
+            .get("token_event")
+            .ok_or_else(|| invalid("event lexical parameter absent"))?;
+        let mut rows = vec![0f32; model.config.vocab_size * 4];
+        for id in 0..model.config.vocab_size {
+            rows[id * 4] = 4.;
+        }
+        for (id, action) in [(1, 1), (2, 2), (3, 2), (4, 3), (5, 0), (6, 0)] {
+            rows[id * 4..id * 4 + 4].fill(0.);
+            rows[id * 4 + action] = 4.;
+        }
+        lexical.set(&Tensor::from_vec(
+            rows,
+            (model.config.vocab_size, 4),
+            &cpu(),
+        )?)?;
+        assert_eq!(
+            events
+                .event_logits(&ids, 1, 10)?
+                .argmax(2)?
+                .to_vec2::<u32>()?[0],
+            vec![1, 2, 2, 3, 0, 1, 2, 2, 3, 0]
+        );
+        let old = bits(&model.forward(&ids, 1, 10)?)?;
+        let trained = model.forward_geometric_event(&ids, 1, 10, &events, false)?;
+        let language = logits_cross_entropy(&trained.narrow(0, 9, 1)?, &[7], None)?;
+        let gradients = language.backward()?;
+        let transition = events
+            .parameters()
+            .get("token_transition")
+            .ok_or_else(|| invalid("transition parameter absent"))?;
+        let grad = gradients
+            .get(transition.as_tensor())
+            .ok_or_else(|| invalid("language misses native event transition"))?;
+        let early = grad.get(1)?.abs()?.max_all()?.to_scalar::<f32>()?;
+        assert!(
+            early.is_finite() && early > 0.,
+            "language-to-earlier-transition gradient {early}"
+        );
+        assert!(gradients
+            .get(&model.variables()["layers.02.read.span_control.weight"])
+            .is_none());
+        let root = std::env::temp_dir().join(format!(
+            "native-event-reader-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        let base = root.join("base");
+        model.save(&base)?;
+        let registry = b"native-event-reader-token-registry/1";
+        events.save_source(&root.join("event-source"), &base, registry)?;
+        let event = CompiledEvents::compile(&events, &root.join("event-source"), &base, registry)?;
+        let span_source = crate::geometric_span_native::SpanSourceBinding::from_files(
+            &base.join("model.safetensors"),
+            &base.join("config.json"),
+            registry,
+        )?;
+        let p = model.params()?;
+        let span = CompiledSpanActions::compile(
+            p.get("embedding.weight")?,
+            model
+                .geometric_span()
+                .ok_or_else(|| invalid("span absent"))?,
+            &span_source,
+        )?;
+        let potential_source =
+            crate::geometric_potential_native::PotentialSourceBinding::from_directory(
+                &base, registry,
+            )?;
+        let potential = CompiledGeometricPotentials::compile(
+            &model.geometric_address_potentials()?,
+            model
+                .geometric_address()
+                .ok_or_else(|| invalid("address absent"))?,
+            &potential_source,
+        )?;
+        let integer_trace = geometric_event::trace_native(&ids, 1, 10, &event, false)?;
+        let direct =
+            geometric_span_native::trace_native_events(&ids, 1, 10, &integer_trace.actions, &span)?;
+        let through_logits = geometric_span_native::trace_native(
+            &ids,
+            1,
+            10,
+            &events.event_logits(&ids, 1, 10)?,
+            &span,
+        )?;
+        assert_eq!(direct.prior_codes, through_logits.prior_codes);
+        let native =
+            model.forward_geometric_event_native(&ids, 1, 10, &event, &span, &potential, false)?;
+        assert_eq!(native.dims(), [10, model.config.vocab_size]);
+        assert!(native
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .iter()
+            .all(|x| x.is_finite()));
+        let mass = model
+            .read_binding_masses_geometric_event_native(
+                &ids,
+                1,
+                10,
+                &ReadBindingTarget {
+                    layer: 2,
+                    head: 0,
+                    rows: vec![ReadBinding {
+                        batch: 0,
+                        query: 9,
+                        sources: vec![4],
+                    }],
+                },
+                &event,
+                &span,
+                &potential,
+                false,
+            )?
+            .to_vec1::<f32>()?;
+        assert!(mass.len() == 1 && mass[0].is_finite() && (0.0..=1.0).contains(&mass[0]));
+        assert_eq!(bits(&model.forward(&ids, 1, 10)?)?, old);
+        assert!(tiny_address_model()?
+            .forward_geometric_event(&ids, 1, 10, &events, false)
+            .is_err());
+        fs::remove_dir_all(root)?;
         Ok(())
     }
 
