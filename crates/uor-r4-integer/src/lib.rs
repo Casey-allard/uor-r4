@@ -23,6 +23,7 @@ pub mod geometric_read;
 pub mod geometric_span;
 pub mod geometric_value;
 pub mod geometric_value_producer;
+pub mod geometric_value_q4;
 pub mod h4_classifier;
 pub mod h4_tables;
 pub mod identity_latch;

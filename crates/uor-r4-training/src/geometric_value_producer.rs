@@ -1,4 +1,4 @@
-//! OFFLINE learned K2 value-head prototype; not a compiled native producer.
+//! Offline learned K2 value head with a current-packed native q4 hard bridge.
 //!
 //! Token, actual retained own/next-neighbor roots, prior held-span roots and
 //! explicit span validity score two root120/category32 atoms per value lane.
@@ -17,14 +17,16 @@
 //! derivative: each atom receives the full output adjoint, a root softmax over
 //! actual decoded Q16 prototypes at its fixed hard radius, and a separate
 //! local-radius softmax at its fixed hard root. No tangent projection discards
-//! antipodal credit. Category zero stops answer gradients; optional category
-//! supervision can escape it. Both atoms initialize at nonzero radii.
+//! antipodal credit. Legacy category zero stops answer gradients. The explicit
+//! q4 policy adds a bounded zero/anchor joint direction-radius escape bridge.
+//! Both atoms initialize at nonzero radii; invalid occurrences always stop credit.
 //!
 //! The values Tensor preserves the training graph but converts decoded Q16 to
 //! F32 (large integers need not roundtrip). Trace.values_q16 is authoritative
-//! for a future integer caller. The standalone source serializer retains head
-//! weights/config; dependency admission, finite factor compilation and a full
-//! integer producer are NOT implemented in this module.
+//! for integer callers. The strict typed-code forward delegates hard decisions
+//! to the actual native producer; F32 scores are only its backward surrogate.
+//! The standalone serializer retains head weights/config; full source-dependency
+//! admission and persistent native artifact loading live in the compiler module.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -36,11 +38,15 @@ use candle_core::{CpuStorage, CustomOp2, DType, Device, Layout, Shape, Tensor, V
 use safetensors::{tensor::TensorView, Dtype as SafeDtype, SafeTensors};
 use serde::{Deserialize, Serialize};
 use uor_r4_integer::geometric_value::{NativeGeometricValues, ValuePacket, ValueState};
+use uor_r4_integer::h4_tables::H4Code;
 
 use crate::geometric_value_native::{ValuePacketRecord, ValuePacketStatus};
 use crate::{invalid, sha256_bytes, Result};
 
 pub const SCHEMA: &str = "uor-r4.geometric-value-producer-offline/1";
+pub const Q4_NATIVE_CHOICE_SURROGATE: &str = "typed-native-state/old-held-codes;fresh-current-packed-q4-factor-tables;per-factor-Q24/i64-earliest-hard-root-category;integer-packet-Q16-forward;F32-logits-backward-probabilities-only;native-choice-conditioned-zero-anchor/local-neighborhood/1";
+pub const Q4_SCHEMA: &str = "uor-r4.geometric-value-producer-offline/2";
+pub const Q4_SURROGATE: &str = "nat-shadow-hard-quarter-grid-identity-STE;project[-1.75,1.75];positive-local-radius-plus-zero;zero-joint-root120-anchor17-13;invalid-stop;both-atoms-full-adjoint;first-order/1";
 pub const VALUE_LANES: usize = 4;
 pub const VALUE_WIDTH: usize = 16;
 pub const ATOMS: usize = 2;
@@ -66,6 +72,8 @@ pub struct ValueProducerConfig {
     pub surrogate: String,
     pub initialization: String,
     pub category_rule: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coefficient_policy: Option<String>,
 }
 impl ValueProducerConfig {
     fn shapes(&self) -> BTreeMap<String, Vec<usize>> {
@@ -124,6 +132,8 @@ struct SourceMetadata {
     config: ValueProducerConfig,
     parameter_bytes: usize,
     parameter_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    packed_sha256: Option<String>,
 }
 
 impl ValueProducerWeights {
@@ -154,6 +164,7 @@ impl ValueProducerWeights {
             surrogate: SURROGATE.into(),
             initialization: INITIALIZATION.into(),
             category_rule: CATEGORY.into(),
+            coefficient_policy: None,
         };
         let mut rng = if seed == 0 { 0x9e3779b97f4a7c15 } else { seed };
         let mut draw = || {
@@ -188,6 +199,85 @@ impl ValueProducerWeights {
             parameters,
             codec,
         })
+    }
+    /// Explicit new training/source policy. Consumes the imported head; saved
+    /// legacy artifacts are never reinterpreted. Only the range projection changes
+    /// its parameter values; the hard q4 grid is applied on each forward/export.
+    pub fn into_q4(mut self) -> Result<Self> {
+        self.validate_parameters()?;
+        self.config.schema = Q4_SCHEMA.into();
+        self.config.coefficient_policy = Some(uor_r4_integer::geometric_value_q4::POLICY.into());
+        self.config.surrogate = Q4_SURROGATE.into();
+        self.project_shadow_range()?;
+        Ok(self)
+    }
+    pub fn is_q4(&self) -> bool {
+        self.config.schema == Q4_SCHEMA
+    }
+    pub fn packed_coefficients(&self) -> Result<Vec<u8>> {
+        if !self.is_q4() {
+            return Err(invalid("legacy value coefficients are not strict q4"));
+        }
+        self.validate_parameters()?;
+        let c = uor_r4_integer::geometric_value_q4::ValueQ4Config {
+            vocab_size: self.config.vocab_size,
+            heads: self.config.heads,
+            latent_lanes_per_head: self.config.latent_lanes_per_head,
+        };
+        let mut q = Vec::new();
+        for (name, _) in c.coefficient_shapes().map_err(|e| invalid(e.to_string()))? {
+            q.extend(
+                self.tensor(&name)?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .into_iter()
+                    .map(|w| (w * 4.).round() as i8),
+            );
+        }
+        uor_r4_integer::geometric_value_q4::pack_coefficients(&q)
+            .map_err(|e| invalid(e.to_string()))
+    }
+    pub fn project_shadow_range(&self) -> Result<()> {
+        if !self.is_q4() {
+            return Err(invalid(
+                "value shadow projection requires explicit q4 policy",
+            ));
+        }
+        // Validate every variable before mutating any of them.
+        let mut projected = Vec::new();
+        for (name, shape) in self.config.shapes() {
+            let tensor = self.tensor(&name)?;
+            finite_tensor(tensor, &shape)?;
+            let values = tensor
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .into_iter()
+                .map(|v| v.clamp(-1.75, 1.75))
+                .collect::<Vec<_>>();
+            projected.push((name, Tensor::from_vec(values, shape, &Device::Cpu)?));
+        }
+        for (name, tensor) in projected {
+            self.parameters[&name].set(&tensor)?;
+        }
+        Ok(())
+    }
+    fn coefficient(&self, name: &str) -> Result<Tensor> {
+        let shadow = self.tensor(name)?;
+        if !self.is_q4() {
+            return Ok(shadow.clone());
+        }
+        let hard = Tensor::from_vec(
+            shadow
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .into_iter()
+                .map(|v| (v * 4.).round() * 0.25)
+                .collect::<Vec<_>>(),
+            shadow.shape(),
+            &Device::Cpu,
+        )?;
+        // Nat/logit-valued shadows: slope one, explicitly ignoring grid rounding.
+        Ok((&hard + (shadow - shadow.detach())?)?)
     }
     pub fn config(&self) -> &ValueProducerConfig {
         &self.config
@@ -232,6 +322,11 @@ impl ValueProducerWeights {
             config: self.config.clone(),
             parameter_bytes: parameters.len(),
             parameter_sha256: sha256_bytes(&parameters),
+            packed_sha256: if self.is_q4() {
+                Some(sha256_bytes(&self.packed_coefficients()?))
+            } else {
+                None
+            },
         })?;
         fs::create_dir(directory)?;
         fs::File::create_new(directory.join(SOURCE_FILES[0]))?.write_all(&metadata)?;
@@ -264,6 +359,11 @@ impl ValueProducerWeights {
             metadata.config.latent_lanes_per_head,
             metadata.config.seed,
         )?;
+        let weights = match metadata.config.schema.as_str() {
+            SCHEMA => weights,
+            Q4_SCHEMA => weights.into_q4()?,
+            _ => return Err(invalid("unknown value source schema")),
+        };
         if weights.config != metadata.config {
             return Err(invalid(
                 "value source configuration/codec/surrogate differs",
@@ -302,6 +402,14 @@ impl ValueProducerWeights {
             weights.parameters[&name].set(&Tensor::from_vec(values, shape, &Device::Cpu)?)?;
         }
         weights.validate_parameters()?;
+        let packed_hash = if weights.is_q4() {
+            Some(sha256_bytes(&weights.packed_coefficients()?))
+        } else {
+            None
+        };
+        if metadata.packed_sha256 != packed_hash {
+            return Err(invalid("value source packed coefficient identity differs"));
+        }
         Ok(weights)
     }
 
@@ -315,14 +423,133 @@ impl ValueProducerWeights {
         for (name, shape) in self.config.shapes() {
             let tensor = self.tensor(&name)?;
             finite_tensor(tensor, &shape)?;
+            if self.is_q4()
+                && tensor
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .any(|x| x.abs() > 1.75)
+            {
+                return Err(invalid(
+                    "q4 value shadows exceed fixed [-1.75,1.75] range; project after updates",
+                ));
+            }
         }
         Ok(())
+    }
+
+    /// Serving-identical hard packet decisions from the CURRENT live q4 grid.
+    /// Authoritative inputs are native code IDs, not a nearest-root recovery from
+    /// floats. A new native producer is constructed per call; no compiled snapshot
+    /// can silently survive an optimizer update. Its argmax is detached, while
+    /// current F32 factor logits supply only the declared backward probabilities.
+    #[allow(clippy::too_many_arguments)]
+    pub fn forward_q4_codes(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        latent: &[H4Code],
+        held: &[H4Code],
+        span_valid: &[bool],
+        occurrence_valid: &[bool],
+    ) -> Result<ValueProducerOutput> {
+        if !self.is_q4() {
+            return Err(invalid(
+                "native-choice value bridge requires strict q4 source",
+            ));
+        }
+        self.validate_parameters()?;
+        let rows = batch
+            .checked_mul(time)
+            .ok_or_else(|| invalid("native-choice value row overflow"))?;
+        let lanes = self.config.heads * self.config.latent_lanes_per_head;
+        let count = rows
+            .checked_mul(lanes)
+            .ok_or_else(|| invalid("native-choice feature overflow"))?;
+        if batch == 0
+            || time == 0
+            || ids.len() != rows
+            || latent.len() != count
+            || held.len() != count
+            || span_valid.len() != rows
+            || occurrence_valid.len() != rows
+            || ids.iter().any(|&id| id as usize >= self.config.vocab_size)
+        {
+            return Err(invalid(
+                "native-choice value code/token/validity shape differs",
+            ));
+        }
+        let config = uor_r4_integer::geometric_value_q4::ValueQ4Config {
+            vocab_size: self.config.vocab_size,
+            heads: self.config.heads,
+            latent_lanes_per_head: self.config.latent_lanes_per_head,
+        };
+        let native = uor_r4_integer::geometric_value_q4::NativeValueQ4::new(
+            config,
+            &self.packed_coefficients()?,
+        )
+        .and_then(|q| q.into_native())
+        .map_err(|e| invalid(e.to_string()))?;
+        let slots = self.config.heads * VALUE_LANES * ATOMS;
+        let choice_count = rows
+            .checked_mul(slots)
+            .ok_or_else(|| invalid("native-choice value count overflow"))?;
+        let mut roots = Vec::with_capacity(choice_count);
+        let mut categories = Vec::with_capacity(choice_count);
+        for row in 0..rows {
+            let first = row * lanes;
+            let produced = native
+                .produce(
+                    ids[row] as usize,
+                    &latent[first..first + lanes],
+                    if span_valid[row] {
+                        Some(&held[first..first + lanes])
+                    } else {
+                        None
+                    },
+                    occurrence_valid[row],
+                )
+                .map_err(|e| invalid(e.to_string()))?;
+            // Raw choices preserve the selected root even when category0 renders
+            // a canonical PRESENT_ZERO packet. They also condition the backward.
+            roots.extend_from_slice(&produced.root_choices[..slots]);
+            categories.extend_from_slice(&produced.categories[..slots]);
+        }
+        let basis = uor_r4_integer::geometric_value_q4::canonical_basis_q25();
+        let feature = |codes: &[H4Code]| -> Result<Tensor> {
+            Ok(Tensor::from_vec(
+                codes
+                    .iter()
+                    .flat_map(|code| basis[usize::from(code.index())].map(|x| x as f32 / 33554432.))
+                    .collect::<Vec<_>>(),
+                vec![
+                    batch,
+                    time,
+                    self.config.heads,
+                    self.config.latent_lanes_per_head,
+                    4,
+                ],
+                &Device::Cpu,
+            )?)
+        };
+        self.forward_with_choices(
+            ids,
+            &feature(latent)?,
+            &feature(held)?,
+            span_valid,
+            occurrence_valid,
+            Some(NativeValueChoices { roots, categories }),
+        )
     }
 
     /// Inputs are actual predicted causal states and explicit structural flags.
     /// Both root tensors use [B,T,H,L,4]. A false span flag masks its feature;
     /// it does not make the numerical source occurrence absent. This pointwise
     /// head performs no look-ahead and does not accept teacher/donor vectors.
+    /// This preserves the historical F32 hard-score selector, including the first
+    /// q4 projection comparison. It cannot establish native q4 packet parity;
+    /// actual strict training callers use `forward_q4_codes` instead.
     pub fn forward(
         &self,
         ids: &[u32],
@@ -330,6 +557,25 @@ impl ValueProducerWeights {
         held_span: &Tensor,
         span_valid: &[bool],
         occurrence_valid: &[bool],
+    ) -> Result<ValueProducerOutput> {
+        self.forward_with_choices(
+            ids,
+            latent_roots,
+            held_span,
+            span_valid,
+            occurrence_valid,
+            None,
+        )
+    }
+
+    fn forward_with_choices(
+        &self,
+        ids: &[u32],
+        latent_roots: &Tensor,
+        held_span: &Tensor,
+        span_valid: &[bool],
+        occurrence_valid: &[bool],
+        native_choices: Option<NativeValueChoices>,
     ) -> Result<ValueProducerOutput> {
         self.validate_parameters()?;
         let shape = latent_roots.dims();
@@ -372,7 +618,7 @@ impl ValueProducerWeights {
         let mut logits = Vec::new();
         for (family, classes) in FAMILIES {
             let tokens = self
-                .tensor(&format!("token_{family}"))?
+                .coefficient(&format!("token_{family}"))?
                 .reshape((self.config.vocab_size, slots * classes))?
                 .index_select(&token_ids, 0)?;
             let mut pieces = Vec::new();
@@ -402,7 +648,7 @@ impl ValueProducerWeights {
                         ] {
                             if let Some(input) = input {
                                 let basis = self
-                                    .tensor(&format!("{factor}_{family}"))?
+                                    .coefficient(&format!("{factor}_{family}"))?
                                     .reshape((slots, classes, 4))?
                                     .narrow(0, slot, 1)?
                                     .squeeze(0)?;
@@ -410,7 +656,7 @@ impl ValueProducerWeights {
                             }
                         }
                         let bias = self
-                            .tensor(&format!("span_valid_{family}"))?
+                            .coefficient(&format!("span_valid_{family}"))?
                             .reshape((slots, classes))?
                             .narrow(0, slot, 1)?;
                         score = (&score + validity.broadcast_mul(&bias)?)?;
@@ -431,6 +677,8 @@ impl ValueProducerWeights {
             time,
             heads,
             occurrence_valid: occurrence_valid.to_vec(),
+            q4_zero_escape: self.is_q4(),
+            native_choices,
             codec: Arc::clone(&self.codec),
         };
         let trace = op.trace(
@@ -520,11 +768,20 @@ fn contiguous<'a>(storage: &'a CpuStorage, layout: &Layout) -> candle_core::Resu
     }
 }
 
+// Flattened [B,T,H,4,2], matching the differentiable score tensors. These
+// decisions are private, computed only from current packed coefficients and
+// authoritative native inputs; they are never teacher labels.
+struct NativeValueChoices {
+    roots: Vec<u8>,
+    categories: Vec<u8>,
+}
 struct ValueEmit {
     batch: usize,
     time: usize,
     heads: usize,
     occurrence_valid: Vec<bool>,
+    q4_zero_escape: bool,
+    native_choices: Option<NativeValueChoices>,
     codec: Arc<NativeGeometricValues>,
 }
 impl ValueEmit {
@@ -540,7 +797,26 @@ impl ValueEmit {
         {
             candle_core::bail!("value emission logits/validity shape or finiteness differs");
         }
+        if let Some(choices) = &self.native_choices {
+            if !self.q4_zero_escape
+                || choices.roots.len() != atoms
+                || choices.categories.len() != atoms
+                || choices.roots.iter().any(|&r| usize::from(r) >= ROOTS)
+                || choices
+                    .categories
+                    .iter()
+                    .any(|&c| usize::from(c) >= CATEGORIES)
+            {
+                candle_core::bail!("native value choices shape/range/policy differs");
+            }
+        }
         Ok(())
+    }
+    fn selected(&self, at: usize, roots: &[f32], categories: &[f32]) -> (usize, usize) {
+        match &self.native_choices {
+            Some(c) => (usize::from(c.roots[at]), usize::from(c.categories[at])),
+            None => (best(roots), best(categories)),
+        }
     }
     fn trace(&self, roots: &[f32], categories: &[f32]) -> candle_core::Result<ValueProducerTrace> {
         self.validate(roots, categories)?;
@@ -554,10 +830,12 @@ impl ValueEmit {
                         if self.occurrence_valid[b * self.time + t] {
                             for (a, value) in pair.iter_mut().enumerate() {
                                 let at = self.atom(b, t, h, l, a);
-                                *value = packet(
-                                    best(&roots[at * ROOTS..(at + 1) * ROOTS]),
-                                    best(&categories[at * CATEGORIES..(at + 1) * CATEGORIES]),
-                                )?;
+                                let (root, category) = self.selected(
+                                    at,
+                                    &roots[at * ROOTS..(at + 1) * ROOTS],
+                                    &categories[at * CATEGORIES..(at + 1) * CATEGORIES],
+                                );
+                                *value = packet(root, category)?;
                             }
                         }
                         let sum = self
@@ -615,8 +893,24 @@ impl ValueEmit {
                             let at = self.atom(b, t, h, l, a);
                             let rs = &roots[at * ROOTS..(at + 1) * ROOTS];
                             let cs = &categories[at * CATEGORIES..(at + 1) * CATEGORIES];
-                            let (root, category) = (best(rs), best(cs));
+                            let (root, category) = self.selected(at, rs, cs);
                             if category == 0 {
+                                if self.q4_zero_escape {
+                                    let anchor = if a == 0 { 17 } else { 13 };
+                                    let pc = probabilities(&[cs[0], cs[anchor]]);
+                                    let pr = probabilities(rs);
+                                    let scores = (0..ROOTS)
+                                        .map(|r| self.prototype(r, anchor).map(dot))
+                                        .collect::<candle_core::Result<Vec<_>>>()?;
+                                    let mean: f64 =
+                                        pr.iter().zip(&scores).map(|(p, s)| p * s).sum();
+                                    for r in 0..ROOTS {
+                                        dr[at * ROOTS + r] = pc[1] * pr[r] * (scores[r] - mean);
+                                    }
+                                    let category_credit = pc[0] * pc[1] * mean;
+                                    dc[at * CATEGORIES] = -category_credit;
+                                    dc[at * CATEGORIES + anchor] = category_credit;
+                                }
                                 continue;
                             }
                             let p = probabilities(rs);
@@ -629,12 +923,20 @@ impl ValueEmit {
                             }
                             let lo = category.saturating_sub(1).max(1);
                             let hi = (category + 1).min(CATEGORIES - 1);
-                            let p = probabilities(&cs[lo..=hi]);
-                            let scores = (lo..=hi)
-                                .map(|c| self.prototype(root, c).map(dot))
+                            let candidates = if self.q4_zero_escape {
+                                std::iter::once(0).chain(lo..=hi).collect::<Vec<_>>()
+                            } else {
+                                (lo..=hi).collect::<Vec<_>>()
+                            };
+                            let p = probabilities(
+                                &candidates.iter().map(|&c| cs[c]).collect::<Vec<_>>(),
+                            );
+                            let scores = candidates
+                                .iter()
+                                .map(|&c| self.prototype(root, c).map(dot))
                                 .collect::<candle_core::Result<Vec<_>>>()?;
                             let mean: f64 = p.iter().zip(&scores).map(|(p, s)| p * s).sum();
-                            for (i, c) in (lo..=hi).enumerate() {
+                            for (i, &c) in candidates.iter().enumerate() {
                                 dc[at * CATEGORIES + c] = p[i] * (scores[i] - mean);
                             }
                         }
@@ -701,6 +1003,8 @@ mod tests {
             time: 1,
             heads: 1,
             occurrence_valid: vec![true],
+            q4_zero_escape: false,
+            native_choices: None,
             codec: Arc::new(
                 NativeGeometricValues::canonical().map_err(|e| invalid(e.to_string()))?,
             ),
@@ -966,6 +1270,297 @@ mod tests {
             .forward(&[0, 1], &latent, &latent, &[false], &[true, true])
             .is_err());
         fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn value_q4_source_grid_ste_and_legacy_roundtrip() -> Result<()> {
+        let weights = ValueProducerWeights::new(3, 1, 2, 73)?;
+        assert!(!serde_json::to_string(weights.config())?.contains("coefficient_policy"));
+        assert!(weights.packed_coefficients().is_err());
+        let shape = weights.parameters()["token_root"].shape().clone();
+        let mut changed = weights.parameters()["token_root"]
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        changed[..4].copy_from_slice(&[0.125, -0.125, 3., -3.]);
+        weights.parameters()["token_root"].set(&Tensor::from_vec(changed, shape, &Device::Cpu)?)?;
+        let weights = weights.into_q4()?;
+        assert_eq!(
+            &weights
+                .coefficient("token_root")?
+                .flatten_all()?
+                .to_vec1::<f32>()?[..4],
+            &[0.25, -0.25, 1.75, -1.75]
+        );
+        let grad = weights.coefficient("token_root")?.sum_all()?.backward()?;
+        let g = grad
+            .get(weights.parameters()["token_root"].as_tensor())
+            .ok_or_else(|| invalid("q4 shadow STE disconnected"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(g.iter().all(|x| *x == 1.));
+        let directory = std::env::temp_dir().join(format!(
+            "uor-value-q4-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        weights.save_source(&directory)?;
+        let loaded = ValueProducerWeights::load_source(&directory)?;
+        assert_eq!(weights.config(), loaded.config());
+        assert_eq!(
+            weights.packed_coefficients()?,
+            loaded.packed_coefficients()?
+        );
+        for (name, var) in weights.parameters() {
+            assert_eq!(
+                var.flatten_all()?.to_vec1::<f32>()?,
+                loaded.parameters()[name].flatten_all()?.to_vec1::<f32>()?
+            );
+        }
+        let input = identity_roots(1, 2, 1, 2)?;
+        assert_eq!(
+            weights
+                .forward(&[0, 1], &input, &input, &[false, true], &[true, true])?
+                .trace,
+            loaded
+                .forward(&[0, 1], &input, &input, &[false, true], &[true, true])?
+                .trace
+        );
+        let path = directory.join(SOURCE_FILES[0]);
+        let mut metadata: SourceMetadata = serde_json::from_slice(&fs::read(&path)?)?;
+        metadata.packed_sha256 = Some("0".repeat(64));
+        fs::write(&path, serde_json::to_vec(&metadata)?)?;
+        assert!(ValueProducerWeights::load_source(&directory).is_err());
+        metadata.config.coefficient_policy = Some("unknown".into());
+        fs::write(&path, serde_json::to_vec(&metadata)?)?;
+        assert!(ValueProducerWeights::load_source(&directory).is_err());
+        fs::remove_dir_all(directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn value_q4_zero_anchor_credit_is_joint_and_absence_stays_blocked() -> Result<()> {
+        let (mut op, mut roots, mut cats) = emitter()?;
+        roots.fill(0.);
+        cats.fill(0.);
+        for c in cats.chunks_exact_mut(CATEGORIES) {
+            c[0] = 1.;
+        }
+        let gradient = [1f32, 0., 0., 0.].repeat(VALUE_LANES);
+        let legacy = op.backward(&roots, &cats, &gradient)?;
+        assert_eq!(norm(&legacy.0) + norm(&legacy.1), 0.);
+        op.q4_zero_escape = true;
+        let (dr, dc) = op.backward(&roots, &cats, &gradient)?;
+        assert!(op
+            .trace(&roots, &cats)?
+            .packets
+            .iter()
+            .flatten()
+            .all(|p| p.status == ValuePacketStatus::PresentZero));
+        assert!(dr[0] < 0. && dr[1] > 0.);
+        assert!(
+            norm(&dc) < 1e-7,
+            "symmetric directions initially give zero category credit"
+        );
+        assert!(
+            (dr[1] / dr[ROOTS + 1] - 16.).abs() < 1e-4,
+            "anchors have their declared physical radii"
+        );
+        for row in roots.chunks_exact_mut(ROOTS) {
+            row[1] = 0.75;
+        }
+        let (dr, dc) = op.backward(&roots, &cats, &gradient)?;
+        assert!(dc[0] < 0. && dc[17] > 0. && dc[CATEGORIES] < 0. && dc[CATEGORIES + 13] > 0.);
+        // Finite differences of the declared zero-branch relaxation, not hard argmax.
+        let objective = |r: &[f32], c: &[f32]| -> Result<f64> {
+            let pr = probabilities(r);
+            let pc = probabilities(&[c[0], c[17]]);
+            let mut mean = 0.;
+            for (root, p) in pr.iter().enumerate() {
+                mean += p * op.prototype(root, 17)?[0];
+            }
+            Ok(pc[1] * mean)
+        };
+        for index in [0, 1, 19] {
+            let mut plus = roots[..ROOTS].to_vec();
+            let mut minus = plus.clone();
+            plus[index] += 0.001;
+            minus[index] -= 0.001;
+            let fd = (objective(&plus, &cats[..CATEGORIES])?
+                - objective(&minus, &cats[..CATEGORIES])?)
+                / f64::from(plus[index] - minus[index]);
+            assert!((fd - f64::from(dr[index])).abs() < 2e-6);
+        }
+        let mut positive = cats.clone();
+        for row in positive.chunks_exact_mut(CATEGORIES) {
+            row[17] = 2.;
+        }
+        let (_, positive_dc) = op.backward(&roots, &positive, &gradient)?;
+        assert!(positive_dc[0] < 0. && positive_dc[16] != 0. && positive_dc[18] != 0.);
+        assert_eq!(positive_dc[30], 0.);
+        op.occurrence_valid[0] = false;
+        let absent = op.backward(&roots, &cats, &gradient)?;
+        assert_eq!(norm(&absent.0) + norm(&absent.1), 0.);
+        assert!(op
+            .trace(&roots, &cats)?
+            .packets
+            .iter()
+            .flatten()
+            .all(|p| p.status == ValuePacketStatus::Absent));
+        Ok(())
+    }
+
+    #[test]
+    fn value_q4_native_choices_match_live_coefficients_and_condition_backward() -> Result<()> {
+        use uor_r4_integer::geometric_value_q4::{NativeValueQ4, ValueQ4Config};
+        let weights = ValueProducerWeights::new(3, 2, 2, 101)?.into_q4()?;
+        let config = ValueQ4Config {
+            vocab_size: 3,
+            heads: 2,
+            latent_lanes_per_head: 2,
+        };
+        let ids = [0, 1, 2, 0];
+        let codes = (0..16)
+            .map(|i| H4Code::try_from((i + 1) as u8).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        let held = codes.iter().rev().copied().collect::<Vec<_>>();
+        let span = [false, true, true, false];
+        let valid = [true, true, false, true];
+        let check = |output: &ValueProducerOutput| -> Result<()> {
+            let native = NativeValueQ4::new(config, &weights.packed_coefficients()?)
+                .and_then(|x| x.into_native())
+                .map_err(|e| invalid(e.to_string()))?;
+            for row in 0..4 {
+                let actual = native
+                    .produce(
+                        ids[row] as usize,
+                        &codes[row * 4..row * 4 + 4],
+                        if span[row] {
+                            Some(&held[row * 4..row * 4 + 4])
+                        } else {
+                            None
+                        },
+                        valid[row],
+                    )
+                    .map_err(|e| invalid(e.to_string()))?;
+                let (b, t) = (row / 2, row % 2);
+                for h in 0..2 {
+                    let at = (b * 2 + h) * 2 + t;
+                    assert_eq!(
+                        &output.trace.values_q16[at * 16..at * 16 + 16],
+                        &actual.values_q16[h * 16..h * 16 + 16]
+                    );
+                    for lane in 0..4 {
+                        assert_eq!(
+                            output.trace.packets[at * 4 + lane],
+                            actual.packets[h * 4 + lane].map(record)
+                        );
+                    }
+                }
+            }
+            assert_eq!(
+                output.values.flatten_all()?.to_vec1::<f32>()?,
+                output
+                    .trace
+                    .values_q16
+                    .iter()
+                    .map(|&v| (f64::from(v) / 65536.) as f32)
+                    .collect::<Vec<_>>()
+            );
+            Ok(())
+        };
+        let first = weights.forward_q4_codes(&ids, 2, 2, &codes, &held, &span, &valid)?;
+        check(&first)?;
+        let var = &weights.parameters()["token_root"];
+        let mut root = var.flatten_all()?.to_vec1::<f32>()?;
+        root[7] = 1.5;
+        var.set(&Tensor::from_vec(root, var.shape(), &Device::Cpu)?)?;
+        let second = weights.forward_q4_codes(&ids, 2, 2, &codes, &held, &span, &valid)?;
+        check(&second)?;
+        assert_ne!(
+            first.trace, second.trace,
+            "new hard pass must not reuse stale packed tables"
+        );
+        assert_eq!(second.trace.packets[0][0].root, 7);
+        let var = &weights.parameters()["token_category"];
+        let mut categories = var.flatten_all()?.to_vec1::<f32>()?;
+        categories[0] = 1.75;
+        var.set(&Tensor::from_vec(categories, var.shape(), &Device::Cpu)?)?;
+        let zero = weights.forward_q4_codes(&ids, 2, 2, &codes, &held, &span, &valid)?;
+        check(&zero)?;
+        assert_eq!(
+            zero.trace.packets[0][0].status,
+            ValuePacketStatus::PresentZero
+        );
+        assert_eq!(
+            zero.trace.packets[0][0].root, 1,
+            "packet placeholder is not selected root"
+        );
+        let native = NativeValueQ4::new(config, &weights.packed_coefficients()?)
+            .and_then(|x| x.into_native())
+            .map_err(|e| invalid(e.to_string()))?;
+        let selected = native
+            .produce(0, &codes[..4], None, true)
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_eq!((selected.root_choices[0], selected.categories[0]), (7, 0));
+        // row2 is structurally absent, even when the same source has valid zeros.
+        assert!(zero.trace.packets[16..20]
+            .iter()
+            .flatten()
+            .all(|p| p.status == ValuePacketStatus::Absent));
+        assert!(weights
+            .forward_q4_codes(&ids, 2, 2, &codes[..15], &held, &span, &valid)
+            .is_err());
+
+        // Force a score/decision disagreement to pin the backward's conditional
+        // point. Positive native category18/root+j must override float zero/+1.
+        let (mut op, roots, mut cats) = emitter()?;
+        op.q4_zero_escape = true;
+        cats.fill(0.);
+        for row in cats.chunks_exact_mut(CATEGORIES) {
+            row[0] = 1.;
+        }
+        op.native_choices = Some(NativeValueChoices {
+            roots: vec![5; 8],
+            categories: vec![18; 8],
+        });
+        let trace = op.trace(&roots, &cats)?;
+        assert_eq!(
+            (trace.packets[0][0].root, trace.packets[0][0].radius_bin),
+            (5, 17)
+        );
+        let (_, dc) = op.backward(&roots, &cats, &[0f32, 0., 1., 0.].repeat(4))?;
+        assert!(
+            dc[19] > 0. && dc[17] < 0.,
+            "native positive root/radius must condition local credit"
+        );
+        assert_eq!(dc[13], 0.);
+        // Conversely native zero retains raw root7, but renders canonicalzero
+        // and uses the zero-anchor branch despite float category18 winning.
+        for row in cats.chunks_exact_mut(CATEGORIES) {
+            row[18] = 2.;
+        }
+        op.native_choices = Some(NativeValueChoices {
+            roots: vec![7; 8],
+            categories: vec![0; 8],
+        });
+        assert_eq!(op.selected(0, &roots[..ROOTS], &cats[..CATEGORIES]), (7, 0));
+        assert_eq!(
+            op.trace(&roots, &cats)?.packets[0][0].status,
+            ValuePacketStatus::PresentZero
+        );
+        let (dr, dc) = op.backward(&roots, &cats, &[1f32, 0., 0., 0.].repeat(4))?;
+        assert!(dr[1] > 0. && dc[17] > 0. && dc[0] < 0.);
+        assert_eq!(
+            dc[18], 0.,
+            "float winning radius cannot choose backward neighborhood"
+        );
+        op.occurrence_valid[0] = false;
+        let (dr, dc) = op.backward(&roots, &cats, &[1f32; 16])?;
+        assert_eq!(norm(&dr) + norm(&dc), 0.);
         Ok(())
     }
 }

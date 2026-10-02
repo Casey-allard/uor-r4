@@ -118,9 +118,13 @@ embeddings alone are not assumed to contain reasoning.
    End this fixed dose and advance the strict four-bit learned-coefficient
    boundary first in the K2 value producer: packed q4 source factors and
    regenerated signed-root tables with context/events/address/NoRead/composition/
-   tail frozen. Compare actual loaded projection before admitting answer learning;
-   packet-perfect imitation is not an admission gate. No repeated bank/selector/
-   alphabet sweep.
+   tail frozen. The [strict q4 construction](geometric-value-q4-2026-10-02.md)
+   now completes loaded projection451/512 versus467/512 parent and repairs the
+   source/native hard-choice bridge: all512 packet/Q16 traces agree with native
+   outputs unchanged. Next preregister bounded answer-only value learning with
+   the learned bank and upstream/tail frozen; retain projection/parent rows and
+   CE. Packet-perfect donor imitation or perfect answer recovery is not an
+   admission gate. No coefficient-scale/bank/selector/alphabet sweep.
    Neither initialization nor a mixed fitted result retires geometry. Preserve
    offline donor compilation as a separate option.
    Learn compatible geometric output/combination operators and integrate natural

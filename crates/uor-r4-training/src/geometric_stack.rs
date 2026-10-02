@@ -220,6 +220,12 @@ enum NoReadMode<'a> {
 enum CompositionMode<'a> {
     Learned(&'a crate::geometric_composition::CompositionWeights),
     Native(&'a crate::geometric_composition_native::CompiledComposition),
+    FrozenValues {
+        producer: &'a crate::geometric_value_producer::ValueProducerWeights,
+        composition: &'a crate::geometric_composition::CompositionWeights,
+        output:
+            &'a std::cell::RefCell<Option<crate::geometric_value_producer::ValueProducerOutput>>,
+    },
 }
 #[derive(Clone, Copy)]
 enum ReadComposition<'a> {
@@ -2995,6 +3001,57 @@ impl StackModel {
         ))
     }
 
+    /// Offline q4 producer answer credit through a frozen geometric bank.
+    /// Admitted compiled producer supplies dependency/config identity; live shadow
+    /// values may change during training. Recompile/rebind before native inference.
+    /// Native packet choices use current live packed coefficients; only backward
+    /// probabilities and real-softmax training reduction remain floating.
+    #[allow(clippy::too_many_arguments)]
+    pub fn forward_geometric_q4_values(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        compiled_producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        producer: &crate::geometric_value_producer::ValueProducerWeights,
+        composition: &crate::geometric_composition::CompositionWeights,
+        reset_each_token: bool,
+    ) -> Result<(Tensor, crate::geometric_value_producer::ValueProducerOutput)> {
+        let output = std::cell::RefCell::new(None);
+        let logits = self
+            .forward_geometric_composition_mode(
+                ids,
+                batch,
+                time,
+                context,
+                events,
+                span,
+                potential,
+                reducer,
+                compiled_producer,
+                reset_each_token,
+                NoReadMode::Native(no_read),
+                Some(CompositionMode::FrozenValues {
+                    producer,
+                    composition,
+                    output: &output,
+                }),
+            )?
+            .0;
+        Ok((
+            logits,
+            output
+                .into_inner()
+                .ok_or_else(|| invalid("q4 value source output missing"))?,
+        ))
+    }
+
     fn forward_geometric_composition_mode(
         &self,
         ids: &[u32],
@@ -3035,6 +3092,18 @@ impl StackModel {
             };
             match mode {
                 CompositionMode::Learned(weights) => weights.config().validate()?,
+                CompositionMode::FrozenValues {
+                    producer: weights,
+                    composition,
+                    ..
+                } => {
+                    if !weights.is_q4() || weights.config() != producer.config() {
+                        return Err(invalid(
+                            "q4 live value producer differs from admitted training config",
+                        ));
+                    }
+                    composition.config().validate()?;
+                }
                 CompositionMode::Native(compiled) => compiled.validate_dependencies(
                     context, potential, reducer, producer, events, span, null,
                 )?,
@@ -3060,10 +3129,16 @@ impl StackModel {
         }
         let lanes = heads * context.config().lanes_per_head;
         let learned = matches!(no_read, NoReadMode::Learned(_));
-        let feature_count = if learned { ids.len() * lanes } else { 0 };
+        let learned_values = matches!(composition, Some(CompositionMode::FrozenValues { .. }));
+        let collect_features = learned || learned_values;
+        let feature_count = if collect_features {
+            ids.len() * lanes
+        } else {
+            0
+        };
         let mut all_latent = Vec::with_capacity(feature_count);
         let mut all_held = Vec::with_capacity(feature_count);
-        let mut span_valid = Vec::with_capacity(if learned { ids.len() } else { 0 });
+        let mut span_valid = Vec::with_capacity(if collect_features { ids.len() } else { 0 });
         let mut native_null = if matches!(no_read, NoReadMode::Native(_)) {
             vec![0i64; batch * heads * time]
         } else {
@@ -3099,7 +3174,7 @@ impl StackModel {
                         .collect::<Result<Vec<_>>>()
                 })
                 .transpose()?;
-            if learned {
+            if collect_features {
                 all_latent.extend_from_slice(&latent);
                 span_valid.push(span_codes.is_some());
                 if let Some(held) = &span_codes {
@@ -3124,6 +3199,9 @@ impl StackModel {
                     native_null[(b * heads + h) * time + t] = scores[h];
                 }
             }
+            if learned_values {
+                continue;
+            }
             let produced =
                 producer.produce(ids[row] as usize, &latent, span_codes.as_deref(), true)?;
             let (b, t) = (row / time, row % time);
@@ -3145,6 +3223,20 @@ impl StackModel {
                 }
             }
         }
+        let mut learned_output =
+            if let Some(CompositionMode::FrozenValues { producer, .. }) = composition {
+                Some(producer.forward_q4_codes(
+                    ids,
+                    batch,
+                    time,
+                    &all_latent,
+                    &all_held,
+                    &span_valid,
+                    &vec![true; batch * time],
+                )?)
+            } else {
+                None
+            };
         let values_trace = crate::geometric_value_producer::ValueProducerTrace {
             batch,
             heads,
@@ -3153,8 +3245,21 @@ impl StackModel {
             packets,
             values_q16: raw,
         };
+        let values_trace = learned_output
+            .as_ref()
+            .map(|out| out.trace.clone())
+            .unwrap_or(values_trace);
         let composed_tensor = match composition {
             Some(CompositionMode::Learned(weights)) => Some(weights.forward(&values_trace)?),
+            Some(CompositionMode::FrozenValues { composition, .. }) => Some(
+                composition.forward_frozen_values(
+                    &learned_output
+                        .as_ref()
+                        .ok_or_else(|| invalid("q4 value Tensor missing"))?
+                        .values,
+                    &values_trace,
+                )?,
+            ),
             _ => None,
         };
         let composed_raw = match composition {
@@ -3163,11 +3268,13 @@ impl StackModel {
         };
         let composition_trace = std::cell::RefCell::new(None);
         let read_composition = match composition {
-            Some(CompositionMode::Learned(_)) => Some(ReadComposition::Learned(
-                composed_tensor
-                    .as_ref()
-                    .ok_or_else(|| invalid("composition tensor missing"))?,
-            )),
+            Some(CompositionMode::Learned(_)) | Some(CompositionMode::FrozenValues { .. }) => {
+                Some(ReadComposition::Learned(
+                    composed_tensor
+                        .as_ref()
+                        .ok_or_else(|| invalid("composition tensor missing"))?,
+                ))
+            }
             Some(CompositionMode::Native(compiled)) => Some(ReadComposition::Native {
                 values: composed_raw
                     .as_deref()
@@ -3229,6 +3336,15 @@ impl StackModel {
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
         let logits = hidden.matmul(&p.head()?.t()?)?;
+        if let Some(CompositionMode::FrozenValues { output, .. }) = composition {
+            let mut sink = output
+                .try_borrow_mut()
+                .map_err(|_| invalid("q4 value output already borrowed"))?;
+            if sink.is_some() {
+                return Err(invalid("q4 value producer evaluated more than once"));
+            }
+            *sink = learned_output.take();
+        }
         Ok((
             logits,
             read_trace.into_inner(),
@@ -12075,6 +12191,182 @@ mod tests {
         assert_eq!(bits(&composed_result.0)?, bits(&reloaded_composed.0)?);
         assert_eq!(composed_result.1, reloaded_composed.1);
         assert_eq!(composed_result.2, reloaded_composed.2);
+
+        // Strict q4 value credit remains connected through the frozen bank.
+        // Rebind dependency envelopes, not scalar/bank parameter bytes.
+        let q4 = producer.into_q4()?;
+        let q4_source = root.join("q4-values-source");
+        q4.save_source(&q4_source)?;
+        let q4 = crate::geometric_value_producer::ValueProducerWeights::load_source(&q4_source)?;
+        let q4_paths = crate::geometric_value_producer_native::ValueProducerSourcePaths {
+            value_source: &q4_source,
+            ..value_paths
+        };
+        let q4_native_path = root.join("q4-values-native");
+        crate::geometric_value_producer_native::CompiledValueProducer::compile(q4_paths, registry)?
+            .save(&q4_native_path)?;
+        let q4_native = crate::geometric_value_producer_native::CompiledValueProducer::load(
+            &q4_native_path,
+            q4_paths,
+            registry,
+        )?;
+        let q4_null_paths = crate::geometric_no_read_native::NoReadSourcePaths {
+            value: q4_paths,
+            value_native: &q4_native_path,
+            ..null_paths
+        };
+        let q4_null = crate::geometric_no_read_native::CompiledNoRead::compile(
+            &null_weights,
+            q4_null_paths,
+            registry,
+        )?;
+        let (q4_logits, q4_values) = model.forward_geometric_q4_values(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &q4_native,
+            &q4_null,
+            &q4,
+            &composition,
+            false,
+        )?;
+        let q4_gradient =
+            logits_cross_entropy(&q4_logits.narrow(0, 9, 1)?, &[7], None)?.backward()?;
+        for name in ["token_root", "token_category"] {
+            let g = q4_gradient
+                .get(q4.parameters()[name].as_tensor())
+                .ok_or_else(|| invalid(format!("actual q4 answer misses {name}")))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(
+                g.iter().all(|v| v.is_finite()) && g.iter().any(|v| *v != 0.),
+                "{name}"
+            );
+        }
+        for var in composition.parameters().values() {
+            assert!(q4_gradient.get(var.as_tensor()).is_none());
+        }
+        for suffix in [
+            "read.out.weight",
+            "read.value.weight",
+            "read.null.weight",
+            "read_norm.weight",
+        ] {
+            assert!(
+                q4_gradient
+                    .get(model.variables()[&layer_name(2, suffix)].as_tensor())
+                    .is_none(),
+                "{suffix}"
+            );
+        }
+        for var in finite_context.parameters().values() {
+            assert!(q4_gradient.get(var.as_tensor()).is_none());
+        }
+        let mut held_q4 = Vec::new();
+        for suffix in [
+            "read.out.weight",
+            "read.value.weight",
+            "read.null.weight",
+            "read_norm.weight",
+        ] {
+            let name = layer_name(2, suffix);
+            let var = &model.variables()[&name];
+            held_q4.push((name, var.as_tensor().copy()?));
+            var.set(&Tensor::full(f32::NAN, var.shape(), &cpu())?)?;
+        }
+        let poisoned = model.forward_geometric_q4_values(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &q4_native,
+            &q4_null,
+            &q4,
+            &composition,
+            false,
+        );
+        for (name, value) in held_q4 {
+            model.variables()[&name].set(&value)?;
+        }
+        assert_eq!(bits(&q4_logits)?, bits(&poisoned?.0)?);
+        let replay = reloaded_model.forward_geometric_q4_values(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &q4_native,
+            &q4_null,
+            &q4,
+            &composition,
+            false,
+        )?;
+        assert_eq!(bits(&q4_logits)?, bits(&replay.0)?);
+        assert_eq!(q4_values.trace, replay.1.trace);
+        let future_q4 = model.forward_geometric_q4_values(
+            &future_ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &q4_native,
+            &q4_null,
+            &q4,
+            &composition,
+            false,
+        )?;
+        assert_eq!(
+            bits(&q4_logits.narrow(0, 0, 9)?)?,
+            bits(&future_q4.0.narrow(0, 0, 9)?)?
+        );
+        let q4_null_path = root.join("q4-null-native");
+        q4_null.save(&q4_null_path)?;
+        let q4_composition_paths = crate::geometric_composition_native::CompositionSourcePaths {
+            composition_source: &composition_source,
+            no_read: q4_null_paths,
+            no_read_native: &q4_null_path,
+        };
+        let q4_composition = crate::geometric_composition_native::CompiledComposition::compile(
+            &composition,
+            q4_composition_paths,
+            registry,
+        )?;
+        let native_q4 = model.forward_geometric_composition_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &q4_native,
+            &q4_null,
+            &q4_composition,
+            false,
+        )?;
+        assert_eq!(native_q4.1.no_read_q24, composed_result.1.no_read_q24);
+        for (new, old) in native_q4.1.rows.iter().zip(&composed_result.1.rows) {
+            assert_eq!(new.occurrence_weights_q31, old.occurrence_weights_q31);
+            assert_eq!(new.no_read_weight_q31, old.no_read_weight_q31);
+            assert_eq!(new.total_weight_q31, old.total_weight_q31);
+            assert_eq!(new.max_score_q24, old.max_score_q24);
+        }
 
         let reduced = model.forward_geometric_context_read_native(
             &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,

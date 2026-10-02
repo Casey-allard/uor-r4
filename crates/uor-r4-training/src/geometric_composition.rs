@@ -5,7 +5,7 @@
 use crate::geometric_value_native::{ValuePacketRecord, ValuePacketStatus};
 use crate::geometric_value_producer::ValueProducerTrace;
 use crate::{invalid, sha256_bytes, Result};
-use candle_core::{CpuStorage, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
+use candle_core::{CpuStorage, CustomOp1, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
 use safetensors::{tensor::TensorView, Dtype, SafeTensors};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -20,6 +20,7 @@ use uor_r4_integer::h4_tables::{H4Code, HistoricalH4Tables};
 
 pub const SCHEMA: &str = "uor-r4.geometric-composition-offline/1";
 pub const SOURCE_FILES: [&str; 2] = ["metadata.json", "composition-parameters.safetensors"];
+pub const FROZEN_VALUE_SURROGATE: &str = "matched-values-Tensor/native-packet-hard-forward;frozen-selected-left-right-H4-adjoint-with-q4-gain;coordinate-and-quarter-rounding-STE;invalid-stop;no-bank-gradient/1";
 pub const TERMS: usize = 128;
 pub const ROOTS: usize = 120;
 const ALGEBRA: &[u8] = include_bytes!("../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin");
@@ -196,6 +197,72 @@ impl CompositionWeights {
             &self.parameter("gains")?.contiguous()?,
             op,
         )?)
+    }
+    /// Actual value graph input, with hard native packet composition forward.
+    /// The selected bank is captured as immutable data, never a graph input.
+    /// The declared adjoint ignores coordinate and quarter rounding; it is not
+    /// a derivative of the discrete codec. Trace integers remain authoritative.
+    pub fn forward_frozen_values(
+        &self,
+        input: &Tensor,
+        trace: &ValueProducerTrace,
+    ) -> Result<Tensor> {
+        let expected = trace
+            .values_q16
+            .iter()
+            .map(|&v| (f64::from(v) / 65536.) as f32)
+            .collect::<Vec<_>>();
+        let actual = values(input, &[trace.batch, trace.heads, trace.time, 16])?;
+        if actual
+            .iter()
+            .map(|v| v.to_bits())
+            .ne(expected.iter().map(|v| v.to_bits()))
+        {
+            return Err(invalid(
+                "frozen composition value Tensor differs from packet trace reconstruction",
+            ));
+        }
+        // compose_trace validates structural validity and exact decoded-pair bits.
+        let output = self
+            .compose_trace(trace)?
+            .into_iter()
+            .map(|v| (v as f64 / 65536.) as f32)
+            .collect::<Vec<_>>();
+        let (left, right) = self.selected_roots()?;
+        let gains = codes(&values(self.parameter("gains")?, &[TERMS])?)?;
+        let roots = uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots();
+        let mut maps = vec![[[0f64; 4]; 4]; 2 * 8 * 4];
+        for h in 0..2 {
+            for out in 0..8 {
+                for lane in 0..4 {
+                    for term in 0..2 {
+                        let at = ((h * 8 + out) * 4 + lane) * 2 + term;
+                        let a = roots[usize::from(left[at])].to_array();
+                        let mut b = roots[usize::from(right[at])].to_array();
+                        for value in &mut b[1..] {
+                            *value = -*value;
+                        }
+                        for column in 0..4 {
+                            let mut axis = [0.; 4];
+                            axis[column] = 1.;
+                            let image = compose_hamilton(compose_hamilton(a, axis), b);
+                            for row in 0..4 {
+                                maps[(h * 8 + out) * 4 + lane][row][column] +=
+                                    f64::from(gains[at]) * 0.25 * image[row];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(input.contiguous()?.apply_op1(FrozenValueComposition {
+            batch: trace.batch,
+            time: trace.time,
+            input: expected,
+            output,
+            occurrence_valid: trace.occurrence_valid.clone(),
+            maps,
+        })?)
     }
     pub fn save(&self, directory: &Path) -> Result<()> {
         self.config.validate()?;
@@ -483,6 +550,86 @@ impl CompositionOp {
         Ok((cast(da)?, cast(db)?, cast(dg)?))
     }
 }
+// Ordinary Hamilton multiplication in the same scalar-first root basis.
+fn compose_hamilton(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+    [
+        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+    ]
+}
+struct FrozenValueComposition {
+    batch: usize,
+    time: usize,
+    input: Vec<f32>,
+    output: Vec<f32>,
+    occurrence_valid: Vec<bool>,
+    // Fixed selected geometric maps, offline adjoint only; no learned dense map.
+    maps: Vec<[[f64; 4]; 4]>,
+}
+impl CustomOp1 for FrozenValueComposition {
+    fn name(&self) -> &'static str {
+        "frozen-geometric-composition-value-credit"
+    }
+    fn cpu_fwd(
+        &self,
+        storage: &CpuStorage,
+        layout: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        let input = contiguous(storage, layout)?;
+        if input.len() != self.input.len()
+            || input
+                .iter()
+                .map(|x| x.to_bits())
+                .ne(self.input.iter().map(|x| x.to_bits()))
+        {
+            candle_core::bail!("frozen composition input changed after trace validation");
+        }
+        Ok((
+            CpuStorage::F32(self.output.clone()),
+            Shape::from((self.batch, 2, self.time, 32)),
+        ))
+    }
+    fn bwd(
+        &self,
+        input: &Tensor,
+        _out: &Tensor,
+        gradient: &Tensor,
+    ) -> candle_core::Result<Option<Tensor>> {
+        let g = gradient.flatten_all()?.to_vec1::<f32>()?;
+        if g.len() != self.batch * 2 * self.time * 32 || g.iter().any(|x| !x.is_finite()) {
+            candle_core::bail!("frozen composition gradient shape/finiteness differs");
+        }
+        let mut dx = vec![0f64; self.input.len()];
+        for b in 0..self.batch {
+            for h in 0..2 {
+                for t in 0..self.time {
+                    if !self.occurrence_valid[b * self.time + t] {
+                        continue;
+                    }
+                    let row = (b * 2 + h) * self.time + t;
+                    for lane in 0..4 {
+                        for out in 0..8 {
+                            for column in 0..4 {
+                                for axis in 0..4 {
+                                    dx[row * 16 + lane * 4 + column] += self.maps
+                                        [(h * 8 + out) * 4 + lane][axis][column]
+                                        * f64::from(g[row * 32 + out * 4 + axis]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let dx = dx.into_iter().map(|x| x as f32).collect::<Vec<_>>();
+        if dx.iter().any(|x| !x.is_finite()) {
+            candle_core::bail!("nonfinite frozen composition input adjoint");
+        }
+        Ok(Some(Tensor::from_vec(dx, input.shape(), input.device())?))
+    }
+}
 fn probabilities(logits: &[f32]) -> Vec<f64> {
     let max = logits.iter().copied().fold(f32::NEG_INFINITY, f32::max);
     let mut p = logits
@@ -755,6 +902,70 @@ mod tests {
             .iter()
             .all(|v| *v == 1.75));
         fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn composition_frozen_values_are_connected_with_signed_geometric_adjoint() -> Result<()> {
+        let weights = CompositionWeights::new()?;
+        let trace = trace()?;
+        let mut left = vec![0f32; TERMS * ROOTS];
+        let mut right = left.clone();
+        for row in left.chunks_exact_mut(ROOTS) {
+            row[3] = 1.;
+        }
+        for row in right.chunks_exact_mut(ROOTS) {
+            row[5] = 1.;
+        }
+        weights.parameters()["left_logits"].set(&Tensor::from_vec(
+            left,
+            (TERMS, ROOTS),
+            &Device::Cpu,
+        )?)?;
+        weights.parameters()["right_logits"].set(&Tensor::from_vec(
+            right,
+            (TERMS, ROOTS),
+            &Device::Cpu,
+        )?)?;
+        let mut gains = vec![0f32; TERMS];
+        gains[0] = -0.5;
+        weights.parameters()["gains"].set(&Tensor::from_vec(gains, TERMS, &Device::Cpu)?)?;
+        let raw = trace
+            .values_q16
+            .iter()
+            .map(|&v| (f64::from(v) / 65536.) as f32)
+            .collect::<Vec<_>>();
+        let input = Var::from_vec(raw.clone(), (1, 2, 1, 16), &Device::Cpu)?;
+        let out = weights.forward_frozen_values(&input, &trace)?;
+        assert_eq!(
+            out.flatten_all()?.to_vec1::<f32>()?,
+            weights.forward(&trace)?.flatten_all()?.to_vec1::<f32>()?
+        );
+        let g = Tensor::from_vec(vec![1f32, 2., 3., 4.], 4, &Device::Cpu)?;
+        let gradient = (out.flatten_all()?.narrow(0, 0, 4)? * &g)?
+            .sum_all()?
+            .backward()?;
+        let dx = gradient
+            .get(input.as_tensor())
+            .ok_or_else(|| invalid("frozen value input disconnected"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        // For -1/2 * i*x*(-j), transpose is -1/2 * (-i)*g*j.
+        let expected = compose_hamilton(
+            compose_hamilton([0., -1., 0., 0.], [1., 2., 3., 4.]),
+            [0., 0., 1., 0.],
+        )
+        .map(|x| (x * -0.5) as f32);
+        assert_eq!(&dx[..4], &expected);
+        assert!(dx[4..].iter().all(|x| *x == 0.));
+        for var in weights.parameters().values() {
+            assert!(gradient.get(var.as_tensor()).is_none());
+        }
+        let mut bad = raw;
+        bad[0] += 0.25;
+        assert!(weights
+            .forward_frozen_values(&Tensor::from_vec(bad, (1, 2, 1, 16), &Device::Cpu)?, &trace)
+            .is_err());
         Ok(())
     }
 }

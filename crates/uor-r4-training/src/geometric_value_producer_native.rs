@@ -17,6 +17,12 @@
 //! every table and compares both bytes and metadata. This component replaces
 //! value production only; NoRead, reader output and the surrounding trunk have
 //! their separately declared boundaries.
+//!
+//! Strict source schema /2 instead admits fixed quarter-logit signed-q4 source
+//! coefficients. The authoritative packed payload regenerates every Q24 table
+//! through the pinned integer Q25 observation basis; the source shadow bits
+//! remain bound independently, including changes that round to the same q4.
+//! Legacy /1 retains its original coefficient policy, files and serialization.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -30,6 +36,7 @@ use uor_r4_integer::geometric_value::RUNTIME_COORDINATE_BYTES;
 use uor_r4_integer::geometric_value_producer::{
     NativeValueProducer, ProducedValues, ValueProducerTableSlices,
 };
+use uor_r4_integer::geometric_value_q4::{self, NativeValueQ4, ValueQ4Config};
 use uor_r4_integer::h4_tables::H4Code;
 
 use crate::geometric_context::{
@@ -41,6 +48,7 @@ use crate::geometric_value_producer::{ValueProducerConfig, ValueProducerWeights}
 use crate::{invalid, sha256_bytes, Result};
 
 pub const SCHEMA: &str = "uor-r4.geometric-value-producer-native/1";
+pub const Q4_SCHEMA: &str = "uor-r4.geometric-value-producer-native/2";
 const POLICY: &str = "canonical-state-components-cast-F32;F64-sequential-four-term-factor-dot;each-factor-signed-i32-Q24-nearest-ties-away;overflow-reject;no-centering;integer-i64-factor-sum-earliest-choice/1";
 const LAYOUT: &str = "root,category;each(token[V,H,4,2,S],own[H,4,2,128,S],neighbor[H,4,2,128,S]-iff-L>1,span[H,4,2,128,S],span-valid[H,4,2,S]);S128,32;root-choices>=120-and-state>=120-zero/1";
 const FILES: [&str; 3] = [
@@ -48,6 +56,7 @@ const FILES: [&str; 3] = [
     "value-tables-i32le.bin",
     "tokenizer-identity.bin",
 ];
+const Q4_FILE: &str = "value-coefficients-q4.bin";
 const FAMILIES: [(&str, usize, usize); 2] = [("root", 120, 128), ("category", 32, 32)];
 
 #[derive(Clone, Copy)]
@@ -81,6 +90,48 @@ pub struct CompiledValueProducerMetadata {
     /// Coordinate storage only; excludes Rust allocation/structure overhead.
     pub runtime_codec_coordinate_bytes: usize,
     pub max_coefficient_reads_per_valid_occurrence: usize,
+    /// Absent from the legacy wire format, not a default permission to use q4.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub q4: Option<CompiledValueQ4Metadata>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CompiledValueQ4Metadata {
+    pub schema: String,
+    pub policy: String,
+    pub config: ValueQ4Config,
+    pub coefficient_count: usize,
+    pub packed: BoundFile,
+    /// 120 signed roots, four Q25 coordinates each, root-major little-endian i32.
+    /// This observation basis is distinct from exact group identities.
+    pub basis_q25: BoundFile,
+}
+
+fn q4_config(c: &ValueProducerConfig) -> ValueQ4Config {
+    ValueQ4Config {
+        vocab_size: c.vocab_size,
+        heads: c.heads,
+        latent_lanes_per_head: c.latent_lanes_per_head,
+    }
+}
+
+fn q4_metadata(config: ValueQ4Config, packed: &[u8]) -> Result<CompiledValueQ4Metadata> {
+    let basis = geometric_value_q4::canonical_basis_q25()
+        .into_iter()
+        .flatten()
+        .flat_map(i32::to_le_bytes)
+        .collect::<Vec<_>>();
+    Ok(CompiledValueQ4Metadata {
+        schema: geometric_value_q4::SCHEMA.into(),
+        policy: geometric_value_q4::POLICY.into(),
+        config,
+        coefficient_count: config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?,
+        packed: bound(packed),
+        basis_q25: bound(&basis),
+    })
 }
 
 fn bound(bytes: &[u8]) -> BoundFile {
@@ -329,6 +380,7 @@ pub struct CompiledValueProducer {
     native: NativeValueProducer,
     table_bytes: Vec<u8>,
     tokenizer: Vec<u8>,
+    packed_q4: Option<Vec<u8>>,
 }
 impl CompiledValueProducer {
     pub fn compile(paths: ValueProducerSourcePaths<'_>, tokenizer: &[u8]) -> Result<Self> {
@@ -363,14 +415,40 @@ impl CompiledValueProducer {
             paths.context_dependencies,
             tokenizer,
         )?;
-        let expanded = Expanded::compile(&weights)?;
-        let native = expanded.native(c)?;
-        let table_bytes = expanded.bytes();
+        let (native, table_bytes, table_lengths, packed_q4, q4) = if weights.is_q4() {
+            if c.schema != crate::geometric_value_producer::Q4_SCHEMA
+                || c.coefficient_policy.as_deref() != Some(geometric_value_q4::POLICY)
+            {
+                return Err(invalid("unknown strict value producer source policy"));
+            }
+            let packed = weights.packed_coefficients()?;
+            let config = q4_config(c);
+            let expanded =
+                NativeValueQ4::new(config, &packed).map_err(|e| invalid(e.to_string()))?;
+            let table_bytes = expanded.table_bytes();
+            let lengths = expanded.expanded_lengths().to_vec();
+            let q4 = q4_metadata(config, &packed)?;
+            let native = expanded.into_native().map_err(|e| invalid(e.to_string()))?;
+            (native, table_bytes, lengths, Some(packed), Some(q4))
+        } else if c.schema == crate::geometric_value_producer::SCHEMA
+            && c.coefficient_policy.is_none()
+        {
+            let expanded = Expanded::compile(&weights)?;
+            (
+                expanded.native(c)?,
+                expanded.bytes(),
+                expanded.lengths(),
+                None,
+                None,
+            )
+        } else {
+            return Err(invalid("unknown value producer source coefficient policy"));
+        };
         if snapshot(paths)? != before {
             return Err(invalid("value/context source changed during compilation"));
         }
         let metadata = CompiledValueProducerMetadata {
-            schema: SCHEMA.into(),
+            schema: if q4.is_some() { Q4_SCHEMA } else { SCHEMA }.into(),
             config: c.clone(),
             parameters: identities(weights.parameters())?,
             context_source,
@@ -379,18 +457,25 @@ impl CompiledValueProducer {
             context_parameters: identities(context.parameters())?,
             source_files: before,
             tokenizer: bound(tokenizer),
-            coefficient_policy: POLICY.into(),
+            coefficient_policy: if q4.is_some() {
+                geometric_value_q4::POLICY
+            } else {
+                POLICY
+            }
+            .into(),
             table_layout: LAYOUT.into(),
-            table_lengths: expanded.lengths(),
+            table_lengths,
             table: bound(&table_bytes),
             runtime_codec_coordinate_bytes: RUNTIME_COORDINATE_BYTES,
             max_coefficient_reads_per_valid_occurrence: native.stats().with_span_reads,
+            q4,
         };
         Ok(Self {
             metadata,
             native,
             table_bytes,
             tokenizer: tokenizer.to_vec(),
+            packed_q4,
         })
     }
     pub fn metadata(&self) -> &CompiledValueProducerMetadata {
@@ -412,6 +497,11 @@ impl CompiledValueProducer {
             return Err(invalid(
                 "compiled value producer is stale for live value/context parameters",
             ));
+        }
+        if let Some(expected) = &self.packed_q4 {
+            if weights.packed_coefficients()? != *expected {
+                return Err(invalid("compiled q4 value producer packed source is stale"));
+            }
         }
         Ok(())
     }
@@ -444,6 +534,9 @@ impl CompiledValueProducer {
         ] {
             fs::File::create_new(directory.join(name))?.write_all(bytes)?;
         }
+        if let Some(packed) = &self.packed_q4 {
+            fs::File::create_new(directory.join(Q4_FILE))?.write_all(packed)?;
+        }
         Ok(())
     }
     pub fn load(
@@ -464,7 +557,26 @@ impl CompiledValueProducer {
                     .map_err(|_| invalid("native value artifact non-UTF8 filename"))?,
             );
         }
-        if names != FILES.iter().map(|x| x.to_string()).collect() {
+        let saved: CompiledValueProducerMetadata =
+            serde_json::from_slice(&fs::read(directory.join(FILES[0]))?)?;
+        let strict = match saved.schema.as_str() {
+            SCHEMA if saved.q4.is_none() && saved.coefficient_policy == POLICY => false,
+            Q4_SCHEMA
+                if saved.q4.is_some() && saved.coefficient_policy == geometric_value_q4::POLICY =>
+            {
+                true
+            }
+            _ => {
+                return Err(invalid(
+                    "unknown native value artifact schema/coefficient policy",
+                ))
+            }
+        };
+        let mut expected_names: BTreeSet<String> = FILES.iter().map(|x| x.to_string()).collect();
+        if strict {
+            expected_names.insert(Q4_FILE.into());
+        }
+        if names != expected_names {
             return Err(invalid("native value artifact file set differs"));
         }
         let expected = Self::compile(paths, tokenizer)?;
@@ -473,8 +585,6 @@ impl CompiledValueProducer {
         {
             return Err(invalid("native value artifact payload lengths differ"));
         }
-        let saved: CompiledValueProducerMetadata =
-            serde_json::from_slice(&fs::read(directory.join(FILES[0]))?)?;
         if saved != expected.metadata
             || fs::read(directory.join(FILES[1]))? != expected.table_bytes
             || fs::read(directory.join(FILES[2]))? != tokenizer
@@ -482,6 +592,19 @@ impl CompiledValueProducer {
             return Err(invalid(
                 "native value artifact differs from independent source recompilation",
             ));
+        }
+        if strict {
+            let packed = expected
+                .packed_q4
+                .as_ref()
+                .ok_or_else(|| invalid("strict native artifact has a legacy source"))?;
+            if fs::metadata(directory.join(Q4_FILE))?.len() != packed.len() as u64
+                || fs::read(directory.join(Q4_FILE))? != *packed
+            {
+                return Err(invalid(
+                    "native q4 value payload differs from independently admitted source",
+                ));
+            }
         }
         Ok(expected)
     }
@@ -681,6 +804,15 @@ mod tests {
         assert!(compiled.save(&artifact).is_err());
         let restored = CompiledValueProducer::load(&artifact, f.paths(), REGISTRY)?;
         assert_eq!(compiled.metadata(), restored.metadata());
+        assert_eq!(compiled.metadata().schema, SCHEMA);
+        assert!(compiled.metadata().q4.is_none());
+        assert!(serde_json::to_value(compiled.metadata())?
+            .get("q4")
+            .is_none());
+        assert!(serde_json::to_value(value.config())?
+            .get("coefficient_policy")
+            .is_none());
+        assert!(!artifact.join(Q4_FILE).exists());
         compiled.validate_for(&value, &context)?;
         let context_native =
             CompiledContext::compile(&context, &f.context_source, f.dependencies(), REGISTRY)?;
@@ -763,6 +895,181 @@ mod tests {
                 }
             }
         }
+        fs::remove_dir_all(f.root)?;
+        Ok(())
+    }
+
+    fn q4_fixture() -> Result<(Fixture, ValueProducerWeights, ContextWeights)> {
+        let (mut f, value, context) = fixture()?;
+        let value = value.into_q4()?;
+        // Make signed state and optional held-span inputs load-bearing after
+        // quantization; the small random initial factors otherwise round to zero.
+        let mut own = vec![0.; value.parameters()["own_root"].elem_count()];
+        own[4] = 0.25; // first atom, +identity choice, real coordinate
+        set(&value, "own_root", own)?;
+        let mut span = vec![0.; value.parameters()["span_root"].elem_count()];
+        span[3 * 4 + 1] = 0.5; // first atom, +i choice, imaginary-i coordinate
+        set(&value, "span_root", span)?;
+        f.value_source = f.root.join("value-source-q4");
+        value.save_source(&f.value_source)?;
+        Ok((f, value, context))
+    }
+
+    #[test]
+    fn geometric_value_producer_native_q4_reload_and_signed_factor_binding() -> Result<()> {
+        let (f, value, context) = q4_fixture()?;
+        let compiled = CompiledValueProducer::compile(f.paths(), REGISTRY)?;
+        let artifact = f.root.join("compiled-q4");
+        compiled.save(&artifact)?;
+        let restored = CompiledValueProducer::load(&artifact, f.paths(), REGISTRY)?;
+        compiled.validate_for(&value, &context)?;
+        assert_eq!(compiled.metadata(), restored.metadata());
+        assert_eq!(compiled.metadata().schema, Q4_SCHEMA);
+        let packed = value.packed_coefficients()?;
+        assert_eq!(fs::read(artifact.join(Q4_FILE))?, packed);
+        assert_eq!(
+            compiled.metadata().q4,
+            Some(q4_metadata(q4_config(value.config()), &packed)?)
+        );
+        let expanded = NativeValueQ4::new(q4_config(value.config()), &packed)
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(compiled.table_bytes, expanded.table_bytes());
+        assert_eq!(compiled.metadata.table_lengths, expanded.expanded_lengths());
+        let expected = expanded.into_native().map_err(|e| invalid(e.to_string()))?;
+        let positive = [1u8, 3, 24, 119]
+            .into_iter()
+            .map(code)
+            .collect::<Result<Vec<_>>>()?;
+        let negative = [0u8, 2, 25, 118]
+            .into_iter()
+            .map(code)
+            .collect::<Result<Vec<_>>>()?;
+        let held = [3u8, 1, 119, 24]
+            .into_iter()
+            .map(code)
+            .collect::<Result<Vec<_>>>()?;
+        assert_eq!(
+            restored.produce(2, &positive, None, true)?.root_choices[0],
+            1
+        );
+        assert_eq!(
+            restored.produce(2, &negative, None, true)?.root_choices[0],
+            0
+        );
+        assert_eq!(
+            restored
+                .produce(2, &positive, Some(&held), true)?
+                .root_choices[0],
+            3
+        );
+        for ids in [[1u8, 3, 24, 119], [0, 2, 25, 118]] {
+            let latent = ids.into_iter().map(code).collect::<Result<Vec<_>>>()?;
+            let held = [3u8, 1, 119, 24]
+                .into_iter()
+                .map(code)
+                .collect::<Result<Vec<_>>>()?;
+            for has_span in [false, true] {
+                for valid in [false, true] {
+                    let held = has_span.then_some(held.as_slice());
+                    let a = restored.produce(2, &latent, held, valid)?;
+                    let b = expected
+                        .produce(2, &latent, held, valid)
+                        .map_err(|e| invalid(e.to_string()))?;
+                    assert_eq!(a.packets, b.packets);
+                    assert_eq!(a.values_q16, b.values_q16);
+                    assert_eq!(a.root_choices, b.root_choices);
+                    assert_eq!(a.categories, b.categories);
+                    assert_eq!(a.occurrence_valid, valid);
+                }
+            }
+        }
+        fs::remove_dir_all(f.root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_value_producer_native_q4_resealed_payloads_and_policy_reject() -> Result<()> {
+        let (f, _value, _context) = q4_fixture()?;
+        let compiled = CompiledValueProducer::compile(f.paths(), REGISTRY)?;
+        let artifact = f.root.join("compiled-q4");
+        compiled.save(&artifact)?;
+        let original_metadata = fs::read(artifact.join(FILES[0]))?;
+        // An updated self-reported payload hash cannot authorize changed tables.
+        let original_table = fs::read(artifact.join(FILES[1]))?;
+        let mut table = original_table.clone();
+        table[0] ^= 1;
+        let mut lied = compiled.metadata().clone();
+        lied.table = bound(&table);
+        fs::write(artifact.join(FILES[1]), table)?;
+        fs::write(artifact.join(FILES[0]), serde_json::to_vec(&lied)?)?;
+        assert!(CompiledValueProducer::load(&artifact, f.paths(), REGISTRY).is_err());
+        fs::write(artifact.join(FILES[1]), original_table)?;
+        let original_packed = fs::read(artifact.join(Q4_FILE))?;
+        let mut packed = original_packed.clone();
+        packed[0] ^= 1;
+        let mut lied = compiled.metadata().clone();
+        lied.q4.as_mut().unwrap().packed = bound(&packed);
+        fs::write(artifact.join(Q4_FILE), packed)?;
+        fs::write(artifact.join(FILES[0]), serde_json::to_vec(&lied)?)?;
+        assert!(CompiledValueProducer::load(&artifact, f.paths(), REGISTRY).is_err());
+        fs::write(artifact.join(Q4_FILE), original_packed)?;
+        for field in ["schema", "coefficient_policy"] {
+            let mut unknown = serde_json::to_value(compiled.metadata())?;
+            unknown[field] = serde_json::json!("unknown/999");
+            fs::write(artifact.join(FILES[0]), serde_json::to_vec(&unknown)?)?;
+            assert!(CompiledValueProducer::load(&artifact, f.paths(), REGISTRY).is_err());
+        }
+        let mut wrong_basis = compiled.metadata().clone();
+        wrong_basis.q4.as_mut().unwrap().basis_q25.sha256 = "00".repeat(32);
+        fs::write(artifact.join(FILES[0]), serde_json::to_vec(&wrong_basis)?)?;
+        assert!(CompiledValueProducer::load(&artifact, f.paths(), REGISTRY).is_err());
+        fs::write(artifact.join(FILES[0]), original_metadata)?;
+        fs::write(artifact.join("orphan"), b"unbound")?;
+        assert!(CompiledValueProducer::load(&artifact, f.paths(), REGISTRY).is_err());
+        fs::remove_dir_all(f.root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_value_producer_native_q4_same_quantized_shadow_is_stale() -> Result<()> {
+        let (f, value, context) = q4_fixture()?;
+        let compiled = CompiledValueProducer::compile(f.paths(), REGISTRY)?;
+        let artifact = f.root.join("compiled-q4");
+        compiled.save(&artifact)?;
+        let original_packed = value.packed_coefficients()?;
+        let variable = &value.parameters()["token_root"];
+        let mut values = variable.flatten_all()?.to_vec1::<f32>()?;
+        values[0] = f32::from_bits(values[0].to_bits() ^ 1);
+        variable.set(&Tensor::from_vec(values, variable.shape(), &Device::Cpu)?)?;
+        assert_eq!(value.packed_coefficients()?, original_packed);
+        assert!(compiled.validate_for(&value, &context).is_err());
+        let changed_source = f.root.join("same-q4-different-shadows");
+        value.save_source(&changed_source)?;
+        let changed_paths = ValueProducerSourcePaths {
+            value_source: &changed_source,
+            ..f.paths()
+        };
+        let changed = CompiledValueProducer::compile(changed_paths, REGISTRY)?;
+        assert_eq!(compiled.table_bytes, changed.table_bytes);
+        assert_ne!(compiled.metadata.parameters, changed.metadata.parameters);
+        assert!(CompiledValueProducer::load(&artifact, changed_paths, REGISTRY).is_err());
+        fs::remove_dir_all(f.root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_value_producer_native_q4_unknown_source_policy_rejects() -> Result<()> {
+        let (f, _value, _context) = q4_fixture()?;
+        let source_file = f.value_source.join("metadata.json");
+        let original = fs::read(&source_file)?;
+        for field in ["schema", "coefficient_policy"] {
+            let mut unknown: serde_json::Value = serde_json::from_slice(&original)?;
+            unknown["config"][field] = serde_json::json!("unknown/999");
+            fs::write(&source_file, serde_json::to_vec(&unknown)?)?;
+            assert!(CompiledValueProducer::compile(f.paths(), REGISTRY).is_err());
+        }
+        fs::write(&source_file, original)?;
+        assert!(CompiledValueProducer::compile(f.paths(), REGISTRY).is_ok());
         fs::remove_dir_all(f.root)?;
         Ok(())
     }

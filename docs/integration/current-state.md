@@ -1,5 +1,33 @@
 # Current UOR-R4 research state
 
+## Strict q4 geometric values — loaded construction and hard bridge, October 2
+
+The K2 value producer now admits128,896 signed-four-bit coefficients at fixed
+q/4 scale (64,448 packed bytes), regenerates fixed-geometry native factor tables
+and receives ordinary answer credit through the frozen learned H4 bank. Legacy
+sources remain retained. All12 initial focused cases, the hard-choice/live-update
+case and integrated reader replay pass; both release examples build.
+
+First projection native94/104 and127/126 totals451/512 versus467/512 retained
+parents, with4 gains20 losses and worse CE in all four panels. Answers agreed
+between source/native while302 packet traces differed. The typed training caller
+now uses current packed coefficients and authoritative native context/span codes
+for actual integer hard choices; F32 scores are backward probabilities only.
+Both repaired loaded runs have zero packet/Q16 trace mismatches on512 rows and
+unchanged native predictions/logits/reader records. Maximum answer-logit drift
+is0.00009871. All four B8 backwards reach all ten producer families, bank gradients
+absent; no optimizer updates or frozen-source mutation. Workers10.054/10.265s,
+about310MB RSS. [Construction and limits](geometric-value-q4-2026-10-02.md) ·
+[Receipt](../evidence/geometric-value-q4-2026-10-02.json).
+
+Next preregister and implement a bounded answer-only q4 value-producer fit from
+these projected models with the learned bank/upstream/tail frozen. Compare the
+projection and unrestricted parent row by row; retain failures and do not demand
+perfect recovery or change scale/alphabet. No repeated bank/scalar sweep.
+Other wide producer/potential coefficients, float tail, bounded access, general
+language and complete energy qualification remain open. Claude's D19/session
+work remains separate; stack_grounded_session.rs is untouched.
+
 ## Connected geometric read.out composition — source and construction, October 2
 
 The two-term signed-H4 left/right transport bank now consumes the actual K2
