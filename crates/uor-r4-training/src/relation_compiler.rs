@@ -1065,6 +1065,37 @@ impl RelationMode {
     }
 }
 
+/// How a compiler with an op model combines it with its saved table (the
+/// table and span head an op-model artifact carries).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum OpPolicy {
+    /// The op model alone (the artifact's own mode).
+    #[default]
+    Op,
+    /// The table alone; the op model is not consulted.
+    Table,
+    /// The table decides whether a turn is a statement, a query or neither;
+    /// for a statement the op model's statement (relation and value) is
+    /// used when it gives one.
+    TableStatements,
+    /// The op model's statement is used unless the table reads a query.
+    UnlessQuery,
+}
+
+impl OpPolicy {
+    pub fn parse(text: &str) -> Result<Self> {
+        match text {
+            "op" => Ok(Self::Op),
+            "table" => Ok(Self::Table),
+            "table_statements" => Ok(Self::TableStatements),
+            "unless_query" => Ok(Self::UnlessQuery),
+            other => Err(invalid(format!(
+                "unknown op policy {other} (op, table, table_statements or unless_query)"
+            ))),
+        }
+    }
+}
+
 /// Which head decides whether a turn naming a relation is a statement or a
 /// query.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -1405,6 +1436,7 @@ pub struct SavedCompiler {
     combined: Option<std::sync::Arc<Combined>>,
     op: Option<std::sync::Arc<Trunk>>,
     act_rule: ActRule,
+    op_policy: OpPolicy,
     identity: crate::stack_grounded_session::CompilerIdentity,
 }
 
@@ -1697,8 +1729,25 @@ impl SavedCompiler {
             combined: combined.map(std::sync::Arc::new),
             op: op.map(std::sync::Arc::new),
             act_rule: settings.act_rule,
+            op_policy: OpPolicy::Op,
             identity,
         })
+    }
+
+    /// The same compiler combining its op model and its table by `policy`
+    /// (a load-time choice; the artifact is unchanged). Refused for a
+    /// compiler without an op model unless `policy` is [`OpPolicy::Op`]
+    /// or [`OpPolicy::Table`].
+    pub fn with_op_policy(mut self, policy: OpPolicy) -> Result<Self> {
+        if self.op.is_none() && !matches!(policy, OpPolicy::Op | OpPolicy::Table) {
+            return Err(invalid("an op policy needs a compiler with an op model"));
+        }
+        self.op_policy = policy;
+        Ok(self)
+    }
+
+    pub fn op_policy(&self) -> OpPolicy {
+        self.op_policy
     }
 
     pub fn act_rule(&self) -> ActRule {
@@ -1866,10 +1915,45 @@ impl SavedCompiler {
     /// also unresolved when the heads name no act, or name a statement whose
     /// value the span head does not mark.
     pub fn action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
-        use crate::stack_grounded_session::{CompiledAction, SourceSpan};
-        if self.op.is_some() {
-            return self.op_action(source);
+        use crate::stack_grounded_session::CompiledAction;
+        let statement = |a: &CompiledAction| {
+            matches!(
+                a,
+                CompiledAction::Assert { .. } | CompiledAction::Correct { .. }
+            )
+        };
+        if self.op.is_none() {
+            return self.table_action(source);
         }
+        match self.op_policy {
+            OpPolicy::Op => self.op_action(source),
+            OpPolicy::Table => self.table_action(source),
+            OpPolicy::TableStatements => {
+                let table = self.table_action(source)?;
+                if !statement(&table) {
+                    return Ok(table);
+                }
+                let op = self.op_action(source)?;
+                Ok(if statement(&op) { op } else { table })
+            }
+            OpPolicy::UnlessQuery => {
+                let table = self.table_action(source)?;
+                if matches!(
+                    table,
+                    CompiledAction::QueryCurrent { .. } | CompiledAction::Query { .. }
+                ) {
+                    return Ok(table);
+                }
+                let op = self.op_action(source)?;
+                Ok(if statement(&op) { op } else { table })
+            }
+        }
+    }
+
+    /// The table's (or combined heads') action for a turn, never the op
+    /// model's.
+    fn table_action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
+        use crate::stack_grounded_session::{CompiledAction, SourceSpan};
         let unresolved = |reason: &str| {
             Ok(CompiledAction::Unresolved {
                 reason: reason.to_owned(),
@@ -2391,6 +2475,16 @@ mod tests {
         assert_eq!(again.identity(), saved.identity());
         // A refit from the same turns gives the same bytes.
         let refit = SavedCompiler::fit(&train, &tokenizer, training, CompilerSettings::default())?;
+        // A table-only compiler takes only the op and table policies.
+        assert!(refit
+            .clone()
+            .with_op_policy(OpPolicy::TableStatements)
+            .is_err());
+        assert!(refit.clone().with_op_policy(OpPolicy::UnlessQuery).is_err());
+        assert_eq!(
+            refit.clone().with_op_policy(OpPolicy::Table)?.op_policy(),
+            OpPolicy::Table
+        );
         assert_eq!(refit.bytes(), saved.bytes());
         let identity = saved.identity();
         assert_eq!(identity.tokenizer_sha256, tokenizer);
@@ -2754,6 +2848,20 @@ mod tests {
                 "{text}"
             );
         }
+    }
+
+    #[test]
+    fn an_op_policy_parses_and_needs_an_op_model() {
+        for (text, policy) in [
+            ("op", OpPolicy::Op),
+            ("table", OpPolicy::Table),
+            ("table_statements", OpPolicy::TableStatements),
+            ("unless_query", OpPolicy::UnlessQuery),
+        ] {
+            assert_eq!(OpPolicy::parse(text).expect("a policy"), policy);
+        }
+        assert!(OpPolicy::parse("hybrid").is_err());
+        assert_eq!(OpPolicy::default(), OpPolicy::Op);
     }
 
     #[test]

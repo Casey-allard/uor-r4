@@ -188,8 +188,8 @@ use uor_r4_training::milestone_world_v2_probe::{
 };
 use uor_r4_training::relation_compiler::{
     collect, label, op_text, paraphrase_examples, score, trunk_features, ActRule, CompilerSettings,
-    Example, Lexicon, RelationMode, RelationRoute, SavedCompiler, Softmax, SparseSoftmax, Trunk,
-    ACTS, COMPILE_PROMPT, NONE as RC_NONE,
+    Example, Lexicon, OpPolicy, RelationMode, RelationRoute, SavedCompiler, Softmax, SparseSoftmax,
+    Trunk, ACTS, COMPILE_PROMPT, NONE as RC_NONE,
 };
 use uor_r4_training::stack_checkpoint::{
     save_checkpoint, sealed_manifest_sha256, CheckpointIdentity, DataIdentity,
@@ -3409,14 +3409,23 @@ fn session(args: &Args, out: &Path) -> Result<()> {
     let tokenizer = load_tokenizer(&tokenizer_path)?;
     let compiler_bytes = fs::read(&compiler_path)?;
     let trunk_directory = args.optional("trunk").map(PathBuf::from);
+    // How an op-model compiler combines its op model with its saved table
+    // (a load-time choice, recorded in the report).
+    let op_policy = OpPolicy::parse(args.optional("op_policy").as_deref().unwrap_or("op"))?;
+    if op_policy != OpPolicy::Op && trunk_directory.is_none() {
+        return Err(invalid("op_policy= needs the op model's trunk="));
+    }
     // A combined compiler loads only with the trunk it binds; otherwise the
     // artifact's own schema chooses the grounded compiler.
     let load_compiler = || -> Result<GroundedCompiler> {
         match &trunk_directory {
-            Some(directory) => Ok(GroundedCompiler::Legacy(SavedCompiler::load(
-                compiler_bytes.clone(),
-                Some(Trunk::load(directory, &tokenizer_json, &Device::Cpu)?),
-            )?)),
+            Some(directory) => Ok(GroundedCompiler::Legacy(
+                SavedCompiler::load(
+                    compiler_bytes.clone(),
+                    Some(Trunk::load(directory, &tokenizer_json, &Device::Cpu)?),
+                )?
+                .with_op_policy(op_policy)?,
+            )),
             None => GroundedCompiler::from_bytes(compiler_bytes.clone()),
         }
     };
@@ -3640,6 +3649,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         "compiler": compiler_path.display().to_string(),
         "compiler_identity": compiler.identity(),
         "trunk": trunk_directory.as_ref().map(|d| d.display().to_string()),
+        "op_policy": format!("{op_policy:?}"),
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "limits": limits,
         "scope": "MQAR keys have no channel in the one-entity session: MQAR turns compile to unresolved and are scored without recall",
@@ -3887,6 +3897,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "reload",
         "arms",
         "trunk",
+        "op_policy",
     ];
     match mode {
         "compiler" => Some(claimed(rest, relation_compiler, compiler)),
