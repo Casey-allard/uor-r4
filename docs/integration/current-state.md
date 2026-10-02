@@ -41,6 +41,61 @@ D19 deliverable.
 
 
 
+## Finite-action learning and geometric value producer — October 2
+
+The retained-state interface now exposes the actual post-update signed-H4
+roots through the same differentiable recurrence. A separately named,
+opt-in full-adjoint finite-choice policy carries current and delayed answer
+credit; legacy constructors and saved artifacts keep their tangent policy.
+Both policies preserve the same exact hard geometric forward. Eight focused
+context checks pass, including sign-answer current/earlier credit, reset cuts,
+synchronous within-head OLD-neighbor credit, and source/native policy reload.
+This executes the previously reasoned antipodal counterexample and correction;
+it does not establish better fitted language behavior or explain all old failures.
+
+A learned offline two-atom value head uses token, actual retained own/neighbor
+state, explicitly valid held-span features and a separate validity bias. It
+selects the fixed signed-root/dyadic packets and checks their integer Q16 sum.
+Five focused checks pass: both-atom antipodal credit, frozen-branch surrogate
+finite difference, status/cancellation/overflow/zero stop, actual earlier-state
+credit/causality, and saved-head reload. Category-zero answer credit remains
+stopped; declared category supervision or another explicit escape is required.
+Nonzero initialization does not prove answer-only discovery of all categories.
+
+The integrated answer-loss fixture passes with address gradients detached:
+value parameters and earlier geometric transitions receive credit through the
+produced values. Zeroing donor `read.value` weights leaves logits exactly
+unchanged. The public joint path keeps address and value credit. The floating
+reference reader carries offline gradients; NoRead, trunk and output remain
+floating. No new fitting or complete-serving/language/energy claim follows.
+The finite-factor integer producer/compiler is implemented. It compiles
+selected token/state/span factor rows to signed Q24 scores, uses widened integer
+choice sums and checked K2 Q16 decoding, and binds the entire compiled context
+identity. Four kernel and four compiler checks pass. The loaded reader fixture
+matches offline packet/Q16 choices and is unchanged by donor-value mutation;
+values enter the integer reducer without a floating reconstruction boundary.
+This is fixture parity, not a theorem of F32/Q24 hard-choice retention.
+
+Release compiler-emitted assembly inspection found and repaired two generated
+multiply-add sites: six-byte packet indexing and a 144-byte descriptor stride.
+The private descriptor is now 256 bytes (128-byte alignment), adding at most
+1,792 metadata bytes without changing artifact tables. Final inspection covers
+695 instructions in produce, select, decode-pair and decode, with no flagged
+multiply/divide/floating arithmetic. External bounds-panic paths, final linked
+executables and the complete model are not qualified by this scoped inspection.
+
+A retained-trace audit covers 14,488 actual positions per seed. Frozen full
+input tuples have differing K2 targets in three seed-1 and 68 seed-2 groups,
+while identical full prefixes have no target conflicts. Exact donor imitation
+is therefore impossible for those frozen inputs. The seed-1 target-source
+witness has the same required answer in both cases; no answer-capability limit
+follows. Local own/neighbor/span inputs have additional packet conflicts.
+Do not use perfect donor reconstruction as an admission criterion or retire
+geometry from this diagnostic. Next jointly learn transitions and values with
+ordinary answer loss primary and declared packet/category auxiliary credit,
+continuing accepted weights through the explicit consuming policy conversion.
+Fit dose/data/controls and complete cost must be declared before launch.
+
 ## Bounded geometric residual values — next producer decision, October 2
 
 One fixed-first two-atom signed-H4 residual comparison completed on both

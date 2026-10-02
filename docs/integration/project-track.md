@@ -116,7 +116,18 @@ The [completed K1](../evidence/geometric-value-native-2026-10-02.json) and
 retain the bounded residual representation for native producer learning. The
 residual recovers most seed-1 losses and preserves seed-2 baseline predictions,
 but is not a preserving drop-in replacement; retain all changed and prior
-successful rows. End this representation comparison without an alphabet sweep.
+successful rows. End this representation comparison without an alphabet sweep. The next
+learning bridge exposes actual retained roots and a separately bound finite
+choice surrogate, followed by the learned two-atom value head and its integer
+factor-table compiler. Check ordinary answer credit through the actual value
+path separately from address credit, and packet/compiler parity separately from
+learned quality. Preserve the legacy tangent policy and fitted artifacts; a
+successful gradient fixture does not qualify language or guarantee optimization. Retained trace
+aliases also make perfect donor reconstruction an invalid frozen-input gate.
+Use ordinary answer loss as the primary joint objective and declared packet
+supervision as auxiliary credit, including explicit zero-category escape. Keep
+learning, input sufficiency, finite-factor expressivity and F32/Q24 compilation
+retention as distinct decisions; preserve all prior row-level baselines.
 
 The next learning change jointly exposes actual retained state and repairs a
 specific finite-action credit risk. Detached trace IDs carry no earlier-state

@@ -1,0 +1,126 @@
+{
+  "schema": "uor-r4.geometric-value-producer-result/1",
+  "status": "EXECUTED_COMPONENT_NOT_FITTED_CAPABILITY",
+  "source_files_sha256": {
+    "crates/uor-r4-integer/src/geometric_value_producer.rs": "29047be3ea6648d8a73c22af97e1f597ecc948545d6bb616c431d305e8fd10cc",
+    "crates/uor-r4-integer/src/lib.rs": "19c7ec8d0fc949ffd6e0ec7d96540cd9d67a10c3bb706d32ea3894fd18424c6a",
+    "crates/uor-r4-training/src/geometric_context.rs": "67606dc09c6a33b87f8520873a26023c4c606597491fc5b4781ad2ecdbb0b0ee",
+    "crates/uor-r4-training/src/geometric_value_producer.rs": "4eaebd600595b9d42b31c277d54cf8f6be2502e50800602529c22749781fcc2c",
+    "crates/uor-r4-training/src/geometric_value_producer_native.rs": "ca0d9c7e497321128a15a216237df4224b05f1c2c98dc83b8ad409a0aa6c11c4",
+    "crates/uor-r4-training/src/geometric_stack.rs": "36902aec1f372a5ce0a3dd1f5faf5456874b48488162218c591905e812dc476d",
+    "crates/uor-r4-training/src/lib.rs": "3e1d93b3a0ad551189cb78331e59ddb8bb591b6f9518b9513828c4a7e66a6237"
+  },
+  "checks": {
+    "context": {
+      "status": "PASS",
+      "executed_tests": 8,
+      "log_sha256": "f4bade441e584c603c525de949a4a48a6533e5b433e0511ff31288d1a6c3de75"
+    },
+    "offline_values": {
+      "status": "PASS",
+      "executed_tests": 5,
+      "log_sha256": "36073ff8a90f2bec2f27d6a09f734fe8535e813e078ef465deb37b6ec68443e0"
+    },
+    "integer_values_final": {
+      "status": "PASS",
+      "executed_tests": 4,
+      "log_sha256": "ff5b381281a271e47ccab0f2b3a2dc9f0d31c8deac52698e39438fe5ec5c8bf3"
+    },
+    "compiler": {
+      "status": "PASS",
+      "executed_tests": 4,
+      "log_sha256": "70512d70844c991fd9b54347a814e46a83e609b0b9d73b0a78b48703c39661df"
+    },
+    "integrated_final": {
+      "status": "PASS",
+      "executed_tests": 1,
+      "log_sha256": "dfe272a56e6d43a8b29724666d03db2ac70dd19e5ea6a0072edd471ad91d10c9"
+    },
+    "context_conversion_revised": {
+      "status": "PASS",
+      "executed_tests": 1,
+      "log_sha256": "e74a5caa0806c28e8dc12c5bfcf29d8ef9cf51c32690786954064fa404609871"
+    }
+  },
+  "unique_focused_test_cases": 22,
+  "note": "Revised conversion re-executes one of eight context tests; integration ran earlier offline/native versions and final repaired source. Counts are not independent model trials.",
+  "assembly_inspection": {
+    "status": "PASS_SCOPED_COMPILER_EMITTED_ASSEMBLY",
+    "compiler_assembly_sha256": "243264a871c0bf413a107f8e54a5b22cac93591fa822029b209b3f415f0a27b3",
+    "source_sha256": "29047be3ea6648d8a73c22af97e1f597ecc948545d6bb616c431d305e8fd10cc",
+    "target": "aarch64-apple-darwin",
+    "scope": [
+      {
+        "symbol": "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer24geometric_value_producerNtB5_19NativeValueProducer7produce",
+        "instructions": 456,
+        "forbidden_arithmetic": [],
+        "direct_calls": [
+          "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer24geometric_value_producerNtB5_7Factors6select",
+          "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer15geometric_valueNtB5_21NativeGeometricValues11decode_pair",
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+        ]
+      },
+      {
+        "symbol": "__RNvMs0_NtCs5Gu1rsvRqmE_14uor_r4_integer24geometric_value_producerNtB5_7Factors6select",
+        "instructions": 166,
+        "forbidden_arithmetic": [],
+        "direct_calls": [
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+        ]
+      },
+      {
+        "symbol": "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer15geometric_valueNtB5_21NativeGeometricValues11decode_pair",
+        "instructions": 53,
+        "forbidden_arithmetic": [],
+        "direct_calls": [
+          "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer15geometric_valueNtB5_21NativeGeometricValues6decode"
+        ]
+      },
+      {
+        "symbol": "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer15geometric_valueNtB5_21NativeGeometricValues6decode",
+        "instructions": 20,
+        "forbidden_arithmetic": [],
+        "direct_calls": [
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+        ]
+      }
+    ],
+    "limitations": [
+      "Compiler-emitted assembly, not final-linked executable audit.",
+      "External bounds-panic paths and other runtime components not qualified.",
+      "No full serving or energy claim. SIMD load/store register use is not floating arithmetic."
+    ],
+    "expanded_arithmetic_scan": {
+      "forbidden_found": [],
+      "rule": "all mnemonic contains mul/madd/msub/div or begins f; plus vector MLA/MLS/dot/matrix variants",
+      "instruction_count": 695
+    }
+  },
+  "retained_input_audit": {
+    "status": "DERIVED_FROM_RETAINED_EXECUTED_TRACES",
+    "actual_positions_per_seed": 14488,
+    "full_packet_conflicting_tuples": [
+      3,
+      68
+    ],
+    "local_packet_conflicting_tuples": [
+      4057,
+      4680
+    ],
+    "identical_prefix_conflicts": [
+      0,
+      0
+    ],
+    "detail_sha256": "bb0889c15f1e612bce45a4565e7084adb174798ff4227c49282ae2ea5db14b34",
+    "independent_witness": "Seed1 stress pair207 row28/time22 vsrow31/time12: same token21/allstates/allheldspan/answer21, different lane4 residual radius. Aggregategroups not independently recomputed by mathematician.",
+    "scope": "Exact frozen-input donor imitation obstruction; not answer impossibility or family retirement."
+  },
+  "next": "Continue accepted640 parents with explicit policy conversion; jointly learn transitions/values using primary ordinaryanswerCE and declared auxiliary packet/categoryCE. No fit launched.",
+  "limitations": [
+    "Offline prototype uses floating training; compiled producer numerical component uses integer score tables and checked Q16 packets.",
+    "NoRead,trunk,output and fullpath runtime still float; no fullserving,language,energy qualification.",
+    "Q24/float hardchoiceparity measured only on declared fixtures; not global bitidentity.",
+    "Zero category stops answercredit; auxiliarycategory supervision supplies declaredescape.",
+    "No perfect donorimitation gate; preserve allprior models/results/row baselines."
+  ]
+}

@@ -19,6 +19,7 @@ pub mod geometric_potential;
 pub mod geometric_read;
 pub mod geometric_span;
 pub mod geometric_value;
+pub mod geometric_value_producer;
 pub mod h4_classifier;
 pub mod h4_tables;
 pub mod identity_latch;

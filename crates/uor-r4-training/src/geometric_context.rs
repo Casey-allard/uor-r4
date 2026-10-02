@@ -8,9 +8,11 @@
 //! This is a factorization, not a full-state 120^(H*L) lookup or a universal
 //! donor conversion. Donor observations need not be Markov-sufficient.
 //!
-//! Offline backward uses the hard-branch Hamilton adjoint, tangent projection,
-//! and a local 120-action expected-root softmax derivative, including own and
-//! neighbor state-score derivatives. Hard emitted directions use the analogous
+//! Legacy offline backward uses the hard-branch Hamilton adjoint, tangent
+//! projection, and a local 120-action expected-root softmax derivative. The
+//! explicitly selected finite-choice policy instead carries the full ambient
+//! adjoint through both the Hamilton and action-choice paths. Both include own
+//! and neighbor state-score derivatives. Hard emitted directions use the
 //! tangent/120-softmax surrogate. Answer-to-radius credit uses only the hard
 //! present category and its immediately adjacent physical dyadic bins. Absent
 //! output stops answer credit; full 33-category CE supplies explicit presence
@@ -53,6 +55,11 @@ use uor_r4_integer::h4_tables::{
 pub const SCHEMA: &str = "uor-r4.geometric-context/1";
 const RULE:&str="old-own+old-next-neighbor-within-head;120-earliest-argmax;right-group-update;synchronous;new-state-separate-root120-and-category33-readout;identity-reset/1";
 const SURROGATE:&str="latent-new-root-tangent;hard-hamilton;120-softmax-expected-action-root-T1;all-old-state-score-credit;emitted-root-tangent-softmax120;physical-radius-local-neighbor-softmax;absence-answer-stop/1";
+/// Full ambient latent-state credit is a declared biased discrete-choice
+/// surrogate, not a derivative of the exact argmax or a native runtime change.
+pub const FINITE_CHOICE_SURROGATE:&str="latent-new-root-full-adjoint;hard-hamilton-direct-full;120-softmax-expected-action-root-T1-full;all-old-state-score-credit;emitted-root-tangent-softmax120;physical-radius-local-neighbor-softmax;absence-answer-stop/1";
+const PACKED_WIDTH: usize = 157;
+const LATENT_OFFSET: usize = 153;
 const INITIALIZATION:&str="xorshift64-seed;uniform[-.02,.02];transition-identity+.05;category17+1;nonzero-readout-bases/1";
 const CATEGORY_RULE:&str="0=absent(root1,bin0);1..32=present(bin=category-1,radius=2^(bin-16));physical-nearest-midpoint-lower-clipped[-16,15]/1";
 const POLICY:&str="signed-i32-Q24;nearest-ties-away;overflow-reject;no-centering;root128/category64-zero-padding/1";
@@ -129,10 +136,26 @@ impl GeometricContextConfig {
         })
     }
     pub fn validate(&self) -> Result<()> {
-        if *self != Self::new(self.vocab_size, self.width, self.heads, self.seed)? {
+        let mut expected = Self::new(self.vocab_size, self.width, self.heads, self.seed)?;
+        match self.surrogate.as_str() {
+            SURROGATE => {}
+            FINITE_CHOICE_SURROGATE => expected.surrogate = FINITE_CHOICE_SURROGATE.into(),
+            _ => return Err(invalid("unknown context backward surrogate")),
+        }
+        if *self != expected {
             return Err(invalid("context configuration/geometry/surrogate differs"));
         }
         Ok(())
+    }
+    pub fn new_finite_choice(
+        vocab_size: usize,
+        width: usize,
+        heads: usize,
+        seed: u64,
+    ) -> Result<Self> {
+        let mut config = Self::new(vocab_size, width, heads, seed)?;
+        config.surrogate = FINITE_CHOICE_SURROGATE.into();
+        Ok(config)
     }
     pub fn lanes(&self) -> usize {
         self.heads * self.lanes_per_head
@@ -272,10 +295,38 @@ pub struct ContextOutput {
     pub root_logits: Tensor,
     pub category_logits: Tensor,
     pub context: Tensor,
+    /// Actual retained post-update roots [B,T,H,L,4], from the same recurrence
+    /// and autograd operation as the emitted address logits.
+    pub latent_roots: Tensor,
 }
 impl ContextWeights {
     pub fn new(vocab_size: usize, width: usize, heads: usize, seed: u64) -> Result<Self> {
-        let config = GeometricContextConfig::new(vocab_size, width, heads, seed)?;
+        Self::from_config(GeometricContextConfig::new(vocab_size, width, heads, seed)?)
+    }
+    /// Preserve the exact finite forward and initialization while explicitly
+    /// selecting full latent-state adjoints for new offline fits.
+    pub fn new_finite_choice(
+        vocab_size: usize,
+        width: usize,
+        heads: usize,
+        seed: u64,
+    ) -> Result<Self> {
+        Self::from_config(GeometricContextConfig::new_finite_choice(
+            vocab_size, width, heads, seed,
+        )?)
+    }
+    /// Continue an existing offline fit with full latent-state adjoints. This
+    /// consumes the weights without copying or reinitializing their variables;
+    /// only the declared backward policy changes. Saving the result produces a
+    /// new source configuration, rather than reinterpreting a legacy artifact.
+    pub fn into_finite_choice(mut self) -> Result<Self> {
+        self.validate()?;
+        self.config.surrogate = FINITE_CHOICE_SURROGATE.into();
+        Ok(self)
+    }
+    fn from_config(config: GeometricContextConfig) -> Result<Self> {
+        config.validate()?;
+        let seed = config.seed;
         let mut rng = if seed == 0 { 0x9e3779b97f4a7c15 } else { seed };
         let mut draw = || {
             rng ^= rng << 13;
@@ -383,6 +434,7 @@ impl ContextWeights {
                 heads: self.config.heads,
                 lanes_per_head: self.config.lanes_per_head,
                 reset,
+                finite_choice: self.config.surrogate == FINITE_CHOICE_SURROGATE,
             },
         )?)
     }
@@ -420,6 +472,13 @@ impl ContextWeights {
                 33,
             ])?,
             context,
+            latent_roots: packed.narrow(3, LATENT_OFFSET, 4)?.contiguous()?.reshape((
+                batch,
+                time,
+                self.config.heads,
+                self.config.lanes_per_head,
+                4,
+            ))?,
         })
     }
     pub fn float_trace(
@@ -436,6 +495,7 @@ impl ContextWeights {
             heads: self.config.heads,
             lanes_per_head: self.config.lanes_per_head,
             reset: reset_each_token,
+            finite_choice: self.config.surrogate == FINITE_CHOICE_SURROGATE,
         };
         let (steps, output) = op.forward(
             &rows.flatten_all()?.to_vec1::<f32>()?,
@@ -444,9 +504,14 @@ impl ContextWeights {
         let mut emitted_roots = Vec::new();
         let mut categories = Vec::new();
         let mut codes = Vec::new();
-        for row in output.chunks_exact(153) {
+        for row in output.chunks_exact(PACKED_WIDTH) {
             let r = best(&row[..120].iter().map(|&x| f64::from(x)).collect::<Vec<_>>()) as u8;
-            let c = best(&row[120..].iter().map(|&x| f64::from(x)).collect::<Vec<_>>()) as u8;
+            let c = best(
+                &row[120..LATENT_OFFSET]
+                    .iter()
+                    .map(|&x| f64::from(x))
+                    .collect::<Vec<_>>(),
+            ) as u8;
             emitted_roots.push(r);
             categories.push(c);
             codes.push(code(r, c));
@@ -501,6 +566,7 @@ struct ContextOp {
     heads: usize,
     lanes_per_head: usize,
     reset: bool,
+    finite_choice: bool,
 }
 impl ContextOp {
     fn lanes(&self) -> usize {
@@ -558,7 +624,7 @@ impl ContextOp {
         self.validate(rows, basis)?;
         let n = self.lanes();
         let mut trace = Vec::with_capacity(self.batch * self.time);
-        let mut output = Vec::with_capacity(self.batch * self.time * n * 153);
+        let mut output = Vec::with_capacity(self.batch * self.time * n * PACKED_WIDTH);
         for b in 0..self.batch {
             let mut state = [1; 8];
             for t in 0..self.time {
@@ -577,6 +643,7 @@ impl ContextOp {
                 for lane in 0..n {
                     output.extend(self.scores::<120>(row, basis, &state, lane, 1));
                     output.extend(self.scores::<33>(row, basis, &state, lane, 2));
+                    output.extend(root(state[lane]));
                 }
                 trace.push(Step {
                     old,
@@ -624,7 +691,7 @@ impl ContextOp {
     ) -> candle_core::Result<(Vec<f32>, Vec<f32>)> {
         let (trace, _) = self.forward(rows, basis)?;
         let n = self.lanes();
-        if upstream.len() != self.batch * self.time * n * 153
+        if upstream.len() != self.batch * self.time * n * PACKED_WIDTH
             || upstream.iter().any(|x| !x.is_finite())
         {
             candle_core::bail!("context upstream shape/nonfinite value");
@@ -641,10 +708,21 @@ impl ContextOp {
                 let step = &trace[at];
                 let row = &rows[at * n * 273..(at + 1) * n * 273];
                 for lane in 0..n {
+                    add(
+                        &mut future[lane],
+                        std::array::from_fn(|coordinate| {
+                            f64::from(
+                                upstream
+                                    [(at * n + lane) * PACKED_WIDTH + LATENT_OFFSET + coordinate],
+                            )
+                        }),
+                    );
                     for f in 1..3 {
                         for class in 0..CLASSES[f] {
                             let offset = if f == 1 { 0 } else { 120 };
-                            let g = f64::from(upstream[(at * n + lane) * 153 + offset + class]);
+                            let g = f64::from(
+                                upstream[(at * n + lane) * PACKED_WIDTH + offset + class],
+                            );
                             self.score_pullback(
                                 at,
                                 f,
@@ -662,7 +740,11 @@ impl ContextOp {
                 }
                 let mut old_gradient = [[0.; 4]; 8];
                 for lane in 0..n {
-                    let g = tangent(root(step.new[lane]), future[lane]);
+                    let g = if self.finite_choice {
+                        future[lane]
+                    } else {
+                        tangent(root(step.new[lane]), future[lane])
+                    };
                     let (direct, action_g) =
                         hamilton_pullback(root(step.old[lane]), root(step.actions[lane]), g);
                     add(&mut old_gradient[lane], direct);
@@ -710,7 +792,7 @@ impl CustomOp2 for ContextOp {
     ) -> candle_core::Result<(CpuStorage, Shape)> {
         Ok((
             CpuStorage::F32(self.forward(contiguous(a, la)?, contiguous(b, lb)?)?.1),
-            Shape::from((self.batch, self.time, self.lanes(), 153)),
+            Shape::from((self.batch, self.time, self.lanes(), PACKED_WIDTH)),
         ))
     }
     fn bwd(
@@ -1049,7 +1131,7 @@ fn restore_parameters(config: &GeometricContextConfig, bytes: &[u8]) -> Result<C
     {
         return Err(invalid("context source parameter names differ"));
     }
-    let weights = ContextWeights::new(config.vocab_size, config.width, config.heads, config.seed)?;
+    let weights = ContextWeights::from_config(config.clone())?;
     for (name, shape) in shapes {
         let view = archive.tensor(&name)?;
         if view.dtype() != SafeDtype::F32
@@ -1519,6 +1601,175 @@ mod tests {
         v.set(&Tensor::from_vec(values, v.shape(), &Device::Cpu)?)?;
         Ok(())
     }
+    fn sign_answer_loss(
+        weights: &ContextWeights,
+        ids: &[u32],
+        lane: usize,
+        reset: bool,
+    ) -> Result<Tensor> {
+        let output = weights.forward(ids, 1, ids.len(), reset)?;
+        let final_roots = output
+            .latent_roots
+            .narrow(1, ids.len() - 1, 1)?
+            .reshape((weights.config.lanes(), 4))?;
+        let real = final_roots.narrow(0, lane, 1)?.narrow(1, 0, 1)?;
+        let positive = real.affine(2., 0.)?;
+        let negative = real.affine(-2., 0.)?;
+        logits_cross_entropy(&Tensor::cat(&[&positive, &negative], 1)?, &[1], None)
+    }
+    fn tensor_bits(tensor: &Tensor) -> Result<Vec<u32>> {
+        Ok(tensor
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .into_iter()
+            .map(f32::to_bits)
+            .collect())
+    }
+
+    #[test]
+    fn geometric_context_finite_choice_sign_credit_reaches_current_and_earlier_actions(
+    ) -> Result<()> {
+        let legacy = ContextWeights::new(2, 4, 1, 73)?;
+        let finite = ContextWeights::new_finite_choice(2, 4, 1, 73)?;
+        for weights in [&legacy, &finite] {
+            for (name, variable) in weights.parameters() {
+                set(weights, name, vec![0.; variable.elem_count()])?;
+            }
+            let mut transitions = vec![0.; 2 * 120];
+            transitions[1] = 2.;
+            transitions[120 + 1] = 2.;
+            set(weights, TT, transitions)?;
+        }
+        let ids = [0, 1];
+        let old = legacy.forward(&ids, 1, 2, false)?;
+        let new = finite.forward(&ids, 1, 2, false)?;
+        assert_eq!(new.latent_roots.dims(), [1, 2, 1, 1, 4]);
+        assert_eq!(
+            tensor_bits(&old.latent_roots)?,
+            tensor_bits(&new.latent_roots)?
+        );
+        assert_eq!(
+            tensor_bits(&old.root_logits)?,
+            tensor_bits(&new.root_logits)?
+        );
+        assert_eq!(
+            tensor_bits(&old.category_logits)?,
+            tensor_bits(&new.category_logits)?
+        );
+        assert_eq!(tensor_bits(&old.context)?, tensor_bits(&new.context)?);
+        let trace = finite.float_trace(&ids, 1, 2, false)?;
+        assert_eq!(trace.states, vec![vec![1], vec![1]]);
+        assert_eq!(trace.actions, vec![vec![1], vec![1]]);
+        let expected: Vec<f32> = trace
+            .states
+            .iter()
+            .flat_map(|row| row.iter().flat_map(|&code| root(code).map(|x| x as f32)))
+            .collect();
+        assert_eq!(new.latent_roots.flatten_all()?.to_vec1::<f32>()?, expected);
+
+        for (weights, should_have_credit) in [(&legacy, false), (&finite, true)] {
+            let gradients = sign_answer_loss(weights, &ids, 0, false)?.backward()?;
+            let gradient = gradients
+                .get(weights.parameters[TT].as_tensor())
+                .ok_or_else(|| invalid("missing sign-answer transition gradient"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(gradient.iter().all(|x| x.is_finite()));
+            for token in 0..2 {
+                if should_have_credit {
+                    assert!(
+                        gradient[token * 120] < 0.,
+                        "minus-identity choice needs descent credit at token {token}"
+                    );
+                    assert!(
+                        gradient[token * 120 + 1] > 0.,
+                        "identity choice needs ascent credit at token {token}"
+                    );
+                } else {
+                    assert_eq!(norm(&gradient[token * 120..(token + 1) * 120]), 0.);
+                }
+            }
+            for name in [TR, SR, TC, SC] {
+                let gradient = gradients
+                    .get(weights.parameters[name].as_tensor())
+                    .ok_or_else(|| invalid("missing packed zero readout gradient"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert_eq!(norm(&gradient), 0., "sign loss must use latent roots alone");
+            }
+        }
+        let gradients = sign_answer_loss(&finite, &ids, 0, true)?.backward()?;
+        let gradient = gradients
+            .get(finite.parameters[TT].as_tensor())
+            .ok_or_else(|| invalid("missing reset sign-answer transition gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert_eq!(norm(&gradient[..120]), 0.);
+        assert!(gradient[120] < 0. && gradient[121] > 0.);
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_context_finite_choice_neighbor_credit_uses_old_head_local_state() -> Result<()> {
+        let weights = ContextWeights::new_finite_choice(2, 16, 2, 97)?;
+        for (name, variable) in weights.parameters() {
+            set(&weights, name, vec![0.; variable.elem_count()])?;
+        }
+        let n = weights.config.lanes();
+        let mut transitions = vec![0.; 2 * n * 120];
+        for (token, actions) in [[3usize, 1, 5, 7], [5, 1, 1, 1]].iter().enumerate() {
+            for (lane, &action) in actions.iter().enumerate() {
+                transitions[(token * n + lane) * 120 + action] = 2.;
+            }
+        }
+        set(&weights, TT, transitions)?;
+        let mut neighbor = vec![0.; n * 120 * 4];
+        // Lane1 wraps to OLD lane0 inside head0. Its minus-identity score
+        // observes the j coordinate. The selected actions remain strict.
+        neighbor[(120 * 4) + 2] = 0.25;
+        set(&weights, NT, neighbor)?;
+        let trace = weights.float_trace(&[0, 1], 1, 2, false)?;
+        assert_eq!(trace.actions, vec![vec![3, 1, 5, 7], vec![5, 1, 1, 1]]);
+        assert_eq!(trace.states, vec![vec![3, 1, 5, 7], vec![7, 1, 5, 7]]);
+        let gradients = sign_answer_loss(&weights, &[0, 1], 1, false)?.backward()?;
+        let transition = gradients
+            .get(weights.parameters[TT].as_tensor())
+            .ok_or_else(|| invalid("missing neighbor transition gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(
+            norm(&transition[..120]) > 0.,
+            "previous lane0 receives neighbor credit"
+        );
+        assert_eq!(
+            norm(&transition[n * 120..(n + 1) * 120]),
+            0.,
+            "current lane0 update is not the OLD neighbor"
+        );
+        for token in 0..2 {
+            for lane in 2..4 {
+                let at = (token * n + lane) * 120;
+                assert_eq!(
+                    norm(&transition[at..at + 120]),
+                    0.,
+                    "credit cannot cross heads"
+                );
+            }
+        }
+        let neighbor = gradients
+            .get(weights.parameters[NT].as_tensor())
+            .ok_or_else(|| invalid("missing neighbor basis gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let at = 120 * 4;
+        assert!(neighbor[at + 1] < 0., "basis sees OLD +i neighbor");
+        assert_eq!(
+            neighbor[at + 3],
+            0.,
+            "basis must not see updated +k neighbor"
+        );
+        Ok(())
+    }
     #[test]
     fn geometric_context_delayed_readout_credit_reaches_earlier_transition() -> Result<()> {
         let weights = ContextWeights::new(4, 8, 1, 219)?;
@@ -1528,7 +1779,7 @@ mod tests {
             let last = weights
                 .packed(&ids, 1, 3, reset, true)?
                 .narrow(1, 2, 1)?
-                .reshape((n, 153))?;
+                .reshape((n, PACKED_WIDTH))?;
             let roots = logits_cross_entropy(&last.narrow(1, 0, 120)?, &vec![3; n], None)?;
             let radius = logits_cross_entropy(&last.narrow(1, 120, 33)?, &vec![18; n], None)?;
             Ok(roots.add(&radius)?)
@@ -1632,6 +1883,7 @@ mod tests {
             heads: 2,
             lanes_per_head: 4,
             reset: false,
+            finite_choice: false,
         };
         assert_eq!(headring.neighbor(3), 0);
         assert_eq!(headring.neighbor(7), 4);
@@ -1865,6 +2117,103 @@ mod tests {
         assert!(CompiledContext::compile(&loaded, &source, fixture.paths(), REGISTRY).is_err());
         fs::write(native.join("unknown"), b"x")?;
         assert!(CompiledContext::load(&native, &source, fixture.paths(), REGISTRY).is_err());
+        fs::remove_dir_all(fixture.root)?;
+        Ok(())
+    }
+    #[test]
+    fn geometric_context_finite_choice_policy_reload_preserves_forward_and_identity() -> Result<()>
+    {
+        let fixture = fixture()?;
+        let legacy = ContextWeights::new(4, 8, 1, 173)?;
+        // A retained fit differs from its initialization: the conversion must
+        // preserve those learned values and the loaded variables themselves.
+        let mut transition = legacy.parameters[TT].flatten_all()?.to_vec1::<f32>()?;
+        transition[0] += 0.125;
+        set(&legacy, TT, transition)?;
+        let retained_source = fixture.root.join("retained-parent-source");
+        legacy.save_source(&retained_source, fixture.paths(), REGISTRY)?;
+        let retained = ContextWeights::load_source(&retained_source, fixture.paths(), REGISTRY)?;
+        let variable_ids: Vec<_> = retained
+            .parameters
+            .iter()
+            .map(|(name, value)| (name.clone(), value.as_tensor().id()))
+            .collect();
+        let original_config = retained.config.clone();
+        let original_parameters = parameter_identities(&retained)?;
+        let finite = retained.into_finite_choice()?;
+        assert_eq!(parameter_identities(&finite)?, original_parameters);
+        assert_eq!(
+            finite
+                .parameters
+                .iter()
+                .map(|(name, value)| (name.clone(), value.as_tensor().id()))
+                .collect::<Vec<_>>(),
+            variable_ids
+        );
+        let mut expected_config = original_config;
+        expected_config.surrogate = FINITE_CHOICE_SURROGATE.into();
+        assert_eq!(finite.config, expected_config);
+        assert_eq!(legacy.config.surrogate, SURROGATE);
+        assert_eq!(finite.config.surrogate, FINITE_CHOICE_SURROGATE);
+        assert_eq!(parameter_bytes(&legacy)?, parameter_bytes(&finite)?);
+        assert_eq!(
+            ExpandedContext::compile(&legacy)?.bytes(),
+            ExpandedContext::compile(&finite)?.bytes()
+        );
+        let ids = [0, 1, 2, 3];
+        assert_eq!(
+            tensor_bits(&legacy.forward(&ids, 1, 4, false)?.latent_roots)?,
+            tensor_bits(&finite.forward(&ids, 1, 4, false)?.latent_roots)?
+        );
+        let mut artifacts = Vec::new();
+        for (name, weights) in [("legacy", &legacy), ("finite", &finite)] {
+            let source = fixture.root.join(format!("{name}-source"));
+            let native = fixture.root.join(format!("{name}-native"));
+            weights.save_source(&source, fixture.paths(), REGISTRY)?;
+            let loaded = ContextWeights::load_source(&source, fixture.paths(), REGISTRY)?;
+            assert_eq!(loaded.config(), weights.config());
+            assert_eq!(parameter_bytes(&loaded)?, parameter_bytes(weights)?);
+            assert_eq!(
+                tensor_bits(&loaded.forward(&ids, 1, 4, false)?.latent_roots)?,
+                tensor_bits(&weights.forward(&ids, 1, 4, false)?.latent_roots)?
+            );
+            let compiled = CompiledContext::compile(&loaded, &source, fixture.paths(), REGISTRY)?;
+            compiled.save(&native)?;
+            let reload = CompiledContext::load(&native, &source, fixture.paths(), REGISTRY)?;
+            assert_eq!(reload.config(), weights.config());
+            reload.validate_for(weights)?;
+            artifacts.push(reload);
+        }
+        assert!(artifacts[0].validate_for(&finite).is_err());
+        assert!(artifacts[1].validate_for(&legacy).is_err());
+        let old = trace_native(&ids, 1, 4, &artifacts[0], false)?;
+        let new = trace_native(&ids, 1, 4, &artifacts[1], false)?;
+        assert_eq!(old.states, new.states);
+        assert_eq!(old.actions, new.actions);
+        assert_eq!(old.codes, new.codes);
+        assert_eq!(old.categories, new.categories);
+        let float = finite.float_trace(&ids, 1, 4, false)?;
+        assert_eq!(float.states, new.states);
+        let expected: Vec<f32> = float
+            .states
+            .iter()
+            .flat_map(|row| row.iter().flat_map(|&code| root(code).map(|x| x as f32)))
+            .collect();
+        assert_eq!(
+            finite
+                .forward(&ids, 1, 4, false)?
+                .latent_roots
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            expected
+        );
+        let source = fixture.root.join("finite-source");
+        let metadata_path = source.join(SOURCE_FILES[0]);
+        let mut metadata: ContextSourceMetadata =
+            serde_json::from_slice(&fs::read(&metadata_path)?)?;
+        metadata.config.surrogate = "unrecognized-choice-policy".into();
+        fs::write(metadata_path, serde_json::to_vec_pretty(&metadata)?)?;
+        assert!(ContextWeights::load_source(&source, fixture.paths(), REGISTRY).is_err());
         fs::remove_dir_all(fixture.root)?;
         Ok(())
     }

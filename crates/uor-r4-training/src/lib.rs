@@ -33,6 +33,8 @@ pub mod geometric_span;
 pub mod geometric_span_native;
 pub mod geometric_stack;
 pub mod geometric_value_native;
+pub mod geometric_value_producer;
+pub mod geometric_value_producer_native;
 pub mod grounded_session_eval;
 pub mod joint_admission;
 pub mod joint_bounded_campaign;

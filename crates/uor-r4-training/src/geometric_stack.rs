@@ -197,6 +197,8 @@ struct ReadSource<'a> {
     native_reducer: Option<&'a crate::geometric_read_native::CompiledGeometricRead>,
     native_trace: NativeReadTraceSink<'a>,
     native_value_projection: Option<NativeValueProjection<'a>>,
+    learned_values: Option<LearnedGeometricValues<'a>>,
+    native_learned_values: Option<&'a [i32]>,
 }
 
 type NativeReadTraceSink<'a> =
@@ -207,6 +209,14 @@ struct NativeValueProjection<'a> {
     residual: bool,
     compiled: &'a crate::geometric_value_native::CompiledGeometricValues,
     trace: &'a std::cell::RefCell<Option<crate::geometric_value_native::ValueProjectionTrace>>,
+}
+
+/// Offline answer-credit bridge. Native compilation remains a separate boundary.
+#[derive(Clone, Copy)]
+struct LearnedGeometricValues<'a> {
+    producer: &'a crate::geometric_value_producer::ValueProducerWeights,
+    latent: &'a Tensor,
+    ids: &'a [u32],
 }
 
 impl Default for ReadSource<'_> {
@@ -221,6 +231,8 @@ impl Default for ReadSource<'_> {
             native_reducer: None,
             native_trace: None,
             native_value_projection: None,
+            learned_values: None,
+            native_learned_values: None,
         }
     }
 }
@@ -2059,6 +2071,8 @@ impl StackModel {
                 native_reducer: None,
                 native_trace: None,
                 native_value_projection: None,
+                learned_values: None,
+                native_learned_values: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2213,6 +2227,8 @@ impl StackModel {
                 native_reducer: None,
                 native_trace: None,
                 native_value_projection: None,
+                learned_values: None,
+                native_learned_values: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -2423,6 +2439,99 @@ impl StackModel {
         Ok(hidden.matmul(&p.head()?.t()?)?)
     }
 
+    /// Offline joint answer-credit path with actual geometric retained-state
+    /// values. The donor value map is bypassed; NoRead/trunk/output remain float.
+    /// This is not yet an integer compiled producer or a serving qualification.
+    pub fn forward_geometric_context_learned_values(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &ContextWeights,
+        producer: &crate::geometric_value_producer::ValueProducerWeights,
+        events: &CompiledEvents,
+        compiled: &CompiledSpanActions,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        self.forward_geometric_context_learned_values_mode(
+            ids,
+            batch,
+            time,
+            context,
+            producer,
+            events,
+            compiled,
+            reset_each_token,
+            false,
+        )
+    }
+
+    fn forward_geometric_context_learned_values_mode(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &ContextWeights,
+        producer: &crate::geometric_value_producer::ValueProducerWeights,
+        events: &CompiledEvents,
+        compiled: &CompiledSpanActions,
+        reset_each_token: bool,
+        stop_address_credit: bool,
+    ) -> Result<Tensor> {
+        self.validate_context_config(context.config())?;
+        if self.config.width / self.config.heads != crate::geometric_value_producer::VALUE_WIDTH
+            || producer.config().vocab_size != self.config.vocab_size
+            || producer.config().heads != self.config.heads
+            || producer.config().latent_lanes_per_head != context.config().lanes_per_head
+        {
+            return Err(invalid(
+                "learned geometric value configuration differs from reader/context",
+            ));
+        }
+
+        let output = context.forward(ids, batch, time, reset_each_token)?;
+        let addressing = if stop_address_credit {
+            output.context.detach()
+        } else {
+            output.context.clone()
+        };
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        let span = self
+            .geometric_span
+            .as_ref()
+            .ok_or_else(|| invalid("learned values require spans"))?;
+        let address = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("learned values require addresses"))?;
+        self.validate_geometric_address(address)?;
+        let p = self.params()?;
+        compiled.validate_for(p.get("embedding.weight")?, span)?;
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let x = self.layer_range_with_source(
+            &p,
+            tokens.clone(),
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Soft,
+            ReadSource {
+                tokens: Some(&tokens),
+                native_span: Some((compiled, ids)),
+                event_control: Some(SpanEvents::Native(&event.actions)),
+                context: Some(ContextInput::Training(&addressing)),
+                learned_values: Some(LearnedGeometricValues {
+                    producer,
+                    latent: &output.latent_roots,
+                    ids,
+                }),
+                ..ReadSource::default()
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
     pub fn read_binding_masses_geometric_context(
         &self,
         ids: &[u32],
@@ -2618,6 +2727,135 @@ impl StackModel {
             reset_each_token,
             true,
         )
+    }
+
+    /// Loaded integer geometric value production from actual retained states
+    /// and native span registers. No donor value tensor enters this read.
+    /// NoRead, trunk and output are still the floating saved reference.
+    pub fn forward_geometric_context_learned_values_native_with_trace(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        reset_each_token: bool,
+    ) -> Result<(
+        Tensor,
+        crate::geometric_read_native::NativeReadTrace,
+        crate::geometric_value_producer::ValueProducerTrace,
+    )> {
+        self.validate_context_config(context.config())?;
+        self.validate_context_dependencies(context, events, span, potential)?;
+        producer.validate_native_context(context)?;
+        if self.config.width / self.config.heads != crate::geometric_value_producer::VALUE_WIDTH
+            || reducer.metadata().layer != 2
+        {
+            return Err(invalid("native learned value reader layout differs"));
+        }
+        let ctx = geometric_context::trace_native(ids, batch, time, context, reset_each_token)?;
+        let event = geometric_event::trace_native(ids, batch, time, events, false)?;
+        let held =
+            geometric_span_native::trace_native_events(ids, batch, time, &event.actions, span)?;
+        let heads = self.config.heads;
+        let mut raw = vec![0i32; batch * heads * time * 16];
+        let mut packets =
+            vec![
+                std::array::from_fn(|_| crate::geometric_value_native::ValuePacketRecord {
+                    status: crate::geometric_value_native::ValuePacketStatus::Absent,
+                    root: 1,
+                    radius_bin: 0,
+                });
+                batch * heads * time * 4
+            ];
+        for row in 0..ids.len() {
+            let latent = ctx.states[row]
+                .iter()
+                .map(|&code| {
+                    uor_r4_integer::h4_tables::H4Code::try_from(code)
+                        .map_err(|e| invalid(e.to_string()))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let span_codes = held.prior_codes[row]
+                .as_ref()
+                .map(|codes| {
+                    codes
+                        .iter()
+                        .map(|&code| {
+                            uor_r4_integer::h4_tables::H4Code::try_from(code)
+                                .map_err(|e| invalid(e.to_string()))
+                        })
+                        .collect::<Result<Vec<_>>>()
+                })
+                .transpose()?;
+            let produced =
+                producer.produce(ids[row] as usize, &latent, span_codes.as_deref(), true)?;
+            let (b, t) = (row / time, row % time);
+            for h in 0..heads {
+                let at = (b * heads + h) * time + t;
+                raw[at * 16..(at + 1) * 16]
+                    .copy_from_slice(&produced.values_q16[h * 16..(h + 1) * 16]);
+                for lane in 0..4 {
+                    for atom in 0..2 {
+                        let value = produced.packets[h * 4 + lane][atom];
+                        packets[at * 4 + lane][atom] = crate::geometric_value_native::ValuePacketRecord {
+                            status: match value.state() {
+                                uor_r4_integer::geometric_value::ValueState::Absent => crate::geometric_value_native::ValuePacketStatus::Absent,
+                                uor_r4_integer::geometric_value::ValueState::PresentZero => crate::geometric_value_native::ValuePacketStatus::PresentZero,
+                                uor_r4_integer::geometric_value::ValueState::PresentNonzero => crate::geometric_value_native::ValuePacketStatus::PresentNonzero,
+                            }, root: value.root().index(), radius_bin: value.radius_bin(),
+                        };
+                    }
+                }
+            }
+        }
+        let p = self.params()?;
+        let span_config = self
+            .geometric_span
+            .as_ref()
+            .ok_or_else(|| invalid("native values require spans"))?;
+        span.validate_for(p.get("embedding.weight")?, span_config)?;
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let read_trace = std::cell::RefCell::new(None);
+        let x = self.layer_range_with_source(
+            &p,
+            tokens.clone(),
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Soft,
+            ReadSource {
+                tokens: Some(&tokens),
+                native_span: Some((span, ids)),
+                native_potential: Some(potential),
+                event_control: Some(SpanEvents::Native(&event.actions)),
+                context: Some(ContextInput::Native(&ctx.codes)),
+                native_reducer: Some(reducer),
+                native_trace: Some(&read_trace),
+                native_learned_values: Some(&raw),
+                ..ReadSource::default()
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        let logits = hidden.matmul(&p.head()?.t()?)?;
+        Ok((
+            logits,
+            read_trace
+                .into_inner()
+                .ok_or_else(|| invalid("native learned read trace absent"))?,
+            crate::geometric_value_producer::ValueProducerTrace {
+                batch,
+                heads,
+                time,
+                occurrence_valid: vec![true; batch * time],
+                packets,
+                values_q16: raw,
+            },
+        ))
     }
 
     fn forward_geometric_context_value_projection_mode_with_trace(
@@ -2916,6 +3154,8 @@ impl StackModel {
                 native_reducer,
                 native_trace,
                 native_value_projection,
+                learned_values: None,
+                native_learned_values: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
@@ -3156,11 +3396,38 @@ impl StackModel {
             .transpose(1, 2)?
             .unsqueeze(3)?;
         let scores = Tensor::cat(&[&null, &scores], 3)?;
-        let value = self.heads(
-            &Self::linear(&u, p.layer(layer, "read.value.weight")?)?,
-            batch,
-            time,
-        )?;
+        let value = if let Some(learned) = source.learned_values {
+            let (compiled, ids) = source
+                .native_span
+                .ok_or_else(|| invalid("learned geometric values require actual compiled spans"))?;
+            if ids != learned.ids {
+                return Err(invalid("learned value token provenance differs"));
+            }
+            let events = match source.event_control {
+                Some(SpanEvents::Native(events)) => events,
+                _ => return Err(invalid("learned values require actual native events")),
+            };
+            let trace =
+                geometric_span_native::trace_native_events(ids, batch, time, events, compiled)?;
+            let span_valid: Vec<bool> = trace.prior_codes.iter().map(Option::is_some).collect();
+            let held = prior
+                .as_ref()
+                .ok_or_else(|| invalid("learned value held span absent"))?
+                .reshape((batch, time, heads, self.config.width / heads / 4, 4))?;
+            // Existing reference scores admit all causal occurrences; validity
+            // is explicit and never inferred from a zero numerical payload.
+            let occurrence_valid = vec![true; batch * time];
+            learned
+                .producer
+                .forward(ids, learned.latent, &held, &span_valid, &occurrence_valid)?
+                .values
+        } else {
+            self.heads(
+                &Self::linear(&u, p.layer(layer, "read.value.weight")?)?,
+                batch,
+                time,
+            )?
+        };
         let (value, value_width) = self.read_binding_values(value, layer, binding)?;
         let value = Tensor::cat(
             &[
@@ -3262,13 +3529,39 @@ impl StackModel {
         let null = Self::linear(u, p.layer(layer, "read.null.weight")?)?
             .broadcast_add(p.layer(layer, "read.null.bias")?)?
             .transpose(1, 2)?;
-        let values = self.heads(
-            &Self::linear(u, p.layer(layer, "read.value.weight")?)?,
-            batch,
-            time,
-        )?;
-        let value_width = values.dim(3)?;
-        let output = if let Some(projection) = source.native_value_projection {
+        let values = if source.native_learned_values.is_some() {
+            None
+        } else {
+            Some(self.heads(
+                &Self::linear(u, p.layer(layer, "read.value.weight")?)?,
+                batch,
+                time,
+            )?)
+        };
+        let value_width = values
+            .as_ref()
+            .map(|v| v.dim(3))
+            .transpose()?
+            .unwrap_or(crate::geometric_value_producer::VALUE_WIDTH);
+        let output = if let Some(raw) = source.native_learned_values {
+            if source.native_value_projection.is_some() {
+                return Err(invalid(
+                    "native learned values cannot also use oracle projection",
+                ));
+            }
+            crate::geometric_read_native::reduce_native_q16(
+                &scores,
+                &null,
+                raw,
+                value_width,
+                p.layer(layer, "read.age")?,
+                potential,
+                reducer,
+            )?
+        } else if let Some(projection) = source.native_value_projection {
+            let values = values
+                .as_ref()
+                .ok_or_else(|| invalid("oracle donor values absent"))?;
             if projection.compiled.metadata().layer != layer {
                 return Err(invalid("geometric value codec read layer differs"));
             }
@@ -3309,7 +3602,9 @@ impl StackModel {
             crate::geometric_read_native::reduce_native(
                 &scores,
                 &null,
-                &values,
+                values
+                    .as_ref()
+                    .ok_or_else(|| invalid("native donor values absent"))?,
                 p.layer(layer, "read.age")?,
                 potential,
                 reducer,
@@ -3789,6 +4084,8 @@ impl StackModel {
                 native_reducer: None,
                 native_trace: None,
                 native_value_projection: None,
+                learned_values: None,
+                native_learned_values: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -4148,6 +4445,8 @@ impl StackModel {
                 native_reducer: None,
                 native_trace: None,
                 native_value_projection: None,
+                learned_values: None,
+                native_learned_values: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -5096,6 +5395,8 @@ impl StackModel {
                         native_reducer: None,
                         native_trace: None,
                         native_value_projection: None,
+                        learned_values: None,
+                        native_learned_values: None,
                     },
                 )?,
             };
@@ -10568,6 +10869,89 @@ mod tests {
             model.config.heads,
             81,
         )?;
+        // Ordinary answer loss passes through produced geometric values to
+        // actual retained state, without using donor read.value payloads.
+        // Address gradients are stopped here to isolate value-to-state credit.
+        let finite_context = ContextWeights::new_finite_choice(
+            model.config.vocab_size,
+            model.config.width,
+            model.config.heads,
+            83,
+        )?;
+        let producer = crate::geometric_value_producer::ValueProducerWeights::new(
+            model.config.vocab_size,
+            model.config.heads,
+            finite_context.config().lanes_per_head,
+            89,
+        )?;
+        let produced = model.forward_geometric_context_learned_values_mode(
+            &ids,
+            1,
+            10,
+            &finite_context,
+            &producer,
+            &event,
+            &span,
+            false,
+            true,
+        )?;
+        let donor_value = model
+            .variables
+            .get(&layer_name(2, "read.value.weight"))
+            .ok_or_else(|| invalid("donor value parameter absent"))?;
+        let retained_donor_value = donor_value.as_tensor().copy()?;
+        donor_value.set(&Tensor::zeros(donor_value.shape(), DType::F32, &cpu())?)?;
+        let bypassed = model.forward_geometric_context_learned_values_mode(
+            &ids,
+            1,
+            10,
+            &finite_context,
+            &producer,
+            &event,
+            &span,
+            false,
+            true,
+        );
+        donor_value.set(&retained_donor_value)?;
+        let bypassed = bypassed?;
+        assert_eq!(
+            produced.flatten_all()?.to_vec1::<f32>()?,
+            bypassed.flatten_all()?.to_vec1::<f32>()?,
+            "learned values must be independent of donor read.value weights"
+        );
+        let produced_loss = logits_cross_entropy(&produced.narrow(0, 9, 1)?, &[7], None)?;
+        let produced_gradients = produced_loss.backward()?;
+        let value_gradient =
+            producer
+                .parameters()
+                .values()
+                .try_fold(0f32, |total, value| -> Result<f32> {
+                    Ok(total
+                        + produced_gradients
+                            .get(value.as_tensor())
+                            .map(|g| g.abs()?.max_all()?.to_scalar::<f32>())
+                            .transpose()?
+                            .unwrap_or(0.))
+                })?;
+        assert!(
+            value_gradient.is_finite() && value_gradient > 0.,
+            "answer-to-value gradient {value_gradient}"
+        );
+        let finite_transition = finite_context
+            .parameters()
+            .get("token_transition")
+            .ok_or_else(|| invalid("finite transition absent"))?;
+        let history_gradient = produced_gradients
+            .get(finite_transition.as_tensor())
+            .ok_or_else(|| invalid("produced answer misses retained state"))?
+            .get(2)?
+            .abs()?
+            .max_all()?
+            .to_scalar::<f32>()?;
+        assert!(
+            history_gradient.is_finite() && history_gradient > 0.,
+            "value-to-earlier-state gradient {history_gradient}"
+        );
         let trained =
             model.forward_geometric_context(&ids, 1, 10, &context, &event, &span, false)?;
         let language = logits_cross_entropy(&trained.narrow(0, 9, 1)?, &[7], None)?;
@@ -10648,6 +11032,106 @@ mod tests {
             &root.join("native-read"),
             &read_source,
         )?;
+        // Saved geometric head + actual compiled retained-state producer.
+        let finite_source = root.join("finite-context-source");
+        finite_context.save_source(&finite_source, paths, registry)?;
+        let finite_native =
+            CompiledContext::compile(&finite_context, &finite_source, paths, registry)?;
+        let producer_source = root.join("learned-value-source");
+        producer.save_source(&producer_source)?;
+        let value_paths = crate::geometric_value_producer_native::ValueProducerSourcePaths {
+            value_source: &producer_source,
+            context_source: &finite_source,
+            context_dependencies: paths,
+        };
+        let native_producer =
+            crate::geometric_value_producer_native::CompiledValueProducer::compile(
+                value_paths,
+                registry,
+            )?;
+        native_producer.validate_for(&producer, &finite_context)?;
+        native_producer.save(&root.join("native-learned-values"))?;
+        let native_producer = crate::geometric_value_producer_native::CompiledValueProducer::load(
+            &root.join("native-learned-values"),
+            value_paths,
+            registry,
+        )?;
+        let latent_output = finite_context.forward(&ids, 1, 10, false)?;
+        let held_output = geometric_span_native::produce_native_events(
+            &ids,
+            1,
+            10,
+            &geometric_event::trace_native(&ids, 1, 10, &event, false)?.actions,
+            &span,
+        )?;
+        let held_trace = geometric_span_native::trace_native_events(
+            &ids,
+            1,
+            10,
+            &geometric_event::trace_native(&ids, 1, 10, &event, false)?.actions,
+            &span,
+        )?;
+        let span_valid: Vec<_> = held_trace.prior_codes.iter().map(Option::is_some).collect();
+        let offline_values = producer.forward(
+            &ids,
+            &latent_output.latent_roots,
+            &held_output.reshape((1, 10, 2, 4, 4))?,
+            &span_valid,
+            &[true; 10],
+        )?;
+        let (native_logits, native_read, native_values) = model
+            .forward_geometric_context_learned_values_native_with_trace(
+                &ids,
+                1,
+                10,
+                &finite_native,
+                &event,
+                &span,
+                &potential,
+                &reducer,
+                &native_producer,
+                false,
+            )?;
+        assert_eq!(
+            native_values, offline_values.trace,
+            "actual compiled packets/Q16 must match offline choices on fixture"
+        );
+        assert_eq!(native_read.rows.len(), 20);
+        let retained = donor_value.as_tensor().copy()?;
+        donor_value.set(&Tensor::zeros(donor_value.shape(), DType::F32, &cpu())?)?;
+        let bypassed = model.forward_geometric_context_learned_values_native_with_trace(
+            &ids,
+            1,
+            10,
+            &finite_native,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &native_producer,
+            false,
+        );
+        donor_value.set(&retained)?;
+        let (bypassed_logits, _, bypassed_values) = bypassed?;
+        assert_eq!(bits(&native_logits)?, bits(&bypassed_logits)?);
+        assert_eq!(native_values, bypassed_values);
+        assert!(
+            model
+                .forward_geometric_context_learned_values_native_with_trace(
+                    &ids,
+                    1,
+                    10,
+                    &loaded,
+                    &event,
+                    &span,
+                    &potential,
+                    &reducer,
+                    &native_producer,
+                    false,
+                )
+                .is_err(),
+            "different context artifact cannot feed compiled value head"
+        );
         let reduced = model.forward_geometric_context_read_native(
             &ids, 1, 10, &loaded, &event, &span, &potential, &reducer, false,
         )?;
