@@ -19,9 +19,10 @@
 #
 # Stages:
 #   1. build the geometric-stack example (with Accelerate on macOS)
-#   2. unless INIT is given or LM_STEPS=0: train a new stack for LM_STEPS updates of BATCH x 256 tokens as a
-#      language model on the whole training store (every token, windows across documents)
-#   3. response learning from INIT or that model: DIALOGUE_STEPS updates of DIALOGUE_BATCH episodes, loss on
+#   2. unless LM_STEPS=0: train LM_STEPS updates of BATCH x 256 tokens as a language model on the whole
+#      training store (every token, windows across documents), starting from INIT when one is given
+#   3. response learning from that model (or from INIT when LM_STEPS=0): DIALOGUE_STEPS updates of
+#      DIALOGUE_BATCH episodes, loss on
 #      response and EOS targets only, the development panel scored every EVAL_EVERY updates; with REQUESTS, the float
 #      model's greedy replies
 #   4. export the result with GPTQ calibrated on the training store (4-bit table weight maps, no floating point)
@@ -89,11 +90,19 @@ features=()
 cargo build --release ${features[@]+"${features[@]}"} -p uor-r4-training --example geometric-stack
 export RAYON_NUM_THREADS=$THREADS
 
-if [ -z "$INIT" ] && [ "$LM_STEPS" != 0 ]; then
+# The language-model phase runs whenever LM_STEPS is nonzero, *including* when
+# INIT= is set: an initialised base plus a chat-v0 LM phase is a distinct arm
+# from either alone (it is the arm that combines a prose base's short-range
+# fluency with the target domain's response distribution). LM_STEPS=0 with
+# INIT= remains "response learning from INIT", and INIT unset remains
+# "train a new stack for LM_STEPS".
+if [ "$LM_STEPS" != 0 ]; then
+  lm_init=()
+  [ -n "$INIT" ] && lm_init=(init="$INIT")
   "$STACK" train train="$TRAIN_TOKENS" valid="$DEV_TOKENS" tokenizer="$TOKENIZER" out="$OUT/lm" arch=geometric \
     pattern="$PATTERN" read="$READ" rotation="$ROTATION" seed="$SEED" steps="$LM_STEPS" batch="$BATCH" \
     lr="$LR_LM" warmup=$((LM_STEPS / 20 + 1)) eval_every=250 eval_windows=64 final_windows=256 \
-    checkpoint_every=250 sample_tokens=0 > "$OUT/lm.log" 2>&1
+    checkpoint_every=250 sample_tokens=0 ${lm_init[@]+"${lm_init[@]}"} > "$OUT/lm.log" 2>&1
   INIT=$OUT/lm/model
 fi
 
