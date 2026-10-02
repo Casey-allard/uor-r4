@@ -43,7 +43,8 @@
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
 //!   [transport_snap=none|icosian] [select=none|flock:WINDOW:K] [pointer=none|DIM] \
 //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
-//!   [pointer_route=none|prime:WINDOW] [context=256] \
+//!   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \
+//!   [context=256] \
 //!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
 //!   [checkpoint_every=128] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] [requests=REQUESTS.json] \
@@ -201,7 +202,13 @@
 //! (`uor_r4_training::geometric_stack::PrimeRoute`): a source is admitted when
 //! the registered primes of the WINDOW tokens before it share a factor with
 //! the query's last WINDOW, and the pointer copies the token that followed;
-//! the gate still learns, the query and key get no gradient. It excludes
+//! the gate still learns, the query and key get no gradient. `prime-ranked:WINDOW`
+//! keeps that admission and ranks the admitted sources by the learned score
+//! plus the route's, falling back to the learned pointer where nothing is
+//! admitted (the query and key then train). `ngram:WINDOW` and
+//! `ngram-ranked:WINDOW` admit by the longest ordered n-let match instead
+//! (the n tokens before a source equal the query's last n, for the longest
+//! n up to WINDOW with a match; ADR-0003's transition indexes). Each
 //! `pointer_select=`, and `none` clears a saved route.
 //! Each evaluation reports the pointer's mean gate and hit rate on the scored
 //! targets (`dev_pointer_*` in the curve, `pointer` in the developments). The
@@ -4232,8 +4239,10 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   (init=ROOT/model | arch=geometric|transformer [width= heads= layers= pattern= read= rotation= \\
   stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] \\
   [select=none|flock:WINDOW:K] [pointer=none|DIM] [pointer_score=dot|lorentz] \\
-  [pointer_select=none|flock:WINDOW:K|top:K] [pointer_route=none|prime:WINDOW] [seed=] \\
-  [context=] [policy=] [data_seed=] \\
+  [pointer_select=none|flock:WINDOW:K|top:K] \\
+  [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \\
+  [seed=] [context=] [policy=] \\
+  [data_seed=] \\
   [steps=] \\
   [batch=] [lr=] [warmup=] [min_lr=] [weight_decay=] [clip=] [eval_every=] [dev_seed=] \\
   [dev_per_source=] [checkpoint_every=] [resume=] [max_seconds=] [requests=] [max_new_tokens=]
@@ -4266,7 +4275,11 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          source is admitted when the registered primes of the WINDOW tokens
                          before it share a factor with the query's last WINDOW (1..6), scored by
                          ln gcd plus recency, and the pointer copies the token that followed. The
-                         gate learns; the query and key get no gradient. Excludes
+                         gate learns; the query and key get no gradient. prime-ranked:WINDOW
+                         keeps the admission and ranks admitted sources by the learned score
+                         plus the route's (learned pointer where none is admitted). ngram:WINDOW
+                         and ngram-ranked:WINDOW admit by the longest ordered n-let match
+                         (n up to WINDOW) instead of any shared atom. Excludes
                          pointer_select=. With init=, replaces the saved head's route.
   reports                each eval adds dev_pointer_mean_gate / dev_pointer_hit_rate /
                          dev_pointer_reachable_rate to the curve; all settings are in the saved
@@ -4431,7 +4444,13 @@ mod tests {
             pointer_args(&args(&["pointer_route=prime:2"]))
                 .expect("a route")
                 .route,
-            Some(Some(PrimeRoute { window: 2 }))
+            Some(Some(PrimeRoute::exact(2)))
+        );
+        assert_eq!(
+            pointer_args(&args(&["pointer_route=prime-ranked:3"]))
+                .expect("a ranked route")
+                .route,
+            Some(Some(PrimeRoute::ranked(3)))
         );
         assert_eq!(
             pointer_args(&args(&["pointer_route=none"]))
@@ -4444,7 +4463,7 @@ mod tests {
     #[test]
     fn a_saved_head_takes_a_prime_route_without_a_selection() {
         let with_head = saved_with_head();
-        let route = PrimeRoute { window: 2 };
+        let route = PrimeRoute::exact(2);
         let (config, added) = init_extended_config(&args(&["pointer_route=prime:2"]), &with_head)
             .expect("a routed head");
         assert!(!added);
@@ -4474,7 +4493,7 @@ mod tests {
         assert!(added);
         assert_eq!(
             config.pointer.and_then(|pointer| pointer.route),
-            Some(PrimeRoute { window: 1 })
+            Some(PrimeRoute::exact(1))
         );
         assert!(init_extended_config(&args(&["pointer_route=prime:1"]), &saved()).is_err());
     }

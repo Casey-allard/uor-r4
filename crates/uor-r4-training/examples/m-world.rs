@@ -14,19 +14,19 @@
 //! m-world evaluate [world=v1] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
 //!   [panel=REQUESTS.json] [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
-//!   [pointer_route=none|prime:W]
+//!   [pointer_route=none|prime:W|prime-ranked:W|ngram:W|ngram-ranked:W]
 //! m-world evaluate world=v2 out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=300] [seed=9101] [max_new_tokens=32] \
 //!   [panel=REQUESTS.json] [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
 //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
-//!   [pointer_route=none|prime:W] [recall=off|oracle|sieve|route] \
+//!   [pointer_route=none|prime:W|prime-ranked:W|ngram:W|ngram-ranked:W] [recall=off|oracle|sieve|route] \
 //!   [recall_at=reply|query] [route_paraphrases=A.jsonl[,B.jsonl...]] [route_acts=fact|any] [route_trunk=MODEL_DIR]
 //! m-world rejudge out=NEW_REPORT_ROOT report=OLD_ROOT/m_world_evaluation.json [tokenizer=T.json]
 //! m-world evaluate-cells [world=v2] out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json \
 //!   [conversations=300] [seed=9101] [max_new_tokens=32] [teacher_forced=true] \
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..] \
 //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
-//!   [pointer_route=none|prime:W]
+//!   [pointer_route=none|prime:W|prime-ranked:W|ngram:W|ngram-ranked:W]
 //! m-world baselines world=v2 out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   [split=development|train] [conversations=2000] [seed=9101] [cells=true] \
 //!   [mqar_share=..] [copy_share=..] [relation_share=..] [other_share=..]
@@ -38,7 +38,7 @@
 //!   [lexical=true|false] [paraphrases=A.jsonl[,B.jsonl...]]
 //! m-world probe out=NEW_REPORT_ROOT model=MODEL_DIR tokenizer=TOKENIZER.json [max_new_tokens=48] \
 //!   [select=none|flock:W:K] [pointer_select=none|flock:W:K|top:K] \
-//!   [pointer_route=none|prime:W]
+//!   [pointer_route=none|prime:W|prime-ranked:W|ngram:W|ngram-ranked:W]
 //! m-world probe-static out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json [context=256]
 //! ```
 //!
@@ -89,7 +89,10 @@
 //! what applied; it is null without an override.
 //! `pointer_route=prime:W` likewise replaces the pointer head's learned scores
 //! by the exact prime route (`geometric_stack::PrimeRoute`) on the loaded
-//! weights; it excludes a pointer selection (`none` clears a saved route).
+//! weights (`prime-ranked:W`: the same admission, ranked by the learned score
+//! plus the route's; `ngram:W` and `ngram-ranked:W`: admission by the longest
+//! ordered n-let match); it excludes a pointer selection (`none` clears a saved
+//! route).
 //!
 //! The council's A1 amendments (issue 1511), all world=v2:
 //!
@@ -3818,7 +3821,7 @@ mod tests {
         let routed = parse(&["out=r", "pointer_route=prime:4"], MODEL_KEYS).expect("a route");
         let (text, parsed) = routed.selection.pointer_route.as_ref().expect("a route");
         assert_eq!(text, "prime:4");
-        assert_eq!(*parsed, Some(PrimeRoute { window: 4 }));
+        assert_eq!(*parsed, Some(PrimeRoute::exact(4)));
         // A mode that does not take them refuses them as unknown arguments.
         assert!(parse(&["out=r", "select=none"], &["out", "tokenizer"]).is_err());
     }
