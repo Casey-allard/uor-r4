@@ -1,0 +1,509 @@
+{
+  "schema": "uor-r4.geometric-value-learning/1",
+  "driver_commit": "41db5aebaacfdadb9a671b4dd5ae6d688385e73d",
+  "driver_merge": "66d09f2ff981390e3b5f1ba0afe79b52e790a439",
+  "source_binding": "external exact source/library/commit blobs and executable SHA; embedded commit UNAVAILABLE",
+  "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002",
+  "card": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5948328626",
+  "diagnostic_card": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5948526473",
+  "seeds": [
+    {
+      "seed": 1,
+      "report_sha256": "7daa9f3e6105f8e1d204c0c9b8d1085aba6386eb76fea157a158ae0cd5d17f5b",
+      "manifest_sha256": "e578e24309c02bf8eb72fa1ff49a9a8cb3c7e37dbba6b4629dfa80e68583327a",
+      "execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 205.40727186203003,
+        "sampled_peak_model_rss_kib": 387344,
+        "executable_sha256": "2423c58c4b03cc0d246f1a561de3b3fce430e63516cde4bead530565b447011c",
+        "source_head": "41db5aebaacfdadb9a671b4dd5ae6d688385e73d",
+        "args": {
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-native-20261002/run-1/GeometricSpan-Ordered-s1/native-context",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-native-20261002/run-1/GeometricSpan-Ordered-s1/context-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/native-events",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/event-source",
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s1/model",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-potentials",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-actions",
+          "mode": "fit",
+          "seed": "1",
+          "steps": "640",
+          "rate": "0.003",
+          "max_seconds": "10800",
+          "evaluation_reserve_seconds": "900",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/stress.json",
+          "prior_k1": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-codec-20261002/run-1-s1",
+          "prior_k2": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1"
+        }
+      },
+      "trained_artifacts": {
+        "context-source": {
+          "h4-tables.bin": {
+            "bytes": 15601,
+            "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+          },
+          "metadata.json": {
+            "bytes": 7077,
+            "sha256": "b446729e6a711be205f18b0a3a23862ee48787eee3d1b87e2a631a744fa07034"
+          },
+          "tokenizer-identity.bin": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          },
+          "context-parameters.safetensors": {
+            "bytes": 420080,
+            "sha256": "102d6ec3ff84c06ff581831b63fbecf72e18fe328363f84bd0ea2d0a080c460c"
+          }
+        },
+        "value-source": {
+          "metadata.json": {
+            "bytes": 1008,
+            "sha256": "b727f53753d8bc1a847f65e99e120687a21040460ee04475d1ebafad575557c5"
+          },
+          "value-parameters.safetensors": {
+            "bytes": 516424,
+            "sha256": "eb4ea56648b1ec0d3ffb982fc4e65f957dcecbf318974ca7723ab4ebfe11a7ef"
+          }
+        },
+        "native-context": {
+          "h4-tables.bin": {
+            "bytes": 15601,
+            "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+          },
+          "context-tables-i32le.bin": {
+            "bytes": 3031040,
+            "sha256": "ff1e6ecc42676e1c34365a70778acd6a97d28f3535a0dba94657bee04904a881"
+          },
+          "metadata.json": {
+            "bytes": 8228,
+            "sha256": "c82f0fe2b84e03aba4bd076e93e2ad8cd0423ded661091faf20641d87bfc4469"
+          },
+          "tokenizer-identity.bin": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          }
+        },
+        "native-values": {
+          "metadata.json": {
+            "bytes": 25956,
+            "sha256": "e7b37bda49d9451c186d6418f18db1046c7cbb152ca516ffb759b26fddfc6022"
+          },
+          "tokenizer-identity.bin": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          },
+          "value-tables-i32le.bin": {
+            "bytes": 4352000,
+            "sha256": "92f09834c8f424d2e252d80afb19842f3a247549259662c574a979b48bdb54b5"
+          }
+        }
+      },
+      "training": {
+        "actual_training_episodes": 5120,
+        "actual_training_positions": 246576,
+        "padded_training_positions": 287232,
+        "training_time_min": 36,
+        "training_time_max": 80,
+        "full_causal_context_ceiling": 128,
+        "value_coordinates_per_head": 16,
+        "teacher_preparation_seconds": 62.74552269400001,
+        "forward_backward_update_seconds": 130.2857268760001,
+        "elapsed_seconds": 204.384360875
+      },
+      "panels": {
+        "original": {
+          "summary": {
+            "answers": {
+              "float_prediction": 78,
+              "float_reset_prediction": 69,
+              "native_prediction": 78,
+              "native_reset_prediction": 69
+            },
+            "complete": true,
+            "float_native_answer_changes": 0,
+            "maximum_actual_logit_delta": 0.00024235248565673828,
+            "native_action_position_disagreements": 0,
+            "native_address_lane_disagreements": 0,
+            "native_coordinate_disagreements": 0,
+            "native_packet_disagreements": 0,
+            "native_state_position_disagreements": 0,
+            "parent_action_position_changes": 6197,
+            "parent_address_lane_changes": 7648,
+            "parent_state_position_changes": 6216,
+            "requested_rows": 128,
+            "reset_changed_predictions": 45,
+            "rowwise_prior_comparisons": {
+              "native_changed_from_donor": 36,
+              "native_changed_from_initial": 119,
+              "native_changed_from_k1": 35,
+              "native_changed_from_k2": 39,
+              "native_gain_from_donor": 4,
+              "native_gain_from_initial": 74,
+              "native_gain_from_k1": 10,
+              "native_gain_from_k2": 6,
+              "native_loss_from_donor": 26,
+              "native_loss_from_initial": 3,
+              "native_loss_from_k1": 17,
+              "native_loss_from_k2": 25
+            },
+            "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+            "scored_rows": 128
+          },
+          "initial": {
+            "complete": true,
+            "donor_answers": 100,
+            "requested_rows": 128,
+            "scope": "actual learned-head initialization, zero updates; frozen native donor comparison",
+            "scored_rows": 128,
+            "untrained_answers": 7
+          },
+          "rows_sha256": "df188af7866bc0ae14762f7731d5bb1707fed1588c795acea053b6e9621a82a1",
+          "replay_rows_sha256": "5fc3bc9c74408629d92de1a797fd84be3752a2d9d3723561fb04e858cae2239b",
+          "new_context_donor_answers": 99,
+          "new_context_k2_answers": 97,
+          "replay_coordinate_bound_violations": 0,
+          "replay_restored_chunks": 16
+        },
+        "stress": {
+          "summary": {
+            "answers": {
+              "float_prediction": 84,
+              "float_reset_prediction": 81,
+              "native_prediction": 84,
+              "native_reset_prediction": 81
+            },
+            "complete": true,
+            "float_native_answer_changes": 0,
+            "maximum_actual_logit_delta": 0.00010901689529418945,
+            "native_action_position_disagreements": 0,
+            "native_address_lane_disagreements": 0,
+            "native_coordinate_disagreements": 0,
+            "native_packet_disagreements": 0,
+            "native_state_position_disagreements": 0,
+            "parent_action_position_changes": 8247,
+            "parent_address_lane_changes": 9973,
+            "parent_state_position_changes": 8272,
+            "requested_rows": 128,
+            "reset_changed_predictions": 57,
+            "rowwise_prior_comparisons": {
+              "native_changed_from_donor": 37,
+              "native_changed_from_initial": 114,
+              "native_changed_from_k1": 40,
+              "native_changed_from_k2": 38,
+              "native_gain_from_donor": 3,
+              "native_gain_from_initial": 75,
+              "native_gain_from_k1": 10,
+              "native_gain_from_k2": 4,
+              "native_loss_from_donor": 29,
+              "native_loss_from_initial": 3,
+              "native_loss_from_k1": 22,
+              "native_loss_from_k2": 30
+            },
+            "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+            "scored_rows": 128
+          },
+          "initial": {
+            "complete": true,
+            "donor_answers": 110,
+            "requested_rows": 128,
+            "scope": "actual learned-head initialization, zero updates; frozen native donor comparison",
+            "scored_rows": 128,
+            "untrained_answers": 12
+          },
+          "rows_sha256": "bfc3df63dbae70c0ba4581c01f35f6331fc941c5a6a625cd470d9eee306056ca",
+          "replay_rows_sha256": "4baa8a2a00f217e3c5ed38cef8101b74b72cbdd97ba96dadd55f93f894024b3c",
+          "new_context_donor_answers": 110,
+          "new_context_k2_answers": 109,
+          "replay_coordinate_bound_violations": 0,
+          "replay_restored_chunks": 16
+        }
+      },
+      "replay_report_sha256": "d00ccbb8c20d3e21f4663f445d9821a8e91f9e10aed7ef23414845499c86e6ff",
+      "replay_manifest_sha256": "5f446073d5433543c53ccd4261675904961d7c575924449afd808ad8a6585970",
+      "replay_execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 3.5846610069274902,
+        "executable_sha256": "1b9c4df06c05da85dc54a03e7c5c9fbeaf3a6e45e6c5aa52427422aad20876f4",
+        "args": {
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s1/model",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1/trained/context-source",
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s1/trained/native-context",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/event-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s1/native-events",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-actions",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s1/native-potentials",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s1/stress.json",
+          "representation": "k2",
+          "max_seconds": "300",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/replay-1-s1"
+        }
+      }
+    },
+    {
+      "seed": 2,
+      "report_sha256": "dd15dec70edb39f2bf950662b05a362caf4364f24d3800926cc403a02947daea",
+      "manifest_sha256": "0afe1383b87453d224308ff2177870dd4b2a84e754f4319a48e793274fc10377",
+      "execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 210.50942492485046,
+        "sampled_peak_model_rss_kib": 394080,
+        "executable_sha256": "2423c58c4b03cc0d246f1a561de3b3fce430e63516cde4bead530565b447011c",
+        "source_head": "41db5aebaacfdadb9a671b4dd5ae6d688385e73d",
+        "args": {
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-native-20261002/run-1/GeometricSpan-Ordered-s2/native-context",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-native-20261002/run-1/GeometricSpan-Ordered-s2/context-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/native-events",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/event-source",
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s2/model",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-potentials",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-actions",
+          "mode": "fit",
+          "seed": "2",
+          "steps": "640",
+          "rate": "0.003",
+          "max_seconds": "10800",
+          "evaluation_reserve_seconds": "900",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/stress.json",
+          "prior_k1": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-codec-20261002/run-2-s2",
+          "prior_k2": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2"
+        }
+      },
+      "trained_artifacts": {
+        "context-source": {
+          "h4-tables.bin": {
+            "bytes": 15601,
+            "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+          },
+          "metadata.json": {
+            "bytes": 7077,
+            "sha256": "deea778aa1f13456c4bba6ca0ba07d9d5cb2dbfcd48e2b485a70751748c45fc3"
+          },
+          "tokenizer-identity.bin": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          },
+          "context-parameters.safetensors": {
+            "bytes": 420080,
+            "sha256": "3b1e0fbad2d8783c94b36b85c28532712427985dff02fcde9326d51100159b1b"
+          }
+        },
+        "value-source": {
+          "metadata.json": {
+            "bytes": 1008,
+            "sha256": "015a8c10639393953c39582ab9695d27791a9ab0451e3d7482e8b427d791d127"
+          },
+          "value-parameters.safetensors": {
+            "bytes": 516424,
+            "sha256": "a11472805275fd469ff38c826546f450246836d94840e43385a35a0c6c34d843"
+          }
+        },
+        "native-context": {
+          "h4-tables.bin": {
+            "bytes": 15601,
+            "sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa"
+          },
+          "context-tables-i32le.bin": {
+            "bytes": 3031040,
+            "sha256": "1927f551544d0a11759311dd500c23b97129f593185646989b708c93c1b4780a"
+          },
+          "metadata.json": {
+            "bytes": 8228,
+            "sha256": "d44af413ac91a0cfa02c69e8cd370051faf7d4b59f773fdd6882b734649b1b98"
+          },
+          "tokenizer-identity.bin": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          }
+        },
+        "native-values": {
+          "metadata.json": {
+            "bytes": 25956,
+            "sha256": "751700bbd49e494f86ca1b2f742e4d8bfb96083ef97293e4c46a5c1426d387a6"
+          },
+          "tokenizer-identity.bin": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          },
+          "value-tables-i32le.bin": {
+            "bytes": 4352000,
+            "sha256": "20ff7940d1260b98993b9d686d88d3377d214d592807ab02f48222bb5e6c32c2"
+          }
+        }
+      },
+      "training": {
+        "actual_training_episodes": 5120,
+        "actual_training_positions": 245846,
+        "padded_training_positions": 286352,
+        "training_time_min": 36,
+        "training_time_max": 80,
+        "full_causal_context_ceiling": 128,
+        "value_coordinates_per_head": 16,
+        "teacher_preparation_seconds": 62.78388632700004,
+        "forward_backward_update_seconds": 131.21519475299996,
+        "elapsed_seconds": 205.393903166
+      },
+      "panels": {
+        "original": {
+          "summary": {
+            "answers": {
+              "float_prediction": 122,
+              "float_reset_prediction": 45,
+              "native_prediction": 122,
+              "native_reset_prediction": 45
+            },
+            "complete": true,
+            "float_native_answer_changes": 0,
+            "maximum_actual_logit_delta": 0.00016416609287261963,
+            "native_action_position_disagreements": 0,
+            "native_address_lane_disagreements": 0,
+            "native_coordinate_disagreements": 0,
+            "native_packet_disagreements": 0,
+            "native_state_position_disagreements": 0,
+            "parent_action_position_changes": 5959,
+            "parent_address_lane_changes": 5403,
+            "parent_state_position_changes": 5960,
+            "requested_rows": 128,
+            "reset_changed_predictions": 82,
+            "rowwise_prior_comparisons": {
+              "native_changed_from_donor": 6,
+              "native_changed_from_initial": 123,
+              "native_changed_from_k1": 6,
+              "native_changed_from_k2": 6,
+              "native_gain_from_donor": 0,
+              "native_gain_from_initial": 119,
+              "native_gain_from_k1": 0,
+              "native_gain_from_k2": 0,
+              "native_loss_from_donor": 6,
+              "native_loss_from_initial": 0,
+              "native_loss_from_k1": 6,
+              "native_loss_from_k2": 6
+            },
+            "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+            "scored_rows": 128
+          },
+          "initial": {
+            "complete": true,
+            "donor_answers": 128,
+            "requested_rows": 128,
+            "scope": "actual learned-head initialization, zero updates; frozen native donor comparison",
+            "scored_rows": 128,
+            "untrained_answers": 3
+          },
+          "rows_sha256": "3a20a5c33c7d4a9ca2c72a0cfec1c91412e1698a356ac6a32a57fa08c1135c51",
+          "replay_rows_sha256": "2082850cd1ed3ab51bbb2663078435ccfefd15e86f844e5d6671d50dc32545a6",
+          "new_context_donor_answers": 128,
+          "new_context_k2_answers": 128,
+          "replay_coordinate_bound_violations": 0,
+          "replay_restored_chunks": 16
+        },
+        "stress": {
+          "summary": {
+            "answers": {
+              "float_prediction": 122,
+              "float_reset_prediction": 45,
+              "native_prediction": 122,
+              "native_reset_prediction": 45
+            },
+            "complete": true,
+            "float_native_answer_changes": 0,
+            "maximum_actual_logit_delta": 0.00018233060836791992,
+            "native_action_position_disagreements": 0,
+            "native_address_lane_disagreements": 0,
+            "native_coordinate_disagreements": 0,
+            "native_packet_disagreements": 0,
+            "native_state_position_disagreements": 0,
+            "parent_action_position_changes": 8015,
+            "parent_address_lane_changes": 8188,
+            "parent_state_position_changes": 8016,
+            "requested_rows": 128,
+            "reset_changed_predictions": 83,
+            "rowwise_prior_comparisons": {
+              "native_changed_from_donor": 5,
+              "native_changed_from_initial": 121,
+              "native_changed_from_k1": 7,
+              "native_changed_from_k2": 5,
+              "native_gain_from_donor": 0,
+              "native_gain_from_initial": 115,
+              "native_gain_from_k1": 1,
+              "native_gain_from_k2": 0,
+              "native_loss_from_donor": 5,
+              "native_loss_from_initial": 1,
+              "native_loss_from_k1": 6,
+              "native_loss_from_k2": 5
+            },
+            "scope": "all comparisons authored development; float source masses use separate identical scoring pass; native query rows from actual prediction pass; reset affects context state only, preserving span memory; joint answer credit includes address and value paths",
+            "scored_rows": 128
+          },
+          "initial": {
+            "complete": true,
+            "donor_answers": 127,
+            "requested_rows": 128,
+            "scope": "actual learned-head initialization, zero updates; frozen native donor comparison",
+            "scored_rows": 128,
+            "untrained_answers": 8
+          },
+          "rows_sha256": "a7ac19cf92b6f1a55449edb7f7bdd8c3f09459fdd65da693c7d23c48654b36ef",
+          "replay_rows_sha256": "bd13b44eca4d6be6b9d97516c76e851a3fa8ec3c67c42617ab83619e6edf2f54",
+          "new_context_donor_answers": 128,
+          "new_context_k2_answers": 128,
+          "replay_coordinate_bound_violations": 0,
+          "replay_restored_chunks": 16
+        }
+      },
+      "replay_report_sha256": "65a4980b3e689b4113d380e4b44c7383a9eba7d4936ed2a63e56b69d0389297e",
+      "replay_manifest_sha256": "405b5f1f8d5d886683bf4b57128a62e3ef622ab3b13110da7e017af80a297c72",
+      "replay_execution": {
+        "exit_code": 0,
+        "elapsed_seconds": 3.547652006149292,
+        "executable_sha256": "1b9c4df06c05da85dc54a03e7c5c9fbeaf3a6e45e6c5aa52427422aad20876f4",
+        "args": {
+          "model": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001/run-1/GeometricSpan-Ordered-s2/model",
+          "context_source": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2/trained/context-source",
+          "context_native": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/run-1-s2/trained/native-context",
+          "event_source": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/event-source",
+          "event_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-event-native-20261001/run-1/GeometricSpan-Ordered-s2/native-events",
+          "span_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-actions",
+          "potential_native": "/Users/casey.allard/.local/share/uor-r4/research/geometric-potential-native-20261001/run-1/GeometricSpan-Ordered-s2/native-potentials",
+          "evaluation": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/evaluation.json",
+          "stress": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-residual-20261002/run-1-s2/stress.json",
+          "representation": "k2",
+          "max_seconds": "300",
+          "out": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/replay-1-s2"
+        }
+      }
+    }
+  ],
+  "audits": {
+    "final-results-audit.md": {
+      "path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/final-results-audit.md",
+      "sha256": "965a4f4fc7664440ac4650b8f0ba3c796c957243b83709bfa0e934c96ff41adb"
+    },
+    "diagnostic-control-join.json": {
+      "path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/diagnostic-control-join.json",
+      "sha256": "f0ee2157dc86cfe52a8e84c682dd7f171f271e5216a2981cf65d2caad817e984"
+    },
+    "diagnostic-control-join.md": {
+      "path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-value-joint-fit-20261002/diagnostic-control-join.md",
+      "sha256": "9c6a77f6f829391fdf14ebebe03f556b1bbf0aaa94eb5342a1fb40340e0de598"
+    },
+    "joint-fit-admissibility.md": {
+      "path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-finite-credit-20261002/joint-fit-admissibility.md",
+      "sha256": "3db164a6dc84c6e2825713f98d2f83068395f670ebad3cfb5b1340f7f3e2c052"
+    }
+  },
+  "scope": "learned geometric context/value components on authored open development grammar; no geometry advantage, arbitrary donor conversion, general language, full integer serving or energy qualification",
+  "new_fit_storage_limit_mib": 640,
+  "retained_attention_limit_mib": 1600,
+  "complete_cycle_limit_hours": 13,
+  "complete_cycle_end_utc": "2026-10-02T15:57:00Z",
+  "driver_source_hashes": {
+    "crates/uor-r4-training/examples/attention-geometric-value-learned.rs": "6487df6ffb6208c3ed2a65a99d8369d2e7f6312702ad96a3570e18ed5ba57809",
+    "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+    "crates/uor-r4-training/examples/attention-geometric-value-native.rs": "9f2f536de2289d6d95c5d126aa2c719435104a81dac55e79e7eb4791b0f5c0a8"
+  }
+}

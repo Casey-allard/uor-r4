@@ -1,5 +1,35 @@
 # Current UOR-R4 research state
 
+## Learned geometric values — completed two-seed fit, October 2
+
+Both fixed 640-update joint fits complete from the accepted context parents.
+Actual token/retained-H4/span-conditioned values now supply the reader without
+donor-value input. Learned float/compiled answers are 78/84 and 122/122 on
+original/stress (128 rows each); untrained heads are 7/12 and 3/8. Context reset
+is 69/81 and 45/45 while preserving held spans. All measured compiled state,
+action, address, packet, Q16 and answer choices agree; logits differ slightly.
+These are authored development results, not unchanged donor retention or
+complete integer serving. NoRead, trunk and output remain floating.
+
+The controlled no-fit payload replay holds both heads' integer query mixtures
+exactly fixed. New-context donor/K2 answers are 99/97 and 110/109 for seed1
+original/stress, and 128/128 on both seed2 panels. Both substitutions rescue
+65 of 106 learned failures; reverse cases are retained. This locates many
+regressions at learned-value/frozen-output compatibility rather than justifying
+an address or alphabet redesign. Keep the learned producer and both seeds.
+
+The [full result](geometric-value-learning-2026-10-02.md) and
+[receipt](../evidence/geometric-value-learning-2026-10-02.json) bind complete
+training/data/controls/cost and row-level artifacts. Source #1609 is merged
+at `66d09f2ff981390e3b5f1ba0afe79b52e790a439`, with all six reviewed blobs
+verified. Next is one declared comparison of frozen-teacher query-read-weighted
+auxiliary credit against uniform credit at matched additional dose and initial
+artifacts, preserving answer loss and geometry. It is proposed, not run;
+optimizer moments were not saved and any restart must be shared and declared.
+No perfect donor-imitation gate or automatic dose/selector/alphabet sweep.
+Claude retains the concurrent D19 session lane; geometric attention stays #1512.
+
+
 ## D19 grounded conversation session — measured best configuration, October 2
 
 The grounded session (#1552) now combines four merged or queued changes:
@@ -64,7 +94,8 @@ and native reloads execute, and all measured context/action/address/packet/Q16/
 answer differences are zero on eight original and eight stress rows per seed.
 The [driver receipt](../evidence/geometric-value-joint-driver-2026-10-02.json)
 binds the executed sources and executable. These are construction checks; the
-fit has not run. Data mass, substantive dose,
+fit had not run at that source checkpoint; the completed fit is recorded above.
+Data mass, substantive dose,
 checkpoints, evaluation reserve and complete cost must be declared before fit.
 Claude retains the concurrent GroundedSession/D19 lane; this work does not edit
 its session source or introduce serving q/k projections.

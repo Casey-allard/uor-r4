@@ -120,30 +120,32 @@ successful rows. End this representation comparison without an alphabet sweep. T
 learning bridge and its source-bound finite-factor compiler are implemented in
 [PR #1608](https://github.com/UOR-Foundation/uor-r4/pull/1608), with focused
 executed interface, gradient, reload and arithmetic checks. They are not fitted
-language evidence. The next task continues both accepted 640-update context
-parents through the explicit consuming finite-choice conversion and jointly
-learns transition families and the two-atom value head. Keep the existing
-context observation/readout, scorer, event/span controller, donor trunk,
-NoRead and output interface frozen for this causal fit.
+language evidence. The first fixed joint fit now completes both accepted 640-update context
+continuations; [the result](geometric-value-learning-2026-10-02.md) retains all
+learned, parent and reconstruction rows. Integer compilation retains measured
+choices, while useful learned values still lose donor answers. Exact controlled
+payload substitutions with the new context recover many failures, including
+128/128 on both seed2 panels. Retain geometric addressing and the fixed K2
+alphabet; do not infer architecture failure or force exact imitation.
 
-Use mean answer cross entropy as the primary objective plus 0.1 times the sum
-of separately normalized K2 root and category cross entropies on actual valid
-positions. Packet supervision is offline auxiliary credit, including explicit
-zero-category escape; perfect donor reconstruction is not an admission gate.
-Frozen retained inputs have donor-target aliases, including a verified
-same-input/same-answer witness. Keep input sufficiency, additive-factor
-expressivity, optimization and F32/Q24 compilation retention distinct.
+The next specific learning hypothesis is auxiliary allocation: uniform packet
+credit mostly supervises positions outside stored values. Compare a fixed
+stop-gradient weighting from the frozen teacher's actual query-read distribution
+with uniform credit at matched additional dose, initial learned artifacts,
+optimizer restart, data and cost. Keep answer CE primary, context observation/
+readout, scorer, event/span controller, base/NoRead/output and alphabet fixed.
+Teacher labels and weights remain offline supervision, not serving features or
+gold source selection. Norms alone do not prove gradient opposition. Declare
+restart because Adam moments were not preserved; do not imply exact optimizer
+resume. This comparison is not yet implemented or executed.
 
-Before updates, record the untrained-head result. After fitting, independently
-reload the compiled context and values and compare every original/stress row
-against donor, K1 and K2 records, the floating learned path and context reset.
-Record pure answer gradients to value factors and transitions separately from
-auxiliary gradients. Preserve all prior successes and failures. Freeze dose,
-data mass, context access, resource limits, checkpoints and evaluation reserve
-before launch; incomplete runs cannot establish a family-wide negative.
-The opt-in finite-action policy remains a biased surrogate rather than an
-argmax derivative or optimization guarantee. NoRead and compatible geometric
-output remain subsequent obligations.
+Preserve every old and newly learned success/failure, including learned answers
+absent from the K2 oracle. Keep input sufficiency, additive-factor expressivity,
+optimization and F32/Q24 compilation retention distinct. The finite-action
+policy is a biased surrogate, not an argmax derivative or optimization guarantee.
+Record actual data mass/context access, checkpoints, evaluation reserve and
+complete cost before launch; partial dose is not a family-quality verdict.
+NoRead and compatible geometric output remain subsequent obligations.
 
 For value compilation, keep the existing four coordinates per lane and sixteen
 per head until an explicit decoder-interface change. Packet status, exact
