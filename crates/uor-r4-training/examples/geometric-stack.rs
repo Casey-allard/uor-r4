@@ -669,6 +669,17 @@ struct Settings {
     resume: Option<PathBuf>,
     max_seconds: f64,
     sample_tokens: usize,
+    /// `device=cpu|metal` (default cpu). A Metal run needs the `metal` feature
+    /// and every executed op to have a Metal kernel.
+    device: Device,
+}
+
+/// `device=cpu|metal` (default cpu); no implicit fallback.
+fn device_arg(args: &Args) -> Result<Device> {
+    match args.optional("device") {
+        None => Ok(Device::Cpu),
+        Some(name) => uor_r4_training::baseline_protocol::device(&name),
+    }
 }
 
 /// The served representation of `qat=true`.
@@ -1272,6 +1283,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         resume: args.optional("resume").map(PathBuf::from),
         max_seconds: args.number("max_seconds", f64::INFINITY)?,
         sample_tokens: args.number("sample_tokens", 128)?,
+        device: device_arg(args)?,
     };
     if settings.steps == 0
         || settings.batch == 0
@@ -1613,7 +1625,7 @@ fn load_checkpoint(
 }
 
 fn train(settings: &Settings, out: &Path) -> Result<()> {
-    let device = Device::Cpu;
+    let device = settings.device.clone();
     // `init=`'s files are hashed once, here, before the model is loaded.
     let init_files = settings
         .init
@@ -3188,6 +3200,9 @@ struct DialogueSettings {
     /// `protocol=1|2`: the literal-role dialogue version of both corpora
     /// (their assistant markers locate the scored responses).
     protocol: u8,
+    /// `device=cpu|metal` (default cpu). A Metal run needs the `metal` feature
+    /// and every executed op to have a Metal kernel.
+    device: Device,
 }
 
 impl DialogueSettings {
@@ -3341,6 +3356,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "max_seconds",
             "requests",
             "max_new_tokens",
+            "device",
             "qat",
             "transport_snap",
             "select",
@@ -3397,6 +3413,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             Some("2") => 2,
             Some(other) => return Err(invalid(format!("invalid protocol={other} (1 or 2)"))),
         },
+        device: device_arg(&args)?,
     };
     if settings.steps == 0
         || !(1..=64).contains(&settings.batch)
@@ -3590,7 +3607,7 @@ fn panel_transport(
 }
 
 fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
-    let device = Device::Cpu;
+    let device = s.device.clone();
     let tokenizer =
         uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(&s.tokenizer)?)
             .ok_or_else(|| invalid("unreadable tokenizer.json"))?;
@@ -4396,6 +4413,7 @@ fn main() -> Result<()> {
                     "resume",
                     "max_seconds",
                     "sample_tokens",
+                    "device",
                     "memory_layers",
                     "memory_sub_keys",
                     "memory_top_k",
