@@ -1009,11 +1009,6 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
     let mut recall_lines = 0usize;
     let tokenizer = load_tokenizer(&tokenizer_path)?;
     let version = protocol_version_of(args)?;
-    if version != 1 && args.optional("chat").is_some() {
-        return Err(invalid(
-            "chat= documents are prepared in protocol 1; a protocol=2 corpus is M-world alone",
-        ));
-    }
     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)
         .map_err(|e| invalid(format!("protocol: {e}")))?;
     let encoder = protocol
@@ -1028,6 +1023,20 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
         Some(dir) => Some(load_chat(Path::new(&dir), &tokenizer_path)?),
         None => None,
     };
+    // A chat corpus is merged only in the protocol it declares (none
+    // declared is protocol 1, e.g. chat-v0 as prepared; reencode-dialogue
+    // writes a declared protocol 2 copy).
+    if let Some(chat) = &chat {
+        let declared = chat.manifest["dialogue_protocol"]
+            .as_str()
+            .unwrap_or(uor_r4_tokenizer::dialogue::SCHEMA);
+        if declared != protocol.schema {
+            return Err(invalid(format!(
+                "chat= is in {declared}; this corpus is in {}",
+                protocol.schema
+            )));
+        }
+    }
     let vocab = match &chat {
         Some(chat) => chat.reader.vocab_size(),
         None => u32::try_from(tokenizer.vocab_size())
@@ -4029,11 +4038,6 @@ fn main() -> Result<()> {
         let version = protocol_version_of(&args)?;
         if version != 1 && world_of(&args)? != World::V2 {
             return Err(invalid("protocol=2 needs world=v2"));
-        }
-        if version != 1 && args.optional("chat").is_some() {
-            return Err(invalid(
-                "chat= documents are prepared in protocol 1; a protocol=2 corpus is M-world alone",
-            ));
         }
     }
     if mode == "corpus" {
