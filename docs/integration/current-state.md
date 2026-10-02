@@ -1,5 +1,42 @@
 # Current UOR-R4 research state
 
+## D19 grounded conversation session — measured best configuration, October 2
+
+The grounded session (#1552) now combines four merged or queued changes:
+- the op-model compiler with its saved table, combined by
+  `op_policy=unless_query` (#1598);
+- an exact prime-atom log recall for turns the compiler leaves unresolved
+  (#1600), with its reload fix (#1604);
+- dialogue protocol 2, which puts the space after a role marker inside the
+  message (#1591, #1597);
+- a protocol-2 copy of chat-v0 (#1602).
+
+The emitter is emit-5c: emit-1, then M-world recall-line, plain and
+instruction-heavy protocol-2 fine-tunes (iCloud store `results/claude/emit-5c`).
+
+Measured on M-world v2 development (300 conversations, seed 9101, one draw),
+with `max_new_tokens=64`:
+
+| Configuration | Copy | Instruction | MQAR | Relation | Responsive |
+|---|---|---|---|---|---|
+| emit-1 × table compiler (start of 2 October) | 0/33 | 8/98 | 20/109 | 60/83 | 442/752 |
+| **emit-5c × `unless_query` × `log_recall=sieve`** | **18/33** | **28/98** | **108/109** | **76/83** | **589/752** |
+
+Relation detail: open 45/52, closed 17/17, open abstain 8/8. A save and
+fresh load of the previous best configuration (emit-4p2a) continued
+identically in 20/20 conversations.
+
+**Scope.** This is measured behaviour on the authored M-world world. It is
+not general prose, general reasoning or open-domain memory. The world's
+fixed vocabulary is the sieve's stop list. Instruction skills that the 2.1M
+model does not acquire from templates stay near zero: `add` 0/15 and
+`first_letter` 0/11. Every comparison above is paired on the same
+conversations; per-step records and McNemar counts are on #1552.
+
+**Next.** General instruction and chat capability needs more model or data
+scale. The memory path (compiler, store, log recall, reload) is the retained
+D19 deliverable.
+
 
 
 
