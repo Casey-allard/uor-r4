@@ -111,10 +111,18 @@ embeddings alone are not assumed to contain reasoning.
    no additional scalar sweep is prescribed.
 4. The [connected geometric read.out composition](geometric-read-composition-2026-10-02.md)
    now supplies a native two-term H4 transport/q4 bank before per-head reduction.
-   Source/compiled construction and answer gradients pass; no optimizer fit is
-   run. Untrained answer losses cannot retire the restricted operator family.
-   Next build bank-only answer learning and measure actual B8 cost before its
-   prospective dose card; preserve offline donor compilation as a separate option.
+   The [fixed bank-only answer fits](geometric-read-composition-fit-2026-10-02.md)
+   now complete both640-update seeds: source/native102/109 and128/128, with
+   all512 answers agreeing after independent reload. Preserve learned, initialized
+   and parent candidates: accuracy improves or ties parent while CE is worse.
+   End this fixed dose and advance the strict four-bit learned-coefficient
+   boundary first in the K2 value producer: packed q4 source factors and
+   regenerated signed-root tables with context/events/address/NoRead/composition/
+   tail frozen. Compare actual loaded projection before admitting answer learning;
+   packet-perfect imitation is not an admission gate. No repeated bank/selector/
+   alphabet sweep.
+   Neither initialization nor a mixed fitted result retires geometry. Preserve
+   offline donor compilation as a separate option.
    Learn compatible geometric output/combination operators and integrate natural
    token spans, role, scope and temporal intent with the durable store/session.
    Preserve exact payload references for copying and identity-sensitive reads.

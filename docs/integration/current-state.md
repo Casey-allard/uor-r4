@@ -21,8 +21,23 @@ Var-alias restore defect is repaired and its failed sealed attempt retained.
 [Source and results](geometric-read-composition-2026-10-02.md) ·
 [Receipt](../evidence/geometric-read-composition-2026-10-02.json).
 
-Next: bank-only answer-learning driver and actual B8 zero-update cost check,
-then a prospective fixed-dose card. No fit is run at this source checkpoint.
+Both bank-only answer fits now complete640 updates with all upstream producers,
+NoRead, base and tail frozen. Source/native answers102/109 and128/128 agree on
+all512 full-panel rows; initialized banks28/23 and0/9 are retained. Parent
+answers98/104 and128/128 are retained with every gained/lost row. Answer CE
+improves from initialization but is worse than parent in all four panels, so
+this is useful learned composition with mixed quality, not a preserving drop-in
+or geometric advantage. Actual workers take193.721/184.426s at about210MB RSS.
+[Learning record](geometric-read-composition-fit-2026-10-02.md) ·
+[Receipt](../evidence/geometric-read-composition-fit-2026-10-02.json).
+
+End this fixed dose; retain the learned bank and next address the strict four-bit
+learned-coefficient boundary in the actual K2 value producer: packed q4
+source factors and regenerated signed-root tables, with context, events,
+addressing, NoRead, learned composition and tail frozen. Compare loaded
+projection first; use its losses to decide whether bounded answer learning
+is needed. No packet-perfect imitation gate. No repeated bank
+dose, selector/alphabet sweep or final-vocabulary-head detour is prescribed.
 Untrained quality cannot retire this restricted geometry family; K2 transports
 are not an arbitrary donor compiler. Preserve broader offline weight compilation.
 Wide producer/potential coefficients, float trunk/vocabulary output, semantic

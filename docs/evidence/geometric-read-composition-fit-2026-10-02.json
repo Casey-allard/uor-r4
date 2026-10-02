@@ -1,0 +1,896 @@
+{
+  "schema": "uor-r4.geometric-composition-answer-fit-result/1",
+  "date": "2026-10-02",
+  "references": [
+    "#1512",
+    "#973"
+  ],
+  "source_base": "4665444149dcf6fa324d24f7a51327b45d5a93d1",
+  "source": {
+    "crates/uor-r4-training/examples/attention-geometric-composition-fit.rs": {
+      "bytes": 28082,
+      "sha256": "b6c65eaf27a3615e21234c1b1ec9c8356df8e7dbf9464bc659bbc7bcae8f2936"
+    },
+    "crates/uor-r4-training/examples/attention-geometric-composition-fit/fit.rs": {
+      "bytes": 18780,
+      "sha256": "0d350cbe095803640296d230d5e8e69b07be33e02c91bb95130697eb432b7a84"
+    }
+  },
+  "preregistration": {
+    "driver_comment": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5953002174",
+    "fit_comment": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5953221861",
+    "timing_clarification": "https://github.com/UOR-Foundation/uor-r4/issues/1512#issuecomment-5953264283"
+  },
+  "executions": {
+    "check-1-s1-execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-composition-fit",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-fit-20261002/args-s1-check.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 3.67790891599725,
+      "source_sha256": {
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit.rs": "b6c65eaf27a3615e21234c1b1ec9c8356df8e7dbf9464bc659bbc7bcae8f2936",
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit/fit.rs": "0d350cbe095803640296d230d5e8e69b07be33e02c91bb95130697eb432b7a84",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 217989120,
+      "executable_sha256": "153de9d37b123155882b50e40908e79c2eef5a0906fb130e98d0c921b8b0966c"
+    },
+    "check-1-s2-execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-composition-fit",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-fit-20261002/args-s2-check.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 3.1602038750133943,
+      "source_sha256": {
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit.rs": "b6c65eaf27a3615e21234c1b1ec9c8356df8e7dbf9464bc659bbc7bcae8f2936",
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit/fit.rs": "0d350cbe095803640296d230d5e8e69b07be33e02c91bb95130697eb432b7a84",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 218693632,
+      "executable_sha256": "153de9d37b123155882b50e40908e79c2eef5a0906fb130e98d0c921b8b0966c"
+    },
+    "fit-1-s1-execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-composition-fit",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-fit-20261002/args-s1-fit.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 193.72076366702095,
+      "source_sha256": {
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit.rs": "b6c65eaf27a3615e21234c1b1ec9c8356df8e7dbf9464bc659bbc7bcae8f2936",
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit/fit.rs": "0d350cbe095803640296d230d5e8e69b07be33e02c91bb95130697eb432b7a84",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 209453056,
+      "executable_sha256": "153de9d37b123155882b50e40908e79c2eef5a0906fb130e98d0c921b8b0966c"
+    },
+    "driver-build-1-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "build",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-composition-fit"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 3.247461292,
+      "source_sha256": {
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit.rs": "b6c65eaf27a3615e21234c1b1ec9c8356df8e7dbf9464bc659bbc7bcae8f2936",
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit/fit.rs": "0d350cbe095803640296d230d5e8e69b07be33e02c91bb95130697eb432b7a84",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    },
+    "fit-1-s2-execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/build/codex-native-target/release/examples/attention-geometric-composition-fit",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-fit-20261002/args-s2-fit.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 184.42644558299799,
+      "source_sha256": {
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit.rs": "b6c65eaf27a3615e21234c1b1ec9c8356df8e7dbf9464bc659bbc7bcae8f2936",
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit/fit.rs": "0d350cbe095803640296d230d5e8e69b07be33e02c91bb95130697eb432b7a84",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 210092032,
+      "executable_sha256": "153de9d37b123155882b50e40908e79c2eef5a0906fb130e98d0c921b8b0966c"
+    },
+    "driver-tests-1-execution": {
+      "command": [
+        "/Users/casey.allard/.cargo/bin/cargo",
+        "test",
+        "-p",
+        "uor-r4-training",
+        "--release",
+        "--offline",
+        "--example",
+        "attention-geometric-composition-fit",
+        "composition_fit_",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.148591625,
+      "source_sha256": {
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit.rs": "b6c65eaf27a3615e21234c1b1ec9c8356df8e7dbf9464bc659bbc7bcae8f2936",
+        "crates/uor-r4-training/examples/attention-geometric-composition-fit/fit.rs": "0d350cbe095803640296d230d5e8e69b07be33e02c91bb95130697eb432b7a84",
+        "crates/uor-r4-training/examples/attention-geometric-value-learned/data.rs": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "crates/uor-r4-integer/src/geometric_composition.rs": "b437e9e42c1c598a2fdf05e0d4470d319a9967d9973d2aa7586fc774843cd8c2",
+        "crates/uor-r4-integer/src/geometric_composed_read.rs": "ef1760fcb6881404056007a7ce95366e1ae2143f99a518a767532dc470cbbb7b",
+        "crates/uor-r4-training/src/geometric_composition.rs": "fa197188507a86faec7dcb54a11c477485612af63f9526a68a9efe00947b47c4",
+        "crates/uor-r4-training/src/geometric_composition_native.rs": "14c55e3febed865750be27d37010d10c2e96c558ea9f9481c9d0c1a3577a39ba",
+        "crates/uor-r4-training/src/geometric_read_native.rs": "2f8d7d4e286987c84ab3b39da00e2cc9e499540c87ced214ec2357e00d1246f3",
+        "crates/uor-r4-training/src/geometric_stack.rs": "ca74ac445e4e4aa485c83e7b6420bd997c1c73258799aee2423bcd2a19804c12"
+      },
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": null,
+      "executable_sha256": "aeb4105778ca1bd3c6b0e75768f581c656633cd51368fa61289b6a71696ac7e1"
+    }
+  },
+  "seeds": [
+    {
+      "seed": 1,
+      "report_identity": {
+        "bytes": 20582,
+        "sha256": "f805ea43fc8250f3dd5b549a459bdf40159361dc8e3715ec736d2b46db65d034"
+      },
+      "manifest_identity": {
+        "bytes": 119517,
+        "sha256": "5c17df5b867451ba672c560653a04637aaf62a11f3fdbd8f88b78f1837293446"
+      },
+      "fit": {
+        "actual_positions": 245708,
+        "checkpoint_seconds": 0.018702708,
+        "clipped_updates": 131,
+        "completed": true,
+        "completed_backward_batches": 640,
+        "completed_updates": 640,
+        "elapsed_seconds": 188.2116035,
+        "forward_backward_update_seconds": 186.91803206799983,
+        "generator_state_semantics": "next RNG follows completed composition updates; AdamW moments are not serialized",
+        "initial_generator_state": 9347350181718662555,
+        "maximum_batch_time": 78,
+        "maximum_episode_length": 78,
+        "minimum_batch_time": 36,
+        "minimum_episode_length": 24,
+        "next_generator_state": 461503785751815875,
+        "observed_generator_state_after_draws": 461503785751815875,
+        "padded_positions": 285632,
+        "preparation_seconds": 0.10903046399999994,
+        "prepared_batches": 640,
+        "prepared_episodes": 5120,
+        "total_left_choice_changes": 255,
+        "total_projected_coordinates": 0,
+        "total_q4_flips": 1117,
+        "total_right_choice_changes": 346
+      },
+      "panels": [
+        {
+          "answers": {
+            "initial_bank": 28,
+            "native": 102,
+            "parent": 98,
+            "source": 102
+          },
+          "gains_from_initial": 74,
+          "gains_from_parent": 7,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses_from_initial": 0,
+          "losses_from_parent": 3,
+          "maximum_actual_position_logit_delta": 0.00028252601623535156,
+          "panel": "original",
+          "parent_rows_sha256": "ad38e83aeda6a2b5d0b5d8551b22cc3c172dabc543115bd199546d3e05627357",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0
+        },
+        {
+          "answers": {
+            "initial_bank": 23,
+            "native": 109,
+            "parent": 104,
+            "source": 109
+          },
+          "gains_from_initial": 88,
+          "gains_from_parent": 9,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses_from_initial": 2,
+          "losses_from_parent": 4,
+          "maximum_actual_position_logit_delta": 0.0007262229919433594,
+          "panel": "stress",
+          "parent_rows_sha256": "e824641a0ac1ab7bac66c27249e7a0926a7bc2bfe723249aba4d3b6b71fdc2f2",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0
+        }
+      ],
+      "compiled_metadata": {
+        "actual_bank_bytes": 320,
+        "config": {
+          "geometry_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "heads": 2,
+          "initialization": "fixed-v1;term0-left-right-identity-gain1/4;term1-left2-right3-gain-minus1/4;selector-selected-logit1-other0;no-data-selection/1",
+          "input_lanes": 4,
+          "output_lanes": 8,
+          "rule": "H2;head-output8-input4-term2;left*root*inverse(right);signed-q4[-7,7]/4-dimensionless;canonical-Q16-atoms;i64-sum-all-then-one-quarter-round-ties-away;no-presence-inference/1",
+          "schema": "uor-r4.geometric-composition-offline/1",
+          "surrogate": "hard-native-i64Q16-forward;conditional120-softmax-T1-full-transformed-K2-value-credit;other-selector-hard;gain-included;dimensionless-gain-shadow-hard-quarter-grid-identity-STE;post-update-project[-1.75,1.75];frozen-input-packets/1",
+          "terms_per_block": 2
+        },
+        "gains": {
+          "bytes": 64,
+          "sha256": "ed786073ec1808773c9ed59b67eef58123cf3f969ec6132ce508ab8a20170447"
+        },
+        "left": {
+          "bytes": 128,
+          "sha256": "944c9d5fe0b7fb696974eba2accd295a608eb5066c160c0b51a522dc54133b64"
+        },
+        "no_read_metadata": {
+          "bytes": 7035,
+          "sha256": "1b41b1950feb656fc2b1707ac9c7f6d3cea77a0764ac7bba52c1fb9e6e257d5d"
+        },
+        "numerical_composition_schema": "uor-r4.geometric-composition-two-sided-k2-i64-q16/1",
+        "numerical_reducer_schema": "uor-r4.geometric-composed-read-i64-q16/1",
+        "output_width": 32,
+        "parameters": {
+          "gains": {
+            "f32_bytes_sha256": "a4d92aed81279aaaa8c9c4122a585cf503901b64e761a3d917109fec34f0100c",
+            "shape": [
+              128
+            ]
+          },
+          "left_logits": {
+            "f32_bytes_sha256": "d872f343658f2d1ba4eeb790b576118e0648e626f436e186867c0dafece97890",
+            "shape": [
+              128,
+              120
+            ]
+          },
+          "right_logits": {
+            "f32_bytes_sha256": "f63089c18c0c7db8b2b227d0e67202fc4a8e119684b1a2aad5e0cc29b4baa70b",
+            "shape": [
+              128,
+              120
+            ]
+          }
+        },
+        "payload_fractional_bits": 16,
+        "payload_storage_bits": 64,
+        "policy": "H2-input4-output8-K2;left*root*inverse(right);byte-signed-H4-IDs;q4[-7,7]-reserved-minus8-reject;dimensionless-quarter-gain;one-ties-away-quarter-after-all-atoms;separate-i64-Q16;per-head-original-age-exp-NoRead;checked-i128-shift-add-longdivision;head-sum-after-normalization/1",
+        "reducer_metadata": {
+          "bytes": 1912,
+          "sha256": "f6efec6f95ea1e207012f1f776ef30637e094d4aad2a5a8eafb9426097587442"
+        },
+        "right": {
+          "bytes": 128,
+          "sha256": "2fcd663ac24cde7d42e061e178398240e57d090f93ed8dce8fd2f2c5d8469b72"
+        },
+        "schema": "uor-r4.geometric-read-composition-native/1",
+        "source_files": {
+          "composition-parameters.safetensors": {
+            "bytes": 123616,
+            "sha256": "201487daa7f5f3113ca42cd2c7d19fc9c0d9db684b96fb327a1c29a65723686c"
+          },
+          "metadata.json": {
+            "bytes": 1232,
+            "sha256": "cad8f6825dab50389b13ed74fcbc483328d7a2dc53460ece583175d13f26f2a5"
+          }
+        },
+        "tokenizer": {
+          "bytes": 315,
+          "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+        }
+      },
+      "elapsed_seconds": 193.598941583,
+      "parent": {
+        "construction_report_sha256": "73e1c965a8b47086a43dcb1260ad6eb534a61253e203ed7c240657082b0db7ec",
+        "data_helper_sha256": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "frozen_base_variables": {
+          "embedding.weight": "6a9fb401c4af4c75f2df61d5219be398203deddb12ebe641aa37e4efabfb5da0",
+          "final_norm.weight": "fc5a704862a6c65f06ca4c717c7c034b79cdfc4ea91ad6f23cf528046434a2f2",
+          "layers.00.mlp.down.weight": "213df593d7cea1ff5b7b220c4bb8ce572382e94099370eaef877c44a74b9e2a4",
+          "layers.00.mlp.gate.weight": "211cd8ba742e580de69c503e3c7d9d4079493d2e4659f867c9c4ef2548c961d2",
+          "layers.00.mlp.up.weight": "8aa1b476255799dc6f56671038fcb41ef4fc309598d297d109b0e845bef93d4b",
+          "layers.00.mlp_norm.weight": "3c1ccbb38a3f65e34c558b72151408f41c7a1a40e0761433ddba277093d51817",
+          "layers.00.rec.conv.bias": "39e680ebac9454e2119684b9c66e9e275b3e14469585d790c03956bb29433f53",
+          "layers.00.rec.conv.weight": "9cbef41a5704afc672d577e2630c814e0873c67ec5b4da8c866e1ad3850b4ed2",
+          "layers.00.rec.decay": "a18ff61527a114fae233353726d7da93fe73cfcee523c8208d8dcf5f529111d4",
+          "layers.00.rec.gate.bias": "d4a97a3d4fbdd539d660dc0e42a07a39b9c599b1bce1f43880275fef6ba7b230",
+          "layers.00.rec.gate.weight": "fc5498880e74dc6d6481df159ecf33df48075ed8718c143c7072712ab98b515d",
+          "layers.00.rec.in.weight": "dd36acff6198d098adf2d93579d82b7cbb4dd04558c5adef9cabe2d7a106dc77",
+          "layers.00.rec.out.weight": "db50052cd03274ec107aa69351ff075135e099e5ad833761b3200da3eacd311f",
+          "layers.00.rec_norm.weight": "6fe84b6fe87f0c41e1ece6a215a573e690cbef921cd07111237ab8f0cb12d048",
+          "layers.01.mlp.down.weight": "0c26bf28f0d2e9feb96e2b8db48c1a6452f5eddf65ffff87f054652b745d805c",
+          "layers.01.mlp.gate.weight": "7cdd5ba0062d96261db490812dda6d0cc2a9949730aa36ef4a982f70881cc924",
+          "layers.01.mlp.up.weight": "b1544eefec741c3d003139a833dc83bd6f5cabca1219eedde07cb3feac96ba0f",
+          "layers.01.mlp_norm.weight": "73f6b5683e77006eae427d8d6f71b5bd7d901877987cc7ed373577c1f6aea587",
+          "layers.01.rec.conv.bias": "a53d8e13528c99e086f8ec7581c260dd049759a3541688fa63bb633eac779203",
+          "layers.01.rec.conv.weight": "97f5978faf3e0f094a8e3cd6568d0204122d763c06f42f8cb4de93b621ea9aaf",
+          "layers.01.rec.decay": "f99fed224d5389b0d9bfb375fef60e88eaaa66a6adf44c4bf3372028a6b2d01d",
+          "layers.01.rec.gate.bias": "e1df70a6954cce55fbd6d6e3ff8e0cb0c4a6569f7a841dc83a36b0971aa8c877",
+          "layers.01.rec.gate.weight": "d961a18edfd8998320bc33f2d58e47da38d3c6a032b596a0fbebf8a165274c8c",
+          "layers.01.rec.in.weight": "b38e2925802f62271ffb9b907cbd834e2bf3ee862d07585f00658e0d8e48c7d2",
+          "layers.01.rec.out.weight": "ae8646d8040e93c97df6e1e727b58d393e2064ad31ff825a6a38ae2f96c067de",
+          "layers.01.rec_norm.weight": "65497eda3c9ecee1e9c5b3e35e87c0542f6cd2af0e6d49e9dc8f7ceea0617084",
+          "layers.02.mlp.down.weight": "5b9e3614410bdde22b73600df235a1aa6bfc93e19ebb06f21552beea8d127804",
+          "layers.02.mlp.gate.weight": "c4ec297e582f5a1d1d4219c8c75a02e36a9f8f640c5c31c0fb3e4102efbd01da",
+          "layers.02.mlp.up.weight": "98170d71471719c74e83d18876de7dbb7136cb8c458415e13b7eb34300d3b315",
+          "layers.02.mlp_norm.weight": "dc6eb73a4492697293fb487282287f4b3ad130ab41e20791d14a4ba181ee1ea5",
+          "layers.02.read.address.content_presence": "0b7051b38a0f18138c240ebcb04a9d055381b50dfbbb4a41b26be5b19bd8d3a9",
+          "layers.02.read.address.content_radius": "3ffa2ca98747c4826bd6ef1e2b4c8b4054a3f45865a432036530564e974efd36",
+          "layers.02.read.address.content_unary": "ba9b9e89eb66792f5c230621a4141e33499f3a93c36f3b171afc32d354273ad7",
+          "layers.02.read.address.context_presence": "1244dac4f22494ddfed724058d215c8cc35ed86dcc0cca4673455b5643fbc4bd",
+          "layers.02.read.address.context_radius": "f727db53a92d41a724be537c4f359b698bde19485283ed4476b1ccbb7d3642c9",
+          "layers.02.read.address.context_unary": "1777d0e31dde633bdafda0397e6672e3025139ef6ef6c9cd5ea9e0baae295fb0",
+          "layers.02.read.address.pair": "4e637e919537b9ef166fb8056e704dcc127ea9456c48c80851556e9630a9e5a0",
+          "layers.02.read.age": "0671c8a00e53b0bcf4138cb13f07477ea97bf379700b051d4d2c0bcca7c309d5",
+          "layers.02.read.null.bias": "c1bdc7fa712a768fffab62b2e871b203405ef98d694cd17448256daf18329672",
+          "layers.02.read.null.weight": "7d5963b89602ec9b40f7828ed9f48ea3d56393f330952d7f6281b298ee8596e9",
+          "layers.02.read.out.weight": "3a13923d4ee115f028cdc75ab1d355690e97b411df068b3c82df1ba11193ca5b",
+          "layers.02.read.span_control.bias": "3bdc2bd07e7b86af9afd01d4c7f5a315695d3d09d98a34a637eee500fd601766",
+          "layers.02.read.span_control.weight": "945cdb04f5aa5818899d9b8c4fb43105008fdab9ab9d6e6e900dc7b0f7cf2fb8",
+          "layers.02.read.value.weight": "fa34afa7ee6d1a7ffcc20f9e85489d52b6ff44449bb06d370b626e089689bde5",
+          "layers.02.read_norm.weight": "ebf5cbd38fc25da821cffc49dffab140ce7225f51c058dc08c522f91e5e3bfea"
+        },
+        "frozen_files": {
+          "base/config.json": "456074d03418fe7ebdf175809c27412fdf6eb779820d430a90fa394ac7e156dd",
+          "base/geometric-address.json": "265dd024b05cad3151226a99f42981607e3f356a179391600289df1bfe78c6e0",
+          "base/geometric-span.json": "d524715bf4f433cb0b10f9deea6c2d5ac1ad8239c05be673f3363ac935db6dba",
+          "base/model.safetensors": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+          "context-native/context-tables-i32le.bin": "c8e35b501155a73e4eaefd0eedc992af60673a5254e9a77ba16cb09e8902a0e9",
+          "context-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "context-native/metadata.json": "d517e15c6ee7b8fc56cddd2dc118cc3c1b5dc516caffdc496636f06ada324996",
+          "context-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "context-source/context-parameters.safetensors": "b8b1053ecf378012ff6659ab0910cf6ae322e932aba425471cd2bbdeed83d178",
+          "context-source/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "context-source/metadata.json": "e4563731f178a5bc81eda3d35445b032874907e7eeb095b39140973ca346cf7f",
+          "context-source/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "event-native/event-tables-i32le.bin": "f37bcdc080743faf43d5f93b17902f15f3e1de6c97c7f8ff72a4addaf5a5d1ab",
+          "event-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "event-native/metadata.json": "bfa86f64d03f044605c8cc6c5257edf6042ee2d926125749f93c401a9d189c93",
+          "event-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "event-source/event-parameters.safetensors": "ad48d22662d28f1b9662927ad63e8093b034e349807a8f180ed837a51fbbf701",
+          "event-source/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "event-source/metadata.json": "085190c5ec22dad12a2c6b66411960ca0fdefc5529d6cfac1cb29ebb53db0714",
+          "event-source/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "no-read-native/metadata.json": "4ebb3f7f718e3ff1abff63a4a422941fe2c60e3bd5e7f1f94f54ad37d45aac64",
+          "no-read-native/no-read-coefficients-q4.bin": "4e20d9ebcd0338484d7ec70dff012339e105d1fdff3677537faa17b7f0c52cb4",
+          "no-read-native/no-read-expanded-q24-i32le.bin": "d3ec151cad6ccd86dcb448771f62960fa771a6f397540c746002464ba0874134",
+          "no-read-native/observation-basis-q25-i32le.bin": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+          "no-read-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "no-read-source/metadata.json": "3b6ce6730ddfcc8c98bf73b04e45956b1d2c7612c12713c0680e29a49d1dd82a",
+          "no-read-source/no-read-parameters.safetensors": "9caf12374ebb5826d629230908a2481f10572ef4f184ce3f5aef8215f373d706",
+          "original-composition/composition-parameters.safetensors": "1b074e58e2446335de66b9529f51a991476ed122a82b97272fcead507db01e5c",
+          "original-composition/metadata.json": "28e2d490af8943d3884f7f66c2f8f3d0765a80ce82000fbf28a539fa7b051d04",
+          "potential-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "potential-native/metadata.json": "288f3cc587cb3a1c08ad81a538c4d7b05ba7a2e303807df36616f1f94270b846",
+          "potential-native/potential-i32le.bin": "3145acb286a84cddc5306361ec2c2f24bda993153c0d2424a6555add3d17b656",
+          "potential-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "reducer-native/age-i64le.bin": "c9fd0cec7d838ccc080c10d64a10b13db4fb8377ecf10723f5ce6f7ca6c98cd8",
+          "reducer-native/exp-u32le.bin": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f",
+          "reducer-native/metadata.json": "c7ec601226e69263d46d7e97e5a5baa4be7b52e7309433a72ad51fa9dc9bdb6b",
+          "reducer-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "span-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "span-native/metadata.json": "9761ac7b8cd158617b6cc968ddcbd3e959d4a2fd5a57a947b745977d4c8ed1b7",
+          "span-native/token-actions.bin": "d4915e680119fd93975f7b68f95a52500e94e9d08f900da401d1e2d25a6fb624",
+          "span-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "value-native/metadata.json": "9163ef2e732cec5356eb6a974cbc1a4071b7bbe438f03bd8e3ff3ab0e41a2732",
+          "value-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "value-native/value-tables-i32le.bin": "7dd81f31fee597afeeab498452bef8e0bcfd3befb5048df332f59a9dc045f6b1",
+          "value-source/metadata.json": "44aea0a1b78249d35c1fcba4a31ef5f02fcf38adcd55d5b361aeead5be7d5f76",
+          "value-source/value-parameters.safetensors": "497aabe82b26bc99945dc75e712760a215a36be5e396691f58d51d69dab69b55"
+        },
+        "initial_composition_metadata": {
+          "actual_bank_bytes": 320,
+          "config": {
+            "geometry_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+            "heads": 2,
+            "initialization": "fixed-v1;term0-left-right-identity-gain1/4;term1-left2-right3-gain-minus1/4;selector-selected-logit1-other0;no-data-selection/1",
+            "input_lanes": 4,
+            "output_lanes": 8,
+            "rule": "H2;head-output8-input4-term2;left*root*inverse(right);signed-q4[-7,7]/4-dimensionless;canonical-Q16-atoms;i64-sum-all-then-one-quarter-round-ties-away;no-presence-inference/1",
+            "schema": "uor-r4.geometric-composition-offline/1",
+            "surrogate": "hard-native-i64Q16-forward;conditional120-softmax-T1-full-transformed-K2-value-credit;other-selector-hard;gain-included;dimensionless-gain-shadow-hard-quarter-grid-identity-STE;post-update-project[-1.75,1.75];frozen-input-packets/1",
+            "terms_per_block": 2
+          },
+          "gains": {
+            "bytes": 64,
+            "sha256": "305f9abbf73886e80de03ee90177ffc173d62c259f5f6abe25ebcb8c36470f40"
+          },
+          "left": {
+            "bytes": 128,
+            "sha256": "8a1701f5b48bb1dd905e2241bb204ba67f00050eb5b5c3c2bfd2b8fdb5875ea3"
+          },
+          "no_read_metadata": {
+            "bytes": 7035,
+            "sha256": "1b41b1950feb656fc2b1707ac9c7f6d3cea77a0764ac7bba52c1fb9e6e257d5d"
+          },
+          "numerical_composition_schema": "uor-r4.geometric-composition-two-sided-k2-i64-q16/1",
+          "numerical_reducer_schema": "uor-r4.geometric-composed-read-i64-q16/1",
+          "output_width": 32,
+          "parameters": {
+            "gains": {
+              "f32_bytes_sha256": "7f88be45e5f37dbbc5a5266780075da76543901b4e1603b53210834790ce18c4",
+              "shape": [
+                128
+              ]
+            },
+            "left_logits": {
+              "f32_bytes_sha256": "3dd59b043b1f8d31f0987e3691cdc853b18dafdbc1e0acda5a744c689b63f9f4",
+              "shape": [
+                128,
+                120
+              ]
+            },
+            "right_logits": {
+              "f32_bytes_sha256": "8de035b26bc0197ca75ffe11ba8b6f4d6407c94db073926e6e33dbd01e03be84",
+              "shape": [
+                128,
+                120
+              ]
+            }
+          },
+          "payload_fractional_bits": 16,
+          "payload_storage_bits": 64,
+          "policy": "H2-input4-output8-K2;left*root*inverse(right);byte-signed-H4-IDs;q4[-7,7]-reserved-minus8-reject;dimensionless-quarter-gain;one-ties-away-quarter-after-all-atoms;separate-i64-Q16;per-head-original-age-exp-NoRead;checked-i128-shift-add-longdivision;head-sum-after-normalization/1",
+          "reducer_metadata": {
+            "bytes": 1912,
+            "sha256": "f6efec6f95ea1e207012f1f776ef30637e094d4aad2a5a8eafb9426097587442"
+          },
+          "right": {
+            "bytes": 128,
+            "sha256": "bd17467d5b4ab4307e4ae2a07437f346c6b6107ed9700d83b636f097f71c63c5"
+          },
+          "schema": "uor-r4.geometric-read-composition-native/1",
+          "source_files": {
+            "composition-parameters.safetensors": {
+              "bytes": 123616,
+              "sha256": "1b074e58e2446335de66b9529f51a991476ed122a82b97272fcead507db01e5c"
+            },
+            "metadata.json": {
+              "bytes": 1232,
+              "sha256": "28e2d490af8943d3884f7f66c2f8f3d0765a80ce82000fbf28a539fa7b051d04"
+            }
+          },
+          "tokenizer": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          }
+        },
+        "initial_rng": 9347350181718662555,
+        "no_read_fit_report_sha256": "bfa6475445461ac4d783df5a14c8ed3d75bb27ce555970b489a2245eed21598d",
+        "query_parent_report_sha256": "75d3cf41b5b83513f0af703e66d8be8a9aab1db3fb849671f27a9d08b4517a03",
+        "scalar_checkpoint_sha256": "51484b3539003a0a5888342932bdcaa8691a66e58151d14768e35cb51c8765ed",
+        "seed": 1
+      }
+    },
+    {
+      "seed": 2,
+      "report_identity": {
+        "bytes": 20587,
+        "sha256": "81616b9a950f31de32b6ecdf57480435eb15d0617a075d9eb75d2d07dfd3c0e8"
+      },
+      "manifest_identity": {
+        "bytes": 119517,
+        "sha256": "8f61da56907f37ab88c7ffe55f7ada0d62b928460d3368e1808d9cace2681d69"
+      },
+      "fit": {
+        "actual_positions": 245396,
+        "checkpoint_seconds": 0.018611251000000002,
+        "clipped_updates": 183,
+        "completed": true,
+        "completed_backward_batches": 640,
+        "completed_updates": 640,
+        "elapsed_seconds": 178.701581541,
+        "forward_backward_update_seconds": 177.42406075299994,
+        "generator_state_semantics": "next RNG follows completed composition updates; AdamW moments are not serialized",
+        "initial_generator_state": 10697677911788535647,
+        "maximum_batch_time": 80,
+        "maximum_episode_length": 80,
+        "minimum_batch_time": 34,
+        "minimum_episode_length": 24,
+        "next_generator_state": 1220542080958524937,
+        "observed_generator_state_after_draws": 1220542080958524937,
+        "padded_positions": 286288,
+        "preparation_seconds": 0.10813693400000006,
+        "prepared_batches": 640,
+        "prepared_episodes": 5120,
+        "total_left_choice_changes": 398,
+        "total_projected_coordinates": 0,
+        "total_q4_flips": 1310,
+        "total_right_choice_changes": 279
+      },
+      "panels": [
+        {
+          "answers": {
+            "initial_bank": 0,
+            "native": 128,
+            "parent": 128,
+            "source": 128
+          },
+          "gains_from_initial": 128,
+          "gains_from_parent": 0,
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "losses_from_initial": 0,
+          "losses_from_parent": 0,
+          "maximum_actual_position_logit_delta": 0.0003114938735961914,
+          "panel": "original",
+          "parent_rows_sha256": "dc6fd54f150db2035f5ecb6c91aa51e413a119792563d439355cab229de65837",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0
+        },
+        {
+          "answers": {
+            "initial_bank": 9,
+            "native": 128,
+            "parent": 128,
+            "source": 128
+          },
+          "gains_from_initial": 119,
+          "gains_from_parent": 0,
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "losses_from_initial": 0,
+          "losses_from_parent": 0,
+          "maximum_actual_position_logit_delta": 0.00032579898834228516,
+          "panel": "stress",
+          "parent_rows_sha256": "6832cec5bb5b1869eef42efa629c620c80c1c93072ccfc4216d8027b28f4fe74",
+          "requested_rows": 128,
+          "rows": 128,
+          "source_native_answer_changes": 0
+        }
+      ],
+      "compiled_metadata": {
+        "actual_bank_bytes": 320,
+        "config": {
+          "geometry_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "heads": 2,
+          "initialization": "fixed-v1;term0-left-right-identity-gain1/4;term1-left2-right3-gain-minus1/4;selector-selected-logit1-other0;no-data-selection/1",
+          "input_lanes": 4,
+          "output_lanes": 8,
+          "rule": "H2;head-output8-input4-term2;left*root*inverse(right);signed-q4[-7,7]/4-dimensionless;canonical-Q16-atoms;i64-sum-all-then-one-quarter-round-ties-away;no-presence-inference/1",
+          "schema": "uor-r4.geometric-composition-offline/1",
+          "surrogate": "hard-native-i64Q16-forward;conditional120-softmax-T1-full-transformed-K2-value-credit;other-selector-hard;gain-included;dimensionless-gain-shadow-hard-quarter-grid-identity-STE;post-update-project[-1.75,1.75];frozen-input-packets/1",
+          "terms_per_block": 2
+        },
+        "gains": {
+          "bytes": 64,
+          "sha256": "0c3fcc3f3197d01733969b0eaac0be1be79203a07a1b17102143a6adb6972c06"
+        },
+        "left": {
+          "bytes": 128,
+          "sha256": "31cbce08ecc27488430115d2189ffc7133bb8332e7cfb1b0d7828af8a3a5d1ad"
+        },
+        "no_read_metadata": {
+          "bytes": 7035,
+          "sha256": "8061b98445c25b3a776c881ca90ca5c92bc7363af2fcf4298ce9fd3a43ef3e85"
+        },
+        "numerical_composition_schema": "uor-r4.geometric-composition-two-sided-k2-i64-q16/1",
+        "numerical_reducer_schema": "uor-r4.geometric-composed-read-i64-q16/1",
+        "output_width": 32,
+        "parameters": {
+          "gains": {
+            "f32_bytes_sha256": "90d2f102fb7d4c969f492710a45b5ab34c2ad087bd2739d374ba7aa1d355721a",
+            "shape": [
+              128
+            ]
+          },
+          "left_logits": {
+            "f32_bytes_sha256": "687c8f9cdcadd8f7a48423e41d4544637aa675fb88af8ebb2b1cdc196306bb60",
+            "shape": [
+              128,
+              120
+            ]
+          },
+          "right_logits": {
+            "f32_bytes_sha256": "2ab585b4980159c2dea99a199842d867e96619db3a40e4046bed010837263b88",
+            "shape": [
+              128,
+              120
+            ]
+          }
+        },
+        "payload_fractional_bits": 16,
+        "payload_storage_bits": 64,
+        "policy": "H2-input4-output8-K2;left*root*inverse(right);byte-signed-H4-IDs;q4[-7,7]-reserved-minus8-reject;dimensionless-quarter-gain;one-ties-away-quarter-after-all-atoms;separate-i64-Q16;per-head-original-age-exp-NoRead;checked-i128-shift-add-longdivision;head-sum-after-normalization/1",
+        "reducer_metadata": {
+          "bytes": 1912,
+          "sha256": "cdf9ff222f123082a128874cce898b2d9f049477a86dcaa1a2eaf824c00ba94f"
+        },
+        "right": {
+          "bytes": 128,
+          "sha256": "ffe031449833ac1d88bd61105b9b352df75cb3a19481cf919688aeb712d0bb97"
+        },
+        "schema": "uor-r4.geometric-read-composition-native/1",
+        "source_files": {
+          "composition-parameters.safetensors": {
+            "bytes": 123616,
+            "sha256": "30bb6fd8c65dd18c9bd63511aec5eaca63623ca990d88a5aff39729f41edae2d"
+          },
+          "metadata.json": {
+            "bytes": 1232,
+            "sha256": "115eaf86218ead35e473e0f05b443c3db92daba543bc65c52ea817d8b82acbd4"
+          }
+        },
+        "tokenizer": {
+          "bytes": 315,
+          "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+        }
+      },
+      "elapsed_seconds": 184.313447,
+      "parent": {
+        "construction_report_sha256": "aa22a6a76927b689a83ffecac4a8b0ebcfa2a9bde1bda05e859f7fb6041cdb37",
+        "data_helper_sha256": "f8e3088878f8d82550e5a00491d77a0f070a67ca129d03fda2c912b2f90d1682",
+        "frozen_base_variables": {
+          "embedding.weight": "cbf04e7c04e48c880b6ff7789fde870062d09066fe556bf16fe784951af988c4",
+          "final_norm.weight": "7976e4a329d3f5d5ae92b6433fe2e5f2c5529758ea4a6969b866609f294c0c48",
+          "layers.00.mlp.down.weight": "ad8f87a76d0d743ea3a7aa7f72ed8caee494c6bc4f416934af448d1ccea28035",
+          "layers.00.mlp.gate.weight": "9bf390f036f7481bccda8c16f45067924fc75ecb15ebc97a3bbdb49196322c3b",
+          "layers.00.mlp.up.weight": "610d6d73ddef4aff64ae0f2b8ba83fe288d652de8998d4927e952e01309dfb36",
+          "layers.00.mlp_norm.weight": "d29f569ea496553fcc7d378612a7a4fa410228dd80f240de031d12bc0a970a78",
+          "layers.00.rec.conv.bias": "dc8b3bc50789598513719a4dd09a442156ddcee2b866e4e7464dab66213b6d08",
+          "layers.00.rec.conv.weight": "3e8eeaea1821019201ed318742c47c7f105d335db2d7283e06cd3be7898a8a53",
+          "layers.00.rec.decay": "e6fdcbb5f26ea9ca9f6ec24bafd2e35abac0855eaf4b26f1d3d12f0f379a1331",
+          "layers.00.rec.gate.bias": "26dd5174d5a5a8b90693111f3e2f878dfa9cf13849cbfe15584822b7619ab9f1",
+          "layers.00.rec.gate.weight": "a5c7a0bbada34669f4176766856601c689f20ed90929f0760b5588f62ea4cb27",
+          "layers.00.rec.in.weight": "29a2427905deca11aebf8f681afc72c631ccc2b2a8f401fc7dad1203a68dac80",
+          "layers.00.rec.out.weight": "b753a14419b1ca7fed17b20ea558feb6b7887e6fad1758e5534e4844de2c05bc",
+          "layers.00.rec_norm.weight": "9359e914ec8362cdb31b1c8d7275731cc166bace794b74a4e489ac9ed3accb07",
+          "layers.01.mlp.down.weight": "7e103793cf1cfcd0dd8178a3eee1365715677196e96287032461f5555b749012",
+          "layers.01.mlp.gate.weight": "e2938b6dfa7fa9008ac62d6d6e8fcb9064bff705c31d835a003787852277ce06",
+          "layers.01.mlp.up.weight": "6ab3eb8e19ddaeb2c04c8b81158d54e72fdbdb5120afb3adb002e9ee8c7182ee",
+          "layers.01.mlp_norm.weight": "6c77dd4c144f45d05945610235f70a405c4662b54d2bf28e3333f196f6d66b97",
+          "layers.01.rec.conv.bias": "d46fc32be1682436ab2ba4e94337a6fcaf53093ec766a9bbc5ef0d351268ffa5",
+          "layers.01.rec.conv.weight": "1705d6730ff2eea095903ae079785a93066539b7b5eb234150173c26716f7123",
+          "layers.01.rec.decay": "02b8f8a81177e6ced144cbc50907bb9f947de7c7a5f084b95d4f78445b5182c8",
+          "layers.01.rec.gate.bias": "63f4024594abe91e1c55fdf3783782446f8303fc1c76a943d7ed26f858a4b9fb",
+          "layers.01.rec.gate.weight": "9db151f4693757ea303ba5b585c89c005eb0097a1ce570eee79a7a6467329e51",
+          "layers.01.rec.in.weight": "0c7239859803be619a723da6f816941d831693ee9d982042d25fd1b5bc3a7b15",
+          "layers.01.rec.out.weight": "d348a849449437cb8a5c9d7bd96abf1a548bb674175889c2a884bddd4bcbc0df",
+          "layers.01.rec_norm.weight": "1ebd5cefdec4bb749a89973d4d2a3b324e8c7ee0a874055500fc67307e7a79a7",
+          "layers.02.mlp.down.weight": "5b70dceb376509fa699b8b9940b1db215eef60fb2b3f71b11e1aa4d9e8e09f9a",
+          "layers.02.mlp.gate.weight": "41d241c58d56bee0b30049a72d9e93ff0e4e4ff7cf5db9d7cfe1711c12a9df6b",
+          "layers.02.mlp.up.weight": "81196b32764d29bba7fd9cbdf96a028cccd6ca14b5b99a8c17bbdaaf050b8fb8",
+          "layers.02.mlp_norm.weight": "1eb164d766a803f78b8458f459fc22c70752453de1ba0397fb9ba6c6b2d6ac70",
+          "layers.02.read.address.content_presence": "4f8787b602e8d657ee6d5bc22daa799155d80dfa7b1c21d232cad89fc70beeb4",
+          "layers.02.read.address.content_radius": "fc77eaa00ad9208db4b3e705769d515adce20eee51f26d8e7cbed856dddf7ec9",
+          "layers.02.read.address.content_unary": "ffe9f4d0b865a6b280ea6d744614915573b4c4747df5cbc45d173ed63611167e",
+          "layers.02.read.address.context_presence": "ae621b8a3d2a57108193d9b5b0d83ea872243e3234ae1ec89a41d7a3b9350d9c",
+          "layers.02.read.address.context_radius": "927d90ff082623dd66652c0f56755ed21d8c6cfa7b617607972a5517130406fa",
+          "layers.02.read.address.context_unary": "dc47ad495d05e674b1504b61efb06b41bc37c404e8781cc2ba1c6ab2599216cb",
+          "layers.02.read.address.pair": "9d72679bedd6c39a2a97ab71592e7214185ef4b0febd44abc5656238f03bcddc",
+          "layers.02.read.age": "01e79c9c339be7f5d47b057f9a396f914bc89d2fee338d13ac36dc747794fcd7",
+          "layers.02.read.null.bias": "9e208d9dbecf3e5b10aae240d155add278e9f094eefeb025c6c24dcbbc620cb5",
+          "layers.02.read.null.weight": "ac5e6a6fd32909b74f27ff75385d1ebbca54cfd96d9d41c37c526be3ac6b5d16",
+          "layers.02.read.out.weight": "76d8ae0ef1b054632c5673f98066716f324e2b86e8c98d1042b363f509a828d6",
+          "layers.02.read.span_control.bias": "269d3248a06a4442387cf77084a36cd9a96c33cee36890a43227fb885b197915",
+          "layers.02.read.span_control.weight": "0c7371c9702b2e61343f3eca26697c7eb6b5048111fb0aef72833b29d03a8d8f",
+          "layers.02.read.value.weight": "ef1b2f1ea9a64f7a0b3e7d72155b8cb4562cbcfd04f45dab07b02aca33ac9212",
+          "layers.02.read_norm.weight": "77726c071345d6a55cc7c42ed574efd644fd84795266617bdf61a646095428b9"
+        },
+        "frozen_files": {
+          "base/config.json": "c37a4ca04737fbb953708495daeb6b7b7f65eb2843ea636f3bbcf8a7acb8ac1a",
+          "base/geometric-address.json": "77b565229bafb1f37948a861619ebac02abdaeea24c3c7f471d1d3f54b3a6bef",
+          "base/geometric-span.json": "5fb588f0b64c37d88e55464cc21e645e8963e6734fa9747c9d5752664846ffe4",
+          "base/model.safetensors": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+          "context-native/context-tables-i32le.bin": "9fb2f98fefa50ad12b244144624fa80f0dbbb62e987a2f1e5dc21b31c54c0b64",
+          "context-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "context-native/metadata.json": "747095d5e46b9a7dd126875b348c3632f9e4d7a78996a070df13f4bf848d13b7",
+          "context-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "context-source/context-parameters.safetensors": "784916febecd928d80a5792e93652a81b501a9c8ac0e4decdd633a480c48150e",
+          "context-source/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "context-source/metadata.json": "7942ffab1f80d9b46570a0f4aa45190c2a716bcec091486048a0b099ecf37b4a",
+          "context-source/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "event-native/event-tables-i32le.bin": "c2c86cb1f6ff3399c496d60263f5404e2b9b7046295bf9392b881f0da9de40bb",
+          "event-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "event-native/metadata.json": "a8449b1559dff123bbcae2981a446244350f165ce10d0d7bb994abf3c94f2d91",
+          "event-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "event-source/event-parameters.safetensors": "753fd2de85cdd00dd4bed80baddb10909bea9be8d0a38fb037cc654dc93801c3",
+          "event-source/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "event-source/metadata.json": "2310ca11ad8a5821710fad84206c414d1d02d1f2e88d40497d8f6a795d612053",
+          "event-source/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "no-read-native/metadata.json": "d92783a7861f005bf92dbc78a1e96a93db737ed1abd76ddb75dc9ce973784c23",
+          "no-read-native/no-read-coefficients-q4.bin": "f63f5934f640e8996f45e5cab785d3210df4b9c9a614915764973e2dfcb264c6",
+          "no-read-native/no-read-expanded-q24-i32le.bin": "1dc14c17f3e8631170786971e98e2a07eba2c9105a82cbee825c1fe52f886edd",
+          "no-read-native/observation-basis-q25-i32le.bin": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+          "no-read-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "no-read-source/metadata.json": "e4090594caddce71d786cc0de5d4d6573eb0cb159619404b524d4cd2407dffad",
+          "no-read-source/no-read-parameters.safetensors": "ef19e0702e8289f622e83c5a1e45d801a573d908f4d683b11d2e3f8331aad0eb",
+          "original-composition/composition-parameters.safetensors": "1b074e58e2446335de66b9529f51a991476ed122a82b97272fcead507db01e5c",
+          "original-composition/metadata.json": "28e2d490af8943d3884f7f66c2f8f3d0765a80ce82000fbf28a539fa7b051d04",
+          "potential-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "potential-native/metadata.json": "53c4adc0370a7425049d8a508488e32a2548019d87a6bfa5561f1f1b73916bb4",
+          "potential-native/potential-i32le.bin": "8114b419ee72ade244e84634b543b14dc5228be5bf18a26e1d0519b2ba1a9b9f",
+          "potential-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "reducer-native/age-i64le.bin": "268756b28ab3b03e84b1167bc9105da257174b1cc35c97f0ffcfc5463eb722c9",
+          "reducer-native/exp-u32le.bin": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f",
+          "reducer-native/metadata.json": "009b301ecb69b02ffa3d006164c86bf91c5f18f7cf690a4f4f95199768bd16b0",
+          "reducer-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "span-native/h4-tables.bin": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+          "span-native/metadata.json": "d5124582ae276ac8d775e5bcaf0662354ea4bcee39b76011a2b9a97a698ae36a",
+          "span-native/token-actions.bin": "e7ff1785991ab737eaea80e5b435421ca4b7e4dc0e1bcffbda9b43f69d67cc4e",
+          "span-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "value-native/metadata.json": "39ab046d660688d0a198f6a2f4d1f36c27da116fd0c666d339e11416dc736cdf",
+          "value-native/tokenizer-identity.bin": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+          "value-native/value-tables-i32le.bin": "e0d1626a73ccaff8e6528ee9f93b90521f61ad9cef7340e4fa3108f87d931d55",
+          "value-source/metadata.json": "66385c6a803081d887a8aaf7a3500a4e9d400998ca69d728764f03d8cbb28565",
+          "value-source/value-parameters.safetensors": "d2482a5f01e49dc390d085eba73d288b936a4a7b2056162c97b73b1804289796"
+        },
+        "initial_composition_metadata": {
+          "actual_bank_bytes": 320,
+          "config": {
+            "geometry_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+            "heads": 2,
+            "initialization": "fixed-v1;term0-left-right-identity-gain1/4;term1-left2-right3-gain-minus1/4;selector-selected-logit1-other0;no-data-selection/1",
+            "input_lanes": 4,
+            "output_lanes": 8,
+            "rule": "H2;head-output8-input4-term2;left*root*inverse(right);signed-q4[-7,7]/4-dimensionless;canonical-Q16-atoms;i64-sum-all-then-one-quarter-round-ties-away;no-presence-inference/1",
+            "schema": "uor-r4.geometric-composition-offline/1",
+            "surrogate": "hard-native-i64Q16-forward;conditional120-softmax-T1-full-transformed-K2-value-credit;other-selector-hard;gain-included;dimensionless-gain-shadow-hard-quarter-grid-identity-STE;post-update-project[-1.75,1.75];frozen-input-packets/1",
+            "terms_per_block": 2
+          },
+          "gains": {
+            "bytes": 64,
+            "sha256": "305f9abbf73886e80de03ee90177ffc173d62c259f5f6abe25ebcb8c36470f40"
+          },
+          "left": {
+            "bytes": 128,
+            "sha256": "8a1701f5b48bb1dd905e2241bb204ba67f00050eb5b5c3c2bfd2b8fdb5875ea3"
+          },
+          "no_read_metadata": {
+            "bytes": 7035,
+            "sha256": "8061b98445c25b3a776c881ca90ca5c92bc7363af2fcf4298ce9fd3a43ef3e85"
+          },
+          "numerical_composition_schema": "uor-r4.geometric-composition-two-sided-k2-i64-q16/1",
+          "numerical_reducer_schema": "uor-r4.geometric-composed-read-i64-q16/1",
+          "output_width": 32,
+          "parameters": {
+            "gains": {
+              "f32_bytes_sha256": "7f88be45e5f37dbbc5a5266780075da76543901b4e1603b53210834790ce18c4",
+              "shape": [
+                128
+              ]
+            },
+            "left_logits": {
+              "f32_bytes_sha256": "3dd59b043b1f8d31f0987e3691cdc853b18dafdbc1e0acda5a744c689b63f9f4",
+              "shape": [
+                128,
+                120
+              ]
+            },
+            "right_logits": {
+              "f32_bytes_sha256": "8de035b26bc0197ca75ffe11ba8b6f4d6407c94db073926e6e33dbd01e03be84",
+              "shape": [
+                128,
+                120
+              ]
+            }
+          },
+          "payload_fractional_bits": 16,
+          "payload_storage_bits": 64,
+          "policy": "H2-input4-output8-K2;left*root*inverse(right);byte-signed-H4-IDs;q4[-7,7]-reserved-minus8-reject;dimensionless-quarter-gain;one-ties-away-quarter-after-all-atoms;separate-i64-Q16;per-head-original-age-exp-NoRead;checked-i128-shift-add-longdivision;head-sum-after-normalization/1",
+          "reducer_metadata": {
+            "bytes": 1912,
+            "sha256": "cdf9ff222f123082a128874cce898b2d9f049477a86dcaa1a2eaf824c00ba94f"
+          },
+          "right": {
+            "bytes": 128,
+            "sha256": "bd17467d5b4ab4307e4ae2a07437f346c6b6107ed9700d83b636f097f71c63c5"
+          },
+          "schema": "uor-r4.geometric-read-composition-native/1",
+          "source_files": {
+            "composition-parameters.safetensors": {
+              "bytes": 123616,
+              "sha256": "1b074e58e2446335de66b9529f51a991476ed122a82b97272fcead507db01e5c"
+            },
+            "metadata.json": {
+              "bytes": 1232,
+              "sha256": "28e2d490af8943d3884f7f66c2f8f3d0765a80ce82000fbf28a539fa7b051d04"
+            }
+          },
+          "tokenizer": {
+            "bytes": 315,
+            "sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892"
+          }
+        },
+        "initial_rng": 10697677911788535647,
+        "no_read_fit_report_sha256": "642c030a274b298d46e5b936b7d476f901292bd98975678e79d733af5136c62b",
+        "query_parent_report_sha256": "cc116d61309446ad15f145c9b77b419087eabfddb621518b58f11276f1a17506",
+        "scalar_checkpoint_sha256": "329e59b0ed4e2495316602614a6f71754e5565978c569bc98a3b1d9077e63178",
+        "seed": 2
+      }
+    }
+  ],
+  "derived_ce": [
+    {
+      "seed": 1,
+      "panel": "original",
+      "rows": 128,
+      "mean_answer_ce_from_saved_logits": {
+        "initial": 2.731975091312822,
+        "parent": 0.9389786236224147,
+        "source": 1.0991751129121639,
+        "native": 1.099174771944507
+      }
+    },
+    {
+      "seed": 1,
+      "panel": "stress",
+      "rows": 128,
+      "mean_answer_ce_from_saved_logits": {
+        "initial": 2.7157287270959882,
+        "parent": 0.8943372946461061,
+        "source": 1.0914024563025566,
+        "native": 1.0914018426092145
+      }
+    },
+    {
+      "seed": 2,
+      "panel": "original",
+      "rows": 128,
+      "mean_answer_ce_from_saved_logits": {
+        "initial": 3.9869966597309565,
+        "parent": 0.2868557865900025,
+        "source": 0.47068758855079634,
+        "native": 0.4706871254010249
+      }
+    },
+    {
+      "seed": 2,
+      "panel": "stress",
+      "rows": 128,
+      "mean_answer_ce_from_saved_logits": {
+        "initial": 4.242985291446615,
+        "parent": 0.28131563141853055,
+        "source": 0.45813358874806154,
+        "native": 0.4581337070178101
+      }
+    }
+  ],
+  "scope": "Learned restricted H4/q4 attention composition; float tail and wide upstream learned coefficients remain. No matched-dose ordinary control, geometric advantage, generic donor conversion, general language or whole-path serving qualification.",
+  "decision": "RETAIN_LEARNED_BANK_END_FIXED_DOSE_ADVANCE_STRICT_Q4_PRODUCER_BOUNDARY",
+  "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-read-composition-fit-20261002"
+}
