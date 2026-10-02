@@ -42,17 +42,35 @@ log "monitor started; waiting for a free machine (launcher=$LAUNCHER)"
 for i in $(seq 1 "$MAX_POLLS"); do
   others=$(pgrep -f "geometric-stack" | wc -l | tr -d ' ')
   load=$(uptime | sed -E 's/.*averages: ([0-9.]+).*/\1/')
-  quiet=$(python3 -c "print(1 if float('$load') < $LOAD_LIMIT else 0)" 2>/dev/null || echo 0)
+
+  # Two tiers, because the two conditions measure different things.
+  #
+  # `others=0` is the condition that matters: the 9x penalty I measured came
+  # from a second *trainer* competing for the same cores (0.87 cores, 4.7 h ->
+  # 43.4 h). A peer trainer is therefore always disqualifying, at any load.
+  #
+  # The load bar is a guard against unrelated desktop load (a browser and the
+  # app harness can hold the machine at load 10-30). Holding the run for hours
+  # because of a browser would defeat the objective, so after STRICT_POLLS the
+  # bar relaxes to RELAXED_LOAD_LIMIT while `others=0` stays absolute. The
+  # relaxed tier still excludes a busy machine: 8 cores, so load 8 means every
+  # core has a runnable task.
+  if [ "$i" -le "${STRICT_POLLS:-48}" ]; then
+    limit="$LOAD_LIMIT"
+  else
+    limit="${RELAXED_LOAD_LIMIT:-8.0}"
+  fi
+  quiet=$(python3 -c "print(1 if float('$load') < $limit else 0)" 2>/dev/null || echo 0)
 
   # Heartbeat every ~30 min so the wait is observable and a stall cannot be
   # mistaken for patience: logging only state changes is indistinguishable from
   # a hung monitor.
   if [ $((i % 12)) = 1 ]; then
-    log "waiting: others=$others load=$load (need others=0 and load<$LOAD_LIMIT)"
+    log "waiting: others=$others load=$load (need others=0 and load<$limit)"
   fi
 
   if [ "$others" = "0" ] && [ "$quiet" = "1" ]; then
-    log "machine free (others=0, load=$load); claiming slot"
+    log "machine free (others=0, load=$load, bar=$limit); claiming slot"
     if (set -o noclobber; cat > "$SLOT" <<SLOTEOF
 {"lab":"deepseek","card":"full-dose chat-v0 LM + response #1512","pid":$$,"started_utc":"$(date -u +%Y-%m-%dT%H:%M:%SZ)","expected_end_utc":"$(date -u -v+12H +%Y-%m-%dT%H:%M:%SZ)","threads":8}
 SLOTEOF
