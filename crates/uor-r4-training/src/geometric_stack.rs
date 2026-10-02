@@ -110,6 +110,7 @@ use uor_r4_lut::GROUP;
 use crate::flock::{self, FlockSelect};
 use crate::geometric_address::{self, AddressWeights, GeometricAddressConfig};
 use crate::geometric_span::{self, GeometricSpanConfig, SpanPolicy};
+use crate::geometric_span_native::{self, CompiledSpanActions};
 use crate::lut_export::{dequantize_matrix, quantize_matrix};
 use crate::stack_export::{
     block, decay_of_rate, decay_rate, fixed, fixed_value, fold_columns, grid_code, grid_value, pad,
@@ -173,6 +174,7 @@ enum LatchGates<'a> {
 struct ReadSource<'a> {
     tokens: Option<&'a Tensor>,
     span_policy: SpanPolicy,
+    native_span: Option<(&'a CompiledSpanActions, &'a [u32])>,
 }
 
 impl Default for ReadSource<'_> {
@@ -180,6 +182,7 @@ impl Default for ReadSource<'_> {
         Self {
             tokens: None,
             span_policy: SpanPolicy::Ordered,
+            native_span: None,
         }
     }
 }
@@ -2011,10 +2014,85 @@ impl StackModel {
             ReadSource {
                 tokens: Some(&tokens),
                 span_policy: SpanPolicy::LastToken,
+                native_span: None,
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
         Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Replay the same saved reader with exported static token actions and
+    /// exact integer span-register updates. The controller and surrounding
+    /// computation remain float; this is not a whole-model served mode.
+    pub fn forward_geometric_span_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        compiled: &CompiledSpanActions,
+    ) -> Result<Tensor> {
+        let (hidden, _) = self.hidden_geometric_span_native(ids, batch, time, compiled, None)?;
+        let p = self.params()?;
+        Ok(hidden.matmul(&p.head()?.t()?)?)
+    }
+
+    /// Observe exact source probabilities from that same native-producer read.
+    /// The binding labels select observations only, never controller actions.
+    pub fn read_binding_masses_geometric_span_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        target: &ReadBindingTarget,
+        compiled: &CompiledSpanActions,
+    ) -> Result<Tensor> {
+        self.hidden_geometric_span_native(ids, batch, time, compiled, Some(target))?
+            .1
+            .ok_or_else(|| invalid("native span source observer was not evaluated"))
+    }
+
+    fn hidden_geometric_span_native(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        compiled: &CompiledSpanActions,
+        target: Option<&ReadBindingTarget>,
+    ) -> Result<(Tensor, Option<Tensor>)> {
+        let span = self
+            .geometric_span
+            .as_ref()
+            .ok_or_else(|| invalid("native span replay requires geometric spans"))?;
+        let address = self
+            .geometric_address
+            .as_ref()
+            .ok_or_else(|| invalid("native span replay requires geometric addressing"))?;
+        self.validate_geometric_address(address)?;
+        let p = self.params()?;
+        compiled.validate_for(p.get("embedding.weight")?, span)?;
+        if let Some(target) = target {
+            self.validate_binding(batch, time, target)?;
+        }
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let mut binding = target.map(|target| BindingCapture {
+            target,
+            masses: None,
+        });
+        let x = self.layer_range_with_source(
+            &p,
+            tokens.clone(),
+            0..self.config.layers(),
+            &mut None,
+            &mut binding,
+            LatchGates::Soft,
+            ReadSource {
+                tokens: Some(&tokens),
+                span_policy: SpanPolicy::Ordered,
+                native_span: Some((compiled, ids)),
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok((hidden, binding.and_then(|capture| capture.masses)))
     }
 
     fn validate_geometric_address(&self, address: &GeometricAddressConfig) -> Result<()> {
@@ -2083,7 +2161,15 @@ impl StackModel {
                     invalid("geometric spans require original selected token rows")
                 })?;
                 let logits = self.span_control_logits(p, layer, &u)?;
-                geometric_span::produce(tokens, &logits, span, source.span_policy)?
+                match source.native_span {
+                    Some((compiled, ids)) => {
+                        if source.span_policy != SpanPolicy::Ordered {
+                            return Err(invalid("native span replay does not accept LastToken"));
+                        }
+                        geometric_span_native::produce_native(ids, batch, time, &logits, compiled)?
+                    }
+                    None => geometric_span::produce(tokens, &logits, span, source.span_policy)?,
+                }
             }
             None => {
                 self.read_latch_inputs(p, layer, &u, ReadIdentityLatch::Held, gates)?
@@ -2576,6 +2662,7 @@ impl StackModel {
             let source = ReadSource {
                 tokens: Some(&x),
                 span_policy: SpanPolicy::Ordered,
+                native_span: None,
             };
             let hidden = self.layer_range_with_source(
                 p,
@@ -2928,6 +3015,7 @@ impl StackModel {
             ReadSource {
                 tokens: Some(&x),
                 span_policy,
+                native_span: None,
             },
         )?;
         let hidden = self.finish_hooked(p, x, &mut None)?;
@@ -3869,6 +3957,7 @@ impl StackModel {
                     ReadSource {
                         tokens: Some(&tokens),
                         span_policy: SpanPolicy::Ordered,
+                        native_span: None,
                     },
                 )?,
             };
@@ -9251,6 +9340,77 @@ mod tests {
         };
         assert!(earlier(&ordered)? > 0.0);
         assert_eq!(earlier(&last)?, 0.0);
+        Ok(())
+    }
+
+    #[test]
+    fn native_geometric_span_reader_and_source_replay_bind_saved_actions() -> Result<()> {
+        use crate::geometric_span_native::SpanSourceBinding;
+        let root = std::env::temp_dir().join(format!(
+            "native-geometric-span-replay-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos(),
+        ));
+        let model = tiny_span_model()?;
+        model.save(&root)?;
+        let source = SpanSourceBinding::from_files(
+            &root.join("model.safetensors"),
+            &root.join("config.json"),
+            b"test-token-registry/1",
+        )?;
+        let p = model.params()?;
+        let span = model
+            .geometric_span()
+            .ok_or_else(|| invalid("span fixture absent"))?;
+        let compiled = CompiledSpanActions::compile(p.get("embedding.weight")?, span, &source)?;
+        let ids = [1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let expected = bits(&model.forward(&ids, 1, 10)?)?;
+        assert_eq!(
+            bits(&model.forward_geometric_span_native(&ids, 1, 10, &compiled)?)?,
+            expected
+        );
+        for head in 0..2 {
+            let target = ReadBindingTarget {
+                layer: 2,
+                head,
+                rows: vec![ReadBinding {
+                    batch: 0,
+                    query: 9,
+                    sources: vec![4],
+                }],
+            };
+            assert_eq!(
+                bits(&model.read_binding_masses(&ids, 1, 10, &target)?)?,
+                bits(
+                    &model.read_binding_masses_geometric_span_native(
+                        &ids, 1, 10, &target, &compiled
+                    )?
+                )?
+            );
+        }
+        assert_eq!(bits(&model.forward(&ids, 1, 10)?)?, expected);
+        let legacy = tiny_address_model()?;
+        assert!(legacy
+            .forward_geometric_span_native(&ids, 1, 10, &compiled)
+            .is_err());
+        let variables = model.variables();
+        let embedding = variables
+            .get("embedding.weight")
+            .ok_or_else(|| invalid("embedding absent"))?;
+        let old = embedding.as_tensor().copy()?;
+        embedding.set(&old.affine(1.0, 0.001)?)?;
+        assert!(model
+            .forward_geometric_span_native(&ids, 1, 10, &compiled)
+            .is_err());
+        embedding.set(&old)?;
+        assert_eq!(
+            bits(&model.forward_geometric_span_native(&ids, 1, 10, &compiled)?)?,
+            expected
+        );
+        fs::remove_dir_all(root)?;
         Ok(())
     }
 

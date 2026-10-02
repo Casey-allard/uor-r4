@@ -1,0 +1,238 @@
+{
+  "elapsed_seconds": 68.154025375,
+  "evaluation_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+  "maximum_seconds": 900,
+  "parent_report_sha256": "60f78851dd86b0063cca537eabd50aa2a3c092bd25b29de4f6db7ae5d2ef3db5",
+  "schema": "uor-r4.geometric-span-native-replay/1",
+  "scope": "native integer dictionary/register component with float predicted controller, reconstruction and surrounding reader; no full serving/language/algebra superiority/energy qualification",
+  "source_commit": "251f0a796ee2015dd408fda9703e51c6aac4010e",
+  "stress_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+  "training_updates": 0,
+  "execution_identity": {
+    "source_commit": "251f0a796ee2015dd408fda9703e51c6aac4010e",
+    "executable_sha256": "3c40bb21a08b3c79999dbd7562b644835544f94e8521239f45db3249d8657a7a",
+    "argv": [
+      "/Users/casey.allard/.cache/uor-r4-geometric-span-native-target/debug/examples/attention-geometric-span-native",
+      "out=/Users/casey.allard/.local/share/uor-r4/research/geometric-span-native-20261001/run-1",
+      "parent=/Users/casey.allard/.local/share/uor-r4/research/geometric-span-actions-20261001",
+      "max_seconds=900"
+    ],
+    "profile": "dev; only training crate opt-level=3",
+    "started_utc": "2026-10-02T00:32:47.285848+00:00"
+  },
+  "execution_receipt": {
+    "elapsed_seconds": 69.358572875,
+    "exit_code": 0,
+    "watchdog_expired": false
+  },
+  "max_rss_bytes": 96763904,
+  "checks": {
+    "integer": 4,
+    "source_binding_and_replay": 4,
+    "stack_integration": 1,
+    "retained_interface": 1,
+    "evaluator": 1,
+    "total": 11,
+    "fmt": "PASS",
+    "diff": "PASS"
+  },
+  "assembly": {
+    "source_commit": "251f0a796ee2015dd408fda9703e51c6aac4010e",
+    "architecture": "aarch64-apple-darwin",
+    "profile": "release",
+    "assembly_sha256": "9ab31336bed8963d55ffe3665040ded14a81b7f073d29bb68e9fdae88b1d7eaf",
+    "functions": [
+      {
+        "function": "dictionary_row",
+        "symbol": "__RNvMs1_NtCs5Gu1rsvRqmE_14uor_r4_integer14geometric_spanNtB5_21TokenActionDictionary3row",
+        "instructions": 24,
+        "forbidden": [],
+        "calls": [
+          "__RNvNtNtCsgtPOCBgevO_4core5slice5index16slice_index_fail"
+        ]
+      },
+      {
+        "function": "register_step",
+        "symbol": "__RNvMs2_NtCs5Gu1rsvRqmE_14uor_r4_integer14geometric_spanNtB5_12SpanRegister4step",
+        "instructions": 79,
+        "forbidden": [],
+        "calls": [
+          "_memset",
+          "_memcpy",
+          "__RNvNvNtCsgtPOCBgevO_4core5slice20copy_from_slice_impl17len_mismatch_fail",
+          "__RNvNtCsgtPOCBgevO_4core9panicking18panic_bounds_check"
+        ]
+      },
+      {
+        "function": "register_reset",
+        "symbol": "__RNvMs2_NtCs5Gu1rsvRqmE_14uor_r4_integer14geometric_spanNtB5_12SpanRegister5reset",
+        "instructions": 18,
+        "forbidden": [],
+        "calls": [
+          "_memset",
+          "_memset"
+        ]
+      }
+    ],
+    "scope": "emitted three hot method bodies, compose inlined in step; held accessor inlined/not separately emitted; memory intrinsics and unreachable defensive panic callees not disassembled; whole replay binary and closed callgraph NOT_QUALIFIED",
+    "decision": "NO_FORBIDDEN_OPCODES_IN_EMITTED_BODIES"
+  },
+  "results": [
+    {
+      "decision": "EXACT_FIXED_REPLAY",
+      "name": "GeometricSpan-Ordered-s1",
+      "native_metadata": {
+        "classification": "training-encode_lane-original-f32-promoted-f64;signed-nearest-root;lowest-index-tie;zero-identity/1",
+        "coefficient_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "config_sha256": "456074d03418fe7ebdf175809c27412fdf6eb779820d430a90fa394ac7e156dd",
+        "dictionary_bytes": 320,
+        "dictionary_sha256": "d4915e680119fd93975f7b68f95a52500e94e9d08f900da401d1e2d25a6fb624",
+        "embedding_sha256": "d8b335023b37a9ebe2f8cf577a9a8b78ec7e7f72c73d92f66553f0861dbb51e4",
+        "lanes": 8,
+        "model_sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+        "replay": "old-held;earliest-argmax-f32-controller;integer-dictionary-register;canonical-f32-reconstruction-only/1",
+        "schema": "uor-r4.native-span-actions/1",
+        "span": {
+          "action_order": [
+            "hold",
+            "open",
+            "append",
+            "commit"
+          ],
+          "norm_epsilon": 9.5367431640625e-07,
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-span/1",
+          "state_rule": "old-held;open-empty;append-open-right;commit-nonempty-close;unit-span-zero-absent/1",
+          "surrogate_rule": "selected-hamilton/token-normalized;softmax-branch-delta;flags-stop;output-tangent/1",
+          "width": 32
+        },
+        "span_config_sha256": "1b726a7205bb3aa975f547e422c336a2cd8532f43791c01f54368ff22f38c99b",
+        "table_bytes": 15601,
+        "table_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "table_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+        "vocab_size": 40,
+        "width": 32
+      },
+      "source_model_sha256": "235614f2e1861dd79e2e4ea8dac3cdaaec13243f145c04d9a77fbda3e9bb47fa",
+      "original": {
+        "baseline_answers": 99,
+        "full_logit_bit_mismatches": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 128,
+        "identical_source_mass_rows": 128,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 99,
+        "native_head0_source_majorities": 128,
+        "padded_positions": 7296,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 6400,
+        "rows": 128,
+        "unpadded_positions": 6216
+      },
+      "stress": {
+        "baseline_answers": 109,
+        "full_logit_bit_mismatches": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 128,
+        "identical_source_mass_rows": 128,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 109,
+        "native_head0_source_majorities": 126,
+        "padded_positions": 10048,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 9152,
+        "rows": 128,
+        "unpadded_positions": 8272
+      }
+    },
+    {
+      "decision": "EXACT_FIXED_REPLAY",
+      "name": "GeometricSpan-Ordered-s2",
+      "native_metadata": {
+        "classification": "training-encode_lane-original-f32-promoted-f64;signed-nearest-root;lowest-index-tie;zero-identity/1",
+        "coefficient_sha256": "717c064c4baae2ed54c61626eb63c876c37d0ce894d1a1c317bdddc672f6648a",
+        "config_sha256": "c37a4ca04737fbb953708495daeb6b7b7f65eb2843ea636f3bbcf8a7acb8ac1a",
+        "dictionary_bytes": 320,
+        "dictionary_sha256": "e7ff1785991ab737eaea80e5b435421ca4b7e4dc0e1bcffbda9b43f69d67cc4e",
+        "embedding_sha256": "8569b342d9c3834f13b8c8a86e9cb523d19fff0748a7d9556e87a5b4a2704f3b",
+        "lanes": 8,
+        "model_sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+        "replay": "old-held;earliest-argmax-f32-controller;integer-dictionary-register;canonical-f32-reconstruction-only/1",
+        "schema": "uor-r4.native-span-actions/1",
+        "span": {
+          "action_order": [
+            "hold",
+            "open",
+            "append",
+            "commit"
+          ],
+          "norm_epsilon": 9.5367431640625e-07,
+          "root_table_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+          "schema": "uor-r4.geometric-span/1",
+          "state_rule": "old-held;open-empty;append-open-right;commit-nonempty-close;unit-span-zero-absent/1",
+          "surrogate_rule": "selected-hamilton/token-normalized;softmax-branch-delta;flags-stop;output-tangent/1",
+          "width": 32
+        },
+        "span_config_sha256": "1b726a7205bb3aa975f547e422c336a2cd8532f43791c01f54368ff22f38c99b",
+        "table_bytes": 15601,
+        "table_mathematical_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+        "table_payload_sha256": "94a86dbb6e7bb9095650b5cea78bd248f1fa375bc8fd74034d0b692e1e7b36aa",
+        "tokenizer_bytes": 315,
+        "tokenizer_sha256": "b57ce3dadd69878db27ca1fbade8e0a8857489f4bb72254a89c38cf5bb34e892",
+        "training_geometry_sha256": "7bf5b5508db6430586f733de51099b7fb34b04df04b8cb0fa42a800d39d8b569",
+        "vocab_size": 40,
+        "width": 32
+      },
+      "source_model_sha256": "3909b1129e4cf2a2aa72c3cc7ad3172b8eb1c847b881ce054418e31f44c21873",
+      "original": {
+        "baseline_answers": 128,
+        "full_logit_bit_mismatches": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 128,
+        "identical_source_mass_rows": 128,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 128,
+        "native_head0_source_majorities": 127,
+        "padded_positions": 7296,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 6400,
+        "rows": 128,
+        "unpadded_positions": 6216
+      },
+      "stress": {
+        "baseline_answers": 128,
+        "full_logit_bit_mismatches": 0,
+        "historical_identical_answer_logit_rows": 128,
+        "historical_identical_source_mass_rows": 128,
+        "identical_answer_logit_rows": 128,
+        "identical_source_mass_rows": 128,
+        "max_absolute_reconstruction_error": 0.0,
+        "native_answers": 128,
+        "native_head0_source_majorities": 128,
+        "padded_positions": 10048,
+        "presence_mismatches": 0,
+        "present_lane_code_mismatches": 0,
+        "present_positions": 9152,
+        "rows": 128,
+        "unpadded_positions": 8272
+      }
+    }
+  ],
+  "raw_report_sha256": "089b05fedf1a4c45309688fff7c2ee5c0c762f4db1ab3107160fd3eeab2659e7",
+  "retained_root": "/Users/casey.allard/.local/share/uor-r4/research/geometric-span-native-20261001",
+  "integration": {
+    "main": "f9c926925caa232a4c32e9729d8c5ca574ee32b9",
+    "tested_head": "2fc1ec4f847b857a526109828e649350d37ee703",
+    "span_tests_passed": 17,
+    "scope": "optional prime-ranked/ngram pointer changes integrated; preserved models use pointer=None; no second model replay"
+  }
+}
