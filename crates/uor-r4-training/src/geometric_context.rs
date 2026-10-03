@@ -1219,22 +1219,12 @@ fn dependency_files(paths: ContextSourcePaths<'_>) -> Result<BTreeMap<String, Bo
         (
             "event_source",
             paths.event_source,
-            vec![
-                "metadata.json",
-                "event-parameters.safetensors",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_event::source_file_names(paths.event_source)?,
         ),
         (
             "event_native",
             paths.event_native,
-            vec![
-                "metadata.json",
-                "event-tables-i32le.bin",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_event::native_file_names(paths.event_native)?,
         ),
         (
             "span_native",

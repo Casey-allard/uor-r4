@@ -191,22 +191,12 @@ fn snapshot(paths: ValueProducerSourcePaths<'_>) -> Result<BTreeMap<String, Boun
         (
             "event_source",
             deps.event_source,
-            vec![
-                "metadata.json",
-                "event-parameters.safetensors",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_event::source_file_names(deps.event_source)?,
         ),
         (
             "event_native",
             deps.event_native,
-            vec![
-                "metadata.json",
-                "event-tables-i32le.bin",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_event::native_file_names(deps.event_native)?,
         ),
         (
             "span_native",

@@ -272,10 +272,18 @@ struct SpanOp {
     time: usize,
     width: usize,
     policy: SpanPolicy,
+    native_actions: Option<Vec<usize>>,
 }
 
 impl SpanOp {
     fn validate(&self, tokens: &[f32], logits: &[f32]) -> candle_core::Result<()> {
+        if self
+            .native_actions
+            .as_ref()
+            .is_some_and(|a| a.len() != self.batch * self.time || a.iter().any(|&x| x >= 4))
+        {
+            candle_core::bail!("geometric span native action shape/value differs");
+        }
         if tokens.len() != self.batch * self.time * self.width
             || logits.len() != self.batch * self.time * 4
         {
@@ -298,6 +306,12 @@ impl SpanOp {
             .collect()
     }
 
+    fn selected(&self, row: usize, logits: &[f32]) -> usize {
+        self.native_actions
+            .as_ref()
+            .map_or_else(|| action(logits), |a| a[row])
+    }
+
     fn trace(&self, codes: &[u8], logits: &[f32], b: usize) -> Vec<State> {
         let lanes = self.width / 4;
         let mut state = State::empty(lanes);
@@ -306,7 +320,7 @@ impl SpanOp {
             before.push(state.clone());
             let row = b * self.time + t;
             state.advance(
-                action(&logits[row * 4..row * 4 + 4]),
+                self.selected(row, &logits[row * 4..row * 4 + 4]),
                 &codes[row * lanes..(row + 1) * lanes],
                 self.policy,
             );
@@ -355,7 +369,7 @@ impl SpanOp {
                 let row = b * self.time + t;
                 let state = &before[t];
                 let z = &logits[row * 4..row * 4 + 4];
-                let selected = action(z);
+                let selected = self.selected(row, z);
                 let mut branch_credit = [0.; 4];
                 for lane in 0..lanes {
                     let token = codes[row * lanes + lane];
@@ -468,6 +482,34 @@ pub fn produce(
     config: &GeometricSpanConfig,
     policy: SpanPolicy,
 ) -> Result<Tensor> {
+    produce_impl(tokens, logits, config, policy, None)
+}
+
+/// Native hard actions govern forward and selected-branch adjoints. Original
+/// connected score logits retain the existing biased softmax branch estimator.
+pub fn produce_with_native_actions(
+    tokens: &Tensor,
+    logits: &Tensor,
+    config: &GeometricSpanConfig,
+    policy: SpanPolicy,
+    actions: &[uor_r4_integer::geometric_span::SpanAction],
+) -> Result<Tensor> {
+    produce_impl(
+        tokens,
+        logits,
+        config,
+        policy,
+        Some(actions.iter().map(|a| *a as usize).collect()),
+    )
+}
+
+fn produce_impl(
+    tokens: &Tensor,
+    logits: &Tensor,
+    config: &GeometricSpanConfig,
+    policy: SpanPolicy,
+    native_actions: Option<Vec<usize>>,
+) -> Result<Tensor> {
     let (batch, time, width) = tokens.dims3()?;
     config.validate(width)?;
     if batch == 0
@@ -493,6 +535,7 @@ pub fn produce(
             time,
             width,
             policy,
+            native_actions,
         },
     )?)
 }
@@ -501,6 +544,41 @@ pub fn produce(
 mod tests {
     use super::*;
     use candle_core::{Device, Var};
+
+    #[test]
+    fn native_action_override_preserves_original_logit_estimator() {
+        let id = encode_lane([1., 0., 0., 0.]).unwrap().root;
+        let token = encode_lane([0., 1., 0., 0.]).unwrap().root;
+        let tokens = coordinates(&[id, token, id, id]);
+        // Float argmax says HOLD throughout, while the native controller
+        // establishes a delayed committed span. Its logits remain nonuniform.
+        let z = [0.4, 0.2, -0.1, -0.3].repeat(4);
+        let mut native = op(4, SpanPolicy::Ordered);
+        native.native_actions = Some(vec![OPEN, APPEND, COMMIT, HOLD]);
+        let y = native.forward(&tokens, &z).unwrap();
+        assert!(y[..12].iter().all(|&x| x == 0.));
+        assert_eq!(encoded_output(&y, 3).root, token);
+        assert!(op(4, SpanPolicy::Ordered)
+            .forward(&tokens, &z)
+            .unwrap()
+            .iter()
+            .all(|&x| x == 0.));
+        let mut grad = vec![0.; 16];
+        grad[12] = 1.;
+        let (_, dz) = native.backward(&tokens, &z, &grad).unwrap();
+        assert!(dz.iter().all(|x| x.is_finite()));
+        assert!(dz.iter().any(|x| x.abs() > 1e-6));
+        // A disguised one-hot logit changes softmax branch credit; we retain
+        // the original connected score estimator even for overridden actions.
+        let (_, altered) = native
+            .backward(&tokens, &logits(&[OPEN, APPEND, COMMIT, HOLD]), &grad)
+            .unwrap();
+        assert!(dz.iter().zip(altered).any(|(a, b)| (a - b).abs() > 1e-6));
+        native.native_actions = Some(vec![OPEN]);
+        assert!(native.forward(&tokens, &z).is_err());
+        native.native_actions = Some(vec![4; 4]);
+        assert!(native.forward(&tokens, &z).is_err());
+    }
 
     fn logits(actions: &[usize]) -> Vec<f32> {
         actions
@@ -515,6 +593,7 @@ mod tests {
             time,
             width: 4,
             policy,
+            native_actions: None,
         }
     }
 
@@ -598,6 +677,7 @@ mod tests {
             time: 7,
             width: 4,
             policy: SpanPolicy::Ordered,
+            native_actions: None,
         }
         .forward(&tokens, &controller)
         .unwrap();
@@ -614,6 +694,7 @@ mod tests {
             time: 7,
             width: 4,
             policy: SpanPolicy::LastToken,
+            native_actions: None,
         }
         .forward(&tokens, &controller)
         .unwrap();

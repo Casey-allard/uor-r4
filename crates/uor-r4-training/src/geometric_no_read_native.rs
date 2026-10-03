@@ -208,22 +208,12 @@ fn snapshot(paths: NoReadSourcePaths<'_>) -> Result<BTreeMap<String, BoundFile>>
         (
             "event_source",
             deps.event_source,
-            vec![
-                "metadata.json",
-                "event-parameters.safetensors",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_event::source_file_names(deps.event_source)?,
         ),
         (
             "event_native",
             deps.event_native,
-            vec![
-                "metadata.json",
-                "event-tables-i32le.bin",
-                "h4-tables.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_event::native_file_names(deps.event_native)?,
         ),
         (
             "span_native",
@@ -248,12 +238,7 @@ fn snapshot(paths: NoReadSourcePaths<'_>) -> Result<BTreeMap<String, BoundFile>>
         (
             "reducer_native",
             paths.reducer_native,
-            vec![
-                "metadata.json",
-                "age-i64le.bin",
-                "exp-u32le.bin",
-                "tokenizer-identity.bin",
-            ],
+            crate::geometric_read_native::native_file_names(paths.reducer_native)?,
         ),
     ] {
         for name in names {

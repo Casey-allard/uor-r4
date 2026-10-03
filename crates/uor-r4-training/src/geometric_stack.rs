@@ -177,7 +177,19 @@ enum LatchGates<'a> {
 #[derive(Clone, Copy)]
 enum SpanEvents<'a> {
     Training(&'a Tensor),
+    TrainingNative {
+        logits: &'a Tensor,
+        actions: &'a [SpanAction],
+        age: AgeTrainingMode,
+    },
     Native(&'a [SpanAction]),
+}
+
+#[derive(Clone, Copy)]
+enum AgeTrainingMode {
+    None,
+    Quarter,
+    PriorResidual,
 }
 
 #[derive(Clone, Copy)]
@@ -2310,23 +2322,114 @@ impl StackModel {
         events: &EventWeights,
         reset_each_token: bool,
     ) -> Result<Tensor> {
-        if events.config().vocab_size != self.config.vocab_size {
-            return Err(invalid("event vocabulary differs from model"));
-        }
-        let logits = if reset_each_token {
-            events.event_logits_reset_each_token(ids, batch, time)?
-        } else {
-            events.event_logits(ids, batch, time)?
-        };
-        let (hidden, _) = self.hidden_geometric_event(
+        self.forward_geometric_event_training(
             ids,
             batch,
             time,
-            SpanEvents::Training(&logits),
-            None,
-            None,
-            None,
-        )?;
+            events,
+            reset_each_token,
+            AgeTrainingMode::None,
+        )
+    }
+
+    /// Explicit joint event/age training bridge. Hard events come from fresh
+    /// strict native tables; age uses a fresh quarter-grid view with identity
+    /// STE inside the existing common occurrence/NoRead normalization. The
+    /// remaining span/address/trunk/head path retains its declared float model.
+    pub fn forward_geometric_event_q4_age(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        events: &EventWeights,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        if !events.is_q4() {
+            return Err(invalid(
+                "joint event/age training requires strict q4 events",
+            ));
+        }
+        self.forward_geometric_event_training(
+            ids,
+            batch,
+            time,
+            events,
+            reset_each_token,
+            AgeTrainingMode::Quarter,
+        )
+    }
+
+    /// Explicit joint event/age bridge with the fixed initialization age prior
+    /// plus a learned signed-q4 residual at one-eighth nat. This keeps the live
+    /// absolute age shadow and an identity STE in the same occurrence/NoRead
+    /// denominator. It does not change the quarter-grid entry point or make
+    /// the remaining floating span/address/trunk/head path native.
+    pub fn forward_geometric_event_q4_age_residual(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        events: &EventWeights,
+        reset_each_token: bool,
+    ) -> Result<Tensor> {
+        if !events.is_q4() {
+            return Err(invalid(
+                "joint event/age residual training requires strict q4 events",
+            ));
+        }
+        self.forward_geometric_event_training(
+            ids,
+            batch,
+            time,
+            events,
+            reset_each_token,
+            AgeTrainingMode::PriorResidual,
+        )
+    }
+
+    fn forward_geometric_event_training(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        events: &EventWeights,
+        reset_each_token: bool,
+        age: AgeTrainingMode,
+    ) -> Result<Tensor> {
+        if events.config().vocab_size != self.config.vocab_size {
+            return Err(invalid("event vocabulary differs from model"));
+        }
+        let (hidden, _) = if events.is_q4() {
+            let output = events.forward_q4(ids, batch, time, reset_each_token)?;
+            self.hidden_geometric_event(
+                ids,
+                batch,
+                time,
+                SpanEvents::TrainingNative {
+                    logits: &output.logits,
+                    actions: &output.trace.actions,
+                    age,
+                },
+                None,
+                None,
+                None,
+            )?
+        } else {
+            let logits = if reset_each_token {
+                events.event_logits_reset_each_token(ids, batch, time)?
+            } else {
+                events.event_logits(ids, batch, time)?
+            };
+            self.hidden_geometric_event(
+                ids,
+                batch,
+                time,
+                SpanEvents::Training(&logits),
+                None,
+                None,
+                None,
+            )?
+        };
         let p = self.params()?;
         Ok(hidden.matmul(&p.head()?.t()?)?)
     }
@@ -3988,6 +4091,11 @@ impl StackModel {
         native_trace: NativeReadTraceSink<'_>,
         native_value_projection: Option<NativeValueProjection<'_>>,
     ) -> Result<(Tensor, Option<Tensor>)> {
+        if matches!(control, SpanEvents::TrainingNative { .. }) && compiled.is_some() {
+            return Err(invalid(
+                "native-action event training cannot use the detached compiled-span replay",
+            ));
+        }
         let span = self
             .geometric_span
             .as_ref()
@@ -4125,6 +4233,22 @@ impl StackModel {
                         invalid("geometric spans require original selected token rows")
                     })?;
                     match source.event_control {
+                        Some(SpanEvents::TrainingNative {
+                            logits, actions, ..
+                        }) => {
+                            if source.native_span.is_some() {
+                                return Err(invalid(
+                                    "native-action event training requires connected span credit",
+                                ));
+                            }
+                            geometric_span::produce_with_native_actions(
+                                tokens,
+                                logits,
+                                span,
+                                source.span_policy,
+                                actions,
+                            )?
+                        }
                         Some(SpanEvents::Native(events)) => {
                             let (compiled, ids) = source.native_span.ok_or_else(|| {
                                 invalid("native events require the compiled span dictionary")
@@ -4144,7 +4268,8 @@ impl StackModel {
                                     predicted = self.span_control_logits(p, layer, &u)?;
                                     &predicted
                                 }
-                                Some(SpanEvents::Native(_)) => {
+                                Some(SpanEvents::Native(_))
+                                | Some(SpanEvents::TrainingNative { .. }) => {
                                     return Err(invalid("invalid native event branch"))
                                 }
                             };
@@ -4288,8 +4413,26 @@ impl StackModel {
             }
         }
         let ages = Tensor::from_vec(ages, time * time, &self.device)?;
-        let age = p
-            .layer(layer, "read.age")?
+        let age_mode = match source.event_control {
+            Some(SpanEvents::TrainingNative { age, .. }) => age,
+            _ => AgeTrainingMode::None,
+        };
+        let age_source = match age_mode {
+            AgeTrainingMode::None => p.layer(layer, "read.age")?.clone(),
+            AgeTrainingMode::Quarter => crate::geometric_read_native::q4_age_training_view(
+                p.layer(layer, "read.age")?,
+                heads,
+                self.config.context,
+            )?,
+            AgeTrainingMode::PriorResidual => {
+                crate::geometric_read_native::q4_age_residual_training_view(
+                    p.layer(layer, "read.age")?,
+                    heads,
+                    self.config.context,
+                )?
+            }
+        };
+        let age = age_source
             .index_select(&ages, 1)?
             .reshape((1, heads, time, time))?;
         scores = scores
@@ -13684,6 +13827,271 @@ mod tests {
         Ok(())
     }
 
+    fn tiny_q4_span_events(vocab_size: usize) -> Result<EventWeights> {
+        let events = EventWeights::new(vocab_size, 2, 307)?;
+        for (name, parameter) in events.parameters() {
+            let mut values = vec![0f32; parameter.elem_count()];
+            match name.as_str() {
+                "token_transition" => {
+                    for token in 0..vocab_size {
+                        for lane in 0..2 {
+                            values[(token * 2 + lane) * 120 + (2 + token + lane) % 120] = 1.5;
+                        }
+                    }
+                }
+                "self_transition" | "neighbor_transition" => {
+                    for (i, value) in values.iter_mut().enumerate() {
+                        *value = if (i / 4 + i % 4) % 3 == 0 {
+                            0.25
+                        } else {
+                            -0.25
+                        };
+                    }
+                }
+                "state_event" => {
+                    for lane in 0..2 {
+                        for event in 0..4 {
+                            values[(lane * 4 + event) * 4 + (event + lane) % 4] = 0.25;
+                        }
+                    }
+                }
+                "token_event" => {
+                    values.fill(-1.5);
+                    for token in 0..vocab_size {
+                        values[token * 4] = 1.5;
+                    }
+                    for (token, event) in [(1, 1), (2, 2), (3, 2), (4, 3)] {
+                        values[token * 4..token * 4 + 4].fill(-1.5);
+                        values[token * 4 + event] = 1.5;
+                    }
+                }
+                _ => return Err(invalid("unexpected strict event fixture family")),
+            }
+            parameter.set(&Tensor::from_vec(values, parameter.shape(), &cpu())?)?;
+        }
+        events.into_q4()
+    }
+
+    #[test]
+    fn geometric_event_q4_age_answer_credit_crosses_span_attention_and_head() -> Result<()> {
+        let model = tiny_span_model()?;
+        // Construction fixture with actual predicted open/append/commit paths.
+        // The first token is unique and HOLD: credit to its transition row from
+        // the last answer must cross recurrent event context, not a local label.
+        let ids = [0, 1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let events = tiny_q4_span_events(model.config.vocab_size)?;
+        let predicted = events.forward_q4(&ids, 1, ids.len(), false)?;
+        assert_eq!(
+            predicted
+                .trace
+                .actions
+                .iter()
+                .map(|x| *x as usize)
+                .collect::<Vec<_>>(),
+            [0, 1, 2, 2, 3, 0, 1, 2, 2, 3, 0]
+        );
+        let age = &model.variables()["layers.02.read.age"];
+        let age_shadow: Vec<f32> = (0..age.elem_count())
+            .map(|i| 0.13 + (i % 5) as f32 * 0.1)
+            .collect();
+        age.set(&Tensor::from_vec(age_shadow.clone(), age.shape(), &cpu())?)?;
+        let output = model.forward_geometric_event_q4_age(&ids, 1, ids.len(), &events, false)?;
+        assert_eq!(output.dims(), [ids.len(), model.config.vocab_size]);
+        let loss = logits_cross_entropy(&output.narrow(0, ids.len() - 1, 1)?, &[7], None)?;
+        let gradients = loss.backward()?;
+        for name in [
+            "token_transition",
+            "self_transition",
+            "neighbor_transition",
+            "token_event",
+            "state_event",
+        ] {
+            let parameter = events
+                .parameters()
+                .get(name)
+                .ok_or_else(|| invalid("strict event family absent"))?;
+            let gradient = gradients
+                .get(parameter.as_tensor())
+                .ok_or_else(|| invalid(format!("answer-to-event {name} gradient absent")))?;
+            let values = gradient.flatten_all()?.to_vec1::<f32>()?;
+            assert!(values.iter().all(|x| x.is_finite()));
+            assert!(
+                values.iter().any(|x| *x != 0.),
+                "answer-to-event {name} credit vanished"
+            );
+            if name == "token_transition" {
+                assert!(
+                    values[..240].iter().any(|x| *x != 0.),
+                    "last answer misses unique first-token event context"
+                );
+            }
+        }
+        for (name, parameter) in [
+            ("age", age),
+            ("embedding", &model.variables()["embedding.weight"]),
+        ] {
+            let values = gradients
+                .get(parameter.as_tensor())
+                .ok_or_else(|| invalid(format!("answer-to-{name} gradient absent")))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(values.iter().all(|x| x.is_finite()) && values.iter().any(|x| *x != 0.));
+        }
+        assert!(
+            gradients
+                .get(&model.variables()["layers.02.read.span_control.weight"])
+                .is_none(),
+            "legacy contextual event controller must not supply this route"
+        );
+        let direct = model.forward_geometric_event(&ids, 1, ids.len(), &events, false)?;
+        assert_ne!(
+            bits(&direct)?,
+            bits(&output)?,
+            "explicit age view must affect actual output"
+        );
+        age.set(&Tensor::from_vec(
+            age_shadow
+                .iter()
+                .map(|x| (x * 4.).round() * 0.25)
+                .collect::<Vec<_>>(),
+            age.shape(),
+            &cpu(),
+        )?)?;
+        assert_eq!(
+            bits(&output)?,
+            bits(&model.forward_geometric_event(&ids, 1, ids.len(), &events, false)?)?,
+            "joint hard output must equal event-only output at the same explicit age grid"
+        );
+
+        // All-HOLD has no active span branch and therefore no event credit.
+        // This is an existing estimator limitation, not permission to invent a
+        // gradient or fit an easier local event-classification objective.
+        let token_event = &events.parameters()["token_event"];
+        let mut hold = vec![-1.5f32; model.config.vocab_size * 4];
+        for token in 0..model.config.vocab_size {
+            hold[token * 4] = 1.5;
+        }
+        token_event.set(&Tensor::from_vec(hold, token_event.shape(), &cpu())?)?;
+        assert!(events
+            .forward_q4(&ids, 1, ids.len(), false)?
+            .trace
+            .actions
+            .iter()
+            .all(|x| *x == SpanAction::Hold));
+        let hold_output =
+            model.forward_geometric_event_q4_age(&ids, 1, ids.len(), &events, false)?;
+        let hold_gradients =
+            logits_cross_entropy(&hold_output.narrow(0, ids.len() - 1, 1)?, &[7], None)?
+                .backward()?;
+        if let Some(gradient) =
+            hold_gradients.get(events.parameters()["token_transition"].as_tensor())
+        {
+            assert!(gradient
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .all(|x| *x == 0.));
+        }
+        assert!(model
+            .forward_geometric_event_q4_age(
+                &ids,
+                1,
+                ids.len(),
+                &EventWeights::new(model.config.vocab_size, 2, 308)?,
+                false
+            )
+            .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn geometric_event_q4_age_residual_answer_credit_and_common_denominator() -> Result<()> {
+        let model = tiny_span_model()?;
+        let ids = [0, 1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let events = tiny_q4_span_events(model.config.vocab_size)?;
+        let variables = model.variables();
+        let age = &variables["layers.02.read.age"];
+        let null_bias = &variables["layers.02.read.null.bias"];
+        let context = model.config.context;
+        assert_eq!(model.config.heads, 2);
+        let shadow: Vec<f32> = (0..age.elem_count())
+            .map(|i| {
+                let prior = -((i % context) as f32) / if i / context == 0 { 16. } else { 256. };
+                prior + 0.13 + (i % 5) as f32 * 0.1
+            })
+            .collect();
+        age.set(&Tensor::from_vec(shadow.clone(), age.shape(), &cpu())?)?;
+        let output =
+            model.forward_geometric_event_q4_age_residual(&ids, 1, ids.len(), &events, false)?;
+        let gradients =
+            logits_cross_entropy(&output.narrow(0, ids.len() - 1, 1)?, &[7], None)?.backward()?;
+        let transition = gradients
+            .get(events.parameters()["token_transition"].as_tensor())
+            .ok_or_else(|| invalid("residual-age answer-to-event gradient absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(transition.iter().all(|x| x.is_finite()));
+        assert!(
+            transition[..240].iter().any(|x| *x != 0.),
+            "residual-age answer must reach the unique first-token transition"
+        );
+        let age_gradient = gradients
+            .get(age.as_tensor())
+            .ok_or_else(|| invalid("residual-age answer gradient absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let null_gradient = gradients
+            .get(null_bias.as_tensor())
+            .ok_or_else(|| invalid("residual-age NoRead gradient absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for values in [&age_gradient, &null_gradient] {
+            assert!(values.iter().all(|x| x.is_finite()));
+            assert!(values.iter().any(|x| *x != 0.));
+        }
+        // Adding a common constant to every occurrence and NoRead score
+        // leaves the shared softmax unchanged. The live absolute-age STE
+        // must preserve this derivative identity separately for each head.
+        for (head, no_read) in null_gradient.iter().enumerate() {
+            let row = &age_gradient[head * context..(head + 1) * context];
+            let sum: f64 = row.iter().map(|x| f64::from(*x)).sum();
+            let scale =
+                row.iter().map(|x| f64::from(*x).abs()).sum::<f64>() + f64::from(*no_read).abs();
+            assert!(
+                (sum + f64::from(*no_read)).abs() <= 2e-4 * scale.max(1e-12),
+                "age and NoRead credit must share one normalization"
+            );
+        }
+        let raw = model.forward_geometric_event(&ids, 1, ids.len(), &events, false)?;
+        assert_ne!(bits(&raw)?, bits(&output)?);
+        // Independent hard reconstruction from the specified initialization
+        // prior and residual grid; this deliberately does not call the helper
+        // under test. The whole answer vector must match the unchanged path.
+        let hard: Vec<f32> = shadow
+            .iter()
+            .enumerate()
+            .map(|(i, value)| {
+                let prior = -((i % context) as f64) / if i / context == 0 { 16. } else { 256. };
+                (prior + ((f64::from(*value) - prior) * 8.).round() / 8.) as f32
+            })
+            .collect();
+        age.set(&Tensor::from_vec(hard, age.shape(), &cpu())?)?;
+        assert_eq!(
+            bits(&output)?,
+            bits(&model.forward_geometric_event(&ids, 1, ids.len(), &events, false)?)?
+        );
+        assert!(model
+            .forward_geometric_event_q4_age_residual(
+                &ids,
+                1,
+                ids.len(),
+                &EventWeights::new(model.config.vocab_size, 2, 308)?,
+                false,
+            )
+            .is_err());
+        Ok(())
+    }
+
     #[test]
     fn native_geometric_event_reader_has_language_credit_and_direct_integer_events() -> Result<()> {
         let model = tiny_span_model()?;
@@ -13770,6 +14178,25 @@ mod tests {
             &potential_source,
         )?;
         let integer_trace = geometric_event::trace_native(&ids, 1, 10, &event, false)?;
+        let connected_logits = events.event_logits(&ids, 1, 10)?;
+        assert!(
+            model
+                .hidden_geometric_event(
+                    &ids,
+                    1,
+                    10,
+                    SpanEvents::TrainingNative {
+                        logits: &connected_logits,
+                        actions: &integer_trace.actions,
+                        age: AgeTrainingMode::None,
+                    },
+                    None,
+                    Some(&span),
+                    Some(&potential),
+                )
+                .is_err(),
+            "connected event training must not silently detach through compiled span replay"
+        );
         let direct =
             geometric_span_native::trace_native_events(&ids, 1, 10, &integer_trace.actions, &span)?;
         let through_logits = geometric_span_native::trace_native(

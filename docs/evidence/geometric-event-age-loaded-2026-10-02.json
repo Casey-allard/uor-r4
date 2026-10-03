@@ -1,0 +1,168 @@
+{
+  "schema": "uor-r4.geometric-event-age-loaded-evidence/1",
+  "collected_at": "2026-10-03T01:00:34.877379+00:00",
+  "source_commit": "093dc5e7b508af8066c65a02abd1b2161a42433a",
+  "executable_sha256": "6fdefffe7829c4fa826148502640dbaba8c27b3a60fca1316af6916438b7772d",
+  "hosted_run": "https://github.com/UOR-Foundation/uor-r4/actions/runs/37082252725",
+  "optimizer_updates": 0,
+  "attempts": [
+    {
+      "seed": 1,
+      "mode": "fixed-quarter",
+      "report_sha256": "df2cf90af7129b1cab44e9fd359ec59a34f8c9df61ac9859d57c4e3b971d7a0a",
+      "manifest_sha256": "ab3bac172246d8e5bb6486a3678d7f6f57231e4b95d28e2ea4a2515027bd538b",
+      "decision": "PRESERVE_FIXED_GRID_REFUSAL_REQUIRES_CAUSAL_LEARNING_DESIGN",
+      "event_admitted": false,
+      "age_admitted": false
+    },
+    {
+      "seed": 1,
+      "mode": "fixed-gauge-residual",
+      "report_sha256": "cae3e78d45ea1e1271e2305c9db63c4148caf27629c487663bbd3c22dea1d803",
+      "manifest_sha256": "aa8484f7d1e5a85992985b25bc96c002fc240fc9000f228fab2ec3607aa3aadb",
+      "decision": "INTEGRATED_FIXED_CONVERSION_COMPLETE_RETAIN_ALL_ROWS",
+      "event_admitted": true,
+      "age_admitted": true
+    },
+    {
+      "seed": 2,
+      "mode": "fixed-quarter",
+      "report_sha256": "da1ed834ae832d739abf2f80877ae56dc676a406e87e7368cb24bcff6c65f6fb",
+      "manifest_sha256": "09bb6057af27355ec62971e28ccde10a73797cfbd2863a9fb52e837d02e8176a",
+      "decision": "PRESERVE_FIXED_GRID_REFUSAL_REQUIRES_CAUSAL_LEARNING_DESIGN",
+      "event_admitted": false,
+      "age_admitted": false
+    },
+    {
+      "seed": 2,
+      "mode": "fixed-gauge-residual",
+      "report_sha256": "b61aaba05326a34e462d782e15bbfa1e038eb56e0abcb738cdcaa42f346b3452",
+      "manifest_sha256": "8ef7e72384753f7616f7f0a0afd95e00f30b038cefef2a0cb2a9f7a2bc31f487",
+      "decision": "INTEGRATED_FIXED_CONVERSION_COMPLETE_RETAIN_ALL_ROWS",
+      "event_admitted": true,
+      "age_admitted": true
+    }
+  ],
+  "panels": [
+    {
+      "seed": 1,
+      "all_actual_position_session_bits_equal": true,
+      "correct": {
+        "native": 91,
+        "parent": 93
+      },
+      "gains": 0,
+      "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+      "losses": 2,
+      "mean_answer_ce": {
+        "native": 1.1229016313021192,
+        "parent": 1.1219692863908985
+      },
+      "panel": "original",
+      "rows": 128,
+      "saved_rows_sha256": "784f94684b10872cafed517c2c747756db2be1d11d7f3983e8b86c872ecf8d0e",
+      "changed_capture_action_positions": 7,
+      "rows_with_changed_capture_actions": 7
+    },
+    {
+      "seed": 1,
+      "all_actual_position_session_bits_equal": true,
+      "correct": {
+        "native": 109,
+        "parent": 110
+      },
+      "gains": 0,
+      "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+      "losses": 1,
+      "mean_answer_ce": {
+        "native": 1.137371101715574,
+        "parent": 1.1120531257683335
+      },
+      "panel": "stress",
+      "rows": 128,
+      "saved_rows_sha256": "ba16bd1102959ec06ff853607e91eb900f4df1b72ad68a930e87285691956777",
+      "changed_capture_action_positions": 13,
+      "rows_with_changed_capture_actions": 8
+    },
+    {
+      "seed": 2,
+      "all_actual_position_session_bits_equal": true,
+      "correct": {
+        "native": 124,
+        "parent": 124
+      },
+      "gains": 0,
+      "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+      "losses": 0,
+      "mean_answer_ce": {
+        "native": 0.44852359317368123,
+        "parent": 0.44872190265638423
+      },
+      "panel": "original",
+      "rows": 128,
+      "saved_rows_sha256": "c2396f39b503695118cd36d34aa79edf2231dbf26f2ef852f3c2570f2c252096",
+      "changed_capture_action_positions": 4,
+      "rows_with_changed_capture_actions": 4
+    },
+    {
+      "seed": 2,
+      "all_actual_position_session_bits_equal": true,
+      "correct": {
+        "native": 120,
+        "parent": 119
+      },
+      "gains": 1,
+      "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+      "losses": 0,
+      "mean_answer_ce": {
+        "native": 0.5719448133281234,
+        "parent": 0.5735846754206135
+      },
+      "panel": "stress",
+      "rows": 128,
+      "saved_rows_sha256": "d74837b6c9188a7461f1680a222977b8351be95e90aef726b371cb129adba854",
+      "changed_capture_action_positions": 0,
+      "rows_with_changed_capture_actions": 0
+    }
+  ],
+  "totals": {
+    "rows": 512,
+    "parent_correct": 446,
+    "native_correct": 444,
+    "gains": 1,
+    "losses": 3,
+    "changed_capture_action_positions": 24,
+    "rows_with_changed_capture_actions": 19
+  },
+  "scope": "Retained authored open-development panels; integer attention with unchanged offline float Stack tail. No natural language, full serving, selected-access or geometric advantage qualification. Source/native trace and all-position parity are executed-driver assertions until independent saved-result review.",
+  "workers": [
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-event-age-q4-20261002/github-training-3/attention-geometric-event-age-q4",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-event-age-q4-20261002/args-fixed-gauge-residual-s1.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 16.162135416991077,
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 1089830912,
+      "reserved_threads": 2,
+      "reserved_ram_gib": 2,
+      "measured_ram_within_reservation": true,
+      "executable_sha256": "6fdefffe7829c4fa826148502640dbaba8c27b3a60fca1316af6916438b7772d"
+    },
+    {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-event-age-q4-20261002/github-training-3/attention-geometric-event-age-q4",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-event-age-q4-20261002/args-fixed-gauge-residual-s2.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 15.045629250002094,
+      "unchanged_source_after": true,
+      "measured_maximum_resident_set_bytes": 1010073600,
+      "reserved_threads": 2,
+      "reserved_ram_gib": 2,
+      "measured_ram_within_reservation": true,
+      "executable_sha256": "6fdefffe7829c4fa826148502640dbaba8c27b3a60fca1316af6916438b7772d"
+    }
+  ]
+}

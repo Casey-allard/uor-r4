@@ -9,9 +9,9 @@
 //!
 //! Context, potential, value, and NoRead use their strict q4 source policies;
 //! the composition bank uses signed geometric selector IDs and q4 gains. Event
-//! coefficients and age biases retain their admitted wider source policies.
-//! Thus a native integer session is not a claim that every learned coefficient
-//! in the attention component already satisfies the four-bit source limit.
+//! and age may use legacy wider sources or explicit strict source modes; the
+//! admission metadata reports each separately. A native integer session alone
+//! does not establish a four-bit source policy for every admitted component.
 //!
 //! `session` allocates bounded history/scratch once. Its returned integer
 //! session consumes token IDs and returns i64 Q16 residuals with no Tensor,
@@ -192,7 +192,12 @@ impl<'a> CompiledGeometricAttention<'a> {
             || pm.address.heads != HEADS
             || pm.address.lanes_per_head != LANES_PER_HEAD
             || context.metadata().source.frozen.address != pm.address
-            || rm.schema != crate::geometric_read_native::SCHEMA
+            || !matches!(
+                rm.schema.as_str(),
+                crate::geometric_read_native::SCHEMA
+                    | crate::geometric_read_native::Q4_AGE_SCHEMA
+                    | crate::geometric_read_native::Q4_AGE_RESIDUAL_SCHEMA
+            )
             || rm.layer != 2
             || rm.heads != HEADS
             || rm.context == 0
@@ -318,6 +323,20 @@ impl<'a> CompiledGeometricAttention<'a> {
         .into_iter()
         .map(|(name, bytes)| (name.to_owned(), bound(&bytes)))
         .collect();
+        let mut strict_sources = ["context", "potential", "values", "no_read"]
+            .map(str::to_owned)
+            .to_vec();
+        let mut wider_sources = Vec::new();
+        if events.config().schema == crate::geometric_event::Q4_SCHEMA {
+            strict_sources.push("events".into());
+        } else {
+            wider_sources.push("event learned coefficients".into());
+        }
+        if reducer.is_q4_age() {
+            strict_sources.push("age".into());
+        } else {
+            wider_sources.push("age learned biases".into());
+        }
         let metadata = AttentionAdmissionMetadata {
             schema: SCHEMA.into(),
             numerical_session_schema: uor_r4_integer::geometric_attention::SCHEMA.into(),
@@ -335,8 +354,8 @@ impl<'a> CompiledGeometricAttention<'a> {
             algebra_payload_sha256: algebra.clone(),
             algebra_mathematical_sha256: math.clone(),
             observation_basis_q25_sha256: basis_sha.clone(),
-            strict_q4_source_components: ["context", "potential", "values", "no_read"].map(str::to_owned).to_vec(),
-            wider_source_components: ["event learned coefficients", "age learned biases"].map(str::to_owned).to_vec(),
+            strict_q4_source_components: strict_sources,
+            wider_source_components: wider_sources,
             composition_source_policy: "signed-H4 categorical left/right selectors;dimensionless-q4-quarter-gains;exact-group-transport;integer-Q16-decoding".into(),
             causal_contract: "token-only;NEW synchronous context/event;OLD held span;cache each occurrence once;current included;age=query-source;separate head NoRead denominators;span action visible next token;no eviction;reset all history".into(),
         };

@@ -1,5 +1,35 @@
 # Current UOR-R4 research state
 
+## Event/age q4 bridge — retained conversion measured, October 2
+
+[Event/age source and causal design](geometric-event-age-q4-2026-10-02.md) adds
+native-action-conditioned offline capture credit and explicit four-bit age
+policies. Hosted M1 source8713997d passes6 integer and10 training/artifact cases;
+source093dc5e7 adds the prior/residual extension and passes4 integer/8 training
+cases (22 distinct cases across the two sources). Actual answer-loss fixtures
+reach event transitions, geometric span/address/age and the head. These are
+connected fixtures, not fitted language/capability results.
+
+Both actual retained parents refuse the unchanged quarter grid without clipping.
+One declared offline positive event rescaling followed by quarter quantization,
+and the fixed initialized age prior plus1/8-nat learned q4 residual, admit both.
+The six learned source components have four-bit coefficients and no wider learned
+source component in the attention admission inventory. Expanded integer tables,
+fixed prior, offline F32 tail and full causal-prefix access remain explicit.
+
+[Loaded evidence](../evidence/geometric-event-age-loaded-2026-10-02.json) retains
+512 comparisons: converted444/512 versus parent446/512, with1 gain/3 losses.
+Seed1 loses3 and CE worsens; seed2 gains1 and CE improves. Capture action
+sequences change at24 positions across19 rows. All actual-position incremental/whole-prefix output
+bits match, independent reload and integer prefix/B2 checks pass, zero updates.
+The source range refusal and every changed row are preserved. This supports a
+separately justified connected constrained-learning task, without automatic
+scale/dose sweeps or mechanism retirement. [#1512](https://github.com/UOR-Foundation/uor-r4/issues/1512)
+remains open for attention qualification. PR1638 owns delivery; persistent
+attention PR1635 is merged at1dc78d1b. Selected access, natural grounded language
+and the float model tail remain unfinished.
+
+
 ## Persistent integer attention — native runtime repair, October 2
 
 The [persistent session implementation](geometric-attention-session-2026-10-02.md)
@@ -32,8 +62,8 @@ Independent saved-output review passes:512 answer vectors match bitwise,
 57,952 head reductions reconstruct, and1,024 parent query heads match.
 Full-position equality remains an executed-driver assertion; this is fidelity
 on exposed retained panels, not a new quality improvement. No local Cargo or private artifact upload.
-Continue #1512 through protected delivery,
-then the remaining event/age coefficient boundary. Selected access and the
+PR1635 is delivered through the protected queue; continue #1512 through the
+remaining event/age coefficient boundary. Selected access and the
 float model tail remain explicit unfinished boundaries.
 
 ## Strict q4 geometric context — fixed construction and three-route credit complete, October 2
