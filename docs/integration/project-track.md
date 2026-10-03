@@ -53,14 +53,21 @@ requires a learned language interface, not dimension padding.
 |---|---|
 | Claude, #820/#1552 | Finish the already claimed matched scale/control, selected-emitter persistence and response-quality work. Keep learned binding failure separate from exact-store usefulness. Interpret relevance and paired judge controls separately from fluency. |
 | DeepSeek, #1512 | Complete the claimed distance and matched surface-form contrasts. Report the particular data/representation/gradient scope; failure does not prove an exhaustive state-capacity limit. |
-| Codex, #1552/#1512 | Run one fixed, zero-update selected-source × recent-distractor contrast on the retained D19 artifact, with predicted compiler actions, exact retrieved bytes/record identity and actual generated history. Attribute compiler/write, read, consumer and stopping failures before changing a learner. |
+| Codex, #1552/#1512 | Build the typed geometric selected-record consumer after the [executed source-binding contrast](geometric-chat-source-binding-2026-10-03.md). Preserve exact token occurrences and source-bound native operators; measure connected ordinary-answer credit and cost before fitting. Coordinate any shared session hook on #1552. |
 
-The next Codex contrast changes the selected fact and unrelated distractor
+The fixed Codex contrast changes the selected fact and unrelated distractor
 independently, preserves question/relation/phrase positions, and includes read-off
 controls. It uses the existing research loader; portable CLI loader repair is
 bounded product work, not a prerequisite campaign. An isolated recalled-payload
 intervention with frozen history, if needed, is a separately labelled diagnostic.
 This is open development diagnosis, not a fresh general-chat qualification.
+
+The [executed contrast](geometric-chat-source-binding-2026-10-03.md) verifies correct
+selected-payload delivery in all 20 read-on cases, with four wrong distractor
+answers. Advance the consumer implementation below; these cases do not call for
+a compiler/store repair or an unchanged scale/selector campaign. Successful
+comparison histories retain their scope, and the finite answer scorer and
+own-history read-off limitations remain explicit.
 
 If correct selected-payload delivery is established but answers follow the
 distractor, implement a typed geometric selected-record-to-emission reference on
