@@ -3,8 +3,32 @@
 //!
 //! ```text
 //! geometric-stack synthetic-memory out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
-//!   rows=2000 seed=7 [split=train] [vocab_size=4096]
+//!   rows=2000 seed=7 [split=train] [vocab_size=4096] \
+//!   [distance=N | curriculum=1 [max_distance=N]] [token_budget=N]
 //! ```
+//!
+//! `distance` controls how far the asserted fact sits from the question. In the
+//! legacy form the document is exactly four turns, so the asked statement is
+//! always 0 or 1 turns from the question -- inside the reach of a short causal
+//! convolution, which means a fit can score it without ever reading the fact out
+//! of state. `distance=N` inserts `N` filler user turns between the statement
+//! pair and the question, so the fact is N+0 or N+1 turns back and the local
+//! window cannot carry it. `curriculum=1` draws each document's filler count
+//! uniformly from `0..=max_distance` (default 8), giving a mixture that keeps the
+//! easy case in distribution while forcing the hard ones.
+//!
+//! Both knobs are additive: with `distance=0` and no curriculum every byte of
+//! `tokens.u16`, `response_mask.u8` and `manifest.json` is exactly what the
+//! pre-distance generator wrote for the same rows and seed, so prior artifacts
+//! stay comparable.
+//!
+//! Distance is capped at `MAX_DISTANCE` because `dialogue-train` under
+//! `policy=full_prefix` **excludes** any document whose start-to-answer span
+//! exceeds the model context (256), and a document that is never trained on is
+//! not evidence about distance. `token_budget` stops the run after the last
+//! document that keeps the total at or below the given token count, which is how
+//! two arms are generated at the same budget when the filler turns make the
+//! ramped documents longer.
 //!
 //! Why this exists: the value-faithfulness diagnostic (#1512) found that a
 //! competing turn costs the emitter about 2/10 of answer-target stability
@@ -600,6 +624,55 @@ const VALUES: &[(&str, &[&str])] = &[
 /// relation's *shape* without being its answer.
 const OVERLAP: &[(&str, &str)] = &[];
 
+/// Filler user turns inserted between the statement pair and the question.
+///
+/// They are deliberately *not* memory statements: none of them asserts a
+/// relation, carries a relation's value vocabulary as a word, or asks a
+/// question that could be answered from the document. A filler that asserted a
+/// fact would make the distance condition a second selection problem instead of
+/// a separation problem, so the unit test below checks every filler against
+/// every relation id and value rather than trusting this list to stay clean as
+/// the tables grow.
+const FILLERS: &[&str] = &[
+    "Anyway, how has your week been so far?",
+    "It has been raining a lot lately.",
+    "I am feeling quite tired this evening.",
+    "The weather has been strange lately.",
+    "I am trying to walk more often.",
+    "My knee is still a bit sore.",
+    "I spent the morning tidying up.",
+    "The train was delayed again today.",
+    "I am looking forward to the weekend.",
+    "It is surprisingly warm for this time of year.",
+    "I keep forgetting to answer messages.",
+    "My back hurts after sitting all day.",
+    "We are out of milk and bread.",
+    "I think I need an early night.",
+    "The people next door are away this week.",
+    "I heard a strange noise last night.",
+    "Everything is quiet here at the moment.",
+    "I should probably go to bed soon.",
+    "The kitchen sink is leaking again.",
+    "It has been a long day.",
+];
+
+/// Distance ceiling. `dialogue-train` with `policy=full_prefix` keeps only
+/// documents whose start-to-answer span fits the 256-token context
+/// (`dialogue_episodes`: `end - document <= context`); a document that is
+/// excluded is not trained on, so a larger distance would silently produce
+/// untrained rows rather than a longer separation. The cap bounds the knob, it
+/// does not guarantee the documents fit: a distance-16 document already runs
+/// past the context, which is why the manifest reports `documents_over_context`
+/// and `max_document_tokens` and the run warns on stderr. `max_distance=8` is
+/// well inside the context on this tokenizer.
+const MAX_DISTANCE: u64 = 16;
+
+/// The trainer's context, matching `dialogue-train`'s default. A document whose
+/// encoded length exceeds it is excluded by `policy=full_prefix`, so the
+/// manifest reports how many there were instead of leaving the exclusion
+/// silent.
+const TRAINER_CONTEXT: usize = 256;
+
 fn values_of(id: &str) -> Result<&'static [&'static str]> {
     VALUES
         .iter()
@@ -642,6 +715,11 @@ struct Document {
     question: String,
     answer: String,
     wanted: String,
+    /// Whether `first` is the asked relation's statement. Recorded because the
+    /// separation between the asked statement and the question is the filler
+    /// count plus one when the asked statement is stated first, and the
+    /// manifest reports that separation rather than only the filler count.
+    asked_first: bool,
 }
 
 fn document(rng: &mut Rng) -> Result<Document> {
@@ -671,8 +749,11 @@ fn document(rng: &mut Rng) -> Result<Document> {
     let competing_statement = rng.pick(competing.states).replace("{v}", competing_value);
     let question = rng.pick(asked.asks).to_string();
     // The asked statement is sometimes stated first and sometimes second, so
-    // recency cannot be the rule the corpus teaches.
-    let (first, second) = if rng.below(2) == 0 {
+    // recency cannot be the rule the corpus teaches. The draw is captured
+    // rather than re-tested: a second `below(2)` call would change the stream
+    // the pre-distance generator used and break byte identity at distance 0.
+    let asked_first = rng.below(2) == 0;
+    let (first, second) = if asked_first {
         (asked_statement, competing_statement)
     } else {
         (competing_statement, asked_statement)
@@ -683,7 +764,16 @@ fn document(rng: &mut Rng) -> Result<Document> {
         question,
         answer: rng.pick(asked.answers).replace("{v}", wanted),
         wanted: wanted.to_string(),
+        asked_first,
     })
+}
+
+/// `count` filler user turns, drawn one at a time.
+///
+/// Only called when `count > 0`, which is what keeps the distance-0 run's rng
+/// stream and therefore its bytes identical to the pre-distance generator.
+fn insert_fillers(rng: &mut Rng, count: usize) -> Vec<String> {
+    (0..count).map(|_| rng.pick(FILLERS).to_string()).collect()
 }
 
 fn run(args: &[String]) -> Result<()> {
@@ -711,6 +801,30 @@ fn run(args: &[String]) -> Result<()> {
     if rows == 0 {
         return Err("rows must be at least 1".into());
     }
+    // Separation between the asserted fact and the question. Legacy behaviour
+    // is `distance=0` with no curriculum: exactly four turns, no extra rng
+    // draws, byte-identical output.
+    let distance = number("distance", 0)?;
+    let curriculum_raw = number("curriculum", 0)?;
+    if curriculum_raw > 1 {
+        return Err("curriculum= must be 0 or 1".into());
+    }
+    let curriculum = curriculum_raw == 1;
+    let max_distance = number("max_distance", 8)?;
+    let token_budget = number("token_budget", 0)? as usize;
+    if distance > MAX_DISTANCE {
+        return Err(format!(
+            "distance= must be at most {MAX_DISTANCE}: a longer document than the trainer's \
+             256-token context is excluded by policy=full_prefix and never trained on"
+        ));
+    }
+    if curriculum && max_distance > MAX_DISTANCE {
+        return Err(format!("max_distance= must be at most {MAX_DISTANCE}"));
+    }
+    if curriculum && args.iter().any(|a| a.starts_with("distance=")) {
+        return Err("distance= and curriculum=1 are mutually exclusive".into());
+    }
+    let distance_mode = if curriculum { "curriculum" } else { "exact" };
 
     let tokenizer_json = fs::read(&tokenizer_path).map_err(|e| e.to_string())?;
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_json)
@@ -727,9 +841,25 @@ fn run(args: &[String]) -> Result<()> {
     let mut documents: Vec<(Vec<u16>, Vec<u8>)> = Vec::with_capacity(rows);
     let mut total = 0usize;
     let mut response_tokens = 0usize;
+    // Recorded so the manifest states the separation actually written, not the
+    // one that was asked for. Keyed by filler count and by the asked
+    // statement's own distance from the question.
+    let mut fillers_histogram: std::collections::BTreeMap<usize, usize> =
+        std::collections::BTreeMap::new();
+    let mut asked_distance_histogram: std::collections::BTreeMap<usize, usize> =
+        std::collections::BTreeMap::new();
+    let mut stopped_at_budget = false;
+    let mut documents_over_context = 0usize;
+    let mut max_document_tokens = 0usize;
     for _ in 0..rows {
         let doc = document(&mut rng)?;
-        let messages = [
+        let fillers = if curriculum {
+            let count = rng.below(max_distance as usize + 1);
+            insert_fillers(&mut rng, count)
+        } else {
+            insert_fillers(&mut rng, distance as usize)
+        };
+        let mut messages: Vec<Message<'_>> = vec![
             Message {
                 role: "user",
                 content: &doc.first,
@@ -738,15 +868,21 @@ fn run(args: &[String]) -> Result<()> {
                 role: "user",
                 content: &doc.second,
             },
-            Message {
-                role: "user",
-                content: &doc.question,
-            },
-            Message {
-                role: "assistant",
-                content: &doc.answer,
-            },
         ];
+        for filler in &fillers {
+            messages.push(Message {
+                role: "user",
+                content: filler,
+            });
+        }
+        messages.push(Message {
+            role: "user",
+            content: &doc.question,
+        });
+        messages.push(Message {
+            role: "assistant",
+            content: &doc.answer,
+        });
         let encoded = encoder.encode_document(&messages);
         if encoded.emitted_turns != messages.len() {
             return Err(format!(
@@ -754,6 +890,12 @@ fn run(args: &[String]) -> Result<()> {
                 messages.len(),
                 encoded.emitted_turns
             ));
+        }
+        // Stop before the document that would exceed the budget, so a ramped
+        // corpus can be generated at the same total token count as a flat one.
+        if token_budget > 0 && total + encoded.tokens.len() > token_budget {
+            stopped_at_budget = true;
+            break;
         }
         let ids: Vec<u16> = encoded
             .tokens
@@ -793,6 +935,17 @@ fn run(args: &[String]) -> Result<()> {
         }
         total += ids.len();
         response_tokens += encoded.response_mask.iter().filter(|&&m| m == 1).count();
+        max_document_tokens = max_document_tokens.max(ids.len());
+        if ids.len() > TRAINER_CONTEXT {
+            documents_over_context += 1;
+        }
+        *fillers_histogram.entry(fillers.len()).or_default() += 1;
+        // The asked statement is stated first or second, so its own separation
+        // from the question is the filler count, plus one when the competing
+        // statement sits between them.
+        *asked_distance_histogram
+            .entry(fillers.len() + usize::from(doc.asked_first))
+            .or_default() += 1;
         documents.push((ids, encoded.response_mask));
     }
 
@@ -825,7 +978,19 @@ fn run(args: &[String]) -> Result<()> {
     let tokens_sha = uor_r4_training::sha256_file(&tokens_path).map_err(|e| e.to_string())?;
     let mask_sha = uor_r4_training::sha256_file(&mask_path).map_err(|e| e.to_string())?;
     let tokenizer_sha = uor_r4_training::sha256_file(&tokenizer_path).map_err(|e| e.to_string())?;
-    let manifest = json!({
+    let mut properties = vec![
+        "the asked relation and the competing statement are always both stated",
+        "the answer is always the asked relation's value",
+        "the competing relation is never the asked relation",
+        "the asked statement is first half the time and second half the time",
+        "overlapping relations (colour/car) sometimes share a competing value",
+    ];
+    if distance > 0 || curriculum {
+        properties.push(
+            "filler user turns that assert no relation separate the asked statement from the question",
+        );
+    }
+    let mut manifest = json!({
         "schema": "uor-r4-chat-corpus/v1",
         "mask_schema": "uor-r4-response-mask/u8/v1",
         "split": split,
@@ -858,19 +1023,13 @@ fn run(args: &[String]) -> Result<()> {
             "rows": rows,
             "seed": seed,
             "relations": RELATIONS.iter().map(|r| r.id).collect::<Vec<_>>(),
-            "properties": [
-                "the asked relation and the competing statement are always both stated",
-                "the answer is always the asked relation's value",
-                "the competing relation is never the asked relation",
-                "the asked statement is first half the time and second half the time",
-                "overlapping relations (colour/car) sometimes share a competing value"
-            ]
+            "properties": properties
         },
         "tokenizer": {"path": tokenizer_path.display().to_string(), "sha256": tokenizer_sha},
         "dialogue_protocol": protocol.schema,
         "bos_id": bos,
         "eos_id": eos,
-        "rows_used": rows,
+        "rows_used": documents.len(),
         "tokens": total,
         "response_tokens": response_tokens,
         "response_fraction": response_tokens as f64 / total as f64,
@@ -879,15 +1038,61 @@ fn run(args: &[String]) -> Result<()> {
         "tokens_sha256": tokens_sha,
         "mask_sha256": mask_sha,
     });
+    // Present only when a non-legacy mode was used, so a distance-0 manifest is
+    // byte-identical to the pre-distance generator's. `serde_json`'s default map
+    // keeps keys sorted, so inserting here does not reorder anything else.
+    if distance > 0 || curriculum {
+        let mut distance_block = json!({
+            "mode": distance_mode,
+            "filler_turns_histogram": fillers_histogram,
+            "asked_statement_to_question_turns_histogram": asked_distance_histogram,
+            "trainer_context": TRAINER_CONTEXT,
+            "max_document_tokens": max_document_tokens,
+            "documents_over_context": documents_over_context,
+            "note": "filler user turns sit between the statement pair and the question; the asked statement is stated first or second, so its own separation from the question is the filler count, plus one when the competing statement sits between them. documents_over_context counts documents the trainer's full_prefix policy would exclude, which are not evidence about distance.",
+        });
+        if curriculum {
+            distance_block["max_distance"] = json!(max_distance);
+        } else {
+            distance_block["fillers_per_document"] = json!(distance);
+        }
+        manifest["distance"] = distance_block;
+    }
+    if token_budget > 0 {
+        manifest["token_budget"] = json!(token_budget);
+        manifest["stopped_at_budget"] = json!(stopped_at_budget);
+    }
     fs::write(
         out.join("manifest.json"),
         serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?,
     )
     .map_err(|e| e.to_string())?;
     println!(
-        "{rows} documents, {total} tokens, {response_tokens} response tokens ({:.1}%)",
+        "{} documents, {total} tokens, {response_tokens} response tokens ({:.1}%)",
+        documents.len(),
         100.0 * response_tokens as f64 / total as f64
     );
+    if distance > 0 || curriculum {
+        println!(
+            "distance mode {distance_mode}: {} filler turns over {} documents; asked statement to \
+             question turns {}..={}",
+            fillers_histogram.iter().map(|(d, n)| d * n).sum::<usize>(),
+            documents.len(),
+            asked_distance_histogram.keys().next().copied().unwrap_or(0),
+            asked_distance_histogram
+                .keys()
+                .next_back()
+                .copied()
+                .unwrap_or(0),
+        );
+        if documents_over_context > 0 {
+            eprintln!(
+                "warning: {documents_over_context} documents exceed the {TRAINER_CONTEXT}-token \
+                 trainer context and will be excluded by policy=full_prefix; lower distance= or \
+                 max_distance="
+            );
+        }
+    }
     Ok(())
 }
 
@@ -896,5 +1101,98 @@ fn main() {
     if let Err(error) = run(&args) {
         eprintln!("Error: {error}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The distance condition is only about separation: a filler must not
+    /// assert a relation. A filler that carried a value from `VALUES` as a word
+    /// would turn the distance arms into a second selection problem, so this
+    /// guards the property the experiment depends on. Matching is by word, not
+    /// by substring: `none` inside `money` is not an assertion.
+    #[test]
+    fn fillers_assert_no_relation_value() {
+        for filler in FILLERS {
+            let words: Vec<String> = filler
+                .to_lowercase()
+                .split(|c: char| !c.is_alphanumeric() && c != '\'')
+                .filter(|w| !w.is_empty())
+                .map(str::to_owned)
+                .collect();
+            for (relation, values) in VALUES {
+                assert!(
+                    !words.iter().any(|w| w == relation),
+                    "filler {filler:?} contains the relation id {relation}"
+                );
+                for value in *values {
+                    if value.contains(' ') {
+                        continue;
+                    }
+                    assert!(
+                        !words.iter().any(|w| w == &value.to_lowercase()),
+                        "filler {filler:?} contains a value of {relation}: {value}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// Same seed, same fillers; and the count is exact.
+    #[test]
+    fn fillers_are_deterministic_and_exact() {
+        let first = insert_fillers(&mut Rng(11), 7);
+        let second = insert_fillers(&mut Rng(11), 7);
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 7);
+        assert!(first.iter().all(|f| FILLERS.contains(&f.as_str())));
+        assert!(insert_fillers(&mut Rng(11), 0).is_empty());
+    }
+
+    /// The legacy path must be reachable unchanged: with no distance arguments
+    /// the document content is exactly what `document()` produced before the
+    /// distance knobs existed, and the knob only adds turns after it.
+    #[test]
+    fn distance_zero_adds_no_turns() {
+        let doc = document(&mut Rng(7)).expect("document");
+        assert!(!doc.first.is_empty() && !doc.second.is_empty());
+        // The asked statement is the one whose value the answer gives.
+        let asked = if doc.asked_first {
+            &doc.first
+        } else {
+            &doc.second
+        };
+        assert!(asked.contains(&doc.wanted));
+        assert!(doc.answer.contains(&doc.wanted));
+    }
+
+    /// Out-of-range distances are refused before any I/O: a document longer
+    /// than the trainer context is dropped by `policy=full_prefix` and would
+    /// make the corpus silent evidence rather than a longer separation.
+    #[test]
+    fn distances_above_the_context_cap_are_refused() {
+        let base = [
+            "out=/nonexistent-distance-curriculum-root",
+            "tokenizer=/nonexistent-tokenizer.json",
+            "rows=1",
+        ];
+        let with = |extra: &[&str]| -> Vec<String> {
+            base.iter()
+                .chain(extra)
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>()
+        };
+        let error = run(&with(&["distance=17"])).expect_err("distance=17 must be refused");
+        assert!(error.contains("distance= must be at most"), "{error}");
+        let error = run(&with(&["curriculum=2"])).expect_err("curriculum=2 must be refused");
+        assert!(error.contains("curriculum= must be 0 or 1"), "{error}");
+        let error = run(&with(&["distance=4", "curriculum=1"]))
+            .expect_err("distance plus curriculum must be refused");
+        assert!(error.contains("mutually exclusive"), "{error}");
+        let error = run(&with(&["curriculum=1", "max_distance=17"]))
+            .expect_err("max_distance=17 must be refused");
+        assert!(error.contains("max_distance= must be at most"), "{error}");
     }
 }
