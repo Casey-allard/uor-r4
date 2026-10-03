@@ -55,5 +55,6 @@ Preserve live runs' reservations. No paid compute or destruction of unique
 material is authorized.
 
 Protected PRs require recorded exact-head review and actual scoped checks.
-Historical queue status names are acknowledgements, not compile/test evidence;
+One CI job publishes the five historical acknowledgement names (3 October 2026); dropping them from the ruleset awaits an org admin. The historical
+acknowledgement jobs are not compile/test evidence;
 the delivery-evidence check remains advisory under the owner's current rule.

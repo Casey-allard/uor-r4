@@ -3,7 +3,8 @@ name: ci
 # Pre-alpha verification is issue-scoped: developers compile and run the path
 # they changed instead of paying for the full release ladder on every PR.
 # Owner-directed fast iteration: pull requests and merge groups emit only the
-# five historical status acknowledgements required by the ruleset. Native
+# five historical status acknowledgements, all published by one job
+# (required-transport) so each run needs one shared runner slot. Native
 # verification is available through explicit native_checks dispatch; broader
 # product/release workflows remain separately selectable.
 on:
@@ -102,15 +103,36 @@ jobs:
         if: steps.scope.outputs.code == 'true'
         run: cargo test --workspace --lib
 
-  # Keep the required status name until the ruleset is changed. This job is
-  # transparent queue transport, not a successful test or policy evaluation.
-  required-core-transport:
-    name: fmt / clippy / tests / no_std / κ
+  # The ruleset's five required status names are compatibility acknowledgements:
+  # they run no formatting, Clippy, tests, audit, fuzzing, WASM build or model
+  # evaluation (owner-approved, 3 October 2026). One job publishes all five as
+  # completed check runs on the commit the ruleset evaluates (the PR head, or the
+  # merge-group head), so a PR or queue entry waits for one shared-runner slot
+  # instead of five. Real validation is the exact-head evidence posted on the PR.
+  required-transport:
+    name: required acknowledgements (5 ruleset names, no tests)
     if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
     steps:
-      - name: Acknowledge deferred native verification
-        run: echo "Ruleset transport only; no formatting, Clippy, native tests, no_std, kappa or architecture-policy checks ran. Use workflow_dispatch qa_scope=native_checks for the native suite."
+      - name: Publish the five acknowledgement check runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          publish() {
+            gh api "repos/${GITHUB_REPOSITORY}/check-runs" \
+              -f name="$1" -f head_sha="${HEAD_SHA}" -f status=completed -f conclusion=success \
+              -f "output[title]=Ruleset transport only" -f "output[summary]=$2" > /dev/null
+            echo "published: $1"
+          }
+          publish "fmt / clippy / tests / no_std / κ" "Ruleset transport only; no formatting, Clippy, native tests, no_std, kappa or architecture-policy checks ran. Use workflow_dispatch qa_scope=native_checks for the native suite."
+          publish "cargo audit" "Ruleset transport only; no dependency audit ran."
+          publish "fuzz smoke (nightly libfuzzer)" "Ruleset transport only; no fuzzing ran."
+          publish "wasm-pack build (dashboard facade, deploy.yml parity)" "Ruleset transport only; no WASM build ran."
+          publish "Gate C trend alarm" "Ruleset transport only; no Gate C or model evaluation ran."
 
   native-checks:
     name: manual native architecture and runtime checks
@@ -149,38 +171,6 @@ jobs:
 
       - name: Native CLI checks
         run: cargo test --locked --bin r4 native_geometric_
-
-  required-audit-transport:
-    name: cargo audit
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Acknowledge deferred release audit
-        run: echo "Ruleset transport only; no dependency audit ran."
-
-  required-fuzz-transport:
-    name: fuzz smoke (nightly libfuzzer)
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Acknowledge deferred release fuzzing
-        run: echo "Ruleset transport only; no fuzzing ran."
-
-  required-wasm-transport:
-    name: wasm-pack build (dashboard facade, deploy.yml parity)
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Acknowledge deferred release WASM build
-        run: echo "Ruleset transport only; no WASM build ran."
-
-  required-gate-c-transport:
-    name: Gate C trend alarm
-    if: ${{ always() && (github.event_name == 'pull_request' || github.event_name == 'merge_group') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Acknowledge deferred release model evaluation
-        run: echo "Ruleset transport only; no Gate C or model evaluation ran."
 
   # Full certification is retained for an explicit product-release decision.
   gates:

@@ -145,8 +145,9 @@ cargo check -p uor-r4-api --all-targets --offline
 cargo test -p uor-r4-api --lib --offline
 ```
 
-Protected PR/merge-queue statuses are compatibility acknowledgements; they do
-not run this library gate. Report actual local or manually dispatched checks.
+The protected merge queue's five required names are acknowledgements published by
+one CI job (3 October 2026),
+and the historical acknowledgement jobs do not run this library gate. Report actual local or manually dispatched checks.
 An ignored end-to-end compile
 + load test remains available when the change directly targets that lifecycle:
 
