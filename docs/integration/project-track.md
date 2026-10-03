@@ -786,7 +786,7 @@ still meet D0-b and the eventual D5 parameter-access requirement.
 ### Continuity, budgets and decision gates
 
 [D9 progress control](agent-execution-policy.md#progress-control--owner-correction-september-25)
-is mandatory before more model compute. The [active work card](current-state.md#active-execution-contract)
+is mandatory before more model compute. The [active work card](../history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract)
 keeps the deliverable, fixed context/access contract, causal change, necessary
 checks and distinct decisions together. No result-free repeat, growing test
 programme or diagnostic-policy promotion is the next milestone. The full-access numerical bridge is now retained; standalone serving integration

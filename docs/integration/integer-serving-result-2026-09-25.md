@@ -123,7 +123,7 @@ the established export. Freeze the complete learning/export/evaluation budget
 and a compact output-quality decision before launch. If likelihood improves
 without useful output improvement, compare objective/data coverage and capacity
 explicitly; do not automatically repeat exposure or return to selector sweeps.
-The [current work card](current-state.md#active-execution-contract) owns this next
+The [current work card](../history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract) owns this next
 action. No new multi-hour fit is launched by this implementation result.
 
 ## Delivery evidence and resources

@@ -93,7 +93,7 @@ Hard admission is stopped-gradient. Selected Q/K/V/state/output paths retain lan
 below to train recent64 is withdrawn before execution. The owner challenged the
 context/access reduction and required a system to prevent experiment loops.
 [D9](DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract)
-and the [active contract](current-state.md#active-execution-contract) now retain
+and the [active contract](../history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract) now retain
 the accepted learned-code parents, matched 256-token contexts and full causal
 access while implementing quantized transport and the integer execution bridge.
 Pruning is a deferred optimization. The completed measurements, original gates,

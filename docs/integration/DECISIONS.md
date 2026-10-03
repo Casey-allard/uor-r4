@@ -356,7 +356,7 @@ This refines D8 sequencing after the completed admission decision. The useful
 transformerless geometric-model goal, D0-b arithmetic contract, D4–D6 evidence and
 terminal sparsity requirements, exact memory, language learning and matched
 ordinary controls remain in force. No new model training is part of this process
-correction. The [current execution contract](current-state.md#active-execution-contract)
+correction. The [current execution contract](../history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract)
 is authoritative for the next implementation; historical experiment schedules do
 not override it.
 
@@ -375,7 +375,7 @@ serving-multiplier exceptions below; offline Rust learning remains permitted
 under D0-b. The numbered record below preserves the September 26 decision in the
 other lab session, not a global revocation or restatement of that session's
 instructions. See the [shared owner clarification](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5852795279)
-and [current execution direction](current-state.md#fourth-lab-shared-research-and-integration).
+and [current execution direction](../history/current-state-2026-09-25-to-2026-10-02.md#fourth-lab-shared-research-and-integration).
 
 1. **Backbone.** A converted open-weight instruct model (SmolLM2, Apache-2.0) is accepted as the chat backbone. The
    rule "no transformer backbone at serving" is restated as: **no floating point and no dense float matmul at serving,

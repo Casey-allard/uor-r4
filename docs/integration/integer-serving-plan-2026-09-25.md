@@ -1,7 +1,7 @@
 # Standalone integer serving — prospective work card
 
 Continuation of PR1396 under #973/#820 and D9. This plan precedes loaded execution.
-The [active contract](current-state.md#active-execution-contract) owns the next
+The [active contract](../history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract) owns the next
 serving deliverable; this record pins its actual execution choices.
 
 ## Deliverable and fixed conditions

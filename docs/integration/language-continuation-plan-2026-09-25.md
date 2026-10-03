@@ -200,7 +200,7 @@ decisions were pending; completed training did not establish language improvemen
 The [conditional principal direction](language-continuation-direction-2026-09-26.md)
 explains how to interpret the frozen outputs; it does not authorize a new
 architecture, depth experiment, panel or exposure tranche. See
-[current state](current-state.md#latest-recovery6-status)
+[current state](../history/current-state-2026-09-25-to-2026-10-02.md#latest-recovery6-status)
 for the latest witnessed recovery status.
 
 Quaternion completed at18:45UTC and Householder-pair at21:11UTC, each with

@@ -75,7 +75,7 @@ A task template, stale skill or agent judgment cannot silently change them.
 ## Progress control — mandatory before more model compute
 
 Apply the [progress-control rules](docs/integration/agent-execution-policy.md#progress-control--owner-correction-september-25)
-and the active contract in [current state](docs/integration/current-state.md#active-execution-contract--durable-labs-september-29).
+and the active contract in [current state](docs/history/current-state-2026-09-25-to-2026-10-02.md#active-execution-contract--durable-labs-september-29).
 Keep one short work card in the existing issue: integrated deliverable, observed
 blocker, causal change, distinct outcome decisions, fixed conditions, necessary
 checks and complete cost. Reject a repeat without new causal evidence and a
