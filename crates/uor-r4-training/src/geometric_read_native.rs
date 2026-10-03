@@ -30,6 +30,7 @@ use uor_r4_integer::geometric_read::{
     NativeGeometricRead, EXP_STEP_LOG2, EXP_TABLE_LEN, MAX_CONTEXT, MAX_VALUE_WIDTH, WEIGHT_ONE,
 };
 
+use crate::geometric_age_source::{AgeSource, AgeSourceLineage, AgeSourceMetadata};
 use crate::geometric_potential_native::{CompiledGeometricPotentials, PotentialSourceBinding};
 use crate::geometric_stack::{
     StackArch, StackConfig, StackModel, GEOMETRIC_ADDRESS_RECORD, GEOMETRIC_SPAN_RECORD,
@@ -39,6 +40,8 @@ use crate::{invalid, sha256_bytes, Result};
 pub const SCHEMA: &str = "uor-r4.geometric-read-reducer/1";
 pub const Q4_AGE_SCHEMA: &str = "uor-r4.geometric-read-reducer/2";
 pub const Q4_AGE_RESIDUAL_SCHEMA: &str = "uor-r4.geometric-read-reducer/3";
+pub const LEARNED_AGE_SCHEMA: &str = "uor-r4.geometric-read-reducer/4";
+pub const LEARNED_AGE_RAW_FILE: &str = "learned-age-raw-f32le.bin";
 pub const Q4_AGE_FILE: &str = "age-coefficients-q4.bin";
 pub const Q4_AGE_RESIDUAL_FILE: &str = "age-residual-coefficients-q4.bin";
 pub const Q4_AGE_TRAINING_POLICY: &str = "CPU-F32-nat-shadows;fixed-quarter-grid-nearest-ties-away;reject-outside[-1.75,1.75];live-shadow-minus-detached-shadow-plus-detached-current-grid;identity-STE;no-reducer-backward/1";
@@ -64,6 +67,9 @@ pub fn native_file_names(directory: &Path) -> Result<Vec<&'static str>> {
     let mut files = FILES.to_vec();
     if let Some(name) = metadata.age_mode()?.packed_file() {
         files.push(name);
+    }
+    if metadata.age_source.is_some() {
+        files.push(LEARNED_AGE_RAW_FILE);
     }
     Ok(files)
 }
@@ -107,6 +113,23 @@ pub struct ReadSourceBinding {
     potential_metadata: Vec<u8>,
 }
 impl ReadSourceBinding {
+    pub(crate) fn age_lineage(&self) -> AgeSourceLineage {
+        AgeSourceLineage {
+            base_files: self.files.clone(),
+            layer: self.layer,
+            heads: self.heads,
+            context: self.context,
+            value_width: self.value_width,
+            age_parameter: self.age_parameter.clone(),
+            base_age_f32: bound(&f32_bytes(&self.age)),
+            potential_metadata: bound(&self.potential_metadata),
+            tokenizer: bound(&self.tokenizer),
+        }
+    }
+    pub(crate) fn age_tokenizer(&self) -> &[u8] {
+        &self.tokenizer
+    }
+
     /// Bind the explicitly chosen read site. The current saved geometric
     /// address operation is supported only at layer 2 of an `rra` stack.
     pub fn from_directory(
@@ -231,7 +254,7 @@ fn canonical_exp() -> Vec<u32> {
         .map(|i| ((-(i as f64) / 256.).exp() * WEIGHT_ONE as f64).round() as u32)
         .collect()
 }
-fn tensor_age(age: &Tensor, heads: usize, context: usize) -> Result<Vec<f32>> {
+pub(crate) fn tensor_age(age: &Tensor, heads: usize, context: usize) -> Result<Vec<f32>> {
     if age.dtype() != DType::F32 || !age.device().is_cpu() || age.dims() != [heads, context] {
         return Err(invalid("native read needs CPU F32 age [heads,context]"));
     }
@@ -288,7 +311,10 @@ pub fn q4_age_training_view(age: &Tensor, heads: usize, context: usize) -> Resul
     Ok((age - &age.detach())?.add(&grid)?)
 }
 
-fn q4_age_residual(config: AgeResidualQ4Config, raw: &[f32]) -> Result<NativeAgeResidualQ4> {
+pub(crate) fn q4_age_residual(
+    config: AgeResidualQ4Config,
+    raw: &[f32],
+) -> Result<NativeAgeResidualQ4> {
     if raw.len()
         != config
             .coefficient_count()
@@ -367,18 +393,42 @@ pub struct AgeResidualQ4Metadata {
     pub training_policy: String,
 }
 
+pub(crate) fn residual_metadata(
+    config: AgeResidualQ4Config,
+    codec: &NativeAgeResidualQ4,
+) -> Result<AgeResidualQ4Metadata> {
+    Ok(AgeResidualQ4Metadata {
+        schema: uor_r4_integer::geometric_age_q4::RESIDUAL_SCHEMA.into(),
+        policy: uor_r4_integer::geometric_age_q4::RESIDUAL_POLICY.into(),
+        config,
+        prior_identity: uor_r4_integer::geometric_age_q4::PRIOR_IDENTITY.into(),
+        prior_phase: uor_r4_integer::geometric_age_q4::PRIOR_PHASE.into(),
+        prior_head_shifts: codec
+            .prior_head_shifts()
+            .map_err(|e| invalid(e.to_string()))?,
+        prior_q24: bound(&age_bytes(codec.prior_q24())),
+        residual_exponent: uor_r4_integer::geometric_age_q4::RESIDUAL_EXPONENT,
+        coefficient_count: config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?,
+        packed_coefficients: bound(codec.packed()),
+        training_policy: Q4_AGE_RESIDUAL_TRAINING_POLICY.into(),
+    })
+}
+
 #[derive(Clone, Copy)]
 enum AgeMode {
     Raw,
     Quarter,
     PriorResidual,
+    LearnedPriorResidual,
 }
 impl AgeMode {
     fn packed_file(self) -> Option<&'static str> {
         match self {
             Self::Raw => None,
             Self::Quarter => Some(Q4_AGE_FILE),
-            Self::PriorResidual => Some(Q4_AGE_RESIDUAL_FILE),
+            Self::PriorResidual | Self::LearnedPriorResidual => Some(Q4_AGE_RESIDUAL_FILE),
         }
     }
 }
@@ -414,6 +464,9 @@ pub struct GeometricReadMetadata {
     /// Exclusive schema /3 branch; omitted in both historical schemas.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub age_residual_q4: Option<AgeResidualQ4Metadata>,
+    /// Schema /4 separates immutable base lineage from current learned age.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub age_source: Option<AgeSourceMetadata>,
 }
 impl GeometricReadMetadata {
     fn age_mode(&self) -> Result<AgeMode> {
@@ -421,10 +474,12 @@ impl GeometricReadMetadata {
             self.schema.as_str(),
             self.age_q4.as_ref(),
             self.age_residual_q4.as_ref(),
+            self.age_source.as_ref(),
         ) {
-            (SCHEMA, None, None) => Ok(AgeMode::Raw),
-            (Q4_AGE_SCHEMA, Some(_), None) => Ok(AgeMode::Quarter),
-            (Q4_AGE_RESIDUAL_SCHEMA, None, Some(_)) => Ok(AgeMode::PriorResidual),
+            (SCHEMA, None, None, None) => Ok(AgeMode::Raw),
+            (Q4_AGE_SCHEMA, Some(_), None, None) => Ok(AgeMode::Quarter),
+            (Q4_AGE_RESIDUAL_SCHEMA, None, Some(_), None) => Ok(AgeMode::PriorResidual),
+            (LEARNED_AGE_SCHEMA, None, Some(_), Some(_)) => Ok(AgeMode::LearnedPriorResidual),
             _ => Err(invalid(
                 "native read schema/age policy combination is unsupported",
             )),
@@ -457,6 +512,7 @@ fn metadata(source: &ReadSourceBinding, age: &[i64], exp: &[u32]) -> GeometricRe
         producer_policy: PRODUCER.into(),
         age_q4: None,
         age_residual_q4: None,
+        age_source: None,
     }
 }
 
@@ -466,6 +522,7 @@ pub struct CompiledGeometricRead {
     exp: Vec<u32>,
     tokenizer: Vec<u8>,
     age_coefficients_q4: Option<Vec<u8>>,
+    learned_age_raw: Option<Vec<u8>>,
 }
 impl CompiledGeometricRead {
     pub fn compile(
@@ -513,6 +570,42 @@ impl CompiledGeometricRead {
         }
         Self::from_source_q4_residual(source)
     }
+    /// Export a separately learned age snapshot against the unchanged base.
+    /// This never relaxes the /1, /2 or /3 saved-base equality checks.
+    pub fn compile_learned_age(
+        current_age: &Tensor,
+        potential: &CompiledGeometricPotentials,
+        base: &ReadSourceBinding,
+        source: &AgeSource,
+    ) -> Result<Self> {
+        source.validate_for(current_age, base)?;
+        if serde_json::to_vec_pretty(potential.metadata())? != base.potential_metadata {
+            return Err(invalid(
+                "learned age export potential differs from base lineage",
+            ));
+        }
+        Self::from_learned_age(base, source)
+    }
+
+    fn from_learned_age(base: &ReadSourceBinding, source: &AgeSource) -> Result<Self> {
+        source.validate_base(base)?;
+        let current = ReadSourceBinding {
+            files: base.files.clone(),
+            layer: base.layer,
+            heads: base.heads,
+            context: base.context,
+            value_width: base.value_width,
+            age_parameter: base.age_parameter.clone(),
+            age: source.raw_values().to_vec(),
+            tokenizer: base.tokenizer.clone(),
+            potential_metadata: base.potential_metadata.clone(),
+        };
+        let mut compiled = Self::from_source_q4_residual(&current)?;
+        compiled.metadata.schema = LEARNED_AGE_SCHEMA.into();
+        compiled.metadata.age_source = Some(source.metadata().clone());
+        compiled.learned_age_raw = Some(source.raw_bytes());
+        Ok(compiled)
+    }
     fn from_source(source: &ReadSourceBinding) -> Result<Self> {
         let age = source
             .age
@@ -529,6 +622,7 @@ impl CompiledGeometricRead {
             exp,
             tokenizer: source.tokenizer.clone(),
             age_coefficients_q4: None,
+            learned_age_raw: None,
         })
     }
     fn from_source_q4(source: &ReadSourceBinding) -> Result<Self> {
@@ -558,6 +652,7 @@ impl CompiledGeometricRead {
             exp,
             tokenizer: source.tokenizer.clone(),
             age_coefficients_q4: Some(codec.packed().to_vec()),
+            learned_age_raw: None,
         })
     }
     fn from_source_q4_residual(source: &ReadSourceBinding) -> Result<Self> {
@@ -573,27 +668,14 @@ impl CompiledGeometricRead {
         let mut metadata = metadata(source, &age, &exp);
         metadata.schema = Q4_AGE_RESIDUAL_SCHEMA.into();
         metadata.quantization = Q4_AGE_RESIDUAL_QUANTIZATION.into();
-        metadata.age_residual_q4 = Some(AgeResidualQ4Metadata {
-            schema: uor_r4_integer::geometric_age_q4::RESIDUAL_SCHEMA.into(),
-            policy: uor_r4_integer::geometric_age_q4::RESIDUAL_POLICY.into(),
-            config,
-            prior_identity: uor_r4_integer::geometric_age_q4::PRIOR_IDENTITY.into(),
-            prior_phase: uor_r4_integer::geometric_age_q4::PRIOR_PHASE.into(),
-            prior_head_shifts: codec
-                .prior_head_shifts()
-                .map_err(|e| invalid(e.to_string()))?,
-            prior_q24: bound(&age_bytes(codec.prior_q24())),
-            residual_exponent: uor_r4_integer::geometric_age_q4::RESIDUAL_EXPONENT,
-            coefficient_count: source.age.len(),
-            packed_coefficients: bound(codec.packed()),
-            training_policy: Q4_AGE_RESIDUAL_TRAINING_POLICY.into(),
-        });
+        metadata.age_residual_q4 = Some(residual_metadata(config, &codec)?);
         Ok(Self {
             metadata,
             age,
             exp,
             tokenizer: source.tokenizer.clone(),
             age_coefficients_q4: Some(codec.packed().to_vec()),
+            learned_age_raw: None,
         })
     }
     pub fn metadata(&self) -> &GeometricReadMetadata {
@@ -682,6 +764,46 @@ impl CompiledGeometricRead {
         }
         Ok(())
     }
+    /// Check the immutable floating host age, not the separately learned age.
+    /// Only /4 uses a distinct base-age identity. `validate_for` still requires
+    /// equality to the actual learned source and must be used for that source.
+    pub fn validate_base_for(
+        &self,
+        base_age: &Tensor,
+        potential: &CompiledGeometricPotentials,
+    ) -> Result<()> {
+        match &self.metadata.age_source {
+            None => self.validate_for(base_age, potential),
+            Some(source) => {
+                if bound(&f32_bytes(&tensor_age(
+                    base_age,
+                    self.metadata.heads,
+                    self.metadata.context,
+                )?)) != source.lineage.base_age_f32
+                    || bound(&serde_json::to_vec_pretty(potential.metadata())?)
+                        != self.metadata.potential_metadata
+                {
+                    return Err(invalid(
+                        "learned age reducer immutable host lineage differs",
+                    ));
+                }
+                Ok(())
+            }
+        }
+    }
+
+    /// Bind a separately loaded source to this compiled /4 snapshot, including
+    /// raw bit changes that leave the rounded native table unchanged.
+    pub fn validate_age_source(&self, source: &AgeSource) -> Result<()> {
+        if self.metadata.age_source.as_ref() != Some(source.metadata())
+            || self.learned_age_raw.as_deref() != Some(source.raw_bytes().as_slice())
+        {
+            return Err(invalid(
+                "native learned age snapshot differs from current source",
+            ));
+        }
+        Ok(())
+    }
     pub fn save(&self, directory: &Path) -> Result<()> {
         fs::create_dir(directory)?;
         for (name, bytes) in [
@@ -699,6 +821,9 @@ impl CompiledGeometricRead {
                 .packed_file()
                 .ok_or_else(|| invalid("native read packed age has no declared file"))?;
             fs::File::create_new(directory.join(filename))?.write_all(packed)?;
+        }
+        if let Some(raw) = &self.learned_age_raw {
+            fs::File::create_new(directory.join(LEARNED_AGE_RAW_FILE))?.write_all(raw)?;
         }
         Ok(())
     }
@@ -723,6 +848,9 @@ impl CompiledGeometricRead {
         if let Some(filename) = mode.packed_file() {
             expected_names.insert(filename.into());
         }
+        if matches!(mode, AgeMode::LearnedPriorResidual) {
+            expected_names.insert(LEARNED_AGE_RAW_FILE.into());
+        }
         if names != expected_names {
             return Err(invalid("native read artifact file set differs"));
         }
@@ -730,6 +858,13 @@ impl CompiledGeometricRead {
             AgeMode::Raw => Self::from_source(source)?,
             AgeMode::Quarter => Self::from_source_q4(source)?,
             AgeMode::PriorResidual => Self::from_source_q4_residual(source)?,
+            AgeMode::LearnedPriorResidual => {
+                let age_source = AgeSource::from_raw_bytes(
+                    &fs::read(directory.join(LEARNED_AGE_RAW_FILE))?,
+                    source,
+                )?;
+                Self::from_learned_age(source, &age_source)?
+            }
         };
         let age = age_bytes(&expected.age);
         let exp = exp_bytes(&expected.exp);
@@ -1121,6 +1256,163 @@ mod tests {
             potential,
             source,
         })
+    }
+
+    #[test]
+    fn native_read_learned_age_changed_source_reload_keeps_base_and_kernel() -> Result<()> {
+        let config = AgeResidualQ4Config {
+            heads: HEADS,
+            context: CONTEXT,
+        };
+        let prior = config.prior_q24().map_err(|e| invalid(e.to_string()))?;
+        let original = prior
+            .iter()
+            .map(|&v| (v as f64 / 16_777_216.) as f32)
+            .collect();
+        let f = fixture(original)?;
+        let base = f.directory.join("base");
+        let before = f.source.files.clone();
+        let old = CompiledGeometricRead::compile_q4_age_residual(f.age(), &f.potential, &f.source)?;
+        let initial = AgeSource::new(f.age(), &f.source)?;
+        let initial_read =
+            CompiledGeometricRead::compile_learned_age(f.age(), &f.potential, &f.source, &initial)?;
+        assert_eq!(initial_read.age_q24(), old.age_q24());
+        assert_eq!(initial_read.exp_q31(), old.exp_q31());
+        assert!(serde_json::to_value(old.metadata())?
+            .get("age_source")
+            .is_none());
+
+        let changed = f.age().affine(1., 0.2)?;
+        assert!(
+            CompiledGeometricRead::compile_q4_age_residual(&changed, &f.potential, &f.source)
+                .is_err()
+        );
+        let source = AgeSource::new(&changed, &f.source)?;
+        let source_path = f.directory.join("learned-age-source");
+        source.save(&source_path)?;
+        let source = AgeSource::load(&source_path, &f.source)?;
+        let compiled =
+            CompiledGeometricRead::compile_learned_age(&changed, &f.potential, &f.source, &source)?;
+        let native_path = f.directory.join("learned-age-native");
+        compiled.save(&native_path)?;
+        let loaded = CompiledGeometricRead::load(&native_path, &f.source)?;
+        loaded.validate_age_source(&source)?;
+        loaded.validate_for(&source.tensor()?, &f.potential)?;
+        loaded.validate_base_for(f.age(), &f.potential)?;
+        assert!(loaded.validate_for(f.age(), &f.potential).is_err());
+        assert!(loaded.validate_base_for(&changed, &f.potential).is_err());
+        assert_eq!(loaded.metadata.schema, LEARNED_AGE_SCHEMA);
+        assert_eq!(loaded.metadata(), compiled.metadata());
+        assert_eq!(loaded.age_q24(), source.age_q24());
+        assert_eq!(
+            loaded.age_q24(),
+            prior.iter().map(|x| x + (1 << 22)).collect::<Vec<_>>()
+        );
+        assert_eq!(loaded.exp_q31(), old.exp_q31());
+        assert_eq!(native_file_names(&native_path)?.len(), 6);
+        assert!(native_file_names(&native_path)?.contains(&LEARNED_AGE_RAW_FILE));
+        assert_eq!(loaded.metadata.source_files, before);
+        for (name, identity) in &before {
+            assert_eq!(bound(&fs::read(base.join(name))?), *identity);
+        }
+
+        // A different shadow in the same quantization cell is still a new
+        // learned source. Neither numerical equality nor base lineage admits
+        // the stale source snapshot as its export.
+        let moved = changed.affine(1., 0.001)?;
+        let moved_source = AgeSource::new(&moved, &f.source)?;
+        assert_eq!(
+            moved_source.packed_coefficients(),
+            source.packed_coefficients()
+        );
+        assert!(loaded.validate_age_source(&moved_source).is_err());
+        assert!(loaded.validate_for(&moved, &f.potential).is_err());
+        assert!(CompiledGeometricRead::compile_learned_age(
+            &moved,
+            &f.potential,
+            &f.source,
+            &source
+        )
+        .is_err());
+        loaded.validate_q4_training(&moved, &f.potential)?;
+        fs::remove_dir_all(f.directory)?;
+        Ok(())
+    }
+
+    #[test]
+    fn native_read_learned_age_rejects_prior_raw_table_and_lineage_tamper() -> Result<()> {
+        let f = fixture(vec![0.; HEADS * CONTEXT])?;
+        let changed = f.age().affine(1., 0.2)?;
+        let source = AgeSource::new(&changed, &f.source)?;
+        let sp = f.directory.join("source");
+        let np = f.directory.join("native");
+        source.save(&sp)?;
+        CompiledGeometricRead::compile_learned_age(&changed, &f.potential, &f.source, &source)?
+            .save(&np)?;
+        for name in &crate::geometric_age_source::FILES[1..] {
+            let path = sp.join(name);
+            let bytes = fs::read(&path)?;
+            let mut corrupt = bytes.clone();
+            corrupt[0] ^= 1;
+            fs::write(&path, corrupt)?;
+            assert!(AgeSource::load(&sp, &f.source).is_err(), "{name}");
+            fs::write(path, bytes)?;
+        }
+        let original_source = fs::read(sp.join("metadata.json"))?;
+        let mut metadata: AgeSourceMetadata = serde_json::from_slice(&original_source)?;
+        metadata.residual.prior_head_shifts.swap(0, 1);
+        fs::write(
+            sp.join("metadata.json"),
+            serde_json::to_vec_pretty(&metadata)?,
+        )?;
+        assert!(AgeSource::load(&sp, &f.source).is_err());
+        fs::write(sp.join("metadata.json"), original_source)?;
+        for name in [LEARNED_AGE_RAW_FILE, Q4_AGE_RESIDUAL_FILE, FILES[1]] {
+            let path = np.join(name);
+            let bytes = fs::read(&path)?;
+            let mut corrupt = bytes.clone();
+            corrupt[0] ^= 1;
+            fs::write(&path, corrupt)?;
+            assert!(
+                CompiledGeometricRead::load(&np, &f.source).is_err(),
+                "{name}"
+            );
+            fs::write(path, bytes)?;
+        }
+        let original_native = fs::read(np.join("metadata.json"))?;
+        let mut metadata: GeometricReadMetadata = serde_json::from_slice(&original_native)?;
+        metadata
+            .age_source
+            .as_mut()
+            .ok_or_else(|| invalid("learned source absent"))?
+            .residual
+            .residual_exponent = -2;
+        fs::write(
+            np.join("metadata.json"),
+            serde_json::to_vec_pretty(&metadata)?,
+        )?;
+        assert!(CompiledGeometricRead::load(&np, &f.source).is_err());
+        fs::write(np.join("metadata.json"), original_native)?;
+
+        // Original /3 tables are valid in their original artifact but stale
+        // under this independently learned /4 source.
+        let old = CompiledGeometricRead::compile_q4_age_residual(f.age(), &f.potential, &f.source)?;
+        let expanded = fs::read(np.join(FILES[1]))?;
+        fs::write(np.join(FILES[1]), age_bytes(old.age_q24()))?;
+        assert!(CompiledGeometricRead::load(&np, &f.source).is_err());
+        fs::write(np.join(FILES[1]), expanded)?;
+        fs::write(sp.join("extra.bin"), [0])?;
+        assert!(AgeSource::load(&sp, &f.source).is_err());
+        fs::remove_file(sp.join("extra.bin"))?;
+        fs::write(np.join("extra.bin"), [0])?;
+        assert!(CompiledGeometricRead::load(&np, &f.source).is_err());
+        fs::remove_file(np.join("extra.bin"))?;
+        let other = fixture(vec![0.1; HEADS * CONTEXT])?;
+        assert!(AgeSource::load(&sp, &other.source).is_err());
+        assert!(CompiledGeometricRead::load(&np, &other.source).is_err());
+        fs::remove_dir_all(other.directory)?;
+        fs::remove_dir_all(f.directory)?;
+        Ok(())
     }
 
     #[test]

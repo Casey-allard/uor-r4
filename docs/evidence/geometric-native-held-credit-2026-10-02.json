@@ -1,0 +1,339 @@
+{
+  "schema": "uor-r4.native-held-credit-evidence/1",
+  "attention_issue": 1512,
+  "delivery_pr": 1640,
+  "fixed_fit": {
+    "utc": "2026-10-03T02:39:15.119296+00:00",
+    "executed_source": "19c842e9f252e1b78f5b5a06807054128b855aec",
+    "binary_sha256": "abc10eddba5a35e4858e048f82b25a9368fbf30e385d274dfc9cf59ef81fe235",
+    "report_sha256": [
+      "b69f4847930690dbe75786e7bf3a59e0cf7350310a823d65a0c8775595189d46",
+      "6a1e84e2c68d7d404bcd7d9ce5a14697c075d59546373b85df8b5eab93ed0d14"
+    ],
+    "source_files": 151,
+    "complete": true,
+    "per_seed_updates": 640,
+    "total_updates": 1280,
+    "per_seed_training_episodes": 5120,
+    "panels": [
+      {
+        "seed": 1,
+        "panel": "original",
+        "rows": 128,
+        "correct": {
+          "conversion": 91,
+          "native": 93,
+          "unconverted": 93
+        },
+        "mean_ce": {
+          "conversion": 1.1229016313021192,
+          "native": 1.1280852109428656,
+          "unconverted": 1.1219692863908985
+        },
+        "gains_vs_conversion": 3,
+        "losses_vs_conversion": 1,
+        "gains_vs_unconverted": 1,
+        "losses_vs_unconverted": 1
+      },
+      {
+        "seed": 1,
+        "panel": "stress",
+        "rows": 128,
+        "correct": {
+          "conversion": 109,
+          "native": 109,
+          "unconverted": 110
+        },
+        "mean_ce": {
+          "conversion": 1.137371101715574,
+          "native": 1.1107127861495025,
+          "unconverted": 1.1120531257683335
+        },
+        "gains_vs_conversion": 1,
+        "losses_vs_conversion": 1,
+        "gains_vs_unconverted": 0,
+        "losses_vs_unconverted": 1
+      },
+      {
+        "seed": 2,
+        "panel": "original",
+        "rows": 128,
+        "correct": {
+          "conversion": 124,
+          "native": 37,
+          "unconverted": 124
+        },
+        "mean_ce": {
+          "conversion": 0.44852359317368123,
+          "native": 3.537921782993792,
+          "unconverted": 0.44872190265638423
+        },
+        "gains_vs_conversion": 1,
+        "losses_vs_conversion": 88,
+        "gains_vs_unconverted": 1,
+        "losses_vs_unconverted": 88
+      },
+      {
+        "seed": 2,
+        "panel": "stress",
+        "rows": 128,
+        "correct": {
+          "conversion": 120,
+          "native": 46,
+          "unconverted": 119
+        },
+        "mean_ce": {
+          "conversion": 0.5719448133281234,
+          "native": 3.3354153161498683,
+          "unconverted": 0.5735846754206135
+        },
+        "gains_vs_conversion": 0,
+        "losses_vs_conversion": 74,
+        "gains_vs_unconverted": 0,
+        "losses_vs_unconverted": 73
+      }
+    ],
+    "totals": {
+      "native": 285,
+      "conversion": 444,
+      "unconverted": 446
+    },
+    "mean_ce": {
+      "native": 2.278033774059007,
+      "conversion": 0.8201852848798745,
+      "unconverted": 0.8140822475590574
+    },
+    "gains_vs_conversion": 5,
+    "losses_vs_conversion": 164,
+    "gains_vs_unconverted": 2,
+    "losses_vs_unconverted": 163,
+    "workers_elapsed_seconds": [
+      128.277903167,
+      107.737143375
+    ],
+    "workers_peak_rss_bytes": [
+      488734720,
+      519028736
+    ],
+    "all_frozen_bytes_and_parameters_unchanged": true,
+    "independent_event_age_reload_and_current_native_full_logits_read_values_equal": true,
+    "all_training_allhold": 0,
+    "all_training_absent_oldheld_at_answer": 0,
+    "training_episodes_total": 10240,
+    "source_review_and_executed_assertions_separate": true,
+    "independent_saved_row_review": {
+      "result": "NO_SAVED_RESULT_CONSISTENCY_BLOCKER",
+      "receipt_sha256": "e2a85c36ebe61e73700c9996182b9843222ef6e21becad6ba1798915edb988ab",
+      "scope": "reconstructed1024rows/3072answer vectors/1280histories/RNGchains/18checkpointpayloads; complete hard-forward equality remains executed assertions; BLAKE3 not independently rerun"
+    },
+    "decision": "NO_GLOBAL_FIT_PROMOTION;retainoriginalandconvertedparents,s1modestcandidateands2negative;fixed dosedone,noautomaticrepeat/scale/lr/auxsweep",
+    "scope": "Authoredopen-developmentclosed-worldattentionlearning; notlanguage/generalreasoning/geometryadvantage/fullserving"
+  },
+  "connection": {
+    "episodes": 32,
+    "updates": 0,
+    "all_five_event_families_and_age_finite_nonzero": true,
+    "hard_native_forward_exact": true,
+    "all_cut_disconnected": true,
+    "frozen_source_and_gradients_unchanged": true,
+    "source": "122bb7e1",
+    "integrated_source": "19c842e9",
+    "integrated_answer_losses_identical": true
+  },
+  "hosted_checks": [
+    {
+      "run": 37087362495,
+      "cases": 9,
+      "conclusion": "success"
+    },
+    {
+      "run": 37088943662,
+      "cases": 11,
+      "conclusion": "success"
+    },
+    {
+      "run": 37091394762,
+      "source": "b4b3cddd51da43aecf38df3e6b6fd90b4f530d5f",
+      "cases": 11,
+      "conclusion": "success",
+      "source_files_verified": 152
+    }
+  ],
+  "crossover": {
+    "executed_source": "b4b3cddd51da43aecf38df3e6b6fd90b4f530d5f",
+    "binary_sha256": "31771992f0f50477d9aed4d7897beaadb0e6511664e7b42e813adb5a16ba39da",
+    "hosted_run": 37091394762,
+    "report_sha256": "1347f845dde8ee073577e88bdfd9bc365c65599a0759269148dd5150416b3110",
+    "report": {
+      "all_routes_cut": true,
+      "comparison_seconds": 17.965624084,
+      "complete": true,
+      "decision": "COMPLETE_FIXED_EVENT_AGE_CROSSOVER_RETAIN_ROWS",
+      "elapsed_seconds": 21.990460833,
+      "final_parameters": {
+        "age": "e1b58625b26dc087a821811e716f5d97d64bcc0af5b952defacdd7b6eecda4d8",
+        "event.neighbor_transition": "45967395a48c37875ee519995877f50d3c44422e39911309215621193da43562",
+        "event.self_transition": "bef9d88947c35aafbc75be6188e303b404823241355084db2c3cdb8c56e15c5f",
+        "event.state_event": "68fbfec20abe0bb7264e719e1c0fd15df7826249930ea21ae5e07ab11c6b2c0a",
+        "event.token_event": "5409b339a6e86b886561f9e5afe2b64cf1cd705f8fcecec5a3fad7f68e8fee3b",
+        "event.token_transition": "206650da9317f21541e3c12a5af956dcb156c2f6b7f9874201e8d13c70da48b2"
+      },
+      "fit_inputs_sha256": "83b7b3b771a1110fb07e2afe39760e069eee0a108d249eeb3a08232d3f93707d",
+      "fit_report_sha256": "6a1e84e2c68d7d404bcd7d9ce5a14697c075d59546373b85df8b5eab93ed0d14",
+      "fit_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-event-age-fit-20261002/fit-1-s2",
+      "frozen_files_and_parameters_unchanged": true,
+      "new_predictions": 512,
+      "optimizer_updates": 0,
+      "panels": [
+        {
+          "accuracy_interaction_count": 0,
+          "age_only_correct_change": 0,
+          "answer_ce_sum": [
+            57.4110199262312,
+            457.7406083686824,
+            57.27203519981477,
+            452.85398822320536
+          ],
+          "ce_interaction_sum": -4.7476354190606,
+          "cell_order": [
+            "parent_parent_saved",
+            "event_final_age_parent",
+            "event_parent_age_final",
+            "final_final_saved"
+          ],
+          "conversion_rows_sha256": "cfb5e2f7a02d63b0e28e4b0c7aa32b2143759b933220a80c43a327f2ac596785",
+          "correct": [
+            124,
+            37,
+            124,
+            37
+          ],
+          "event_only_correct_change": -87,
+          "gains_vs_parent_parent": [
+            1,
+            0
+          ],
+          "input_sha256": "dabdaa1a2a8dcf23e1cfe5164ef00b97b923c3b74dc09dcd1d4a307d1ff64915",
+          "joint_correct_change": -87,
+          "losses_vs_parent_parent": [
+            88,
+            0
+          ],
+          "panel": "original",
+          "parent_event_rows_sha256": "145c76c2492f679ab05f6ced04f19bcedbd89463761795d25db61186412e2c0f",
+          "rows": 128
+        },
+        {
+          "accuracy_interaction_count": 0,
+          "age_only_correct_change": 0,
+          "answer_ce_sum": [
+            73.2089361059998,
+            432.18647041481825,
+            71.32527648714976,
+            426.93316046718314
+          ],
+          "ce_interaction_sum": -3.3696503287850703,
+          "cell_order": [
+            "parent_parent_saved",
+            "event_final_age_parent",
+            "event_parent_age_final",
+            "final_final_saved"
+          ],
+          "conversion_rows_sha256": "d45b01921f691c0a87f076a5cbba7a88fd5c0329541b7f0fc91d83ff0e76f1d1",
+          "correct": [
+            120,
+            46,
+            120,
+            46
+          ],
+          "event_only_correct_change": -74,
+          "gains_vs_parent_parent": [
+            0,
+            0
+          ],
+          "input_sha256": "e3c81984b7b41e0fcb329fde026318d067b6397e93832508c3ee60180a5a9d63",
+          "joint_correct_change": -74,
+          "losses_vs_parent_parent": [
+            74,
+            0
+          ],
+          "panel": "stress",
+          "parent_event_rows_sha256": "669e46f1973062d3d1000cd34233fa6736bc7d9e510747bf387fd9f6fc509221",
+          "rows": 128
+        }
+      ],
+      "parent_parameters": {
+        "age": "01e79c9c339be7f5d47b057f9a396f914bc89d2fee338d13ac36dc747794fcd7",
+        "event.neighbor_transition": "404c6a7e49925c016e7836ecea2dd32a133dada4f8089c96d4f167ede0a7497a",
+        "event.self_transition": "b06522d1cf92a69c415f5d7972824ab6882925ccda6ef28e83af37d8e3ad61cd",
+        "event.state_event": "1dbb79daee7c8b85fa0f8de6b6a9e3255612aadf20301165965c564be2c86824",
+        "event.token_event": "0d7beb5748f9a9c916dfdb23a1a98afae8cd6efda587122bbb4233a6d42bad5c",
+        "event.token_transition": "a28e615b822c5feb141c4d5f65b168d6a7f279a9673f9c9ee14bdeef5f061271"
+      },
+      "sampler_draws": 0,
+      "saved_endpoint_predictions": 512,
+      "schema": "uor-r4.event-age-crossover/1",
+      "scope": "Two missing zero-update cells on the same exposed seed2 rows. Saved endpoints remain bound to their executed fit source. No new fit, optimizer, sampler, selector, scale or estimator; no held-out language or geometry advantage claim.",
+      "seed": 2,
+      "source_policy": "current-native-event-actions/OLD-held;frozen-q4-value-NoRead-potential/H4-bank-input-credit;span-tangent/validity-stop;native-current-age-and-read-plus-(real-softmax-surrogate-minus-detached-surrogate);same-row-angular-zero;no-frozen-parameter-gradient/1",
+      "sources_unchanged": true
+    },
+    "total_correct": [
+      244,
+      83,
+      244,
+      83
+    ],
+    "mean_ce": [
+      0.5102342032509023,
+      3.4762776514980493,
+      0.5023332487772052,
+      3.43666854957183
+    ],
+    "execution": {
+      "command": [
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-event-age-fit-20261002/github-check-5/attention-geometric-event-age-fit",
+        "/Users/casey.allard/uor-r4-local/workspace/research/geometric-event-age-fit-20261002/crossover-1-s2-arguments.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 22.874049042000003,
+      "compiled_source_head": "b4b3cddd51da43aecf38df3e6b6fd90b4f530d5f",
+      "working_source_matches_compiled": true,
+      "unchanged_working_source_after": true,
+      "measured_maximum_resident_set_bytes": 319078400,
+      "sampled_process_tree_peak_bytes": 319668224,
+      "stop_reason": null,
+      "reserved_threads": 1,
+      "reserved_ram_gib": 1,
+      "measured_ram_within_reservation": true,
+      "executable_sha256": "31771992f0f50477d9aed4d7897beaadb0e6511664e7b42e813adb5a16ba39da"
+    },
+    "decision": "EVENT_BLOCK_REPRODUCES_ALL_ACCURACY_LOSS;AGE_ONLY_RETAINS_ACCURACY;notgradient_sign_proof",
+    "independent_review": {
+      "verdict": "NO_SAVED_CROSSOVER_RESULT_CONSISTENCY_BLOCKER",
+      "sha256": "b734d0a7ab34d70db7b7dab1fe7deab8b3cb206add9c23ad1801f2b978d0a4ad",
+      "rows_reconstructed": 256,
+      "saved_endpoint_and_crossed_answer_vectors": 1024,
+      "scope": [
+        "Compared all persisted fixed-event fields directly; parent held/potential references are unavailable and remain null, not inferred equal.",
+        "No all-position model recomputation or backward. Frozen in-memory identity, absence of update/sampler calls and source-native numerical behavior retain executed-driver/source-review status.",
+        "No BLAKE3 rehash; exact manifest inventory/sizes and independent current SHA256 are distinct checks.",
+        "Same exposed seed2 rows and selected sources; this crossover isolates final event versus final age substitution at these endpoints, not the trajectory that made event learning regress or a general geometric/language conclusion."
+      ],
+      "final_note_sha256": "005b6f7c4026459f192270571983d84b91bc75a2b4c5f5aa81bd92027810c7b2"
+    },
+    "age_numerically_inert": false,
+    "age_changes_correctness_rows": 0,
+    "age_changes_already_wrong_predictions_under_final_event": 5
+  },
+  "runtime_scope": "current integer attention; frozen F32 trunk/head and whole-prefix access remain unfinished",
+  "resource_policy": {
+    "local_cargo": 0,
+    "private_artifact_upload": false,
+    "paid_compute": false,
+    "per_worker_threads": 2,
+    "per_worker_ram_gib": 2,
+    "research_limit_gib": 1.25
+  },
+  "retained_research_bytes_at_delivery_projection": 781077769
+}

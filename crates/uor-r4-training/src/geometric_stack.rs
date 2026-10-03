@@ -3199,6 +3199,132 @@ impl StackModel {
         Ok(hidden.matmul(&p.head()?.t()?)?)
     }
 
+    /// Offline event/age input credit through the SAME native retained reader.
+    /// Hard numerical output is recomputed from current native events and age;
+    /// the declared real-softmax bridge changes only backward. All host and
+    /// consumer weights are detached. Routes are value/NoRead/potential/age.
+    #[allow(clippy::too_many_arguments)]
+    pub fn forward_geometric_event_age_native_credit(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        context: &CompiledContext,
+        events: &CompiledEvents,
+        span: &CompiledSpanActions,
+        potential: &CompiledGeometricPotentials,
+        reducer: &crate::geometric_read_native::CompiledGeometricRead,
+        producer: &crate::geometric_value_producer_native::CompiledValueProducer,
+        no_read: &crate::geometric_no_read_native::CompiledNoRead,
+        composition: &crate::geometric_composition_native::CompiledComposition,
+        event_weights: &EventWeights,
+        age_shadow: &Tensor,
+        value_weights: &crate::geometric_value_producer::ValueProducerWeights,
+        no_read_weights: &crate::geometric_no_read::NoReadWeights,
+        potential_weights: &crate::geometric_potential_q4::PotentialQ4Weights,
+        composition_weights: &crate::geometric_composition::CompositionWeights,
+        credit_routes: [bool; 4],
+    ) -> Result<(Tensor, crate::geometric_event_credit::EventAgeCreditOutput)> {
+        let admitted = crate::geometric_attention_native::CompiledGeometricAttention::new(
+            context,
+            events,
+            span,
+            potential,
+            reducer,
+            producer,
+            no_read,
+            composition,
+        )?;
+        admitted.validate_stack(self)?;
+        if batch == 0
+            || batch > 32
+            || time == 0
+            || time > self.config.context
+            || time > 128
+            || ids.len() != batch * time
+            || self.served.is_some()
+        {
+            return Err(invalid(
+                "held credit requires bounded CPU native rra parent",
+            ));
+        }
+        events.validate_q4_training(event_weights)?;
+        if !reducer.is_q4_age_residual() {
+            return Err(invalid(
+                "held credit requires explicit prior/eighth-residual age policy",
+            ));
+        }
+        reducer.validate_q4_training(age_shadow, potential)?;
+        producer.validate_q4_frozen_source(value_weights)?;
+        no_read.validate_for(no_read_weights)?;
+        potential.validate_q4_source(potential_weights)?;
+        composition.validate_for(composition_weights)?;
+        let p = Params::Frozen(
+            self.variables
+                .iter()
+                .map(|(name, var)| (name.clone(), var.as_tensor().detach()))
+                .collect(),
+        );
+        let tokens = self.embed_with(&p, ids, batch, time)?;
+        let config = self
+            .geometric_span
+            .as_ref()
+            .ok_or_else(|| invalid("held credit requires saved span configuration"))?;
+        span.validate_for(p.get("embedding.weight")?, config)?;
+        let event = event_weights.forward_q4(ids, batch, time, false)?;
+        let held_trace = geometric_span_native::trace_native_events(
+            ids,
+            batch,
+            time,
+            &event.trace.actions,
+            span,
+        )?;
+        let held = geometric_span::produce_with_native_actions(
+            &tokens,
+            &event.logits,
+            config,
+            SpanPolicy::Ordered,
+            &event.trace.actions,
+        )?
+        .reshape((
+            batch,
+            time,
+            context.config().heads,
+            context.config().lanes_per_head,
+            4,
+        ))?;
+        let ctx = geometric_context::trace_native(ids, batch, time, context, false)?;
+        let (residual, output) = crate::geometric_event_credit::forward(
+            ids,
+            ctx,
+            event,
+            held_trace,
+            &held,
+            age_shadow,
+            value_weights,
+            no_read_weights,
+            potential_weights,
+            composition_weights,
+            composition,
+            reducer,
+            credit_routes,
+        )?;
+        let x = self.layer_range_with_source(
+            &p,
+            tokens,
+            0..self.config.layers(),
+            &mut None,
+            &mut None,
+            LatchGates::Soft,
+            ReadSource {
+                integer_residual: Some((2, &residual)),
+                ..ReadSource::default()
+            },
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        Ok((hidden.matmul(&p.head()?.t()?)?, output))
+    }
+
     /// Native geometric composition and wide integer per-head weighted read.
     /// Exact checked i64 head addition precedes the unfinished float model tail.
     pub fn forward_geometric_composition_native_with_trace(
@@ -4559,7 +4685,7 @@ impl StackModel {
             .native_potential
             .ok_or_else(|| invalid("native reduction requires native geometric potentials"))?;
         potential.validate_stack_parent(weights, config)?;
-        reducer.validate_for(p.layer(layer, "read.age")?, potential)?;
+        reducer.validate_base_for(p.layer(layer, "read.age")?, potential)?;
         if batch == 0
             || time == 0
             || time > reducer.metadata().context
@@ -7816,6 +7942,8 @@ struct ServedState {
 enum Params<'a> {
     Float(&'a BTreeMap<String, Var>),
     Served(Arc<BTreeMap<String, Tensor>>),
+    // Ordinary float semantics with immutable, graph-detached parameters.
+    Frozen(BTreeMap<String, Tensor>),
 }
 
 impl Params<'_> {
@@ -7823,6 +7951,7 @@ impl Params<'_> {
         let found = match self {
             Self::Float(variables) => variables.get(name).map(Var::as_tensor),
             Self::Served(tensors) => tensors.get(name),
+            Self::Frozen(tensors) => tensors.get(name),
         };
         found.ok_or_else(|| invalid(format!("missing stack variable {name}")))
     }
@@ -7834,7 +7963,7 @@ impl Params<'_> {
     /// The output map: the tied embedding, or the served head.
     fn head(&self) -> Result<&Tensor> {
         match self {
-            Self::Float(_) => self.get("embedding.weight"),
+            Self::Float(_) | Self::Frozen(_) => self.get("embedding.weight"),
             Self::Served(_) => self.get(SERVED_HEAD),
         }
     }
@@ -14504,6 +14633,313 @@ mod tests {
             parameter.set(&Tensor::from_vec(values, parameter.shape(), &cpu())?)?;
         }
         events.into_q4()
+    }
+
+    #[test]
+    fn geometric_event_age_native_credit_preserves_hard_reader_and_frozen_routes() -> Result<()> {
+        use crate::geometric_composition::CompositionWeights;
+        use crate::geometric_composition_native::{CompiledComposition, CompositionSourcePaths};
+        use crate::geometric_context::{ContextSourcePaths, ContextWeights};
+        use crate::geometric_no_read::NoReadWeights;
+        use crate::geometric_no_read_native::{CompiledNoRead, NoReadSourcePaths};
+        use crate::geometric_potential_native::PotentialSourceBinding;
+        use crate::geometric_potential_q4::PotentialQ4Weights;
+        use crate::geometric_read_native::{CompiledGeometricRead, ReadSourceBinding};
+        use crate::geometric_value_producer::ValueProducerWeights;
+        use crate::geometric_value_producer_native::{
+            CompiledValueProducer, ValueProducerSourcePaths,
+        };
+        let model = tiny_span_model_with_width(32)?;
+        let ids = [0, 1, 2, 3, 4, 5, 1, 3, 2, 4, 6];
+        let directory = std::env::temp_dir().join(format!(
+            "held-credit-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map_err(|e| invalid(e.to_string()))?
+                .as_nanos()
+        ));
+        let base = directory.join("base");
+        model.save(&base)?;
+        let registry = b"held-credit-construction-only/1";
+        let events = tiny_q4_span_events(model.config.vocab_size)?;
+        let es = directory.join("event-source");
+        let en = directory.join("event-native");
+        events.save_source(&es, &base, registry)?;
+        CompiledEvents::compile(&events, &es, &base, registry)?.save(&en)?;
+        let event = CompiledEvents::load(&en, &es, &base, registry)?;
+        let span_binding = geometric_span_native::SpanSourceBinding::from_files(
+            &base.join("model.safetensors"),
+            &base.join("config.json"),
+            registry,
+        )?;
+        let span = CompiledSpanActions::compile(
+            model.variables()["embedding.weight"].as_tensor(),
+            model
+                .geometric_span()
+                .ok_or_else(|| invalid("span absent"))?,
+            &span_binding,
+        )?;
+        let sn = directory.join("span-native");
+        span.save(&sn)?;
+        let potential_weights = PotentialQ4Weights::from_base(&base, registry)?;
+        let cu = &potential_weights.parameters()["content_unary"];
+        let mut cw = vec![0f32; cu.elem_count()];
+        for row in cw.chunks_exact_mut(4) {
+            row[1] = 0.5;
+            row[2] = -0.25;
+        }
+        cu.set(&Tensor::from_vec(cw, cu.shape(), &cpu())?)?;
+        let ps = directory.join("potential-source");
+        let pn = directory.join("potential-native");
+        potential_weights.save(&ps)?;
+        let parent = PotentialSourceBinding::from_directory(&base, registry)?;
+        CompiledGeometricPotentials::compile_q4(&potential_weights, &ps, &parent)?.save(&pn)?;
+        let potential = CompiledGeometricPotentials::load(&pn, &parent)?;
+        let context_weights =
+            ContextWeights::new_finite_choice(model.config.vocab_size, 32, 2, 13)?.into_q4()?;
+        let paths = ContextSourcePaths {
+            base: &base,
+            event_source: &es,
+            event_native: &en,
+            span_native: &sn,
+            potential_native: &pn,
+        };
+        let cs = directory.join("context-source");
+        let cn = directory.join("context-native");
+        context_weights.save_source(&cs, paths, registry)?;
+        CompiledContext::compile(&context_weights, &cs, paths, registry)?.save(&cn)?;
+        let context = CompiledContext::load(&cn, &cs, paths, registry)?;
+        let age = Var::from_tensor(&model.variables()["layers.02.read.age"].detach())?;
+        let read_binding = ReadSourceBinding::from_directory(&base, registry, &potential, 2)?;
+        let rn = directory.join("read-native");
+        CompiledGeometricRead::compile_q4_age_residual(age.as_tensor(), &potential, &read_binding)?
+            .save(&rn)?;
+        let reducer = CompiledGeometricRead::load(&rn, &read_binding)?;
+        let value_weights =
+            ValueProducerWeights::new(model.config.vocab_size, 2, 4, 29)?.into_q4()?;
+        let sv = &value_weights.parameters()["span_root"];
+        let mut vw = vec![0f32; sv.elem_count()];
+        for (r, row) in vw.chunks_exact_mut(4).enumerate() {
+            row[r % 4] = if r % 3 == 0 { 0.5 } else { -0.25 };
+        }
+        sv.set(&Tensor::from_vec(vw, sv.shape(), &cpu())?)?;
+        // Distinct occurrence payloads make potential/age credit observable.
+        let tr = &value_weights.parameters()["token_root"];
+        let mut tw = tr.flatten_all()?.to_vec1::<f32>()?;
+        for (i, row) in tw.chunks_exact_mut(120).enumerate() {
+            row[(i / 16) % 8] = 1.;
+        }
+        tr.set(&Tensor::from_vec(tw, tr.shape(), &cpu())?)?;
+        let vs = directory.join("value-source");
+        let vn = directory.join("value-native");
+        value_weights.save_source(&vs)?;
+        let vp = ValueProducerSourcePaths {
+            value_source: &vs,
+            context_source: &cs,
+            context_dependencies: paths,
+        };
+        CompiledValueProducer::compile(vp, registry)?.save(&vn)?;
+        let values = CompiledValueProducer::load(&vn, vp, registry)?;
+        let null_weights = NoReadWeights::new(model.config.vocab_size, 2, 4)?;
+        let nv = &null_weights.parameters()["coefficients"];
+        let mut nw = vec![0f32; nv.elem_count()];
+        let stride = null_weights.config().coefficients_per_head();
+        for h in 0..2 {
+            for l in 0..8 {
+                nw[h * stride + 1 + model.config.vocab_size + 8 * 37 + l * 4] = 0.25;
+            }
+        }
+        nv.set(&Tensor::from_vec(nw, nv.shape(), &cpu())?)?;
+        let ns = directory.join("null-source");
+        let nn = directory.join("null-native");
+        null_weights.save(&ns)?;
+        let np = NoReadSourcePaths {
+            no_read_source: &ns,
+            value: vp,
+            context_native: &cn,
+            value_native: &vn,
+            reducer_native: &rn,
+        };
+        CompiledNoRead::compile(&null_weights, np, registry)?.save(&nn)?;
+        let null = CompiledNoRead::load(&nn, np, registry)?;
+        let bank_weights = CompositionWeights::new()?;
+        let bs = directory.join("bank-source");
+        let bn = directory.join("bank-native");
+        bank_weights.save(&bs)?;
+        let bp = CompositionSourcePaths {
+            composition_source: &bs,
+            no_read: np,
+            no_read_native: &nn,
+        };
+        CompiledComposition::compile(&bank_weights, bp, registry)?.save(&bn)?;
+        let bank = CompiledComposition::load(&bn, bp, registry)?;
+        let forward = |m: &StackModel, input: &[u32], batch, time, routes| {
+            m.forward_geometric_event_age_native_credit(
+                input,
+                batch,
+                time,
+                &context,
+                &event,
+                &span,
+                &potential,
+                &reducer,
+                &values,
+                &null,
+                &bank,
+                &events,
+                age.as_tensor(),
+                &value_weights,
+                &null_weights,
+                &potential_weights,
+                &bank_weights,
+                routes,
+            )
+        };
+        let all = forward(&model, &ids, 1, ids.len(), [true; 4])?;
+        let native = model.forward_geometric_composition_native_with_trace(
+            &ids,
+            1,
+            ids.len(),
+            &context,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &values,
+            &null,
+            &bank,
+            false,
+        )?;
+        assert_eq!(bits(&all.0)?, bits(&native.0)?);
+        assert_eq!(all.1.read, native.1);
+        assert_eq!(all.1.values.trace, native.2);
+        assert!(all.1.span.prior_codes[4].is_none());
+        assert!(all.1.span.prior_codes[5].is_some());
+        let event_norm = |g: &candle_core::backprop::GradStore| -> Result<f64> {
+            let mut n = 0.;
+            for v in events.parameters().values() {
+                if let Some(x) = g.get(v.as_tensor()) {
+                    n += x
+                        .flatten_all()?
+                        .to_vec1::<f32>()?
+                        .iter()
+                        .map(|&x| f64::from(x) * f64::from(x))
+                        .sum::<f64>();
+                }
+            }
+            Ok(n)
+        };
+        let gradient = logits_cross_entropy(&all.0.narrow(0, 10, 1)?, &[7], None)?.backward()?;
+        assert!(event_norm(&gradient)? > 0.);
+        assert!(
+            gradient
+                .get(age.as_tensor())
+                .ok_or_else(|| invalid("age credit absent"))?
+                .abs()?
+                .max_all()?
+                .to_scalar::<f32>()?
+                > 0.
+        );
+        for v in model
+            .variables()
+            .values()
+            .chain(context_weights.parameters().values())
+            .chain(value_weights.parameters().values())
+            .chain(null_weights.parameters().values())
+            .chain(potential_weights.parameters().values())
+            .chain(bank_weights.parameters().values())
+        {
+            assert!(
+                gradient.get(v.as_tensor()).is_none(),
+                "frozen parameter entered graph"
+            );
+        }
+        for route in 0..3 {
+            let mut cuts = [false; 4];
+            cuts[route] = true;
+            let isolated = forward(&model, &ids, 1, ids.len(), cuts)?;
+            assert_eq!(bits(&all.0)?, bits(&isolated.0)?);
+            let g = logits_cross_entropy(&isolated.0.narrow(0, 10, 1)?, &[7], None)?.backward()?;
+            assert!(event_norm(&g)? > 0., "held route {route} disconnected");
+            assert!(g.get(age.as_tensor()).is_none());
+        }
+        let cut = forward(&model, &ids, 1, ids.len(), [false; 4])?;
+        assert_eq!(bits(&all.0)?, bits(&cut.0)?);
+        let g = logits_cross_entropy(&cut.0.narrow(0, 10, 1)?, &[7], None)?.backward()?;
+        assert_eq!(event_norm(&g)?, 0.);
+        assert!(g.get(age.as_tensor()).is_none());
+        let reloaded = StackModel::load(&base, &cpu())?;
+        assert_eq!(
+            bits(&all.0)?,
+            bits(&forward(&reloaded, &ids, 1, ids.len(), [true; 4])?.0)?
+        );
+        let other = ids
+            .iter()
+            .map(|&token| match token {
+                2 => 3,
+                3 => 2,
+                x => x,
+            })
+            .collect::<Vec<_>>();
+        assert_ne!(ids.as_slice(), other.as_slice());
+        let double = ids.iter().copied().chain(other).collect::<Vec<_>>();
+        let two = forward(&model, &double, 2, ids.len(), [true; 4])?;
+        let native_two = model.forward_geometric_composition_native_with_trace(
+            &double,
+            2,
+            ids.len(),
+            &context,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &values,
+            &null,
+            &bank,
+            false,
+        )?;
+        assert_eq!(bits(&two.0)?, bits(&native_two.0)?);
+        assert_eq!(two.1.read, native_two.1);
+        let prefix = forward(&model, &ids[..10], 1, 10, [true; 4])?;
+        // Integer reader rows carry cross-length causality. Float-tail parity
+        // compares identical shapes because BLAS rounding may depend on shape.
+        for head in 0..2 {
+            for query in 0..10 {
+                assert_eq!(
+                    all.1.read.rows[head * ids.len() + query],
+                    prefix.1.read.rows[head * 10 + query],
+                );
+            }
+        }
+        let native_prefix = model.forward_geometric_composition_native_with_trace(
+            &ids[..10],
+            1,
+            10,
+            &context,
+            &event,
+            &span,
+            &potential,
+            &reducer,
+            &values,
+            &null,
+            &bank,
+            false,
+        )?;
+        assert_eq!(bits(&prefix.0)?, bits(&native_prefix.0)?);
+        let out = &model.variables()["layers.02.read.out.weight"];
+        let old = out.copy()?;
+        out.set(&Tensor::full(f32::NAN, out.shape(), &cpu())?)?;
+        let poisoned = forward(&model, &ids, 1, ids.len(), [true; 4]);
+        out.set(&old)?;
+        assert_eq!(bits(&all.0)?, bits(&poisoned?.0)?);
+        // Fresh current age changes the actual hard reduction; enrolled parent is unchanged.
+        age.set(&age.affine(1., 0.125)?)?;
+        let moved = forward(&model, &ids, 1, ids.len(), [true; 4])?;
+        assert_ne!(all.1.age_q24, moved.1.age_q24);
+        assert_ne!(all.1.read.rows, moved.1.read.rows);
+        std::fs::remove_dir_all(directory)?;
+        Ok(())
     }
 
     #[test]

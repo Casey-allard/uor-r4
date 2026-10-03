@@ -1,5 +1,30 @@
 # Current UOR-R4 research state
 
+## Retained native capture/age learning — mixed result, October 2
+
+The [connected native reader](geometric-native-held-credit-2026-10-02.md) now carries
+answer credit into actual q4 capture and standalone age. Thirty-two actual B8
+episodes verify native forward equality and nonzero connected credit; eleven
+focused source cases and both hosted release drivers pass. This is attention
+component learning through frozen integer consumers, with a floating host tail.
+
+Both fixed640/B8 continuations complete and independently export/reload exactly.
+Seed1 improves200→202/256 on retained development rows; seed2 collapses244→83/256.
+Combined444→285/512, mean CE0.820185→2.278034. Neither is promoted as a replacement.
+Independent saved-row review confirms the negative. All10,240 training episodes
+have OLD held state at the answer, without certifying correct captured content.
+
+The zero-update512-prediction crossover isolates event damage: parent/parent244,
+final-event/parent-age83, parent-event/final-age244, final/final83, all outof256.
+Age-only CE slightly improves; capture changes reproduce the complete accuracy
+loss. Fixed-event invariants pass where saved, with parent held/potential
+explicitly unverified because absent from the baseline. The next task is a
+small exact-H4/q4 finite direction audit; it is designed but NOT_RUN. No repeated
+dose/scale/LR sweep, cold-capture auxiliary or estimator replacement is admitted. [Evidence](../evidence/geometric-native-held-credit-2026-10-02.json).
+PR1640 owns protected delivery; #1512 remains open. Claude retains #820 emitter,
+matched geometry controls and pointer-binding gates. Selected access, natural
+grounded language, the float tail and complete-path energy remain unfinished.
+
 ## Event/age q4 bridge — retained conversion measured, October 2
 
 [Event/age source and causal design](geometric-event-age-q4-2026-10-02.md) adds

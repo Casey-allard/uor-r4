@@ -197,6 +197,7 @@ impl<'a> CompiledGeometricAttention<'a> {
                 crate::geometric_read_native::SCHEMA
                     | crate::geometric_read_native::Q4_AGE_SCHEMA
                     | crate::geometric_read_native::Q4_AGE_RESIDUAL_SCHEMA
+                    | crate::geometric_read_native::LEARNED_AGE_SCHEMA
             )
             || rm.layer != 2
             || rm.heads != HEADS
@@ -463,7 +464,7 @@ impl<'a> CompiledGeometricAttention<'a> {
                 .as_tensor(),
             span,
         )?;
-        self.reducer.validate_for(
+        self.reducer.validate_base_for(
             model
                 .variables()
                 .get(&self.reducer.metadata().age_parameter)
