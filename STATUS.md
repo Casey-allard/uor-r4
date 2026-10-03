@@ -1,6 +1,6 @@
 # Status
 
-Updated October 1, 2026. **Pre-alpha: useful conversation, broad reasoning,
+Updated October 3, 2026. **Pre-alpha: useful conversation, broad reasoning,
 frontier capability and lower complete-path energy remain unestablished.**
 
 The owner-adopted [active plan](docs/integration/project-track.md) prioritizes
@@ -11,12 +11,12 @@ own results. This page is navigation, not an independent results ledger.
 
 | Boundary | Current evidence and remaining work |
 |---|---|
-| Exact retrieval and emission | E1 lexical sieve reports 747/747 development MQAR and independent reproduction. emit-1 (2.1M, context 384) gets 106/109 with supplied recall; oracle open relation 48/52 versus lexical sieve 1/52. These are harness results with reference history/category assistance, not a served memory assistant. |
-| Semantic compiler | E3 v14 R1 + 776 raw teacher paraphrases: gated trunk head relation 1754/2098 (0.836), act 0.766; dense combined head 0.949 and word table 0.900 on relations. Original 0.9/0.95 gate fails. The raw paraphrases carry audited label errors. A saved compiler with a learned value-span head now drives the grounded session (34/52 open, 13/17 closed relation on one development cell; see current state). A combined R1-trunk head is a recorded negative there (26/52). A reviewed 394-row paraphrase derivative (#1573) awaits its paired fit. E3 training includes development-value identities, so this is not unseen-value evidence. |
-| Durable grounding | Exact store components exist. Learned input → exact store → generated-history answers now runs in the session on one development cell, with save/load continuity and a fresh-process CLI (`grounded-session`); versions/scopes coverage is unfinished. Six of 14 emit-1 absence cases still emit unsupported values. |
-| Integer serving | Existing D11 stack has scoped opcode/parity evidence. emit-1's learned pointer is not exported; head-0 copy boost is a different mechanism. Dense layer/output access remains and no valid complete-path J/token win is established. |
-| Geometry | Exact tables, quaternion state, trained-in 2I and historical binding components remain available. Their semantic and efficiency contribution needs matched consumer evidence; failed promotion does not retire a family. |
-| Track B | Parked. #1518's original 1e-4 parity failure stands; no automatic retry or transformer serving follows. |
+| Geometric development model | Completed matched 8M text-loss comparisons retain the geometric emitter; flat L2 wins the three measured splits. These floating training/reference models are separate from complete native serving. [Loaded results and identities](docs/integration/current-state.md#delivered-overnight-results-and-geometric-chat-blocker--october-3). |
+| Grounded response and durable memory | Saved compiler → exact store → generated-history emitter is exercised. The selected payload can be delivered correctly while the answer follows a distractor. Same-process save/reload continuation is measured; useful chat and broad scope/version coverage remain unfinished. [Source-consumption result](docs/integration/geometric-chat-source-binding-2026-10-03.md). |
+| Geometric attention | Persistent integer attention, strict q4 context/value/potential/NoRead and connected capture/age components are merged. Component replay is fidelity; mixed capture learning is retained. Next: typed selected-record occurrence→actual-BPE consumer with connected answer credit and measured cost. |
+| Data and query conditioning | Surface-form breadth improves its synthetic statement-prefix panel; question-side transfer remains unresolved. Distance recipe is a retained negative confounded by reduced binding practice. Neither establishes a unique capacity or addressing cause. [Current evidence](docs/integration/current-state.md#deepseek-research-and-next-integration). |
+| Native serving and efficiency | Scoped integer opcode/parity results remain. Current grounded generation retains a floating development path; bounded complete native chat, selected parameter access and full-path energy savings remain open. |
+| Track B | Parked. #1518's original full-model parity failure stands; no automatic retry or transformer serving follows. |
 
 Read the [evidence review](docs/integration/grounded-memory-evidence-2026-10-01.md)
 for scope, hashes and primary result links. D18's A1 outcome D is preserved;
@@ -29,8 +29,8 @@ table) is a recorded negative at 33/52. These are diagnostics, not promotion.
 
 - Claude: #1511 / #1552, current compiler/emitter integration.
 - OpenCode–DeepSeek: #1512, current data/read research and shared interfaces.
-- Codex: #1515 / #1563, owner-reauthorized roadmap/admissibility adoption and
-  complementary integration. Kimi and Anti-Gravity boards remain historical.
+- Codex: #1552 / #1512, geometric source-consumer integration and protected
+  delivery reconciliation. Kimi and Anti-Gravity boards remain historical.
 
 Live GitHub claims and actual process handles determine activity and ownership.
 Use the [shared protocol](docs/labs/protocol.md), [host guide](docs/labs/operations.md)

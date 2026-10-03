@@ -1,0 +1,842 @@
+{
+  "schema": "uor-r4.overnight-ladder-delivery/1",
+  "scope": "Loaded existing reports only; no new training, evaluation or serving qualification. Dialogue full and comparison partitions remain distinct.",
+  "models": {
+    "geo-8m-a": {
+      "training_report": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-a/report.json",
+      "training_report_sha256": "76d472c6e4301cebdd3a123f0bc8368c90653aa08479464d34153018852b3637",
+      "training": {
+        "active_parameters": 7155396,
+        "completed_steps": 16000,
+        "executable": {
+          "bytes": 9435104,
+          "path": "/Users/casey.allard/.local/share/uor-r4/bin/geometric-stack-9c2f5069",
+          "sha256": "e0cf0c69baff9b30451ca0caef79b286c8af2cd5450c1cfa32dc276bdacfaab1"
+        },
+        "final": {
+          "bits_per_byte": null,
+          "nll": 1.5974139458940757,
+          "targets": 196608
+        },
+        "inputs": {
+          "init": null,
+          "lens": null,
+          "merges": null,
+          "tokenizer": {
+            "bytes": 109457,
+            "path": "/Users/casey.allard/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json",
+            "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+          },
+          "train": [
+            {
+              "bytes": 1105336084,
+              "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-train/tokens.u16",
+              "sha256": "2ba5e64fe076bbb5ffd037df4ff90f697e793f96fda01ada921f1db2e533f0fc"
+            },
+            {
+              "bytes": 85555972,
+              "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-train/tokens.u16",
+              "sha256": "b4e24f1f202f2375dc830422c50be5b48d6c1be6a39aeaa7173a2fb84e9f50d3"
+            },
+            {
+              "bytes": 164496986,
+              "path": "/Users/casey.allard/uor-r4-local/chat-v0-p2/train/tokens.u16",
+              "sha256": "b5d3bf977a524d9e47c0c75592d0170a183271ddf0cf4d7b560e3ece7a54f184"
+            }
+          ],
+          "valid": {
+            "bytes": 11159720,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-valid/tokens.u16",
+            "sha256": "8ebf9db3033963aa5a3a34fe91f4715fe275c73f7c4e4ca7b98cf9a2d87af422"
+          }
+        },
+        "model_sha256": "117170a4043012fd749530fe4fab41850719c00c241f05fbe20fc7b157e524bb",
+        "parameters": 7155396,
+        "resumed_from": null,
+        "schema": "uor-r4.geometric-stack-run/1",
+        "settings": {
+          "batch": 16,
+          "checkpoint_every": 1000,
+          "clip": 1.0,
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "lorentz",
+            "rotation": true,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "eval_every": 1000,
+          "eval_windows": 64,
+          "final_windows": 512,
+          "init": null,
+          "lens": null,
+          "lr": 0.002,
+          "merges": null,
+          "min_lr": 0.1,
+          "qat": false,
+          "qat_codec": null,
+          "sample_tokens": 128,
+          "steps": 16000,
+          "tokenizer": "/Users/casey.allard/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json",
+          "train": [
+            "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-train/tokens.u16",
+            "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-train/tokens.u16",
+            "/Users/casey.allard/uor-r4-local/chat-v0-p2/train/tokens.u16"
+          ],
+          "train_weights": [
+            0.6,
+            0.15,
+            0.25
+          ],
+          "transport_snap": null,
+          "valid": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-valid/tokens.u16",
+          "warmup": 200,
+          "weight_decay": 0.1
+        },
+        "stopped_early": false,
+        "target_visits": 98304000,
+        "threads": "4",
+        "train_seconds": 28295.953183095928,
+        "curve": {
+          "count": 16,
+          "last": {
+            "dev": {
+              "bits_per_byte": null,
+              "nll": 1.6055831544788426,
+              "targets": 24576
+            },
+            "grad_norm": 0.6349825959685435,
+            "lr": 0.00020000001779090675,
+            "step": 16000,
+            "tokens": 98304000,
+            "tokens_per_second": 3474.136367271312,
+            "train_loss": 1.78775590634346,
+            "train_seconds": 28295.953183095928
+          }
+        }
+      },
+      "evaluations": {
+        "tinydialogues-val": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/geo-8m-a-tinydialogues-val/evaluation.json",
+          "report_sha256": "2953e2175d65641893ab73f521026b49315f26d44e5399ea5306b4dad4e58751",
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "lorentz",
+            "rotation": true,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28628872,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-a/model/model.safetensors",
+            "sha256": "117170a4043012fd749530fe4fab41850719c00c241f05fbe20fc7b157e524bb"
+          },
+          "tokens": {
+            "bytes": 15358494,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-val/tokens.u16",
+            "sha256": "9ed017b915d49f0d9d8ef507f4485b16de3301a48329110f561625052908fa55"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 19997,
+            "nll": 1.8941910013359051,
+            "targets": 7678848
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 19933,
+            "nll": 1.8956990391761834,
+            "targets": 7654272
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 1.4245079033626327,
+            "targets": 24576
+          }
+        },
+        "chatv0-heldout": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/geo-8m-a-chatv0-heldout/evaluation.json",
+          "report_sha256": "6ae30e03b17cc6e9a8d87307ca544b13afc1edb5c2924f14413d5e184f1afef4",
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "lorentz",
+            "rotation": true,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28628872,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-a/model/model.safetensors",
+            "sha256": "117170a4043012fd749530fe4fab41850719c00c241f05fbe20fc7b157e524bb"
+          },
+          "tokens": {
+            "bytes": 12389242,
+            "path": "/Users/casey.allard/uor-r4-local/chat-v0-p2/heldout/tokens.u16",
+            "sha256": "e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 16131,
+            "nll": 2.2110192077031634,
+            "targets": 6194304
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 16067,
+            "nll": 2.2111897032687025,
+            "targets": 6169728
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 2.1682168287733914,
+            "targets": 24576
+          }
+        }
+      }
+    },
+    "geo-8m-s2-metal-b": {
+      "training_report": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-s2-metal-b/report.json",
+      "training_report_sha256": "de5e409772fb55b73c409cfaa007d50af64cfb84d1e808fcbb193dd9cc1ca6ed",
+      "training": {
+        "active_parameters": 7155396,
+        "completed_steps": 16000,
+        "executable": {
+          "bytes": 9561808,
+          "path": "/Users/casey.allard/.local/share/uor-r4/bin/geometric-stack-0497832e",
+          "sha256": "0a728283b274f750645dcd59c18c1a9b7414bad06443cd4fff2f2091d5517b01"
+        },
+        "final": {
+          "bits_per_byte": null,
+          "nll": 1.5950818432809883,
+          "targets": 196608
+        },
+        "inputs": {
+          "init": null,
+          "lens": null,
+          "merges": null,
+          "tokenizer": {
+            "bytes": 109457,
+            "path": "/Users/casey.allard/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json",
+            "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+          },
+          "train": [
+            {
+              "bytes": 1105336084,
+              "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-train/tokens.u16",
+              "sha256": "2ba5e64fe076bbb5ffd037df4ff90f697e793f96fda01ada921f1db2e533f0fc"
+            },
+            {
+              "bytes": 85555972,
+              "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-train/tokens.u16",
+              "sha256": "b4e24f1f202f2375dc830422c50be5b48d6c1be6a39aeaa7173a2fb84e9f50d3"
+            },
+            {
+              "bytes": 164496986,
+              "path": "/Users/casey.allard/uor-r4-local/chat-v0-p2/train/tokens.u16",
+              "sha256": "b5d3bf977a524d9e47c0c75592d0170a183271ddf0cf4d7b560e3ece7a54f184"
+            }
+          ],
+          "valid": {
+            "bytes": 11159720,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-valid/tokens.u16",
+            "sha256": "8ebf9db3033963aa5a3a34fe91f4715fe275c73f7c4e4ca7b98cf9a2d87af422"
+          }
+        },
+        "model_sha256": "2d17004d035e72b5c79c51089cc5fea5b8b33dc607363f86b7a98ca283001d19",
+        "parameters": 7155396,
+        "resumed_from": null,
+        "schema": "uor-r4.geometric-stack-run/1",
+        "settings": {
+          "batch": 16,
+          "checkpoint_every": 1000,
+          "clip": 1.0,
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "lorentz",
+            "rotation": true,
+            "seed": 2,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "eval_every": 1000,
+          "eval_windows": 64,
+          "final_windows": 512,
+          "init": null,
+          "lens": null,
+          "lr": 0.002,
+          "merges": null,
+          "min_lr": 0.1,
+          "qat": false,
+          "qat_codec": null,
+          "sample_tokens": 128,
+          "steps": 16000,
+          "tokenizer": "/Users/casey.allard/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json",
+          "train": [
+            "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-train/tokens.u16",
+            "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-train/tokens.u16",
+            "/Users/casey.allard/uor-r4-local/chat-v0-p2/train/tokens.u16"
+          ],
+          "train_weights": [
+            0.6,
+            0.15,
+            0.25
+          ],
+          "transport_snap": null,
+          "valid": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-valid/tokens.u16",
+          "warmup": 200,
+          "weight_decay": 0.1
+        },
+        "stopped_early": false,
+        "target_visits": 98304000,
+        "threads": "1",
+        "train_seconds": 52620.93860086297,
+        "curve": {
+          "count": 16,
+          "last": {
+            "dev": {
+              "bits_per_byte": null,
+              "nll": 1.5999137594001807,
+              "targets": 24576
+            },
+            "grad_norm": 0.6427050989730132,
+            "lr": 0.00020000001779090675,
+            "step": 16000,
+            "tokens": 98304000,
+            "tokens_per_second": 1868.1536782467774,
+            "train_loss": 1.7866060752868653,
+            "train_seconds": 52620.93860086297
+          }
+        }
+      },
+      "evaluations": {
+        "tinydialogues-val": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/geo-8m-s2-metal-b-tinydialogues-val/evaluation.json",
+          "report_sha256": "24863ab046b96e88ce81c40b8deafd7e156574460f295c7c2e9166c2b138b5dd",
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "lorentz",
+            "rotation": true,
+            "seed": 2,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28628872,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-s2-metal-b/model/model.safetensors",
+            "sha256": "2d17004d035e72b5c79c51089cc5fea5b8b33dc607363f86b7a98ca283001d19"
+          },
+          "tokens": {
+            "bytes": 15358494,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-val/tokens.u16",
+            "sha256": "9ed017b915d49f0d9d8ef507f4485b16de3301a48329110f561625052908fa55"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 19997,
+            "nll": 1.8890557911176697,
+            "targets": 7678848
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 19933,
+            "nll": 1.8905646919751438,
+            "targets": 7654272
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 1.419103903742556,
+            "targets": 24576
+          }
+        },
+        "chatv0-heldout": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/geo-8m-s2-metal-b-chatv0-heldout/evaluation.json",
+          "report_sha256": "9adaa2621537c568e674116a1bdb5515ffa8765426f5fda49c0ae2046a4622d4",
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "lorentz",
+            "rotation": true,
+            "seed": 2,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28628872,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-s2-metal-b/model/model.safetensors",
+            "sha256": "2d17004d035e72b5c79c51089cc5fea5b8b33dc607363f86b7a98ca283001d19"
+          },
+          "tokens": {
+            "bytes": 12389242,
+            "path": "/Users/casey.allard/uor-r4-local/chat-v0-p2/heldout/tokens.u16",
+            "sha256": "e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 16131,
+            "nll": 2.208108537110025,
+            "targets": 6194304
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 16067,
+            "nll": 2.2083569566263725,
+            "targets": 6169728
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 2.1457435938421,
+            "targets": 24576
+          }
+        }
+      }
+    },
+    "geo-8m-l2": {
+      "training_report": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-l2/report.json",
+      "training_report_sha256": "6a36762bccb9b6b3b98a8dc06876f96d81794c4070d7786ca04ba39017106e8a",
+      "training": {
+        "active_parameters": 7155396,
+        "completed_steps": 16000,
+        "executable": {
+          "bytes": 9603920,
+          "path": "/Users/casey.allard/.local/share/uor-r4/bin/geometric-stack-38377c87",
+          "sha256": "c9494b2aa0b95b98a1c94bf250eaba9f44994806a1d4d923a2bd083cf083ad4d"
+        },
+        "final": {
+          "bits_per_byte": null,
+          "nll": 1.5898401997439489,
+          "targets": 196608
+        },
+        "inputs": {
+          "init": null,
+          "lens": null,
+          "merges": null,
+          "tokenizer": {
+            "bytes": 109457,
+            "path": "/Users/casey.allard/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json",
+            "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+          },
+          "train": [
+            {
+              "bytes": 1105336084,
+              "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-train/tokens.u16",
+              "sha256": "2ba5e64fe076bbb5ffd037df4ff90f697e793f96fda01ada921f1db2e533f0fc"
+            },
+            {
+              "bytes": 85555972,
+              "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-train/tokens.u16",
+              "sha256": "b4e24f1f202f2375dc830422c50be5b48d6c1be6a39aeaa7173a2fb84e9f50d3"
+            },
+            {
+              "bytes": 164496986,
+              "path": "/Users/casey.allard/uor-r4-local/chat-v0-p2/train/tokens.u16",
+              "sha256": "b5d3bf977a524d9e47c0c75592d0170a183271ddf0cf4d7b560e3ece7a54f184"
+            }
+          ],
+          "valid": {
+            "bytes": 11159720,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-valid/tokens.u16",
+            "sha256": "8ebf9db3033963aa5a3a34fe91f4715fe275c73f7c4e4ca7b98cf9a2d87af422"
+          }
+        },
+        "model_sha256": "50f8a175c0431b0f96214e535523900fd586d10e23297db045e023a2ae300c99",
+        "parameters": 7155396,
+        "resumed_from": null,
+        "schema": "uor-r4.geometric-stack-run/1",
+        "settings": {
+          "batch": 16,
+          "checkpoint_every": 1000,
+          "clip": 1.0,
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "l2",
+            "rotation": true,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "eval_every": 1000,
+          "eval_windows": 64,
+          "final_windows": 512,
+          "init": null,
+          "lens": null,
+          "lr": 0.002,
+          "merges": null,
+          "min_lr": 0.1,
+          "qat": false,
+          "qat_codec": null,
+          "sample_tokens": 128,
+          "steps": 16000,
+          "tokenizer": "/Users/casey.allard/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json",
+          "train": [
+            "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-train/tokens.u16",
+            "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-train/tokens.u16",
+            "/Users/casey.allard/uor-r4-local/chat-v0-p2/train/tokens.u16"
+          ],
+          "train_weights": [
+            0.6,
+            0.15,
+            0.25
+          ],
+          "transport_snap": null,
+          "valid": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinystories-v2-valid/tokens.u16",
+          "warmup": 200,
+          "weight_decay": 0.1
+        },
+        "stopped_early": false,
+        "target_visits": 98304000,
+        "threads": "4",
+        "train_seconds": 26812.76974187191,
+        "curve": {
+          "count": 16,
+          "last": {
+            "dev": {
+              "bits_per_byte": null,
+              "nll": 1.5983798764094008,
+              "targets": 24576
+            },
+            "grad_norm": 0.6417118831210411,
+            "lr": 0.00020000001779090675,
+            "step": 16000,
+            "tokens": 98304000,
+            "tokens_per_second": 3666.3127661326416,
+            "train_loss": 1.7810157932043076,
+            "train_seconds": 26812.76974187191
+          }
+        }
+      },
+      "evaluations": {
+        "tinydialogues-val": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/geo-8m-l2-tinydialogues-val/evaluation.json",
+          "report_sha256": "7a5bec46f83929cd66de98493464e1d018841b32a9c3741f47eabe5e6e92fc87",
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "l2",
+            "rotation": true,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28628872,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-l2/model/model.safetensors",
+            "sha256": "50f8a175c0431b0f96214e535523900fd586d10e23297db045e023a2ae300c99"
+          },
+          "tokens": {
+            "bytes": 15358494,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-val/tokens.u16",
+            "sha256": "9ed017b915d49f0d9d8ef507f4485b16de3301a48329110f561625052908fa55"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 19997,
+            "nll": 1.8877944439429626,
+            "targets": 7678848
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 19933,
+            "nll": 1.8892930465937077,
+            "targets": 7654272
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 1.4210499652344504,
+            "targets": 24576
+          }
+        },
+        "chatv0-heldout": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/geo-8m-l2-chatv0-heldout/evaluation.json",
+          "report_sha256": "78aa72e3c97e95d877bb0611ce7c62c8e88c7b18201046c99eddad8bbe5d68f5",
+          "config": {
+            "arch": "geometric",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 749,
+            "pattern": "rrarra",
+            "read": "l2",
+            "rotation": true,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28628872,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/geo-8m-l2/model/model.safetensors",
+            "sha256": "50f8a175c0431b0f96214e535523900fd586d10e23297db045e023a2ae300c99"
+          },
+          "tokens": {
+            "bytes": 12389242,
+            "path": "/Users/casey.allard/uor-r4-local/chat-v0-p2/heldout/tokens.u16",
+            "sha256": "e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 16131,
+            "nll": 2.2025344473015567,
+            "targets": 6194304
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 16067,
+            "nll": 2.2027294608723613,
+            "targets": 6169728
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 2.1535768997683205,
+            "targets": 24576
+          }
+        }
+      }
+    },
+    "tf-8m": {
+      "training_report": "/Users/casey.allard/uor-r4-local/ladder/runs/tf-8m/report.json",
+      "training_report_sha256": "86b6b2293a1d3bfe793eacb7c3c2d44d3dffe539fff9cd739bb3d1551ce5fa01",
+      "training": {
+        "active_parameters": 7155360,
+        "completed_steps": 16000,
+        "executable": {
+          "bytes": 11926752,
+          "path": "/root/geometric-stack-8f732a9f",
+          "sha256": "5f4dce013d45180dd4263c8c0d5de43249b7e860c03c3f8eb7f6c5aecf6a77a9"
+        },
+        "final": {
+          "bits_per_byte": null,
+          "nll": 1.6079010080570335,
+          "targets": 196608
+        },
+        "inputs": {
+          "init": null,
+          "lens": null,
+          "merges": null,
+          "tokenizer": {
+            "bytes": 109457,
+            "path": "/root/data/tokenizer/tokenizer.json",
+            "sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+          },
+          "train": [
+            {
+              "bytes": 1105336084,
+              "path": "/root/data/corpora/tinystories-v2-train/tokens.u16",
+              "sha256": "2ba5e64fe076bbb5ffd037df4ff90f697e793f96fda01ada921f1db2e533f0fc"
+            },
+            {
+              "bytes": 85555972,
+              "path": "/root/data/corpora/tinydialogues-train/tokens.u16",
+              "sha256": "b4e24f1f202f2375dc830422c50be5b48d6c1be6a39aeaa7173a2fb84e9f50d3"
+            },
+            {
+              "bytes": 164496986,
+              "path": "/root/data/chat-v0-p2/train/tokens.u16",
+              "sha256": "b5d3bf977a524d9e47c0c75592d0170a183271ddf0cf4d7b560e3ece7a54f184"
+            }
+          ],
+          "valid": {
+            "bytes": 11159720,
+            "path": "/root/data/corpora/tinystories-v2-valid/tokens.u16",
+            "sha256": "8ebf9db3033963aa5a3a34fe91f4715fe275c73f7c4e4ca7b98cf9a2d87af422"
+          }
+        },
+        "model_sha256": "5c66514536cddb52fb931aa8313bfb7916e2421d897b517bcf6971a82db8a1c6",
+        "parameters": 7155360,
+        "resumed_from": null,
+        "schema": "uor-r4.geometric-stack-run/1",
+        "settings": {
+          "batch": 16,
+          "checkpoint_every": 1000,
+          "clip": 1.0,
+          "config": {
+            "arch": "transformer",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 768,
+            "pattern": "aaaaaa",
+            "read": "dot",
+            "rotation": false,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "eval_every": 1000,
+          "eval_windows": 64,
+          "final_windows": 512,
+          "init": null,
+          "lens": null,
+          "lr": 0.002,
+          "merges": null,
+          "min_lr": 0.1,
+          "qat": false,
+          "qat_codec": null,
+          "sample_tokens": 128,
+          "steps": 16000,
+          "tokenizer": "/root/data/tokenizer/tokenizer.json",
+          "train": [
+            "/root/data/corpora/tinystories-v2-train/tokens.u16",
+            "/root/data/corpora/tinydialogues-train/tokens.u16",
+            "/root/data/chat-v0-p2/train/tokens.u16"
+          ],
+          "train_weights": [
+            0.6,
+            0.15,
+            0.25
+          ],
+          "transport_snap": null,
+          "valid": "/root/data/corpora/tinystories-v2-valid/tokens.u16",
+          "warmup": 200,
+          "weight_decay": 0.1
+        },
+        "stopped_early": false,
+        "target_visits": 98304000,
+        "threads": "8",
+        "train_seconds": 41223.049558957835,
+        "curve": {
+          "count": 16,
+          "last": {
+            "dev": {
+              "bits_per_byte": null,
+              "nll": 1.6093523525173765,
+              "targets": 24576
+            },
+            "grad_norm": 0.6337035487063716,
+            "lr": 0.00020000001779090675,
+            "step": 16000,
+            "tokens": 98304000,
+            "tokens_per_second": 2384.685292615339,
+            "train_loss": 1.807148340821266,
+            "train_seconds": 41223.049558957835
+          }
+        }
+      },
+      "evaluations": {
+        "tinydialogues-val": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/tf-8m-tinydialogues-val/evaluation.json",
+          "report_sha256": "70ba9476ce2c6062a88edebf0b19ec5bce499e57be5966f21828b05e63b964d4",
+          "config": {
+            "arch": "transformer",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 768,
+            "pattern": "aaaaaa",
+            "read": "dot",
+            "rotation": false,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28626728,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/tf-8m/model/model.safetensors",
+            "sha256": "5c66514536cddb52fb931aa8313bfb7916e2421d897b517bcf6971a82db8a1c6"
+          },
+          "tokens": {
+            "bytes": 15358494,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/corpora/tinydialogues-val/tokens.u16",
+            "sha256": "9ed017b915d49f0d9d8ef507f4485b16de3301a48329110f561625052908fa55"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 19997,
+            "nll": 1.9100456166772994,
+            "targets": 7678848
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 19933,
+            "nll": 1.911597509184075,
+            "targets": 7654272
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 1.426703845777869,
+            "targets": 24576
+          }
+        },
+        "chatv0-heldout": {
+          "report": "/Users/casey.allard/uor-r4-local/ladder/evals/tf-8m-chatv0-heldout/evaluation.json",
+          "report_sha256": "53349ee42cb88d15ed378fa8aeda92874ad4754ad67599606a78181b090532a0",
+          "config": {
+            "arch": "transformer",
+            "context": 384,
+            "heads": 6,
+            "mlp_hidden": 768,
+            "pattern": "aaaaaa",
+            "read": "dot",
+            "rotation": false,
+            "seed": 1,
+            "vocab_size": 4096,
+            "width": 288
+          },
+          "model": {
+            "bytes": 28626728,
+            "path": "/Users/casey.allard/uor-r4-local/ladder/runs/tf-8m/model/model.safetensors",
+            "sha256": "5c66514536cddb52fb931aa8313bfb7916e2421d897b517bcf6971a82db8a1c6"
+          },
+          "tokens": {
+            "bytes": 12389242,
+            "path": "/Users/casey.allard/uor-r4-local/chat-v0-p2/heldout/tokens.u16",
+            "sha256": "e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef"
+          },
+          "full": {
+            "bits_per_byte": null,
+            "blocks": 16131,
+            "nll": 2.2527989490936706,
+            "targets": 6194304
+          },
+          "comparison": {
+            "bits_per_byte": null,
+            "blocks": 16067,
+            "nll": 2.2530052746540377,
+            "targets": 6169728
+          },
+          "tune": {
+            "bits_per_byte": null,
+            "blocks": 64,
+            "nll": 2.2010015619307226,
+            "targets": 24576
+          }
+        }
+      }
+    }
+  }
+}

@@ -89,8 +89,9 @@ Preserve the registered comparison identities: the reported 8M-geometric versus
 2.1M-emit-6r pointer result is negative for those artifacts, not the completed
 both-8M geometric-versus-transformer criterion. Preserve the provisional learned
 bridge hold. A significant fluency/relevance conjunction without relevance
-discrimination does not qualify chat. The short L2 win supports that measured
-read configuration, not a mathematical impossibility of Lorentz attention.
+discrimination does not qualify chat. The completed 8M L2 win across the three text-loss panels supports that measured
+read configuration; see current-state for report identities and seed limits. It
+does not imply a mathematical impossibility of Lorentz attention.
 
 After a useful language interface is accepted, lower the same computation across
 recurrence, all reads/values, trained copy mixture, normalization, vocabulary,
