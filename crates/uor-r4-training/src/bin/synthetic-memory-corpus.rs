@@ -4,8 +4,19 @@
 //! ```text
 //! geometric-stack synthetic-memory out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   rows=2000 seed=7 [split=train] [vocab_size=4096] \
-//!   [distance=N | curriculum=1 [max_distance=N]] [token_budget=N]
+//!   [distance=N | curriculum=1 [max_distance=N]] [token_budget=N] \
+//!   [forms=N] [panel_out=NEW_PANEL_ROOT]
 //! ```
+//!
+//! `forms` controls how many surface FORMS per relation the generator may draw
+//! from. Form 0 is the relation's canonical phrase and forms 1..7 are paraphrase
+//! question and statement templates over a hand-authored per-relation topic; the
+//! reply always keeps the single canonical answer form, so an arm that varies
+//! `forms` varies how a fact is *stated and asked*, not how it is answered.
+//! Forms 8..12 are held out: `forms` is clamped to 1..=8, so a training store
+//! cannot contain them, and `panel_out=` writes the panel that scores them.
+//! `forms=1` leaves the stream untouched, so it combines with the distance knobs
+//! without disturbing byte identity (verified against the pre-forms generator).
 //!
 //! `distance` controls how far the asserted fact sits from the question. In the
 //! legacy form the document is exactly four turns, so the asked statement is
@@ -17,10 +28,11 @@
 //! uniformly from `0..=max_distance` (default 8), giving a mixture that keeps the
 //! easy case in distribution while forcing the hard ones.
 //!
-//! Both knobs are additive: with `distance=0` and no curriculum every byte of
-//! `tokens.u16`, `response_mask.u8` and `manifest.json` is exactly what the
-//! pre-distance generator wrote for the same rows and seed, so prior artifacts
-//! stay comparable.
+//! Both knob families are additive. With `distance=0`, no curriculum and
+//! `forms=1`, `tokens.u16` and `response_mask.u8` are exactly what the
+//! pre-distance, pre-forms generator wrote for the same rows and seed, so prior
+//! artifacts stay comparable; the manifest gains the `forms` block either way,
+//! and the `distance` block only when a distance knob is used.
 //!
 //! Distance is capped at `MAX_DISTANCE` because `dialogue-train` under
 //! `policy=full_prefix` **excludes** any document whose start-to-answer span
@@ -538,86 +550,876 @@ const RELATIONS: &[Relation] = &[
     },
 ];
 
+/// The **topic** of each relation: the noun phrase its fact is about, used to
+/// build the extra surface forms. `who` picks the question word ("Who is my
+/// favourite author?" vs "What is my blood type?").
+///
+/// This is a hand-authored field, not derived from the sentence: the canonical
+/// strings are irregular English ("I write with my {v} hand", "I live at number
+/// {v}") and a generic rule cannot recover the topic from them. The table is
+/// keyed by relation id and validated at startup: every relation must have
+/// exactly one slot and every slot must name a relation.
+struct Slot {
+    id: &'static str,
+    topic: &'static str,
+    who: bool,
+}
+
+const SLOTS: &[Slot] = &[
+    Slot {
+        id: "breed",
+        topic: "dog's breed",
+        who: false,
+    },
+    Slot {
+        id: "blood_type",
+        topic: "blood type",
+        who: false,
+    },
+    Slot {
+        id: "handedness",
+        topic: "handedness",
+        who: false,
+    },
+    Slot {
+        id: "timezone",
+        topic: "timezone",
+        who: false,
+    },
+    Slot {
+        id: "bedtime",
+        topic: "bedtime",
+        who: false,
+    },
+    Slot {
+        id: "wake_time",
+        topic: "wake-up time",
+        who: false,
+    },
+    Slot {
+        id: "coffee",
+        topic: "coffee order",
+        who: false,
+    },
+    Slot {
+        id: "pizza",
+        topic: "pizza topping",
+        who: false,
+    },
+    Slot {
+        id: "ice_cream",
+        topic: "favourite ice cream",
+        who: false,
+    },
+    Slot {
+        id: "dessert",
+        topic: "dessert",
+        who: false,
+    },
+    Slot {
+        id: "author",
+        topic: "favourite author",
+        who: true,
+    },
+    Slot {
+        id: "film",
+        topic: "favourite film",
+        who: false,
+    },
+    Slot {
+        id: "song",
+        topic: "favourite song",
+        who: false,
+    },
+    Slot {
+        id: "book",
+        topic: "book",
+        who: false,
+    },
+    Slot {
+        id: "city",
+        topic: "city",
+        who: false,
+    },
+    Slot {
+        id: "mother",
+        topic: "mother's name",
+        who: false,
+    },
+    Slot {
+        id: "brother",
+        topic: "brother's name",
+        who: false,
+    },
+    Slot {
+        id: "dog",
+        topic: "dog's name",
+        who: false,
+    },
+    Slot {
+        id: "neighbour",
+        topic: "neighbour's name",
+        who: false,
+    },
+    Slot {
+        id: "garden",
+        topic: "garden",
+        who: false,
+    },
+    Slot {
+        id: "siblings",
+        topic: "sibling count",
+        who: false,
+    },
+    Slot {
+        id: "uni_subject",
+        topic: "university subject",
+        who: false,
+    },
+    Slot {
+        id: "school",
+        topic: "school town",
+        who: false,
+    },
+    Slot {
+        id: "office",
+        topic: "office",
+        who: false,
+    },
+    Slot {
+        id: "employment",
+        topic: "employment status",
+        who: false,
+    },
+    Slot {
+        id: "train_line",
+        topic: "train line",
+        who: false,
+    },
+    Slot {
+        id: "airline",
+        topic: "airline",
+        who: false,
+    },
+    Slot {
+        id: "suitcase",
+        topic: "suitcase colour",
+        who: false,
+    },
+    Slot {
+        id: "watch",
+        topic: "watch",
+        who: false,
+    },
+    Slot {
+        id: "phone",
+        topic: "phone",
+        who: false,
+    },
+    Slot {
+        id: "laptop",
+        topic: "laptop",
+        who: false,
+    },
+    Slot {
+        id: "editor",
+        topic: "editor",
+        who: false,
+    },
+    Slot {
+        id: "shell",
+        topic: "shell",
+        who: false,
+    },
+    Slot {
+        id: "keyboard",
+        topic: "keyboard",
+        who: false,
+    },
+    Slot {
+        id: "mug",
+        topic: "mug",
+        who: false,
+    },
+    Slot {
+        id: "park",
+        topic: "park",
+        who: false,
+    },
+    Slot {
+        id: "pub",
+        topic: "pub",
+        who: false,
+    },
+    Slot {
+        id: "restaurant",
+        topic: "restaurant",
+        who: false,
+    },
+    Slot {
+        id: "market",
+        topic: "market",
+        who: false,
+    },
+    Slot {
+        id: "museum",
+        topic: "museum",
+        who: false,
+    },
+    Slot {
+        id: "gallery",
+        topic: "gallery",
+        who: false,
+    },
+    Slot {
+        id: "theatre",
+        topic: "theatre",
+        who: false,
+    },
+    Slot {
+        id: "cinema",
+        topic: "cinema",
+        who: false,
+    },
+    Slot {
+        id: "gym_class",
+        topic: "gym class",
+        who: false,
+    },
+    Slot {
+        id: "run_route",
+        topic: "run route",
+        who: false,
+    },
+    Slot {
+        id: "bike",
+        topic: "bike",
+        who: false,
+    },
+    Slot {
+        id: "swim_stroke",
+        topic: "swimming stroke",
+        who: false,
+    },
+    Slot {
+        id: "sport",
+        topic: "sport",
+        who: false,
+    },
+    Slot {
+        id: "team",
+        topic: "team",
+        who: false,
+    },
+    Slot {
+        id: "instrument",
+        topic: "instrument",
+        who: false,
+    },
+    Slot {
+        id: "language",
+        topic: "language",
+        who: false,
+    },
+    Slot {
+        id: "intolerance",
+        topic: "food intolerance",
+        who: false,
+    },
+    Slot {
+        id: "diet",
+        topic: "diet",
+        who: false,
+    },
+    Slot {
+        id: "medicine",
+        topic: "medicine",
+        who: false,
+    },
+    Slot {
+        id: "optician",
+        topic: "optician",
+        who: true,
+    },
+    Slot {
+        id: "dentist",
+        topic: "dentist",
+        who: true,
+    },
+    Slot {
+        id: "doctor",
+        topic: "doctor",
+        who: true,
+    },
+    Slot {
+        id: "car",
+        topic: "car",
+        who: false,
+    },
+    Slot {
+        id: "bike_lock",
+        topic: "bike lock",
+        who: false,
+    },
+    Slot {
+        id: "postcode",
+        topic: "postcode",
+        who: false,
+    },
+    Slot {
+        id: "house_number",
+        topic: "house number",
+        who: false,
+    },
+    Slot {
+        id: "street",
+        topic: "street",
+        who: false,
+    },
+    Slot {
+        id: "rent",
+        topic: "rent",
+        who: false,
+    },
+    Slot {
+        id: "mortgage",
+        topic: "mortgage",
+        who: false,
+    },
+    Slot {
+        id: "savings",
+        topic: "savings goal",
+        who: false,
+    },
+    Slot {
+        id: "currency",
+        topic: "currency",
+        who: false,
+    },
+    Slot {
+        id: "charity",
+        topic: "charity",
+        who: false,
+    },
+    Slot {
+        id: "paper",
+        topic: "newspaper",
+        who: false,
+    },
+    Slot {
+        id: "podcast",
+        topic: "podcast",
+        who: false,
+    },
+    Slot {
+        id: "radio",
+        topic: "radio station",
+        who: false,
+    },
+    Slot {
+        id: "hobby",
+        topic: "hobby",
+        who: false,
+    },
+    Slot {
+        id: "collection",
+        topic: "collection",
+        who: false,
+    },
+    Slot {
+        id: "instrument_lesson",
+        topic: "teacher",
+        who: true,
+    },
+    Slot {
+        id: "volunteer",
+        topic: "volunteer place",
+        who: false,
+    },
+    Slot {
+        id: "allotment",
+        topic: "allotment crop",
+        who: false,
+    },
+    Slot {
+        id: "pet_fish",
+        topic: "fish",
+        who: false,
+    },
+];
+
+/// Relations whose value set does not fit a "<topic> is <value>" restatement
+/// (`have` / `do not have`). They keep the canonical single form in every arm,
+/// so the form-variety axis is applied to the other 74 relations.
+const CANONICAL_ONLY: &[&str] = &["garden", "mortgage"];
+
+/// How many surface forms the generator may draw from per relation: forms
+/// `0..TRAIN_FORMS` are trainer-visible, the rest are held out for the
+/// unseen-form panel. Form 0 is always the relation's canonical phrase, so
+/// `forms=1` reproduces the narrow recipe exactly.
+const TRAIN_FORMS: usize = 8;
+const HELD_OUT_FORMS: usize = 5;
+const ALL_FORMS: usize = TRAIN_FORMS + HELD_OUT_FORMS;
+
+/// Extra question forms (`{q}` = Who/What, `{t}` = topic). Index i is form i+1.
+/// Entries 0..TRAIN_FORMS-1 are visible to the trainer; the tail is held out
+/// and used only by the unseen-form panel, so no arm ever trains on it.
+const ASK_TEMPLATES: &[&str] = &[
+    // trainer-visible (forms 1..=7)
+    "{q} is my {t}?",
+    "{q}'s my {t}?",
+    "Do you know {q} my {t} is?",
+    "Can you tell me {q} my {t} is?",
+    "Tell me {q} my {t} is.",
+    "Remind me {q} my {t} is.",
+    "{q} did I say my {t} was?",
+    // held out (forms 8..=12)
+    "What was that {t} I told you about?",
+    "Have you kept a note of my {t}?",
+    "My {t} has slipped my mind. What is it?",
+    "Did I ever mention my {t} to you?",
+    "Tell me again about my {t}.",
+];
+
+/// Minimal-change probe: the trained question with a single word substituted
+/// (a contraction or a spelling variant), while the statement keeps its
+/// canonical trained form. Returns `None` when no substitution applies, so the
+/// panel only emits rows for relations where the question really did change.
+fn perturbed_ask(ask: &str) -> Option<String> {
+    const SWAPS: &[(&str, &str)] = &[
+        ("favourite", "favorite"),
+        ("colour", "color"),
+        ("neighbour", "neighbor"),
+        ("timezone", "time zone"),
+        ("postcode", "post code"),
+        ("What is ", "What's "),
+        ("Who is ", "Who's "),
+        ("What do ", "What d'you "),
+    ];
+    for (from, to) in SWAPS {
+        if ask.contains(from) {
+            return Some(ask.replacen(from, to, 1));
+        }
+    }
+    None
+}
+
+/// Extra statement forms (`{t}` = topic, `{v}` = value). Index i is form i+1.
+const STATE_TEMPLATES: &[&str] = &[
+    // trainer-visible (forms 1..=7)
+    "My {t} is {v}.",
+    "I should mention that my {t} is {v}.",
+    "Just so you know, my {t} is {v}.",
+    "Let me tell you my {t}: it is {v}.",
+    "By the way, my {t} is {v}.",
+    "I think my {t} is {v}.",
+    "If you need to know, my {t} is {v}.",
+    // held out (forms 8..=12)
+    "For the record, my {t} is {v}.",
+    "As I recall, my {t} is {v}.",
+    "My {t}, I am quite sure, is {v}.",
+    "If I remember correctly, my {t} is {v}.",
+    "I am fairly sure my {t} is {v}.",
+];
+
+fn slot_of(id: &str) -> Result<&'static Slot> {
+    SLOTS
+        .iter()
+        .find(|slot| slot.id == id)
+        .ok_or_else(|| format!("no slot for relation {id}"))
+}
+
+/// Each relation's trainer-visible forms: asks (one per form), state templates
+/// with `{v}` still unsubstituted, and the canonical answers (form 0 only).
+struct Forms {
+    asks: Vec<String>,
+    states: Vec<String>,
+    answers: Vec<String>,
+    /// Forms >= this index are held out (usable only by the panel).
+    trainable: usize,
+}
+
+fn forms_of(relation: &Relation) -> Result<Forms> {
+    if CANONICAL_ONLY.contains(&relation.id) {
+        return Ok(Forms {
+            asks: vec![relation.asks[0].to_string()],
+            states: vec![relation.states[0].to_string()],
+            answers: vec![relation.answers[0].to_string()],
+            trainable: 1,
+        });
+    }
+    let slot = slot_of(relation.id)?;
+    let q = if slot.who { "Who" } else { "What" };
+    let mut asks = vec![relation.asks[0].to_string()];
+    for template in ASK_TEMPLATES {
+        asks.push(template.replace("{q}", q).replace("{t}", slot.topic));
+    }
+    let mut states = vec![relation.states[0].to_string()];
+    for template in STATE_TEMPLATES {
+        states.push(template.replace("{t}", slot.topic));
+    }
+    if asks.len() != ALL_FORMS || states.len() != ALL_FORMS {
+        return Err(format!(
+            "relation {} has {} asks and {} states, expected {ALL_FORMS}",
+            relation.id,
+            asks.len(),
+            states.len()
+        ));
+    }
+    Ok(Forms {
+        asks,
+        states,
+        answers: vec![relation.answers[0].to_string()],
+        trainable: TRAIN_FORMS,
+    })
+}
+
+/// The whole table's forms, built once so a document costs no template work.
+fn all_forms() -> Result<Vec<Forms>> {
+    RELATIONS.iter().map(forms_of).collect()
+}
+
+/// Check the hand-authored tables agree before anything is written: a typo in a
+/// slot id would otherwise silently give one relation English that belongs to
+/// another, which is a corpus bug the fit cannot report.
+fn validate_tables() -> Result<()> {
+    for relation in RELATIONS {
+        slot_of(relation.id)?;
+    }
+    for slot in SLOTS {
+        if !RELATIONS.iter().any(|relation| relation.id == slot.id) {
+            return Err(format!("slot {} names no relation", slot.id));
+        }
+        if !slot.who && slot.topic.is_empty() {
+            return Err(format!("slot {} has an empty topic", slot.id));
+        }
+    }
+    for (id, values) in VALUES {
+        if !RELATIONS.iter().any(|relation| relation.id == *id) {
+            return Err(format!("values for {id} name no relation"));
+        }
+        if values.is_empty() {
+            return Err(format!("relation {id} has no values"));
+        }
+    }
+    if VALUES.len() != RELATIONS.len() {
+        return Err(format!(
+            "{} relations and {} value sets",
+            RELATIONS.len(),
+            VALUES.len()
+        ));
+    }
+    Ok(())
+}
+
 /// Values per relation. Deliberately includes values that are also a *distinct*
 /// relation's value (for example `blue` for both colour and car), so the model
 /// cannot answer by surfacing a value that only ever belongs to one relation.
 const VALUES: &[(&str, &[&str])] = &[
-    ("breed", &["spaniel", "terrier", "poodle", "beagle", "corgi"]),
-    ("blood_type", &["A positive", "O negative", "B positive", "AB negative", "O positive"]),
+    (
+        "breed",
+        &["spaniel", "terrier", "poodle", "beagle", "corgi"],
+    ),
+    (
+        "blood_type",
+        &[
+            "A positive",
+            "O negative",
+            "B positive",
+            "AB negative",
+            "O positive",
+        ],
+    ),
     ("handedness", &["left", "right"]),
     ("timezone", &["GMT", "CET", "EST", "PST", "JST"]),
-    ("bedtime", &["ten", "eleven", "half past nine", "midnight", "nine"]),
-    ("wake_time", &["six", "seven", "half past five", "eight", "five"]),
-    ("coffee", &["a flat white", "an espresso", "a latte", "a cortado", "a filter coffee"]),
-    ("pizza", &["olives", "pepperoni", "mushrooms", "anchovies", "pineapple"]),
-    ("ice_cream", &["vanilla", "chocolate", "strawberry", "mint", "caramel"]),
-    ("dessert", &["apple crumble", "cheesecake", "tiramisu", "brownies", "sorbet"]),
-    ("author", &["Austen", "Murakami", "Le Guin", "Ishiguro", "Atwood"]),
-    ("film", &["Alien", "Spirited Away", "Casablanca", "Parasite", "Jaws"]),
-    ("song", &["Hey Jude", "Blue Monday", "Wonderwall", "Redemption Song", "Teardrop"]),
-    ("book", &["Ulysses", "Dune", "Persuasion", "Solaris", "Beloved"]),
-    ("city", &["Kyoto", "Marrakesh", "Reykjavik", "Cusco", "Hanoi"]),
+    (
+        "bedtime",
+        &["ten", "eleven", "half past nine", "midnight", "nine"],
+    ),
+    (
+        "wake_time",
+        &["six", "seven", "half past five", "eight", "five"],
+    ),
+    (
+        "coffee",
+        &[
+            "a flat white",
+            "an espresso",
+            "a latte",
+            "a cortado",
+            "a filter coffee",
+        ],
+    ),
+    (
+        "pizza",
+        &["olives", "pepperoni", "mushrooms", "anchovies", "pineapple"],
+    ),
+    (
+        "ice_cream",
+        &["vanilla", "chocolate", "strawberry", "mint", "caramel"],
+    ),
+    (
+        "dessert",
+        &[
+            "apple crumble",
+            "cheesecake",
+            "tiramisu",
+            "brownies",
+            "sorbet",
+        ],
+    ),
+    (
+        "author",
+        &["Austen", "Murakami", "Le Guin", "Ishiguro", "Atwood"],
+    ),
+    (
+        "film",
+        &["Alien", "Spirited Away", "Casablanca", "Parasite", "Jaws"],
+    ),
+    (
+        "song",
+        &[
+            "Hey Jude",
+            "Blue Monday",
+            "Wonderwall",
+            "Redemption Song",
+            "Teardrop",
+        ],
+    ),
+    (
+        "book",
+        &["Ulysses", "Dune", "Persuasion", "Solaris", "Beloved"],
+    ),
+    (
+        "city",
+        &["Kyoto", "Marrakesh", "Reykjavik", "Cusco", "Hanoi"],
+    ),
     ("mother", &["Diane", "Rosa", "Ingrid", "Amara", "Yuki"]),
     ("brother", &["Tom", "Ravi", "Lars", "Kwame", "Nico"]),
     ("dog", &["Biscuit", "Nala", "Rufus", "Poppy", "Ziggy"]),
     ("neighbour", &["Harold", "Mei", "Pavel", "Fatima", "Colin"]),
     ("garden", &["have", "do not have"]),
     ("siblings", &["one", "two", "three", "four", "none"]),
-    ("uni_subject", &["history", "chemistry", "economics", "philosophy", "biology"]),
+    (
+        "uni_subject",
+        &["history", "chemistry", "economics", "philosophy", "biology"],
+    ),
     ("school", &["Leeds", "Galway", "Aarhus", "Nagoya", "Tulsa"]),
     ("office", &["Soho", "Camden", "Clifton", "Digbeth", "Leith"]),
-    ("employment", &["full time", "part time", "self employed", "between jobs", "retired"]),
-    ("train_line", &["Northern", "Central", "District", "Piccadilly", "Bakerloo"]),
-    ("airline", &["KLM", "Emirates", "Qantas", "Lufthansa", "Iberia"]),
+    (
+        "employment",
+        &[
+            "full time",
+            "part time",
+            "self employed",
+            "between jobs",
+            "retired",
+        ],
+    ),
+    (
+        "train_line",
+        &["Northern", "Central", "District", "Piccadilly", "Bakerloo"],
+    ),
+    (
+        "airline",
+        &["KLM", "Emirates", "Qantas", "Lufthansa", "Iberia"],
+    ),
     ("suitcase", &["black", "red", "grey", "navy", "olive"]),
     ("watch", &["digital", "analog", "solar", "dive", "field"]),
-    ("phone", &["Pixel", "iPhone", "Nothing", "Fairphone", "Galaxy"]),
-    ("laptop", &["ThinkPad", "MacBook", "Framework", "Surface", "XPS"]),
+    (
+        "phone",
+        &["Pixel", "iPhone", "Nothing", "Fairphone", "Galaxy"],
+    ),
+    (
+        "laptop",
+        &["ThinkPad", "MacBook", "Framework", "Surface", "XPS"],
+    ),
     ("editor", &["Neovim", "Emacs", "VS Code", "Helix", "Zed"]),
     ("shell", &["zsh", "bash", "fish", "nu", "dash"]),
-    ("keyboard", &["Model M", "HHKB", "Ergodox", "Kinesis", "Realforce"]),
+    (
+        "keyboard",
+        &["Model M", "HHKB", "Ergodox", "Kinesis", "Realforce"],
+    ),
     ("mug", &["blue", "chipped", "tall", "striped", "plain"]),
-    ("park", &["Highbury", "Phoenix", "Riverside", "Queens", "Victoria"]),
+    (
+        "park",
+        &["Highbury", "Phoenix", "Riverside", "Queens", "Victoria"],
+    ),
     ("pub", &["Red Lion", "Anchor", "Crown", "Bell", "Ship"]),
-    ("restaurant", &["Thai", "Nepalese", "Ethiopian", "Peruvian", "Georgian"]),
-    ("market", &["Borough", "Broadway", "St George", "Portobello", "Camden"]),
-    ("museum", &["Science", "V&A", "Natural History", "Design", "Transport"]),
-    ("gallery", &["Tate", "Whitechapel", "Serpentine", "Hayward", "Barbican"]),
-    ("theatre", &["Almeida", "Old Vic", "Young Vic", "Donmar", "Lyceum"]),
-    ("cinema", &["Rio", "Everyman", "Prince Charles", "Genesis", "Lexi"]),
-    ("gym_class", &["spin", "yoga", "pilates", "boxing", "climbing"]),
-    ("run_route", &["canal", "towpath", "common", "river", "seafront"]),
+    (
+        "restaurant",
+        &["Thai", "Nepalese", "Ethiopian", "Peruvian", "Georgian"],
+    ),
+    (
+        "market",
+        &["Borough", "Broadway", "St George", "Portobello", "Camden"],
+    ),
+    (
+        "museum",
+        &["Science", "V&A", "Natural History", "Design", "Transport"],
+    ),
+    (
+        "gallery",
+        &["Tate", "Whitechapel", "Serpentine", "Hayward", "Barbican"],
+    ),
+    (
+        "theatre",
+        &["Almeida", "Old Vic", "Young Vic", "Donmar", "Lyceum"],
+    ),
+    (
+        "cinema",
+        &["Rio", "Everyman", "Prince Charles", "Genesis", "Lexi"],
+    ),
+    (
+        "gym_class",
+        &["spin", "yoga", "pilates", "boxing", "climbing"],
+    ),
+    (
+        "run_route",
+        &["canal", "towpath", "common", "river", "seafront"],
+    ),
     ("bike", &["road", "gravel", "folding", "cargo", "fixed"]),
-    ("swim_stroke", &["front crawl", "breaststroke", "backstroke", "butterfly", "sidestroke"]),
-    ("sport", &["squash", "cricket", "hockey", "badminton", "water polo"]),
-    ("team", &["Fulham", "Celtic", "Everton", "Brighton", "Norwich"]),
-    ("instrument", &["clarinet", "banjo", "oboe", "double bass", "accordion"]),
-    ("language", &["Portuguese", "Korean", "Swahili", "Finnish", "Catalan"]),
-    ("intolerance", &["lactose", "gluten", "fructose", "histamine", "caffeine"]),
-    ("diet", &["vegetarian", "vegan", "kosher", "halal", "pescatarian"]),
-    ("medicine", &["statins", "thyroxine", "metformin", "aspirin", "inhalers"]),
-    ("optician", &["Specsavers", "Boots", "Vision Express", "Scrivens", "Leightons"]),
-    ("dentist", &["Bupa", "mydentist", "Colosseum", "Portman", "Together"]),
-    ("doctor", &["Dr Ellis", "Dr Rahman", "Dr Novak", "Dr Osei", "Dr Lindqvist"]),
+    (
+        "swim_stroke",
+        &[
+            "front crawl",
+            "breaststroke",
+            "backstroke",
+            "butterfly",
+            "sidestroke",
+        ],
+    ),
+    (
+        "sport",
+        &["squash", "cricket", "hockey", "badminton", "water polo"],
+    ),
+    (
+        "team",
+        &["Fulham", "Celtic", "Everton", "Brighton", "Norwich"],
+    ),
+    (
+        "instrument",
+        &["clarinet", "banjo", "oboe", "double bass", "accordion"],
+    ),
+    (
+        "language",
+        &["Portuguese", "Korean", "Swahili", "Finnish", "Catalan"],
+    ),
+    (
+        "intolerance",
+        &["lactose", "gluten", "fructose", "histamine", "caffeine"],
+    ),
+    (
+        "diet",
+        &["vegetarian", "vegan", "kosher", "halal", "pescatarian"],
+    ),
+    (
+        "medicine",
+        &["statins", "thyroxine", "metformin", "aspirin", "inhalers"],
+    ),
+    (
+        "optician",
+        &[
+            "Specsavers",
+            "Boots",
+            "Vision Express",
+            "Scrivens",
+            "Leightons",
+        ],
+    ),
+    (
+        "dentist",
+        &["Bupa", "mydentist", "Colosseum", "Portman", "Together"],
+    ),
+    (
+        "doctor",
+        &[
+            "Dr Ellis",
+            "Dr Rahman",
+            "Dr Novak",
+            "Dr Osei",
+            "Dr Lindqvist",
+        ],
+    ),
     ("car", &["Fiesta", "Golf", "Volvo", "Prius", "Mini"]),
     ("bike_lock", &["D", "chain", "cable", "folding", "frame"]),
     ("postcode", &["N1", "SE15", "BS8", "EH6", "CF10"]),
-    ("house_number", &["twelve", "forty one", "seven", "ninety", "three"]),
-    ("street", &["Albion", "Meadow", "Chapel", "Grove", "Harbour"]),
-    ("rent", &["nine hundred", "twelve hundred", "a thousand", "fifteen hundred", "seven hundred"]),
+    (
+        "house_number",
+        &["twelve", "forty one", "seven", "ninety", "three"],
+    ),
+    (
+        "street",
+        &["Albion", "Meadow", "Chapel", "Grove", "Harbour"],
+    ),
+    (
+        "rent",
+        &[
+            "nine hundred",
+            "twelve hundred",
+            "a thousand",
+            "fifteen hundred",
+            "seven hundred",
+        ],
+    ),
     ("mortgage", &["have", "do not have"]),
-    ("savings", &["a house", "a car", "a holiday", "retirement", "a wedding"]),
-    ("currency", &["sterling", "euros", "dollars", "yen", "francs"]),
+    (
+        "savings",
+        &["a house", "a car", "a holiday", "retirement", "a wedding"],
+    ),
+    (
+        "currency",
+        &["sterling", "euros", "dollars", "yen", "francs"],
+    ),
     ("charity", &["Shelter", "Mind", "RNLI", "Oxfam", "Amnesty"]),
-    ("paper", &["Guardian", "Times", "FT", "Independent", "Herald"]),
-    ("podcast", &["Reply All", "99pi", "Radiolab", "Serial", "Witness"]),
-    ("radio", &["Radio 4", "6 Music", "World Service", "3", "Classic FM"]),
-    ("hobby", &["birdwatching", "woodwork", "pottery", "astronomy", "foraging"]),
-    ("collection", &["stamps", "records", "maps", "cameras", "typewriters"]),
-    ("instrument_lesson", &["Mr Hale", "Ms Ferreira", "Dr Banerjee", "Mrs Okafor", "Mr Lindgren"]),
-    ("volunteer", &["library", "food bank", "hospice", "allotment", "museum"]),
-    ("allotment", &["tomatoes", "courgettes", "beans", "chillies", "rhubarb"]),
-    ("pet_fish", &["guppies", "tetras", "goldfish", "danios", "rasboras"]),
+    (
+        "paper",
+        &["Guardian", "Times", "FT", "Independent", "Herald"],
+    ),
+    (
+        "podcast",
+        &["Reply All", "99pi", "Radiolab", "Serial", "Witness"],
+    ),
+    (
+        "radio",
+        &["Radio 4", "6 Music", "World Service", "3", "Classic FM"],
+    ),
+    (
+        "hobby",
+        &[
+            "birdwatching",
+            "woodwork",
+            "pottery",
+            "astronomy",
+            "foraging",
+        ],
+    ),
+    (
+        "collection",
+        &["stamps", "records", "maps", "cameras", "typewriters"],
+    ),
+    (
+        "instrument_lesson",
+        &[
+            "Mr Hale",
+            "Ms Ferreira",
+            "Dr Banerjee",
+            "Mrs Okafor",
+            "Mr Lindgren",
+        ],
+    ),
+    (
+        "volunteer",
+        &["library", "food bank", "hospice", "allotment", "museum"],
+    ),
+    (
+        "allotment",
+        &["tomatoes", "courgettes", "beans", "chillies", "rhubarb"],
+    ),
+    (
+        "pet_fish",
+        &["guppies", "tetras", "goldfish", "danios", "rasboras"],
+    ),
 ];
 
 /// Relations whose value sets overlap, so a distractor can reuse the asked
@@ -722,8 +1524,15 @@ struct Document {
     asked_first: bool,
 }
 
-fn document(rng: &mut Rng) -> Result<Document> {
-    let asked = rng.pick(RELATIONS);
+/// One document. `forms` is how many surface forms per relation the arm may
+/// draw from; the draws are made in exactly the order (and count) the narrow
+/// generator used, one `below(1)` per selection site when only the canonical
+/// form exists, so `forms=1` leaves the stream untouched and `distance=0`
+/// writes the same bytes the pre-distance, pre-forms generator wrote.
+fn document(rng: &mut Rng, forms: usize, table: &[Forms]) -> Result<Document> {
+    let asked_index = rng.below(RELATIONS.len());
+    let asked = &RELATIONS[asked_index];
+    let asked_forms = &table[asked_index];
     let asked_values = values_of(asked.id)?;
     let wanted = *rng.pick(asked_values);
     // A competing relation, never the asked one.
@@ -744,10 +1553,19 @@ fn document(rng: &mut Rng) -> Result<Document> {
         Some(other) if other == asked.id && rng.below(2) == 0 => *rng.pick(asked_values),
         _ => *rng.pick(values_of(competing.id)?),
     };
+    let competing_forms = &table[RELATIONS
+        .iter()
+        .position(|relation| relation.id == competing.id)
+        .ok_or("competing relation not in the table")?];
 
-    let asked_statement = rng.pick(asked.states).replace("{v}", wanted);
-    let competing_statement = rng.pick(competing.states).replace("{v}", competing_value);
-    let question = rng.pick(asked.asks).to_string();
+    // One draw per selection site, in the order the narrow generator used.
+    let draw = |rng: &mut Rng, available: usize| rng.below(forms.min(available));
+    let f_state = draw(rng, asked_forms.states.len());
+    let asked_statement = asked_forms.states[f_state].replace("{v}", wanted);
+    let f_competing = draw(rng, competing_forms.states.len());
+    let competing_statement = competing_forms.states[f_competing].replace("{v}", competing_value);
+    let f_ask = draw(rng, asked_forms.asks.len());
+    let question = asked_forms.asks[f_ask].clone();
     // The asked statement is sometimes stated first and sometimes second, so
     // recency cannot be the rule the corpus teaches. The draw is captured
     // rather than re-tested: a second `below(2)` call would change the stream
@@ -758,11 +1576,15 @@ fn document(rng: &mut Rng) -> Result<Document> {
     } else {
         (competing_statement, asked_statement)
     };
+    // The reply keeps the single canonical form: this arm varies the *request*
+    // and the *statement*, not the answer, so the output shape is held fixed
+    // between arms. The draw is still taken so the stream is unchanged.
+    let _answer_draw = rng.below(forms.min(asked_forms.answers.len()));
     Ok(Document {
         first,
         second,
         question,
-        answer: rng.pick(asked.answers).replace("{v}", wanted),
+        answer: asked_forms.answers[0].replace("{v}", wanted),
         wanted: wanted.to_string(),
         asked_first,
     })
@@ -774,6 +1596,175 @@ fn document(rng: &mut Rng) -> Result<Document> {
 /// stream and therefore its bytes identical to the pre-distance generator.
 fn insert_fillers(rng: &mut Rng, count: usize) -> Vec<String> {
     (0..count).map(|_| rng.pick(FILLERS).to_string()).collect()
+}
+
+/// Index a form list without assuming the relation has the full form set.
+fn form_at(forms: &[String], index: usize) -> &str {
+    &forms[index % forms.len()]
+}
+
+fn panel_rows() -> Result<Vec<(String, Vec<String>, String)>> {
+    let table = all_forms()?;
+    let mut rows = Vec::new();
+    for (index, relation) in RELATIONS.iter().enumerate() {
+        if table[index].trainable < TRAIN_FORMS {
+            continue;
+        }
+        let forms = &table[index];
+        let values = values_of(relation.id)?;
+        let wanted = values[index % values.len()];
+        // The competing statement must also come from a relation that has
+        // paraphrase forms, or the "unseen" competing turn would silently be a
+        // canonical (trained) one.
+        let mut competing_index = (index + 37) % RELATIONS.len();
+        while table[competing_index].trainable < TRAIN_FORMS || competing_index == index {
+            competing_index = (competing_index + 1) % RELATIONS.len();
+        }
+        let competing = &RELATIONS[competing_index];
+        let competing_values = values_of(competing.id)?;
+        let mut competing_value = competing_values[(index + 1) % competing_values.len()];
+        if competing_value == wanted {
+            competing_value = competing_values[(index + 2) % competing_values.len()];
+        }
+        let competing_forms = &table[competing_index];
+        // The held-out form index varies with the relation, so every held-out
+        // template is exercised roughly equally across the panel instead of
+        // one template carrying the whole condition.
+        let held = |slot: usize| TRAIN_FORMS + (index + slot) % HELD_OUT_FORMS;
+        // The competing relation can be one of the canonical-only relations
+        // (they have a single form), so every index is folded into the forms
+        // that actually exist rather than assumed present.
+        let state_seen = form_at(&forms.states, 0);
+        let ask_seen = form_at(&forms.asks, 0);
+        let state_unseen = form_at(&forms.states, held(0));
+        let ask_unseen = form_at(&forms.asks, held(1));
+        let comp_seen = form_at(&competing_forms.states, 0);
+        let comp_unseen = form_at(&competing_forms.states, held(2));
+        let id = relation.id;
+        // The panel separates the two ways a paraphrase can break binding: an
+        // unseen *statement* form with the trained question, an unseen
+        // *question* form with the trained statement, and both at once. The
+        // competing conditions reuse exactly the same statement and question as
+        // their non-competing twin, so the only difference is the extra turn.
+        rows.push((
+            format!("cf-form-seen-{id}"),
+            vec![state_seen.replace("{v}", wanted), ask_seen.to_string()],
+            wanted.to_string(),
+        ));
+        rows.push((
+            format!("cf-form-seen-comp-{id}"),
+            vec![
+                state_seen.replace("{v}", wanted),
+                comp_seen.replace("{v}", competing_value),
+                ask_seen.to_string(),
+            ],
+            wanted.to_string(),
+        ));
+        rows.push((
+            format!("cf-form-unseen-state-{id}"),
+            vec![state_unseen.replace("{v}", wanted), ask_seen.to_string()],
+            wanted.to_string(),
+        ));
+        rows.push((
+            format!("cf-form-unseen-ask-{id}"),
+            vec![state_seen.replace("{v}", wanted), ask_unseen.to_string()],
+            wanted.to_string(),
+        ));
+        rows.push((
+            format!("cf-form-unseen-{id}"),
+            vec![state_unseen.replace("{v}", wanted), ask_unseen.to_string()],
+            wanted.to_string(),
+        ));
+        rows.push((
+            format!("cf-form-unseen-comp-{id}"),
+            vec![
+                state_unseen.replace("{v}", wanted),
+                comp_unseen.replace("{v}", competing_value),
+                ask_unseen.to_string(),
+            ],
+            wanted.to_string(),
+        ));
+        // Minimal-change probe: one substituted word in the question, the
+        // statement untouched. Only relations where a substitution applies.
+        if let Some(ask) = perturbed_ask(ask_seen) {
+            rows.push((
+                format!("cf-form-perturb-ask-{id}"),
+                vec![state_seen.replace("{v}", wanted), ask],
+                wanted.to_string(),
+            ));
+        }
+    }
+    Ok(rows)
+}
+
+/// Write the unseen-form panel as `requests.json` + `expected.json` in the
+/// panel format `lut-chat` already reads. The root is claimed exclusively like
+/// any other report root.
+fn write_panel(out: &std::path::Path, seed: u64, rows: usize) -> Result<()> {
+    let panel: Vec<serde_json::Value> = panel_rows()?
+        .into_iter()
+        .map(|(id, turns, _)| {
+            json!({
+                "category": "memory",
+                "id": id,
+                "user_turns": turns,
+            })
+        })
+        .collect();
+    let expected: serde_json::Map<String, serde_json::Value> = panel_rows()?
+        .into_iter()
+        .map(|(id, _, wanted)| (id, json!(wanted)))
+        .collect();
+    let manifest = json!({
+        "schema": "uor-r4.geometric-stack-panel/1",
+        "tool": "geometric-stack synthetic-memory panel_out=",
+        "why": "held-out surface FORMS of seen relations: the treatment arm trains on paraphrase forms and this panel asks with forms no arm has seen",
+        "generator_rows": rows,
+        "seed": seed,
+        "relations": RELATIONS.len(),
+        "relations_with_forms": RELATIONS.len() - CANONICAL_ONLY.len(),
+        "canonical_only": CANONICAL_ONLY,
+        "train_forms": TRAIN_FORMS,
+        "held_out_forms": HELD_OUT_FORMS,
+        "conditions": [
+            "seen",
+            "seen-comp",
+            "unseen-state",
+            "unseen-ask",
+            "unseen",
+            "unseen-comp",
+            "perturb-ask"
+        ],
+        "rows": panel.len(),
+        // The full value set per relation, so a scorer can tell an answer from
+        // another relation's value without re-deriving the table.
+        "values": VALUES
+            .iter()
+            .map(|(id, values)| json!({ "relation": id, "values": values }))
+            .collect::<Vec<_>>(),
+        "slots": SLOTS
+            .iter()
+            .map(|slot| json!({"id": slot.id, "topic": slot.topic, "who": slot.who}))
+            .collect::<Vec<_>>(),
+    });
+    fs::write(
+        out.join("requests.json"),
+        serde_json::to_vec_pretty(&panel).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        out.join("expected.json"),
+        serde_json::to_vec_pretty(&serde_json::Value::Object(expected))
+            .map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    fs::write(
+        out.join("manifest.json"),
+        serde_json::to_vec_pretty(&manifest).map_err(|e| e.to_string())?,
+    )
+    .map_err(|e| e.to_string())?;
+    println!("panel: {} rows -> {}", panel.len(), out.display());
+    Ok(())
 }
 
 fn run(args: &[String]) -> Result<()> {
@@ -826,6 +1817,28 @@ fn run(args: &[String]) -> Result<()> {
     }
     let distance_mode = if curriculum { "curriculum" } else { "exact" };
 
+    // Surface-form breadth. `forms` is how many forms per relation the
+    // generator may draw from; the held-out tail is refused here because an arm
+    // that trained on it would make the unseen-form panel meaningless. The
+    // panel below is generated at distance 0 and is unaffected by the distance
+    // knobs: it measures which surface form a fact was stated and asked in,
+    // not how far apart they were.
+    let forms = number("forms", 1)? as usize;
+    if !(1..=TRAIN_FORMS).contains(&forms) {
+        return Err(format!(
+            "forms must be 1..={TRAIN_FORMS}; a larger value would train on the held-out tail"
+        ));
+    }
+    let panel_out = args
+        .iter()
+        .find_map(|a| a.strip_prefix("panel_out="))
+        .map(PathBuf::from);
+    // The hand-authored tables must agree before anything is written: a typo in
+    // a slot id silently gives one relation another's English, which is a
+    // corpus bug no fit can report.
+    validate_tables()?;
+    let table = all_forms()?;
+
     let tokenizer_json = fs::read(&tokenizer_path).map_err(|e| e.to_string())?;
     let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokenizer_json)
         .ok_or("unreadable tokenizer.json")?;
@@ -852,7 +1865,7 @@ fn run(args: &[String]) -> Result<()> {
     let mut documents_over_context = 0usize;
     let mut max_document_tokens = 0usize;
     for _ in 0..rows {
-        let doc = document(&mut rng)?;
+        let doc = document(&mut rng, forms, &table)?;
         let fillers = if curriculum {
             let count = rng.below(max_distance as usize + 1);
             insert_fillers(&mut rng, count)
@@ -984,6 +1997,7 @@ fn run(args: &[String]) -> Result<()> {
         "the competing relation is never the asked relation",
         "the asked statement is first half the time and second half the time",
         "overlapping relations (colour/car) sometimes share a competing value",
+        "the reply keeps the single canonical answer form in every arm",
     ];
     if distance > 0 || curriculum {
         properties.push(
@@ -1023,6 +2037,21 @@ fn run(args: &[String]) -> Result<()> {
             "rows": rows,
             "seed": seed,
             "relations": RELATIONS.iter().map(|r| r.id).collect::<Vec<_>>(),
+            // Surface-form breadth: `forms=1` is the narrow recipe (canonical
+            // phrase only, byte-identical to the earlier generator); larger
+            // values draw extra paraphrase forms from ASK_TEMPLATES and
+            // STATE_TEMPLATES. Forms >= TRAIN_FORMS are held out for the panel
+            // and are never reachable from here.
+            "forms": forms,
+            "train_forms": TRAIN_FORMS,
+            "held_out_forms": HELD_OUT_FORMS,
+            "canonical_only": CANONICAL_ONLY,
+            "ask_templates": ASK_TEMPLATES,
+            "state_templates": STATE_TEMPLATES,
+            "slots": SLOTS
+                .iter()
+                .map(|slot| json!({"id": slot.id, "topic": slot.topic, "who": slot.who}))
+                .collect::<Vec<_>>(),
             "properties": properties
         },
         "tokenizer": {"path": tokenizer_path.display().to_string(), "sha256": tokenizer_sha},
@@ -1093,6 +2122,13 @@ fn run(args: &[String]) -> Result<()> {
             );
         }
     }
+    // The held-out-form panel is written beside the store when asked for. It is
+    // a separate exclusive root, because every arm is scored against the same
+    // rows and a per-arm copy would silently diverge.
+    if let Some(panel_root) = panel_out {
+        report_output::claim(&panel_root).map_err(|e| e.to_string())?;
+        write_panel(&panel_root, seed, rows)?;
+    }
     Ok(())
 }
 
@@ -1156,7 +2192,8 @@ mod tests {
     /// distance knobs existed, and the knob only adds turns after it.
     #[test]
     fn distance_zero_adds_no_turns() {
-        let doc = document(&mut Rng(7)).expect("document");
+        let table = all_forms().expect("forms");
+        let doc = document(&mut Rng(7), 1, &table).expect("document");
         assert!(!doc.first.is_empty() && !doc.second.is_empty());
         // The asked statement is the one whose value the answer gives.
         let asked = if doc.asked_first {
@@ -1194,5 +2231,121 @@ mod tests {
         let error = run(&with(&["curriculum=1", "max_distance=17"]))
             .expect_err("max_distance=17 must be refused");
         assert!(error.contains("max_distance= must be at most"), "{error}");
+        let error = run(&with(&["forms=13"])).expect_err("forms=13 must be refused");
+        assert!(error.contains("forms must be 1..=8"), "{error}");
+    }
+
+    /// `forms=1` must draw only the canonical phrase of each relation: that is
+    /// what makes the fixed-form arm reproduce the published store.
+    #[test]
+    fn forms_one_draws_only_the_canonical_phrase() {
+        let table = all_forms().expect("forms");
+        let canonical_asks: Vec<&str> = RELATIONS.iter().map(|r| r.asks[0]).collect();
+        let canonical_prefixes: Vec<&str> = RELATIONS
+            .iter()
+            .map(|r| r.states[0].split("{v}").next().unwrap_or(""))
+            .collect();
+        let mut rng = Rng(3);
+        for _ in 0..500 {
+            let doc = document(&mut rng, 1, &table).expect("document");
+            assert!(
+                canonical_asks.contains(&doc.question.as_str()),
+                "forms=1 produced a non-canonical question {:?}",
+                doc.question
+            );
+            for turn in [&doc.first, &doc.second] {
+                assert!(
+                    canonical_prefixes.iter().any(|p| turn.starts_with(p)),
+                    "forms=1 produced a non-canonical statement {turn:?}"
+                );
+            }
+        }
+    }
+
+    /// `forms=TRAIN_FORMS` must reach the paraphrases but never the held-out
+    /// tail, which is what makes the panel's unseen conditions unseen.
+    #[test]
+    fn forms_eight_reaches_paraphrases_but_never_the_held_out_tail() {
+        let table = all_forms().expect("forms");
+        let mut trainable_asks: Vec<&str> = Vec::new();
+        let mut held_out_asks: Vec<&str> = Vec::new();
+        let mut trainable_prefixes: Vec<&str> = Vec::new();
+        let mut held_out_prefixes: Vec<&str> = Vec::new();
+        for forms in &table {
+            let trainable = forms.trainable.min(forms.asks.len());
+            for (index, ask) in forms.asks.iter().enumerate() {
+                if index < trainable {
+                    trainable_asks.push(ask);
+                } else {
+                    held_out_asks.push(ask);
+                }
+            }
+            for (index, state) in forms.states.iter().enumerate() {
+                let prefix = state.split("{v}").next().unwrap_or("");
+                if index < trainable {
+                    trainable_prefixes.push(prefix);
+                } else {
+                    held_out_prefixes.push(prefix);
+                }
+            }
+        }
+        // A string that is trainable for one relation is not evidence of a
+        // held-out draw, so only the difference is a violation.
+        let held_ask: Vec<&str> = held_out_asks
+            .iter()
+            .filter(|ask| !trainable_asks.contains(ask))
+            .copied()
+            .collect();
+        let held_prefix: Vec<&str> = held_out_prefixes
+            .iter()
+            .filter(|prefix| !trainable_prefixes.contains(prefix))
+            .copied()
+            .collect();
+        let canonical_asks: Vec<&str> = RELATIONS.iter().map(|r| r.asks[0]).collect();
+        let mut rng = Rng(5);
+        let mut paraphrases = 0usize;
+        for _ in 0..500 {
+            let doc = document(&mut rng, TRAIN_FORMS, &table).expect("document");
+            assert!(
+                !held_ask.contains(&doc.question.as_str()),
+                "forms=8 produced a held-out question {:?}",
+                doc.question
+            );
+            for turn in [&doc.first, &doc.second] {
+                assert!(
+                    !held_prefix.iter().any(|p| turn.starts_with(p)),
+                    "forms=8 produced a held-out statement {turn:?}"
+                );
+            }
+            if !canonical_asks.contains(&doc.question.as_str()) {
+                paraphrases += 1;
+            }
+        }
+        assert!(
+            paraphrases > 100,
+            "forms=8 drew only {paraphrases} paraphrase questions"
+        );
+    }
+
+    /// The panel must be complete, unique, and scored against the asked
+    /// relation's own values.
+    #[test]
+    fn panel_rows_are_complete_and_self_consistent() {
+        let rows = panel_rows().expect("panel");
+        let relations_with_forms = RELATIONS.len() - CANONICAL_ONLY.len();
+        let with_perturbation = rows.len() - relations_with_forms * 6;
+        assert_eq!(rows.len(), relations_with_forms * 6 + with_perturbation);
+        assert!(rows.len() > relations_with_forms * 6);
+        let mut seen = std::collections::BTreeSet::new();
+        for (id, turns, wanted) in &rows {
+            assert!(seen.insert(id.clone()), "duplicate panel id {id}");
+            assert!(!turns.is_empty() && turns.iter().all(|t| !t.trim().is_empty()));
+            let relation = id.rsplit('-').next().unwrap();
+            let values = values_of(relation).expect("relation of panel row");
+            assert!(
+                values.contains(&wanted.as_str()),
+                "panel row {id} expects {wanted:?}, which is not a value of {relation}"
+            );
+        }
     }
 }
