@@ -681,12 +681,12 @@ struct Settings {
     resume: Option<PathBuf>,
     max_seconds: f64,
     sample_tokens: usize,
-    /// `device=cpu|metal` (default cpu). A Metal run needs the `metal` feature
-    /// and every executed op to have a Metal kernel.
+    /// `device=cpu|metal|cuda` (default cpu). A Metal or CUDA run needs the
+    /// `metal` or `cuda` feature; ops without a GPU kernel run on host copies.
     device: Device,
 }
 
-/// `device=cpu|metal` (default cpu); no implicit fallback.
+/// `device=cpu|metal|cuda` (default cpu); no implicit fallback.
 fn device_arg(args: &Args) -> Result<Device> {
     match args.optional("device") {
         None => Ok(Device::Cpu),
@@ -3329,8 +3329,8 @@ struct DialogueSettings {
     /// `protocol=1|2`: the literal-role dialogue version of both corpora
     /// (their assistant markers locate the scored responses).
     protocol: u8,
-    /// `device=cpu|metal` (default cpu). A Metal run needs the `metal` feature
-    /// and every executed op to have a Metal kernel.
+    /// `device=cpu|metal|cuda` (default cpu). A Metal or CUDA run needs the
+    /// `metal` or `cuda` feature; ops without a GPU kernel run on host copies.
     device: Device,
 }
 

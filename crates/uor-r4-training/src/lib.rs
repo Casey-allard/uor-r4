@@ -5,13 +5,17 @@
 //! serving path. Its purpose is to establish a real language-loss gradient
 //! through attention before building and measuring a discrete bridge.
 
-#![forbid(unsafe_code)]
+// Without the `cuda` feature the crate forbids unsafe code. With it, only the
+// CUDA kernel launcher (`cuda_stack_kernels::cuda`) opts in.
+#![cfg_attr(not(feature = "cuda"), forbid(unsafe_code))]
+#![cfg_attr(feature = "cuda", deny(unsafe_code))]
 
 pub mod addressing_arms;
 pub mod b3_e8_codecs;
 pub mod baseline_counts;
 pub mod baseline_protocol;
 pub mod cache_memory;
+pub mod cuda_stack_kernels;
 pub mod d4_codecs;
 pub use d4_codecs::{codec_by_name, HeadCompensatedMapCodec, RecurrenceOutMinMseMapCodec};
 pub mod dialogue_artifact;

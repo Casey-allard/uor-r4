@@ -98,6 +98,8 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 use candle_core::backend::BackendStorage;
+#[cfg(feature = "cuda")]
+use candle_core::CudaStorage;
 use candle_core::{CpuStorage, CustomOp2, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
 #[cfg(feature = "metal")]
 use candle_core::{MetalStorage, Storage};
@@ -122,6 +124,9 @@ use crate::stack_memory::{keys_aux_len, product_key_memory, MemoryConfig, Memory
 use crate::stack_prime_route::PrimeRegistry;
 use crate::{invalid, Result};
 use uor_r4_integer::geometric_span::SpanAction;
+
+#[cfg(feature = "cuda")]
+mod cuda_ops;
 
 /// Lower bound on `z - 1` in the Lorentz score. Below it the distance is
 /// clamped and carries no gradient.
@@ -7882,6 +7887,17 @@ impl CustomOp2 for StraightThrough {
         ))
     }
 
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::straight_through_fwd(s1, l1, s2, l2)
+    }
+
     fn bwd(
         &self,
         _source: &Tensor,
@@ -8336,7 +8352,7 @@ impl StackAdamW {
         lr: f64,
     ) -> Result<f64> {
         let mut total = 0f64;
-        if matches!(model.device(), Device::Metal(_)) {
+        if matches!(model.device(), Device::Metal(_) | Device::Cuda(_)) {
             // One host synchronization for the whole norm: each variable's
             // squared sum stays on the device, then their f32 sum is read.
             let sums = model
@@ -8395,6 +8411,11 @@ impl StackAdamW {
             #[cfg(feature = "metal")]
             if let Device::Metal(device) = var.device() {
                 adam_step_metal(device, var, grad, m, v, &constants)?;
+                continue;
+            }
+            #[cfg(feature = "cuda")]
+            if let Device::Cuda(device) = var.device() {
+                cuda_ops::adam_step_cuda(device, var, grad, m, v, &constants)?;
                 continue;
             }
             let mut parameters = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
@@ -8601,6 +8622,17 @@ impl CustomOp2 for QuaternionScan {
 
     /// Reverse scan: `g_t = dh_t + conj(q_{t+1}) * g_{t+1}` is the total
     /// gradient of `h_t`; then `db_t = g_t` and `dq_t = g_t * conj(h_{t-1})`.
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::quaternion_scan_fwd(s1, l1, s2, l2)
+    }
+
     fn bwd(
         &self,
         transition: &Tensor,
@@ -8608,6 +8640,11 @@ impl CustomOp2 for QuaternionScan {
         state: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = transition.device() {
+            let (first, second) = cuda_ops::quaternion_scan_bwd(device, transition, state, grad)?;
+            return Ok((Some(first), Some(second)));
+        }
         #[cfg(feature = "metal")]
         if let Device::Metal(device) = transition.device() {
             if transition.dtype() != DType::F32
@@ -9235,6 +9272,19 @@ impl CustomOp3 for RecurrenceCore {
         ))
     }
 
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+        s3: &CudaStorage,
+        l3: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        self.cuda_fwd_impl(s1, l1, s2, l2, s3, l3)
+    }
+
     fn bwd(
         &self,
         branches: &Tensor,
@@ -9243,6 +9293,12 @@ impl CustomOp3 for RecurrenceCore {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let (Device::Cuda(device), true) = (branches.device(), self.cuda_covered()) {
+            let (d_branches, d_gates, d_parameters) =
+                self.cuda_bwd(device, branches, gates, parameters, grad)?;
+            return Ok((Some(d_branches), Some(d_gates), Some(d_parameters)));
+        }
         #[cfg(feature = "metal")]
         if let (Device::Metal(device), true) = (branches.device(), self.metal_covered()) {
             let (d_branches, d_gates, d_parameters) =
@@ -10369,6 +10425,19 @@ impl CustomOp3 for FusedRead {
         ))
     }
 
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+        s3: &CudaStorage,
+        l3: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        self.cuda_fwd_impl(s1, l1, s2, l2, s3, l3)
+    }
+
     fn bwd(
         &self,
         query: &Tensor,
@@ -10377,6 +10446,11 @@ impl CustomOp3 for FusedRead {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let (Device::Cuda(device), true) = (query.device(), self.cuda_covered()) {
+            let (dq, dkv, d_aux) = self.cuda_bwd(device, query, kv, aux, grad)?;
+            return Ok((Some(dq), Some(dkv), Some(d_aux)));
+        }
         #[cfg(feature = "metal")]
         if let Device::Metal(device) = query.device() {
             if self.metal_covered() {
@@ -10839,6 +10913,17 @@ impl CustomOp2 for RmsNorm {
         ))
     }
 
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::rms_norm_fwd(s1, l1, s2, l2)
+    }
+
     fn bwd(
         &self,
         x: &Tensor,
@@ -10846,6 +10931,11 @@ impl CustomOp2 for RmsNorm {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = x.device() {
+            let (first, second) = cuda_ops::rms_norm_bwd(device, x, w, grad)?;
+            return Ok((Some(first), Some(second)));
+        }
         #[cfg(feature = "metal")]
         if let Device::Metal(device) = x.device() {
             if x.dtype() != DType::F32 || w.dtype() != DType::F32 || grad.dtype() != DType::F32 {
@@ -11054,6 +11144,17 @@ impl CustomOp2 for SwiGlu {
         ))
     }
 
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::swiglu_fwd(s1, l1, s2, l2)
+    }
+
     fn bwd(
         &self,
         gate: &Tensor,
@@ -11061,6 +11162,11 @@ impl CustomOp2 for SwiGlu {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = gate.device() {
+            let (first, second) = cuda_ops::swiglu_bwd(device, gate, up, grad)?;
+            return Ok((Some(first), Some(second)));
+        }
         #[cfg(feature = "metal")]
         if let Device::Metal(device) = gate.device() {
             if gate.dtype() != DType::F32 || up.dtype() != DType::F32 || grad.dtype() != DType::F32
@@ -11280,12 +11386,27 @@ impl candle_core::CustomOp1 for CrossEntropy {
         ))
     }
 
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        storage: &CudaStorage,
+        layout: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::cross_entropy_fwd(self, storage, layout)
+    }
+
     fn bwd(
         &self,
         logits: &Tensor,
         _loss: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<Option<Tensor>> {
+        #[cfg(feature = "cuda")]
+        if let Device::Cuda(device) = logits.device() {
+            return Ok(Some(cuda_ops::cross_entropy_bwd(
+                self, device, logits, grad,
+            )?));
+        }
         let (rows, vocabulary) = logits.dims2()?;
         #[cfg(feature = "metal")]
         if self.weights.is_none() {
@@ -11776,6 +11897,19 @@ impl CustomOp3 for PointerMixture {
         l3: &Layout,
     ) -> candle_core::Result<(MetalStorage, Shape)> {
         metal_via_host(self, [(s1, l1), (s2, l2), (s3, l3)])
+    }
+
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+        s3: &CudaStorage,
+        l3: &Layout,
+    ) -> candle_core::Result<(CudaStorage, Shape)> {
+        cuda_ops::via_host3(self, [(s1, l1), (s2, l2), (s3, l3)])
     }
 
     fn bwd(

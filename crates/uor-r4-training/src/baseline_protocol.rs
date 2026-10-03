@@ -115,6 +115,18 @@ pub fn device(name: &str) -> Result<Device> {
                 Err(invalid("Metal requested without compiled Metal feature"))
             }
         }
-        _ => Err(invalid("device must be cpu or metal; no implicit fallback")),
+        "cuda" => {
+            #[cfg(feature = "cuda")]
+            {
+                Ok(Device::new_cuda(0)?)
+            }
+            #[cfg(not(feature = "cuda"))]
+            {
+                Err(invalid("CUDA requested without compiled CUDA feature"))
+            }
+        }
+        _ => Err(invalid(
+            "device must be cpu, metal or cuda; no implicit fallback",
+        )),
     }
 }

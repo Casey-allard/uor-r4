@@ -1,0 +1,55 @@
+{
+  "schema": "uor-r4.cuda-source-delivery/1",
+  "source_original": "e92108a34402b61f8ee36069693d682ed7f970d6",
+  "source_integration": "667c545b",
+  "status": "DEVICE_PARITY_SOURCE_AND_EXECUTABLE_BOUND",
+  "scope": "Optional Rust offline training only: the `cuda` feature and `device=cuda`. No CUDA serving. The default build still forbids unsafe code; with `cuda`, only the kernel launcher module `cuda_stack_kernels::cuda` allows it (one `unsafe` launch block). Ops or configurations without a device kernel run the exact CPU forward on host copies, and their backward takes the generic host path.",
+  "delivery_head_run": {
+    "source": "c17411b88dcdd5931b8b602f9d31d3c0e2ac337a",
+    "checkout": "fresh shallow clone of codex/cuda-source-delivery-20261003; git status reported 0 changed paths",
+    "host": "Runpod, 2x NVIDIA GeForce RTX 4090, driver 595.91.07, CUDA 12.6 (cuda_12.6.r12.6/compiler.35059454_0), CUDA_COMPUTE_CAP=89",
+    "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "features": "uor-r4-training --features cuda, release profile, CARGO_INCREMENTAL=0",
+    "command": "UOR_REQUIRE_CUDA=1 cargo test --release -p uor-r4-training --features cuda --test cuda_stack_ops_parity -- --test-threads=1",
+    "test_binary": "cuda_stack_ops_parity-0bb11c69ad774b8a",
+    "test_binary_sha256": "a7997c92cb82a251623c5d7cec7b30ebf2336c5ad00bc6c5b4ec64ad21b0a3b1",
+    "result": "18 passed, 0 failed, 1 ignored (bench_training_size_read_and_recurrence); UOR_REQUIRE_CUDA=1 makes a missing device a failure, and no test printed SKIPPED",
+    "log": {
+      "path": "/Users/casey.allard/uor-r4-local/ladder/gpu-pod-20261003/delivery-check-c17411b8.log",
+      "bytes": 1535,
+      "sha256": "bea79d8758e3161c46de9e181cff295a51d7f48182faf604d553c4c1eef22402"
+    }
+  },
+  "earlier_device_runs": {
+    "source": "28f50a4e (codex/cuda-stack-ops), fresh shallow clone; the commit was printed by the setup log",
+    "host": "Runpod, 1x NVIDIA GeForce RTX 4090, driver 580.178.04, compute capability 8.9, CUDA 12.x devel image",
+    "command": "cargo test --release -p uor-r4-training --features cuda --test cuda_stack_ops_parity -- --nocapture --test-threads=1",
+    "result": "18 passed, 0 failed, 1 ignored; worst reported max relative error 3.4e-6; no NaN or Inf. A first parallel run failed only the SwiGLU speed assertion, which passed run serially at 8.43x",
+    "executable_identity": "UNAVAILABLE: the pod was destroyed before test-binary digests were recorded. No newly computed hash stands in for it",
+    "source_relation_to_delivery": "Byte-identical to c17411b8 in Cargo.lock, crates/uor-r4-training/Cargo.toml, src/cuda_stack_kernels.rs, src/geometric_stack/cuda_ops.rs, src/geometric_stack.rs, src/lib.rs, src/baseline_protocol.rs and examples/geometric-stack.rs (git blob comparison). tests/cuda_stack_ops_parity.rs differs only in device-skip handling (UOR_REQUIRE_CUDA); the numeric checks are unchanged. The remaining differences under the crate are unrelated main changes (examples/grounded-source-binding.rs, src/bin/synthetic-memory-corpus.rs)",
+    "logs": [
+      {
+        "path": "/Users/casey.allard/uor-r4-local/ladder/gpu-pod-20261003/parity-full.log",
+        "bytes": 21235,
+        "sha256": "3479e2ddac3c5826cce8ec177b031f8d61c3279eebef139b2ef28b6fdebe1210"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-local/ladder/gpu-pod-20261003/gpu-runs.log",
+        "bytes": 1091,
+        "sha256": "0a993b705c529cc7a3ba92e3c2da986b57ab6f3ca0f76b63191fb5f83ea2541e",
+        "content": "training throughput at 8M, 20M and 29M on one RTX 4090 (55.4k, 67.8k and 49.6k tokens/s)"
+      },
+      {
+        "path": "/Users/casey.allard/uor-r4-local/ladder/gpu-pod-20261003/trace-8m-s2.log",
+        "bytes": 4287,
+        "sha256": "3720d42e6341717b3bcdd65214b306aed684962c4efe8a94e3003c20d9f08cbd",
+        "content": "8M Lorentz seed-2 training with UOR_NAN_TRACE=1 (every gradient and parameter checked each step), stopped by the operator at step 4000 with 0 nonfinite reports; the same configuration had failed at step 995 on Metal before #1636"
+      }
+    ]
+  },
+  "known_gaps": [
+    "RoPE and flock selection in FusedRead use the host fallback; the transformer control (read=dot with RoPE) therefore runs mostly on the CPU under device=cuda. A CUDA RoPE kernel is in progress separately",
+    "The pointer mixture uses the host fallback",
+    "No bitwise CPU/CUDA reproducibility is claimed beyond the AdamW update"
+  ]
+}
