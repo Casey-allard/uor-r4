@@ -83,7 +83,32 @@ jobs:
               requireThat(Number.isSafeInteger(prNumber) && prNumber > 0, 'Invalid PR number');
               if (groupSha) requireThat(hex40.test(groupSha), 'Invalid synthetic commit SHA');
               const pr = (await github.rest.pulls.get({owner, repo, pull_number: prNumber})).data;
-              requireThat(pr.state === 'open' && !pr.draft && pr.base.ref === 'main', 'PR must be open, ready and target main');
+              // Advisory only (owner merge rule, #820): a draft, closed or non-main PR,
+              // or one whose head has no published receipt, is not applicable. Report
+              // that and publish no status, rather than a failure that reads as broken CI.
+              const notApplicable = async reason => {
+                core.notice(`Delivery evidence not applicable to PR #${prNumber}: ${reason}. No status published; no tests run.`);
+                await core.summary.addHeading('Delivery evidence: not applicable')
+                  .addRaw(`PR #${prNumber}: ${reason}. This advisory gate validates only published lab receipts; it ran no tests and published no status.`).write();
+              };
+              if (pr.state !== 'open' || pr.draft || pr.base.ref !== 'main') {
+                await notApplicable('the PR is not an open, ready PR targeting main');
+                return;
+              }
+              const receiptPublished = async () => {
+                try {
+                  const ref = (await github.rest.git.getRef({owner, repo, ref: 'heads/codex/lab-state'})).data.object.sha;
+                  await github.rest.repos.getContent({owner, repo, path: `delivery/pr-${prNumber}/${pr.head.sha}.json`, ref});
+                  return true;
+                } catch (error) {
+                  if (error.status === 404) return false;
+                  throw error;
+                }
+              };
+              if (!(await receiptPublished())) {
+                await notApplicable(`no delivery receipt is published for head ${pr.head.sha}`);
+                return;
+              }
               statusSha = groupSha || pr.head.sha;
               requireThat(hex40.test(statusSha), 'Target head is not a full SHA');
               await publish('pending', 'Checking exact-source review and executable-check receipts');
