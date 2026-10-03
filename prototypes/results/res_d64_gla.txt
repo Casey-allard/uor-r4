@@ -1,0 +1,12 @@
+### d64_gla :: --arm gla --d 64 --n 24 --steps 1500 --batch 32 --lr 0.01 --seed 1
+# arm=Gla d=64 n=24 batch=32 steps=1500 lr=0.01 curriculum=false seed=1 params=25730
+# oracle(exact store, 0 learned params): hits=1.0000 distractor=0.0000
+step     1 n= 24 loss 3.8870 hits 0.0078 distractor 0.0234 elapsed 0.1s
+step   250 n= 24 loss 3.8724 hits 0.0078 distractor 0.0156 elapsed 6.1s
+step   500 n= 24 loss 3.8735 hits 0.0234 distractor 0.0000 elapsed 13.1s
+step   750 n= 24 loss 3.8712 hits 0.0156 distractor 0.0156 elapsed 19.6s
+step  1000 n= 24 loss 3.8712 hits 0.0156 distractor 0.0078 elapsed 25.8s
+step  1250 n= 24 loss 3.8711 hits 0.0391 distractor 0.0156 elapsed 31.8s
+step  1500 n= 24 loss 3.8752 hits 0.0234 distractor 0.0000 elapsed 37.8s
+FINAL arm=Gla n=24 loss=3.8700 hits=0.0312 distractor=0.0078
+### done

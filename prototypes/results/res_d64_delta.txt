@@ -1,0 +1,12 @@
+### d64_delta :: --arm delta --d 64 --n 24 --steps 1500 --batch 32 --lr 0.01 --seed 1
+# arm=Delta d=64 n=24 batch=32 steps=1500 lr=0.01 curriculum=false seed=1 params=25730
+# oracle(exact store, 0 learned params): hits=1.0000 distractor=0.0000
+step     1 n= 24 loss 4.9522 hits 0.0234 distractor 0.0156 elapsed 0.2s
+step   250 n= 24 loss 3.8715 hits 0.0156 distractor 0.0000 elapsed 23.1s
+step   500 n= 24 loss 3.8937 hits 0.0234 distractor 0.0000 elapsed 47.6s
+step   750 n= 24 loss 3.8571 hits 0.0391 distractor 0.0000 elapsed 67.5s
+step  1000 n= 24 loss 3.8128 hits 0.0703 distractor 0.0000 elapsed 89.3s
+step  1250 n= 24 loss 3.8184 hits 0.0859 distractor 0.0000 elapsed 112.2s
+step  1500 n= 24 loss 3.7526 hits 0.0781 distractor 0.0000 elapsed 132.6s
+FINAL arm=Delta n=24 loss=3.7973 hits=0.0703 distractor=0.0000
+### done
