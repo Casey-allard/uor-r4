@@ -1,0 +1,92 @@
+[
+ {
+  "id": "dev-mem-01",
+  "category": "memory",
+  "user_turns": [
+   "My name is Alex.",
+   "For your information, the weather has been mild this week.",
+   "What is my name?"
+  ]
+ },
+ {
+  "id": "dev-mem-02",
+  "category": "memory",
+  "user_turns": [
+   "My cat is named Momo.",
+   "For your information, the weather has been mild this week.",
+   "What is my cat's name?"
+  ]
+ },
+ {
+  "id": "dev-mem-03",
+  "category": "memory",
+  "user_turns": [
+   "My favorite color is green.",
+   "For your information, the weather has been mild this week.",
+   "What is my favorite color?"
+  ]
+ },
+ {
+  "id": "dev-mem-04",
+  "category": "memory",
+  "user_turns": [
+   "I work as a teacher.",
+   "For your information, the weather has been mild this week.",
+   "What is my job?"
+  ]
+ },
+ {
+  "id": "dev-mem-05",
+  "category": "memory",
+  "user_turns": [
+   "My sister lives in Tokyo.",
+   "For your information, the weather has been mild this week.",
+   "Where does my sister live?"
+  ]
+ },
+ {
+  "id": "dev-mem-06",
+  "category": "memory",
+  "user_turns": [
+   "I have two brothers.",
+   "For your information, the weather has been mild this week.",
+   "How many brothers do I have?"
+  ]
+ },
+ {
+  "id": "dev-mem-07",
+  "category": "memory",
+  "user_turns": [
+   "My birthday is in July.",
+   "For your information, the weather has been mild this week.",
+   "When is my birthday?"
+  ]
+ },
+ {
+  "id": "dev-mem-08",
+  "category": "memory",
+  "user_turns": [
+   "I drive a blue car.",
+   "For your information, the weather has been mild this week.",
+   "What color is my car?"
+  ]
+ },
+ {
+  "id": "dev-mem-09",
+  "category": "memory",
+  "user_turns": [
+   "I am learning to play the piano.",
+   "For your information, the weather has been mild this week.",
+   "What instrument am I learning?"
+  ]
+ },
+ {
+  "id": "dev-mem-10",
+  "category": "memory",
+  "user_turns": [
+   "My favorite food is pizza.",
+   "For your information, the weather has been mild this week.",
+   "What is my favorite food?"
+  ]
+ }
+]

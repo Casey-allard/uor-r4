@@ -1,0 +1,92 @@
+[
+ {
+  "id": "dev-mem-01",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "My name is Alex.",
+   "What is my name?"
+  ]
+ },
+ {
+  "id": "dev-mem-02",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "My cat is named Momo.",
+   "What is my cat's name?"
+  ]
+ },
+ {
+  "id": "dev-mem-03",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "My favorite color is green.",
+   "What is my favorite color?"
+  ]
+ },
+ {
+  "id": "dev-mem-04",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "I work as a teacher.",
+   "What is my job?"
+  ]
+ },
+ {
+  "id": "dev-mem-05",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "My sister lives in Tokyo.",
+   "Where does my sister live?"
+  ]
+ },
+ {
+  "id": "dev-mem-06",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "I have two brothers.",
+   "How many brothers do I have?"
+  ]
+ },
+ {
+  "id": "dev-mem-07",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "My birthday is in July.",
+   "When is my birthday?"
+  ]
+ },
+ {
+  "id": "dev-mem-08",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "I drive a blue car.",
+   "What color is my car?"
+  ]
+ },
+ {
+  "id": "dev-mem-09",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "I am learning to play the piano.",
+   "What instrument am I learning?"
+  ]
+ },
+ {
+  "id": "dev-mem-10",
+  "category": "memory",
+  "user_turns": [
+   "My favourite season is autumn.",
+   "My favorite food is pizza.",
+   "What is my favorite food?"
+  ]
+ }
+]

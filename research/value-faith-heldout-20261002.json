@@ -1,0 +1,92 @@
+[
+ {
+  "id": "h-01",
+  "category": "memory",
+  "user_turns": [
+   "Call me Alex from now on.",
+   "I also enjoy hiking.",
+   "What should you call me?"
+  ]
+ },
+ {
+  "id": "h-02",
+  "category": "memory",
+  "user_turns": [
+   "My cat answers to Momo.",
+   "She naps all day.",
+   "What do I call my cat?"
+  ]
+ },
+ {
+  "id": "h-03",
+  "category": "memory",
+  "user_turns": [
+   "Green has always been my favourite shade.",
+   "I tolerate blue.",
+   "Which colour do I favour?"
+  ]
+ },
+ {
+  "id": "h-04",
+  "category": "memory",
+  "user_turns": [
+   "I earn my living teaching children.",
+   "The school is close by.",
+   "What is my profession?"
+  ]
+ },
+ {
+  "id": "h-05",
+  "category": "memory",
+  "user_turns": [
+   "My sibling is based in Tokyo.",
+   "She flies back often.",
+   "Which city is my sibling based in?"
+  ]
+ },
+ {
+  "id": "h-06",
+  "category": "memory",
+  "user_turns": [
+   "There are two of us boys.",
+   "They are both older.",
+   "How many male siblings do I have?"
+  ]
+ },
+ {
+  "id": "h-07",
+  "category": "memory",
+  "user_turns": [
+   "I was born during July.",
+   "I adore the summer.",
+   "Which month was I born in?"
+  ]
+ },
+ {
+  "id": "h-08",
+  "category": "memory",
+  "user_turns": [
+   "The vehicle I own is blue.",
+   "It is quick.",
+   "What shade is my vehicle?"
+  ]
+ },
+ {
+  "id": "h-09",
+  "category": "memory",
+  "user_turns": [
+   "I am taking up the piano.",
+   "It is tricky but enjoyable.",
+   "Which instrument am I taking up?"
+  ]
+ },
+ {
+  "id": "h-10",
+  "category": "memory",
+  "user_turns": [
+   "Pizza is my favourite thing to eat.",
+   "I have it on Fridays.",
+   "What do I most enjoy eating?"
+  ]
+ }
+]
