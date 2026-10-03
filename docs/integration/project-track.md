@@ -39,6 +39,60 @@ not promote it or waive any old threshold. A repeat frozen-probe fit, more
 teacher text or a larger model needs a new causal case under the
 [mechanism-admissibility policy](mechanism-admissibility-2026-10.md).
 
+### Owner-adopted sequencing correction — October 3
+
+The owner accepted the [geometric chat assessment](geometric-chat-direction-2026-10-03.md).
+Keep D19 and the native geometric objective. Prioritize natural-language source
+binding through actual emission over another isolated capture dose or synthetic
+backend conversion presented as chat. The existing relation/act/span compiler is
+reused; do not build a duplicate. The current grounded emitter and strict native
+attention component have different admitted shapes and callers, so joining them
+requires a learned language interface, not dimension padding.
+
+| Lane | Responsibility and decision boundary |
+|---|---|
+| Claude, #820/#1552 | Finish the already claimed matched scale/control, selected-emitter persistence and response-quality work. Keep learned binding failure separate from exact-store usefulness. Interpret relevance and paired judge controls separately from fluency. |
+| DeepSeek, #1512 | Complete the claimed distance and matched surface-form contrasts. Report the particular data/representation/gradient scope; failure does not prove an exhaustive state-capacity limit. |
+| Codex, #1552/#1512 | Run one fixed, zero-update selected-source × recent-distractor contrast on the retained D19 artifact, with predicted compiler actions, exact retrieved bytes/record identity and actual generated history. Attribute compiler/write, read, consumer and stopping failures before changing a learner. |
+
+The next Codex contrast changes the selected fact and unrelated distractor
+independently, preserves question/relation/phrase positions, and includes read-off
+controls. It uses the existing research loader; portable CLI loader repair is
+bounded product work, not a prerequisite campaign. An isolated recalled-payload
+intervention with frozen history, if needed, is a separately labelled diagnostic.
+This is open development diagnosis, not a fresh general-chat qualification.
+
+If correct selected-payload delivery is established but answers follow the
+distractor, implement a typed geometric selected-record-to-emission reference on
+real BPE/protocol-2 inputs. Keep scope/entity/relation/view/status, occurrence and
+version distinct from exact payload token spans. Copy addresses retain frame and
+token-offset identity through the consuming operation. Extra text metadata or an
+authored answer template alone is not a learned geometric consumer. Compare a
+geometric selector with an ordinary control given the same frame information,
+candidate access, capacity and cost. Gold labels remain training/diagnostic only.
+
+If predicted actions or stored records are wrong, repair the existing supervised
+compiler/write interface. If answers follow the right value but fail wording or
+Stop, repair emission. Mixed evidence does not automatically admit a scale run,
+new estimator or joint fit. The exact-H4/q4 finite direction audit remains a
+separate local event-credit diagnostic before further capture optimization; it
+does not block D19 or qualify the language consumer.
+
+Preserve the registered comparison identities: the reported 8M-geometric versus
+2.1M-emit-6r pointer result is negative for those artifacts, not the completed
+both-8M geometric-versus-transformer criterion. Preserve the provisional learned
+bridge hold. A significant fluency/relevance conjunction without relevance
+discrimination does not qualify chat. The short L2 win supports that measured
+read configuration, not a mathematical impossibility of Lorentz attention.
+
+After a useful language interface is accepted, lower the same computation across
+recurrence, all reads/values, trained copy mixture, normalization, vocabulary,
+response/Stop and session lifecycle. The width-32 authored component is not the
+width-288 BPE language artifact. Keep remaining floats and dense accesses explicit;
+measure whole-path quality, RAM, speed and energy before claiming laptop savings.
+Offline donor weight/behavior compilation remains available through contextual,
+value and output operators. Do not resume unchanged retired campaigns.
+
 ### Architecture and first implementation
 
 ```text
