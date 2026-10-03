@@ -270,6 +270,9 @@ fn export_stack_candidate(
     if c.arch != StackArch::Geometric {
         return Err("export_stack_candidate takes a geometric stack".into());
     }
+    if c.rotation_group != uor_r4_training::geometric_stack::RotationGroup::Quaternion {
+        return Err("the U(1) transport control has no integer export".into());
+    }
     let (d, heads) = (c.width, c.heads);
     let mlp = c.mlp_hidden.div_ceil(GROUP) * GROUP;
     let shape = StackShape {
@@ -281,6 +284,7 @@ fn export_stack_candidate(
         read: match c.read {
             ReadScore::Dot => "dot",
             ReadScore::Lorentz => "lorentz",
+            ReadScore::L2 => return Err("the L2 read control has no integer export".into()),
         }
         .to_owned(),
         rotation: c.rotation,

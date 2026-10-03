@@ -31,8 +31,8 @@ use uor_r4_lut::kernels::grid_encode;
 use uor_r4_lut::GROUP;
 
 use crate::geometric_stack::{
-    D11Interim, MapCodec, ReadScore, SavedServedRepresentation, StackArch, StackConfig, StackModel,
-    StackSite,
+    D11Interim, MapCodec, ReadScore, RotationGroup, SavedServedRepresentation, StackArch,
+    StackConfig, StackModel, StackSite,
 };
 use crate::kappa_llama::{Checkpoint, LlamaShape, Site};
 use crate::lut_export::{
@@ -267,6 +267,16 @@ pub fn check_export_config(config: &StackConfig) -> Result<()> {
             select.window, select.k
         )));
     }
+    if config.read == ReadScore::L2 {
+        return Err(invalid(
+            "the L2 read is a float ablation control with no integer export or engine",
+        ));
+    }
+    if config.rotation_group != RotationGroup::Quaternion {
+        return Err(invalid(
+            "the U(1) transport is a float ablation control with no integer export or engine",
+        ));
+    }
     Ok(())
 }
 
@@ -365,6 +375,8 @@ pub fn export_stack(
         read: match c.read {
             ReadScore::Dot => "dot",
             ReadScore::Lorentz => "lorentz",
+            // check_export_config refuses the L2 control first.
+            ReadScore::L2 => return Err(invalid("the L2 read control has no integer export")),
         }
         .to_owned(),
         rotation: c.rotation,

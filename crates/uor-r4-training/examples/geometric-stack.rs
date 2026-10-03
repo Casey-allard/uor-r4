@@ -7,7 +7,8 @@
 //! ```text
 //! geometric-stack train train=TRAIN.u16[,MORE.u16] [train_weights=W1,W2] valid=VALID.u16 \
 //!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
-//!   [read=lorentz|dot] [rotation=true|false] [qat=false|true] [transport_snap=none|icosian] \
+//!   [read=lorentz|dot|l2] [rotation=true|false] [rotation_group=quaternion|u1] [qat=false|true] \
+//!   [transport_snap=none|icosian] \
 //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
@@ -81,6 +82,16 @@
 //! `final_float`) on the same windows; its saved model is the float weights,
 //! whose round-to-nearest export is the representation it trained, and its
 //! `config.json` records that representation (`served_representation`).
+//!
+//! Matched ablation controls (float training only; `qat=true`, the snap and
+//! every export refuse them): `read=l2` scores each source `-beta (|q - k| -
+//! offset)`, the flat Euclidean distance in place of the Lorentz read's
+//! hyperbolic one, with the same per-head `beta` and `offset`;
+//! `rotation_group=u1` (with `rotation=true`) zeroes each raw transport
+//! quaternion's `j` and `k` before normalization, so every lane transition
+//! lies in the commutative subgroup `{a + b i}`. Both keep the parameter
+//! count of the configuration they control (`read=lorentz`,
+//! `rotation_group=quaternion`, the default).
 //!
 //! `transport_snap=icosian` (in `train` and `dialogue-train`, after `init=`
 //! and on a resume alike) trains with every recurrence's unit transport
@@ -234,8 +245,9 @@ use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CON
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     logits_cross_entropy, parse_flock_select, parse_pointer_route, parse_pointer_select,
-    D11Interim, MapCodec, PointerConfig, PointerSelect, PrimeRoute, ReadScore, ServedStatistics,
-    StackAdamW, StackArch, StackConfig, StackModel, TransportSnap, TransportUsage,
+    D11Interim, MapCodec, PointerConfig, PointerSelect, PrimeRoute, ReadScore, RotationGroup,
+    ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel, TransportSnap,
+    TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -792,6 +804,15 @@ fn score_name(score: ReadScore) -> &'static str {
     match score {
         ReadScore::Dot => "dot",
         ReadScore::Lorentz => "lorentz",
+        ReadScore::L2 => "l2",
+    }
+}
+
+/// A transport group's name as `rotation_group=` gives it.
+fn rotation_group_name(group: RotationGroup) -> &'static str {
+    match group {
+        RotationGroup::Quaternion => "quaternion",
+        RotationGroup::U1 => "u1",
     }
 }
 
@@ -991,15 +1012,12 @@ fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
     let mut saved: Vec<(&str, String)> = vec![
         ("arch", name(config.arch).to_owned()),
         ("pattern", config.pattern.clone()),
-        (
-            "read",
-            match config.read {
-                ReadScore::Lorentz => "lorentz",
-                ReadScore::Dot => "dot",
-            }
-            .to_owned(),
-        ),
+        ("read", score_name(config.read).to_owned()),
         ("rotation", config.rotation.to_string()),
+        (
+            "rotation_group",
+            rotation_group_name(config.rotation_group).to_owned(),
+        ),
         ("width", config.width.to_string()),
         ("heads", config.heads.to_string()),
         ("layers", config.layers().to_string()),
@@ -1122,12 +1140,22 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
     let read = match args.optional("read").as_deref() {
         None | Some("lorentz") => ReadScore::Lorentz,
         Some("dot") => ReadScore::Dot,
+        Some("l2") => ReadScore::L2,
         Some(other) => return Err(invalid(format!("unknown read {other}"))),
     };
     let rotation = match args.optional("rotation").as_deref() {
         None | Some("true") => true,
         Some("false") => false,
         Some(other) => return Err(invalid(format!("invalid rotation={other}"))),
+    };
+    let rotation_group = match args.optional("rotation_group").as_deref() {
+        None | Some("quaternion") => RotationGroup::Quaternion,
+        Some("u1") => RotationGroup::U1,
+        Some(other) => {
+            return Err(invalid(format!(
+                "invalid rotation_group={other} (quaternion or u1)"
+            )))
+        }
     };
     let mut control = StackConfig::transformer(
         args.number("width", 288)?,
@@ -1153,6 +1181,11 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
                 "stack_mlp= sets a geometric stack's MLP; the control's is mlp=",
             ))
         }
+        "transformer" if rotation_group != RotationGroup::Quaternion => {
+            return Err(invalid(
+                "rotation_group= restricts a geometric stack's recurrence transport",
+            ))
+        }
         "transformer" => control,
         "geometric" => {
             let layers = control.layers();
@@ -1163,6 +1196,10 @@ fn stack_config(args: &Args, vocab: Option<usize>) -> Result<StackConfig> {
                 read,
                 rotation,
             )?;
+            // The U(1) control has the quaternion stack's gate shapes, so the
+            // matched MLP width is unchanged.
+            config.rotation_group = rotation_group;
+            config.validate()?;
             if let Some(hidden) = stack_mlp {
                 config.mlp_hidden = hidden;
                 config.validate()?;
@@ -3424,6 +3461,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "pattern",
             "read",
             "rotation",
+            "rotation_group",
             "width",
             "heads",
             "layers",
@@ -4487,6 +4525,7 @@ fn main() -> Result<()> {
                     "pattern",
                     "read",
                     "rotation",
+                    "rotation_group",
                     "seed",
                     "steps",
                     "batch",

@@ -244,6 +244,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
             .unwrap_or_else(|| "rrar".into()),
         read: ReadScore::Dot,
         rotation: true,
+        rotation_group: Default::default(),
         seed: 0,
         memory: None,
         select: None,

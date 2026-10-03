@@ -377,6 +377,7 @@ fn run(
                 pattern: "rra".into(),
                 read: ReadScore::Lorentz,
                 rotation: true,
+                rotation_group: Default::default(),
                 seed,
                 memory: None,
                 select: None,

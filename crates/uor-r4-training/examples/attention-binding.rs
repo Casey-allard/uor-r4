@@ -188,6 +188,7 @@ fn run(
                     pattern: "rra".into(),
                     read,
                     rotation: true,
+                    rotation_group: Default::default(),
                     seed,
                     memory: None,
                     select: None,

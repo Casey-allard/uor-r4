@@ -126,6 +126,9 @@ use uor_r4_integer::geometric_span::SpanAction;
 /// Lower bound on `z - 1` in the Lorentz score. Below it the distance is
 /// clamped and carries no gradient.
 const LORENTZ_MIN_EXCESS: f64 = 1e-7;
+/// Lower bound on `|q - k|^2` in the L2 score. Below it the distance is
+/// clamped and carries no gradient.
+const L2_MIN_SQUARED: f64 = 1e-7;
 const RMS_EPSILON: f64 = 1e-5;
 const ROPE_THETA: f64 = 10_000.0;
 /// Griffin's recurrence-gate exponent: `log lambda_t = c r_t log a`.
@@ -150,6 +153,38 @@ pub enum StackArch {
 pub enum ReadScore {
     Lorentz,
     Dot,
+    /// Matched flat control of [`ReadScore::Lorentz`]: `-beta (|q - k| -
+    /// offset)`, the Euclidean distance in place of the hyperbolic one, with
+    /// the same learned `beta` and `offset` per head (so the same parameter
+    /// count). The squared distance is clamped below at `L2_MIN_SQUARED`.
+    L2,
+}
+
+impl ReadScore {
+    /// Whether the score carries the learned per-head scale and offset
+    /// (`read.log_beta`, `read.offset`): Lorentz and its flat L2 control.
+    pub fn scaled(self) -> bool {
+        matches!(self, ReadScore::Lorentz | ReadScore::L2)
+    }
+}
+
+/// The group of a recurrence's per-lane transport quaternions.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RotationGroup {
+    /// Unit quaternions (S3): non-commuting lane transitions.
+    #[default]
+    Quaternion,
+    /// Matched abelian control: the raw rotation quaternion's `j` and `k`
+    /// components are zeroed before normalization, so every transport lies in
+    /// the commutative subgroup `{a + b i}` (U(1)) and all transitions commute.
+    /// Same gate parameters as [`RotationGroup::Quaternion`]; the zeroed
+    /// components receive gradient exactly 0.
+    U1,
+}
+
+fn is_quaternion(group: &RotationGroup) -> bool {
+    *group == RotationGroup::Quaternion
 }
 
 /// Matched identity-input mechanisms for geometric reads. Both use the same
@@ -832,6 +867,11 @@ impl PointerConfig {
                 return Err(invalid("a routed pointer has no selection"));
             }
         }
+        if self.score == ReadScore::L2 {
+            return Err(invalid(
+                "the pointer head scores with dot or lorentz; the L2 control is a read score only",
+            ));
+        }
         Ok(())
     }
 }
@@ -851,6 +891,11 @@ pub struct StackConfig {
     /// Learned quaternion transport; `false` fixes `u_t` to the identity, which
     /// leaves a real gated linear recurrence with one decay per lane.
     pub rotation: bool,
+    /// The transport's group with `rotation`: quaternion (default, absent from
+    /// configurations saved before the control existed) or the abelian U(1)
+    /// control.
+    #[serde(default, skip_serializing_if = "is_quaternion")]
+    pub rotation_group: RotationGroup,
     pub seed: u64,
     /// Product-key memories in place of some layers' MLPs
     /// ([`crate::stack_memory`]); absent from configurations without one.
@@ -882,6 +927,7 @@ impl StackConfig {
             pattern: "aaaaaa".into(),
             read: ReadScore::Dot,
             rotation: false,
+            rotation_group: RotationGroup::Quaternion,
             seed,
             memory: None,
             select: None,
@@ -919,6 +965,7 @@ impl StackConfig {
             pattern: "a".repeat(layers),
             read: ReadScore::Dot,
             rotation: false,
+            rotation_group: RotationGroup::Quaternion,
             seed,
             memory: None,
             select: None,
@@ -999,6 +1046,11 @@ impl StackConfig {
         }
         if let Some(pointer) = &self.pointer {
             pointer.validate()?;
+        }
+        if self.rotation_group == RotationGroup::U1 && !self.rotation {
+            return Err(invalid(
+                "rotation_group=u1 restricts the learned transport, so it needs rotation=true",
+            ));
         }
         Ok(())
     }
@@ -1081,7 +1133,7 @@ impl StackConfig {
                     shapes.insert(name("read.null.weight"), vec![self.heads, d]);
                     shapes.insert(name("read.null.bias"), vec![self.heads]);
                     shapes.insert(name("read.age"), vec![self.heads, self.context]);
-                    if self.read == ReadScore::Lorentz {
+                    if self.read.scaled() {
                         shapes.insert(name("read.log_beta"), vec![self.heads]);
                         shapes.insert(name("read.offset"), vec![self.heads]);
                     }
@@ -1789,7 +1841,7 @@ impl StackModel {
             .narrow(1, 0, time)?
             .flatten_all()?;
         let mut aux = vec![null, age];
-        if self.config.read == ReadScore::Lorentz {
+        if self.config.read.scaled() {
             aux.push(p.layer(layer, "read.log_beta")?.exp()?);
             aux.push(p.layer(layer, "read.offset")?.clone());
         }
@@ -5104,6 +5156,7 @@ impl StackModel {
                 time,
                 width,
                 rotation: self.config.rotation,
+                group: self.config.rotation_group,
                 snap: self.transport,
             },
         )?;
@@ -5595,6 +5648,7 @@ impl StackModel {
         match pointer.score {
             ReadScore::Dot => Ok(Tensor::zeros(1, DType::F32, &self.device)?),
             ReadScore::Lorentz => Ok(p.get("pointer.log_beta")?.exp()?),
+            ReadScore::L2 => Err(invalid("the pointer head has no L2 score")),
         }
     }
 
@@ -6675,6 +6729,9 @@ impl StackModel {
         if snap.is_some() && !self.config.rotation {
             return Err(invalid("transport snapping needs a rotating stack"));
         }
+        if snap.is_some() && self.config.rotation_group != RotationGroup::Quaternion {
+            return Err(invalid("transport snapping needs quaternion transport"));
+        }
         self.composed_logits(
             ids,
             batch,
@@ -6792,6 +6849,13 @@ impl StackModel {
             let raw = gates
                 .narrow(2, lanes, width)?
                 .reshape((batch, time, lanes, 4))?;
+            let raw = match self.config.rotation_group {
+                RotationGroup::Quaternion => raw,
+                // The U(1) control: j and k zeroed before normalization.
+                RotationGroup::U1 => {
+                    raw.broadcast_mul(&Tensor::new(&[1f32, 1.0, 0.0, 0.0], &self.device)?)?
+                }
+            };
             let norm = raw.sqr()?.sum_keepdim(3)?.affine(1.0, 1e-6)?.sqrt()?;
             let unit = raw.broadcast_div(&norm)?;
             let unit = match transport {
@@ -7029,6 +7093,12 @@ impl TransportSnap {
     /// Whether `config`'s stacks can snap their transport: geometric, with
     /// `rotation = true` and at least one recurrence layer.
     pub fn check(self, config: &StackConfig) -> Result<()> {
+        if config.rotation_group != RotationGroup::Quaternion {
+            return Err(invalid(
+                "a transport snap replaces unit quaternions by roots of a non-commutative group; \
+                 the U(1) control has none",
+            ));
+        }
         if config.arch != StackArch::Geometric || !config.rotation || !config.pattern.contains('r')
         {
             return Err(invalid(format!(
@@ -7519,6 +7589,12 @@ impl ServedTensor {
 /// Every tensor the stack export writes, in the forward pass's terms: for a
 /// geometric stack without memories whose width is a multiple of `GROUP`.
 fn served_plan(config: &StackConfig) -> Result<Vec<ServedTensor>> {
+    if config.read == ReadScore::L2 || config.rotation_group != RotationGroup::Quaternion {
+        return Err(invalid(
+            "the L2 read and U(1) transport controls have no served representation; train them \
+             in float (no qat=true)",
+        ));
+    }
     if config.arch != StackArch::Geometric || config.memory.is_some() {
         return Err(invalid(
             "the served representation is the geometric stack export's; it has no transformer or memory layers",
@@ -8577,6 +8653,9 @@ struct RecurrenceCore {
     time: usize,
     width: usize,
     rotation: bool,
+    /// With rotation, the transport's group; [`RotationGroup::U1`] zeroes each
+    /// raw quaternion's `j` and `k` before normalization (and their gradient).
+    group: RotationGroup,
     snap: Option<TransportSnap>,
 }
 
@@ -8660,7 +8739,12 @@ impl RecurrenceCore {
                     (complement.sqrt(), false)
                 };
                 let (rotation, unit, norm) = if self.rotation {
-                    let (unit, norm) = unit_quaternion(quad(gate_row, lanes + 4 * lane));
+                    let mut raw = quad(gate_row, lanes + 4 * lane);
+                    if self.group == RotationGroup::U1 {
+                        raw[2] = 0.0;
+                        raw[3] = 0.0;
+                    }
+                    let (unit, norm) = unit_quaternion(raw);
                     let rotation = match roots {
                         None => unit,
                         Some(roots) => roots[nearest_root(unit, roots)],
@@ -8771,6 +8855,12 @@ fn metal_tensor(
 
 #[cfg(feature = "metal")]
 impl RecurrenceCore {
+    /// Whether the Metal kernels cover this configuration: a snap and the
+    /// U(1) control run on the host.
+    fn metal_covered(&self) -> bool {
+        self.snap.is_none() && self.group == RotationGroup::Quaternion
+    }
+
     /// `log a` per lane computed on the device (no host synchronization).
     fn metal_log_a(
         &self,
@@ -8954,7 +9044,7 @@ impl CustomOp3 for RecurrenceCore {
         s3: &MetalStorage,
         l3: &Layout,
     ) -> candle_core::Result<(MetalStorage, Shape)> {
-        if self.snap.is_some() {
+        if !self.metal_covered() {
             return metal_via_host(self, [(s1, l1), (s2, l2), (s3, l3)]);
         }
         if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 || s3.dtype() != DType::F32 {
@@ -9025,7 +9115,7 @@ impl CustomOp3 for RecurrenceCore {
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
         #[cfg(feature = "metal")]
-        if let (Device::Metal(device), None) = (branches.device(), self.snap) {
+        if let (Device::Metal(device), true) = (branches.device(), self.metal_covered()) {
             let (d_branches, d_gates, d_parameters) =
                 self.metal_bwd(device, branches, gates, parameters, grad)?;
             return Ok((Some(d_branches), Some(d_gates), Some(d_parameters)));
@@ -9118,6 +9208,11 @@ impl CustomOp3 for RecurrenceCore {
                                 d_gate[t * gate_width + lanes + offset + k] =
                                     (du[k] - unit[k] * projection) / transition.norm;
                             }
+                            if self.group == RotationGroup::U1 {
+                                // j and k were zeroed before normalization.
+                                d_gate[t * gate_width + lanes + offset + 2] = 0.0;
+                                d_gate[t * gate_width + lanes + offset + 3] = 0.0;
+                            }
                         }
                     }
                     // Convolution: c_t = bias + sum_k taps_k * a_{t-k}.
@@ -9183,11 +9278,7 @@ pub fn fused_aux_len(
 ) -> usize {
     (if null { batch * heads * time } else { 0 })
         + (if age { heads * time } else { 0 })
-        + (if score == ReadScore::Lorentz {
-            2 * heads
-        } else {
-            0
-        })
+        + (if score.scaled() { 2 * heads } else { 0 })
 }
 
 /// Dot product with sixteen independent partial sums, so the compiler can
@@ -9248,7 +9339,8 @@ struct Block<'a> {
     value_columns: Vec<f32>,
     null: Option<&'a [f32]>,
     age: Option<&'a [f32]>,
-    /// Lifts sqrt(1 + |x|^2) of queries and keys, for Lorentz.
+    /// Lifts sqrt(1 + |x|^2) of queries and keys, for Lorentz; for L2 the
+    /// squared norms |x|^2.
     query_lift: Vec<f64>,
     key_lift: Vec<f64>,
     beta: f64,
@@ -9557,6 +9649,17 @@ impl FusedRead {
                 .collect();
             beta = f64::from(aux[cursor + head]);
             offset = f64::from(aux[cursor + self.heads + head]);
+        } else if self.score == ReadScore::L2 {
+            // L2 keeps the squared norms |x|^2 in the lift slots.
+            let square = |row: &[f32]| f64::from(dot(row, row));
+            query_lift = (0..time)
+                .map(|t| square(&query[t * key..(t + 1) * key]))
+                .collect();
+            key_lift = (0..time)
+                .map(|t| square(&key_rows[t * key..(t + 1) * key]))
+                .collect();
+            beta = f64::from(aux[cursor + head]);
+            offset = f64::from(aux[cursor + self.heads + head]);
         }
         Block {
             query,
@@ -9600,6 +9703,14 @@ impl FusedRead {
                     let e = block.query_lift[t] * block.key_lift[j] - f64::from(row[j]) - 1.0;
                     let d = lorentz_distance(e);
                     excess[j] = e;
+                    distance[j] = d;
+                    (-block.beta * (d - block.offset)) as f32 + age
+                }
+                ReadScore::L2 => {
+                    // |q - k|^2 = |q|^2 + |k|^2 - 2 q.k, in f64.
+                    let s = block.query_lift[t] + block.key_lift[j] - 2.0 * f64::from(row[j]);
+                    let d = l2_distance(s);
+                    excess[j] = s;
                     distance[j] = d;
                     (-block.beta * (d - block.offset)) as f32 + age
                 }
@@ -9712,6 +9823,12 @@ fn lorentz_distance(excess: f64) -> f64 {
     (e + (e * (e + 2.0)).sqrt()).ln_1p()
 }
 
+/// `sqrt(s)` for a squared distance `s`, clamped at `L2_MIN_SQUARED`.
+#[inline]
+fn l2_distance(squared: f64) -> f64 {
+    squared.max(L2_MIN_SQUARED).sqrt()
+}
+
 /// The device buffers of one recomputed read: probabilities [index, t, j]
 /// (j <= t used), NoRead probabilities, query and key lifts and, when asked
 /// for, the Lorentz excesses.
@@ -9726,10 +9843,10 @@ struct MetalReadPass {
 
 #[cfg(feature = "metal")]
 impl FusedRead {
-    /// Whether the Metal kernels cover this configuration (RoPE and flock
-    /// selection run on the host).
+    /// Whether the Metal kernels cover this configuration (RoPE, flock
+    /// selection and the L2 control run on the host).
     fn metal_covered(&self) -> bool {
-        !self.rope && self.select.is_none()
+        !self.rope && self.select.is_none() && self.score != ReadScore::L2
     }
 
     fn metal_dims(&self) -> [u32; 8] {
@@ -10143,7 +10260,8 @@ impl CustomOp3 for FusedRead {
         let aux_values = aux.flatten_all()?.to_vec1::<f32>()?;
         let d_out = grad.flatten_all()?.to_vec1::<f32>()?;
         let (time, key, value, width) = (self.time, self.key, self.value, self.width());
-        let lorentz = self.score == ReadScore::Lorentz;
+        // Lorentz and L2 both carry per-row self terms and the beta/offset.
+        let lorentz = self.score.scaled();
         let scale = 1.0 / (key as f64).sqrt();
         let tables = self.rope.then(|| rope_tables(time, key));
         let mut dq = vec![0f32; q_values.len()];
@@ -10235,6 +10353,21 @@ impl CustomOp3 for FusedRead {
                                         query_self[r] += de * lk / lq;
                                         key_self[j] += de * lq / lk;
                                         -de as f32
+                                    } else {
+                                        0.0
+                                    }
+                                }
+                                ReadScore::L2 => {
+                                    let s = excess[j];
+                                    partial.dbeta -= ds * (distance[j] - block.offset);
+                                    partial.doffset += ds * block.beta;
+                                    if s > L2_MIN_SQUARED {
+                                        // s = |q|^2 + |k|^2 - 2 q.k and d = sqrt(s):
+                                        // ds_ds = d score / d s.
+                                        let ds_ds = -block.beta * ds / (2.0 * distance[j]);
+                                        query_self[r] += 2.0 * ds_ds;
+                                        key_self[j] += 2.0 * ds_ds;
+                                        (-2.0 * ds_ds) as f32
                                     } else {
                                         0.0
                                     }
@@ -10417,6 +10550,38 @@ pub fn recurrence_core(
     rotation: bool,
     snap: Option<TransportSnap>,
 ) -> Result<Tensor> {
+    recurrence_core_grouped(
+        branches,
+        gates,
+        parameters,
+        batch,
+        time,
+        width,
+        rotation,
+        RotationGroup::Quaternion,
+        snap,
+    )
+}
+
+/// [`recurrence_core`] with the transport restricted to `group` (with
+/// rotation): [`RotationGroup::U1`] is the abelian control.
+#[allow(clippy::too_many_arguments)]
+pub fn recurrence_core_grouped(
+    branches: &Tensor,
+    gates: &Tensor,
+    parameters: &Tensor,
+    batch: usize,
+    time: usize,
+    width: usize,
+    rotation: bool,
+    group: RotationGroup,
+    snap: Option<TransportSnap>,
+) -> Result<Tensor> {
+    if group == RotationGroup::U1 && (!rotation || snap.is_some()) {
+        return Err(invalid(
+            "the U(1) transport control needs rotation and no transport snap",
+        ));
+    }
     if batch == 0 || time == 0 || width == 0 || width % 4 != 0 {
         return Err(invalid(
             "recurrence_core requires positive dimensions with width divisible by 4",
@@ -10452,6 +10617,7 @@ pub fn recurrence_core(
             time,
             width,
             rotation,
+            group,
             snap,
         },
     )?)
@@ -11238,6 +11404,19 @@ fn pointer_scores(side: &[f32], first: usize, t: usize, rule: &PointerRule) -> V
                 (-rule.beta * lorentz_terms(query, key).distance) as f32
             })
             .collect(),
+        // Unreachable: PointerConfig::validate refuses an L2 pointer. The
+        // flat distance is the forward value it would have.
+        ReadScore::L2 => (0..=t)
+            .map(|j| {
+                let key = pointer_key(side, rule.dim, first + j);
+                let squared: f64 = query
+                    .iter()
+                    .zip(key)
+                    .map(|(&a, &b)| f64::from(a - b).powi(2))
+                    .sum();
+                (-rule.beta * l2_distance(squared)) as f32
+            })
+            .collect(),
     }
 }
 
@@ -11681,6 +11860,7 @@ mod tests {
             pattern: "r".into(),
             read: ReadScore::Dot,
             rotation: false,
+            rotation_group: Default::default(),
             seed: 42,
             memory: None,
             select: None,
@@ -11725,6 +11905,7 @@ mod tests {
             pattern: "r".into(),
             read: ReadScore::Dot,
             rotation: false,
+            rotation_group: Default::default(),
             seed: 42,
             memory: None,
             select: None,
@@ -12016,10 +12197,63 @@ mod tests {
         Ok(())
     }
 
+    /// The L2 read composed from Candle operations, its distance taken
+    /// directly from `q - k` (not the fused read's norm expansion).
+    fn reference_l2_read(
+        query: &Tensor,
+        key: &Tensor,
+        value: &Tensor,
+        null: &Tensor,
+        age: &Tensor,
+        beta: &Tensor,
+        offset: &Tensor,
+    ) -> Result<Tensor> {
+        let (batch, heads, time, _) = query.dims4()?;
+        let squared = query
+            .unsqueeze(3)?
+            .broadcast_sub(&key.unsqueeze(2)?)?
+            .sqr()?
+            .sum(4)?
+            .clamp(L2_MIN_SQUARED as f32, f32::MAX)?;
+        let mut scores = squared
+            .sqrt()?
+            .broadcast_sub(&offset.reshape((1, heads, 1, 1))?)?
+            .broadcast_mul(&beta.reshape((1, heads, 1, 1))?)?
+            .neg()?;
+        let mut mask = vec![0f32; time * time];
+        let mut ages = vec![0u32; time * time];
+        for t in 0..time {
+            for j in 0..time {
+                if j > t {
+                    mask[t * time + j] = f32::NEG_INFINITY;
+                } else {
+                    ages[t * time + j] = (t - j) as u32;
+                }
+            }
+        }
+        let index = Tensor::from_vec(ages, time * time, &cpu())?;
+        let table = age
+            .index_select(&index, 1)?
+            .reshape((1, heads, time, time))?;
+        scores = scores
+            .broadcast_add(&table)?
+            .broadcast_add(&Tensor::from_vec(mask, (1, 1, time, time), &cpu())?)?;
+        let scores = Tensor::cat(&[&null.reshape((batch, heads, time, 1))?, &scores], 3)?;
+        let values = Tensor::cat(
+            &[
+                &Tensor::zeros((batch, heads, 1, value.dim(3)?), DType::F32, &cpu())?,
+                value,
+            ],
+            2,
+        )?;
+        Ok(candle_nn::ops::softmax(&scores, 3)?.matmul(&values)?)
+    }
+
     fn read_shape(score: ReadScore, time: usize, width: usize, value_width: usize) -> Result<()> {
         let mut rng = Initializer(match score {
             ReadScore::Dot => 3,
             ReadScore::Lorentz => 5,
+            ReadScore::L2 => 7,
         });
         let (batch, heads) = (2, 3);
         let q = Var::from_tensor(&random(&mut rng, &[batch, heads, time, width], 0.8))?;
@@ -12040,7 +12274,8 @@ mod tests {
             }
             Ok(Tensor::cat(&parts, 0)?)
         };
-        let lorentz = score == ReadScore::Lorentz;
+        // Lorentz and L2 carry beta and offset.
+        let lorentz = score.scaled();
         let fused = fused_read(
             q.as_tensor(),
             k.as_tensor(),
@@ -12051,14 +12286,26 @@ mod tests {
             true,
             false,
         )?;
-        let reference = reference_read(
-            q.as_tensor(),
-            k.as_tensor(),
-            v.as_tensor(),
-            Some(null.as_tensor()),
-            Some(age.as_tensor()),
-            lorentz.then_some((beta.as_tensor(), offset.as_tensor())),
-        )?;
+        let reference = if score == ReadScore::L2 {
+            reference_l2_read(
+                q.as_tensor(),
+                k.as_tensor(),
+                v.as_tensor(),
+                null.as_tensor(),
+                age.as_tensor(),
+                beta.as_tensor(),
+                offset.as_tensor(),
+            )?
+        } else {
+            reference_read(
+                q.as_tensor(),
+                k.as_tensor(),
+                v.as_tensor(),
+                Some(null.as_tensor()),
+                Some(age.as_tensor()),
+                lorentz.then_some((beta.as_tensor(), offset.as_tensor())),
+            )?
+        };
         let gap = fused
             .sub(&reference)?
             .abs()?
@@ -12211,6 +12458,14 @@ mod tests {
         read_case(ReadScore::Lorentz)
     }
 
+    /// The flat L2 control: the fused forward against a reference that takes
+    /// the distance directly from `q - k`, every gradient coordinate against
+    /// autograd through it, and central finite differences.
+    #[test]
+    fn fused_l2_read_matches_reference_and_finite_differences() -> Result<()> {
+        read_case(ReadScore::L2)
+    }
+
     #[test]
     fn transport_logits_equal_the_forward_until_snapped() -> Result<()> {
         let mut config = tiny(StackArch::Geometric, "rar", ReadScore::Lorentz, true);
@@ -12305,6 +12560,384 @@ mod tests {
                 );
             }
         }
+        Ok(())
+    }
+
+    // -----------------------------------------------------------------------
+    // Matched ablation controls: the U(1) transport and the flat L2 read.
+
+    /// The U(1) control's fused core against its Candle composition (forward
+    /// and every parameter gradient), against central finite differences on
+    /// the op's inputs, and with exactly zero gradient on every raw `j`, `k`.
+    #[test]
+    fn u1_recurrence_matches_composed_mixer_and_finite_differences() -> Result<()> {
+        let mut config = tiny(StackArch::Geometric, "r", ReadScore::Lorentz, true);
+        config.rotation_group = RotationGroup::U1;
+        config.seed = 41;
+        let model = StackModel::new(config, &cpu())?;
+        for name in ["layers.00.rec.gate.weight", "layers.00.rec.conv.weight"] {
+            let var = &model.variables()[name];
+            var.set(&random(&mut Initializer(43), var.dims(), 0.5))?;
+        }
+        let x = random(&mut Initializer(47), &[2, 9, 16], 1.0);
+        let p = model.params()?;
+        let fused = model.recurrence(&p, 0, &x, &mut None)?;
+        let composed = model.composed_recurrence(&p, 0, &x, ComposedTransport::Free)?;
+        let gap = fused.sub(&composed)?.abs()?.max_all()?.to_scalar::<f32>()?;
+        assert!(gap < 1e-5, "u1: fused recurrence differs by {gap}");
+        let weights = random(&mut Initializer(53), &[2, 9, 16], 1.0);
+        let names = [
+            "layers.00.rec.in.weight",
+            "layers.00.rec.gate.weight",
+            "layers.00.rec.gate.bias",
+            "layers.00.rec.conv.weight",
+            "layers.00.rec.conv.bias",
+            "layers.00.rec.decay",
+        ];
+        let vars: Vec<Var> = names
+            .iter()
+            .map(|name| model.variables()[*name].clone())
+            .collect();
+        let a = model
+            .recurrence(&p, 0, &x, &mut None)?
+            .mul(&weights)?
+            .sum_all()?
+            .backward()?;
+        let b = model
+            .composed_recurrence(&p, 0, &x, ComposedTransport::Free)?
+            .mul(&weights)?
+            .sum_all()?
+            .backward()?;
+        for (name, var) in names.iter().zip(&vars) {
+            let ga = a
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("fused gradient"))?;
+            let gb = b
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("composed gradient"))?;
+            let scale = gb.abs()?.max_all()?.to_scalar::<f32>()?.max(1e-3);
+            let gap = ga.sub(gb)?.abs()?.max_all()?.to_scalar::<f32>()? / scale;
+            assert!(
+                gap < 1e-3,
+                "u1: {name} gradient differs by {gap} (relative)"
+            );
+        }
+        // The rotation rows' j and k gate weights and biases receive gradient
+        // exactly zero (rows lanes + 4 lane + 2, + 3).
+        let lanes = 4;
+        let gate_weight = a
+            .get(vars[1].as_tensor())
+            .ok_or_else(|| invalid("gate weight gradient"))?
+            .to_vec2::<f32>()?;
+        let gate_bias = a
+            .get(vars[2].as_tensor())
+            .ok_or_else(|| invalid("gate bias gradient"))?
+            .to_vec1::<f32>()?;
+        let mut live = 0;
+        for lane in 0..lanes {
+            for k in 0..4 {
+                let row = lanes + 4 * lane + k;
+                if k >= 2 {
+                    assert!(gate_weight[row].iter().all(|&g| g == 0.0), "row {row}");
+                    assert_eq!(gate_bias[row], 0.0, "bias {row}");
+                } else if gate_bias[row] != 0.0 {
+                    live += 1;
+                }
+            }
+        }
+        assert!(live > 0, "the a and b components must carry gradient");
+
+        // Central finite differences on the op's inputs.
+        let (batch, time, width) = (2, 7, 8);
+        let lanes = width / 4;
+        let mut rng = Initializer(59);
+        let branches = Var::from_tensor(&random(&mut rng, &[batch, time, 2 * width], 1.0))?;
+        let gates = Var::from_tensor(&random(&mut rng, &[batch, time, lanes + width], 1.0))?;
+        let parameters = Var::from_tensor(&random(
+            &mut rng,
+            &[(CONVOLUTION_WIDTH + 1) * width + lanes],
+            0.5,
+        ))?;
+        let weights = random(&mut rng, &[batch, time, width], 1.0);
+        let loss = || -> Result<Tensor> {
+            Ok(recurrence_core_grouped(
+                branches.as_tensor(),
+                gates.as_tensor(),
+                parameters.as_tensor(),
+                batch,
+                time,
+                width,
+                true,
+                RotationGroup::U1,
+                None,
+            )?
+            .mul(&weights)?
+            .sum_all()?)
+        };
+        check_gradient(
+            &[branches.clone(), gates.clone(), parameters.clone()],
+            loss,
+            1e-2,
+        )?;
+        // Only the gates in isolation, so the rotation path is not swamped.
+        check_gradient(std::slice::from_ref(&gates), loss, 1e-2)?;
+        let d_gates = loss()?
+            .backward()?
+            .get(gates.as_tensor())
+            .ok_or_else(|| invalid("gate gradient"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for (index, &g) in d_gates.iter().enumerate() {
+            let column = index % (lanes + width);
+            if column >= lanes && (column - lanes) % 4 >= 2 {
+                assert_eq!(g, 0.0, "gate column {column}");
+            }
+        }
+        // A U(1) core refuses a snap and a stack without rotation.
+        assert!(recurrence_core_grouped(
+            branches.as_tensor(),
+            gates.as_tensor(),
+            parameters.as_tensor(),
+            batch,
+            time,
+            width,
+            true,
+            RotationGroup::U1,
+            Some(TransportSnap::Icosian),
+        )
+        .is_err());
+        Ok(())
+    }
+
+    /// U(1) lane transitions commute (any order of a lane's transitions gives
+    /// the same product), quaternion ones do not, the two groups' outputs
+    /// differ on the same inputs, and their parameter counts are equal.
+    #[test]
+    fn u1_transitions_commute_and_differ_from_quaternion() -> Result<()> {
+        let (batch, time, width) = (1, 9, 16);
+        let lanes = width / 4;
+        let mut rng = Initializer(61);
+        let branches = random(&mut rng, &[batch, time, 2 * width], 1.0);
+        let gates = random(&mut rng, &[batch, time, lanes + width], 1.0);
+        let parameters = random(&mut rng, &[(CONVOLUTION_WIDTH + 1) * width + lanes], 0.5);
+        let core = |group| RecurrenceCore {
+            batch,
+            time,
+            width,
+            rotation: true,
+            group,
+            snap: None,
+        };
+        let (b, g, p) = (
+            branches.flatten_all()?.to_vec1::<f32>()?,
+            gates.flatten_all()?.to_vec1::<f32>()?,
+            parameters.to_vec1::<f32>()?,
+        );
+        let product = |qs: &[[f32; 4]]| {
+            qs.iter()
+                .fold([1f32, 0.0, 0.0, 0.0], |acc, &q| quaternion_product(acc, q))
+        };
+        let mut worst_quaternion = 0f32;
+        for group in [RotationGroup::U1, RotationGroup::Quaternion] {
+            let op = core(group);
+            let (_, _, transitions) = op.window(&b, &g, &p, &op.log_a(&p));
+            for lane in 0..lanes {
+                let qs: Vec<[f32; 4]> = (0..time)
+                    .map(|t| {
+                        let tr = transitions[t * lanes + lane];
+                        tr.rotation.map(|v| v * tr.lambda)
+                    })
+                    .collect();
+                for x in &qs {
+                    for y in &qs {
+                        let (xy, yx) = (quaternion_product(*x, *y), quaternion_product(*y, *x));
+                        let gap = (0..4).map(|k| (xy[k] - yx[k]).abs()).fold(0f32, f32::max);
+                        match group {
+                            RotationGroup::U1 => {
+                                assert_eq!(x[2], 0.0);
+                                assert_eq!(x[3], 0.0);
+                                assert_eq!(xy, yx, "u1 transitions commute exactly");
+                            }
+                            RotationGroup::Quaternion => {
+                                worst_quaternion = worst_quaternion.max(gap)
+                            }
+                        }
+                    }
+                }
+                if group == RotationGroup::U1 {
+                    let mut reversed = qs.clone();
+                    reversed.reverse();
+                    let (forward, backward) = (product(&qs), product(&reversed));
+                    for k in 0..4 {
+                        assert!(
+                            (forward[k] - backward[k]).abs() <= 1e-6 * forward[k].abs().max(1e-6),
+                            "lane {lane}: ordered product {forward:?} reversed {backward:?}"
+                        );
+                    }
+                }
+            }
+        }
+        assert!(
+            worst_quaternion > 1e-3,
+            "quaternion transitions should not commute ({worst_quaternion})"
+        );
+        let run = |group| -> Result<Tensor> {
+            recurrence_core_grouped(
+                &branches,
+                &gates,
+                &parameters,
+                batch,
+                time,
+                width,
+                true,
+                group,
+                None,
+            )
+        };
+        let gap = run(RotationGroup::U1)?
+            .sub(&run(RotationGroup::Quaternion)?)?
+            .abs()?
+            .max_all()?
+            .to_scalar::<f32>()?;
+        assert!(gap > 1e-3, "u1 output equals quaternion output ({gap})");
+        // Parameter counts: tiny and the ladder's 288-wide stack.
+        let mut quaternion = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+        let mut u1 = quaternion.clone();
+        u1.rotation_group = RotationGroup::U1;
+        assert_eq!(quaternion.parameter_count()?, u1.parameter_count()?);
+        assert_eq!(quaternion.shapes(), u1.shapes());
+        quaternion = StackConfig::geometric_matched("rrarra", ReadScore::Lorentz, true, 1)?;
+        u1 = quaternion.clone();
+        u1.rotation_group = RotationGroup::U1;
+        assert_eq!(quaternion.parameter_count()?, u1.parameter_count()?);
+        // U(1) needs rotation, and refuses the snap and the served plan.
+        let mut no_rotation = u1.clone();
+        no_rotation.rotation = false;
+        assert!(no_rotation.validate().is_err());
+        assert!(TransportSnap::Icosian.check(&u1).is_err());
+        assert!(served_plan(&u1).is_err());
+        Ok(())
+    }
+
+    /// The L2 read on a hand example: scores `-beta (|q - k| - offset)`, so
+    /// row 1 weighs its sources by `softmax(-beta (5 - o), -beta (4 - o))`.
+    #[test]
+    fn l2_read_scores_equal_negative_beta_distance_on_a_hand_example() -> Result<()> {
+        let (beta, offset) = (0.5f32, 1.0f32);
+        // [batch 1, heads 1, time 2, width 2].
+        let query = Tensor::from_vec(vec![0f32, 0.0, 3.0, 4.0], (1, 1, 2, 2), &cpu())?;
+        let key = Tensor::from_vec(vec![0f32, 0.0, 3.0, 0.0], (1, 1, 2, 2), &cpu())?;
+        let value = Tensor::from_vec(vec![1f32, 0.0, 0.0, 1.0], (1, 1, 2, 2), &cpu())?;
+        let aux = Tensor::from_vec(vec![beta, offset], 2, &cpu())?;
+        let out = fused_read(
+            &query,
+            &key,
+            &value,
+            &aux,
+            ReadScore::L2,
+            false,
+            false,
+            false,
+        )?
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+        // Row 0 reads only source 0; row 1: distances 5 (to k0) and 4 (to k1).
+        let (s0, s1) = (
+            -f64::from(beta) * (5.0 - f64::from(offset)),
+            -f64::from(beta) * (4.0 - f64::from(offset)),
+        );
+        let p1 = 1.0 / (1.0 + (s0 - s1).exp());
+        let expected = [1.0, 0.0, 1.0 - p1, p1];
+        for (got, want) in out.iter().zip(expected) {
+            assert!(
+                (f64::from(*got) - want).abs() < 1e-6,
+                "{out:?} against {expected:?}"
+            );
+        }
+        // The distance is clamped at L2_MIN_SQUARED: identical q and k score
+        // -beta (sqrt(1e-7) - offset) and stay finite.
+        assert!((l2_distance(0.0) - L2_MIN_SQUARED.sqrt()).abs() < 1e-15);
+        assert!((l2_distance(25.0) - 5.0).abs() < 1e-15);
+        // Parameter count and shapes equal Lorentz's.
+        let lorentz = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+        let mut l2 = lorentz.clone();
+        l2.read = ReadScore::L2;
+        assert_eq!(lorentz.shapes(), l2.shapes());
+        assert_eq!(lorentz.parameter_count()?, l2.parameter_count()?);
+        let lorentz = StackConfig::geometric_matched("rrarra", ReadScore::Lorentz, true, 1)?;
+        let l2 = StackConfig::geometric_matched("rrarra", ReadScore::L2, true, 1)?;
+        assert_eq!(lorentz.parameter_count()?, l2.parameter_count()?);
+        assert_eq!(lorentz.mlp_hidden, l2.mlp_hidden);
+        // L2 is a read score only: the pointer and the served plan refuse it.
+        let mut pointer = PointerConfig::new(8);
+        pointer.score = ReadScore::L2;
+        assert!(pointer.validate().is_err());
+        assert!(served_plan(&l2).is_err());
+        // An L2 stack trains end to end on the CPU: loss and gradients finite.
+        let model = StackModel::new(
+            tiny(StackArch::Geometric, "ra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        let ids: Vec<u32> = (0..2 * 8).map(|i| (i * 7 % 37) as u32).collect();
+        let logits = model.forward(&ids, 2, 8)?;
+        let targets: Vec<u32> = ids.iter().map(|&i| (i + 1) % 37).collect();
+        let loss = cross_entropy(&logits, &targets)?;
+        let grads = loss.backward()?;
+        assert!(loss.to_scalar::<f32>()?.is_finite());
+        for name in ["layers.01.read.log_beta", "layers.01.read.offset"] {
+            let g = grads
+                .get(model.variables()[name].as_tensor())
+                .ok_or_else(|| invalid(format!("no gradient for {name}")))?
+                .to_vec1::<f32>()?;
+            assert!(g.iter().all(|v| v.is_finite()) && g.iter().any(|&v| v != 0.0));
+        }
+        Ok(())
+    }
+
+    /// Configurations saved before the controls existed (no `rotation_group`)
+    /// load as quaternion transport and save byte for byte as before; the
+    /// controls round-trip. (The quaternion core's forward and gradients stay
+    /// bit-identical to the pre-snap core:
+    /// `without_a_snap_the_core_is_bit_identical_to_the_pre_snap_core`.)
+    #[test]
+    fn configs_without_control_fields_load_unchanged() -> Result<()> {
+        let config = tiny(StackArch::Geometric, "rra", ReadScore::Lorentz, true);
+        let saved = serde_json::to_string(&config).map_err(|e| invalid(e.to_string()))?;
+        assert!(!saved.contains("rotation_group"), "{saved}");
+        // A config.json as written before this field existed.
+        let legacy = r#"{"arch":"geometric","vocab_size":37,"width":16,"heads":2,"mlp_hidden":24,"context":12,"pattern":"rra","read":"lorentz","rotation":true,"seed":5}"#;
+        let loaded: StackConfig =
+            serde_json::from_str(legacy).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(loaded, config);
+        assert_eq!(loaded.rotation_group, RotationGroup::Quaternion);
+        assert_eq!(
+            serde_json::to_string(&loaded).map_err(|e| invalid(e.to_string()))?,
+            legacy
+        );
+        // The same model from either config computes bit-identical logits.
+        let ids: Vec<u32> = (0..2 * 8).map(|i| (i * 5 % 37) as u32).collect();
+        let a = StackModel::new(config.clone(), &cpu())?.forward(&ids, 2, 8)?;
+        let b = StackModel::new(loaded, &cpu())?.forward(&ids, 2, 8)?;
+        assert_eq!(
+            a.flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>(),
+            b.flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .map(|v| v.to_bits())
+                .collect::<Vec<_>>()
+        );
+        // The controls serialize their fields and round-trip.
+        let mut control = config;
+        control.read = ReadScore::L2;
+        control.rotation_group = RotationGroup::U1;
+        let text = serde_json::to_string(&control).map_err(|e| invalid(e.to_string()))?;
+        assert!(text.contains(r#""read":"l2""#) && text.contains(r#""rotation_group":"u1""#));
+        let back: StackConfig = serde_json::from_str(&text).map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(back, control);
         Ok(())
     }
 
@@ -12444,6 +13077,7 @@ mod tests {
             pattern: pattern.into(),
             read,
             rotation,
+            rotation_group: Default::default(),
             seed: 5,
             memory: None,
             select: None,
@@ -16435,6 +17069,7 @@ mod tests {
             pattern: pattern.into(),
             read,
             rotation,
+            rotation_group: Default::default(),
             seed: 29,
             memory: None,
             select: None,
@@ -17636,6 +18271,7 @@ mod tests {
                     time,
                     width,
                     rotation,
+                    group: RotationGroup::Quaternion,
                     snap: None,
                 },
             )?;
@@ -18005,6 +18641,7 @@ mod tests {
                         time,
                         width,
                         rotation: true,
+                        group: RotationGroup::Quaternion,
                         snap,
                     },
                 )?;
@@ -18696,6 +19333,7 @@ mod tests {
                 let lift = |x: &[f64]| (1.0 + x.iter().map(|v| v * v).sum::<f64>()).sqrt();
                 -beta * lorentz_distance(lift(&query) * lift(&key) - inner - 1.0)
             }
+            ReadScore::L2 => unreachable!("an L2 pointer is refused"),
         }
     }
 
@@ -18949,6 +19587,7 @@ mod tests {
             ReadScore::Lorentz => {
                 f64::from(variable("pointer.log_beta").to_vec1::<f32>()?[0]).exp()
             }
+            ReadScore::L2 => unreachable!("an L2 pointer is refused"),
         };
         let project = |w: &[Vec<f32>], h: &[f32]| -> Vec<f64> {
             w.iter()
@@ -18981,6 +19620,7 @@ mod tests {
                                 |x: &[f64]| (1.0 + x.iter().map(|v| v * v).sum::<f64>()).sqrt();
                             -beta * lorentz_distance(lift(&query) * lift(&key) - inner - 1.0)
                         }
+                        ReadScore::L2 => unreachable!("an L2 pointer is refused"),
                     }
                 })
                 .collect();

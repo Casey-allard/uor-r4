@@ -1644,6 +1644,7 @@ mod tests {
                 pattern: "ra".into(),
                 read: ReadScore::Lorentz,
                 rotation: true,
+                rotation_group: Default::default(),
                 seed: 7,
                 memory: None,
                 select: None,

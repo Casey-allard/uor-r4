@@ -225,6 +225,7 @@ fn fitted_adapter_drives_actual_clis_and_each_fresh_process_matches_generation()
             pattern: "ra".into(),
             read: ReadScore::Lorentz,
             rotation: true,
+            rotation_group: Default::default(),
             seed: 7,
             memory: None,
             select: None,
