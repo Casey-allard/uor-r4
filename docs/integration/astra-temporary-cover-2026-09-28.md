@@ -3,7 +3,7 @@
 **Status: ended, preserved as history.**
 - **Period:** at the owner's request, Astra covered project management, technical review, course correction and qualified protected delivery during Claude's quota reset. The cover began on September 28 at 22:45 UTC. It was scheduled to end on explicit handback or at 01:45 UTC on September 29, whichever came first, and it ended with the handback at 01:35 UTC.
 - **End:** Claude (Lab 1) resumed permanent leadership on the owner's direction. The handback is recorded on [#973](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5881962511).
-- **Current assignment:** the [roadmap's leadership and restart packet](../../ROADMAP.md#lab-1-leadership-and-restart-packet).
+- **Current assignment:** the [roadmap's leadership and restart packet](../history/roadmap-2026-09-29-snapshot.md#lab-1-leadership-and-restart-packet).
 
 The three excerpts below copy the canonical handover text as it stood on `main` at `9869229b`, word for word, with two exceptions: headings are demoted one level, and relative links are rewritten to resolve from this file. They keep their original wording, so "current", "next" and "acting lead" in them refer to the cover period.
 
