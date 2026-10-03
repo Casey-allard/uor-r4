@@ -1622,6 +1622,26 @@ impl StackModel {
         &self.variables
     }
 
+    /// Data-parallel replica sync: set every variable to `source`'s current
+    /// value, copied to this model's device. Both models must hold the same
+    /// variable names and shapes (a replica built from the same config).
+    pub fn copy_variables_from(&self, source: &StackModel) -> Result<()> {
+        if self.variables.len() != source.variables.len() {
+            return Err(invalid("replica and source hold different variable sets"));
+        }
+        for (name, var) in &self.variables {
+            let from = source
+                .variables
+                .get(name)
+                .ok_or_else(|| invalid(format!("the source has no variable {name}")))?;
+            if from.shape() != var.shape() {
+                return Err(invalid(format!("variable {name} differs in shape")));
+            }
+            var.set(&from.as_tensor().to_device(&self.device)?)?;
+        }
+        Ok(())
+    }
+
     /// The tensors a forward pass reads: the variables, or in served mode the
     /// served view of their current values.
     fn params(&self) -> Result<Params<'_>> {
@@ -8321,6 +8341,44 @@ pub struct StackAdamW {
     moments: BTreeMap<String, (Var, Var)>,
 }
 
+/// Data parallel over two replicas of one model: replace each gradient in
+/// `primary_grads` by the mean of it and the replica's gradient for the same
+/// variable (copied to the primary's device). When each replica's loss is the
+/// mean over an equal half of the batch, the result is the full-batch mean
+/// gradient (equal in exact arithmetic; rounding differs from one device).
+pub fn average_replica_gradients(
+    primary: &StackModel,
+    primary_grads: &mut candle_core::backprop::GradStore,
+    replica: &StackModel,
+    replica_grads: &candle_core::backprop::GradStore,
+) -> Result<()> {
+    if primary.variables().len() != replica.variables().len() {
+        return Err(invalid("replicas hold different variable sets"));
+    }
+    for (name, var) in primary.variables() {
+        let other = replica
+            .variables()
+            .get(name)
+            .ok_or_else(|| invalid(format!("the replica has no variable {name}")))?;
+        match (
+            primary_grads.get(var.as_tensor()),
+            replica_grads.get(other.as_tensor()),
+        ) {
+            (Some(local), Some(remote)) => {
+                let mean = ((local + remote.to_device(primary.device())?)? * 0.5)?;
+                primary_grads.insert(var.as_tensor(), mean);
+            }
+            (None, None) => {}
+            _ => {
+                return Err(invalid(format!(
+                    "only one replica has a gradient for {name}"
+                )))
+            }
+        }
+    }
+    Ok(())
+}
+
 impl StackAdamW {
     pub fn new(model: &StackModel, weight_decay: f64, clip: f64) -> Result<Self> {
         let mut moments = BTreeMap::new();
@@ -13154,6 +13212,56 @@ mod tests {
                 .to_vec1::<f32>()?;
             assert!(g.iter().all(|v| v.is_finite()) && g.iter().any(|&v| v != 0.0));
         }
+        Ok(())
+    }
+
+    /// data_parallel=2's arithmetic on the CPU: a replica copied from the
+    /// primary holds equal weights, and the averaged gradient of two equal
+    /// half-batch losses equals the full-batch gradient within f32 rounding.
+    #[test]
+    fn replica_copy_and_half_batch_gradient_average_match_the_full_batch() -> Result<()> {
+        let config = tiny(StackArch::Geometric, "ra", ReadScore::L2, true);
+        let primary = StackModel::new(config.clone(), &cpu())?;
+        let mut other = config;
+        other.seed ^= 0x55;
+        let replica = StackModel::new(other, &cpu())?;
+        replica.copy_variables_from(&primary)?;
+        for (name, var) in primary.variables() {
+            let a = var.as_tensor().flatten_all()?.to_vec1::<f32>()?;
+            let b = replica.variables()[name]
+                .as_tensor()
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert_eq!(a, b, "{name}");
+        }
+        let (batch, time) = (4, 8);
+        let ids: Vec<u32> = (0..batch * time).map(|i| (i * 7 % 37) as u32).collect();
+        let targets: Vec<u32> = ids.iter().map(|&i| (i + 1) % 37).collect();
+        let full = primary.loss(&ids, &targets, batch, time)?.backward()?;
+        let split = (batch / 2) * time;
+        let mut merged = primary
+            .loss(&ids[..split], &targets[..split], batch / 2, time)?
+            .backward()?;
+        let remote = replica
+            .loss(&ids[split..], &targets[split..], batch / 2, time)?
+            .backward()?;
+        average_replica_gradients(&primary, &mut merged, &replica, &remote)?;
+        let mut compared = 0;
+        for (name, var) in primary.variables() {
+            let (Some(f), Some(m)) = (full.get(var.as_tensor()), merged.get(var.as_tensor()))
+            else {
+                continue;
+            };
+            let (f, m) = (
+                f.flatten_all()?.to_vec1::<f32>()?,
+                m.flatten_all()?.to_vec1::<f32>()?,
+            );
+            for (x, y) in f.iter().zip(&m) {
+                assert!((x - y).abs() <= 1e-5 + 1e-4 * x.abs(), "{name}: {x} vs {y}");
+            }
+            compared += 1;
+        }
+        assert!(compared > 0);
         Ok(())
     }
 

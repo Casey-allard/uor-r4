@@ -244,10 +244,10 @@ use uor_r4_training::dialogue_development;
 use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CONTEXT};
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
-    logits_cross_entropy, parse_flock_select, parse_pointer_route, parse_pointer_select,
-    D11Interim, MapCodec, PointerConfig, PointerSelect, PrimeRoute, ReadScore, RotationGroup,
-    ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel, TransportSnap,
-    TransportUsage,
+    average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
+    parse_pointer_select, D11Interim, MapCodec, PointerConfig, PointerSelect, PrimeRoute,
+    ReadScore, RotationGroup, ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel,
+    TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -684,6 +684,10 @@ struct Settings {
     /// `device=cpu|metal|cuda` (default cpu). A Metal or CUDA run needs the
     /// `metal` or `cuda` feature; ops without a GPU kernel run on host copies.
     device: Device,
+    /// `data_parallel=1|2` (default 1). 2: CUDA only; each step splits the
+    /// batch into equal halves on GPUs 0 and 1, averages the replicas'
+    /// gradients on GPU 0, updates there and copies the weights to GPU 1.
+    data_parallel: usize,
 }
 
 /// `device=cpu|metal|cuda` (default cpu); no implicit fallback.
@@ -1321,7 +1325,21 @@ fn train_settings(args: &Args) -> Result<Settings> {
         max_seconds: args.number("max_seconds", f64::INFINITY)?,
         sample_tokens: args.number("sample_tokens", 128)?,
         device: device_arg(args)?,
+        data_parallel: args.number("data_parallel", 1)?,
     };
+    if !(1..=2).contains(&settings.data_parallel) {
+        return Err(invalid("data_parallel must be 1 or 2"));
+    }
+    if settings.data_parallel == 2
+        && (!matches!(settings.device, Device::Cuda(_))
+            || settings.batch % 2 != 0
+            || settings.qat
+            || settings.transport_snap.is_some())
+    {
+        return Err(invalid(
+            "data_parallel=2 needs device=cuda, an even batch, and no qat or transport_snap",
+        ));
+    }
     if settings.steps == 0
         || settings.batch == 0
         || settings.eval_every == 0
@@ -1822,6 +1840,19 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     }
     // After `init=` or a resume alike: the requested setting replaces any snap the load restored.
     model.set_transport_snap(settings.transport_snap)?;
+    // data_parallel=2: a replica on GPU 1 with the primary's current weights
+    // (after init= or a resume alike).
+    let replica = if settings.data_parallel == 2 {
+        let replica = StackModel::new(model.config.clone(), &Device::new_cuda(1)?)?;
+        replica.copy_variables_from(&model)?;
+        eprintln!(
+            "data parallel: replica on GPU 1, batch halves of {}",
+            settings.batch / 2
+        );
+        Some(replica)
+    } else {
+        None
+    };
     // A run from a trained model scores it before any update.
     if settings.init.is_some() && progress.step == 0 {
         let (evaluation, float) =
@@ -1866,8 +1897,39 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             targets.extend_from_slice(&stream[start + 1..start + time + 1]);
         }
         let served_before = model.served_statistics()?;
-        let loss = model.loss(&ids, &targets, settings.batch, time)?;
-        let value = f64::from(loss.to_scalar::<f32>()?);
+        let (value, grads) = match &replica {
+            None => {
+                let loss = model.loss(&ids, &targets, settings.batch, time)?;
+                (f64::from(loss.to_scalar::<f32>()?), loss.backward()?)
+            }
+            Some(replica) => {
+                // Equal halves of the same drawn batch: the mean of the two
+                // half-batch losses and gradients is the full-batch mean.
+                let half = settings.batch / 2;
+                let split = half * time;
+                let half_step =
+                    |model: &StackModel,
+                     ids: &[u32],
+                     targets: &[u32]|
+                     -> Result<(f64, candle_core::backprop::GradStore)> {
+                        let loss = model.loss(ids, targets, half, time)?;
+                        Ok((f64::from(loss.to_scalar::<f32>()?), loss.backward()?))
+                    };
+                let (local, remote) = std::thread::scope(|scope| {
+                    let worker =
+                        scope.spawn(|| half_step(replica, &ids[split..], &targets[split..]));
+                    let local = half_step(&model, &ids[..split], &targets[..split]);
+                    let remote = worker
+                        .join()
+                        .map_err(|_| invalid("the replica's thread panicked"));
+                    (local, remote)
+                });
+                let (local, remote) = (local?, remote??);
+                let mut grads = local.1;
+                average_replica_gradients(&model, &mut grads, replica, &remote.1)?;
+                ((local.0 + remote.0) / 2.0, grads)
+            }
+        };
         if !value.is_finite() {
             let site = if nan_trace {
                 first_nonfinite_site(&model, &ids, settings.batch, time)?
@@ -1879,11 +1941,13 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                 progress.step
             )));
         }
-        let grads = loss.backward()?;
         if nan_trace {
             check_finite_gradients(&model, &grads, progress.step, value)?;
         }
         let grad_norm = optimizer.update(&model, &grads, lr)?;
+        if let Some(replica) = &replica {
+            replica.copy_variables_from(&model)?;
+        }
         let seconds = clock.elapsed().as_secs_f64();
         add_served_work(
             &mut served_in_steps,
@@ -1973,6 +2037,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "train_seconds": progress.train_seconds,
         "tokens_per_second": (progress.step * settings.batch * time) as f64 / progress.train_seconds.max(1e-9),
         "step_seconds": step_timing(&step_seconds),
+        "data_parallel": settings.data_parallel,
         "threads": std::env::var("RAYON_NUM_THREADS").ok(),
         "curve": progress.curve,
         "final": final_evaluation.record(),
@@ -4555,6 +4620,7 @@ fn main() -> Result<()> {
                     "init",
                     "qat",
                     "transport_snap",
+                    "data_parallel",
                 ],
             )?;
             let settings = train_settings(&args)?;

@@ -6,6 +6,8 @@ license = "MIT"
 description = "Offline Rust autodiff and reference evaluation tools for UOR-R4 research"
 
 [features]
+# The parquet reader for `prepare-chat-parquet` only; no model or training path uses it.
+parquet-input = ["dep:parquet"]
 default = []
 metal = [
     "candle-core/metal",
@@ -34,4 +36,9 @@ uor-r4-core = { path = "../uor-r4-core" }
 uor-r4-lut = { path = "../uor-r4-lut" }
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
 rayon = "1.10"
+parquet = { version = "60.0.0", default-features = false, features = ["snap", "zstd"], optional = true }
 half = "2.7.1"
+
+[[bin]]
+name = "prepare-chat-parquet"
+required-features = ["parquet-input"]
