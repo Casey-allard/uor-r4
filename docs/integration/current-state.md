@@ -1,5 +1,32 @@
 # Current UOR-R4 research state
 
+## Final native source artifact — existing Copy ranking, October 3
+
+The [final-prefix audit](geometric-final-prefix-audit-2026-10-03.md) reuses the
+already-trained64-update geometric source realizer with zero updates. Committed
+Rust source67d36915 passes3 diagnostic tests on the authorized Runpod CPU host
+(Linuxx86_64, noMetal/CUDA/GPU). The6.235s worker reproduces every saved M1
+own-prefix row/trace exactly; packed files remain unchanged. Complete replies
+remain4/20, all repeated dancer, with EOS20/20.
+
+Final-frozen canonical targets rank correctly46/114: initialCopy10/20,
+continuationCopy8/54, Period18/20, Stop10/20. Of74Copy targets,54 lose to another
+Copy action; stopping-only repair cannot fix those scores. Independent review
+checks114 ranks,4,016 lane features and1,184 occurrence pairs: no different-token
+candidate feature collision, no conflicting targets among31 full signatures,
+and no token aliases. Distinct signatures do not prove q4 family capacity or
+sound adjoint credit; no new progress register is justified by this panel.
+
+Next: a bounded frozen-context q4 potential direction diagnosis using the
+existing learner/prepared loss and retained checkpoint, before targeted repair.
+No new generic learning framework, retraining from scratch or unchanged joint
+fit. Keep context/Period/Stop/source fixed; compare actual native Copy margins
+and joint CE with the existing readout adjoint, preserving all regressions.
+The objective remains useful native geometric source consumption for grounded
+chat; shared session hooks remain coordinated. This is exposed development and
+host replay, not useful-chat, heldout, full-serving or energy acceptance.
+[Bound evidence](../evidence/geometric-final-prefix-audit-2026-10-03.json).
+
 ## Geometric source learning — lexical support blocker, October 3
 
 The [learning continuation](geometric-source-learning-2026-10-03.md) prepares

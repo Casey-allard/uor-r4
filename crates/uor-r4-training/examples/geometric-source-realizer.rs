@@ -15,10 +15,11 @@ use uor_r4_core::report_output;
 use uor_r4_integer::geometric_occurrence_read::{
     FrameMetadata, FrameStatus, SelectedRecordFrame, SourceIdentity,
 };
+use uor_r4_integer::h4_tables::{H4Code, HistoricalH4Tables};
 use uor_r4_tokenizer::{dialogue::SCHEMA_V2, ByteBpeTokenizer};
 use uor_r4_training::{
     geometric_occurrence_consumer::{
-        source_realizer::{NativeSourceRealizer, SourceRealizerWeights},
+        source_realizer::{NativeSourceRealizer, RealizerTrace, SourceRealizerWeights},
         ConsumerIdentity, ConsumerWeights, NativeConsumerArtifact,
     },
     geometric_source_emission_view::{SourceEmissionCompiler, SourceEmissionView},
@@ -41,6 +42,10 @@ struct Args {
     period_seed: u64,
     maximum_seconds: u64,
     fit_admission: Option<PathBuf>,
+    #[serde(default)]
+    audit_checkpoint: Option<PathBuf>,
+    #[serde(default)]
+    expected_generation: Option<PathBuf>,
 }
 #[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -777,23 +782,431 @@ fn main() -> Result<()> {
         return Err(invalid("one JSON argument required"));
     }
     let a: Args = serde_json::from_slice(&fs::read(p)?)?;
-    if !matches!(a.mode.as_str(), "construction" | "fit")
+    if !matches!(a.mode.as_str(), "construction" | "fit" | "audit")
         || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
+        || (a.mode == "audit"
+            && (a.maximum_seconds > 300
+                || a.audit_checkpoint.is_none()
+                || a.fit_admission.is_some()))
+        || (a.mode != "audit" && (a.audit_checkpoint.is_some() || a.expected_generation.is_some()))
     {
         return Err(invalid(
-            "construction wall limit1..300; fit limit1..1200 with fixed64updates",
+            "construction/audit wall limit 1..300; fit limit 1..1200 with fixed 64 updates",
         ));
     }
     let admitted = admission(&a)?;
+    if a.mode == "audit" {
+        audit_output_location(&a)?;
+    }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = run(&a, admitted.as_ref());
+    let result = if a.mode == "audit" {
+        audit(&a)
+    } else {
+        run(&a, admitted.as_ref())
+    };
     if let Err(e) = &result {
         write(&a.out.join("error.json"), &json!({"error":e.to_string()}))?;
     }
     report_output::seal(&a.out)?;
     report_output::verify(&a.out)?;
     result
+}
+#[derive(Deserialize)]
+struct SavedRealizerIdentity {
+    identity: ConsumerIdentity,
+}
+fn aggregate_rank(masses: &[(u32, u64)], target: u32) -> Result<Value> {
+    let mut aggregate = BTreeMap::<u32, u64>::new();
+    for &(token, mass) in masses {
+        let old = aggregate.entry(token).or_default();
+        *old = old
+            .checked_add(mass)
+            .ok_or_else(|| invalid("aggregate action mass overflow"))?;
+    }
+    let total = aggregate.values().try_fold(0u64, |sum, x| {
+        sum.checked_add(*x)
+            .ok_or_else(|| invalid("action total overflow"))
+    })?;
+    if total == 0 {
+        return Err(invalid("empty action distribution"));
+    }
+    let target_mass = aggregate.get(&target).copied().unwrap_or(0);
+    let higher = aggregate.values().filter(|m| **m > target_mass).count();
+    let tie_before = aggregate
+        .iter()
+        .filter(|(id, mass)| **mass == target_mass && **id < target)
+        .count();
+    let mut best = None::<(u32, u64)>;
+    for (&token, &mass) in &aggregate {
+        if best.map_or(true, |(_, old)| mass > old) {
+            best = Some((token, mass));
+        }
+    }
+    let (top, top_mass) = best.ok_or_else(|| invalid("empty aggregated action candidates"))?;
+    Ok(
+        json!({"target_token_id":target,"target_mass_q31":target_mass,"total_mass_q31":total,"target_probability_diagnostic":target_mass as f64/total as f64,"target_rank_strict":higher+1,"target_rank_native_greedy":higher+tie_before+1,"equal_mass_smaller_token_count":tie_before,"strictly_higher_token_count":higher,"top_token_id":top,"top_mass_q31":top_mass,"target_supported":target_mass>0,"rank_scope":"aggregated token mass including action aliases; equal-mass ties receive equal strict rank"}),
+    )
+}
+fn audit_output_location(a: &Args) -> Result<()> {
+    // Existing output parent keeps normalization simple and prevents a failed
+    // attempt from adding files beneath any immutable input envelope.
+    let parent = a
+        .out
+        .parent()
+        .filter(|x| !x.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let output = fs::canonicalize(parent)?.join(
+        a.out
+            .file_name()
+            .ok_or_else(|| invalid("output leaf missing"))?,
+    );
+    let path = a
+        .audit_checkpoint
+        .as_ref()
+        .ok_or_else(|| invalid("audit checkpoint missing"))?;
+    let roots = [
+        path.parent().ok_or_else(|| invalid("fit root missing"))?,
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained envelope missing"))?,
+        a.checkpoint.as_path(),
+    ];
+    for root in roots {
+        if output.starts_with(fs::canonicalize(root)?) {
+            return Err(invalid("audit output must be outside sealed input roots"));
+        }
+    }
+    if let Some(expected) = &a.expected_generation {
+        if output.starts_with(fs::canonicalize(
+            expected
+                .parent()
+                .ok_or_else(|| invalid("expected envelope missing"))?,
+        )?) {
+            return Err(invalid("audit output beneath expected envelope"));
+        }
+    }
+    Ok(())
+}
+fn scorer_features(trace: &RealizerTrace, geometry: &HistoricalH4Tables) -> Result<Value> {
+    let replay = &trace.period_context;
+    let m = replay
+        .heads
+        .checked_mul(replay.lanes_per_head)
+        .ok_or_else(|| invalid("lane overflow"))?;
+    let n = trace.source.emission_view.emitted_token_ids().len();
+    let final_codes = replay
+        .codes
+        .get(
+            replay
+                .codes
+                .len()
+                .checked_sub(m)
+                .ok_or_else(|| invalid("final codes absent"))?..,
+        )
+        .ok_or_else(|| invalid("final code range"))?;
+    if final_codes.len() != m
+        || n.checked_mul(m)
+            .map_or(true, |end| end > replay.codes.len())
+    {
+        return Err(invalid("source feature replay shape"));
+    }
+    let mut copy = Vec::new();
+    for occurrence in 0..n {
+        let mut lanes = Vec::new();
+        for (lane, q) in final_codes.iter().enumerate() {
+            let k = &replay.codes[occurrence * m + lane];
+            let present = q.present && k.present;
+            let relative = if present {
+                Some(
+                    geometry
+                        .relative(
+                            H4Code::try_from(q.root).map_err(|e| invalid(e.to_string()))?,
+                            H4Code::try_from(k.root).map_err(|e| invalid(e.to_string()))?,
+                        )
+                        .index(),
+                )
+            } else {
+                None
+            };
+            lanes.push(json!({"context_presence":2*u8::from(q.present)+u8::from(k.present),"relative_h4":relative,"radius_index":if present {Some(32*usize::from(q.radius_bin)+usize::from(k.radius_bin))} else {None}}));
+        }
+        copy.push(lanes);
+    }
+    let last_token = replay
+        .tokens
+        .last()
+        .ok_or_else(|| invalid("final token absent"))?;
+    let last_latent = replay
+        .states
+        .last()
+        .ok_or_else(|| invalid("final latent absent"))?;
+    let categories = final_codes
+        .iter()
+        .map(|x| if x.present { x.radius_bin + 1 } else { 0 })
+        .collect::<Vec<_>>();
+    Ok(
+        json!({"ordered_copy_tokens":trace.source.emission_view.emitted_token_ids(),"copy_content_presence_constant":0,"copy_age_constant":0,"copy_features":copy,"period_stop_last_token":last_token,"period_stop_all_latent_roots":last_latent,"period_stop_all_categories":categories,"period_stop_held":null}),
+    )
+}
+fn add_signature(
+    groups: &mut BTreeMap<String, Vec<Value>>,
+    signature: &Value,
+    witness: Value,
+) -> Result<()> {
+    groups
+        .entry(serde_json::to_string(signature)?)
+        .or_default()
+        .push(witness);
+    Ok(())
+}
+fn conflicts(groups: BTreeMap<String, Vec<Value>>) -> Vec<Value> {
+    groups
+        .into_iter()
+        .filter_map(|(signature, rows)| {
+            let first = rows.first()?;
+            rows.iter()
+                .any(|row| row["target"] != first["target"])
+                .then(|| json!({"signature_json":signature,"rows":rows}))
+        })
+        .collect()
+}
+fn audit(a: &Args) -> Result<()> {
+    let start = Instant::now();
+    let path = a
+        .audit_checkpoint
+        .as_ref()
+        .ok_or_else(|| invalid("audit checkpoint missing"))?;
+    if path.file_name().and_then(|x| x.to_str()) != Some("final-checkpoint") {
+        return Err(invalid("audit requires the named final-checkpoint"));
+    }
+    report_output::verify(path)?;
+    let fit_root = path
+        .parent()
+        .ok_or_else(|| invalid("fit input root missing"))?;
+    report_output::verify(fit_root)?;
+    let fit: Value = serde_json::from_slice(&fs::read(fit_root.join("report.json"))?)?;
+    let receipt: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
+    if fit["schema"] != "uor-r4.geometric-source-realizer/1"
+        || fit["mode"] != "fit"
+        || fit["status"] != "completed"
+        || fit["optimizer_updates"] != 64
+        || receipt["optimizer_updates"] != 64
+    {
+        return Err(invalid(
+            "audit requires completed final64 fit checkpoint, not pre-update batch traces",
+        ));
+    }
+    let saved: SavedRealizerIdentity =
+        serde_json::from_slice(&fs::read(path.join("realizer-native/metadata.json"))?)?;
+    let identity = saved.identity;
+    if sha256_file(&a.tokenizer)? != identity.tokenizer_sha256
+        || sealed_manifest_sha256(&a.checkpoint).map_err(|e| invalid(e.to_string()))?
+            != identity.parent_checkpoint_manifest_sha256
+        || sha256_file(&a.checkpoint.join("model.safetensors"))? != identity.parent_model_sha256
+        || sha256_file(&a.checkpoint.join("config.json"))? != identity.parent_config_sha256
+    {
+        return Err(invalid("saved realizer parent/tokenizer identity differs"));
+    }
+    let retained_sha = sha256_file(&a.retained_report)?;
+    if fit["retained_report_sha256"] != retained_sha
+        || fit["tokenizer_sha256"] != identity.tokenizer_sha256
+        || fit["checkpoint_manifest_sha256"] != identity.parent_checkpoint_manifest_sha256
+    {
+        return Err(invalid("fit report input binding differs"));
+    }
+    report_output::verify(
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained envelope missing"))?,
+    )?;
+    let retained: Report = serde_json::from_slice(&fs::read(&a.retained_report)?)?;
+    if retained.schema != "uor-r4.source-binding-diagnostic/1"
+        || retained.tokenizer_sha256 != identity.tokenizer_sha256
+        || retained.checkpoint_manifest_sha256 != identity.parent_checkpoint_manifest_sha256
+    {
+        return Err(invalid("retained frame binding differs"));
+    }
+    let bytes = fs::read(&a.tokenizer)?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("audit tokenizer unreadable"))?;
+    let before = bin_files(&path.join("realizer-native"))?;
+    let source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
+    let native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
+    if native.binding().protocol().schema != SCHEMA_V2
+        || native.binding().tokenizer_sha256() != identity.tokenizer_sha256
+        || native.binding().vocab_size() != 4096
+    {
+        return Err(invalid("audit source/action binding differs"));
+    }
+    let compiler = SourceEmissionCompiler::new(&bytes)?;
+    let episodes = prepare(retained, &tok, native.binding().eos_token_id(), &compiler)?;
+    let mut rows = Vec::new();
+    let mut targets = 0usize;
+    let geometry = HistoricalH4Tables::from_bytes(include_bytes!(
+        "../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin"
+    ))
+    .map_err(|e| invalid(e.to_string()))?;
+    let mut feature_groups = BTreeMap::new();
+    let mut q24_groups = BTreeMap::new();
+    let mut q31_groups = BTreeMap::new();
+    let mut aliases = Vec::new();
+    let mut compact = Vec::new();
+    for e in &episodes {
+        let mut token_rows = Vec::new();
+        for (step, &target) in e.target.iter().enumerate() {
+            deadline(start, a)?;
+            let trace = native.read(e.frame(), &e.view, &e.query, &e.target[..step])?;
+            let masses = trace
+                .actions
+                .token_masses
+                .iter()
+                .map(|m| (m.token_id, m.weight_q31))
+                .collect::<Vec<_>>();
+            let rank = aggregate_rank(&masses, target)?;
+            if rank["total_mass_q31"] != trace.actions.total_weight_q31 {
+                return Err(invalid(
+                    "aggregate integer target diagnostic denominator differs",
+                ));
+            }
+            if rank["top_token_id"] != trace.actions.chosen_token_id {
+                return Err(invalid("target diagnostic greedy tie law differs"));
+            }
+            let features = scorer_features(&trace, &geometry)?;
+            let witness = json!({"id":e.id,"step":step,"target":target});
+            add_signature(&mut feature_groups, &features, witness.clone())?;
+            let q24 = json!(trace
+                .actions
+                .actions
+                .iter()
+                .map(|x| (x.token_id, x.score_q24))
+                .collect::<Vec<_>>());
+            let q31 = json!(trace
+                .actions
+                .token_masses
+                .iter()
+                .map(|x| (x.token_id, x.weight_q31))
+                .collect::<Vec<_>>());
+            add_signature(&mut q24_groups, &q24, witness.clone())?;
+            add_signature(&mut q31_groups, &q31, witness)?;
+            let alias_rows = trace
+                .actions
+                .token_masses
+                .iter()
+                .filter(|x| x.action_offsets.len() > 1)
+                .collect::<Vec<_>>();
+            if !alias_rows.is_empty() {
+                aliases.push(json!({"id":e.id,"step":step,"token_aliases":alias_rows}));
+            }
+            compact.push(json!({"id":e.id,"step":step,"target":target,"chosen":trace.actions.chosen_token_id,"rank":rank["target_rank_native_greedy"],"p":rank["target_probability_diagnostic"]}));
+            token_rows.push(json!({"step":step,"target_label_only":target,"teacherforced_canonical_prefix_ids":&e.target[..step],"chosen_token_id":trace.actions.chosen_token_id,"target_rank_probability":rank,"scorer_features":features,"trace":trace}));
+            targets += 1;
+        }
+        rows.push(json!({"id":e.id,"original_source_ids":e.tokens,"source_record":e.record,"source_commit":e.commit,"source_view":e.view,"query_ids":e.query,"target_ids_labels_only":e.target,"tokens":token_rows}));
+        write(
+            &a.out.join("canonical-progress.json"),
+            &json!({"rows":rows,"completed_cases":rows.len(),"target_steps":targets,"optimizer_updates":0}),
+        )?;
+    }
+    let generation = generate("audit-ownprefix", &native, &episodes, &tok, start, a)?;
+    write(&a.out.join("audit-ownprefix-generation.json"), &generation)?;
+    let native_metadata_sha = sha256_file(&path.join("realizer-native/metadata.json"))?;
+    let expected_equal = if let Some(expected_path) = &a.expected_generation {
+        report_output::verify(
+            expected_path
+                .parent()
+                .ok_or_else(|| invalid("expected generation envelope missing"))?,
+        )?;
+        let expected: Value = serde_json::from_slice(&fs::read(expected_path)?)?;
+        if expected["native_loaded_from_disk"] != true
+            || expected["native_metadata_sha256"] != native_metadata_sha
+        {
+            return Err(invalid(
+                "expected generation belongs to a different/pre-update artifact",
+            ));
+        }
+        let previous = expected["rows"]
+            .as_array()
+            .ok_or_else(|| invalid("expected generation rows missing"))?;
+        let actual = generation["rows"]
+            .as_array()
+            .ok_or_else(|| invalid("audit generation rows missing"))?;
+        if previous.len() != actual.len() {
+            return Err(invalid("own-prefix reload case count mismatch"));
+        }
+        for (old, new) in previous.iter().zip(actual) {
+            if old != new {
+                return Err(invalid(format!(
+                    "saved final own-prefix complete row differs for {}",
+                    new["id"]
+                )));
+            }
+            for key in [
+                "id",
+                "source_record",
+                "source_commit",
+                "original_source_ids",
+                "source_view",
+                "query_ids",
+                "generated_ids",
+                "eos",
+                "stop",
+                "raw_decoded_bytes_hex",
+                "reply_text",
+                "tokens",
+            ] {
+                if old.get(key).is_none() || new.get(key).is_none() || old[key] != new[key] {
+                    return Err(invalid(format!(
+                        "saved final own-prefix replay differs for {} field {key}",
+                        new["id"]
+                    )));
+                }
+            }
+        }
+        Some(true)
+    } else {
+        None
+    };
+    let after = bin_files(&path.join("realizer-native"))?;
+    if before != after {
+        return Err(invalid("audit changed saved native packed payloads"));
+    }
+    report_output::verify(path)?;
+    report_output::verify(fit_root)?;
+    write(
+        &a.out.join("report.json"),
+        &json!({"schema":"uor-r4.geometric-source-realizer-audit/1","mode":"audit","status":"completed","optimizer_updates":0,"loaded_artifact_optimizer_updates":64,"source_commit":source_commit()?,"fit_source_commit":fit["source_commit"],"executable_sha256":sha256_file(&std::env::current_exe()?)?,"checkpoint_manifest_sha256":sha256_file(&path.join("manifest.json"))?,"fit_manifest_sha256":sha256_file(&fit_root.join("manifest.json"))?,"retained_report_sha256":retained_sha,"tokenizer_sha256":identity.tokenizer_sha256,"saved_consumer_identity":identity,"native_metadata_sha256":native_metadata_sha,"packed_files_before":before,"packed_files_after":after,"packed_files_unchanged":true,"parent_model_loaded_or_scored":false,"explicit_compile_reexport_or_optimizer":false,"loader_scope":"source/native admission may reconstruct validation tables internally; numeric generation executes saved packed payloads","scope":"all20exposed canonical teacherforced prefix diagnostic plus ownprefix final64 native artifact replay; not pre-update64 training traces, heldout, or completechat","workload_host":{"os":std::env::consts::OS,"arch":std::env::consts::ARCH,"metal_tests_run":false},"target_steps":targets,"compact_target_summary":compact,"full_feature_conflicts":conflicts(feature_groups),"equal_q24_conflicting_targets":conflicts(q24_groups),"equal_q31_conflicting_targets":conflicts(q31_groups),"token_alias_rows":aliases,"signature_scope":"current scorer features only; record/commit/relation/offset/prefix length are provenance, not scoring features; canonical labels only; equal quantized scores do not prove structural collisions","canonical_rows":rows,"ownprefix_generation":generation,"expected_final_generation_exact_replay":expected_equal,"wall_seconds":start.elapsed().as_secs_f64()}),
+    )?;
+    Ok(())
+}
+#[cfg(test)]
+mod audit_tests {
+    use super::*;
+    #[test]
+    fn alias_mass_controls_token_rank() -> Result<()> {
+        let r = aggregate_rank(&[(16, 3), (16, 5), (7, 7), (1, 2)], 16)?;
+        assert_eq!(r["target_mass_q31"], 8);
+        assert_eq!(r["total_mass_q31"], 17);
+        assert_eq!(r["target_rank_strict"], 1);
+        assert_eq!(r["top_token_id"], 16);
+        Ok(())
+    }
+    #[test]
+    fn absent_target_has_zero_probability() -> Result<()> {
+        let r = aggregate_rank(&[(5, 4), (1, 4)], 9)?;
+        assert_eq!(r["target_mass_q31"], 0);
+        assert_eq!(r["target_probability_diagnostic"], 0.);
+        assert_eq!(r["target_rank_strict"], 3);
+        Ok(())
+    }
+    #[test]
+    fn native_greedy_ties_use_smallest_token_id() -> Result<()> {
+        let r = aggregate_rank(&[(5, 4), (1, 4)], 5)?;
+        assert_eq!(r["top_token_id"], 1);
+        assert_eq!(r["target_rank_strict"], 1);
+        assert_eq!(r["target_rank_native_greedy"], 2);
+        Ok(())
+    }
 }

@@ -1,0 +1,1486 @@
+{
+  "schema": "uor-r4.geometric-source-realizer-audit/1",
+  "source_commit": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+  "fit_source_commit": "ab4d3d7af45c8da5e1d967ee86abd19e1caaaddf",
+  "executable_sha256": "636895809b7313373ce89947cc4c2257323dd1e8ab7e7b33df8ff9ca41af0d3f",
+  "checkpoint_manifest_sha256": "a283b97c6d9ec4bfcae8e219fc3d2b9b0df03e21e64eb04431f2c328f1a7e3b2",
+  "fit_manifest_sha256": "e456361b5c4ab268ccf3b02a9343a4f9bb03f352b297abdb61d9bb223657699c",
+  "retained_report_sha256": "f60171bbcbab23c46fca71f6864834223f9164bc17a553e4e9f92de334d1f089",
+  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+  "native_metadata_sha256": "ef857c9e2c2378b7ac67c20657b198f8fd5e681b5f8f4d95f55411a087ed68ed",
+  "workload_host": {
+    "arch": "x86_64",
+    "metal_tests_run": false,
+    "os": "linux"
+  },
+  "target_steps": 114,
+  "packed_files_unchanged": true,
+  "packed_files_before": {
+    "consumer/context-q4.bin": "5928e79f02f9b7a8fbc45f926b462bda83c8d89073a11793373f6ebd500e5824",
+    "consumer/exp-q31.bin": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f",
+    "consumer/no-read-q4.bin": "b3a65ba6a954b38fd9baf17033c1344567018be8232d7d24ddc625db29746ef0",
+    "consumer/potential-q4.bin": "b508fab9b472382650b0468fdd43b1936331573b04d08c3d7d6d7019a9e4e0da",
+    "period-q4.bin": "5da067ea50a707ced197097fd147e31fd6859e76d8dee2b1ff860f32462ac36b"
+  },
+  "packed_files_after": {
+    "consumer/context-q4.bin": "5928e79f02f9b7a8fbc45f926b462bda83c8d89073a11793373f6ebd500e5824",
+    "consumer/exp-q31.bin": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f",
+    "consumer/no-read-q4.bin": "b3a65ba6a954b38fd9baf17033c1344567018be8232d7d24ddc625db29746ef0",
+    "consumer/potential-q4.bin": "b508fab9b472382650b0468fdd43b1936331573b04d08c3d7d6d7019a9e4e0da",
+    "period-q4.bin": "5da067ea50a707ced197097fd147e31fd6859e76d8dee2b1ff860f32462ac36b"
+  },
+  "parent_model_loaded_or_scored": false,
+  "explicit_compile_reexport_or_optimizer": false,
+  "loader_scope": "source/native admission may reconstruct validation tables internally; numeric generation executes saved packed payloads",
+  "scope": "all20exposed canonical teacherforced prefix diagnostic plus ownprefix final64 native artifact replay; not pre-update64 training traces, heldout, or completechat",
+  "expected_final_generation_exact_replay": true,
+  "wall_seconds": 4.385599413,
+  "status": "completed",
+  "optimizer_updates": 0,
+  "loaded_artifact_optimizer_updates": 64,
+  "compact_target_summary": [
+    {
+      "chosen": 284,
+      "id": "mw2-0246-s0-d0",
+      "p": 0.21389067789599847,
+      "rank": 3,
+      "step": 0,
+      "target": 1130
+    },
+    {
+      "chosen": 1130,
+      "id": "mw2-0246-s0-d0",
+      "p": 0.3331619953219308,
+      "rank": 2,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0246-s0-d0",
+      "p": 0.9456053939789041,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0246-s0-d0",
+      "p": 0.5275251830133041,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 284,
+      "id": "mw2-0246-s0-d1",
+      "p": 0.21389067789599847,
+      "rank": 3,
+      "step": 0,
+      "target": 1130
+    },
+    {
+      "chosen": 1130,
+      "id": "mw2-0246-s0-d1",
+      "p": 0.3331619953219308,
+      "rank": 2,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0246-s0-d1",
+      "p": 0.9456053939789041,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0246-s0-d1",
+      "p": 0.5275251830133041,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 1357,
+      "id": "mw2-0246-s1-d0",
+      "p": 0.4799768422451797,
+      "rank": 1,
+      "step": 0,
+      "target": 1357
+    },
+    {
+      "chosen": 284,
+      "id": "mw2-0246-s1-d0",
+      "p": 0.6442951113516417,
+      "rank": 1,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0246-s1-d0",
+      "p": 0.9362432402298267,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0246-s1-d0",
+      "p": 0.6154008970533487,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 1357,
+      "id": "mw2-0246-s1-d1",
+      "p": 0.4799768422451797,
+      "rank": 1,
+      "step": 0,
+      "target": 1357
+    },
+    {
+      "chosen": 284,
+      "id": "mw2-0246-s1-d1",
+      "p": 0.6442951113516417,
+      "rank": 1,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0246-s1-d1",
+      "p": 0.9362432402298267,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0246-s1-d1",
+      "p": 0.6154008970533487,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 284,
+      "id": "mw2-0146-s0-d0",
+      "p": 0.21389067789599847,
+      "rank": 3,
+      "step": 0,
+      "target": 1130
+    },
+    {
+      "chosen": 1130,
+      "id": "mw2-0146-s0-d0",
+      "p": 0.3331619953219308,
+      "rank": 2,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0146-s0-d0",
+      "p": 0.9456053939789041,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0146-s0-d0",
+      "p": 0.5275251830133041,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 284,
+      "id": "mw2-0146-s0-d1",
+      "p": 0.21389067789599847,
+      "rank": 3,
+      "step": 0,
+      "target": 1130
+    },
+    {
+      "chosen": 1130,
+      "id": "mw2-0146-s0-d1",
+      "p": 0.3331619953219308,
+      "rank": 2,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0146-s0-d1",
+      "p": 0.9456053939789041,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0146-s0-d1",
+      "p": 0.5275251830133041,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 1357,
+      "id": "mw2-0146-s1-d0",
+      "p": 0.4799768422451797,
+      "rank": 1,
+      "step": 0,
+      "target": 1357
+    },
+    {
+      "chosen": 284,
+      "id": "mw2-0146-s1-d0",
+      "p": 0.6442951113516417,
+      "rank": 1,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0146-s1-d0",
+      "p": 0.9362432402298267,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0146-s1-d0",
+      "p": 0.6154008970533487,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 1357,
+      "id": "mw2-0146-s1-d1",
+      "p": 0.4799768422451797,
+      "rank": 1,
+      "step": 0,
+      "target": 1357
+    },
+    {
+      "chosen": 284,
+      "id": "mw2-0146-s1-d1",
+      "p": 0.6442951113516417,
+      "rank": 1,
+      "step": 1,
+      "target": 284
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0146-s1-d1",
+      "p": 0.9362432402298267,
+      "rank": 1,
+      "step": 2,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0146-s1-d1",
+      "p": 0.6154008970533487,
+      "rank": 1,
+      "step": 3,
+      "target": 1
+    },
+    {
+      "chosen": 73,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.11030886858870624,
+      "rank": 4,
+      "step": 0,
+      "target": 935
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.03914941398872963,
+      "rank": 8,
+      "step": 1,
+      "target": 78
+    },
+    {
+      "chosen": 70,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.17933786214728603,
+      "rank": 3,
+      "step": 2,
+      "target": 302
+    },
+    {
+      "chosen": 68,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.06577845736567366,
+      "rank": 6,
+      "step": 3,
+      "target": 70
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.02849522490570886,
+      "rank": 8,
+      "step": 4,
+      "target": 84
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.12441821766743494,
+      "rank": 2,
+      "step": 5,
+      "target": 373
+    },
+    {
+      "chosen": 84,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.08754333663994902,
+      "rank": 4,
+      "step": 6,
+      "target": 68
+    },
+    {
+      "chosen": 84,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.14153976519578879,
+      "rank": 3,
+      "step": 7,
+      "target": 456
+    },
+    {
+      "chosen": 78,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.2157279882018325,
+      "rank": 3,
+      "step": 8,
+      "target": 73
+    },
+    {
+      "chosen": 78,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.13407249734239834,
+      "rank": 3,
+      "step": 9,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0288-s0-d0",
+      "p": 0.36853221945966325,
+      "rank": 1,
+      "step": 10,
+      "target": 1
+    },
+    {
+      "chosen": 73,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.11030886858870624,
+      "rank": 4,
+      "step": 0,
+      "target": 935
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.03914941398872963,
+      "rank": 8,
+      "step": 1,
+      "target": 78
+    },
+    {
+      "chosen": 70,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.17933786214728603,
+      "rank": 3,
+      "step": 2,
+      "target": 302
+    },
+    {
+      "chosen": 68,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.06577845736567366,
+      "rank": 6,
+      "step": 3,
+      "target": 70
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.02849522490570886,
+      "rank": 8,
+      "step": 4,
+      "target": 84
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.12441821766743494,
+      "rank": 2,
+      "step": 5,
+      "target": 373
+    },
+    {
+      "chosen": 84,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.08754333663994902,
+      "rank": 4,
+      "step": 6,
+      "target": 68
+    },
+    {
+      "chosen": 84,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.14153976519578879,
+      "rank": 3,
+      "step": 7,
+      "target": 456
+    },
+    {
+      "chosen": 78,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.2157279882018325,
+      "rank": 3,
+      "step": 8,
+      "target": 73
+    },
+    {
+      "chosen": 78,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.13407249734239834,
+      "rank": 3,
+      "step": 9,
+      "target": 16
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0288-s0-d1",
+      "p": 0.36853221945966325,
+      "rank": 1,
+      "step": 10,
+      "target": 1
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0288-s1-d0",
+      "p": 0.6150029932688506,
+      "rank": 1,
+      "step": 0,
+      "target": 2593
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0288-s1-d0",
+      "p": 0.037332212185751015,
+      "rank": 4,
+      "step": 1,
+      "target": 293
+    },
+    {
+      "chosen": 3931,
+      "id": "mw2-0288-s1-d0",
+      "p": 0.1640588842207857,
+      "rank": 3,
+      "step": 2,
+      "target": 72
+    },
+    {
+      "chosen": 72,
+      "id": "mw2-0288-s1-d0",
+      "p": 0.14790175187867893,
+      "rank": 2,
+      "step": 3,
+      "target": 3931
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s1-d0",
+      "p": 0.32517756069400894,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0288-s1-d0",
+      "p": 0.22888290523893995,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0288-s1-d1",
+      "p": 0.6150029932688506,
+      "rank": 1,
+      "step": 0,
+      "target": 2593
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0288-s1-d1",
+      "p": 0.037332212185751015,
+      "rank": 4,
+      "step": 1,
+      "target": 293
+    },
+    {
+      "chosen": 3931,
+      "id": "mw2-0288-s1-d1",
+      "p": 0.1640588842207857,
+      "rank": 3,
+      "step": 2,
+      "target": 72
+    },
+    {
+      "chosen": 72,
+      "id": "mw2-0288-s1-d1",
+      "p": 0.14790175187867893,
+      "rank": 2,
+      "step": 3,
+      "target": 3931
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0288-s1-d1",
+      "p": 0.32517756069400894,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0288-s1-d1",
+      "p": 0.22888290523893995,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0124-s0-d0",
+      "p": 0.024805861589054894,
+      "rank": 3,
+      "step": 0,
+      "target": 363
+    },
+    {
+      "chosen": 277,
+      "id": "mw2-0124-s0-d0",
+      "p": 0.37388338292033046,
+      "rank": 1,
+      "step": 1,
+      "target": 277
+    },
+    {
+      "chosen": 277,
+      "id": "mw2-0124-s0-d0",
+      "p": 0.18710758584539597,
+      "rank": 3,
+      "step": 2,
+      "target": 353
+    },
+    {
+      "chosen": 363,
+      "id": "mw2-0124-s0-d0",
+      "p": 0.1878052233131739,
+      "rank": 2,
+      "step": 3,
+      "target": 292
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0124-s0-d0",
+      "p": 0.8173276286883739,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 292,
+      "id": "mw2-0124-s0-d0",
+      "p": 0.07492536295157667,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 1,
+      "id": "mw2-0124-s0-d1",
+      "p": 0.024805861589054894,
+      "rank": 3,
+      "step": 0,
+      "target": 363
+    },
+    {
+      "chosen": 277,
+      "id": "mw2-0124-s0-d1",
+      "p": 0.37388338292033046,
+      "rank": 1,
+      "step": 1,
+      "target": 277
+    },
+    {
+      "chosen": 277,
+      "id": "mw2-0124-s0-d1",
+      "p": 0.18710758584539597,
+      "rank": 3,
+      "step": 2,
+      "target": 353
+    },
+    {
+      "chosen": 363,
+      "id": "mw2-0124-s0-d1",
+      "p": 0.1878052233131739,
+      "rank": 2,
+      "step": 3,
+      "target": 292
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0124-s0-d1",
+      "p": 0.8173276286883739,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 292,
+      "id": "mw2-0124-s0-d1",
+      "p": 0.07492536295157667,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0124-s1-d0",
+      "p": 0.6150029932688506,
+      "rank": 1,
+      "step": 0,
+      "target": 2593
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0124-s1-d0",
+      "p": 0.037332212185751015,
+      "rank": 4,
+      "step": 1,
+      "target": 293
+    },
+    {
+      "chosen": 3931,
+      "id": "mw2-0124-s1-d0",
+      "p": 0.1640588842207857,
+      "rank": 3,
+      "step": 2,
+      "target": 72
+    },
+    {
+      "chosen": 72,
+      "id": "mw2-0124-s1-d0",
+      "p": 0.14790175187867893,
+      "rank": 2,
+      "step": 3,
+      "target": 3931
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0124-s1-d0",
+      "p": 0.32517756069400894,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0124-s1-d0",
+      "p": 0.22888290523893995,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0124-s1-d1",
+      "p": 0.6150029932688506,
+      "rank": 1,
+      "step": 0,
+      "target": 2593
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0124-s1-d1",
+      "p": 0.037332212185751015,
+      "rank": 4,
+      "step": 1,
+      "target": 293
+    },
+    {
+      "chosen": 3931,
+      "id": "mw2-0124-s1-d1",
+      "p": 0.1640588842207857,
+      "rank": 3,
+      "step": 2,
+      "target": 72
+    },
+    {
+      "chosen": 72,
+      "id": "mw2-0124-s1-d1",
+      "p": 0.14790175187867893,
+      "rank": 2,
+      "step": 3,
+      "target": 3931
+    },
+    {
+      "chosen": 16,
+      "id": "mw2-0124-s1-d1",
+      "p": 0.32517756069400894,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 2593,
+      "id": "mw2-0124-s1-d1",
+      "p": 0.22888290523893995,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 1,
+      "id": "authored-city-city-s0-d0",
+      "p": 0.024805861589054894,
+      "rank": 3,
+      "step": 0,
+      "target": 363
+    },
+    {
+      "chosen": 277,
+      "id": "authored-city-city-s0-d0",
+      "p": 0.37388338292033046,
+      "rank": 1,
+      "step": 1,
+      "target": 277
+    },
+    {
+      "chosen": 277,
+      "id": "authored-city-city-s0-d0",
+      "p": 0.18710758584539597,
+      "rank": 3,
+      "step": 2,
+      "target": 353
+    },
+    {
+      "chosen": 363,
+      "id": "authored-city-city-s0-d0",
+      "p": 0.1878052233131739,
+      "rank": 2,
+      "step": 3,
+      "target": 292
+    },
+    {
+      "chosen": 16,
+      "id": "authored-city-city-s0-d0",
+      "p": 0.8173276286883739,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 292,
+      "id": "authored-city-city-s0-d0",
+      "p": 0.07492536295157667,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 1,
+      "id": "authored-city-city-s0-d1",
+      "p": 0.024805861589054894,
+      "rank": 3,
+      "step": 0,
+      "target": 363
+    },
+    {
+      "chosen": 277,
+      "id": "authored-city-city-s0-d1",
+      "p": 0.37388338292033046,
+      "rank": 1,
+      "step": 1,
+      "target": 277
+    },
+    {
+      "chosen": 277,
+      "id": "authored-city-city-s0-d1",
+      "p": 0.18710758584539597,
+      "rank": 3,
+      "step": 2,
+      "target": 353
+    },
+    {
+      "chosen": 363,
+      "id": "authored-city-city-s0-d1",
+      "p": 0.1878052233131739,
+      "rank": 2,
+      "step": 3,
+      "target": 292
+    },
+    {
+      "chosen": 16,
+      "id": "authored-city-city-s0-d1",
+      "p": 0.8173276286883739,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 292,
+      "id": "authored-city-city-s0-d1",
+      "p": 0.07492536295157667,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 2593,
+      "id": "authored-city-city-s1-d0",
+      "p": 0.6150029932688506,
+      "rank": 1,
+      "step": 0,
+      "target": 2593
+    },
+    {
+      "chosen": 2593,
+      "id": "authored-city-city-s1-d0",
+      "p": 0.037332212185751015,
+      "rank": 4,
+      "step": 1,
+      "target": 293
+    },
+    {
+      "chosen": 3931,
+      "id": "authored-city-city-s1-d0",
+      "p": 0.1640588842207857,
+      "rank": 3,
+      "step": 2,
+      "target": 72
+    },
+    {
+      "chosen": 72,
+      "id": "authored-city-city-s1-d0",
+      "p": 0.14790175187867893,
+      "rank": 2,
+      "step": 3,
+      "target": 3931
+    },
+    {
+      "chosen": 16,
+      "id": "authored-city-city-s1-d0",
+      "p": 0.32517756069400894,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 2593,
+      "id": "authored-city-city-s1-d0",
+      "p": 0.22888290523893995,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    },
+    {
+      "chosen": 2593,
+      "id": "authored-city-city-s1-d1",
+      "p": 0.6150029932688506,
+      "rank": 1,
+      "step": 0,
+      "target": 2593
+    },
+    {
+      "chosen": 2593,
+      "id": "authored-city-city-s1-d1",
+      "p": 0.037332212185751015,
+      "rank": 4,
+      "step": 1,
+      "target": 293
+    },
+    {
+      "chosen": 3931,
+      "id": "authored-city-city-s1-d1",
+      "p": 0.1640588842207857,
+      "rank": 3,
+      "step": 2,
+      "target": 72
+    },
+    {
+      "chosen": 72,
+      "id": "authored-city-city-s1-d1",
+      "p": 0.14790175187867893,
+      "rank": 2,
+      "step": 3,
+      "target": 3931
+    },
+    {
+      "chosen": 16,
+      "id": "authored-city-city-s1-d1",
+      "p": 0.32517756069400894,
+      "rank": 1,
+      "step": 4,
+      "target": 16
+    },
+    {
+      "chosen": 2593,
+      "id": "authored-city-city-s1-d1",
+      "p": 0.22888290523893995,
+      "rank": 3,
+      "step": 5,
+      "target": 1
+    }
+  ],
+  "full_feature_conflicts": [],
+  "equal_q24_conflicting_targets": [],
+  "equal_q31_conflicting_targets": [],
+  "token_alias_rows": [],
+  "retained_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-final-prefix-audit-20261003/pod-return/audit-2",
+  "report_sha256": "9db810a31dbf9fc34189d7d9b0279da5780b17e2aa2c8cd1fce56fcdf29d0f46",
+  "manifest_sha256": "8129a6105d1277d02ee55d077277ec9dd50dcb8796453c487b8b330062213346",
+  "independent_review": {
+    "receipt": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-final-prefix-audit-20261003/independent-result-review-67d36915.json",
+    "sha256": "17bdc68f5b8e0b343f50fc7acae6a3f0a7cecd56280e9e986824379196407830",
+    "canonical_targets_checked": 114,
+    "lane_features_checked": 4016,
+    "occurrence_pairs_checked": 1184,
+    "different_token_identical_feature_pairs": 0,
+    "distinct_full_scorer_signatures": 31,
+    "distinct_numerical_inputs": 5
+  },
+  "canonical_correct": {
+    "initial_copy": {
+      "correct": 10,
+      "targets": 20
+    },
+    "later_copy": {
+      "correct": 8,
+      "targets": 54
+    },
+    "period": {
+      "correct": 18,
+      "targets": 20
+    },
+    "stop": {
+      "correct": 10,
+      "targets": 20
+    },
+    "total": {
+      "correct": 46,
+      "targets": 114
+    },
+    "copy_targets_outranked_by_another_copy": 54,
+    "correct_top_copy_outranked_only_by_period_or_stop": 2
+  },
+  "native_nll_diagnostic": {
+    "mean_episode": 1.3407132581004553,
+    "token_weighted": 1.5175203841281333
+  },
+  "ownprefix_generation": {
+    "cases": 20,
+    "complete_answers": 4,
+    "eos_count": 20,
+    "elapsed_seconds": 0.193937366
+  },
+  "resources": {
+    "build_test": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-03T21:19:18.855678+00:00",
+      "source_commit": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer",
+        "--",
+        "--test-threads=1"
+      ],
+      "cwd": "/root/codex/geometric-final-prefix-audit-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 45632,
+      "worker_pid": 45633,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 397.8626981480047,
+      "sampled_process_tree_peak_rss_bytes": 5603557376,
+      "rusage_children_max_rss_bytes": 4179066880,
+      "codex_allocated_bytes_latest": 2563809280,
+      "free_bytes_final": 15767965696,
+      "maximum_seconds": 2700,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "cached_build_exit_confirmation": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-03T21:24:55.623974+00:00",
+      "source_commit": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-final-prefix-audit-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 50095,
+      "worker_pid": 50096,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 2.1868857978843153,
+      "sampled_process_tree_peak_rss_bytes": 421888,
+      "rusage_children_max_rss_bytes": 58777600,
+      "codex_allocated_bytes_latest": 2681368576,
+      "free_bytes_final": 14053867520,
+      "maximum_seconds": 600,
+      "maximum_rss_bytes": 103079215104,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "failed_transport_attempt": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-03T21:25:24.247704+00:00",
+      "source_commit": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-source-realizer",
+        "/root/codex/audit-1-args.json"
+      ],
+      "cwd": "/root/codex/geometric-final-prefix-audit-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 50114,
+      "worker_pid": 50115,
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 2.183058346621692,
+      "sampled_process_tree_peak_rss_bytes": 3358720,
+      "rusage_children_max_rss_bytes": 38383616,
+      "codex_allocated_bytes_latest": 2681401344,
+      "free_bytes_final": 14053834752,
+      "maximum_seconds": 300,
+      "maximum_rss_bytes": 3221225472,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "audit": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-03T21:27:08.486049+00:00",
+      "source_commit": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-source-realizer",
+        "/root/codex/audit-2-args.json"
+      ],
+      "cwd": "/root/codex/geometric-final-prefix-audit-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 50149,
+      "worker_pid": 50150,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 6.234660251997411,
+      "sampled_process_tree_peak_rss_bytes": 814542848,
+      "rusage_children_max_rss_bytes": 896438272,
+      "codex_allocated_bytes_latest": 2680459264,
+      "free_bytes_final": 13904220160,
+      "maximum_seconds": 300,
+      "maximum_rss_bytes": 3221225472,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "complete_resources": {
+    "charge_receipt": "/Users/casey.allard/.local/share/uor-r4/ledger/charge-resource-v1-6a7a5cf9d3fe9f67b60d9751803933b11c3f99380d41746192a3d03952406a90.json",
+    "complete_work_estimate_ms": 3600000,
+    "cumulative_before_ms": 1051635028,
+    "cumulative_after_ms": 1055235028,
+    "limit_ms": 1130000000
+  },
+  "negative_execution_scope": [
+    "Missing GNU time failed monitor before Cargo; repaired with process accounting.",
+    "Disappearing Cargo journal made first example monitor fail; compiler log finished9.19s, exact child exit unavailable; cached build then exited0 with receipt.",
+    "First audit rejected219 Mac AppleDouble transport sidecars before modelload; removed only checked transport metadata in Codex copies, original payloads/seals unchanged; freshaudit-2 passed."
+  ],
+  "next_decision": {
+    "status": "PROPOSED_NOT_RUN",
+    "task": "Bounded frozen-context native q4 potential readout-direction diagnostic",
+    "fixed": "Final context, Period, Stop, source/tokenizer/action vocabulary and all exposed canonical features. No new state/alphabet/unchanged joint fit.",
+    "change": "Evaluate a small declared set of legal one-quantum potential changes; compare exact native Copy margins/joint CE with readout-only declared adjoint. Retain all-row gains/regressions.",
+    "outcomes": [
+      "Improving native directions support focused existing-readout learning.",
+      "Predicted/actual direction disagreement supports credit-path diagnosis.",
+      "No sampled one-step improvement does not prove scorer/family impossibility."
+    ],
+    "adoption": "Diagnostic candidates are not automatically adopted models."
+  },
+  "integrated_head_check": {
+    "host": "Runpod Linux x86_64",
+    "recorded_utc": "2026-10-03T21:47:59.023403+00:00",
+    "source_commit": "ebd0a891d19ed23461c980157f6add0dec9140ae",
+    "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+    "command": [
+      "/root/.cargo/bin/cargo",
+      "check",
+      "--locked",
+      "-p",
+      "uor-r4-training",
+      "--example",
+      "geometric-source-realizer"
+    ],
+    "cwd": "/root/codex/geometric-final-prefix-audit-reconciled-ebd0a891",
+    "environment": {
+      "CARGO_HOME": "/root/codex/cargo-home",
+      "CARGO_TARGET_DIR": "/root/codex/target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "48",
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+      "RAYON_NUM_THREADS": "48",
+      "CUDA_VISIBLE_DEVICES": "",
+      "UOR_BUILD_SOURCE_COMMIT": "ebd0a891d19ed23461c980157f6add0dec9140ae",
+      "TMPDIR": "/root/codex/tmp"
+    },
+    "affinity_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "threads_budget": 48,
+    "wrapper_pid": 59304,
+    "worker_pid": 59305,
+    "exit_code": 0,
+    "stop_reason": null,
+    "elapsed_seconds": 46.94914597971365,
+    "sampled_process_tree_peak_rss_bytes": 2454286336,
+    "rusage_children_max_rss_bytes": 2461765632,
+    "codex_allocated_bytes_latest": 4380499968,
+    "free_bytes_final": 9154867200,
+    "maximum_seconds": 900,
+    "maximum_rss_bytes": 17179869184,
+    "gpu_used": false,
+    "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+  },
+  "pod_completion": {
+    "job_card_released": true,
+    "allocated_kib": 4287792,
+    "gpu_used": false,
+    "area": "/root/codex"
+  }
+}
