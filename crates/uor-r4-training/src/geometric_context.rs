@@ -514,15 +514,8 @@ impl ContextWeights {
         }
         Ok(())
     }
-    fn inputs(
-        &self,
-        ids: &[u32],
-        batch: usize,
-        time: usize,
-        detach_token_readouts: bool,
-    ) -> Result<(Tensor, Tensor)> {
+    fn graph_inputs(&self, detach_token_readouts: bool) -> Result<(Tensor, Tensor)> {
         self.validate()?;
-        validate_ids(&self.config, ids, batch, time)?;
         let mut tokens = Vec::new();
         let mut basis = Vec::new();
         for f in 0..3 {
@@ -539,10 +532,52 @@ impl ContextWeights {
                 basis.push(self.coefficient(NEIGHBOR[f])?.flatten_all()?);
             }
         }
-        let rows = Tensor::cat(&tokens, 1)?
+        Ok((
+            Tensor::cat(&tokens, 1)?.contiguous()?,
+            Tensor::cat(&basis, 0)?.contiguous()?,
+        ))
+    }
+    fn inputs(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        detach_token_readouts: bool,
+    ) -> Result<(Tensor, Tensor)> {
+        validate_ids(&self.config, ids, batch, time)?;
+        let (tokens, basis) = self.graph_inputs(detach_token_readouts)?;
+        let rows = tokens
             .index_select(&Tensor::from_vec(ids.to_vec(), ids.len(), &Device::Cpu)?, 0)?
             .reshape((batch, time, self.config.lanes() * 273))?;
-        Ok((rows.contiguous()?, Tensor::cat(&basis, 0)?.contiguous()?))
+        Ok((rows.contiguous()?, basis))
+    }
+    /// Prepare one immutable q4 source graph and admitted hard codec for a batch.
+    /// Discard this snapshot before mutating any source parameter.
+    pub fn prepare_q4<'a>(
+        &self,
+        codec: &'a uor_r4_integer::geometric_context_q4::NativeContextQ4,
+    ) -> Result<PreparedContextQ4<'a>> {
+        if !self.is_q4()
+            || codec.config() != self.q4_config()
+            || codec.packed_coefficients() != self.packed_coefficients()?
+        {
+            return Err(invalid(
+                "prepared context codec differs from actual q4 source",
+            ));
+        }
+        let (tokens, basis) = self.graph_inputs(false)?;
+        if codec.packed_coefficients() != self.packed_coefficients()? {
+            return Err(invalid(
+                "context source changed during prepared graph admission",
+            ));
+        }
+        Ok(PreparedContextQ4 {
+            config: self.config.clone(),
+            codec,
+            geometry: admit_geometry(PINNED)?,
+            tokens,
+            basis,
+        })
     }
     fn packed(
         &self,
@@ -762,6 +797,96 @@ impl ContextWeights {
             emitted_roots,
             categories,
             codes,
+        })
+    }
+}
+/// Batch-local offline graph snapshot. Reuses q4 expansion and source graph,
+/// while each prefix still executes its own native causal transitions.
+pub struct PreparedContextQ4<'a> {
+    config: GeometricContextConfig,
+    codec: &'a uor_r4_integer::geometric_context_q4::NativeContextQ4,
+    geometry: HistoricalH4Tables,
+    tokens: Tensor,
+    basis: Tensor,
+}
+impl PreparedContextQ4<'_> {
+    pub fn forward(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        reset_each_token: bool,
+    ) -> Result<ContextQ4Output> {
+        validate_ids(&self.config, ids, batch, time)?;
+        if batch > 32 || time > 128 {
+            return Err(invalid("prepared context requires batch<=32/time<=128"));
+        }
+        let trace = trace_native_tables(
+            ids,
+            batch,
+            time,
+            &self.config,
+            self.codec.native(),
+            &self.geometry,
+            reset_each_token,
+        )?;
+        let mut steps = Vec::with_capacity(ids.len());
+        let lanes = self.config.lanes();
+        for b in 0..batch {
+            let mut old = [1; 8];
+            for t in 0..time {
+                if reset_each_token {
+                    old.fill(1);
+                }
+                let row = b * time + t;
+                let mut new = [1; 8];
+                let mut actions = [1; 8];
+                new[..lanes].copy_from_slice(&trace.states[row]);
+                actions[..lanes].copy_from_slice(&trace.actions[row]);
+                steps.push(Step { old, new, actions });
+                old = new;
+            }
+        }
+        let rows = self
+            .tokens
+            .index_select(&Tensor::from_vec(ids.to_vec(), ids.len(), &Device::Cpu)?, 0)?
+            .reshape((batch, time, self.config.lanes() * 273))?
+            .contiguous()?;
+        let output = rows.apply_op2(
+            &self.basis,
+            ContextOp {
+                batch,
+                time,
+                heads: self.config.heads,
+                lanes_per_head: self.config.lanes_per_head,
+                reset: reset_each_token,
+                finite_choice: true,
+                native_steps: Some(Arc::new(steps)),
+            },
+        )?;
+        Ok(ContextQ4Output {
+            root_logits: output.narrow(3, 0, 120)?.contiguous()?.reshape((
+                batch,
+                time,
+                self.config.heads,
+                self.config.lanes_per_head,
+                120,
+            ))?,
+            category_logits: output.narrow(3, 120, 33)?.contiguous()?.reshape((
+                batch,
+                time,
+                self.config.heads,
+                self.config.lanes_per_head,
+                33,
+            ))?,
+            latent_roots: output.narrow(3, LATENT_OFFSET, 4)?.contiguous()?.reshape((
+                batch,
+                time,
+                self.config.heads,
+                self.config.lanes_per_head,
+                4,
+            ))?,
+            trace,
         })
     }
 }
@@ -2769,6 +2894,59 @@ mod tests {
             set(&weights, name, vec![0.; value.elem_count()])?;
         }
         Ok(weights)
+    }
+    #[test]
+    fn context_q4_prepared_reuse_preserves_outputs_and_credit() -> Result<()> {
+        let weights = strict_zero(3, 4, 1)?;
+        let codec = uor_r4_integer::geometric_context_q4::NativeContextQ4::new(
+            weights.q4_config(),
+            &weights.packed_coefficients()?,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let prepared = weights.prepare_q4(&codec)?;
+        // Successive prefixes exercise reuse after backward without changing source.
+        for ids in [&[0, 1][..], &[0, 1, 2][..]] {
+            let old = weights.forward_q4(ids, 1, ids.len(), false)?;
+            let new = prepared.forward(ids, 1, ids.len(), false)?;
+            assert_eq!(old.trace, new.trace);
+            assert_eq!(
+                tensor_bits(&old.latent_roots)?,
+                tensor_bits(&new.latent_roots)?
+            );
+            assert_eq!(
+                tensor_bits(&old.root_logits)?,
+                tensor_bits(&new.root_logits)?
+            );
+            assert_eq!(
+                tensor_bits(&old.category_logits)?,
+                tensor_bits(&new.category_logits)?
+            );
+            let a = old
+                .root_logits
+                .affine(1., 1.)?
+                .sqr()?
+                .sum_all()?
+                .backward()?;
+            let b = new
+                .root_logits
+                .affine(1., 1.)?
+                .sqr()?
+                .sum_all()?
+                .backward()?;
+            let mut credit = 0.;
+            for variable in weights.parameters().values() {
+                if let Some(g) = a.get(variable) {
+                    credit += norm(&g.flatten_all()?.to_vec1::<f32>()?);
+                }
+                match (a.get(variable), b.get(variable)) {
+                    (Some(a), Some(b)) => assert_eq!(tensor_bits(a)?, tensor_bits(b)?),
+                    (None, None) => (),
+                    _ => return Err(invalid("prepared gradient family presence differs")),
+                }
+            }
+            assert!(credit > 0., "parity must exercise nonzero credit");
+        }
+        Ok(())
     }
     #[test]
     fn context_q4_native_trace_live_grid_noninjective_absence_and_prefix() -> Result<()> {

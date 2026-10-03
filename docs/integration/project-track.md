@@ -78,6 +78,36 @@ authored answer template alone is not a learned geometric consumer. Compare a
 geometric selector with an ordinary control given the same frame information,
 candidate access, capacity and cost. Gold labels remain training/diagnostic only.
 
+The [complete-answer cost and boundary audit](geometric-source-learning-2026-10-03.md)
+now show that the raw source tokenization omits protocol-space first tokens, and
+that the frozen-parent mixture cannot reorder the unsupported canonical period.
+Do not admit an unchanged hybrid fit. Preserve exact store IDs/bytes while
+validating the label-free lexical view, then learn bounded geometric
+Copy/EmitPeriod/Stop output scores without a parent distribution. Bind the action
+vocabulary to tokenizer/protocol. One fixed64/B8 parent-free native fit now
+improves exposed complete replies0→4/20 with EOS20/20 and changed packed
+coefficients; the four successes repeat one source value. Next audit actual
+occurrence/progress state, source-start ranking, post-Period recurrence and
+premature Stop without another unchanged fit. Preserve these partial results;
+they do not establish complete chat or generalization.
+
+The [implemented occurrence consumer](geometric-source-consumer-2026-10-03.md)
+passes the bounded actual-BPE zero-update credit/export construction; it is not
+yet fitted or integrated into the shared chat session. **Owner correction,
+October 3:** first make this geometric path learn useful source-bound complete
+responses; beating a transformer is a later programme goal, not the admission
+criterion for developing or retaining these mechanisms. Measure short/long
+complete B8 cost and admit a bounded geometric continuation. Learned reader
+controls follow for attribution and improvement, rather than blocking this
+first working path. Preserve the information/capacity/cost boundaries for later
+comparative claims: a stronger full bilinear read control has additional active
+coefficients and table cost, which must be disclosed rather than described as an
+exact match. Both readers retain the same H4 context, so that comparison isolates
+the read relation. Judge complete generated answers and EOS, not copied words or
+teacher-forced loss alone. The current floating mixture cannot independently
+reorder two tokens absent from the selected source; a witnessed non-copy/Stop
+failure calls for conditional emission support instead of another selector dose.
+
 If predicted actions or stored records are wrong, repair the existing supervised
 compiler/write interface. If answers follow the right value but fail wording or
 Stop, repair emission. Mixed evidence does not automatically admit a scale run,

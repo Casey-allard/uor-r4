@@ -22,6 +22,7 @@ pub mod geometric_context_q4;
 pub mod geometric_event;
 pub mod geometric_event_q4;
 pub mod geometric_no_read;
+pub mod geometric_occurrence_read;
 pub mod geometric_potential;
 pub mod geometric_potential_q4;
 pub mod geometric_read;
