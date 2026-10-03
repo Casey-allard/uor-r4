@@ -17,11 +17,40 @@
 set -uo pipefail
 P="$HOME/uor-r4-local/chat-v0-20260925/prepared"
 T="$HOME/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json"
-I="$HOME/uor-r4-worktrees/stack-prose-reports/main-10000/geometric-s1/model"
-O="$HOME/uor-r4-worktrees/stack-prose-reports/chat-fulldose-1"
-export CARGO_TARGET_DIR="$HOME/.cache/uor-r4-opencode-target"
-export RAYON_NUM_THREADS=8
-B="$CARGO_TARGET_DIR/release/examples/geometric-stack"
+I="${REPORTS:-$HOME/uor-r4-worktrees/reports}/main-10000/geometric-s1/model"
+O="${REPORTS:-$HOME/uor-r4-worktrees/reports}/chat-fulldose-1"
+# Resolve the training binary. An earlier revision hardcoded
+# CARGO_TARGET_DIR="$HOME/.cache/uor-r4-opencode-target", which a storage cleanup
+# DELETED, so every invocation died with "No such file or directory" for the
+# binary -- a failure that reads as a missing file, not as a stale build path.
+# Resolution order, most-explicit first:
+#   1. STACK_BIN               -- an explicit binary, e.g. a pinned revision
+#   2. CARGO_TARGET_DIR        -- honour it when the caller sets it
+#   3. a prebuilt shared binary -- what the other lanes actually run
+#   4. build from source       -- last resort, offline, into a private cache
+resolve_stack_bin() {
+  if [ -n "${STACK_BIN:-}" ] && [ -x "${STACK_BIN}" ]; then
+    printf '%s\n' "$STACK_BIN"; return 0
+  fi
+  if [ -n "${CARGO_TARGET_DIR:-}" ] \
+     && [ -x "$CARGO_TARGET_DIR/release/examples/geometric-stack" ]; then
+    printf '%s\n' "$CARGO_TARGET_DIR/release/examples/geometric-stack"; return 0
+  fi
+  local shared
+  for shared in "$HOME"/.local/share/uor-r4/bin/geometric-stack-*; do
+    [ -x "$shared" ] || continue
+    printf '%s\n' "$shared"; return 0
+  done
+  local cache="$HOME/.cache/uor-r4-stack-bin"
+  export CARGO_TARGET_DIR="$cache"
+  ( cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)" \
+    && ~/.cargo/bin/cargo build --release -j 2 --features cpu-accelerate \
+         -p uor-r4-training --example geometric-stack ) >&2 || return 1
+  printf '%s\n' "$cache/release/examples/geometric-stack"
+}
+B="$(resolve_stack_bin)" || { echo "FATAL: no usable geometric-stack binary"; exit 1; }
+[ -x "$B" ] || { echo "FATAL: resolved binary is not executable: $B"; exit 1; }
+echo "[$(date -u +%H:%M:%SZ)] binary: $B"
 mkdir -p "$O"
 
 # Phase A: prose init + a FULL pass over chat-v0 (20,149 updates = 82.5M tokens).

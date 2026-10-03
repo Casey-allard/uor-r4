@@ -13,7 +13,7 @@ set -euo pipefail
 
 ROOT="${1:?usage: post-epoch-eval.sh <arm-root> <label>}"
 LABEL="${2:?usage: post-epoch-eval.sh <arm-root> <label>}"
-REPORTS="$HOME/uor-r4-worktrees/stack-prose-reports"
+REPORTS="${REPORTS:-$HOME/uor-r4-worktrees/reports}"
 # Resolve the root: ~, then a bare name under the reports root, so callers can
 # pass just the arm name the way score-chat-arm.py accepts it.
 ROOT="${ROOT/#\~/$HOME}"
@@ -21,7 +21,38 @@ case "$ROOT" in
   /*) ;;
   *) ROOT="$REPORTS/$ROOT" ;;
 esac
-STACK="$HOME/.cache/uor-r4-opencode-target/release/examples/geometric-stack"
+# Resolve the training binary. An earlier revision hardcoded
+# CARGO_TARGET_DIR="$HOME/.cache/uor-r4-opencode-target", which a storage cleanup
+# DELETED, so every invocation died with "No such file or directory" for the
+# binary -- a failure that reads as a missing file, not as a stale build path.
+# Resolution order, most-explicit first:
+#   1. STACK_BIN               -- an explicit binary, e.g. a pinned revision
+#   2. CARGO_TARGET_DIR        -- honour it when the caller sets it
+#   3. a prebuilt shared binary -- what the other lanes actually run
+#   4. build from source       -- last resort, offline, into a private cache
+resolve_stack_bin() {
+  if [ -n "${STACK_BIN:-}" ] && [ -x "${STACK_BIN}" ]; then
+    printf '%s\n' "$STACK_BIN"; return 0
+  fi
+  if [ -n "${CARGO_TARGET_DIR:-}" ] \
+     && [ -x "$CARGO_TARGET_DIR/release/examples/geometric-stack" ]; then
+    printf '%s\n' "$CARGO_TARGET_DIR/release/examples/geometric-stack"; return 0
+  fi
+  local shared
+  for shared in "$HOME"/.local/share/uor-r4/bin/geometric-stack-*; do
+    [ -x "$shared" ] || continue
+    printf '%s\n' "$shared"; return 0
+  done
+  local cache="$HOME/.cache/uor-r4-stack-bin"
+  export CARGO_TARGET_DIR="$cache"
+  ( cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)" \
+    && ~/.cargo/bin/cargo build --release -j 2 --features cpu-accelerate \
+         -p uor-r4-training --example geometric-stack ) >&2 || return 1
+  printf '%s\n' "$cache/release/examples/geometric-stack"
+}
+B="$(resolve_stack_bin)" || { echo "FATAL: no usable geometric-stack binary"; exit 1; }
+[ -x "$B" ] || { echo "FATAL: resolved binary is not executable: $B"; exit 1; }
+echo "[$(date -u +%H:%M:%SZ)] binary: $B"
 TOK="$HOME/uor-r4-local/inputs/claude-t4-1433-resume/bundle-learned-1/tokenizer.json"
 CAL="$HOME/uor-r4-local/chat-v0-20260925/prepared/train/tokens.u16"
 # The derived 38-request development panel (the retained panel died with the
