@@ -216,7 +216,7 @@ and principal therefore prioritize **one later same-checkpoint emission/selectio
 causal diagnostic**, using the witnessed failures and both arms. Its decision
 must distinguish poorly ranked semantic predictions from stochastic deviations
 and collect missing component evidence only where necessary. The
-[current work card](current-state.md#next-single-work-card--failure-localization)
+[current work card](../history/current-state-2026-09-25-to-2026-10-02.md#executed-same-checkpoint-emissionselection-diagnostic-september-27)
 sets its scope; this result executes or authorizes no replay, new acceptance
 panel, decoding-policy change or weight update. Existing-record localization is
 already complete to this priority; the root cause remains UNRESOLVED.

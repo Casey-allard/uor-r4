@@ -5,7 +5,7 @@ Prospective work card, September 25, 2026. References #973 under #820.
 **Closed September26 at this exposure scope.** Both continuous finals and the
 frozen downstream packet completed; none of the four arm/path groups meets the
 prose improvement rule. The [completed result](language-continuation-result-2026-09-26.md)
-owns the outcome and the [current work card](current-state.md#next-single-work-card--failure-localization)
+owns the outcome and the [current work card](../history/current-state-2026-09-25-to-2026-10-02.md#executed-same-checkpoint-emissionselection-diagnostic-september-27)
 owns the recommended later causal diagnostic. Earlier launch/recovery instructions below
 are historical; they do not authorize another dose or repeat campaign.
 
@@ -251,7 +251,7 @@ engineering pass does not substitute for prose acceptance.
 
 Close exposure-only fitting without promotion. Completed existing-record analysis
 prioritizes the emission/selection interface but leaves the root cause UNRESOLVED.
-The [single recommended later work card](current-state.md#next-single-work-card--failure-localization)
+The [single recommended later work card](../history/current-state-2026-09-25-to-2026-10-02.md#executed-same-checkpoint-emissionselection-diagnostic-september-27)
 is a same-checkpoint causal diagnostic of poorly ranked predictions versus
 stochastic deviations, with missing component probabilities collected only where
 necessary. This closeout changes no criterion and authorizes no replay, extra

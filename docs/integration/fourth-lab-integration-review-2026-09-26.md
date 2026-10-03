@@ -17,7 +17,7 @@ the advertised test suites.
 The [completed language continuation](language-continuation-result-2026-09-26.md)
 improved natural likelihood but missed its fixed prose criteria: continuous
 0/5 in both arms, integer 0/5 quaternion and 1/5 ordinary. Neither candidate is
-promoted. The [current work card](current-state.md#next-single-work-card--failure-localization)
+promoted. The [current work card](../history/current-state-2026-09-25-to-2026-10-02.md#executed-same-checkpoint-emissionselection-diagnostic-september-27)
 prioritizes emission/selection localization with existing checkpoints; another
 exposure-only fit is not justified by that result. The owner checkout remained
 at September 25 commit `413a32fc`, whose next-action text was stale. The

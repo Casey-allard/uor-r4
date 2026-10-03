@@ -21,7 +21,7 @@ remain goals.
 - [Current model direction and development instructions](integration/model-direction-2026-09.md)
 - [Research storage and imported history](../research/README.md)
 - [Local project knowledge index](../tools/uor-knowledge/README.md)
-- [Capability roadmap and Studio handoffs](../ROADMAP.md#capability-direction)
+- [Capability roadmap and Studio handoffs](../ROADMAP.md#order-of-work)
 - [Complete architecture/source reconciliation](integration/architecture-2026-09/README.md)
 - [Canonical goal and immediate build sequence](integration/project-track.md#immediate-build-sequence)
 - [Current implemented state and remaining failure](integration/current-state.md)

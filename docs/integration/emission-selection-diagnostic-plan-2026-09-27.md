@@ -1,7 +1,7 @@
 # Same-checkpoint emission/selection diagnostic plan (September 27, 2026)
 
 **Status boundary.** This plan executes the
-[recommended single work card](current-state.md#next-single-work-card--failure-localization)
+[recommended single work card](../history/current-state-2026-09-25-to-2026-10-02.md#executed-same-checkpoint-emissionselection-diagnostic-september-27)
 after the completed full-context language continuation. It is **read-only**: the
 same sealed step-15,672 checkpoints, the same frozen prompts, seeds, sampling
 policy and mode; no weight change, no decoding change, no fit, no new acceptance
