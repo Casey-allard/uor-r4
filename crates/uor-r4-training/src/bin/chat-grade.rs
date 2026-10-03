@@ -297,6 +297,65 @@ fn parse_yes_no(answer: &str) -> Option<bool> {
     }
 }
 
+impl Grades {
+    fn acceptable(&self) -> bool {
+        self.fluent == Some(true) && self.relevant == Some(true)
+    }
+}
+
+/// Paired verdicts of each request's actual reply and its derangement
+/// control: the discordant counts and the two-sided exact McNemar test.
+#[derive(Default)]
+struct Paired {
+    /// Actual yes, control no.
+    actual_only: u64,
+    /// Control yes, actual no.
+    control_only: u64,
+    both: u64,
+    neither: u64,
+}
+
+impl Paired {
+    fn add(&mut self, actual: bool, control: bool) {
+        match (actual, control) {
+            (true, false) => self.actual_only += 1,
+            (false, true) => self.control_only += 1,
+            (true, true) => self.both += 1,
+            (false, false) => self.neither += 1,
+        }
+    }
+
+    fn record(&self) -> Value {
+        let p = mcnemar_exact(self.actual_only, self.control_only);
+        json!({
+            "actual_only": self.actual_only, "control_only": self.control_only,
+            "both": self.both, "neither": self.neither,
+            "mcnemar_exact_p": p,
+            "discriminates": self.actual_only > self.control_only && p < 0.05,
+        })
+    }
+}
+
+/// Two-sided exact McNemar p-value for discordant counts `b` and `c`: twice
+/// the binomial(b + c, 1/2) tail at min(b, c), capped at 1.
+fn mcnemar_exact(b: u64, c: u64) -> f64 {
+    let n = b + c;
+    if n == 0 {
+        return 1.0;
+    }
+    let k = b.min(c);
+    // log C(n, i) - n log 2, summed in probability space.
+    let mut log_choose = 0f64;
+    let mut tail = 0f64;
+    for i in 0..=k {
+        if i > 0 {
+            log_choose += ((n - i + 1) as f64).ln() - (i as f64).ln();
+        }
+        tail += (log_choose - n as f64 * std::f64::consts::LN_2).exp();
+    }
+    (2.0 * tail).min(1.0)
+}
+
 #[derive(Default)]
 struct Tally {
     replies: usize,
@@ -438,6 +497,7 @@ fn grade_into(
         })
         .collect();
     let (mut actual, mut control) = (Tally::default(), Tally::default());
+    let (mut acceptable_pairs, mut relevant_pairs) = (Paired::default(), Paired::default());
     let mut per_category: BTreeMap<String, Tally> = BTreeMap::new();
     let mut graded_rows = Vec::new();
     let n = conversations.len();
@@ -459,6 +519,11 @@ fn grade_into(
         }
         let control_grades = grader.grade(&swapped)?;
         control.add(&control_grades);
+        acceptable_pairs.add(grades.acceptable(), control_grades.acceptable());
+        relevant_pairs.add(
+            grades.relevant == Some(true),
+            control_grades.relevant == Some(true),
+        );
         graded_rows.push(json!({
             "id": requests[i].id, "category": requests[i].category,
             "conversation": conversation.iter().map(|(u, a)| json!({"user": u, "assistant": a})).collect::<Vec<_>>(),
@@ -483,6 +548,11 @@ fn grade_into(
         },
         "actual": actual.record(),
         "control_derangement": control.record(),
+        "paired_against_control": {
+            "acceptable": acceptable_pairs.record(),
+            "relevant": relevant_pairs.record(),
+            "rule": "a chat reading counts only if the actual replies beat the derangement control on the same requests with a two-sided exact McNemar p < 0.05",
+        },
         "control_rule": "each reply graded as the answer to the next request's last turn; relevance must fall for the grader to be measuring relevance",
         "per_category": per_category.iter().map(|(k, t)| (k.clone(), t.record())).collect::<BTreeMap<_, _>>(),
         "rows": graded_rows,
@@ -507,6 +577,11 @@ mod tests {
         assert_eq!(parse_yes_no("Yes."), Some(true));
         assert_eq!(parse_yes_no(" no, it does not"), Some(false));
         assert_eq!(parse_yes_no("Maybe"), None);
+        // Exact McNemar: 8 vs 0 discordant gives 2 / 2^8; balanced gives 1.
+        assert!((mcnemar_exact(8, 0) - 2.0 / 256.0).abs() < 1e-12);
+        assert!((mcnemar_exact(3, 3) - 1.0).abs() < 1e-12);
+        assert!((mcnemar_exact(0, 0) - 1.0).abs() < 1e-12);
+        assert!(mcnemar_exact(10, 2) < 0.05 && mcnemar_exact(6, 2) > 0.05);
         assert_eq!(
             first_user_turn("User: Hello there\nAssistant: Hi"),
             Some("Hello there".into())
