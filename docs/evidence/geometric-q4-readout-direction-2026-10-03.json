@@ -1,0 +1,1530 @@
+{
+  "schema": "uor-r4.geometric-q4-readout-direction-evidence/1",
+  "executed_source_commit": "7a517dffe5021352c58ee8046118c88b9b532d25",
+  "example_sha256": "be97afea562ad8fdcc3348716550e52b21a66e33255f9dd0e1709b4f7d4c2863",
+  "fit_source_commit": "ab4d3d7af45c8da5e1d967ee86abd19e1caaaddf",
+  "report_sha256": "b9b0deaf8c54a5457a0e57be331b17480d758c8e26c806ab3c5f54ad64b8de55",
+  "executable_sha256": "31ddfc7a1645046ba03f691cac34f719c680cbc38530a8f7c911fcaa23d9f5c5",
+  "checkpoint_manifest_sha256": "a283b97c6d9ec4bfcae8e219fc3d2b9b0df03e21e64eb04431f2c328f1a7e3b2",
+  "audit_report_sha256": "9db810a31dbf9fc34189d7d9b0279da5780b17e2aa2c8cd1fce56fcdf29d0f46",
+  "retained_report_sha256": "f60171bbcbab23c46fca71f6864834223f9164bc17a553e4e9f92de334d1f089",
+  "optimizer_updates": 0,
+  "scope": "bounded local direction evidence on114 exposed canonical positions; no expressivity, credit-bug, geometry-advantage or chat qualification from a finite perturbation",
+  "saved_generation_exact": true,
+  "candidate_ownprefix_generation": "NOT_RUN",
+  "no_adopted_model": true,
+  "packed_input_unchanged": true,
+  "source_shadows_restored_executed_assertion": true,
+  "selected": [
+    {
+      "calibration": false,
+      "gradient": 0.1060409907840949,
+      "index": 7,
+      "name": "consumer.potential.context_unary",
+      "original_q": 1,
+      "original_shadow": 0.17580091953277588,
+      "eligibility_witness_count": 34
+    },
+    {
+      "calibration": false,
+      "gradient": 0.09533814276801422,
+      "index": 24,
+      "name": "consumer.potential.context_unary",
+      "original_q": 1,
+      "original_shadow": 0.14330559968948364,
+      "eligibility_witness_count": 44
+    },
+    {
+      "calibration": false,
+      "gradient": -0.09324871987337247,
+      "index": 29,
+      "name": "consumer.potential.context_unary",
+      "original_q": -2,
+      "original_shadow": -0.3813290596008301,
+      "eligibility_witness_count": 42
+    },
+    {
+      "calibration": false,
+      "gradient": 0.09223363868659362,
+      "index": 17,
+      "name": "consumer.potential.context_unary",
+      "original_q": 0,
+      "original_shadow": 0.04292288050055504,
+      "eligibility_witness_count": 40
+    },
+    {
+      "calibration": true,
+      "gradient": 0.026852804934605956,
+      "index": 0,
+      "name": "consumer.potential.content_presence",
+      "original_q": 1,
+      "original_shadow": 0.3583560883998871,
+      "eligibility_witness_count": 0
+    }
+  ],
+  "analytic_adjoint": [
+    {
+      "family": "consumer.potential.context_unary",
+      "index": 7,
+      "independent_analytic_gradient_nat": 0.10604098323748544,
+      "candle_extracted_gradient_nat": 0.1060409907840949,
+      "absolute_difference": 7.546609462338871e-09,
+      "tolerance": 0.0001160409907840949,
+      "recorded_analytic_gradient": 0.10604098323748544,
+      "difference_from_recorded_analytic": 0.0
+    },
+    {
+      "family": "consumer.potential.context_unary",
+      "index": 24,
+      "independent_analytic_gradient_nat": 0.09533813127795149,
+      "candle_extracted_gradient_nat": 0.09533814276801422,
+      "absolute_difference": 1.1490062734598183e-08,
+      "tolerance": 0.00010533814276801422,
+      "recorded_analytic_gradient": 0.09533813127795149,
+      "difference_from_recorded_analytic": 0.0
+    },
+    {
+      "family": "consumer.potential.context_unary",
+      "index": 29,
+      "independent_analytic_gradient_nat": -0.09324871721547243,
+      "candle_extracted_gradient_nat": -0.09324871987337247,
+      "absolute_difference": 2.657900038949279e-09,
+      "tolerance": 0.00010324871987337247,
+      "recorded_analytic_gradient": -0.09324871721547243,
+      "difference_from_recorded_analytic": 0.0
+    },
+    {
+      "family": "consumer.potential.context_unary",
+      "index": 17,
+      "independent_analytic_gradient_nat": 0.09223362589046702,
+      "candle_extracted_gradient_nat": 0.09223363868659362,
+      "absolute_difference": 1.2796126602765412e-08,
+      "tolerance": 0.00010223363868659362,
+      "recorded_analytic_gradient": 0.09223362589046702,
+      "difference_from_recorded_analytic": 0.0
+    },
+    {
+      "family": "consumer.potential.content_presence",
+      "index": 0,
+      "independent_analytic_gradient_nat": 0.02685280163123301,
+      "candle_extracted_gradient_nat": 0.026852804934605956,
+      "absolute_difference": 3.303372946711347e-09,
+      "tolerance": 3.685280493460596e-05,
+      "recorded_analytic_gradient": 0.02685280163123301,
+      "difference_from_recorded_analytic": 0.0
+    }
+  ],
+  "independent_recount": {
+    "baseline": {
+      "episode_count": 20,
+      "target_count": 114,
+      "objective": 1.3407132581004553,
+      "stage": {
+        "initial_copy": {
+          "n": 20,
+          "correct": 10,
+          "copy_best": 10,
+          "ce_sum": 31.217642633313268,
+          "episode_weighted_ce_contribution": 0.28138494554817234
+        },
+        "later_copy": {
+          "n": 54,
+          "correct": 8,
+          "copy_best": 10,
+          "ce_sum": 104.01759384082662,
+          "episode_weighted_ce_contribution": 0.7466482811432865
+        },
+        "period": {
+          "n": 20,
+          "correct": 18,
+          "copy_best": 0,
+          "ce_sum": 12.053153202167621,
+          "episode_weighted_ce_contribution": 0.08725057337128338
+        },
+        "stop": {
+          "n": 20,
+          "correct": 10,
+          "copy_best": 0,
+          "ce_sum": 25.708934114299684,
+          "episode_weighted_ce_contribution": 0.2254294580377129
+        }
+      },
+      "decomposition": {
+        "copy_conditional_contribution": 0.8346754588210976,
+        "copy_gate_contribution": 0.19335776787036135,
+        "terminal_contribution": 0.31268003140899625,
+        "equal_episode_copy_conditional_ce": 1.2718827794919938
+      }
+    },
+    "candidates": [
+      {
+        "path": "candidate-00/report.json",
+        "report_sha256": "a57620212630116e872c54fb1da320979b38f445a809ef2f6a754061f8208e68",
+        "family": "consumer.potential.context_unary",
+        "index": 7,
+        "delta_q": -1,
+        "actual_shadow_delta": -0.17580091953277588,
+        "predicted_lattice_delta_ce": -0.026510247696023725,
+        "measured_delta_ce": -0.024264726350471832,
+        "correct": 42,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.009736952537753807
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 4,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 4,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.005821545509767767
+          },
+          "period": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 18,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.001504395487736565
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.007201832815213333
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0124-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 34,
+        "ce_gains": 76,
+        "decomposition_delta": {
+          "copy_conditional_contribution": -0.014791527254468528,
+          "copy_gate_contribution": -0.0007669707930529346,
+          "terminal_contribution": -0.00870622830294987,
+          "equal_episode_copy_conditional_ce": -0.0233909193592734
+        }
+      },
+      {
+        "path": "candidate-01/report.json",
+        "report_sha256": "e9754b04bb5e3b634faae4df6dbe7ae2d435d02a55cf1ec51ceed456ea6e1f03",
+        "family": "consumer.potential.context_unary",
+        "index": 7,
+        "delta_q": 1,
+        "actual_shadow_delta": 0.3241990804672241,
+        "predicted_lattice_delta_ce": 0.026510247696023725,
+        "measured_delta_ce": 0.02876828643735152,
+        "correct": 40,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.010280096811525308
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 8,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.008347681421595143
+          },
+          "period": {
+            "gains": 0,
+            "losses": 6,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 12,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.002346034483798304
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.0077944737204327375
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0288-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 82,
+        "ce_gains": 28,
+        "decomposition_delta": {
+          "copy_conditional_contribution": 0.01805493858304552,
+          "copy_gate_contribution": 0.0005728396500755961,
+          "terminal_contribution": 0.010140508204231125,
+          "equal_episode_copy_conditional_ce": 0.028196703320618743
+        }
+      },
+      {
+        "path": "candidate-02/report.json",
+        "report_sha256": "cf9701fcc9848eb510edc6fb07c63ac9db270a4646a653cdd5919115d1e25823",
+        "family": "consumer.potential.context_unary",
+        "index": 24,
+        "delta_q": -1,
+        "actual_shadow_delta": -0.14330559968948364,
+        "predicted_lattice_delta_ce": -0.023834535692003556,
+        "measured_delta_ce": -0.020221157857426064,
+        "correct": 46,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.010586088990633236
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 8,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.027598676519570264
+          },
+          "period": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 18,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.0008152535075889172
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.004023823836077717
+          }
+        },
+        "changed_correctness": [],
+        "ce_regressions": 44,
+        "ce_gains": 60,
+        "decomposition_delta": {
+          "copy_conditional_contribution": -0.013626855008274652,
+          "copy_gate_contribution": -0.0033857325206624878,
+          "terminal_contribution": -0.003208570328488647,
+          "equal_episode_copy_conditional_ce": -0.019751427548446943
+        }
+      },
+      {
+        "path": "candidate-03/report.json",
+        "report_sha256": "eb3dbf02e7b6f0ab195df1f9b3412b311dbe53843960528019241cd47c57cab3",
+        "family": "consumer.potential.context_unary",
+        "index": 24,
+        "delta_q": 1,
+        "actual_shadow_delta": 0.35669440031051636,
+        "predicted_lattice_delta_ce": 0.023834535692003556,
+        "measured_delta_ce": 0.027371651104264094,
+        "correct": 42,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.009089952176928318
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 4,
+            "copy_gains": 0,
+            "copy_losses": 2,
+            "correct": 4,
+            "copy_best": 8,
+            "delta_ce_contribution": 0.03191556760303338
+          },
+          "period": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 18,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.00038638797574185035
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.004932423653901036
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0124-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 62,
+        "ce_gains": 42,
+        "decomposition_delta": {
+          "copy_conditional_contribution": 0.01997432741494165,
+          "copy_gate_contribution": 0.002851288011163383,
+          "terminal_contribution": 0.004546035678159199,
+          "equal_episode_copy_conditional_ce": 0.030036405495480034
+        }
+      },
+      {
+        "path": "candidate-04/report.json",
+        "report_sha256": "463cec30587fc68b7a70118ba0b632f7312aa45908bb201764d3aa591de8a2f9",
+        "family": "consumer.potential.context_unary",
+        "index": 29,
+        "delta_q": -1,
+        "actual_shadow_delta": -0.3686709403991699,
+        "predicted_lattice_delta_ce": 0.023312179968343116,
+        "measured_delta_ce": 0.02674810287206264,
+        "correct": 48,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.001130672022641499
+          },
+          "later_copy": {
+            "gains": 2,
+            "losses": 0,
+            "copy_gains": 2,
+            "copy_losses": 2,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.025255912613135978
+          },
+          "period": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 18,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.002605335816229723
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.005228198097797787
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0288-s0-d0",
+            "step": 8,
+            "stage": "later_copy",
+            "target": 73,
+            "old_chosen": 78,
+            "new_chosen": 73,
+            "gain": true
+          },
+          {
+            "id": "mw2-0288-s0-d1",
+            "step": 8,
+            "stage": "later_copy",
+            "target": 73,
+            "old_chosen": 78,
+            "new_chosen": 73,
+            "gain": true
+          }
+        ],
+        "ce_regressions": 64,
+        "ce_gains": 42,
+        "decomposition_delta": {
+          "copy_conditional_contribution": 0.026594407978197676,
+          "copy_gate_contribution": -0.0024691673877026976,
+          "terminal_contribution": 0.0026228622815680502,
+          "equal_episode_copy_conditional_ce": 0.044534752210270145
+        }
+      },
+      {
+        "path": "candidate-05/report.json",
+        "report_sha256": "9e881f524cbaed1693ab0aca971dd2ca4cd425e9c5528303520fb6cde181e8f7",
+        "family": "consumer.potential.context_unary",
+        "index": 29,
+        "delta_q": 1,
+        "actual_shadow_delta": 0.13132905960083008,
+        "predicted_lattice_delta_ce": -0.023312179968343116,
+        "measured_delta_ce": -0.01991974858742429,
+        "correct": 36,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.0032603589360625795
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 4,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 4,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.022418397095696152
+          },
+          "period": {
+            "gains": 0,
+            "losses": 6,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 12,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.003176178372496008
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.003937888800286865
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0288-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 42,
+        "ce_gains": 64,
+        "decomposition_delta": {
+          "copy_conditional_contribution": -0.020934252110906826,
+          "copy_gate_contribution": 0.0017762139512734754,
+          "terminal_contribution": -0.0007617104277908293,
+          "equal_episode_copy_conditional_ce": -0.035309575631127244
+        }
+      },
+      {
+        "path": "candidate-06/report.json",
+        "report_sha256": "5d3f991d5c0f84b5dcdf0af92eb276a1472c9e4ab29c8d71dc27a69cc9f3d483",
+        "family": "consumer.potential.context_unary",
+        "index": 17,
+        "delta_q": -1,
+        "actual_shadow_delta": -0.29292288050055504,
+        "predicted_lattice_delta_ce": -0.023058409671648405,
+        "measured_delta_ce": -0.019774917073097864,
+        "correct": 40,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.004294776607966233
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 8,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.01907183535083512
+          },
+          "period": {
+            "gains": 0,
+            "losses": 6,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 12,
+            "copy_best": 0,
+            "delta_ce_contribution": 5.092676627589665e-05
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.003540768119427773
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0288-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 48,
+        "ce_gains": 60,
+        "decomposition_delta": {
+          "copy_conditional_contribution": -0.021166945623149136,
+          "copy_gate_contribution": -0.002199666335652495,
+          "terminal_contribution": 0.0035916948857038222,
+          "equal_episode_copy_conditional_ce": -0.03597530248802139
+        }
+      },
+      {
+        "path": "candidate-07/report.json",
+        "report_sha256": "40b1a74cf3bce7894aff0eef74243ea6ba52bc71842706c98cb20f328b1f770b",
+        "family": "consumer.potential.context_unary",
+        "index": 17,
+        "delta_q": 1,
+        "actual_shadow_delta": 0.20707711949944496,
+        "predicted_lattice_delta_ce": 0.023058409671648405,
+        "measured_delta_ce": 0.026301861198362975,
+        "correct": 44,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.004917766294572579
+          },
+          "later_copy": {
+            "gains": 2,
+            "losses": 4,
+            "copy_gains": 2,
+            "copy_losses": 2,
+            "correct": 6,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.022672749515058488
+          },
+          "period": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 18,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.0007097282099567948
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.0019983828212249144
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0288-s0-d0",
+            "step": 8,
+            "stage": "later_copy",
+            "target": 73,
+            "old_chosen": 78,
+            "new_chosen": 73,
+            "gain": true
+          },
+          {
+            "id": "mw2-0288-s0-d1",
+            "step": 8,
+            "stage": "later_copy",
+            "target": 73,
+            "old_chosen": 78,
+            "new_chosen": 73,
+            "gain": true
+          },
+          {
+            "id": "mw2-0124-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 60,
+        "ce_gains": 48,
+        "decomposition_delta": {
+          "copy_conditional_contribution": 0.026160565008467307,
+          "copy_gate_contribution": 0.0014299508011645645,
+          "terminal_contribution": -0.0012886546112682584,
+          "equal_episode_copy_conditional_ce": 0.044054999326941235
+        }
+      },
+      {
+        "path": "candidate-08/report.json",
+        "report_sha256": "817566a3cf6473f6d3573bf580ec776c41336775453a2559e5e399f3b8ce3610",
+        "family": "consumer.potential.content_presence",
+        "index": 0,
+        "delta_q": -1,
+        "actual_shadow_delta": -0.3583560883998871,
+        "predicted_lattice_delta_ce": -0.006713201233651489,
+        "measured_delta_ce": -0.0026100393691559365,
+        "correct": 42,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.019100117924511995
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 4,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 4,
+            "copy_best": 10,
+            "delta_ce_contribution": 0.014942567583411392
+          },
+          "period": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 18,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.012322111065381225
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": -0.024330613811697793
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0124-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "step": 1,
+            "stage": "later_copy",
+            "target": 277,
+            "old_chosen": 277,
+            "new_chosen": 16,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 74,
+        "ce_gains": 40,
+        "decomposition_delta": {
+          "copy_conditional_contribution": 8.057695066732151e-09,
+          "copy_gate_contribution": 0.034042677450228154,
+          "terminal_contribution": -0.036652724877079046,
+          "equal_episode_copy_conditional_ce": 9.312749238432616e-09
+        }
+      },
+      {
+        "path": "candidate-09/report.json",
+        "report_sha256": "fedca9eeca4ff115de555c8d0f50d78fe7b7acec28de37077a6ceccb18ad281e",
+        "family": "consumer.potential.content_presence",
+        "index": 0,
+        "delta_q": 1,
+        "actual_shadow_delta": 0.14164391160011292,
+        "predicted_lattice_delta_ce": 0.006713201233651489,
+        "measured_delta_ce": 0.010682479634330999,
+        "correct": 40,
+        "stage": {
+          "initial_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.01715600758110425
+          },
+          "later_copy": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 8,
+            "copy_best": 10,
+            "delta_ce_contribution": -0.012438283906230918
+          },
+          "period": {
+            "gains": 0,
+            "losses": 6,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 12,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.013676331981547607
+          },
+          "stop": {
+            "gains": 0,
+            "losses": 0,
+            "copy_gains": 0,
+            "copy_losses": 0,
+            "correct": 10,
+            "copy_best": 0,
+            "delta_ce_contribution": 0.026600439140118642
+          }
+        },
+        "changed_correctness": [
+          {
+            "id": "mw2-0288-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "step": 4,
+            "stage": "period",
+            "target": 16,
+            "old_chosen": 16,
+            "new_chosen": 2593,
+            "gain": false
+          }
+        ],
+        "ce_regressions": 40,
+        "ce_gains": 74,
+        "decomposition_delta": {
+          "copy_conditional_contribution": -2.4306112678118552e-11,
+          "copy_gate_contribution": -0.029594291463029193,
+          "terminal_contribution": 0.04027677112166622,
+          "equal_episode_copy_conditional_ce": -2.3250512626304953e-11
+        }
+      }
+    ]
+  },
+  "native_candidate_count": 10,
+  "row_count": 1140,
+  "complete_resources": {
+    "charge_receipt": "/Users/casey.allard/.local/share/uor-r4/ledger/charge-resource-v1-635f2f71b81c8f850a2ef9d7bd8808de170c89a1d8a63a3a883176ae3463c4d4.json",
+    "complete_work_estimate_ms": 2700000,
+    "cumulative_before_ms": 1055235028,
+    "cumulative_after_ms": 1057935028,
+    "limit_ms": 1130000000
+  },
+  "execution_resources": {
+    "test": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-03T22:12:09.291306+00:00",
+      "source_commit": "7a517dffe5021352c58ee8046118c88b9b532d25",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "7a517dffe5021352c58ee8046118c88b9b532d25",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 65323,
+      "worker_pid": 65324,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 102.12531658401713,
+      "sampled_process_tree_peak_rss_bytes": 9456652288,
+      "rusage_children_max_rss_bytes": 7735447552,
+      "codex_allocated_bytes_latest": 6834073600,
+      "free_bytes_final": 5598728192,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "build": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-03T22:21:57.810944+00:00",
+      "source_commit": "7a517dffe5021352c58ee8046118c88b9b532d25",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "build",
+        "--locked",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "7a517dffe5021352c58ee8046118c88b9b532d25",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 67825,
+      "worker_pid": 67826,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 274.9456982817501,
+      "sampled_process_tree_peak_rss_bytes": 5605388288,
+      "rusage_children_max_rss_bytes": 4188946432,
+      "codex_allocated_bytes_latest": 5256900608,
+      "free_bytes_final": 8212451328,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "run": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-03T22:23:00.466999+00:00",
+      "source_commit": "7a517dffe5021352c58ee8046118c88b9b532d25",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-source-realizer",
+        "/root/codex/q4-direction-1-args.json"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "7a517dffe5021352c58ee8046118c88b9b532d25",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 68959,
+      "worker_pid": 68960,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 30.399476006627083,
+      "sampled_process_tree_peak_rss_bytes": 1123057664,
+      "rusage_children_max_rss_bytes": 1274437632,
+      "codex_allocated_bytes_latest": 5354872832,
+      "free_bytes_final": 7949398016,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 4294967296,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "transfer": {
+    "files": 119,
+    "all_sha256_equal": true,
+    "complete_transfer_inventory_equal": true,
+    "scope": "Transferred result root/executable only; Rust seal verification executed on pod"
+  },
+  "independent_review_receipts": {
+    "source-review-7a517dff.json": {
+      "local_path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-q4-readout-direction-20261003/source-review-7a517dff.json",
+      "sha256": "34f75f6935846682c6178de10343baa165b35b83a63b8bd5af0270529300ae9b"
+    },
+    "mathematical-source-review-7a517dff.json": {
+      "local_path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-q4-readout-direction-20261003/mathematical-source-review-7a517dff.json",
+      "sha256": "113278551cd8f110ad3ec5223ac2b0ecb7594edbd9c3edb5b4509a3e7d27cf42"
+    },
+    "independent-math-result-review.json": {
+      "local_path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-q4-readout-direction-20261003/independent-math-result-review.json",
+      "sha256": "16cc912a1a9bd4152ae0cd53d071f3ee76446918c4e8e6db5e2a7779cc64a0a0"
+    },
+    "independent-packed-invariant-review.json": {
+      "local_path": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-q4-readout-direction-20261003/independent-packed-invariant-review.json",
+      "sha256": "089b775b43abe911da76aed49d0ca7649e13b6a542eb8aecdb05f844bbff5c93"
+    }
+  },
+  "cleanup_receipt": {
+    "recorded_utc": "2026-10-03T22:16:37.552715+00:00",
+    "trees": [
+      {
+        "path": "/root/codex/geometric-final-prefix-audit-20261003",
+        "source_commit": "67d3691566bea615b68a26e5d6927ec5f3477ce3",
+        "files": 16828,
+        "payload_bytes": 1269794319,
+        "every_git_blob_or_LFS_payload_and_inventory_equal": true,
+        "resolved_lfs_payloads": 1824,
+        "removed_reproducible_source_copy": true
+      },
+      {
+        "path": "/root/codex/geometric-final-prefix-audit-reconciled-ebd0a891",
+        "source_commit": "ebd0a891d19ed23461c980157f6add0dec9140ae",
+        "files": 16835,
+        "payload_bytes": 1269905504,
+        "every_git_blob_or_LFS_payload_and_inventory_equal": true,
+        "resolved_lfs_payloads": 1824,
+        "removed_reproducible_source_copy": true
+      }
+    ],
+    "codex_allocated_kib_after": 5207932,
+    "scope": "Only verified committed source archive duplicates; no artifact, checkpoint, log, build cache, or peer path removed"
+  },
+  "pod_completion": {
+    "job_card_released": true,
+    "owned_allocated_kib": 5465024,
+    "gpu_used": false
+  },
+  "storage_projection_revision": {
+    "previous_new_pod_storage_bytes": 2147483648,
+    "increment_bytes": 1073741824,
+    "reason": "New archived source path caused path-bound Cargo dependency rebuild; test worker recorded6,834,073,600B total vs4,380,499,968B initial. Verify and remove only reproducible older source archive copies before further compile. Owned9GiB hard stop/10GiB ceiling unchanged.",
+    "recorded_utc": "2026-10-03T22:14:27.938194+00:00"
+  },
+  "next_decision": {
+    "status": "NOT_RUN",
+    "change": "Freeze context; existing Copy/Period/Stop readouts coadapt under unchanged ordinary joint CE using retained final checkpoint and prepared learner.",
+    "assessment": "Own-prefix complete replies/EOS plus joint/conditional CE and stage rows; no CE-only promotion.",
+    "not_adopted": "No new state, learner, optimizer, loss, estimator or automatic diagnostic candidate adoption."
+  },
+  "limitations": "No independent BLAKE3 seal recomputation by this review; input SHA256 bindings retained. No candidate own-prefix generation. Exposed development panel only. Native event/context learning, complete source-family derivatives and general representational sufficiency are outside this finite readout audit."
+}

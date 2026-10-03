@@ -90,14 +90,26 @@ coefficients; the four successes repeat one source value. The [final-artifact
 audit](geometric-final-prefix-audit-2026-10-03.md) now finds46/114 canonical choices
 correct and54/74 Copy targets outranked by other Copy actions, without observed
 feature conflicts. Reuse the existing learner and checkpoint for bounded native
-q4 potential direction diagnosis with context/Period/Stop fixed. Do not add a
-new learning framework or progress state from this result, or repeat the joint
-dose unchanged. Preserve these partial results; they do not establish complete
-chat, family capacity or generalization.
+q4 potential direction diagnosis with context/Period/Stop fixed. The
+[executed direction diagnostic](geometric-q4-readout-direction-2026-10-03.md)
+now establishes selected adjoint agreement and local native joint/conditional
+Copy CE descents, with joint-choice regressions and no Copy-only top1 gain.
+The [executed readout continuation](geometric-readout-coadapt-2026-10-03.md)
+freezes learned context while the existing Copy/Period/Stop readouts coadapt under
+unchanged ordinary answer CE. Complete own-prefix replies improve4→18/20 with
+all four prior successes retained, EOS20/20 and final canonical112/114; intermediate
+regressions remain. Retain final64 as an unadopted component candidate, then test
+fixed novel-source/order transfer and paired source replacements against the
+original parent before shared-session integration. That panel is NOT_RUN. Do not
+add a new learner/progress state, repeat the settled collision audit or repeat the
+dose unchanged. Preserve these partial results; five exposed numerical groups do
+not establish complete chat, family capacity or generalization.
 
-The [implemented occurrence consumer](geometric-source-consumer-2026-10-03.md)
-passes the bounded actual-BPE zero-update credit/export construction; it is not
-yet fitted or integrated into the shared chat session. **Owner correction,
+The earlier [hybrid occurrence consumer](geometric-source-consumer-2026-10-03.md)
+passes the bounded actual-BPE zero-update credit/export construction. Its hybrid
+fit remains unadmitted; the separate native source realizer above now learns
+complete exposed source replies, and shared-session integration remains open.
+**Owner correction,
 October 3:** first make this geometric path learn useful source-bound complete
 responses; beating a transformer is a later programme goal, not the admission
 criterion for developing or retaining these mechanisms. Measure short/long
