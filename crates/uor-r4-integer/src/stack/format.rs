@@ -72,6 +72,8 @@ pub struct StackShape {
 }
 
 /// The largest pointer query and key width (the read's head-width limit).
+/// It equals the D10 comparator's `uor_r4_lut::format::MAX_POINTER_DIM`
+/// (asserted by `uor-r4-training`'s `stack_d11_oracle` test).
 pub const MAX_POINTER_DIM: usize = 256;
 
 /// The pointer-copy head (`pointer` in the shape): a query and key of width

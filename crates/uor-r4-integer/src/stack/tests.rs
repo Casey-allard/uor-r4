@@ -1196,7 +1196,9 @@ fn test_pointer_copy_boosts_prior_token_logits_and_preserves_across_save_restore
 
     // 2. Stepping with pointer copy enabled (scale = 1.0 in Q16 = 1 << 16)
     let mut copy_session = model.session();
-    copy_session.set_copy_scale(1 << 16);
+    copy_session
+        .set_copy_scale(1 << 16)
+        .expect("a plain model accepts a copy scale");
     assert_eq!(copy_session.copy_scale(), 1 << 16);
 
     let mut copy_logits = Vec::new();
@@ -1294,7 +1296,9 @@ fn test_pointer_copy_boosts_prior_token_logits_and_preserves_across_save_restore
 
     // 4. Disabling copy scale clears pointer weights buffer
     assert!(copy_session.pointer_weights().iter().any(|&w| w > 0));
-    copy_session.set_copy_scale(0);
+    copy_session
+        .set_copy_scale(0)
+        .expect("a plain model accepts a copy scale");
     assert_eq!(copy_session.copy_scale(), 0);
     assert!(
         copy_session.pointer_weights().iter().all(|&w| w == 0),
@@ -1332,7 +1336,8 @@ fn test_pointer_copy_retrieval_boost_argmax_override_and_duplicate_accumulation(
 
     // Copy session with scale = 1.0 (Q16 = 1 << 16)
     let mut copy = model.session();
-    copy.set_copy_scale(1 << 16);
+    copy.set_copy_scale(1 << 16)
+        .expect("a plain model accepts a copy scale");
     for &tok in &prompt {
         copy.step(tok).expect("copy step");
     }
@@ -1374,7 +1379,9 @@ fn test_pointer_copy_retrieval_boost_argmax_override_and_duplicate_accumulation(
     // Large scale: test retrieval override where pointer boost drives argmax
     let mut strong_copy = model.session();
     // Use large scale (Q16 = 1 << 30) to test argmax override
-    strong_copy.set_copy_scale(1 << 30);
+    strong_copy
+        .set_copy_scale(1 << 30)
+        .expect("a plain model accepts a copy scale");
     for &tok in &prompt {
         strong_copy.step(tok).expect("strong copy step");
     }
@@ -1396,7 +1403,9 @@ fn test_pointer_copy_retrieval_boost_argmax_override_and_duplicate_accumulation(
 
     // Extremal scale test: i32::MAX scale saturates cleanly via saturating_add without overflow or panic
     let mut max_scale_session = model.session();
-    max_scale_session.set_copy_scale(i32::MAX);
+    max_scale_session
+        .set_copy_scale(i32::MAX)
+        .expect("a plain model accepts a copy scale");
     for &tok in &prompt {
         max_scale_session
             .step(tok)

@@ -11,10 +11,12 @@
 //! context is full, and prints a JSON record. `digest` runs `WINDOWS` evenly
 //! spaced full-context windows of a little-endian u16 token file, each in a
 //! fresh session, and prints the SHA-256 of every step's logits (little-endian
-//! `i32`, in order; for a pointer model each step's Q30 mixture follows its
-//! logits), a platform-independent fingerprint of the served integers. A
-//! pointer model decodes greedily over its mixture. The served path is `IntegerStackSession::step` and
-//! `stack_argmax`; argument parsing, file reading, timing, hashing and JSON
+//! `i32`, in order) as `logits_sha256`, a platform-independent fingerprint of
+//! the served integers; a pointer model's record adds `mixture_sha256`, the
+//! SHA-256 of every step's Q30 mixture in the same encoding, and sets
+//! `pointer_mixture_hashed`; a plain model's record has no mixture hash. A
+//! pointer model decodes greedily over its mixture. The served path is
+//! `IntegerStackSession::step` and `stack_argmax`; argument parsing, file reading, timing, hashing and JSON
 //! are outside it. The instruction audit targets this binary:
 //! `python3 scripts/audit_zero_matmul_serving.py target/release/uor-r4-stack --stack`.
 
@@ -213,6 +215,8 @@ fn digest(args: &[String]) -> Result<(), CliError> {
         .ok_or_else(|| usage("WINDOWS times the context overflows"))?;
     let stride = (ids.len() - context - 1) / windows;
     let mut hash = Sha256::new();
+    // A pointer model's mixtures, hashed apart from its logits.
+    let mut mixture_hash = model.pointer().map(|_| Sha256::new());
     let mut session = model.session();
     let clock = Instant::now();
     for window in 0..windows {
@@ -224,20 +228,22 @@ fn digest(args: &[String]) -> Result<(), CliError> {
             for value in session.step(id)? {
                 hash.update(value.to_le_bytes());
             }
-            // A pointer model's mixture follows its logits.
-            for value in session.mixture().unwrap_or(&[]) {
-                hash.update(value.to_le_bytes());
+            if let (Some(mixture_hash), Some(mixture)) = (&mut mixture_hash, session.mixture()) {
+                for value in mixture {
+                    mixture_hash.update(value.to_le_bytes());
+                }
             }
         }
     }
     let seconds = clock.elapsed().as_secs_f64();
-    let record = json!({
+    let mut record = json!({
         "schema": "uor-r4.stack-d11-digest/1",
         "artifact_sha256": model.artifact_sha256(),
         "tokens": tokens,
         "windows": windows,
         "steps": steps,
         "logits_sha256": hex::encode(hash.finalize()),
+        // Whether the record carries `mixture_sha256` (a pointer model).
         "pointer_mixture_hashed": model.pointer().is_some(),
         "seconds": seconds,
         "tokens_per_second": steps as f64 / seconds,
@@ -247,6 +253,9 @@ fn digest(args: &[String]) -> Result<(), CliError> {
         "bits_per_weight": D11_EFFECTIVE_BITS_PER_WEIGHT,
         "effective_bits_per_weight": D11_EFFECTIVE_BITS_PER_WEIGHT,
     });
+    if let Some(mixture_hash) = mixture_hash {
+        record["mixture_sha256"] = json!(hex::encode(mixture_hash.finalize()));
+    }
     println!("{record}");
     Ok(())
 }

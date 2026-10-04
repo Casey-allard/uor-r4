@@ -542,6 +542,58 @@ fn a_pointer_session_restores_bit_identically() {
     assert!(d11.session().restore_state(&saved).is_err());
 }
 
+/// A pointer model refuses a positive copy scale, whose logit boost the D10
+/// comparator never applies before forming its mixture, and a snapshot that
+/// carries one; zero is accepted and a refused session still matches D10. A
+/// plain model accepts the scale.
+#[test]
+fn a_pointer_model_refuses_a_copy_scale() {
+    let (_, bytes) = pointer_artifact("rarr", ReadScore::Dot, ReadScore::Dot, 8, 16, 4.0, 17);
+    let (d10, d11) = engines(&bytes);
+    let mut session = d11.session();
+    for scale in [1, 1 << 16, i32::MAX] {
+        assert!(matches!(
+            session.set_copy_scale(scale),
+            Err(StackError::CopyScaleWithPointer)
+        ));
+    }
+    assert_eq!(session.copy_scale(), 0);
+    session.set_copy_scale(0).expect("a zero scale");
+    session
+        .set_copy_scale(-5)
+        .expect("a negative scale clamps to zero");
+    assert_eq!(session.copy_scale(), 0);
+    let ids = tokens(16, 96, 3);
+    let mut s10 = d10.session();
+    for &id in &ids {
+        let want = s10.step(id).expect("D10 step").to_vec();
+        assert_eq!(session.step(id).expect("D11 step"), want.as_slice());
+        assert_eq!(session.mixture(), s10.mixture());
+    }
+    let mut saved = session.save_state();
+    saved.copy_scale_q16 = 1 << 16;
+    assert!(matches!(
+        d11.session().restore_state(&saved),
+        Err(StackError::CopyScaleWithPointer)
+    ));
+
+    let plain = small("rarr", ReadScore::Dot, true, 64, 2, 40, 8, 4);
+    let (bytes, _) = export_stack(&plain, json!({}), None, None).expect("export");
+    let d11 = IntegerStackModel::parse(&bytes).expect("D11 model");
+    let mut session = d11.session();
+    session.set_copy_scale(1 << 16).expect("a plain model");
+    assert_eq!(session.copy_scale(), 1 << 16);
+}
+
+/// The two engines' pointer-width limits are one constant.
+#[test]
+fn both_engines_share_the_pointer_width_limit() {
+    assert_eq!(
+        uor_r4_lut::format::MAX_POINTER_DIM,
+        uor_r4_integer::stack::MAX_POINTER_DIM
+    );
+}
+
 /// A pointer artifact without one of its maps or tables, with an invalid
 /// width, score or scale, or a Lorentz pointer without the arcosh table, is
 /// refused by both engines; a plain artifact's shape has no `pointer` key.

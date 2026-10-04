@@ -251,6 +251,11 @@ pub struct StackShape {
     pub pointer: Option<StackPointer>,
 }
 
+/// The largest pointer query and key width (the read's head-width limit).
+/// The D11 engine's `uor_r4_integer::stack::MAX_POINTER_DIM` must equal it;
+/// `uor-r4-training`'s `stack_d11_oracle` test asserts the two agree.
+pub const MAX_POINTER_DIM: usize = 256;
+
 /// The pointer-copy head of a stack (`uor-r4-training`'s `PointerConfig`):
 /// from the final normalized state, a query `q_t` and key `k_t` of width
 /// `dim` (matrices `pointer_query`, `pointer_key`) and a gate logit `g_t`
@@ -277,7 +282,7 @@ impl StackPointer {
     }
 
     fn valid(&self) -> bool {
-        (1..=256).contains(&self.dim)
+        (1..=MAX_POINTER_DIM).contains(&self.dim)
             && matches!(self.score.as_str(), "dot" | "lorentz")
             && (1..=1i64 << 31).contains(&self.score_scale_q30)
     }

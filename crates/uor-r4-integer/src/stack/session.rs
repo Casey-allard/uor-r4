@@ -783,11 +783,21 @@ impl IntegerStackSession<'_> {
     ///
     /// When zero (the default), attention weight capture is bypassed in `stack_read` to
     /// ensure zero overhead for default serving.
-    pub fn set_copy_scale(&mut self, scale_q16: i32) {
-        self.copy_scale_q16 = scale_q16.max(0);
+    ///
+    /// A model with a pointer-copy head refuses a positive scale
+    /// ([`StackError::CopyScaleWithPointer`]): its mixture is formed from the
+    /// head's logits, and the D10 comparator never boosts them, so a boost
+    /// would break D10 == D11. Zero (the default) is accepted.
+    pub fn set_copy_scale(&mut self, scale_q16: i32) -> Result<(), StackError> {
+        let scale_q16 = scale_q16.max(0);
+        if scale_q16 > 0 && self.model.pointer.is_some() {
+            return Err(StackError::CopyScaleWithPointer);
+        }
+        self.copy_scale_q16 = scale_q16;
         if self.copy_scale_q16 == 0 {
             self.b.pointer_weights.fill(0);
         }
+        Ok(())
     }
 
     /// The active pointer copy scale in Q16.
@@ -1011,9 +1021,13 @@ impl IntegerStackSession<'_> {
             return Err(StackError::SessionState);
         }
 
-        // Validate the pointer head's state
+        // Validate the pointer head's state (a pointer model never boosts its
+        // logits; see `set_copy_scale`).
         let pointer_at = match &self.model.pointer {
             Some(p) => {
+                if saved.copy_scale_q16 != 0 {
+                    return Err(StackError::CopyScaleWithPointer);
+                }
                 let pointer_at = position
                     .checked_mul(p.dim)
                     .ok_or(StackError::SessionState)?;

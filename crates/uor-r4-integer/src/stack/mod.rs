@@ -143,6 +143,9 @@ pub enum StackError {
     ContextFull { context: usize },
     /// A session's layer state does not match its model's layer.
     SessionState,
+    /// A positive copy scale was set on (or restored into) a model with a
+    /// pointer-copy head, whose mixture D10 forms from unboosted logits.
+    CopyScaleWithPointer,
 }
 
 impl fmt::Display for StackError {
@@ -211,6 +214,10 @@ impl fmt::Display for StackError {
                 write!(f, "the session is full ({context} positions)")
             }
             Self::SessionState => write!(f, "session state does not match the model"),
+            Self::CopyScaleWithPointer => write!(
+                f,
+                "a model with a pointer-copy head refuses a positive copy scale"
+            ),
         }
     }
 }
