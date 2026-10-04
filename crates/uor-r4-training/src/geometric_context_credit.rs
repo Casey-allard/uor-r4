@@ -358,6 +358,29 @@ pub fn frozen_no_read_forward(
     span_valid: &[bool],
 ) -> Result<NoReadCreditOutput> {
     let (d, states) = admit(context)?;
+    no_read_credit_forward(
+        weights,
+        ids,
+        d,
+        &states,
+        &context.trace.codes,
+        &context.latent_roots,
+        &context.category_logits,
+        held,
+        span_valid,
+    )
+}
+fn no_read_credit_forward(
+    weights: &NoReadWeights,
+    ids: &[u32],
+    d: Dimensions,
+    states: &[H4Code],
+    codes: &[AddressLane],
+    latent_roots: &Tensor,
+    category_logits: &Tensor,
+    held: &[H4Code],
+    span_valid: &[bool],
+) -> Result<NoReadCreditOutput> {
     let c = *weights.config();
     if c.heads != d.heads || c.latent_lanes_per_head != d.lanes {
         return Err(invalid("frozen NoRead/context config differs"));
@@ -371,7 +394,7 @@ pub fn frozen_no_read_forward(
             .score(
                 ids[row] as usize,
                 &states[first..first + d.width()],
-                &context.trace.codes[first..first + d.width()],
+                &codes[first..first + d.width()],
                 if span_valid[row] {
                     Some(&held[first..first + d.width()])
                 } else {
@@ -398,10 +421,9 @@ pub fn frozen_no_read_forward(
         coefficients,
         hard: hard.clone(),
     };
-    let scores = context
-        .latent_roots
+    let scores = latent_roots
         .contiguous()?
-        .apply_op2(&context.category_logits.contiguous()?, op)?;
+        .apply_op2(&category_logits.contiguous()?, op)?;
     Ok(NoReadCreditOutput {
         scores,
         scores_q24: hard,
@@ -502,6 +524,25 @@ pub fn frozen_potential_forward(
     context: &ContextQ4Output,
 ) -> Result<PotentialQ4Output> {
     let (d, _) = admit(context)?;
+    potential_credit_forward(
+        weights,
+        content,
+        d,
+        &context.trace.codes,
+        &context.trace.emitted_roots,
+        &context.root_logits,
+        &context.category_logits,
+    )
+}
+fn potential_credit_forward(
+    weights: &PotentialQ4Weights,
+    content: &[AddressLane],
+    d: Dimensions,
+    codes: &[AddressLane],
+    raw_roots: &[u8],
+    root_logits: &Tensor,
+    category_logits: &Tensor,
+) -> Result<PotentialQ4Output> {
     if weights.config().heads != d.heads
         || weights.config().lanes_per_head != d.lanes
         || content.len() != d.count()
@@ -512,20 +553,19 @@ pub fn frozen_potential_forward(
     let op = PotentialCredit::new(
         d,
         content.to_vec(),
-        context.trace.codes.clone(),
-        context.trace.emitted_roots.clone(),
+        codes.to_vec(),
+        raw_roots.to_vec(),
         &packed,
     )?;
     let scores_q24 = op.hard.clone();
-    let scores = context
-        .root_logits
+    let scores = root_logits
         .contiguous()?
-        .apply_op2(&context.category_logits.contiguous()?, op)?;
+        .apply_op2(&category_logits.contiguous()?, op)?;
     Ok(PotentialQ4Output {
         scores,
         scores_q24,
         content_codes: content.to_vec(),
-        context_codes: context.trace.codes.clone(),
+        context_codes: codes.to_vec(),
     })
 }
 struct PotentialCredit {
@@ -1131,4 +1171,279 @@ mod tests {
         }
         Ok(())
     }
+}
+
+/// Source observations plus one refined query snapshot, not a token replay.
+/// Source-side tensors are detached; only the final query carries input credit.
+pub struct SnapshotCreditOutput {
+    d: Dimensions,
+    states: Vec<H4Code>,
+    codes: Vec<AddressLane>,
+    raw_roots: Vec<u8>,
+    latent_roots: Tensor,
+    root_logits: Tensor,
+    category_logits: Tensor,
+}
+
+/// Apply frozen readouts to a refined NEW state without another transition.
+/// Original source rows are copied from the real causal replay; its query/prefix
+/// rows are omitted. The appended row is explicitly an observation-only snapshot.
+pub fn frozen_snapshot_observation(
+    weights: &crate::geometric_context::ContextWeights,
+    codec: &uor_r4_integer::geometric_context_q4::NativeContextQ4,
+    original: &uor_r4_integer::geometric_source_realizer::SerializableContextReplay,
+    source_count: usize,
+    snapshot: &uor_r4_integer::geometric_read_feedback::QuerySnapshotReport,
+    refined_latent: &Tensor,
+) -> Result<SnapshotCreditOutput> {
+    let c = weights.config();
+    let width = c.heads * c.lanes_per_head;
+    if !weights.is_q4()
+        || original.heads != c.heads
+        || original.lanes_per_head != c.lanes_per_head
+        || source_count == 0
+        || source_count >= original.tokens.len()
+        || snapshot.heads != c.heads
+        || snapshot.lanes_per_head != c.lanes_per_head
+        || snapshot.last_token_id
+            != *original
+                .tokens
+                .last()
+                .ok_or_else(|| invalid("empty original replay"))?
+        || original.states.len() != original.tokens.len()
+        || original.raw_roots.len() != original.tokens.len() * width
+        || original.categories.len() != original.raw_roots.len()
+        || original.codes.len() != original.raw_roots.len()
+        || snapshot.states.len() != width
+        || snapshot.raw_roots.len() != width
+        || snapshot.categories.len() != width
+        || snapshot.codes.len() != width
+    {
+        return Err(invalid(
+            "refined observation source/snapshot dimensions differ",
+        ));
+    }
+    if codec.config()
+        != (uor_r4_integer::geometric_context_q4::ContextQ4Config {
+            vocab_size: c.vocab_size,
+            heads: c.heads,
+            lanes_per_head: c.lanes_per_head,
+        })
+    {
+        return Err(invalid("snapshot frozen codec config differs"));
+    }
+    let typed = snapshot
+        .states
+        .iter()
+        .map(|&r| code(r))
+        .collect::<Result<Vec<_>>>()?;
+    let observed = uor_r4_integer::geometric_context::NativeContextState::observe_states(
+        snapshot.last_token_id as usize,
+        &typed,
+        codec.native(),
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    for lane in 0..width {
+        if observed.readout_roots[lane].index() != snapshot.raw_roots[lane]
+            || observed.categories[lane] != snapshot.categories[lane]
+            || observed.output[lane]
+                != AddressLane::new(
+                    snapshot.codes[lane].root,
+                    snapshot.codes[lane].radius_bin,
+                    snapshot.codes[lane].present,
+                )
+                .map_err(|e| invalid(e.to_string()))?
+        {
+            return Err(invalid(
+                "refined snapshot does not match frozen native observation",
+            ));
+        }
+    }
+    let actual = tensor_values(refined_latent, &[width, 4])?;
+    for (lane, &s) in snapshot.states.iter().enumerate() {
+        for (axis, x) in root(s).iter().enumerate() {
+            if actual[lane * 4 + axis].to_bits() != (*x as f32).to_bits() {
+                return Err(invalid("refined graph latent differs"));
+            }
+        }
+    }
+    let mut states = Vec::new();
+    let mut codes = Vec::new();
+    let mut raw_roots = Vec::new();
+    let mut source_latent = Vec::new();
+    for row in 0..source_count {
+        if original.states[row].len() != width {
+            return Err(invalid("source latent width differs"));
+        }
+        for lane in 0..width {
+            let at = row * width + lane;
+            let s = code(original.states[row][lane])?;
+            states.push(s);
+            source_latent.extend(root(s.index()).map(|x| x as f32));
+            let r = original.raw_roots[at];
+            code(r)?;
+            let category = usize::from(original.categories[at]);
+            if category > 32 {
+                return Err(invalid("source category differs"));
+            }
+            let q = observation(r, category)?;
+            let saved = &original.codes[at];
+            if q != AddressLane::new(saved.root, saved.radius_bin, saved.present)
+                .map_err(|e| invalid(e.to_string()))?
+            {
+                return Err(invalid("source observation differs"));
+            }
+            codes.push(q);
+            raw_roots.push(r);
+        }
+    }
+    states.extend_from_slice(&typed);
+    codes.extend_from_slice(&observed.output[..width]);
+    raw_roots.extend_from_slice(&snapshot.raw_roots);
+    let latent_roots = Tensor::cat(
+        &[
+            Tensor::from_vec(source_latent, (source_count, width, 4), &Device::Cpu)?,
+            refined_latent.reshape((1, width, 4))?,
+        ],
+        0,
+    )?
+    .reshape((1, source_count + 1, c.heads, c.lanes_per_head, 4))?;
+    let family_logits = |family: &str, classes: usize| -> Result<Tensor> {
+        let fixed = |name: &str| -> Result<Vec<f32>> {
+            Ok(weights
+                .parameters()
+                .get(name)
+                .ok_or_else(|| invalid("observation coefficient absent"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .into_iter()
+                .map(|x| (x * 4.).round() * 0.25)
+                .collect())
+        };
+        let own = fixed(&format!("self_{family}"))?;
+        let neighbor = if c.lanes_per_head > 1 {
+            Some(fixed(&format!("neighbor_{family}"))?)
+        } else {
+            None
+        };
+        let tables = codec.table_slices();
+        let (token_table, own_table, neighbor_table, stride) = if family == "root" {
+            (
+                tables.token_root,
+                tables.self_root,
+                tables.neighbor_root,
+                128,
+            )
+        } else {
+            (
+                tables.token_category,
+                tables.self_category,
+                tables.neighbor_category,
+                64,
+            )
+        };
+        let mut output = Vec::new();
+        for lane in 0..width {
+            let next = lane / c.lanes_per_head * c.lanes_per_head
+                + (lane % c.lanes_per_head + 1) % c.lanes_per_head;
+            let weight = Tensor::from_vec(
+                own[lane * classes * 4..(lane + 1) * classes * 4].to_vec(),
+                (classes, 4),
+                &Device::Cpu,
+            )?;
+            let mut surrogate = refined_latent
+                .narrow(0, lane, 1)?
+                .matmul(&weight.t()?)?
+                .reshape(classes)?;
+            if let Some(n) = &neighbor {
+                let weight = Tensor::from_vec(
+                    n[lane * classes * 4..(lane + 1) * classes * 4].to_vec(),
+                    (classes, 4),
+                    &Device::Cpu,
+                )?;
+                surrogate = (&surrogate
+                    + refined_latent
+                        .narrow(0, next, 1)?
+                        .matmul(&weight.t()?)?
+                        .reshape(classes)?)?;
+            }
+            let hard = (0..classes)
+                .map(|class| {
+                    let mut q = i64::from(
+                        token_table
+                            [(snapshot.last_token_id as usize * width + lane) * stride + class],
+                    ) + i64::from(
+                        own_table[(lane * 128 + snapshot.states[lane] as usize) * stride + class],
+                    );
+                    if let Some(n) = neighbor_table {
+                        q += i64::from(
+                            n[(lane * 128 + snapshot.states[next] as usize) * stride + class],
+                        );
+                    }
+                    (q as f64 / Q24) as f32
+                })
+                .collect::<Vec<_>>();
+            output.push(
+                (&Tensor::from_vec(hard, classes, &Device::Cpu)?
+                    + (&surrogate - surrogate.detach())?)?,
+            );
+        }
+        let query = Tensor::stack(&output, 0)?.reshape((1, width, classes))?;
+        // Frozen source logits affect only a declared backward softmax; their
+        // native choices/codes remain authoritative and they have no graph path.
+        let source = Tensor::zeros((source_count, width, classes), DType::F32, &Device::Cpu)?;
+        Ok(Tensor::cat(&[source, query], 0)?.reshape((
+            1,
+            source_count + 1,
+            c.heads,
+            c.lanes_per_head,
+            classes,
+        ))?)
+    };
+    Ok(SnapshotCreditOutput {
+        d: Dimensions {
+            batch: 1,
+            time: source_count + 1,
+            heads: c.heads,
+            lanes: c.lanes_per_head,
+        },
+        states,
+        codes,
+        raw_roots,
+        latent_roots,
+        root_logits: family_logits("root", 120)?,
+        category_logits: family_logits("category", 33)?,
+    })
+}
+pub fn frozen_snapshot_potential_forward(
+    weights: &PotentialQ4Weights,
+    snapshot: &SnapshotCreditOutput,
+) -> Result<PotentialQ4Output> {
+    let absent = AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?;
+    potential_credit_forward(
+        weights,
+        &vec![absent; snapshot.d.count()],
+        snapshot.d,
+        &snapshot.codes,
+        &snapshot.raw_roots,
+        &snapshot.root_logits,
+        &snapshot.category_logits,
+    )
+}
+pub fn frozen_snapshot_no_read_forward(
+    weights: &NoReadWeights,
+    ids: &[u32],
+    snapshot: &SnapshotCreditOutput,
+) -> Result<NoReadCreditOutput> {
+    no_read_credit_forward(
+        weights,
+        ids,
+        snapshot.d,
+        &snapshot.states,
+        &snapshot.codes,
+        &snapshot.latent_roots,
+        &snapshot.category_logits,
+        &vec![H4Code::IDENTITY; snapshot.d.count()],
+        &vec![false; snapshot.d.rows()],
+    )
 }

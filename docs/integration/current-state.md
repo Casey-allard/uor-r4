@@ -1,5 +1,14 @@
 # Current UOR-R4 research state
 
+## Geometric dependent-read bridge receives ordinary answer credit — October 4
+
+The [offline Rust learner](geometric-dependent-learning-2026-10-04.md) connects only the q4 action bridge through observation of the refined native state to final marginal Copy/Period/Stop loss. Stage1, source keys, producer and readouts remain frozen. Hard forward and final scores are checked against the actual integer two-read path; the all120 right-H4 action expectation is an explicitly biased offline backward. No fake transition or target-selected read is added.
+
+Source1b27d2d passes13 focused tests and release construction. JointCopy and matched RoleSurface each preserve530 saved own-prefix predictions and570 identity-feedback target positions; native CE remains0.492381624865. Both report finite64-episode gradients with18,240/79,680 nonzero bridge coordinates, and the focused0.124→0.125 crossing changes native action/snapshot/scores. Independent saved-output review passes15,784 checks;144 files20,593,788B return with exactSHA/file-set equality. Raw gradient coordinates are not retained. Both batches take about5.3s/775,068KiB VmHWM;495.673s total pod receipts include retained orchestration failures. Complete120min charge gives1,160,835,028/1,170,000,000ms. [Evidence](../evidence/geometric-dependent-learning-2026-10-04.json). Optimizer updates and held-out predictions are zero; no learned attention/chat qualification follows.
+
+**Next:** prospective paired bridge-only fit from grid64 with frozen source/producer/readouts, ordinary complete-answer/EOS loss and baseline-inclusive native selection. Freeze new untouched transfer and complete paired execution cost before update1; reuse measured batch timing, existing AdamW/q4/export/reload mechanisms and source audit. Retain every regression. Later stage2 readout coadapt needs separate payload/Vars. General Generate/compiler/store/session/reasoning remain obligations; shared session edits coordinate#1552.
+
+
 ## Native geometric dependent reads constructed and exercised — October 4
 
 The [fixed two-read operator](geometric-dependent-read-2026-10-04.md) prepares immutable source keys once, selects an actual provisional joint-Copy occurrence even under Stop, produces its retained K2 atoms, and applies a packed q4 finite right-H4 query action. Final Copy/Stop/Period consume the same updated snapshot. Individual atom orientation/radius/status remain; no decoded-sum projection or target-selected read is used. Exact identity replay is retained.

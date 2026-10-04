@@ -39,6 +39,12 @@ not promote it or waive any old threshold. A repeat frozen-probe fit, more
 teacher text or a larger model needs a new causal case under the
 [mechanism-admissibility policy](mechanism-admissibility-2026-10.md).
 
+### Current geometric attention experiment — October 4
+
+The [dependent-read construction](geometric-dependent-read-2026-10-04.md) and [ordinary-answer learning admission](geometric-dependent-learning-2026-10-04.md) now execute. A selected occurrence's retained value can refine the query before a second read of immutable keys, and final Copy/Period/Stop loss reaches only the action bridge. Identity/causal construction and finite connected credit are distinct from learned usefulness; no fitted feedback candidate is yet qualified.
+
+The next Codex deliverable is a prospective paired JointCopy/RoleSurface bridge-only fit. Keep the selected grid64 parent, fixed stage1/keys/producer/readouts and the unchanged parent in native development ranking. Freeze a new untouched transfer panel before update1; old32/8 panels are development now. Use measured full64 batch cost to project the complete fit/export/evaluation work, retain regressions and evaluate the selected candidate once on transfer. A result decides source-dependent geometric refinement versus matched surface input; it does not qualify general Generate, full chat, compiler/store integration or laptop energy. Do not resume an unchanged radial fit or promote a surrogate-loss gain without exported native behavior.
+
 ### Owner-adopted sequencing correction — October 3
 
 The owner accepted the [geometric chat assessment](geometric-chat-direction-2026-10-03.md).

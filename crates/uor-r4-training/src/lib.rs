@@ -42,6 +42,7 @@ pub mod geometric_occurrence_consumer;
 pub mod geometric_potential_native;
 pub mod geometric_potential_q4;
 pub mod geometric_read;
+pub mod geometric_read_feedback;
 pub mod geometric_read_native;
 pub mod geometric_source_actions;
 pub mod geometric_source_emission_view;

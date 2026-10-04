@@ -204,6 +204,7 @@ impl SourceRealizerWeights {
             files: BTreeMap::new(),
         };
         Ok(NativeSourceRealizer {
+            loaded_metadata_sha256: None,
             consumer,
             period,
             binding: self.binding.clone(),
@@ -383,6 +384,7 @@ fn context_replay_matches(replay: &SerializableContextReplay, trace: &NativeCont
 }
 
 pub struct NativeSourceRealizer {
+    loaded_metadata_sha256: Option<String>,
     consumer: NativeConsumerArtifact,
     period: NativeGeometricNoRead,
     binding: SourceActionBinding,
@@ -393,6 +395,55 @@ pub struct NativeSourceRealizer {
 impl NativeSourceRealizer {
     pub fn binding(&self) -> &SourceActionBinding {
         &self.binding
+    }
+    pub fn artifact_binding(
+        &self,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::NativeArtifactBinding> {
+        let metadata_sha256 = self.loaded_metadata_sha256.clone().ok_or_else(|| {
+            invalid("feedback learning requires an independently saved/reloaded native parent")
+        })?;
+        let i = &self.metadata.identity;
+        Ok(
+            uor_r4_integer::geometric_source_realizer::NativeArtifactBinding {
+                metadata_sha256,
+                identity: uor_r4_integer::geometric_source_realizer::ArtifactIdentity {
+                    tokenizer_sha256: i.tokenizer_sha256.clone(),
+                    parent_checkpoint_manifest_sha256: i.parent_checkpoint_manifest_sha256.clone(),
+                    parent_model_sha256: i.parent_model_sha256.clone(),
+                    parent_config_sha256: i.parent_config_sha256.clone(),
+                },
+            },
+        )
+    }
+    pub fn read_dependent(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        feedback: &uor_r4_integer::geometric_read_feedback::NativeReadFeedback,
+        mode: uor_r4_integer::geometric_read_feedback::FeedbackInputMode,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::DependentReadTrace> {
+        Ok(
+            uor_r4_integer::geometric_source_realizer::RealizerExecution {
+                context: &self.consumer.context,
+                potential_tables: &self.consumer.potential_tables,
+                no_read: &self.consumer.no_read,
+                geometry: &self.consumer.geometry,
+                exp: &self.consumer.exp,
+                period: &self.period,
+                binding: &self.binding,
+            }
+            .read_dependent(
+                frame,
+                view,
+                query,
+                prefix,
+                &self.artifact_binding()?,
+                feedback,
+                mode,
+            )?,
+        )
     }
     fn validate_source(&self, source: &SourceRealizerWeights) -> Result<()> {
         source.validate()?;
@@ -462,8 +513,8 @@ impl NativeSourceRealizer {
     ) -> Result<Self> {
         identity.validate()?;
         source.validate()?;
-        let metadata: NativeMetadata =
-            serde_json::from_slice(&fs::read(path.join("metadata.json"))?)?;
+        let metadata_bytes = fs::read(path.join("metadata.json"))?;
+        let metadata: NativeMetadata = serde_json::from_slice(&metadata_bytes)?;
         let tokenizer_bytes = fs::read(path.join("tokenizer.json"))?;
         if metadata.schema != SCHEMA
             || metadata.policy != POLICY
@@ -487,6 +538,7 @@ impl NativeSourceRealizer {
         }
         // Execute admitted saved bytes, not a freshly compiled replacement.
         let result = Self {
+            loaded_metadata_sha256: Some(sha256_bytes(&metadata_bytes)),
             consumer: NativeConsumerArtifact::load(
                 &path.join("consumer"),
                 &source.consumer,
@@ -501,6 +553,13 @@ impl NativeSourceRealizer {
         result.validate_source(source)?;
         Ok(result)
     }
+}
+
+pub use crate::geometric_read_feedback::FeedbackBridgeWeights;
+pub struct DependentRealizerLoss {
+    pub loss: Tensor,
+    pub trace: uor_r4_integer::geometric_source_realizer::DependentReadTrace,
+    pub target_probability: f64,
 }
 
 pub struct RealizerLoss {
@@ -622,48 +681,184 @@ impl PreparedSourceRealizer<'_> {
             )?);
         }
         let summed = Tensor::stack(&heads, 0)?.sum(0)?;
-        if summed.to_vec1::<f32>()?.iter().any(|x| !x.is_finite()) {
-            return Err(invalid("realizer summed-score surrogate is nonfinite"));
-        }
-        let hard = Tensor::from_vec(
-            trace
-                .actions
-                .actions
-                .iter()
-                .map(|a| (a.score_q24 as f64 / 16_777_216.) as f32)
-                .collect::<Vec<_>>(),
-            n + 2,
-            &Device::Cpu,
-        )?;
-        let joint = (&hard + (&summed - summed.detach())?)?;
-        let soft = candle_nn::ops::softmax(&joint, 0)?;
-        let mask = Tensor::from_vec(
-            trace
-                .actions
-                .actions
-                .iter()
-                .map(|a| if a.token_id == target { 1f32 } else { 0f32 })
-                .collect::<Vec<_>>(),
-            n + 2,
-            &Device::Cpu,
-        )?;
-        let surrogate_probability = (soft * mask)?.sum_all()?;
-        // Round the *aggregated integer token mass* once at this floating loss
-        // boundary, rather than separately rounding each alias probability.
-        let hard_probability = Tensor::new(target_probability as f32, &Device::Cpu)?;
-        let probability =
-            (&hard_probability + (&surrogate_probability - surrogate_probability.detach())?)?;
-        if !probability.to_scalar::<f32>()?.is_finite() || probability.to_scalar::<f32>()? <= 0. {
-            return Err(invalid(
-                "realizer native probability cannot be represented by loss",
-            ));
-        }
+        let loss = marginal_action_loss(&trace.actions, &summed, target, target_probability)?;
         Ok(RealizerLoss {
-            loss: probability.log()?.neg()?,
+            loss,
             trace,
             target_probability,
         })
     }
+
+    /// Bridge-only dependent loss. All producer/stage1/source/readout factors are
+    /// detached fixed copies; target is used only after both native reads finish.
+    pub fn loss_dependent(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+        bridge: &FeedbackBridgeWeights,
+        mode: uor_r4_integer::geometric_read_feedback::FeedbackInputMode,
+    ) -> Result<DependentRealizerLoss> {
+        let feedback = bridge.compile()?;
+        self.loss_dependent_with_native(frame, view, query, prefix, target, bridge, &feedback, mode)
+    }
+
+    /// Reuse a compiled feedback artifact across prefixes of one unchanged
+    /// update. Admission compares all current packed/frozen component bytes;
+    /// the caller must rebuild after changing bridge shadows.
+    pub fn loss_dependent_with_native(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+        bridge: &FeedbackBridgeWeights,
+        feedback: &uor_r4_integer::geometric_read_feedback::NativeReadFeedback,
+        mode: uor_r4_integer::geometric_read_feedback::FeedbackInputMode,
+    ) -> Result<DependentRealizerLoss> {
+        if feedback.metadata().parent_artifact != *bridge.parent_binding()
+            || feedback.metadata().context != bridge.context_config()
+            || feedback.value_packed() != bridge.value_packed()
+            || feedback.bridge_packed() != bridge.packed_coefficients()?
+        {
+            return Err(invalid(
+                "dependent compiled bridge differs from current source/frozen producer",
+            ));
+        }
+        if target as usize >= self.source.binding.vocab_size() {
+            return Err(invalid("dependent target is out of vocabulary"));
+        }
+        if bridge.parent_binding() != &self.native.artifact_binding()? {
+            return Err(invalid("dependent bridge parent differs"));
+        }
+        let trace = self
+            .native
+            .read_dependent(frame, view, query, prefix, feedback, mode)?;
+        let mass = trace
+            .stage2
+            .actions
+            .token_masses
+            .iter()
+            .find(|m| m.token_id == target)
+            .map_or(0, |m| m.weight_q31);
+        if mass == 0 {
+            return Err(invalid(
+                "dependent target has zero native mass; no probability floor",
+            ));
+        }
+        let target_probability = mass as f64 / trace.stage2.actions.total_weight_q31 as f64;
+        let n = view.emitted_token_ids().len();
+        let time = n + 1;
+        let refined = bridge.refined_latent(&trace.feedback)?;
+        let snapshot = crate::geometric_context_credit::frozen_snapshot_observation(
+            &self.source.consumer.context,
+            &self.native.consumer.context,
+            &trace.stage1.period_context,
+            n,
+            &trace.stage2_controller_snapshot,
+            &refined,
+        )?;
+        let copy = crate::geometric_context_credit::frozen_snapshot_potential_forward(
+            &self.source.consumer.potential,
+            &snapshot,
+        )?;
+        let mut ids = trace.stage1.period_context.tokens[..n].to_vec();
+        ids.push(trace.stage2_controller_snapshot.last_token_id);
+        let stop = crate::geometric_context_credit::frozen_snapshot_no_read_forward(
+            &self.source.consumer.no_read,
+            &ids,
+            &snapshot,
+        )?;
+        let period = crate::geometric_context_credit::frozen_snapshot_no_read_forward(
+            &self.source.period,
+            &ids,
+            &snapshot,
+        )?;
+        let mut heads = Vec::new();
+        for h in 0..bridge.context_config().heads {
+            let at = h * time + time - 1;
+            let hard = &trace.stage2.actions.head_scores[h];
+            if hard
+                .copy_q24
+                .iter()
+                .enumerate()
+                .any(|(k, &q)| q != copy.scores_q24[at * time + k])
+                || hard.stop_q24 != stop.scores_q24[at]
+                || hard.period_q24 != period.scores_q24[at]
+            {
+                return Err(invalid(
+                    "dependent final native/credit Copy Period Stop scores differ",
+                ));
+            }
+            heads.push(Tensor::cat(
+                &[
+                    copy.scores.i((0, h, time - 1))?.narrow(0, 0, n)?,
+                    period.scores.i((0, h, time - 1))?.reshape(1)?,
+                    stop.scores.i((0, h, time - 1))?.reshape(1)?,
+                ],
+                0,
+            )?);
+        }
+        let summed = Tensor::stack(&heads, 0)?.sum(0)?;
+        let loss =
+            marginal_action_loss(&trace.stage2.actions, &summed, target, target_probability)?;
+        Ok(DependentRealizerLoss {
+            loss,
+            trace,
+            target_probability,
+        })
+    }
+}
+
+fn marginal_action_loss(
+    actions: &uor_r4_integer::geometric_source_actions::ActionTrace,
+    summed: &Tensor,
+    target: u32,
+    target_probability: f64,
+) -> Result<Tensor> {
+    let n = actions
+        .actions
+        .len()
+        .checked_sub(2)
+        .ok_or_else(|| invalid("joint action shape differs"))?;
+    if summed.to_vec1::<f32>()?.iter().any(|x| !x.is_finite()) {
+        return Err(invalid("realizer summed-score surrogate is nonfinite"));
+    }
+    let hard = Tensor::from_vec(
+        actions
+            .actions
+            .iter()
+            .map(|a| (a.score_q24 as f64 / 16_777_216.) as f32)
+            .collect::<Vec<_>>(),
+        n + 2,
+        &Device::Cpu,
+    )?;
+    let joint = (&hard + (summed - summed.detach())?)?;
+    let soft = candle_nn::ops::softmax(&joint, 0)?;
+    let mask = Tensor::from_vec(
+        actions
+            .actions
+            .iter()
+            .map(|a| if a.token_id == target { 1f32 } else { 0f32 })
+            .collect::<Vec<_>>(),
+        n + 2,
+        &Device::Cpu,
+    )?;
+    let surrogate_probability = (soft * mask)?.sum_all()?;
+    // Round the *aggregated integer token mass* once at this floating loss
+    // boundary, rather than separately rounding each alias probability.
+    let hard_probability = Tensor::new(target_probability as f32, &Device::Cpu)?;
+    let probability =
+        (&hard_probability + (&surrogate_probability - surrogate_probability.detach())?)?;
+    if !probability.to_scalar::<f32>()?.is_finite() || probability.to_scalar::<f32>()? <= 0. {
+        return Err(invalid(
+            "realizer native probability cannot be represented by loss",
+        ));
+    }
+    Ok(probability.log()?.neg()?)
 }
 
 fn scalar_credit(hard_q24: i64, coefficient: &Tensor, context: &Tensor) -> Result<Tensor> {
@@ -736,6 +931,223 @@ mod tests {
             },
             token_ids: ids,
         }
+    }
+
+    fn dependent_fixture() -> Result<(Fixture, NativeSourceRealizer, FeedbackBridgeWeights)> {
+        let fixture = Fixture::new()?;
+        let w = &fixture.weights;
+        let set = |var: &Var, values: Vec<f32>| -> Result<()> {
+            var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+            Ok(())
+        };
+        let root = &w.consumer.context.parameters()["self_root"];
+        let mut values = vec![0.; root.elem_count()];
+        values[0] = -1.75;
+        values[4] = 1.75;
+        set(root, values)?;
+        let category = &w.consumer.context.parameters()["token_category"];
+        let mut values = vec![0.; category.elem_count()];
+        for row in values.chunks_exact_mut(33) {
+            row[1] = 1.75;
+        }
+        set(category, values)?;
+        for (weights, sign) in [(&w.consumer.no_read, 1.), (&w.period, -1.)] {
+            let var = &weights.parameters()["coefficients"];
+            let mut v = vec![0.; var.elem_count()];
+            v[1 + weights.config().vocabulary] = sign;
+            set(var, v)?;
+        }
+        let potential = &w.consumer.potential.parameters()["context_unary"];
+        let mut values = vec![0.; potential.elem_count()];
+        values[0] = 1.;
+        set(potential, values)?;
+        let native = w.compile(fixture.identity.clone())?;
+        let path = fixture.path.join("dependent-native");
+        native.save(&path)?;
+        let native = NativeSourceRealizer::load(&path, w, &fixture.identity)?;
+        let context = uor_r4_integer::geometric_context_q4::ContextQ4Config {
+            vocab_size: 8,
+            heads: 1,
+            lanes_per_head: 1,
+        };
+        let config =
+            uor_r4_integer::geometric_read_feedback::NativeReadFeedback::value_config(context);
+        let mut values = Vec::new();
+        for (name, shape) in config
+            .coefficient_shapes()
+            .map_err(|e| invalid(e.to_string()))?
+        {
+            let mut q = vec![0; shape.iter().product::<usize>()];
+            if name == "own_root" {
+                for row in q.chunks_exact_mut(120 * 4) {
+                    row[0] = -7;
+                    row[4] = 7;
+                }
+            }
+            if name == "token_category" {
+                for row in q.chunks_exact_mut(32) {
+                    row[1] = 7;
+                }
+            }
+            values.extend(q);
+        }
+        let packed = uor_r4_integer::geometric_value_q4::pack_coefficients(&values)
+            .map_err(|e| invalid(e.to_string()))?;
+        let count =
+            uor_r4_integer::geometric_read_feedback::NativeReadFeedback::bridge_coefficient_count(
+                context,
+            )?;
+        let feedback = uor_r4_integer::geometric_read_feedback::NativeReadFeedback::compile(
+            native.artifact_binding()?,
+            context,
+            &packed,
+            &vec![0; count.div_ceil(2)],
+        )?;
+        let bridge = FeedbackBridgeWeights::from_native(&feedback)?;
+        Ok((fixture, native, bridge))
+    }
+    #[test]
+    fn dependent_identity_marginal_alias_loss_matches_parent_and_relabel_is_trace_free(
+    ) -> Result<()> {
+        let (fixture, native, bridge) = dependent_fixture()?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        assert_eq!(view.emitted_token_ids(), &[7, 4, 4]);
+        let prepared = fixture.weights.prepare(&native)?;
+        let mut previous = None;
+        for mode in [
+            uor_r4_integer::geometric_read_feedback::FeedbackInputMode::JointCopy,
+            uor_r4_integer::geometric_read_feedback::FeedbackInputMode::RoleSurface,
+        ] {
+            for target in [4, 3, 1] {
+                let ordinary = prepared.loss(frame(&ids), &view, &[5], &[], target)?;
+                let dependent = prepared.loss_dependent(
+                    frame(&ids),
+                    &view,
+                    &[5],
+                    &[],
+                    target,
+                    &bridge,
+                    mode,
+                )?;
+                assert_eq!(dependent.trace.stage1, ordinary.trace);
+                assert_eq!(dependent.trace.stage2, ordinary.trace);
+                assert_eq!(dependent.target_probability, ordinary.target_probability);
+                assert_eq!(
+                    dependent.loss.to_scalar::<f32>()?.to_bits(),
+                    ordinary.loss.to_scalar::<f32>()?.to_bits()
+                );
+                if let Some(t) = &previous {
+                    assert_eq!(&dependent.trace, t);
+                }
+                previous = Some(dependent.trace);
+            }
+            previous = None;
+        }
+        assert!(prepared
+            .loss_dependent(
+                frame(&ids),
+                &view,
+                &[5],
+                &[],
+                2,
+                &bridge,
+                uor_r4_integer::geometric_read_feedback::FeedbackInputMode::JointCopy
+            )
+            .is_err());
+        Ok(())
+    }
+    #[test]
+    fn dependent_final_copy_period_stop_credit_reaches_only_bridge() -> Result<()> {
+        let (fixture, native, bridge) = dependent_fixture()?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let prepared = fixture.weights.prepare(&native)?;
+        for target in [4, 3, 1] {
+            let out = prepared.loss_dependent(
+                frame(&ids),
+                &view,
+                &[5],
+                &[],
+                target,
+                &bridge,
+                uor_r4_integer::geometric_read_feedback::FeedbackInputMode::JointCopy,
+            )?;
+            let grads = out.loss.backward()?;
+            let var = &bridge.parameters()["bridge.coefficients"];
+            let g = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("bridge final CE credit absent"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(g.iter().all(|x| x.is_finite()));
+            assert!(g.iter().any(|x| x.abs() > 1e-8), "target{target}");
+            for (name, var) in fixture.weights.parameters() {
+                assert!(grads.get(var.as_tensor()).is_none(), "frozen{name}");
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn dependent_shadow_quantum_crossing_changes_actual_native_refined_snapshot() -> Result<()> {
+        let (fixture, native, bridge) = dependent_fixture()?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let var = &bridge.parameters()["bridge.coefficients"];
+        let mut values = vec![0f32; var.elem_count()];
+        values[0] = 0.124;
+        var.set(&Tensor::from_vec(
+            values.clone(),
+            var.shape(),
+            &Device::Cpu,
+        )?)?;
+        let cached = bridge.compile()?;
+        let before = native.read_dependent(
+            frame(&ids),
+            &view,
+            &[5],
+            &[],
+            &cached,
+            uor_r4_integer::geometric_read_feedback::FeedbackInputMode::JointCopy,
+        )?;
+        values[0] = 0.125;
+        var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        bridge.project_shadow_range()?;
+        assert_eq!(var.flatten_all()?.to_vec1::<f32>()?[0], 0.125);
+        assert!(fixture
+            .weights
+            .prepare(&native)?
+            .loss_dependent_with_native(
+                frame(&ids),
+                &view,
+                &[5],
+                &[],
+                4,
+                &bridge,
+                &cached,
+                uor_r4_integer::geometric_read_feedback::FeedbackInputMode::JointCopy
+            )
+            .is_err());
+        let after = native.read_dependent(
+            frame(&ids),
+            &view,
+            &[5],
+            &[],
+            &bridge.compile()?,
+            uor_r4_integer::geometric_read_feedback::FeedbackInputMode::JointCopy,
+        )?;
+        assert_eq!(before.stage1, after.stage1);
+        assert_eq!(before.feedback.actions, vec![1]);
+        assert_eq!(after.feedback.actions, vec![0]);
+        assert_ne!(
+            before.stage2_controller_snapshot.states,
+            after.stage2_controller_snapshot.states
+        );
+        assert_ne!(
+            before.stage2.actions.head_scores,
+            after.stage2.actions.head_scores
+        );
+        Ok(())
     }
 
     #[test]

@@ -1,0 +1,192 @@
+{
+  "schema": "uor-r4.geometric-dependent-learning-evidence/1",
+  "executed_source": "1b27d2d77267fb36f5d4dcc7a52ccd98ae805b22",
+  "delivery_difference": "docs and rustfmt module declaration order only; numerical source unchanged",
+  "tests": {
+    "total_pass": 13,
+    "finite_action": 1,
+    "context_credit": 5,
+    "source_realizer": 5,
+    "output_isolation": 2,
+    "release_build": "PASS",
+    "cargo_fmt": "PASS after module declaration sorting",
+    "claim_wording": "PASS"
+  },
+  "admissions": {
+    "joint": {
+      "source_commit": "1b27d2d77267fb36f5d4dcc7a52ccd98ae805b22",
+      "executable_sha256": "ac672d90b393633a443649f6d1253ac75db09709d9c0f6573aa1f2faf5fcf797",
+      "feedback_input": "joint-copy",
+      "cases": 64,
+      "target_steps": 570,
+      "actual_parent_replays_exact": 530,
+      "canonical_identity_feedback_exact": 570,
+      "native_equal_episode_ce": 0.4923816248649195,
+      "aggregate_gradient": {
+        "bridge.coefficients": {
+          "elements": 79680,
+          "f64_le_bits_sha256": "c829035688f3ac420212d92e82d61380280d9c34c62d50241540aced407d007b",
+          "finite": true,
+          "l1": 0.21011407019619593,
+          "l2": 0.0021260280243015984,
+          "nonzero": 18240
+        }
+      },
+      "optimizer_updates": 0,
+      "heldout_predictions": 0,
+      "frozen_source_context_readouts": true,
+      "input_files_unchanged": true,
+      "fixed_producer_sha256": "a85498840e3827e08d11297fcc64bed7379e5facaca1709bfcf8206a500eca94",
+      "elapsed_seconds": 5.317164556,
+      "peak_rss_kib_linux": 775068,
+      "feedback_stats": {
+        "bridge_actions_per_lane": 120,
+        "bridge_coefficients_per_action": 83,
+        "bridge_expanded_table_bytes": 4194304,
+        "bridge_layout_bytes": 256,
+        "bridge_packed_bytes": 39840,
+        "scope": "bounded prototype; dense finite-choice tables and producer token access retained; excludes codec/metadata/allocator/trace overhead",
+        "value_expanded_table_bytes": 45885440,
+        "value_packed_bytes": 4996544
+      }
+    },
+    "role": {
+      "source_commit": "1b27d2d77267fb36f5d4dcc7a52ccd98ae805b22",
+      "executable_sha256": "ac672d90b393633a443649f6d1253ac75db09709d9c0f6573aa1f2faf5fcf797",
+      "feedback_input": "role-surface",
+      "cases": 64,
+      "target_steps": 570,
+      "actual_parent_replays_exact": 530,
+      "canonical_identity_feedback_exact": 570,
+      "native_equal_episode_ce": 0.4923816248649195,
+      "aggregate_gradient": {
+        "bridge.coefficients": {
+          "elements": 79680,
+          "f64_le_bits_sha256": "194ceb9f471a94e1b1f3ac35dd2965a5f6f4ae281fb5dea39dfae2c1f3867a7e",
+          "finite": true,
+          "l1": 0.2104709617830649,
+          "l2": 0.002136388070105615,
+          "nonzero": 18240
+        }
+      },
+      "optimizer_updates": 0,
+      "heldout_predictions": 0,
+      "frozen_source_context_readouts": true,
+      "input_files_unchanged": true,
+      "fixed_producer_sha256": "a85498840e3827e08d11297fcc64bed7379e5facaca1709bfcf8206a500eca94",
+      "elapsed_seconds": 5.358823757,
+      "peak_rss_kib_linux": 775068,
+      "feedback_stats": {
+        "bridge_actions_per_lane": 120,
+        "bridge_coefficients_per_action": 83,
+        "bridge_expanded_table_bytes": 4194304,
+        "bridge_layout_bytes": 256,
+        "bridge_packed_bytes": 39840,
+        "scope": "bounded prototype; dense finite-choice tables and producer token access retained; excludes codec/metadata/allocator/trace overhead",
+        "value_expanded_table_bytes": 45885440,
+        "value_packed_bytes": 4996544
+      }
+    }
+  },
+  "independent_saved_output_review": {
+    "status": "PASS",
+    "audit_kind": "saved artifact hashes and scalar arithmetic; no model execution",
+    "checks": 15784,
+    "errors": [],
+    "source": "1b27d2d77267fb36f5d4dcc7a52ccd98ae805b22",
+    "parent_evaluation_sha256": "36337e6e724a82edb15fbb99fee5c7edfe0768a7031aa1a84e080bdc8f5ed543",
+    "compiled_panel_sha256": "cf29bd94ad43dd9e6fb4098aa89232e5edaef7c7ba73581186d250c699c01b96",
+    "arms": {
+      "joint-copy": {
+        "actual_target_steps": 570,
+        "recomputed_equal_episode_ce": 0.4923816248649195,
+        "episodes_with_reported_nonzero_gradients": 64,
+        "aggregate_gradient_receipt": {
+          "elements": 79680,
+          "f64_le_bits_sha256": "c829035688f3ac420212d92e82d61380280d9c34c62d50241540aced407d007b",
+          "finite": true,
+          "l1": 0.21011407019619593,
+          "l2": 0.0021260280243015984,
+          "nonzero": 18240
+        },
+        "elapsed_seconds": 5.317164556,
+        "backward_seconds": 0.6664123490000001,
+        "peak_rss_kib_linux": 775068,
+        "source_commit": "1b27d2d77267fb36f5d4dcc7a52ccd98ae805b22",
+        "executable_sha256": "ac672d90b393633a443649f6d1253ac75db09709d9c0f6573aa1f2faf5fcf797"
+      },
+      "role-surface": {
+        "actual_target_steps": 570,
+        "recomputed_equal_episode_ce": 0.4923816248649195,
+        "episodes_with_reported_nonzero_gradients": 64,
+        "aggregate_gradient_receipt": {
+          "elements": 79680,
+          "f64_le_bits_sha256": "194ceb9f471a94e1b1f3ac35dd2965a5f6f4ae281fb5dea39dfae2c1f3867a7e",
+          "finite": true,
+          "l1": 0.2104709617830649,
+          "l2": 0.002136388070105615,
+          "nonzero": 18240
+        },
+        "elapsed_seconds": 5.358823757,
+        "backward_seconds": 0.6713680119999998,
+        "peak_rss_kib_linux": 775068,
+        "source_commit": "1b27d2d77267fb36f5d4dcc7a52ccd98ae805b22",
+        "executable_sha256": "ac672d90b393633a443649f6d1253ac75db09709d9c0f6573aa1f2faf5fcf797"
+      }
+    },
+    "paired": {
+      "same_final_actions": 570,
+      "same_before_snapshots": 570,
+      "different_value_packets": 570,
+      "different_episode_gradient_receipts": 64
+    },
+    "independently_recomputed": [
+      "64 row file SHA receipts per arm",
+      "570 full native action objects versus parent per arm",
+      "570 target marginal probabilities and CE values per arm",
+      "64 equal-episode full-answer means per arm",
+      "570 before/after/authoritative identity snapshots per arm",
+      "zero exported bridge bytes",
+      "paired fixed producer/source receipts"
+    ],
+    "assertions_with_explicit_limits": [
+      "The driver reports 530 exact own-prefix native replays. This audit verifies the retained baseline causal chain and count; the admission does not duplicate these 530 native traces.",
+      "Finite/nonzero gradient checks inspect exported counts/norms. Full gradient vectors are not exported, so their coordinate values, aggregation and receipt hash cannot be independently reconstructed.",
+      "Frozen source equality is enforced by the driver and supported by hashed parameter receipts; admission exports one frozen receipt set, not two independent source checkpoints.",
+      "Return inventory/seal verification is the parent orchestration evidence. This script does not substitute SHA256 for the native BLAKE3 sealing verifier."
+    ],
+    "scope": "zero-update FINAL-loss bridge-credit admission only; no learned candidate, quantized crossing, heldout transfer, chat or energy result"
+  },
+  "return_verification": {
+    "status": "PASS",
+    "files": 144,
+    "bytes": 20593788,
+    "complete_file_set_equal": true,
+    "sha256_equal_all_files": true,
+    "local_blake3_recomputed": false
+  },
+  "resource": {
+    "host": "Runpod Linux x86_64",
+    "cpu_threads": 48,
+    "gpu": false,
+    "complete_charge_minutes": 120,
+    "cumulative_ms": 1160835028,
+    "limit_ms": 1170000000,
+    "all_pod_attempt_seconds": 495.6733774621971,
+    "admission_worker_rusage_peak_bytes": 793669632,
+    "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-dependent-learning-20261004"
+  },
+  "retained_failures": [
+    "initial compile H4Code versus u8 type mismatch; no model execution",
+    "quantum fixture F64 versus F32; production loss tests passed",
+    "release v3 owned-space stop before execution; fresh v4 passes after audited reproducible debug cleanup"
+  ],
+  "limitations": [
+    "zero optimizer updates; no learned improvement or fresh transfer predictions",
+    "biased straight-through and T1 finite-action adjoints",
+    "raw gradient coordinate vectors not retained, aggregate hash not independently reconstructed",
+    "530 complete own-prefix replay enforced by executed driver; independent audit verifies saved chain/count",
+    "expanded dense prototype costs and allocating wrappers remain",
+    "no M1/Metal energy, full serving, general attention/chat/reasoning/default-session qualification"
+  ]
+}
