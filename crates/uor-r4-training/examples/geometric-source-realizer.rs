@@ -54,6 +54,8 @@ struct Args {
     observation_checkpoint: Option<PathBuf>,
     #[serde(default)]
     consumed_checkpoint: Option<PathBuf>,
+    #[serde(default)]
+    geometry_checkpoint: Option<PathBuf>,
 }
 #[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -163,6 +165,9 @@ fn source_commit() -> Result<&'static str> {
         .ok_or_else(|| invalid("full build-bound source commit required"))
 }
 fn admission(a: &Args) -> Result<Option<Admission>> {
+    if a.mode == "readout-geometry-coadapt" {
+        return Ok(None);
+    }
     if a.mode != "fit" {
         if a.fit_admission.is_some() {
             return Err(invalid("construction does not consume fit admission"));
@@ -401,8 +406,8 @@ fn batch(
     start: Instant,
     a: &Args,
 ) -> Result<Batch> {
-    if indices.len() != 8 {
-        return Err(invalid("complete B8 required"));
+    if !readout_batch_admitted(a.mode.as_str(), indices, episodes.len()) {
+        return Err(invalid("complete fixed batch required"));
     }
     let begun = Instant::now();
     let prepared = weights.prepare(native)?;
@@ -445,7 +450,7 @@ fn batch(
             }
             sum += f64::from(loss);
             tokens += 1;
-            let scaled = (&out.loss * (1f64 / (8. * e.target.len() as f64)))?;
+            let scaled = (&out.loss * equal_episode_token_scale(indices.len(), e.target.len())?)?;
             let store = scaled.backward()?;
             for (name, var) in &params {
                 if let Some(g) = store.get(var.as_tensor()) {
@@ -457,12 +462,12 @@ fn batch(
                     }
                 }
             }
-            trace_rows.push(if matches!(a.mode.as_str(), "composition-fit" | "context-fit" | "context-direction") {
+            trace_rows.push(if matches!(a.mode.as_str(), "composition-fit" | "context-fit" | "context-direction" | "readout-geometry-coadapt") {
                 json!({"step":step,"target_label_only":target,"teacherforced_prefix_ids":&e.target[..step],"nll":loss,"native_target_probability":probability,"native_loss_equal":true,"actions":out.trace.actions})
             } else { json!({"step":step,"target_label_only":target,"teacherforced_prefix_ids":&e.target[..step],"nll":loss,"native_target_probability":probability,"native_loss_equal":true,"trace":out.trace}) });
         }
         let episode_mean = sum / e.target.len() as f64;
-        mean += episode_mean / 8.;
+        mean += episode_mean / indices.len() as f64;
         rows.push(json!({"id":e.id,"original_source_ids":e.tokens,"source_record":e.record,"source_commit":e.commit,"source_view":e.view,"query_ids":e.query,"target_ids_labels_only":e.target,"mean_token_nll":episode_mean,"tokens":trace_rows}));
     }
     let mut square = 0f64;
@@ -482,7 +487,7 @@ fn batch(
     }
     Ok(Batch {
         gradients,
-        report: json!({"episode_indices":indices,"episodes":8,"tokens":tokens,"objective":"mean8episodes(mean CE token+EOS)","mean_episode_nll":mean,"gradient_global_norm":square.sqrt(),"gradient_family_l1":families,"gradient_parameters":gradient_rows,"elapsed_seconds":begun.elapsed().as_secs_f64(),"rows":rows}),
+        report: json!({"episode_indices":indices,"episodes":indices.len(),"tokens":tokens,"objective":"mean batch episodes(mean CE token+EOS)","mean_episode_nll":mean,"gradient_global_norm":square.sqrt(),"gradient_family_l1":families,"gradient_parameters":gradient_rows,"elapsed_seconds":begun.elapsed().as_secs_f64(),"rows":rows}),
     })
 }
 fn apply(
@@ -539,7 +544,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells" | "readout-geometry-coadapt")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -570,6 +575,7 @@ fn generate(
                 | "context-observable-cells"
                 | "context-consumed-cells"
                 | "context-later-query-cells"
+                | "readout-geometry-coadapt"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -590,6 +596,7 @@ fn generate(
                         | "context-observable-cells"
                         | "context-consumed-cells"
                         | "context-later-query-cells"
+                        | "readout-geometry-coadapt"
                 ))
         {
             if let Some(row) = rows.last_mut() {
@@ -604,6 +611,7 @@ fn generate(
                     | "context-observable-cells"
                     | "context-consumed-cells"
                     | "context-later-query-cells"
+                    | "readout-geometry-coadapt"
             ) {
                 json!({"completed_cases":rows.len(),"complete_answers":complete,"eos_count":eos_count,"raw_rows_retained_in_enclosing_attempt":true,"elapsed_seconds":begun.elapsed().as_secs_f64()})
             } else {
@@ -862,6 +870,7 @@ fn main() -> Result<()> {
             | "context-observable-cells"
             | "context-consumed-cells"
             | "context-later-query-cells"
+            | "readout-geometry-coadapt"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -960,6 +969,23 @@ fn main() -> Result<()> {
             "observable-cell mode requires sole observation_checkpoint field",
         ));
     }
+    if (a.mode == "readout-geometry-coadapt") != a.geometry_checkpoint.is_some() {
+        return Err(invalid(
+            "geometry coadapt requires sole geometry_checkpoint field",
+        ));
+    }
+    if a.mode == "readout-geometry-coadapt"
+        && (a.maximum_seconds > 1800
+            || a.fit_admission.is_none()
+            || a.audit_checkpoint.is_some()
+            || a.transfer_checkpoint.is_some()
+            || a.expected_generation.is_some()
+            || a.audit_report.is_some())
+    {
+        return Err(invalid(
+            "geometry coadapt needs admission and max1800; old recursive parent fields excluded",
+        ));
+    }
     if (a.mode == "context-later-query-cells") != a.consumed_checkpoint.is_some() {
         return Err(invalid(
             "later-query mode requires sole consumed_checkpoint field",
@@ -984,9 +1010,14 @@ fn main() -> Result<()> {
     ) {
         audit_output_location(&a)?;
     }
+    if a.mode == "readout-geometry-coadapt" {
+        geometry_output_location(&a)?;
+    }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = if matches!(
+    let result = if a.mode == "readout-geometry-coadapt" {
+        geometry_readout_coadapt(&a)
+    } else if matches!(
         a.mode.as_str(),
         "context-observation-learn"
             | "context-observable-cells"
@@ -1803,6 +1834,527 @@ fn verify_context_shadow(
     }
     Ok(())
 }
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GeometryReadoutAdmission {
+    source_commit: String,
+    geometry_run_source_commit: String,
+    geometry_run_manifest_sha256: String,
+    geometry_checkpoint_manifest_sha256: String,
+    geometry_result_sha256: String,
+    round: usize,
+    candidate: usize,
+    optimizer: OptimizerIdentity,
+    maximum_seconds: u64,
+    starting_role: String,
+}
+fn readout_batch_admitted(mode: &str, indices: &[usize], episodes: usize) -> bool {
+    if mode == "readout-geometry-coadapt" {
+        episodes == 28 && indices == (0..28).collect::<Vec<_>>()
+    } else {
+        indices.len() == 8
+    }
+}
+fn equal_episode_token_scale(episodes: usize, tokens: usize) -> Result<f64> {
+    if episodes == 0 || tokens == 0 {
+        return Err(invalid("empty episode normalization"));
+    }
+    let count = episodes
+        .checked_mul(tokens)
+        .ok_or_else(|| invalid("episode normalization overflow"))?;
+    Ok(1. / count as f64)
+}
+fn geometry_parent_header(
+    admission: &GeometryReadoutAdmission,
+    report: &Value,
+    result: &Value,
+    receipt: &Value,
+    identity: &ConsumerIdentity,
+    retained_sha: &str,
+) -> Result<()> {
+    if admission.source_commit != source_commit()?
+        || admission.optimizer != optimizer_identity()
+        || admission.maximum_seconds == 0
+        || admission.maximum_seconds > 1800
+        || admission.starting_role != "retained_main_candidate_new_research_parent"
+        || report["schema"] != "uor-r4.geometric-later-query-cells/1"
+        || report["mode"] != "context-later-query-cells"
+        || report["status"] != "completed"
+        || report["source_commit"] != admission.geometry_run_source_commit
+        || report["saved_identity"] != serde_json::to_value(identity)?
+        || report["retained_report_sha256"] != retained_sha
+        || report["transitions_readouts_tables_fixed"] != true
+        || report["no_adopted_model"] != true
+        || result["ablation_only"] != false
+        || result["readouts_tables_transitions_fixed"] != true
+        || result["all_other_source_bits_fixed"] != true
+        || result["checkpoint"] != *receipt
+        || receipt["optimizer_updates"] != 0
+    {
+        return Err(invalid("geometry readout parent/admission binding differs"));
+    }
+    Ok(())
+}
+fn geometry_run_root(path: &Path) -> Result<&Path> {
+    path.parent()
+        .and_then(Path::parent)
+        .and_then(Path::parent)
+        .ok_or_else(|| invalid("geometry candidate run root absent"))
+}
+fn geometry_output_location(a: &Args) -> Result<()> {
+    let path = a
+        .geometry_checkpoint
+        .as_ref()
+        .ok_or_else(|| invalid("geometry checkpoint absent"))?;
+    let parent = a
+        .out
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let output = fs::canonicalize(parent)?.join(
+        a.out
+            .file_name()
+            .ok_or_else(|| invalid("output leaf absent"))?,
+    );
+    for root in [
+        geometry_run_root(path)?,
+        a.checkpoint.as_path(),
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained envelope absent"))?,
+    ] {
+        if output.starts_with(fs::canonicalize(root)?) {
+            return Err(invalid("geometry output beneath sealed input"));
+        }
+    }
+    Ok(())
+}
+struct FrozenGeometryStart {
+    source: SourceRealizerWeights,
+    native: NativeSourceRealizer,
+    identity: ConsumerIdentity,
+    tok: ByteBpeTokenizer,
+    original: Vec<Episode>,
+    construction: Vec<Episode>,
+    expected: Value,
+    bins: BTreeMap<String, String>,
+    binding: Value,
+}
+fn load_frozen_geometry(a: &Args) -> Result<FrozenGeometryStart> {
+    let path = a
+        .geometry_checkpoint
+        .as_ref()
+        .ok_or_else(|| invalid("geometry candidate checkpoint absent"))?;
+    let admission: GeometryReadoutAdmission = serde_json::from_slice(&fs::read(
+        a.fit_admission
+            .as_ref()
+            .ok_or_else(|| invalid("geometry readout admission absent"))?,
+    )?)?;
+    let root = geometry_run_root(path)?;
+    let expected_path = root.join(format!(
+        "round-{:02}/candidate-{:02}/checkpoint",
+        admission.round, admission.candidate
+    ));
+    if fs::canonicalize(path)? != fs::canonicalize(&expected_path)?
+        || admission.maximum_seconds != a.maximum_seconds
+    {
+        return Err(invalid(
+            "declared geometry starting candidate path/budget differs",
+        ));
+    }
+    report_output::verify(root)?;
+    report_output::verify(path)?;
+    let candidate_root = path
+        .parent()
+        .ok_or_else(|| invalid("candidate envelope absent"))?;
+    let result_path = candidate_root.join("result.json");
+    if sha256_file(&root.join("manifest.json"))? != admission.geometry_run_manifest_sha256
+        || sha256_file(&path.join("manifest.json"))?
+            != admission.geometry_checkpoint_manifest_sha256
+        || sha256_file(&result_path)? != admission.geometry_result_sha256
+    {
+        return Err(invalid(
+            "geometry exact source/result/checkpoint hashes differ",
+        ));
+    }
+    let report: Value = serde_json::from_slice(&fs::read(root.join("report.json"))?)?;
+    let result: Value = serde_json::from_slice(&fs::read(&result_path)?)?;
+    let receipt: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
+    let saved: SavedRealizerIdentity =
+        serde_json::from_slice(&fs::read(path.join("realizer-native/metadata.json"))?)?;
+    let identity = saved.identity;
+    let retained_sha = sha256_file(&a.retained_report)?;
+    geometry_parent_header(
+        &admission,
+        &report,
+        &result,
+        &receipt,
+        &identity,
+        &retained_sha,
+    )?;
+    let round_root = root.join(format!("round-{:02}", admission.round));
+    report_output::verify(&round_root)?;
+    report_output::verify(candidate_root)?;
+    let round_entry = report["rounds"]
+        .as_array()
+        .and_then(|v| v.get(admission.round))
+        .ok_or_else(|| invalid("declared geometry round absent"))?;
+    if round_entry["round"] != admission.round
+        || round_entry["report_sha256"] != sha256_file(&round_root.join("report.json"))?
+    {
+        return Err(invalid("geometry round report binding differs"));
+    }
+    let round_report: Value = serde_json::from_slice(&fs::read(round_root.join("report.json"))?)?;
+    let main_count = round_report["main_proposal_count"]
+        .as_u64()
+        .ok_or_else(|| invalid("geometry main candidate count absent"))?
+        as usize;
+    let summary = round_report["proposals"]
+        .as_array()
+        .and_then(|v| v.get(admission.candidate))
+        .ok_or_else(|| invalid("declared geometry main candidate absent"))?;
+    if admission.candidate >= main_count
+        || summary["index"] != admission.candidate
+        || summary["ablation_only"] != false
+        || summary["result_sha256"] != admission.geometry_result_sha256
+        || summary["round_frozen_ce"] != result["frontier"]["mean_episode_ce"]
+    {
+        return Err(invalid(
+            "geometry candidate is not source-bound prospective main result",
+        ));
+    }
+    if sha256_file(&a.tokenizer)? != identity.tokenizer_sha256
+        || sealed_manifest_sha256(&a.checkpoint).map_err(|e| invalid(e.to_string()))?
+            != identity.parent_checkpoint_manifest_sha256
+        || sha256_file(&a.checkpoint.join("model.safetensors"))? != identity.parent_model_sha256
+        || sha256_file(&a.checkpoint.join("config.json"))? != identity.parent_config_sha256
+    {
+        return Err(invalid(
+            "geometry original identity/tokenizer/config differs",
+        ));
+    }
+    report_output::verify(
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained envelope absent"))?,
+    )?;
+    let retained: Report = serde_json::from_slice(&fs::read(&a.retained_report)?)?;
+    if retained.schema != "uor-r4.source-binding-diagnostic/1"
+        || retained.tokenizer_sha256 != identity.tokenizer_sha256
+        || retained.checkpoint_manifest_sha256 != identity.parent_checkpoint_manifest_sha256
+    {
+        return Err(invalid("geometry retained diagnostic identity differs"));
+    }
+    let bytes = fs::read(&a.tokenizer)?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("geometry tokenizer unreadable"))?;
+    let source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
+    let native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
+    let bins = bin_files(&path.join("realizer-native"))?;
+    if bins
+        != serde_json::from_value::<BTreeMap<String, String>>(
+            result["native_payload_sha256"].clone(),
+        )?
+        || native.binding().protocol().schema != SCHEMA_V2
+        || native.binding().vocab_size() != 4096
+    {
+        return Err(invalid(
+            "geometry native payload/protocol/vocabulary differs",
+        ));
+    }
+    let compiler = SourceEmissionCompiler::new(&bytes)?;
+    let original = prepare(retained, &tok, native.binding().eos_token_id(), &compiler)?;
+    let construction = composition_panel(
+        original
+            .first()
+            .ok_or_else(|| invalid("geometry original cases absent"))?,
+        &tok,
+        &compiler,
+        native.binding().eos_token_id(),
+    )?;
+    let panel: Value = serde_json::from_slice(&fs::read(root.join("frozen-panel.json"))?)?;
+    if original.len() != 20
+        || construction.len() != 8
+        || panel
+            != json!({"original":episode_labels(&original),"construction":episode_labels(&construction)})
+    {
+        return Err(invalid("geometry frozen28 panel differs"));
+    }
+    let binding = json!({"admission":admission,"geometry_run_report_sha256":sha256_file(&root.join("report.json"))?,"geometry_round_report_sha256":round_entry["report_sha256"],"geometry_result_sha256":sha256_file(&result_path)?,"checkpoint_manifest_sha256":sha256_file(&path.join("manifest.json"))?,"original_identity":identity,"retained_report_sha256":retained_sha,"runtime_parent_scores_used":false,"transitive_old_parents":"hash receipts preserved; not opened by this loader","new_research_parent_not_default_or_retrospective_winner":true});
+    Ok(FrozenGeometryStart {
+        source,
+        native,
+        identity,
+        tok,
+        original,
+        construction,
+        expected: result,
+        bins,
+        binding,
+    })
+}
+fn frozen_readout_source_bits_fixed(
+    before: &BTreeMap<String, Vec<u32>>,
+    after: &BTreeMap<String, Vec<u32>>,
+) -> bool {
+    !before.is_empty()
+        && before.keys().eq(after.keys())
+        && before
+            .iter()
+            .all(|(name, bits)| readout_parameter(name) || after.get(name) == Some(bits))
+}
+fn readout_native_payloads_fixed(
+    before: &BTreeMap<String, String>,
+    after: &BTreeMap<String, String>,
+) -> bool {
+    before.keys().eq(after.keys())
+        && before.iter().all(|(name, sha)| {
+            [
+                "consumer/potential-q4.bin",
+                "consumer/no-read-q4.bin",
+                "period-q4.bin",
+            ]
+            .contains(&name.as_str())
+                || after.get(name) == Some(sha)
+        })
+}
+fn best_finite_readout_checkpoint(scores: &[Option<f64>]) -> Option<usize> {
+    let mut best = None;
+    for (index, score) in scores.iter().enumerate() {
+        if let Some(score) = score.filter(|v| v.is_finite()) {
+            if best.is_none_or(|(_, previous)| score < previous) {
+                best = Some((index, score));
+            }
+        }
+    }
+    best.map(|(index, _)| index)
+}
+fn full28_native_ce(original: &Value, construction: &Value) -> Result<Option<f64>> {
+    if !original["rows"]
+        .as_array()
+        .is_some_and(|rows| rows.len() == 20)
+        || !construction["rows"]
+            .as_array()
+            .is_some_and(|rows| rows.len() == 8)
+    {
+        return Err(invalid("full28 native loss panel sizes differ"));
+    }
+    Ok(original["mean_episode_ce"]
+        .as_f64()
+        .zip(construction["mean_episode_ce"].as_f64())
+        .map(|(a, b)| (20. * a + 8. * b) / 28.)
+        .filter(|v| v.is_finite()))
+}
+fn geometry_readout_coadapt(a: &Args) -> Result<()> {
+    let start = Instant::now();
+    let FrozenGeometryStart {
+        source: weights,
+        native,
+        identity,
+        tok,
+        original,
+        construction,
+        expected,
+        bins: before,
+        binding,
+    } = load_frozen_geometry(a)?;
+    let input = a
+        .geometry_checkpoint
+        .as_ref()
+        .ok_or_else(|| invalid("geometry checkpoint absent"))?;
+    let inputs = source_files(input)?;
+    let run_root = geometry_run_root(input)?;
+    let run_manifest = sha256_file(&run_root.join("manifest.json"))?;
+    let frozen = context_shadow(&weights)?;
+    let initial_bits = parameter_bits(&weights.parameters())?;
+    let bytes = fs::read(&a.tokenizer)?;
+    let initial_original = generate(
+        "geometry-readout-baseline-original",
+        &native,
+        &original,
+        &tok,
+        start,
+        a,
+    )?;
+    let initial_construction = generate(
+        "geometry-readout-baseline-construction",
+        &native,
+        &construction,
+        &tok,
+        start,
+        a,
+    )?;
+    if initial_original["rows"] != expected["original_generation"]["rows"]
+        || initial_construction["rows"] != expected["construction_generation"]["rows"]
+    {
+        return Err(invalid(
+            "geometry starting candidate actual28 replay differs",
+        ));
+    }
+    let mut training = original.clone();
+    training.extend(construction.iter().cloned());
+    write(
+        &a.out.join("frozen-panel.json"),
+        &json!({"original":episode_labels(&original),"construction":episode_labels(&construction),"training_order":training.iter().map(|e|e.id.clone()).collect::<Vec<_>>(),"all28_each_update":true}),
+    )?;
+    let indices = (0..28).collect::<Vec<_>>();
+    let mut optimizer = AdamW::new(
+        weights
+            .parameters()
+            .into_iter()
+            .filter(|(name, _)| readout_parameter(name))
+            .map(|(_, var)| var)
+            .collect(),
+        ParamsAdamW {
+            lr: 0.003,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1e-8,
+            weight_decay: 0.,
+        },
+    )?;
+    let mut checkpoints = Vec::<Value>::new();
+    let mut batch_receipts = Vec::new();
+    let mut updates = 0usize;
+    let mut measured_admission = None;
+    let mut export = |step: usize| -> Result<()> {
+        deadline(start, a)?;
+        verify_context_shadow(&weights, &frozen)?;
+        let path = a.out.join(format!("checkpoint-{step:04}"));
+        let (receipt, loaded) = checkpoint(
+            &path,
+            &weights,
+            &identity,
+            &bytes,
+            &original,
+            step,
+            "new_geometry_readout_coadapt_candidate_unadopted",
+        )?;
+        let payload = bin_files(&path.join("realizer-native"))?;
+        if !readout_native_payloads_fixed(&before, &payload) || (step == 0 && payload != before) {
+            return Err(invalid(
+                "readout export changed frozen geometry/context/exp or zero-stage payload",
+            ));
+        }
+        let now_bits = parameter_bits(&weights.parameters())?;
+        if !frozen_readout_source_bits_fixed(&initial_bits, &now_bits) {
+            return Err(invalid("readout export changed frozen source bits"));
+        }
+        let original_ce = context_direction_measure(&loaded, &original, start, a)?;
+        let construction_ce = context_direction_measure(&loaded, &construction, start, a)?;
+        let all28 = full28_native_ce(&original_ce, &construction_ce)?;
+        let original_generation = generate(
+            &format!("geometry-readout-{step:04}-original"),
+            &loaded,
+            &original,
+            &tok,
+            start,
+            a,
+        )?;
+        let construction_generation = generate(
+            &format!("geometry-readout-{step:04}-construction"),
+            &loaded,
+            &construction,
+            &tok,
+            start,
+            a,
+        )?;
+        if step == 0
+            && (original_generation["rows"] != initial_original["rows"]
+                || construction_generation["rows"] != initial_construction["rows"])
+        {
+            return Err(invalid(
+                "zero-update independently exported28 replay differs",
+            ));
+        }
+        let comparisons=checkpoints.iter().map(|previous|Ok(json!({"previous_updates":previous["optimizer_updates"],"original":generation_comparison(&previous["original_generation"],&original_generation)?,"construction":generation_comparison(&previous["construction_generation"],&construction_generation)?,"original_canonical":context_direction_comparison(&previous["original_canonical"],&original_ce)?,"construction_canonical":context_direction_comparison(&previous["construction_canonical"],&construction_ce)?}))).collect::<Result<Vec<_>>>()?;
+        let evaluation = json!({"optimizer_updates":step,"checkpoint":receipt,"native_payload_sha256":payload,"context_source_bits_unchanged":true,"context_and_geometry_native_payloads_unchanged":true,"all28_equal_episode_ce":all28,"original_canonical":original_ce,"construction_canonical":construction_ce,"original_generation":original_generation,"construction_generation":construction_generation,"comparisons_against_each_prior_export":comparisons});
+        write(
+            &a.out.join(format!("evaluation-{step:04}.json")),
+            &evaluation,
+        )?;
+        checkpoints.push(evaluation);
+        Ok(())
+    };
+    let work = (|| -> Result<()> {
+        export(0)?;
+        let baseline_seconds = start.elapsed().as_secs_f64();
+        for step in 0..UPDATES {
+            deadline(start, a)?;
+            verify_context_shadow(&weights, &frozen)?;
+            let current = weights.compile(identity.clone())?;
+            let measured = batch(&indices, &training, &weights, &current, start, a)?;
+            let gradients = readout_gradients(measured.gradients)?;
+            if step == 0 {
+                let seconds = measured.report["elapsed_seconds"]
+                    .as_f64()
+                    .filter(|v| v.is_finite() && *v > 0.)
+                    .ok_or_else(|| invalid("first full28 timing invalid"))?;
+                let family_names = ["consumer.potential", "consumer.no_read", "period"];
+                let gradient_valid = family_names.iter().all(|name| {
+                    gradients
+                        .iter()
+                        .filter(|(n, _)| n.starts_with(name))
+                        .any(|(_, g)| {
+                            g.flatten_all()
+                                .and_then(|g| g.to_vec1::<f32>())
+                                .is_ok_and(|values| {
+                                    values.iter().all(|v| v.is_finite())
+                                        && values.iter().any(|v| *v != 0.)
+                                })
+                        })
+                });
+                let reserve = 4. * baseline_seconds + 30.;
+                let projected = UPDATES as f64 * seconds * 1.25 + reserve;
+                let remaining = a.maximum_seconds as f64 - start.elapsed().as_secs_f64();
+                measured_admission = Some(
+                    json!({"first_full28_seconds":seconds,"gradient_families_nonzero_finite":gradient_valid,"baseline_load_replay_export_seconds":baseline_seconds,"fit_safety_factor":1.25,"evaluation_stop_reserve_seconds":reserve,"projected_remaining_seconds":projected,"remaining_declared_seconds":remaining,"admitted":gradient_valid && projected<=remaining,"before_first_optimizer_update":true}),
+                );
+                write(&a.out.join("measured-admission.json"), &measured_admission)?;
+                if !gradient_valid || projected > remaining {
+                    return Err(invalid(
+                        "full28 gradient/runtime admission failed before first update",
+                    ));
+                }
+            }
+            let clip = apply(&weights, &mut optimizer, gradients)?;
+            verify_context_shadow(&weights, &frozen)?;
+            updates = step + 1;
+            let report = json!({"optimizer_update":updates,"readout_gradient_clip_factor":clip,"gradient_filter_before_clipping":true,"all28_each_update":true,"context_source_bits_unchanged":true,"batch":measured.report});
+            let name = format!("batch-{updates:04}.json");
+            write(&a.out.join(&name), &report)?;
+            batch_receipts.push(
+                json!({"update":updates,"path":name,"sha256":sha256_file(&a.out.join(&name))?}),
+            );
+            write(
+                &a.out.join("progress.json"),
+                &json!({"optimizer_updates":updates,"declared_updates":UPDATES,"batch_receipts":batch_receipts,"elapsed_seconds":start.elapsed().as_secs_f64()}),
+            )?;
+            if updates % 16 == 0 {
+                export(updates)?;
+            }
+        }
+        Ok(())
+    })();
+    drop(export);
+    let scores = checkpoints
+        .iter()
+        .map(|stage| stage["all28_equal_episode_ce"].as_f64())
+        .collect::<Vec<_>>();
+    let selected = best_finite_readout_checkpoint(&scores);
+    if source_files(input)? != inputs
+        || sha256_file(&run_root.join("manifest.json"))? != run_manifest
+    {
+        return Err(invalid("geometry parent inputs changed"));
+    }
+    report_output::verify(input)?;
+    write(
+        &a.out.join("report.json"),
+        &json!({"schema":"uor-r4.geometric-frozen-context-readout/1","mode":a.mode,"status":if work.is_ok(){"completed"}else{"stopped_or_error"},"source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"starting_parent_binding":binding,"saved_identity":identity,"optimizer":optimizer_identity(),"optimizer_moments":"fresh AdamW","optimizer_updates":updates,"declared_updates":UPDATES,"objective":"static mean28episodes(mean token+EOS marginal CE); every28 episodes each update; existing ordinary alias-aware loss","training_case_visits":training.iter().map(|e|json!({"id":e.id,"visits":updates})).collect::<Vec<_>>(),"updated_families":["consumer.potential.*","consumer.no_read.*","period.*"],"frozen_families":["consumer.context.*"],"measured_admission":measured_admission,"checkpoints":checkpoints,"batch_receipts":batch_receipts,"selected_checkpoint_index":selected,"selection":"lowest finite native all28 equal-episode CE including unchanged checkpoint0; strict decrease, earlier checkpoint ties; no completion or transformer veto","context_source_bits_unchanged":context_shadow(&weights)?==frozen,"input_files_sha256":inputs,"input_files_unchanged":true,"initial_actual28_replay_equal":true,"no_adopted_model":true,"geometry_role":"retained new research parent; no prior winner rewrite","scope":"28 exposed development episodes on frozen newly learned geometry; no heldout/general-chat/geometry-advantage/energy qualification","work_error":work.as_ref().err().map(|e|e.to_string()),"wall_seconds":start.elapsed().as_secs_f64()}),
+    )?;
+    work
+}
+
 fn readout_fit(a: &Args) -> Result<()> {
     let start = Instant::now();
     let context_fit = a.mode == "context-fit";
@@ -5883,6 +6435,208 @@ fn direction(a: &Args) -> Result<()> {
 #[cfg(test)]
 mod direction_tests {
     use super::*;
+    #[test]
+    fn frozen_geometry_updates_use_full_equal_episode_objective() -> Result<()> {
+        let indices = (0..28).collect::<Vec<_>>();
+        let mut visits = [0usize; 28];
+        for _ in 0..UPDATES {
+            assert!(readout_batch_admitted(
+                "readout-geometry-coadapt",
+                &indices,
+                28
+            ));
+            for &index in &indices {
+                visits[index] += 1;
+            }
+        }
+        assert_eq!(visits, [64; 28]);
+        for tokens in [1, 2, 7, 23] {
+            assert!(
+                (equal_episode_token_scale(28, tokens)? * tokens as f64 - 1. / 28.).abs() < 1e-15
+            );
+        }
+        let mut duplicate = indices.clone();
+        duplicate[27] = 26;
+        assert!(!readout_batch_admitted(
+            "readout-geometry-coadapt",
+            &duplicate,
+            28
+        ));
+        assert!(!readout_batch_admitted(
+            "readout-geometry-coadapt",
+            &indices[..8],
+            28
+        ));
+        assert!(!readout_batch_admitted(
+            "readout-geometry-coadapt",
+            &indices,
+            29
+        ));
+        assert!(readout_batch_admitted("readout-coadapt", &indices[..8], 28));
+        assert!(equal_episode_token_scale(0, 1).is_err());
+        assert!(equal_episode_token_scale(usize::MAX, 2).is_err());
+        Ok(())
+    }
+    #[test]
+    fn frozen_geometry_native_payloads_allow_only_existing_three_readouts() {
+        let before = [
+            "consumer/context-q4.bin",
+            "consumer/exp-q31.bin",
+            "consumer/potential-q4.bin",
+            "consumer/no-read-q4.bin",
+            "period-q4.bin",
+            "h4.bin",
+        ]
+        .into_iter()
+        .map(|name| (name.to_owned(), "before".to_owned()))
+        .collect::<BTreeMap<_, _>>();
+        for name in [
+            "consumer/potential-q4.bin",
+            "consumer/no-read-q4.bin",
+            "period-q4.bin",
+        ] {
+            let mut after = before.clone();
+            after.insert(name.into(), "after".into());
+            assert!(readout_native_payloads_fixed(&before, &after));
+        }
+        for name in ["consumer/context-q4.bin", "consumer/exp-q31.bin", "h4.bin"] {
+            let mut after = before.clone();
+            after.insert(name.into(), "after".into());
+            assert!(!readout_native_payloads_fixed(&before, &after));
+        }
+        let mut extra = before.clone();
+        extra.insert("new.bin".into(), "after".into());
+        assert!(!readout_native_payloads_fixed(&before, &extra));
+    }
+    #[test]
+    fn frozen_geometry_source_bits_and_gradient_filter_preserve_context() -> Result<()> {
+        let params = [
+            (
+                "consumer.context.token_root".to_owned(),
+                candle_core::Var::from_vec(vec![0f32, -0f32], 2, &Device::Cpu)?,
+            ),
+            (
+                "period.weights".to_owned(),
+                candle_core::Var::from_vec(vec![1f32, 2f32], 2, &Device::Cpu)?,
+            ),
+        ];
+        let parameter_map = params.iter().cloned().collect::<BTreeMap<_, _>>();
+        let before = parameter_bits(&parameter_map)?;
+        params[1]
+            .1
+            .set(&Tensor::from_vec(vec![3f32, 4f32], 2, &Device::Cpu)?)?;
+        assert!(frozen_readout_source_bits_fixed(
+            &before,
+            &parameter_bits(&parameter_map)?
+        ));
+        params[0]
+            .1
+            .set(&Tensor::from_vec(vec![0f32, 0f32], 2, &Device::Cpu)?)?;
+        assert!(!frozen_readout_source_bits_fixed(
+            &before,
+            &parameter_bits(&parameter_map)?
+        ));
+        let gradients = params
+            .iter()
+            .map(|(name, var)| (name.clone(), var.as_tensor().clone()))
+            .collect();
+        let filtered = readout_gradients(gradients)?;
+        assert_eq!(
+            filtered.keys().map(String::as_str).collect::<Vec<_>>(),
+            vec!["period.weights"]
+        );
+        assert!(!frozen_readout_source_bits_fixed(
+            &BTreeMap::new(),
+            &BTreeMap::new()
+        ));
+        Ok(())
+    }
+    #[test]
+    fn frozen_geometry_ranking_includes_baseline_and_ignores_nonfinite_ce() {
+        assert_eq!(
+            best_finite_readout_checkpoint(&[Some(0.4), Some(0.5), Some(0.4)]),
+            Some(0)
+        );
+        assert_eq!(
+            best_finite_readout_checkpoint(&[Some(0.4), Some(0.3), Some(0.3)]),
+            Some(1)
+        );
+        assert_eq!(
+            best_finite_readout_checkpoint(&[None, Some(f64::NAN), Some(0.7)]),
+            Some(2)
+        );
+        assert_eq!(
+            best_finite_readout_checkpoint(&[None, Some(f64::INFINITY)]),
+            None
+        );
+    }
+    #[test]
+    fn frozen_geometry_native_ce_is_episode_weighted_and_requires_both_panels() -> Result<()> {
+        let original = json!({"rows":vec![Value::Null;20],"mean_episode_ce":1.});
+        let construction = json!({"rows":vec![Value::Null;8],"mean_episode_ce":3.});
+        assert_eq!(full28_native_ce(&original, &construction)?, Some(44. / 28.));
+        let mut bad = construction.clone();
+        bad["rows"] = json!([]);
+        assert!(full28_native_ce(&original, &bad).is_err());
+        bad = construction;
+        bad["mean_episode_ce"] = Value::Null;
+        assert_eq!(full28_native_ce(&original, &bad)?, None);
+        Ok(())
+    }
+    #[test]
+    fn frozen_geometry_admission_rejects_other_parent_or_mutable_context() -> Result<()> {
+        let identity = ConsumerIdentity {
+            tokenizer_sha256: "t".into(),
+            parent_checkpoint_manifest_sha256: "c".into(),
+            parent_model_sha256: "m".into(),
+            parent_config_sha256: "f".into(),
+        };
+        let mut admission = GeometryReadoutAdmission {
+            source_commit: source_commit()?.to_owned(),
+            geometry_run_source_commit: "geometry-source".into(),
+            geometry_run_manifest_sha256: "manifest".into(),
+            geometry_checkpoint_manifest_sha256: "checkpoint".into(),
+            geometry_result_sha256: "result".into(),
+            round: 2,
+            candidate: 4,
+            optimizer: optimizer_identity(),
+            maximum_seconds: 1800,
+            starting_role: "retained_main_candidate_new_research_parent".into(),
+        };
+        let report = json!({"schema":"uor-r4.geometric-later-query-cells/1","mode":"context-later-query-cells","status":"completed","source_commit":"geometry-source","saved_identity":identity,"retained_report_sha256":"retained","transitions_readouts_tables_fixed":true,"no_adopted_model":true});
+        let receipt = json!({"optimizer_updates":0});
+        let result = json!({"ablation_only":false,"readouts_tables_transitions_fixed":true,"all_other_source_bits_fixed":true,"checkpoint":receipt});
+        assert!(geometry_parent_header(
+            &admission, &report, &result, &receipt, &identity, "retained"
+        )
+        .is_ok());
+        for field in ["transitions_readouts_tables_fixed", "no_adopted_model"] {
+            let mut bad = report.clone();
+            bad[field] = json!(false);
+            assert!(geometry_parent_header(
+                &admission, &bad, &result, &receipt, &identity, "retained"
+            )
+            .is_err());
+        }
+        let mut bad = result.clone();
+        bad["all_other_source_bits_fixed"] = json!(false);
+        assert!(
+            geometry_parent_header(&admission, &report, &bad, &receipt, &identity, "retained")
+                .is_err()
+        );
+        let mut bad = identity.clone();
+        bad.parent_model_sha256 = "other".into();
+        assert!(
+            geometry_parent_header(&admission, &report, &result, &receipt, &bad, "retained")
+                .is_err()
+        );
+        admission.starting_role = "old-default".into();
+        assert!(geometry_parent_header(
+            &admission, &report, &result, &receipt, &identity, "retained"
+        )
+        .is_err());
+        Ok(())
+    }
     fn later_test_single(index: usize, reserved: bool) -> CellProposal {
         CellProposal {
             edits: vec![consumed_test_edit("token_category", index, -1.)],
