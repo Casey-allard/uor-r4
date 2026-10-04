@@ -32,12 +32,16 @@ use uor_r4_training::{
 mod output_support;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const REPORT_CAP: usize = 512 * 1024 * 1024;
+const FACTOR_REPORT_CAP: usize = 256 * 1024 * 1024;
 const UPDATES: usize = 64;
 const BATCH: usize = 8;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Args {
     mode: String,
+    learned_source_weights: Option<PathBuf>,
+    learned_native_artifact: Option<PathBuf>,
+    learned_trusted_native_binding: Option<PathBuf>,
     source_weights: PathBuf,
     native_artifact: PathBuf,
     trusted_native_binding: PathBuf,
@@ -207,6 +211,9 @@ fn directory_bytes(path: &Path) -> Result<usize> {
     Ok(n)
 }
 fn write_json(root: &Path, name: &str, v: &Value) -> Result<()> {
+    write_json_limited(root, name, v, REPORT_CAP)
+}
+fn write_json_limited(root: &Path, name: &str, v: &Value, cap: usize) -> Result<()> {
     let b = serde_json::to_vec(v)?;
     let p = root.join(name);
     let previous = fs::metadata(&p).map_or(0, |m| m.len() as usize);
@@ -221,7 +228,7 @@ fn write_json(root: &Path, name: &str, v: &Value) -> Result<()> {
     if directory_bytes(total_root)?
         .saturating_sub(previous)
         .saturating_add(b.len())
-        > REPORT_CAP - 1024 * 1024
+        > cap - 1024 * 1024
     {
         return Err(invalid("report cap reached").into());
     }
@@ -266,12 +273,17 @@ fn checked_args() -> Result<Args> {
         return Err(invalid("only one config path").into());
     }
     let a: Args = serde_json::from_slice(&read_capped(Path::new(&config))?)?;
-    if !["broadbatch", "fit"].contains(&a.mode.as_str())
+    if !["broadbatch", "fit", "factor-probe"].contains(&a.mode.as_str())
         || a.maximum_seconds == 0
         || a.maximum_seconds > if a.mode == "fit" { 3600 } else { 300 }
         || a.maximum_context_tokens != 128
         || a.maximum_generation_tokens > 32
-        || a.maximum_report_bytes != REPORT_CAP
+        || a.maximum_report_bytes
+            != if a.mode == "factor-probe" {
+                FACTOR_REPORT_CAP
+            } else {
+                REPORT_CAP
+            }
     {
         return Err(invalid("mode/resource contract differs").into());
     }
@@ -288,6 +300,24 @@ fn checked_args() -> Result<Args> {
     if a.mode == "broadbatch" && (a.admission.is_some() || a.fit_authorization.is_some()) {
         return Err(invalid("broadbatch cannot automatically fit").into());
     }
+    let donors = [
+        a.learned_source_weights.is_some(),
+        a.learned_native_artifact.is_some(),
+        a.learned_trusted_native_binding.is_some(),
+    ];
+    if (a.mode == "factor-probe"
+        && (!donors.iter().all(|v| *v)
+            || a.admission.is_some()
+            || a.admission_manifest_sha256.is_some()
+            || a.fit_authorization.is_some()
+            || a.maximum_generation_tokens != 32))
+        || (a.mode != "factor-probe" && donors.iter().any(|v| *v))
+    {
+        return Err(invalid(
+            "factor mode requires only complete learned donor paths, no optimization admission",
+        )
+        .into());
+    }
     let out = output_support::prospective_output(&a.out)?;
     let mut paths = vec![
         &a.source_weights,
@@ -296,6 +326,9 @@ fn checked_args() -> Result<Args> {
         &a.development_panel,
         &a.fresh_panel,
     ];
+    paths.extend(a.learned_source_weights.iter());
+    paths.extend(a.learned_native_artifact.iter());
+    paths.extend(a.learned_trusted_native_binding.iter());
     paths.extend(a.admission.iter());
     paths.extend(a.fit_authorization.iter());
     paths.extend(a.exposed_controls.iter());
@@ -854,7 +887,387 @@ fn admission_matches(report: &Value, development: &str, fresh: &str, trusted: &s
         && report["trusted_binding_sha256"] == trusted
         && report["gradient_report"]["independent_native_trace_parity"] == true
 }
+fn factor_kind(name: &str) -> &'static str {
+    if name.starts_with("consumer.context.") {
+        "context"
+    } else if active(name) {
+        "readout"
+    } else {
+        "inactive"
+    }
+}
+fn donor_compatibility(
+    parent: &BTreeMap<String, Var>,
+    learned: &BTreeMap<String, Var>,
+) -> Result<()> {
+    if parent.keys().ne(learned.keys()) {
+        return Err(invalid("factor donor parameter inventory differs").into());
+    }
+    for (name, p) in parent {
+        let l = &learned[name];
+        if p.dims() != l.dims() || p.dtype() != candle_core::DType::F32 || l.dtype() != p.dtype() {
+            return Err(invalid(format!("factor donor shape/dtype differs: {name}")).into());
+        }
+        if factor_kind(name) == "inactive"
+            && p.flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .map(|x| x.to_bits())
+                .ne(l
+                    .flatten_all()?
+                    .to_vec1::<f32>()?
+                    .iter()
+                    .map(|x| x.to_bits()))
+        {
+            return Err(invalid(format!("inactive factor donor bits differ: {name}")).into());
+        }
+    }
+    Ok(())
+}
+fn assign_factor(
+    destination: &BTreeMap<String, Var>,
+    parent: &BTreeMap<String, Var>,
+    learned: &BTreeMap<String, Var>,
+    context48: bool,
+    readout48: bool,
+) -> Result<BTreeMap<String, &'static str>> {
+    if destination.keys().ne(parent.keys()) {
+        return Err(invalid("factor destination inventory differs").into());
+    }
+    let mut donors = BTreeMap::new();
+    for (name, var) in destination {
+        let take48 = match factor_kind(name) {
+            "context" => context48,
+            "readout" => readout48,
+            _ => false,
+        };
+        let donor = if take48 {
+            &learned[name]
+        } else {
+            &parent[name]
+        };
+        var.set(donor.as_tensor())?;
+        donors.insert(
+            name.clone(),
+            if take48 { "checkpoint48" } else { "parent0" },
+        );
+    }
+    Ok(donors)
+}
+fn configuration_only(mut metadata: Value) -> Result<Value> {
+    let m = metadata
+        .as_object_mut()
+        .ok_or_else(|| invalid("metadata object absent"))?;
+    for field in [
+        "files",
+        "source_parameters",
+        "parameter_sha256",
+        "packed_sha256",
+    ] {
+        m.remove(field);
+    }
+    Ok(metadata)
+}
+fn factor_pair_report(panel: &Path, canonical: &Value, generation: &Value) -> Result<Value> {
+    let data = read_json(&panel.join("context-data.json"))?;
+    let rows = data["cases"]
+        .as_array()
+        .ok_or_else(|| invalid("factor pair metadata absent"))?;
+    let cr = canonical["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("factor canonical rows absent"))?;
+    let gr = generation["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("factor generation rows absent"))?;
+    if rows.len() != 128 || cr.len() != 128 || gr.len() != 128 {
+        return Err(invalid("factor full128 row count differs").into());
+    }
+    let mut pairs = BTreeMap::<String, Vec<Value>>::new();
+    for ((d, c), g) in rows.iter().zip(cr).zip(gr) {
+        if d["id"] != c["id"] || d["id"] != g["id"] {
+            return Err(invalid("factor pair row identity differs").into());
+        }
+        if let Some(pair) = d["pair_id"].as_str() {
+            pairs.entry(pair.into()).or_default().push(json!({"id":d["id"],"query_role":d["query_role"],"first_canonical_position":c["tokens"][0],"native_mean_token_ce":c["native_mean_token_ce"],"generated_ids_including_eos":g["generated_ids_including_eos"],"eos":g["eos"],"accepted_complete_answer":g["accepted_complete_answer"]}));
+        }
+    }
+    if pairs.len() != 32
+        || pairs
+            .values()
+            .any(|p| p.len() != 2 || p[0]["query_role"] == p[1]["query_role"])
+    {
+        return Err(invalid("factor requires32 intact query pairs").into());
+    }
+    Ok(
+        json!({"pairs":pairs,"scope":"labels only after native read; first canonical position has empty actual prefix"}),
+    )
+}
+fn factor_probe(a: &Args, start: Instant) -> Result<Value> {
+    let learned_source = a
+        .learned_source_weights
+        .as_ref()
+        .ok_or_else(|| invalid("learned source absent"))?;
+    let learned_native = a
+        .learned_native_artifact
+        .as_ref()
+        .ok_or_else(|| invalid("learned native absent"))?;
+    let learned_binding = a
+        .learned_trusted_native_binding
+        .as_ref()
+        .ok_or_else(|| invalid("learned trusted binding absent"))?;
+    let mut inputs = BTreeMap::new();
+    let mut sealed = BTreeSet::new();
+    for path in [
+        &a.source_weights,
+        &a.native_artifact,
+        &a.development_panel,
+        learned_source,
+        learned_native,
+    ] {
+        let root = nearest_seal(path)?;
+        if sealed.insert(root.clone()) {
+            report_output::verify(&root)?;
+        }
+        let manifest = root.join(report_output::MANIFEST_FILE);
+        inputs.insert(
+            manifest,
+            sha256_file(&root.join(report_output::MANIFEST_FILE))?,
+        );
+    }
+    if sha256_file(&a.development_panel.join(report_output::MANIFEST_FILE))?
+        != a.development_manifest_sha256
+    {
+        return Err(invalid("factor development manifest differs").into());
+    }
+    for path in [&a.trusted_native_binding, learned_binding] {
+        inputs.insert(path.clone(), sha256_file(path)?);
+    }
+    let parent_canonical = a
+        .native_artifact
+        .parent()
+        .ok_or_else(|| invalid("parent checkpoint root absent"))?
+        .join("canonical.json");
+    let learned_canonical = learned_native
+        .parent()
+        .ok_or_else(|| invalid("learned checkpoint root absent"))?
+        .join("canonical.json");
+    for path in [&parent_canonical, &learned_canonical] {
+        let root = nearest_seal(path)?;
+        report_output::verify(&root)?;
+        sealed.insert(root);
+        inputs.insert(path.clone(), sha256_file(path)?);
+    }
+    let retained_parent_canonical = read_json(&parent_canonical)?;
+    let retained_learned_canonical = read_json(&learned_canonical)?;
+    let parent_binding: NativeArtifactBinding =
+        serde_json::from_slice(&read_capped(&a.trusted_native_binding)?)?;
+    let learned_binding_value: NativeArtifactBinding =
+        serde_json::from_slice(&read_capped(learned_binding)?)?;
+    let parent_integer = IntegerRealizer::load_native(&a.native_artifact, &parent_binding)?;
+    let _learned_integer = IntegerRealizer::load_native(learned_native, &learned_binding_value)?;
+    let bytes = fs::read(a.native_artifact.join("tokenizer.json"))?;
+    if fs::read(learned_native.join("tokenizer.json"))? != bytes {
+        return Err(invalid("factor tokenizer differs").into());
+    }
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("factor tokenizer invalid"))?;
+    let parent = SourceRealizerWeights::load_source(&a.source_weights, &bytes)?;
+    let learned = SourceRealizerWeights::load_source(learned_source, &bytes)?;
+    let identity: ConsumerIdentity = serde_json::from_value(
+        read_json(&a.native_artifact.join("metadata.json"))?["identity"].clone(),
+    )?;
+    let original = NativeSourceRealizer::load(&a.native_artifact, &parent, &identity)?;
+    let learned_original = NativeSourceRealizer::load(learned_native, &learned, &identity)?;
+    if original.artifact_binding()? != parent_binding
+        || learned_original.artifact_binding()? != learned_binding_value
+    {
+        return Err(invalid("factor trusted source/native binding differs").into());
+    }
+    for file in ["metadata.json", "consumer/metadata.json"] {
+        if configuration_only(read_json(&a.native_artifact.join(file))?)?
+            != configuration_only(read_json(&learned_native.join(file))?)?
+        {
+            return Err(invalid(format!("factor native config differs: {file}")).into());
+        }
+    }
+    for file in [
+        "metadata.json",
+        "consumer/context-config.json",
+        "consumer/potential/metadata.json",
+        "consumer/no-read/metadata.json",
+        "period/metadata.json",
+    ] {
+        if configuration_only(read_json(&a.source_weights.join(file))?)?
+            != configuration_only(read_json(&learned_source.join(file))?)?
+        {
+            return Err(invalid(format!("factor source config differs: {file}")).into());
+        }
+    }
+    for file in ["tokenizer.json", "consumer/exp-q31.bin"] {
+        if fs::read(a.native_artifact.join(file))? != fs::read(learned_native.join(file))? {
+            return Err(invalid(format!("factor fixed table differs: {file}")).into());
+        }
+    }
+    let p = parent.parameters();
+    let l = learned.parameters();
+    donor_compatibility(&p, &l)?;
+    let initial_parent = parameter_receipts(&p)?;
+    let initial_learned = parameter_receipts(&l)?;
+    let episodes = load_panel(&a.development_panel, 128, &parent_integer, &tok, true)?;
+    let export_size = directory_bytes(&a.source_weights)?
+        .checked_add(directory_bytes(&a.native_artifact)?)
+        .ok_or_else(|| invalid("factor export projection overflow"))?;
+    if export_size
+        .checked_mul(4)
+        .and_then(|n| n.checked_add(48 * 1024 * 1024))
+        .is_none_or(|n| n > FACTOR_REPORT_CAP - 1024 * 1024)
+    {
+        return Err(invalid("factor four exports plus trace reserve exceed report cap").into());
+    }
+    let mut reports = Vec::new();
+    let mut prior_canonical: Vec<(&str, Value)> = Vec::new();
+    let mut prior_generation: Vec<(&str, Value)> = Vec::new();
+    for (name, context48, readout48) in [
+        ("parent0", false, false),
+        ("full48", true, true),
+        ("C0R48", false, true),
+        ("C48R0", true, false),
+    ] {
+        deadline(a, start)?;
+        let root = a.out.join(name);
+        report_output::claim(&root)?;
+        let result = (|| -> Result<Value> {
+            let source = SourceRealizerWeights::load_source(&a.source_weights, &bytes)?;
+            let vars = source.parameters();
+            let donors = assign_factor(&vars, &p, &l, context48, readout48)?;
+            let expected = parameter_receipts(&vars)?;
+            source.save_source(&root.join("realizer-source"))?;
+            source
+                .compile(identity.clone())?
+                .save(&root.join("realizer-native"))?;
+            let restored =
+                SourceRealizerWeights::load_source(&root.join("realizer-source"), &bytes)?;
+            if parameter_receipts(&restored.parameters())? != expected {
+                return Err(invalid("factor exported source bits differ").into());
+            }
+            let loaded =
+                NativeSourceRealizer::load(&root.join("realizer-native"), &restored, &identity)?;
+            let binding = loaded.artifact_binding()?;
+            let native = IntegerRealizer::load_native(&root.join("realizer-native"), &binding)?;
+            let mut packed = BTreeMap::new();
+            for (file, from48) in [
+                ("consumer/context-q4.bin", context48),
+                ("consumer/potential-q4.bin", readout48),
+                ("consumer/no-read-q4.bin", readout48),
+                ("period-q4.bin", readout48),
+                ("tokenizer.json", false),
+                ("consumer/exp-q31.bin", false),
+            ] {
+                let donor = if from48 {
+                    learned_native
+                } else {
+                    &a.native_artifact
+                };
+                if fs::read(root.join("realizer-native").join(file))? != fs::read(donor.join(file))?
+                {
+                    return Err(
+                        invalid(format!("factor packed donor mismatch: {name}/{file}")).into(),
+                    );
+                }
+                packed.insert(file, json!({"donor":if from48{"checkpoint48"}else{"parent0"},"sha256":sha256_file(&root.join("realizer-native").join(file))?}));
+            }
+            let canonical_report = canonical(&native, &episodes, a, start)?;
+            let endpoint_replay = if name == "parent0" || name == "full48" {
+                let retained = if name == "parent0" {
+                    &retained_parent_canonical
+                } else {
+                    &retained_learned_canonical
+                };
+                if canonical_report != *retained {
+                    return Err(invalid(format!(
+                        "factor endpoint complete canonical replay differs: {name}"
+                    ))
+                    .into());
+                }
+                json!({"complete_saved_canonical_equal":true,"retained_sha256":sha256_file(if name=="parent0"{&parent_canonical}else{&learned_canonical})?,"scope":"all saved canonical fields, complete compact native actions/codes/latent/candidate mapping and full context digest; retained canonical does not store raw full context arrays"})
+            } else {
+                json!({"complete_saved_canonical_equal":null,"scope":"hybrid has no retained endpoint"})
+            };
+
+            write_json_limited(
+                &root,
+                "canonical.json",
+                &canonical_report,
+                FACTOR_REPORT_CAP,
+            )?;
+            let generated = generation(&native, &episodes, &tok, a, start)?;
+            write_json_limited(&root, "generation.json", &generated, FACTOR_REPORT_CAP)?;
+            write_json_limited(
+                &root,
+                "query-pairs.json",
+                &factor_pair_report(&a.development_panel, &canonical_report, &generated)?,
+                FACTOR_REPORT_CAP,
+            )?;
+            let mut comparisons = Vec::new();
+            for ((oldname, oldcanonical), (_, oldgeneration)) in
+                prior_canonical.iter().zip(&prior_generation)
+            {
+                let oldrows = oldgeneration["rows"]
+                    .as_array()
+                    .ok_or_else(|| invalid("prior generation rows absent"))?;
+                let newrows = generated["rows"]
+                    .as_array()
+                    .ok_or_else(|| invalid("factor generation rows absent"))?;
+                let rows = oldrows.iter().zip(newrows).map(|(old,new)| json!({"id":new["id"],"previous_output_ids":old["generated_ids_including_eos"],"current_output_ids":new["generated_ids_including_eos"],"previous_eos":old["eos"],"current_eos":new["eos"],"previous_accepted":old["accepted_complete_answer"],"current_accepted":new["accepted_complete_answer"]})).collect::<Vec<_>>();
+                comparisons.push(json!({"prior_factor":oldname,"canonical":compare(oldcanonical,&canonical_report)?,"ownprefix":rows}));
+            }
+            write_json_limited(
+                &root,
+                "comparisons.json",
+                &json!(comparisons),
+                FACTOR_REPORT_CAP,
+            )?;
+            let receipt = json!({"factor":name,"context48":context48,"readout48":readout48,"source_parameter_donors":donors,"source_parameter_receipts":expected,"packed_payload_donors":packed,"endpoint_replay":endpoint_replay,"trusted_export_binding":binding,"canonical_sha256":sha256_file(&root.join("canonical.json"))?,"generation_sha256":sha256_file(&root.join("generation.json"))?,"native_equal_episode_ce":canonical_report["native_equal_episode_ce"],"accepted_complete":generated["accepted_complete"],"optimizer_updates":0});
+            write_json_limited(&root, "receipt.json", &receipt, FACTOR_REPORT_CAP)?;
+            prior_canonical.push((name, canonical_report));
+            prior_generation.push((name, generated));
+            Ok(receipt)
+        })();
+        if let Err(e) = &result {
+            write_json_limited(
+                &root,
+                "failure.json",
+                &json!({"factor":name,"error":e.to_string()}),
+                FACTOR_REPORT_CAP,
+            )?;
+        }
+        report_output::seal(&root)?;
+        report_output::verify(&root)?;
+        reports.push(result?);
+        if directory_bytes(&a.out)? > FACTOR_REPORT_CAP - 1024 * 1024 {
+            return Err(invalid("factor report cap reached").into());
+        }
+    }
+    if parameter_receipts(&p)? != initial_parent || parameter_receipts(&l)? != initial_learned {
+        return Err(invalid("factor donors changed").into());
+    }
+    for (path, hash) in &inputs {
+        if sha256_file(path)? != *hash {
+            return Err(invalid("factor input changed").into());
+        }
+    }
+    for root in sealed {
+        report_output::verify(&root)?;
+    }
+    Ok(
+        json!({"schema":"uor-r4.geometric-bank-factor-probe/1","mode":"factor-probe","status":"completed","optimizer_updates":0,"development_cases":128,"query_pairs":32,"factors":reports,"input_manifests_sha256":inputs,"fresh_predictions":"NOT_RUN","checkpoint_reselection":false,"donor_parameters_unchanged":true,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"scope":"zero-update development context/readout causal intervention; no fresh qualification or replacement of selected parent0"}),
+    )
+}
+
 fn run(a: &Args, start: Instant) -> Result<Value> {
+    if a.mode == "factor-probe" {
+        return factor_probe(a, start);
+    }
     for (root, expected) in [
         (&a.development_panel, &a.development_manifest_sha256),
         (&a.fresh_panel, &a.fresh_manifest_sha256),
@@ -1120,13 +1533,14 @@ fn main() {
                 v["executable_lookup"] = json!(lookup);
                 v["host_os"] = json!(std::env::consts::OS);
                 v["host_arch"] = json!(std::env::consts::ARCH);
-                write_json(&a.out, "report.json", &v)?;
+                write_json_limited(&a.out, "report.json", &v, a.maximum_report_bytes)?;
             }
             Err(e) => {
-                write_json(
+                write_json_limited(
                     &a.out,
                     "failure.json",
                     &json!({"status":"failed_or_stopped","error":e.to_string(),"mode":a.mode,"elapsed_seconds":start.elapsed().as_secs_f64(),"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"completed_updates_in_progress":read_json(&a.out.join("progress.json")).ok()}),
+                    a.maximum_report_bytes,
                 )?;
             }
         }
@@ -1142,6 +1556,93 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn factor_donors_preserve_inactive_bits_and_reject_shape_inventory_changes() -> Result<()> {
+        let make = |v: Vec<f32>| -> Result<Var> {
+            Ok(Var::from_tensor(&Tensor::from_vec(
+                v.clone(),
+                v.len(),
+                &Device::Cpu,
+            )?)?)
+        };
+        let mut parent = BTreeMap::new();
+        parent.insert("consumer.context.token_root".into(), make(vec![0., 1.])?);
+        parent.insert(
+            "consumer.potential.context_unary".into(),
+            make(vec![2., 3.])?,
+        );
+        parent.insert("consumer.potential.content_unary".into(), make(vec![-0.])?);
+        let mut learned = BTreeMap::new();
+        learned.insert("consumer.context.token_root".into(), make(vec![3., 4.])?);
+        learned.insert(
+            "consumer.potential.context_unary".into(),
+            make(vec![5., 6.])?,
+        );
+        learned.insert("consumer.potential.content_unary".into(), make(vec![-0.])?);
+        donor_compatibility(&parent, &learned)?;
+        for (c, r) in [(false, false), (true, true), (false, true), (true, false)] {
+            let destination = parent
+                .iter()
+                .map(|(name, v)| Ok((name.clone(), Var::from_tensor(&v.as_tensor().copy()?)?)))
+                .collect::<Result<BTreeMap<_, _>>>()?;
+            let donors = assign_factor(&destination, &parent, &learned, c, r)?;
+            for (name, var) in &destination {
+                let chosen = match factor_kind(name) {
+                    "context" => c,
+                    "readout" => r,
+                    _ => false,
+                };
+                let expected = if chosen {
+                    &learned[name]
+                } else {
+                    &parent[name]
+                };
+                assert_eq!(
+                    var.flatten_all()?.to_vec1::<f32>()?,
+                    expected.flatten_all()?.to_vec1::<f32>()?
+                );
+                assert_eq!(
+                    donors[name],
+                    if chosen { "checkpoint48" } else { "parent0" }
+                );
+            }
+        }
+
+        learned.insert("consumer.potential.content_unary".into(), make(vec![0.])?);
+        assert!(donor_compatibility(&parent, &learned).is_err()); // numeric equality is insufficient
+        learned.insert("consumer.potential.content_unary".into(), make(vec![-0.])?);
+        learned.insert("consumer.context.token_root".into(), make(vec![1.])?);
+        assert!(donor_compatibility(&parent, &learned).is_err());
+        learned.remove("consumer.context.token_root");
+        assert!(donor_compatibility(&parent, &learned).is_err());
+        assert_eq!(factor_kind("consumer.context.token_root"), "context");
+        for n in [
+            "consumer.potential.context_unary",
+            "consumer.potential.context_radius",
+            "consumer.potential.context_presence",
+            "consumer.potential.content_presence",
+            "consumer.no_read.bias",
+            "period.bias",
+        ] {
+            assert_eq!(factor_kind(n), "readout");
+        }
+        assert_eq!(factor_kind("consumer.potential.pair_unary"), "inactive");
+        Ok(())
+    }
+    #[test]
+    fn factor_metadata_keeps_geometry_and_configuration_while_rebinding_inventory() -> Result<()> {
+        let a = json!({"config":{"heads":2},"identity":{"algebra":"bound"},"files":{"x":"old"},"source_parameters":{"x":"old"}});
+        let mut b = a.clone();
+        b["files"]["x"] = json!("new");
+        b["source_parameters"]["x"] = json!("new");
+        assert_eq!(
+            configuration_only(a.clone())?,
+            configuration_only(b.clone())?
+        );
+        b["identity"]["algebra"] = json!("foreign");
+        assert_ne!(configuration_only(a)?, configuration_only(b)?);
+        Ok(())
+    }
     #[test]
     fn preserved_five_alias_answers_keep_canonical_first_and_all_membership() -> Result<()> {
         let answers: FrozenAnswers = serde_json::from_value(

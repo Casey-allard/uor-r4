@@ -1,0 +1,4552 @@
+{
+  "schema": "uor-r4.geometric-bank-factor-evidence/1",
+  "source_commit": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+  "source_sha256": "2bc71e6358d8433b3ff1c94a6a1b4581887a2ddad641ed946dcb0df76b83018e",
+  "executable": {
+    "source_commit": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+    "sha256": "f14ba8792c3bfbe5495860017d147e59446fc973907c6d18943aa673f6ac62a4",
+    "bytes": 8087384,
+    "postbuild_owned_bytes": 10034135040,
+    "postbuild_free_bytes": 8141533184,
+    "report_plus_margin_bytes": 402653184
+  },
+  "source_verification": {
+    "source_commit": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+    "previous_commit": "6aa5e0c6df4822a0b3da8f19d9260092aa5082ea",
+    "old_full_set_sha256": "PASS",
+    "new_full_set_sha256": "PASS",
+    "files": 16914,
+    "bytes": 1273349113,
+    "scope": "exact committed archive after verified changed-file overlay; unchanged oldsource verified before reuse",
+    "utc": "2026-10-04T22:53:26.758627+00:00"
+  },
+  "return_verification": {
+    "status": "PASS",
+    "files": 103,
+    "bytes": 214942337,
+    "complete_file_set_and_sha256_equal": true,
+    "inventory_sha256": "2b1e38ecc4dacb3ef2d302e5fdc3c5915c5eb2a3a22fe063e71b0d5a6fb71a21"
+  },
+  "audit": {
+    "status": "PASS",
+    "checks": 23129,
+    "errors": [],
+    "source_commit": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+    "factor_summary": {
+      "parent0": {
+        "allCE": 1.3276488868214145,
+        "singleCE": 0.4923816248649195,
+        "bankCE": 2.1629161487779083,
+        "single_complete": 31,
+        "bank_complete": 0,
+        "pair_complete": 0,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "first_conditional_copy": [
+          {
+            "id": "mw2-0246-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2218829942,
+            "conditional_copy_target_probability": 0.9678450823790082,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2218829942,
+            "conditional_copy_target_probability": 0.9678450823790082,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2174213516,
+            "conditional_copy_target_probability": 0.9877059599697567,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0246-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2174213516,
+            "conditional_copy_target_probability": 0.9877059599697567,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2218829942,
+            "conditional_copy_target_probability": 0.9678450823790082,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2218829942,
+            "conditional_copy_target_probability": 0.9678450823790082,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2174213516,
+            "conditional_copy_target_probability": 0.9877059599697567,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2174213516,
+            "conditional_copy_target_probability": 0.9877059599697567,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0288-s0-d0",
+            "target": 935,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3262185023,
+            "conditional_copy_target_probability": 0.6582960907671361,
+            "top_copy_token": 935
+          },
+          {
+            "id": "mw2-0288-s0-d1",
+            "target": 935,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3262185023,
+            "conditional_copy_target_probability": 0.6582960907671361,
+            "top_copy_token": 935
+          },
+          {
+            "id": "mw2-0288-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2226398329,
+            "conditional_copy_target_probability": 0.9645550034905725,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2226398329,
+            "conditional_copy_target_probability": 0.9645550034905725,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2972645009,
+            "conditional_copy_target_probability": 0.7224151022063732,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2972645009,
+            "conditional_copy_target_probability": 0.7224151022063732,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2226398329,
+            "conditional_copy_target_probability": 0.9645550034905725,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2226398329,
+            "conditional_copy_target_probability": 0.9645550034905725,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2972645009,
+            "conditional_copy_target_probability": 0.7224151022063732,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2972645009,
+            "conditional_copy_target_probability": 0.7224151022063732,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2226398329,
+            "conditional_copy_target_probability": 0.9645550034905725,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2226398329,
+            "conditional_copy_target_probability": 0.9645550034905725,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-00",
+            "target": 1130,
+            "target_copy_weight": 3211492646,
+            "copy_total_weight": 4003640476,
+            "conditional_copy_target_probability": 0.8021431158095825,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-01",
+            "target": 1357,
+            "target_copy_weight": 3231074550,
+            "copy_total_weight": 3360786189,
+            "conditional_copy_target_probability": 0.9614043763258276,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "construction-02",
+            "target": 1130,
+            "target_copy_weight": 804556314,
+            "copy_total_weight": 1284433771,
+            "conditional_copy_target_probability": 0.6263898786884201,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-03",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2945898027,
+            "conditional_copy_target_probability": 0.7289741967704573,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "construction-04",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3325982445,
+            "conditional_copy_target_probability": 0.6456689665420047,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-05",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2358441952,
+            "conditional_copy_target_probability": 0.9105518353669448,
+            "top_copy_token": 363
+          },
+          {
+            "id": "construction-06",
+            "target": 1130,
+            "target_copy_weight": 3390617755,
+            "copy_total_weight": 3567571073,
+            "conditional_copy_target_probability": 0.9503994974790514,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-07",
+            "target": 1357,
+            "target_copy_weight": 2488734972,
+            "copy_total_weight": 2787571919,
+            "conditional_copy_target_probability": 0.8927966862619268,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-00",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3158170328,
+            "conditional_copy_target_probability": 0.6799771465650981,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-01",
+            "target": 2593,
+            "target_copy_weight": 3161883218,
+            "copy_total_weight": 3822049905,
+            "conditional_copy_target_probability": 0.8272741844274794,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-02",
+            "target": 2593,
+            "target_copy_weight": 521273101,
+            "copy_total_weight": 743758327,
+            "conditional_copy_target_probability": 0.7008635494577797,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-03",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3756138254,
+            "conditional_copy_target_probability": 0.5717264655296151,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-04",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3590055548,
+            "conditional_copy_target_probability": 0.5981756046076644,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-05",
+            "target": 363,
+            "target_copy_weight": 2962145857,
+            "copy_total_weight": 4496221135,
+            "conditional_copy_target_probability": 0.658807867331463,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-06",
+            "target": 1130,
+            "target_copy_weight": 3934023123,
+            "copy_total_weight": 5777041466,
+            "conditional_copy_target_probability": 0.6809753999782006,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-07",
+            "target": 1130,
+            "target_copy_weight": 2288879364,
+            "copy_total_weight": 2982355355,
+            "conditional_copy_target_probability": 0.7674737217892668,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-08",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2629890480,
+            "conditional_copy_target_probability": 0.8165677104546194,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-09",
+            "target": 1130,
+            "target_copy_weight": 3954274708,
+            "copy_total_weight": 5360575019,
+            "conditional_copy_target_probability": 0.7376586828809382,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-10",
+            "target": 1130,
+            "target_copy_weight": 502602263,
+            "copy_total_weight": 1075338295,
+            "conditional_copy_target_probability": 0.46738990449512446,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-11",
+            "target": 1130,
+            "target_copy_weight": 1411051163,
+            "copy_total_weight": 2056050038,
+            "conditional_copy_target_probability": 0.6862922287497363,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-12",
+            "target": 1357,
+            "target_copy_weight": 2313657696,
+            "copy_total_weight": 3200945742,
+            "conditional_copy_target_probability": 0.722804409222629,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-13",
+            "target": 1357,
+            "target_copy_weight": 3921621346,
+            "copy_total_weight": 5495388465,
+            "conditional_copy_target_probability": 0.7136204057232194,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-14",
+            "target": 1357,
+            "target_copy_weight": 2185244547,
+            "copy_total_weight": 3155537593,
+            "conditional_copy_target_probability": 0.6925110167749473,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-15",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2380113191,
+            "conditional_copy_target_probability": 0.9022611429239376,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-16",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 5275215345,
+            "conditional_copy_target_probability": 0.40708928594459115,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-17",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3065555959,
+            "conditional_copy_target_probability": 0.7005201264375288,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-18",
+            "target": 2593,
+            "target_copy_weight": 496969250,
+            "copy_total_weight": 1284920901,
+            "conditional_copy_target_probability": 0.38677030594897294,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-19",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2925304149,
+            "conditional_copy_target_probability": 0.734106109525092,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-20",
+            "target": 2593,
+            "target_copy_weight": 786852273,
+            "copy_total_weight": 1134027220,
+            "conditional_copy_target_probability": 0.693856601607852,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-21",
+            "target": 363,
+            "target_copy_weight": 781161189,
+            "copy_total_weight": 1628659414,
+            "conditional_copy_target_probability": 0.47963446641152685,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-22",
+            "target": 363,
+            "target_copy_weight": 4042631430,
+            "copy_total_weight": 10027636316,
+            "conditional_copy_target_probability": 0.4031489877180344,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-23",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 4270220797,
+            "conditional_copy_target_probability": 0.502897566680555,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-24",
+            "target": 1130,
+            "target_copy_weight": 626959576,
+            "copy_total_weight": 1069674363,
+            "conditional_copy_target_probability": 0.5861219055878223,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-25",
+            "target": 1357,
+            "target_copy_weight": 2900666219,
+            "copy_total_weight": 3340325306,
+            "conditional_copy_target_probability": 0.8683783623677999,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-26",
+            "target": 1130,
+            "target_copy_weight": 3192264401,
+            "copy_total_weight": 5571423860,
+            "conditional_copy_target_probability": 0.5729710180406199,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-27",
+            "target": 1357,
+            "target_copy_weight": 3284066403,
+            "copy_total_weight": 4308112468,
+            "conditional_copy_target_probability": 0.7622982053958764,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-28",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 4036930520,
+            "conditional_copy_target_probability": 0.5319595265166962,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-29",
+            "target": 1357,
+            "target_copy_weight": 664681207,
+            "copy_total_weight": 2501642257,
+            "conditional_copy_target_probability": 0.26569794507592537,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-30",
+            "target": 2593,
+            "target_copy_weight": 2047362372,
+            "copy_total_weight": 5529149703,
+            "conditional_copy_target_probability": 0.3702852123698413,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-31",
+            "target": 363,
+            "target_copy_weight": 1623834154,
+            "copy_total_weight": 4001272494,
+            "conditional_copy_target_probability": 0.4058294346198557,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-32",
+            "target": 1130,
+            "target_copy_weight": 795538567,
+            "copy_total_weight": 1537444013,
+            "conditional_copy_target_probability": 0.5174423005151733,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-33",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3266740596,
+            "conditional_copy_target_probability": 0.6573780760644149,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-34",
+            "target": 2593,
+            "target_copy_weight": 2717006625,
+            "copy_total_weight": 5316158492,
+            "conditional_copy_target_probability": 0.5110845790411773,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-35",
+            "target": 363,
+            "target_copy_weight": 2440145933,
+            "copy_total_weight": 3514562579,
+            "conditional_copy_target_probability": 0.694295770284533,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-roles-order-00-job",
+            "target": 1357,
+            "target_copy_weight": 736392928,
+            "copy_total_weight": 7190003531,
+            "conditional_copy_target_probability": 0.10241899393025486,
+            "top_copy_token": 73
+          },
+          {
+            "id": "development-roles-order-00-where",
+            "target": 935,
+            "target_copy_weight": 380045515,
+            "copy_total_weight": 9630098743,
+            "conditional_copy_target_probability": 0.039464342489348866,
+            "top_copy_token": 70
+          },
+          {
+            "id": "development-roles-order-01-job",
+            "target": 1357,
+            "target_copy_weight": 114209648,
+            "copy_total_weight": 7026112858,
+            "conditional_copy_target_probability": 0.01625502611589277,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-01-where",
+            "target": 2593,
+            "target_copy_weight": 2473137359,
+            "copy_total_weight": 10124947499,
+            "conditional_copy_target_probability": 0.2442617464677483,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-roles-order-02-job",
+            "target": 1130,
+            "target_copy_weight": 103087605,
+            "copy_total_weight": 358629307,
+            "conditional_copy_target_probability": 0.28744891448595417,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-roles-order-02-where",
+            "target": 1357,
+            "target_copy_weight": 1326489029,
+            "copy_total_weight": 4466358076,
+            "conditional_copy_target_probability": 0.2969956744238435,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-03-job",
+            "target": 1357,
+            "target_copy_weight": 84799607,
+            "copy_total_weight": 7308679167,
+            "conditional_copy_target_probability": 0.011602589888318736,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-03-where",
+            "target": 363,
+            "target_copy_weight": 749027841,
+            "copy_total_weight": 5132859777,
+            "conditional_copy_target_probability": 0.14592797651639414,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-04-job",
+            "target": 2593,
+            "target_copy_weight": 843901493,
+            "copy_total_weight": 9156794204,
+            "conditional_copy_target_probability": 0.09216123833288238,
+            "top_copy_token": 70
+          },
+          {
+            "id": "development-roles-order-04-where",
+            "target": 935,
+            "target_copy_weight": 739570581,
+            "copy_total_weight": 4923228447,
+            "conditional_copy_target_probability": 0.1502206507298401,
+            "top_copy_token": 73
+          },
+          {
+            "id": "development-roles-order-05-job",
+            "target": 2593,
+            "target_copy_weight": 137823470,
+            "copy_total_weight": 3381173820,
+            "conditional_copy_target_probability": 0.0407620185583952,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-05-where",
+            "target": 1130,
+            "target_copy_weight": 1145547137,
+            "copy_total_weight": 8041365447,
+            "conditional_copy_target_probability": 0.14245679350729798,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-roles-order-06-job",
+            "target": 2593,
+            "target_copy_weight": 453656538,
+            "copy_total_weight": 1017506817,
+            "conditional_copy_target_probability": 0.44585110430763825,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-06-where",
+            "target": 363,
+            "target_copy_weight": 669327950,
+            "copy_total_weight": 2577219482,
+            "conditional_copy_target_probability": 0.25970933196600754,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-07-job",
+            "target": 1130,
+            "target_copy_weight": 1136582891,
+            "copy_total_weight": 4337664209,
+            "conditional_copy_target_probability": 0.262026481589276,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-07-where",
+            "target": 2593,
+            "target_copy_weight": 2431569929,
+            "copy_total_weight": 11433802053,
+            "conditional_copy_target_probability": 0.21266503633076322,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-distractors-00-job",
+            "target": 363,
+            "target_copy_weight": 153819759,
+            "copy_total_weight": 4230265318,
+            "conditional_copy_target_probability": 0.03636172850565398,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-00-where",
+            "target": 2593,
+            "target_copy_weight": 778263,
+            "copy_total_weight": 38982446,
+            "conditional_copy_target_probability": 0.01996444758751157,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-distractors-01-job",
+            "target": 1357,
+            "target_copy_weight": 3089321382,
+            "copy_total_weight": 25150377371,
+            "conditional_copy_target_probability": 0.1228339971376408,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-01-where",
+            "target": 363,
+            "target_copy_weight": 88198577,
+            "copy_total_weight": 1585583342,
+            "conditional_copy_target_probability": 0.05562531761260141,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-02-job",
+            "target": 1357,
+            "target_copy_weight": 10431178,
+            "copy_total_weight": 183618449,
+            "conditional_copy_target_probability": 0.05680898655232623,
+            "top_copy_token": 73
+          },
+          {
+            "id": "development-distractors-02-where",
+            "target": 935,
+            "target_copy_weight": 744740365,
+            "copy_total_weight": 13840531009,
+            "conditional_copy_target_probability": 0.05380865549997483,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-03-job",
+            "target": 1357,
+            "target_copy_weight": 1018051769,
+            "copy_total_weight": 12869247574,
+            "conditional_copy_target_probability": 0.07910732644982217,
+            "top_copy_token": 292
+          },
+          {
+            "id": "development-distractors-03-where",
+            "target": 363,
+            "target_copy_weight": 708021160,
+            "copy_total_weight": 7883796011,
+            "conditional_copy_target_probability": 0.08980713846630753,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-04-job",
+            "target": 2593,
+            "target_copy_weight": 110888836,
+            "copy_total_weight": 1695468372,
+            "conditional_copy_target_probability": 0.0654030696362645,
+            "top_copy_token": 373
+          },
+          {
+            "id": "development-distractors-04-where",
+            "target": 935,
+            "target_copy_weight": 479168313,
+            "copy_total_weight": 5546024527,
+            "conditional_copy_target_probability": 0.08639852035764356,
+            "top_copy_token": 302
+          },
+          {
+            "id": "development-distractors-05-job",
+            "target": 1357,
+            "target_copy_weight": 1249615645,
+            "copy_total_weight": 15845553312,
+            "conditional_copy_target_probability": 0.07886222843689865,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-05-where",
+            "target": 363,
+            "target_copy_weight": 1106929745,
+            "copy_total_weight": 13930408694,
+            "conditional_copy_target_probability": 0.07946139767433875,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-distractors-06-job",
+            "target": 1130,
+            "target_copy_weight": 1530773331,
+            "copy_total_weight": 6055508501,
+            "conditional_copy_target_probability": 0.2527902207960256,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-distractors-06-where",
+            "target": 363,
+            "target_copy_weight": 493519542,
+            "copy_total_weight": 2877098939,
+            "conditional_copy_target_probability": 0.17153374022359263,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-07-job",
+            "target": 1130,
+            "target_copy_weight": 150112585,
+            "copy_total_weight": 1468071972,
+            "conditional_copy_target_probability": 0.1022515161811154,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-07-where",
+            "target": 1357,
+            "target_copy_weight": 208949615,
+            "copy_total_weight": 763469651,
+            "conditional_copy_target_probability": 0.2736842449812062,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-repetition-00-job",
+            "target": 1357,
+            "target_copy_weight": 649069120,
+            "copy_total_weight": 11470998608,
+            "conditional_copy_target_probability": 0.0565834886901069,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-repetition-00-where",
+            "target": 363,
+            "target_copy_weight": 2289867739,
+            "copy_total_weight": 7127545663,
+            "conditional_copy_target_probability": 0.32127016048273055,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-01-job",
+            "target": 363,
+            "target_copy_weight": 675396436,
+            "copy_total_weight": 7203194065,
+            "conditional_copy_target_probability": 0.09376346519410345,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-repetition-01-where",
+            "target": 363,
+            "target_copy_weight": 339014994,
+            "copy_total_weight": 2305439177,
+            "conditional_copy_target_probability": 0.14705007071197176,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-repetition-02-job",
+            "target": 935,
+            "target_copy_weight": 6474895,
+            "copy_total_weight": 366982098,
+            "conditional_copy_target_probability": 0.01764362631116682,
+            "top_copy_token": 84
+          },
+          {
+            "id": "development-repetition-02-where",
+            "target": 363,
+            "target_copy_weight": 226092647,
+            "copy_total_weight": 12428655980,
+            "conditional_copy_target_probability": 0.018191238647511425,
+            "top_copy_token": 302
+          },
+          {
+            "id": "development-repetition-03-job",
+            "target": 1130,
+            "target_copy_weight": 2147110569,
+            "copy_total_weight": 13027066507,
+            "conditional_copy_target_probability": 0.16481919147693502,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-repetition-03-where",
+            "target": 363,
+            "target_copy_weight": 1577177020,
+            "copy_total_weight": 23968832484,
+            "conditional_copy_target_probability": 0.06580116161489379,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-repetition-04-job",
+            "target": 2593,
+            "target_copy_weight": 1063730334,
+            "copy_total_weight": 5238617289,
+            "conditional_copy_target_probability": 0.20305555365413142,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-repetition-04-where",
+            "target": 363,
+            "target_copy_weight": 2492916795,
+            "copy_total_weight": 6038515886,
+            "conditional_copy_target_probability": 0.41283600839400025,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-05-job",
+            "target": 1130,
+            "target_copy_weight": 2757534640,
+            "copy_total_weight": 14959873180,
+            "conditional_copy_target_probability": 0.18432874442321978,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-repetition-05-where",
+            "target": 1357,
+            "target_copy_weight": 164820973,
+            "copy_total_weight": 1513934175,
+            "conditional_copy_target_probability": 0.10886931263045171,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-06-job",
+            "target": 1357,
+            "target_copy_weight": 1593432291,
+            "copy_total_weight": 8995575691,
+            "conditional_copy_target_probability": 0.17713511016245642,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-06-where",
+            "target": 363,
+            "target_copy_weight": 63928502,
+            "copy_total_weight": 509827228,
+            "conditional_copy_target_probability": 0.12539248296091396,
+            "top_copy_token": 277
+          },
+          {
+            "id": "development-repetition-07-job",
+            "target": 1130,
+            "target_copy_weight": 296273128,
+            "copy_total_weight": 1658269867,
+            "conditional_copy_target_probability": 0.17866400029085253,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-repetition-07-where",
+            "target": 1357,
+            "target_copy_weight": 2313431048,
+            "copy_total_weight": 11720353566,
+            "conditional_copy_target_probability": 0.1973857729609042,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-currentversions-00-job",
+            "target": 363,
+            "target_copy_weight": 630969193,
+            "copy_total_weight": 6877436289,
+            "conditional_copy_target_probability": 0.09174482561317115,
+            "top_copy_token": 70
+          },
+          {
+            "id": "development-currentversions-00-where",
+            "target": 935,
+            "target_copy_weight": 345433126,
+            "copy_total_weight": 1566630597,
+            "conditional_copy_target_probability": 0.2204943058443279,
+            "top_copy_token": 935
+          },
+          {
+            "id": "development-currentversions-01-job",
+            "target": 1130,
+            "target_copy_weight": 3436480780,
+            "copy_total_weight": 10963457670,
+            "conditional_copy_target_probability": 0.313448629386645,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-01-where",
+            "target": 2593,
+            "target_copy_weight": 1256015973,
+            "copy_total_weight": 15270488448,
+            "conditional_copy_target_probability": 0.08225119826893962,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-currentversions-02-job",
+            "target": 363,
+            "target_copy_weight": 26729867,
+            "copy_total_weight": 552593168,
+            "conditional_copy_target_probability": 0.04837169286175467,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-02-where",
+            "target": 935,
+            "target_copy_weight": 215790394,
+            "copy_total_weight": 528000167,
+            "conditional_copy_target_probability": 0.40869379876540834,
+            "top_copy_token": 935
+          },
+          {
+            "id": "development-currentversions-03-job",
+            "target": 363,
+            "target_copy_weight": 735684122,
+            "copy_total_weight": 17352722488,
+            "conditional_copy_target_probability": 0.04239589047244608,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-03-where",
+            "target": 1130,
+            "target_copy_weight": 1284430969,
+            "copy_total_weight": 7774585339,
+            "conditional_copy_target_probability": 0.1652089356530504,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-04-job",
+            "target": 2593,
+            "target_copy_weight": 430648014,
+            "copy_total_weight": 5226550659,
+            "conditional_copy_target_probability": 0.08239621924613588,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-04-where",
+            "target": 1130,
+            "target_copy_weight": 1136582891,
+            "copy_total_weight": 12607303982,
+            "conditional_copy_target_probability": 0.09015273151363283,
+            "top_copy_token": 277
+          },
+          {
+            "id": "development-currentversions-05-job",
+            "target": 1130,
+            "target_copy_weight": 31229834,
+            "copy_total_weight": 1446178622,
+            "conditional_copy_target_probability": 0.021594728012789003,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-currentversions-05-where",
+            "target": 2593,
+            "target_copy_weight": 657209532,
+            "copy_total_weight": 18147532216,
+            "conditional_copy_target_probability": 0.036214815556054665,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-06-job",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 5626585480,
+            "conditional_copy_target_probability": 0.38166729282499057,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-06-where",
+            "target": 363,
+            "target_copy_weight": 15741086,
+            "copy_total_weight": 364021102,
+            "conditional_copy_target_probability": 0.04324223489659124,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-07-job",
+            "target": 1130,
+            "target_copy_weight": 2877023086,
+            "copy_total_weight": 11618093498,
+            "conditional_copy_target_probability": 0.24763297751866656,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-07-where",
+            "target": 2593,
+            "target_copy_weight": 562246135,
+            "copy_total_weight": 10360020745,
+            "conditional_copy_target_probability": 0.05427075377926765,
+            "top_copy_token": 72
+          }
+        ]
+      },
+      "full48": {
+        "allCE": 1.4791009639117563,
+        "singleCE": 1.222499874116768,
+        "bankCE": 1.7357020537067438,
+        "single_complete": 0,
+        "bank_complete": 2,
+        "pair_complete": 0,
+        "stratum_complete": {
+          "roles-order": 1,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 1
+        },
+        "first_conditional_copy": [
+          {
+            "id": "mw2-0246-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 270903803,
+            "copy_total_weight": 355339127,
+            "conditional_copy_target_probability": 0.7623810113092331,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 270903803,
+            "copy_total_weight": 355339127,
+            "conditional_copy_target_probability": 0.7623810113092331,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 151040105,
+            "copy_total_weight": 196944571,
+            "conditional_copy_target_probability": 0.7669168245313043,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0246-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 151040105,
+            "copy_total_weight": 196944571,
+            "conditional_copy_target_probability": 0.7669168245313043,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 270903803,
+            "copy_total_weight": 355339127,
+            "conditional_copy_target_probability": 0.7623810113092331,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 270903803,
+            "copy_total_weight": 355339127,
+            "conditional_copy_target_probability": 0.7623810113092331,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 151040105,
+            "copy_total_weight": 196944571,
+            "conditional_copy_target_probability": 0.7669168245313043,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 151040105,
+            "copy_total_weight": 196944571,
+            "conditional_copy_target_probability": 0.7669168245313043,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0288-s0-d0",
+            "target": 935,
+            "target_copy_weight": 19135830,
+            "copy_total_weight": 86997397,
+            "conditional_copy_target_probability": 0.21995865002719564,
+            "top_copy_token": 456
+          },
+          {
+            "id": "mw2-0288-s0-d1",
+            "target": 935,
+            "target_copy_weight": 19135830,
+            "copy_total_weight": 86997397,
+            "conditional_copy_target_probability": 0.21995865002719564,
+            "top_copy_token": 456
+          },
+          {
+            "id": "mw2-0288-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 1341525122,
+            "copy_total_weight": 2948379429,
+            "conditional_copy_target_probability": 0.455004233445966,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 1341525122,
+            "copy_total_weight": 2948379429,
+            "conditional_copy_target_probability": 0.455004233445966,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3470971067,
+            "conditional_copy_target_probability": 0.6186982278293938,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3470971067,
+            "conditional_copy_target_probability": 0.6186982278293938,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 1341525122,
+            "copy_total_weight": 2948379429,
+            "conditional_copy_target_probability": 0.455004233445966,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 1341525122,
+            "copy_total_weight": 2948379429,
+            "conditional_copy_target_probability": 0.455004233445966,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3470971067,
+            "conditional_copy_target_probability": 0.6186982278293938,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3470971067,
+            "conditional_copy_target_probability": 0.6186982278293938,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 1341525122,
+            "copy_total_weight": 2948379429,
+            "conditional_copy_target_probability": 0.455004233445966,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 1341525122,
+            "copy_total_weight": 2948379429,
+            "conditional_copy_target_probability": 0.455004233445966,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-00",
+            "target": 1130,
+            "target_copy_weight": 287086307,
+            "copy_total_weight": 1187153818,
+            "conditional_copy_target_probability": 0.2418273880327107,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "construction-01",
+            "target": 1357,
+            "target_copy_weight": 1144935469,
+            "copy_total_weight": 6776099756,
+            "conditional_copy_target_probability": 0.16896673753750446,
+            "top_copy_token": 284
+          },
+          {
+            "id": "construction-02",
+            "target": 1130,
+            "target_copy_weight": 536883710,
+            "copy_total_weight": 4319713440,
+            "conditional_copy_target_probability": 0.12428688093717624,
+            "top_copy_token": 72
+          },
+          {
+            "id": "construction-03",
+            "target": 1357,
+            "target_copy_weight": 8521101,
+            "copy_total_weight": 254647954,
+            "conditional_copy_target_probability": 0.03346227945738767,
+            "top_copy_token": 363
+          },
+          {
+            "id": "construction-04",
+            "target": 2593,
+            "target_copy_weight": 679835476,
+            "copy_total_weight": 1399021496,
+            "conditional_copy_target_probability": 0.4859364047970282,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-05",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 6137450768,
+            "conditional_copy_target_probability": 0.3498983094409076,
+            "top_copy_token": 363
+          },
+          {
+            "id": "construction-06",
+            "target": 1130,
+            "target_copy_weight": 438664830,
+            "copy_total_weight": 605344175,
+            "conditional_copy_target_probability": 0.7246535906618743,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-07",
+            "target": 1357,
+            "target_copy_weight": 4336023381,
+            "copy_total_weight": 5739213380,
+            "conditional_copy_target_probability": 0.7555083064362385,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-00",
+            "target": 2593,
+            "target_copy_weight": 61824987,
+            "copy_total_weight": 116900841,
+            "conditional_copy_target_probability": 0.5288669137974807,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-01",
+            "target": 2593,
+            "target_copy_weight": 97380857,
+            "copy_total_weight": 353654462,
+            "conditional_copy_target_probability": 0.27535594051122136,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-02",
+            "target": 2593,
+            "target_copy_weight": 949627479,
+            "copy_total_weight": 3287422228,
+            "conditional_copy_target_probability": 0.28886690334807824,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-03",
+            "target": 363,
+            "target_copy_weight": 1530773148,
+            "copy_total_weight": 4454910515,
+            "conditional_copy_target_probability": 0.34361479155322605,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-04",
+            "target": 363,
+            "target_copy_weight": 949627536,
+            "copy_total_weight": 1696652153,
+            "conditional_copy_target_probability": 0.5597066754790485,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-05",
+            "target": 363,
+            "target_copy_weight": 27964855,
+            "copy_total_weight": 229968985,
+            "conditional_copy_target_probability": 0.12160272394992742,
+            "top_copy_token": 277
+          },
+          {
+            "id": "radial-train-06",
+            "target": 1130,
+            "target_copy_weight": 314371461,
+            "copy_total_weight": 1359398663,
+            "conditional_copy_target_probability": 0.23125773884919584,
+            "top_copy_token": 277
+          },
+          {
+            "id": "radial-train-07",
+            "target": 1130,
+            "target_copy_weight": 2190585410,
+            "copy_total_weight": 7083937830,
+            "conditional_copy_target_probability": 0.30923272656671524,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-08",
+            "target": 1130,
+            "target_copy_weight": 7519844,
+            "copy_total_weight": 165363408,
+            "conditional_copy_target_probability": 0.04547465543283917,
+            "top_copy_token": 284
+          },
+          {
+            "id": "radial-train-09",
+            "target": 1130,
+            "target_copy_weight": 32026673,
+            "copy_total_weight": 84110214,
+            "conditional_copy_target_probability": 0.3807703188105074,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-10",
+            "target": 1130,
+            "target_copy_weight": 42309117,
+            "copy_total_weight": 343762724,
+            "conditional_copy_target_probability": 0.12307651192570838,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-11",
+            "target": 1130,
+            "target_copy_weight": 36822308,
+            "copy_total_weight": 92065948,
+            "conditional_copy_target_probability": 0.39995577952447736,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-12",
+            "target": 1357,
+            "target_copy_weight": 340174770,
+            "copy_total_weight": 521856297,
+            "conditional_copy_target_probability": 0.6518552558540843,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-13",
+            "target": 1357,
+            "target_copy_weight": 372893371,
+            "copy_total_weight": 3234898833,
+            "conditional_copy_target_probability": 0.11527203484573392,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-14",
+            "target": 1357,
+            "target_copy_weight": 1059160298,
+            "copy_total_weight": 4925161386,
+            "conditional_copy_target_probability": 0.2150508815834365,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-15",
+            "target": 1357,
+            "target_copy_weight": 684587562,
+            "copy_total_weight": 1811704982,
+            "conditional_copy_target_probability": 0.37786922749655494,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-16",
+            "target": 1357,
+            "target_copy_weight": 59610617,
+            "copy_total_weight": 255289419,
+            "conditional_copy_target_probability": 0.23350210609394664,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-17",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 6077026580,
+            "conditional_copy_target_probability": 0.353377366336943,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-18",
+            "target": 2593,
+            "target_copy_weight": 1381699911,
+            "copy_total_weight": 4076709282,
+            "conditional_copy_target_probability": 0.3389252986718124,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-19",
+            "target": 2593,
+            "target_copy_weight": 64848391,
+            "copy_total_weight": 407965429,
+            "conditional_copy_target_probability": 0.15895560356414415,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-20",
+            "target": 2593,
+            "target_copy_weight": 2505096874,
+            "copy_total_weight": 13220870840,
+            "conditional_copy_target_probability": 0.1894804740411487,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-21",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3583655695,
+            "conditional_copy_target_probability": 0.5992438534193503,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-22",
+            "target": 363,
+            "target_copy_weight": 3606884969,
+            "copy_total_weight": 7861144153,
+            "conditional_copy_target_probability": 0.4588244279458387,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-23",
+            "target": 363,
+            "target_copy_weight": 1278977792,
+            "copy_total_weight": 4458933189,
+            "conditional_copy_target_probability": 0.28683493064107446,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-24",
+            "target": 1130,
+            "target_copy_weight": 1448909481,
+            "copy_total_weight": 3040910135,
+            "conditional_copy_target_probability": 0.47647231147131547,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-25",
+            "target": 1357,
+            "target_copy_weight": 340843878,
+            "copy_total_weight": 1166915678,
+            "conditional_copy_target_probability": 0.2920895523352459,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-26",
+            "target": 1130,
+            "target_copy_weight": 415472523,
+            "copy_total_weight": 7388025535,
+            "conditional_copy_target_probability": 0.056235934896508175,
+            "top_copy_token": 284
+          },
+          {
+            "id": "radial-train-27",
+            "target": 1357,
+            "target_copy_weight": 942699657,
+            "copy_total_weight": 5480633251,
+            "conditional_copy_target_probability": 0.17200560844460708,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-28",
+            "target": 1130,
+            "target_copy_weight": 8677918,
+            "copy_total_weight": 453295802,
+            "conditional_copy_target_probability": 0.01914405110683112,
+            "top_copy_token": 292
+          },
+          {
+            "id": "radial-train-29",
+            "target": 1357,
+            "target_copy_weight": 125653504,
+            "copy_total_weight": 870886099,
+            "conditional_copy_target_probability": 0.144282362692759,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-30",
+            "target": 2593,
+            "target_copy_weight": 234751680,
+            "copy_total_weight": 585955394,
+            "conditional_copy_target_probability": 0.40063063230372786,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-31",
+            "target": 363,
+            "target_copy_weight": 349348427,
+            "copy_total_weight": 2125441251,
+            "conditional_copy_target_probability": 0.1643651297515915,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-32",
+            "target": 1130,
+            "target_copy_weight": 49937971,
+            "copy_total_weight": 974441070,
+            "conditional_copy_target_probability": 0.05124781019338604,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-33",
+            "target": 1357,
+            "target_copy_weight": 7605081,
+            "copy_total_weight": 193865717,
+            "conditional_copy_target_probability": 0.039228601723325845,
+            "top_copy_token": 292
+          },
+          {
+            "id": "radial-train-34",
+            "target": 2593,
+            "target_copy_weight": 1157642235,
+            "copy_total_weight": 5691184996,
+            "conditional_copy_target_probability": 0.20340970040749665,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-35",
+            "target": 363,
+            "target_copy_weight": 658654549,
+            "copy_total_weight": 2885919927,
+            "conditional_copy_target_probability": 0.22823036177746314,
+            "top_copy_token": 277
+          },
+          {
+            "id": "development-roles-order-00-job",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3298383691,
+            "conditional_copy_target_probability": 0.6510715093151969,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-00-where",
+            "target": 935,
+            "target_copy_weight": 156234504,
+            "copy_total_weight": 2132658509,
+            "conditional_copy_target_probability": 0.07325809703741931,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-01-job",
+            "target": 1357,
+            "target_copy_weight": 217298958,
+            "copy_total_weight": 6316432648,
+            "conditional_copy_target_probability": 0.034402164973421245,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-01-where",
+            "target": 2593,
+            "target_copy_weight": 692568003,
+            "copy_total_weight": 7278319740,
+            "conditional_copy_target_probability": 0.09515492967336991,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-02-job",
+            "target": 1130,
+            "target_copy_weight": 19488006,
+            "copy_total_weight": 99971818,
+            "conditional_copy_target_probability": 0.19493499658073637,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-02-where",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2954643083,
+            "conditional_copy_target_probability": 0.7268166027754358,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-03-job",
+            "target": 1357,
+            "target_copy_weight": 73167215,
+            "copy_total_weight": 9254798197,
+            "conditional_copy_target_probability": 0.007905868225599733,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-03-where",
+            "target": 363,
+            "target_copy_weight": 1112478113,
+            "copy_total_weight": 9230779071,
+            "conditional_copy_target_probability": 0.12051833376610992,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-04-job",
+            "target": 2593,
+            "target_copy_weight": 261201193,
+            "copy_total_weight": 4085453395,
+            "conditional_copy_target_probability": 0.0639344444167867,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-roles-order-04-where",
+            "target": 935,
+            "target_copy_weight": 853467563,
+            "copy_total_weight": 15977089621,
+            "conditional_copy_target_probability": 0.05341821215537387,
+            "top_copy_token": 70
+          },
+          {
+            "id": "development-roles-order-05-job",
+            "target": 2593,
+            "target_copy_weight": 195729797,
+            "copy_total_weight": 1460443820,
+            "conditional_copy_target_probability": 0.13402076431806872,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-05-where",
+            "target": 1130,
+            "target_copy_weight": 335349492,
+            "copy_total_weight": 988470632,
+            "conditional_copy_target_probability": 0.33926095641453513,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-06-job",
+            "target": 2593,
+            "target_copy_weight": 5132431,
+            "copy_total_weight": 145853411,
+            "conditional_copy_target_probability": 0.03518896791518986,
+            "top_copy_token": 292
+          },
+          {
+            "id": "development-roles-order-06-where",
+            "target": 363,
+            "target_copy_weight": 117630159,
+            "copy_total_weight": 454506350,
+            "conditional_copy_target_probability": 0.2588086151051575,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-roles-order-07-job",
+            "target": 1130,
+            "target_copy_weight": 487988101,
+            "copy_total_weight": 6858232850,
+            "conditional_copy_target_probability": 0.07115362100894547,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-07-where",
+            "target": 2593,
+            "target_copy_weight": 17902085,
+            "copy_total_weight": 168712857,
+            "conditional_copy_target_probability": 0.10610978510072887,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-00-job",
+            "target": 363,
+            "target_copy_weight": 1987830390,
+            "copy_total_weight": 7579977855,
+            "conditional_copy_target_probability": 0.26224751945531904,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-00-where",
+            "target": 2593,
+            "target_copy_weight": 76212712,
+            "copy_total_weight": 459535509,
+            "conditional_copy_target_probability": 0.16584727514495512,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-01-job",
+            "target": 1357,
+            "target_copy_weight": 565675009,
+            "copy_total_weight": 2819574730,
+            "conditional_copy_target_probability": 0.2006242299525787,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-01-where",
+            "target": 363,
+            "target_copy_weight": 920939420,
+            "copy_total_weight": 9373842703,
+            "conditional_copy_target_probability": 0.0982456660708914,
+            "top_copy_token": 292
+          },
+          {
+            "id": "development-distractors-02-job",
+            "target": 1357,
+            "target_copy_weight": 100789654,
+            "copy_total_weight": 491546745,
+            "conditional_copy_target_probability": 0.20504591887796958,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-02-where",
+            "target": 935,
+            "target_copy_weight": 269023621,
+            "copy_total_weight": 1593157645,
+            "conditional_copy_target_probability": 0.16886189627517997,
+            "top_copy_token": 935
+          },
+          {
+            "id": "development-distractors-03-job",
+            "target": 1357,
+            "target_copy_weight": 609600371,
+            "copy_total_weight": 5520153896,
+            "conditional_copy_target_probability": 0.11043177101307394,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-03-where",
+            "target": 363,
+            "target_copy_weight": 2023561515,
+            "copy_total_weight": 15671576693,
+            "conditional_copy_target_probability": 0.12912303303239817,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-04-job",
+            "target": 2593,
+            "target_copy_weight": 11396703,
+            "copy_total_weight": 499666532,
+            "conditional_copy_target_probability": 0.022808617888380005,
+            "top_copy_token": 70
+          },
+          {
+            "id": "development-distractors-04-where",
+            "target": 935,
+            "target_copy_weight": 262328078,
+            "copy_total_weight": 4606721940,
+            "conditional_copy_target_probability": 0.05694463035031804,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "development-distractors-05-job",
+            "target": 1357,
+            "target_copy_weight": 323189844,
+            "copy_total_weight": 7650654201,
+            "conditional_copy_target_probability": 0.042243425922682085,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-distractors-05-where",
+            "target": 363,
+            "target_copy_weight": 458826572,
+            "copy_total_weight": 3746920832,
+            "conditional_copy_target_probability": 0.12245430116416188,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-06-job",
+            "target": 1130,
+            "target_copy_weight": 128518097,
+            "copy_total_weight": 2248265813,
+            "conditional_copy_target_probability": 0.05716321275575078,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-06-where",
+            "target": 363,
+            "target_copy_weight": 53948809,
+            "copy_total_weight": 549426223,
+            "conditional_copy_target_probability": 0.09819117971003724,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-07-job",
+            "target": 1130,
+            "target_copy_weight": 3257363437,
+            "copy_total_weight": 12119833056,
+            "conditional_copy_target_probability": 0.2687630615000445,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-07-where",
+            "target": 1357,
+            "target_copy_weight": 94946296,
+            "copy_total_weight": 275075619,
+            "conditional_copy_target_probability": 0.3451643455176593,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-00-job",
+            "target": 1357,
+            "target_copy_weight": 27651418,
+            "copy_total_weight": 112379934,
+            "conditional_copy_target_probability": 0.24605298308860013,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-00-where",
+            "target": 363,
+            "target_copy_weight": 221362718,
+            "copy_total_weight": 1770279643,
+            "conditional_copy_target_probability": 0.12504392674643663,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-01-job",
+            "target": 363,
+            "target_copy_weight": 23618840,
+            "copy_total_weight": 107360108,
+            "conditional_copy_target_probability": 0.21999642548794754,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-01-where",
+            "target": 363,
+            "target_copy_weight": 102288497,
+            "copy_total_weight": 750996146,
+            "conditional_copy_target_probability": 0.13620375756229247,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-repetition-02-job",
+            "target": 935,
+            "target_copy_weight": 345169200,
+            "copy_total_weight": 4160745360,
+            "conditional_copy_target_probability": 0.08295850145465283,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-repetition-02-where",
+            "target": 363,
+            "target_copy_weight": 1171602897,
+            "copy_total_weight": 7375783109,
+            "conditional_copy_target_probability": 0.15884454297068457,
+            "top_copy_token": 73
+          },
+          {
+            "id": "development-repetition-03-job",
+            "target": 1130,
+            "target_copy_weight": 1027450416,
+            "copy_total_weight": 3781867412,
+            "conditional_copy_target_probability": 0.2716780637892971,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-03-where",
+            "target": 363,
+            "target_copy_weight": 3086468293,
+            "copy_total_weight": 17392389104,
+            "conditional_copy_target_probability": 0.177460857996223,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-04-job",
+            "target": 2593,
+            "target_copy_weight": 559260398,
+            "copy_total_weight": 2409173608,
+            "conditional_copy_target_probability": 0.2321378567915974,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-04-where",
+            "target": 363,
+            "target_copy_weight": 81207579,
+            "copy_total_weight": 575720921,
+            "conditional_copy_target_probability": 0.1410537224510554,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-repetition-05-job",
+            "target": 1130,
+            "target_copy_weight": 2449421517,
+            "copy_total_weight": 6419348262,
+            "conditional_copy_target_probability": 0.3815685669368658,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-05-where",
+            "target": 1357,
+            "target_copy_weight": 889091491,
+            "copy_total_weight": 3972135188,
+            "conditional_copy_target_probability": 0.2238321328251832,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-06-job",
+            "target": 1357,
+            "target_copy_weight": 66600841,
+            "copy_total_weight": 160696992,
+            "conditional_copy_target_probability": 0.41444982990098533,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-06-where",
+            "target": 363,
+            "target_copy_weight": 966641974,
+            "copy_total_weight": 6909197818,
+            "conditional_copy_target_probability": 0.13990654189719134,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-07-job",
+            "target": 1130,
+            "target_copy_weight": 2514920371,
+            "copy_total_weight": 6301834666,
+            "conditional_copy_target_probability": 0.3990774916023479,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-07-where",
+            "target": 1357,
+            "target_copy_weight": 2211797089,
+            "copy_total_weight": 3496858692,
+            "conditional_copy_target_probability": 0.6325097133779176,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-00-job",
+            "target": 363,
+            "target_copy_weight": 1149465097,
+            "copy_total_weight": 12208822828,
+            "conditional_copy_target_probability": 0.09415036266754481,
+            "top_copy_token": 73
+          },
+          {
+            "id": "development-currentversions-00-where",
+            "target": 935,
+            "target_copy_weight": 77076549,
+            "copy_total_weight": 1128468087,
+            "conditional_copy_target_probability": 0.06830193063315224,
+            "top_copy_token": 68
+          },
+          {
+            "id": "development-currentversions-01-job",
+            "target": 1130,
+            "target_copy_weight": 1319637754,
+            "copy_total_weight": 22403211440,
+            "conditional_copy_target_probability": 0.05890395479836617,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-01-where",
+            "target": 2593,
+            "target_copy_weight": 1749544843,
+            "copy_total_weight": 15033626756,
+            "conditional_copy_target_probability": 0.11637543431106852,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-02-job",
+            "target": 363,
+            "target_copy_weight": 1095874108,
+            "copy_total_weight": 9786957332,
+            "conditional_copy_target_probability": 0.11197291158273132,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-02-where",
+            "target": 935,
+            "target_copy_weight": 563140004,
+            "copy_total_weight": 10771029564,
+            "conditional_copy_target_probability": 0.05228283894811525,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-03-job",
+            "target": 363,
+            "target_copy_weight": 970353700,
+            "copy_total_weight": 20964617039,
+            "conditional_copy_target_probability": 0.04628530529295494,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "development-currentversions-03-where",
+            "target": 1130,
+            "target_copy_weight": 1279427638,
+            "copy_total_weight": 7037684439,
+            "conditional_copy_target_probability": 0.1817966760359316,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-currentversions-04-job",
+            "target": 2593,
+            "target_copy_weight": 2047362372,
+            "copy_total_weight": 9392296219,
+            "conditional_copy_target_probability": 0.21798315601016927,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-currentversions-04-where",
+            "target": 1130,
+            "target_copy_weight": 16887312,
+            "copy_total_weight": 111678641,
+            "conditional_copy_target_probability": 0.15121344465500794,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-currentversions-05-job",
+            "target": 1130,
+            "target_copy_weight": 1457383589,
+            "copy_total_weight": 9056396675,
+            "conditional_copy_target_probability": 0.1609231178028098,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-05-where",
+            "target": 2593,
+            "target_copy_weight": 533060264,
+            "copy_total_weight": 2800347872,
+            "conditional_copy_target_probability": 0.190355016007097,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-currentversions-06-job",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 8991895076,
+            "conditional_copy_target_probability": 0.23882436681582114,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-06-where",
+            "target": 363,
+            "target_copy_weight": 664681246,
+            "copy_total_weight": 7541312241,
+            "conditional_copy_target_probability": 0.0881386719921653,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-07-job",
+            "target": 1130,
+            "target_copy_weight": 363682193,
+            "copy_total_weight": 3613782358,
+            "conditional_copy_target_probability": 0.10063754730411466,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-currentversions-07-where",
+            "target": 2593,
+            "target_copy_weight": 370768810,
+            "copy_total_weight": 6611143137,
+            "conditional_copy_target_probability": 0.056082405465546645,
+            "top_copy_token": 1357
+          }
+        ]
+      },
+      "C0R48": {
+        "allCE": 1.3056881465204488,
+        "singleCE": 0.5431464355409291,
+        "bankCE": 2.0682298574999685,
+        "single_complete": 27,
+        "bank_complete": 0,
+        "pair_complete": 0,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "first_conditional_copy": [
+          {
+            "id": "mw2-0246-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2175014053,
+            "conditional_copy_target_probability": 0.9873424243112235,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2175014053,
+            "conditional_copy_target_probability": 0.9873424243112235,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2198917210,
+            "conditional_copy_target_probability": 0.9766095959565481,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0246-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2198917210,
+            "conditional_copy_target_probability": 0.9766095959565481,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2175014053,
+            "conditional_copy_target_probability": 0.9873424243112235,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2175014053,
+            "conditional_copy_target_probability": 0.9873424243112235,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2198917210,
+            "conditional_copy_target_probability": 0.9766095959565481,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2198917210,
+            "conditional_copy_target_probability": 0.9766095959565481,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0288-s0-d0",
+            "target": 935,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3557582288,
+            "conditional_copy_target_probability": 0.6036356924880215,
+            "top_copy_token": 935
+          },
+          {
+            "id": "mw2-0288-s0-d1",
+            "target": 935,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3557582288,
+            "conditional_copy_target_probability": 0.6036356924880215,
+            "top_copy_token": 935
+          },
+          {
+            "id": "mw2-0288-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2237523053,
+            "conditional_copy_target_probability": 0.9597593397398619,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2237523053,
+            "conditional_copy_target_probability": 0.9597593397398619,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2933520254,
+            "conditional_copy_target_probability": 0.7320500497897704,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2933520254,
+            "conditional_copy_target_probability": 0.7320500497897704,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2237523053,
+            "conditional_copy_target_probability": 0.9597593397398619,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2237523053,
+            "conditional_copy_target_probability": 0.9597593397398619,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2933520254,
+            "conditional_copy_target_probability": 0.7320500497897704,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2933520254,
+            "conditional_copy_target_probability": 0.7320500497897704,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2237523053,
+            "conditional_copy_target_probability": 0.9597593397398619,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2237523053,
+            "conditional_copy_target_probability": 0.9597593397398619,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-00",
+            "target": 1130,
+            "target_copy_weight": 3554613856,
+            "copy_total_weight": 4111762225,
+            "conditional_copy_target_probability": 0.8644988842952853,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-01",
+            "target": 1357,
+            "target_copy_weight": 2892224058,
+            "copy_total_weight": 3055731435,
+            "conditional_copy_target_probability": 0.9464915747741424,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "construction-02",
+            "target": 1130,
+            "target_copy_weight": 418125479,
+            "copy_total_weight": 731656590,
+            "conditional_copy_target_probability": 0.5714777734729349,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-03",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2637608793,
+            "conditional_copy_target_probability": 0.8141782260126095,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "construction-04",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2931343228,
+            "conditional_copy_target_probability": 0.7325937227300358,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-05",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2610284794,
+            "conditional_copy_target_probability": 0.8227008995095881,
+            "top_copy_token": 363
+          },
+          {
+            "id": "construction-06",
+            "target": 1130,
+            "target_copy_weight": 2647313568,
+            "copy_total_weight": 2806632445,
+            "conditional_copy_target_probability": 0.9432348623761456,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-07",
+            "target": 1357,
+            "target_copy_weight": 2488927580,
+            "copy_total_weight": 2791258628,
+            "conditional_copy_target_probability": 0.8916864797237987,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-00",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3065996850,
+            "conditional_copy_target_probability": 0.7004193914941563,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-01",
+            "target": 2593,
+            "target_copy_weight": 3563243677,
+            "copy_total_weight": 4604801856,
+            "conditional_copy_target_probability": 0.773810424080927,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-02",
+            "target": 2593,
+            "target_copy_weight": 270903787,
+            "copy_total_weight": 343885429,
+            "conditional_copy_target_probability": 0.7877733807674648,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-03",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3314535821,
+            "conditional_copy_target_probability": 0.6478987598788724,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-04",
+            "target": 363,
+            "target_copy_weight": 1503108991,
+            "copy_total_weight": 2163936446,
+            "conditional_copy_target_probability": 0.694617900529598,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-05",
+            "target": 363,
+            "target_copy_weight": 643292009,
+            "copy_total_weight": 1212335112,
+            "conditional_copy_target_probability": 0.5306222698926499,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-06",
+            "target": 1130,
+            "target_copy_weight": 4256161664,
+            "copy_total_weight": 6339944040,
+            "conditional_copy_target_probability": 0.671324799895237,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-07",
+            "target": 1130,
+            "target_copy_weight": 2363274068,
+            "copy_total_weight": 3000181467,
+            "conditional_copy_target_probability": 0.7877103748538021,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-08",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2399693350,
+            "conditional_copy_target_probability": 0.8948991953492724,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-09",
+            "target": 1130,
+            "target_copy_weight": 1021134753,
+            "copy_total_weight": 1473578891,
+            "conditional_copy_target_probability": 0.6929623919266634,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-10",
+            "target": 1130,
+            "target_copy_weight": 351790502,
+            "copy_total_weight": 912288923,
+            "conditional_copy_target_probability": 0.3856130367594083,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-11",
+            "target": 1130,
+            "target_copy_weight": 2328232706,
+            "copy_total_weight": 3022573505,
+            "conditional_copy_target_probability": 0.770281583607013,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-12",
+            "target": 1357,
+            "target_copy_weight": 2327004428,
+            "copy_total_weight": 3115058209,
+            "conditional_copy_target_probability": 0.7470179598175207,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-13",
+            "target": 1357,
+            "target_copy_weight": 4171898210,
+            "copy_total_weight": 6557686519,
+            "conditional_copy_target_probability": 0.6361844528420953,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-14",
+            "target": 1357,
+            "target_copy_weight": 2205112272,
+            "copy_total_weight": 3914789227,
+            "conditional_copy_target_probability": 0.563277393529008,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-15",
+            "target": 1357,
+            "target_copy_weight": 1691420809,
+            "copy_total_weight": 1954216744,
+            "conditional_copy_target_probability": 0.8655236499191514,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-16",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 6876982947,
+            "conditional_copy_target_probability": 0.31227118993174374,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-17",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2709359489,
+            "conditional_copy_target_probability": 0.7926167261003141,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-18",
+            "target": 2593,
+            "target_copy_weight": 911681688,
+            "copy_total_weight": 1933535676,
+            "conditional_copy_target_probability": 0.4715101455412711,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-19",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 2806664859,
+            "conditional_copy_target_probability": 0.7651371844820607,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-20",
+            "target": 2593,
+            "target_copy_weight": 540549426,
+            "copy_total_weight": 917700012,
+            "conditional_copy_target_probability": 0.5890262819349293,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-21",
+            "target": 363,
+            "target_copy_weight": 335388950,
+            "copy_total_weight": 1149777560,
+            "conditional_copy_target_probability": 0.2916989874110954,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-22",
+            "target": 363,
+            "target_copy_weight": 2314166981,
+            "copy_total_weight": 6946332256,
+            "conditional_copy_target_probability": 0.33314948028883923,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-23",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 6229826216,
+            "conditional_copy_target_probability": 0.3447100406243499,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-24",
+            "target": 1130,
+            "target_copy_weight": 658359311,
+            "copy_total_weight": 864223347,
+            "conditional_copy_target_probability": 0.7617930171469899,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-25",
+            "target": 1357,
+            "target_copy_weight": 3114589154,
+            "copy_total_weight": 3702156882,
+            "conditional_copy_target_probability": 0.8412904296798517,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-26",
+            "target": 1130,
+            "target_copy_weight": 1182064914,
+            "copy_total_weight": 1921148228,
+            "conditional_copy_target_probability": 0.6152908436589413,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-27",
+            "target": 1357,
+            "target_copy_weight": 2905931535,
+            "copy_total_weight": 4348478435,
+            "conditional_copy_target_probability": 0.6682639866880241,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-28",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 5521018389,
+            "conditional_copy_target_probability": 0.38896513228041707,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-29",
+            "target": 1357,
+            "target_copy_weight": 148310415,
+            "copy_total_weight": 876729816,
+            "conditional_copy_target_probability": 0.16916319291689288,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-30",
+            "target": 2593,
+            "target_copy_weight": 391427036,
+            "copy_total_weight": 1413152924,
+            "conditional_copy_target_probability": 0.2769884485622732,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-31",
+            "target": 363,
+            "target_copy_weight": 853467614,
+            "copy_total_weight": 1801575288,
+            "conditional_copy_target_probability": 0.47373408132583134,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-32",
+            "target": 1130,
+            "target_copy_weight": 552962896,
+            "copy_total_weight": 843342897,
+            "conditional_copy_target_probability": 0.6556797928423176,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-33",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3265498900,
+            "conditional_copy_target_probability": 0.6576280420734486,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-34",
+            "target": 2593,
+            "target_copy_weight": 1115028341,
+            "copy_total_weight": 3379490757,
+            "conditional_copy_target_probability": 0.32993975162986366,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-35",
+            "target": 363,
+            "target_copy_weight": 2413492119,
+            "copy_total_weight": 3289930873,
+            "conditional_copy_target_probability": 0.7335996445418322,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-roles-order-00-job",
+            "target": 1357,
+            "target_copy_weight": 405967948,
+            "copy_total_weight": 3711227817,
+            "conditional_copy_target_probability": 0.10938912080265861,
+            "top_copy_token": 302
+          },
+          {
+            "id": "development-roles-order-00-where",
+            "target": 935,
+            "target_copy_weight": 221298169,
+            "copy_total_weight": 6755905019,
+            "conditional_copy_target_probability": 0.03275625817379479,
+            "top_copy_token": 456
+          },
+          {
+            "id": "development-roles-order-01-job",
+            "target": 1357,
+            "target_copy_weight": 329327284,
+            "copy_total_weight": 7756723993,
+            "conditional_copy_target_probability": 0.042457006888113984,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-01-where",
+            "target": 2593,
+            "target_copy_weight": 3801201898,
+            "copy_total_weight": 9667621809,
+            "conditional_copy_target_probability": 0.39318893240748204,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-02-job",
+            "target": 1130,
+            "target_copy_weight": 35750430,
+            "copy_total_weight": 189818637,
+            "conditional_copy_target_probability": 0.1883399362940321,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-roles-order-02-where",
+            "target": 1357,
+            "target_copy_weight": 828650992,
+            "copy_total_weight": 2536680319,
+            "conditional_copy_target_probability": 0.3266674897082292,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-roles-order-03-job",
+            "target": 1357,
+            "target_copy_weight": 106916909,
+            "copy_total_weight": 7856110583,
+            "conditional_copy_target_probability": 0.01360939460696489,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-03-where",
+            "target": 363,
+            "target_copy_weight": 2892429932,
+            "copy_total_weight": 12234272436,
+            "conditional_copy_target_probability": 0.23642026504893504,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-roles-order-04-job",
+            "target": 2593,
+            "target_copy_weight": 1605634092,
+            "copy_total_weight": 10035725893,
+            "conditional_copy_target_probability": 0.15999182412105764,
+            "top_copy_token": 302
+          },
+          {
+            "id": "development-roles-order-04-where",
+            "target": 935,
+            "target_copy_weight": 240103428,
+            "copy_total_weight": 925696820,
+            "conditional_copy_target_probability": 0.25937588075542917,
+            "top_copy_token": 935
+          },
+          {
+            "id": "development-roles-order-05-job",
+            "target": 2593,
+            "target_copy_weight": 173378235,
+            "copy_total_weight": 2327333138,
+            "conditional_copy_target_probability": 0.07449652659051341,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-roles-order-05-where",
+            "target": 1130,
+            "target_copy_weight": 283479603,
+            "copy_total_weight": 2674907304,
+            "conditional_copy_target_probability": 0.10597735576709166,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-roles-order-06-job",
+            "target": 2593,
+            "target_copy_weight": 336835959,
+            "copy_total_weight": 801077279,
+            "conditional_copy_target_probability": 0.42047873261426005,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-06-where",
+            "target": 363,
+            "target_copy_weight": 710018455,
+            "copy_total_weight": 2917894243,
+            "conditional_copy_target_probability": 0.24333248427468795,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-07-job",
+            "target": 1130,
+            "target_copy_weight": 430647962,
+            "copy_total_weight": 3810381716,
+            "conditional_copy_target_probability": 0.11301963795167444,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-roles-order-07-where",
+            "target": 2593,
+            "target_copy_weight": 3435947218,
+            "copy_total_weight": 12829757711,
+            "conditional_copy_target_probability": 0.2678107642714158,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-distractors-00-job",
+            "target": 363,
+            "target_copy_weight": 123382700,
+            "copy_total_weight": 2315775053,
+            "conditional_copy_target_probability": 0.05327922495760645,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-00-where",
+            "target": 2593,
+            "target_copy_weight": 257316,
+            "copy_total_weight": 7136051,
+            "conditional_copy_target_probability": 0.03605859879644918,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-distractors-01-job",
+            "target": 1357,
+            "target_copy_weight": 1811551242,
+            "copy_total_weight": 14176019341,
+            "conditional_copy_target_probability": 0.12778983989959838,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-01-where",
+            "target": 363,
+            "target_copy_weight": 77822825,
+            "copy_total_weight": 1122096330,
+            "conditional_copy_target_probability": 0.06935485209188769,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-02-job",
+            "target": 1357,
+            "target_copy_weight": 41256109,
+            "copy_total_weight": 491086780,
+            "conditional_copy_target_probability": 0.08400981390702474,
+            "top_copy_token": 73
+          },
+          {
+            "id": "development-distractors-02-where",
+            "target": 935,
+            "target_copy_weight": 984905142,
+            "copy_total_weight": 11427720786,
+            "conditional_copy_target_probability": 0.08618561482588886,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-03-job",
+            "target": 1357,
+            "target_copy_weight": 1143670413,
+            "copy_total_weight": 10824634652,
+            "conditional_copy_target_probability": 0.10565441234441027,
+            "top_copy_token": 292
+          },
+          {
+            "id": "development-distractors-03-where",
+            "target": 363,
+            "target_copy_weight": 1019017857,
+            "copy_total_weight": 12338775392,
+            "conditional_copy_target_probability": 0.08258662830192152,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-04-job",
+            "target": 2593,
+            "target_copy_weight": 64121612,
+            "copy_total_weight": 892611554,
+            "conditional_copy_target_probability": 0.07183596460594324,
+            "top_copy_token": 373
+          },
+          {
+            "id": "development-distractors-04-where",
+            "target": 935,
+            "target_copy_weight": 131798481,
+            "copy_total_weight": 1130464745,
+            "conditional_copy_target_probability": 0.11658787377752325,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-distractors-05-job",
+            "target": 1357,
+            "target_copy_weight": 508094008,
+            "copy_total_weight": 6493645840,
+            "conditional_copy_target_probability": 0.0782447981487084,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-05-where",
+            "target": 363,
+            "target_copy_weight": 915176010,
+            "copy_total_weight": 11714509290,
+            "conditional_copy_target_probability": 0.07812329030130463,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-distractors-06-job",
+            "target": 1130,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 6523010748,
+            "conditional_copy_target_probability": 0.32921663491945546,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-distractors-06-where",
+            "target": 363,
+            "target_copy_weight": 456828322,
+            "copy_total_weight": 3065406240,
+            "conditional_copy_target_probability": 0.14902700857032247,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-07-job",
+            "target": 1130,
+            "target_copy_weight": 238638835,
+            "copy_total_weight": 2153884554,
+            "conditional_copy_target_probability": 0.11079462664645674,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-07-where",
+            "target": 1357,
+            "target_copy_weight": 100838624,
+            "copy_total_weight": 318836316,
+            "conditional_copy_target_probability": 0.3162708228004993,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-00-job",
+            "target": 1357,
+            "target_copy_weight": 1280052179,
+            "copy_total_weight": 13307453182,
+            "conditional_copy_target_probability": 0.09619062051117573,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-repetition-00-where",
+            "target": 363,
+            "target_copy_weight": 2316716267,
+            "copy_total_weight": 8091574553,
+            "conditional_copy_target_probability": 0.28631216975453355,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-01-job",
+            "target": 363,
+            "target_copy_weight": 927227390,
+            "copy_total_weight": 7200748371,
+            "conditional_copy_target_probability": 0.12876819772431955,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-repetition-01-where",
+            "target": 363,
+            "target_copy_weight": 186901553,
+            "copy_total_weight": 1632670262,
+            "conditional_copy_target_probability": 0.11447599515351496,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-repetition-02-job",
+            "target": 935,
+            "target_copy_weight": 16578875,
+            "copy_total_weight": 989689762,
+            "conditional_copy_target_probability": 0.0167515878576907,
+            "top_copy_token": 84
+          },
+          {
+            "id": "development-repetition-02-where",
+            "target": 363,
+            "target_copy_weight": 280334833,
+            "copy_total_weight": 14372744959,
+            "conditional_copy_target_probability": 0.019504613335844277,
+            "top_copy_token": 302
+          },
+          {
+            "id": "development-repetition-03-job",
+            "target": 1130,
+            "target_copy_weight": 3272559192,
+            "copy_total_weight": 14173454117,
+            "conditional_copy_target_probability": 0.23089355389204735,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-03-where",
+            "target": 363,
+            "target_copy_weight": 871349888,
+            "copy_total_weight": 19734781851,
+            "conditional_copy_target_probability": 0.04415300329027184,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-repetition-04-job",
+            "target": 2593,
+            "target_copy_weight": 467455662,
+            "copy_total_weight": 3005009237,
+            "conditional_copy_target_probability": 0.15555881035050542,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-repetition-04-where",
+            "target": 363,
+            "target_copy_weight": 2438113956,
+            "copy_total_weight": 8084048612,
+            "conditional_copy_target_probability": 0.30159565745075456,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-05-job",
+            "target": 1130,
+            "target_copy_weight": 2688869776,
+            "copy_total_weight": 15085444220,
+            "conditional_copy_target_probability": 0.17824266470291586,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-05-where",
+            "target": 1357,
+            "target_copy_weight": 139700535,
+            "copy_total_weight": 980539204,
+            "conditional_copy_target_probability": 0.14247317642181698,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-06-job",
+            "target": 1357,
+            "target_copy_weight": 3449998245,
+            "copy_total_weight": 11341520911,
+            "conditional_copy_target_probability": 0.3041918515226551,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-06-where",
+            "target": 363,
+            "target_copy_weight": 17865727,
+            "copy_total_weight": 255508520,
+            "conditional_copy_target_probability": 0.06992223586125426,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-07-job",
+            "target": 1130,
+            "target_copy_weight": 377030543,
+            "copy_total_weight": 1937652043,
+            "conditional_copy_target_probability": 0.19458113976762131,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-repetition-07-where",
+            "target": 1357,
+            "target_copy_weight": 3512178380,
+            "copy_total_weight": 14278862713,
+            "conditional_copy_target_probability": 0.24597045651278543,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-currentversions-00-job",
+            "target": 363,
+            "target_copy_weight": 253605923,
+            "copy_total_weight": 2491445557,
+            "conditional_copy_target_probability": 0.10179067420817817,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-00-where",
+            "target": 935,
+            "target_copy_weight": 119794963,
+            "copy_total_weight": 858380374,
+            "conditional_copy_target_probability": 0.13955929868452469,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-01-job",
+            "target": 1130,
+            "target_copy_weight": 3259633550,
+            "copy_total_weight": 9830149774,
+            "conditional_copy_target_probability": 0.3315955122699639,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-01-where",
+            "target": 2593,
+            "target_copy_weight": 1783208653,
+            "copy_total_weight": 22734475064,
+            "conditional_copy_target_probability": 0.07843632404003502,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-currentversions-02-job",
+            "target": 363,
+            "target_copy_weight": 50503972,
+            "copy_total_weight": 1606578377,
+            "conditional_copy_target_probability": 0.031435734927733314,
+            "top_copy_token": 935
+          },
+          {
+            "id": "development-currentversions-02-where",
+            "target": 935,
+            "target_copy_weight": 718066610,
+            "copy_total_weight": 2066740527,
+            "conditional_copy_target_probability": 0.34743916840026234,
+            "top_copy_token": 935
+          },
+          {
+            "id": "development-currentversions-03-job",
+            "target": 363,
+            "target_copy_weight": 927929253,
+            "copy_total_weight": 10064669585,
+            "conditional_copy_target_probability": 0.0921966931118087,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-03-where",
+            "target": 1130,
+            "target_copy_weight": 1216573789,
+            "copy_total_weight": 7094478060,
+            "conditional_copy_target_probability": 0.171481788894277,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-04-job",
+            "target": 2593,
+            "target_copy_weight": 155563213,
+            "copy_total_weight": 2092264119,
+            "conditional_copy_target_probability": 0.07435161344465038,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-04-where",
+            "target": 1130,
+            "target_copy_weight": 928460903,
+            "copy_total_weight": 10731380803,
+            "conditional_copy_target_probability": 0.08651830738691568,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-currentversions-05-job",
+            "target": 1130,
+            "target_copy_weight": 13633616,
+            "copy_total_weight": 502360634,
+            "conditional_copy_target_probability": 0.02713910103075473,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-currentversions-05-where",
+            "target": 2593,
+            "target_copy_weight": 1357874808,
+            "copy_total_weight": 24092327113,
+            "conditional_copy_target_probability": 0.056361297172795866,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-06-job",
+            "target": 1357,
+            "target_copy_weight": 552962962,
+            "copy_total_weight": 2085627867,
+            "conditional_copy_target_probability": 0.26513021366337547,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-06-where",
+            "target": 363,
+            "target_copy_weight": 2532025,
+            "copy_total_weight": 57261519,
+            "conditional_copy_target_probability": 0.044218613900200585,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-07-job",
+            "target": 1130,
+            "target_copy_weight": 2570569112,
+            "copy_total_weight": 15792867047,
+            "conditional_copy_target_probability": 0.16276772952940824,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-07-where",
+            "target": 2593,
+            "target_copy_weight": 621239900,
+            "copy_total_weight": 12756686278,
+            "conditional_copy_target_probability": 0.04869915952008489,
+            "top_copy_token": 284
+          }
+        ]
+      },
+      "C48R0": {
+        "allCE": 1.555512339862501,
+        "singleCE": 1.2798554081640747,
+        "bankCE": 1.8311692715609271,
+        "single_complete": 4,
+        "bank_complete": 0,
+        "pair_complete": 0,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "first_conditional_copy": [
+          {
+            "id": "mw2-0246-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 337733492,
+            "copy_total_weight": 418232103,
+            "conditional_copy_target_probability": 0.8075264657529171,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 337733492,
+            "copy_total_weight": 418232103,
+            "conditional_copy_target_probability": 0.8075264657529171,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0246-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 234751638,
+            "copy_total_weight": 365635136,
+            "conditional_copy_target_probability": 0.6420379632224404,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0246-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 234751638,
+            "copy_total_weight": 365635136,
+            "conditional_copy_target_probability": 0.6420379632224404,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s0-d0",
+            "target": 1130,
+            "target_copy_weight": 337733492,
+            "copy_total_weight": 418232103,
+            "conditional_copy_target_probability": 0.8075264657529171,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s0-d1",
+            "target": 1130,
+            "target_copy_weight": 337733492,
+            "copy_total_weight": 418232103,
+            "conditional_copy_target_probability": 0.8075264657529171,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "mw2-0146-s1-d0",
+            "target": 1357,
+            "target_copy_weight": 234751638,
+            "copy_total_weight": 365635136,
+            "conditional_copy_target_probability": 0.6420379632224404,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0146-s1-d1",
+            "target": 1357,
+            "target_copy_weight": 234751638,
+            "copy_total_weight": 365635136,
+            "conditional_copy_target_probability": 0.6420379632224404,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "mw2-0288-s0-d0",
+            "target": 935,
+            "target_copy_weight": 65583502,
+            "copy_total_weight": 401327063,
+            "conditional_copy_target_probability": 0.16341659470893943,
+            "top_copy_token": 456
+          },
+          {
+            "id": "mw2-0288-s0-d1",
+            "target": 935,
+            "target_copy_weight": 65583502,
+            "copy_total_weight": 401327063,
+            "conditional_copy_target_probability": 0.16341659470893943,
+            "top_copy_token": 456
+          },
+          {
+            "id": "mw2-0288-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 1449271793,
+            "copy_total_weight": 3664666099,
+            "conditional_copy_target_probability": 0.3954717166170942,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0288-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 1449271793,
+            "copy_total_weight": 3664666099,
+            "conditional_copy_target_probability": 0.3954717166170942,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3558326450,
+            "conditional_copy_target_probability": 0.6035094525967397,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3558326450,
+            "conditional_copy_target_probability": 0.6035094525967397,
+            "top_copy_token": 363
+          },
+          {
+            "id": "mw2-0124-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 1449271793,
+            "copy_total_weight": 3664666099,
+            "conditional_copy_target_probability": 0.3954717166170942,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "mw2-0124-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 1449271793,
+            "copy_total_weight": 3664666099,
+            "conditional_copy_target_probability": 0.3954717166170942,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s0-d0",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3558326450,
+            "conditional_copy_target_probability": 0.6035094525967397,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s0-d1",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3558326450,
+            "conditional_copy_target_probability": 0.6035094525967397,
+            "top_copy_token": 363
+          },
+          {
+            "id": "authored-city-city-s1-d0",
+            "target": 2593,
+            "target_copy_weight": 1449271793,
+            "copy_total_weight": 3664666099,
+            "conditional_copy_target_probability": 0.3954717166170942,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "authored-city-city-s1-d1",
+            "target": 2593,
+            "target_copy_weight": 1449271793,
+            "copy_total_weight": 3664666099,
+            "conditional_copy_target_probability": 0.3954717166170942,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-00",
+            "target": 1130,
+            "target_copy_weight": 233572284,
+            "copy_total_weight": 726765939,
+            "conditional_copy_target_probability": 0.3213858430423774,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "construction-01",
+            "target": 1357,
+            "target_copy_weight": 238957572,
+            "copy_total_weight": 2848168689,
+            "conditional_copy_target_probability": 0.08389867247782247,
+            "top_copy_token": 284
+          },
+          {
+            "id": "construction-02",
+            "target": 1130,
+            "target_copy_weight": 536883742,
+            "copy_total_weight": 5523644976,
+            "conditional_copy_target_probability": 0.09719736593005829,
+            "top_copy_token": 293
+          },
+          {
+            "id": "construction-03",
+            "target": 1357,
+            "target_copy_weight": 19488005,
+            "copy_total_weight": 488689453,
+            "conditional_copy_target_probability": 0.03987809616181751,
+            "top_copy_token": 363
+          },
+          {
+            "id": "construction-04",
+            "target": 2593,
+            "target_copy_weight": 1554804201,
+            "copy_total_weight": 2362260509,
+            "conditional_copy_target_probability": 0.6581849017398106,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "construction-05",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 5219208518,
+            "conditional_copy_target_probability": 0.4114577221036027,
+            "top_copy_token": 363
+          },
+          {
+            "id": "construction-06",
+            "target": 1130,
+            "target_copy_weight": 1368832376,
+            "copy_total_weight": 1596985882,
+            "conditional_copy_target_probability": 0.8571349261307997,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "construction-07",
+            "target": 1357,
+            "target_copy_weight": 4277181817,
+            "copy_total_weight": 5951771368,
+            "conditional_copy_target_probability": 0.7186401413193532,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-00",
+            "target": 2593,
+            "target_copy_weight": 50503975,
+            "copy_total_weight": 113536467,
+            "conditional_copy_target_probability": 0.4448260222858617,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-01",
+            "target": 2593,
+            "target_copy_weight": 74561064,
+            "copy_total_weight": 367503030,
+            "conditional_copy_target_probability": 0.2028855762087186,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "radial-train-02",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 4282014803,
+            "conditional_copy_target_probability": 0.5015124297317849,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-03",
+            "target": 363,
+            "target_copy_weight": 1311621358,
+            "copy_total_weight": 3688092991,
+            "conditional_copy_target_probability": 0.355636737251672,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-04",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3659924815,
+            "conditional_copy_target_probability": 0.5867562194716833,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-05",
+            "target": 363,
+            "target_copy_weight": 34712722,
+            "copy_total_weight": 534964792,
+            "conditional_copy_target_probability": 0.06488786275116214,
+            "top_copy_token": 277
+          },
+          {
+            "id": "radial-train-06",
+            "target": 1130,
+            "target_copy_weight": 689657151,
+            "copy_total_weight": 2087067065,
+            "conditional_copy_target_probability": 0.33044321505787355,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-07",
+            "target": 1130,
+            "target_copy_weight": 2688943520,
+            "copy_total_weight": 7916134673,
+            "conditional_copy_target_probability": 0.3396788497259059,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-08",
+            "target": 1130,
+            "target_copy_weight": 68790780,
+            "copy_total_weight": 558878663,
+            "conditional_copy_target_probability": 0.12308714673546232,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-09",
+            "target": 1130,
+            "target_copy_weight": 91420932,
+            "copy_total_weight": 290194444,
+            "conditional_copy_target_probability": 0.3150333643189943,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-10",
+            "target": 1130,
+            "target_copy_weight": 25374150,
+            "copy_total_weight": 202816511,
+            "conditional_copy_target_probability": 0.12510889707593875,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-11",
+            "target": 1130,
+            "target_copy_weight": 64619210,
+            "copy_total_weight": 157774940,
+            "conditional_copy_target_probability": 0.40956573965421883,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-12",
+            "target": 1357,
+            "target_copy_weight": 335129279,
+            "copy_total_weight": 541299560,
+            "conditional_copy_target_probability": 0.6191198067849898,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "radial-train-13",
+            "target": 1357,
+            "target_copy_weight": 527580688,
+            "copy_total_weight": 3657399317,
+            "conditional_copy_target_probability": 0.14425022872065024,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-14",
+            "target": 1357,
+            "target_copy_weight": 908769153,
+            "copy_total_weight": 4415689177,
+            "conditional_copy_target_probability": 0.20580460185773625,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-15",
+            "target": 1357,
+            "target_copy_weight": 1558943841,
+            "copy_total_weight": 5123680122,
+            "conditional_copy_target_probability": 0.3042625230068959,
+            "top_copy_token": 284
+          },
+          {
+            "id": "radial-train-16",
+            "target": 1357,
+            "target_copy_weight": 76541547,
+            "copy_total_weight": 584368859,
+            "conditional_copy_target_probability": 0.13098156382080586,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-17",
+            "target": 1357,
+            "target_copy_weight": 1873908277,
+            "copy_total_weight": 6815358489,
+            "conditional_copy_target_probability": 0.27495373574618137,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "radial-train-18",
+            "target": 2593,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 7287602667,
+            "conditional_copy_target_probability": 0.2946762805448103,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-19",
+            "target": 2593,
+            "target_copy_weight": 72154995,
+            "copy_total_weight": 295689515,
+            "conditional_copy_target_probability": 0.24402283929479204,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "radial-train-20",
+            "target": 2593,
+            "target_copy_weight": 2289807599,
+            "copy_total_weight": 11621369973,
+            "conditional_copy_target_probability": 0.19703422267081455,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-21",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 4087743756,
+            "conditional_copy_target_probability": 0.5253469337083368,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-22",
+            "target": 363,
+            "target_copy_weight": 4113035395,
+            "copy_total_weight": 8788182224,
+            "conditional_copy_target_probability": 0.4680189019940377,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-23",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 7235097502,
+            "conditional_copy_target_probability": 0.29681474885533615,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-24",
+            "target": 1130,
+            "target_copy_weight": 3596755354,
+            "copy_total_weight": 6794927087,
+            "conditional_copy_target_probability": 0.5293294994851797,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-25",
+            "target": 1357,
+            "target_copy_weight": 206633880,
+            "copy_total_weight": 645269121,
+            "conditional_copy_target_probability": 0.3202289917108865,
+            "top_copy_token": 284
+          },
+          {
+            "id": "radial-train-26",
+            "target": 1130,
+            "target_copy_weight": 317179970,
+            "copy_total_weight": 6383840679,
+            "conditional_copy_target_probability": 0.04968481920975584,
+            "top_copy_token": 284
+          },
+          {
+            "id": "radial-train-27",
+            "target": 1357,
+            "target_copy_weight": 1330184913,
+            "copy_total_weight": 8846629958,
+            "conditional_copy_target_probability": 0.1503606366848333,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "radial-train-28",
+            "target": 1130,
+            "target_copy_weight": 71346302,
+            "copy_total_weight": 1750194269,
+            "conditional_copy_target_probability": 0.040764790094281814,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-29",
+            "target": 1357,
+            "target_copy_weight": 125653504,
+            "copy_total_weight": 913014632,
+            "conditional_copy_target_probability": 0.13762485243500458,
+            "top_copy_token": 72
+          },
+          {
+            "id": "radial-train-30",
+            "target": 2593,
+            "target_copy_weight": 120632351,
+            "copy_total_weight": 303557459,
+            "conditional_copy_target_probability": 0.39739544334504395,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "radial-train-31",
+            "target": 363,
+            "target_copy_weight": 415223346,
+            "copy_total_weight": 2612268133,
+            "conditional_copy_target_probability": 0.1589512733224465,
+            "top_copy_token": 363
+          },
+          {
+            "id": "radial-train-32",
+            "target": 1130,
+            "target_copy_weight": 207167631,
+            "copy_total_weight": 1707497298,
+            "conditional_copy_target_probability": 0.12132823357475088,
+            "top_copy_token": 293
+          },
+          {
+            "id": "radial-train-33",
+            "target": 1357,
+            "target_copy_weight": 112629612,
+            "copy_total_weight": 1367120826,
+            "conditional_copy_target_probability": 0.08238453387440386,
+            "top_copy_token": 292
+          },
+          {
+            "id": "radial-train-34",
+            "target": 2593,
+            "target_copy_weight": 1048489271,
+            "copy_total_weight": 6274045848,
+            "conditional_copy_target_probability": 0.16711533457063127,
+            "top_copy_token": 72
+          },
+          {
+            "id": "radial-train-35",
+            "target": 363,
+            "target_copy_weight": 860153285,
+            "copy_total_weight": 3996686597,
+            "conditional_copy_target_probability": 0.2152165960787743,
+            "top_copy_token": 277
+          },
+          {
+            "id": "development-roles-order-00-job",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3214919410,
+            "conditional_copy_target_probability": 0.6679743328309433,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-00-where",
+            "target": 935,
+            "target_copy_weight": 171889307,
+            "copy_total_weight": 2996856650,
+            "conditional_copy_target_probability": 0.05735653288588228,
+            "top_copy_token": 456
+          },
+          {
+            "id": "development-roles-order-01-job",
+            "target": 1357,
+            "target_copy_weight": 92250780,
+            "copy_total_weight": 4620787160,
+            "conditional_copy_target_probability": 0.01996429976229418,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-roles-order-01-where",
+            "target": 2593,
+            "target_copy_weight": 1201843542,
+            "copy_total_weight": 12081002280,
+            "conditional_copy_target_probability": 0.09948210538703747,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-02-job",
+            "target": 1130,
+            "target_copy_weight": 26729864,
+            "copy_total_weight": 124233513,
+            "conditional_copy_target_probability": 0.2151582399509221,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-02-where",
+            "target": 1357,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 3115909928,
+            "conditional_copy_target_probability": 0.6891995268227792,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-03-job",
+            "target": 1357,
+            "target_copy_weight": 111663876,
+            "copy_total_weight": 9290969033,
+            "conditional_copy_target_probability": 0.012018539250683993,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-03-where",
+            "target": 363,
+            "target_copy_weight": 1764729531,
+            "copy_total_weight": 12839675298,
+            "conditional_copy_target_probability": 0.1374434703403198,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-04-job",
+            "target": 2593,
+            "target_copy_weight": 230509257,
+            "copy_total_weight": 4640000453,
+            "conditional_copy_target_probability": 0.04967871433093586,
+            "top_copy_token": 302
+          },
+          {
+            "id": "development-roles-order-04-where",
+            "target": 935,
+            "target_copy_weight": 430647962,
+            "copy_total_weight": 13642361639,
+            "conditional_copy_target_probability": 0.031566965705474945,
+            "top_copy_token": 456
+          },
+          {
+            "id": "development-roles-order-05-job",
+            "target": 2593,
+            "target_copy_weight": 972318983,
+            "copy_total_weight": 6447592809,
+            "conditional_copy_target_probability": 0.1508034101723622,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-roles-order-05-where",
+            "target": 1130,
+            "target_copy_weight": 201017114,
+            "copy_total_weight": 610152432,
+            "conditional_copy_target_probability": 0.3294539257036019,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-roles-order-06-job",
+            "target": 2593,
+            "target_copy_weight": 20299156,
+            "copy_total_weight": 518568355,
+            "conditional_copy_target_probability": 0.03914460997142797,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-roles-order-06-where",
+            "target": 363,
+            "target_copy_weight": 256480377,
+            "copy_total_weight": 720838575,
+            "conditional_copy_target_probability": 0.35580834030698205,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-roles-order-07-job",
+            "target": 1130,
+            "target_copy_weight": 1170622599,
+            "copy_total_weight": 12044008986,
+            "conditional_copy_target_probability": 0.09719542723363425,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-roles-order-07-where",
+            "target": 2593,
+            "target_copy_weight": 145963290,
+            "copy_total_weight": 694691765,
+            "conditional_copy_target_probability": 0.21011230786649673,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-00-job",
+            "target": 363,
+            "target_copy_weight": 2147483648,
+            "copy_total_weight": 10026742616,
+            "conditional_copy_target_probability": 0.21417560320868217,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-00-where",
+            "target": 2593,
+            "target_copy_weight": 84799617,
+            "copy_total_weight": 314427811,
+            "conditional_copy_target_probability": 0.26969502707252574,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-01-job",
+            "target": 1357,
+            "target_copy_weight": 1498880893,
+            "copy_total_weight": 10025018005,
+            "conditional_copy_target_probability": 0.14951403501244884,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-01-where",
+            "target": 363,
+            "target_copy_weight": 382223763,
+            "copy_total_weight": 3688744143,
+            "conditional_copy_target_probability": 0.10361894134764879,
+            "top_copy_token": 292
+          },
+          {
+            "id": "development-distractors-02-job",
+            "target": 1357,
+            "target_copy_weight": 125653504,
+            "copy_total_weight": 749005704,
+            "conditional_copy_target_probability": 0.16776041000616998,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-02-where",
+            "target": 935,
+            "target_copy_weight": 517654367,
+            "copy_total_weight": 2764375275,
+            "conditional_copy_target_probability": 0.1872590786357688,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-03-job",
+            "target": 1357,
+            "target_copy_weight": 276817292,
+            "copy_total_weight": 4014588029,
+            "conditional_copy_target_probability": 0.06895285145085057,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-distractors-03-where",
+            "target": 363,
+            "target_copy_weight": 1171352620,
+            "copy_total_weight": 9751943389,
+            "conditional_copy_target_probability": 0.12011478874264822,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-04-job",
+            "target": 2593,
+            "target_copy_weight": 51076477,
+            "copy_total_weight": 1529504180,
+            "conditional_copy_target_probability": 0.033394140184696976,
+            "top_copy_token": 70
+          },
+          {
+            "id": "development-distractors-04-where",
+            "target": 935,
+            "target_copy_weight": 571980364,
+            "copy_total_weight": 9554498469,
+            "conditional_copy_target_probability": 0.05986503277548435,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "development-distractors-05-job",
+            "target": 1357,
+            "target_copy_weight": 287259379,
+            "copy_total_weight": 6343090047,
+            "conditional_copy_target_probability": 0.04528697793528265,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-distractors-05-where",
+            "target": 363,
+            "target_copy_weight": 664949622,
+            "copy_total_weight": 6080813884,
+            "conditional_copy_target_probability": 0.10935207600246297,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-06-job",
+            "target": 1130,
+            "target_copy_weight": 313973189,
+            "copy_total_weight": 6265452456,
+            "conditional_copy_target_probability": 0.05011181414349879,
+            "top_copy_token": 284
+          },
+          {
+            "id": "development-distractors-06-where",
+            "target": 363,
+            "target_copy_weight": 148310424,
+            "copy_total_weight": 1579530890,
+            "conditional_copy_target_probability": 0.09389523493269575,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-07-job",
+            "target": 1130,
+            "target_copy_weight": 4194846137,
+            "copy_total_weight": 15415943319,
+            "conditional_copy_target_probability": 0.2721108952074242,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-distractors-07-where",
+            "target": 1357,
+            "target_copy_weight": 140205979,
+            "copy_total_weight": 421792256,
+            "conditional_copy_target_probability": 0.33240529432574506,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-00-job",
+            "target": 1357,
+            "target_copy_weight": 54002563,
+            "copy_total_weight": 253170400,
+            "conditional_copy_target_probability": 0.21330520076596632,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-repetition-00-where",
+            "target": 363,
+            "target_copy_weight": 443536959,
+            "copy_total_weight": 4149509672,
+            "conditional_copy_target_probability": 0.10688900474022078,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-01-job",
+            "target": 363,
+            "target_copy_weight": 135932277,
+            "copy_total_weight": 470260817,
+            "conditional_copy_target_probability": 0.28905720418548075,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-01-where",
+            "target": 363,
+            "target_copy_weight": 598057216,
+            "copy_total_weight": 4630878230,
+            "conditional_copy_target_probability": 0.12914552840660637,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-repetition-02-job",
+            "target": 935,
+            "target_copy_weight": 596917646,
+            "copy_total_weight": 6299917962,
+            "conditional_copy_target_probability": 0.09475006652475516,
+            "top_copy_token": 353
+          },
+          {
+            "id": "development-repetition-02-where",
+            "target": 363,
+            "target_copy_weight": 3512506690,
+            "copy_total_weight": 18329643576,
+            "conditional_copy_target_probability": 0.1916298413243079,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-03-job",
+            "target": 1130,
+            "target_copy_weight": 1273139712,
+            "copy_total_weight": 5037514784,
+            "conditional_copy_target_probability": 0.25273170731800276,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-03-where",
+            "target": 363,
+            "target_copy_weight": 3243357756,
+            "copy_total_weight": 16539849490,
+            "conditional_copy_target_probability": 0.19609354716080915,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-04-job",
+            "target": 2593,
+            "target_copy_weight": 161283201,
+            "copy_total_weight": 863206779,
+            "conditional_copy_target_probability": 0.18684190732009995,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-repetition-04-where",
+            "target": 363,
+            "target_copy_weight": 74181732,
+            "copy_total_weight": 378177562,
+            "conditional_copy_target_probability": 0.19615582587102298,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-repetition-05-job",
+            "target": 1130,
+            "target_copy_weight": 2170369501,
+            "copy_total_weight": 6767866185,
+            "conditional_copy_target_probability": 0.3206874133844891,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-05-where",
+            "target": 1357,
+            "target_copy_weight": 1304168332,
+            "copy_total_weight": 7386613818,
+            "conditional_copy_target_probability": 0.17655834786190525,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-06-job",
+            "target": 1357,
+            "target_copy_weight": 119616328,
+            "copy_total_weight": 281683164,
+            "conditional_copy_target_probability": 0.42464848200867267,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-06-where",
+            "target": 363,
+            "target_copy_weight": 1294922108,
+            "copy_total_weight": 7232101544,
+            "conditional_copy_target_probability": 0.1790519809659354,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-repetition-07-job",
+            "target": 1130,
+            "target_copy_weight": 2430875764,
+            "copy_total_weight": 5330873871,
+            "conditional_copy_target_probability": 0.4559994895441037,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-repetition-07-where",
+            "target": 1357,
+            "target_copy_weight": 1947036176,
+            "copy_total_weight": 3467354640,
+            "conditional_copy_target_probability": 0.5615336122641323,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-00-job",
+            "target": 363,
+            "target_copy_weight": 669327990,
+            "copy_total_weight": 10102718794,
+            "conditional_copy_target_probability": 0.0662522637369174,
+            "top_copy_token": 73
+          },
+          {
+            "id": "development-currentversions-00-where",
+            "target": 935,
+            "target_copy_weight": 339190670,
+            "copy_total_weight": 4779818856,
+            "conditional_copy_target_probability": 0.07096308044691307,
+            "top_copy_token": 68
+          },
+          {
+            "id": "development-currentversions-01-job",
+            "target": 1130,
+            "target_copy_weight": 1161349586,
+            "copy_total_weight": 21067167665,
+            "conditional_copy_target_probability": 0.055126042782172924,
+            "top_copy_token": 293
+          },
+          {
+            "id": "development-currentversions-01-where",
+            "target": 2593,
+            "target_copy_weight": 1681871406,
+            "copy_total_weight": 13881673930,
+            "conditional_copy_target_probability": 0.1211576798649095,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-02-job",
+            "target": 363,
+            "target_copy_weight": 895204425,
+            "copy_total_weight": 7384929717,
+            "conditional_copy_target_probability": 0.12122043936846853,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-02-where",
+            "target": 935,
+            "target_copy_weight": 1064008998,
+            "copy_total_weight": 12271731151,
+            "conditional_copy_target_probability": 0.08670406684335616,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-03-job",
+            "target": 363,
+            "target_copy_weight": 915504649,
+            "copy_total_weight": 18286613854,
+            "conditional_copy_target_probability": 0.050064197576947425,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "development-currentversions-03-where",
+            "target": 1130,
+            "target_copy_weight": 2891955787,
+            "copy_total_weight": 17179789341,
+            "conditional_copy_target_probability": 0.168334764157921,
+            "top_copy_token": 2593
+          },
+          {
+            "id": "development-currentversions-04-job",
+            "target": 2593,
+            "target_copy_weight": 1264643311,
+            "copy_total_weight": 5423083090,
+            "conditional_copy_target_probability": 0.23319637372548538,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-04-where",
+            "target": 1130,
+            "target_copy_weight": 13795020,
+            "copy_total_weight": 94869009,
+            "conditional_copy_target_probability": 0.14541123750960652,
+            "top_copy_token": 1357
+          },
+          {
+            "id": "development-currentversions-05-job",
+            "target": 1130,
+            "target_copy_weight": 1435373879,
+            "copy_total_weight": 11071432468,
+            "conditional_copy_target_probability": 0.1296466273130141,
+            "top_copy_token": 363
+          },
+          {
+            "id": "development-currentversions-05-where",
+            "target": 2593,
+            "target_copy_weight": 1807765890,
+            "copy_total_weight": 13544650388,
+            "conditional_copy_target_probability": 0.13346715036673118,
+            "top_copy_token": 3931
+          },
+          {
+            "id": "development-currentversions-06-job",
+            "target": 1357,
+            "target_copy_weight": 1623834154,
+            "copy_total_weight": 10531980486,
+            "conditional_copy_target_probability": 0.15418127256868144,
+            "top_copy_token": 292
+          },
+          {
+            "id": "development-currentversions-06-where",
+            "target": 363,
+            "target_copy_weight": 895204371,
+            "copy_total_weight": 7792950656,
+            "conditional_copy_target_probability": 0.11487360956286286,
+            "top_copy_token": 1130
+          },
+          {
+            "id": "development-currentversions-07-job",
+            "target": 1130,
+            "target_copy_weight": 1828187294,
+            "copy_total_weight": 18558500917,
+            "conditional_copy_target_probability": 0.09850942714480455,
+            "top_copy_token": 72
+          },
+          {
+            "id": "development-currentversions-07-where",
+            "target": 2593,
+            "target_copy_weight": 503291150,
+            "copy_total_weight": 12198624898,
+            "conditional_copy_target_probability": 0.04125802327789553,
+            "top_copy_token": 3931
+          }
+        ]
+      }
+    },
+    "auditor_sha256": "81b79741e051987ea542cf573cc2653203c3d2148d53874545a66cde8158fb39",
+    "limits": [
+      "Saved arithmetic/payload byte comparisons only, no native/tokenizer/backward replay. Source bits checked receipt digests rather than raw safetensors parse.",
+      "Endpoint compactcontextSHA equality binds full replay digest; raw context arrays not independently recomputed.",
+      "Conditional Copy top uses smallest tokenID tie for analysis; served joint action choice remains actualnative and unchanged.",
+      "No fresh/optimizer/reselection or generalchat claim. BLAKE3 unavailable is explicitly qualified."
+    ]
+  },
+  "factors": [
+    {
+      "factor": "parent0",
+      "full128_ce": 1.3276488868214145,
+      "single64_ce": 0.4923816248649195,
+      "bank64_ce": 2.1629161487779083,
+      "bank_first_token_ce": 2.807628747579484,
+      "single_complete": 31,
+      "bank_complete": 0,
+      "bank_complete_rows": []
+    },
+    {
+      "factor": "full48",
+      "full128_ce": 1.4791009639117563,
+      "single64_ce": 1.222499874116768,
+      "bank64_ce": 1.7357020537067438,
+      "bank_first_token_ce": 2.8191271638992594,
+      "single_complete": 0,
+      "bank_complete": 2,
+      "bank_complete_rows": [
+        {
+          "id": "development-roles-order-02-where",
+          "reply": "dancer."
+        },
+        {
+          "id": "development-currentversions-06-job",
+          "reply": "dancer."
+        }
+      ]
+    },
+    {
+      "factor": "C0R48",
+      "full128_ce": 1.3056881465204488,
+      "single64_ce": 0.5431464355409291,
+      "bank64_ce": 2.0682298574999685,
+      "bank_first_token_ce": 2.8694828418790945,
+      "single_complete": 27,
+      "bank_complete": 0,
+      "bank_complete_rows": []
+    },
+    {
+      "factor": "C48R0",
+      "full128_ce": 1.555512339862501,
+      "single64_ce": 1.2798554081640747,
+      "bank64_ce": 1.8311692715609271,
+      "bank_first_token_ce": 2.6326492151327803,
+      "single_complete": 4,
+      "bank_complete": 0,
+      "bank_complete_rows": []
+    }
+  ],
+  "receipts": {
+    "tests": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T22:56:37.956760+00:00",
+      "source_commit": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-bank-fit"
+      ],
+      "cwd": "/root/codex/geometric-bank-fit-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 268878,
+      "worker_pid": 268879,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 147.91656785830855,
+      "sampled_process_tree_peak_rss_bytes": 1985929216,
+      "rusage_children_max_rss_bytes": 2197610496,
+      "codex_allocated_bytes_latest": 9986465792,
+      "free_bytes_final": 8141672448,
+      "maximum_seconds": 476,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "release": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T22:56:46.241254+00:00",
+      "source_commit": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "build",
+        "--release",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-bank-fit"
+      ],
+      "cwd": "/root/codex/geometric-bank-fit-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 269467,
+      "worker_pid": 269468,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 8.237207336816937,
+      "sampled_process_tree_peak_rss_bytes": 352948224,
+      "rusage_children_max_rss_bytes": 367149056,
+      "codex_allocated_bytes_latest": 10034012160,
+      "free_bytes_final": 8141537280,
+      "maximum_seconds": 328,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "probe": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T22:57:00.766983+00:00",
+      "source_commit": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-bank-fit",
+        "/root/codex/factor-probe-1.json"
+      ],
+      "cwd": "/root/codex/geometric-bank-fit-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "0ac21289f3bc57aa884387ff5e32fd7ac97922fb",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 269542,
+      "worker_pid": 269543,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 14.240558023098856,
+      "sampled_process_tree_peak_rss_bytes": 1525067776,
+      "rusage_children_max_rss_bytes": 1665093632,
+      "codex_allocated_bytes_latest": 10034147328,
+      "free_bytes_final": 7926300672,
+      "maximum_seconds": 300,
+      "maximum_rss_bytes": 8589934592,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "cost": {
+    "complete_card_ms_charged_once": 10800000,
+    "new_charge_ms": 0,
+    "cumulative_ms": 1216635028,
+    "limit_ms": 1219200000,
+    "tests_pass": 9,
+    "tests_seconds": 147.91656785830855,
+    "release_seconds": 8.237207336816937,
+    "probe_seconds": 14.240558023098856,
+    "final_owned_pod_bytes": 10249396224,
+    "stop_margin_bytes": 134217728,
+    "report_cap_bytes": 268435456
+  },
+  "selected_model": "unchanged parent0; factor diagnostics do not reselect",
+  "fresh_predictions": 0,
+  "optimizer_updates": 0,
+  "limits": [
+    "128 total context,32 generation;64bank familiar-value/fixed-question development cases;no fresh qualification",
+    "Source gradients/rawF32 Tensor arrays not independently reconstructed; exactnativepayload donorbytes checked",
+    "Local BLAKE3 unavailable; Rust source-bound seals and independentSHA256 fullset are separate",
+    "Two bank completions both dancer; no complete querypairs or broadattention/chat/reasoning/M1energy claim"
+  ]
+}
