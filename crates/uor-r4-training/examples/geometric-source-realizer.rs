@@ -50,6 +50,8 @@ struct Args {
     audit_report: Option<PathBuf>,
     #[serde(default)]
     transfer_checkpoint: Option<PathBuf>,
+    #[serde(default)]
+    observation_checkpoint: Option<PathBuf>,
 }
 #[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -535,7 +537,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -563,6 +565,7 @@ fn generate(
                 | "context-direction"
                 | "context-frontier-direction"
                 | "context-observation-learn"
+                | "context-observable-cells"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -580,6 +583,7 @@ fn generate(
                         | "context-direction"
                         | "context-frontier-direction"
                         | "context-observation-learn"
+                        | "context-observable-cells"
                 ))
         {
             if let Some(row) = rows.last_mut() {
@@ -588,7 +592,10 @@ fn generate(
         }
         write(
             &a.out.join(format!("{stage}-progress.json")),
-            &if a.mode == "context-observation-learn" {
+            &if matches!(
+                a.mode.as_str(),
+                "context-observation-learn" | "context-observable-cells"
+            ) {
                 json!({"completed_cases":rows.len(),"complete_answers":complete,"eos_count":eos_count,"raw_rows_retained_in_enclosing_attempt":true,"elapsed_seconds":begun.elapsed().as_secs_f64()})
             } else {
                 json!({"completed_cases":rows.len(),"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64()})
@@ -843,6 +850,7 @@ fn main() -> Result<()> {
             | "context-direction"
             | "context-frontier-direction"
             | "context-observation-learn"
+            | "context-observable-cells"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -870,7 +878,10 @@ fn main() -> Result<()> {
                 || a.fit_admission.is_some()))
         || (matches!(
             a.mode.as_str(),
-            "context-direction" | "context-frontier-direction" | "context-observation-learn"
+            "context-direction"
+                | "context-frontier-direction"
+                | "context-observation-learn"
+                | "context-observable-cells"
         ) && (a.maximum_seconds > 900
             || a.audit_checkpoint.is_none()
             || a.transfer_checkpoint.is_none()
@@ -900,6 +911,7 @@ fn main() -> Result<()> {
                 | "context-direction"
                 | "context-frontier-direction"
                 | "context-observation-learn"
+                | "context-observable-cells"
         ) && a.transfer_checkpoint.is_some())
         || (!matches!(
             a.mode.as_str(),
@@ -913,12 +925,18 @@ fn main() -> Result<()> {
                 | "context-direction"
                 | "context-frontier-direction"
                 | "context-observation-learn"
+                | "context-observable-cells"
         ) && (a.audit_checkpoint.is_some()
             || a.expected_generation.is_some()
             || a.audit_report.is_some()))
     {
         return Err(invalid(
             "construction/audit/context-transplant limit 1..300; direction/transfer/context-direction limit 1..900; fit/readout-fit/composition-fit/context-fit limit 1..1200 with fixed64 updates",
+        ));
+    }
+    if (a.mode == "context-observable-cells") != a.observation_checkpoint.is_some() {
+        return Err(invalid(
+            "observable-cell mode requires sole observation_checkpoint field",
         ));
     }
     let admitted = admission(&a)?;
@@ -934,16 +952,23 @@ fn main() -> Result<()> {
             | "context-direction"
             | "context-frontier-direction"
             | "context-observation-learn"
+            | "context-observable-cells"
     ) {
         audit_output_location(&a)?;
     }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = if a.mode == "context-observation-learn" {
+    let result = if matches!(
+        a.mode.as_str(),
+        "context-observation-learn" | "context-observable-cells"
+    ) {
         context_observation_learn(&a)
     } else if matches!(
         a.mode.as_str(),
-        "context-direction" | "context-frontier-direction" | "context-observation-learn"
+        "context-direction"
+            | "context-frontier-direction"
+            | "context-observation-learn"
+            | "context-observable-cells"
     ) {
         context_direction(&a)
     } else if a.mode == "context-transplant" {
@@ -1050,6 +1075,16 @@ fn audit_output_location(a: &Args) -> Result<()> {
                 .ok_or_else(|| invalid("audit report envelope missing"))?,
         )?) {
             return Err(invalid("output beneath saved audit envelope"));
+        }
+    }
+    if let Some(candidate) = &a.observation_checkpoint {
+        let root = candidate
+            .parent()
+            .ok_or_else(|| invalid("observation envelope absent"))?;
+        if output.starts_with(fs::canonicalize(root)?) {
+            return Err(invalid(
+                "observable-cell output beneath retained parent envelope",
+            ));
         }
     }
     if let Some(candidate) = &a.transfer_checkpoint {
@@ -3517,8 +3552,420 @@ fn packed_byte_changes(before: &[u8], after: &[u8]) -> Result<Vec<Value>> {
         .map(|(index, (a, b))| json!({"byte_index":index,"parent_byte":a,"candidate_byte":b}))
         .collect())
 }
+#[derive(Clone, Serialize)]
+struct CellEdit {
+    coordinate: DirectionCoordinate,
+    delta_q: i8,
+}
+#[derive(Clone, Serialize)]
+struct CellProposal {
+    edits: Vec<CellEdit>,
+    witness: Value,
+    predicted_gain: f64,
+}
+fn cell_winner(scores: &[i64]) -> Result<usize> {
+    let mut best = None;
+    for (index, &score) in scores.iter().enumerate() {
+        if best.is_none_or(|(_, value)| score > value) {
+            best = Some((index, score));
+        }
+    }
+    best.map(|(index, _)| index)
+        .ok_or_else(|| invalid("cell score vector empty"))
+}
+// Minimal signed legal source change that crosses this event's entire native
+// argmax cell. Enumeration is offline arithmetic, not model evaluations.
+fn cell_crossing(
+    scores: &[i64],
+    class: usize,
+    q: i8,
+    direction: i8,
+) -> Result<Option<(i8, usize)>> {
+    if !(-7..=7).contains(&q) || ![-1, 1].contains(&direction) || class >= scores.len() {
+        return Err(invalid("cell coordinate invalid"));
+    }
+    let old = cell_winner(scores)?;
+    for distance in 1..=14i8 {
+        let delta = direction * distance;
+        if !(-7..=7).contains(&(i16::from(q) + i16::from(delta))) {
+            break;
+        }
+        let mut changed = scores.to_vec();
+        changed[class] += i64::from(delta) << 22;
+        let new = cell_winner(&changed)?;
+        if new != old {
+            return Ok(Some((delta, new)));
+        }
+    }
+    Ok(None)
+}
+fn cell_key(p: &CellProposal) -> String {
+    p.edits
+        .iter()
+        .map(|e| format!("{}:{}:{}", e.coordinate.name, e.coordinate.index, e.delta_q))
+        .collect::<Vec<_>>()
+        .join(";")
+}
+fn verify_cell_packed_edits(
+    before: &[u8],
+    after: &[u8],
+    context: &BTreeMap<String, Vec<f32>>,
+    edits: &[CellEdit],
+) -> Result<Value> {
+    let mut expected = before.to_vec();
+    let mut seen = BTreeSet::new();
+    for edit in edits {
+        let family = edit
+            .coordinate
+            .name
+            .strip_prefix("consumer.context.")
+            .ok_or_else(|| invalid("cell family absent"))?;
+        if !["token_root", "token_category"].contains(&family) {
+            return Err(invalid("cell changed non-token observation"));
+        }
+        let mut offset = 0;
+        for name in uor_r4_integer::geometric_context_q4::FAMILY_NAMES {
+            if name == family {
+                break;
+            }
+            offset += context
+                .get(&format!("consumer.context.{name}"))
+                .map_or(0, Vec::len);
+        }
+        let index = offset + edit.coordinate.index;
+        if !seen.insert(index) {
+            return Err(invalid("cell duplicate edit"));
+        }
+        let byte = expected
+            .get_mut(index / 2)
+            .ok_or_else(|| invalid("cell packed index absent"))?;
+        let shift = (index % 2) * 4;
+        let old = ((*byte >> shift) & 15) as i8;
+        let old = if old >= 8 { old - 16 } else { old };
+        if old != edit.coordinate.original_q {
+            return Err(invalid("cell packed parent mismatch"));
+        }
+        let q = old + edit.delta_q;
+        if !(-7..=7).contains(&q) {
+            return Err(invalid("cell packed bound"));
+        }
+        *byte = (*byte & !(15 << shift)) | (((q as u8) & 15) << shift);
+    }
+    if expected != after {
+        return Err(invalid("cell packed exact edits differ"));
+    }
+    Ok(
+        json!({"exact_edits":edits,"all_other_nibbles_fixed":true,"l1_quanta":edits.iter().map(|e|i16::from(e.delta_q).abs()).sum::<i16>()}),
+    )
+}
+fn cell_order(a: &CellProposal, b: &CellProposal) -> std::cmp::Ordering {
+    let cost = |p: &CellProposal| {
+        p.edits
+            .iter()
+            .map(|e| f64::from(e.delta_q.abs()))
+            .sum::<f64>()
+    };
+    (b.predicted_gain / cost(b))
+        .total_cmp(&(a.predicted_gain / cost(a)))
+        .then_with(|| {
+            a.edits
+                .iter()
+                .map(|e| (&e.coordinate.name, e.coordinate.index, e.delta_q))
+                .cmp(
+                    b.edits
+                        .iter()
+                        .map(|e| (&e.coordinate.name, e.coordinate.index, e.delta_q)),
+                )
+        })
+        .then(a.witness.to_string().cmp(&b.witness.to_string()))
+}
+fn retain_cell(pool: &mut Vec<CellProposal>, proposal: CellProposal) {
+    let key = cell_key(&proposal);
+    if let Some(index) = pool.iter().position(|old| cell_key(old) == key) {
+        if cell_order(&proposal, &pool[index]).is_lt() {
+            pool[index] = proposal;
+        }
+    } else {
+        pool.push(proposal);
+    }
+    pool.sort_by(cell_order);
+    pool.truncate(4);
+}
+fn observable_cell_proposals(
+    native: &NativeSourceRealizer,
+    input: &Path,
+    positions: &[FrontierPosition],
+    episodes: &[Episode],
+    context: &BTreeMap<String, Vec<f32>>,
+    gradients: &BTreeMap<String, Vec<f32>>,
+    root: &Path,
+) -> Result<Vec<CellProposal>> {
+    use uor_r4_integer::geometric_context_q4::{ContextQ4Config, NativeContextQ4};
+    let metadata: Value = serde_json::from_slice(&fs::read(
+        input.join("realizer-native/consumer/metadata.json"),
+    )?)?;
+    let config: ContextQ4Config = serde_json::from_value(metadata["context"].clone())?;
+    let codec = NativeContextQ4::new(
+        config,
+        &fs::read(input.join("realizer-native/consumer/context-q4.bin"))?,
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    let tables = codec.table_slices();
+    let lanes = config.heads * config.lanes_per_head;
+    let mut events = Vec::new();
+    let mut singles = Vec::new();
+    let mut pairs = Vec::new();
+    let mut single_witnesses = 0usize;
+    let mut pair_witnesses = 0usize;
+    let coordinate = |family: &str,
+                      token: usize,
+                      lane: usize,
+                      class: usize,
+                      classes: usize|
+     -> Result<DirectionCoordinate> {
+        let name = format!("consumer.context.{family}");
+        let index = (token * lanes + lane) * classes + class;
+        let shadow = *context
+            .get(&name)
+            .and_then(|v| v.get(index))
+            .ok_or_else(|| invalid("cell source coordinate absent"))?;
+        let g = *gradients
+            .get(&name)
+            .and_then(|v| v.get(index))
+            .ok_or_else(|| invalid("cell gradient coordinate absent"))?;
+        if !shadow.is_finite() || !g.is_finite() {
+            return Err(invalid("cell source/gradient nonfinite"));
+        }
+        Ok(DirectionCoordinate {
+            name,
+            index,
+            gradient: f64::from(g),
+            original_shadow: shadow,
+            original_q: (shadow * 4.).round() as i8,
+            calibration: false,
+            eligibility: vec![
+                json!({"token":token,"lane":lane,"class":class,"ranking":"signed coefficient directional surrogate; not desired class probability"}),
+            ],
+        })
+    };
+    for (position, episode) in positions.iter().zip(episodes) {
+        let trace = native.read(
+            episode.frame(),
+            &episode.view,
+            &episode.query,
+            &position.prefix_ids,
+        )?;
+        let replay = &trace.period_context;
+        for (time, &token) in replay.tokens.iter().enumerate() {
+            for lane in 0..lanes {
+                let own = usize::from(replay.states[time][lane]);
+                let head = lane / config.lanes_per_head;
+                let neighbor = head * config.lanes_per_head
+                    + (lane % config.lanes_per_head + 1) % config.lanes_per_head;
+                let other = usize::from(replay.states[time][neighbor]);
+                let scores = |token_table: &[i32],
+                              self_table: &[i32],
+                              neighbor_table: Option<&[i32]>,
+                              classes: usize,
+                              stride: usize| {
+                    (0..classes)
+                        .map(|class| {
+                            i64::from(token_table[(token as usize * lanes + lane) * stride + class])
+                                + i64::from(self_table[(lane * 128 + own) * stride + class])
+                                + neighbor_table.map_or(0, |table| {
+                                    i64::from(table[(lane * 128 + other) * stride + class])
+                                })
+                        })
+                        .collect::<Vec<_>>()
+                };
+                let roots = scores(
+                    tables.token_root,
+                    tables.self_root,
+                    tables.neighbor_root,
+                    120,
+                    128,
+                );
+                let categories = scores(
+                    tables.token_category,
+                    tables.self_category,
+                    tables.neighbor_category,
+                    33,
+                    64,
+                );
+                let root_winner = cell_winner(&roots)?;
+                let category_winner = cell_winner(&categories)?;
+                let observed = time * lanes + lane;
+                if root_winner != usize::from(replay.raw_roots[observed])
+                    || category_winner != usize::from(replay.categories[observed])
+                {
+                    return Err(invalid("cell reconstructed native winner differs"));
+                }
+                let event = events.len();
+                events.push(json!({"event":event,"id":position.id,"frontier_step":position.step,"context_time":time,"token_id":token,"lane":lane,"own_new_state":own,"neighbor_lane":neighbor,"neighbor_new_state":other,"root_scores_q24":roots,"category_scores_q24":categories,"root_winner":root_winner,"category_winner":category_winner,"native_code":replay.codes[observed],"tie":"earliest index"}));
+                let mut hidden = Vec::new();
+                let mut presence = Vec::new();
+                for (family, values, classes) in [
+                    ("token_root", &roots, 120),
+                    ("token_category", &categories, 33),
+                ] {
+                    for class in 0..classes {
+                        let c = coordinate(family, token as usize, lane, class, classes)?;
+                        if c.gradient == 0. {
+                            continue;
+                        }
+                        let direction = if c.gradient < 0. { 1 } else { -1 };
+                        let Some((delta, new)) =
+                            cell_crossing(values, class, c.original_q, direction)?
+                        else {
+                            continue;
+                        };
+                        let gain = -c.gradient * f64::from(delta) * 0.25;
+                        let edit = CellEdit {
+                            coordinate: c,
+                            delta_q: delta,
+                        };
+                        let witness = json!({"event":event,"id":position.id,"context_time":time,"lane":lane,"old_root":root_winner,"old_category":category_winner,"family":family,"old_winner":cell_winner(values)?,"new_winner":new,"class":class,"minimal_legal_directional_crossing":true});
+                        if family == "token_root" && category_winner == 0 {
+                            hidden.push((edit.clone(), witness.clone(), gain));
+                        } else {
+                            single_witnesses += 1;
+                            retain_cell(
+                                &mut singles,
+                                CellProposal {
+                                    edits: vec![edit.clone()],
+                                    witness: witness.clone(),
+                                    predicted_gain: gain,
+                                },
+                            );
+                        }
+                        if family == "token_category" && category_winner == 0 && new != 0 {
+                            presence.push((edit, witness, gain));
+                        }
+                    }
+                }
+                // Presence may require a direction with adverse individual credit;
+                // permit it only in a same-event pair with positive total credit.
+                if category_winner == 0 {
+                    for class in 1..33 {
+                        let c = coordinate("token_category", token as usize, lane, class, 33)?;
+                        if let Some((delta, new)) =
+                            cell_crossing(&categories, class, c.original_q, 1)?
+                        {
+                            if new != 0 {
+                                let gain = -c.gradient * f64::from(delta) * 0.25;
+                                presence.push((CellEdit{coordinate:c,delta_q:delta},json!({"event":event,"family":"token_category","old_winner":0,"new_winner":new,"class":class,"minimal_legal_presence_crossing":true}),gain));
+                            }
+                        }
+                    }
+                }
+                for (edit, witness, gain) in hidden {
+                    for (p, pw, pg) in &presence {
+                        if gain + pg > 0. {
+                            pair_witnesses += 1;
+                            retain_cell(
+                                &mut pairs,
+                                CellProposal {
+                                    edits: vec![edit.clone(), p.clone()],
+                                    witness: json!({"event":event,"id":position.id,"context_time":time,"lane":lane,"old_root":root_winner,"old_category":category_winner,"root":witness,"presence":pw,"same_token_lane_event":true,"old_category":0}),
+                                    predicted_gain: gain + pg,
+                                },
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    let selected = singles
+        .iter()
+        .take(4)
+        .chain(pairs.iter().take(4))
+        .cloned()
+        .collect::<Vec<_>>();
+    write(
+        &root.join("observable-cell-events.json"),
+        &json!({"schema":"uor-r4.observable-cell-events/1","events":events,"native_winner_reconstruction_equal":true,"states":"completed NEW state; same-head next-neighbor; transitions fixed","scores":"authoritative regenerated native Q24 table token+self+neighbor i64 sums"}),
+    )?;
+    write(
+        &root.join("observable-cell-selection.json"),
+        &json!({"single_ranked_top4":singles,"pair_ranked_top4":pairs,"single_crossing_witnesses_searched":single_witnesses,"pair_crossing_witnesses_searched":pair_witnesses,"unselected_offline_edges":"reconstructible from exactscoreevents/source/credit; not model-evaluated","selected":selected,"maximum_selected":8,"rank":"positive signed coefficient credit gain per L1 quantum; deterministic edit/witness ties; max4 singles+4 same-event absence pairs","frozen_before_candidate_loss":true,"token_only":true,"basis_family_search":"NOT_RUN"}),
+    )?;
+    Ok(selected)
+}
+
+fn verify_cell_witness(
+    proposal: &CellProposal,
+    native: &NativeSourceRealizer,
+    positions: &[FrontierPosition],
+    episodes: &[Episode],
+) -> Result<Value> {
+    let w = &proposal.witness;
+    let i = positions
+        .iter()
+        .position(|p| w["id"] == p.id)
+        .ok_or_else(|| invalid("cell witness identity absent"))?;
+    let time = w["context_time"]
+        .as_u64()
+        .ok_or_else(|| invalid("cell witness time absent"))? as usize;
+    let lane = w["lane"]
+        .as_u64()
+        .ok_or_else(|| invalid("cell witness lane absent"))? as usize;
+    let trace = native.read(
+        episodes[i].frame(),
+        &episodes[i].view,
+        &episodes[i].query,
+        &positions[i].prefix_ids,
+    )?;
+    let replay = &trace.period_context;
+    let at = time * (replay.heads * replay.lanes_per_head) + lane;
+    let oldroot = w["old_root"]
+        .as_u64()
+        .ok_or_else(|| invalid("cell old root absent"))? as u8;
+    let oldcategory = w["old_category"]
+        .as_u64()
+        .ok_or_else(|| invalid("cell old category absent"))? as u8;
+    let (root, category) = if proposal.edits.len() == 2 {
+        (
+            w["root"]["new_winner"].as_u64(),
+            w["presence"]["new_winner"].as_u64(),
+        )
+    } else if w["family"] == "token_root" {
+        (w["new_winner"].as_u64(), Some(u64::from(oldcategory)))
+    } else {
+        (Some(u64::from(oldroot)), w["new_winner"].as_u64())
+    };
+    let root = root.ok_or_else(|| invalid("cell predicted root absent"))? as u8;
+    let category = category.ok_or_else(|| invalid("cell predicted category absent"))? as u8;
+    let code = replay
+        .codes
+        .get(at)
+        .ok_or_else(|| invalid("cell observed code absent"))?;
+    let expected = if category == 0 {
+        json!({"root":1,"radius_bin":0,"present":false})
+    } else {
+        json!({"root":root,"radius_bin":category-1,"present":true})
+    };
+    let old = if oldcategory == 0 {
+        json!({"root":1,"radius_bin":0,"present":false})
+    } else {
+        json!({"root":oldroot,"radius_bin":oldcategory-1,"present":true})
+    };
+    if replay.raw_roots[at] != root
+        || replay.categories[at] != category
+        || serde_json::to_value(code)? != expected
+        || expected == old
+    {
+        return Err(invalid(
+            "cell native prediction/witness differs or invisible",
+        ));
+    }
+    Ok(
+        json!({"id":positions[i].id,"context_time":time,"lane":lane,"old_code":old,"predicted_code":expected,"actual_code":code,"actual_raw_root":root,"actual_category":category,"equal":true,"scope":"witness-local minimal directional crossing; repeated token effects retained in full native traces"}),
+    )
+}
 fn context_observation_learn(a: &Args) -> Result<()> {
     let start = Instant::now();
+    let cells = a.mode == "context-observable-cells";
     let LoadedFinal {
         identity,
         tok,
@@ -3531,13 +3978,60 @@ fn context_observation_learn(a: &Args) -> Result<()> {
         mut source,
         mut native,
         fit,
-        evaluation,
-        bins,
+        mut evaluation,
+        mut bins,
     } = load_context_parent(a, &identity, &retained_sha, &before)?;
     let input = a
         .transfer_checkpoint
         .as_ref()
         .ok_or_else(|| invalid("learner old32 absent"))?;
+    let original_input = input;
+    let mut cell_parent_inventory = None;
+    let cell_input;
+    let input = if cells {
+        cell_input = a
+            .observation_checkpoint
+            .as_ref()
+            .ok_or_else(|| invalid("observable-cell parent absent"))?;
+        let envelope = cell_input
+            .parent()
+            .ok_or_else(|| invalid("observable-cell envelope absent"))?;
+        report_output::verify(envelope)?;
+        report_output::verify(cell_input)?;
+        let parent: Value = serde_json::from_slice(&fs::read(envelope.join("report.json"))?)?;
+        let receipt: Value =
+            serde_json::from_slice(&fs::read(cell_input.join("checkpoint.json"))?)?;
+        if parent["schema"] != "uor-r4.geometric-observation-learning/1"
+            || parent["status"] != "completed"
+            || parent["accepted_quanta"] != 2
+            || parent["native_candidate_evaluations"] != 12
+            || parent["parent_checkpoint_manifest_sha256"]
+                != sha256_file(&original_input.join("manifest.json"))?
+            || parent["saved_identity"] != serde_json::to_value(&identity)?
+            || parent["retained_report_sha256"] != retained_sha
+            || parent["final_checkpoint"] != receipt
+        {
+            return Err(invalid("observable-cell parent lineage differs"));
+        }
+        let bytes = fs::read(&a.tokenizer)?;
+        source = SourceRealizerWeights::load_source(&cell_input.join("realizer-source"), &bytes)?;
+        native =
+            NativeSourceRealizer::load(&cell_input.join("realizer-native"), &source, &identity)?;
+        let old_bins = bins;
+        bins = bin_files(&cell_input.join("realizer-native"))?;
+        if old_bins.keys().ne(bins.keys())
+            || old_bins
+                .iter()
+                .any(|(name, sha)| name != "consumer/context-q4.bin" && bins.get(name) != Some(sha))
+        {
+            return Err(invalid("observable-cell frozen payload differs from0032"));
+        }
+        evaluation = json!({"ownprefix":parent["final_original_generation"],"construction_ownprefix":parent["final_construction_generation"]});
+        cell_parent_inventory = Some(source_files(original_input)?);
+        cell_input
+    } else {
+        input
+    };
     let input_files = source_files(input)?;
     let parent_context = fs::read(input.join("realizer-native/consumer/context-q4.bin"))?;
     let initial_bits = parameter_bits(&source.parameters())?;
@@ -3549,7 +4043,7 @@ fn context_observation_learn(a: &Args) -> Result<()> {
     let construction =
         composition_panel(template, &tok, &compiler, native.binding().eos_token_id())?;
     let saved: Value = serde_json::from_slice(&fs::read(
-        input
+        original_input
             .parent()
             .ok_or_else(|| invalid("composition envelope absent"))?
             .join("construction-panel/panel.json"),
@@ -3568,7 +4062,7 @@ fn context_observation_learn(a: &Args) -> Result<()> {
     let mut rounds: Vec<Value> = Vec::new();
     let mut last_accepted_replies: Option<(Value, Value)> = None;
     let mut stop = "accepted_quantum_limit";
-    for round in 0..8usize {
+    for round in 0..if cells { 1usize } else { 8usize } {
         deadline(start, a)?;
         let root = a.out.join(format!("round-{round:02}"));
         report_output::claim(&root)?;
@@ -3659,6 +4153,19 @@ fn context_observation_learn(a: &Args) -> Result<()> {
             gradients.insert(name.clone(), g);
         }
         let selected = select_frontier_direction(eligible);
+        let cell_proposals = if cells {
+            Some(observable_cell_proposals(
+                &native,
+                input,
+                &positions,
+                &construction,
+                &context,
+                &gradients,
+                &root,
+            )?)
+        } else {
+            None
+        };
         write(
             &root.join("selection.json"),
             &json!({"selected":selected,"gradient_values":gradients,"credit":measured.report,"selector":"strongest finite nonzero interior q[-6,6] per root/category, ties name/index, both signs; no replacement","maximum_candidates":4,"biased_credit_not_discrete_derivative":true}),
@@ -3675,140 +4182,215 @@ fn context_observation_learn(a: &Args) -> Result<()> {
             a.out.join(format!("round-{:02}/candidate-{winner:02}/checkpoint/realizer-native/consumer/context-q4.bin",round-1))
         })?;
         let mut proposals = Vec::new();
-        for c in &selected {
-            for delta in [-1i8, 1] {
-                deadline(start, a)?;
-                if candidate_count >= 32 {
-                    return Err(invalid("learner candidate cap exceeded"));
-                }
-                let q = c.original_q + delta;
-                let var = params
-                    .get(&c.name)
-                    .ok_or_else(|| invalid("learner Var absent"))?;
-                let original = context
-                    .get(&c.name)
-                    .ok_or_else(|| invalid("learner shadow absent"))?;
-                let mut changed = original.clone();
-                *changed
-                    .get_mut(c.index)
-                    .ok_or_else(|| invalid("learner index absent"))? = f32::from(q) * 0.25;
-                let candidate_root = root.join(format!("candidate-{:02}", proposals.len()));
-                report_output::claim(&candidate_root)?;
-                var.set(&Tensor::from_vec(changed, var.shape(), &Device::Cpu)?)?;
-                let attempt = (|| -> Result<Value> {
-                    let mut expected = all_bits.clone();
+        let mut declared = cell_proposals.clone().unwrap_or_else(|| {
+            selected
+                .iter()
+                .flat_map(|c| {
+                    [-1i8, 1].into_iter().map(|delta| CellProposal {
+                        edits: vec![CellEdit {
+                            coordinate: c.clone(),
+                            delta_q: delta,
+                        }],
+                        witness: Value::Null,
+                        predicted_gain: -c.gradient * f64::from(delta) * 0.25,
+                    })
+                })
+                .collect()
+        });
+        let main_proposal_count = declared.len();
+        let mut proposal_index = 0usize;
+        while proposal_index < declared.len() {
+            let proposal = &declared[proposal_index];
+            let c = &proposal.edits[0].coordinate;
+            let delta = proposal.edits[0].delta_q;
+            deadline(start, a)?;
+            if candidate_count >= if cells { 10 } else { 32 } {
+                return Err(invalid("learner candidate cap exceeded"));
+            }
+            let q = c.original_q + delta;
+            let var = params
+                .get(&c.name)
+                .ok_or_else(|| invalid("learner Var absent"))?;
+            let original = context
+                .get(&c.name)
+                .ok_or_else(|| invalid("learner shadow absent"))?;
+            let mut changed = original.clone();
+            *changed
+                .get_mut(c.index)
+                .ok_or_else(|| invalid("learner index absent"))? = f32::from(q) * 0.25;
+            let candidate_root = root.join(format!("candidate-{:02}", proposals.len()));
+            report_output::claim(&candidate_root)?;
+            var.set(&Tensor::from_vec(changed, var.shape(), &Device::Cpu)?)?;
+            for edit in proposal.edits.iter().skip(1) {
+                let v = params
+                    .get(&edit.coordinate.name)
+                    .ok_or_else(|| invalid("cell paired Var absent"))?;
+                let mut values = context
+                    .get(&edit.coordinate.name)
+                    .ok_or_else(|| invalid("cell paired source absent"))?
+                    .clone();
+                values[edit.coordinate.index] =
+                    f32::from(edit.coordinate.original_q + edit.delta_q) * 0.25;
+                v.set(&Tensor::from_vec(values, v.shape(), &Device::Cpu)?)?;
+            }
+            let attempt = (|| -> Result<Value> {
+                let mut expected = all_bits.clone();
+                *expected
+                    .get_mut(&c.name)
+                    .and_then(|v| v.get_mut(c.index))
+                    .ok_or_else(|| invalid("learner expected bits absent"))? =
+                    (f32::from(q) * 0.25).to_bits();
+                for edit in proposal.edits.iter().skip(1) {
                     *expected
-                        .get_mut(&c.name)
-                        .and_then(|v| v.get_mut(c.index))
-                        .ok_or_else(|| invalid("learner expected bits absent"))? =
-                        (f32::from(q) * 0.25).to_bits();
-                    if parameter_bits(&params)? != expected {
-                        return Err(invalid("learner other source bits changed"));
+                        .get_mut(&edit.coordinate.name)
+                        .and_then(|v| v.get_mut(edit.coordinate.index))
+                        .ok_or_else(|| invalid("cell paired expected absent"))? =
+                        (f32::from(edit.coordinate.original_q + edit.delta_q) * 0.25).to_bits();
+                }
+                if parameter_bits(&params)? != expected {
+                    return Err(invalid("learner other source bits changed"));
+                }
+                let (receipt, loaded) = checkpoint(
+                    &candidate_root.join("checkpoint"),
+                    &source,
+                    &identity,
+                    &bytes,
+                    &episodes,
+                    0,
+                    "native_screened_observation_proposal",
+                )?;
+                let packed = bin_files(&candidate_root.join("checkpoint/realizer-native"))?;
+                if bins.keys().ne(packed.keys())
+                    || bins.iter().any(|(name, sha)| {
+                        name != "consumer/context-q4.bin" && packed.get(name) != Some(sha)
+                    })
+                {
+                    return Err(invalid("learner readout/table/inventory changed"));
+                }
+                let family = c
+                    .name
+                    .strip_prefix("consumer.context.")
+                    .ok_or_else(|| invalid("learner family prefix absent"))?;
+                let mut offset = 0usize;
+                let mut found = false;
+                for name in uor_r4_integer::geometric_context_q4::FAMILY_NAMES {
+                    if name == family {
+                        found = true;
+                        break;
                     }
-                    let (receipt, loaded) = checkpoint(
-                        &candidate_root.join("checkpoint"),
-                        &source,
-                        &identity,
-                        &bytes,
-                        &episodes,
-                        0,
-                        "native_screened_observation_proposal",
-                    )?;
-                    let packed = bin_files(&candidate_root.join("checkpoint/realizer-native"))?;
-                    if bins.keys().ne(packed.keys())
-                        || bins.iter().any(|(name, sha)| {
-                            name != "consumer/context-q4.bin" && packed.get(name) != Some(sha)
-                        })
-                    {
-                        return Err(invalid("learner readout/table/inventory changed"));
-                    }
-                    let family = c
-                        .name
-                        .strip_prefix("consumer.context.")
-                        .ok_or_else(|| invalid("learner family prefix absent"))?;
-                    let mut offset = 0usize;
-                    let mut found = false;
-                    for name in uor_r4_integer::geometric_context_q4::FAMILY_NAMES {
-                        if name == family {
-                            found = true;
-                            break;
-                        }
-                        offset += context
-                            .get(&format!("consumer.context.{name}"))
-                            .map_or(0, Vec::len);
-                    }
-                    if !found {
-                        return Err(invalid("learner packed family absent"));
-                    }
-                    let quantum = quantum_change(
+                    offset += context
+                        .get(&format!("consumer.context.{name}"))
+                        .map_or(0, Vec::len);
+                }
+                if !found {
+                    return Err(invalid("learner packed family absent"));
+                }
+                let candidate_packed = fs::read(
+                    candidate_root.join("checkpoint/realizer-native/consumer/context-q4.bin"),
+                )?;
+                let quantum = if cells {
+                    verify_cell_packed_edits(
                         &packed_before,
-                        &fs::read(
-                            candidate_root
-                                .join("checkpoint/realizer-native/consumer/context-q4.bin"),
-                        )?,
-                        offset + c.index,
-                        delta,
-                    )?;
-                    let frontier = frontier_measure(&positions, &construction, &loaded, start, a)?;
-                    let original_ce = context_direction_measure(&loaded, &episodes, start, a)?;
-                    let construction_ce =
-                        context_direction_measure(&loaded, &construction, start, a)?;
-                    let original_generation = generate(
-                        &format!("learn-{round:02}-candidate-{:02}-original", proposals.len()),
+                        &candidate_packed,
+                        &context,
+                        &proposal.edits,
+                    )?
+                } else {
+                    quantum_change(&packed_before, &candidate_packed, offset + c.index, delta)?
+                };
+                let witness = if cells && proposal_index < main_proposal_count {
+                    Some(verify_cell_witness(
+                        proposal,
                         &loaded,
-                        &episodes,
-                        &tok,
-                        start,
-                        a,
-                    )?;
-                    let construction_generation = generate(
-                        &format!(
-                            "learn-{round:02}-candidate-{:02}-construction",
-                            proposals.len()
-                        ),
-                        &loaded,
+                        &positions,
                         &construction,
-                        &tok,
-                        start,
-                        a,
-                    )?;
-                    let cumulative = packed_byte_changes(
-                        &parent_context,
-                        &fs::read(
-                            candidate_root
-                                .join("checkpoint/realizer-native/consumer/context-q4.bin"),
-                        )?,
-                    )?;
-                    let result = json!({"cumulative_packed_byte_changes_from_parent":cumulative,"coordinate":c,"delta_q":delta,"checkpoint":receipt,"quantum":quantum,"native_payload_sha256":packed,"all_other_source_bits_fixed":true,"readouts_tables_transitions_fixed":true,"frontier":frontier,"delta_round_frozen_ce":frontier["mean_episode_ce"].as_f64().map(|v|v-baseline_ce),"original_canonical":original_ce,"construction_canonical":construction_ce,"original_canonical_comparison":context_direction_comparison(&old_original_ce,&original_ce)?,"construction_canonical_comparison":context_direction_comparison(&old_construction_ce,&construction_ce)?,"original_generation":original_generation,"construction_generation":construction_generation,"original_reply_comparison":generation_comparison(&old_original,&original_generation)?,"construction_reply_comparison":generation_comparison(&old_construction,&construction_generation)?});
-                    write(&candidate_root.join("result.json"), &result)?;
-                    Ok(result)
-                })();
-                var.set(&Tensor::from_vec(
-                    original.clone(),
-                    var.shape(),
+                    )?)
+                } else {
+                    None
+                };
+                let frontier = frontier_measure(&positions, &construction, &loaded, start, a)?;
+                let original_ce = context_direction_measure(&loaded, &episodes, start, a)?;
+                let construction_ce = context_direction_measure(&loaded, &construction, start, a)?;
+                let original_generation = generate(
+                    &format!("learn-{round:02}-candidate-{:02}-original", proposals.len()),
+                    &loaded,
+                    &episodes,
+                    &tok,
+                    start,
+                    a,
+                )?;
+                let construction_generation = generate(
+                    &format!(
+                        "learn-{round:02}-candidate-{:02}-construction",
+                        proposals.len()
+                    ),
+                    &loaded,
+                    &construction,
+                    &tok,
+                    start,
+                    a,
+                )?;
+                let cumulative = packed_byte_changes(
+                    &parent_context,
+                    &fs::read(
+                        candidate_root.join("checkpoint/realizer-native/consumer/context-q4.bin"),
+                    )?,
+                )?;
+                let result = json!({"cumulative_packed_byte_changes_from_parent":cumulative,"coordinate":c,"delta_q":delta,"observable_cell_proposal":if cells{Some(proposal)}else{None},"observable_witness":witness,"ablation_only":cells && proposal_index>=main_proposal_count,"checkpoint":receipt,"quantum":quantum,"native_payload_sha256":packed,"all_other_source_bits_fixed":true,"readouts_tables_transitions_fixed":true,"frontier":frontier,"delta_round_frozen_ce":frontier["mean_episode_ce"].as_f64().map(|v|v-baseline_ce),"original_canonical":original_ce,"construction_canonical":construction_ce,"original_canonical_comparison":context_direction_comparison(&old_original_ce,&original_ce)?,"construction_canonical_comparison":context_direction_comparison(&old_construction_ce,&construction_ce)?,"original_generation":original_generation,"construction_generation":construction_generation,"original_reply_comparison":generation_comparison(&old_original,&original_generation)?,"construction_reply_comparison":generation_comparison(&old_construction,&construction_generation)?});
+                write(&candidate_root.join("result.json"), &result)?;
+                Ok(result)
+            })();
+            var.set(&Tensor::from_vec(
+                original.clone(),
+                var.shape(),
+                &Device::Cpu,
+            )?)?;
+            for edit in proposal.edits.iter().skip(1) {
+                let v = params
+                    .get(&edit.coordinate.name)
+                    .ok_or_else(|| invalid("cell restore Var absent"))?;
+                v.set(&Tensor::from_vec(
+                    context[&edit.coordinate.name].clone(),
+                    v.shape(),
                     &Device::Cpu,
                 )?)?;
-                if parameter_bits(&params)? != all_bits {
-                    return Err(invalid("learner shadow restore differs"));
-                }
-                if let Err(error) = &attempt {
-                    write(
-                        &candidate_root.join("error.json"),
-                        &json!({"error":error.to_string(),"source_restored":true}),
-                    )?;
-                }
-                report_output::seal(&candidate_root)?;
-                report_output::verify(&candidate_root)?;
-                proposals.push(attempt?);
-                candidate_count += 1;
+            }
+            if parameter_bits(&params)? != all_bits {
+                return Err(invalid("learner shadow restore differs"));
+            }
+            if let Err(error) = &attempt {
                 write(
-                    &root.join("proposal-progress.json"),
-                    &json!({"completed_candidates":candidate_count,"round_completed_candidates":proposals.len(),"raw_results":"candidate-NN/result.json"}),
+                    &candidate_root.join("error.json"),
+                    &json!({"error":error.to_string(),"source_restored":true}),
                 )?;
+            }
+            report_output::seal(&candidate_root)?;
+            report_output::verify(&candidate_root)?;
+            proposals.push(attempt?);
+            candidate_count += 1;
+            write(
+                &root.join("proposal-progress.json"),
+                &json!({"completed_candidates":candidate_count,"round_completed_candidates":proposals.len(),"raw_results":"candidate-NN/result.json"}),
+            )?;
+            proposal_index += 1;
+            if cells && proposal_index == main_proposal_count {
+                let scores = proposals
+                    .iter()
+                    .map(|v| v["frontier"]["mean_episode_ce"].as_f64())
+                    .collect::<Vec<_>>();
+                if let Some(best) = best_native_proposal(baseline_ce, &scores) {
+                    if declared[best].edits.len() == 2 {
+                        let pair = declared[best].clone();
+                        for edit in pair.edits {
+                            declared.push(CellProposal{predicted_gain:-edit.coordinate.gradient*f64::from(edit.delta_q)*0.25,edits:vec![edit],witness:json!({"ablation_of_candidate":best,"paired_witness":pair.witness})});
+                        }
+                    }
+                }
             }
         }
         let scores = proposals
             .iter()
+            .take(main_proposal_count)
             .map(|v| v["frontier"]["mean_episode_ce"].as_f64())
             .collect::<Vec<_>>();
         let best = best_native_proposal(baseline_ce, &scores);
@@ -3816,12 +4398,12 @@ fn context_observation_learn(a: &Args) -> Result<()> {
             Ok(json!({"index":index,"result_path":format!("candidate-{index:02}/result.json"),
                 "result_sha256":sha256_file(&root.join(format!("candidate-{index:02}/result.json")))?,
                 "coordinate":result["coordinate"],"delta_q":result["delta_q"],
-                "round_frozen_ce":result["frontier"]["mean_episode_ce"],
+                "ablation_only":result["ablation_only"],"observable_cell_proposal":result["observable_cell_proposal"],"round_frozen_ce":result["frontier"]["mean_episode_ce"],
                 "delta_round_frozen_ce":result["delta_round_frozen_ce"],
                 "original_complete":result["original_generation"]["complete_answers"],
                 "construction_complete":result["construction_generation"]["complete_answers"]}))
         }).collect::<Result<Vec<Value>>>()?;
-        let report = json!({"round":round,"accepted_before_round":accepted,"frontier_sha256":sha256_file(&root.join("frozen-frontier.json"))?,"positions":positions,"baseline_frontier":baseline,"incumbent_original_generation":old_original,"incumbent_construction_generation":old_construction,"incumbent_original_canonical":old_original_ce,"incumbent_construction_canonical":old_construction_ce,"proposals":proposal_summaries,"selected_proposal":best,"acceptance":"strict native CE decrease on same frozen round positions; deterministic first proposal ties; preservation diagnostic only","loss_scope":"iteration-local, not a comparable cross-round curve"});
+        let report = json!({"round":round,"accepted_before_round":accepted,"frontier_sha256":sha256_file(&root.join("frozen-frontier.json"))?,"positions":positions,"baseline_frontier":baseline,"incumbent_original_generation":old_original,"incumbent_construction_generation":old_construction,"incumbent_original_canonical":old_original_ce,"incumbent_construction_canonical":old_construction_ce,"proposals":proposal_summaries,"selected_proposal":best,"main_proposal_count":main_proposal_count,"ablation_count":proposals.len()-main_proposal_count,"acceptance":"strict native CE decrease on same frozen round positions; deterministic first proposal ties; preservation diagnostic only","loss_scope":"iteration-local, not a comparable cross-round curve"});
         write(&root.join("report.json"), &report)?;
         report_output::seal(&root)?;
         report_output::verify(&root)?;
@@ -3836,6 +4418,9 @@ fn context_observation_learn(a: &Args) -> Result<()> {
             source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
             native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
             accepted += 1;
+            if cells {
+                stop = "single_observable_cell_round_completed";
+            }
         } else {
             stop = "no_native_improving_declared_proposal";
             break;
@@ -3866,6 +4451,24 @@ fn context_observation_learn(a: &Args) -> Result<()> {
     {
         return Err(invalid("learner final frozen payload mismatch"));
     }
+    let final_packed = fs::read(
+        a.out
+            .join("final-checkpoint/realizer-native/consumer/context-q4.bin"),
+    )?;
+    let signed = |n: u8| {
+        if n >= 8 {
+            i16::from(n) - 16
+        } else {
+            i16::from(n)
+        }
+    };
+    let accepted_l1_quanta = parent_context
+        .iter()
+        .zip(&final_packed)
+        .map(|(&a, &b)| {
+            (signed(a & 15) - signed(b & 15)).abs() + (signed(a >> 4) - signed(b >> 4)).abs()
+        })
+        .sum::<i16>();
     let final_original = generate("learn-final-original", &loaded, &episodes, &tok, start, a)?;
     let final_construction = generate(
         "learn-final-construction",
@@ -3909,9 +4512,15 @@ fn context_observation_learn(a: &Args) -> Result<()> {
         return Err(invalid("learner parent inputs changed"));
     }
     report_output::verify(input)?;
+    if let Some(inventory) = cell_parent_inventory {
+        if source_files(original_input)? != inventory {
+            return Err(invalid("original0032 inputs changed"));
+        }
+        report_output::verify(original_input)?;
+    }
     write(
         &a.out.join("report.json"),
-        &json!({"schema":"uor-r4.geometric-observation-learning/1","mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"input_files_sha256":input_files,"input_files_unchanged":true,"saved_parent28_rows_exact":true,"optimizer_updates":0,"accepted_quanta":accepted,"native_candidate_evaluations":candidate_count,"maximum_accepted_quanta":8,"maximum_native_candidates":32,"stop_reason":stop,"rounds":rounds,"final_checkpoint":receipt,"final_native_payload_sha256":final_bins,"final_original_generation":final_original,"final_construction_generation":final_construction,"final_original_canonical":context_direction_measure(&loaded,&episodes,start,a)?,"final_construction_canonical":context_direction_measure(&loaded,&construction,start,a)?,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":last_accepted_replies.is_some(),"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"scope":"bounded root/category learning on8 exposed construction plus20 preservation development cases; no heldout/general-chat/geometry-advantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
+        &json!({"schema":if cells{"uor-r4.geometric-observable-cells/1"}else{"uor-r4.geometric-observation-learning/1"},"mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"input_files_sha256":input_files,"input_files_unchanged":true,"saved_parent28_rows_exact":true,"optimizer_updates":0,"accepted_candidates":accepted,"accepted_l1_quanta":accepted_l1_quanta,"original0032_manifest_sha256":sha256_file(&original_input.join("manifest.json"))?,"accepted_quanta":if cells{Value::Null}else{json!(accepted)},"native_candidate_evaluations":candidate_count,"maximum_accepted_candidates":if cells{1}else{8},"maximum_accepted_quanta":if cells{Value::Null}else{json!(8)},"maximum_native_candidates":if cells{10}else{32},"stop_reason":stop,"rounds":rounds,"final_checkpoint":receipt,"final_native_payload_sha256":final_bins,"final_original_generation":final_original,"final_construction_generation":final_construction,"final_original_canonical":context_direction_measure(&loaded,&episodes,start,a)?,"final_construction_canonical":context_direction_measure(&loaded,&construction,start,a)?,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":last_accepted_replies.is_some(),"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"scope":"bounded root/category learning on8 exposed construction plus20 preservation development cases; no heldout/general-chat/geometry-advantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
     )?;
     Ok(())
 }
@@ -4705,6 +5314,134 @@ fn direction(a: &Args) -> Result<()> {
 #[cfg(test)]
 mod direction_tests {
     use super::*;
+    #[test]
+    fn observable_cell_bounded_reservoir_is_exact_deduplicated_rank() {
+        let make = |index: usize, gain: f64, delta: i8, witness: usize| CellProposal {
+            edits: vec![CellEdit {
+                coordinate: DirectionCoordinate {
+                    name: "consumer.context.token_root".to_owned(),
+                    index,
+                    gradient: -1.,
+                    original_shadow: 0.,
+                    original_q: 0,
+                    calibration: false,
+                    eligibility: vec![],
+                },
+                delta_q: delta,
+            }],
+            witness: json!({"event":witness}),
+            predicted_gain: gain,
+        };
+        let incoming = vec![
+            make(0, 1., 1, 4),
+            make(1, 3., 2, 3),
+            make(2, 2., 1, 2),
+            make(3, 1., 1, 1),
+            make(4, 3., 1, 0),
+            make(0, 1., 1, 0),
+        ];
+        let mut bounded = Vec::new();
+        for proposal in &incoming {
+            retain_cell(&mut bounded, proposal.clone());
+        }
+        let mut full = incoming;
+        full.sort_by(cell_order);
+        let mut seen = BTreeSet::new();
+        full.retain(|p| seen.insert(cell_key(p)));
+        full.truncate(4);
+        assert_eq!(
+            serde_json::to_value(bounded).ok(),
+            serde_json::to_value(full).ok()
+        );
+    }
+    #[test]
+    fn observable_cell_first_index_ties_and_all_rivals() -> Result<()> {
+        let unit = 1i64 << 22;
+        assert_eq!(cell_winner(&[unit, unit, unit])?, 0);
+        assert_eq!(cell_crossing(&[0, unit, 2 * unit], 0, 0, 1)?, Some((2, 0)));
+        assert_eq!(cell_crossing(&[2 * unit, unit, 0], 2, 0, 1)?, Some((3, 2)));
+        Ok(())
+    }
+    #[test]
+    fn observable_cell_demotion_and_legal_saturation() -> Result<()> {
+        let unit = 1i64 << 22;
+        assert_eq!(cell_crossing(&[unit, 0, 0], 0, 0, -1)?, Some((-2, 1)));
+        assert_eq!(cell_crossing(&[0, 100 * unit], 0, 0, 1)?, None);
+        assert_eq!(cell_crossing(&[0, unit], 0, 7, 1)?, None);
+        assert_eq!(cell_crossing(&[unit, 0], 0, -7, -1)?, None);
+        assert!(cell_crossing(&[], 0, 0, 1).is_err());
+        Ok(())
+    }
+    #[test]
+    fn observable_cell_quantum_minimum_matches_independent_legal_search() -> Result<()> {
+        let unit = 1i64 << 22;
+        for scores in [
+            vec![0, 0, 0],
+            vec![unit, 2 * unit + 1, -unit],
+            vec![-unit, unit, unit],
+        ] {
+            for class in 0..3 {
+                for q in -7..=7i8 {
+                    for direction in [-1, 1i8] {
+                        let old = cell_winner(&scores)?;
+                        let expected = (-7..=7i8)
+                            .filter(|candidate| (*candidate - q).signum() == direction)
+                            .map(|candidate| candidate - q)
+                            .collect::<Vec<_>>();
+                        let mut expected = expected;
+                        expected.sort_by_key(|delta| delta.abs());
+                        let brute = expected.into_iter().find_map(|delta| {
+                            let mut changed = scores.clone();
+                            changed[class] += i64::from(delta) * unit;
+                            let winner = changed
+                                .iter()
+                                .enumerate()
+                                .max_by(|(i, a), (j, b)| a.cmp(b).then(j.cmp(i)))
+                                .map(|(i, _)| i)?;
+                            (winner != old).then_some((delta, winner))
+                        });
+                        assert_eq!(cell_crossing(&scores, class, q, direction)?, brute);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn observable_cell_exact_two_family_nibbles_and_reserved_minus8() -> Result<()> {
+        let c = |name: &str, index: usize, q: i8| DirectionCoordinate {
+            name: format!("consumer.context.{name}"),
+            index,
+            gradient: -1.,
+            original_shadow: f32::from(q) * 0.25,
+            original_q: q,
+            calibration: false,
+            eligibility: vec![],
+        };
+        let context = BTreeMap::from([
+            ("consumer.context.token_root".to_owned(), vec![0., 0.]),
+            ("consumer.context.token_category".to_owned(), vec![0., 0.]),
+        ]);
+        let edits = vec![
+            CellEdit {
+                coordinate: c("token_root", 1, 0),
+                delta_q: 2,
+            },
+            CellEdit {
+                coordinate: c("token_category", 0, 0),
+                delta_q: 3,
+            },
+        ];
+        assert!(verify_cell_packed_edits(&[0, 0], &[0x20, 0x03], &context, &edits).is_ok());
+        assert!(verify_cell_packed_edits(&[0, 0], &[0x21, 0x03], &context, &edits).is_err());
+        let bad = vec![CellEdit {
+            coordinate: c("token_root", 0, 0),
+            delta_q: -8,
+        }];
+        assert!(verify_cell_packed_edits(&[0, 0], &[8, 0], &context, &bad).is_err());
+        Ok(())
+    }
+
     #[test]
     fn shared_prefix_requires_common_emitted_id_and_later_divergence() {
         assert!(shared_prefix_diverges(&[3, 7, 9], &[3, 7, 10]));

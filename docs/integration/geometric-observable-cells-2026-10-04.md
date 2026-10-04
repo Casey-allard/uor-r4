@@ -1,0 +1,53 @@
+# Observable geometric observation cells — October 4
+
+References #1552 and #1512. [Bound evidence](../evidence/geometric-observable-cells-2026-10-04.json). This executes the successor to [bounded observation learning](geometric-observation-learning-2026-10-04.md). The standalone Rust harness changes offline proposals; no runtime, loss primitive, shared session or default model changes.
+
+## Mechanism and declared scope
+
+Start from the retained two-change learner candidate, retaining original composition0032 and both saved complete-reply baselines. Protocol2, context128, response64, original20/construction8 exposed development cases, transitions/readouts/exp/tokenizer/geometry remain fixed. Basis observation families are frozen and unsearched. Only token-root/category q4 coefficients may change.
+
+Reconstruct authoritative token+self+same-head-next-neighbor integer Q24 score vectors at completed NEW states. Use actual120root/33category choices, excluding padded slots; earliest-index ties match serving. For each signed direction supplied by ordinary biased credit, solve the smallest legal q[-7,7] move crossing the witness's entire argmax cell. Token edits shift scores by delta_q<<22. This is a finite offline arithmetic calculation, not a model-dose sweep; minimality is witness-local, not universal across contexts.
+
+Keep four ranked, deduplicated visible singles and four same-token/lane/event root-plus-presence pairs before native outcomes. Rank by positive predicted signed credit per L1 quantum. Bounded reservoirs equal the exhaustive deduplicated rank; score events and searched counts permit independent reconstruction without materializing redundant proposal JSON. Root-only changes hidden by category0 cannot enter as visible singles. Same-lane pairs can expose such roots; their actual benefit remains an empirical question.
+
+Freeze eight actual incumbent first-error prefixes before credit and proposals; all candidates and controls use those same positions. Completed cases use alias-safe actual pre-EOS anchors. Every export/reload verifies exact packed edits, fixed other payloads and predicted emitted AddressLane against actual native output before full loss/reply screening. Select the lowest strictly improving frozen-frontier CE among the main eight. If its best proposal is paired, evaluate its two individual parts as attribution controls excluded from acceptance. One round, at most10 exports, at most2 coefficient edits per main proposal. Preserve every candidate, full-answer CE, all28 replies and row tradeoffs.
+
+## Executed result and adversarial attribution
+
+Clean executed source `81bb164b5e57b5c727818a286dd2b1add2eca9a8`, example SHA256 `1285256db3f8825b873496755283b7587e6ba6a131f877cc9712d0693f6cf060`, Linux executable SHA256 `6d116a1f28534436f012273b7d408c423c3dac7dcb52dbf0c34c7901ebaaf70a`. All10 exports pass their applicable exact-source checks. All10 preserve20 complete original replies; construction remains0/8. One main candidate is accepted inside the experiment, with3 L1 packed quanta; no model is adopted.
+
+| Candidate | Change relative to two-change parent | Frozen frontier CE | Full construction CE | Attribution |
+|---|---|---:|---:|---|
+| Parent | unchanged | 2.020274595 | 1.353145086 | original20/20, construction0/8 |
+| 0 | category4456 q2→1 | 1.955155234 | 1.347412495 | generated replies unchanged |
+| 1 | category4449 q1→−1 | 1.990593145 | 1.352949332 | generated replies unchanged |
+| 2 | category4421 q1→0 | 1.953926119 | 1.345285211 | generated replies unchanged |
+| 3 | category4379 q1→0 | 2.001357900 | 1.352368767 | generated replies unchanged |
+| 4 | root15825 q3→4 + category4323 q1→0 | 2.031119157 | 1.355421940 | worse frontier; retained |
+| 5 | root15825 q3→4 + category4329 q0→2 | **1.922868087** | 1.354698178 | selected main candidate |
+| 6 | root15825 q3→4 + category4353 q−2→2 | 1.923889753 | **1.335365528** | better full construction loss; retained separately |
+| 7 | root15817 q1→2 + category4329 q0→2 | 1.941312046 | 1.358551286 | retained |
+| 8 control | root15825 q3→4 alone | 2.020274595 | 1.351597473 | frontier plateau |
+| 9 control | category4329 q0→2 alone | **1.895552110** | 1.352831294 | better frontier than pair; excluded acceptance |
+
+Candidate5's witness changes construction05/token16/head0/lane3 from absent to present root105/radius5. On the actual frozen failure, native action mass changes enough to select the correct first token. The generated answer for source `Louston dancer` advances from an empty reply/first divergence0 to `Lon dancon.`/first divergence1. This is an actual generated decision advance; it is not a complete answer. Other failed constructions remain failed; construction01's incorrect continuation also changes. Original complete replies stay20/20, but selected full originalCE0.126473639→0.130023624 and full constructionCE1.353145086→1.354698178 both worsen. Original0032 full constructionCE1.351153139 is also retained as the earlier baseline.
+
+The controls reject a coupled-root advantage for this selected pair. Category-only9 produces the same first-token advance with lower frontierCE than pair5; root-only8 leaves all eight frontier action distributions unchanged. The root can have other later effects, so it is not globally inert. Presence category4329 has positive predicted credit; it was excluded from the four ranked singles by quota/ranking, not by an adverse credit sign. The paired pool admitted it together with a root change that does not help this frontier result. Keep the control as diagnostic evidence, not a retroactively adopted winner. Candidate6 has a better full-answer loss than the selected pair, showing the narrow selection objective's tradeoff; preserve it rather than discarding it based on rank or lack of completion.
+
+## Next causal seam and programme placement
+
+The observable-cell builder resolves a proposal non-observability blocker and yields limited source consumption progress. It does not solve attention. Next inspect the newly reached actual construction05 prefix `[363]`: source emission IDs are `[363,277,353,292,1357,284]`; at step1 the model chooses292/source offset3 instead of277/offset1. The saved selected-candidate masses are2,147,483,648 versus885,171,593. Compare the candidate5/6/category-only traces and earlier parents at this same reached prefix to separate source-key geometry, query/prefix state, Copy scoring and emission. Independent saved-trace diagnosis finds that candidate5 and category-only9 are exactly identical to the retained parent at this newly reached step1. Transition states, source codes and final query code are unchanged; only the earlier query-period observation differs. The scorer consumes source occurrence codes and the FINAL query code, so the token16 observation does not carry its effect beyond the newly emitted363. Target offset1 and wrong offset3 differ in all eight source-code lanes: this is not an erased source distinction. Their summed Copy logits are4,500,274 versus19,369,439 Q24, margin−14,869,165. Stop is strongly negative; aliases do not explain this failure.
+
+The next implementation is a consumer-aware cell learner: restrict observable witnesses to source-key or FINAL query features actually used at the refreshed failure, prospectively admit paired proposals' category components as bounded main choices, and regenerate actual first errors after an accepted native update. This targets the existing consumed-feature ranking failure instead of adding a read controller. The successor is NOT_RUN; no further model compute is implied by the present report.
+
+If that diagnosis supports further observation learning, prospectively admit the useful presence component alongside paired proposals within a declared bounded candidate policy, refresh actual first errors, and retain full-answer/preservation trades. Do not assume pairing is necessary or retroactively change the present selection. If the newly consumed positions collapse distinctions, inspect the retained ordered occurrence/transport operators before adding features or scaling. Basis edits need a concrete unresolved distinction or crossing. Retained dependent-read/query-update mechanisms remain available when reliable initial consumption demonstrates a sequential-query need; no progress cursor, forced presence or recursive-read patch is justified from these first-token failures.
+
+The geometric representation/operator path remains active. General conversation, prose, reasoning, held-out transfer and complete-path energy benefits remain unestablished. The near-term route is reliable source-bound consumption, novel-source/order/repetition transfer, coordinated grounded-session integration, then learned dependent reads and broader language operators. Offline teacher-weight compilation remains a separate retained route; this task does not abandon it or introduce transformer serving.
+
+## Validation, resources and preservation
+
+Independent mathematics/control-flow review approved the exact executed source.23 focused Rust tests pass105.560s; release build passes279.107s; native run exits0 in28.438s supervisor/27.750s driver, max childRSS1,362,907,136B. First compile exits101 in97.094s from an offline Rust ownership error; a one-line clone repair changes no scientific conditions and the failed receipt is retained. No native attempt failed. Linuxx86 CPU,48threads/noGPU; Metal unavailable/not counted. CI queue acknowledgements are not tests.
+
+Independent saved arithmetic reconstructs992 score events,31,416 single and25,621 paired crossing witnesses,17,081/10,594 deduplicated edges and exact top-four ranks; it checks2,136 canonical positions,1,844 generated steps,88 frontier positions,8 credit positions, exact packed/source changes, controls and final independent reload. This review is not another model execution.301 returned files662,534,305B match exact file-set/size/SHA256, with the unique executable, logs, receipts and review scripts retained under `~/uor-r4-local/workspace/research/geometric-observable-cells-20261004`.
+
+Only a fully Git-archive/file-set/SHA-verified reproducible prior pod source cache was removed before admission; all unique earlier models/reports/executables remain. Pod job card is released; owned area8,665,340KiB (~8.26GiB), free14,913,848KiB. Existing supervisor's9GiB stop is stricter than projected9.8GiB, and did not trigger. No laptop modelCPU, research GitHub runner, GPU or new paid compute. One conservative complete120min charge covers preparation/review/repair/tests/build/native/return/docs/protected delivery/cleanup: cumulative1,090,635,028/1,130,000,000ms, ceiling unchanged. Protected merge and source equality are verified separately after review.

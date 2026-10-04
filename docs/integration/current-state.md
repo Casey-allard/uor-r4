@@ -1,6 +1,14 @@
 # Current UOR-R4 research state
 
 
+## Observable geometric cells and presence attribution — October 4
+
+The [offline observable-cell builder](geometric-observable-cells-2026-10-04.md) now executes one bounded round from the retained two-change candidate:4 visible singles+4 same-lane pairs, then2 attribution controls. Exact native emitted witnesses and independent arithmetic pass. Main pair5 accepts3L1quanta and lowers frozen-frontierCE2.020275→1.922868, preserving20original complete replies; construction remains0/8. `Louston dancer` advances from first divergence0/empty reply to divergence1/`Lon dancon.`. This is partial source consumption, not solved attention. Selected full original/constructionCE both worsen; candidate6 has better fullconstructionCE1.335366 and is preserved separately.
+
+Presence-only control9 lowers frontierCE further to1.895552 and makes the same first-token advance; root-only8 plateaus. The pair's coupled advantage is unsupported. Helpful presence4329 was outside top4singles by rank/quota, not adverse credit. Controls stay diagnostic/unadopted, with all10 candidates/parents retained. Saved diagnosis at newly reached prefix[363] finds Copy selects292/sourceoffset3 instead of277/offset1, with exact parent action/state replay: the changed intermediate token16 observation is no longer the consumed finalquery code. Sourceoffsets differ in all8lanes, so no codecollision explains it. Next implement consumer-aware cell learning restricted to consumed source/finalquery features at refreshedactualerrors, prospectively admitting useful presenceparts as mainchoices and regenerating after acceptance. SuccessorNOT_RUN. No unchanged dose, forcedpresence/cursor/session or dependent-read patch; basis search/transfer remainNOT_RUN.
+
+Source81bb164b passes23focusedtests/releasebuild; native28.438s LinuxCPU, maxchildRSS1,362,907,136B. Independent992events/2,136canonical/1,844generated/88frontier/8credit checks and301files662,534,305B return pass. First97.094s ownershipcompile failure retained; one-line repair, no modelnegative. Card released, podowned8,665,340KiB. One complete120min charge gives ledger1,090,635,028/1,130,000,000ms, unchangedceiling. [Evidence](../evidence/geometric-observable-cells-2026-10-04.json). NoGPU/runner/laptopmodelCPU/generalchat/energy claim.
+
 ## Native-screened geometric observation learning — October 4
 
 The [bounded learner](geometric-observation-learning-2026-10-04.md) executes from retainedold32 with transitions/readouts fixed. Three rounds/12native proposals accept2 root/category quanta, lowering round-frozen actual-first-error CE2.084871→2.034711→2.020275. All12 retain20 original complete replies; construction0/8 and accepted generated sequences unchanged. FullconstructionCE1.351153→1.353145 worsens slightly. Final export/reload and independent raw review pass; no artifact adopted. This is local probability learning, not solved source consumption or attention.
