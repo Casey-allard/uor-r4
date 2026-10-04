@@ -707,12 +707,28 @@ struct Settings {
     data_parallel: usize,
 }
 
-/// `device=cpu|metal|cuda` (default cpu); no implicit fallback.
+/// `device=cpu|metal|cuda` (default cpu); no implicit fallback. Also applies
+/// `tf32=true|false` (default false): CUDA f32 matmuls may then use TF32
+/// tensor cores, which round inputs to a 10-bit mantissa. Training only; the
+/// run's report records the setting.
 fn device_arg(args: &Args) -> Result<Device> {
-    match args.optional("device") {
-        None => Ok(Device::Cpu),
-        Some(name) => uor_r4_training::baseline_protocol::device(&name),
-    }
+    let device = match args.optional("device") {
+        None => Device::Cpu,
+        Some(name) => uor_r4_training::baseline_protocol::device(&name)?,
+    };
+    let tf32 = match args.optional("tf32").as_deref() {
+        None | Some("false") => false,
+        Some("true") if device.is_cuda() => true,
+        Some("true") => return Err(invalid("tf32=true needs device=cuda")),
+        Some(other) => return Err(invalid(format!("invalid tf32={other}"))),
+    };
+    candle_core::cuda::set_gemm_reduced_precision_f32(tf32);
+    Ok(device)
+}
+
+/// Whether CUDA f32 matmuls may use TF32 in this process (`tf32=`).
+fn tf32_enabled() -> bool {
+    candle_core::cuda::gemm_reduced_precision_f32()
 }
 
 /// The served representation of `qat=true`.
@@ -2055,6 +2071,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         "tokens_per_second": (progress.step * settings.batch * time) as f64 / progress.train_seconds.max(1e-9),
         "step_seconds": step_timing(&step_seconds),
         "data_parallel": settings.data_parallel,
+        "tf32": tf32_enabled(),
         "threads": std::env::var("RAYON_NUM_THREADS").ok(),
         "curve": progress.curve,
         "final": final_evaluation.record(),
@@ -3621,6 +3638,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "pointer_select",
             "pointer_route",
             "protocol",
+            "tf32",
         ],
     )?;
     // Validate the A1 options before anything is claimed or loaded.
@@ -4161,6 +4179,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     let mut report = json!({
         "schema": "uor-r4.geometric-stack-dialogue-run/1",
         "settings": s.record(),
+        "tf32": tf32_enabled(),
         "config": model.config,
         "parameters": model.parameter_count(),
         "protocol": protocol,
@@ -4944,6 +4963,7 @@ fn main() -> Result<()> {
                     "qat",
                     "transport_snap",
                     "data_parallel",
+                    "tf32",
                 ],
             )?;
             let settings = train_settings(&args)?;
