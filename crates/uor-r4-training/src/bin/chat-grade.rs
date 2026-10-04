@@ -10,6 +10,8 @@
 //!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434]
 //! chat-grade reply out=NEW_REPORT_ROOT model=ROOT/model tokenizer=T.json \
 //!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64]
+//! chat-grade grade-replies out=NEW_REPORT_ROOT replies=REPLIES.json \
+//!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434]
 //! ```
 //!
 //! `extract` decodes a prepared protocol-2 held-out chat split (documents from
@@ -99,7 +101,8 @@ fn run() -> Result<(), Error> {
         Some("extract") => extract(&arguments[1..]),
         Some("grade") => grade(&arguments[1..]),
         Some("reply") => reply(&arguments[1..]),
-        _ => Err("usage: chat-grade extract|grade|reply key=value...".into()),
+        Some("grade-replies") => grade_replies(&arguments[1..]),
+        _ => Err("usage: chat-grade extract|grade|reply|grade-replies key=value...".into()),
     }
 }
 
@@ -594,7 +597,7 @@ fn grade_into(
 ) -> Result<(), Error> {
     let Answered {
         protocol,
-        requests,
+        requests: _,
         model,
         panel,
         generation_seconds,
@@ -605,63 +608,7 @@ fn grade_into(
         version,
         max_new_tokens,
     )?;
-    // Each request's conversation as (user, reply) pairs.
-    let conversations: Vec<Vec<(String, String)>> = panel["rows"]
-        .as_array()
-        .ok_or("panel without rows")?
-        .iter()
-        .map(|row| {
-            row["turns"]
-                .as_array()
-                .map(|turns| {
-                    turns
-                        .iter()
-                        .map(|t| {
-                            (
-                                t["user"].as_str().unwrap_or_default().to_owned(),
-                                t["reply"].as_str().unwrap_or_default().trim().to_owned(),
-                            )
-                        })
-                        .collect()
-                })
-                .unwrap_or_default()
-        })
-        .collect();
-    let (mut actual, mut control) = (Tally::default(), Tally::default());
-    let (mut acceptable_pairs, mut relevant_pairs) = (Paired::default(), Paired::default());
-    let mut per_category: BTreeMap<String, Tally> = BTreeMap::new();
-    let mut graded_rows = Vec::new();
-    let n = conversations.len();
-    for (i, conversation) in conversations.iter().enumerate() {
-        let grades = grader.grade(conversation)?;
-        actual.add(&grades);
-        per_category
-            .entry(requests[i].category.clone())
-            .or_default()
-            .add(&grades);
-        // Control: this reply as the answer to the next request's last turn.
-        let mut swapped = conversations[(i + 1) % n].clone();
-        let reply = conversation
-            .last()
-            .map(|(_, r)| r.clone())
-            .unwrap_or_default();
-        if let Some(last) = swapped.last_mut() {
-            last.1 = reply;
-        }
-        let control_grades = grader.grade(&swapped)?;
-        control.add(&control_grades);
-        acceptable_pairs.add(grades.acceptable(), control_grades.acceptable());
-        relevant_pairs.add(
-            grades.relevant == Some(true),
-            control_grades.relevant == Some(true),
-        );
-        graded_rows.push(json!({
-            "id": requests[i].id, "category": requests[i].category,
-            "conversation": conversation.iter().map(|(u, a)| json!({"user": u, "assistant": a})).collect::<Vec<_>>(),
-            "grades": grades.record(),
-            "control_grades": control_grades.record(),
-        }));
-    }
+    let judged = judge_panel(&panel, grader)?;
     let report = json!({
         "schema": "uor-r4.chat-grade/1",
         "model": model_dir.display().to_string(),
@@ -677,16 +624,12 @@ fn grade_into(
             "role": "offline judge only; it never serves", "temperature": 0, "seed": 1,
             "questions": [FLUENT_QUESTION, RELEVANT_QUESTION],
         },
-        "actual": actual.record(),
-        "control_derangement": control.record(),
-        "paired_against_control": {
-            "acceptable": acceptable_pairs.record(),
-            "relevant": relevant_pairs.record(),
-            "rule": "a chat reading counts only if the actual replies beat the derangement control on the same requests with a two-sided exact McNemar p < 0.05",
-        },
-        "control_rule": "each reply graded as the answer to the next request's last turn; relevance must fall for the grader to be measuring relevance",
-        "per_category": per_category.iter().map(|(k, t)| (k.clone(), t.record())).collect::<BTreeMap<_, _>>(),
-        "rows": graded_rows,
+        "actual": judged["actual"],
+        "control_derangement": judged["control_derangement"],
+        "paired_against_control": judged["paired_against_control"],
+        "control_rule": judged["control_rule"],
+        "per_category": judged["per_category"],
+        "rows": judged["rows"],
         "generation_seconds": generation_seconds,
         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
         "wall_seconds": started.elapsed().as_secs_f64(),
@@ -697,6 +640,174 @@ fn grade_into(
         report["actual"], report["control_derangement"]
     );
     Ok(())
+}
+
+/// Each panel row's id, category and conversation as (user, reply) pairs,
+/// from a `reply_panel` record (`rows[].turns[].{user, reply}`).
+fn panel_conversations(
+    panel: &Value,
+) -> Result<Vec<(String, String, Vec<(String, String)>)>, Error> {
+    let rows = panel["rows"].as_array().ok_or("panel without rows")?;
+    rows.iter()
+        .map(|row| {
+            let field = |key: &str| -> Result<String, Error> {
+                Ok(row[key]
+                    .as_str()
+                    .ok_or_else(|| format!("a panel row without {key}"))?
+                    .to_owned())
+            };
+            let turns = row["turns"]
+                .as_array()
+                .ok_or("a panel row without turns")?
+                .iter()
+                .map(|t| -> Result<(String, String), Error> {
+                    Ok((
+                        t["user"].as_str().ok_or("a turn without user")?.to_owned(),
+                        t["reply"]
+                            .as_str()
+                            .ok_or("a turn without reply")?
+                            .trim()
+                            .to_owned(),
+                    ))
+                })
+                .collect::<Result<Vec<_>, Error>>()?;
+            if turns.is_empty() {
+                return Err("a panel row with no turns".into());
+            }
+            Ok((field("id")?, field("category")?, turns))
+        })
+        .collect()
+}
+
+/// Grade every conversation of a `reply_panel` record and its derangement
+/// control (each reply graded as the answer to the next request's last
+/// turn), with the paired exact McNemar of actual against control. Returns
+/// the report fields `actual`, `control_derangement`,
+/// `paired_against_control`, `control_rule`, `per_category` and `rows`.
+fn judge_panel(panel: &Value, grader: &Grader) -> Result<Value, Error> {
+    let conversations = panel_conversations(panel)?;
+    let (mut actual, mut control) = (Tally::default(), Tally::default());
+    let (mut acceptable_pairs, mut relevant_pairs) = (Paired::default(), Paired::default());
+    let mut per_category: BTreeMap<String, Tally> = BTreeMap::new();
+    let mut graded_rows = Vec::new();
+    let n = conversations.len();
+    for (i, (id, category, conversation)) in conversations.iter().enumerate() {
+        let grades = grader.grade(conversation)?;
+        actual.add(&grades);
+        per_category
+            .entry(category.clone())
+            .or_default()
+            .add(&grades);
+        let mut swapped = conversations[(i + 1) % n].2.clone();
+        let reply = conversation
+            .last()
+            .map(|(_, r)| r.clone())
+            .unwrap_or_default();
+        if let Some(last) = swapped.last_mut() {
+            last.1 = reply;
+        }
+        let control_grades = grader.grade(&swapped)?;
+        control.add(&control_grades);
+        acceptable_pairs.add(grades.acceptable(), control_grades.acceptable());
+        relevant_pairs.add(
+            grades.relevant == Some(true),
+            control_grades.relevant == Some(true),
+        );
+        graded_rows.push(json!({
+            "id": id, "category": category,
+            "conversation": conversation.iter().map(|(u, a)| json!({"user": u, "assistant": a})).collect::<Vec<_>>(),
+            "grades": grades.record(),
+            "control_grades": control_grades.record(),
+        }));
+    }
+    Ok(json!({
+        "actual": actual.record(),
+        "control_derangement": control.record(),
+        "paired_against_control": {
+            "acceptable": acceptable_pairs.record(),
+            "relevant": relevant_pairs.record(),
+            "rule": "a chat reading counts only if the actual replies beat the derangement control on the same requests with a two-sided exact McNemar p < 0.05",
+        },
+        "control_rule": "each reply graded as the answer to the next request's last turn; relevance must fall for the grader to be measuring relevance",
+        "per_category": per_category.iter().map(|(k, t)| (k.clone(), t.record())).collect::<BTreeMap<_, _>>(),
+        "rows": graded_rows,
+    }))
+}
+
+/// `grade-replies`: grade replies another tool already produced -- a
+/// `chat-grade reply` `replies.json` (`panel`) or a `geometric-stack lut-chat`
+/// `chat.json` (`record`, an integer engine's replies) -- with the same
+/// grader, derangement control and paired test as `grade`, so a served
+/// integer artifact and its float model are judged identically.
+fn grade_replies(arguments: &[String]) -> Result<(), Error> {
+    let started = Instant::now();
+    let args = Args::parse(arguments, &["out", "replies", "grader", "ollama_url"])?;
+    let out = PathBuf::from(args.required("out")?);
+    let replies_path = PathBuf::from(args.required("replies")?);
+    let grader = Grader {
+        url: args
+            .0
+            .get("ollama_url")
+            .cloned()
+            .unwrap_or_else(|| "http://127.0.0.1:11434".into()),
+        model: args
+            .0
+            .get("grader")
+            .cloned()
+            .unwrap_or_else(|| "qwen2.5:1.5b".into()),
+    };
+    let bytes = fs::read(&replies_path)?;
+    let source: Value = serde_json::from_slice(&bytes)?;
+    let panel = if source.get("panel").is_some() {
+        &source["panel"]
+    } else if source.get("record").is_some() {
+        &source["record"]
+    } else {
+        return Err("replies must hold a reply_panel record under `panel` or `record`".into());
+    };
+    report_output::claim(&out)?;
+    let result = (|| -> Result<(), Error> {
+        let judged = judge_panel(panel, &grader)?;
+        let report = json!({
+            "schema": "uor-r4.chat-grade/1",
+            "replies": {
+                "path": replies_path.display().to_string(),
+                "sha256": uor_r4_training::sha256_bytes(&bytes),
+                "schema": source["schema"],
+                "model": source.get("model").or_else(|| source.get("artifact")).cloned(),
+                "engine": source.get("engine").cloned(),
+            },
+            "decoding": "as recorded in the replies file",
+            "grader": {
+                "engine": "ollama (local)", "model": grader.model, "digest": grader.digest()?,
+                "role": "offline judge only; it never serves", "temperature": 0, "seed": 1,
+                "questions": [FLUENT_QUESTION, RELEVANT_QUESTION],
+            },
+            "actual": judged["actual"],
+            "control_derangement": judged["control_derangement"],
+            "paired_against_control": judged["paired_against_control"],
+            "control_rule": judged["control_rule"],
+            "per_category": judged["per_category"],
+            "rows": judged["rows"],
+            "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+            "wall_seconds": started.elapsed().as_secs_f64(),
+        });
+        fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
+        println!(
+            "actual {} | control {}",
+            report["actual"], report["control_derangement"]
+        );
+        Ok(())
+    })();
+    if let Err(error) = &result {
+        fs::write(
+            out.join("error.json"),
+            serde_json::to_vec_pretty(&json!({"error": error.to_string()}))?,
+        )?;
+    }
+    report_output::seal(&out)?;
+    report_output::verify(&out)?;
+    result
 }
 
 #[cfg(test)]
