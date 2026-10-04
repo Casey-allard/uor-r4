@@ -273,6 +273,7 @@ fn shapes_whose_read_caches_exceed_the_bound_are_rejected_before_allocation() {
         read: read.to_owned(),
         rotation: false,
         context: 1 << 16,
+        pointer: None,
     };
     // Dot reads cache an i32 key and value row per position: 2^28 bytes per
     // layer at this width and context, so sixteen layers reach the bound.
@@ -363,6 +364,7 @@ fn the_l2_read_serves_its_scale_and_offset_without_lifts_or_arcosh() {
         read: read.to_owned(),
         rotation: false,
         context: 1 << 16,
+        pointer: None,
     };
     assert_eq!(
         shape("l2").read_cache_bytes(),

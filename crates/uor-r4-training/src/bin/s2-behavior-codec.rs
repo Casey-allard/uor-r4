@@ -18,7 +18,7 @@ use candle_core::{Device, Tensor};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use uor_r4_core::report_output;
-use uor_r4_integer::stack::IntegerStackModel;
+use uor_r4_integer::stack::{stack_argmax, IntegerStackModel};
 use uor_r4_lut::format::{StackArtifact, StackArtifactBuilder, TableKind, TableValues};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::dialogue_development;
@@ -50,27 +50,24 @@ fn integer_reply(
     eos: u32,
 ) -> Result<Reply> {
     let mut session = model.session();
-    let mut last_logits = None;
+    let mut stepped = false;
     for &tok in history {
-        last_logits = Some(session.step(tok).map_err(|e| invalid(e.to_string()))?);
+        session.step(tok).map_err(|e| invalid(e.to_string()))?;
+        stepped = true;
     }
     let mut ids = Vec::with_capacity(cap);
     for _ in 0..cap {
-        let logits = last_logits.ok_or_else(|| invalid("no logits produced"))?;
-        let mut best_idx = 0;
-        let mut best_val = logits[0];
-        for (i, &v) in logits.iter().enumerate() {
-            if v > best_val {
-                best_val = v;
-                best_idx = i;
-            }
+        if !stepped {
+            return Err(invalid("no logits produced"));
         }
-        let next = best_idx as u32;
+        // Greedy over the served distribution: a pointer model's mixture,
+        // otherwise the logits (first maximum on ties).
+        let next = stack_argmax(session.next_token_scores()) as u32;
         ids.push(next);
         if let Some(reply) = Reply::stop(&ids, eos) {
             return Ok(reply);
         }
-        last_logits = Some(session.step(next).map_err(|e| invalid(e.to_string()))?);
+        session.step(next).map_err(|e| invalid(e.to_string()))?;
     }
     Ok(Reply {
         ids,

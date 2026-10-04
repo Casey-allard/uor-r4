@@ -1,8 +1,9 @@
 //! Oracle tests of the multiplier-free (D11) stack engine,
 //! `uor_r4_integer::stack`, against the frozen D10 comparator,
 //! `uor_r4_lut::stack`, on artifacts written by `stack_export::export_stack`:
-//! the two engines must return identical logits at every position, and the
-//! D11 loader must reject malformed containers without panicking.
+//! the two engines must return identical logits (and, for a pointer-copy
+//! head, identical Q30 mixtures) at every position, and the D11 loader must
+//! reject malformed containers without panicking.
 //!
 //! Run in release (`cargo test -p uor-r4-training --release --test
 //! stack_d11_oracle`): the D10 engine's plain integer operators wrap there, as
@@ -14,7 +15,9 @@ use serde_json::{json, Value};
 use uor_r4_integer::stack::{IntegerStackModel, StackError};
 use uor_r4_lut::format::StackArtifact;
 use uor_r4_lut::stack::StackModel as D10Model;
-use uor_r4_training::geometric_stack::{ReadScore, StackArch, StackConfig, StackModel};
+use uor_r4_training::geometric_stack::{
+    PointerConfig, ReadScore, StackArch, StackConfig, StackModel,
+};
 use uor_r4_training::stack_export::{export_stack, StackCalibration};
 
 /// A small geometric stack of the given pattern, read and transport.
@@ -29,6 +32,24 @@ fn small(
     context: usize,
     seed: u64,
 ) -> StackModel {
+    small_with(
+        pattern, read, rotation, width, heads, mlp, context, seed, None,
+    )
+}
+
+/// [`small`] with an optional pointer-copy head.
+#[allow(clippy::too_many_arguments)]
+fn small_with(
+    pattern: &str,
+    read: ReadScore,
+    rotation: bool,
+    width: usize,
+    heads: usize,
+    mlp: usize,
+    context: usize,
+    seed: u64,
+    pointer: Option<PointerConfig>,
+) -> StackModel {
     let mut config = StackConfig::transformer_control(seed);
     config.arch = StackArch::Geometric;
     config.vocab_size = 96;
@@ -39,6 +60,7 @@ fn small(
     config.pattern = pattern.to_owned();
     config.read = read;
     config.rotation = rotation;
+    config.pointer = pointer;
     StackModel::new(config, &Device::Cpu).expect("small stack")
 }
 
@@ -116,7 +138,8 @@ fn engines(bytes: &[u8]) -> (D10Model, IntegerStackModel) {
 }
 
 /// Step both engines over every sequence (a fresh stream each, through
-/// `reset`) and require identical logits at every position. Returns the
+/// `reset`) and require identical logits, and identical pointer mixtures
+/// where the artifact has a pointer head, at every position. Returns the
 /// number of positions compared.
 fn compare(label: &str, d10: &D10Model, d11: &IntegerStackModel, sequences: &[Vec<u32>]) -> usize {
     let mut s10 = d10.session();
@@ -135,6 +158,36 @@ fn compare(label: &str, d10: &D10Model, d11: &IntegerStackModel, sequences: &[Ve
                     first.map(|i| got[i]),
                     first.map(|i| want[i])
                 );
+            }
+            let (got, want) = (s11.mixture(), s10.mixture());
+            assert_eq!(
+                got.is_some(),
+                want.is_some(),
+                "{label}: pointer heads differ"
+            );
+            if let (Some(got), Some(want)) = (got, want) {
+                if got != want {
+                    let first = got.iter().zip(want).position(|(a, b)| a != b);
+                    panic!(
+                        "{label}: sequence {n} position {t}: mixtures differ first at {first:?} ({:?} vs {:?})",
+                        first.map(|i| got[i]),
+                        first.map(|i| want[i])
+                    );
+                }
+                // A distribution: Q30 values that sum to 1 within the
+                // per-id rounding (half a quantum each) and the reciprocals.
+                let total: i64 = got.iter().map(|&v| i64::from(v)).sum();
+                assert!(
+                    got.iter().all(|&v| v >= 0),
+                    "{label}: a negative probability"
+                );
+                assert!(
+                    (total - (1 << 30)).abs() <= got.len() as i64 + (1 << 12),
+                    "{label}: the mixture sums to {total}"
+                );
+                assert_eq!(s11.next_token_scores(), got);
+            } else {
+                assert_eq!(s11.next_token_scores(), s11.logits());
             }
             positions += 1;
         }
@@ -344,6 +397,279 @@ fn sessions_refuse_bad_tokens_and_full_contexts() {
     for (&id, want) in ids.iter().zip(&first) {
         assert_eq!(s11.step(id).expect("D11 step after reset"), want.as_slice());
     }
+}
+
+// ---------------------------------------------------------------------------
+// The pointer-copy head.
+
+/// A perturbed stack with a pointer head of width `dim` and the given score,
+/// its pointer maps amplified by `loud` so that the copy attention and the
+/// gate are far from uniform, and its artifact.
+#[allow(clippy::too_many_arguments)]
+fn pointer_artifact(
+    pattern: &str,
+    read: ReadScore,
+    score: ReadScore,
+    dim: usize,
+    context: usize,
+    loud: f32,
+    seed: u64,
+) -> (StackModel, Vec<u8>) {
+    let pointer = PointerConfig {
+        score,
+        ..PointerConfig::new(dim)
+    };
+    let model = small_with(pattern, read, true, 64, 2, 40, context, seed, Some(pointer));
+    perturb(
+        &model,
+        seed + 100,
+        &[
+            ("pointer.query.weight", loud),
+            ("pointer.key.weight", loud),
+            ("pointer.gate.weight", loud),
+        ],
+    );
+    let (bytes, _) =
+        export_stack(&model, json!({"test": "d11-pointer"}), None, None).expect("pointer export");
+    (model, bytes)
+}
+
+#[test]
+fn d11_mixtures_equal_d10_mixtures_on_random_pointer_stacks() {
+    let mut positions = 0;
+    for (pattern, read, score, dim, loud) in [
+        ("rarr", ReadScore::Dot, ReadScore::Dot, 8, 1.0f32),
+        ("rarr", ReadScore::Lorentz, ReadScore::Dot, 32, 4.0),
+        ("ra", ReadScore::Dot, ReadScore::Lorentz, 8, 4.0),
+        ("rarr", ReadScore::L2, ReadScore::Lorentz, 16, 1.0),
+        ("aa", ReadScore::Lorentz, ReadScore::Lorentz, 4, 16.0),
+        ("r", ReadScore::Dot, ReadScore::Dot, 1, 64.0),
+    ] {
+        let (_, bytes) = pointer_artifact(pattern, read, score, dim, 24, loud, 31);
+        let (d10, d11) = engines(&bytes);
+        let shape = d11.pointer().expect("a pointer head");
+        assert_eq!(shape.dim, dim);
+        assert_eq!(shape.lorentz(), score == ReadScore::Lorentz);
+        // The pointer maps are read once per token.
+        let plain = small(pattern, read, true, 64, 2, 40, 24, 31);
+        let (plain_bytes, _) = export_stack(&plain, json!({}), None, None).expect("export");
+        let plain = IntegerStackModel::parse(&plain_bytes).expect("plain");
+        assert_eq!(
+            d11.weights_per_token(),
+            plain.weights_per_token() + ((2 * dim + 1) * 64) as u64
+        );
+        let label = format!("pointer {pattern} {read:?} {score:?} dim {dim} x{loud}");
+        positions += compare(&label, &d10, &d11, &sequences(24, 41));
+    }
+    eprintln!("compared {positions} pointer positions");
+}
+
+/// Pointer queries and keys near the `i32` limit (scores far past the exp
+/// table's range, so the copy attention is one-hot) and a saturated gate.
+#[test]
+fn d11_mixtures_equal_d10_mixtures_on_amplified_pointers() {
+    let mut positions = 0;
+    for (score, loud) in [
+        (ReadScore::Dot, 4096.0f32),
+        (ReadScore::Dot, 65536.0),
+        (ReadScore::Lorentz, 4096.0),
+        (ReadScore::Lorentz, 65536.0),
+    ] {
+        let (_, bytes) = pointer_artifact("rarr", ReadScore::Dot, score, 16, 24, loud, 7);
+        let (d10, d11) = engines(&bytes);
+        positions += compare(
+            &format!("amplified pointer {score:?} x{loud}"),
+            &d10,
+            &d11,
+            &sequences(24, 3),
+        );
+    }
+    eprintln!("compared {positions} amplified pointer positions");
+}
+
+/// A pointer session snapshot restores bit-identically (keys, lifts and the
+/// pending mixture), and a plain model's snapshot carries no pointer state.
+#[test]
+fn a_pointer_session_restores_bit_identically() {
+    for score in [ReadScore::Dot, ReadScore::Lorentz] {
+        let (_, bytes) = pointer_artifact("rarr", ReadScore::Dot, score, 8, 16, 4.0, 13);
+        let d11 = IntegerStackModel::parse(&bytes).expect("D11 model");
+        let ids = tokens(16, 96, 2);
+        let mut straight = d11.session();
+        let mut want = Vec::new();
+        for &id in &ids {
+            straight.step(id).expect("step");
+            want.push(straight.next_token_scores().to_vec());
+        }
+        let mut first = d11.session();
+        for &id in &ids[..7] {
+            first.step(id).expect("step");
+        }
+        let saved = first.save_state();
+        assert_eq!(saved.pointer_keys.len(), 7 * 8);
+        assert_eq!(saved.mixture.len(), 96);
+        assert_eq!(
+            saved.pointer_lifts.len(),
+            if score == ReadScore::Lorentz { 7 } else { 0 }
+        );
+        let mut resumed = d11.session();
+        resumed.restore_state(&saved).expect("restore");
+        assert_eq!(resumed.next_token_scores(), want[6].as_slice());
+        for (t, &id) in ids.iter().enumerate().skip(7) {
+            resumed.step(id).expect("step");
+            assert_eq!(
+                resumed.next_token_scores(),
+                want[t].as_slice(),
+                "{score:?} {t}"
+            );
+        }
+        // A snapshot with the wrong number of pointer keys is refused.
+        let mut broken = saved.clone();
+        broken.pointer_keys.pop();
+        assert!(d11.session().restore_state(&broken).is_err());
+        let mut broken = saved.clone();
+        broken.mixture.clear();
+        assert!(d11.session().restore_state(&broken).is_err());
+    }
+    let plain = small("rarr", ReadScore::Dot, true, 64, 2, 40, 8, 4);
+    let (bytes, _) = export_stack(&plain, json!({}), None, None).expect("export");
+    let d11 = IntegerStackModel::parse(&bytes).expect("D11 model");
+    let mut session = d11.session();
+    session.step(3).expect("step");
+    let mut saved = session.save_state();
+    assert!(saved.pointer_keys.is_empty() && saved.mixture.is_empty());
+    saved.mixture = vec![0; 96];
+    assert!(d11.session().restore_state(&saved).is_err());
+}
+
+/// A pointer artifact without one of its maps or tables, with an invalid
+/// width, score or scale, or a Lorentz pointer without the arcosh table, is
+/// refused by both engines; a plain artifact's shape has no `pointer` key.
+#[test]
+fn pointer_artifacts_require_their_maps_and_tables_in_both_engines() {
+    let d10_accepts = |bytes: &[u8]| {
+        StackArtifact::parse(bytes.to_vec())
+            .and_then(D10Model::from_artifact)
+            .is_ok()
+    };
+    let (_, dot) = pointer_artifact("rarr", ReadScore::Dot, ReadScore::Dot, 8, 12, 1.0, 5);
+    let (_, lorentz) = pointer_artifact("rarr", ReadScore::Dot, ReadScore::Lorentz, 8, 12, 1.0, 5);
+    let (header, _) = split(&dot);
+    assert_eq!(header["shape"]["pointer"]["dim"], 8);
+    assert_eq!(header["shape"]["pointer"]["score"], "dot");
+    assert_eq!(
+        header["shape"]["pointer"]["score_scale_q30"],
+        (2f64.powi(30) / 8f64.sqrt()).round() as i64
+    );
+    // A Dot read with a Dot pointer has no arcosh table; a Lorentz pointer
+    // brings it.
+    let has_table = |header: &Value, name: &str| {
+        header["tables"]
+            .as_array()
+            .expect("tables")
+            .iter()
+            .any(|t| t["name"] == name)
+    };
+    assert!(!has_table(&header, "arcosh") && !has_table(&header, "pointer_beta"));
+    let (lorentz_header, _) = split(&lorentz);
+    assert!(has_table(&lorentz_header, "arcosh") && has_table(&lorentz_header, "pointer_beta"));
+    let plain = small("rarr", ReadScore::Dot, true, 64, 2, 40, 12, 5);
+    let (plain_bytes, _) = export_stack(&plain, json!({}), None, None).expect("export");
+    assert!(split(&plain_bytes).0["shape"].get("pointer").is_none());
+    let rename = |bytes: &[u8], list: &'static str, name: &'static str| {
+        with_header(bytes, move |h| {
+            entry(h, list, name)["name"] = json!(format!("{name}.gone"));
+        })
+    };
+    let cases: Vec<(&str, Vec<u8>)> = vec![
+        ("no query", rename(&dot, "matrices", "pointer_query")),
+        ("no key", rename(&dot, "matrices", "pointer_key")),
+        ("no gate", rename(&dot, "matrices", "pointer_gate")),
+        ("no gate bias", rename(&dot, "tables", "pointer_gate_bias")),
+        ("no beta", rename(&lorentz, "tables", "pointer_beta")),
+        ("no arcosh", rename(&lorentz, "tables", "arcosh")),
+        (
+            "dot relabelled lorentz",
+            with_header(&dot, |h| h["shape"]["pointer"]["score"] = json!("lorentz")),
+        ),
+        (
+            "an l2 pointer",
+            with_header(&dot, |h| h["shape"]["pointer"]["score"] = json!("l2")),
+        ),
+        (
+            "a wider pointer",
+            with_header(&dot, |h| h["shape"]["pointer"]["dim"] = json!(9)),
+        ),
+        (
+            "a zero-width pointer",
+            with_header(&dot, |h| h["shape"]["pointer"]["dim"] = json!(0)),
+        ),
+        (
+            "a pointer over 256",
+            with_header(&dot, |h| h["shape"]["pointer"]["dim"] = json!(257)),
+        ),
+        (
+            "a zero scale",
+            with_header(&dot, |h| {
+                h["shape"]["pointer"]["score_scale_q30"] = json!(0)
+            }),
+        ),
+        (
+            "a missing width",
+            with_header(&dot, |h| {
+                h["shape"]["pointer"]
+                    .as_object_mut()
+                    .expect("pointer")
+                    .remove("dim");
+            }),
+        ),
+        (
+            "a non-positive beta",
+            with_table_value(&lorentz, "pointer_beta", 0, &(-1100i16).to_le_bytes()),
+        ),
+    ];
+    for (label, bytes) in &cases {
+        let result = IntegerStackModel::parse(bytes);
+        assert!(result.is_err(), "D11 accepted {label}");
+        assert!(!d10_accepts(bytes), "D10 accepted {label}");
+        eprintln!(
+            "{label}: {}",
+            result.err().map(|e| e.to_string()).unwrap_or_default()
+        );
+    }
+    // The pointer schema is bound to the pointer record in both engines: a
+    // pointer artifact relabelled with the plain schema (what an engine built
+    // before the pointer port would read as a plain model) is refused, and so
+    // is a pointer schema without its record.
+    assert_eq!(split(&dot).0["schema"], "uor-r4.lut-stack/2");
+    assert_eq!(split(&plain_bytes).0["schema"], "uor-r4.lut-stack/1");
+    for (label, bytes) in [
+        (
+            "a pointer artifact under the plain schema",
+            with_header(&dot, |h| h["schema"] = json!("uor-r4.lut-stack/1")),
+        ),
+        (
+            "the pointer schema without its record",
+            with_header(&dot, |h| {
+                h["shape"].as_object_mut().expect("shape").remove("pointer");
+            }),
+        ),
+    ] {
+        assert!(
+            IntegerStackModel::parse(&bytes).is_err(),
+            "D11 accepted {label}"
+        );
+        assert!(!d10_accepts(&bytes), "D10 accepted {label}");
+    }
+    // Removing the pointer record and relabelling the plain schema serves the
+    // plain model in both engines alike (its maps are then unused sections).
+    let without = with_header(&dot, |h| {
+        h["shape"].as_object_mut().expect("shape").remove("pointer");
+        h["schema"] = json!("uor-r4.lut-stack/1");
+    });
+    let (d10, d11) = engines(&without);
+    assert!(d11.pointer().is_none() && d10.pointer().is_none());
+    compare("pointer record removed", &d10, &d11, &sequences(12, 8));
 }
 
 // ---------------------------------------------------------------------------

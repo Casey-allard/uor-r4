@@ -26,6 +26,10 @@ use super::StackError;
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
 /// Header schema of a geometric-stack artifact.
 pub const STACK_SCHEMA: &str = "uor-r4.lut-stack/1";
+/// Header schema of a stack with a pointer-copy head (`uor-r4-lut`'s
+/// `STACK_POINTER_SCHEMA`): an engine built before the pointer port refuses it
+/// instead of ignoring the head and serving the plain distribution.
+pub const STACK_POINTER_SCHEMA: &str = "uor-r4.lut-stack/2";
 /// Weights per scale group along a matrix row.
 pub const GROUP: usize = 32;
 /// Alignment of the data start and of every section.
@@ -61,6 +65,32 @@ pub struct StackShape {
     pub rotation: bool,
     /// Positions a session serves: the length of each read's age table.
     pub context: usize,
+    /// The pointer-copy head after the final norm; absent on a model without
+    /// one.
+    #[serde(default)]
+    pub pointer: Option<StackPointer>,
+}
+
+/// The largest pointer query and key width (the read's head-width limit).
+pub const MAX_POINTER_DIM: usize = 256;
+
+/// The pointer-copy head (`pointer` in the shape): a query and key of width
+/// `dim` and a gate logit read from the final normalized state, whose served
+/// distribution is the mixture of the generated and copy distributions (see
+/// the module documentation of [`super::session`]).
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
+pub struct StackPointer {
+    pub dim: usize,
+    /// `dot` or `lorentz`.
+    pub score: String,
+    /// `1 / sqrt(dim)` in Q30 (the Dot score; recorded for both scores).
+    pub score_scale_q30: i64,
+}
+
+impl StackPointer {
+    pub fn lorentz(&self) -> bool {
+        self.score == "lorentz"
+    }
 }
 
 impl StackShape {
@@ -69,8 +99,15 @@ impl StackShape {
     /// that no accepted shape makes a session allocation abort.
     pub fn validate(&self) -> Result<(), StackError> {
         let dims = [self.vocab, self.width, self.heads, self.mlp, self.context];
+        let pointer_valid = self.pointer.as_ref().is_none_or(|p| {
+            (1..=MAX_POINTER_DIM).contains(&p.dim)
+                && matches!(p.score.as_str(), "dot" | "lorentz")
+                && (1..=1i64 << 31).contains(&p.score_scale_q30)
+        });
         let reason = if dims.contains(&0) {
             Some("a dimension is zero")
+        } else if !pointer_valid {
+            Some("the pointer head's width, score or scale is unsupported")
         } else if self.pattern.is_empty() || self.pattern.len() > MAX_LAYERS {
             Some("the layer pattern is empty or longer than 256 layers")
         } else if self.pattern.bytes().any(|c| c != b'r' && c != b'a') {
@@ -113,7 +150,9 @@ impl StackShape {
     /// Bytes of the caches a session allocates for its whole context over all
     /// read layers: an `i32` key and value row of the width per position, and
     /// for the Lorentz read a `u64` lift per head (the L2 read, like Dot, has
-    /// no lifts). `None` on overflow.
+    /// no lifts); a pointer head adds an `i32` key row of its width, its
+    /// input token and, for Lorentz, a `u64` lift per position. `None` on
+    /// overflow.
     pub fn read_cache_bytes(&self) -> Option<u64> {
         let reads = self.pattern.bytes().filter(|&c| c == b'a').count() as u64;
         let lifts = if self.lorentz() { self.heads as u64 } else { 0 };
@@ -121,9 +160,17 @@ impl StackShape {
             .checked_mul(2)?
             .checked_add(lifts.checked_mul(2)?)?
             .checked_mul(4)?;
+        let pointer_per_position = match &self.pointer {
+            Some(p) => (p.dim as u64)
+                .checked_add(1)?
+                .checked_add(if p.lorentz() { 2 } else { 0 })?
+                .checked_mul(4)?,
+            None => 0,
+        };
         reads
             .checked_mul(self.context as u64)?
-            .checked_mul(per_position)
+            .checked_mul(per_position)?
+            .checked_add((self.context as u64).checked_mul(pointer_per_position)?)
     }
 
     /// Quaternion lanes of a recurrence (`width / 4`).
@@ -142,6 +189,12 @@ impl StackShape {
 
     pub fn lorentz(&self) -> bool {
         self.read == "lorentz"
+    }
+
+    /// Whether the artifact carries the arcosh table: a Lorentz read or a
+    /// Lorentz pointer.
+    pub fn needs_arcosh(&self) -> bool {
+        self.lorentz() || self.pointer.as_ref().is_some_and(StackPointer::lorentz)
     }
 
     /// The flat L2 read: `-beta (|q - k| - offset)`.
@@ -306,7 +359,12 @@ impl<'a> Container<'a> {
             })?;
         let header: Header =
             serde_json::from_slice(&bytes[16..header_end]).map_err(StackError::Header)?;
-        if header.schema != STACK_SCHEMA {
+        let expected = if header.shape.pointer.is_some() {
+            STACK_POINTER_SCHEMA
+        } else {
+            STACK_SCHEMA
+        };
+        if header.schema != expected {
             return Err(StackError::Schema(header.schema));
         }
         if header.group != GROUP {

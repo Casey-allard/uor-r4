@@ -658,6 +658,7 @@ STACK_MANDATORY_SYMBOLS = [
     _stack_kernel("stack_recurrence", "session", "Quaternion transport recurrence mixer"),
     _stack_kernel("stack_rotation", "session", "Unit rotation quaternion by long division"),
     _stack_kernel("stack_read", "session", "Dot/Lorentz/L2 read mixer with NoRead softmax"),
+    _stack_kernel("stack_pointer", "session", "Pointer-copy head: scores, copy and generated weights, gate"),
     _stack_kernel("stack_swiglu", "session", "SwiGLU gating products by digit tables"),
     _stack_kernel("stack_gemv", "kernels", "4-bit weight map by activation-table reads and adds"),
     _stack_kernel("stack_gemv_pairs", "kernels", "4-bit weight map by pair-table reads and adds"),
@@ -686,6 +687,7 @@ STACK_MANDATORY_SYMBOLS = [
     _stack_kernel("stack_div_u128", "kernels", "Restoring long division (u128)"),
     _stack_kernel("stack_isqrt", "kernels", "Digit-by-digit integer square root"),
     _stack_kernel("stack_argmax", "kernels", "Greedy integer argmax over logits"),
+    _stack_kernel("stack_pointer_mixture", "kernels", "Pointer mixture by multiple-table products"),
     _stack_kernel("stack_snap_select", "kernels", "Icosian root selection by exact Z[phi] comparison"),
     _stack_kernel("stack_snap_rotation", "kernels", "Snapped rotation by shift-add golden-ratio terms"),
 ]

@@ -16,6 +16,27 @@
 //!   its flat control: the Euclidean distance `|q - k|`), plus a learned age
 //!   bias per head and distance, with a NoRead slot whose value is zero.
 //!
+//! A **pointer-copy head** ([`crate::format::StackPointer`]), when the
+//! artifact has one, reads the final normalized state beside the output head:
+//! a query `q_t`, a key `k_t` (cached per position) and a gate logit `g_t`.
+//! The served next-token distribution is then the mixture ([`pointer`]):
+//!
+//! - scores `s_j` of the sources `j = 0..=t` at exponent -16: Dot
+//!   `round(<q_t, k_j> c 2^-46)` for the Q30 scale `c ~ 2^30 / sqrt(dim)`, or
+//!   Lorentz `-beta d(q_t, k_j)` (the read's distance, no offset);
+//! - `w_j = exp(s_j - max s)` and `u_v = exp(z_v - max z)` (Q31, the sealed exp
+//!   table) with totals `T_c = sum_j w_j`, `T_g = sum_v u_v`, and the copy mass
+//!   `m_v = sum_{j : x_j = v} w_j` over the input tokens `x_j`;
+//! - the gate `C = sigmoid(g_t)` (Q31) and `A = 2^31 - C`;
+//! - `G = round(A floor(2^93 / T_g) 2^-31)`, `K = round(C floor(2^93 / T_c)
+//!   2^-31)` and `p_v = round((u_v G + m_v K) 2^-63)`, the mixture
+//!   `(1 - sigmoid(g)) softmax(z)_v + sigmoid(g) p_copy(v)` in Q30.
+//!
+//! The products are modulo `2^128` (they fit with the sealed exp table), and
+//! [`StackSession::step`] still returns the logits; a pointer model's
+//! distribution is [`StackSession::mixture`], and greedy decoding takes the
+//! argmax of [`StackSession::next_token_scores`].
+//!
 //! Arithmetic follows the Llama engine ([`crate::engine`]). Learned weight maps
 //! are 4-bit table GEMVs. Learned scalars (convolution taps, decay rates,
 //! Lorentz scales) are grid codes applied by shifts and adds
@@ -143,6 +164,21 @@ struct Read {
     offset: Vec<i32>,
 }
 
+/// The pointer-copy head (see the module documentation).
+struct Pointer {
+    dim: usize,
+    lorentz: bool,
+    score_scale_q30: i64,
+    query: Packed,
+    key: Packed,
+    /// One row: the gate logit.
+    gate: Packed,
+    /// At exponent -16.
+    gate_bias: i32,
+    /// Lorentz scale (grid code); zero for Dot.
+    beta: i16,
+}
+
 enum Mixer {
     Recurrence(Box<Recurrence>),
     Read(Box<Read>),
@@ -168,6 +204,7 @@ pub struct StackModel {
     embed_nibbles: Vec<u8>,
     embed_scales: Vec<u8>,
     head: Packed,
+    pointer: Option<Pointer>,
     layers: Vec<Layer>,
     exp_table: Vec<u32>,
     silu_table: Vec<i32>,
@@ -281,10 +318,27 @@ impl StackModel {
         }
         let embed_spec = spec("embed", shape.vocab, d)?;
         let head = packed("head", shape.vocab, d)?;
+        let pointer = match &shape.pointer {
+            Some(p) => Some(Pointer {
+                dim: p.dim,
+                lorentz: p.lorentz(),
+                score_scale_q30: p.score_scale_q30,
+                query: packed("pointer_query", p.dim, d)?,
+                key: packed("pointer_key", p.dim, d)?,
+                gate: packed("pointer_gate", 1, d)?,
+                gate_bias: integers("pointer_gate_bias", 1)?[0],
+                beta: if p.lorentz() {
+                    codes("pointer_beta", 1, true)?[0]
+                } else {
+                    0
+                },
+            }),
+            None => None,
+        };
         let exp_table = artifact.table_u32("exp")?;
         let silu_table = artifact.table_i32("silu")?;
         let gelu_table = artifact.table_i32("gelu")?;
-        let arcosh = if shape.lorentz() {
+        let arcosh = if shape.needs_arcosh() {
             let table = artifact.table_u32("arcosh")?;
             if table.len() != ARCOSH_TABLE_LEN || table.windows(2).any(|w| w[0] > w[1]) {
                 return Err(format_error("the arcosh table has the wrong size or order"));
@@ -320,6 +374,7 @@ impl StackModel {
             shape,
             numerics,
             head,
+            pointer,
             layers,
             exp_table,
             silu_table,
@@ -386,6 +441,11 @@ impl StackModel {
         Ok(())
     }
 
+    /// The pointer head's width and score (`None` without a pointer head).
+    pub fn pointer(&self) -> Option<&crate::format::StackPointer> {
+        self.shape.pointer.as_ref()
+    }
+
     /// A fresh session: zero recurrence states and empty read caches.
     pub fn session(&self) -> StackSession<'_> {
         let s = &self.shape;
@@ -408,10 +468,27 @@ impl StackModel {
                 }
             })
             .collect();
+        // Without a pointer head every pointer buffer is empty.
+        let pointer_dim = self.pointer.as_ref().map_or(0, |p| p.dim);
+        let (pointer_vocab, pointer_context) = match self.pointer {
+            Some(_) => (s.vocab, s.context),
+            None => (0, 0),
+        };
         StackSession {
             model: self,
             position: 0,
             states,
+            pointer: PointerState {
+                tokens: Vec::with_capacity(pointer_context),
+                keys: Vec::with_capacity(pointer_dim * pointer_context),
+                lifts: Vec::new(),
+                query: vec![0; pointer_dim],
+                key: vec![0; pointer_dim],
+                gate: vec![0; usize::from(self.pointer.is_some())],
+                generate: vec![0; pointer_vocab],
+                copy: vec![0; pointer_vocab],
+                mixture: vec![0; pointer_vocab],
+            },
             buffers: Buffers {
                 x: vec![0; s.width],
                 norm: Act16::default(),
@@ -501,11 +578,31 @@ struct Buffers {
     logits: Vec<i32>,
 }
 
+/// The pointer head's per-session state and buffers (empty without one).
+struct PointerState {
+    /// The input token of every position so far: what the head copies.
+    tokens: Vec<u32>,
+    /// `[position][dim]` pointer keys at exponent -16.
+    keys: Vec<i32>,
+    /// Lorentz key lifts `[position]` at exponent -32.
+    lifts: Vec<u64>,
+    query: Vec<i32>,
+    key: Vec<i32>,
+    gate: Vec<i32>,
+    /// `u_v` (Q31) per vocabulary id.
+    generate: Vec<u64>,
+    /// `m_v` (Q31 sums) per vocabulary id.
+    copy: Vec<u64>,
+    /// The mixture in Q30 per vocabulary id.
+    mixture: Vec<i32>,
+}
+
 /// Incremental decoding of one stream of at most `context` positions.
 pub struct StackSession<'m> {
     model: &'m StackModel,
     position: usize,
     states: Vec<LayerState>,
+    pointer: PointerState,
     buffers: Buffers,
 }
 
@@ -517,6 +614,10 @@ impl StackSession<'_> {
     /// Start a new stream.
     pub fn reset(&mut self) {
         self.position = 0;
+        self.pointer.tokens.clear();
+        self.pointer.keys.clear();
+        self.pointer.lifts.clear();
+        self.pointer.mixture.fill(0);
         for state in &mut self.states {
             match state {
                 LayerState::Recurrence { state, history } => {
@@ -541,6 +642,22 @@ impl StackSession<'_> {
     /// The logits of the last step (value `v` means `v * 2^-16`).
     pub fn logits(&self) -> &[i32] {
         &self.buffers.logits
+    }
+
+    /// A pointer model's next-token distribution after the last step: the
+    /// mixture in Q30 (value `v` means probability `v * 2^-30`); `None`
+    /// without a pointer head.
+    pub fn mixture(&self) -> Option<&[i32]> {
+        self.model
+            .pointer
+            .as_ref()
+            .map(|_| &self.pointer.mixture[..])
+    }
+
+    /// What greedy decoding takes the argmax of: the mixture of a pointer
+    /// model, the logits otherwise.
+    pub fn next_token_scores(&self) -> &[i32] {
+        self.mixture().unwrap_or(&self.buffers.logits)
     }
 
     /// Feed one token at the next position; returns the next-token logits
@@ -657,9 +774,124 @@ impl StackSession<'_> {
             &mut b.logits,
             RESIDUAL_EXP,
         )?;
+        if let Some(p) = &model.pointer {
+            pointer(model, p, &mut self.pointer, token, b, parallel)?;
+        }
         self.position += 1;
         Ok(())
     }
+}
+
+/// The pointer head's step from the final normalized state (tables built)
+/// and the logits: its query, key and gate, then the mixture (see the module
+/// documentation) into `state.mixture`.
+fn pointer(
+    model: &StackModel,
+    p: &Pointer,
+    state: &mut PointerState,
+    token: u32,
+    b: &mut Buffers,
+    parallel: bool,
+) -> Result<()> {
+    let n = &model.numerics;
+    for (matrix, out) in [
+        (&p.query, &mut state.query),
+        (&p.key, &mut state.key),
+        (&p.gate, &mut state.gate),
+    ] {
+        gemv(
+            matrix,
+            model.backend,
+            parallel,
+            &b.tables,
+            b.norm.exp,
+            out,
+            RESIDUAL_EXP,
+        )?;
+    }
+    state.tokens.push(token);
+    state.keys.extend_from_slice(&state.key);
+    if p.lorentz {
+        state.lifts.push(lift(&state.key));
+    }
+    // Scores of the sources 0..=t at exponent -16.
+    let query_lift = if p.lorentz { lift(&state.query) } else { 0 };
+    let mut max = i64::MIN;
+    b.scores.clear();
+    for (j, key) in state.keys.chunks_exact(p.dim).enumerate() {
+        let dot: i128 = state
+            .query
+            .iter()
+            .zip(key)
+            .map(|(a, b)| i128::from(*a) * i128::from(*b))
+            .sum();
+        let score = if p.lorentz {
+            let distance = lorentz_distance(query_lift, state.lifts[j], dot, &model.arcosh);
+            shift(
+                grid_apply(i64::from(distance), p.beta).wrapping_neg(),
+                SCORE_EXP - DISTANCE_EXP,
+            )
+        } else {
+            shift_wide(
+                dot.wrapping_mul(i128::from(p.score_scale_q30)),
+                (SCORE_EXP - (2 * RESIDUAL_EXP - 30)) as u32,
+            )
+        };
+        max = max.max(score);
+        b.scores.push(score);
+    }
+    // The copy distribution's weights, total and mass per input token.
+    state.copy.fill(0);
+    let mut copy_total = 0u64;
+    for (&score, &id) in b.scores.iter().zip(&state.tokens) {
+        let w = exp_neg(
+            max.wrapping_sub(score),
+            SCORE_EXP,
+            &model.exp_table,
+            n.exp_step_log2,
+        );
+        copy_total = copy_total.wrapping_add(w);
+        state.copy[id as usize] = state.copy[id as usize].wrapping_add(w);
+    }
+    // The generated distribution's weights and total.
+    let top = b.logits.iter().copied().max().unwrap_or(0);
+    let mut generate_total = 0u64;
+    for (u, &z) in state.generate.iter_mut().zip(&b.logits) {
+        *u = exp_neg(
+            i64::from(top) - i64::from(z),
+            RESIDUAL_EXP,
+            &model.exp_table,
+            n.exp_step_log2,
+        );
+        generate_total = generate_total.wrapping_add(*u);
+    }
+    let gate = state.gate[0].saturating_add(p.gate_bias);
+    let copy_weight = sigmoid_q31(i64::from(gate), &model.exp_table, n.exp_step_log2);
+    let generate_weight = (1u64 << 31).saturating_sub(copy_weight);
+    let coefficient = |weight: u64, total: u64| -> u128 {
+        let reciprocal = (1u128 << 93) / u128::from(total.max(1));
+        u128::from(weight)
+            .wrapping_mul(reciprocal)
+            .wrapping_add(1 << 30)
+            >> 31
+    };
+    let (g, k) = (
+        coefficient(generate_weight, generate_total),
+        coefficient(copy_weight, copy_total),
+    );
+    for ((out, &u), &m) in state
+        .mixture
+        .iter_mut()
+        .zip(&state.generate)
+        .zip(&state.copy)
+    {
+        let sum = u128::from(u)
+            .wrapping_mul(g)
+            .wrapping_add(u128::from(m).wrapping_mul(k))
+            .wrapping_add(1 << 62);
+        *out = (sum >> 63).min(i32::MAX as u128) as i32;
+    }
+    Ok(())
 }
 
 /// One recurrence step from the normalized state (tables built), into `b.proj`.
@@ -932,6 +1164,7 @@ mod tests {
             read: "lorentz".to_owned(),
             rotation: true,
             context: 8,
+            pointer: None,
         };
         let numerics = StackNumerics {
             rms_eps: Fixed {

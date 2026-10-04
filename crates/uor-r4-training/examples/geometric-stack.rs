@@ -223,11 +223,15 @@
 //! `pointer_select=`, and `none` clears a saved route.
 //! Each evaluation reports the pointer's mean gate and hit rate on the scored
 //! targets (`dev_pointer_*` in the curve, `pointer` in the developments). The
-//! pointer has no served representation: `qat=true` and `export` refuse it,
-//! `export` refuses a flock too until a D11 port exists, and the evaluators
-//! that read raw logits (`snap-evaluate`, `rounding-attribution` and
-//! `lut-evaluate` with `model=`) refuse a pointer model, whose distribution is
-//! the mixture. `m-world evaluate` overrides a saved model's selections without
+//! pointer has no served representation for training (`qat=true` refuses
+//! it). `export` writes a pointer that keeps every source, which both integer
+//! engines serve as its mixture (`uor-r4-stack generate` decodes greedily over
+//! it, `d11-evaluate` compares the engines' logits and mixtures and scores the
+//! mixture); it refuses a pointer selection or route, and a flock, until a
+//! D11 port exists. The evaluators that read raw logits (`snap-evaluate`,
+//! `rounding-attribution`, and `lut-evaluate` and the artifact samplers, also
+//! on a pointer artifact) refuse a pointer model, whose distribution is the
+//! mixture. `m-world evaluate` overrides a saved model's selections without
 //! training (`select=`, `pointer_select=`). `--help` prints the usage.
 
 use std::collections::{BTreeMap, HashMap};
@@ -823,8 +827,8 @@ fn rotation_group_name(group: RotationGroup) -> &'static str {
 /// The refusal of a pointer head under `qat=true`.
 fn pointer_qat_refusal() -> TrainingError {
     invalid(
-        "qat=true with a pointer head: the pointer has no served representation yet (no D11 \
-         port); train it without qat=true",
+        "qat=true with a pointer head: the pointer has no served representation for \
+         quantization-aware training; train it without qat=true",
     )
 }
 
@@ -2242,8 +2246,8 @@ fn export_mode(arguments: &[String]) -> Result<()> {
         let served = StackModel::saved_served_representation(&model_dir)?;
         check_export_representation(served.as_ref(), calibration_tokens.is_some())?;
         let mut model = StackModel::load(&model_dir, &Device::Cpu)?;
-        // A pointer head or a flock has no integer engine yet: refuse before
-        // any calibration work.
+        // A selected or routed pointer head or a flock has no integer engine
+        // yet: refuse before any calibration work.
         check_export_config(&model.config)?;
         if let Some(saved_served) = &served {
             if model.config.arch == StackArch::Geometric {
@@ -2382,13 +2386,22 @@ fn continue_prompt(
 
 impl Engine {
     fn load(bytes: Vec<u8>, threads: usize) -> Result<Self> {
-        use uor_r4_lut::format::{schema_of, Artifact, StackArtifact, SCHEMA, STACK_SCHEMA};
+        use uor_r4_lut::format::{is_stack_schema, schema_of, Artifact, StackArtifact, SCHEMA};
         let schema = schema_of(&bytes).map_err(lut)?;
-        Ok(if schema == STACK_SCHEMA {
+        Ok(if is_stack_schema(&schema) {
             let mut model = uor_r4_lut::stack::StackModel::from_artifact(
                 StackArtifact::parse(bytes).map_err(lut)?,
             )
             .map_err(lut)?;
+            // Every user of this engine scores or samples the raw logits,
+            // which are not a pointer model's distribution.
+            if model.pointer().is_some() {
+                return Err(invalid(
+                    "the artifact has a pointer head, whose distribution is its mixture, not \
+                     the raw logits this mode reads: decode it with uor-r4-stack generate or \
+                     compare the engines with d11-evaluate",
+                ));
+            }
             model.set_threads(threads).map_err(lut)?;
             Self::Stack(Box::new(model))
         } else if schema == SCHEMA {
@@ -2480,6 +2493,20 @@ impl Engine {
 }
 
 /// `-log softmax(logits)[target]` and the argmax, in f64 (evaluation only).
+/// The NLL of `target` under a pointer mixture in Q30 (a zero probability is
+/// floored at one quantum, `2^-30`, about 20.8 nats) and the greedy id (the
+/// first maximum).
+fn score_mixture(mixture: &[i32], target: usize) -> (f64, usize) {
+    let mut best = 0usize;
+    for (i, &v) in mixture.iter().enumerate() {
+        if v > mixture[best] {
+            best = i;
+        }
+    }
+    let p = mixture.get(target).copied().unwrap_or(0).max(1);
+    (30.0 * std::f64::consts::LN_2 - f64::from(p).ln(), best)
+}
+
 fn score_row(logits: impl Iterator<Item = f64> + Clone, target: usize) -> (f64, usize) {
     let (mut best, mut max) = (0usize, f64::NEG_INFINITY);
     for (i, v) in logits.clone().enumerate() {
@@ -3045,14 +3072,23 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
             let (mut nll11, mut nll10) = (0f64, 0f64);
             for (t, &id) in ids.iter().enumerate() {
                 let clock = Instant::now();
-                let logits11 = s11.step(id).map_err(|e| invalid(e.to_string()))?;
+                s11.step(id).map_err(|e| invalid(e.to_string()))?;
                 d11_seconds += clock.elapsed().as_secs_f64();
                 let clock = Instant::now();
-                let logits10 = s10.step(id).map_err(lut)?;
+                s10.step(id).map_err(lut)?;
                 d10_seconds += clock.elapsed().as_secs_f64();
+                let (logits11, logits10) = (s11.logits(), s10.logits());
                 let mut position_max = 0i64;
                 for (a, b) in logits11.iter().zip(logits10) {
                     position_max = position_max.max((i64::from(*a) - i64::from(*b)).abs());
+                }
+                // A pointer model's served distribution is its mixture (Q30):
+                // compared as integers like the logits, and scored below.
+                let (mixture11, mixture10) = (s11.mixture(), s10.mixture());
+                if let (Some(m11), Some(m10)) = (mixture11, mixture10) {
+                    for (a, b) in m11.iter().zip(m10) {
+                        position_max = position_max.max((i64::from(*a) - i64::from(*b)).abs());
+                    }
                 }
                 if position_max > 0 {
                     differing += 1;
@@ -3064,10 +3100,15 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
                 }
                 max_difference = max_difference.max(position_max);
                 let target = next[t] as usize;
-                let (n11, top11) =
-                    score_row(logits11.iter().map(|&v| f64::from(v) / 65536.0), target);
-                let (n10, top10) =
-                    score_row(logits10.iter().map(|&v| f64::from(v) / 65536.0), target);
+                let ((n11, top11), (n10, top10)) = match (mixture11, mixture10) {
+                    (Some(m11), Some(m10)) => {
+                        (score_mixture(m11, target), score_mixture(m10, target))
+                    }
+                    _ => (
+                        score_row(logits11.iter().map(|&v| f64::from(v) / 65536.0), target),
+                        score_row(logits10.iter().map(|&v| f64::from(v) / 65536.0), target),
+                    ),
+                };
                 nll11 += n11;
                 nll10 += n10;
                 agree += usize::from(top11 == top10);
@@ -3089,7 +3130,12 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
         };
         let record = json!({
             "schema": "uor-r4.geometric-stack-d11-evaluation/1",
-            "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh session of each engine per window, position by position; logits compared as integers",
+            "protocol": "evenly spaced windows of the development tokens (train's evaluation rule), one fresh session of each engine per window, position by position; logits (and a pointer model's Q30 mixture) compared as integers",
+            "scored_distribution": if d11.pointer().is_some() {
+                "the pointer mixture (Q30, a zero probability floored at one quantum, 2^-30)"
+            } else {
+                "softmax of the logits"
+            },
             "artifact": identity(&artifact_path)?,
             "artifact_sha256": d11.artifact_sha256(),
             "valid": identity(&valid_path)?,
@@ -4181,7 +4227,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             "pointer_init_seed_source": pointer_added.then_some(seed_source),
             "pointer_parameters": pointer_parameters,
             "final_pointer_diagnostics": final_pointer,
-            "scope": "Flock selection of the reads (sink at position 0, last WINDOW positions and the K best-scoring other sources per read row, by the shared crate::flock selector; unkept sources weigh and receive exactly 0; the NoRead slot stays outside the selection) applies to every read of the model and never to the pointer. The pointer head scores each source of the window with its own score (`pointer_score`: dot, or the fused read's Lorentz form with a learned scale) and softmaxes over the sources its own selection keeps (`pointer_select`: none keeps all, top:1 is the single-source pointer), copies the input tokens at the attended positions, and a gate g = sigmoid(w.h + b) (b starts at -2) mixes that with the ordinary distribution; when no kept source holds a target the mixture is (1 - g) softmax alone, with no floor. `response_mean_nll`, the losses and the greedy replies are the mixture's. `pointer` diagnostics are over the scored dev targets. Neither mechanism has a D11 port, and `export` and `qat=true` refuse a pointer. Offline float training only; not a served or quality result.",
+            "scope": "Flock selection of the reads (sink at position 0, last WINDOW positions and the K best-scoring other sources per read row, by the shared crate::flock selector; unkept sources weigh and receive exactly 0; the NoRead slot stays outside the selection) applies to every read of the model and never to the pointer. The pointer head scores each source of the window with its own score (`pointer_score`: dot, or the fused read's Lorentz form with a learned scale) and softmaxes over the sources its own selection keeps (`pointer_select`: none keeps all, top:1 is the single-source pointer), copies the input tokens at the attended positions, and a gate g = sigmoid(w.h + b) (b starts at -2) mixes that with the ordinary distribution; when no kept source holds a target the mixture is (1 - g) softmax alone, with no floor. `response_mean_nll`, the losses and the greedy replies are the mixture's. `pointer` diagnostics are over the scored dev targets. Neither a flock nor a pointer selection or route has a D11 port; `export` writes a pointer that keeps every source (both integer engines serve its mixture), and `qat=true` refuses a pointer. Offline float training only; not a served or quality result.",
         });
     }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
@@ -4527,8 +4573,10 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          without one, adds the head with weights drawn fresh from seed= (default:
                          the saved seed); the seed is recorded in the head's init_seed and the
                          report, and a resume must carry the same one. Refused with qat=true and
-                         by export (no D11 port yet), and by the evaluators that read raw logits
-                         (snap-evaluate, rounding-attribution, lut-evaluate with model=).
+                         by the evaluators that read raw logits (snap-evaluate,
+                         rounding-attribution, lut-evaluate). export writes it when it keeps every
+                         source (no pointer_select, no pointer_route); both integer engines serve
+                         its mixture.
   pointer_score=...      the pointer's own score of a source: dot (default, q.k/sqrt(DIM)) or
                          lorentz (the fused read's hyperboloid form, with a learned scale
                          pointer.log_beta). With init=, must agree with a saved head.

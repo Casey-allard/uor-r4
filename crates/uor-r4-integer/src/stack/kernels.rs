@@ -1143,6 +1143,50 @@ pub(crate) fn stack_snap_rotation(raw: [i32; 4], lambda: u64) -> [i64; 4] {
     transition
 }
 
+/// `x c` modulo `2^128` from `table = multiples_u128(c)`: the radix-16
+/// digits of `x`, most significant first (Horner's rule modulo `2^128`, so
+/// equal to `u128::from(x).wrapping_mul(c)`).
+#[inline(always)]
+fn mul_by_u64(table: &[u128; 16], x: u64) -> u128 {
+    let mut digits = (67 - x.leading_zeros()) >> 2;
+    let mut acc = 0u128;
+    while digits > 0 {
+        digits -= 1;
+        acc = (acc << 4).wrapping_add(table[((x >> (digits << 2)) & 15) as usize]);
+    }
+    acc
+}
+
+/// The pointer mixture in Q30 (the D10 engine's `pointer`):
+/// `out[v] = min((generate[v] G + copy[v] K + 2^62) >> 63, i32::MAX)` with
+/// every product and sum modulo `2^128`, from one multiples table of each of
+/// `G` (`generate_coefficient`) and `K` (`copy_coefficient`) read at the
+/// radix-16 digits of the per-id weights. A zero copy mass contributes
+/// nothing without a table read.
+#[inline(never)]
+pub(crate) fn stack_pointer_mixture(
+    generate: &[u64],
+    copy: &[u64],
+    generate_coefficient: u128,
+    copy_coefficient: u128,
+    out: &mut [i32],
+) {
+    let g = multiples_u128(generate_coefficient);
+    let k = multiples_u128(copy_coefficient);
+    for ((slot, &u), &m) in out.iter_mut().zip(generate).zip(copy) {
+        let mut sum = mul_by_u64(&g, u).wrapping_add(1u128 << 62);
+        if m != 0 {
+            sum = sum.wrapping_add(mul_by_u64(&k, m));
+        }
+        let value = sum >> 63;
+        *slot = if value > i32::MAX as u128 {
+            i32::MAX
+        } else {
+            value as i32
+        };
+    }
+}
+
 /// Index of the largest value (first on ties).
 #[inline(never)]
 pub fn stack_argmax(values: &[i32]) -> usize {
@@ -1452,6 +1496,53 @@ mod tests {
         assert_eq!(panicked, cfg!(debug_assertions), "dequant_row");
         if !panicked {
             assert!(row.iter().all(|&v| v == untouched));
+        }
+    }
+
+    /// The digit-table mixture equals the plain wrapping definition, on edge
+    /// values (zero, the `u64` and Q31 limits, coefficients near `2^128`) and
+    /// random weights of every magnitude.
+    #[test]
+    fn the_pointer_mixture_is_the_wrapping_definition() {
+        fn reference(u: u64, m: u64, g: u128, k: u128) -> i32 {
+            let sum = u128::from(u)
+                .wrapping_mul(g)
+                .wrapping_add(u128::from(m).wrapping_mul(k))
+                .wrapping_add(1 << 62);
+            (sum >> 63).min(i32::MAX as u128) as i32
+        }
+        let mut rng = Lcg(29);
+        let edges = [0u64, 1, 15, 16, 1 << 31, (1 << 32) - 1, 1 << 47, u64::MAX];
+        let coefficients = [0u128, 1, 1 << 30, 1 << 62, (1 << 93) + 7, u128::MAX];
+        for &g in &coefficients {
+            for &k in &coefficients {
+                let generate: Vec<u64> = edges.iter().flat_map(|&u| [u; 8]).collect();
+                let copy: Vec<u64> = (0..generate.len()).map(|i| edges[i % 8]).collect();
+                let mut out = vec![0i32; generate.len()];
+                stack_pointer_mixture(&generate, &copy, g, k, &mut out);
+                for ((&o, &u), &m) in out.iter().zip(&generate).zip(&copy) {
+                    assert_eq!(o, reference(u, m, g, k), "{u} {m} {g} {k}");
+                }
+            }
+        }
+        for _ in 0..200 {
+            let g = rng.wide() >> (rng.next() % 128);
+            let k = rng.wide() >> (rng.next() % 128);
+            let generate: Vec<u64> = (0..64).map(|_| rng.next() >> (rng.next() % 64)).collect();
+            let copy: Vec<u64> = (0..64)
+                .map(|i| {
+                    if i % 3 == 0 {
+                        0
+                    } else {
+                        rng.next() >> (rng.next() % 64)
+                    }
+                })
+                .collect();
+            let mut out = vec![0i32; 64];
+            stack_pointer_mixture(&generate, &copy, g, k, &mut out);
+            for ((&o, &u), &m) in out.iter().zip(&generate).zip(&copy) {
+                assert_eq!(o, reference(u, m, g, k));
+            }
         }
     }
 

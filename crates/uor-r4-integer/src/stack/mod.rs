@@ -62,7 +62,8 @@ pub use flock::{
     MAX_FLOCK_CONTEXT, RAW_RANK_WEIGHTS_Q16, RECIPROCAL_Q32,
 };
 pub use format::{
-    Fixed, StackNumerics, StackShape, StackTransportSnap, GROUP, MAGIC, STACK_SCHEMA,
+    Fixed, StackNumerics, StackPointer, StackShape, StackTransportSnap, GROUP, MAGIC,
+    MAX_POINTER_DIM, STACK_POINTER_SCHEMA, STACK_SCHEMA,
 };
 pub use kernels::{stack_argmax, stack_snap_select};
 pub use session::{
@@ -159,7 +160,8 @@ impl fmt::Display for StackError {
             Self::Header(error) => write!(f, "stack artifact header: {error}"),
             Self::Schema(schema) => write!(
                 f,
-                "stack artifact: schema {schema:?} is not {STACK_SCHEMA:?}"
+                "stack artifact: schema {schema:?} is not the schema for its shape \
+                 ({STACK_SCHEMA:?} plain, {STACK_POINTER_SCHEMA:?} with a pointer head)"
             ),
             Self::Group(group) => write!(f, "stack artifact: group size {group} is not {GROUP}"),
             Self::Shape(reason) => write!(f, "stack artifact shape: {reason}"),

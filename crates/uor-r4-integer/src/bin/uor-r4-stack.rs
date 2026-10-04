@@ -11,8 +11,9 @@
 //! context is full, and prints a JSON record. `digest` runs `WINDOWS` evenly
 //! spaced full-context windows of a little-endian u16 token file, each in a
 //! fresh session, and prints the SHA-256 of every step's logits (little-endian
-//! `i32`, in order), a platform-independent fingerprint of the served
-//! integers. The served path is `IntegerStackSession::step` and
+//! `i32`, in order; for a pointer model each step's Q30 mixture follows its
+//! logits), a platform-independent fingerprint of the served integers. A
+//! pointer model decodes greedily over its mixture. The served path is `IntegerStackSession::step` and
 //! `stack_argmax`; argument parsing, file reading, timing, hashing and JSON
 //! are outside it. The instruction audit targets this binary:
 //! `python3 scripts/audit_zero_matmul_serving.py target/release/uor-r4-stack --stack`.
@@ -91,7 +92,9 @@ fn number(text: &str, what: &str) -> Result<usize, CliError> {
 }
 
 /// The serving loop: the prompt, then greedy ids until `new_tokens` or a full
-/// context. Every logit vector comes from one `step`.
+/// context. Every logit vector comes from one `step`; greedy decoding takes
+/// the argmax of the served distribution (`next_token_scores`: a pointer
+/// model's mixture, which the step computes, otherwise the logits).
 fn serve_greedy(
     model: &IntegerStackModel,
     prompt: &[u32],
@@ -101,7 +104,8 @@ fn serve_greedy(
     let context = model.shape().context;
     let mut next = 0u32;
     for &id in prompt {
-        next = stack_argmax(session.step(id)?) as u32;
+        session.step(id)?;
+        next = stack_argmax(session.next_token_scores()) as u32;
     }
     // At most one id per position the context has left, whatever NEW_TOKENS is.
     let mut generated = Vec::with_capacity(new_tokens.min(context));
@@ -110,7 +114,8 @@ fn serve_greedy(
         if generated.len() == new_tokens || session.position() >= context {
             break;
         }
-        next = stack_argmax(session.step(next)?) as u32;
+        session.step(next)?;
+        next = stack_argmax(session.next_token_scores()) as u32;
     }
     Ok((generated, session.position()))
 }
@@ -141,6 +146,11 @@ fn generate(args: &[String]) -> Result<(), CliError> {
     let serve = Instant::now();
     let (generated, steps) = serve_greedy(&model, &prompt, new_tokens)?;
     let serve_seconds = serve.elapsed().as_secs_f64();
+    let decoding = if model.pointer().is_some() {
+        "greedy integer argmax of the pointer mixture (first on ties)"
+    } else {
+        "greedy integer argmax (first on ties)"
+    };
     let record = json!({
         "schema": "uor-r4.stack-d11-generation/1",
         "artifact_sha256": model.artifact_sha256(),
@@ -154,7 +164,7 @@ fn generate(args: &[String]) -> Result<(), CliError> {
         "effective_bits_per_weight": D11_EFFECTIVE_BITS_PER_WEIGHT,
         "load_seconds": load_seconds,
         "serve_seconds": serve_seconds,
-        "decoding": "greedy integer argmax (first on ties)",
+        "decoding": decoding,
     });
     println!("{record}");
     Ok(())
@@ -214,6 +224,10 @@ fn digest(args: &[String]) -> Result<(), CliError> {
             for value in session.step(id)? {
                 hash.update(value.to_le_bytes());
             }
+            // A pointer model's mixture follows its logits.
+            for value in session.mixture().unwrap_or(&[]) {
+                hash.update(value.to_le_bytes());
+            }
         }
     }
     let seconds = clock.elapsed().as_secs_f64();
@@ -224,6 +238,7 @@ fn digest(args: &[String]) -> Result<(), CliError> {
         "windows": windows,
         "steps": steps,
         "logits_sha256": hex::encode(hash.finalize()),
+        "pointer_mixture_hashed": model.pointer().is_some(),
         "seconds": seconds,
         "tokens_per_second": steps as f64 / seconds,
         "weights_read_per_token": model.weights_per_token(),

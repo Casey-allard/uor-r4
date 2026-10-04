@@ -273,6 +273,13 @@ fn export_stack_candidate(
     if c.rotation_group != uor_r4_training::geometric_stack::RotationGroup::Quaternion {
         return Err("the U(1) transport control has no integer export".into());
     }
+    if c.pointer.is_some() || c.select.is_some() {
+        return Err(
+            "the head-codec candidate export writes no pointer head or flock; \
+             export a pointer model with export_stack"
+                .into(),
+        );
+    }
     let (d, heads) = (c.width, c.heads);
     let mlp = c.mlp_hidden.div_ceil(GROUP) * GROUP;
     let shape = StackShape {
@@ -289,6 +296,7 @@ fn export_stack_candidate(
         .to_owned(),
         rotation: c.rotation,
         context: c.context,
+        pointer: None,
     };
     let numerics = StackNumerics {
         rms_eps: Fixed {

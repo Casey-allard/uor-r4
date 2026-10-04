@@ -89,7 +89,11 @@
 //! point. [`StackModel::forward`] still returns the raw logits `z`. Training
 //! may stay soft (`select: None`); [`StackModel::set_pointer_select`] applies a
 //! selection to the same weights afterwards. The pointer has no served
-//! representation: `qat=true` and the integer exports refuse a model with one.
+//! representation for training: `qat=true` refuses a model with one. The
+//! stack export writes a pointer that keeps every source (no selection, no
+//! route), and both integer stack engines serve its mixture in fixed point
+//! (`stack_export::export_stack`); a selected or routed pointer has no
+//! integer port and is refused.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -1293,8 +1297,8 @@ fn pointer_variables(
 
 fn pointer_served_refusal() -> crate::TrainingError {
     invalid(
-        "the pointer head has no served representation yet; train it in float (no qat=true) and \
-         it has no D11 port",
+        "the pointer head has no served representation for quantization-aware training; train \
+         it in float (no qat=true) and export it (the integer engines serve its mixture)",
     )
 }
 
@@ -21651,7 +21655,7 @@ mod tests {
     }
 
     #[test]
-    fn a_pointer_has_no_served_representation_and_no_export() -> Result<()> {
+    fn a_pointer_has_no_served_representation_and_exports_only_unselected() -> Result<()> {
         let mut config = exportable("rar", ReadScore::Lorentz, true);
         for score in [ReadScore::Dot, ReadScore::Lorentz] {
             config.pointer = Some(PointerConfig {
@@ -21663,10 +21667,24 @@ mod tests {
                 .set_served_representation(Some(Arc::new(D11Interim)))
                 .expect_err("qat with a pointer is refused");
             assert!(refusal.to_string().contains("pointer"), "{refusal}");
+            // A pointer that keeps every source exports; a selection or a
+            // route has no integer port.
+            crate::stack_export::export_stack(&model, serde_json::json!({}), None, None)?;
+            model.set_pointer_select(Some(PointerSelect::TopK(1)))?;
             let refusal =
                 crate::stack_export::export_stack(&model, serde_json::json!({}), None, None)
-                    .expect_err("a pointer model is not exported");
-            assert!(refusal.to_string().contains("no D11 port"), "{refusal}");
+                    .expect_err("a selected pointer is not exported");
+            assert!(refusal.to_string().contains("no integer port"), "{refusal}");
+            model.set_pointer_select(None)?;
+            model.set_pointer_route(Some(PrimeRoute {
+                window: 2,
+                ranked: false,
+                admission: RouteAdmission::SharedAtom,
+            }))?;
+            let refusal =
+                crate::stack_export::export_stack(&model, serde_json::json!({}), None, None)
+                    .expect_err("a routed pointer is not exported");
+            assert!(refusal.to_string().contains("no integer port"), "{refusal}");
         }
         // A flock is refused by the exports too, but trains in QAT.
         config.pointer = None;

@@ -14,7 +14,12 @@
 //! scalar that multiplies a runtime value (convolution taps, decay rates,
 //! Lorentz and L2 scales) becomes a grid code `±(16 + m) 2^(e - 4)`. Biases,
 //! age tables and Lorentz and L2 offsets become integers, and the exp, SiLU,
-//! GELU and (for Lorentz) arcosh tables are sealed. The transformer control has the shape of a Llama
+//! GELU and (for a Lorentz read or pointer) arcosh tables are sealed. A
+//! pointer-copy head exports its query, key and gate maps (the final norm's
+//! gain folded in, as for the output map), its gate bias and, for a Lorentz
+//! score, its scale; both integer engines serve its mixture. A pointer with
+//! its own selection or a prime route has no integer port and is refused
+//! ([`check_export_config`]). The transformer control has the shape of a Llama
 //! checkpoint, so [`control_checkpoint`] renames its tensors for
 //! [`crate::lut_export::export_llama`].
 //!
@@ -26,7 +31,9 @@ use candle_core::Tensor;
 use serde_json::{json, Value};
 
 use crate::geometric_stack::TransportSnap;
-use uor_r4_lut::format::{Fixed, StackArtifactBuilder, StackNumerics, StackShape, TableValues};
+use uor_r4_lut::format::{
+    Fixed, StackArtifactBuilder, StackNumerics, StackPointer, StackShape, TableValues,
+};
 use uor_r4_lut::kernels::grid_encode;
 use uor_r4_lut::GROUP;
 
@@ -248,17 +255,38 @@ fn quantize_matrix_compensated_packed(values: &[f32], rows: usize, cols: usize) 
     })
 }
 
-/// Refuse a configuration no integer export or engine serves yet: a
-/// pointer-copy head (no D11 port) or a flock selection of the reads
-/// (compare-and-select, but no export or engine implements it), whose
-/// artifacts would not compute the model that was trained. Every export path
-/// calls this before it writes.
+/// Refuse a configuration no integer export or engine serves yet, whose
+/// artifacts would not compute the model that was trained: a pointer-copy
+/// head with its own selection or a prime route (the integer engines keep
+/// every source, scored by the learned dot or Lorentz score), a pointer on the
+/// transformer control (its Llama export has no pointer head), or a flock
+/// selection of the reads (compare-and-select, but no export or engine
+/// implements it). A plain pointer on a geometric stack exports
+/// ([`export_stack`]) and both integer engines serve its mixture. Every
+/// export path calls this before it writes.
 pub fn check_export_config(config: &StackConfig) -> Result<()> {
-    if config.pointer.is_some() {
-        return Err(invalid(
-            "the pointer head has no D11 port yet: the stack export and its integer engines \
-             serve the plain output distribution, so no export writes a model with a pointer",
-        ));
+    if let Some(pointer) = &config.pointer {
+        if let Some(select) = pointer.select {
+            return Err(invalid(format!(
+                "the pointer head selects its sources ({select:?}), which has no integer port: \
+                 the integer engines keep every source, so no export writes this model (clear \
+                 the selection with pointer_select=none to export the soft pointer)"
+            )));
+        }
+        if let Some(route) = pointer.route {
+            return Err(invalid(format!(
+                "the pointer head is routed by prime arithmetic (window {}), which has no \
+                 integer port: the integer engines score every source by the learned score, so \
+                 no export writes this model",
+                route.window
+            )));
+        }
+        if config.arch != StackArch::Geometric {
+            return Err(invalid(
+                "the transformer control's Llama export has no pointer head, so it does not \
+                 write a control with a pointer",
+            ));
+        }
     }
     if let Some(select) = config.select {
         return Err(invalid(format!(
@@ -375,7 +403,22 @@ pub fn export_stack(
         .to_owned(),
         rotation: c.rotation,
         context: c.context,
+        pointer: c.pointer.map(|pointer| StackPointer {
+            dim: pointer.dim,
+            score: match pointer.score {
+                ReadScore::Lorentz => "lorentz",
+                // L2 is refused below (and by `PointerConfig::validate`).
+                ReadScore::Dot | ReadScore::L2 => "dot",
+            }
+            .to_owned(),
+            score_scale_q30: (2f64.powi(30) / (pointer.dim as f64).sqrt()).round() as i64,
+        }),
     };
+    if c.pointer
+        .is_some_and(|pointer| pointer.score == ReadScore::L2)
+    {
+        return Err(invalid("the pointer head has no L2 score"));
+    }
     let numerics = StackNumerics {
         rms_eps: Fixed {
             mantissa: (RMS_EPSILON * 2f64.powi(48)).round() as i64,
@@ -665,6 +708,36 @@ pub fn export_stack(
         d,
         Some(StackSite::Head),
     )?;
+    if let Some(pointer) = c.pointer {
+        // The head reads the final states after the final norm, as the
+        // output map does: its gain is folded into the three maps.
+        let gain = values(model, "final_norm.weight")?;
+        for (part, rows) in [("query", pointer.dim), ("key", pointer.dim), ("gate", 1)] {
+            let mut w = values(model, &format!("pointer.{part}.weight"))?;
+            fold_columns(&mut w, d, &gain);
+            add(
+                &mut builder,
+                &format!("pointer_{part}"),
+                &w,
+                rows,
+                d,
+                Some(StackSite::Head),
+            )?;
+        }
+        integers(
+            &mut builder,
+            "pointer_gate_bias",
+            &values(model, "pointer.gate.bias")?,
+            -16,
+        )?;
+        if pointer.score == ReadScore::Lorentz {
+            let beta: Vec<f64> = values(model, "pointer.log_beta")?
+                .iter()
+                .map(|&v| f64::from(v).exp())
+                .collect();
+            codes(&mut builder, "pointer_beta", &beta)?;
+        }
+    }
 
     let exp: Vec<u32> = (0..EXP_RANGE * (1 << -EXP_STEP_LOG2) + 2)
         .map(|i| (2f64.powi(31) * (-(i as f64) * 2f64.powi(EXP_STEP_LOG2)).exp()).round() as u32)
@@ -686,7 +759,10 @@ pub fn export_stack(
     table(&mut builder, "exp", TableValues::U32(&exp))?;
     table(&mut builder, "silu", TableValues::I32(&silu))?;
     table(&mut builder, "gelu", TableValues::I32(&gelu))?;
-    if c.read == ReadScore::Lorentz {
+    if c.read == ReadScore::Lorentz
+        || c.pointer
+            .is_some_and(|pointer| pointer.score == ReadScore::Lorentz)
+    {
         table(&mut builder, "arcosh", TableValues::U32(&arcosh_table()))?;
     }
     let bytes = builder.finish().map_err(|e| invalid(e.to_string()))?;
@@ -919,8 +995,15 @@ pub fn stack_grid_reference(
         return Err(invalid("read identity latch has no integer grid reference"));
     }
     let c = model.config.clone();
-    // The reference reads raw float logits, and no artifact is exported from a
-    // pointer or flock model (its float forward is not what the engine runs).
+    // The reference reads raw float logits, which are not a pointer model's
+    // distribution, and no artifact is exported from a flock model (its float
+    // forward is not what the engine runs).
+    if c.pointer.is_some() {
+        return Err(invalid(
+            "a grid reference reads raw float logits, which are not a pointer model's \
+             distribution (its head mixes a copy distribution in)",
+        ));
+    }
     check_export_config(&c)?;
     if c.arch != StackArch::Geometric || c.memory.is_some() {
         return Err(invalid(
@@ -1009,8 +1092,14 @@ pub fn control_grid_reference(
     artifact: &uor_r4_lut::format::Artifact,
 ) -> Result<GridReference> {
     let c = model.config.clone();
-    // As for the stack's reference: no artifact comes from a pointer or flock
-    // model, and the reference reads raw float logits.
+    // As for the stack's reference: the reference reads raw float logits, and
+    // no artifact comes from a pointer or flock model.
+    if c.pointer.is_some() {
+        return Err(invalid(
+            "a grid reference reads raw float logits, which are not a pointer model's \
+             distribution (its head mixes a copy distribution in)",
+        ));
+    }
     check_export_config(&c)?;
     if c.arch != StackArch::Transformer || c.memory.is_some() {
         return Err(invalid(
@@ -1671,6 +1760,222 @@ mod tests {
         model.set_transport_snap(None).expect("no snap");
         let (bytes, _) = export_stack(&model, json!({}), None, None).expect("export");
         assert!(!bytes.is_empty(), "the export wrote no artifact");
+    }
+
+    /// A perturbed `rarr` stack with a pointer head of width 16 and `score`,
+    /// its query and key amplified so that the copy attention is sharp and
+    /// its gate bias raised so that the copy branch carries weight.
+    fn pointer_model(score: ReadScore, seed: u64, loud: f64) -> StackModel {
+        use crate::geometric_stack::PointerConfig;
+        let mut config = small("rarr", ReadScore::Dot, true).config.clone();
+        config.pointer = Some(PointerConfig {
+            score,
+            ..PointerConfig::new(16)
+        });
+        let model = StackModel::new(config, &Device::Cpu).expect("pointer model");
+        perturb(&model, seed);
+        for name in ["pointer.query.weight", "pointer.key.weight"] {
+            let var = &model.variables()[name];
+            var.set(&(var.as_tensor() * loud).unwrap()).unwrap();
+        }
+        model.variables()["pointer.gate.bias"]
+            .set(&Tensor::from_vec(vec![0.5f32], 1, &Device::Cpu).unwrap())
+            .unwrap();
+        model
+    }
+
+    /// Over one sequence that repeats (so that copying matters): the
+    /// fraction of positions whose integer greedy id (the argmax of the
+    /// D10 engine's Q30 mixture) equals the float model's
+    /// ([`StackModel::next_scores`]), the largest and the mean absolute
+    /// probability gap over the vocabulary, and the mean float copy share.
+    fn pointer_parity(model: &StackModel, rounded_pointer: bool) -> (f64, f64, f64) {
+        let (bytes, _) = export_stack(model, json!({"test": true}), None, None).unwrap();
+        let artifact = StackArtifact::parse(bytes).unwrap();
+        if rounded_pointer {
+            // The float model with the artifact's own pointer maps (the
+            // final gain unfolded), gate bias and scale: what remains is the
+            // trunk's rounding and the integer arithmetic.
+            let gain = values(model, "final_norm.weight").unwrap();
+            for part in ["query", "key", "gate"] {
+                let (mut w, _, cols) =
+                    packed_values(&artifact, &format!("pointer_{part}")).unwrap();
+                for row in w.chunks_exact_mut(cols) {
+                    for (v, g) in row.iter_mut().zip(&gain) {
+                        *v /= g;
+                    }
+                }
+                set(model, &format!("pointer.{part}.weight"), w).unwrap();
+            }
+            let bias = artifact.table_i32("pointer_gate_bias").unwrap();
+            set(
+                model,
+                "pointer.gate.bias",
+                vec![fixed_value(bias[0], -16) as f32],
+            )
+            .unwrap();
+            if let Ok(beta) = artifact.table_i16("pointer_beta") {
+                set(
+                    model,
+                    "pointer.log_beta",
+                    vec![grid_value(beta[0]).ln() as f32],
+                )
+                .unwrap();
+            }
+        }
+        let integer = IntegerStack::from_artifact(artifact).unwrap();
+        let cycle = [5u32, 17, 60, 33, 2, 71, 40];
+        let ids: Vec<u32> = (0..model.config.context)
+            .map(|i| {
+                if i < 7 {
+                    cycle[i]
+                } else {
+                    cycle[i % 7] + (i as u32 / 14) % 2
+                }
+            })
+            .collect();
+        let mut session = integer.session();
+        let (mut agree, mut worst, mut total, mut count) = (0usize, 0f64, 0f64, 0usize);
+        for (t, &id) in ids.iter().enumerate() {
+            session.step(id).unwrap();
+            let got: Vec<f64> = session
+                .mixture()
+                .expect("a pointer artifact serves its mixture")
+                .iter()
+                .map(|&v| f64::from(v) * 2f64.powi(-30))
+                .collect();
+            assert!((got.iter().sum::<f64>() - 1.0).abs() < 1e-5);
+            assert_eq!(session.next_token_scores(), session.mixture().unwrap());
+            let want: Vec<f64> = model
+                .next_scores(&ids[..=t])
+                .unwrap()
+                .iter()
+                .map(|&v| f64::from(v).exp())
+                .collect();
+            let argmax = |p: &[f64]| {
+                p.iter()
+                    .enumerate()
+                    .fold((0, f64::NEG_INFINITY), |best, (i, &v)| {
+                        if v > best.1 {
+                            (i, v)
+                        } else {
+                            best
+                        }
+                    })
+                    .0
+            };
+            agree += usize::from(argmax(&got) == argmax(&want));
+            for (g, w) in got.iter().zip(&want) {
+                worst = worst.max((g - w).abs());
+                total += (g - w).abs();
+                count += 1;
+            }
+        }
+        (agree as f64 / ids.len() as f64, worst, total / count as f64)
+    }
+
+    /// The D10 engine's mixture (which the D11 engine reproduces bit for
+    /// bit, `tests/stack_d11_oracle.rs`) against the float model's mixture
+    /// ([`StackModel::next_scores`]) at every position of a repeating
+    /// sequence. At the pointer's initial scale (x1) the greedy ids agree at
+    /// every measured position and the largest probability gap is about
+    /// 0.03 (measured 0.018 to 0.027 over these seeds and scores). With the
+    /// query and key amplified four times the Dot scores spread over tens of
+    /// nats, so the 4-bit rounding of the trunk and the pointer maps moves the
+    /// copy attention by whole nats: the measured largest gap is 0.25 to 0.27
+    /// (greedy agreement 0.79 to 0.88); with the artifact's own pointer maps
+    /// in the float model it falls to 0.09 to 0.21, so the rest is the
+    /// trunk's rounding. The Lorentz score stays within 0.035 at x4.
+    #[test]
+    fn the_integer_pointer_mixture_tracks_the_float_mixture() {
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            for seed in [3, 4] {
+                for (rounded, loud) in [(false, 1.0), (false, 4.0), (true, 4.0)] {
+                    let model = pointer_model(score, seed, loud);
+                    let (agreement, worst, mean) = pointer_parity(&model, rounded);
+                    eprintln!(
+                        "{score:?} seed {seed} x{loud} rounded pointer {rounded}: greedy \
+                         agreement {agreement}, worst probability gap {worst}, mean {mean}"
+                    );
+                    let sharp = loud > 1.0 && score == ReadScore::Dot;
+                    let (min_agreement, max_worst, max_mean) = if sharp {
+                        (0.75, 0.35, 0.003)
+                    } else {
+                        (0.95, 0.06, 0.001)
+                    };
+                    assert!(
+                        agreement >= min_agreement && worst < max_worst && mean < max_mean,
+                        "{score:?} seed {seed} x{loud} rounded {rounded}: agreement \
+                         {agreement}, worst {worst}, mean {mean}"
+                    );
+                }
+            }
+        }
+    }
+
+    /// The pointer exports as three maps with the final norm's gain folded
+    /// in, its gate bias (exponent -16) and, for Lorentz, its scale; a
+    /// selected or routed pointer, a pointer on the control and an L2
+    /// pointer are refused.
+    #[test]
+    fn a_pointer_exports_its_maps_and_refuses_selections_and_routes() {
+        use crate::geometric_stack::{PointerSelect, PrimeRoute, RouteAdmission};
+        let model = pointer_model(ReadScore::Lorentz, 6, 4.0);
+        let (bytes, _) = export_stack(&model, json!({}), None, None).expect("export");
+        let artifact = StackArtifact::parse(bytes).expect("artifact");
+        let pointer = artifact.header.shape.pointer.clone().expect("a pointer");
+        assert_eq!((pointer.dim, pointer.score.as_str()), (16, "lorentz"));
+        assert!(artifact.header.shape.needs_arcosh() && !artifact.header.shape.lorentz());
+        for (name, rows) in [
+            ("pointer_query", 16),
+            ("pointer_key", 16),
+            ("pointer_gate", 1),
+        ] {
+            let spec = artifact.matrix(name).expect(name);
+            assert_eq!((spec.rows, spec.cols), (rows, 64), "{name}");
+        }
+        // The folded gate map against the float gate weight times the gain.
+        let (gate, _, _) = packed_values(&artifact, "pointer_gate").expect("gate");
+        let weight = values(&model, "pointer.gate.weight").unwrap();
+        let gain = values(&model, "final_norm.weight").unwrap();
+        let scale = weight
+            .iter()
+            .zip(&gain)
+            .map(|(w, g)| (w * g).abs())
+            .fold(0f32, f32::max);
+        for ((q, w), g) in gate.iter().zip(&weight).zip(&gain) {
+            assert!((q - w * g).abs() <= scale / 7.0, "{q} vs {}", w * g);
+        }
+        let bias = artifact.table_i32("pointer_gate_bias").expect("bias");
+        assert_eq!(bias, vec![(0.5f64 * 65536.0).round() as i32]);
+        let beta = artifact.table_i16("pointer_beta").expect("beta");
+        let want = f64::from(values(&model, "pointer.log_beta").unwrap()[0]).exp();
+        assert!(((grid_value(beta[0]) - want) / want).abs() <= 1.0 / 32.0 + 1e-9);
+        let base = model.config.clone();
+        let refused = |config: &StackConfig, needle: &str| {
+            let text = check_export_config(config)
+                .expect_err("refused")
+                .to_string();
+            assert!(text.contains(needle), "{text}");
+        };
+        let mut selected = base.clone();
+        if let Some(pointer) = selected.pointer.as_mut() {
+            pointer.select = Some(PointerSelect::TopK(1));
+        }
+        refused(&selected, "no integer port");
+        let mut routed = base.clone();
+        if let Some(pointer) = routed.pointer.as_mut() {
+            pointer.route = Some(PrimeRoute {
+                window: 2,
+                ranked: true,
+                admission: RouteAdmission::Ngram,
+            });
+        }
+        refused(&routed, "no integer port");
+        let mut control = base.clone();
+        control.arch = StackArch::Transformer;
+        refused(&control, "Llama export has no pointer head");
+        check_export_config(&base).expect("a plain pointer exports");
     }
 
     #[test]

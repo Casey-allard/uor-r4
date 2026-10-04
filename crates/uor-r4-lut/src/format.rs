@@ -20,6 +20,26 @@ use crate::{format_error, invalid, Result};
 pub const MAGIC: &[u8; 8] = b"UORLUT01";
 pub const SCHEMA: &str = "uor-r4.lut-llama/1";
 pub const STACK_SCHEMA: &str = "uor-r4.lut-stack/1";
+/// Header schema of a geometric stack with a pointer-copy head. A distinct
+/// schema, not an optional field under [`STACK_SCHEMA`]: an engine built before
+/// the pointer port ignores the unknown `pointer` field and would serve the
+/// plain output distribution, so it must refuse the artifact instead.
+pub const STACK_POINTER_SCHEMA: &str = "uor-r4.lut-stack/2";
+
+/// The stack schema for a shape: [`STACK_POINTER_SCHEMA`] exactly when it has a
+/// pointer head.
+pub fn stack_schema_for(shape: &StackShape) -> &'static str {
+    if shape.pointer.is_some() {
+        STACK_POINTER_SCHEMA
+    } else {
+        STACK_SCHEMA
+    }
+}
+
+/// Whether `schema` is a geometric-stack schema (plain or pointer).
+pub fn is_stack_schema(schema: &str) -> bool {
+    schema == STACK_SCHEMA || schema == STACK_POINTER_SCHEMA
+}
 const ALIGN: usize = 64;
 const MAX_HEADER: u64 = 64 << 20;
 
@@ -224,10 +244,50 @@ pub struct StackShape {
     pub rotation: bool,
     /// Positions a session serves: the length of each read's age table.
     pub context: usize,
+    /// The pointer-copy head after the final norm; absent (and absent from
+    /// the JSON) on a model without one, so a plain artifact is
+    /// byte-identical to one written before the head had a port.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pointer: Option<StackPointer>,
+}
+
+/// The pointer-copy head of a stack (`uor-r4-training`'s `PointerConfig`):
+/// from the final normalized state, a query `q_t` and key `k_t` of width
+/// `dim` (matrices `pointer_query`, `pointer_key`) and a gate logit `g_t`
+/// (matrix `pointer_gate`, one row, plus the table `pointer_gate_bias` at
+/// exponent -16). The served next-token distribution is the mixture
+/// `(1 - sigmoid(g_t)) softmax(z_t) + sigmoid(g_t) p_copy`, where `p_copy`
+/// sums the softmax over sources `0..=t` of the pointer's scores onto the
+/// input token of each source: `<q_t, k_j> / sqrt(dim)` (`dot`, the
+/// Q30 scale `score_scale_q30`) or `-beta d(q_t, k_j)` (`lorentz`: the
+/// hyperboloid distance, the grid code `pointer_beta`, the arcosh table).
+/// Every source is kept: no selection or route has an integer port.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StackPointer {
+    pub dim: usize,
+    /// `dot` or `lorentz`.
+    pub score: String,
+    /// `1 / sqrt(dim)` in Q30 (the Dot score; recorded for both scores).
+    pub score_scale_q30: i64,
+}
+
+impl StackPointer {
+    pub fn lorentz(&self) -> bool {
+        self.score == "lorentz"
+    }
+
+    fn valid(&self) -> bool {
+        (1..=256).contains(&self.dim)
+            && matches!(self.score.as_str(), "dot" | "lorentz")
+            && (1..=1i64 << 31).contains(&self.score_scale_q30)
+    }
 }
 
 impl StackShape {
     pub fn validate(&self) -> Result<()> {
+        if self.pointer.as_ref().is_some_and(|p| !p.valid()) {
+            return Err(format_error("unsupported pointer head"));
+        }
         let dims = [self.vocab, self.width, self.heads, self.mlp, self.context];
         if dims.contains(&0)
             || self.pattern.is_empty()
@@ -269,6 +329,12 @@ impl StackShape {
 
     pub fn lorentz(&self) -> bool {
         self.read == "lorentz"
+    }
+
+    /// Whether the artifact carries the arcosh table: a Lorentz read or a
+    /// Lorentz pointer.
+    pub fn needs_arcosh(&self) -> bool {
+        self.lorentz() || self.pointer.as_ref().is_some_and(StackPointer::lorentz)
     }
 
     /// The flat L2 read: `-beta (|q - k| - offset)`.
@@ -313,7 +379,10 @@ pub struct StackNumerics {
 /// codes) and `l{l}.offset` (exponent -24). Every layer has `l{l}.gate`, `l{l}.up` and
 /// `l{l}.down`. Norm gains are folded into the maps that read the normalized
 /// state; `head` carries the final norm's gain. Tables `exp`, `silu`, `gelu`,
-/// and for Lorentz `arcosh`, are shared.
+/// and for a Lorentz read or pointer `arcosh`, are shared. A pointer head
+/// ([`StackPointer`]) adds `pointer_query` and `pointer_key` (`dim x width`),
+/// `pointer_gate` (`1 x width`), all carrying the final norm's gain, the table
+/// `pointer_gate_bias` and, for Lorentz, `pointer_beta`.
 /// The transport snap a stack artifact records (`transport_snap` in the
 /// header): the trained-in replacement of every unit transport quaternion by
 /// the nearest of these roots before its scaling by lambda. Only the
@@ -345,8 +414,10 @@ pub struct StackHeader {
 
 impl Sections for StackHeader {
     fn validate(&self) -> Result<()> {
-        if self.schema != STACK_SCHEMA || self.group != crate::GROUP {
-            return Err(format_error("unsupported schema or group size"));
+        if self.schema != stack_schema_for(&self.shape) || self.group != crate::GROUP {
+            return Err(format_error(
+                "unsupported schema or group size (a pointer head needs uor-r4.lut-stack/2, a plain stack /1)",
+            ));
         }
         if let Some(snap) = &self.transport_snap {
             return Err(format_error(format!(
@@ -359,8 +430,10 @@ impl Sections for StackHeader {
     }
 
     fn validate_for_reference(&self) -> Result<()> {
-        if self.schema != STACK_SCHEMA || self.group != crate::GROUP {
-            return Err(format_error("unsupported schema or group size"));
+        if self.schema != stack_schema_for(&self.shape) || self.group != crate::GROUP {
+            return Err(format_error(
+                "unsupported schema or group size (a pointer head needs uor-r4.lut-stack/2, a plain stack /1)",
+            ));
         }
         self.shape.validate()
     }
@@ -433,7 +506,7 @@ impl Builder<StackHeader> {
         shape.validate()?;
         Ok(Self {
             header: StackHeader {
-                schema: STACK_SCHEMA.to_owned(),
+                schema: stack_schema_for(&shape).to_owned(),
                 shape,
                 group: crate::GROUP,
                 numerics,
@@ -712,6 +785,7 @@ mod tests {
             read: "lorentz".to_owned(),
             rotation: true,
             context: 8,
+            pointer: None,
         }
     }
 
@@ -841,5 +915,91 @@ mod tests {
         ] {
             assert!(broken.validate().is_err(), "{broken:?}");
         }
+    }
+
+    /// A pointer head of width 1 to 256 with a dot or lorentz score and a
+    /// positive Q30 scale is accepted; only a Lorentz read or pointer needs
+    /// the arcosh table.
+    #[test]
+    fn stack_pointers_are_validated() {
+        let pointer = |dim: usize, score: &str, scale: i64| StackShape {
+            read: "dot".to_owned(),
+            pointer: Some(StackPointer {
+                dim,
+                score: score.to_owned(),
+                score_scale_q30: scale,
+            }),
+            ..stack_shape()
+        };
+        assert!(pointer(32, "dot", 1 << 28).validate().is_ok());
+        assert!(!pointer(32, "dot", 1 << 28).needs_arcosh());
+        assert!(pointer(256, "lorentz", 1).validate().is_ok());
+        assert!(pointer(256, "lorentz", 1).needs_arcosh());
+        assert!(stack_shape().needs_arcosh());
+        for broken in [
+            pointer(0, "dot", 1 << 28),
+            pointer(257, "dot", 1 << 28),
+            pointer(32, "l2", 1 << 28),
+            pointer(32, "Dot", 1 << 28),
+            pointer(32, "dot", 0),
+            pointer(32, "dot", (1 << 31) + 1),
+        ] {
+            assert!(broken.validate().is_err(), "{broken:?}");
+        }
+    }
+
+    /// A pointer stack is written under [`STACK_POINTER_SCHEMA`] and a plain
+    /// stack under [`STACK_SCHEMA`], and each header is refused under the
+    /// other's schema: an engine built before the pointer port must refuse a
+    /// pointer artifact rather than serve its plain output distribution.
+    #[test]
+    fn a_pointer_stack_needs_its_own_schema() {
+        let pointer_shape = StackShape {
+            read: "dot".to_owned(),
+            pointer: Some(StackPointer {
+                dim: 8,
+                score: "dot".to_owned(),
+                score_scale_q30: 1 << 28,
+            }),
+            ..stack_shape()
+        };
+        assert_eq!(stack_schema_for(&pointer_shape), STACK_POINTER_SCHEMA);
+        assert_eq!(stack_schema_for(&stack_shape()), STACK_SCHEMA);
+        assert!(is_stack_schema(STACK_SCHEMA) && is_stack_schema(STACK_POINTER_SCHEMA));
+        assert!(!is_stack_schema(SCHEMA));
+        let header = |schema: &str, shape: StackShape| StackHeader {
+            schema: schema.to_owned(),
+            shape,
+            group: crate::GROUP,
+            numerics: StackNumerics {
+                rms_eps: Fixed {
+                    mantissa: 1,
+                    exp: -48,
+                },
+                score_scale_q30: 1 << 28,
+                exp_step_log2: -8,
+                silu_step_log2: -8,
+                silu_range_log2: 4,
+                gelu_step_log2: -8,
+                gelu_range_log2: 4,
+            },
+            matrices: Vec::new(),
+            tables: Vec::new(),
+            source: serde_json::json!({}),
+            transport_snap: None,
+        };
+        assert!(header(STACK_POINTER_SCHEMA, pointer_shape.clone())
+            .validate()
+            .is_ok());
+        assert!(header(STACK_SCHEMA, pointer_shape.clone())
+            .validate()
+            .is_err());
+        assert!(header(STACK_SCHEMA, pointer_shape)
+            .validate_for_reference()
+            .is_err());
+        assert!(header(STACK_SCHEMA, stack_shape()).validate().is_ok());
+        assert!(header(STACK_POINTER_SCHEMA, stack_shape())
+            .validate()
+            .is_err());
     }
 }
