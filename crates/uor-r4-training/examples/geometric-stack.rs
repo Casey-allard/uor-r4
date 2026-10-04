@@ -52,7 +52,7 @@
 //!   [max_new_tokens=96] [protocol=1|2]
 //! geometric-stack lut-chat artifact=ROOT/model.lut tokenizer=TOKENIZER.json out=NEW_REPORT_ROOT \
 //!   [requests=REQUESTS.json] [max_new_tokens=96] [temperature=0] [top_k=40] [top_p=1] [seed=1] \
-//!   [threads=1]
+//!   [threads=1] [protocol=1|2] [engine=d11|d10]
 //! ```
 //!
 //! The shape options describe the transformer control (#1017's by default). A
@@ -163,7 +163,17 @@
 //! interactive conversation on standard input (`/reset` starts over; a full
 //! 256-position context starts a new conversation). Replies stop as the
 //! study's do: at EOS, at a terminal cycle of one to four ids repeated three
-//! times, or at `max_new_tokens`.
+//! times, or at `max_new_tokens`. A plain artifact uses protocol 1 unless
+//! `protocol=2` is given. A pointer artifact (`uor-r4.lut-stack/2`) is served
+//! through its mixture: greedily (ties to the lower id), by the
+//! multiplier-free D11 session (`engine=d11`, the default) or the D10
+//! comparator (`engine=d10`), under protocol 2 by default, with prompts and
+//! stops exactly as the float model's `reply_panel` (`chat-grade grade|reply`)
+//! has them, so the integer and float replies compare id for id. Sampling
+//! options (`temperature`, `top_k`, `top_p`, `seed`) are refused for a pointer
+//! artifact, and `engine=` for a plain one. Its `chat.json`
+//! (`uor-r4.geometric-stack-lut-chat/2`) records each reply's generated ids,
+//! seconds and ids per second, and the panel totals.
 //!
 //! `policy=` (`dialogue-train`) sets the training episodes' prefix; the
 //! development panel always keeps its full prefix. `full_prefix` (the default)
@@ -244,6 +254,7 @@ use candle_core::Device;
 use serde_json::{json, Value};
 use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
 use uor_r4_core::report_output;
+use uor_r4_tokenizer::dialogue::DialogueProtocol;
 use uor_r4_training::dialogue_development;
 use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CONTEXT};
 use uor_r4_training::flock::FlockSelect;
@@ -255,8 +266,8 @@ use uor_r4_training::geometric_stack::{
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
-    check_panel, development, episode_contract, episode_contract_for, greedy_reply, load_requests,
-    reply_panel, trim, DialogueSplit, Reply, MAX_NEW_TOKENS,
+    annotate_turn_costs, check_panel, development, episode_contract_for, greedy_reply,
+    load_requests, reply_panel, trim, DialogueSplit, Reply, TurnCost, MAX_NEW_TOKENS,
 };
 use uor_r4_training::stack_export::{
     check_export_config, check_export_representation, check_raw_logit_evaluation,
@@ -4234,6 +4245,11 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     Ok(())
 }
 
+/// The next id from a step's scores and the ids so far: the sampler over a
+/// plain artifact's logits, or the greedy argmax over a pointer artifact's
+/// mixture.
+type Pick<'a> = dyn FnMut(&[i32], &[u32]) -> Result<u32> + 'a;
+
 /// Integer replies of either engine: feed what the session has not yet
 /// consumed of the history (a history that does not extend it restarts the
 /// session), then draw ids until EOS or the cap.
@@ -4250,8 +4266,7 @@ impl<S: Stepper> IntegerChat<S> {
         history: &[u32],
         cap: usize,
         eos: u32,
-        sampler: &mut uor_r4_lut::sampling::Sampler,
-        exp: (&[u32], i32),
+        pick: &mut Pick<'_>,
     ) -> Result<Reply> {
         if !history.starts_with(&self.fed) || history.len() == self.fed.len() {
             self.session = new_session();
@@ -4264,9 +4279,7 @@ impl<S: Stepper> IntegerChat<S> {
         let mut seen = history.to_vec();
         let mut ids = Vec::with_capacity(cap);
         for step in 0..cap {
-            let next = sampler
-                .sample(&self.logits, &seen, exp.0, exp.1)
-                .map_err(lut)?;
+            let next = pick(&self.logits, &seen)?;
             ids.push(next);
             seen.push(next);
             if let Some(reply) = Reply::stop(&ids, eos) {
@@ -4303,8 +4316,29 @@ fn lut_chat_mode(arguments: &[String]) -> Result<()> {
             "seed",
             "threads",
             "oracle",
+            "engine",
+            "protocol",
         ],
     )?;
+    let engine_choice = args
+        .optional("engine")
+        .map(|name| MixtureEngine::parse(&name))
+        .transpose()?;
+    let version: Option<u8> = match args.optional("protocol").as_deref() {
+        None => None,
+        Some("1") => Some(1),
+        Some("2") => Some(2),
+        Some(other) => return Err(invalid(format!("invalid protocol={other} (1 or 2)"))),
+    };
+    // A pointer artifact decodes greedily over its mixture; sampling options
+    // name a distribution it does not serve.
+    let sampling_given: Vec<&str> = ["temperature", "top_k", "top_p", "seed"]
+        .into_iter()
+        .filter(|key| args.optional(key).is_some())
+        .collect();
+    if engine_choice.is_some() {
+        refuse_mixture_sampling(&sampling_given)?;
+    }
     let artifact_path = PathBuf::from(args.required("artifact")?);
     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
     let requests_path = args.optional("requests").map(PathBuf::from);
@@ -4333,12 +4367,61 @@ fn lut_chat_mode(arguments: &[String]) -> Result<()> {
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         use uor_r4_lut::sampling::{Sampler, SamplingSettings};
-        let engine = Engine::load(fs::read(&artifact_path)?, threads)?;
+        let bytes = fs::read(&artifact_path)?;
         let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(
             &tokenizer_path,
         )?)
         .ok_or_else(|| invalid("unreadable tokenizer.json"))?;
-        let (protocol, _) = episode_contract(&tokenizer, engine.vocabulary())?;
+        if uor_r4_lut::format::schema_of(&bytes).map_err(lut)?
+            == uor_r4_lut::format::STACK_POINTER_SCHEMA
+        {
+            refuse_mixture_sampling(&sampling_given)?;
+            let engine = engine_choice.unwrap_or(MixtureEngine::D11);
+            let protocol =
+                DialogueProtocol::literal_roles_version(&tokenizer, version.unwrap_or(2))
+                    .map_err(|e| invalid(e.to_string()))?;
+            let chat = mixture_chat(
+                bytes,
+                engine,
+                threads,
+                &tokenizer,
+                &protocol,
+                requests.as_deref(),
+                max_new_tokens,
+            )?;
+            fs::write(
+                out.join("chat.json"),
+                serde_json::to_vec_pretty(&json!({
+                    "schema": "uor-r4.geometric-stack-lut-chat/2",
+                    "artifact": identity(&artifact_path)?,
+                    "artifact_sha256": chat.artifact_sha256,
+                    "tokenizer": identity(&tokenizer_path)?,
+                    "protocol": protocol,
+                    "requests": requests_path.as_ref().map(|p| identity(p)).transpose()?,
+                    "settings": {"decoding": MIXTURE_DECODING, "max_new_tokens": max_new_tokens},
+                    "engine": {"name": engine.name(), "backend": chat.backend,
+                        "threads": chat.threads, "generated_positions": chat.positions,
+                        "seconds": chat.seconds,
+                        "ids_per_second": if chat.seconds > 0.0 {
+                            json!(chat.positions as f64 / chat.seconds) } else { Value::Null }},
+                    "record": chat.record,
+                }))?,
+            )?;
+            return chat.failure.map_or(Ok(()), Err);
+        }
+        if engine_choice.is_some() {
+            return Err(invalid(
+                "engine= chooses the server of a pointer artifact's mixture; this artifact has \
+                 no pointer head and is served by the D10 engine",
+            ));
+        }
+        let engine = Engine::load(bytes, threads)?;
+        let (protocol, _) = episode_contract_for(
+            &tokenizer,
+            engine.vocabulary(),
+            EPISODE_CONTEXT,
+            version.unwrap_or(1),
+        )?;
         let encoder = protocol
             .bind(&tokenizer)
             .map_err(|e| invalid(e.to_string()))?;
@@ -4351,31 +4434,39 @@ fn lut_chat_mode(arguments: &[String]) -> Result<()> {
         let decode = |ids: &[u32]| tokenizer.decode(ids);
         let clock = Instant::now();
         let mut positions = 0usize;
+        // The plain path records no per-reply costs (its report is unchanged).
+        let mut costs = Vec::new();
         let (record, failure) = match &engine {
-            Engine::Stack(model) => chat_with(
-                &|| model.session(),
-                model.exp_table(),
-                engine.context(),
-                &encoder,
-                &protocol,
-                requests.as_deref(),
-                max_new_tokens,
-                &decode,
-                &mut sampler,
-                &mut positions,
-            )?,
-            Engine::Llama(model) => chat_with(
-                &|| model.session(),
-                model.exp_table(),
-                engine.context(),
-                &encoder,
-                &protocol,
-                requests.as_deref(),
-                max_new_tokens,
-                &decode,
-                &mut sampler,
-                &mut positions,
-            )?,
+            Engine::Stack(model) => {
+                let exp = model.exp_table();
+                chat_with(
+                    &|| model.session(),
+                    engine.context(),
+                    &encoder,
+                    &protocol,
+                    requests.as_deref(),
+                    max_new_tokens,
+                    &decode,
+                    &mut |logits, seen| sampler.sample(logits, seen, exp.0, exp.1).map_err(lut),
+                    &mut positions,
+                    &mut costs,
+                )?
+            }
+            Engine::Llama(model) => {
+                let exp = model.exp_table();
+                chat_with(
+                    &|| model.session(),
+                    engine.context(),
+                    &encoder,
+                    &protocol,
+                    requests.as_deref(),
+                    max_new_tokens,
+                    &decode,
+                    &mut |logits, seen| sampler.sample(logits, seen, exp.0, exp.1).map_err(lut),
+                    &mut positions,
+                    &mut costs,
+                )?
+            }
         };
         let seconds = clock.elapsed().as_secs_f64();
         fs::write(
@@ -4397,6 +4488,179 @@ fn lut_chat_mode(arguments: &[String]) -> Result<()> {
         failure.map_or(Ok(()), Err)
     })();
     finish(&out, result)
+}
+
+/// How `lut-chat` decodes a pointer artifact.
+const MIXTURE_DECODING: &str =
+    "greedy over the pointer mixture (Q30), ties to the lower id; no sampling";
+
+/// The integer engine that serves a pointer artifact's mixture in `lut-chat`:
+/// the multiplier-free D11 session (the served path, the default) or the D10
+/// comparator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MixtureEngine {
+    D11,
+    D10,
+}
+
+impl MixtureEngine {
+    fn parse(text: &str) -> Result<Self> {
+        match text {
+            "d11" => Ok(Self::D11),
+            "d10" => Ok(Self::D10),
+            other => Err(invalid(format!("invalid engine={other} (d11 or d10)"))),
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::D11 => "d11",
+            Self::D10 => "d10",
+        }
+    }
+}
+
+/// Refuse sampling options for a pointer artifact, which `lut-chat` decodes
+/// greedily over its mixture.
+fn refuse_mixture_sampling(given: &[&str]) -> Result<()> {
+    if given.is_empty() {
+        return Ok(());
+    }
+    Err(invalid(format!(
+        "a pointer artifact chats greedily over its mixture: {} not supported (omit them)",
+        given.join(", ")
+    )))
+}
+
+/// A D11 session whose step returns the pointer mixture.
+struct D11Mixture<'m>(uor_r4_integer::stack::IntegerStackSession<'m>);
+
+impl Stepper for D11Mixture<'_> {
+    fn advance(&mut self, id: u32) -> Result<&[i32]> {
+        self.0.step(id).map_err(|e| invalid(e.to_string()))?;
+        Ok(self.0.next_token_scores())
+    }
+}
+
+/// A D10 session whose step returns the pointer mixture.
+struct D10Mixture<'m>(uor_r4_lut::stack::StackSession<'m>);
+
+impl Stepper for D10Mixture<'_> {
+    fn advance(&mut self, id: u32) -> Result<&[i32]> {
+        self.0.step(id).map_err(lut)?;
+        Ok(self.0.next_token_scores())
+    }
+}
+
+/// What a pointer artifact's conversation produced.
+struct MixtureChat {
+    record: Value,
+    /// The error that ended an interactive conversation, if one did.
+    failure: Option<TrainingError>,
+    artifact_sha256: String,
+    backend: String,
+    threads: Option<usize>,
+    positions: usize,
+    seconds: f64,
+}
+
+/// Chat with a pointer artifact through `engine`: greedy over the mixture,
+/// prompts and stops as [`reply_panel`] (the float model's `chat-grade`
+/// path) has them. A panel's record carries each reply's cost.
+fn mixture_chat(
+    bytes: Vec<u8>,
+    engine: MixtureEngine,
+    threads: usize,
+    tokenizer: &uor_r4_tokenizer::ByteBpeTokenizer,
+    protocol: &DialogueProtocol,
+    requests: Option<&[uor_r4_training::stack_dialogue::Request]>,
+    max_new_tokens: usize,
+) -> Result<MixtureChat> {
+    if !(1..=MAX_NEW_TOKENS).contains(&max_new_tokens) {
+        return Err(invalid(format!(
+            "max_new_tokens must be 1..{MAX_NEW_TOKENS}"
+        )));
+    }
+    let encoder = protocol
+        .bind(tokenizer)
+        .map_err(|e| invalid(e.to_string()))?;
+    let decode = |ids: &[u32]| tokenizer.decode(ids);
+    let mut pick =
+        |scores: &[i32], _: &[u32]| Ok(uor_r4_integer::stack::stack_argmax(scores) as u32);
+    let mut positions = 0usize;
+    let mut costs = Vec::new();
+    let no_head = || invalid("the artifact's schema names a pointer head the engine did not load");
+    let (mut record, failure, artifact_sha256, backend, threads, seconds) = match engine {
+        MixtureEngine::D11 => {
+            let model = uor_r4_integer::stack::IntegerStackModel::parse(&bytes)
+                .map_err(|e| invalid(e.to_string()))?;
+            model.pointer().ok_or_else(no_head)?;
+            let clock = Instant::now();
+            let (record, failure) = chat_with(
+                &|| D11Mixture(model.session()),
+                model.shape().context,
+                &encoder,
+                protocol,
+                requests,
+                max_new_tokens,
+                &decode,
+                &mut pick,
+                &mut positions,
+                &mut costs,
+            )?;
+            let seconds = clock.elapsed().as_secs_f64();
+            (
+                record,
+                failure,
+                model.artifact_sha256().to_owned(),
+                "d11 multiplier-free scalar".to_owned(),
+                None,
+                seconds,
+            )
+        }
+        MixtureEngine::D10 => {
+            let mut model = uor_r4_lut::stack::StackModel::from_artifact(
+                uor_r4_lut::format::StackArtifact::parse(bytes).map_err(lut)?,
+            )
+            .map_err(lut)?;
+            model.pointer().ok_or_else(no_head)?;
+            model.set_threads(threads).map_err(lut)?;
+            let clock = Instant::now();
+            let (record, failure) = chat_with(
+                &|| D10Mixture(model.session()),
+                model.shape().context,
+                &encoder,
+                protocol,
+                requests,
+                max_new_tokens,
+                &decode,
+                &mut pick,
+                &mut positions,
+                &mut costs,
+            )?;
+            let seconds = clock.elapsed().as_secs_f64();
+            (
+                record,
+                failure,
+                model.artifact_sha256().to_owned(),
+                model.backend().name().to_owned(),
+                Some(threads),
+                seconds,
+            )
+        }
+    };
+    if requests.is_some() {
+        annotate_turn_costs(&mut record, &costs)?;
+    }
+    Ok(MixtureChat {
+        record,
+        failure,
+        artifact_sha256,
+        backend,
+        threads,
+        positions,
+        seconds,
+    })
 }
 
 /// Replies to a request panel, or one interactive conversation. The record
@@ -4435,15 +4699,15 @@ fn apply_oracle_turns(
 
 fn chat_with<S: Stepper>(
     new_session: &dyn Fn() -> S,
-    exp: (&[u32], i32),
     context: usize,
     encoder: &uor_r4_tokenizer::dialogue::DialogueEncoder<'_>,
     protocol: &uor_r4_tokenizer::dialogue::DialogueProtocol,
     requests: Option<&[uor_r4_training::stack_dialogue::Request]>,
     max_new_tokens: usize,
     decode: &dyn Fn(&[u32]) -> String,
-    sampler: &mut uor_r4_lut::sampling::Sampler,
+    pick: &mut Pick<'_>,
     positions: &mut usize,
+    costs: &mut Vec<TurnCost>,
 ) -> Result<(Value, Option<TrainingError>)> {
     let mut chat = IntegerChat {
         session: new_session(),
@@ -4460,7 +4724,12 @@ fn chat_with<S: Stepper>(
             max_new_tokens,
             decode,
             &mut |history, cap| {
-                let reply = chat.reply(new_session, history, cap, eos, sampler, exp)?;
+                let clock = Instant::now();
+                let reply = chat.reply(new_session, history, cap, eos, pick)?;
+                costs.push(TurnCost {
+                    ids: reply.ids.len(),
+                    seconds: clock.elapsed().as_secs_f64(),
+                });
                 *positions += reply.ids.len();
                 Ok(reply)
             },
@@ -4498,8 +4767,7 @@ fn chat_with<S: Stepper>(
                         prefix = fresh;
                     }
                     history.extend(&prefix.tokens);
-                    let reply =
-                        chat.reply(new_session, &history, max_new_tokens, eos, sampler, exp)?;
+                    let reply = chat.reply(new_session, &history, max_new_tokens, eos, pick)?;
                     *positions += reply.ids.len();
                     let words: Vec<u32> =
                         reply.ids.iter().copied().filter(|&id| id != eos).collect();
@@ -5036,6 +5304,125 @@ mod tests {
         check_resume_pointer_seed(&directory, &saved())?;
         assert!(check_resume_pointer_seed(&directory, &seeded(Some(9))).is_err());
         fs::remove_dir_all(&directory)?;
+        Ok(())
+    }
+
+    /// GPT-2's byte-to-character alphabet.
+    fn alphabet() -> Vec<char> {
+        let mut printable: Vec<u32> = (u32::from(b'!')..=u32::from(b'~')).collect();
+        printable.extend(0xA1..=0xAC);
+        printable.extend(0xAE..=0xFF);
+        let mut table = vec!['\0'; 256];
+        let mut extra = 0;
+        for byte in 0u32..256 {
+            table[byte as usize] = if printable.contains(&byte) {
+                char::from_u32(byte).expect("printable")
+            } else {
+                extra += 1;
+                char::from_u32(255 + extra).expect("shifted")
+            };
+        }
+        table
+    }
+
+    /// A byte-level tokenizer with the three dialogue specials at ids 0-2
+    /// (259 ids).
+    fn byte_tokenizer() -> uor_r4_tokenizer::ByteBpeTokenizer {
+        let specials = ["<|bos|>", "<|eos|>", "<|unk|>"];
+        let mut vocab = serde_json::Map::new();
+        for (id, surface) in specials.iter().enumerate() {
+            vocab.insert((*surface).to_owned(), json!(id));
+        }
+        for (byte, ch) in alphabet().iter().enumerate() {
+            vocab.insert(ch.to_string(), json!(byte + 3));
+        }
+        let added: Vec<Value> = specials
+            .iter()
+            .enumerate()
+            .map(|(id, surface)| json!({"id": id, "content": surface}))
+            .collect();
+        uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(
+            json!({
+                "pre_tokenizer": {"type": "ByteLevel", "add_prefix_space": false},
+                "added_tokens": added,
+                "model": {"type": "BPE", "vocab": vocab, "merges": []},
+            })
+            .to_string()
+            .as_bytes(),
+        )
+        .expect("a byte-level tokenizer")
+    }
+
+    /// Each turn's reply ids and text, without the timing.
+    fn replies_of(record: &Value) -> Vec<(Value, Value)> {
+        record["rows"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .flat_map(|row| row["turns"].as_array().into_iter().flatten())
+            .map(|turn| (turn["reply_ids"].clone(), turn["reply"].clone()))
+            .collect()
+    }
+
+    #[test]
+    fn a_pointer_stack_chats_deterministically_and_alike_on_d11_and_d10() -> Result<()> {
+        let tokenizer = byte_tokenizer();
+        let mut config = StackConfig::transformer_control(7);
+        config.arch = StackArch::Geometric;
+        config.vocab_size = 259;
+        config.width = 64;
+        config.heads = 2;
+        config.mlp_hidden = 40;
+        config.context = 128;
+        config.pattern = "rar".to_owned();
+        config.read = ReadScore::Dot;
+        config.rotation = true;
+        config.pointer = Some(PointerConfig::new(8));
+        let model = StackModel::new(config, &Device::Cpu)?;
+        let (bytes, _) = export_stack(&model, json!({"test": "lut-chat"}), None, None)?;
+        let requests: Vec<uor_r4_training::stack_dialogue::Request> =
+            serde_json::from_value(json!([
+                {"id": "one", "category": "test", "user_turns": ["Hi there"]},
+                {"id": "two", "category": "test", "user_turns": ["Name a color.", "And another?"]},
+            ]))?;
+        let protocol = DialogueProtocol::literal_roles_version(&tokenizer, 2)
+            .map_err(|e| invalid(e.to_string()))?;
+        let chat = |engine| -> Result<MixtureChat> {
+            mixture_chat(
+                bytes.clone(),
+                engine,
+                1,
+                &tokenizer,
+                &protocol,
+                Some(&requests),
+                12,
+            )
+        };
+        let first = chat(MixtureEngine::D11)?;
+        let again = chat(MixtureEngine::D11)?;
+        let d10 = chat(MixtureEngine::D10)?;
+        let replies = replies_of(&first.record);
+        assert_eq!(replies.len(), 3);
+        assert!(first.positions > 0 && first.failure.is_none());
+        assert_eq!(
+            replies,
+            replies_of(&again.record),
+            "D11 is not deterministic"
+        );
+        assert_eq!(
+            replies,
+            replies_of(&d10.record),
+            "D11 and D10 replies differ"
+        );
+        // Every turn carries its cost, and the panel its totals.
+        assert_eq!(first.record["cost"]["replies"], json!(3));
+        assert_eq!(
+            first.record["cost"]["generated_ids"],
+            json!(first.positions)
+        );
+        // Sampling options are refused for a pointer artifact.
+        assert!(refuse_mixture_sampling(&["temperature"]).is_err());
+        assert!(refuse_mixture_sampling(&[]).is_ok());
         Ok(())
     }
 }

@@ -631,6 +631,63 @@ pub fn reply_panel(
     Ok(json!({"rows": rows, "max_new_tokens": max_new_tokens}))
 }
 
+/// What one generated reply cost: the ids generated (EOS included when the
+/// model emitted it) and the wall seconds the reply took, feeding of the
+/// not-yet-consumed history included.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TurnCost {
+    pub ids: usize,
+    pub seconds: f64,
+}
+
+fn per_second(ids: usize, seconds: f64) -> Value {
+    if seconds > 0.0 {
+        json!(ids as f64 / seconds)
+    } else {
+        Value::Null
+    }
+}
+
+/// Add each turn's cost to a [`reply_panel`] record: `generated_ids`,
+/// `reply_seconds` and `ids_per_second` on every turn (`costs` in the order
+/// the panel asked for its replies), and the panel totals as `cost`. The
+/// number of costs must equal the number of turns.
+pub fn annotate_turn_costs(record: &mut Value, costs: &[TurnCost]) -> Result<()> {
+    let mut remaining = costs.iter();
+    let rows = record
+        .get_mut("rows")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| invalid("a reply panel record without rows"))?;
+    for row in rows {
+        let turns = row
+            .get_mut("turns")
+            .and_then(Value::as_array_mut)
+            .ok_or_else(|| invalid("a reply panel row without turns"))?;
+        for turn in turns {
+            let cost = remaining
+                .next()
+                .ok_or_else(|| invalid("fewer reply costs than turns"))?;
+            let object = turn
+                .as_object_mut()
+                .ok_or_else(|| invalid("a reply panel turn is not an object"))?;
+            object.insert("generated_ids".into(), json!(cost.ids));
+            object.insert("reply_seconds".into(), json!(cost.seconds));
+            object.insert("ids_per_second".into(), per_second(cost.ids, cost.seconds));
+        }
+    }
+    if remaining.next().is_some() {
+        return Err(invalid("more reply costs than turns"));
+    }
+    let ids: usize = costs.iter().map(|c| c.ids).sum();
+    let seconds: f64 = costs.iter().map(|c| c.seconds).sum();
+    record["cost"] = json!({
+        "replies": costs.len(), "generated_ids": ids, "reply_seconds": seconds,
+        "ids_per_second": per_second(ids, seconds),
+        "scope": "wall time of each reply call, including feeding the history the decoder had not yet consumed",
+    });
+    Ok(())
+}
+
 /// The float stack's greedy reply to `history`: the highest logit (ties to the
 /// lower id) until EOS, a short terminal cycle or `cap` ids. Each step
 /// recomputes the whole window.

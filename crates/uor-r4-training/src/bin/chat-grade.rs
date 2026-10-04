@@ -8,6 +8,8 @@
 //! chat-grade grade out=NEW_REPORT_ROOT model=ROOT/model tokenizer=T.json \
 //!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64] \
 //!   [grader=qwen2.5:1.5b] [ollama_url=http://127.0.0.1:11434]
+//! chat-grade reply out=NEW_REPORT_ROOT model=ROOT/model tokenizer=T.json \
+//!   requests=PANEL.json[,MORE.json] [protocol=2] [max_new_tokens=64]
 //! ```
 //!
 //! `extract` decodes a prepared protocol-2 held-out chat split (documents from
@@ -22,6 +24,11 @@
 //! against the *next* request's conversation (a derangement): relevance must
 //! fall there, fluency need not. The report root is claimed before the model
 //! loads and sealed at the end.
+//!
+//! `reply` writes the same greedy replies without a grader (`replies.json`:
+//! the `reply_panel` record with each reply's generated ids, seconds and ids
+//! per second), so a served integer artifact's replies (`geometric-stack
+//! lut-chat`) can be compared with the float model's id for id.
 
 #![forbid(unsafe_code)]
 
@@ -38,7 +45,9 @@ use uor_r4_tokenizer::dialogue::DialogueProtocol;
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::geometric_stack::StackModel;
 use uor_r4_training::sha256_file;
-use uor_r4_training::stack_dialogue::{greedy_reply, load_requests, reply_panel, Request};
+use uor_r4_training::stack_dialogue::{
+    annotate_turn_costs, greedy_reply, load_requests, reply_panel, Request, TurnCost,
+};
 use uor_r4_training::stack_tracking::Rng;
 
 type Error = Box<dyn std::error::Error>;
@@ -89,7 +98,8 @@ fn run() -> Result<(), Error> {
     match arguments.first().map(String::as_str) {
         Some("extract") => extract(&arguments[1..]),
         Some("grade") => grade(&arguments[1..]),
-        _ => Err("usage: chat-grade extract|grade key=value...".into()),
+        Some("reply") => reply(&arguments[1..]),
+        _ => Err("usage: chat-grade extract|grade|reply key=value...".into()),
     }
 }
 
@@ -444,6 +454,133 @@ fn grade(arguments: &[String]) -> Result<(), Error> {
     result
 }
 
+/// A panel answered greedily by a saved float model.
+struct Answered {
+    protocol: DialogueProtocol,
+    requests: Vec<Request>,
+    model: StackModel,
+    /// The `reply_panel` record with each reply's cost.
+    panel: Value,
+    generation_seconds: f64,
+}
+
+/// Answer every request greedily (`reply_panel` over `greedy_reply`) and
+/// record each reply's generated ids and seconds.
+fn answer(
+    model_dir: &Path,
+    tokenizer_path: &Path,
+    request_paths: &[PathBuf],
+    version: u8,
+    max_new_tokens: usize,
+) -> Result<Answered, Error> {
+    let tokenizer = load_tokenizer(tokenizer_path)?;
+    let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
+    let encoder = protocol.bind(&tokenizer)?;
+    let mut requests: Vec<Request> = Vec::new();
+    for path in request_paths {
+        requests.extend(load_requests(path)?);
+    }
+    let model = StackModel::load(model_dir, &candle_core::Device::Cpu)?;
+    let mut costs = Vec::new();
+    let clock = Instant::now();
+    let mut panel = reply_panel(
+        &encoder,
+        &protocol,
+        &requests,
+        model.config.context,
+        max_new_tokens,
+        &|ids| tokenizer.decode(ids),
+        &mut |history, cap| {
+            let started = Instant::now();
+            let reply = greedy_reply(&model, history, cap, protocol.eos_id)?;
+            costs.push(TurnCost {
+                ids: reply.ids.len(),
+                seconds: started.elapsed().as_secs_f64(),
+            });
+            Ok(reply)
+        },
+    )?;
+    let generation_seconds = clock.elapsed().as_secs_f64();
+    annotate_turn_costs(&mut panel, &costs)?;
+    Ok(Answered {
+        protocol,
+        requests,
+        model,
+        panel,
+        generation_seconds,
+    })
+}
+
+/// `reply`: the greedy replies alone, with their costs; no grader.
+fn reply(arguments: &[String]) -> Result<(), Error> {
+    let started = Instant::now();
+    let args = Args::parse(
+        arguments,
+        &[
+            "out",
+            "model",
+            "tokenizer",
+            "requests",
+            "protocol",
+            "max_new_tokens",
+        ],
+    )?;
+    let out = PathBuf::from(args.required("out")?);
+    let model_dir = PathBuf::from(args.required("model")?);
+    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+    let request_paths: Vec<PathBuf> = args
+        .required("requests")?
+        .split(',')
+        .map(PathBuf::from)
+        .collect();
+    let version: u8 = args.number("protocol", 2)?;
+    let max_new_tokens: usize = args.number("max_new_tokens", 64)?;
+    report_output::claim(&out)?;
+    let result = (|| -> Result<(), Error> {
+        let answered = answer(
+            &model_dir,
+            &tokenizer_path,
+            &request_paths,
+            version,
+            max_new_tokens,
+        )?;
+        let report = json!({
+            "schema": "uor-r4.chat-grade-reply/1",
+            "model": model_dir.display().to_string(),
+            "model_sha256": sha256_file(&model_dir.join("model.safetensors")).ok(),
+            "parameters": answered.model.parameter_count(),
+            "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+            "protocol": answered.protocol.schema,
+            "requests": request_paths.iter().map(|p| json!({"path": p.display().to_string(), "sha256": sha256_file(p).ok()})).collect::<Vec<_>>(),
+            "max_new_tokens": max_new_tokens,
+            "decoding": "greedy over the float model's next-token scores (a pointer model's mixture), ties to the lower id; each step recomputes the whole window",
+            "panel": answered.panel,
+            "generation_seconds": answered.generation_seconds,
+            "executable_sha256": sha256_file(&std::env::current_exe()?)?,
+            "wall_seconds": started.elapsed().as_secs_f64(),
+        });
+        fs::write(
+            out.join("replies.json"),
+            serde_json::to_vec_pretty(&report)?,
+        )?;
+        println!(
+            "{} replies, {}",
+            answered.requests.len(),
+            report["panel"]["cost"]
+        );
+        Ok(())
+    })();
+    if let Err(error) = &result {
+        fs::write(
+            out.join("error.json"),
+            serde_json::to_vec_pretty(&json!({"error": error.to_string()}))?,
+        )?;
+    }
+    report_output::seal(&out)?;
+    report_output::verify(&out)?;
+    result
+}
+
 #[allow(clippy::too_many_arguments)]
 fn grade_into(
     out: &Path,
@@ -455,25 +592,19 @@ fn grade_into(
     grader: &Grader,
     started: Instant,
 ) -> Result<(), Error> {
-    let tokenizer = load_tokenizer(tokenizer_path)?;
-    let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
-    let encoder = protocol.bind(&tokenizer)?;
-    let mut requests: Vec<Request> = Vec::new();
-    for path in request_paths {
-        requests.extend(load_requests(path)?);
-    }
-    let model = StackModel::load(model_dir, &candle_core::Device::Cpu)?;
-    let clock = Instant::now();
-    let panel = reply_panel(
-        &encoder,
-        &protocol,
-        &requests,
-        model.config.context,
+    let Answered {
+        protocol,
+        requests,
+        model,
+        panel,
+        generation_seconds,
+    } = answer(
+        model_dir,
+        tokenizer_path,
+        request_paths,
+        version,
         max_new_tokens,
-        &|ids| tokenizer.decode(ids),
-        &mut |history, cap| greedy_reply(&model, history, cap, protocol.eos_id),
     )?;
-    let generation_seconds = clock.elapsed().as_secs_f64();
     // Each request's conversation as (user, reply) pairs.
     let conversations: Vec<Vec<(String, String)>> = panel["rows"]
         .as_array()
