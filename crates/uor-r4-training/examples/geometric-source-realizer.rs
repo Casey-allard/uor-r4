@@ -19,7 +19,10 @@ use uor_r4_integer::h4_tables::{H4Code, HistoricalH4Tables};
 use uor_r4_tokenizer::{dialogue::SCHEMA_V2, ByteBpeTokenizer};
 use uor_r4_training::{
     geometric_occurrence_consumer::{
-        source_realizer::{NativeSourceRealizer, RealizerTrace, SourceRealizerWeights},
+        source_realizer::{
+            NativeSourceRealizer, ObservedCode, RealizerTrace, SerializableContextReplay,
+            SourceRealizerWeights,
+        },
         ConsumerIdentity, ConsumerWeights, NativeConsumerArtifact,
     },
     geometric_source_emission_view::{SourceEmissionCompiler, SourceEmissionView},
@@ -58,6 +61,8 @@ struct Args {
     geometry_checkpoint: Option<PathBuf>,
     #[serde(default)]
     transfer_admission: Option<PathBuf>,
+    #[serde(default)]
+    query_diagnostic_admission: Option<PathBuf>,
 }
 #[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -169,7 +174,9 @@ fn source_commit() -> Result<&'static str> {
 fn admission(a: &Args) -> Result<Option<Admission>> {
     if matches!(
         a.mode.as_str(),
-        "readout-geometry-coadapt" | "readout-geometry-transfer"
+        "readout-geometry-coadapt"
+            | "readout-geometry-transfer"
+            | "readout-geometry-query-diagnostic"
     ) {
         return Ok(None);
     }
@@ -880,6 +887,7 @@ fn main() -> Result<()> {
             | "context-later-query-cells"
             | "readout-geometry-coadapt"
             | "readout-geometry-transfer"
+            | "readout-geometry-query-diagnostic"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -1000,16 +1008,29 @@ fn main() -> Result<()> {
             "later-query mode requires sole consumed_checkpoint field",
         ));
     }
-    if (a.mode == "readout-geometry-transfer") != a.transfer_admission.is_some() {
+    if matches!(
+        a.mode.as_str(),
+        "readout-geometry-transfer" | "readout-geometry-query-diagnostic"
+    ) != a.transfer_admission.is_some()
+    {
         return Err(invalid(
             "geometry transfer requires its separate transfer_admission",
         ));
     }
-    if a.mode == "readout-geometry-transfer"
-        && (a.maximum_seconds > 900 || a.fit_admission.is_some())
+    if matches!(
+        a.mode.as_str(),
+        "readout-geometry-transfer" | "readout-geometry-query-diagnostic"
+    ) && (a.maximum_seconds > 900 || a.fit_admission.is_some())
     {
         return Err(invalid(
             "zero-update geometry transfer maximum900 and no optimizer admission",
+        ));
+    }
+    if (a.mode == "readout-geometry-query-diagnostic") != a.query_diagnostic_admission.is_some()
+        || (a.mode == "readout-geometry-query-diagnostic" && a.maximum_seconds > 300)
+    {
+        return Err(invalid(
+            "query diagnostic requires sole query_diagnostic_admission and maximum300",
         ));
     }
     let admitted = admission(&a)?;
@@ -1034,12 +1055,20 @@ fn main() -> Result<()> {
     if a.mode == "readout-geometry-coadapt" {
         geometry_output_location(&a)?;
     }
-    if a.mode == "readout-geometry-transfer" {
+    if matches!(
+        a.mode.as_str(),
+        "readout-geometry-transfer" | "readout-geometry-query-diagnostic"
+    ) {
         frozen_transfer_output_location(&a)?;
+        if a.mode == "readout-geometry-query-diagnostic" {
+            query_diagnostic_output_location(&a)?;
+        }
     }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = if a.mode == "readout-geometry-transfer" {
+    let result = if a.mode == "readout-geometry-query-diagnostic" {
+        frozen_geometry_query_diagnostic(&a)
+    } else if a.mode == "readout-geometry-transfer" {
         frozen_geometry_transfer(&a)
     } else if a.mode == "readout-geometry-coadapt" {
         geometry_readout_coadapt(&a)
@@ -3067,8 +3096,20 @@ fn frozen_transfer_pairs(labels: &[Value], generation: &Value) -> Result<Vec<Val
     }
     Ok(labels.chunks_exact(2).zip(rows.chunks_exact(2)).map(|(label,row)|json!({"pair_id":label[0]["pair_id"],"left":row[0]["id"],"right":row[1]["id"],"both_exact_source_answers_with_eos":row.iter().all(|r|r["accepted_complete_answer"] == true && r["eos"] == true),"outputs_changed":row[0]["generated_ids"] != row[1]["generated_ids"]})).collect())
 }
-fn frozen_geometry_transfer(a: &Args) -> Result<()> {
-    let start = Instant::now();
+struct FrozenTransferInputs {
+    admission: FrozenTransferAdmission,
+    spec: Value,
+    fit: Value,
+    composition: Value,
+    selected: usize,
+    identity: ConsumerIdentity,
+    retained_sha: String,
+    bytes: Vec<u8>,
+    tok: ByteBpeTokenizer,
+    compiler: SourceEmissionCompiler,
+    retained: Report,
+}
+fn load_frozen_transfer_inputs(a: &Args) -> Result<FrozenTransferInputs> {
     let admission = frozen_transfer_admission(a)?;
     if admission.source_commit != source_commit()?
         || admission.panel_spec_sha256
@@ -3151,6 +3192,107 @@ fn frozen_geometry_transfer(a: &Args) -> Result<()> {
     {
         return Err(invalid("retained transfer identity differs"));
     }
+    Ok(FrozenTransferInputs {
+        admission,
+        spec,
+        fit,
+        composition,
+        selected,
+        identity,
+        retained_sha,
+        bytes,
+        tok,
+        compiler,
+        retained,
+    })
+}
+type FrozenTransferModel = (
+    &'static str,
+    PathBuf,
+    Value,
+    bool,
+    NativeSourceRealizer,
+    BTreeMap<String, String>,
+);
+fn load_transfer_comparator(
+    name: &'static str,
+    path: PathBuf,
+    stage: Value,
+    old: bool,
+    admission: &FrozenTransferAdmission,
+    identity: &ConsumerIdentity,
+    bytes: &[u8],
+) -> Result<FrozenTransferModel> {
+    report_output::verify(&path)?;
+    let receipt: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
+    let evaluation: Value = serde_json::from_slice(&fs::read(
+        path.parent()
+            .ok_or_else(|| invalid("stage parent absent"))?
+            .join(format!(
+                "evaluation-{:04}.json",
+                if old {
+                    32
+                } else if name == "frozen0000" {
+                    0
+                } else {
+                    64
+                }
+            )),
+    )?)?;
+    if admission.checkpoint_manifest_sha256.get(name)
+        != Some(&sha256_file(&path.join("manifest.json"))?)
+        || !transfer_stage_receipt_bound(&stage, &evaluation, &receipt)
+    {
+        return Err(invalid(
+            "comparator checkpoint/stage receipt binding differs",
+        ));
+    }
+    let source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
+    let native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
+    let bins = bin_files(&path.join("realizer-native"))?;
+    let expected_bins = if old {
+        &stage["hard_payload_sha256"]
+    } else {
+        &stage["native_payload_sha256"]
+    };
+    if bins != serde_json::from_value::<BTreeMap<String, String>>(expected_bins.clone())?
+        || native.binding().protocol().schema != SCHEMA_V2
+        || native.binding().vocab_size() != 4096
+    {
+        return Err(invalid("comparator source/native payload binding differs"));
+    }
+    let inventory = source_files(&path)?;
+    Ok((name, path, stage, old, native, inventory))
+}
+fn frozen_geometry_transfer(a: &Args) -> Result<()> {
+    let start = Instant::now();
+    let FrozenTransferInputs {
+        admission,
+        spec,
+        fit,
+        composition,
+        selected,
+        identity,
+        retained_sha,
+        bytes,
+        tok,
+        compiler,
+        retained,
+    } = load_frozen_transfer_inputs(a)?;
+    let roots = [
+        (
+            &admission.frozen_fit_root,
+            &admission.frozen_fit_manifest_sha256,
+            &admission.frozen_fit_report_sha256,
+            &admission.frozen_fit_source_commit,
+        ),
+        (
+            &admission.composition_root,
+            &admission.composition_manifest_sha256,
+            &admission.composition_report_sha256,
+            &admission.composition_source_commit,
+        ),
+    ];
     let specs = [
         (
             "original0032",
@@ -3180,46 +3322,9 @@ fn frozen_geometry_transfer(a: &Args) -> Result<()> {
     }
     let mut models = Vec::new();
     for (name, path, stage, old) in specs {
-        report_output::verify(&path)?;
-        let receipt: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
-        let evaluation: Value = serde_json::from_slice(&fs::read(
-            path.parent()
-                .ok_or_else(|| invalid("stage parent absent"))?
-                .join(format!(
-                    "evaluation-{:04}.json",
-                    if old {
-                        32
-                    } else if name == "frozen0000" {
-                        0
-                    } else {
-                        64
-                    }
-                )),
-        )?)?;
-        if admission.checkpoint_manifest_sha256.get(name)
-            != Some(&sha256_file(&path.join("manifest.json"))?)
-            || !transfer_stage_receipt_bound(&stage, &evaluation, &receipt)
-        {
-            return Err(invalid(
-                "comparator checkpoint/stage receipt binding differs",
-            ));
-        }
-        let source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
-        let native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
-        let bins = bin_files(&path.join("realizer-native"))?;
-        let expected_bins = if old {
-            &stage["hard_payload_sha256"]
-        } else {
-            &stage["native_payload_sha256"]
-        };
-        if bins != serde_json::from_value::<BTreeMap<String, String>>(expected_bins.clone())?
-            || native.binding().protocol().schema != SCHEMA_V2
-            || native.binding().vocab_size() != 4096
-        {
-            return Err(invalid("comparator source/native payload binding differs"));
-        }
-        let inventory = source_files(&path)?;
-        models.push((name, path, stage, old, native, inventory));
+        models.push(load_transfer_comparator(
+            name, path, stage, old, &admission, &identity, &bytes,
+        )?);
     }
     let eos = models[0].4.binding().eos_token_id();
     if models.iter().any(|m| m.4.binding().eos_token_id() != eos) {
@@ -3340,6 +3445,640 @@ fn frozen_geometry_transfer(a: &Args) -> Result<()> {
     write(
         &a.out.join("report.json"),
         &json!({"schema":"uor-r4.frozen-geometric-readout-transfer/1","mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"admission":admission,"saved_identity":identity,"optimizer_updates":0,"model_count":3,"fresh_cases_per_model":8,"old_development_cases_per_model":16,"replayed_cases_per_model":28,"selected_fit_checkpoint_index_recomputed":selected,"panel_manifest_sha256":sha256_file(&panel_root.join("manifest.json"))?,"replays":replays,"results":results,"comparisons":comparisons,"all_inputs_unchanged":true,"source_only_within_pair_intervention":true,"no_adopted_model":true,"scope":"authored selected-source component transfer; old16 open development; no session/distractor/NoRead/generalchat/geometryadvantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
+    )?;
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct QueryDiagnosticAdmission {
+    source_commit: String,
+    transfer_root: PathBuf,
+    transfer_manifest_sha256: String,
+    transfer_report_sha256: String,
+    transfer_source_commit: String,
+}
+fn query_diagnostic_admission(a: &Args) -> Result<QueryDiagnosticAdmission> {
+    serde_json::from_slice(&fs::read(
+        a.query_diagnostic_admission
+            .as_ref()
+            .ok_or_else(|| invalid("query diagnostic admission absent"))?,
+    )?)
+    .map_err(Into::into)
+}
+fn query_diagnostic_output_location(a: &Args) -> Result<()> {
+    let admission = query_diagnostic_admission(a)?;
+    let parent = a
+        .out
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let output = fs::canonicalize(parent)?.join(
+        a.out
+            .file_name()
+            .ok_or_else(|| invalid("query output leaf absent"))?,
+    );
+    if output.starts_with(fs::canonicalize(&admission.transfer_root)?) {
+        return Err(invalid("query diagnostic beneath sealed transfer input"));
+    }
+    Ok(())
+}
+fn query_transfer_binding(
+    report: &Value,
+    admission: &FrozenTransferAdmission,
+    identity: &ConsumerIdentity,
+    transfer_source: &str,
+) -> Result<()> {
+    if report["schema"] != "uor-r4.frozen-geometric-readout-transfer/1"
+        || report["mode"] != "readout-geometry-transfer"
+        || report["status"] != "completed"
+        || report["optimizer_updates"] != 0
+        || report["all_inputs_unchanged"] != true
+        || report["model_count"] != 3
+        || report["fresh_cases_per_model"] != 8
+        || report["replayed_cases_per_model"] != 28
+        || report["selected_fit_checkpoint_index_recomputed"] != 4
+        || report["saved_identity"] != serde_json::to_value(identity)?
+        || report["source_commit"] != transfer_source
+        || report["admission"]["source_commit"] != transfer_source
+    {
+        return Err(invalid("sealed transfer diagnostic admission differs"));
+    }
+    let current = serde_json::to_value(admission)?;
+    // Input roots may be portable copies; scientific SHA identities must match.
+    for key in [
+        "frozen_fit_manifest_sha256",
+        "frozen_fit_report_sha256",
+        "frozen_fit_source_commit",
+        "composition_manifest_sha256",
+        "composition_report_sha256",
+        "composition_source_commit",
+        "checkpoint_manifest_sha256",
+        "panel_spec_sha256",
+    ] {
+        if report["admission"][key] != current[key] {
+            return Err(invalid(
+                "query diagnostic transfer scientific binding differs",
+            ));
+        }
+    }
+    Ok(())
+}
+fn query_pair_replay_equal(
+    left: &RealizerTrace,
+    right: &RealizerTrace,
+    shared: usize,
+) -> Result<()> {
+    let a = &left.period_context;
+    let b = &right.period_context;
+    if left.source.emission_view.emitted_token_ids().get(..shared)
+        != right.source.emission_view.emitted_token_ids().get(..shared)
+    {
+        return Err(invalid("shared source emitted IDs differ"));
+    }
+    query_shared_context_equal(a, b, shared)
+}
+fn query_shared_context_equal(
+    a: &SerializableContextReplay,
+    b: &SerializableContextReplay,
+    shared: usize,
+) -> Result<()> {
+    let lanes = a
+        .heads
+        .checked_mul(a.lanes_per_head)
+        .ok_or_else(|| invalid("query diagnostic lane overflow"))?;
+    let flat = shared
+        .checked_mul(lanes)
+        .ok_or_else(|| invalid("query diagnostic prefix overflow"))?;
+    if a.heads != b.heads
+        || a.lanes_per_head != b.lanes_per_head
+        || shared == 0
+        || a.tokens.get(..shared) != b.tokens.get(..shared)
+        || a.tokens.get(..shared).is_none()
+        || a.states.get(..shared).is_none()
+        || a.actions.get(..shared).is_none()
+        || a.raw_roots.get(..flat).is_none()
+        || a.categories.get(..flat).is_none()
+        || a.codes.get(..flat).is_none()
+        || a.states.get(..shared) != b.states.get(..shared)
+        || a.actions.get(..shared) != b.actions.get(..shared)
+        || a.raw_roots.get(..flat) != b.raw_roots.get(..flat)
+        || a.categories.get(..flat) != b.categories.get(..flat)
+        || a.codes.get(..flat) != b.codes.get(..flat)
+    {
+        return Err(invalid(
+            "causal shared source keys/states/actions/observations differ",
+        ));
+    }
+    Ok(())
+}
+fn query_trajectory(trace: &RealizerTrace, episode: &Episode) -> Result<Vec<Value>> {
+    query_trajectory_context(&trace.period_context, episode)
+}
+fn query_trajectory_context(
+    c: &SerializableContextReplay,
+    episode: &Episode,
+) -> Result<Vec<Value>> {
+    let lanes = c.heads * c.lanes_per_head;
+    let source = episode.view.emitted_token_ids().len();
+    if c.tokens.len() != source + episode.query.len() || c.tokens[source..] != episode.query {
+        return Err(invalid(
+            "query diagnostic empty-prefix/query alignment differs",
+        ));
+    }
+    (0..episode.query.len()).map(|offset| {
+        let t=source+offset;let start=t*lanes;let end=start+lanes;
+        Ok(json!({"query_offset":offset,"absolute_context_time":t,"token_id":c.tokens[t],"states":c.states.get(t).ok_or_else(||invalid("query state absent"))?,"actions":c.actions.get(t).ok_or_else(||invalid("query action absent"))?,"raw_roots":c.raw_roots.get(start..end).ok_or_else(||invalid("query raw roots absent"))?,"categories":c.categories.get(start..end).ok_or_else(||invalid("query categories absent"))?,"codes":c.codes.get(start..end).ok_or_else(||invalid("query codes absent"))?}))
+    }).collect()
+}
+struct QueryDiagnosticTables {
+    potential: uor_r4_integer::geometric_potential_q4::NativePotentialQ4,
+    stop: uor_r4_integer::geometric_no_read::NativeGeometricNoRead,
+    period: uor_r4_integer::geometric_no_read::NativeGeometricNoRead,
+}
+fn load_query_tables(path: &Path, trace: &RealizerTrace) -> Result<QueryDiagnosticTables> {
+    use uor_r4_integer::{
+        geometric_no_read::{NativeGeometricNoRead, NoReadConfig},
+        geometric_potential_q4::{NativePotentialQ4, PotentialQ4Config},
+    };
+    let c = &trace.period_context;
+    let config = NoReadConfig {
+        vocabulary: 4096,
+        heads: c.heads,
+        latent_lanes_per_head: c.lanes_per_head,
+    };
+    Ok(QueryDiagnosticTables {
+        potential: NativePotentialQ4::new(
+            PotentialQ4Config {
+                heads: c.heads,
+                lanes_per_head: c.lanes_per_head,
+            },
+            &fs::read(path.join("realizer-native/consumer/potential-q4.bin"))?,
+        )
+        .map_err(|e| invalid(e.to_string()))?,
+        stop: NativeGeometricNoRead::new(
+            config,
+            &fs::read(path.join("realizer-native/consumer/no-read-q4.bin"))?,
+        )
+        .map_err(|e| invalid(e.to_string()))?,
+        period: NativeGeometricNoRead::new(
+            config,
+            &fs::read(path.join("realizer-native/period-q4.bin"))?,
+        )
+        .map_err(|e| invalid(e.to_string()))?,
+    })
+}
+fn query_controller_contributions(
+    table: &uor_r4_integer::geometric_no_read::NativeGeometricNoRead,
+    trace: &RealizerTrace,
+    expected: &[i64],
+) -> Result<Value> {
+    let roots = trace
+        .period_context
+        .states
+        .last()
+        .ok_or_else(|| invalid("controller final roots absent"))?;
+    let last = *trace
+        .period_context
+        .tokens
+        .last()
+        .ok_or_else(|| invalid("controller token absent"))? as usize;
+    let lanes = table.config().lanes();
+    let codes = trace
+        .period_context
+        .codes
+        .get(
+            trace
+                .period_context
+                .codes
+                .len()
+                .checked_sub(lanes)
+                .ok_or_else(|| invalid("controller codes absent"))?..,
+        )
+        .ok_or_else(|| invalid("controller code slice absent"))?;
+    query_controller_parts(table, last, roots, codes, expected)
+}
+fn query_controller_parts(
+    table: &uor_r4_integer::geometric_no_read::NativeGeometricNoRead,
+    last: usize,
+    roots: &[u8],
+    codes: &[ObservedCode],
+    expected: &[i64],
+) -> Result<Value> {
+    let c = table.config();
+    let lanes = c.lanes();
+    let expanded = table.expanded_q24();
+    let stride = 1 + c.vocabulary + lanes * (128 + 64 + 128 + 1);
+    if roots.len() != lanes
+        || codes.len() != lanes
+        || expected.len() != c.heads
+        || last >= c.vocabulary
+    {
+        return Err(invalid("controller contribution dimensions differ"));
+    }
+    let coefficients = uor_r4_integer::geometric_potential_q4::unpack_coefficients(
+        c.coefficient_count(),
+        table.packed_coefficients(),
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    let mut heads = Vec::new();
+    for (head, &expected_score) in expected.iter().enumerate() {
+        let base = head * stride;
+        let coefficient_base = head * c.coefficients_per_head();
+        let bias = expanded[base];
+        let token_index = base + 1 + last;
+        let token = expanded[token_index];
+        let mut sum = i64::from(bias) + i64::from(token);
+        let mut parts = Vec::new();
+        for lane in 0..lanes {
+            let root = usize::from(roots[lane]);
+            let category = if codes[lane].present {
+                usize::from(codes[lane].radius_bin) + 1
+            } else {
+                0
+            };
+            if root >= 120 || category >= 33 {
+                return Err(invalid("controller root/category bounds"));
+            }
+            let root_index = base + 1 + c.vocabulary + lane * 128 + root;
+            let category_index = base + 1 + c.vocabulary + lanes * 128 + lane * 64 + category;
+            let root_coefficients = (0..4)
+                .map(|axis| coefficient_base + 1 + c.vocabulary + lane * 4 + axis)
+                .collect::<Vec<_>>();
+            let category_coefficient =
+                coefficient_base + 1 + c.vocabulary + lanes * 4 + lane * 33 + category;
+            sum += i64::from(expanded[root_index]) + i64::from(expanded[category_index]);
+            parts.push(json!({"global_latent_lane":lane,"root":root,"category":category,"latent_table_index":root_index,"latent_q24":expanded[root_index],"latent_basis_coefficient_indices":root_coefficients,"latent_basis_q":root_coefficients.iter().map(|i|coefficients[*i]).collect::<Vec<_>>(),"category_table_index":category_index,"category_q24":expanded[category_index],"category_coefficient_index":category_coefficient,"category_coefficient_q":coefficients[category_coefficient]}));
+        }
+        if sum != expected_score {
+            return Err(invalid(
+                "controller decomposition differs from native score",
+            ));
+        }
+        heads.push(json!({"head":head,"bias_q24":bias,"bias_coefficient_index":coefficient_base,"bias_q":coefficients[coefficient_base],"last_token_id":last,"token_q24":token,"token_table_index":token_index,"token_coefficient_index":coefficient_base+1+last,"token_q":coefficients[coefficient_base+1+last],"all_latent_lanes":parts,"held_valid_active":false,"sum_q24":sum,"native_score_q24":expected_score,"exact":true}));
+    }
+    Ok(
+        json!({"heads":heads,"summed_heads_q24":expected.iter().sum::<i64>(),"table_identity":"expanded native q4 codec; indices are expanded entries, coefficient indices name distinct learned inputs"}),
+    )
+}
+fn query_copy_contributions(
+    table: &uor_r4_integer::geometric_potential_q4::NativePotentialQ4,
+    trace: &RealizerTrace,
+    features: &Value,
+) -> Result<Value> {
+    use uor_r4_integer::geometric_potential::{
+        CONTENT_PRESENCE_OFFSET, CONTEXT_PRESENCE_OFFSET, CONTEXT_RADIUS_OFFSET,
+        CONTEXT_UNARY_OFFSET, ENTRIES_PER_LANE,
+    };
+    let config = table.config();
+    let lanes = config.heads * config.lanes_per_head;
+    let values = table.expanded_q24();
+    let counts = [4, 4, 16, 1024, 1024, 4, 4];
+    let mut offsets = [0; 7];
+    let mut total = 0;
+    for (at, count) in offsets.iter_mut().zip(counts) {
+        *at = total;
+        total += lanes * count;
+    }
+    let coefficients = uor_r4_integer::geometric_potential_q4::unpack_coefficients(
+        total,
+        table.packed_coefficients(),
+    )
+    .map_err(|e| invalid(e.to_string()))?;
+    let mut occurrences = Vec::new();
+    for (occurrence, copy) in features["copy_features"]
+        .as_array()
+        .ok_or_else(|| invalid("copy features absent"))?
+        .iter()
+        .enumerate()
+    {
+        let mut heads = Vec::new();
+        let mut action_sum = 0i64;
+        for head in 0..config.heads {
+            let mut sum = 0i64;
+            let mut lane_parts = Vec::new();
+            for local in 0..config.lanes_per_head {
+                let lane = head * config.lanes_per_head + local;
+                let base = lane * ENTRIES_PER_LANE;
+                let feature = &copy[lane];
+                let presence = feature["context_presence"]
+                    .as_u64()
+                    .ok_or_else(|| invalid("copy presence absent"))?
+                    as usize;
+                if presence >= 4 {
+                    return Err(invalid("copy presence bounds"));
+                }
+                let mut terms = vec![
+                    ("content_presence", 5, 0, CONTENT_PRESENCE_OFFSET),
+                    (
+                        "context_presence",
+                        6,
+                        presence,
+                        CONTEXT_PRESENCE_OFFSET + presence,
+                    ),
+                ];
+                if let Some(root) = feature["relative_h4"].as_u64() {
+                    let radius = feature["radius_index"]
+                        .as_u64()
+                        .ok_or_else(|| invalid("active radius absent"))?
+                        as usize;
+                    if root >= 120 || radius >= 1024 {
+                        return Err(invalid("copy root/radius bounds"));
+                    }
+                    terms.push((
+                        "context_unary",
+                        1,
+                        root as usize,
+                        CONTEXT_UNARY_OFFSET + root as usize,
+                    ));
+                    terms.push(("context_radius", 4, radius, CONTEXT_RADIUS_OFFSET + radius));
+                }
+                let mut parts = Vec::new();
+                for (family, family_index, local_index, entry) in terms {
+                    let table_index = base + entry;
+                    let q24 = values[table_index];
+                    sum += i64::from(q24);
+                    let coefficient_indices = if family_index == 1 {
+                        (0..4)
+                            .map(|axis| offsets[family_index] + lane * 4 + axis)
+                            .collect::<Vec<_>>()
+                    } else {
+                        vec![offsets[family_index] + lane * counts[family_index] + local_index]
+                    };
+                    parts.push(json!({"family":family,"expanded_table_index":table_index,"family_entry_index":local_index,"value_q24":q24,"active":true,"learned_coefficient_indices":coefficient_indices,"coefficient_q":coefficient_indices.iter().map(|i|coefficients[*i]).collect::<Vec<_>>() }));
+                }
+                for family in [
+                    "content_unary",
+                    "pair",
+                    "content_radius",
+                    "context_unary",
+                    "context_radius",
+                ] {
+                    if !parts.iter().any(|part| part["family"] == family) {
+                        parts.push(json!({"family":family,"active":false,"expanded_table_index":null,"family_entry_index":null,"value_q24":0,"learned_coefficient_indices":[],"coefficient_q":[],"reason":"masked by absent content lanes or an absent context counterpart; no table entry read"}));
+                    }
+                }
+                lane_parts.push(json!({"global_lane":lane,"local_lane":local,"feature":feature,"terms":parts,"content_unary_radius_pair_active":false}));
+            }
+            let expected = *trace
+                .source
+                .view_kernel_trace
+                .heads
+                .get(head)
+                .and_then(|h| h.scores_q24.get(occurrence))
+                .ok_or_else(|| invalid("native copy score absent"))?;
+            if sum != expected {
+                return Err(invalid("Copy decomposition differs from native score"));
+            }
+            action_sum += sum;
+            heads.push(json!({"head":head,"lanes":lane_parts,"sum_q24":sum,"native_score_q24":expected,"exact":true}));
+        }
+        if trace.actions.actions.get(occurrence).map(|a| a.score_q24) != Some(action_sum) {
+            return Err(invalid("Copy summed heads differ from joint action score"));
+        }
+        occurrences.push(json!({"emission_view_offset":occurrence,"token_id":trace.source.emission_view.emitted_token_ids()[occurrence],"heads":heads,"summed_heads_q24":action_sum}));
+    }
+    Ok(
+        json!({"occurrences":occurrences,"alias_reduction":"unchanged joint native token alias aggregation; score contributions do not choose a unique occurrence"}),
+    )
+}
+fn frozen_geometry_query_diagnostic(a: &Args) -> Result<()> {
+    let start = Instant::now();
+    let query_admission = query_diagnostic_admission(a)?;
+    if query_admission.source_commit != source_commit()? {
+        return Err(invalid("query diagnostic executed source differs"));
+    }
+    report_output::verify(&query_admission.transfer_root)?;
+    if sha256_file(&query_admission.transfer_root.join("manifest.json"))?
+        != query_admission.transfer_manifest_sha256
+        || sha256_file(&query_admission.transfer_root.join("report.json"))?
+            != query_admission.transfer_report_sha256
+    {
+        return Err(invalid("query sealed transfer report binding differs"));
+    }
+    let transfer: Value = serde_json::from_slice(&fs::read(
+        query_admission.transfer_root.join("report.json"),
+    )?)?;
+    let FrozenTransferInputs {
+        admission,
+        fit,
+        composition: _,
+        selected,
+        identity,
+        retained_sha,
+        bytes,
+        tok,
+        compiler,
+        retained,
+        spec: _,
+    } = load_frozen_transfer_inputs(a)?;
+    query_transfer_binding(
+        &transfer,
+        &admission,
+        &identity,
+        &query_admission.transfer_source_commit,
+    )?;
+    let (_, path, stage, _, native, inventory) = load_transfer_comparator(
+        "selected0064",
+        admission.frozen_fit_root.join("checkpoint-0064"),
+        fit["checkpoints"][selected].clone(),
+        false,
+        &admission,
+        &identity,
+        &bytes,
+    )?;
+    let original = prepare(retained, &tok, native.binding().eos_token_id(), &compiler)?;
+    let template = original
+        .first()
+        .ok_or_else(|| invalid("query template absent"))?;
+    let construction =
+        composition_panel(template, &tok, &compiler, native.binding().eos_token_id())?;
+    let mut training = original.clone();
+    training.extend(construction.iter().cloned());
+    let (old_panel, _) = transfer_panel(
+        template,
+        &original,
+        &tok,
+        &compiler,
+        native.binding().eos_token_id(),
+    )?;
+    let (fresh, labels) = fresh_transfer_panel(
+        template,
+        &training,
+        &old_panel,
+        &tok,
+        &compiler,
+        native.binding().eos_token_id(),
+    )?;
+    let panel: Value = serde_json::from_slice(&fs::read(
+        query_admission
+            .transfer_root
+            .join("panel/frozen-panel.json"),
+    )?)?;
+    if panel["training28"] != json!(episode_labels(&training))
+        || panel["cases"] != json!(labels)
+        || transfer["panel_manifest_sha256"]
+            != sha256_file(&query_admission.transfer_root.join("panel/manifest.json"))?
+    {
+        return Err(invalid(
+            "query exact saved source-view/panel admission differs",
+        ));
+    }
+    let specs = [
+        ("construction-00", 4usize),
+        ("fresh-repetition-left", 4),
+        ("construction-05", 6),
+        ("fresh-order-right", 6),
+    ];
+    let probes = specs
+        .iter()
+        .map(|(id, _)| {
+            training
+                .iter()
+                .chain(&fresh)
+                .find(|e| e.id == *id)
+                .cloned()
+                .ok_or_else(|| invalid("frozen query probe absent"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let expected_emitted = [
+        vec![1130, 284, 1357, 284, 1130, 284],
+        vec![1130, 284, 1357, 284, 1357, 284],
+        vec![363, 277, 353, 292, 1357, 284],
+        vec![363, 277, 353, 292, 1357, 284, 1130, 284],
+    ];
+    let expected_original = [
+        vec![85, 300, 284, 1357, 284, 1130, 284],
+        vec![85, 300, 284, 1357, 284, 1357, 284],
+        vec![46, 277, 353, 292, 1357, 284],
+        vec![46, 277, 353, 292, 1357, 284, 1130, 284],
+    ];
+    for ((episode, expected), original_ids) in
+        probes.iter().zip(&expected_emitted).zip(&expected_original)
+    {
+        if episode.view.emitted_token_ids() != expected
+            || episode.tokens != *original_ids
+            || episode.query != [52, 970, 445, 519, 579, 627, 1541, 435, 16]
+            || episode.record != 2
+            || episode.commit != 2
+            || episode.relation != 7
+            || episode.entity != [644, 284]
+        {
+            return Err(invalid(
+                "exact frozen four probe source/query/frame differs",
+            ));
+        }
+    }
+    let inputs = a.out.join("inputs");
+    report_output::claim(&inputs)?;
+    write(
+        &inputs.join("probes.json"),
+        &json!({"probes":episode_labels(&probes),"source_packets":probes.iter().map(|e|transfer_source_packet(e,&[])).collect::<Vec<_>>(),"actual_prefix_ids":[],"shared_source_keys":[4,6],"selected_checkpoint_manifest_sha256":sha256_file(&path.join("manifest.json"))?,"predictions":"NOT_RUN","labels":"diagnostics only after native reads"}),
+    )?;
+    report_output::seal(&inputs)?;
+    report_output::verify(&inputs)?;
+    let geometry = HistoricalH4Tables::from_bytes(include_bytes!(
+        "../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin"
+    ))
+    .map_err(|e| invalid(e.to_string()))?;
+    let selected_transfer = transfer["results"]
+        .as_array()
+        .and_then(|rows| rows.iter().find(|r| r["model"] == "selected0064"))
+        .ok_or_else(|| invalid("selected transfer result absent"))?;
+    let mut traces = Vec::new();
+    let mut rows = Vec::new();
+    let mut tables = None;
+    for episode in &probes {
+        deadline(start, a)?;
+        let trace = native.read(episode.frame(), &episode.view, &episode.query, &[])?;
+        let saved = if episode.id.starts_with("construction-") {
+            stage["construction_canonical"]["rows"]
+                .as_array()
+                .and_then(|rows| rows.iter().find(|r| r["id"] == episode.id))
+                .map(|r| r["tokens"][0]["actions"].clone())
+        } else {
+            selected_transfer["first_failure_diagnostics"]
+                .as_array()
+                .and_then(|rows| rows.iter().find(|r| r["id"] == episode.id))
+                .map(|r| r["first_failure"]["native_actions"].clone())
+        }
+        .ok_or_else(|| invalid("saved probe action object absent"))?;
+        if serde_json::to_value(&trace.actions)? != saved {
+            return Err(invalid(
+                "query full action replay differs from saved fit/transfer",
+            ));
+        }
+        if tables.is_none() {
+            tables = Some(load_query_tables(&path, &trace)?);
+        }
+        let table = tables
+            .as_ref()
+            .ok_or_else(|| invalid("query tables absent"))?;
+        let features = scorer_features(&trace, &geometry)?;
+        let target = *episode
+            .target
+            .first()
+            .ok_or_else(|| invalid("diagnostic target label absent"))?;
+        let masses = trace
+            .actions
+            .token_masses
+            .iter()
+            .map(|m| (m.token_id, m.weight_q31))
+            .collect::<Vec<_>>();
+        let stop = trace
+            .source
+            .view_kernel_trace
+            .heads
+            .iter()
+            .map(|h| h.no_read_q24)
+            .collect::<Vec<_>>();
+        rows.push(json!({"id":episode.id,"inference_inputs":transfer_source_packet(episode,&[]),"target_label_only":target,"target_rank_probability":aggregate_rank(&masses,target)?,"full_action_object_saved_replay_equal":true,"trace":trace,"scorer_features":features,"consumed_source_context_indices":(0..episode.view.emitted_token_ids().len()).collect::<Vec<_>>(),"consumed_final_query_context_index":trace.period_context.tokens.len()-1,"controller_consumption":"last token and all final latent roots/categories; held=None","copy_contributions":query_copy_contributions(&table.potential,&trace,&features)?,"stop_contributions":query_controller_contributions(&table.stop,&trace,&stop)?,"period_contributions":query_controller_contributions(&table.period,&trace,&trace.period_q24)?,"query_trajectory":query_trajectory(&trace,episode)?}));
+        traces.push(trace);
+    }
+    let mut pairs = Vec::new();
+    for (index, shared) in [(0, 4), (2, 6)] {
+        if !transfer_pair_inputs_fixed(&probes[index], &probes[index + 1]) {
+            return Err(invalid("query paired typed inputs differ"));
+        }
+        query_pair_replay_equal(&traces[index], &traces[index + 1], shared)?;
+        pairs.push(json!({"fitted":probes[index].id,"transfer":probes[index+1].id,"shared_source_keys":shared,"shared_source_states_actions_rawroots_categories_codes_exact":true,"query_alignment":"relative query offset, not absolute sequence time","fitted_query_trajectory":rows[index]["query_trajectory"],"transfer_query_trajectory":rows[index+1]["query_trajectory"],"fitted_actions":traces[index].actions,"transfer_actions":traces[index+1].actions}));
+    }
+    if source_files(&path)? != inventory
+        || sha256_file(&a.retained_report)? != retained_sha
+        || sha256_file(&a.tokenizer)? != identity.tokenizer_sha256
+    {
+        return Err(invalid("query diagnostic input changed"));
+    }
+    report_output::verify(&path)?;
+    report_output::verify(&admission.frozen_fit_root)?;
+    report_output::verify(&admission.composition_root)?;
+    report_output::verify(&query_admission.transfer_root)?;
+    report_output::verify(&inputs)?;
+    if sha256_file(&query_admission.transfer_root.join("manifest.json"))?
+        != query_admission.transfer_manifest_sha256
+    {
+        return Err(invalid("query transfer envelope changed"));
+    }
+    if sha256_file(&admission.frozen_fit_root.join("manifest.json"))?
+        != admission.frozen_fit_manifest_sha256
+        || sha256_file(&admission.composition_root.join("manifest.json"))?
+            != admission.composition_manifest_sha256
+        || sha256_file(&admission.panel_spec)? != admission.panel_spec_sha256
+        || sealed_manifest_sha256(&a.checkpoint).map_err(|e| invalid(e.to_string()))?
+            != identity.parent_checkpoint_manifest_sha256
+        || sha256_file(&a.checkpoint.join("model.safetensors"))? != identity.parent_model_sha256
+        || sha256_file(&a.checkpoint.join("config.json"))? != identity.parent_config_sha256
+    {
+        return Err(invalid("query admitted authority inputs changed"));
+    }
+    report_output::verify(
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained root absent"))?,
+    )?;
+    write(
+        &a.out.join("report.json"),
+        &json!({"schema":"uor-r4.geometric-query-diagnostic/1","mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"query_admission":query_admission,"transfer_admission":admission,"saved_identity":identity,"optimizer_updates":0,"native_read_count":4,"actual_prefix_ids":[],"inputs_manifest_sha256":sha256_file(&inputs.join("manifest.json"))?,"rows":rows,"pairs":pairs,"all_input_files_unchanged":true,"native_source_and_context_unchanged":true,"no_adopted_model":true,"scope":"four frozen empty-prefix reads; observed source-conditioned query/controller differences, not a counterfactual role-reset effect, linguistic invariance proof or new language result","wall_seconds":start.elapsed().as_secs_f64()}),
     )?;
     Ok(())
 }
@@ -7248,6 +7987,172 @@ mod direction_tests {
             &admission, &report, &result, &receipt, &identity, "retained"
         )
         .is_err());
+        Ok(())
+    }
+    fn query_test_context(tokens: Vec<u32>, lanes: usize) -> SerializableContextReplay {
+        let time = tokens.len();
+        SerializableContextReplay {
+            tokens,
+            heads: 1,
+            lanes_per_head: lanes,
+            states: vec![vec![1; lanes]; time],
+            actions: vec![vec![1; lanes]; time],
+            raw_roots: vec![1; time * lanes],
+            categories: vec![1; time * lanes],
+            codes: vec![
+                ObservedCode {
+                    root: 1,
+                    radius_bin: 0,
+                    present: true
+                };
+                time * lanes
+            ],
+            coefficient_reads: 0,
+        }
+    }
+    #[test]
+    fn query_diagnostic_shared_keys_require_complete_early_state_and_observation() -> Result<()> {
+        let left = query_test_context(vec![3, 4, 5, 6], 2);
+        let mut right = left.clone();
+        right.tokens[3] = 9;
+        right.states[3][0] = 4;
+        assert!(query_shared_context_equal(&left, &right, 3).is_ok());
+        for field in 0..6 {
+            let mut bad = right.clone();
+            match field {
+                0 => bad.tokens[1] = 8,
+                1 => bad.states[1][0] = 3,
+                2 => bad.actions[1][0] = 3,
+                3 => bad.raw_roots[2] = 3,
+                4 => bad.categories[2] = 2,
+                _ => bad.codes[2].root = 3,
+            }
+            assert!(query_shared_context_equal(&left, &bad, 3).is_err());
+        }
+        let mut missing = left.clone();
+        missing.codes.clear();
+        assert!(query_shared_context_equal(&missing, &missing, 3).is_err());
+        assert!(query_shared_context_equal(&left, &right, 5).is_err());
+        Ok(())
+    }
+    #[test]
+    fn query_diagnostic_trajectory_offsets_and_empty_prefix_are_explicit() -> Result<()> {
+        let e = frozen_transfer_test_episode()?;
+        let source = e.view.emitted_token_ids().len();
+        let mut tokens = e.view.emitted_token_ids().to_vec();
+        tokens.extend_from_slice(&e.query);
+        let replay = query_test_context(tokens, 2);
+        let aligned = query_trajectory_context(&replay, &e)?;
+        assert_eq!(aligned.len(), e.query.len());
+        assert_eq!(aligned[0]["query_offset"], 0);
+        assert_eq!(aligned[0]["absolute_context_time"], source);
+        let mut extra = replay.clone();
+        extra.tokens.push(9);
+        assert!(query_trajectory_context(&extra, &e).is_err());
+        let mut wrong = replay;
+        wrong.tokens[source] = 99;
+        assert!(query_trajectory_context(&wrong, &e).is_err());
+        Ok(())
+    }
+    #[test]
+    fn query_diagnostic_controller_parts_match_public_codec_across_all_head_lanes() -> Result<()> {
+        use uor_r4_integer::geometric_no_read::{
+            pack_coefficients, NativeGeometricNoRead, NoReadConfig,
+        };
+        use uor_r4_integer::geometric_potential::AddressLane;
+        let config = NoReadConfig {
+            vocabulary: 8,
+            heads: 2,
+            latent_lanes_per_head: 4,
+        };
+        let q = (0..config.coefficient_count())
+            .map(|i| (i % 5) as i8 - 2)
+            .collect::<Vec<_>>();
+        let packed = pack_coefficients(&q).map_err(|e| invalid(e.to_string()))?;
+        let table =
+            NativeGeometricNoRead::new(config, &packed).map_err(|e| invalid(e.to_string()))?;
+        let roots = (0..8).map(|i| i as u8 + 1).collect::<Vec<_>>();
+        let latent = roots
+            .iter()
+            .map(|r| H4Code::try_from(*r).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        let addresses = roots
+            .iter()
+            .enumerate()
+            .map(|(i, r)| AddressLane::new(*r, i as u8, true).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        let codes = addresses
+            .iter()
+            .copied()
+            .map(ObservedCode::from)
+            .collect::<Vec<_>>();
+        let expected = table
+            .score(3, &latent, &addresses, None)
+            .map_err(|e| invalid(e.to_string()))?;
+        let parts = query_controller_parts(&table, 3, &roots, &codes, &expected)?;
+        assert_eq!(
+            parts["heads"][0]["all_latent_lanes"]
+                .as_array()
+                .map(Vec::len),
+            Some(8)
+        );
+        assert_eq!(
+            parts["heads"][1]["all_latent_lanes"]
+                .as_array()
+                .map(Vec::len),
+            Some(8)
+        );
+        assert_eq!(parts["heads"][0]["sum_q24"], expected[0]);
+        assert_eq!(parts["heads"][1]["sum_q24"], expected[1]);
+        let mut wrong = expected;
+        wrong[0] += 1;
+        assert!(query_controller_parts(&table, 3, &roots, &codes, &wrong).is_err());
+        assert!(query_controller_parts(&table, 3, &roots[..4], &codes, &expected).is_err());
+        Ok(())
+    }
+    #[test]
+    fn query_diagnostic_binding_allows_portable_paths_but_not_scientific_substitution() -> Result<()>
+    {
+        let identity = ConsumerIdentity {
+            tokenizer_sha256: "t".into(),
+            parent_checkpoint_manifest_sha256: "c".into(),
+            parent_model_sha256: "m".into(),
+            parent_config_sha256: "f".into(),
+        };
+        let admission = FrozenTransferAdmission {
+            source_commit: "new-source".into(),
+            frozen_fit_root: "copied-fit".into(),
+            frozen_fit_manifest_sha256: "fit-manifest".into(),
+            frozen_fit_report_sha256: "fit-report".into(),
+            frozen_fit_source_commit: "fit-source".into(),
+            composition_root: "copied-composition".into(),
+            composition_manifest_sha256: "composition-manifest".into(),
+            composition_report_sha256: "composition-report".into(),
+            composition_source_commit: "composition-source".into(),
+            checkpoint_manifest_sha256: BTreeMap::from([(
+                "selected0064".into(),
+                "selected-manifest".into(),
+            )]),
+            panel_spec: "copied-panel".into(),
+            panel_spec_sha256: "panel-sha".into(),
+        };
+        let mut old = serde_json::to_value(&admission)?;
+        old["source_commit"] = json!("old-source");
+        old["frozen_fit_root"] = json!("old-absolute-fit");
+        let report = json!({"schema":"uor-r4.frozen-geometric-readout-transfer/1","mode":"readout-geometry-transfer","status":"completed","optimizer_updates":0,"all_inputs_unchanged":true,"model_count":3,"fresh_cases_per_model":8,"replayed_cases_per_model":28,"selected_fit_checkpoint_index_recomputed":4,"saved_identity":identity,"source_commit":"old-source","admission":old});
+        assert!(query_transfer_binding(&report, &admission, &identity, "old-source").is_ok());
+        for field in [
+            "frozen_fit_manifest_sha256",
+            "checkpoint_manifest_sha256",
+            "panel_spec_sha256",
+        ] {
+            let mut wrong = report.clone();
+            wrong["admission"][field] = json!("substituted");
+            assert!(query_transfer_binding(&wrong, &admission, &identity, "old-source").is_err());
+        }
+        let mut wrong = report;
+        wrong["all_inputs_unchanged"] = json!(false);
+        assert!(query_transfer_binding(&wrong, &admission, &identity, "old-source").is_err());
         Ok(())
     }
     fn frozen_transfer_test_episode() -> Result<Episode> {

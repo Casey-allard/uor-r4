@@ -1,0 +1,759 @@
+{
+  "schema": "uor-r4.geometric-query-source-evidence/1",
+  "source_commit": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+  "source_sha256": "0f24400df9837c5c7106c652d8c7d982817b167641fe9acb14d1d125409c7845",
+  "executable_sha256": "03b139b284fd1497e98a238e4f3d5840236344b67e45046c56a06a5b49656827",
+  "retained_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-readout-query-diagnostic-20261004/pod-return/read-1",
+  "manifest_sha256": "879fbf96cc758b2cf90de8f21bd07532eb0d229c6463b5cdd3c3c9cd46ce7afb",
+  "host": "authorized existing Runpod Linux x86_64 CPU /root/codex",
+  "status": "completed",
+  "native_reads": 4,
+  "optimizer_updates": 0,
+  "saved_actions_replay_exact": 4,
+  "shared_source_keys": [
+    4,
+    6
+  ],
+  "all_inputs_unchanged": true,
+  "native_wall_seconds": 2.767710208,
+  "review": {
+    "status": "PASS",
+    "source_commit": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+    "native_reads_checked": 4,
+    "packed_contribution_terms_checked": 1712,
+    "rows": [
+      {
+        "id": "construction-00",
+        "winner": 1130,
+        "source_occurrences": 6,
+        "final_codes": [
+          {
+            "present": true,
+            "radius_bin": 12,
+            "root": 78
+          },
+          {
+            "present": true,
+            "radius_bin": 7,
+            "root": 62
+          },
+          {
+            "present": true,
+            "radius_bin": 22,
+            "root": 60
+          },
+          {
+            "present": true,
+            "radius_bin": 11,
+            "root": 105
+          },
+          {
+            "present": true,
+            "radius_bin": 0,
+            "root": 64
+          },
+          {
+            "present": true,
+            "radius_bin": 19,
+            "root": 51
+          },
+          {
+            "present": true,
+            "radius_bin": 29,
+            "root": 2
+          },
+          {
+            "present": true,
+            "radius_bin": 0,
+            "root": 24
+          }
+        ],
+        "final_latent": [
+          56,
+          20,
+          112,
+          3,
+          18,
+          86,
+          86,
+          13
+        ]
+      },
+      {
+        "id": "fresh-repetition-left",
+        "winner": 1,
+        "source_occurrences": 6,
+        "final_codes": [
+          {
+            "present": true,
+            "radius_bin": 12,
+            "root": 8
+          },
+          {
+            "present": true,
+            "radius_bin": 13,
+            "root": 63
+          },
+          {
+            "present": true,
+            "radius_bin": 15,
+            "root": 21
+          },
+          {
+            "present": true,
+            "radius_bin": 12,
+            "root": 5
+          },
+          {
+            "present": true,
+            "radius_bin": 24,
+            "root": 100
+          },
+          {
+            "present": true,
+            "radius_bin": 29,
+            "root": 111
+          },
+          {
+            "present": true,
+            "radius_bin": 23,
+            "root": 0
+          },
+          {
+            "present": true,
+            "radius_bin": 5,
+            "root": 2
+          }
+        ],
+        "final_latent": [
+          78,
+          102,
+          26,
+          115,
+          42,
+          97,
+          9,
+          6
+        ]
+      },
+      {
+        "id": "construction-05",
+        "winner": 363,
+        "source_occurrences": 6,
+        "final_codes": [
+          {
+            "present": true,
+            "radius_bin": 12,
+            "root": 87
+          },
+          {
+            "present": true,
+            "radius_bin": 13,
+            "root": 115
+          },
+          {
+            "present": true,
+            "radius_bin": 0,
+            "root": 62
+          },
+          {
+            "present": true,
+            "radius_bin": 5,
+            "root": 116
+          },
+          {
+            "present": true,
+            "radius_bin": 24,
+            "root": 113
+          },
+          {
+            "present": true,
+            "radius_bin": 3,
+            "root": 42
+          },
+          {
+            "present": true,
+            "radius_bin": 23,
+            "root": 26
+          },
+          {
+            "present": true,
+            "radius_bin": 18,
+            "root": 23
+          }
+        ],
+        "final_latent": [
+          7,
+          85,
+          59,
+          105,
+          41,
+          78,
+          60,
+          34
+        ]
+      },
+      {
+        "id": "fresh-order-right",
+        "winner": 292,
+        "source_occurrences": 8,
+        "final_codes": [
+          {
+            "present": true,
+            "radius_bin": 12,
+            "root": 83
+          },
+          {
+            "present": true,
+            "radius_bin": 18,
+            "root": 28
+          },
+          {
+            "present": true,
+            "radius_bin": 7,
+            "root": 52
+          },
+          {
+            "present": true,
+            "radius_bin": 11,
+            "root": 5
+          },
+          {
+            "present": true,
+            "radius_bin": 26,
+            "root": 17
+          },
+          {
+            "present": true,
+            "radius_bin": 9,
+            "root": 4
+          },
+          {
+            "present": true,
+            "radius_bin": 8,
+            "root": 112
+          },
+          {
+            "present": true,
+            "radius_bin": 13,
+            "root": 1
+          }
+        ],
+        "final_latent": [
+          32,
+          7,
+          65,
+          62,
+          106,
+          12,
+          73,
+          52
+        ]
+      }
+    ],
+    "pair_controller_deltas": [
+      {
+        "fitted": "construction-00",
+        "transfer": "fresh-repetition-left",
+        "shared_keys": 4,
+        "channels": {
+          "stop": [
+            {
+              "head": 0,
+              "sum_delta_q24": 55822063,
+              "changed_contributions": 14,
+              "positive_delta_q24": 66001853,
+              "negative_delta_q24": -10179790,
+              "cancellation_l1_q24": 20359580
+            },
+            {
+              "head": 1,
+              "sum_delta_q24": -3699233,
+              "changed_contributions": 10,
+              "positive_delta_q24": 25354925,
+              "negative_delta_q24": -29054158,
+              "cancellation_l1_q24": 50709850
+            }
+          ],
+          "period": [
+            {
+              "head": 0,
+              "sum_delta_q24": 19063470,
+              "changed_contributions": 14,
+              "positive_delta_q24": 46326446,
+              "negative_delta_q24": -27262976,
+              "cancellation_l1_q24": 54525952
+            },
+            {
+              "head": 1,
+              "sum_delta_q24": 29054159,
+              "changed_contributions": 15,
+              "positive_delta_q24": 50520750,
+              "negative_delta_q24": -21466591,
+              "cancellation_l1_q24": 42933182
+            }
+          ]
+        },
+        "shared_copy_score_deltas": [
+          {
+            "shared_offset": 0,
+            "token_id": 1130,
+            "fitted_score_q24": 25660894,
+            "transfer_score_q24": 20170479,
+            "delta_q24": -5490415
+          },
+          {
+            "shared_offset": 1,
+            "token_id": 284,
+            "fitted_score_q24": -16282146,
+            "transfer_score_q24": -37136796,
+            "delta_q24": -20854650
+          },
+          {
+            "shared_offset": 2,
+            "token_id": 1357,
+            "fitted_score_q24": 5796387,
+            "transfer_score_q24": -495071,
+            "delta_q24": -6291458
+          },
+          {
+            "shared_offset": 3,
+            "token_id": 284,
+            "fitted_score_q24": -18568399,
+            "transfer_score_q24": -23068672,
+            "delta_q24": -4500273
+          }
+        ]
+      },
+      {
+        "fitted": "construction-05",
+        "transfer": "fresh-order-right",
+        "shared_keys": 6,
+        "channels": {
+          "stop": [
+            {
+              "head": 0,
+              "sum_delta_q24": -31952351,
+              "changed_contributions": 11,
+              "positive_delta_q24": 12276942,
+              "negative_delta_q24": -44229293,
+              "cancellation_l1_q24": 24553884
+            },
+            {
+              "head": 1,
+              "sum_delta_q24": -11475902,
+              "changed_contributions": 12,
+              "positive_delta_q24": 35840685,
+              "negative_delta_q24": -47316587,
+              "cancellation_l1_q24": 71681370
+            }
+          ],
+          "period": [
+            {
+              "head": 0,
+              "sum_delta_q24": 40646928,
+              "changed_contributions": 14,
+              "positive_delta_q24": 70196157,
+              "negative_delta_q24": -29549229,
+              "cancellation_l1_q24": 59098458
+            },
+            {
+              "head": 1,
+              "sum_delta_q24": -3888334,
+              "changed_contributions": 14,
+              "positive_delta_q24": 44229293,
+              "negative_delta_q24": -48117627,
+              "cancellation_l1_q24": 88458586
+            }
+          ]
+        },
+        "shared_copy_score_deltas": [
+          {
+            "shared_offset": 0,
+            "token_id": 363,
+            "fitted_score_q24": 61312478,
+            "transfer_score_q24": 25660895,
+            "delta_q24": -35651583
+          },
+          {
+            "shared_offset": 1,
+            "token_id": 277,
+            "fitted_score_q24": -50520748,
+            "transfer_score_q24": -16165276,
+            "delta_q24": 34355472
+          },
+          {
+            "shared_offset": 2,
+            "token_id": 353,
+            "fitted_score_q24": -31151310,
+            "transfer_score_q24": -11781872,
+            "delta_q24": 19369438
+          },
+          {
+            "shared_offset": 3,
+            "token_id": 292,
+            "fitted_score_q24": -13383953,
+            "transfer_score_q24": 27262976,
+            "delta_q24": 40646929
+          },
+          {
+            "shared_offset": 4,
+            "token_id": 1357,
+            "fitted_score_q24": -7893538,
+            "transfer_score_q24": -19369438,
+            "delta_q24": -11475900
+          },
+          {
+            "shared_offset": 5,
+            "token_id": 284,
+            "fitted_score_q24": -4806245,
+            "transfer_score_q24": -20476450,
+            "delta_q24": -15670205
+          }
+        ]
+      }
+    ],
+    "seal_roots_exact_sets_sizes_checked": 2,
+    "scope": "Independent saved action/packed coefficient Q24 reconstruction and local shared-prefix context proof; no model execution or global q4 feasibility claim.",
+    "root_manifest_sha256": "879fbf96cc758b2cf90de8f21bd07532eb0d229c6463b5cdd3c3c9cd46ce7afb"
+  },
+  "interpretation": {
+    "status": "LOCAL_CAUSAL_CONSUMPTION_WITNESSES_VERIFIED",
+    "source_commit": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+    "manifest_sha256": "879fbf96cc758b2cf90de8f21bd07532eb0d229c6463b5cdd3c3c9cd46ce7afb",
+    "audit": "PASS1712packedcontributionterms; fouractualactions match savedfit/transfer; aliases/masks/8globalcontrollerlanes/shared4and6keyprefix/queryoffsets exact.",
+    "observations": [
+      "All eight final query lanes are present in all four traces. Fitted versus transfer final latent states/observed codes differ, while shared source keys are exact; these local inputs are not identical active-output signatures.",
+      "Pair0 Stop sum changes +52,122,830Q24, including opposite signed head changes; bias and lasttoken contributions remain unchanged. Period also changes through latent/category terms.",
+      "Pair1 correct sharedCopy key0 score61,312,478->25,660,895; wrong key3 -13,383,953->27,262,976. Keys/coefficients are fixed, so finalquery geometry changes the consumed relative/radius Copy features.",
+      "Pair1 Stop sum decreases43,428,253Q24 yet wrongCopy wins. Termination-only repair cannot explain both failures.",
+      "Pair0 target singer occurrence count decreases2to1. Alias multiplicity legitimately changes total target mass, so attribution must use preserved occurrence scores and actual aggregate masses.",
+      "Pair1 correctkey0 minus wrongkey3 rawmargin74,696,431->-1,602,081. Angular contribution delta+7,587,568 improves; radius delta-83,886,080 dominates reversal.",
+      "All diagnostic final controller categories occur in saved178training contexts. Pair1 unseen radius cells contribute only-4,194,304Q24 net margin; most radial reversal uses previously observed lookup entries. Active-cell observation is not proof of nonzero/sufficient gradient."
+    ],
+    "limits": "No query/source reset, separability, harmful-context intervention, global representation sufficiency, q4 infeasibility or transfer-qualified mechanism has been measured. Source-conditioned query state may encode useful distinctions; do not remove it by assumption.",
+    "next_design_for_team_discussion": {
+      "status": "NOT_RUN",
+      "deliverable": "One saved-score radial intervention retaining recipient source keys, roots, presence, alias aggregation and actual controller scores, compared on4probes and178canonical preservation positions.",
+      "arms": [
+        "Exact factualscore replay",
+        "Subtract only active context-radius Copy contributions (diagnostic ablation, never proposed runtime rule)",
+        "Optional matchedpair donor finalquery radius bins for probe Copy only; retain recipient queryroot/presence and sourcekeys"
+      ],
+      "purpose": "Quantify transfer ranking benefit against preservation cost; avoid fullqueryswap tautology. Distinguish harmful conditional radial calibration from a globally dispensable radial family.",
+      "limits": "Canonical score changes do not establish own-prefix complete generation after intervention, runtime deployment or geometry advantage. No fit/model-generation/production edit is authorized by the diagnostic design."
+    }
+  },
+  "exposure": {
+    "status": "PASS",
+    "canonical_positions": 178,
+    "radius_entry_counts": [
+      285,
+      278,
+      287,
+      225,
+      273,
+      246,
+      255,
+      239
+    ],
+    "category_entry_counts": [
+      31,
+      24,
+      30,
+      24,
+      25,
+      26,
+      26,
+      27
+    ],
+    "scope": "Active lookup exposure in saved178fixed-geometry training contexts; does not assert nonzero gradient or sufficient training."
+  },
+  "test_receipt": {
+    "host": "Runpod Linux x86_64",
+    "recorded_utc": "2026-10-04T10:31:16.529329+00:00",
+    "source_commit": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+    "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+    "command": [
+      "/root/.cargo/bin/cargo",
+      "test",
+      "--locked",
+      "-p",
+      "uor-r4-training",
+      "--example",
+      "geometric-source-realizer"
+    ],
+    "cwd": "/root/codex/geometric-readout-query-diagnostic-20261004",
+    "environment": {
+      "CARGO_HOME": "/root/codex/cargo-home",
+      "CARGO_TARGET_DIR": "/root/codex/target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "48",
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+      "RAYON_NUM_THREADS": "48",
+      "CUDA_VISIBLE_DEVICES": "",
+      "UOR_BUILD_SOURCE_COMMIT": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+      "TMPDIR": "/root/codex/tmp"
+    },
+    "affinity_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "threads_budget": 48,
+    "wrapper_pid": 203132,
+    "worker_pid": 203133,
+    "exit_code": 0,
+    "stop_reason": null,
+    "elapsed_seconds": 99.1109737730585,
+    "sampled_process_tree_peak_rss_bytes": 8207060992,
+    "rusage_children_max_rss_bytes": 7742251008,
+    "codex_allocated_bytes_latest": 7287791616,
+    "free_bytes_final": 14756671488,
+    "maximum_seconds": 900,
+    "maximum_rss_bytes": 17179869184,
+    "gpu_used": false,
+    "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+  },
+  "build_receipt": {
+    "host": "Runpod Linux x86_64",
+    "recorded_utc": "2026-10-04T10:36:36.338141+00:00",
+    "source_commit": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+    "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+    "command": [
+      "/root/.cargo/bin/cargo",
+      "build",
+      "--locked",
+      "--release",
+      "-p",
+      "uor-r4-training",
+      "--example",
+      "geometric-source-realizer"
+    ],
+    "cwd": "/root/codex/geometric-readout-query-diagnostic-20261004",
+    "environment": {
+      "CARGO_HOME": "/root/codex/cargo-home",
+      "CARGO_TARGET_DIR": "/root/codex/target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "48",
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+      "RAYON_NUM_THREADS": "48",
+      "CUDA_VISIBLE_DEVICES": "",
+      "UOR_BUILD_SOURCE_COMMIT": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+      "TMPDIR": "/root/codex/tmp"
+    },
+    "affinity_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "threads_budget": 48,
+    "wrapper_pid": 203610,
+    "worker_pid": 203611,
+    "exit_code": 0,
+    "stop_reason": null,
+    "elapsed_seconds": 287.33209245000035,
+    "sampled_process_tree_peak_rss_bytes": 5584158720,
+    "rusage_children_max_rss_bytes": 4192706560,
+    "codex_allocated_bytes_latest": 7847972864,
+    "free_bytes_final": 14756540416,
+    "maximum_seconds": 900,
+    "maximum_rss_bytes": 17179869184,
+    "gpu_used": false,
+    "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+  },
+  "run_receipt": {
+    "host": "Runpod Linux x86_64",
+    "recorded_utc": "2026-10-04T10:37:36.405323+00:00",
+    "source_commit": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+    "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+    "command": [
+      "/root/codex/geometric-source-realizer-5c418a06-linux-x86_64",
+      "/root/codex/query-diagnostic-args.json"
+    ],
+    "cwd": "/root/codex",
+    "environment": {
+      "CARGO_HOME": "/root/codex/cargo-home",
+      "CARGO_TARGET_DIR": "/root/codex/target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "48",
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+      "RAYON_NUM_THREADS": "48",
+      "CUDA_VISIBLE_DEVICES": "",
+      "UOR_BUILD_SOURCE_COMMIT": "5c418a06bfe3de23f5bd1c731bc30ade16244982",
+      "TMPDIR": "/root/codex/tmp"
+    },
+    "affinity_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "threads_budget": 48,
+    "wrapper_pid": 203810,
+    "worker_pid": 203811,
+    "exit_code": 0,
+    "stop_reason": null,
+    "elapsed_seconds": 4.216299211140722,
+    "sampled_process_tree_peak_rss_bytes": 542306304,
+    "rusage_children_max_rss_bytes": 592961536,
+    "codex_allocated_bytes_latest": 7858143232,
+    "free_bytes_final": 14745108480,
+    "maximum_seconds": 120,
+    "maximum_rss_bytes": 8589934592,
+    "gpu_used": false,
+    "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+  },
+  "return": {
+    "status": "PASS",
+    "files": 7,
+    "bytes": 1360283,
+    "manifest_sha256": "879fbf96cc758b2cf90de8f21bd07532eb0d229c6463b5cdd3c3c9cd46ce7afb"
+  },
+  "complete_envelope_charge_ms": 3600000,
+  "cumulative_ms": 1123035028,
+  "limit_ms": 1130000000,
+  "principal_next_decision": {
+    "status": "NOT_RUN",
+    "deliverable": "63-bin signed log-radius q4 sharing with matched arbitrary1024-cell control and prospective broader full-sequence/joint controller learning",
+    "same_initial_scores": "zero radial in both, selected64 otherparameters/frozengeometry retained",
+    "baseline_receipt": "4 probes +178canonical factual versuszero-radial, folded into admission",
+    "new_holdout": "freeze beforefit; previous8 exposed",
+    "controls": "same data/optimizer/native marginalCE/budget; no hard completion/transformer veto",
+    "limits": "scale-invariance hypothesis, not adopted serving; no resets/cursors/uniqueoccurrence claim"
+  }
+}
