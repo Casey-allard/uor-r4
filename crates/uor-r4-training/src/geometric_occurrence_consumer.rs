@@ -91,32 +91,10 @@ impl ConsumerIdentity {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OccurrenceIdentity {
-    pub record: u64,
-    pub commit: u64,
-    pub token_offset: u32,
-    pub token_id: u32,
-}
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct HeadTrace {
-    pub scores_q24: Vec<i64>,
-    pub weights_q31: Vec<u64>,
-    pub no_read_q24: i64,
-    pub no_read_weight_q31: u64,
-    pub total_weight_q31: u64,
-}
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct OccurrenceTrace {
-    pub occurrences: Vec<OccurrenceIdentity>,
-    pub heads: Vec<HeadTrace>,
-    pub sequence_tokens: usize,
-    pub context_coefficient_reads: usize,
-    pub potential_table_reads: usize,
-    pub no_read_table_reads: usize,
-    pub geometry_relative_reads: usize,
-    pub logical_owned_bytes: usize,
-}
+use uor_r4_integer::geometric_source_realizer::source_view_trace;
+pub use uor_r4_integer::geometric_source_realizer::{
+    HeadTrace, OccurrenceIdentity, OccurrenceTrace, SourceEmissionTrace,
+};
 
 pub struct ConsumerWeights {
     context: ContextWeights,
@@ -130,42 +108,11 @@ pub struct ConsumerLoss {
     pub mixed_scores: Vec<f32>,
 }
 
-/// The inner token offsets belong to the explicitly derived emission view.
-/// Original source bytes, token identities and byte-span provenance remain in
-/// `emission_view`; they must not be confused with those view offsets.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct SourceEmissionTrace {
-    pub record: u64,
-    pub commit: u64,
-    pub scope: Vec<u8>,
-    pub entity: Vec<u32>,
-    pub relation: u32,
-    pub source_store_view: u32,
-    pub emission_view: SourceEmissionView,
-    pub view_kernel_trace: OccurrenceTrace,
-}
 pub struct SourceEmissionLoss {
     pub loss: Tensor,
     pub trace: SourceEmissionTrace,
     pub mixed_scores: Vec<f32>,
 }
-fn source_view_trace(
-    frame: SelectedRecordFrame<'_>,
-    view: &SourceEmissionView,
-    kernel: OccurrenceTrace,
-) -> SourceEmissionTrace {
-    SourceEmissionTrace {
-        record: frame.identity.record,
-        commit: frame.identity.commit,
-        scope: frame.metadata.scope.to_vec(),
-        entity: frame.metadata.entity.to_vec(),
-        relation: frame.metadata.relation,
-        source_store_view: frame.metadata.view,
-        emission_view: view.clone(),
-        view_kernel_trace: kernel,
-    }
-}
-
 fn set_seeded(parameters: &BTreeMap<String, Var>, state: &mut u64) -> Result<()> {
     // Construction-only legal q4 coefficients, independent of data/answers.
     // These are not transferred synthetic language weights or a fitted model.
@@ -733,42 +680,18 @@ impl NativeConsumerArtifact {
         query: &[u32],
         prefix: &[u32],
     ) -> Result<OccurrenceTrace> {
-        let mut reader = self.reader()?;
-        let output = reader
-            .read(frame, query, prefix)
-            .map_err(|e| invalid(e.to_string()))?;
-        let mut heads = Vec::with_capacity(output.heads.len());
-        for h in 0..output.heads.len() {
-            let head = output
-                .head(h)
-                .ok_or_else(|| invalid("consumer head absent"))?;
-            heads.push(HeadTrace {
-                scores_q24: head.potential_q24.to_vec(),
-                weights_q31: head.occurrence_weights_q31.to_vec(),
-                no_read_q24: head.no_read_q24,
-                no_read_weight_q31: head.no_read_weight_q31,
-                total_weight_q31: head.total_weight_q31,
-            });
-        }
-        Ok(OccurrenceTrace {
-            occurrences: output
-                .occurrences
-                .iter()
-                .map(|x| OccurrenceIdentity {
-                    record: x.source.record,
-                    commit: x.source.commit,
-                    token_offset: x.token_offset,
-                    token_id: x.token_id,
-                })
-                .collect(),
-            heads,
-            sequence_tokens: output.stats.sequence_tokens,
-            context_coefficient_reads: output.stats.context_coefficient_reads,
-            potential_table_reads: output.stats.potential_table_reads,
-            no_read_table_reads: output.stats.no_read_table_reads,
-            geometry_relative_reads: output.stats.geometry_relative_reads,
-            logical_owned_bytes: output.stats.logical_owned_bytes,
-        })
+        Ok(uor_r4_integer::geometric_source_realizer::read_occurrence(
+            OccurrenceComponents {
+                context: self.context.native(),
+                potential: &self.potential_tables,
+                no_read: &self.no_read,
+                geometry: &self.geometry,
+                exp_q31: &self.exp,
+            },
+            frame,
+            query,
+            prefix,
+        )?)
     }
     pub fn stats(&self) -> serde_json::Value {
         serde_json::json!({"context":self.context.stats(),"potential":self.potential.stats(),"no_read":self.no_read.stats(),

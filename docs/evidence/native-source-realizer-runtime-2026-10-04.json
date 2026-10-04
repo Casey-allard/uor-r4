@@ -1,0 +1,609 @@
+{
+  "schema": "uor-r4.native-source-realizer-runtime-evidence/1",
+  "status": "PASS_SCOPED_SOURCE_FREE_NATIVE_FIDELITY; NO MODEL ADOPTED",
+  "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+  "host": "authorized Runpod Linux x86_64 /root/codex;48threads;GPU disabled",
+  "probe_executable_sha256": "f2309d91bc96068f4eec686886d16b577eb44dbd591d75b0bf10c241fdbe7ef7",
+  "preparer_executable_sha256": "62adf57976d881712f47dbec6a1664efe740cb701feeb4d77a10f78d1fad40fb",
+  "retained_root": "/Users/casey.allard/uor-r4-local/workspace/research/native-source-realizer-runtime-20261004/pod-return/native-runtime-replay-ff3-third",
+  "trusted_binding": {
+    "metadata_sha256": "bd18db6bdf3f7a9d444a7e62722ccfa831813254f62ca93e8b2dcf4eee115c38",
+    "identity": {
+      "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89",
+      "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+      "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+      "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae"
+    }
+  },
+  "canonical_exp": {
+    "bytes": 32776,
+    "sha256": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f"
+  },
+  "conditions": {
+    "operator_or_model_changes": false,
+    "training_updates": 0,
+    "four_initial_read_cases": 4,
+    "development_generation_cases": 28,
+    "generation_budget": 64,
+    "context_limit": 128,
+    "source_only_inputs": true,
+    "source_tensors_stack_config_and_labels_not_staged": true,
+    "fidelity_expected_parent": "retained frozen-context selected0064, source6b9f3904; four query/source diagnostic reads and original20+construction8 replies"
+  },
+  "observed_reports": {
+    "four": {
+      "cases": 4,
+      "eos_count": 0,
+      "elapsed_millis": 108,
+      "manifest_sha256": "4fbc556742cd12a5e16c14cdd1c7a61291c0cd3e0a589c8a51ebdb642045c4ae",
+      "report_sha256": "a321bb63bdd442f5d2cf3cb2a202b60594c154a8ebdc45e6e49802c5bc811599",
+      "executable_lookup": "absolute_argv0; independently bound by supervisor"
+    },
+    "development28": {
+      "cases": 28,
+      "eos_count": 28,
+      "elapsed_millis": 149,
+      "manifest_sha256": "0ac0c235492717862259636c4df752e2190ad4b761392a8da671ac801c0276f6",
+      "report_sha256": "e96a1def0532feebabe1267eed6ecec06b9c18397bd80c154cdbda8dca28bb38",
+      "executable_lookup": "absolute_argv0; independently bound by supervisor"
+    }
+  },
+  "negative_checks": {
+    "status": "PASS",
+    "checks": [
+      {
+        "name": "sealed-ancestor",
+        "command": [
+          "/usr/sbin/chroot",
+          "/root/codex/native-runtime-replay-ff3-third/chroot",
+          "/bin/native-source-realizer-probe",
+          "--artifact",
+          "/artifact",
+          "--inputs",
+          "/inputs/four-inputs.json",
+          "--generation-tokens",
+          "0",
+          "--binding",
+          "/inputs/trusted-binding.json",
+          "--out",
+          "/reports/four/nested/not-created"
+        ],
+        "exit_code": 1,
+        "elapsed_seconds": 0.005008072126656771,
+        "output": "native source-realizer probe: output beneath a sealed report ancestor is forbidden\n"
+      },
+      {
+        "name": "wrong-trust",
+        "command": [
+          "/usr/sbin/chroot",
+          "/root/codex/native-runtime-replay-ff3-third/chroot",
+          "/bin/native-source-realizer-probe",
+          "--artifact",
+          "/artifact",
+          "--inputs",
+          "/inputs/four-inputs.json",
+          "--generation-tokens",
+          "0",
+          "--binding",
+          "/inputs/wrong-binding.json",
+          "--out",
+          "/reports/wrong-trust"
+        ],
+        "exit_code": 1,
+        "elapsed_seconds": 0.004423307720571756,
+        "output": "native source-realizer probe: native source runtime: Invalid(\"native artifact trusted outer metadata digest differs\")\n"
+      }
+    ],
+    "positive_reports_unchanged": true,
+    "sealed_ancestor_created_no_directory": true,
+    "binary_sha256": "f2309d91bc96068f4eec686886d16b577eb44dbd591d75b0bf10c241fdbe7ef7",
+    "host": "Runpod Linux x86_64",
+    "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+    "maximum_address_space_bytes": 4294967296,
+    "sampled_children_max_rss_bytes": 8658944
+  },
+  "native_stats": {
+    "Period": {
+      "expanded_table_bytes": 53320,
+      "learned_coefficients": 8866,
+      "packed_bytes": 4433,
+      "with_span_reads": 68,
+      "without_span_reads": 36
+    },
+    "Stop": {
+      "expanded_table_bytes": 53320,
+      "learned_coefficients": 8866,
+      "packed_bytes": 4433,
+      "with_span_reads": 68,
+      "without_span_reads": 36
+    },
+    "additional_potential_table_copy_bytes": 597760,
+    "algebra_bytes": 15601,
+    "context": {
+      "expanded_table_bytes": 44564480,
+      "expanded_table_entries": 11141120,
+      "learned_coefficients": 8963136,
+      "packed_bytes": 4481568
+    },
+    "exp_bytes": 32776,
+    "extra_context_replays_per_read": 1,
+    "final_joint_reductions_per_read": 1,
+    "inherited_per_head_reductions_discarded": 2,
+    "potential": {
+      "expanded_table_bytes": 597760,
+      "expanded_table_entries": 149440,
+      "learned_coefficients": 16640,
+      "packed_bytes": 8320
+    },
+    "scope": "source-free packed integer components; loading/tokenization/trace wrapper allocate; no general chat or allocation-free qualification"
+  },
+  "validation": {
+    "final_source_focused_tests": {
+      "integer_source": 13,
+      "training_realizer": 2,
+      "training_driver": 54,
+      "probe_output_isolation": 2
+    },
+    "all_final_commands_exit_zero": {
+      "phases": [
+        {
+          "spec": "/root/codex/native-loader2-integer-source-tests-spec.json",
+          "exit_code": 0
+        },
+        {
+          "spec": "/root/codex/native-loader2-training-realizer-tests-spec.json",
+          "exit_code": 0
+        },
+        {
+          "spec": "/root/codex/native-loader2-training-driver-compatibility-spec.json",
+          "exit_code": 0
+        },
+        {
+          "spec": "/root/codex/native-loader2-probe-output-isolation-tests-spec.json",
+          "exit_code": 0
+        },
+        {
+          "spec": "/root/codex/native-loader2-standalone-release-spec.json",
+          "exit_code": 0
+        }
+      ],
+      "completed_all": true,
+      "recorded_utc": "2026-10-04T13:46:36.077047+00:00"
+    },
+    "independent_fidelity_review": {
+      "status": "PASS",
+      "review": {
+        "schema": "uor-r4.native-source-runtime-acceptance-review/1",
+        "status": "PASS",
+        "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+        "executable_sha256": "f2309d91bc96068f4eec686886d16b577eb44dbd591d75b0bf10c241fdbe7ef7",
+        "comparator_sha256": "d8b6c809b974b147759b1c19917a5fa5233cb2c24dcde1f4221cbb0d335e246e",
+        "comparison_receipt_sha256": "21254d8e40d68797382834f93fa9bc1a1b8f7a9efcca9565bc2b8e93a0929804",
+        "four_complete_traces_equal": 4,
+        "development_rows_full_actions_tokens_eos_equal": 28,
+        "development_generation_steps": 178,
+        "negative_checks": {
+          "sealed-ancestor": {
+            "name": "sealed-ancestor",
+            "command": [
+              "/usr/sbin/chroot",
+              "/root/codex/native-runtime-replay-ff3-third/chroot",
+              "/bin/native-source-realizer-probe",
+              "--artifact",
+              "/artifact",
+              "--inputs",
+              "/inputs/four-inputs.json",
+              "--generation-tokens",
+              "0",
+              "--binding",
+              "/inputs/trusted-binding.json",
+              "--out",
+              "/reports/four/nested/not-created"
+            ],
+            "exit_code": 1,
+            "elapsed_seconds": 0.005008072126656771,
+            "output": "native source-realizer probe: output beneath a sealed report ancestor is forbidden\n"
+          },
+          "wrong-trust": {
+            "name": "wrong-trust",
+            "command": [
+              "/usr/sbin/chroot",
+              "/root/codex/native-runtime-replay-ff3-third/chroot",
+              "/bin/native-source-realizer-probe",
+              "--artifact",
+              "/artifact",
+              "--inputs",
+              "/inputs/four-inputs.json",
+              "--generation-tokens",
+              "0",
+              "--binding",
+              "/inputs/wrong-binding.json",
+              "--out",
+              "/reports/wrong-trust"
+            ],
+            "exit_code": 1,
+            "elapsed_seconds": 0.004423307720571756,
+            "output": "native source-realizer probe: native source runtime: Invalid(\"native artifact trusted outer metadata digest differs\")\n"
+          }
+        },
+        "source_only_chroot_file_inventory_exact": true,
+        "chroot_files": [
+          "artifact/consumer/context-q4.bin",
+          "artifact/consumer/exp-q31.bin",
+          "artifact/consumer/metadata.json",
+          "artifact/consumer/no-read-q4.bin",
+          "artifact/consumer/potential-q4.bin",
+          "artifact/metadata.json",
+          "artifact/period-q4.bin",
+          "artifact/tokenizer.json",
+          "bin/native-source-realizer-probe",
+          "inputs/development28-inputs.json",
+          "inputs/four-inputs.json",
+          "inputs/trusted-binding.json",
+          "inputs/wrong-binding.json",
+          "lib/x86_64-linux-gnu/libc.so.6",
+          "lib/x86_64-linux-gnu/libgcc_s.so.1",
+          "lib64/ld-linux-x86-64.so.2",
+          "reports/development28/attempt.json",
+          "reports/development28/manifest.json",
+          "reports/development28/report.json",
+          "reports/four/attempt.json",
+          "reports/four/manifest.json",
+          "reports/four/report.json",
+          "reports/wrong-trust/attempt.json"
+        ],
+        "immutable_snapshot_files_sha256_rechecked": {
+          "chroot-before.sha256": 15,
+          "chroot-after.sha256": 21
+        },
+        "no_source_tensors_stack_labels_proc_dev_or_symlinks_staged": true,
+        "runtime_library_paths": [
+          "/lib/x86_64-linux-gnu/libc.so.6",
+          "/lib/x86_64-linux-gnu/libgcc_s.so.1",
+          "/lib64/ld-linux-x86-64.so.2"
+        ],
+        "tests_saved_logs": {
+          "integer-source-tests": {
+            "passed": 13,
+            "log_sha256": "b72f0587e135304432d764a9604229f2ad50b3310af96b91b7ae0a7b6762eac2"
+          },
+          "training-realizer-tests": {
+            "passed": 2,
+            "log_sha256": "ceb629006c886db1d788d2fa59503046b5d6c5d3c5cbd66ecd0518058c0bf76d"
+          },
+          "training-driver-compatibility": {
+            "passed": 54,
+            "log_sha256": "d1e2f3c682c1eae90555e5a5ee8a6ce33ac0405fda550513c419f72ebe8d9b9f"
+          },
+          "probe-output-isolation-tests": {
+            "passed": 2,
+            "log_sha256": "d4e0a1e06516670db64c44aa87324b9f3cb1c86211e1ed35ceab4a6bab69ade2"
+          }
+        },
+        "release_build_log_sha256": "31c2e16b6c91e25791f5bf7385eceb0b2f33cc929e2358cbc29a80700eb94f2f",
+        "negative_receipt_sha256": "129807ccc080319217c3081ba542f2d745caee77be628949290f461c2343a2c2",
+        "scope": "Source-free native artifact load/read fidelity and output/trust isolation on Linux x86_64; saved-data independent review only. No new training, general-chat/session integration, whole-binary opcode, allocation-free, laptop latency or energy acceptance.",
+        "failed_pre_repair_replays": "Preserved separately; neither f51 nor contaminated second report counted as acceptance",
+        "return_inventory": "Parent reported130files42720453bytes/SHAinventoryPASS; this reviewer independently audited chroot snapshots and report/artifact bytes, not the entire transport inventory"
+      },
+      "comparison": {
+        "status": "PASS",
+        "four_complete_traces_equal": 4,
+        "development_rows_full_actions_ids_eos_equal": 28,
+        "results": [
+          {
+            "name": "four",
+            "rows": 4,
+            "generation_token_cap": 0,
+            "report_sha256": "a321bb63bdd442f5d2cf3cb2a202b60594c154a8ebdc45e6e49802c5bc811599"
+          },
+          {
+            "name": "development28",
+            "rows": 28,
+            "generation_token_cap": 64,
+            "report_sha256": "e96a1def0532feebabe1267eed6ecec06b9c18397bd80c154cdbda8dca28bb38"
+          }
+        ],
+        "executable_sha256": "f2309d91bc96068f4eec686886d16b577eb44dbd591d75b0bf10c241fdbe7ef7",
+        "fit_manifest_sha256": "3749ca845ff3101d774baf5d5ebd3bb8e7148eb0a954cb6388d8b3685e6ff931",
+        "diagnostic_report_sha256": "6f219bb39b9474c701a4989aa66d7a3be9aee0a9e466e2ad2ad4adeffa29cf9f",
+        "scope": "Independent returned JSON/byte fidelity comparison; no inference, BLAKE3 rehash, opcode, allocation, energy or general-chat qualification."
+      },
+      "acceptance_review_sha256": "8cdee91b397ed3ca7e876c8935dbbb2560b855637e9ea5a41a4f26954e7ef46a",
+      "comparison_review_sha256": "21254d8e40d68797382834f93fa9bc1a1b8f7a9efcca9565bc2b8e93a0929804"
+    },
+    "return": {
+      "status": "PASS",
+      "files": 130,
+      "bytes": 42720453,
+      "full_remote_sha256_inventory_exact": true,
+      "failed_attempts_preserved": [
+        "native-runtime-replay-f51-first",
+        "native-runtime-replay-f51-second"
+      ],
+      "accepted_candidate": "native-runtime-replay-ff3-third",
+      "local_blake3_recomputed": false
+    },
+    "local_blake3_recomputed": false
+  },
+  "receipts": {
+    "native-loader-integer-source-tests-receipt.json": {
+      "source_commit": "f51e75a9e2390d6af60fc4e0428c16244db57500",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-integer",
+        "--lib",
+        "geometric_source"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 16.230657531879842,
+      "sampled_process_tree_peak_rss_bytes": 1940279296,
+      "rusage_children_max_rss_bytes": 1897488384,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader-replay-receipt.json": {
+      "source_commit": "f51e75a9e2390d6af60fc4e0428c16244db57500",
+      "command": [
+        "bash",
+        "/root/codex/native-loader-stage-and-replay.sh",
+        "f51-first",
+        "/root/codex/target/release/examples/native-source-realizer-probe",
+        "/root/codex/target/release/examples/prepare-native-realizer-probe",
+        "/root/codex/results/geometric-readout-frozen-context-20261004/fit-1/checkpoint-0064/realizer-native",
+        "/root/codex/native-loader-selected0064-binding.json",
+        "/root/codex/results/geometric-readout-query-diagnostic-20261004/read-1/inputs/probes.json",
+        "/root/codex/results/geometric-readout-frozen-context-20261004/fit-1/frozen-panel.json",
+        "d91c34e9cc514207a2c6978395d0e15a920069f518ef5715ddb9777194072515:1cba090864e3cceac9278d50d186f7de796654d17c1e62cc90ca6262b25f62c5"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 2.2246712218038738,
+      "sampled_process_tree_peak_rss_bytes": 1814528,
+      "rusage_children_max_rss_bytes": 13664256,
+      "maximum_seconds": 660,
+      "maximum_rss_bytes": 4294967296,
+      "gpu_used": false
+    },
+    "native-loader-replay2-receipt.json": {
+      "source_commit": "f51e75a9e2390d6af60fc4e0428c16244db57500",
+      "command": [
+        "bash",
+        "/root/codex/native-loader-stage-and-replay-v2.sh",
+        "f51-second",
+        "/root/codex/target/release/examples/native-source-realizer-probe",
+        "/root/codex/target/release/examples/prepare-native-realizer-probe",
+        "/root/codex/results/geometric-readout-frozen-context-20261004/fit-1/checkpoint-0064/realizer-native",
+        "/root/codex/native-loader-selected0064-binding.json",
+        "/root/codex/results/geometric-readout-query-diagnostic-20261004/read-1/inputs/probes.json",
+        "/root/codex/results/geometric-readout-frozen-context-20261004/fit-1/frozen-panel.json",
+        "d91c34e9cc514207a2c6978395d0e15a920069f518ef5715ddb9777194072515:1cba090864e3cceac9278d50d186f7de796654d17c1e62cc90ca6262b25f62c5"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.225057816132903,
+      "sampled_process_tree_peak_rss_bytes": 2244608,
+      "rusage_children_max_rss_bytes": 175570944,
+      "maximum_seconds": 660,
+      "maximum_rss_bytes": 4294967296,
+      "gpu_used": false
+    },
+    "native-loader-replay3-receipt.json": {
+      "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+      "command": [
+        "bash",
+        "/root/codex/native-loader-stage-and-replay-v2.sh",
+        "ff3-third",
+        "/root/codex/target/release/examples/native-source-realizer-probe",
+        "/root/codex/target/release/examples/prepare-native-realizer-probe",
+        "/root/codex/results/geometric-readout-frozen-context-20261004/fit-1/checkpoint-0064/realizer-native",
+        "/root/codex/native-loader-selected0064-binding.json",
+        "/root/codex/results/geometric-readout-query-diagnostic-20261004/read-1/inputs/probes.json",
+        "/root/codex/results/geometric-readout-frozen-context-20261004/fit-1/frozen-panel.json",
+        "f2309d91bc96068f4eec686886d16b577eb44dbd591d75b0bf10c241fdbe7ef7:62adf57976d881712f47dbec6a1664efe740cb701feeb4d77a10f78d1fad40fb"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.221897467970848,
+      "sampled_process_tree_peak_rss_bytes": 708608,
+      "rusage_children_max_rss_bytes": 175595520,
+      "maximum_seconds": 660,
+      "maximum_rss_bytes": 4294967296,
+      "gpu_used": false
+    },
+    "native-loader-standalone-release-receipt.json": {
+      "source_commit": "f51e75a9e2390d6af60fc4e0428c16244db57500",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "uor-r4-integer",
+        "--example",
+        "native-source-realizer-probe",
+        "--example",
+        "prepare-native-realizer-probe"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 28.458581019192934,
+      "sampled_process_tree_peak_rss_bytes": 690802688,
+      "rusage_children_max_rss_bytes": 662695936,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader-training-driver-compatibility-receipt.json": {
+      "source_commit": "f51e75a9e2390d6af60fc4e0428c16244db57500",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 26.452360298018903,
+      "sampled_process_tree_peak_rss_bytes": 2120675328,
+      "rusage_children_max_rss_bytes": 2285350912,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader-training-realizer-tests-receipt.json": {
+      "source_commit": "f51e75a9e2390d6af60fc4e0428c16244db57500",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "source_realizer"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 127.56385073112324,
+      "sampled_process_tree_peak_rss_bytes": 8005885952,
+      "rusage_children_max_rss_bytes": 8026144768,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader2-integer-source-tests-receipt.json": {
+      "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-integer",
+        "--lib",
+        "geometric_source"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.2233775719068944,
+      "sampled_process_tree_peak_rss_bytes": 454656,
+      "rusage_children_max_rss_bytes": 57778176,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader2-probe-output-isolation-tests-receipt.json": {
+      "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-integer",
+        "--example",
+        "native-source-realizer-probe"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 10.224617813248187,
+      "sampled_process_tree_peak_rss_bytes": 916127744,
+      "rusage_children_max_rss_bytes": 1441906688,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader2-standalone-release-receipt.json": {
+      "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "build",
+        "--locked",
+        "--offline",
+        "--release",
+        "-p",
+        "uor-r4-integer",
+        "--example",
+        "native-source-realizer-probe",
+        "--example",
+        "prepare-native-realizer-probe"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 4.237173615023494,
+      "sampled_process_tree_peak_rss_bytes": 253157376,
+      "rusage_children_max_rss_bytes": 222912512,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader2-training-driver-compatibility-receipt.json": {
+      "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 26.450954174622893,
+      "sampled_process_tree_peak_rss_bytes": 2113871872,
+      "rusage_children_max_rss_bytes": 2302410752,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    },
+    "native-loader2-training-realizer-tests-receipt.json": {
+      "source_commit": "ff3d7cc6c156fdc14f1203718a74c5c40c96e727",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "--offline",
+        "-p",
+        "uor-r4-training",
+        "--lib",
+        "source_realizer"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 32.48380591813475,
+      "sampled_process_tree_peak_rss_bytes": 3999805440,
+      "rusage_children_max_rss_bytes": 2873004032,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false
+    }
+  },
+  "failed_execution_attempts": {
+    "f51-first": "current_exe unavailable inside chroot before fallback; exit1, retained",
+    "f51-second": "positive commands completed but negative output-isolation check created a nested report beneath enclosing seal; original code inspected only input ancestors; rejected as accepted fidelity candidate",
+    "ff3-third": "repaired guard checks all existing sealed output ancestors before claim; negative checks reject without changing positive bytes"
+  },
+  "cost": {
+    "total_minutes": 120,
+    "charge_ms": 7200000,
+    "ledger_before": {
+      "cumulative_ms": 1135635028,
+      "limit_ms": 1140000000
+    },
+    "ledger_after": {
+      "cumulative_ms": 1142835028,
+      "limit_ms": 1150000000
+    },
+    "ceiling_increment_ms": 10000000
+  },
+  "limits": [
+    "Caller receipt must be obtained from trusted selection evidence, not self-authored from untrusted artifact",
+    "Historical parent source hashes are provenance references; offline float-source equivalence remains separate stronger audit",
+    "Load/tokenize/trace wrapper allocate; context tables expand to44564480bytes and potential table copy remains",
+    "Extra context replay and per-head reductions are retained; no full opcode/allocation-free or efficiency qualification",
+    "No model learning/general chat/Generate/reasoning/session integration qualification"
+  ],
+  "next": "Deliver checked source-free loader with accepted scoped fidelity; fixed2 geometric dependent-read task remains prospective and separate"
+}

@@ -24,7 +24,6 @@ use std::{
 use candle_core::{Device, IndexOp, Tensor, Var};
 use serde::{Deserialize, Serialize};
 use uor_r4_integer::{
-    geometric_context::NativeContextState,
     geometric_no_read::{NativeGeometricNoRead, NoReadConfig},
     geometric_occurrence_read::SelectedRecordFrame,
     geometric_potential::AddressLane,
@@ -33,16 +32,13 @@ use uor_r4_integer::{
 
 use super::{
     ConsumerIdentity, ConsumerWeights, NativeConsumerArtifact, PreparedConsumerStep,
-    SourceEmissionTrace, SOURCE_VIEW_POLICY, SOURCE_VIEW_SCHEMA,
+    SOURCE_VIEW_POLICY, SOURCE_VIEW_SCHEMA,
 };
 use crate::{
     geometric_context::NativeContextTrace,
     geometric_context_credit::{frozen_no_read_forward, frozen_potential_forward},
     geometric_no_read::{NoReadBatch, NoReadWeights},
-    geometric_source_actions::{
-        ActionHeadScores, ActionTrace, NativeSourceActions, SourceActionBinding,
-        POLICY as ACTION_POLICY,
-    },
+    geometric_source_actions::{SourceActionBinding, POLICY as ACTION_POLICY},
     geometric_source_emission_view::SourceEmissionView,
     invalid, sha256_bytes, Result,
 };
@@ -365,62 +361,25 @@ fn snapshot(root: &Path, expected: &[&str]) -> Result<BTreeMap<String, String>> 
     Ok(files)
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct ObservedCode {
-    pub root: u8,
-    pub radius_bin: u8,
-    pub present: bool,
-}
-impl From<AddressLane> for ObservedCode {
-    fn from(code: AddressLane) -> Self {
-        Self {
-            root: code.root(),
-            radius_bin: code.radius_bin(),
-            present: code.present(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct SerializableContextReplay {
-    pub tokens: Vec<u32>,
-    pub heads: usize,
-    pub lanes_per_head: usize,
-    pub states: Vec<Vec<u8>>,
-    pub actions: Vec<Vec<u8>>,
-    pub raw_roots: Vec<u8>,
-    pub categories: Vec<u8>,
-    pub codes: Vec<ObservedCode>,
-    pub coefficient_reads: usize,
-}
-impl SerializableContextReplay {
-    fn matches(&self, trace: &NativeContextTrace) -> bool {
-        trace.batch == 1
-            && trace.time == self.tokens.len()
-            && trace.heads == self.heads
-            && trace.lanes_per_head == self.lanes_per_head
-            && trace.states == self.states
-            && trace.actions == self.actions
-            && trace.emitted_roots == self.raw_roots
-            && trace.categories == self.categories
-            && trace.coefficient_reads == self.coefficient_reads
-            && trace
-                .codes
-                .iter()
-                .copied()
-                .map(ObservedCode::from)
-                .eq(self.codes.iter().cloned())
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
-pub struct RealizerTrace {
-    pub policy: &'static str,
-    pub source: SourceEmissionTrace,
-    /// The additional full integer replay needed by this wrapper for Period.
-    pub period_context: SerializableContextReplay,
-    pub period_q24: Vec<i64>,
-    pub actions: ActionTrace,
+pub use uor_r4_integer::geometric_source_realizer::{
+    ObservedCode, RealizerTrace, SerializableContextReplay,
+};
+fn context_replay_matches(replay: &SerializableContextReplay, trace: &NativeContextTrace) -> bool {
+    trace.batch == 1
+        && trace.time == replay.tokens.len()
+        && trace.heads == replay.heads
+        && trace.lanes_per_head == replay.lanes_per_head
+        && trace.states == replay.states
+        && trace.actions == replay.actions
+        && trace.emitted_roots == replay.raw_roots
+        && trace.categories == replay.categories
+        && trace.coefficient_reads == replay.coefficient_reads
+        && trace
+            .codes
+            .iter()
+            .copied()
+            .map(ObservedCode::from)
+            .eq(replay.codes.iter().cloned())
 }
 
 pub struct NativeSourceRealizer {
@@ -459,112 +418,19 @@ impl NativeSourceRealizer {
         query: &[u32],
         prefix: &[u32],
     ) -> Result<RealizerTrace> {
-        // This admission rejects unsupported frame status, empty query, wrong
-        // tokenizer/view/original IDs, OOV IDs and total sequence >128 first.
-        let source = self.consumer.read_source_view(frame, view, query, prefix)?;
-        let ids = view
-            .emitted_token_ids()
-            .iter()
-            .chain(query)
-            .chain(prefix)
-            .copied()
-            .collect::<Vec<_>>();
-        let c = self.consumer.metadata.context;
-        let lanes = c.heads * c.lanes_per_head;
-        let mut context = NativeContextState::new(c.heads, c.lanes_per_head)
-            .map_err(|e| invalid(e.to_string()))?;
-        let mut replay = SerializableContextReplay {
-            tokens: ids.clone(),
-            heads: c.heads,
-            lanes_per_head: c.lanes_per_head,
-            states: Vec::with_capacity(ids.len()),
-            actions: Vec::with_capacity(ids.len()),
-            raw_roots: Vec::with_capacity(ids.len() * lanes),
-            categories: Vec::with_capacity(ids.len() * lanes),
-            codes: Vec::with_capacity(ids.len() * lanes),
-            coefficient_reads: 0,
-        };
-        let mut last = None;
-        for &token in &ids {
-            let step = context
-                .step(
-                    token as usize,
-                    self.consumer.context.native(),
-                    &self.consumer.geometry,
-                )
-                .map_err(|e| invalid(e.to_string()))?;
-            replay
-                .states
-                .push(step.states[..lanes].iter().map(|x| x.index()).collect());
-            replay
-                .actions
-                .push(step.actions[..lanes].iter().map(|x| x.index()).collect());
-            replay
-                .raw_roots
-                .extend(step.readout_roots[..lanes].iter().map(|x| x.index()));
-            replay
-                .categories
-                .extend_from_slice(&step.categories[..lanes]);
-            replay
-                .codes
-                .extend(step.output[..lanes].iter().copied().map(ObservedCode::from));
-            replay.coefficient_reads += step.coefficient_reads;
-            last = Some((token, step));
-        }
-        let (token, last) = last.ok_or_else(|| invalid("realizer context sequence is empty"))?;
-        let period = self
-            .period
-            .score(
-                token as usize,
-                &last.states[..lanes],
-                &last.output[..lanes],
-                None,
-            )
-            .map_err(|e| invalid(e.to_string()))?;
-        let stop = self
-            .consumer
-            .no_read
-            .score(
-                token as usize,
-                &last.states[..lanes],
-                &last.output[..lanes],
-                None,
-            )
-            .map_err(|e| invalid(e.to_string()))?;
-        if source
-            .view_kernel_trace
-            .heads
-            .iter()
-            .zip(stop)
-            .any(|(h, s)| h.no_read_q24 != s)
-        {
-            return Err(invalid(
-                "realizer additional context replay Stop score differs",
-            ));
-        }
-        let mut reducer =
-            NativeSourceActions::new(self.binding.clone(), c.heads, &self.consumer.exp)?;
-        let head_scores = source
-            .view_kernel_trace
-            .heads
-            .iter()
-            .enumerate()
-            .map(|(head, scores)| ActionHeadScores {
-                copy_q24: &scores.scores_q24,
-                period_q24: period[head],
-                stop_q24: scores.no_read_q24,
-            })
-            .collect::<Vec<_>>();
-        let actions = reducer.reduce(view.emitted_token_ids(), &head_scores)?;
-        Ok(RealizerTrace {
-            policy: POLICY,
-            source,
-            period_context: replay,
-            period_q24: period[..c.heads].to_vec(),
-            actions,
-        })
+        Ok(
+            uor_r4_integer::geometric_source_realizer::RealizerExecution {
+                context: &self.consumer.context,
+                potential_tables: &self.consumer.potential_tables,
+                no_read: &self.consumer.no_read,
+                geometry: &self.consumer.geometry,
+                exp: &self.consumer.exp,
+                period: &self.period,
+                binding: &self.binding,
+            }
+            .read(frame, view, query, prefix)?,
+        )
     }
-
     pub fn stats(&self) -> serde_json::Value {
         serde_json::json!({"consumer":self.consumer.stats(),"period":self.period.stats(),
             "extra_context_replays_per_read":1,"final_joint_reductions_per_read":1,
@@ -679,7 +545,7 @@ impl PreparedSourceRealizer<'_> {
         let c = self.source.consumer.config();
         let width = c.heads * c.lanes_per_head;
         let context = self.consumer.context.forward(ids, 1, time, false)?;
-        if !trace.period_context.matches(&context.trace) {
+        if !context_replay_matches(&trace.period_context, &context.trace) {
             return Err(invalid("realizer native/training context replay differs"));
         }
         let absent = AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?;
