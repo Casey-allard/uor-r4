@@ -1343,6 +1343,9 @@ pub struct StackModel {
     /// Direct paired content/context geometry, with no q/k projection maps.
     geometric_address: Option<GeometricAddressConfig>,
     geometric_span: Option<GeometricSpanConfig>,
+    /// Each read key also carries the previous position's key, turned by the
+    /// fixed unit quaternion `j` ([`Self::set_read_key_shift`]).
+    read_key_shift: bool,
 }
 
 impl StackModel {
@@ -1445,6 +1448,7 @@ impl StackModel {
             read_identity_latch: None,
             geometric_address: None,
             geometric_span: None,
+            read_key_shift: false,
         })
     }
 
@@ -1850,6 +1854,9 @@ impl StackModel {
             let input = if part == "value" { &u } else { &identity };
             let mut projected =
                 Self::linear(input, p.layer(layer, &format!("read.{part}.weight"))?)?;
+            if part == "key" && self.read_key_shift {
+                projected = previous_key_channel(&projected)?;
+            }
             if part != "value" {
                 if let Some(identity) = &latched {
                     projected = projected.add(&Self::linear(
@@ -2114,6 +2121,41 @@ impl StackModel {
 
     pub fn geometric_address(&self) -> Option<&GeometricAddressConfig> {
         self.geometric_address.as_ref()
+    }
+
+    /// Opt into a previous-token key channel at every geometric read: the key
+    /// at `t` becomes `k_t + j * k_{t-1}` (zero before position 0), where
+    /// `k = W_key u` is the ordinary key projection and `j *` is left
+    /// multiplication of each four-channel lane by the unit quaternion `j`, a
+    /// fixed signed permutation `(a, b, c, d) -> (-c, d, a, -b)`
+    /// ([`quaternion_j_left`]). It adds no parameters and no matrix product:
+    /// one causal shift, a signed permutation and an addition. Queries,
+    /// values, NoRead and age are unchanged. A query can then match "the
+    /// position whose predecessor carried my key" through the `j`-turned
+    /// channel, separately from the current-token channel.
+    ///
+    /// Offline float research only: there is no saved or served form, so
+    /// [`Self::save`] refuses a model with it enabled. The default is false.
+    pub fn set_read_key_shift(&mut self, enabled: bool) -> Result<()> {
+        if enabled {
+            if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
+                return Err(invalid(
+                    "the read key shift needs a geometric stack with a read layer",
+                ));
+            }
+            if self.served.is_some() || self.geometric_address.is_some() {
+                return Err(invalid(
+                    "the read key shift has no served or geometric-address form",
+                ));
+            }
+        }
+        self.read_key_shift = enabled;
+        Ok(())
+    }
+
+    /// Whether every read key carries the `j`-turned previous key.
+    pub fn read_key_shift(&self) -> bool {
+        self.read_key_shift
     }
 
     /// Replace the geometric reader's scalar Held latch with an ordered token
@@ -6367,6 +6409,11 @@ impl StackModel {
     /// and pins its digest in config.json; a default save removes stale carry
     /// metadata and retains the legacy config byte format.
     pub fn save(&self, directory: &Path) -> Result<()> {
+        if self.read_key_shift {
+            return Err(invalid(
+                "the read key shift is an unsaved research option; refusing to save without it",
+            ));
+        }
         if let Some(span) = &self.geometric_span {
             span.validate(self.config.width)?;
             if self.geometric_address.is_none() || self.read_identity_latch.is_some() {
@@ -6854,6 +6901,7 @@ impl StackModel {
             read_identity_latch,
             geometric_address,
             geometric_span,
+            read_key_shift: false,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -8828,6 +8876,43 @@ impl CustomOp2 for QuaternionScan {
             Some(Tensor::from_vec(db, transition.shape(), device)?),
         ))
     }
+}
+
+/// Left multiplication by the unit quaternion `j` of every four-channel lane
+/// of the last dimension: `j (a + b i + c j + d k) = -c + d i + a j - b k`,
+/// the signed permutation `(a, b, c, d) -> (-c, d, a, -b)`. Exact (no
+/// rounding); a quarter turn in S3 that preserves norms and inner products.
+pub fn quaternion_j_left(x: &Tensor) -> Result<Tensor> {
+    let dims = x.dims().to_vec();
+    let width = *dims
+        .last()
+        .ok_or_else(|| invalid("quaternion lanes need a last dimension"))?;
+    if width == 0 || !width.is_multiple_of(4) {
+        return Err(invalid("quaternion lanes need a width divisible by 4"));
+    }
+    let mut lanes = dims.clone();
+    lanes.pop();
+    lanes.push(width / 4);
+    lanes.push(4);
+    let q = x.reshape(lanes.as_slice())?;
+    let axis = lanes.len() - 1;
+    let part = |i: usize| q.narrow(axis, i, 1);
+    let turned = Tensor::cat(
+        &[&part(2)?.neg()?, &part(3)?, &part(0)?, &part(1)?.neg()?],
+        axis,
+    )?;
+    Ok(turned.reshape(dims.as_slice())?)
+}
+
+/// `k_t + j * k_{t-1}` for keys [batch, time, width], zero before position 0.
+fn previous_key_channel(key: &Tensor) -> Result<Tensor> {
+    let (batch, time, width) = key.dims3()?;
+    if time == 1 {
+        return Ok(key.clone());
+    }
+    let zero = Tensor::zeros((batch, 1, width), key.dtype(), key.device())?;
+    let previous = Tensor::cat(&[&zero, &key.narrow(1, 0, time - 1)?], 1)?;
+    Ok(key.add(&quaternion_j_left(&previous)?)?)
 }
 
 /// Runs the quaternion transport recurrence over whole windows.
