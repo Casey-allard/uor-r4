@@ -56,6 +56,8 @@ struct Args {
     consumed_checkpoint: Option<PathBuf>,
     #[serde(default)]
     geometry_checkpoint: Option<PathBuf>,
+    #[serde(default)]
+    transfer_admission: Option<PathBuf>,
 }
 #[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -165,7 +167,10 @@ fn source_commit() -> Result<&'static str> {
         .ok_or_else(|| invalid("full build-bound source commit required"))
 }
 fn admission(a: &Args) -> Result<Option<Admission>> {
-    if a.mode == "readout-geometry-coadapt" {
+    if matches!(
+        a.mode.as_str(),
+        "readout-geometry-coadapt" | "readout-geometry-transfer"
+    ) {
         return Ok(None);
     }
     if a.mode != "fit" {
@@ -544,7 +549,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells" | "readout-geometry-coadapt")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells" | "readout-geometry-coadapt" | "readout-geometry-transfer")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -576,6 +581,7 @@ fn generate(
                 | "context-consumed-cells"
                 | "context-later-query-cells"
                 | "readout-geometry-coadapt"
+                | "readout-geometry-transfer"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -597,6 +603,7 @@ fn generate(
                         | "context-consumed-cells"
                         | "context-later-query-cells"
                         | "readout-geometry-coadapt"
+                        | "readout-geometry-transfer"
                 ))
         {
             if let Some(row) = rows.last_mut() {
@@ -612,6 +619,7 @@ fn generate(
                     | "context-consumed-cells"
                     | "context-later-query-cells"
                     | "readout-geometry-coadapt"
+                    | "readout-geometry-transfer"
             ) {
                 json!({"completed_cases":rows.len(),"complete_answers":complete,"eos_count":eos_count,"raw_rows_retained_in_enclosing_attempt":true,"elapsed_seconds":begun.elapsed().as_secs_f64()})
             } else {
@@ -871,6 +879,7 @@ fn main() -> Result<()> {
             | "context-consumed-cells"
             | "context-later-query-cells"
             | "readout-geometry-coadapt"
+            | "readout-geometry-transfer"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -991,6 +1000,18 @@ fn main() -> Result<()> {
             "later-query mode requires sole consumed_checkpoint field",
         ));
     }
+    if (a.mode == "readout-geometry-transfer") != a.transfer_admission.is_some() {
+        return Err(invalid(
+            "geometry transfer requires its separate transfer_admission",
+        ));
+    }
+    if a.mode == "readout-geometry-transfer"
+        && (a.maximum_seconds > 900 || a.fit_admission.is_some())
+    {
+        return Err(invalid(
+            "zero-update geometry transfer maximum900 and no optimizer admission",
+        ));
+    }
     let admitted = admission(&a)?;
     if matches!(
         a.mode.as_str(),
@@ -1013,9 +1034,14 @@ fn main() -> Result<()> {
     if a.mode == "readout-geometry-coadapt" {
         geometry_output_location(&a)?;
     }
+    if a.mode == "readout-geometry-transfer" {
+        frozen_transfer_output_location(&a)?;
+    }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = if a.mode == "readout-geometry-coadapt" {
+    let result = if a.mode == "readout-geometry-transfer" {
+        frozen_geometry_transfer(&a)
+    } else if a.mode == "readout-geometry-coadapt" {
         geometry_readout_coadapt(&a)
     } else if matches!(
         a.mode.as_str(),
@@ -2731,6 +2757,593 @@ fn readout_fit(a: &Args) -> Result<()> {
     work
 }
 // Fixed, zero-update transfer panel. Labels are never passed to native.read.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct FrozenTransferAdmission {
+    source_commit: String,
+    frozen_fit_root: PathBuf,
+    frozen_fit_manifest_sha256: String,
+    frozen_fit_report_sha256: String,
+    frozen_fit_source_commit: String,
+    composition_root: PathBuf,
+    composition_manifest_sha256: String,
+    composition_report_sha256: String,
+    composition_source_commit: String,
+    checkpoint_manifest_sha256: BTreeMap<String, String>,
+    panel_spec: PathBuf,
+    panel_spec_sha256: String,
+}
+fn frozen_transfer_admission(a: &Args) -> Result<FrozenTransferAdmission> {
+    serde_json::from_slice(&fs::read(
+        a.transfer_admission
+            .as_ref()
+            .ok_or_else(|| invalid("transfer admission absent"))?,
+    )?)
+    .map_err(Into::into)
+}
+fn frozen_transfer_output_location(a: &Args) -> Result<()> {
+    let admission = frozen_transfer_admission(a)?;
+    let parent = a
+        .out
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let output = fs::canonicalize(parent)?.join(
+        a.out
+            .file_name()
+            .ok_or_else(|| invalid("transfer output leaf absent"))?,
+    );
+    for root in [
+        admission.frozen_fit_root.as_path(),
+        admission.composition_root.as_path(),
+        a.checkpoint.as_path(),
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained root absent"))?,
+    ] {
+        if output.starts_with(fs::canonicalize(root)?) {
+            return Err(invalid("transfer output beneath sealed input"));
+        }
+    }
+    Ok(())
+}
+const FRESH_TRANSFER_PAIRS: [(&str, &str, &str); 4] = [
+    ("replacement", "singer Louston", "dancer Brimfold"),
+    ("order", "singer dancer Louston", "Louston dancer singer"),
+    ("repetition", "singer dancer dancer", "singer singer dancer"),
+    ("fresh-lexical", "Mervalon Quistara", "Mervalon Neskorin"),
+];
+fn fresh_transfer_spec_valid(spec: &Value) -> bool {
+    spec["schema"] == "uor-r4.prospective-fresh-source-transfer/1"
+        && spec["predictions"] == "NOT_RUN"
+        && spec["optimizer_updates"] == 0
+        && spec["context_tokens"] == 128
+        && spec["response_tokens"] == 64
+        && spec["pairs"].as_array().is_some_and(|pairs| {
+            pairs.len() == 4
+                && pairs
+                    .iter()
+                    .zip(FRESH_TRANSFER_PAIRS)
+                    .all(|(pair, (id, left, right))| {
+                        pair["id"] == id && pair["left"] == left && pair["right"] == right
+                    })
+        })
+}
+fn fresh_literals_disjoint(training: &[String], old: &[String]) -> bool {
+    FRESH_TRANSFER_PAIRS.iter().all(|(_, left, right)| {
+        [left, right]
+            .into_iter()
+            .all(|literal| !training.iter().chain(old).any(|seen| seen == literal))
+    })
+}
+fn transfer_pair_inputs_fixed(left: &Episode, right: &Episode) -> bool {
+    left.query == right.query
+        && left.record == right.record
+        && left.commit == right.commit
+        && left.relation == right.relation
+        && left.entity == right.entity
+        && left.source_text != right.source_text
+}
+fn transfer_training_id_sets(training: &[Episode], eos: u32) -> (BTreeSet<u32>, BTreeSet<u32>) {
+    let source = training
+        .iter()
+        .flat_map(|e| e.view.emitted_token_ids().iter().copied())
+        .collect();
+    let context = training
+        .iter()
+        .flat_map(|e| {
+            e.view
+                .emitted_token_ids()
+                .iter()
+                .chain(&e.query)
+                .chain(e.target.iter().take(e.target.len().saturating_sub(1)))
+        })
+        .copied()
+        .filter(|id| *id != eos)
+        .collect();
+    (source, context)
+}
+// This packet names exactly the inputs passed to native read, excluding all
+// answer labels and their lengths. It is also preserved for inference audits.
+fn transfer_source_packet(e: &Episode, prefix: &[u32]) -> Value {
+    json!({"record":e.record,"commit":e.commit,"scope":"m-world-v2","entity":e.entity,"relation":e.relation,"view":0,"status":"Found","original_source_ids":e.tokens,"source_view":e.view,"query_ids":e.query,"actual_prefix_ids":prefix})
+}
+fn transfer_stage_receipt_bound(stage: &Value, evaluation: &Value, receipt: &Value) -> bool {
+    stage == evaluation && stage["checkpoint"] == *receipt
+}
+fn fresh_transfer_panel(
+    template: &Episode,
+    training: &[Episode],
+    old: &[Episode],
+    tok: &ByteBpeTokenizer,
+    compiler: &SourceEmissionCompiler,
+    eos: u32,
+) -> Result<(Vec<Episode>, Vec<Value>)> {
+    if training.len() != 28
+        || old.len() != 16
+        || !fresh_literals_disjoint(
+            &training
+                .iter()
+                .map(|e| e.source_text.clone())
+                .collect::<Vec<_>>(),
+            &old.iter()
+                .map(|e| e.source_text.clone())
+                .collect::<Vec<_>>(),
+        )
+    {
+        return Err(invalid("fresh8 literals overlap exposed28 or previous16"));
+    }
+    let (source_ids, context_ids) = transfer_training_id_sets(training, eos);
+    let mut episodes = Vec::new();
+    let mut labels = Vec::new();
+    for (pair, left, right) in FRESH_TRANSFER_PAIRS {
+        let left_view = compiler.compile(&tok.encode(left))?;
+        let right_view = compiler.compile(&tok.encode(right))?;
+        let common = left_view
+            .emitted_token_ids()
+            .iter()
+            .zip(right_view.emitted_token_ids())
+            .take_while(|(a, b)| a == b)
+            .count();
+        let shared_divergence = shared_prefix_diverges(
+            left_view.emitted_token_ids(),
+            right_view.emitted_token_ids(),
+        );
+        for (side, literal) in [("left", left), ("right", right)] {
+            let id = format!("fresh-{pair}-{side}");
+            let answers = uor_r4_core::answer_oracle::FrozenAnswers {
+                intent: uor_r4_core::answer_oracle::RecordedValueIntent::Current,
+                accepted: vec![format!("{literal}.")],
+            };
+            answers.validate().map_err(|e| invalid(e.to_string()))?;
+            let tokens = tok.encode(literal);
+            let view = compiler.compile(&tokens)?;
+            let mut target = tok.encode(&format!(" {literal}."));
+            target.push(eos);
+            if tokens.is_empty()
+                || view.original_bytes() != literal.as_bytes()
+                || target.len() > 64
+                || view.emitted_token_ids().len() + template.query.len() + 64 > 128
+                || tokens.iter().chain(&target).any(|id| *id >= 4096)
+            {
+                return Err(invalid(
+                    "fresh transfer byte/token/sequence admission differs",
+                ));
+            }
+            let source_unseen = view
+                .emitted_token_ids()
+                .iter()
+                .filter(|id| !source_ids.contains(id))
+                .copied()
+                .collect::<BTreeSet<_>>();
+            let context_unseen = view
+                .emitted_token_ids()
+                .iter()
+                .filter(|id| !context_ids.contains(id))
+                .copied()
+                .collect::<BTreeSet<_>>();
+            labels.push(json!({"id":id,"pair_id":pair,"side":side,"literal":literal,"answers":answers,"target_ids_labels_only":target,"original_source_ids":tokens,"source_view":view,"query_ids":template.query,"record":template.record,"commit":template.commit,"relation":template.relation,"entity":template.entity,"scope":"m-world-v2","view":0,"initial_prefix_ids":[],"paired_emitted_common_prefix_length":common,"paired_emitted_shared_prefix_then_divergence":shared_divergence,"shared_prefix_property":"measured; absent property does not replace frozen literals","unseen_training28_source_ids":source_unseen,"unseen_training28_context_ids_excluding_eos":context_unseen,"literal_disjoint_all28_and_previous16":true}));
+            episodes.push(Episode {
+                id,
+                query: template.query.clone(),
+                tokens,
+                record: template.record,
+                commit: template.commit,
+                relation: template.relation,
+                entity: template.entity.clone(),
+                target,
+                accepted: answers.accepted,
+                source_text: literal.into(),
+                view,
+            });
+        }
+    }
+    if !episodes
+        .chunks_exact(2)
+        .all(|pair| transfer_pair_inputs_fixed(&pair[0], &pair[1]))
+    {
+        return Err(invalid("fresh pair typed inputs differ"));
+    }
+    Ok((episodes, labels))
+}
+fn frozen_transfer_fit_selection(report: &Value) -> Result<usize> {
+    let stages = report["checkpoints"]
+        .as_array()
+        .ok_or_else(|| invalid("fit checkpoints absent"))?;
+    if report["schema"] != "uor-r4.geometric-frozen-context-readout/1"
+        || report["mode"] != "readout-geometry-coadapt"
+        || report["status"] != "completed"
+        || report["optimizer_updates"] != 64
+        || report["declared_updates"] != 64
+        || report["context_source_bits_unchanged"] != true
+        || report["initial_actual28_replay_equal"] != true
+        || report["input_files_unchanged"] != true
+        || report["no_adopted_model"] != true
+        || stages.len() != 5
+    {
+        return Err(invalid("completed frozen geometry fit admission differs"));
+    }
+    let mut scores = Vec::new();
+    for (stage, step) in stages.iter().zip([0, 16, 32, 48, 64]) {
+        if stage["optimizer_updates"] != step
+            || stage["context_source_bits_unchanged"] != true
+            || stage["context_and_geometry_native_payloads_unchanged"] != true
+            || full28_native_ce(
+                &stage["original_canonical"],
+                &stage["construction_canonical"],
+            )? != stage["all28_equal_episode_ce"].as_f64()
+        {
+            return Err(invalid("frozen fit stage or all28 criterion differs"));
+        }
+        scores.push(stage["all28_equal_episode_ce"].as_f64());
+    }
+    let best = best_finite_readout_checkpoint(&scores)
+        .ok_or_else(|| invalid("finite fit selection absent"))?;
+    if report["selected_checkpoint_index"] != best || stages[best]["optimizer_updates"] != 64 {
+        return Err(invalid(
+            "predeclared criterion-selected0064 differs; no winner substitution",
+        ));
+    }
+    Ok(best)
+}
+fn frozen_transfer_failure(
+    native: &NativeSourceRealizer,
+    episode: &Episode,
+    row: &Value,
+) -> Result<Value> {
+    let Some(step) = row["first_divergence_from_frozen_target"]
+        .as_u64()
+        .map(|v| v as usize)
+    else {
+        return Ok(Value::Null);
+    };
+    let Some(&target) = episode.target.get(step) else {
+        return Ok(
+            json!({"step":step,"target_label_only":null,"scope":"generated sequence longer than canonical labels"}),
+        );
+    };
+    let generated = row["generated_ids"]
+        .as_array()
+        .ok_or_else(|| invalid("generated IDs absent"))?;
+    let prefix = generated
+        .iter()
+        .take(step)
+        .map(|v| {
+            v.as_u64()
+                .and_then(|x| u32::try_from(x).ok())
+                .ok_or_else(|| invalid("generated ID invalid"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    // Native read receives ONLY actual source frame/view, query and generated prefix.
+    let trace = native.read(episode.frame(), &episode.view, &episode.query, &prefix)?;
+    let masses = trace
+        .actions
+        .token_masses
+        .iter()
+        .map(|x| (x.token_id, x.weight_q31))
+        .collect::<Vec<_>>();
+    let rank = aggregate_rank(&masses, target)?;
+    let target_mass = rank["target_mass_q31"]
+        .as_u64()
+        .ok_or_else(|| invalid("failure target mass absent"))?;
+    let rival = masses
+        .iter()
+        .filter(|(id, _)| *id != target)
+        .map(|(_, mass)| *mass)
+        .max()
+        .unwrap_or(0);
+    let margin = i64::try_from(i128::from(target_mass) - i128::from(rival))
+        .map_err(|_| invalid("failure mass margin overflow"))?;
+    Ok(
+        json!({"step":step,"actual_prefix_ids":prefix,"target_label_only":target,"chosen_token_id":trace.actions.chosen_token_id,"target_rank_probability":rank,"target_minus_largest_other_token_mass_q31":margin,"copy":copy_margin(&trace,episode.view.emitted_token_ids().len(),target)?,"native_actions":trace.actions,"inference_inputs":transfer_source_packet(episode,&prefix),"scope":"target only evaluated after native read; marginal aliases retained"}),
+    )
+}
+fn frozen_transfer_pairs(labels: &[Value], generation: &Value) -> Result<Vec<Value>> {
+    let rows = generation["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("transfer rows absent"))?;
+    if labels.len() != 8 || rows.len() != 8 {
+        return Err(invalid("fresh pair count differs"));
+    }
+    Ok(labels.chunks_exact(2).zip(rows.chunks_exact(2)).map(|(label,row)|json!({"pair_id":label[0]["pair_id"],"left":row[0]["id"],"right":row[1]["id"],"both_exact_source_answers_with_eos":row.iter().all(|r|r["accepted_complete_answer"] == true && r["eos"] == true),"outputs_changed":row[0]["generated_ids"] != row[1]["generated_ids"]})).collect())
+}
+fn frozen_geometry_transfer(a: &Args) -> Result<()> {
+    let start = Instant::now();
+    let admission = frozen_transfer_admission(a)?;
+    if admission.source_commit != source_commit()?
+        || admission.panel_spec_sha256
+            != "b8cc71ac1f8264493f05dc168b2f26188f7532e975a7e3abec5b245320bbdf2d"
+        || sha256_file(&admission.panel_spec)? != admission.panel_spec_sha256
+    {
+        return Err(invalid("fresh panel or executed source admission differs"));
+    }
+    let spec: Value = serde_json::from_slice(&fs::read(&admission.panel_spec)?)?;
+    if !fresh_transfer_spec_valid(&spec) {
+        return Err(invalid("prospective exact8 literal spec differs"));
+    }
+    let roots = [
+        (
+            &admission.frozen_fit_root,
+            &admission.frozen_fit_manifest_sha256,
+            &admission.frozen_fit_report_sha256,
+            &admission.frozen_fit_source_commit,
+        ),
+        (
+            &admission.composition_root,
+            &admission.composition_manifest_sha256,
+            &admission.composition_report_sha256,
+            &admission.composition_source_commit,
+        ),
+    ];
+    for (root, manifest, report, _) in &roots {
+        report_output::verify(root)?;
+        if sha256_file(&root.join("manifest.json"))? != **manifest
+            || sha256_file(&root.join("report.json"))? != **report
+        {
+            return Err(invalid("portable fit envelope hashes differ"));
+        }
+    }
+    let fit: Value =
+        serde_json::from_slice(&fs::read(admission.frozen_fit_root.join("report.json"))?)?;
+    let composition: Value =
+        serde_json::from_slice(&fs::read(admission.composition_root.join("report.json"))?)?;
+    let selected = frozen_transfer_fit_selection(&fit)?;
+    if fit["source_commit"] != admission.frozen_fit_source_commit
+        || composition["source_commit"] != admission.composition_source_commit
+        || composition["schema"] != "uor-r4.geometric-composition-continuation/1"
+        || composition["status"] != "completed"
+        || composition["optimizer_updates"] != 64
+        || composition["context_source_bits_unchanged"] != true
+        || fit["saved_identity"] != composition["saved_identity"]
+    {
+        return Err(invalid("original/current comparator fit identity differs"));
+    }
+    let identity: ConsumerIdentity = serde_json::from_value(fit["saved_identity"].clone())?;
+    if sha256_file(&a.tokenizer)? != identity.tokenizer_sha256
+        || sealed_manifest_sha256(&a.checkpoint).map_err(|e| invalid(e.to_string()))?
+            != identity.parent_checkpoint_manifest_sha256
+        || sha256_file(&a.checkpoint.join("model.safetensors"))? != identity.parent_model_sha256
+        || sha256_file(&a.checkpoint.join("config.json"))? != identity.parent_config_sha256
+    {
+        return Err(invalid(
+            "transfer original stack/tokenizer identity differs",
+        ));
+    }
+    report_output::verify(
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained envelope absent"))?,
+    )?;
+    let retained_sha = sha256_file(&a.retained_report)?;
+    if fit["starting_parent_binding"]["retained_report_sha256"] != retained_sha
+        || composition["retained_report_sha256"] != retained_sha
+    {
+        return Err(invalid("transfer retained diagnostic binding differs"));
+    }
+    let bytes = fs::read(&a.tokenizer)?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("transfer tokenizer invalid"))?;
+    let compiler = SourceEmissionCompiler::new(&bytes)?;
+    let retained: Report = serde_json::from_slice(&fs::read(&a.retained_report)?)?;
+    if retained.schema != "uor-r4.source-binding-diagnostic/1"
+        || retained.tokenizer_sha256 != identity.tokenizer_sha256
+        || retained.checkpoint_manifest_sha256 != identity.parent_checkpoint_manifest_sha256
+    {
+        return Err(invalid("retained transfer identity differs"));
+    }
+    let specs = [
+        (
+            "original0032",
+            admission.composition_root.join("checkpoint-0032"),
+            composition["checkpoints"]
+                .as_array()
+                .and_then(|st| st.iter().find(|v| v["optimizer_updates"] == 32))
+                .ok_or_else(|| invalid("composition32 stage absent"))?
+                .clone(),
+            true,
+        ),
+        (
+            "frozen0000",
+            admission.frozen_fit_root.join("checkpoint-0000"),
+            fit["checkpoints"][0].clone(),
+            false,
+        ),
+        (
+            "selected0064",
+            admission.frozen_fit_root.join("checkpoint-0064"),
+            fit["checkpoints"][selected].clone(),
+            false,
+        ),
+    ];
+    if admission.checkpoint_manifest_sha256.len() != 3 {
+        return Err(invalid("three comparator manifests required"));
+    }
+    let mut models = Vec::new();
+    for (name, path, stage, old) in specs {
+        report_output::verify(&path)?;
+        let receipt: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
+        let evaluation: Value = serde_json::from_slice(&fs::read(
+            path.parent()
+                .ok_or_else(|| invalid("stage parent absent"))?
+                .join(format!(
+                    "evaluation-{:04}.json",
+                    if old {
+                        32
+                    } else if name == "frozen0000" {
+                        0
+                    } else {
+                        64
+                    }
+                )),
+        )?)?;
+        if admission.checkpoint_manifest_sha256.get(name)
+            != Some(&sha256_file(&path.join("manifest.json"))?)
+            || !transfer_stage_receipt_bound(&stage, &evaluation, &receipt)
+        {
+            return Err(invalid(
+                "comparator checkpoint/stage receipt binding differs",
+            ));
+        }
+        let source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
+        let native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
+        let bins = bin_files(&path.join("realizer-native"))?;
+        let expected_bins = if old {
+            &stage["hard_payload_sha256"]
+        } else {
+            &stage["native_payload_sha256"]
+        };
+        if bins != serde_json::from_value::<BTreeMap<String, String>>(expected_bins.clone())?
+            || native.binding().protocol().schema != SCHEMA_V2
+            || native.binding().vocab_size() != 4096
+        {
+            return Err(invalid("comparator source/native payload binding differs"));
+        }
+        let inventory = source_files(&path)?;
+        models.push((name, path, stage, old, native, inventory));
+    }
+    let eos = models[0].4.binding().eos_token_id();
+    if models.iter().any(|m| m.4.binding().eos_token_id() != eos) {
+        return Err(invalid("comparator EOS differs"));
+    }
+    let original = prepare(retained, &tok, eos, &compiler)?;
+    let template = original
+        .first()
+        .ok_or_else(|| invalid("transfer template absent"))?;
+    let construction = composition_panel(template, &tok, &compiler, eos)?;
+    let mut training = original.clone();
+    training.extend(construction.iter().cloned());
+    let training_panel: Value = serde_json::from_slice(&fs::read(
+        admission.frozen_fit_root.join("frozen-panel.json"),
+    )?)?;
+    if training_panel
+        != json!({"original":episode_labels(&original),"construction":episode_labels(&construction),"training_order":training.iter().map(|e|e.id.clone()).collect::<Vec<_>>(),"all28_each_update":true})
+    {
+        return Err(invalid(
+            "actual frozen training28/source-view/tokenizer panel differs",
+        ));
+    }
+    let (old_panel, _) = transfer_panel(template, &original, &tok, &compiler, eos)?;
+    let (fresh, labels) =
+        fresh_transfer_panel(template, &training, &old_panel, &tok, &compiler, eos)?;
+    let panel_root = a.out.join("panel");
+    report_output::claim(&panel_root)?;
+    write(&panel_root.join("panel-spec.json"), &spec)?;
+    write(
+        &panel_root.join("frozen-panel.json"),
+        &json!({"schema":"uor-r4.frozen-geometric-fresh-transfer-panel/1","cases":labels,"training28":episode_labels(&training),"previous16":episode_labels(&old_panel),"spec_sha256":admission.panel_spec_sha256,"source_coverage_reference":"all28 emitted source IDs","context_coverage_reference":"all28 source/query/canonical-prefix IDs excluding EOS","predictions":"NOT_RUN","optimizer_updates":0,"targets":"FrozenAnswers labels; never native read inputs"}),
+    )?;
+    report_output::seal(&panel_root)?;
+    report_output::verify(&panel_root)?;
+    let mut replays = Vec::new();
+    // All comparator replay admissions finish BEFORE any fresh/old transfer prediction.
+    for (name, _, stage, old, native, _) in &models {
+        let original_replay = generate(
+            &format!("{name}-replay-original"),
+            native,
+            &original,
+            &tok,
+            start,
+            a,
+        )?;
+        let construction_replay = generate(
+            &format!("{name}-replay-construction"),
+            native,
+            &construction,
+            &tok,
+            start,
+            a,
+        )?;
+        let expected_original = if *old {
+            &stage["ownprefix"]
+        } else {
+            &stage["original_generation"]
+        };
+        let expected_construction = if *old {
+            &stage["construction_ownprefix"]
+        } else {
+            &stage["construction_generation"]
+        };
+        if original_replay["rows"] != expected_original["rows"]
+            || construction_replay["rows"] != expected_construction["rows"]
+        {
+            return Err(invalid("comparator independent actual28 replay differs"));
+        }
+        replays.push(json!({"model":name,"original":original_replay,"construction":construction_replay,"saved28_exact":true}));
+    }
+    let mut results = Vec::new();
+    for (name, path, _, _, native, _) in &models {
+        let development = generate(&format!("{name}-old16"), native, &old_panel, &tok, start, a)?;
+        let fresh_generation = generate(&format!("{name}-fresh8"), native, &fresh, &tok, start, a)?;
+        let rows = fresh_generation["rows"]
+            .as_array()
+            .ok_or_else(|| invalid("fresh rows absent"))?;
+        let failures=fresh.iter().zip(rows).map(|(episode,row)|Ok(json!({"id":episode.id,"first_failure":frozen_transfer_failure(native,episode,row)?}))).collect::<Result<Vec<_>>>()?;
+        results.push(json!({"model":name,"checkpoint":path,"checkpoint_manifest_sha256":sha256_file(&path.join("manifest.json"))?,"old16_open_development":development,"fresh8":fresh_generation,"pairs":frozen_transfer_pairs(&labels,&fresh_generation)?,"first_failure_diagnostics":failures}));
+    }
+    let mut comparisons = Vec::new();
+    for left in 0..results.len() {
+        for right in left + 1..results.len() {
+            comparisons.push(json!({"left":results[left]["model"],"right":results[right]["model"],"old16":generation_comparison(&results[left]["old16_open_development"],&results[right]["old16_open_development"])?,"fresh8":generation_comparison(&results[left]["fresh8"],&results[right]["fresh8"])?}));
+        }
+    }
+    for (_, path, _, _, _, inventory) in &models {
+        if source_files(path)? != *inventory {
+            return Err(invalid("transfer comparator changed"));
+        }
+        report_output::verify(path)?;
+    }
+    for (root, manifest, _, _) in roots {
+        report_output::verify(root)?;
+        if sha256_file(&root.join("manifest.json"))? != *manifest {
+            return Err(invalid("transfer input envelope changed"));
+        }
+    }
+    if sha256_file(&admission.panel_spec)? != admission.panel_spec_sha256
+        || sha256_file(&a.retained_report)? != retained_sha
+        || sha256_file(&a.tokenizer)? != identity.tokenizer_sha256
+    {
+        return Err(invalid("transfer panel/retained/tokenizer input changed"));
+    }
+    report_output::verify(
+        a.retained_report
+            .parent()
+            .ok_or_else(|| invalid("retained root absent"))?,
+    )?;
+    if sealed_manifest_sha256(&a.checkpoint).map_err(|e| invalid(e.to_string()))?
+        != identity.parent_checkpoint_manifest_sha256
+        || sha256_file(&a.checkpoint.join("model.safetensors"))? != identity.parent_model_sha256
+        || sha256_file(&a.checkpoint.join("config.json"))? != identity.parent_config_sha256
+    {
+        return Err(invalid("transfer original identity input changed"));
+    }
+    report_output::verify(&panel_root)?;
+    write(
+        &a.out.join("report.json"),
+        &json!({"schema":"uor-r4.frozen-geometric-readout-transfer/1","mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"admission":admission,"saved_identity":identity,"optimizer_updates":0,"model_count":3,"fresh_cases_per_model":8,"old_development_cases_per_model":16,"replayed_cases_per_model":28,"selected_fit_checkpoint_index_recomputed":selected,"panel_manifest_sha256":sha256_file(&panel_root.join("manifest.json"))?,"replays":replays,"results":results,"comparisons":comparisons,"all_inputs_unchanged":true,"source_only_within_pair_intervention":true,"no_adopted_model":true,"scope":"authored selected-source component transfer; old16 open development; no session/distractor/NoRead/generalchat/geometryadvantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
+    )?;
+    Ok(())
+}
+
 fn transfer_panel(
     template: &Episode,
     originals: &[Episode],
@@ -6635,6 +7248,116 @@ mod direction_tests {
             &admission, &report, &result, &receipt, &identity, "retained"
         )
         .is_err());
+        Ok(())
+    }
+    fn frozen_transfer_test_episode() -> Result<Episode> {
+        let tokenizer = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"a":0,"b":1,"ab":2,"Ġ":3,"Ġa":4,"Ġab":5},"merges":["a b","Ġ ab"]}}"#;
+        let compiler = SourceEmissionCompiler::new(tokenizer.as_bytes())?;
+        Ok(Episode {
+            id: "test".into(),
+            query: vec![4],
+            tokens: vec![0],
+            record: 7,
+            commit: 9,
+            relation: 2,
+            entity: vec![0],
+            target: vec![5, 99],
+            accepted: vec!["a.".into()],
+            source_text: "a".into(),
+            view: compiler.compile(&[0])?,
+        })
+    }
+    #[test]
+    fn frozen_transfer_source_packet_excludes_labels_and_expected_length() -> Result<()> {
+        let episode = frozen_transfer_test_episode()?;
+        let packet = transfer_source_packet(&episode, &[3]);
+        let mut relabeled = episode.clone();
+        relabeled.target = vec![99; 20];
+        relabeled.accepted = vec!["other answer".into()];
+        assert_eq!(packet, transfer_source_packet(&relabeled, &[3]));
+        assert_ne!(packet, transfer_source_packet(&relabeled, &[5]));
+        assert_eq!(packet["actual_prefix_ids"], json!([3]));
+        assert!(packet.get("target").is_none());
+        assert!(packet.get("accepted").is_none());
+        Ok(())
+    }
+    #[test]
+    fn frozen_transfer_pair_requires_same_query_and_typed_frame() -> Result<()> {
+        let left = frozen_transfer_test_episode()?;
+        let mut right = left.clone();
+        right.source_text = "b".into();
+        assert!(transfer_pair_inputs_fixed(&left, &right));
+        for field in 0..5 {
+            let mut bad = right.clone();
+            match field {
+                0 => bad.query.push(1),
+                1 => bad.record += 1,
+                2 => bad.commit += 1,
+                3 => bad.relation += 1,
+                _ => bad.entity.push(1),
+            }
+            assert!(!transfer_pair_inputs_fixed(&left, &bad));
+        }
+        assert!(!transfer_pair_inputs_fixed(&left, &left));
+        Ok(())
+    }
+    #[test]
+    fn frozen_transfer_coverage_distinguishes_query_only_ids_and_excludes_eos() -> Result<()> {
+        let mut episode = frozen_transfer_test_episode()?;
+        episode.query = vec![42, 99];
+        episode.target = vec![43, 99];
+        let (source, context) = transfer_training_id_sets(&[episode], 99);
+        assert!(!source.contains(&42));
+        assert!(context.contains(&42));
+        assert!(context.contains(&43));
+        assert!(!context.contains(&99));
+        assert!(source.is_subset(&context));
+        Ok(())
+    }
+    #[test]
+    fn frozen_transfer_literals_and_spec_are_frozen_before_results() {
+        assert!(fresh_literals_disjoint(
+            &["singer".into()],
+            &["Vexalnorp".into()]
+        ));
+        assert!(!fresh_literals_disjoint(&["Mervalon Quistara".into()], &[]));
+        assert!(!fresh_literals_disjoint(&[], &["singer Louston".into()]));
+        let spec = json!({"schema":"uor-r4.prospective-fresh-source-transfer/1","predictions":"NOT_RUN","optimizer_updates":0,"context_tokens":128,"response_tokens":64,"pairs":FRESH_TRANSFER_PAIRS.iter().map(|(id,left,right)|json!({"id":id,"left":left,"right":right})).collect::<Vec<_>>()});
+        assert!(fresh_transfer_spec_valid(&spec));
+        let mut changed = spec.clone();
+        changed["pairs"][0]["left"] = json!("replacement-after-prediction");
+        assert!(!fresh_transfer_spec_valid(&changed));
+        changed = spec;
+        changed["optimizer_updates"] = json!(1);
+        assert!(!fresh_transfer_spec_valid(&changed));
+    }
+    #[test]
+    fn frozen_transfer_loader_rejects_checkpoint_or_evaluation_substitution() {
+        let receipt = json!({"optimizer_updates":64,"binding":{"protocol":"dialogue2"}});
+        let stage = json!({"checkpoint":receipt,"optimizer_updates":64,"native_payload_sha256":{"context":"fixed"}});
+        assert!(transfer_stage_receipt_bound(&stage, &stage, &receipt));
+        let mut different = receipt.clone();
+        different["optimizer_updates"] = json!(32);
+        assert!(!transfer_stage_receipt_bound(&stage, &stage, &different));
+        let mut different = stage.clone();
+        different["native_payload_sha256"]["context"] = json!("changed");
+        assert!(!transfer_stage_receipt_bound(&stage, &different, &receipt));
+    }
+    #[test]
+    fn frozen_transfer_selection_recomputes_full28_with_baseline_ties() -> Result<()> {
+        let stages=[0,16,32,48,64].into_iter().zip([0.5,0.4,0.3,0.2,0.1]).map(|(step,ce)|json!({"optimizer_updates":step,"context_source_bits_unchanged":true,"context_and_geometry_native_payloads_unchanged":true,"original_canonical":{"rows":vec![Value::Null;20],"mean_episode_ce":ce},"construction_canonical":{"rows":vec![Value::Null;8],"mean_episode_ce":ce},"all28_equal_episode_ce":(20.*ce+8.*ce)/28.})).collect::<Vec<_>>();
+        let report = json!({"schema":"uor-r4.geometric-frozen-context-readout/1","mode":"readout-geometry-coadapt","status":"completed","optimizer_updates":64,"declared_updates":64,"context_source_bits_unchanged":true,"initial_actual28_replay_equal":true,"input_files_unchanged":true,"no_adopted_model":true,"selected_checkpoint_index":4,"checkpoints":stages});
+        assert_eq!(frozen_transfer_fit_selection(&report)?, 4);
+        let mut wrong = report.clone();
+        wrong["selected_checkpoint_index"] = json!(3);
+        assert!(frozen_transfer_fit_selection(&wrong).is_err());
+        wrong = report.clone();
+        wrong["checkpoints"][4]["all28_equal_episode_ce"] = json!(0.0);
+        assert!(frozen_transfer_fit_selection(&wrong).is_err());
+        wrong = report;
+        wrong["checkpoints"][4] = wrong["checkpoints"][0].clone();
+        wrong["checkpoints"][4]["optimizer_updates"] = json!(64);
+        assert!(frozen_transfer_fit_selection(&wrong).is_err());
         Ok(())
     }
     fn later_test_single(index: usize, reserved: bool) -> CellProposal {

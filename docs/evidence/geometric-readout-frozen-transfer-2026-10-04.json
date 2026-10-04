@@ -1,0 +1,592 @@
+{
+  "schema": "uor-r4.frozen-geometric-readout-transfer-evidence/1",
+  "executed_source_commit": "9b855b38fd46eca19104d0c6cae7e5d65006ae2d",
+  "source_sha256": "7ba678e131da8234ad44dab233abe996e2f1f29fe879f312f9504a02a842c41c",
+  "executable_sha256": "8f529377e661ffbdb157daf52aa6282739f21bb8d2fcc772d91af5d847bbc18c",
+  "host": "authorized existing Runpod Linux x86_64 CPU /root/codex",
+  "status": "completed",
+  "optimizer_updates": 0,
+  "retained_run": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-readout-frozen-transfer-20261004/pod-return/evaluate-1",
+  "manifest_sha256": "f8d18aaaf158b257c44c971c8fcbb73d356c8fe552f4938df14b3e231ee59a91",
+  "panel_spec_sha256": "b8cc71ac1f8264493f05dc168b2f26188f7532e975a7e3abec5b245320bbdf2d",
+  "selection_recomputed": 4,
+  "saved28_replays_exact": 3,
+  "models": [
+    {
+      "model": "original0032",
+      "checkpoint_manifest_sha256": "83d02da60b3578abe79b1e1ce0a3dc6d8ffea6f15370cf9d8917bbd4b4507485",
+      "old16_complete": 2,
+      "fresh8_complete": 0,
+      "fresh8_eos": 8,
+      "rows": [
+        {
+          "id": "fresh-replacement-left",
+          "source_text": "singer Louston",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-replacement-right",
+          "source_text": "dancer Brimfold",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-order-left",
+          "source_text": "singer dancer Louston",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-order-right",
+          "source_text": "Louston dancer singer",
+          "reply_text": "Lerer.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 1,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-repetition-left",
+          "source_text": "singer dancer dancer",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-repetition-right",
+          "source_text": "singer singer dancer",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-fresh-lexical-left",
+          "source_text": "Mervalon Quistara",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-fresh-lexical-right",
+          "source_text": "Mervalon Neskorin",
+          "reply_text": "Ner. Mv.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        }
+      ],
+      "first_failures": [
+        {
+          "id": "fresh-replacement-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 1,
+          "target_probability": 0.025261710681182662
+        },
+        {
+          "id": "fresh-replacement-right",
+          "step": 0,
+          "chosen": 1,
+          "target": 1357,
+          "copy_rank": 2,
+          "target_probability": 0.010470663813882935
+        },
+        {
+          "id": "fresh-order-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 4,
+          "target_probability": 0.02419624839823665
+        },
+        {
+          "id": "fresh-order-right",
+          "step": 1,
+          "chosen": 284,
+          "target": 277,
+          "copy_rank": 4,
+          "target_probability": 0.055856234837969296
+        },
+        {
+          "id": "fresh-repetition-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 3,
+          "target_probability": 0.05179323964397507
+        },
+        {
+          "id": "fresh-repetition-right",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 2,
+          "target_probability": 0.12214371794281534
+        },
+        {
+          "id": "fresh-fresh-lexical-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 379,
+          "copy_rank": 10,
+          "target_probability": 0.03646079312069632
+        },
+        {
+          "id": "fresh-fresh-lexical-right",
+          "step": 0,
+          "chosen": 2237,
+          "target": 379,
+          "copy_rank": 6,
+          "target_probability": 0.0733714583201352
+        }
+      ]
+    },
+    {
+      "model": "frozen0000",
+      "checkpoint_manifest_sha256": "1cd6ababdbdab06f62bf969c2a4d3abcd4429f5cb7448966a31fb003b7258be6",
+      "old16_complete": 2,
+      "fresh8_complete": 0,
+      "fresh8_eos": 8,
+      "rows": [
+        {
+          "id": "fresh-replacement-left",
+          "source_text": "singer Louston",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-replacement-right",
+          "source_text": "dancer Brimfold",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-order-left",
+          "source_text": "singer dancer Louston",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-order-right",
+          "source_text": "Louston dancer singer",
+          "reply_text": "Lerer.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 1,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-repetition-left",
+          "source_text": "singer dancer dancer",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-repetition-right",
+          "source_text": "singer singer dancer",
+          "reply_text": "er dancer. sing singer.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-fresh-lexical-left",
+          "source_text": "Mervalon Quistara",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-fresh-lexical-right",
+          "source_text": "Mervalon Neskorin",
+          "reply_text": "Ner. Mv.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        }
+      ],
+      "first_failures": [
+        {
+          "id": "fresh-replacement-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 1,
+          "target_probability": 0.04923927931998693
+        },
+        {
+          "id": "fresh-replacement-right",
+          "step": 0,
+          "chosen": 1,
+          "target": 1357,
+          "copy_rank": 2,
+          "target_probability": 0.010470663813882935
+        },
+        {
+          "id": "fresh-order-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 3,
+          "target_probability": 0.045937065502638263
+        },
+        {
+          "id": "fresh-order-right",
+          "step": 1,
+          "chosen": 284,
+          "target": 277,
+          "copy_rank": 4,
+          "target_probability": 0.04750453400669536
+        },
+        {
+          "id": "fresh-repetition-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 2,
+          "target_probability": 0.0533047268243697
+        },
+        {
+          "id": "fresh-repetition-right",
+          "step": 0,
+          "chosen": 284,
+          "target": 1130,
+          "copy_rank": 2,
+          "target_probability": 0.26126114655314914
+        },
+        {
+          "id": "fresh-fresh-lexical-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 379,
+          "copy_rank": 9,
+          "target_probability": 0.054047204839699346
+        },
+        {
+          "id": "fresh-fresh-lexical-right",
+          "step": 0,
+          "chosen": 2237,
+          "target": 379,
+          "copy_rank": 6,
+          "target_probability": 0.0733714583201352
+        }
+      ]
+    },
+    {
+      "model": "selected0064",
+      "checkpoint_manifest_sha256": "a83bb06725dd660c1d638045e5fc205edb0744e1bb1dca22ac0d919d9220699b",
+      "old16_complete": 2,
+      "fresh8_complete": 0,
+      "fresh8_eos": 8,
+      "rows": [
+        {
+          "id": "fresh-replacement-left",
+          "source_text": "singer Louston",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-replacement-right",
+          "source_text": "dancer Brimfold",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-order-left",
+          "source_text": "singer dancer Louston",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-order-right",
+          "source_text": "Louston dancer singer",
+          "reply_text": "oner.on.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-repetition-left",
+          "source_text": "singer dancer dancer",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-repetition-right",
+          "source_text": "singer singer dancer",
+          "reply_text": "singer singer. dancer.er dancer singer singer singer. sing dancer.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 4,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-fresh-lexical-left",
+          "source_text": "Mervalon Quistara",
+          "reply_text": "veruQvQaraQvu Mer.",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        },
+        {
+          "id": "fresh-fresh-lexical-right",
+          "source_text": "Mervalon Neskorin",
+          "reply_text": "",
+          "eos": true,
+          "first_divergence_from_frozen_target": 0,
+          "accepted_complete_answer": false
+        }
+      ],
+      "first_failures": [
+        {
+          "id": "fresh-replacement-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 1,
+          "target_probability": 0.04561453294569697
+        },
+        {
+          "id": "fresh-replacement-right",
+          "step": 0,
+          "chosen": 1,
+          "target": 1357,
+          "copy_rank": 1,
+          "target_probability": 0.007471137634782733
+        },
+        {
+          "id": "fresh-order-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 1,
+          "target_probability": 0.019831333855702574
+        },
+        {
+          "id": "fresh-order-right",
+          "step": 0,
+          "chosen": 292,
+          "target": 363,
+          "copy_rank": 2,
+          "target_probability": 0.3411092400927767
+        },
+        {
+          "id": "fresh-repetition-left",
+          "step": 0,
+          "chosen": 1,
+          "target": 1130,
+          "copy_rank": 1,
+          "target_probability": 0.19070147027628764
+        },
+        {
+          "id": "fresh-repetition-right",
+          "step": 4,
+          "chosen": 16,
+          "target": 1357,
+          "copy_rank": 3,
+          "target_probability": 0.04808145359894264
+        },
+        {
+          "id": "fresh-fresh-lexical-left",
+          "step": 0,
+          "chosen": 88,
+          "target": 379,
+          "copy_rank": 10,
+          "target_probability": 0.024911779828515647
+        },
+        {
+          "id": "fresh-fresh-lexical-right",
+          "step": 0,
+          "chosen": 1,
+          "target": 379,
+          "copy_rank": 9,
+          "target_probability": 0.01877516257115659
+        }
+      ]
+    }
+  ],
+  "independent_review": {
+    "status": "PASS",
+    "source_commit": "9b855b38fd46eca19104d0c6cae7e5d65006ae2d",
+    "scope": "Saved three-comparator native Q24/Q31 marginal arithmetic, actual generated-prefix/BPE/UTF8 replies, source intervention/coverage, replay and criterion binding; no model execution.",
+    "responses_checked": 156,
+    "generated_steps_checked": 656,
+    "first_failure_native_reads_checked": 24,
+    "models": [
+      {
+        "model": "original0032",
+        "old16": {
+          "complete": 2,
+          "eos": 16,
+          "cases": 16
+        },
+        "fresh8": {
+          "complete": 0,
+          "eos": 8,
+          "cases": 8
+        }
+      },
+      {
+        "model": "frozen0000",
+        "old16": {
+          "complete": 2,
+          "eos": 16,
+          "cases": 16
+        },
+        "fresh8": {
+          "complete": 0,
+          "eos": 8,
+          "cases": 8
+        }
+      },
+      {
+        "model": "selected0064",
+        "old16": {
+          "complete": 2,
+          "eos": 16,
+          "cases": 16
+        },
+        "fresh8": {
+          "complete": 0,
+          "eos": 8,
+          "cases": 8
+        }
+      }
+    ],
+    "comparison_pairs": 3,
+    "seal_roots_exact_sets_sizes_checked": 2,
+    "seal_entries_checked": 22,
+    "root_manifest_sha256": "f8d18aaaf158b257c44c971c8fcbb73d356c8fe552f4938df14b3e231ee59a91",
+    "seal_scope": "Exact manifest sets/sizes plus SHA256 source/input/return identities; BLAKE3 not independently recomputed."
+  },
+  "native_wall_seconds": 5.091881332,
+  "supervisor": {
+    "host": "Runpod Linux x86_64",
+    "recorded_utc": "2026-10-04T09:57:04.017485+00:00",
+    "source_commit": "9b855b38fd46eca19104d0c6cae7e5d65006ae2d",
+    "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+    "command": [
+      "/root/codex/geometric-source-realizer-9b855b38-linux-x86_64",
+      "/root/codex/transfer-args.json"
+    ],
+    "cwd": "/root/codex",
+    "environment": {
+      "CARGO_HOME": "/root/codex/cargo-home",
+      "CARGO_TARGET_DIR": "/root/codex/target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "48",
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+      "RAYON_NUM_THREADS": "48",
+      "CUDA_VISIBLE_DEVICES": "",
+      "UOR_BUILD_SOURCE_COMMIT": "9b855b38fd46eca19104d0c6cae7e5d65006ae2d",
+      "TMPDIR": "/root/codex/tmp"
+    },
+    "affinity_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "threads_budget": 48,
+    "wrapper_pid": 203033,
+    "worker_pid": 203034,
+    "exit_code": 0,
+    "stop_reason": null,
+    "elapsed_seconds": 6.212950950022787,
+    "sampled_process_tree_peak_rss_bytes": 877436928,
+    "rusage_children_max_rss_bytes": 948711424,
+    "codex_allocated_bytes_latest": 7837507584,
+    "free_bytes_final": 14762573824,
+    "maximum_seconds": 600,
+    "maximum_rss_bytes": 8589934592,
+    "gpu_used": false,
+    "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+  },
+  "return": {
+    "status": "PASS",
+    "files": 20,
+    "bytes": 5300480,
+    "manifest_sha256": "f8d18aaaf158b257c44c971c8fcbb73d356c8fe552f4938df14b3e231ee59a91"
+  },
+  "cumulative_charge_ms": 1119435028,
+  "cumulative_ceiling_ms": 1130000000,
+  "complete_task_charge_ms": 5400000,
+  "limits": {
+    "threads": 48,
+    "gpu": false,
+    "native_wall_seconds": 600,
+    "native_rss_gib": 8,
+    "owned_stop_bytes": 10522669875,
+    "free_floor_bytes": 4429185024
+  },
+  "next": "Four zero-update full-context reads on matched fitted/fresh prefixes, separating Stop competition, source Copy ranking and active geometry; compact saved actions omit active context. No unchanged fit or session deployment."
+}
