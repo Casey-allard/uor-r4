@@ -2,14 +2,17 @@
 //! Shared integer execution preserves the allocating occurrence/action traces.
 //! Trusted receipt loading is separate from offline float-source equivalence.
 use crate::{
-    geometric_context::NativeContextState,
     geometric_context_q4::{ContextQ4Config, NativeContextQ4},
     geometric_no_read::{NativeGeometricNoRead, NoReadConfig},
     geometric_occurrence_read::{
-        NativeOccurrenceReader, OccurrenceComponents, SelectedRecordFrame,
+        NativeOccurrenceReader, OccurrenceComponents, OccurrenceRead, PreparedOccurrenceContext,
+        QuerySnapshot, SelectedRecordFrame,
     },
     geometric_potential::{AddressLane, NativePotentialTables},
     geometric_potential_q4::{NativePotentialQ4, PotentialQ4Config},
+    geometric_read_feedback::{
+        FeedbackInputMode, FeedbackTrace, NativeReadFeedback, QuerySnapshotReport,
+    },
     geometric_source_actions::{
         ActionHeadScores, ActionTrace, NativeSourceActions, SourceActionBinding,
     },
@@ -152,10 +155,25 @@ pub struct SerializableContextReplay {
 pub struct RealizerTrace {
     pub policy: &'static str,
     pub source: SourceEmissionTrace,
-    /// The additional full integer replay needed by this wrapper for Period.
+    /// Original causal replay shared by source scoring and controller observation.
+    /// A dependent update is recorded separately, never disguised as token replay.
     pub period_context: SerializableContextReplay,
     pub period_q24: Vec<i64>,
     pub actions: ActionTrace,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct DependentReadTrace {
+    pub policy: &'static str,
+    pub stage1: RealizerTrace,
+    pub stage2: RealizerTrace,
+    pub feedback: FeedbackTrace,
+    /// Authoritative input for ALL stage2 Copy/Stop/Period scoring.
+    pub stage2_controller_snapshot: QuerySnapshotReport,
+    pub stage2_context_replay_policy: &'static str,
+    pub logical_prepared_bytes: usize,
+    pub original_context_replays: usize,
+    pub scoring_stages: usize,
 }
 
 pub fn read_occurrence(
@@ -168,6 +186,9 @@ pub fn read_occurrence(
     let output = reader
         .read(frame, query, prefix)
         .map_err(|e| invalid(e.to_string()))?;
+    trace_occurrence(output)
+}
+fn trace_occurrence(output: OccurrenceRead<'_>) -> Result<OccurrenceTrace> {
     let mut heads = Vec::with_capacity(output.heads.len());
     for h in 0..output.heads.len() {
         let head = output
@@ -210,7 +231,7 @@ pub struct RealizerExecution<'a> {
     pub period: &'a NativeGeometricNoRead,
     pub binding: &'a SourceActionBinding,
 }
-impl RealizerExecution<'_> {
+impl<'a> RealizerExecution<'a> {
     pub fn read_source_view(
         &self,
         frame: SelectedRecordFrame<'_>,
@@ -241,6 +262,121 @@ impl RealizerExecution<'_> {
         )?;
         Ok(source_view_trace(frame, view, kernel))
     }
+    fn prepare_view(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+    ) -> Result<(
+        NativeOccurrenceReader<'a>,
+        PreparedOccurrenceContext<'a>,
+        SerializableContextReplay,
+    )> {
+        if self.period.config() != self.no_read.config()
+            || self.binding.vocab_size() != self.context.config().vocab_size
+            || view.policy() != crate::geometric_source_emission_view::POLICY
+            || view.tokenizer_sha256() != self.binding.tokenizer_sha256()
+        {
+            return Err(invalid(
+                "realizer context/controller/view/tokenizer differs",
+            ));
+        }
+        self.binding.validate_tokens(query)?;
+        self.binding.validate_tokens(prefix)?;
+        let reader = NativeOccurrenceReader::new(OccurrenceComponents {
+            context: self.context.native(),
+            potential: self.potential_tables,
+            no_read: self.no_read,
+            geometry: self.geometry,
+            exp_q31: self.exp,
+        })
+        .map_err(|e| invalid(e.to_string()))?;
+        let prepared = reader
+            .prepare(view.derived_frame(frame)?, query, prefix)
+            .map_err(|e| invalid(e.to_string()))?;
+        let c = self.context.config();
+        let lanes = c.heads * c.lanes_per_head;
+        let mut replay = SerializableContextReplay {
+            tokens: prepared.tokens().to_vec(),
+            heads: c.heads,
+            lanes_per_head: c.lanes_per_head,
+            states: Vec::new(),
+            actions: Vec::new(),
+            raw_roots: Vec::new(),
+            categories: Vec::new(),
+            codes: Vec::new(),
+            coefficient_reads: prepared.context_coefficient_reads(),
+        };
+        for step in prepared.steps() {
+            replay
+                .states
+                .push(step.states[..lanes].iter().map(|r| r.index()).collect());
+            replay
+                .actions
+                .push(step.actions[..lanes].iter().map(|r| r.index()).collect());
+            replay
+                .raw_roots
+                .extend(step.readout_roots[..lanes].iter().map(|r| r.index()));
+            replay
+                .categories
+                .extend_from_slice(&step.categories[..lanes]);
+            replay
+                .codes
+                .extend(step.output[..lanes].iter().copied().map(ObservedCode::from));
+        }
+        Ok((reader, prepared, replay))
+    }
+    fn score_view(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        reader: &mut NativeOccurrenceReader<'a>,
+        prepared: &PreparedOccurrenceContext<'a>,
+        snapshot: &QuerySnapshot<'_, 'a>,
+        replay: &SerializableContextReplay,
+    ) -> Result<RealizerTrace> {
+        let source = source_view_trace(
+            frame,
+            view,
+            trace_occurrence(
+                reader
+                    .score(prepared, snapshot)
+                    .map_err(|e| invalid(e.to_string()))?,
+            )?,
+        );
+        let period = self
+            .period
+            .score(
+                snapshot.last_token() as usize,
+                snapshot.states(),
+                snapshot.codes(),
+                None,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        // Stop in source is scored from exactly this same checked snapshot.
+        let heads = self.context.config().heads;
+        let head_scores = source
+            .view_kernel_trace
+            .heads
+            .iter()
+            .enumerate()
+            .map(|(head, s)| ActionHeadScores {
+                copy_q24: &s.scores_q24,
+                period_q24: period[head],
+                stop_q24: s.no_read_q24,
+            })
+            .collect::<Vec<_>>();
+        let actions = NativeSourceActions::new(self.binding.clone(), heads, self.exp)?
+            .reduce(view.emitted_token_ids(), &head_scores)?;
+        Ok(RealizerTrace {
+            policy: POLICY,
+            source,
+            period_context: replay.clone(),
+            period_q24: period[..heads].to_vec(),
+            actions,
+        })
+    }
     pub fn read(
         &self,
         frame: SelectedRecordFrame<'_>,
@@ -248,108 +384,40 @@ impl RealizerExecution<'_> {
         query: &[u32],
         prefix: &[u32],
     ) -> Result<RealizerTrace> {
-        if self.period.config() != self.no_read.config()
-            || self.binding.vocab_size() != self.context.config().vocab_size
-        {
-            return Err(invalid("realizer period/Stop/tokenizer components differ"));
-        }
-        // This admission rejects unsupported frame status, empty query, wrong
-        // tokenizer/view/original IDs, OOV IDs and total sequence >128 first.
-        let source = self.read_source_view(frame, view, query, prefix)?;
-        let ids = view
-            .emitted_token_ids()
-            .iter()
-            .chain(query)
-            .chain(prefix)
-            .copied()
-            .collect::<Vec<_>>();
-        let c = self.context.config();
-        let lanes = c.heads * c.lanes_per_head;
-        let mut context = NativeContextState::new(c.heads, c.lanes_per_head)
+        let (mut reader, prepared, replay) = self.prepare_view(frame, view, query, prefix)?;
+        let snapshot = prepared
+            .original_snapshot()
             .map_err(|e| invalid(e.to_string()))?;
-        let mut replay = SerializableContextReplay {
-            tokens: ids.clone(),
-            heads: c.heads,
-            lanes_per_head: c.lanes_per_head,
-            states: Vec::with_capacity(ids.len()),
-            actions: Vec::with_capacity(ids.len()),
-            raw_roots: Vec::with_capacity(ids.len() * lanes),
-            categories: Vec::with_capacity(ids.len() * lanes),
-            codes: Vec::with_capacity(ids.len() * lanes),
-            coefficient_reads: 0,
-        };
-        let mut last = None;
-        for &token in &ids {
-            let step = context
-                .step(token as usize, self.context.native(), self.geometry)
-                .map_err(|e| invalid(e.to_string()))?;
-            replay
-                .states
-                .push(step.states[..lanes].iter().map(|x| x.index()).collect());
-            replay
-                .actions
-                .push(step.actions[..lanes].iter().map(|x| x.index()).collect());
-            replay
-                .raw_roots
-                .extend(step.readout_roots[..lanes].iter().map(|x| x.index()));
-            replay
-                .categories
-                .extend_from_slice(&step.categories[..lanes]);
-            replay
-                .codes
-                .extend(step.output[..lanes].iter().copied().map(ObservedCode::from));
-            replay.coefficient_reads += step.coefficient_reads;
-            last = Some((token, step));
-        }
-        let (token, last) = last.ok_or_else(|| invalid("realizer context sequence is empty"))?;
-        let period = self
-            .period
-            .score(
-                token as usize,
-                &last.states[..lanes],
-                &last.output[..lanes],
-                None,
-            )
+        self.score_view(frame, view, &mut reader, &prepared, &snapshot, &replay)
+    }
+    pub fn read_dependent(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        parent: &NativeArtifactBinding,
+        feedback: &NativeReadFeedback,
+        mode: FeedbackInputMode,
+    ) -> Result<DependentReadTrace> {
+        let (mut reader, prepared, replay) = self.prepare_view(frame, view, query, prefix)?;
+        let snapshot = prepared
+            .original_snapshot()
             .map_err(|e| invalid(e.to_string()))?;
-        let stop = self
-            .no_read
-            .score(
-                token as usize,
-                &last.states[..lanes],
-                &last.output[..lanes],
-                None,
-            )
-            .map_err(|e| invalid(e.to_string()))?;
-        if source
-            .view_kernel_trace
-            .heads
-            .iter()
-            .zip(stop)
-            .any(|(h, s)| h.no_read_q24 != s)
-        {
-            return Err(invalid(
-                "realizer additional context replay Stop score differs",
-            ));
-        }
-        let mut reducer = NativeSourceActions::new(self.binding.clone(), c.heads, self.exp)?;
-        let head_scores = source
-            .view_kernel_trace
-            .heads
-            .iter()
-            .enumerate()
-            .map(|(head, scores)| ActionHeadScores {
-                copy_q24: &scores.scores_q24,
-                period_q24: period[head],
-                stop_q24: scores.no_read_q24,
-            })
-            .collect::<Vec<_>>();
-        let actions = reducer.reduce(view.emitted_token_ids(), &head_scores)?;
-        Ok(RealizerTrace {
-            policy: POLICY,
-            source,
-            period_context: replay,
-            period_q24: period[..c.heads].to_vec(),
-            actions,
+        let stage1 = self.score_view(frame, view, &mut reader, &prepared, &snapshot, &replay)?;
+        let (updated, feedback_trace) =
+            feedback.apply(parent, &prepared, &snapshot, &stage1.actions, mode)?;
+        let stage2 = self.score_view(frame, view, &mut reader, &prepared, &updated, &replay)?;
+        Ok(DependentReadTrace {
+            policy: crate::geometric_read_feedback::POLICY,
+            stage1,
+            stage2,
+            stage2_controller_snapshot: feedback_trace.after.clone(),
+            stage2_context_replay_policy: "stage2.period_context is original token replay only; stage2_controller_snapshot is authoritative updated Copy/Stop/Period input",
+            feedback: feedback_trace,
+            logical_prepared_bytes: prepared.logical_prepared_bytes(),
+            original_context_replays: 1,
+            scoring_stages: 2,
         })
     }
 }
@@ -578,6 +646,7 @@ pub struct NativeSourceRealizer {
     exp: Vec<u32>,
     binding: SourceActionBinding,
     compiler: SourceEmissionCompiler,
+    artifact_binding: NativeArtifactBinding,
 }
 impl NativeSourceRealizer {
     pub fn load_native(path: &Path, expected: &NativeArtifactBinding) -> Result<Self> {
@@ -709,7 +778,49 @@ impl NativeSourceRealizer {
             exp,
             binding,
             compiler,
+            artifact_binding: expected.clone(),
         })
+    }
+    pub fn artifact_binding(&self) -> &NativeArtifactBinding {
+        &self.artifact_binding
+    }
+    pub fn context_config(&self) -> ContextQ4Config {
+        self.context.config()
+    }
+    pub fn read_dependent(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        feedback: &NativeReadFeedback,
+        mode: FeedbackInputMode,
+    ) -> Result<DependentReadTrace> {
+        if feedback.metadata().context != self.context.config()
+            || feedback.metadata().parent_artifact != self.artifact_binding
+        {
+            return Err(invalid(
+                "dependent feedback does not bind this native artifact",
+            ));
+        }
+        RealizerExecution {
+            context: &self.context,
+            potential_tables: &self.potential_tables,
+            no_read: &self.no_read,
+            geometry: &self.geometry,
+            exp: &self.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_dependent(
+            frame,
+            view,
+            query,
+            prefix,
+            &self.artifact_binding,
+            feedback,
+            mode,
+        )
     }
     pub fn binding(&self) -> &SourceActionBinding {
         &self.binding
@@ -738,7 +849,7 @@ impl NativeSourceRealizer {
     pub fn stats(&self) -> serde_json::Value {
         serde_json::json!({"context":self.context.stats(),"potential":self.potential.stats(),"Stop":self.no_read.stats(),"Period":self.period.stats(),
             "exp_bytes":self.exp.len()*4,"algebra_bytes":ALGEBRA.len(),"additional_potential_table_copy_bytes":self.potential.table_bytes().len(),
-            "extra_context_replays_per_read":1,"final_joint_reductions_per_read":1,
+            "extra_context_replays_per_read":0,"original_context_replays_per_read":1,"prepared_context_scratch_bytes":std::mem::size_of::<PreparedOccurrenceContext>(),"final_joint_reductions_per_read":1,
             "inherited_per_head_reductions_discarded":self.context.config().heads,
             "scope":"source-free packed integer components; loading/tokenization/trace wrapper allocate; no general chat or allocation-free qualification"})
     }

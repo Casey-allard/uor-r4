@@ -11,7 +11,9 @@
 
 use std::fmt;
 
-use crate::geometric_context::{ContextError, NativeContextState, NativeContextTables, MAX_LANES};
+use crate::geometric_context::{
+    ContextError, ContextStep, NativeContextState, NativeContextTables, MAX_LANES,
+};
 use crate::geometric_no_read::{NativeGeometricNoRead, NoReadError};
 use crate::geometric_potential::{AddressLane, NativePotentialTables, PotentialError};
 use crate::geometric_read::{NativeGeometricRead, ReadError, EXP_TABLE_LEN};
@@ -62,6 +64,7 @@ pub struct SelectedRecordFrame<'a> {
     pub token_ids: &'a [u32],
 }
 
+#[derive(Clone, Copy)]
 pub struct OccurrenceComponents<'a> {
     pub context: &'a NativeContextTables,
     pub potential: &'a NativePotentialTables,
@@ -73,6 +76,8 @@ pub struct OccurrenceComponents<'a> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum OccurrenceReadError {
     ComponentShape,
+    ForeignPreparedContext,
+    ForeignQuerySnapshot,
     UnsupportedStatus(FrameStatus),
     EmptyQuery,
     SequenceLength { actual: usize, maximum: usize },
@@ -154,6 +159,37 @@ mod tests {
                 exp_q31: &self.exp,
             })
         }
+    }
+    #[test]
+    fn prepared_context_and_snapshot_reject_foreign_frames_and_components() -> TestResult {
+        let f = Fixture::new()?;
+        let g = Fixture::new()?;
+        let mut reader = f.reader()?;
+        let a = reader.prepare(frame(&[2, 1]), &[3], &[])?;
+        let b = reader.prepare(frame(&[1, 2]), &[3], &[])?;
+        let snapshot = a.original_snapshot()?;
+        assert_eq!(
+            reader.score(&b, &snapshot).err(),
+            Some(OccurrenceReadError::ForeignQuerySnapshot)
+        );
+        let foreign = g.reader()?.prepare(frame(&[2, 1]), &[3], &[])?;
+        assert_eq!(
+            reader.score(&foreign, &foreign.original_snapshot()?).err(),
+            Some(OccurrenceReadError::ForeignPreparedContext)
+        );
+        let original = reader.read(frame(&[2, 1]), &[3], &[])?;
+        let old_scores = original
+            .head(0)
+            .ok_or("head missing")?
+            .potential_q24
+            .to_vec();
+        let scored = reader.score(&a, &snapshot)?;
+        assert_eq!(
+            scored.head(0).ok_or("head missing")?.potential_q24,
+            old_scores
+        );
+        assert_eq!(a.source_occurrences()[0].token_id, 2);
+        Ok(())
     }
     fn frame(tokens: &[u32]) -> SelectedRecordFrame<'_> {
         SelectedRecordFrame {
@@ -311,9 +347,127 @@ const EMPTY_OCCURRENCE: SourceOccurrence = SourceOccurrence {
     token_id: 0,
 };
 
+/// Private, immutable original causal replay; no unchecked deserialization.
+/// Fixed capacity retains source latents and provenance without allocating.
+pub struct PreparedOccurrenceContext<'a> {
+    components: OccurrenceComponents<'a>,
+    source: SourceIdentity,
+    occurrences: [SourceOccurrence; MAX_SEQUENCE],
+    tokens: [u32; MAX_SEQUENCE],
+    steps: [Option<ContextStep>; MAX_SEQUENCE],
+    count: usize,
+    total: usize,
+    stats: OccurrenceReadStats,
+    frame_binding: [u8; 32],
+}
+
+/// Only original preparation and the admitted feedback bridge construct this.
+/// The reference binds one specific prepared frame, not merely its dimensions.
+pub struct QuerySnapshot<'p, 'a> {
+    prepared: &'p PreparedOccurrenceContext<'a>,
+    step: ContextStep,
+}
+impl QuerySnapshot<'_, '_> {
+    pub fn states(&self) -> &[H4Code] {
+        &self.step.states[..self.step.heads * self.step.lanes_per_head]
+    }
+    pub fn codes(&self) -> &[AddressLane] {
+        &self.step.output[..self.step.heads * self.step.lanes_per_head]
+    }
+    pub fn raw_roots(&self) -> &[H4Code] {
+        &self.step.readout_roots[..self.states().len()]
+    }
+    pub fn categories(&self) -> &[u8] {
+        &self.step.categories[..self.states().len()]
+    }
+    pub fn last_token(&self) -> u32 {
+        self.prepared.tokens[self.prepared.total - 1]
+    }
+    pub fn heads(&self) -> usize {
+        self.step.heads
+    }
+    pub fn lanes_per_head(&self) -> usize {
+        self.step.lanes_per_head
+    }
+    pub fn frame_binding(&self) -> &[u8; 32] {
+        &self.prepared.frame_binding
+    }
+}
+impl<'a> PreparedOccurrenceContext<'a> {
+    pub fn original_snapshot(&self) -> OccurrenceReadResult<QuerySnapshot<'_, 'a>> {
+        let step = self.steps[self.total - 1].ok_or(OccurrenceReadError::ComponentShape)?;
+        Ok(QuerySnapshot {
+            prepared: self,
+            step,
+        })
+    }
+    pub fn source_occurrences(&self) -> &[SourceOccurrence] {
+        &self.occurrences[..self.count]
+    }
+    pub fn source_states(&self, offset: usize) -> Option<&[H4Code]> {
+        if offset >= self.count {
+            return None;
+        }
+        self.steps[offset]
+            .as_ref()
+            .map(|s| &s.states[..s.heads * s.lanes_per_head])
+    }
+    pub fn source_codes(&self, offset: usize) -> Option<&[AddressLane]> {
+        if offset >= self.count {
+            return None;
+        }
+        self.steps[offset]
+            .as_ref()
+            .map(|s| &s.output[..s.heads * s.lanes_per_head])
+    }
+    pub fn tokens(&self) -> &[u32] {
+        &self.tokens[..self.total]
+    }
+    pub fn steps(&self) -> impl Iterator<Item = &ContextStep> {
+        self.steps[..self.total].iter().flatten()
+    }
+    pub fn context_coefficient_reads(&self) -> usize {
+        self.stats.context_coefficient_reads
+    }
+    pub fn logical_prepared_bytes(&self) -> usize {
+        std::mem::size_of::<Self>()
+    }
+    pub(crate) fn observation_reads(&self) -> usize {
+        self.components.context.stats().root_readout_reads
+            + self.components.context.stats().category_readout_reads
+    }
+    pub(crate) fn apply_actions<'p>(
+        &'p self,
+        original: &QuerySnapshot<'p, 'a>,
+        actions: &[H4Code],
+    ) -> OccurrenceReadResult<QuerySnapshot<'p, 'a>> {
+        if !std::ptr::eq(original.prepared, self) {
+            return Err(OccurrenceReadError::ForeignQuerySnapshot);
+        }
+        if actions.len() != original.states().len() {
+            return Err(OccurrenceReadError::ComponentShape);
+        }
+        let mut states = [H4Code::IDENTITY; MAX_LANES];
+        for (i, (old, action)) in original.states().iter().zip(actions).enumerate() {
+            states[i] = self.components.geometry.compose(*old, *action);
+        }
+        let step = NativeContextState::observe_states(
+            original.last_token() as usize,
+            &states[..actions.len()],
+            self.components.context,
+        )
+        .map_err(OccurrenceReadError::Context)?;
+        Ok(QuerySnapshot {
+            prepared: self,
+            step,
+        })
+    }
+}
+
 pub struct NativeOccurrenceReader<'a> {
     components: OccurrenceComponents<'a>,
     reducers: Vec<NativeGeometricRead>,
+    #[allow(dead_code)]
     addresses: [[AddressLane; MAX_LANES]; MAX_SEQUENCE],
     scratch_scores: [[i64; MAX_SEQUENCE]; MAX_HEADS],
     scratch_weights: [[u64; MAX_SEQUENCE]; MAX_HEADS],
@@ -391,6 +545,17 @@ impl<'a> NativeOccurrenceReader<'a> {
         query: &[u32],
         response_prefix: &[u32],
     ) -> OccurrenceReadResult<OccurrenceRead<'_>> {
+        let prepared = self.prepare(frame, query, response_prefix)?;
+        let snapshot = prepared.original_snapshot()?;
+        self.score(&prepared, &snapshot)
+    }
+
+    pub fn prepare(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        query: &[u32],
+        response_prefix: &[u32],
+    ) -> OccurrenceReadResult<PreparedOccurrenceContext<'a>> {
         if frame.metadata.status != FrameStatus::Found {
             return Err(OccurrenceReadError::UnsupportedStatus(
                 frame.metadata.status,
@@ -431,8 +596,17 @@ impl<'a> NativeOccurrenceReader<'a> {
             logical_owned_bytes: self.logical_owned_bytes(),
             ..OccurrenceReadStats::default()
         };
-        let mut final_states = [H4Code::IDENTITY; MAX_LANES];
-        let mut final_token = 0;
+        let mut prepared = PreparedOccurrenceContext {
+            components: self.components,
+            source: frame.identity,
+            occurrences: [EMPTY_OCCURRENCE; MAX_SEQUENCE],
+            tokens: [0; MAX_SEQUENCE],
+            steps: [None; MAX_SEQUENCE],
+            count: frame.token_ids.len(),
+            total,
+            stats,
+            frame_binding: frame_digest(frame, query, response_prefix),
+        };
         for (position, &token) in frame
             .token_ids
             .iter()
@@ -447,37 +621,66 @@ impl<'a> NativeOccurrenceReader<'a> {
                     self.components.geometry,
                 )
                 .map_err(OccurrenceReadError::Context)?;
-            self.addresses[position] = step.output;
-            final_states = step.states;
-            final_token = token;
+            prepared.tokens[position] = token;
+            prepared.steps[position] = Some(step);
             stats.context_coefficient_reads += step.coefficient_reads;
         }
+        for (offset, &token_id) in frame.token_ids.iter().enumerate() {
+            prepared.occurrences[offset] = SourceOccurrence {
+                source: frame.identity,
+                token_offset: offset as u32,
+                token_id,
+            };
+        }
+        prepared.stats = stats;
+        Ok(prepared)
+    }
+
+    /// Scores immutable keys against one checked original or updated snapshot.
+    pub fn score(
+        &mut self,
+        prepared: &PreparedOccurrenceContext<'a>,
+        snapshot: &QuerySnapshot<'_, 'a>,
+    ) -> OccurrenceReadResult<OccurrenceRead<'_>> {
+        if !std::ptr::eq(prepared.components.context, self.components.context)
+            || !std::ptr::eq(prepared.components.potential, self.components.potential)
+            || !std::ptr::eq(prepared.components.no_read, self.components.no_read)
+            || !std::ptr::eq(prepared.components.geometry, self.components.geometry)
+            || !std::ptr::eq(prepared.components.exp_q31, self.components.exp_q31)
+        {
+            return Err(OccurrenceReadError::ForeignPreparedContext);
+        }
+        if !std::ptr::eq(snapshot.prepared, prepared) {
+            return Err(OccurrenceReadError::ForeignQuerySnapshot);
+        }
+        let mut stats = prepared.stats;
         let heads = self.components.context.heads();
         let lanes = self.components.context.lanes_per_head();
-        let width = heads * lanes;
         let null = self
             .components
             .no_read
             .score(
-                final_token as usize,
-                &final_states[..width],
-                &self.addresses[total - 1][..width],
+                snapshot.last_token() as usize,
+                snapshot.states(),
+                snapshot.codes(),
                 None,
             )
             .map_err(OccurrenceReadError::NoRead)?;
         stats.no_read_table_reads = self.components.no_read.stats().without_span_reads;
         let absent =
             [AddressLane::new(1, 0, false).map_err(OccurrenceReadError::Potential)?; MAX_LANES];
-        let count = frame.token_ids.len();
+        let count = prepared.count;
         let zeros = [0i32; MAX_SEQUENCE];
         let ages = [0i64; MAX_SEQUENCE];
         let mut summaries = [HeadSummary::default(); MAX_HEADS];
         let mut start = 0;
         for h in 0..heads {
             let end = start + lanes;
-            let q = &self.addresses[total - 1][start..end];
+            let q = &snapshot.codes()[start..end];
             for j in 0..count {
-                let k = &self.addresses[j][start..end];
+                let k = &prepared
+                    .source_codes(j)
+                    .ok_or(OccurrenceReadError::ComponentShape)?[start..end];
                 self.scratch_scores[h][j] = self
                     .components
                     .potential
@@ -515,20 +718,14 @@ impl<'a> NativeOccurrenceReader<'a> {
             };
             start = end;
         }
-        for (offset, &token_id) in frame.token_ids.iter().enumerate() {
-            self.occurrences[offset] = SourceOccurrence {
-                source: frame.identity,
-                token_offset: offset as u32,
-                token_id,
-            };
-        }
+        self.occurrences = prepared.occurrences;
         self.scores = self.scratch_scores;
         self.weights = self.scratch_weights;
         self.summaries = summaries;
-        self.last = Some((frame.identity, count, stats));
+        self.last = Some((prepared.source, count, stats));
         // `last` has just been committed; construct directly without an unwrap.
         Ok(OccurrenceRead {
-            source: frame.identity,
+            source: prepared.source,
             occurrences: &self.occurrences[..count],
             heads: &self.summaries[..heads],
             stats,
@@ -536,4 +733,22 @@ impl<'a> NativeOccurrenceReader<'a> {
             weights: &self.weights,
         })
     }
+}
+
+fn frame_digest(frame: SelectedRecordFrame<'_>, query: &[u32], prefix: &[u32]) -> [u8; 32] {
+    use sha2::{Digest, Sha256};
+    let mut h = Sha256::new();
+    h.update(frame.identity.record.to_le_bytes());
+    h.update(frame.identity.commit.to_le_bytes());
+    h.update((frame.metadata.scope.len() as u64).to_le_bytes());
+    h.update(frame.metadata.scope);
+    h.update(frame.metadata.relation.to_le_bytes());
+    h.update(frame.metadata.view.to_le_bytes());
+    for ids in [frame.metadata.entity, frame.token_ids, query, prefix] {
+        h.update((ids.len() as u64).to_le_bytes());
+        for id in ids {
+            h.update(id.to_le_bytes());
+        }
+    }
+    h.finalize().into()
 }

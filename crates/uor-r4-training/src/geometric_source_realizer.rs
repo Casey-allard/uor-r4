@@ -9,8 +9,8 @@
 //! the tokenizer-bound period and protocol EOS; it is not general prose.
 //!
 //! Native execution reuses the occurrence reader (including its currently
-//! unused per-head reductions), replays integer context once more for Period,
-//! and calls the joint action reducer. These extra work/allocation boundaries
+//! unused per-head reductions), shares one prepared integer context with Period,
+//! and calls the joint action reducer. The trace and allocation boundaries
 //! are explicit, not an allocation-free or compiled-instruction claim.
 //! Training retains exact native masses in the loss forward and substitutes
 //! the declared softmax of summed-head scores only for its first-order adjoint.
@@ -433,7 +433,7 @@ impl NativeSourceRealizer {
     }
     pub fn stats(&self) -> serde_json::Value {
         serde_json::json!({"consumer":self.consumer.stats(),"period":self.period.stats(),
-            "extra_context_replays_per_read":1,"final_joint_reductions_per_read":1,
+            "extra_context_replays_per_read":0,"original_context_replays_per_read":1,"final_joint_reductions_per_read":1,
             "inherited_per_head_reductions_discarded":self.consumer.metadata.context.heads,
             "scope":"native integer components inside allocating wrapper; no parent-model inference, no complete-path opcode/allocation qualification"})
     }

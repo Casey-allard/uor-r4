@@ -1,0 +1,35 @@
+# Native geometric value feedback before a second read — October 4
+
+An admitted source can now be read twice before emitting a token. The first joint Copy/Period/Stop decision selects its highest summed-Q24 Copy occurrence, with earliest-offset ties, even when Stop provisionally wins. The selected occurrence's actual token and stored latent state enter the retained packed K2 value producer. Both atoms retain orientation, radius and absence/zero status. Their decoded sum is diagnostic and is never projected into a root.
+
+A packed quarter-grid q4 selector chooses among120 finite H4 actions. Identity code1 is first on ties. The action right-composes the causal query state, then the observation helper recomputes roots/categories without another token transition. The second read scores the same immutable keys. Copy, Stop and Period consume one updated snapshot and retain the current joint normalizer and alias aggregation. `stage2_controller_snapshot` is authoritative; `period_context` is explicitly the original token replay. Preparation and snapshot/component bindings are checked before publishing a result.
+
+`RoleSurface` uses the original final causal token/state as producer input with identical producer/bridge dimensions. It is a matched input control, not separate source/query accumulators. No target, desired occurrence, cursor, query reset, forced Copy or provider input enters either path.
+
+## Executed result
+
+Exact committed source`eada026ea1033f9bd713d02a830a4182d409ad69` passes88 focused Rust tests and release construction on Linux CPU:5 feedback,3 occurrence,9 context,13 source,54 training-driver,2 report-isolation and2 training realizer tests. The initial training filter matched zero tests and is excluded; its corrected run executes both tests. Static review independently approves the eight changed Rust paths.
+
+The actual development-selected radial grid64 native artifact runs in a restricted filesystem containing eight native artifact files, a separately trusted binding, source-only inputs and the executable/ELF libraries. No Stack/source tensors, expected answers, `/proc`, `/dev` or symlinks are exposed. The probeSHA is`ddccf3fe64afd54701c77ebd4076e4504a6dd8bf26eef5a7358089c7745cc3be`.
+
+Baseline and identity each preserve64 retained own-prefix replies/EOS and all530 full action objects, head scores and normalizer masses.352 actual prefixes have independently saved full legacy context/Period records and match. Another178 lack full retained context after divergence; those are not reconstructed or counted as full-context parity. Identity stage1/stage2 entire trace equality is also checked at all530 reached prefixes.
+
+The nonzero, **unlearned** fixture changes the refined snapshot and final Copy/Stop/Period scores on64/64 first reads in each mode. JointCopy and RoleSurface differ in produced value, selected update actions and resulting snapshot on all64 paired rows. Focused causal tests additionally hold prepared query and keys fixed while changing the actual winning Copy occurrence; they cover feedback under provisional Stop and opposite nonzero atoms whose decoded sum cancels. These are executed dependency checks, not learned improvement or proof that depth is necessary.
+
+All320 files67,045,658B from both attempts return with exact remote SHA-256/file-set equality. Producer Rust reports are sealed and verified; local BLAKE3 is not recomputed. The first restricted launch fails before inference because copied ELF-loader permissions were lost; the supervisor also observes the pod above its owned-space stop. The failed attempt is retained. One audited reproducible debug test executable531,143,920B is removed, library permissions are preserved, and fresh v2 completes with exit0/no stop. Neither orchestration failure is model-quality evidence.
+
+## Cost and interpretation
+
+The successful native supervisor takes2.221478s, with child-rusage maximum252,293,120B. Its2-second RSS sample misses the short child peak; the sampled1,695,744B is not a peak estimate. Sequential build/test/native receipts total224.428s including empty filter and failed launch; complete preparation/review/delivery reservation180min is charged once, yielding cumulative1,153,635,028/1,170,000,000ms after the necessary20,000,000ms ceiling extension. No GPU, runners, laptop model CPU or new paid provisioning is used. Metal checks are unavailable on this Linux host.
+
+The prepared fixed scratch is13,992B and one original context replay serves both reads. The bridge holds39,840B packed coefficients and4,194,304B expanded table entries. The value producer holds4,996,544B packed coefficients and45,885,440B expanded tables, derived from the source's declared dimensions; these exclude codec/metadata/allocator/trace overhead. Finite choice and token tables remain dense prototype costs. Loading, tokenization, expansion and traces allocate. Complete-binary opcode, allocation-free serving, M1 speed/energy, general attention/chat, geometry advantage and default session integration are not qualified.
+
+Multiple reads before an output are an established architectural possibility in [End-To-End Memory Networks](https://proceedings.neurips.cc/paper_files/paper/2015/hash/8fb21ee7a2207526da55a679f0332de2-Abstract.html). That primary result motivates exploring depth; it does not prove UOR-R4 needs two reads or validate this operator. This construction uses the retained integer geometric operators, and its learning comparison remains open.
+
+## Next integrated task
+
+Implement offline Rust bridge-only learning from ordinary final marginal token CE, including aliases and EOS, while freezing stage1/source keys and the same nonzero value producer. Reuse the existing loss, q4 export and context/value credit. The missing connections are observation-only credit through the refined snapshot and the native-table-conditioned120-action adjoint; never perform a fake token transition to obtain them. Declare the biased smooth backward separately from native argmax and measure actual packed/action crossings.
+
+Compare JointCopy and RoleSurface with identical initialization, capacity, optimizer, data and dose. Keep the unchanged parent in native development ranking, freeze a new untouched transfer before predictions, and retain all gains/losses and earlier artifacts. A zero bridge supplies bridge credit but initially no producer credit, so freezing the producer avoids a false joint-learning claim. Any later final-readout coadaptation requires a separate stage2 payload/variables to retain frozen stage1. No unchanged radial fit, transformer/completion veto or collision-proof prerequisite is introduced. General Generate, native compiler/store/session integration and reasoning remain roadmap obligations.
+
+[Machine evidence](../evidence/geometric-dependent-read-2026-10-04.json) binds the executed source and results. Detailed reviews/receipts and the engineering learning packet remain in`~/uor-r4-local/workspace/research/geometric-dependent-read-20261004`.

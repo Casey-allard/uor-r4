@@ -1,0 +1,80 @@
+{
+  "schema": "uor-r4.geometric-dependent-read-evidence/1",
+  "executed_source": "eada026ea1033f9bd713d02a830a4182d409ad69",
+  "source_parent": "e8226b7641d6288431d2287d4ce6ecdce4a4ff0a",
+  "research_parent": "radial grid1024 development-selected checkpoint0064",
+  "parent_native_outer_metadata_sha256": "330a8d22b08e3579cdbd4d89a38d10012e6956f0f6a07bb6aee3d4e9e351c5da",
+  "probe_sha256": "ddccf3fe64afd54701c77ebd4076e4504a6dd8bf26eef5a7358089c7745cc3be",
+  "optimizer_updates": 0,
+  "tests_passed": 88,
+  "checks": {
+    "dependent-feedback-tests.log": 5,
+    "dependent-occurrence-tests.log": 3,
+    "dependent-context-tests.log": 9,
+    "dependent-training-realizer-tests.log": 0,
+    "dependent-source-tests.log": 13,
+    "dependent-probe-tests.log": 2,
+    "dependent-training-driver-tests.log": 54,
+    "dependent-training-realizer-filter-repaired.log": 2
+  },
+  "baseline_and_identity": {
+    "cases_each": 64,
+    "own_prefix_full_action_traces_each": 530,
+    "legacy_full_context_positions_each": 352,
+    "legacy_full_context_not_saved_each": 178,
+    "identity_entire_stage_trace_positions": 530,
+    "status": "PASS"
+  },
+  "nonzero_fixture": {
+    "cases_each": 64,
+    "snapshot_and_Copy_Stop_Period_scores_changed_each_mode": 64,
+    "paired_value_actions_snapshot_differ": 64,
+    "status": "PASS; UNLEARNED_CAUSAL_CONSTRUCTION"
+  },
+  "return": {
+    "source_commit": "eada026ea1033f9bd713d02a830a4182d409ad69",
+    "files": 320,
+    "bytes": 67045658,
+    "exact_remote_SHA_and_file_set": true,
+    "failed_first_attempt_preserved": true,
+    "producer_Rust_reports_seal_verify": "PASS in executed driver; not recomputed local BLAKE3"
+  },
+  "native_receipt": {
+    "exit_code": 0,
+    "elapsed_seconds": 2.2214780510403216,
+    "sampled_process_tree_peak_rss_bytes": 1695744,
+    "rusage_children_max_rss_bytes": 252293120,
+    "stop_reason": null
+  },
+  "complete_charge_ms": 10800000,
+  "ledger_cumulative_ms": 1153635028,
+  "ledger_limit_ms": 1170000000,
+  "necessary_limit_extension_ms": 20000000,
+  "sequential_build_test_native_seconds": 224.42769645806402,
+  "costs": {
+    "prepared_fixed_scratch_bytes": 13992,
+    "bridge_packed_bytes": 39840,
+    "value_packed_bytes": 4996544,
+    "bridge_expanded_table_bytes": 4194304,
+    "value_expanded_table_bytes": 45885440,
+    "expanded_cost_basis": "source-defined sizes:8 lanes x128 padded classes x1024 x4 bridge;16 atoms x(4096+3x128+1)x(128+32)x4 value; excludes codec/metadata/allocator/trace overhead",
+    "actual_context_replays_per_prediction": 1,
+    "scoring_stages": 2,
+    "prototype_tables_remain_dense": true
+  },
+  "failures_preserved": [
+    "empty training filter (zero tests; corrected filter executes2)",
+    "first restricted launch ELF loader permission denied before inference; overlapping pod storage stop; fresh v2 preserves library permissions after audited reproducible debug executable cleanup"
+  ],
+  "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-dependent-read-20261004",
+  "claims_not_established": [
+    "learned feedback benefit",
+    "general attention or chat",
+    "geometry advantage",
+    "default session integration",
+    "complete binary opcode or allocation contract",
+    "M1 runtime/energy",
+    "general Generate/prose/reasoning"
+  ],
+  "next": "Rust bridge-only ordinary final marginal tokenCE with frozen stage1/source keys/value producer; same capacity RoleSurface; baseline-inclusive native ranking and newly frozen transfer"
+}

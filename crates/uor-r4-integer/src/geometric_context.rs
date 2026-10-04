@@ -551,6 +551,37 @@ impl NativeContextState {
             actions[index] = tables.codes[selected];
             next[index] = geometry.compose(old[index], actions[index]);
         }
+        let mut observed = Self::observe_states(token_id, &next[..self.total], tables)?;
+        observed.actions = actions;
+        observed.coefficient_reads = tables.stats.coefficient_reads;
+        self.states = next;
+        Ok(observed)
+    }
+    /// Project the supplied finite state without executing another transition.
+    /// Typed H4 codes and exact shape are checked before any output is produced.
+    pub fn observe_states(
+        token_id: usize,
+        states: &[H4Code],
+        tables: &NativeContextTables,
+    ) -> ContextResult<ContextStep> {
+        let total = tables.heads * tables.lanes_per_head;
+        if states.len() != total {
+            return Err(ContextError::ShapeMismatch {
+                state_heads: 1,
+                state_lanes: states.len(),
+                table_heads: tables.heads,
+                table_lanes: tables.lanes_per_head,
+            });
+        }
+        let token = tables
+            .tokens
+            .get(token_id)
+            .ok_or(ContextError::TokenOutOfRange {
+                token: token_id,
+                vocabulary: tables.tokens.len(),
+            })?;
+        let mut next = [H4Code::IDENTITY; MAX_LANES];
+        next[..total].copy_from_slice(states);
         let mut readout_roots = [H4Code::IDENTITY; MAX_LANES];
         let mut categories = [0; MAX_LANES];
         let mut output = [tables.absent; MAX_LANES];
@@ -579,16 +610,16 @@ impl NativeContextState {
                         .map_err(ContextError::Address)?;
             }
         }
-        self.states = next;
         Ok(ContextStep {
-            heads: self.heads,
-            lanes_per_head: self.lanes_per_head,
+            heads: tables.heads,
+            lanes_per_head: tables.lanes_per_head,
             states: next,
-            actions,
+            actions: [H4Code::IDENTITY; MAX_LANES],
             readout_roots,
             categories,
             output,
-            coefficient_reads: tables.stats.coefficient_reads,
+            coefficient_reads: tables.stats.root_readout_reads
+                + tables.stats.category_readout_reads,
         })
     }
 }
