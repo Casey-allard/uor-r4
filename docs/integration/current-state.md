@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Discrete bridge proposals remain inside native decision regions — October 4
+
+The [accepted-update Rust learner](geometric-native-route-accepted-2026-10-04.md) completes both matched arms at source6845a9c3. Each first round tests18 fixed legal magnitude-bearing proposals: scales1/2, joint and exact eight-lane partitions. All36 retain native CE0.492381624865 and every570 feedback action/refined state/query/final action trace. Changed joint coefficients54/546 do not cross a decision boundary. Strict selection correctly keeps update0; parent31/64 complete/EOS64, parent/selected fresh0/32. Seed20261008 is now exposed. This is a finite proposal plateau, not a geometry-family or action-learning failure.
+
+Six focused tests/release pass; independent saved-field audit806,280 checks0errors. Gradient reconstruction/native reexecution and independent BLAKE3 are unverified;38 auditor-only initial discrepancies are preserved/corrected without model edits. All334files140,279,133B return with exactSHA/file-set equality. LinuxCPU48/noGPU: build/test277.552s, preparation2.230s, workers18.237s each. Jobs release; owned pod9,555,492KiB. Complete150min card charged once gives1,191,435,028/1,194,000,000ms. [Evidence](../evidence/geometric-native-route-accepted-2026-10-04.json). No generalchat/wholeprefix retrieval/M1energy/Metal qualification.
+
+**Next:** construct source-aware exact native winner-crossing proposals using retained action utilities and actual compiled margins; visibly changed decisions are eligibility, complete64 native aliasCE still decides acceptance. No unchanged scale/dose sweep. Directed relative-H4 actor observations remain a distinct constructive comparison. Coordinate wholeprefix admission/routing with Claude's MQAR instrument; supplied-source consumption is not wholeprefix recall. Preserve original geometry and all negative candidates; general Generate/compiler/store/session/reasoning remain obligations.
+
 ## Corrected native-credit paired fits regress; discrete learning donors retained — October 4
 
 The [completed paired Rust fits](geometric-native-route-fit-2026-10-04.md) recompute all120 actual native actions at each current packed policy, with source/context/producer/readouts frozen. Both64-update arms cross Q4 at42 and change all570 canonical refined states/final action objects. Parent/16/32 stay CE0.492381624865 and31/64 complete; Joint48/64 gives0.792370111886/0.739038279712 and21/20 complete; Role gives0.865548295437/0.810201932528 and20/15. Both correctly select unchanged0. Selected/parent fresh0/32; learned48/64fresh NOT_RUN. Corrected credit reduces earlier-fit harm without beating the parent; retain all regressions and geometry.

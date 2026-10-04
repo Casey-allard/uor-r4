@@ -1,0 +1,284 @@
+{
+  "schema": "uor-r4.native-route-accepted-evidence/1",
+  "executed_source_commit": "6845a9c30e9742c9693a63379ffe4ee5b81597ff",
+  "scope": "Fixed discrete proposal learning on supplied-source native two-read bridge; no whole-prefix retrieval or chat qualification",
+  "result": "No changed native decisions; incumbent retained",
+  "arms": [
+    {
+      "mode": "joint",
+      "accepted_updates": 0,
+      "selected_updates": 0,
+      "stop_reason": "no strictly improving candidate in frozen finite proposal set",
+      "parent_transfer_complete": 0,
+      "selected_transfer_complete": 0,
+      "incumbent_ce": 0.4923816248649195,
+      "baseline_complete": 31,
+      "baseline_eos": 64,
+      "candidate_count": 18,
+      "candidates": [
+        {
+          "id": "scale-1-joint",
+          "changed_coefficients": 54,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-0",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-1",
+          "changed_coefficients": 9,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-2",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-3",
+          "changed_coefficients": 6,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-4",
+          "changed_coefficients": 18,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-5",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-6",
+          "changed_coefficients": 9,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-7",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-joint",
+          "changed_coefficients": 546,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-0",
+          "changed_coefficients": 96,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-1",
+          "changed_coefficients": 54,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-2",
+          "changed_coefficients": 60,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-3",
+          "changed_coefficients": 81,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-4",
+          "changed_coefficients": 87,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-5",
+          "changed_coefficients": 69,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-6",
+          "changed_coefficients": 48,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-7",
+          "changed_coefficients": 51,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        }
+      ],
+      "worker_elapsed_seconds": 18.236525411251932,
+      "peak_rss_bytes": 861917184,
+      "exit_code": 0,
+      "report_sha256": "4be04071de7666578e15509455d74d79c1fcbfb572cc3444cf0d6073ac9ca0d2"
+    },
+    {
+      "mode": "role",
+      "accepted_updates": 0,
+      "selected_updates": 0,
+      "stop_reason": "no strictly improving candidate in frozen finite proposal set",
+      "parent_transfer_complete": 0,
+      "selected_transfer_complete": 0,
+      "incumbent_ce": 0.4923816248649195,
+      "baseline_complete": 31,
+      "baseline_eos": 64,
+      "candidate_count": 18,
+      "candidates": [
+        {
+          "id": "scale-1-joint",
+          "changed_coefficients": 54,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-0",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-1",
+          "changed_coefficients": 9,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-2",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-3",
+          "changed_coefficients": 6,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-4",
+          "changed_coefficients": 18,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-5",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-6",
+          "changed_coefficients": 9,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-1-lane-7",
+          "changed_coefficients": 3,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-joint",
+          "changed_coefficients": 546,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-0",
+          "changed_coefficients": 96,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-1",
+          "changed_coefficients": 54,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-2",
+          "changed_coefficients": 60,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-3",
+          "changed_coefficients": 81,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-4",
+          "changed_coefficients": 87,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-5",
+          "changed_coefficients": 69,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-6",
+          "changed_coefficients": 48,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        },
+        {
+          "id": "scale-2-lane-7",
+          "changed_coefficients": 51,
+          "native_ce": 0.4923816248649195,
+          "zero_support": 0
+        }
+      ],
+      "worker_elapsed_seconds": 18.237094924785197,
+      "peak_rss_bytes": 825667584,
+      "exit_code": 0,
+      "report_sha256": "9af87e2d1d4b4d3df5b0b07551698bfd3f0a3016366ff69d00cdb859bc46a835"
+    }
+  ],
+  "return_verification": {
+    "files": 334,
+    "bytes": 140279133,
+    "exact_files_and_sha256_match": true
+  },
+  "independent_review": {
+    "checks": 806280,
+    "errors": 0,
+    "sha256": "ca322515d5020c5e542af358eaecae617252510d15c36d3009ae3f6bac91d648",
+    "limitations": [
+      "Saved-field review, no native reexecution or omitted gradient reconstruction",
+      "Independent BLAKE3 unavailable",
+      "38 initial auditor-only mismatches preserved and corrected without model edits"
+    ]
+  },
+  "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-native-route-accepted-20261004",
+  "resources": {
+    "pod_owned_finish_kib": 9555492,
+    "gpu": false,
+    "threads": 48,
+    "complete_card_ms": 9000000,
+    "cumulative_ms": 1191435028,
+    "limit_ms": 1194000000
+  }
+}
