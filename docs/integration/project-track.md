@@ -112,10 +112,16 @@ then enables existing context learning on the same frozen data. Finaloriginal6/2
 construction0/8 and transfer3/16 include new repeated-source capability alongside
 14original and2transfer losses. Oldcontext+newreadouts preserves20/20; newcontext+
 oldreadouts gives4/20. A fixed-prefix EOS failure also shows interaction. Retain
-all parents/stages/hybrids. Next extend existing native direction diagnosis to a
-few justified context packed quanta before another fit or session integration;
-this context-direction task is NOT_RUN. No unchanged dose, presumed completion
-patch or geometry-family rejection. The inspected transfer remains development.
+all parents/stages/hybrids. The [executed context directions and actual-first-failure
+credit](geometric-context-direction-2026-10-04.md) separate an unreachable later-EOS
+improvement from useful native root/category mass changes at actual generated failures.
+Both useful frontier directions preserve20 originals but construction stays0/8; no
+candidate is adopted. Next test bounded native-screened observation learning, comparing
+candidates on the same frozen frontiers within each round, then regenerate/refresh after
+acceptance. Transitions/readouts stay fixed initially; proposed8acceptedquanta/32candidate
+cap and explicit completed-case offline EOSanchor. This learner is NOT_RUN. Preserve
+allrow tradeoffs/fullanswerCE; no single-quarter greedyflip gate, unchanged direction
+study, unrestricted jointdose, completion patch or geometry-family rejection. The inspected transfer remains development.
 Do not add a progress cursor from these first-token failures, repeat the original
 fit unchanged or reject the geometry family. Preserve all partial results; five
 exposed numerical groups do not establish complete chat or generalization.

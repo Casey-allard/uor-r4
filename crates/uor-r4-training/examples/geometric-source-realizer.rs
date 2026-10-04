@@ -453,7 +453,7 @@ fn batch(
                     }
                 }
             }
-            trace_rows.push(if matches!(a.mode.as_str(), "composition-fit" | "context-fit") {
+            trace_rows.push(if matches!(a.mode.as_str(), "composition-fit" | "context-fit" | "context-direction") {
                 json!({"step":step,"target_label_only":target,"teacherforced_prefix_ids":&e.target[..step],"nll":loss,"native_target_probability":probability,"native_loss_equal":true,"actions":out.trace.actions})
             } else { json!({"step":step,"target_label_only":target,"teacherforced_prefix_ids":&e.target[..step],"nll":loss,"native_target_probability":probability,"native_loss_equal":true,"trace":out.trace}) });
         }
@@ -535,7 +535,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -556,7 +556,12 @@ fn generate(
         }
         let first_divergence = if matches!(
             a.mode.as_str(),
-            "transfer" | "composition-fit" | "context-fit" | "context-transplant"
+            "transfer"
+                | "composition-fit"
+                | "context-fit"
+                | "context-transplant"
+                | "context-direction"
+                | "context-frontier-direction"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -567,7 +572,13 @@ fn generate(
         rows.push(json!({"id":e.id,"source_record":e.record,"source_commit":e.commit,"original_source_ids":e.tokens,"source_text":e.source_text,"source_view":e.view,"query_ids":e.query,"generated_ids":prefix,"reply_text":text,"raw_decoded_bytes_hex":hex::encode(tok.decode_bytes(&prefix)),"raw_decoded_text_lossy":decoded,"raw_utf8_valid":String::from_utf8(tok.decode_bytes(&prefix)).is_ok(),"text_policy":"strip only protocol2 single leading content separator","eos":ended,"stop":if ended{"eos"}else{"max64"},"accepted_complete_answer":accepted,"source_mention_diagnostic_only":text.contains(&e.source_text),"tokens":traces}));
         if (a.mode == "transfer" && stage.starts_with("transfer-"))
             || ((a.mode == "composition-fit" && stage != "readout-baseline")
-                || matches!(a.mode.as_str(), "context-fit" | "context-transplant"))
+                || matches!(
+                    a.mode.as_str(),
+                    "context-fit"
+                        | "context-transplant"
+                        | "context-direction"
+                        | "context-frontier-direction"
+                ))
         {
             if let Some(row) = rows.last_mut() {
                 row["first_divergence_from_frozen_target"] = json!(first_divergence);
@@ -823,6 +834,8 @@ fn main() -> Result<()> {
             | "composition-fit"
             | "context-fit"
             | "context-transplant"
+            | "context-direction"
+            | "context-frontier-direction"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -848,6 +861,15 @@ fn main() -> Result<()> {
                 || a.transfer_checkpoint.is_none()
                 || a.audit_report.is_some()
                 || a.fit_admission.is_some()))
+        || (matches!(
+            a.mode.as_str(),
+            "context-direction" | "context-frontier-direction"
+        ) && (a.maximum_seconds > 900
+            || a.audit_checkpoint.is_none()
+            || a.transfer_checkpoint.is_none()
+            || a.expected_generation.is_some()
+            || a.audit_report.is_some()
+            || a.fit_admission.is_some()))
         || (a.mode == "context-transplant"
             && (a.maximum_seconds > 300
                 || a.audit_checkpoint.is_none()
@@ -864,7 +886,12 @@ fn main() -> Result<()> {
                 || a.fit_admission.is_some()))
         || (!matches!(
             a.mode.as_str(),
-            "transfer" | "composition-fit" | "context-fit" | "context-transplant"
+            "transfer"
+                | "composition-fit"
+                | "context-fit"
+                | "context-transplant"
+                | "context-direction"
+                | "context-frontier-direction"
         ) && a.transfer_checkpoint.is_some())
         || (!matches!(
             a.mode.as_str(),
@@ -875,12 +902,14 @@ fn main() -> Result<()> {
                 | "composition-fit"
                 | "context-fit"
                 | "context-transplant"
+                | "context-direction"
+                | "context-frontier-direction"
         ) && (a.audit_checkpoint.is_some()
             || a.expected_generation.is_some()
             || a.audit_report.is_some()))
     {
         return Err(invalid(
-            "construction/audit/context-transplant limit 1..300; direction/transfer limit 1..900; fit/readout-fit/composition-fit/context-fit limit 1..1200 with fixed64 updates",
+            "construction/audit/context-transplant limit 1..300; direction/transfer/context-direction limit 1..900; fit/readout-fit/composition-fit/context-fit limit 1..1200 with fixed64 updates",
         ));
     }
     let admitted = admission(&a)?;
@@ -893,12 +922,19 @@ fn main() -> Result<()> {
             | "composition-fit"
             | "context-fit"
             | "context-transplant"
+            | "context-direction"
+            | "context-frontier-direction"
     ) {
         audit_output_location(&a)?;
     }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = if a.mode == "context-transplant" {
+    let result = if matches!(
+        a.mode.as_str(),
+        "context-direction" | "context-frontier-direction"
+    ) {
+        context_direction(&a)
+    } else if a.mode == "context-transplant" {
         context_transplant(&a)
     } else if a.mode == "transfer" {
         transfer(&a)
@@ -2341,32 +2377,44 @@ fn transplant_family(
     Ok(())
 }
 fn saved_failure_prefix(row: &Value, episode: &Episode) -> Result<(usize, Vec<u32>, u32)> {
-    if row["id"] != episode.id {
+    saved_failure_prefix_ids(row, &episode.id, &episode.target)
+}
+fn saved_failure_prefix_ids(
+    row: &Value,
+    id: &str,
+    targets: &[u32],
+) -> Result<(usize, Vec<u32>, u32)> {
+    if row["id"] != id || row["accepted_complete_answer"] == true {
         return Err(invalid("fixed failure row identity differs"));
     }
     let tokens = row["tokens"]
         .as_array()
         .ok_or_else(|| invalid("fixed failure tokens absent"))?;
+    let mut preceding = Vec::new();
     for (step, token) in tokens.iter().enumerate() {
+        let actual_prefix: Vec<u32> = serde_json::from_value(token["own_prefix_ids"].clone())?;
+        if actual_prefix != preceding {
+            return Err(invalid("saved failure prefix continuity differs"));
+        }
         let chosen = u32::try_from(
             token["chosen_token_id"]
                 .as_u64()
                 .ok_or_else(|| invalid("fixed failure chosen token absent"))?,
         )
         .map_err(|_| invalid("fixed failure token exceeds u32"))?;
-        let target = *episode
-            .target
+        let target = *targets
             .get(step)
             .ok_or_else(|| invalid("fixed failure has no frozen target at step"))?;
         if chosen != target {
             let prefix: Vec<u32> = serde_json::from_value(token["own_prefix_ids"].clone())?;
-            if prefix.len() != step || prefix != episode.target[..step] {
+            if prefix.len() != step || prefix != targets[..step] {
                 return Err(invalid(
                     "fixed first divergence prefix differs from preceding frozen targets",
                 ));
             }
             return Ok((step, prefix, target));
         }
+        preceding.push(chosen);
     }
     Err(invalid(
         "fixed final first original has no divergent chosen token",
@@ -2979,6 +3027,696 @@ fn transfer(a: &Args) -> Result<()> {
     )?;
     Ok(())
 }
+#[derive(Serialize)]
+struct FrontierPosition {
+    id: String,
+    step: usize,
+    prefix_ids: Vec<u32>,
+    target_label_only: u32,
+}
+fn frontier_positions(episodes: &[Episode], generation: &Value) -> Result<Vec<FrontierPosition>> {
+    let rows = generation["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("frontier generation rows absent"))?;
+    if episodes.len() != 8 || rows.len() != 8 {
+        return Err(invalid("frontier requires all8 fixed construction rows"));
+    }
+    episodes
+        .iter()
+        .zip(rows)
+        .map(|(episode, row)| {
+            let (step, prefix_ids, target_label_only) = saved_failure_prefix(row, episode)?;
+            Ok(FrontierPosition {
+                id: episode.id.clone(),
+                step,
+                prefix_ids,
+                target_label_only,
+            })
+        })
+        .collect()
+}
+fn frontier_batch(
+    positions: &[FrontierPosition],
+    episodes: &[Episode],
+    weights: &SourceRealizerWeights,
+    native: &NativeSourceRealizer,
+    start: Instant,
+    a: &Args,
+) -> Result<Batch> {
+    let begun = Instant::now();
+    let params = weights.parameters();
+    let prepared = weights.prepare(native)?;
+    let mut gradients = BTreeMap::new();
+    let mut rows = Vec::new();
+    let mut mean = 0f64;
+    if positions.len() != 8 || episodes.len() != 8 {
+        return Err(invalid("frontier loss requires B8"));
+    }
+    for (position, episode) in positions.iter().zip(episodes) {
+        deadline(start, a)?;
+        if position.id != episode.id {
+            return Err(invalid("frontier loss row identity differs"));
+        }
+        let out = prepared.loss(
+            episode.frame(),
+            &episode.view,
+            &episode.query,
+            &position.prefix_ids,
+            position.target_label_only,
+        )?;
+        let loss = out.loss.to_scalar::<f32>()?;
+        let mass = out
+            .trace
+            .actions
+            .token_masses
+            .iter()
+            .find(|m| m.token_id == position.target_label_only)
+            .map(|m| m.weight_q31)
+            .unwrap_or(0);
+        let total = out.trace.actions.total_weight_q31;
+        if total == 0 {
+            return Err(invalid("frontier native distribution empty"));
+        }
+        let probability = mass as f64 / total as f64;
+        let expected = -probability.ln();
+        if probability <= 0.
+            || out.target_probability != probability
+            || !loss.is_finite()
+            || (f64::from(loss) - expected).abs() > 1e-4 + 1e-5 * expected.abs()
+        {
+            return Err(invalid("frontier loss differs from native target mass"));
+        }
+        let store = (&out.loss * (1f64 / 8.))?.backward()?;
+        for (name, var) in &params {
+            if let Some(g) = store.get(var.as_tensor()) {
+                let detached = g.detach();
+                if let Some(old) = gradients.remove(name) {
+                    gradients.insert(name.clone(), (&old + &detached)?.detach());
+                } else {
+                    gradients.insert(name.clone(), detached);
+                }
+            }
+        }
+        mean += f64::from(loss) / 8.;
+        rows.push(json!({"id":episode.id,"step":position.step,"own_prefix_ids":position.prefix_ids,"target_label_only":position.target_label_only,"nll":loss,"native_target_probability":probability,"native_loss_equal":true,"actions":out.trace.actions}));
+    }
+    Ok(Batch {
+        gradients,
+        report: json!({"episodes":8,"tokens":8,"objective":"mean8 first actual ownprefix divergence token CE; one position per construction episode","mean_episode_nll":mean,"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64()}),
+    })
+}
+fn frontier_measure(
+    positions: &[FrontierPosition],
+    episodes: &[Episode],
+    native: &NativeSourceRealizer,
+    start: Instant,
+    a: &Args,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut mean = 0f64;
+    let mut zeros = 0usize;
+    for (position, episode) in positions.iter().zip(episodes) {
+        deadline(start, a)?;
+        let mut row = fixed_failure_trace(
+            "frozen-construction-frontier",
+            native,
+            episode,
+            position.step,
+            &position.prefix_ids,
+            position.target_label_only,
+        )?;
+        let mass = row["target_mass_q31"]
+            .as_u64()
+            .ok_or_else(|| invalid("frontier mass absent"))?;
+        let total = row["trace"]["actions"]["total_weight_q31"]
+            .as_u64()
+            .ok_or_else(|| invalid("frontier total absent"))?;
+        if total == 0 {
+            return Err(invalid("frontier distribution empty"));
+        }
+        let probability = mass as f64 / total as f64;
+        let ce = if mass == 0 {
+            zeros += 1;
+            None
+        } else {
+            Some(-probability.ln())
+        };
+        if let Some(ce) = ce {
+            mean += ce / positions.len() as f64;
+        }
+        row["native_probability"] = json!(probability);
+        row["native_ce"] = json!(ce);
+        row["zero_target_mass"] = json!(mass == 0);
+        row["prefix_policy"] =
+            json!("same frozen baseline first actual ownprefix divergence for every candidate");
+        rows.push(row);
+    }
+    Ok(
+        json!({"positions":positions.len(),"mean_episode_ce":if zeros==0{Some(mean)}else{None},"finite_contribution_to_mean_episode_ce":mean,"zero_target_mass_positions":zeros,"rows":rows}),
+    )
+}
+fn frontier_coordinate_class(name: &str) -> Option<&'static str> {
+    if !name.starts_with("consumer.context.") {
+        None
+    } else if name.ends_with("_root") {
+        Some("root")
+    } else if name.ends_with("_category") {
+        Some("category")
+    } else {
+        None
+    }
+}
+fn select_frontier_direction(
+    mut coordinates: Vec<DirectionCoordinate>,
+) -> Vec<DirectionCoordinate> {
+    coordinates.retain(|c| {
+        c.gradient.is_finite()
+            && c.gradient != 0.
+            && (-6..=6).contains(&c.original_q)
+            && frontier_coordinate_class(&c.name).is_some()
+    });
+    coordinates.sort_by(|a, b| {
+        b.gradient
+            .abs()
+            .total_cmp(&a.gradient.abs())
+            .then(a.name.cmp(&b.name))
+            .then(a.index.cmp(&b.index))
+    });
+    ["root", "category"]
+        .into_iter()
+        .filter_map(|class| {
+            coordinates
+                .iter()
+                .find(|c| frontier_coordinate_class(&c.name) == Some(class))
+                .cloned()
+        })
+        .collect()
+}
+fn context_coordinate_class(name: &str) -> Option<&'static str> {
+    let family = name.strip_prefix("consumer.context.")?;
+    if family.ends_with("_transition") {
+        Some("transition")
+    } else if family.ends_with("_root") || family.ends_with("_category") {
+        Some("observation")
+    } else {
+        None
+    }
+}
+fn select_context_direction(mut coordinates: Vec<DirectionCoordinate>) -> Vec<DirectionCoordinate> {
+    coordinates.retain(|c| {
+        c.gradient.is_finite()
+            && c.gradient != 0.
+            && (-6..=6).contains(&c.original_q)
+            && context_coordinate_class(&c.name).is_some()
+    });
+    coordinates.sort_by(|a, b| {
+        b.gradient
+            .abs()
+            .total_cmp(&a.gradient.abs())
+            .then(a.name.cmp(&b.name))
+            .then(a.index.cmp(&b.index))
+    });
+    ["transition", "observation"]
+        .into_iter()
+        .filter_map(|class| {
+            coordinates
+                .iter()
+                .find(|c| context_coordinate_class(&c.name) == Some(class))
+                .cloned()
+        })
+        .collect()
+}
+fn context_direction_measure(
+    native: &NativeSourceRealizer,
+    episodes: &[Episode],
+    start: Instant,
+    a: &Args,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut objective = 0f64;
+    let mut zeros = 0usize;
+    let mut count = 0usize;
+    for episode in episodes {
+        let mut tokens = Vec::new();
+        let mut total = 0f64;
+        let mut episode_zeros = 0usize;
+        for (step, &target) in episode.target.iter().enumerate() {
+            deadline(start, a)?;
+            let trace = native.read(
+                episode.frame(),
+                &episode.view,
+                &episode.query,
+                &episode.target[..step],
+            )?;
+            let masses = trace
+                .actions
+                .token_masses
+                .iter()
+                .map(|m| (m.token_id, m.weight_q31))
+                .collect::<Vec<_>>();
+            let rank = aggregate_rank(&masses, target)?;
+            let mass = rank["target_mass_q31"]
+                .as_u64()
+                .ok_or_else(|| invalid("context direction target mass absent"))?;
+            let probability = rank["target_probability_diagnostic"]
+                .as_f64()
+                .ok_or_else(|| invalid("context direction probability absent"))?;
+            let ce = if mass == 0 {
+                episode_zeros += 1;
+                None
+            } else {
+                Some(-probability.ln())
+            };
+            if let Some(value) = ce {
+                total += value;
+            }
+            let other = trace
+                .actions
+                .token_masses
+                .iter()
+                .filter(|m| m.token_id != target)
+                .map(|m| m.weight_q31)
+                .max()
+                .unwrap_or(0);
+            let margin = i64::try_from(i128::from(mass) - i128::from(other))
+                .map_err(|_| invalid("context direction mass margin overflow"))?;
+            tokens.push(json!({"step":step,"target_label_only":target,"teacherforced_prefix_ids":&episode.target[..step],"native_ce":ce,"zero_target_mass":mass==0,"native_target_mass_q31":mass,"target_minus_best_other_mass_q31":margin,"target_rank_probability":rank,"actions":trace.actions,"period_q24":trace.period_q24,"context":trace.period_context}));
+            count += 1;
+        }
+        objective += total / episode.target.len() as f64 / episodes.len() as f64;
+        zeros += episode_zeros;
+        rows.push(json!({"id":episode.id,"target_steps":episode.target.len(),"zero_target_mass_positions":episode_zeros,"mean_token_ce":if episode_zeros==0{Some(total/episode.target.len() as f64)}else{None},"tokens":tokens}));
+    }
+    Ok(
+        json!({"mean_episode_ce":if zeros==0{Some(objective)}else{None},"finite_contribution_to_mean_episode_ce":objective,"zero_target_mass_positions":zeros,"zero_mass_policy":"nullCE denotes infinite native NLL; no probability floor","target_steps":count,"rows":rows}),
+    )
+}
+fn context_trajectory_difference(before: &Value, after: &Value) -> Result<Value> {
+    if before["tokens"] != after["tokens"]
+        || before["heads"] != after["heads"]
+        || before["lanes_per_head"] != after["lanes_per_head"]
+    {
+        return Err(invalid(
+            "context direction trajectory inputs/dimensions differ",
+        ));
+    }
+    let width = before["heads"]
+        .as_u64()
+        .and_then(|h| before["lanes_per_head"].as_u64().map(|l| h * l))
+        .ok_or_else(|| invalid("context direction trajectory width absent"))?
+        as usize;
+    if width == 0 {
+        return Err(invalid("context direction zero trajectory width"));
+    }
+    let time = before["tokens"]
+        .as_array()
+        .ok_or_else(|| invalid("context direction tokens absent"))?
+        .len();
+    let mut first = None;
+    let mut changed = BTreeMap::new();
+    for field in ["states", "actions", "raw_roots", "categories", "codes"] {
+        let old = before[field]
+            .as_array()
+            .ok_or_else(|| invalid(format!("context trajectory {field} absent")))?;
+        let new = after[field]
+            .as_array()
+            .ok_or_else(|| invalid(format!("context trajectory {field} absent")))?;
+        if old.len() != new.len() {
+            return Err(invalid("context direction trajectory shape differs"));
+        }
+        let per_position = if matches!(field, "states" | "actions") {
+            1
+        } else {
+            width
+        };
+        if old.len() != time * per_position {
+            return Err(invalid("context direction trajectory field length differs"));
+        }
+        let mut n = 0usize;
+        for (index, (a, b)) in old.iter().zip(new).enumerate() {
+            if a != b {
+                n += 1;
+                let position = index / per_position;
+                first = Some(first.map_or(position, |f: usize| f.min(position)));
+            }
+        }
+        changed.insert(field, n);
+    }
+    Ok(
+        json!({"first_changed_sequence_position":first,"first_changed_input_token":first.and_then(|p|before["tokens"].get(p)).cloned(),"changed_entries":changed,"trajectory_unchanged":first.is_none()}),
+    )
+}
+fn context_direction_comparison(before: &Value, after: &Value) -> Result<Value> {
+    let old = before["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("context direction baseline rows absent"))?;
+    let new = after["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("context direction candidate rows absent"))?;
+    if old.len() != new.len() {
+        return Err(invalid("context direction canonical case count differs"));
+    }
+    let mut rows = Vec::new();
+    for (a, b) in old.iter().zip(new) {
+        if a["id"] != b["id"] {
+            return Err(invalid("context direction canonical case identity differs"));
+        }
+        let x = a["tokens"]
+            .as_array()
+            .ok_or_else(|| invalid("context direction baseline tokens absent"))?;
+        let y = b["tokens"]
+            .as_array()
+            .ok_or_else(|| invalid("context direction candidate tokens absent"))?;
+        if x.len() != y.len() {
+            return Err(invalid("context direction canonical token count differs"));
+        }
+        let mut positions = Vec::new();
+        for (old, new) in x.iter().zip(y) {
+            if old["step"] != new["step"]
+                || old["target_label_only"] != new["target_label_only"]
+                || old["teacherforced_prefix_ids"] != new["teacherforced_prefix_ids"]
+            {
+                return Err(invalid("context direction target/prefix identity differs"));
+            }
+            positions.push(json!({"step":old["step"],"target_label_only":old["target_label_only"],"delta_native_ce":old["native_ce"].as_f64().zip(new["native_ce"].as_f64()).map(|(a,b)|b-a),"parent_zero_target_mass":old["zero_target_mass"],"candidate_zero_target_mass":new["zero_target_mass"],"parent_target_mass_q31":old["native_target_mass_q31"],"candidate_target_mass_q31":new["native_target_mass_q31"],"parent_margin_q31":old["target_minus_best_other_mass_q31"],"candidate_margin_q31":new["target_minus_best_other_mass_q31"],"parent_winner":old["actions"]["chosen_token_id"],"candidate_winner":new["actions"]["chosen_token_id"],"actions_unchanged":old["actions"]==new["actions"],"context_difference":context_trajectory_difference(&old["context"],&new["context"])?}));
+        }
+        rows.push(json!({"id":a["id"],"positions":positions}));
+    }
+    Ok(
+        json!({"delta_mean_episode_ce":before["mean_episode_ce"].as_f64().zip(after["mean_episode_ce"].as_f64()).map(|(a,b)|b-a),"rows":rows}),
+    )
+}
+fn context_direction(a: &Args) -> Result<()> {
+    let frontier = a.mode == "context-frontier-direction";
+    let start = Instant::now();
+    let LoadedFinal {
+        identity,
+        tok,
+        episodes,
+        retained_sha,
+        before,
+        ..
+    } = load_final(a)?;
+    let LoadedContinuation {
+        source,
+        native,
+        fit,
+        evaluation,
+        bins,
+    } = load_context_parent(a, &identity, &retained_sha, &before)?;
+    let input = a
+        .transfer_checkpoint
+        .as_ref()
+        .ok_or_else(|| invalid("context direction old32 missing"))?;
+    let input_files = source_files(input)?;
+    let bytes = fs::read(&a.tokenizer)?;
+    let compiler = SourceEmissionCompiler::new(&bytes)?;
+    let first = episodes
+        .iter()
+        .find(|e| e.id == "mw2-0246-s0-d0")
+        .ok_or_else(|| invalid("fixed singer original case absent"))?;
+    let fixed_prefix = vec![1130u32, 284, 16];
+    if first.target.get(..3) != Some(fixed_prefix.as_slice()) {
+        return Err(invalid("fixed singer prefix differs from artifact targets"));
+    }
+    let fixed_target = *first
+        .target
+        .get(3)
+        .ok_or_else(|| invalid("fixed singer EOS label absent"))?;
+    let template = episodes
+        .first()
+        .ok_or_else(|| invalid("context direction original cases absent"))?;
+    let construction =
+        composition_panel(template, &tok, &compiler, native.binding().eos_token_id())?;
+    let saved_panel: Value = serde_json::from_slice(&fs::read(
+        input
+            .parent()
+            .ok_or_else(|| invalid("composition envelope absent"))?
+            .join("construction-panel/panel.json"),
+    )?)?;
+    if saved_panel["original_cases"] != serde_json::to_value(episode_labels(&episodes))?
+        || saved_panel["construction_cases"] != serde_json::to_value(episode_labels(&construction))?
+    {
+        return Err(invalid("context direction frozen panels differ"));
+    }
+    write(
+        &a.out.join("frozen-panel.json"),
+        &json!({"original":episode_labels(&episodes),"construction":episode_labels(&construction),"fixed_singer_id":first.id,"fixed_prefix_ids":fixed_prefix,"fixed_target_label_only":fixed_target,"scope":"no transfer predictions"}),
+    )?;
+    let original_generation = generate(
+        "context-direction-parent-original",
+        &native,
+        &episodes,
+        &tok,
+        start,
+        a,
+    )?;
+    let construction_generation = generate(
+        "context-direction-parent-construction",
+        &native,
+        &construction,
+        &tok,
+        start,
+        a,
+    )?;
+    if original_generation["rows"] != evaluation["ownprefix"]["rows"]
+        || construction_generation["rows"] != evaluation["construction_ownprefix"]["rows"]
+    {
+        return Err(invalid("context direction saved28 parent rows differ"));
+    }
+    let frontiers = if frontier {
+        frontier_positions(&construction, &construction_generation)?
+    } else {
+        Vec::new()
+    };
+    let baseline_frontier = if frontier {
+        Some(frontier_measure(
+            &frontiers,
+            &construction,
+            &native,
+            start,
+            a,
+        )?)
+    } else {
+        None
+    };
+    if frontier {
+        write(
+            &a.out.join("frozen-frontier.json"),
+            &json!({"positions":frontiers,"derived_from_saved_exact_baseline":true,"selection_before_candidate_predictions":true}),
+        )?;
+    }
+    let baseline_original = context_direction_measure(&native, &episodes, start, a)?;
+    let baseline_construction = context_direction_measure(&native, &construction, start, a)?;
+    let fixed_baseline = fixed_failure_trace(
+        "old32-baseline",
+        &native,
+        first,
+        3,
+        &fixed_prefix,
+        fixed_target,
+    )?;
+    let params = source.parameters();
+    let all_bits = parameter_bits(&params)?;
+    let context = params
+        .iter()
+        .filter(|(n, _)| n.starts_with("consumer.context."))
+        .map(|(n, v)| Ok((n.clone(), v.flatten_all()?.to_vec1::<f32>()?)))
+        .collect::<Result<BTreeMap<String, Vec<f32>>>>()?;
+    // Original mode reuses the first full-answer construction B8 objective.
+    // Frontier mode averages one saved actual first-error loss per episode.
+    // Neither mode registers or changes a parameter through an optimizer.
+    let measured = if frontier {
+        frontier_batch(&frontiers, &construction, &source, &native, start, a)?
+    } else {
+        batch(
+            &(0..8).collect::<Vec<_>>(),
+            &construction,
+            &source,
+            &native,
+            start,
+            a,
+        )?
+    };
+    let mut gradients = BTreeMap::new();
+    let mut eligible = Vec::new();
+    for (name, values) in &context {
+        let g = if let Some(t) = measured.gradients.get(name) {
+            t.flatten_all()?.to_vec1::<f32>()?
+        } else {
+            vec![0.; values.len()]
+        };
+        if g.len() != values.len() {
+            return Err(invalid("context direction gradient dimensions differ"));
+        }
+        for (index, (&gradient, &shadow)) in g.iter().zip(values).enumerate() {
+            if !gradient.is_finite() || !shadow.is_finite() {
+                return Err(invalid("context direction nonfinite source/credit"));
+            }
+            if gradient != 0. {
+                eligible.push(DirectionCoordinate{name:name.clone(),index,gradient:f64::from(gradient),original_shadow:shadow,original_q:(shadow*4.).round() as i8,calibration:false,eligibility:vec![json!({"objective":if frontier{"fixed8 construction first actual divergence equal-episode token CE"}else{"fixed8 construction equal-episode token/EOS CE"},"coordinate_class":if frontier{frontier_coordinate_class(name)}else{context_coordinate_class(name)}})]});
+            }
+        }
+        gradients.insert(name.clone(), g);
+    }
+    let selected = if frontier {
+        select_frontier_direction(eligible)
+    } else {
+        select_context_direction(eligible)
+    };
+    write(
+        &a.out.join("selection.json"),
+        &json!({"selected":selected,"selector":if frontier{"strongest absolute nonzero finite first-actual-divergence B8 gradient per root and category class; q[-6,6]; ties name/index; max2, no replacement after candidate outcomes"}else{"strongest absolute nonzero finite constructionB8 gradient per transition and root/category observation class; q[-6,6]; ties name/index; max2, no replacement after candidate outcomes"},"gradient_values":gradients,"construction_b8":measured.report,"credit_scope":"existing biased context native-conditioned STE; neither exact discrete derivative nor finite quantum magnitude guarantee","maximum_native_candidates":4,"selected_before_candidate_predictions":true}),
+    )?;
+    let packed_before = fs::read(input.join("realizer-native/consumer/context-q4.bin"))?;
+    let mut results = Vec::new();
+    for c in &selected {
+        for delta in [-1i8, 1] {
+            deadline(start, a)?;
+            let q = c.original_q + delta;
+            if !(-7..=7).contains(&q) {
+                return Err(invalid(
+                    "preregistered context coordinate direction illegal",
+                ));
+            }
+            let var = params
+                .get(&c.name)
+                .ok_or_else(|| invalid("context direction Var absent"))?;
+            let saved = context
+                .get(&c.name)
+                .ok_or_else(|| invalid("context direction source absent"))?;
+            let mut changed = saved.clone();
+            let destination = changed
+                .get_mut(c.index)
+                .ok_or_else(|| invalid("context direction coordinate outside source"))?;
+            *destination = f32::from(q) * 0.25;
+            let root = a.out.join(format!("candidate-{:02}", results.len()));
+            report_output::claim(&root)?;
+            var.set(&Tensor::from_vec(changed, var.shape(), &Device::Cpu)?)?;
+            let attempt = (|| -> Result<Value> {
+                let mut expected_bits = all_bits.clone();
+                *expected_bits
+                    .get_mut(&c.name)
+                    .and_then(|v| v.get_mut(c.index))
+                    .ok_or_else(|| invalid("expected context source coordinate absent"))? =
+                    (f32::from(q) * 0.25).to_bits();
+                if parameter_bits(&params)? != expected_bits {
+                    return Err(invalid(
+                        "context candidate altered other source coefficients",
+                    ));
+                }
+                let (receipt, loaded) = checkpoint(
+                    &root.join("checkpoint"),
+                    &source,
+                    &identity,
+                    &bytes,
+                    &episodes,
+                    0,
+                    "one_quarter_context_direction_unadopted",
+                )?;
+                let packed = bin_files(&root.join("checkpoint/realizer-native"))?;
+                if bins.keys().ne(packed.keys())
+                    || bins.iter().any(|(name, sha)| {
+                        name != "consumer/context-q4.bin" && packed.get(name) != Some(sha)
+                    })
+                {
+                    return Err(invalid(
+                        "context candidate changed readout/table payload or inventory",
+                    ));
+                }
+                let family = c
+                    .name
+                    .strip_prefix("consumer.context.")
+                    .ok_or_else(|| invalid("context coordinate prefix differs"))?;
+                let mut offset = 0usize;
+                let mut found = false;
+                for name in uor_r4_integer::geometric_context_q4::FAMILY_NAMES {
+                    if name == family {
+                        found = true;
+                        break;
+                    }
+                    offset += context
+                        .get(&format!("consumer.context.{name}"))
+                        .map_or(0, Vec::len);
+                }
+                if !found {
+                    return Err(invalid("context packed family unknown"));
+                }
+                let quantum = quantum_change(
+                    &packed_before,
+                    &fs::read(root.join("checkpoint/realizer-native/consumer/context-q4.bin"))?,
+                    offset + c.index,
+                    delta,
+                )?;
+                let original = context_direction_measure(&loaded, &episodes, start, a)?;
+                let construct = context_direction_measure(&loaded, &construction, start, a)?;
+                let original_reply = generate(
+                    &format!("context-direction-{:02}-original", results.len()),
+                    &loaded,
+                    &episodes,
+                    &tok,
+                    start,
+                    a,
+                )?;
+                let construct_reply = generate(
+                    &format!("context-direction-{:02}-construction", results.len()),
+                    &loaded,
+                    &construction,
+                    &tok,
+                    start,
+                    a,
+                )?;
+                let shadow_delta = f64::from(q) * 0.25 - f64::from(c.original_shadow);
+                let mut value = json!({"coordinate":c,"delta_q":delta,"status":"completed","checkpoint":receipt,"quantum":quantum,"all_other_source_bits_fixed":true,"readout_and_table_payloads_fixed":true,"native_payload_sha256":packed,"shadow_delta_nat":shadow_delta,"biased_predicted_delta_ce_shadow":c.gradient*shadow_delta,"biased_predicted_delta_ce_quarter_grid":c.gradient*f64::from(delta)*0.25,"original_canonical":original,"construction_canonical":construct,"original_canonical_comparison":context_direction_comparison(&baseline_original,&original)?,"construction_canonical_comparison":context_direction_comparison(&baseline_construction,&construct)?,"original_generation":original_reply,"construction_generation":construct_reply,"original_reply_comparison":generation_comparison(&original_generation,&original_reply)?,"construction_reply_comparison":generation_comparison(&construction_generation,&construct_reply)?,"fixed_singer_prefix3_trace":fixed_failure_trace("candidate",&loaded,first,3,&fixed_prefix,fixed_target)?});
+                if frontier {
+                    value["frontier"] =
+                        frontier_measure(&frontiers, &construction, &loaded, start, a)?;
+                    value["frontier_delta_mean_episode_ce"] = json!(baseline_frontier
+                        .as_ref()
+                        .and_then(|v| v["mean_episode_ce"].as_f64())
+                        .zip(value["frontier"]["mean_episode_ce"].as_f64())
+                        .map(|(b, c)| c - b));
+                }
+                write(&root.join("result.json"), &value)?;
+                Ok(value)
+            })();
+            // Restore before propagating evaluation/serialization failure.
+            var.set(&Tensor::from_vec(saved.clone(), var.shape(), &Device::Cpu)?)?;
+            if parameter_bits(&params)? != all_bits {
+                return Err(invalid(
+                    "context direction original source bits not restored",
+                ));
+            }
+            if let Err(error) = &attempt {
+                write(
+                    &root.join("error.json"),
+                    &json!({"coordinate":c,"delta_q":delta,"error":error.to_string(),"all_source_bits_restored":true}),
+                )?;
+            }
+            report_output::seal(&root)?;
+            report_output::verify(&root)?;
+            results.push(attempt?);
+            write(&a.out.join("direction-progress.json"), &results)?;
+        }
+    }
+    if source_files(input)? != input_files || parameter_bits(&params)? != all_bits {
+        return Err(invalid(
+            "context direction immutable input/source restoration failed",
+        ));
+    }
+    report_output::verify(input)?;
+    if frontier {
+        write(
+            &a.out.join("frontier-summary.json"),
+            &json!({"schema":"uor-r4.geometric-context-frontier-direction/1","frozen_frontier_sha256":sha256_file(&a.out.join("frozen-frontier.json"))?,"frontier_positions":frontiers,"baseline":baseline_frontier,"objective":"mean8 first actual ownprefix divergence token CE","candidate_frontiers":results.iter().map(|v|json!({"coordinate":v["coordinate"],"delta_q":v["delta_q"],"frontier":v["frontier"],"delta_mean_episode_ce":v["frontier_delta_mean_episode_ce"]})).collect::<Vec<_>>()}),
+        )?;
+    }
+    write(
+        &a.out.join("report.json"),
+        &json!({"schema":"uor-r4.geometric-context-direction/1","mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"frozen_panel_sha256":sha256_file(&a.out.join("frozen-panel.json"))?,"selection_sha256":sha256_file(&a.out.join("selection.json"))?,"optimizer_updates":0,"selected":selected,"results":results,"baseline_original_canonical":baseline_original,"baseline_construction_canonical":baseline_construction,"baseline_original_generation":original_generation,"baseline_construction_generation":construction_generation,"fixed_singer_prefix3_baseline_trace":fixed_baseline,"saved_parent28_rows_exact":true,"input_files_unchanged":true,"input_files_sha256":input_files,"all_source_bits_restored":true,"no_adopted_model":true,"transfer_predictions_run":false,"scope":"max2 existing context coordinate both-sign quarter quantum diagnosis with frozen readouts on8 construction and20 preservation development cases; no fit or heldout/geometry-advantage/chat qualification","wall_seconds":start.elapsed().as_secs_f64()}),
+    )?;
+    Ok(())
+}
 fn direction(a: &Args) -> Result<()> {
     let start = Instant::now();
     let LoadedFinal {
@@ -3479,6 +4217,91 @@ mod direction_tests {
         assert_eq!(compared[0]["gain"], false);
         after["original_source_ids"] = json!([8]);
         assert!(generation_comparison(&json!({"rows":[row]}), &json!({"rows":[after]})).is_err());
+        Ok(())
+    }
+    #[test]
+    fn frontier_rejects_absence_and_invalid_saved_prefix() -> Result<()> {
+        assert!(saved_failure_prefix_ids(&json!({"id":"x","tokens":[]}), "x", &[3, 4]).is_err());
+        let row = json!({"id":"x","accepted_complete_answer":false,"tokens":[{"chosen_token_id":3,"own_prefix_ids":[]},{"chosen_token_id":5,"own_prefix_ids":[3]}]});
+        assert_eq!(
+            saved_failure_prefix_ids(&row, "x", &[3, 4])?,
+            (1, vec![3], 4)
+        );
+        let mut bad = row;
+        bad["tokens"][1]["own_prefix_ids"] = json!([7]);
+        assert!(saved_failure_prefix_ids(&bad, "x", &[3, 4]).is_err());
+        Ok(())
+    }
+    #[test]
+    fn frontier_selection_uses_one_root_and_one_category() {
+        let make = |name: &str, g: f64| DirectionCoordinate {
+            name: name.into(),
+            index: 0,
+            gradient: g,
+            original_shadow: 0.,
+            original_q: 0,
+            calibration: false,
+            eligibility: Vec::new(),
+        };
+        let result = select_frontier_direction(vec![
+            make("consumer.context.token_transition", 100.),
+            make("consumer.context.self_root", 2.),
+            make("consumer.context.token_root", 1.),
+            make("consumer.context.token_category", -3.),
+        ]);
+        assert_eq!(
+            result.iter().map(|c| c.name.as_str()).collect::<Vec<_>>(),
+            vec![
+                "consumer.context.self_root",
+                "consumer.context.token_category"
+            ]
+        );
+    }
+    #[test]
+    fn context_direction_selector_respects_classes_ties_and_two_legal_signs() {
+        let make = |name: &str, index: usize, gradient: f64, q: i8| DirectionCoordinate {
+            name: name.into(),
+            index,
+            gradient,
+            original_shadow: f32::from(q) * 0.25,
+            original_q: q,
+            calibration: false,
+            eligibility: Vec::new(),
+        };
+        let selected = select_context_direction(vec![
+            make("consumer.context.token_transition", 0, 5., 7),
+            make("consumer.context.self_transition", 1, -2., 0),
+            make("consumer.context.self_transition", 0, 2., 0),
+            make("consumer.context.token_root", 0, 3., 0),
+            make("consumer.context.token_category", 0, -3., 0),
+            make("consumer.context.self_root", 0, 0., 0),
+            make("consumer.potential.context_unary", 0, 100., 0),
+        ]);
+        assert_eq!(selected.len(), 2);
+        assert_eq!(
+            (&selected[0].name, selected[0].index),
+            (&"consumer.context.self_transition".to_string(), 0)
+        );
+        assert_eq!(selected[1].name, "consumer.context.token_category");
+        assert!(selected.iter().all(|c| [-1, 1]
+            .iter()
+            .all(|delta| (-7..=7).contains(&(c.original_q + delta)))));
+    }
+    #[test]
+    fn context_direction_trajectory_distinguishes_plateau_from_first_change() -> Result<()> {
+        let before = json!({"tokens":[3,7],"heads":1,"lanes_per_head":1,"states":[[1],[2]],"actions":[[1],[2]],"raw_roots":[1,2],"categories":[1,1],"codes":[{"root":1},{"root":2}]});
+        assert_eq!(
+            context_trajectory_difference(&before, &before)?["trajectory_unchanged"],
+            true
+        );
+        let mut after = before.clone();
+        after["states"][1] = json!([4]);
+        let diff = context_trajectory_difference(&before, &after)?;
+        assert_eq!(diff["first_changed_sequence_position"], 1);
+        assert_eq!(diff["first_changed_input_token"], 7);
+        assert_eq!(diff["changed_entries"]["states"], 1);
+        after["tokens"][0] = json!(5);
+        assert!(context_trajectory_difference(&before, &after).is_err());
         Ok(())
     }
     #[test]

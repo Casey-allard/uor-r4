@@ -1,6 +1,16 @@
 # Current UOR-R4 research state
 
 
+## Native context direction and first-failure credit — October 4
+
+The [native direction and actual-first-failure diagnostic](geometric-context-direction-2026-10-04.md) is executed from retained composition32 with readouts fixed. Both transition neighbors worsen construction CE and original completion20→14/10. A neighbor-category change lowers full-answer construction CE1.351153→1.337870 and retains20 originals, but only changes later correct-prefix steps3/7 beyond actual failures0/2; all8 generated sequences remain unchanged. No candidate is adopted.
+
+The distinct first-failure successor at0cbc99b3 recomputes existing ordinary credit at the eight actual error prefixes and tests root/category quanta. Predicted improving root/category directions lower actual frontierCE2.084871→2.070434/2.034711, their opposites worsen it, and all4 preserve20 original replies. Correct target mass rises at reached first failures, with per-row tradeoffs retained, but no frontier winner flips and construction remains0/8. The two beneficial candidates also slightly worsen full-answer constructionCE and leave all8 generated sequences unchanged. This is useful local functional credit, not solved attention or a family rejection.
+
+Next: bounded native-screened root/category learning from old32, transitions/readouts fixed. Freeze the incumbent8 error frontiers within each round, recompute credit, screen candidates on those same positions, accept a beneficial quantum then regenerate/refresh. Proposed8acceptedquanta/32candidate cap, stop on no improvement, explicit offline final-EOS anchor for completed cases. Report losses within rounds, not a global curve across changing frontiers, plus fullanswerCE/all28 replies/gains/losses. A single-quarter greedy flip is not an entry gate. This learner is NOT_RUN; no unchanged direction/dose campaign or session hook. Retained dependent-read/query-update components remain available for the BPE multi-read bridge after initial consumption works.
+
+Independent source/raw reviews pass; executed14/16 focused tests and both release builds; native runs18.244/16.211s. Across both returns228files778,465,719B verified, allcandidates/executables/receipts retained. Both pod cards released, owned7,711,860KiB. [Bound evidence](../evidence/geometric-context-direction-2026-10-04.json).
+
 ## Geometric context learning and family isolation — October 4
 
 The [existing context adaptation](geometric-context-adaptation-2026-10-03.md) is
@@ -28,7 +38,7 @@ Next: start from retained old32 with readouts fixed, and reuse the existing boun
 native direction machinery for at most two justified packed context coordinates
 at the actual failed source/prefix. Compare surrogate credit with actual legal
 one-quarter changes, native target mass/CE, actions and all 28 original/construction
-reply gains and losses before another fit. This diagnostic is NOT_RUN. No unchanged
+reply gains and losses before another fit. This diagnostic is now executed in the entry above. No unchanged
 dose, presumed completion anchor or session hook; coordinate on #1552 before any
 later shared-session edit. Preservation is stability evidence, not a blanket veto
 against a mechanism with broader measured usefulness.

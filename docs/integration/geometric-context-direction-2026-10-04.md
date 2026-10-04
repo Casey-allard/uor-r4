@@ -1,0 +1,60 @@
+# Native geometric context direction — October 4
+
+References #1552 and #1512. [Bound evidence](../evidence/geometric-context-direction-2026-10-04.json). This extends the existing Rust source-realizer diagnostic; no runtime or shared-session mechanism changes.
+
+The preceding [context-fit and family isolation](geometric-context-adaptation-2026-10-03.md) showed that changed context alone suffices for broad retention loss. This diagnostic tests whether the existing biased credit predicts useful actual packed changes before another joint fit. It starts from retained composition checkpoint0032, exactly replays all28 original/construction replies, and recomputes credit on the frozen constructionB8 ordinary equal-episode token/EOS CE. Source `8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c` was committed before shipping; readouts, exp table, tokenizer, panels and geometry identities remain fixed.
+
+The preregistered selector chooses the strongest finite nonzero-gradient interior-q transition coordinate and strongest root/category observation coordinate, with name/index ties. Both legal neighboring quarter values are measured, at most four exports, with no replacement after outcomes. Selected coordinates are `self_transition[2564]` (q1, gradient+0.0022489235) and `neighbor_category[621]` (q0, gradient+0.0031131848). Each candidate changes exactly one packed quantum, exports and independently reloads through the normal path; other source bits and native payloads stay fixed. Source shadows are restored between attempts. Complete input checkpoint file sets remain unchanged.
+
+| Change from retained old32 | Predicted grid CE change | Actual construction CE | Original complete /20 | Construction complete /8 |
+|---|---:|---:|---:|---:|
+| Parent | — | 1.351153139 | 20 | 0 |
+| self_transition −quarter | −0.000562231 | 1.400561634 | 14 | 0 |
+| self_transition +quarter | +0.000562231 | 1.369169299 | 10 | 0 |
+| neighbor_category −quarter | −0.000778296 | 1.337870039 | 20 | 0 |
+| neighbor_category +quarter | +0.000778296 | 1.352741407 | 18 | 0 |
+
+Native f64 CE is computed from exact Q31 target mass and denominator; zero mass would be retained as null/infinite CE rather than floored. No zero target mass occurred. Shadow displacement and grid displacement predictions are recorded separately. Every candidate changes actual context trajectories; none is a plateau. The transition changes can first alter state/action at source position0 and harm both construction CE and retention. This is local finite-step disagreement with the predicted improving direction, not a proof of an implementation bug or geometry incapacity.
+
+The observation minus direction improves construction CE by0.013283100 and preserves20 complete original replies, but original CE worsens from0.126534882 to0.135546853. Its construction action distributions change at only two correct-prefix positions: construction00 step3 improves token284 mass, without changing its winner; construction07 step7 changes the winner from token284 to EOS. All eight construction own-prefix generated sequences remain unchanged. Six construction cases fail at output0 and two at output2; the beneficial changes occur after those failures. Consequently this result establishes a useful local geometry direction, **not progress in complete source consumption**. The fixed prior singer prefix3 remains EOS for every candidate; these single changes do not reproduce the joint-fit EOS interaction.
+
+## Actual-first-divergence observation credit
+
+Raw review showed that the beneficial full-answer direction changes only later states generation never reaches correctly. The successor therefore freezes each of the eight construction replies' actual first mismatch (six at output0, two at output2), checks its preceding chosen prefix equals the frozen target prefix, and uses one existing ordinary next-token CE loss per episode at those eight actual prefixes. Native reads receive no label. It changes position selection for offline credit, not the serving mechanism or loss primitive.
+
+Source `0cbc99b31c4737308117c266c2695aac6adb6cc0` retains old32 and fixed transitions/readouts. The strongest eligible root and category coordinates are selected separately before predictions; both signs and no replacement. Selected `token_root[15825]` has q2/gradient−0.0030123051; `token_category[4449]` q2/gradient+0.0226005018. Normal one-quantum export/reload/restoration guards remain.
+
+| Frontier change | Native mean first-failure CE | Change from baseline | Original complete /20 | Construction complete /8 |
+|---|---:|---:|---:|---:|
+| Parent | 2.084870817 | — | 20 | 0 |
+| token_root −quarter | 2.098427439 | +0.013556622 | 20 | 0 |
+| token_root +quarter | 2.070433971 | −0.014436846 | 20 | 0 |
+| token_category −quarter | 2.034711441 | −0.050159376 | 20 | 0 |
+| token_category +quarter | 2.168064726 | +0.083193909 | 20 | 0 |
+
+Both pairs' actual frontier loss directions agree with the declared surrogate signs. Useful category decrement raises construction04's first required token mass244,522,551→403,149,531; Stop still wins. Useful root increment raises construction03's first dancer mass277,080,350→323,376,228 but lowers a singer row's target mass871,204,254→781,404,467. Keep that tradeoff. No frontier greedy winner changes, all construction complete counts remain0/8, and both beneficial candidates leave all eight construction generated sequences unchanged. The adverse category increment changes one incorrect generated sequence. Root/category observations change, while the frozen transition actions/states stay unchanged. These are functional local directions at actual reached failures, not a solved attention mechanism or general validation of the credit estimator.
+
+Both beneficial candidates slightly worsen construction full-answer CE (+0.000327455 root, +0.001664492 category), despite improving the targeted frontier objective. Original replies stay20/20; original CE is nearly unchanged. No zero target mass occurs. This distinction is essential: targeted first-error progress and full-answer quality are different measured objectives. No candidate is adopted.
+
+## Next learning decision
+
+Advance bounded native-screened observation learning from retained old32, using the existing ordinary loss and native export path, with transitions/readouts fixed. At each round, freeze all eight incumbent error frontiers, recompute credit, fix strongest eligible root/category proposals, and compare both legal directions against the incumbent on **those same frozen positions**. Accept a measured beneficial quantum, regenerate, then refresh the next round's frontiers. Proposed bound: at most8 accepted quanta and32 candidate evaluations, with a fresh complete resource projection before execution; stop on no native improvement, rather than repeat the unchanged round.
+
+A completed case uses its frozen oracle's final EOS position as an offline completion anchor, keeping the eight-case denominator explicit; this is not a serving stopping rule. Comparing the candidate's refreshed frontier against the incumbent's old frontier would change the objective and penalize successful advancement. Report acceptance losses within each round; do not plot them as one globally comparable CE curve. Keep full-answer CE, all28 generated replies and row gains/losses alongside every accepted model and all rejected candidates. Preservation informs stability but is not a blanket veto against broader usefulness. Native mass progress at reached decisions is sufficient to test this bounded learner; a single-quarter greedy flip is not a prerequisite.
+
+This learner is NOT_RUN. No further unchanged direction diagnostic or unrestricted simultaneous Adam dose is justified by the present evidence. General-language/held-out qualification follows capability learning and frozen transfer selection, not the local margin result.
+
+Reliable initial selected-source consumption precedes connecting the retained dependent-read/query-update components to this BPE consumer. [`dependent_attention`](../../crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs) already implements a learned bounded query update between two reads; the [retained third-read report](../native_geometric_language_depth_973.md) records1,280 scoped answers/exact paths under its sequential-question protocol, with familiar components and holdout NOT_RUN. Those historical results are not re-executed here and do not establish general language. Reuse them rather than inventing another engine.
+
+The current BPE realizer reprocesses source, query and generated prefix and scores selected-source occurrences; it is not yet that learned multi-read policy. Standard causal [transformer attention](https://arxiv.org/html/1706.03762v7) accesses prior positions across layers; [KV caching](https://huggingface.co/docs/transformers/main/cache_explanation) reuses earlier per-layer representations. [Universal Transformers](https://arxiv.org/html/1807.03819v3) provide a precedent for repeated representation refinement across depth. The geometric design proposal is a bounded read → typed state/query update → read-again over exact occurrences, with learned consumption and causal controls. That proposal is not measured here and does not establish that repeated reads solve the present blocker. Shared-session integration remains coordinated on#1552. Two local coordinates do not validate all context credit or reject transition geometry. The panels remain exposed development; no held-out, general-chat, geometric-advantage, laptop serving or energy result follows.
+
+## Execution and preservation
+
+Independent focused source review approved the implementation and the two-line JSON equality compile repair. The first source033c2183 fails compilation on Value-versus-Vec comparisons; no model ran. Corrected source8499adc5 passes14 focused tests (107.454s) and release build (278.985s). The actual native experiment exits0 in18.244s, maximum child RSS1,336,492,032B. Rustfmt/diff checks and claim-wording validation pass. Compatibility CI acknowledgements are not executed tests. Linux CPU only; Metal unavailable and not counted.
+
+Independent saved-artifact verification checks890 canonical positions,682 generated steps,64 credit positions, exact exp/Q31 arithmetic, alias aggregation/ties/prefixes/byte decoding, coordinate selection, four source/packed changes, trajectory comparisons and all row gains/losses. It independently checks saved input inventories; in-memory restoration remains the Rust assertion. The return contains113 files385,573,571B, verified by exact file set/SHA256/size. Reports/candidates, source-bound executable, failed and successful receipts and review scripts are retained at `~/uor-r4-local/workspace/research/geometric-context-direction-20261004`. Both pod cards are released; owned area7,711,860KiB, under the9GiB stop. Complete work is conservatively charged once110min for both this diagnostic and its frontier successor, including preparation, failed compile repair, reviews, execution, return, protected delivery and cleanup; actual worker timings remain separate.
+
+
+The frontier extension independently passes source review,16 focused tests (99.096s), release build (287.584s), and actual native execution16.211s. Saved-artifact review checks890 additional canonical positions,744 generated steps,8 first-error credit positions and40 frontier native reads, including all alias/exp/CE/selection/payload/trajectory/row checks. Frontier return115files392,892,148B is exact-file-set/SHA/size verified. Across both diagnostics,228 returned files total778,465,719B, with two retained source-bound executables and all failed/successful logs/receipts. Offline loss evaluation uses floating point; served geometric reads remain the existing integer/table path. No GPU, GitHub research runner, laptop model CPU or shared-session edit.
+
+The shared ledger is1,076,235,028/1,130,000,000ms after that single6,600,000ms charge; the ceiling is unchanged. This is a conservative complete-work envelope, not actual model elapsed or summed parallel-agent time.

@@ -1,0 +1,2103 @@
+{
+  "schema": "uor-r4.geometric-context-direction-evidence/1",
+  "source_commit": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+  "source_sha256": "b6388bfb66cd81b95951706092123735d79222fff211941e9e7a44e1f80957a9",
+  "executable_sha256": "e235016a518b879dce28db184e9ec33361ca15e6fda006ce533fab0fdfc34d21",
+  "base_main": "9aa249c0a2d85c584ca090f60db71ba986cdd9fe",
+  "source_review": "independent focused source approved; corrected JSON equality delta approved",
+  "optimizer_updates": 0,
+  "host": "existing Runpod Linux x86_64 CPU reserved /root/codex",
+  "results": {
+    "status": "independent saved-artifact arithmetic PASS",
+    "source_commit": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+    "scope": "no model execution; saved source/payload/trace arithmetic and exact file identity",
+    "baseline": {
+      "original": {
+        "mean_ce": 0.12653488155957832,
+        "zero_target_mass_positions": 0,
+        "positions": 114,
+        "complete": 20,
+        "eos": 20,
+        "cases": 20
+      },
+      "construction": {
+        "mean_ce": 1.3511531388541707,
+        "zero_target_mass_positions": 0,
+        "positions": 64,
+        "complete": 0,
+        "eos": 8,
+        "cases": 8
+      }
+    },
+    "coordinates": [
+      {
+        "name": "consumer.context.self_transition",
+        "index": 2564,
+        "gradient": 0.0022489235270768404,
+        "original_shadow": 0.3070506751537323,
+        "original_q": 1
+      },
+      {
+        "name": "consumer.context.neighbor_category",
+        "index": 621,
+        "gradient": 0.0031131848227232695,
+        "original_shadow": 0.11832229048013687,
+        "original_q": 0
+      }
+    ],
+    "candidates": [
+      {
+        "coordinate": "consumer.context.self_transition",
+        "index": 2564,
+        "delta_q": -1,
+        "predicted_ce_delta_shadow": -0.0006905334873580568,
+        "predicted_ce_delta_quarter": -0.0005622308817692101,
+        "panels": {
+          "original": {
+            "mean_ce": 0.25290232294975123,
+            "zero_target_mass_positions": 0,
+            "positions": 114,
+            "complete": 14,
+            "eos": 20,
+            "cases": 20,
+            "delta_mean_ce": 0.12636744139017292,
+            "gains": 0,
+            "losses": 6,
+            "changed_trajectory_positions": 38,
+            "changed_action_positions": 38,
+            "earliest_changed_sequence_position": 0
+          },
+          "construction": {
+            "mean_ce": 1.400561633616916,
+            "zero_target_mass_positions": 0,
+            "positions": 64,
+            "complete": 0,
+            "eos": 8,
+            "cases": 8,
+            "delta_mean_ce": 0.049408494762745336,
+            "gains": 0,
+            "losses": 0,
+            "changed_trajectory_positions": 30,
+            "changed_action_positions": 30,
+            "earliest_changed_sequence_position": 0
+          }
+        },
+        "fixed_prefix": {
+          "winner": 1,
+          "target_minus_best_other_mass_q31": 2113782047
+        }
+      },
+      {
+        "coordinate": "consumer.context.self_transition",
+        "index": 2564,
+        "delta_q": 1,
+        "predicted_ce_delta_shadow": 0.0004339282761803634,
+        "predicted_ce_delta_quarter": 0.0005622308817692101,
+        "panels": {
+          "original": {
+            "mean_ce": 0.48489813834683443,
+            "zero_target_mass_positions": 0,
+            "positions": 114,
+            "complete": 10,
+            "eos": 20,
+            "cases": 20,
+            "delta_mean_ce": 0.3583632567872561,
+            "gains": 0,
+            "losses": 10,
+            "changed_trajectory_positions": 76,
+            "changed_action_positions": 76,
+            "earliest_changed_sequence_position": 0
+          },
+          "construction": {
+            "mean_ce": 1.369169299073022,
+            "zero_target_mass_positions": 0,
+            "positions": 64,
+            "complete": 0,
+            "eos": 8,
+            "cases": 8,
+            "delta_mean_ce": 0.01801616021885133,
+            "gains": 0,
+            "losses": 0,
+            "changed_trajectory_positions": 48,
+            "changed_action_positions": 48,
+            "earliest_changed_sequence_position": 0
+          }
+        },
+        "fixed_prefix": {
+          "winner": 1,
+          "target_minus_best_other_mass_q31": 2117194741
+        }
+      },
+      {
+        "coordinate": "consumer.context.neighbor_category",
+        "index": 621,
+        "delta_q": -1,
+        "predicted_ce_delta_shadow": -0.0011466553645934335,
+        "predicted_ce_delta_quarter": -0.0007782962056808174,
+        "panels": {
+          "original": {
+            "mean_ce": 0.13554685281324536,
+            "zero_target_mass_positions": 0,
+            "positions": 114,
+            "complete": 20,
+            "eos": 20,
+            "cases": 20,
+            "delta_mean_ce": 0.00901197125366704,
+            "gains": 0,
+            "losses": 0,
+            "changed_trajectory_positions": 50,
+            "changed_action_positions": 26,
+            "earliest_changed_sequence_position": 4
+          },
+          "construction": {
+            "mean_ce": 1.3378700386930977,
+            "zero_target_mass_positions": 0,
+            "positions": 64,
+            "complete": 0,
+            "eos": 8,
+            "cases": 8,
+            "delta_mean_ce": -0.013283100161072925,
+            "gains": 0,
+            "losses": 0,
+            "changed_trajectory_positions": 17,
+            "changed_action_positions": 2,
+            "earliest_changed_sequence_position": 6
+          }
+        },
+        "fixed_prefix": {
+          "winner": 1,
+          "target_minus_best_other_mass_q31": 2113782047
+        }
+      },
+      {
+        "coordinate": "consumer.context.neighbor_category",
+        "index": 621,
+        "delta_q": 1,
+        "predicted_ce_delta_shadow": 0.00040993704676820127,
+        "predicted_ce_delta_quarter": 0.0007782962056808174,
+        "panels": {
+          "original": {
+            "mean_ce": 0.1287146331095657,
+            "zero_target_mass_positions": 0,
+            "positions": 114,
+            "complete": 18,
+            "eos": 20,
+            "cases": 20,
+            "delta_mean_ce": 0.0021797515499873965,
+            "gains": 0,
+            "losses": 2,
+            "changed_trajectory_positions": 66,
+            "changed_action_positions": 6,
+            "earliest_changed_sequence_position": 9
+          },
+          "construction": {
+            "mean_ce": 1.3527414065603574,
+            "zero_target_mass_positions": 0,
+            "positions": 64,
+            "complete": 0,
+            "eos": 8,
+            "cases": 8,
+            "delta_mean_ce": 0.0015882677061866968,
+            "gains": 0,
+            "losses": 0,
+            "changed_trajectory_positions": 24,
+            "changed_action_positions": 1,
+            "earliest_changed_sequence_position": 6
+          }
+        },
+        "fixed_prefix": {
+          "winner": 1,
+          "target_minus_best_other_mass_q31": 2113782047
+        }
+      }
+    ],
+    "fixed_baseline": {
+      "winner": 1,
+      "target_minus_best_other_mass_q31": 2113782047
+    },
+    "canonical_positions_checked": 890,
+    "generation_steps_checked": 682,
+    "construction_credit_positions_checked": 64,
+    "parent_input_files_checked": 21,
+    "source_restoration_scope": "exact immutable input inventory and each candidate-only coordinate verified; post-run in-memory Var restoration is recorded by Rust assertions, not independently re-executed",
+    "seal_scope": "SHA256 file identity checked here; Rust seal/verify execution reported separately"
+  },
+  "causal_outcome": {
+    "positive_observation_changed_action_positions": [
+      {
+        "id": "construction-00",
+        "positions": [
+          {
+            "step": 3,
+            "target": 284,
+            "delta_native_ce": -0.22367449647150017,
+            "parent_winner": 284,
+            "candidate_winner": 284
+          }
+        ]
+      },
+      {
+        "id": "construction-07",
+        "positions": [
+          {
+            "step": 7,
+            "target": 1,
+            "delta_native_ce": -0.62644391383718,
+            "parent_winner": 284,
+            "candidate_winner": 1
+          }
+        ]
+      }
+    ],
+    "all_construction_ownprefix_generated_ids_unchanged": true,
+    "original_ce_worsens": 0.00901197125366704,
+    "baseline_actual_first_divergences": {
+      "construction-00": 0,
+      "construction-01": 2,
+      "construction-02": 0,
+      "construction-03": 0,
+      "construction-04": 0,
+      "construction-05": 0,
+      "construction-06": 2,
+      "construction-07": 0
+    },
+    "decision": "native improvement exists locally but at later correct-prefix positions; next learning must prioritize actual first-divergence source consumption and screen hard-native changes; no candidate adopted"
+  },
+  "return_verification": {
+    "status": "PASS",
+    "file_count": 113,
+    "total_bytes": 385573571,
+    "exact_file_set_sha256_size": true
+  },
+  "worker_receipts": [
+    {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T05:05:03.156880+00:00",
+      "source_commit": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 148861,
+      "worker_pid": 148862,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 278.9848604728468,
+      "sampled_process_tree_peak_rss_bytes": 5437657088,
+      "rusage_children_max_rss_bytes": 4183625728,
+      "codex_allocated_bytes_latest": 6956199936,
+      "free_bytes_final": 17113358336,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T05:05:33.473957+00:00",
+      "source_commit": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-source-realizer",
+        "/root/codex/context-direction-args.json"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 149983,
+      "worker_pid": 149984,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 18.243663265369833,
+      "sampled_process_tree_peak_rss_bytes": 1337094144,
+      "rusage_children_max_rss_bytes": 1336492032,
+      "codex_allocated_bytes_latest": 7041671168,
+      "free_bytes_final": 16718204928,
+      "maximum_seconds": 600,
+      "maximum_rss_bytes": 8589934592,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T04:56:03.326736+00:00",
+      "source_commit": "033c218372a43a39426f5720b50127eee61ef6f4",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "033c218372a43a39426f5720b50127eee61ef6f4",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 146888,
+      "worker_pid": 146889,
+      "exit_code": 101,
+      "stop_reason": null,
+      "elapsed_seconds": 97.06386150792241,
+      "sampled_process_tree_peak_rss_bytes": 7768576000,
+      "rusage_children_max_rss_bytes": 7756324864,
+      "codex_allocated_bytes_latest": 6471737344,
+      "free_bytes_final": 17114677248,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T05:00:12.187487+00:00",
+      "source_commit": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 148049,
+      "worker_pid": 148050,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 107.45390941388905,
+      "sampled_process_tree_peak_rss_bytes": 8106762240,
+      "rusage_children_max_rss_bytes": 7353716736,
+      "codex_allocated_bytes_latest": 6909157376,
+      "free_bytes_final": 17113944064,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  ],
+  "retained_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-context-direction-20261004",
+  "metal": "UNAVAILABLE_ON_LINUX_NOT_COUNTED",
+  "no_adopted_model": true,
+  "scope": "two coordinates/four native legal quarter neighbors; exposed development only; no general attention/chat/geometry advantage or full path cost qualification",
+  "next": "bounded native-screened iterative root/category observation learning at actual generated error frontiers; compare candidates on same frozenfrontiers withinround, refreshafteracceptance; max8acceptedquanta/32candidates; transitions/readoutsfixed; completedcase uses offlineoracleEOSanchor; no greedyflip prerequisite, no further unchangeddirectionstudy",
+  "frontier_successor": {
+    "source_commit": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+    "source_sha256": "202bdfb77112b3f1b0bf0c8a151d2600f8ba2948ee7f72fb6d48da1f766cb735",
+    "executable_sha256": "d533d60099dc5f467222ec3cf657db5b5ca9606e2a5596f44d7e81af78754ad2",
+    "results": {
+      "status": "independent saved-artifact arithmetic PASS",
+      "source_commit": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+      "scope": "no model execution; saved source/payload/trace arithmetic and exact file identity",
+      "baseline": {
+        "original": {
+          "mean_ce": 0.12653488155957832,
+          "zero_target_mass_positions": 0,
+          "positions": 114,
+          "complete": 20,
+          "eos": 20,
+          "cases": 20
+        },
+        "construction": {
+          "mean_ce": 1.3511531388541707,
+          "zero_target_mass_positions": 0,
+          "positions": 64,
+          "complete": 0,
+          "eos": 8,
+          "cases": 8
+        }
+      },
+      "coordinates": [
+        {
+          "name": "consumer.context.token_root",
+          "index": 15825,
+          "gradient": -0.003012305125594139,
+          "original_shadow": 0.4318483769893646,
+          "original_q": 2
+        },
+        {
+          "name": "consumer.context.token_category",
+          "index": 4449,
+          "gradient": 0.022600501775741577,
+          "original_shadow": 0.39694902300834656,
+          "original_q": 2
+        }
+      ],
+      "candidates": [
+        {
+          "coordinate": "consumer.context.token_root",
+          "index": 15825,
+          "delta_q": -1,
+          "predicted_ce_delta_shadow": 0.0005477827980860384,
+          "predicted_ce_delta_quarter": 0.0007530762813985348,
+          "panels": {
+            "original": {
+              "mean_ce": 0.12653488155957832,
+              "zero_target_mass_positions": 0,
+              "positions": 114,
+              "complete": 20,
+              "eos": 20,
+              "cases": 20,
+              "delta_mean_ce": 0.0,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 0,
+              "changed_action_positions": 0,
+              "earliest_changed_sequence_position": null
+            },
+            "construction": {
+              "mean_ce": 1.3528477166289297,
+              "zero_target_mass_positions": 0,
+              "positions": 64,
+              "complete": 0,
+              "eos": 8,
+              "cases": 8,
+              "delta_mean_ce": 0.0016945777747590096,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 8,
+              "changed_action_positions": 1,
+              "earliest_changed_sequence_position": 14
+            }
+          },
+          "fixed_prefix": {
+            "winner": 1,
+            "target_minus_best_other_mass_q31": 2113782047
+          },
+          "frontier": {
+            "mean_ce": 2.098427439124459,
+            "zero_target_mass_positions": 0,
+            "correct_frontier_tokens": 0,
+            "rows": [
+              {
+                "id": "construction-00",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 871204254,
+                "target_margin_q31": -1276279394,
+                "native_ce": 1.4843295976756024
+              },
+              {
+                "id": "construction-01",
+                "step": 2,
+                "target": 1130,
+                "winner": 284,
+                "target_mass_q31": 1391358259,
+                "target_margin_q31": -1047283162,
+                "native_ce": 1.6597327490950524
+              },
+              {
+                "id": "construction-02",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 100789666,
+                "target_margin_q31": -2046693982,
+                "native_ce": 3.36196281974454
+              },
+              {
+                "id": "construction-03",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 277080350,
+                "target_margin_q31": -1870403298,
+                "native_ce": 2.8144935567272946
+              },
+              {
+                "id": "construction-04",
+                "step": 0,
+                "target": 2593,
+                "winner": 1,
+                "target_mass_q31": 244522551,
+                "target_margin_q31": -1902961097,
+                "native_ce": 2.43997997741025
+              },
+              {
+                "id": "construction-05",
+                "step": 0,
+                "target": 363,
+                "winner": 1,
+                "target_mass_q31": 549123907,
+                "target_margin_q31": -1598359741,
+                "native_ce": 1.7803371579252627
+              },
+              {
+                "id": "construction-06",
+                "step": 2,
+                "target": 1130,
+                "winner": 16,
+                "target_mass_q31": 854035115,
+                "target_margin_q31": -1293448533,
+                "native_ce": 1.542196191411637
+              },
+              {
+                "id": "construction-07",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 759323327,
+                "target_margin_q31": -1388160321,
+                "native_ce": 1.7043874630060332
+              }
+            ],
+            "delta_mean_ce": 0.013556622198072521,
+            "changed_winner_positions": 0,
+            "trajectory_changes": [
+              {
+                "id": "construction-00",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-01",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-02",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-03",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-04",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-05",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-06",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-07",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 1,
+                  "categories": 0,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              }
+            ]
+          }
+        },
+        {
+          "coordinate": "consumer.context.token_root",
+          "index": 15825,
+          "delta_q": 1,
+          "predicted_ce_delta_shadow": -0.0009583697647110312,
+          "predicted_ce_delta_quarter": -0.0007530762813985348,
+          "panels": {
+            "original": {
+              "mean_ce": 0.12647363944665974,
+              "zero_target_mass_positions": 0,
+              "positions": 114,
+              "complete": 20,
+              "eos": 20,
+              "cases": 20,
+              "delta_mean_ce": -6.124211291858028e-05,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 38,
+              "changed_action_positions": 14,
+              "earliest_changed_sequence_position": 10
+            },
+            "construction": {
+              "mean_ce": 1.3514805937220467,
+              "zero_target_mass_positions": 0,
+              "positions": 64,
+              "complete": 0,
+              "eos": 8,
+              "cases": 8,
+              "delta_mean_ce": 0.0003274548678759981,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 32,
+              "changed_action_positions": 4,
+              "earliest_changed_sequence_position": 14
+            }
+          },
+          "fixed_prefix": {
+            "winner": 1,
+            "target_minus_best_other_mass_q31": 2113782047
+          },
+          "frontier": {
+            "mean_ce": 2.0704339707931765,
+            "zero_target_mass_positions": 0,
+            "correct_frontier_tokens": 0,
+            "rows": [
+              {
+                "id": "construction-00",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 781404467,
+                "target_margin_q31": -1366079181,
+                "native_ce": 1.5714193158999006
+              },
+              {
+                "id": "construction-01",
+                "step": 2,
+                "target": 1130,
+                "winner": 284,
+                "target_mass_q31": 1391358259,
+                "target_margin_q31": -1047283162,
+                "native_ce": 1.6597327490950524
+              },
+              {
+                "id": "construction-02",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 100789666,
+                "target_margin_q31": -2046693982,
+                "native_ce": 3.36196281974454
+              },
+              {
+                "id": "construction-03",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 323376228,
+                "target_margin_q31": -1824107420,
+                "native_ce": 2.6119090694373184
+              },
+              {
+                "id": "construction-04",
+                "step": 0,
+                "target": 2593,
+                "winner": 1,
+                "target_mass_q31": 244522551,
+                "target_margin_q31": -1902961097,
+                "native_ce": 2.43997997741025
+              },
+              {
+                "id": "construction-05",
+                "step": 0,
+                "target": 363,
+                "winner": 1,
+                "target_mass_q31": 549123907,
+                "target_margin_q31": -1598359741,
+                "native_ce": 1.7803371579252627
+              },
+              {
+                "id": "construction-06",
+                "step": 2,
+                "target": 1130,
+                "winner": 16,
+                "target_mass_q31": 854035115,
+                "target_margin_q31": -1293448533,
+                "native_ce": 1.542196191411637
+              },
+              {
+                "id": "construction-07",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 848403343,
+                "target_margin_q31": -1299080305,
+                "native_ce": 1.5959344854214503
+              }
+            ],
+            "delta_mean_ce": -0.014436846133210057,
+            "changed_winner_positions": 0,
+            "trajectory_changes": [
+              {
+                "id": "construction-00",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 1,
+                  "categories": 0,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              },
+              {
+                "id": "construction-01",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 1,
+                  "categories": 0,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              },
+              {
+                "id": "construction-02",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-03",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 1,
+                  "categories": 0,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              },
+              {
+                "id": "construction-04",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-05",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-06",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 1,
+                  "categories": 0,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              },
+              {
+                "id": "construction-07",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              }
+            ]
+          }
+        },
+        {
+          "coordinate": "consumer.context.token_category",
+          "index": 4449,
+          "delta_q": -1,
+          "predicted_ce_delta_shadow": -0.0033211216554436263,
+          "predicted_ce_delta_quarter": -0.005650125443935394,
+          "panels": {
+            "original": {
+              "mean_ce": 0.12653488155957832,
+              "zero_target_mass_positions": 0,
+              "positions": 114,
+              "complete": 20,
+              "eos": 20,
+              "cases": 20,
+              "delta_mean_ce": 0.0,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 0,
+              "changed_action_positions": 0,
+              "earliest_changed_sequence_position": null
+            },
+            "construction": {
+              "mean_ce": 1.3528176310068678,
+              "zero_target_mass_positions": 0,
+              "positions": 64,
+              "complete": 0,
+              "eos": 8,
+              "cases": 8,
+              "delta_mean_ce": 0.0016644921526971501,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 9,
+              "changed_action_positions": 3,
+              "earliest_changed_sequence_position": 14
+            }
+          },
+          "fixed_prefix": {
+            "winner": 1,
+            "target_minus_best_other_mass_q31": 2113782047
+          },
+          "frontier": {
+            "mean_ce": 2.034711441259099,
+            "zero_target_mass_positions": 0,
+            "correct_frontier_tokens": 0,
+            "rows": [
+              {
+                "id": "construction-00",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 871204254,
+                "target_margin_q31": -1276279394,
+                "native_ce": 1.4843295976756024
+              },
+              {
+                "id": "construction-01",
+                "step": 2,
+                "target": 1130,
+                "winner": 284,
+                "target_mass_q31": 1391358259,
+                "target_margin_q31": -1047283162,
+                "native_ce": 1.6597327490950524
+              },
+              {
+                "id": "construction-02",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 100789666,
+                "target_margin_q31": -2046693982,
+                "native_ce": 3.36196281974454
+              },
+              {
+                "id": "construction-03",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 277080350,
+                "target_margin_q31": -1870403298,
+                "native_ce": 2.8144935567272946
+              },
+              {
+                "id": "construction-04",
+                "step": 0,
+                "target": 2593,
+                "winner": 1,
+                "target_mass_q31": 403149531,
+                "target_margin_q31": -1744334117,
+                "native_ce": 2.0387049720719523
+              },
+              {
+                "id": "construction-05",
+                "step": 0,
+                "target": 363,
+                "winner": 1,
+                "target_mass_q31": 549123907,
+                "target_margin_q31": -1598359741,
+                "native_ce": 1.7803371579252627
+              },
+              {
+                "id": "construction-06",
+                "step": 2,
+                "target": 1130,
+                "winner": 16,
+                "target_mass_q31": 854035115,
+                "target_margin_q31": -1293448533,
+                "native_ce": 1.542196191411637
+              },
+              {
+                "id": "construction-07",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 848403343,
+                "target_margin_q31": -1299080305,
+                "native_ce": 1.5959344854214503
+              }
+            ],
+            "delta_mean_ce": -0.05015937566728734,
+            "changed_winner_positions": 0,
+            "trajectory_changes": [
+              {
+                "id": "construction-00",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-01",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-02",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-03",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-04",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 1,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              },
+              {
+                "id": "construction-05",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-06",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-07",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              }
+            ]
+          }
+        },
+        {
+          "coordinate": "consumer.context.token_category",
+          "index": 4449,
+          "delta_q": 1,
+          "predicted_ce_delta_shadow": 0.007979129232427162,
+          "predicted_ce_delta_quarter": 0.005650125443935394,
+          "panels": {
+            "original": {
+              "mean_ce": 0.12835822151526005,
+              "zero_target_mass_positions": 0,
+              "positions": 114,
+              "complete": 20,
+              "eos": 20,
+              "cases": 20,
+              "delta_mean_ce": 0.0018233399556817353,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 22,
+              "changed_action_positions": 2,
+              "earliest_changed_sequence_position": 17
+            },
+            "construction": {
+              "mean_ce": 1.3604872987184433,
+              "zero_target_mass_positions": 0,
+              "positions": 64,
+              "complete": 0,
+              "eos": 8,
+              "cases": 8,
+              "delta_mean_ce": 0.009334159864272662,
+              "gains": 0,
+              "losses": 0,
+              "changed_trajectory_positions": 16,
+              "changed_action_positions": 3,
+              "earliest_changed_sequence_position": 14
+            }
+          },
+          "fixed_prefix": {
+            "winner": 1,
+            "target_minus_best_other_mass_q31": 2113782047
+          },
+          "frontier": {
+            "mean_ce": 2.168064726335426,
+            "zero_target_mass_positions": 0,
+            "correct_frontier_tokens": 0,
+            "rows": [
+              {
+                "id": "construction-00",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 871204254,
+                "target_margin_q31": -1276279394,
+                "native_ce": 1.5426547445662357
+              },
+              {
+                "id": "construction-01",
+                "step": 2,
+                "target": 1130,
+                "winner": 284,
+                "target_mass_q31": 1391358259,
+                "target_margin_q31": -1047283162,
+                "native_ce": 1.6597327490950524
+              },
+              {
+                "id": "construction-02",
+                "step": 0,
+                "target": 1130,
+                "winner": 1,
+                "target_mass_q31": 47609667,
+                "target_margin_q31": -2099873981,
+                "native_ce": 3.969188948126224
+              },
+              {
+                "id": "construction-03",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 277080350,
+                "target_margin_q31": -1870403298,
+                "native_ce": 2.8144935567272946
+              },
+              {
+                "id": "construction-04",
+                "step": 0,
+                "target": 2593,
+                "winner": 1,
+                "target_mass_q31": 244522551,
+                "target_margin_q31": -1902961097,
+                "native_ce": 2.43997997741025
+              },
+              {
+                "id": "construction-05",
+                "step": 0,
+                "target": 363,
+                "winner": 1,
+                "target_mass_q31": 549123907,
+                "target_margin_q31": -1598359741,
+                "native_ce": 1.7803371579252627
+              },
+              {
+                "id": "construction-06",
+                "step": 2,
+                "target": 1130,
+                "winner": 16,
+                "target_mass_q31": 854035115,
+                "target_margin_q31": -1293448533,
+                "native_ce": 1.542196191411637
+              },
+              {
+                "id": "construction-07",
+                "step": 0,
+                "target": 1357,
+                "winner": 1,
+                "target_mass_q31": 848403343,
+                "target_margin_q31": -1299080305,
+                "native_ce": 1.5959344854214503
+              }
+            ],
+            "delta_mean_ce": 0.08319390940903926,
+            "changed_winner_positions": 0,
+            "trajectory_changes": [
+              {
+                "id": "construction-00",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 1,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              },
+              {
+                "id": "construction-01",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-02",
+                "first_changed_sequence_position": 14,
+                "first_changed_input_token": 16,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 1,
+                  "codes": 1
+                },
+                "trajectory_unchanged": false
+              },
+              {
+                "id": "construction-03",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-04",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-05",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-06",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              },
+              {
+                "id": "construction-07",
+                "first_changed_sequence_position": null,
+                "first_changed_input_token": null,
+                "changed_entries": {
+                  "states": 0,
+                  "actions": 0,
+                  "raw_roots": 0,
+                  "categories": 0,
+                  "codes": 0
+                },
+                "trajectory_unchanged": true
+              }
+            ]
+          }
+        }
+      ],
+      "fixed_baseline": {
+        "winner": 1,
+        "target_minus_best_other_mass_q31": 2113782047
+      },
+      "frozen_frontiers": [
+        {
+          "id": "construction-00",
+          "step": 0,
+          "prefix_ids": [],
+          "target_label_only": 1130
+        },
+        {
+          "id": "construction-01",
+          "step": 2,
+          "prefix_ids": [
+            1357,
+            284
+          ],
+          "target_label_only": 1130
+        },
+        {
+          "id": "construction-02",
+          "step": 0,
+          "prefix_ids": [],
+          "target_label_only": 1130
+        },
+        {
+          "id": "construction-03",
+          "step": 0,
+          "prefix_ids": [],
+          "target_label_only": 1357
+        },
+        {
+          "id": "construction-04",
+          "step": 0,
+          "prefix_ids": [],
+          "target_label_only": 2593
+        },
+        {
+          "id": "construction-05",
+          "step": 0,
+          "prefix_ids": [],
+          "target_label_only": 363
+        },
+        {
+          "id": "construction-06",
+          "step": 2,
+          "prefix_ids": [
+            1130,
+            284
+          ],
+          "target_label_only": 1130
+        },
+        {
+          "id": "construction-07",
+          "step": 0,
+          "prefix_ids": [],
+          "target_label_only": 1357
+        }
+      ],
+      "frontier_baseline": {
+        "mean_ce": 2.0848708169263865,
+        "zero_target_mass_positions": 0,
+        "correct_frontier_tokens": 0,
+        "rows": [
+          {
+            "id": "construction-00",
+            "step": 0,
+            "target": 1130,
+            "winner": 1,
+            "target_mass_q31": 871204254,
+            "target_margin_q31": -1276279394,
+            "native_ce": 1.4843295976756024
+          },
+          {
+            "id": "construction-01",
+            "step": 2,
+            "target": 1130,
+            "winner": 284,
+            "target_mass_q31": 1391358259,
+            "target_margin_q31": -1047283162,
+            "native_ce": 1.6597327490950524
+          },
+          {
+            "id": "construction-02",
+            "step": 0,
+            "target": 1130,
+            "winner": 1,
+            "target_mass_q31": 100789666,
+            "target_margin_q31": -2046693982,
+            "native_ce": 3.36196281974454
+          },
+          {
+            "id": "construction-03",
+            "step": 0,
+            "target": 1357,
+            "winner": 1,
+            "target_mass_q31": 277080350,
+            "target_margin_q31": -1870403298,
+            "native_ce": 2.8144935567272946
+          },
+          {
+            "id": "construction-04",
+            "step": 0,
+            "target": 2593,
+            "winner": 1,
+            "target_mass_q31": 244522551,
+            "target_margin_q31": -1902961097,
+            "native_ce": 2.43997997741025
+          },
+          {
+            "id": "construction-05",
+            "step": 0,
+            "target": 363,
+            "winner": 1,
+            "target_mass_q31": 549123907,
+            "target_margin_q31": -1598359741,
+            "native_ce": 1.7803371579252627
+          },
+          {
+            "id": "construction-06",
+            "step": 2,
+            "target": 1130,
+            "winner": 16,
+            "target_mass_q31": 854035115,
+            "target_margin_q31": -1293448533,
+            "native_ce": 1.542196191411637
+          },
+          {
+            "id": "construction-07",
+            "step": 0,
+            "target": 1357,
+            "winner": 1,
+            "target_mass_q31": 848403343,
+            "target_margin_q31": -1299080305,
+            "native_ce": 1.5959344854214503
+          }
+        ]
+      },
+      "canonical_positions_checked": 890,
+      "generation_steps_checked": 744,
+      "frontier_credit_positions_checked": 8,
+      "frontier_native_positions_checked": 40,
+      "parent_input_files_checked": 21,
+      "source_restoration_scope": "exact immutable input inventory and each candidate-only coordinate verified; post-run in-memory Var restoration is recorded by Rust assertions, not independently re-executed",
+      "seal_scope": "SHA256 file identity checked here; Rust seal/verify execution reported separately"
+    },
+    "source_review": "independent exact-source approved",
+    "return_verification": {
+      "status": "PASS",
+      "file_count": 115,
+      "total_bytes": 392892148,
+      "exact_file_set_sha256_size": true
+    },
+    "worker_receipts": [
+      {
+        "host": "Runpod Linux x86_64",
+        "recorded_utc": "2026-10-04T05:26:04.255915+00:00",
+        "source_commit": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+        "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--example",
+          "geometric-source-realizer"
+        ],
+        "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+        "environment": {
+          "CARGO_HOME": "/root/codex/cargo-home",
+          "CARGO_TARGET_DIR": "/root/codex/target",
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_BUILD_JOBS": "48",
+          "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+          "RAYON_NUM_THREADS": "48",
+          "CUDA_VISIBLE_DEVICES": "",
+          "UOR_BUILD_SOURCE_COMMIT": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+          "TMPDIR": "/root/codex/tmp"
+        },
+        "affinity_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "threads_budget": 48,
+        "wrapper_pid": 153494,
+        "worker_pid": 153495,
+        "exit_code": 0,
+        "stop_reason": null,
+        "elapsed_seconds": 287.5837505753152,
+        "sampled_process_tree_peak_rss_bytes": 5494677504,
+        "rusage_children_max_rss_bytes": 4187467776,
+        "codex_allocated_bytes_latest": 7460839424,
+        "free_bytes_final": 16684847104,
+        "maximum_seconds": 900,
+        "maximum_rss_bytes": 17179869184,
+        "gpu_used": false,
+        "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+      },
+      {
+        "host": "Runpod Linux x86_64",
+        "recorded_utc": "2026-10-04T05:27:07.270445+00:00",
+        "source_commit": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+        "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+        "command": [
+          "/root/codex/target/release/examples/geometric-source-realizer",
+          "/root/codex/frontier-args.json"
+        ],
+        "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+        "environment": {
+          "CARGO_HOME": "/root/codex/cargo-home",
+          "CARGO_TARGET_DIR": "/root/codex/target",
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_BUILD_JOBS": "48",
+          "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+          "RAYON_NUM_THREADS": "48",
+          "CUDA_VISIBLE_DEVICES": "",
+          "UOR_BUILD_SOURCE_COMMIT": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+          "TMPDIR": "/root/codex/tmp"
+        },
+        "affinity_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "threads_budget": 48,
+        "wrapper_pid": 154740,
+        "worker_pid": 154741,
+        "exit_code": 0,
+        "stop_reason": null,
+        "elapsed_seconds": 16.21120495069772,
+        "sampled_process_tree_peak_rss_bytes": 1336852480,
+        "rusage_children_max_rss_bytes": 1336274944,
+        "codex_allocated_bytes_latest": 7470227456,
+        "free_bytes_final": 16282316800,
+        "maximum_seconds": 600,
+        "maximum_rss_bytes": 8589934592,
+        "gpu_used": false,
+        "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+      },
+      {
+        "host": "Runpod Linux x86_64",
+        "recorded_utc": "2026-10-04T05:20:27.861720+00:00",
+        "source_commit": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+        "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "uor-r4-training",
+          "--example",
+          "geometric-source-realizer"
+        ],
+        "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+        "environment": {
+          "CARGO_HOME": "/root/codex/cargo-home",
+          "CARGO_TARGET_DIR": "/root/codex/target",
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_BUILD_JOBS": "48",
+          "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+          "RAYON_NUM_THREADS": "48",
+          "CUDA_VISIBLE_DEVICES": "",
+          "UOR_BUILD_SOURCE_COMMIT": "0cbc99b31c4737308117c266c2695aac6adb6cc0",
+          "TMPDIR": "/root/codex/tmp"
+        },
+        "affinity_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "threads_budget": 48,
+        "wrapper_pid": 152592,
+        "worker_pid": 152593,
+        "exit_code": 0,
+        "stop_reason": null,
+        "elapsed_seconds": 99.09570819605142,
+        "sampled_process_tree_peak_rss_bytes": 8280768512,
+        "rusage_children_max_rss_bytes": 7964786688,
+        "codex_allocated_bytes_latest": 6901194752,
+        "free_bytes_final": 16684908544,
+        "maximum_seconds": 900,
+        "maximum_rss_bytes": 17179869184,
+        "gpu_used": false,
+        "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+      }
+    ]
+  },
+  "repeated_read_research": {
+    "question": "Can geometric model repeatedly look back like a transformer?",
+    "primary_sources": [
+      {
+        "url": "https://arxiv.org/html/1706.03762v7",
+        "role": "causal decoder attention across earlier positions and stacked attention layers"
+      },
+      {
+        "url": "https://huggingface.co/docs/transformers/main/cache_explanation",
+        "role": "KV caching reuses past per-layer representations; last-token query reads cached positions"
+      },
+      {
+        "url": "https://arxiv.org/html/1807.03819v3",
+        "role": "repeated refinement over depth with shared transition; conceptual precedent, not adopted implementation"
+      }
+    ],
+    "source_inspection": {
+      "path": "crates/uor-r4-training/src/geometric_source_realizer.rs",
+      "read_line": 455,
+      "facts": [
+        "read_source_view scores selected-source occurrence candidates using query/prefix",
+        "source/query/generatedprefix reprocessed into native context states/actions/observations eachoutput",
+        "generatedprefix conditionsstate but not automatically copycandidate",
+        "currentprototype has no learned multi-read-before-emission controller"
+      ]
+    },
+    "proposal": "Reuse retained query-update/dependent-read mechanisms when bridging the BPE source consumer to multi-read-before-emission; preserve exact occurrences and causal controls. First validate current early source consumption; current component differs from retained typed/word protocols.",
+    "boundary": "can be represented architecturally, not measured capacity or chat mechanism; firstread learningcurrentlyblocked",
+    "retained_components": [
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/dependent_attention/runtime.rs",
+        "role": "same learned reader twice with learned query update consuming selected payload; integer circuit/table runtime; current query2bytes and payload1byte typed interface"
+      },
+      {
+        "path": "crates/uor-r4-core/src/native_geometric/recurrent_routing.rs",
+        "role": "two dependent reads/shared Base Emit EOS; integer/table serving"
+      },
+      {
+        "path": "docs/native_geometric_language_depth_973.md",
+        "role": "retained unchangedartifact third-read report1280 answers/exactpaths; bounded sequential-question protocol, familiar names/components; holdoutNOT_RUN, no rerun here"
+      }
+    ]
+  },
+  "pod_final_allocated_kib": 7711860,
+  "complete_work_projection_minutes": 110,
+  "resource_charge": {
+    "schema": "uor-r4.complete-resource-charge/1",
+    "task": "native context directions and actual first-error observation credit",
+    "recorded_utc": "2026-10-04T05:35:01.754119+00:00",
+    "charge_ms": 6600000,
+    "method": "conservative declared110minute complete-work envelope for BOTH diagnostics, including remaining protected delivery/cleanup; not measured worker elapsed or summed parallel agent time",
+    "before": {
+      "cumulative_ms": 1069635028,
+      "limit_ms": 1130000000
+    },
+    "after": {
+      "cumulative_ms": 1076235028,
+      "limit_ms": 1130000000
+    },
+    "source_commits": [
+      "033c218372a43a39426f5720b50127eee61ef6f4",
+      "8499adc51d8cadc8d6cf4c7cb1de0d8f406e7e6c",
+      "0cbc99b31c4737308117c266c2695aac6adb6cc0"
+    ],
+    "covered": [
+      "source preparation/review and archived commits",
+      "initial compile failure and repair",
+      "two focusedtest/releasebuild/nativecandidate sets",
+      "eight native candidates plus two28case parent replays",
+      "return/hash/arithmetic/causal review",
+      "docs/protected delivery/cleanup"
+    ],
+    "actual_worker_seconds": [
+      97.06386150792241,
+      107.45390941388905,
+      278.9848604728468,
+      18.243663265369833,
+      99.09570819605142,
+      287.5837505753152,
+      16.21120495069772
+    ]
+  }
+}
