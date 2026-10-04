@@ -172,6 +172,7 @@ use uor_r4_training::stack_dialogue::{
     DialogueSplit, Reply, Request,
 };
 use uor_r4_training::stack_memory_replies::score_memory;
+use uor_r4_training::stack_store::StoreRead;
 use uor_r4_training::stack_tracking::Rng;
 use uor_r4_training::{sha256_file, Result, TrainingError};
 
@@ -196,8 +197,8 @@ use uor_r4_training::stack_checkpoint::{
     save_checkpoint, sealed_manifest_sha256, CheckpointIdentity, DataIdentity,
 };
 use uor_r4_training::stack_grounded_session::{
-    CompiledAction, ContextPolicy, GroundedSession, RecallDisposition, SessionLimits, SessionScope,
-    SourceSpan, TurnCompiler, TurnControls, TurnOutcome,
+    CompiledAction, ContextPolicy, GroundedSession, MemoryEffect, RecallDisposition, SessionLimits,
+    SessionScope, SourceSpan, TurnCompiler, TurnControls, TurnOutcome,
 };
 use uor_r4_training::stack_store::StackStore;
 use uor_r4_training::temporal_compiler::GroundedCompiler;
@@ -3420,6 +3421,287 @@ fn disposition_name(recall: &RecallDisposition) -> &'static str {
     }
 }
 
+/// True when `needle` occurs in `hay` as a whole word.
+///
+/// **This does NOT disambiguate a longer answer that contains the target as a
+/// word.** "an hour" is a whole word inside "half an hour", so a whole-word test
+/// matches both. Callers that must tell 30 minutes from 90 minutes cannot rely on
+/// this alone; they must know which value was actually retrieved (see the panel
+/// split) or reject answers that contain a longer accepted answer.
+///
+/// It does handle the two cases a plain `contains` gets wrong: a value followed by
+/// punctuation ("dust brings me out in a rash.") and a value embedded in a longer
+/// token. Iteration advances by whole characters, so a multi-byte character can
+/// never leave the index inside a code point.
+fn contains_word(hay: &str, needle: &str) -> bool {
+    let (h, n) = (hay.to_lowercase(), needle.to_lowercase());
+    if n.is_empty() || n.len() > h.len() {
+        return false;
+    }
+    let is_word = |c: char| c.is_alphanumeric();
+    let mut from = 0usize;
+    while let Some(rel) = h[from..].find(&n) {
+        let start = from + rel;
+        let end = start + n.len();
+        let left_ok = h[..start]
+            .chars()
+            .next_back()
+            .map(|c| !is_word(c))
+            .unwrap_or(true);
+        let right_ok = h[end..].chars().next().map(|c| !is_word(c)).unwrap_or(true);
+        if left_ok && right_ok {
+            return true;
+        }
+        // advance one whole character past the match start
+        from = match h[start..].chars().next() {
+            Some(c) => start + c.len_utf8(),
+            None => break,
+        };
+        if from >= h.len() {
+            break;
+        }
+    }
+    false
+}
+
+/// One validated panel row.
+#[derive(Debug)]
+struct PanelRow {
+    id: String,
+    turns: Vec<String>,
+    answers: Vec<String>,
+    /// Values of the row's distractor facts. Used to reject a reply that contains a
+    /// distractor which itself contains an accepted answer ("half an hour" contains
+    /// "an hour"), which whole-word matching alone cannot exclude.
+    distractors: Vec<String>,
+}
+
+/// Load and validate an external panel. Both files are read ONCE here and their
+/// sha256 is taken from these bytes, so the hash is of what was actually scored
+/// rather than of a re-read at the end.
+///
+/// Every malformed input is rejected rather than silently defaulted: a missing
+/// id, an empty or absent `user_turns`, or an expected answer with no matching
+/// row would otherwise be scored as a miss and quietly deflate the result.
+fn load_panel(
+    panel_path: &str,
+    expected_path: &str,
+) -> Result<(Vec<PanelRow>, String, String, String, String)> {
+    let panel_bytes = fs::read(panel_path)?;
+    let expected_bytes = fs::read(expected_path)?;
+    let panel_sha = {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        h.update(&panel_bytes);
+        format!("{:x}", h.finalize())
+    };
+    let expected_sha = {
+        use sha2::{Digest, Sha256};
+        let mut h = Sha256::new();
+        h.update(&expected_bytes);
+        format!("{:x}", h.finalize())
+    };
+    let raw: Vec<Value> = serde_json::from_slice(&panel_bytes)?;
+    let answers: BTreeMap<String, Value> = serde_json::from_slice(&expected_bytes)?;
+    let mut rows = Vec::with_capacity(raw.len());
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    for row in &raw {
+        let id = row["id"]
+            .as_str()
+            .ok_or_else(|| invalid("a panel row has no string id"))?
+            .to_string();
+        if !seen.insert(id.clone()) {
+            return Err(invalid(format!("duplicate panel id {id}")));
+        }
+        let turns: Vec<String> = row["user_turns"]
+            .as_array()
+            .ok_or_else(|| invalid(format!("panel row {id} has no user_turns array")))?
+            .iter()
+            .map(|t| {
+                t.as_str()
+                    .map(str::to_string)
+                    .ok_or_else(|| invalid(format!("panel row {id} has a non-string turn")))
+            })
+            .collect::<Result<_>>()?;
+        if turns.is_empty() {
+            return Err(invalid(format!("panel row {id} has no turns")));
+        }
+        let entry = answers
+            .get(&id)
+            .ok_or_else(|| invalid(format!("expected answers have no entry for panel row {id}")))?;
+        // Accept either a bare string or a list of accepted answers.
+        let distractor_list: Vec<String> = match entry.get("distractors") {
+            Some(Value::Array(a)) => a
+                .iter()
+                .map(|v| {
+                    v.as_str().map(str::to_string).ok_or_else(|| {
+                        invalid(format!("distractors for {id} contain a non-string"))
+                    })
+                })
+                .collect::<Result<_>>()?,
+            Some(_) => return Err(invalid(format!("distractors for {id} is not an array"))),
+            None => Vec::new(),
+        };
+        let accepted_src = entry.get("answers").unwrap_or(entry);
+        let accepted: Vec<String> = match accepted_src {
+            Value::String(s) if !s.is_empty() => vec![s.clone()],
+            // Every element must be a non-empty string: a mixed array like
+            // ["a", 5] is rejected, not silently trimmed to ["a"].
+            Value::Array(a) => {
+                let mut out = Vec::with_capacity(a.len());
+                for v in a {
+                    let t = v.as_str().ok_or_else(|| {
+                        invalid(format!("accepted answers for {id} contain a non-string"))
+                    })?;
+                    if t.is_empty() {
+                        return Err(invalid(format!(
+                            "accepted answers for {id} contain an empty string"
+                        )));
+                    }
+                    out.push(t.to_string());
+                }
+                out
+            }
+            _ => {
+                return Err(invalid(format!(
+                    "expected answer for {id} is empty or not a string"
+                )))
+            }
+        };
+        if accepted.is_empty() {
+            return Err(invalid(format!("expected answer for {id} is empty")));
+        }
+        rows.push(PanelRow {
+            id,
+            turns,
+            answers: accepted,
+            distractors: distractor_list,
+        });
+    }
+    for key in answers.keys() {
+        if !seen.contains(key) {
+            return Err(invalid(format!(
+                "expected answers reference unknown panel row {key}"
+            )));
+        }
+    }
+    Ok((
+        rows,
+        panel_sha,
+        expected_sha,
+        panel_path.to_string(),
+        expected_path.to_string(),
+    ))
+}
+
+/// Only TRAILING punctuation and surrounding whitespace/quotes are stripped.
+/// Stripping every non-alphanumeric character would merge "-5" with "5" and "$5"
+/// with "5", which are different answers.
+fn normalize_value(text: &str) -> String {
+    text.trim()
+        .trim_matches(|c: char| c.is_whitespace() || c == '"' || c == '\'')
+        .trim_end_matches(|c: char| matches!(c, '.' | ',' | ';' | ':' | '!' | '?'))
+        .trim_matches(|c: char| c.is_whitespace() || c == '"' || c == '\'')
+        .to_lowercase()
+}
+
+/// Equal-answer test for storage, ignoring only case and trailing punctuation.
+fn same_value(a: &str, b: &str) -> bool {
+    let (x, y) = (normalize_value(a), normalize_value(b));
+    !x.is_empty() && x == y
+}
+
+/// Whether the ASKED fact is stored. Accepted answers are compared NORMALIZED, so a
+/// stored "dust." matches an accepted "dust", and a value equal to a listed
+/// distractor is rejected -- otherwise storing the distractor would count as storing
+/// the asked fact.
+fn asked_fact_is_stored(value_text: &str, answers: &[String], distractors: &[String]) -> bool {
+    let v = normalize_value(value_text);
+    if v.is_empty() {
+        return false;
+    }
+    if distractors.iter().any(|d| same_value(d, &v)) {
+        return false;
+    }
+    answers.iter().any(|a| same_value(a, &v))
+}
+
+/// The panel decision, as a PURE function of the mechanism facts, so the session loop
+/// and the tests cannot drift. EVERY per-row decision is made here: the 3-way correct
+/// split and the whole miss split. The loop only accumulates the returned labels.
+///
+/// A single decision point matters because earlier versions split the logic between
+/// this function and the loop, and the loop's half -- the log-path choice and the
+/// miss chain -- was covered by no test.
+pub(crate) struct RowJudgement {
+    pub hit: bool,
+    /// `store_read` | `log_without_store` | `other` | `none`
+    pub path: &'static str,
+    /// A miss bucket name, or `hit`.
+    pub bucket: &'static str,
+}
+
+pub(crate) fn judge_row(
+    reply: &str,
+    answers: &[String],
+    distractors: &[String],
+    read_value: Option<&str>,
+    stored: bool,
+    log_answered: bool,
+) -> RowJudgement {
+    let verified_answer = read_value
+        .map(normalize_value)
+        .filter(|v| !v.is_empty())
+        .and_then(|v| answers.iter().find(|a| normalize_value(a) == v).cloned());
+    let mentioned = answers.iter().find(|a| contains_word(reply, a)).cloned();
+    // Case-INSENSITIVE, like contains_word: a distractor containing an accepted answer
+    // ("half an hour" contains "an hour") must be rejected even when cases differ.
+    let distractor_present = distractors.iter().any(|d| {
+        let dl = normalize_value(d);
+        contains_word(reply, d)
+            && answers
+                .iter()
+                .any(|a| !dl.is_empty() && !same_value(a, d) && dl.contains(&normalize_value(a)))
+    });
+    let hit = match (&verified_answer, &mentioned) {
+        (Some(v), _) => contains_word(reply, v),
+        (None, Some(m)) => !distractor_present && !m.is_empty(),
+        (None, None) => false,
+    };
+    if hit {
+        return RowJudgement {
+            hit: true,
+            path: if verified_answer.is_some() {
+                "store_read"
+            } else if log_answered {
+                "log_without_store"
+            } else {
+                "other"
+            },
+            bucket: "hit",
+        };
+    }
+    // No separate `unverified` bucket: by the time the chain reaches a log-sieve row,
+    // `log_answered` is already true, so a LogValue bucket was unreachable. A log row
+    // is either attributed (log_answered_but_wrong) or it is the parametric path.
+    let bucket = if !stored {
+        "never_stored"
+    } else if read_value.is_some() && verified_answer.is_none() {
+        "recalled_wrong_value"
+    } else if verified_answer.is_some() {
+        "recalled_but_misrendered"
+    } else if log_answered {
+        "log_answered_but_wrong"
+    } else {
+        "stored_but_not_recalled"
+    };
+    RowJudgement {
+        hit: false,
+        path: "none",
+        bucket,
+    }
+}
+
 /// `session`: M-world development conversations through the actual grounded
 /// session (#962): the saved compiler (`compiler=`) predicts each user turn's
 /// action, the exact store applies it, and the emitter (`model_root=`'s
@@ -3589,6 +3871,18 @@ fn session(args: &Args, out: &Path) -> Result<()> {
     let drawn: Vec<Conversation2> = (0..conversations)
         .map(|_| world.conversation(&mut rng, Split::Development))
         .collect::<Result<_>>()?;
+    // Validate and load the external panel HERE, before any arm runs, so a
+    // malformed panel fails fast instead of after the world arms have already
+    // spent their time. Both files are read once and their sha256 taken from
+    // these bytes.
+    let mut loaded_panel: Option<(Vec<PanelRow>, String, String, String, String)> = None;
+    if let Some(panel_path) = args.optional("panel") {
+        let expected_path = args
+            .optional("panel_expected")
+            .ok_or_else(|| invalid("panel= needs panel_expected=EXPECTED.json"))?;
+        loaded_panel = Some(load_panel(&panel_path, &expected_path)?);
+    }
+
     let mut arm_reports = serde_json::Map::new();
     let mut default_outcomes: Vec<Vec<Option<TurnOutcome>>> = Vec::new();
     for arm in &arms {
@@ -3757,6 +4051,251 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         },
         "wall_seconds": started.elapsed().as_secs_f64(),
     });
+    // ------------------------------------------------------------ external panel
+    //
+    // Scores an external panel through the SAME grounded session. Use with
+    // `conversations=0 reload=0` for a panel-only run.
+    //
+    // The split reads the session's own state, not reply text:
+    //   memory: MemoryEffect::Write{ value_tokens, .. }  a fact was stored
+    //   memory: MemoryEffect::Read { read }              what retrieval returned
+    //   recall: RecallDisposition                        whether the log-sieve ran
+    //
+    // `stored` counts only writes on turns BEFORE the final one whose decoded
+    // tokens match an accepted answer: a write on the question turn, or one that
+    // stored the distractor, does not mean the asked fact was stored.
+    let mut panel_block: Option<Value> = None;
+    if let Some((rows_in, panel_sha, expected_sha, panel_name, expected_name)) = loaded_panel {
+        let (mut correct, mut never_stored, mut stored_not_recalled) = (0usize, 0usize, 0usize);
+        let (mut recalled_wrong_value, mut recalled_misrendered, mut errors) =
+            (0usize, 0usize, 0usize);
+        // `stored_total` is UNCONDITIONAL: any write before the final turn, matching
+        // or not. It is the storage measure and must be IDENTICAL between the off and
+        // sieve arms, because the compiler sees only the current user turn. The
+        // earlier "never_stored falls when the sieve runs" reading was a bucket-ORDER
+        // artefact: `hit` was tested before `!stored`, so rows answered via the
+        // user-turn log sieve left never_stored and became "correct".
+        let (mut correct_with_store_read, mut correct_via_log_without_store) = (0usize, 0usize);
+        // Storage, separated by DEFINITION. `any_write_total` counts any write before
+        // the final turn -- including the distractor fact every row writes.
+        // `asked_fact_stored_total` counts rows where the ASKED fact was stored,
+        // normalized so "dust." matches "dust". They are different questions, and
+        // reporting one number for both is what made the earlier table contradict
+        // itself (any_write 92 beside never_stored 40-49).
+        let (mut any_write_total, mut asked_fact_stored_total, mut wrote_other_than_asked) =
+            (0usize, 0usize, 0usize);
+        let mut correct_other = 0usize;
+        let mut log_answered_but_wrong = 0usize;
+        let mut error_examples: Vec<Value> = Vec::new();
+        let mut judged = Vec::with_capacity(rows_in.len());
+        // A FRESH session per row. Reuse does not work: the session accumulates
+        // turns and hits `max_turns: 64` after ~21 rows, and GroundedSession has no
+        // reset. Each row reloads the checkpoint, so a 100-row panel takes minutes.
+        for row in &rows_in {
+            let mut session = open(compiler.clone())?;
+            let last = row.turns.len() - 1;
+            let (mut stored, mut read_value, mut read_found, mut log_value) =
+                (false, String::new(), false, false);
+            let mut stored_total_row = false;
+            let mut log_answered = false;
+            let mut reply = String::new();
+            let mut recalled_value = String::new();
+            let mut turn_error: Option<String> = None;
+            for (i, user) in row.turns.iter().enumerate() {
+                match session.turn_with_controls(user, TurnControls::default()) {
+                    Ok(outcome) => {
+                        if i < last {
+                            if let MemoryEffect::Write { value_tokens, .. } = &outcome.memory {
+                                stored_total_row = true;
+                                if asked_fact_is_stored(
+                                    &tokenizer.decode(value_tokens),
+                                    &row.answers,
+                                    &row.distractors,
+                                ) {
+                                    stored = true;
+                                }
+                            }
+                        } else {
+                            reply = outcome.reply_text.clone();
+                            if let MemoryEffect::Read { read } = &outcome.memory {
+                                if let StoreRead::Found(v) = read {
+                                    read_value = tokenizer.decode(&v.tokens);
+                                    read_found = true;
+                                }
+                            }
+                            log_value = matches!(outcome.recall, RecallDisposition::LogValue);
+                            // The log sieve supplied a line on a turn the compiler
+                            // left unresolved: a SECOND memory path that can answer
+                            // with nothing stored for the row.
+                            log_answered = log_value && !read_found;
+                        }
+                    }
+                    Err(e) => {
+                        turn_error = Some(e.to_string());
+                        break;
+                    }
+                }
+            }
+            if let Some(e) = turn_error {
+                errors += 1;
+                if error_examples.len() < 10 {
+                    error_examples.push(json!({"id": row.id, "error": e}));
+                }
+                judged.push(json!({"id": row.id, "error": e}));
+                continue;
+            }
+            // Accept ONLY when the store returned an accepted answer, or when the
+            // reply contains one AND no distractor.
+            //
+            // Two earlier defects are fixed here: the guard compared only against
+            // other ACCEPTED answers, so a retrieved distractor was never excluded
+            // (accepted ["an hour"], reply "half an hour", scored correct); and when
+            // read_found was true, `hit` ignored `verified`, so a retrieved
+            // DISTRACTOR value still scored correct.
+            let verdict = judge_row(
+                &reply,
+                &row.answers,
+                &row.distractors,
+                if read_found {
+                    Some(read_value.as_str())
+                } else {
+                    None
+                },
+                stored,
+                log_answered,
+            );
+            let hit = verdict.hit;
+            let answered_from_store = verdict.path == "store_read";
+            let answered_from_log = verdict.path == "log_without_store";
+            if hit {
+                correct += 1;
+                match verdict.path {
+                    "store_read" => correct_with_store_read += 1,
+                    "log_without_store" => correct_via_log_without_store += 1,
+                    _ => correct_other += 1,
+                }
+            } else {
+                match verdict.bucket {
+                    "never_stored" => never_stored += 1,
+                    "recalled_wrong_value" => {
+                        recalled_wrong_value += 1;
+                        recalled_value = read_value.clone();
+                    }
+                    "recalled_but_misrendered" => {
+                        recalled_misrendered += 1;
+                        recalled_value = read_value.clone();
+                    }
+                    "log_answered_but_wrong" => log_answered_but_wrong += 1,
+                    _ => stored_not_recalled += 1,
+                }
+            }
+            // Storage is computed for EVERY row, not only misses.
+            if stored_total_row {
+                any_write_total += 1;
+            }
+            if stored {
+                asked_fact_stored_total += 1;
+            } else if stored_total_row {
+                wrote_other_than_asked += 1;
+            }
+
+            judged.push(json!({
+                "id": row.id, "expected": row.answers, "reply": reply, "hit": hit,
+                // `stored` is the value-matched measure; `stored_any` is the
+                // unconditional one. Both are reported per row so the off and sieve
+                // arms can be DIFFED -- and they should be identical, because the
+                // compiler does not see the log sieve.
+                "stored": stored, "stored_any": stored_total_row,
+                "answered_from_store": answered_from_store, "answered_from_log": answered_from_log,
+                "read_found": read_found,
+                "read_value": read_value, "recalled_value": recalled_value,
+                "log_value": log_value,
+            }));
+        }
+        let total = rows_in.len();
+        // FIX 2: the invariants are CHECKED, not merely true by construction. A
+        // failure returns an error rather than panicking, so a defective split cannot
+        // be reported as a result.
+        let paths = correct_with_store_read + correct_via_log_without_store + correct_other;
+        if paths != correct {
+            return Err(invalid(format!(
+                "panel paths do not partition correct: {correct_with_store_read} + {correct_via_log_without_store} + {correct_other} = {paths}, correct = {correct}"
+            )));
+        }
+        if asked_fact_stored_total + wrote_other_than_asked != any_write_total {
+            return Err(invalid(format!(
+                "panel storage does not partition: {asked_fact_stored_total} + {wrote_other_than_asked} != {any_write_total}"
+            )));
+        }
+        let misses = never_stored
+            + stored_not_recalled
+            + recalled_wrong_value
+            + recalled_misrendered
+            + log_answered_but_wrong;
+        // A row whose turn errored increments `errors` and is skipped, so it is
+        // counted in `total` but lands in no correctness bucket. The check must
+        // include it, or a single turn error would fail the sum and lose the whole
+        // report.
+        if correct + misses + errors != total {
+            return Err(invalid(format!(
+                "panel buckets do not sum to the row count: {correct} correct + {misses} misses + {errors} errors != {total}"
+            )));
+        }
+        // `never_stored` counts misses whose asked fact was NOT stored, so it can
+        // never overlap the rows where the asked fact WAS stored. The bound is
+        // therefore never_stored + asked_fact_stored_total <= the non-error rows.
+        if never_stored + asked_fact_stored_total > total - errors {
+            return Err(invalid(format!(
+                "never_stored ({never_stored}) + asked_fact_stored_total ({asked_fact_stored_total}) exceeds the scored rows ({})",
+                total - errors
+            )));
+        }
+        println!(
+            "panel memory: {correct}/{total}; any_write_total={any_write_total} asked_fact_stored_total={asked_fact_stored_total} wrote_other_than_asked={wrote_other_than_asked}"
+        );
+        println!(
+            "panel paths: store_read={correct_with_store_read} log_without_store={correct_via_log_without_store} other={correct_other}"
+        );
+        println!(
+            "panel misses: never_stored={never_stored} stored_not_recalled={stored_not_recalled} recalled_wrong_value={recalled_wrong_value} misrendered={recalled_misrendered} log_answered_but_wrong={log_answered_but_wrong} errors={errors}"
+        );
+        panel_block = Some(json!({
+            "panel": panel_name, "panel_sha256": panel_sha,
+            "panel_expected": expected_name, "panel_expected_sha256": expected_sha,
+            "rows_total": total, "correct": correct,
+            // Storage is measured UNCONDITIONALLY and must be identical between the
+            // off and sieve arms: the compiler sees only the current user turn.
+            // Reporting it beside the correctness split is what makes storage and
+            // retrieval readable separately, and what shows the user-turn log sieve
+            // is a SECOND memory path that can answer with nothing stored.
+            // Storage, by definition: any write vs the ASKED fact stored.
+            "any_write_total": any_write_total,
+            "asked_fact_stored_total": asked_fact_stored_total,
+            // `wrote_other_than_asked` = any_write_total - asked_fact_stored_total:
+            // the row wrote something (the distractor fact) but not the asked fact.
+            "wrote_other_than_asked": wrote_other_than_asked,
+            // Three memory paths, which partition `correct`.
+            "correct_with_store_read": correct_with_store_read,
+            "correct_via_log_without_store": correct_via_log_without_store,
+            "correct_other": correct_other,
+            "miss_split": {
+                "never_stored": never_stored,
+                "stored_but_not_recalled": stored_not_recalled,
+                "recalled_wrong_value": recalled_wrong_value,
+                "recalled_but_misrendered": recalled_misrendered,
+                "log_answered_but_wrong": log_answered_but_wrong,
+                "turn_errors": errors,
+                "rule": "mechanism state, not reply text. never_stored = no accepted-answer write; stored_but_not_recalled = the asked fact was stored but nothing was read; recalled_wrong_value = a store read returned a value that is not an accepted answer; recalled_but_misrendered = a store read returned an accepted answer but the reply lacks it; log_answered_but_wrong = the log sieve supplied a value for a row with no store read and the reply was wrong.",
+            },
+            "error_examples": error_examples,
+            "rows": judged,
+        }));
+    }
+
+    let mut report = report;
+    if let Some(block) = panel_block {
+        report["external_panel"] = block;
+    }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
     Ok(())
 }
@@ -3996,6 +4535,8 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "trunk",
         "op_policy",
         "log_recall",
+        "panel",
+        "panel_expected",
     ];
     match mode {
         "compiler" => Some(claimed(rest, relation_compiler, compiler)),
@@ -4409,5 +4950,242 @@ mod tests {
         let mut headless = tokens.clone();
         headless[0] = u16::from(b'x');
         assert!(screen_documents(&headless, &mask, files, (1, 2, 0), &decode, &grams).is_err());
+    }
+}
+
+#[cfg(test)]
+mod panel_scoring_tests {
+    use super::{asked_fact_is_stored, judge_row, load_panel, normalize_value};
+
+    fn v(items: &[&str]) -> Vec<String> {
+        items.iter().map(|s| s.to_string()).collect()
+    }
+
+    /// Runs judge_row and asserts the 3-way correct split and the miss split through
+    /// the SAME function the session loop calls.
+    fn judge(
+        reply: &str,
+        answers: &[&str],
+        distractors: &[&str],
+        read: Option<&str>,
+        stored: bool,
+        log_answered: bool,
+    ) -> (bool, &'static str, &'static str) {
+        let r = judge_row(
+            reply,
+            &v(answers),
+            &v(distractors),
+            read,
+            stored,
+            log_answered,
+        );
+        (r.hit, r.path, r.bucket)
+    }
+
+    fn tmp(name: &str) -> std::path::PathBuf {
+        let d = std::env::temp_dir().join(format!("panel-test-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    /// The exact defect the review found: accepted ["an hour"], reply "half an hour".
+    #[test]
+    fn distractor_containing_the_answer_is_rejected() {
+        assert!(
+            super::contains_word("half an hour", "an hour"),
+            "the trap is real: a whole-word match fires across the embedded answer"
+        );
+        assert!(
+            !judge(
+                "half an hour",
+                &["an hour"],
+                &["half an hour"],
+                None,
+                true,
+                false
+            )
+            .0
+        );
+        assert!(
+            judge(
+                "an hour",
+                &["an hour"],
+                &["half an hour"],
+                None,
+                true,
+                false
+            )
+            .0
+        );
+    }
+
+    #[test]
+    fn retrieved_distractor_does_not_score_correct() {
+        let (hit, _, _) = judge(
+            "half an hour",
+            &["an hour"],
+            &["half an hour"],
+            Some("half an hour"),
+            true,
+            false,
+        );
+        assert!(!hit, "a retrieved distractor value must not be accepted");
+        let (hit, path, _) = judge(
+            "an hour",
+            &["an hour"],
+            &["half an hour"],
+            Some("an hour"),
+            true,
+            false,
+        );
+        assert!(hit);
+        assert_eq!(path, "store_read");
+    }
+
+    #[test]
+    fn distractor_rejection_is_case_insensitive() {
+        assert!(
+            !judge(
+                "HALF AN HOUR",
+                &["an hour"],
+                &["Half An Hour"],
+                None,
+                true,
+                false
+            )
+            .0
+        );
+        assert!(
+            judge(
+                "an hour",
+                &["An Hour"],
+                &["half an hour"],
+                None,
+                true,
+                false
+            )
+            .0
+        );
+    }
+
+    /// The 3-way split, exercised through judge_row rather than asserted in the loop.
+    #[test]
+    fn correct_paths_are_split_three_ways() {
+        assert_eq!(
+            judge("an hour", &["an hour"], &[], Some("an hour"), true, false).1,
+            "store_read"
+        );
+        assert_eq!(
+            judge("an hour", &["an hour"], &[], None, true, true).1,
+            "log_without_store"
+        );
+        assert_eq!(
+            judge("an hour", &["an hour"], &[], None, true, false).1,
+            "other"
+        );
+        assert_eq!(
+            judge("an hour", &["an hour"], &[], None, false, false).1,
+            "other"
+        );
+    }
+
+    /// Every miss bucket is reachable through judge_row.
+    #[test]
+    fn miss_buckets_are_reachable() {
+        assert_eq!(
+            judge("wrong", &["an hour"], &[], None, false, false).2,
+            "never_stored"
+        );
+        assert_eq!(
+            judge("wrong", &["an hour"], &[], None, true, false).2,
+            "stored_but_not_recalled"
+        );
+        assert_eq!(
+            judge("wrong", &["an hour"], &[], Some("Cork"), true, false).2,
+            "recalled_wrong_value"
+        );
+        assert_eq!(
+            judge(
+                "something else",
+                &["an hour"],
+                &[],
+                Some("an hour"),
+                true,
+                false
+            )
+            .2,
+            "recalled_but_misrendered"
+        );
+        assert_eq!(
+            judge("wrong", &["an hour"], &[], None, true, true).2,
+            "log_answered_but_wrong"
+        );
+    }
+
+    /// normalize_value must NOT merge values that differ by a leading sign or symbol.
+    #[test]
+    fn normalize_keeps_leading_sign_and_symbol() {
+        assert_eq!(normalize_value("Dust."), "dust");
+        assert_ne!(normalize_value("-5"), normalize_value("5"));
+        assert_ne!(normalize_value("$5"), normalize_value("5"));
+        assert_eq!(normalize_value("  nine  "), "nine");
+    }
+
+    /// Storage must be NORMALIZED (the PR claimed it was; it was not) and must exclude
+    /// a value that merely equals a distractor.
+    #[test]
+    fn asked_fact_storage_is_normalized_and_excludes_distractors() {
+        assert!(
+            asked_fact_is_stored("dust.", &v(&["dust"]), &[]),
+            "trailing period must not defeat storage"
+        );
+        assert!(
+            asked_fact_is_stored("DUST", &v(&["dust"]), &[]),
+            "case must not defeat storage"
+        );
+        assert!(
+            !asked_fact_is_stored("Cork", &v(&["dust"]), &v(&["Cork"])),
+            "a distractor value is not the asked fact"
+        );
+        assert!(!asked_fact_is_stored("", &v(&["dust"]), &[]));
+        assert!(!asked_fact_is_stored("something", &v(&["dust"]), &[]));
+    }
+
+    #[test]
+    fn load_panel_rejects_non_string_answers() {
+        let d = tmp("answers");
+        let (p, e) = (d.join("p.json"), d.join("e.json"));
+        std::fs::write(&p, br#"[{"id":"r1","user_turns":["a","b"]}]"#).unwrap();
+        std::fs::write(&e, br#"{"r1":["Tulsa",5]}"#).unwrap();
+        let err = load_panel(p.to_str().unwrap(), e.to_str().unwrap()).unwrap_err();
+        assert!(err.to_string().contains("non-string"), "got: {err}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn load_panel_rejects_non_string_distractors() {
+        let d = tmp("distractors");
+        let (p, e) = (d.join("p.json"), d.join("e.json"));
+        std::fs::write(&p, br#"[{"id":"r1","user_turns":["a","b"]}]"#).unwrap();
+        std::fs::write(
+            &e,
+            br#"{"r1":{"answers":"Tulsa","distractors":["Cork",7]}}"#,
+        )
+        .unwrap();
+        let err = load_panel(p.to_str().unwrap(), e.to_str().unwrap()).unwrap_err();
+        assert!(err.to_string().contains("distractor"), "got: {err}");
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn load_panel_rejects_orphan_expected_key() {
+        let d = tmp("orphan");
+        let (p, e) = (d.join("p.json"), d.join("e.json"));
+        std::fs::write(&p, br#"[{"id":"r1","user_turns":["a","b"]}]"#).unwrap();
+        std::fs::write(&e, br#"{"r1":"x","r9":"y"}"#).unwrap();
+        let err = load_panel(p.to_str().unwrap(), e.to_str().unwrap()).unwrap_err();
+        assert!(err.to_string().contains("unknown panel row"), "got: {err}");
+        let _ = std::fs::remove_dir_all(&d);
     }
 }
