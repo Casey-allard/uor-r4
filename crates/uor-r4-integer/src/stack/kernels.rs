@@ -46,6 +46,9 @@ pub(crate) const ARCOSH_TABLE_LEN: usize =
     (((ARCOSH_CODE_BITS - ARCOSH_MANTISSA_BITS + 1) as usize) << ARCOSH_MANTISSA_BITS) | 1;
 /// Training's floor on the Lorentz excess `z - 1`, `1e-7`, as an arcosh code.
 const MIN_EXCESS_CODE: u128 = 429;
+/// Training's floor on the L2 squared distance `|q - k|^2`, `1e-7`, at
+/// exponent -32 (`floor(1e-7 2^32)`, the same code as the Lorentz floor).
+pub(crate) const MIN_SQUARED_CODE: u128 = 429;
 
 /// Round-half-up arithmetic shift right by `shift` (left if negative),
 /// saturating at the `i64` range (the D10 engine's `shift`).
@@ -960,6 +963,22 @@ pub(crate) fn stack_lorentz_distance(
     stack_arcosh1p_q24(code, arcosh)
 }
 
+/// L2 distance `sqrt(max(|q - k|^2, 1e-7))` at exponent -24 between points
+/// at exponent -16 (the D10 engine's `l2_distance`): each coordinate
+/// difference (`|q_i - k_i| < 2^32`) squared by [`stack_square`], the exact
+/// sum at exponent -32 floored as in training, then the digit-by-digit floor
+/// square root of it shifted to exponent -48. At most `2^44` for a head width
+/// of at most 256.
+#[inline(never)]
+pub(crate) fn stack_l2_distance(query: &[i32], key: &[i32]) -> u64 {
+    let mut squared = 0u128;
+    for (&q, &k) in query.iter().zip(key) {
+        let difference = i64::from(q).wrapping_sub(i64::from(k));
+        squared = squared.wrapping_add(u128::from(stack_square(difference)));
+    }
+    stack_isqrt(squared.max(MIN_SQUARED_CODE) << 16) as u64
+}
+
 /// Hamilton product `a (x) b` of quaternions `(w, x, y, z)`, exactly.
 #[inline(never)]
 pub(crate) fn stack_hamilton(a: [i64; 4], b: [i64; 4]) -> [i128; 4] {
@@ -1252,6 +1271,77 @@ mod tests {
         assert_eq!(stack_div_u64(u64::MAX, u64::MAX), 1);
         assert_eq!(stack_div_u64(7, 0), 0);
         assert_eq!(stack_isqrt(u128::MAX), u128::from(u64::MAX));
+    }
+
+    /// `stack_l2_distance` equals the plain integer definition (native
+    /// products, the same floor and floor square root) exactly, on edge cases
+    /// and random vectors of every magnitude up to the `i32` limits.
+    #[test]
+    fn l2_distance_is_the_exact_integer_definition() {
+        fn reference(q: &[i32], k: &[i32]) -> u64 {
+            let squared: u128 = q
+                .iter()
+                .zip(k)
+                .map(|(a, b)| {
+                    let v = i128::from(*a) - i128::from(*b);
+                    (v * v) as u128
+                })
+                .sum();
+            let value = squared.max(MIN_SQUARED_CODE) << 16;
+            let mut root = (value as f64).sqrt() as u128;
+            while root * root > value {
+                root -= 1;
+            }
+            while (root + 1) * (root + 1) <= value {
+                root += 1;
+            }
+            root as u64
+        }
+        let floor = reference(&[0; 4], &[0; 4]);
+        assert_eq!(floor, 5_302, "floor(sqrt(429 2^16)), about 1e-7^(1/2) 2^24");
+        let wide = 256;
+        let cases: Vec<(Vec<i32>, Vec<i32>)> = vec![
+            (vec![0; 64], vec![0; 64]),
+            (vec![5, -7, 9], vec![5, -7, 9]),
+            // Squared distances 400, 429 and 430: below, at and above the floor.
+            (vec![20, 0, 0, 0], vec![0, 0, 0, 0]),
+            (vec![20, 5, 2, 0], vec![0, 0, 0, 0]),
+            (vec![20, 5, 2, 1], vec![0, 0, 0, 0]),
+            (vec![65_536], vec![0]),
+            (vec![i32::MAX; wide], vec![i32::MIN; wide]),
+            (vec![i32::MIN; wide], vec![i32::MAX; wide]),
+            (vec![i32::MAX; wide], vec![i32::MAX; wide]),
+            (vec![i32::MIN, i32::MAX], vec![0, 0]),
+            (vec![], vec![]),
+        ];
+        for (q, k) in &cases {
+            assert_eq!(stack_l2_distance(q, k), reference(q, k), "{q:?} {k:?}");
+        }
+        assert_eq!(stack_l2_distance(&[0; 64], &[0; 64]), floor);
+        assert_eq!(stack_l2_distance(&[20, 0], &[0, 0]), floor);
+        assert_eq!(stack_l2_distance(&[20, 5, 2], &[0, 0, 0]), floor);
+        assert!(stack_l2_distance(&[20, 5, 2, 1], &[0, 0, 0, 0]) > floor);
+        assert_eq!(stack_l2_distance(&[65_536], &[0]), 1 << 24);
+        let top = stack_l2_distance(&[i32::MAX; 256], &[i32::MIN; 256]);
+        assert!(top < 1 << 44, "{top}");
+        let mut rng = Lcg(17);
+        for _ in 0..5_000 {
+            let shift = (rng.next() % 32) as u32;
+            let len = 1 + (rng.next() % 64) as usize;
+            let draw = |rng: &mut Lcg| (rng.next() as i32) >> shift;
+            let q: Vec<i32> = (0..len).map(|_| draw(&mut rng)).collect();
+            let k: Vec<i32> = q
+                .iter()
+                .map(|&v| {
+                    if rng.next().is_multiple_of(4) {
+                        v
+                    } else {
+                        draw(&mut rng)
+                    }
+                })
+                .collect();
+            assert_eq!(stack_l2_distance(&q, &k), reference(&q, &k));
+        }
     }
 
     #[test]

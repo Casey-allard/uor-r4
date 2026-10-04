@@ -189,6 +189,9 @@ fn d11_logits_equal_d10_logits_on_random_stacks() {
         ("ra", ReadScore::Dot, true),
         ("aa", ReadScore::Lorentz, false),
         ("r", ReadScore::Dot, true),
+        ("rrar", ReadScore::L2, true),
+        ("rarr", ReadScore::L2, false),
+        ("aa", ReadScore::L2, true),
     ] {
         positions += check(pattern, read, rotation, 64, 2, 40, 24, &[], 3);
     }
@@ -196,6 +199,7 @@ fn d11_logits_equal_d10_logits_on_random_stacks() {
     // and the real model's pattern, over a longer context.
     positions += check("rrarra", ReadScore::Lorentz, true, 96, 6, 70, 40, &[], 11);
     positions += check("rrarra", ReadScore::Dot, true, 96, 3, 70, 40, &[], 12);
+    positions += check("rrarra", ReadScore::L2, true, 96, 6, 70, 40, &[], 13);
     eprintln!("compared {positions} positions");
 }
 
@@ -221,6 +225,8 @@ fn d11_logits_equal_d10_logits_on_amplified_stacks() {
         ("rarr", ReadScore::Lorentz, true),
         ("rarr", ReadScore::Dot, true),
         ("arra", ReadScore::Dot, false),
+        ("rarr", ReadScore::L2, true),
+        ("arra", ReadScore::L2, false),
     ] {
         positions += check(pattern, read, rotation, 64, 2, 40, 24, &loud, 21);
     }
@@ -240,6 +246,69 @@ fn d11_logits_equal_d10_logits_on_a_calibrated_export() {
     assert_eq!(report["method"]["quantizer"], "gptq");
     let (d10, d11) = engines(&bytes);
     compare("gptq", &d10, &d11, &sequences(24, 77));
+}
+
+/// An L2 artifact without its beta or offset table, a Dot artifact relabelled
+/// `l2` (no scales) and an unknown read name are refused by both engines; an
+/// L2 artifact never needs the arcosh table, and relabelling a Lorentz
+/// artifact `l2` serves the L2 score in both engines alike.
+#[test]
+fn l2_reads_require_their_scale_and_offset_in_both_engines() {
+    let d10_accepts = |bytes: &[u8]| {
+        StackArtifact::parse(bytes.to_vec())
+            .and_then(D10Model::from_artifact)
+            .is_ok()
+    };
+    let model = small("rarr", ReadScore::L2, true, 64, 2, 40, 12, 9);
+    perturb(&model, 99, &[]);
+    let (valid, _) = export_stack(&model, json!({}), None, None).expect("L2 export");
+    let (header, _) = split(&valid);
+    assert_eq!(header["shape"]["read"], "l2");
+    assert!(header["tables"]
+        .as_array()
+        .expect("tables")
+        .iter()
+        .all(|t| t["name"] != "arcosh"));
+    let (d10, d11) = engines(&valid);
+    compare("l2", &d10, &d11, &sequences(12, 5));
+    let rename = |name: &'static str| {
+        with_header(&valid, move |h| {
+            entry(h, "tables", name)["name"] = json!(format!("{name}.gone"));
+        })
+    };
+    let dot = small("rarr", ReadScore::Dot, true, 64, 2, 40, 12, 9);
+    perturb(&dot, 99, &[]);
+    let (dot_bytes, _) = export_stack(&dot, json!({}), None, None).expect("Dot export");
+    for (label, bytes) in [
+        ("l2 without beta", rename("l1.beta")),
+        ("l2 without offset", rename("l1.offset")),
+        (
+            "dot relabelled l2",
+            with_header(&dot_bytes, |h| h["shape"]["read"] = json!("l2")),
+        ),
+        (
+            "unknown read",
+            with_header(&valid, |h| h["shape"]["read"] = json!("euclidean")),
+        ),
+        (
+            "upper-case read",
+            with_header(&valid, |h| h["shape"]["read"] = json!("L2")),
+        ),
+    ] {
+        assert!(
+            IntegerStackModel::parse(&bytes).is_err(),
+            "D11 accepted {label}"
+        );
+        assert!(!d10_accepts(&bytes), "D10 accepted {label}");
+    }
+    // A Lorentz artifact read as L2 (its beta and offset reused, its arcosh
+    // table ignored) is a different model that both engines serve alike.
+    let lorentz = small("rarr", ReadScore::Lorentz, true, 64, 2, 40, 12, 9);
+    perturb(&lorentz, 99, &[]);
+    let (lorentz_bytes, _) = export_stack(&lorentz, json!({}), None, None).expect("export");
+    let relabelled = with_header(&lorentz_bytes, |h| h["shape"]["read"] = json!("l2"));
+    let (d10, d11) = engines(&relabelled);
+    compare("lorentz relabelled l2", &d10, &d11, &sequences(12, 6));
 }
 
 /// Both engines refuse a token outside the vocabulary and a step past the

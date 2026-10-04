@@ -304,6 +304,73 @@ fn shapes_whose_read_caches_exceed_the_bound_are_rejected_before_allocation() {
     }
 }
 
+/// The synthetic Lorentz read relabelled as the flat L2 read (the same beta
+/// and offset tables) serves without the arcosh table, differently from the
+/// Lorentz read; an L2 read without its beta or offset is refused, as is an
+/// unknown read name. L2 caches no lifts, so its read-cache bound is Dot's.
+#[test]
+fn the_l2_read_serves_its_scale_and_offset_without_lifts_or_arcosh() {
+    let bytes = artifact(6);
+    let relabel = |drop: Option<&'static str>, read: &'static str| {
+        with_header(&bytes, move |header| {
+            header["shape"]["read"] = json!(read);
+            if let Some(name) = drop {
+                header["tables"]
+                    .as_array_mut()
+                    .expect("tables")
+                    .retain(|t| t["name"] != name);
+            }
+        })
+    };
+    let l2 = IntegerStackModel::parse(&relabel(Some("arcosh"), "l2")).expect("an L2 read");
+    assert!(l2.shape().l2() && l2.shape().scaled() && !l2.shape().lorentz());
+    let ids = [3u32, 39, 0, 17, 17, 8];
+    let first = run(&l2, &ids);
+    assert_eq!(first.len(), CONTEXT);
+    assert_eq!(run(&l2, &ids), first, "a second L2 session differs");
+    let lorentz = IntegerStackModel::parse(&bytes).expect("the Lorentz read");
+    assert_ne!(run(&lorentz, &ids), first, "L2 scored like Lorentz");
+    let mut session = l2.session();
+    for (&id, want) in ids.iter().zip(&first) {
+        assert_eq!(session.step(id).expect("step"), want.as_slice());
+    }
+    for missing in ["l1.beta", "l1.offset"] {
+        match IntegerStackModel::parse(&relabel(Some(missing), "l2")) {
+            Err(StackError::MissingSection(name)) => assert_eq!(name, missing),
+            other => panic!("an L2 read without {missing}: {:?}", other.err()),
+        }
+    }
+    // The Lorentz read still needs its table.
+    assert!(matches!(
+        IntegerStackModel::parse(&relabel(Some("arcosh"), "lorentz")),
+        Err(StackError::MissingSection(_))
+    ));
+    for unknown in ["L2", "euclidean", "cosine", ""] {
+        assert!(
+            matches!(
+                IntegerStackModel::parse(&relabel(None, unknown)),
+                Err(StackError::Shape(_))
+            ),
+            "accepted the read {unknown:?}"
+        );
+    }
+    let shape = |read: &str| StackShape {
+        vocab: 40,
+        width: 512,
+        heads: 2,
+        mlp: 32,
+        pattern: "a".repeat(16),
+        read: read.to_owned(),
+        rotation: false,
+        context: 1 << 16,
+    };
+    assert_eq!(
+        shape("l2").read_cache_bytes(),
+        shape("dot").read_cache_bytes()
+    );
+    assert!(shape("l2").validate().is_ok());
+}
+
 #[test]
 fn duplicate_sections_are_rejected() {
     let bytes = artifact(4);

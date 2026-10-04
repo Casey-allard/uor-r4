@@ -217,7 +217,8 @@ pub struct StackShape {
     pub mlp: usize,
     /// One letter per layer: `r` quaternion transport recurrence, `a` read.
     pub pattern: String,
-    /// Read score: `dot` or `lorentz`.
+    /// Read score: `dot`, `lorentz` or `l2` (the flat Euclidean control of
+    /// `lorentz`, with the same learned per-head scale and offset).
     pub read: String,
     /// Learned rotations in the recurrence; `false` is identity transport.
     pub rotation: bool,
@@ -231,7 +232,7 @@ impl StackShape {
         if dims.contains(&0)
             || self.pattern.is_empty()
             || self.pattern.bytes().any(|c| c != b'r' && c != b'a')
-            || (self.read != "dot" && self.read != "lorentz")
+            || !matches!(self.read.as_str(), "dot" | "lorentz" | "l2")
             || !self.width.is_multiple_of(4)
             || !self.width.is_multiple_of(crate::GROUP)
             || !self.width.is_multiple_of(self.heads)
@@ -269,6 +270,17 @@ impl StackShape {
     pub fn lorentz(&self) -> bool {
         self.read == "lorentz"
     }
+
+    /// The flat L2 read: `-beta (|q - k| - offset)`.
+    pub fn l2(&self) -> bool {
+        self.read == "l2"
+    }
+
+    /// Whether the read carries a learned per-head scale `beta` and offset
+    /// (Lorentz and L2). Only Lorentz needs the arcosh table and key lifts.
+    pub fn scaled(&self) -> bool {
+        self.lorentz() || self.l2()
+    }
 }
 
 /// Integer conventions of a stack artifact.
@@ -297,8 +309,8 @@ pub struct StackNumerics {
 /// `l{l}.decay_rate` (grid codes of `8 softplus(-decay)` per lane). A read has
 /// `l{l}.query`, `l{l}.key`, `l{l}.value`, `l{l}.null` (`heads x width`) and
 /// `l{l}.out`, and the tables `l{l}.null_bias` and `l{l}.age` (`[heads]
-/// [context]`, exponent -16), plus for Lorentz `l{l}.beta` (grid codes) and
-/// `l{l}.offset` (exponent -24). Every layer has `l{l}.gate`, `l{l}.up` and
+/// [context]`, exponent -16), plus for Lorentz and L2 `l{l}.beta` (grid
+/// codes) and `l{l}.offset` (exponent -24). Every layer has `l{l}.gate`, `l{l}.up` and
 /// `l{l}.down`. Norm gains are folded into the maps that read the normalized
 /// state; `head` carries the final norm's gain. Tables `exp`, `silu`, `gelu`,
 /// and for Lorentz `arcosh`, are shared.
@@ -788,6 +800,15 @@ mod tests {
     #[test]
     fn stack_shapes_are_validated() {
         assert!(stack_shape().validate().is_ok());
+        for read in ["dot", "lorentz", "l2"] {
+            let shape = StackShape {
+                read: read.to_owned(),
+                ..stack_shape()
+            };
+            assert!(shape.validate().is_ok(), "{read}");
+            assert_eq!(shape.scaled(), read != "dot", "{read}");
+            assert_eq!(shape.l2(), read == "l2", "{read}");
+        }
         for broken in [
             StackShape {
                 pattern: "rx".to_owned(),
@@ -795,6 +816,14 @@ mod tests {
             },
             StackShape {
                 read: "cosine".to_owned(),
+                ..stack_shape()
+            },
+            StackShape {
+                read: "L2".to_owned(),
+                ..stack_shape()
+            },
+            StackShape {
+                read: "euclidean".to_owned(),
                 ..stack_shape()
             },
             StackShape {

@@ -19,8 +19,10 @@
 //!   width-4 causal convolution `c_t` of the drive; the output is
 //!   `h_t gelu(g_t)`;
 //! - **read** (`a`): heads scored by `<q, k> / sqrt(d)` (Dot) or
-//!   `-beta (d(q, k) - offset)` (Lorentz, the hyperboloid distance), plus a
-//!   learned age bias, with a NoRead slot whose value is zero.
+//!   `-beta (d(q, k) - offset)` (Lorentz, the hyperboloid distance; L2, its
+//!   flat control, the Euclidean distance `|q - k|` from digit-table squares
+//!   and a digit-by-digit square root), plus a learned age bias, with a NoRead
+//!   slot whose value is zero.
 //!
 //! Arithmetic (R1–R2):
 //!
@@ -34,9 +36,9 @@
 //!   mixing, normalization) is read from a table of the sixteen multiples of
 //!   one operand at the radix-16 digits of the other; a quotient is exact
 //!   long division and a square root is digit by digit;
-//! - learned scalars (convolution taps, decay rates, Lorentz scales) are grid
-//!   codes applied by shifts and adds; exp, sigmoid, SiLU, GELU and arcosh are
-//!   the artifact's sealed tables.
+//! - learned scalars (convolution taps, decay rates, Lorentz and L2 scales)
+//!   are grid codes applied by shifts and adds; exp, sigmoid, SiLU, GELU and
+//!   arcosh are the artifact's sealed tables.
 //!
 //! The engine is dense: every weight map is read in full per token
 //! ([`IntegerStackModel::weights_per_token`]), the labelled interim stepping

@@ -9,10 +9,10 @@ use super::format::{Container, Fixed, MatrixView, StackNumerics, StackShape, Sta
 use super::kernels::{
     grid_apply, grid_valid, mul_i128, shift, shift_wide, stack_activation, stack_activation_tables,
     stack_dequant_row, stack_div_u128, stack_dot, stack_exp_neg, stack_gemv, stack_gemv_pairs,
-    stack_hamilton, stack_isqrt, stack_lift, stack_lorentz_distance, stack_mix_row, stack_mul_u64,
-    stack_pair_tables, stack_quantize16, stack_query_tables, stack_rms_norm, stack_sigmoid_q31,
-    stack_snap_rotation, stack_snap_select, stack_square, PackedMatrix, ARCOSH_TABLE_LEN,
-    PRODUCT_EXP, RESIDUAL_EXP,
+    stack_hamilton, stack_isqrt, stack_l2_distance, stack_lift, stack_lorentz_distance,
+    stack_mix_row, stack_mul_u64, stack_pair_tables, stack_quantize16, stack_query_tables,
+    stack_rms_norm, stack_sigmoid_q31, stack_snap_rotation, stack_snap_select, stack_square,
+    PackedMatrix, ARCOSH_TABLE_LEN, PRODUCT_EXP, RESIDUAL_EXP,
 };
 use super::StackError;
 
@@ -20,7 +20,8 @@ use super::StackError;
 const STATE_EXP: i32 = -32;
 /// Exponent of read scores, in nats.
 const SCORE_EXP: i32 = -16;
-/// Exponent of Lorentz distances and offsets (the arcosh table's output).
+/// Exponent of Lorentz and L2 distances and offsets (the arcosh table's output
+/// for Lorentz).
 const DISTANCE_EXP: i32 = -24;
 /// Exponent of decay gates, decays and transition quaternions (Q31).
 const GATE_EXP: i32 = -31;
@@ -58,7 +59,7 @@ struct Read {
     null_bias: Vec<i32>,
     /// `[head][distance]` at the score exponent.
     age: Vec<i32>,
-    /// Lorentz scale per head (grid codes) and offset (exponent -24).
+    /// Lorentz or L2 scale per head (grid codes) and offset (exponent -24).
     beta: Vec<i16>,
     offset: Vec<i32>,
 }
@@ -82,6 +83,9 @@ pub struct IntegerStackModel {
     /// Derived at load so that a step never divides: `width / heads`.
     head_dim: usize,
     lorentz: bool,
+    /// The flat L2 read `-beta (|q - k| - offset)`: scaled like Lorentz, but
+    /// with no lifts and no arcosh table.
+    l2: bool,
     /// The artifact records the icosian transport snap: the recurrence
     /// transports by the nearest root instead of the free unit quaternion.
     snapped: bool,
@@ -192,7 +196,7 @@ impl IntegerStackModel {
                     rates: codes(&name("decay_rate"), shape.lanes(), true)?,
                 }))
             } else {
-                let lorentz = shape.lorentz();
+                let scaled = shape.scaled();
                 Mixer::Read(Box::new(Read {
                     query: matrix(&name("query"), d, d)?,
                     key: matrix(&name("key"), d, d)?,
@@ -201,12 +205,12 @@ impl IntegerStackModel {
                     out: matrix(&name("out"), d, d)?,
                     null_bias: integers(&name("null_bias"), heads)?,
                     age: integers(&name("age"), context_ages)?,
-                    beta: if lorentz {
+                    beta: if scaled {
                         codes(&name("beta"), heads, true)?
                     } else {
                         Vec::new()
                     },
-                    offset: if lorentz {
+                    offset: if scaled {
                         integers(&name("offset"), heads)?
                     } else {
                         Vec::new()
@@ -266,6 +270,7 @@ impl IntegerStackModel {
         Ok(Self {
             head_dim: shape.head_dim(),
             lorentz: shape.lorentz(),
+            l2: shape.l2(),
             snapped: artifact.transport_snap.is_some(),
             transport_snap: artifact.transport_snap.clone(),
             shape,
@@ -1372,7 +1377,7 @@ fn stack_read(
 ) {
     let (s, n) = (&model.shape, &model.numerics);
     let (d, heads, hd, context) = (s.width, s.heads, model.head_dim, s.context);
-    let lorentz = model.lorentz;
+    let (lorentz, l2) = (model.lorentz, model.l2);
     let Cache {
         keys,
         values,
@@ -1398,20 +1403,30 @@ fn stack_read(
     let (mut head_at, mut age_at) = (0usize, 0usize);
     for h in 0..heads {
         let query = &b.q[head_at..head_at + hd];
-        stack_query_tables(query, &mut b.query_tables);
+        // The L2 read needs no inner product, so no query tables.
+        if !l2 {
+            stack_query_tables(query, &mut b.query_tables);
+        }
         let query_lift = if lorentz { stack_lift(query) } else { 0 };
         let null_score = i64::from(b.null[h]) + i64::from(r.null_bias[h]);
         let ages = &r.age[age_at..age_at + context];
         let mut max = null_score;
         let (mut key_at, mut lift_index) = (head_at, h);
         for (j, score_slot) in b.scores[..positions].iter_mut().enumerate() {
-            let dot = stack_dot(&b.query_tables, &keys[key_at..key_at + hd]);
-            let score = if lorentz {
+            let key = &keys[key_at..key_at + hd];
+            let score = if l2 {
+                // At most 2^44, so the difference and the grid product fit.
+                let distance = stack_l2_distance(query, key) as i64;
+                let scaled = grid_apply(distance - i64::from(r.offset[h]), r.beta[h]);
+                shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
+            } else if lorentz {
+                let dot = stack_dot(&b.query_tables, key);
                 let distance =
                     stack_lorentz_distance(query_lift, lifts[lift_index], dot, &model.arcosh);
                 let scaled = grid_apply(i64::from(distance) - i64::from(r.offset[h]), r.beta[h]);
                 shift(scaled.wrapping_neg(), SCORE_EXP - DISTANCE_EXP)
             } else {
+                let dot = stack_dot(&b.query_tables, key);
                 // Exponent -32 times Q30 is exponent -62.
                 shift_wide(
                     mul_i128(dot, i128::from(n.score_scale_q30)),

@@ -12,9 +12,9 @@
 //!   drive. The output is `h_t gelu(g_t)`;
 //! - **read** (`a`): multi-head attention over the positions so far, scored by
 //!   `<q, k> / sqrt(d)` (Dot) or `-beta (d(q, k) - offset)` (Lorentz: the
-//!   hyperboloid distance of the lifted points `(sqrt(1 + |x|^2), x)`), plus a
-//!   learned age bias per head and distance, with a NoRead slot whose value is
-//!   zero.
+//!   hyperboloid distance of the lifted points `(sqrt(1 + |x|^2), x)`; L2,
+//!   its flat control: the Euclidean distance `|q - k|`), plus a learned age
+//!   bias per head and distance, with a NoRead slot whose value is zero.
 //!
 //! Arithmetic follows the Llama engine ([`crate::engine`]). Learned weight maps
 //! are 4-bit table GEMVs. Learned scalars (convolution taps, decay rates,
@@ -40,7 +40,8 @@ use crate::{format_error, invalid, Result, RESIDUAL_EXP};
 const STATE_EXP: i32 = -32;
 /// Exponent of read scores, in nats.
 const SCORE_EXP: i32 = -16;
-/// Exponent of Lorentz distances and offsets (the arcosh table's output).
+/// Exponent of Lorentz and L2 distances and offsets (the arcosh table's output
+/// for Lorentz).
 const DISTANCE_EXP: i32 = -24;
 /// Exponent of decay gates, decays and transition quaternions (Q31).
 const GATE_EXP: i32 = -31;
@@ -53,6 +54,9 @@ const KEEP_FLOOR_Q31: u64 = 2_147_484;
 const ROTATION_EPSILON: u128 = 4_295;
 /// Training's floor on the Lorentz excess `z - 1`, `1e-7`, as an arcosh code.
 const MIN_EXCESS_CODE: u128 = 429;
+/// Training's floor on the L2 squared distance `|q - k|^2`, `1e-7`, at
+/// exponent -32 (`floor(1e-7 2^32)`, the same code as the Lorentz floor).
+const MIN_SQUARED_CODE: u128 = 429;
 
 /// Round-half-up shift of an `i128` (right for positive `shift`), saturated to `i64`.
 fn shift_wide(value: i128, shift: u32) -> i64 {
@@ -95,6 +99,22 @@ fn lorentz_distance(query_lift: u64, key_lift: u64, dot: i128, arcosh: &[u32]) -
     arcosh1p_q24(code, arcosh)
 }
 
+/// L2 distance `sqrt(max(|q - k|^2, 1e-7))` at exponent -24 between points
+/// at exponent -16: the exact squared distance at exponent -32, floored as in
+/// training, then the floor square root of it shifted to exponent -48. At
+/// most `2^44` (head width at most 256, coordinates in the `i32` range).
+fn l2_distance(query: &[i32], key: &[i32]) -> u64 {
+    let squared: u128 = query
+        .iter()
+        .zip(key)
+        .map(|(q, k)| {
+            let v = i128::from(i64::from(*q) - i64::from(*k));
+            (v * v) as u128
+        })
+        .sum();
+    isqrt(squared.max(MIN_SQUARED_CODE) << 16) as u64
+}
+
 struct Recurrence {
     /// `2 width x width`: the drive, then the output gate.
     input: Packed,
@@ -118,7 +138,7 @@ struct Read {
     null_bias: Vec<i32>,
     /// `[head][distance]` at the score exponent.
     age: Vec<i32>,
-    /// Lorentz scale per head (grid codes) and offset (exponent -24).
+    /// Lorentz or L2 scale per head (grid codes) and offset (exponent -24).
     beta: Vec<i16>,
     offset: Vec<i32>,
 }
@@ -231,7 +251,7 @@ impl StackModel {
                     rates: codes(&name("decay_rate"), shape.lanes(), true)?,
                 }))
             } else {
-                let lorentz = shape.lorentz();
+                let scaled = shape.scaled();
                 Mixer::Read(Box::new(Read {
                     query: packed(&name("query"), d, d)?,
                     key: packed(&name("key"), d, d)?,
@@ -240,12 +260,12 @@ impl StackModel {
                     out: packed(&name("out"), d, d)?,
                     null_bias: integers(&name("null_bias"), heads)?,
                     age: integers(&name("age"), heads * shape.context)?,
-                    beta: if lorentz {
+                    beta: if scaled {
                         codes(&name("beta"), heads, true)?
                     } else {
                         Vec::new()
                     },
-                    offset: if lorentz {
+                    offset: if scaled {
                         integers(&name("offset"), heads)?
                     } else {
                         Vec::new()
@@ -760,7 +780,7 @@ fn read(
 ) -> Result<()> {
     let (s, n) = (&model.shape, &model.numerics);
     let (d, heads, hd) = (s.width, s.heads, s.head_dim());
-    let lorentz = s.lorentz();
+    let (lorentz, l2) = (s.lorentz(), s.l2());
     for (matrix, out) in [
         (&r.query, &mut b.q),
         (&r.key, &mut b.k),
@@ -797,30 +817,37 @@ fn read(
         let narrow = fits_i64(hd as u64, max_abs(query), bounds.key);
         for j in 0..=position {
             let key = &keys[j * d + h * hd..j * d + (h + 1) * hd];
-            let dot: i128 = if narrow {
-                i128::from(
+            let dot = || -> i128 {
+                if narrow {
+                    i128::from(
+                        query
+                            .iter()
+                            .zip(key)
+                            .map(|(a, b)| i64::from(*a) * i64::from(*b))
+                            .sum::<i64>(),
+                    )
+                } else {
                     query
                         .iter()
                         .zip(key)
-                        .map(|(a, b)| i64::from(*a) * i64::from(*b))
-                        .sum::<i64>(),
-                )
-            } else {
-                query
-                    .iter()
-                    .zip(key)
-                    .map(|(a, b)| i128::from(*a) * i128::from(*b))
-                    .sum()
+                        .map(|(a, b)| i128::from(*a) * i128::from(*b))
+                        .sum()
+                }
             };
-            let score = if lorentz {
+            let score = if l2 {
+                // At most 2^44, so the difference and the grid product fit.
+                let distance = l2_distance(query, key) as i64;
+                let scaled = grid_apply(distance - i64::from(r.offset[h]), r.beta[h]);
+                shift(-scaled, SCORE_EXP - DISTANCE_EXP)
+            } else if lorentz {
                 let distance =
-                    lorentz_distance(query_lift, lifts[j * heads + h], dot, &model.arcosh);
+                    lorentz_distance(query_lift, lifts[j * heads + h], dot(), &model.arcosh);
                 let scaled = grid_apply(i64::from(distance) - i64::from(r.offset[h]), r.beta[h]);
                 shift(-scaled, SCORE_EXP - DISTANCE_EXP)
             } else {
                 // Exponent -32 times Q30 is exponent -62.
                 shift_wide(
-                    dot * i128::from(n.score_scale_q30),
+                    dot() * i128::from(n.score_scale_q30),
                     (SCORE_EXP - (2 * RESIDUAL_EXP - 30)) as u32,
                 )
             };
@@ -1029,5 +1056,68 @@ mod tests {
             }
         }
         assert!(worst < 2e-6, "worst absolute distance error {worst}");
+    }
+
+    /// The integer L2 distance against `sqrt(max(|q - k|^2, 1e-7))` in f64 on
+    /// the same coded points, from near-coincident to far-apart pairs, the
+    /// floor, and coordinates at the `i32` limits.
+    #[test]
+    fn l2_distances_match_f64() {
+        let mut seed = 13u64;
+        let mut uniform = || {
+            seed = seed
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            ((seed >> 11) as f64) / ((1u64 << 53) as f64) - 0.5
+        };
+        let want = |qc: &[i32], kc: &[i32]| -> f64 {
+            let squared: f64 = qc
+                .iter()
+                .zip(kc)
+                .map(|(a, b)| {
+                    let v = (f64::from(*a) - f64::from(*b)) / 65536.0;
+                    v * v
+                })
+                .sum();
+            squared.max(1e-7).sqrt()
+        };
+        let got = |qc: &[i32], kc: &[i32]| l2_distance(qc, kc) as f64 * 2f64.powi(-24);
+        let mut worst = 0f64;
+        for scale in [1e-4, 0.05, 0.5, 3.0, 1000.0] {
+            for _ in 0..200 {
+                let q: Vec<f64> = (0..48).map(|_| uniform() * scale).collect();
+                let k: Vec<f64> = q.iter().map(|v| v + uniform() * scale * 0.3).collect();
+                let code = |v: &[f64]| -> Vec<i32> {
+                    v.iter().map(|x| (x * 65536.0).round() as i32).collect()
+                };
+                let (qc, kc) = (code(&q), code(&k));
+                let (w, g) = (want(&qc, &kc), got(&qc, &kc));
+                let below = w - g;
+                // Above the floor the floor square root loses less than one
+                // unit of 2^-24. On it, the integer floor code 429 2^-32 is
+                // 1e-7 rounded down, about 1.2e-10 lower: 1.9e-7 in distance.
+                let allowed = if w > 1e-7f64.sqrt() {
+                    2f64.powi(-24)
+                } else {
+                    2.5e-7
+                };
+                assert!((-1e-12..allowed + 1e-12).contains(&below), "{g} vs {w}");
+                if w > 0.1 {
+                    worst = worst.max(below / w);
+                }
+            }
+        }
+        assert!(worst < 1e-6, "worst relative distance error {worst}");
+        // Coincident points sit on the floor: sqrt(429 2^-32) at exponent -24.
+        let floor = l2_distance(&[7, -3], &[7, -3]);
+        assert_eq!(floor, isqrt(429u128 << 16) as u64);
+        assert!((floor as f64 * 2f64.powi(-24) - 1e-7f64.sqrt()).abs() < 1e-6);
+        // Opposite i32 limits over a 256-wide head: |q - k|^2 = 256 (2^32 - 1)^2.
+        let (q, k) = (vec![i32::MAX; 256], vec![i32::MIN; 256]);
+        let exact = isqrt((256 * u128::from(u32::MAX) * u128::from(u32::MAX)) << 16) as u64;
+        assert_eq!(l2_distance(&q, &k), exact);
+        assert!(exact < 1 << 44);
+        let relative = (got(&q, &k) - want(&q, &k)).abs() / want(&q, &k);
+        assert!(relative < 1e-9, "{relative}");
     }
 }

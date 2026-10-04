@@ -284,7 +284,7 @@ fn export_stack_candidate(
         read: match c.read {
             ReadScore::Dot => "dot",
             ReadScore::Lorentz => "lorentz",
-            ReadScore::L2 => return Err("the L2 read control has no integer export".into()),
+            ReadScore::L2 => "l2",
         }
         .to_owned(),
         rotation: c.rotation,
@@ -426,7 +426,7 @@ fn export_stack_candidate(
                 -16,
             )?;
             integers(&mut builder, &name("age"), &tensor("read.age")?, -16)?;
-            if c.read == ReadScore::Lorentz {
+            if c.read.scaled() {
                 let beta: Vec<f64> = tensor("read.log_beta")?
                     .iter()
                     .map(|&v| f64::from(v).exp())

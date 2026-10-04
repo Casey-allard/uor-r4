@@ -54,7 +54,8 @@ pub struct StackShape {
     pub mlp: usize,
     /// One letter per layer: `r` quaternion transport recurrence, `a` read.
     pub pattern: String,
-    /// Read score: `dot` or `lorentz`.
+    /// Read score: `dot`, `lorentz` or `l2` (the flat Euclidean control of
+    /// `lorentz`, with the same learned per-head scale and offset).
     pub read: String,
     /// Learned rotations in the recurrence; `false` is identity transport.
     pub rotation: bool,
@@ -74,8 +75,8 @@ impl StackShape {
             Some("the layer pattern is empty or longer than 256 layers")
         } else if self.pattern.bytes().any(|c| c != b'r' && c != b'a') {
             Some("the layer pattern holds a letter other than r and a")
-        } else if self.read != "dot" && self.read != "lorentz" {
-            Some("the read score is neither dot nor lorentz")
+        } else if !matches!(self.read.as_str(), "dot" | "lorentz" | "l2") {
+            Some("the read score is not dot, lorentz or l2")
         } else if !self.width.is_multiple_of(4)
             || !self.width.is_multiple_of(GROUP)
             || !self.width.is_multiple_of(self.heads)
@@ -111,7 +112,8 @@ impl StackShape {
 
     /// Bytes of the caches a session allocates for its whole context over all
     /// read layers: an `i32` key and value row of the width per position, and
-    /// for the Lorentz read a `u64` lift per head. `None` on overflow.
+    /// for the Lorentz read a `u64` lift per head (the L2 read, like Dot, has
+    /// no lifts). `None` on overflow.
     pub fn read_cache_bytes(&self) -> Option<u64> {
         let reads = self.pattern.bytes().filter(|&c| c == b'a').count() as u64;
         let lifts = if self.lorentz() { self.heads as u64 } else { 0 };
@@ -140,6 +142,17 @@ impl StackShape {
 
     pub fn lorentz(&self) -> bool {
         self.read == "lorentz"
+    }
+
+    /// The flat L2 read: `-beta (|q - k| - offset)`.
+    pub fn l2(&self) -> bool {
+        self.read == "l2"
+    }
+
+    /// Whether the read carries a learned per-head scale `beta` and offset
+    /// (Lorentz and L2). Only Lorentz needs the arcosh table and key lifts.
+    pub fn scaled(&self) -> bool {
+        self.lorentz() || self.l2()
     }
 }
 

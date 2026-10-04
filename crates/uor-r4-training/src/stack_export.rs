@@ -12,9 +12,9 @@
 //! (quantization-aware training) exports only as that representation
 //! ([`check_export_representation`]). Each learned
 //! scalar that multiplies a runtime value (convolution taps, decay rates,
-//! Lorentz scales) becomes a grid code `±(16 + m) 2^(e - 4)`. Biases, age
-//! tables and Lorentz offsets become integers, and the exp, SiLU, GELU and
-//! arcosh tables are sealed. The transformer control has the shape of a Llama
+//! Lorentz and L2 scales) becomes a grid code `±(16 + m) 2^(e - 4)`. Biases,
+//! age tables and Lorentz and L2 offsets become integers, and the exp, SiLU,
+//! GELU and (for Lorentz) arcosh tables are sealed. The transformer control has the shape of a Llama
 //! checkpoint, so [`control_checkpoint`] renames its tensors for
 //! [`crate::lut_export::export_llama`].
 //!
@@ -267,11 +267,6 @@ pub fn check_export_config(config: &StackConfig) -> Result<()> {
             select.window, select.k
         )));
     }
-    if config.read == ReadScore::L2 {
-        return Err(invalid(
-            "the L2 read is a float ablation control with no integer export or engine",
-        ));
-    }
     if config.rotation_group != RotationGroup::Quaternion {
         return Err(invalid(
             "the U(1) transport is a float ablation control with no integer export or engine",
@@ -375,8 +370,7 @@ pub fn export_stack(
         read: match c.read {
             ReadScore::Dot => "dot",
             ReadScore::Lorentz => "lorentz",
-            // check_export_config refuses the L2 control first.
-            ReadScore::L2 => return Err(invalid("the L2 read control has no integer export")),
+            ReadScore::L2 => "l2",
         }
         .to_owned(),
         rotation: c.rotation,
@@ -629,7 +623,7 @@ pub fn export_stack(
                 -16,
             )?;
             integers(&mut builder, &name("age"), &tensor("read.age")?, -16)?;
-            if c.read == ReadScore::Lorentz {
+            if c.read.scaled() {
                 let beta: Vec<f64> = tensor("read.log_beta")?
                     .iter()
                     .map(|&v| f64::from(v).exp())
@@ -988,7 +982,7 @@ pub fn stack_grid_reference(
                 ints(&a("null_bias"), -16)?,
             )?;
             set(&reference, &t("read.age"), ints(&a("age"), -16)?)?;
-            if c.read == ReadScore::Lorentz {
+            if c.read.scaled() {
                 let beta = codes(&a("beta"))?.iter().map(|&v| v.ln() as f32).collect();
                 set(&reference, &t("read.log_beta"), beta)?;
                 set(&reference, &t("read.offset"), ints(&a("offset"), -24)?)?;
@@ -1183,6 +1177,9 @@ mod tests {
             ("rarr", ReadScore::Dot, true),
             ("ra", ReadScore::Lorentz, false),
             ("aa", ReadScore::Dot, false),
+            ("rarr", ReadScore::L2, true),
+            ("ra", ReadScore::L2, false),
+            ("aa", ReadScore::L2, false),
         ] {
             let (worst, nll_gap, spread) = parity(pattern, read, rotation);
             assert!(spread > 5.0, "the test logits are too flat: {spread}");
@@ -1193,6 +1190,36 @@ mod tests {
             // Weight rounding moves the model, but not wildly.
             assert!(nll_gap < 2.0, "{pattern} {read:?}: float gap {nll_gap}");
         }
+    }
+
+    /// The L2 read exports as `l2` with its per-head beta (grid codes of
+    /// `exp(log_beta)`) and offset (exponent -24), and without the arcosh
+    /// table, which only the Lorentz read uses.
+    #[test]
+    fn an_l2_read_exports_its_scale_and_offset_without_the_arcosh_table() {
+        let model = small("ra", ReadScore::L2, true);
+        perturb(&model, 9);
+        let (bytes, _) = export_stack(&model, json!({}), None, None).expect("L2 export");
+        let artifact = StackArtifact::parse(bytes).expect("artifact");
+        assert_eq!(artifact.header.shape.read, "l2");
+        assert!(artifact.header.shape.scaled() && !artifact.header.shape.lorentz());
+        let heads = model.config.heads;
+        let log_beta = values(&model, "layers.01.read.log_beta").expect("log_beta");
+        let beta = artifact.table_i16("l1.beta").expect("beta");
+        assert_eq!(beta.len(), heads);
+        for (&code, &log) in beta.iter().zip(&log_beta) {
+            let want = f64::from(log).exp();
+            assert!(((grid_value(code) - want) / want).abs() <= 1.0 / 32.0 + 1e-9);
+        }
+        let offset = values(&model, "layers.01.read.offset").expect("offset");
+        let exported = artifact.table_i32("l1.offset").expect("offset table");
+        for (&code, &value) in exported.iter().zip(&offset) {
+            assert!((f64::from(code) * 2f64.powi(-24) - f64::from(value)).abs() <= 2f64.powi(-24));
+        }
+        assert!(artifact.table_u32("arcosh").is_err());
+        let mut u1 = model.config.clone();
+        u1.rotation_group = RotationGroup::U1;
+        assert!(check_export_config(&u1).is_err());
     }
 
     #[test]
