@@ -1,7 +1,7 @@
 //! Native selected-source Copy/Period/Stop realizer on exposed development cases.
 //! Parent checkpoint is loaded for identity only; no parent scoring or responses.
 //! This is a selected-record component, not a complete language-model qualification.
-use candle_core::{Device, Tensor};
+use candle_core::{Device, Tensor, Var};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -33,6 +33,8 @@ use uor_r4_training::{
     Result, TrainingError,
 };
 const UPDATES: usize = 64;
+const RADIAL_UPDATES: usize = 64;
+const RADIAL_PARAMETER: &str = "consumer.potential.context_radius";
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Args {
@@ -63,6 +65,8 @@ struct Args {
     transfer_admission: Option<PathBuf>,
     #[serde(default)]
     query_diagnostic_admission: Option<PathBuf>,
+    #[serde(default)]
+    radial_admission: Option<PathBuf>,
 }
 #[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -177,6 +181,7 @@ fn admission(a: &Args) -> Result<Option<Admission>> {
         "readout-geometry-coadapt"
             | "readout-geometry-transfer"
             | "readout-geometry-query-diagnostic"
+            | "readout-geometry-radial-learn"
     ) {
         return Ok(None);
     }
@@ -474,7 +479,7 @@ fn batch(
                     }
                 }
             }
-            trace_rows.push(if matches!(a.mode.as_str(), "composition-fit" | "context-fit" | "context-direction" | "readout-geometry-coadapt") {
+            trace_rows.push(if matches!(a.mode.as_str(), "composition-fit" | "context-fit" | "context-direction" | "readout-geometry-coadapt" | "readout-geometry-radial-learn") {
                 json!({"step":step,"target_label_only":target,"teacherforced_prefix_ids":&e.target[..step],"nll":loss,"native_target_probability":probability,"native_loss_equal":true,"actions":out.trace.actions})
             } else { json!({"step":step,"target_label_only":target,"teacherforced_prefix_ids":&e.target[..step],"nll":loss,"native_target_probability":probability,"native_loss_equal":true,"trace":out.trace}) });
         }
@@ -556,7 +561,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells" | "readout-geometry-coadapt" | "readout-geometry-transfer")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells" | "readout-geometry-coadapt" | "readout-geometry-transfer" | "readout-geometry-radial-learn")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -589,6 +594,7 @@ fn generate(
                 | "context-later-query-cells"
                 | "readout-geometry-coadapt"
                 | "readout-geometry-transfer"
+                | "readout-geometry-radial-learn"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -611,6 +617,7 @@ fn generate(
                         | "context-later-query-cells"
                         | "readout-geometry-coadapt"
                         | "readout-geometry-transfer"
+                        | "readout-geometry-radial-learn"
                 ))
         {
             if let Some(row) = rows.last_mut() {
@@ -627,6 +634,7 @@ fn generate(
                     | "context-later-query-cells"
                     | "readout-geometry-coadapt"
                     | "readout-geometry-transfer"
+                    | "readout-geometry-radial-learn"
             ) {
                 json!({"completed_cases":rows.len(),"complete_answers":complete,"eos_count":eos_count,"raw_rows_retained_in_enclosing_attempt":true,"elapsed_seconds":begun.elapsed().as_secs_f64()})
             } else {
@@ -888,6 +896,7 @@ fn main() -> Result<()> {
             | "readout-geometry-coadapt"
             | "readout-geometry-transfer"
             | "readout-geometry-query-diagnostic"
+            | "readout-geometry-radial-learn"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -1010,7 +1019,9 @@ fn main() -> Result<()> {
     }
     if matches!(
         a.mode.as_str(),
-        "readout-geometry-transfer" | "readout-geometry-query-diagnostic"
+        "readout-geometry-transfer"
+            | "readout-geometry-query-diagnostic"
+            | "readout-geometry-radial-learn"
     ) != a.transfer_admission.is_some()
     {
         return Err(invalid(
@@ -1019,8 +1030,11 @@ fn main() -> Result<()> {
     }
     if matches!(
         a.mode.as_str(),
-        "readout-geometry-transfer" | "readout-geometry-query-diagnostic"
-    ) && (a.maximum_seconds > 900 || a.fit_admission.is_some())
+        "readout-geometry-transfer"
+            | "readout-geometry-query-diagnostic"
+            | "readout-geometry-radial-learn"
+    ) && ((a.mode != "readout-geometry-radial-learn" && a.maximum_seconds > 900)
+        || a.fit_admission.is_some())
     {
         return Err(invalid(
             "zero-update geometry transfer maximum900 and no optimizer admission",
@@ -1031,6 +1045,13 @@ fn main() -> Result<()> {
     {
         return Err(invalid(
             "query diagnostic requires sole query_diagnostic_admission and maximum300",
+        ));
+    }
+    if (a.mode == "readout-geometry-radial-learn") != a.radial_admission.is_some()
+        || (a.mode == "readout-geometry-radial-learn" && a.maximum_seconds > 8800)
+    {
+        return Err(invalid(
+            "radial learner requires separate admission and maximum8800",
         ));
     }
     let admitted = admission(&a)?;
@@ -1057,16 +1078,23 @@ fn main() -> Result<()> {
     }
     if matches!(
         a.mode.as_str(),
-        "readout-geometry-transfer" | "readout-geometry-query-diagnostic"
+        "readout-geometry-transfer"
+            | "readout-geometry-query-diagnostic"
+            | "readout-geometry-radial-learn"
     ) {
         frozen_transfer_output_location(&a)?;
+        if a.mode == "readout-geometry-radial-learn" {
+            radial_output_location(&a)?;
+        }
         if a.mode == "readout-geometry-query-diagnostic" {
             query_diagnostic_output_location(&a)?;
         }
     }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = if a.mode == "readout-geometry-query-diagnostic" {
+    let result = if a.mode == "readout-geometry-radial-learn" {
+        geometry_radial_learn(&a)
+    } else if a.mode == "readout-geometry-query-diagnostic" {
         frozen_geometry_query_diagnostic(&a)
     } else if a.mode == "readout-geometry-transfer" {
         frozen_geometry_transfer(&a)
@@ -1904,7 +1932,9 @@ struct GeometryReadoutAdmission {
     starting_role: String,
 }
 fn readout_batch_admitted(mode: &str, indices: &[usize], episodes: usize) -> bool {
-    if mode == "readout-geometry-coadapt" {
+    if mode == "readout-geometry-radial-learn" {
+        episodes == 64 && indices == (0..64).collect::<Vec<_>>()
+    } else if mode == "readout-geometry-coadapt" {
         episodes == 28 && indices == (0..28).collect::<Vec<_>>()
     } else {
         indices.len() == 8
@@ -2406,6 +2436,1063 @@ fn geometry_readout_coadapt(a: &Args) -> Result<()> {
     write(
         &a.out.join("report.json"),
         &json!({"schema":"uor-r4.geometric-frozen-context-readout/1","mode":a.mode,"status":if work.is_ok(){"completed"}else{"stopped_or_error"},"source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"starting_parent_binding":binding,"saved_identity":identity,"optimizer":optimizer_identity(),"optimizer_moments":"fresh AdamW","optimizer_updates":updates,"declared_updates":UPDATES,"objective":"static mean28episodes(mean token+EOS marginal CE); every28 episodes each update; existing ordinary alias-aware loss","training_case_visits":training.iter().map(|e|json!({"id":e.id,"visits":updates})).collect::<Vec<_>>(),"updated_families":["consumer.potential.*","consumer.no_read.*","period.*"],"frozen_families":["consumer.context.*"],"measured_admission":measured_admission,"checkpoints":checkpoints,"batch_receipts":batch_receipts,"selected_checkpoint_index":selected,"selection":"lowest finite native all28 equal-episode CE including unchanged checkpoint0; strict decrease, earlier checkpoint ties; no completion or transformer veto","context_source_bits_unchanged":context_shadow(&weights)?==frozen,"input_files_sha256":inputs,"input_files_unchanged":true,"initial_actual28_replay_equal":true,"no_adopted_model":true,"geometry_role":"retained new research parent; no prior winner rewrite","scope":"28 exposed development episodes on frozen newly learned geometry; no heldout/general-chat/geometry-advantage/energy qualification","work_error":work.as_ref().err().map(|e|e.to_string()),"wall_seconds":start.elapsed().as_secs_f64()}),
+    )?;
+    work
+}
+
+// Offline radial sharing is compiled into the existing 32-by-32 coefficient
+// grid. The served operator and its packed shape are unchanged.
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RadialAdmission {
+    source_commit: String,
+    diagnostic_root: PathBuf,
+    diagnostic_manifest_sha256: String,
+    diagnostic_report_sha256: String,
+    diagnostic_source_commit: String,
+    panel_spec: PathBuf,
+    panel_spec_sha256: String,
+    updates: usize,
+    maximum_arm_seconds: u64,
+    optimizer: OptimizerIdentity,
+    starting_role: String,
+}
+fn radial_admission(a: &Args) -> Result<RadialAdmission> {
+    let admission: RadialAdmission = serde_json::from_slice(&fs::read(
+        a.radial_admission
+            .as_ref()
+            .ok_or_else(|| invalid("radial admission missing"))?,
+    )?)?;
+    if admission.source_commit != source_commit()?
+        || admission.updates != RADIAL_UPDATES
+        || admission.optimizer != optimizer_identity()
+        || admission.maximum_arm_seconds != 4200
+        || admission.starting_role != "selected0064-zero-context-radius-unadopted"
+        || admission.panel_spec_sha256
+            != "300fd1e00de8e6eee1f88bf4020f2969491bbd259785056bd20cb602d1110184"
+        || sha256_file(&admission.panel_spec)? != admission.panel_spec_sha256
+    {
+        return Err(invalid(
+            "radial source/panel/optimizer/budget admission differs",
+        ));
+    }
+    Ok(admission)
+}
+fn radial_output_location(a: &Args) -> Result<()> {
+    let admission = radial_admission(a)?;
+    let parent = a
+        .out
+        .parent()
+        .filter(|p| !p.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    let output = fs::canonicalize(parent)?.join(
+        a.out
+            .file_name()
+            .ok_or_else(|| invalid("radial output leaf absent"))?,
+    );
+    if output.starts_with(fs::canonicalize(&admission.diagnostic_root)?)
+        || output == fs::canonicalize(&admission.panel_spec)?
+    {
+        return Err(invalid("radial output aliases a frozen input"));
+    }
+    Ok(())
+}
+fn radial_spec_valid(spec: &Value) -> bool {
+    spec["schema"] == "uor-r4.geometric-radial-curriculum/1"
+        && spec["predictions"] == "NOT_RUN"
+        && spec["original28_preserved"] == true
+        && spec["context_tokens"] == 128
+        && spec["response_tokens"] == 64
+        && spec["training_added"]
+            .as_array()
+            .is_some_and(|v| v.len() == 36)
+        && spec["holdout"].as_array().is_some_and(|v| v.len() == 32)
+}
+fn radial_compile_panel(
+    rows: &[Value],
+    template: &Episode,
+    training28: &[Episode],
+    excluded: &BTreeSet<String>,
+    tok: &ByteBpeTokenizer,
+    compiler: &SourceEmissionCompiler,
+    eos: u32,
+) -> Result<(Vec<Episode>, Vec<Value>)> {
+    let (source_ids, context_ids) = transfer_training_id_sets(training28, eos);
+    let mut literals = BTreeSet::new();
+    let mut names = BTreeSet::new();
+    let mut episodes = Vec::new();
+    let mut labels = Vec::new();
+    let mut query_counts = BTreeMap::<String, usize>::new();
+    for row in rows {
+        let id = row["id"]
+            .as_str()
+            .ok_or_else(|| invalid("radial case id missing"))?;
+        let literal = row["literal"]
+            .as_str()
+            .ok_or_else(|| invalid("radial literal missing"))?;
+        let query = row["query"]
+            .as_str()
+            .ok_or_else(|| invalid("radial query missing"))?;
+        if !matches!(
+            query,
+            "Remind me what my job is." | "Tell me what my job is."
+        ) || !names.insert(id.to_owned())
+            || !literals.insert(literal.to_owned())
+            || excluded.contains(literal)
+        {
+            return Err(invalid(
+                "radial literal/query uniqueness or disjointness differs",
+            ));
+        }
+        *query_counts.entry(query.to_owned()).or_default() += 1;
+        let answers = uor_r4_core::answer_oracle::FrozenAnswers {
+            intent: uor_r4_core::answer_oracle::RecordedValueIntent::Current,
+            accepted: vec![format!("{literal}.")],
+        };
+        answers.validate().map_err(|e| invalid(e.to_string()))?;
+        let tokens = tok.encode(literal);
+        let view = compiler.compile(&tokens)?;
+        let query_ids = tok.encode(query);
+        let mut target = tok.encode(&format!(" {literal}."));
+        target.push(eos);
+        if tokens.is_empty()
+            || query_ids.is_empty()
+            || view.original_bytes() != literal.as_bytes()
+            || target.len() > 64
+            || tokens.len() + query_ids.len() + 64 > 128
+            || view.emitted_token_ids().len() + query_ids.len() + 64 > 128
+            || tokens
+                .iter()
+                .chain(&query_ids)
+                .chain(&target)
+                .any(|id| *id >= 4096)
+        {
+            return Err(invalid(
+                "radial actual BPE byte/vocabulary/window admission failed",
+            ));
+        }
+        let unseen_source = view
+            .emitted_token_ids()
+            .iter()
+            .filter(|id| !source_ids.contains(id))
+            .copied()
+            .collect::<BTreeSet<_>>();
+        let unseen_context = view
+            .emitted_token_ids()
+            .iter()
+            .filter(|id| !context_ids.contains(id))
+            .copied()
+            .collect::<BTreeSet<_>>();
+        if !unseen_source.is_empty() || !unseen_context.is_empty() {
+            return Err(invalid(
+                "prospective known source/context ID stratum has unfamiliar emitted IDs",
+            ));
+        }
+        let episode = Episode {
+            id: id.into(),
+            query: query_ids.clone(),
+            tokens,
+            record: template.record,
+            commit: template.commit,
+            relation: template.relation,
+            entity: template.entity.clone(),
+            target,
+            accepted: answers.accepted,
+            source_text: literal.into(),
+            view,
+        };
+        labels.push(json!({"spec":row,"compiled":episode_labels(std::slice::from_ref(&episode))[0],
+            "unseen_training28_emitted_source_ids":unseen_source,"unseen_training28_source_context_ids":unseen_context,
+            "unseen_training28_query_context_ids":query_ids.iter().filter(|id|!context_ids.contains(id)).collect::<Vec<_>>(),
+            "source_literal_disjoint_exposed_panels":true,"source_packet":transfer_source_packet(&episode,&[])}));
+        episodes.push(episode);
+    }
+    if query_counts.len() != 2 || query_counts.values().any(|n| *n != rows.len() / 2) {
+        return Err(invalid(
+            "added/holdout query templates must each be balanced",
+        ));
+    }
+    Ok((episodes, labels))
+}
+fn radial_saved_actions_equal(actual: &Value, saved: &Value) -> Result<()> {
+    let left = actual["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("radial replay rows absent"))?;
+    let right = saved["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("saved canonical rows absent"))?;
+    if left.len() != right.len() {
+        return Err(invalid("radial baseline row count differs"));
+    }
+    for (left, right) in left.iter().zip(right) {
+        let a = left["tokens"]
+            .as_array()
+            .ok_or_else(|| invalid("radial replay steps absent"))?;
+        let b = right["tokens"]
+            .as_array()
+            .ok_or_else(|| invalid("saved canonical steps absent"))?;
+        if left["id"] != right["id"]
+            || a.len() != b.len()
+            || a.iter().zip(b).any(|(a, b)| {
+                !a["actions"].is_object()
+                    || !b["actions"].is_object()
+                    || a["actions"] != b["actions"]
+                    || a["target_label_only"] != b["target_label_only"]
+                    || a["teacherforced_prefix_ids"] != b["teacherforced_prefix_ids"]
+            })
+        {
+            return Err(invalid("radial factual canonical action replay differs"));
+        }
+    }
+    Ok(())
+}
+fn radial_parameter(name: &str) -> bool {
+    matches!(
+        name,
+        "consumer.potential.context_unary"
+            | "consumer.potential.context_radius"
+            | "consumer.potential.context_presence"
+            | "consumer.potential.content_presence"
+    ) || name.starts_with("consumer.no_read.")
+        || name.starts_with("period.")
+}
+fn radial_source_bits_fixed(
+    before: &BTreeMap<String, Vec<u32>>,
+    after: &BTreeMap<String, Vec<u32>>,
+) -> bool {
+    !before.is_empty()
+        && before.keys().eq(after.keys())
+        && before
+            .iter()
+            .all(|(name, bits)| radial_parameter(name) || after.get(name) == Some(bits))
+}
+fn radial_difference_index(query: usize, key: usize) -> Result<usize> {
+    if query >= 32 || key >= 32 {
+        return Err(invalid("radial bin outside 0..32"));
+    }
+    Ok((query as isize - key as isize + 31) as usize)
+}
+fn radial_expand(values: &[f32], lanes: usize) -> Result<Vec<f32>> {
+    if values.len() != lanes * 63 || values.iter().any(|v| !v.is_finite()) {
+        return Err(invalid("tied radial parameter shape or value differs"));
+    }
+    let mut expanded = Vec::with_capacity(lanes * 1024);
+    for lane in 0..lanes {
+        for query in 0..32 {
+            for key in 0..32 {
+                expanded.push(values[lane * 63 + radial_difference_index(query, key)?]);
+            }
+        }
+    }
+    Ok(expanded)
+}
+fn radial_reduce(values: &[f32], lanes: usize) -> Result<Vec<f32>> {
+    if values.len() != lanes * 1024 || values.iter().any(|v| !v.is_finite()) {
+        return Err(invalid("expanded radial gradient shape or value differs"));
+    }
+    let mut reduced = vec![0f32; lanes * 63];
+    for lane in 0..lanes {
+        for query in 0..32 {
+            for key in 0..32 {
+                // Chain rule sums every use of one shared parameter. Averaging
+                // diagonals would define a different optimization objective.
+                reduced[lane * 63 + radial_difference_index(query, key)?] +=
+                    values[lane * 1024 + query * 32 + key];
+            }
+        }
+    }
+    if reduced.iter().any(|v| !v.is_finite()) {
+        return Err(invalid("tied radial gradient sum nonfinite"));
+    }
+    Ok(reduced)
+}
+struct RadialCoordinates {
+    expanded: Var,
+    tied: Option<Var>,
+    heads: usize,
+    lanes_per_head: usize,
+}
+impl RadialCoordinates {
+    fn zero(weights: &SourceRealizerWeights, shared: bool) -> Result<Self> {
+        let expanded = weights
+            .parameters()
+            .get(RADIAL_PARAMETER)
+            .cloned()
+            .ok_or_else(|| invalid("context-radius coefficient missing"))?;
+        let (heads, lanes_per_head, q, k) = expanded.dims4()?;
+        if q != 32 || k != 32 {
+            return Err(invalid("radial grid shape differs"));
+        }
+        expanded.set(&Tensor::zeros_like(expanded.as_tensor())?)?;
+        let tied = if shared {
+            Some(Var::zeros(
+                (heads, lanes_per_head, 63),
+                candle_core::DType::F32,
+                &Device::Cpu,
+            )?)
+        } else {
+            None
+        };
+        Ok(Self {
+            expanded,
+            tied,
+            heads,
+            lanes_per_head,
+        })
+    }
+    fn independent_parameters(&self, weights: &SourceRealizerWeights) -> BTreeMap<String, Var> {
+        let mut parameters = weights
+            .parameters()
+            .into_iter()
+            .filter(|(name, _)| radial_parameter(name))
+            .collect::<BTreeMap<_, _>>();
+        if let Some(tied) = &self.tied {
+            parameters.insert(RADIAL_PARAMETER.into(), tied.clone());
+        }
+        parameters
+    }
+    fn gradients(&self, gradients: BTreeMap<String, Tensor>) -> Result<BTreeMap<String, Tensor>> {
+        let mut gradients = readout_gradients(gradients)?
+            .into_iter()
+            .filter(|(name, _)| radial_parameter(name))
+            .collect::<BTreeMap<_, _>>();
+        if self.tied.is_some() {
+            let expanded = gradients
+                .remove(RADIAL_PARAMETER)
+                .ok_or_else(|| invalid("radial gradient missing from full sequence loss"))?;
+            let reduced = radial_reduce(
+                &expanded.flatten_all()?.to_vec1::<f32>()?,
+                self.heads * self.lanes_per_head,
+            )?;
+            gradients.insert(
+                RADIAL_PARAMETER.into(),
+                Tensor::from_vec(reduced, (self.heads, self.lanes_per_head, 63), &Device::Cpu)?,
+            );
+        }
+        Ok(gradients)
+    }
+    fn scatter(&self) -> Result<()> {
+        if let Some(tied) = &self.tied {
+            tied.set(&tied.clamp(-1.75f64, 1.75f64)?)?;
+            let values = radial_expand(
+                &tied.flatten_all()?.to_vec1::<f32>()?,
+                self.heads * self.lanes_per_head,
+            )?;
+            self.expanded.set(&Tensor::from_vec(
+                values,
+                (self.heads, self.lanes_per_head, 32, 32),
+                &Device::Cpu,
+            )?)?;
+        }
+        self.verify()
+    }
+    fn verify(&self) -> Result<()> {
+        if let Some(tied) = &self.tied {
+            let expected = radial_expand(
+                &tied.flatten_all()?.to_vec1::<f32>()?,
+                self.heads * self.lanes_per_head,
+            )?;
+            let actual = self.expanded.flatten_all()?.to_vec1::<f32>()?;
+            if actual
+                .iter()
+                .map(|v| v.to_bits())
+                .ne(expected.iter().map(|v| v.to_bits()))
+            {
+                return Err(invalid(
+                    "radial ratio ties changed before source/native export",
+                ));
+            }
+        }
+        Ok(())
+    }
+    fn quantum_audit(&self) -> Result<Value> {
+        let independent = self
+            .tied
+            .as_ref()
+            .unwrap_or(&self.expanded)
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let expanded = self.expanded.flatten_all()?.to_vec1::<f32>()?;
+        Ok(json!({"independent_coordinates":independent.len(),
+            "expanded_coordinates":expanded.len(),
+            "shadow_max_abs":independent.iter().map(|v|v.abs()).fold(0f32,f32::max),
+            "independent_packed_nonzero":independent.iter().filter(|v|(4.**v).round()!=0.).count(),
+            "expanded_packed_nonzero":expanded.iter().filter(|v|(4.**v).round()!=0.).count(),
+            "native_scalar_quantum_nats":0.25,"first_zero_crossing_shadow_abs":0.125,
+            "zero_native_result_scope":"no native radial learning; not a family capacity rejection"}))
+    }
+    fn apply(
+        &self,
+        weights: &SourceRealizerWeights,
+        optimizer: &mut AdamW,
+        gradients: BTreeMap<String, Tensor>,
+    ) -> Result<f64> {
+        let parameters = self.independent_parameters(weights);
+        let mut square = 0f64;
+        for gradient in gradients.values() {
+            for value in gradient.flatten_all()?.to_vec1::<f32>()? {
+                square += f64::from(value).powi(2);
+            }
+        }
+        let norm = square.sqrt();
+        if !norm.is_finite() {
+            return Err(invalid("radial learned-coordinate gradient norm nonfinite"));
+        }
+        let factor = if norm > 1. { 1. / norm } else { 1. };
+        let mut store = Tensor::new(0f32, &Device::Cpu)?.backward()?;
+        for (name, gradient) in gradients {
+            let variable = parameters
+                .get(&name)
+                .ok_or_else(|| invalid("radial optimizer parameter absent"))?;
+            store.insert(variable.as_tensor(), (&gradient * factor)?.detach());
+        }
+        optimizer.step(&store)?;
+        self.scatter()?;
+        weights.project_quarter_range()?;
+        self.verify()?;
+        Ok(factor)
+    }
+}
+
+fn radial_zero_probes(
+    native: &NativeSourceRealizer,
+    diagnostic: &Value,
+    episodes: &[Episode],
+    start: Instant,
+    a: &Args,
+) -> Result<Value> {
+    let rows = diagnostic["rows"]
+        .as_array()
+        .filter(|r| r.len() == 4)
+        .ok_or_else(|| invalid("four saved radial probes required"))?;
+    let mut receipts = Vec::new();
+    for row in rows {
+        deadline(start, a)?;
+        let episode = episodes
+            .iter()
+            .find(|e| row["id"] == e.id)
+            .ok_or_else(|| invalid("radial saved probe episode absent"))?;
+        if row["inference_inputs"] != transfer_source_packet(episode, &[]) {
+            return Err(invalid("radial saved probe input differs"));
+        }
+        let trace = native.read(episode.frame(), &episode.view, &episode.query, &[])?;
+        let actual = serde_json::to_value(&trace)?;
+        if actual["period_context"] != row["trace"]["period_context"]
+            || actual["period_q24"] != row["trace"]["period_q24"]
+        {
+            return Err(invalid(
+                "zero radial intervention changed context or Period",
+            ));
+        }
+        let occurrences = row["copy_contributions"]["occurrences"]
+            .as_array()
+            .ok_or_else(|| invalid("saved radial contributions absent"))?;
+        for (offset, occurrence) in occurrences.iter().enumerate() {
+            let heads = occurrence["heads"]
+                .as_array()
+                .ok_or_else(|| invalid("saved radial heads absent"))?;
+            let mut action_delta = 0i64;
+            for (head, head_row) in heads.iter().enumerate() {
+                let mut delta = 0i64;
+                for lane in head_row["lanes"]
+                    .as_array()
+                    .ok_or_else(|| invalid("saved radial lanes absent"))?
+                {
+                    for term in lane["terms"]
+                        .as_array()
+                        .ok_or_else(|| invalid("saved radial terms absent"))?
+                    {
+                        if term["family"] == "context_radius" {
+                            delta += term["value_q24"]
+                                .as_i64()
+                                .ok_or_else(|| invalid("radial contribution integer absent"))?;
+                        }
+                    }
+                }
+                let expected = head_row["native_score_q24"]
+                    .as_i64()
+                    .ok_or_else(|| invalid("saved radial Copy score absent"))?
+                    - delta;
+                if trace
+                    .source
+                    .view_kernel_trace
+                    .heads
+                    .get(head)
+                    .and_then(|h| h.scores_q24.get(offset))
+                    .copied()
+                    != Some(expected)
+                {
+                    return Err(invalid(
+                        "native zero radial Copy score differs from saved-score subtraction",
+                    ));
+                }
+                action_delta += delta;
+            }
+            let old = row["trace"]["actions"]["actions"][offset]["score_q24"]
+                .as_i64()
+                .ok_or_else(|| invalid("saved factual action score absent"))?;
+            if trace.actions.actions.get(offset).map(|v| v.score_q24) != Some(old - action_delta) {
+                return Err(invalid(
+                    "native zero radial joint score subtraction differs",
+                ));
+            }
+        }
+        let n = occurrences.len();
+        for offset in n..n + 2 {
+            if ["action", "action_offset", "score_q24", "token_id"]
+                .iter()
+                .any(|key| {
+                    actual["actions"]["actions"][offset][*key]
+                        != row["trace"]["actions"]["actions"][offset][*key]
+                })
+            {
+                return Err(invalid(
+                    "zero radial intervention changed controller action",
+                ));
+            }
+        }
+        receipts.push(
+            json!({"id":episode.id,"factual_trace":row["trace"],"zero_radial_trace":trace,
+            "copy_score_subtraction_exact":true,"context_and_controller_scores_unchanged":true}),
+        );
+    }
+    Ok(
+        json!({"native_reads":4,"saved_factual_reads":4,"rows":receipts,"scope":"radial-only numerical intervention, not an adopted serving ablation"}),
+    )
+}
+// Compact receipts name the bit representation explicitly; the sealed source
+// checkpoints retain the complete coefficients and RAM equality guards remain.
+fn radial_parameter_bit_receipts(
+    parameters: &BTreeMap<String, Var>,
+) -> Result<BTreeMap<String, Value>> {
+    parameter_bits(parameters)?
+        .into_iter()
+        .map(|(name, bits)| {
+            let bytes = bits
+                .iter()
+                .flat_map(|word| word.to_le_bytes())
+                .collect::<Vec<_>>();
+            Ok((
+                name,
+                json!({"bit_count":bits.len()*32,"elements":bits.len(),
+            "encoding":"f32 bits as little-endian u32 bytes/1",
+            "sha256":uor_r4_training::sha256_bytes(&bytes)}),
+            ))
+        })
+        .collect()
+}
+fn radial_evaluation_references(root: &Path, stages: &[Value]) -> Result<Vec<Value>> {
+    stages.iter().map(|stage| {
+        let step=stage["optimizer_updates"].as_u64().ok_or_else(||invalid("radial reference step absent"))?;
+        let name=format!("evaluation-{step:04}.json");
+        Ok(json!({"format":"sealed-evaluation-reference/1","optimizer_updates":step,
+            "evaluation_path":name,"evaluation_sha256":sha256_file(&root.join(&name))?,
+            "checkpoint_path":format!("checkpoint-{step:04}"),"checkpoint_manifest_sha256":stage["checkpoint_manifest_sha256"],
+            "all64_equal_episode_ce":stage["all64_equal_episode_ce"],"radial_quantum":stage["radial_quantum"],
+            "generation_summary":{"cases":stage["generation"]["cases"],"complete_answers":stage["generation"]["complete_answers"],"eos_count":stage["generation"]["eos_count"]},
+            "canonical_summary":{"target_steps":stage["canonical"]["target_steps"],"zero_target_mass_positions":stage["canonical"]["zero_target_mass_positions"],"mean_episode_ce":stage["canonical"]["mean_episode_ce"]},
+            "raw_evidence":"referenced evaluation retains checkpoint receipt, full canonical/action records, generation and every prior-stage comparison"}))
+    }).collect()
+}
+fn radial_peak_rss_kib() -> Option<u64> {
+    fs::read_to_string("/proc/self/status")
+        .ok()?
+        .lines()
+        .find_map(|line| {
+            line.strip_prefix("VmHWM:")?
+                .split_whitespace()
+                .next()?
+                .parse()
+                .ok()
+        })
+}
+fn radial_arm(
+    a: &Args,
+    admission: &RadialAdmission,
+    root: &Path,
+    shared: bool,
+    parent: &Path,
+    identity: &ConsumerIdentity,
+    bytes: &[u8],
+    training: &[Episode],
+    holdout: &[Episode],
+    tok: &ByteBpeTokenizer,
+    native_before: &BTreeMap<String, String>,
+    overall: Instant,
+    common_baseline: &Value,
+    common_native_inventory: &BTreeMap<String, String>,
+) -> Result<Value> {
+    let arm_start = Instant::now();
+    report_output::claim(root)?;
+    let weights = SourceRealizerWeights::load_source(&parent.join("realizer-source"), bytes)?;
+    let radial = RadialCoordinates::zero(&weights, shared)?;
+    let frozen = parameter_bits(&weights.parameters())?;
+    let mut optimizer = AdamW::new(
+        radial
+            .independent_parameters(&weights)
+            .into_values()
+            .collect(),
+        ParamsAdamW {
+            lr: 0.003,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1e-8,
+            weight_decay: 0.,
+        },
+    )?;
+    let indices = (0..64).collect::<Vec<_>>();
+    let mut checkpoints = Vec::<Value>::new();
+    let mut receipts = Vec::new();
+    let mut updates = 0usize;
+    let mut first_packed_update = None;
+    let mut measured_admission = None;
+    let mut export = |step: usize| -> Result<()> {
+        deadline(overall, a)?;
+        if arm_start.elapsed().as_secs_f64() > admission.maximum_arm_seconds as f64 {
+            return Err(invalid("radial arm wall limit reached"));
+        }
+        radial.verify()?;
+        if !radial_source_bits_fixed(&frozen, &parameter_bits(&weights.parameters())?) {
+            return Err(invalid(
+                "radial fit changed frozen/inactive source coefficients",
+            ));
+        }
+        let path = root.join(format!("checkpoint-{step:04}"));
+        let (receipt, native) = checkpoint(
+            &path,
+            &weights,
+            identity,
+            bytes,
+            training,
+            step,
+            "radial_readout_research_candidate_unadopted",
+        )?;
+        let bins = bin_files(&path.join("realizer-native"))?;
+        if step == 0 && source_files(&path.join("realizer-native"))? != *common_native_inventory {
+            return Err(invalid(
+                "zero radial arm complete native file inventory differs",
+            ));
+        }
+        if !readout_native_payloads_fixed(native_before, &bins) {
+            return Err(invalid("radial export changed frozen native payload"));
+        }
+        let canonical = context_direction_measure(&native, training, overall, a)?;
+        if step == 0 && canonical != *common_baseline {
+            return Err(invalid("two radial arm zero-stage native baseline differs"));
+        }
+        let generation = generate(
+            &format!(
+                "radial-{}-{step:04}",
+                if shared { "difference63" } else { "grid1024" }
+            ),
+            &native,
+            training,
+            tok,
+            overall,
+            a,
+        )?;
+        let comparisons = checkpoints
+            .iter()
+            .map(|previous| {
+                Ok(json!({"previous_updates":previous["optimizer_updates"],
+            "generation":generation_comparison(&previous["generation"],&generation)?,
+            "canonical":context_direction_comparison(&previous["canonical"],&canonical)?}))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let tying = json!({"schema":"uor-r4.radial-coordinate-tying/1","kind":if shared{"signed-log-radius-difference63"}else{"arbitrary-grid1024"},
+            "physical_radius":"2^(bin-16)","difference":"query_bin-key_bin","difference_min":-31,"difference_max":31,
+            "cyclic_wrap":false,"shared_per_global_lane":true,"packed_runtime_shape_unchanged":[radial.heads,radial.lanes_per_head,32,32],
+            "gradient_rule":if shared{"sum all expanded uses by signed difference"}else{"ordinary independent grid coordinates"},
+            "independent_radial_shadow_bits":radial.tied.as_ref().unwrap_or(&radial.expanded).flatten_all()?.to_vec1::<f32>()?.iter().map(|v|v.to_bits()).collect::<Vec<_>>()});
+        let evaluation = json!({"optimizer_updates":step,"checkpoint":receipt,"checkpoint_manifest_sha256":sha256_file(&path.join("manifest.json"))?,
+            "native_payload_sha256":bins,"tying":tying,"radial_quantum":radial.quantum_audit()?,
+            "all64_equal_episode_ce":canonical["mean_episode_ce"],"canonical":canonical,"generation":generation,
+            "comparisons_against_each_prior_export":comparisons,"frozen_context_geometry_and_inactive_source_bits_unchanged":true});
+        write(
+            &root.join(format!("evaluation-{step:04}.json")),
+            &evaluation,
+        )?;
+        checkpoints.push(evaluation);
+        Ok(())
+    };
+    let mut work = (|| -> Result<()> {
+        export(0)?;
+        let baseline_seconds = arm_start.elapsed().as_secs_f64();
+        for step in 0..RADIAL_UPDATES {
+            deadline(overall, a)?;
+            if arm_start.elapsed().as_secs_f64() > admission.maximum_arm_seconds as f64 {
+                return Err(invalid("radial arm wall limit reached"));
+            }
+            let current = weights.compile(identity.clone())?;
+            let measured = batch(&indices, training, &weights, &current, overall, a)?;
+            let gradients = radial.gradients(measured.gradients)?;
+            if step == 0 {
+                let seconds = measured.report["elapsed_seconds"]
+                    .as_f64()
+                    .filter(|v| v.is_finite() && *v > 0.)
+                    .ok_or_else(|| invalid("radial first full64 timing absent"))?;
+                let gradient_valid = ["consumer.potential", "consumer.no_read", "period"]
+                    .iter()
+                    .all(|family| {
+                        gradients
+                            .iter()
+                            .filter(|(name, _)| name.starts_with(family))
+                            .any(|(_, g)| {
+                                g.flatten_all()
+                                    .and_then(|g| g.to_vec1::<f32>())
+                                    .is_ok_and(|v| {
+                                        v.iter().all(|v| v.is_finite())
+                                            && v.iter().any(|v| *v != 0.)
+                                    })
+                            })
+                    });
+                let reserve = 4. * baseline_seconds + 30.;
+                let projected = RADIAL_UPDATES as f64 * seconds * 1.25 + reserve;
+                let remaining = (admission.maximum_arm_seconds as f64
+                    - arm_start.elapsed().as_secs_f64())
+                .min(a.maximum_seconds as f64 - overall.elapsed().as_secs_f64());
+                measured_admission = Some(
+                    json!({"first_full64_seconds":seconds,"all_active_family_gradients_nonzero_finite":gradient_valid,
+                    "projected_remaining_seconds":projected,"remaining_declared_seconds":remaining,"export_holdout_stop_reserve_seconds":reserve,
+                    "admitted":gradient_valid&&projected<=remaining,"before_first_optimizer_update":true,"context_cache":"none; existing full recomputation per canonical prefix"}),
+                );
+                write(&root.join("measured-admission.json"), &measured_admission)?;
+                write(
+                    &root.join("first-full64-batch-before-update.json"),
+                    &json!({"batch":measured.report,
+                    "actual_independent_radial_gradient":gradients.get(RADIAL_PARAMETER).map(|g|g.flatten_all()?.to_vec1::<f32>()).transpose()?,
+                    "radial_quantum_before_update":radial.quantum_audit()?,"linux_process_peak_rss_kib":radial_peak_rss_kib(),
+                    "measured_admission":measured_admission,"optimizer_updates":0}),
+                )?;
+                if !gradient_valid || projected > remaining {
+                    return Err(invalid(
+                        "radial first full64 gradient/runtime admission failed",
+                    ));
+                }
+            }
+            let radial_gradient = gradients
+                .get(RADIAL_PARAMETER)
+                .map(|g| g.flatten_all()?.to_vec1::<f32>())
+                .transpose()?;
+            if arm_start.elapsed().as_secs_f64() > admission.maximum_arm_seconds as f64 {
+                return Err(invalid(
+                    "radial arm wall limit reached after full batch before optimizer",
+                ));
+            }
+            let clip = radial.apply(&weights, &mut optimizer, gradients)?;
+            updates = step + 1;
+            let quantum = radial.quantum_audit()?;
+            if first_packed_update.is_none()
+                && quantum["independent_packed_nonzero"].as_u64().unwrap_or(0) > 0
+            {
+                first_packed_update = Some(updates);
+            }
+            if !radial_source_bits_fixed(&frozen, &parameter_bits(&weights.parameters())?) {
+                return Err(invalid("radial optimizer changed frozen coefficient"));
+            }
+            let report = json!({"optimizer_update":updates,"batch":measured.report,"gradient_clip_factor":clip,
+                "clipping_space":"actual independent learned coordinates; shared reduction precedes clipping",
+                "radial_gradient_l1":radial_gradient.as_ref().map(|v|v.iter().map(|x|f64::from(x.abs())).sum::<f64>()),
+                "radial_gradient_nonzero":radial_gradient.as_ref().map(|v|v.iter().filter(|x|**x!=0.).count()),
+                "radial_quantum":quantum,"first_packed_nonzero_update":first_packed_update});
+            let name = format!("batch-{updates:04}.json");
+            write(&root.join(&name), &report)?;
+            receipts.push(
+                json!({"update":updates,"path":name,"sha256":sha256_file(&root.join(&name))?}),
+            );
+            write(
+                &root.join("progress.json"),
+                &json!({"updates":updates,"declared_updates":RADIAL_UPDATES,"batch_receipts":receipts,"seconds":arm_start.elapsed().as_secs_f64()}),
+            )?;
+            if updates % 16 == 0 {
+                export(updates)?;
+            }
+        }
+        Ok(())
+    })();
+    drop(export);
+    let selected = best_finite_readout_checkpoint(
+        &checkpoints
+            .iter()
+            .map(|v| v["all64_equal_episode_ce"].as_f64())
+            .collect::<Vec<_>>(),
+    );
+    let mut holdout_result = None;
+    if work.is_ok() {
+        match (|| -> Result<Value> {
+            deadline(overall, a)?;
+            if arm_start.elapsed().as_secs_f64() > admission.maximum_arm_seconds as f64 {
+                return Err(invalid("radial arm wall limit reached before holdout"));
+            }
+            let selected_index = selected
+                .ok_or_else(|| invalid("no finite radial baseline-inclusive checkpoint"))?;
+            let step = checkpoints[selected_index]["optimizer_updates"]
+                .as_u64()
+                .ok_or_else(|| invalid("radial selected step absent"))?;
+            let path = root.join(format!("checkpoint-{step:04}"));
+            let source = SourceRealizerWeights::load_source(&path.join("realizer-source"), bytes)?;
+            let native =
+                NativeSourceRealizer::load(&path.join("realizer-native"), &source, identity)?;
+            let result = generate(
+                if shared {
+                    "radial-difference63-selected-untouched32"
+                } else {
+                    "radial-grid1024-selected-untouched32"
+                },
+                &native,
+                holdout,
+                tok,
+                overall,
+                a,
+            )?;
+            if arm_start.elapsed().as_secs_f64() > admission.maximum_arm_seconds as f64 {
+                return Err(invalid("radial arm wall limit reached during holdout"));
+            }
+            Ok(result)
+        })() {
+            Ok(result) => holdout_result = Some(result),
+            Err(error) => work = Err(error),
+        }
+    }
+    let checkpoint_references = radial_evaluation_references(root, &checkpoints)?;
+    let report = json!({"schema":"uor-r4.geometric-radial-sharing-arm/1","status":if work.is_ok(){"completed"}else{"stopped_or_error"},
+        "shared_signed_difference":shared,"optimizer":optimizer_identity(),"optimizer_updates":updates,"declared_updates":RADIAL_UPDATES,
+        "objective":"mean64episodes(mean token+EOS ordinary aliased marginal CE); every64 each update",
+        "optimizer_moments":"fresh AdamW on actual independent coordinates","context_cache":"none",
+        "updated_families":["context_unary","context_radius","context_presence","content_presence","Stop","Period"],
+        "frozen_families":["consumer.context.*","content_unary","content_radius","pair"],
+        "measured_admission":measured_admission,"checkpoints":checkpoint_references,"checkpoint_payload_format":"sealed-evaluation-reference/1; paths relative to this arm root","batch_receipts":receipts,
+        "selected_checkpoint_index":selected,"selection":"lowest finite native all64 equal-episode CE including zero baseline; earliest ties; heldout not used",
+        "untouched32_selected_only":holdout_result,"first_packed_nonzero_update":first_packed_update,
+        "work_error":work.as_ref().err().map(|e|e.to_string()),"no_adopted_model":true,"wall_seconds":arm_start.elapsed().as_secs_f64()});
+    write(&root.join("report.json"), &report)?;
+    report_output::seal(root)?;
+    report_output::verify(root)?;
+    work?;
+    Ok(report)
+}
+fn geometry_radial_learn(a: &Args) -> Result<()> {
+    let start = Instant::now();
+    let radial_admission = radial_admission(a)?;
+    let FrozenTransferInputs {
+        admission,
+        spec: _,
+        fit,
+        composition: _,
+        selected,
+        identity,
+        retained_sha,
+        bytes,
+        tok,
+        compiler,
+        retained,
+    } = load_frozen_transfer_inputs(a)?;
+    report_output::verify(&radial_admission.diagnostic_root)?;
+    if radial_admission.diagnostic_manifest_sha256
+        != "879fbf96cc758b2cf90de8f21bd07532eb0d229c6463b5cdd3c3c9cd46ce7afb"
+        || sha256_file(&radial_admission.diagnostic_root.join("manifest.json"))?
+            != radial_admission.diagnostic_manifest_sha256
+        || sha256_file(&radial_admission.diagnostic_root.join("report.json"))?
+            != radial_admission.diagnostic_report_sha256
+    {
+        return Err(invalid("radial diagnostic sealed receipt differs"));
+    }
+    let diagnostic: Value = serde_json::from_slice(&fs::read(
+        radial_admission.diagnostic_root.join("report.json"),
+    )?)?;
+    if diagnostic["schema"] != "uor-r4.geometric-query-diagnostic/1"
+        || diagnostic["status"] != "completed"
+        || diagnostic["source_commit"] != radial_admission.diagnostic_source_commit
+        || diagnostic["saved_identity"] != serde_json::to_value(&identity)?
+        || diagnostic["all_input_files_unchanged"] != true
+        || diagnostic["native_source_and_context_unchanged"] != true
+        || diagnostic["native_read_count"] != 4
+        || diagnostic["optimizer_updates"] != 0
+        || diagnostic["transfer_admission"]["frozen_fit_manifest_sha256"]
+            != admission.frozen_fit_manifest_sha256
+        || diagnostic["transfer_admission"]["checkpoint_manifest_sha256"]["selected0064"]
+            != admission.checkpoint_manifest_sha256["selected0064"]
+    {
+        return Err(invalid(
+            "radial completed diagnostic scientific binding differs",
+        ));
+    }
+    let (_, parent, stage, _, native, inventory) = load_transfer_comparator(
+        "selected0064",
+        admission.frozen_fit_root.join("checkpoint-0064"),
+        fit["checkpoints"][selected].clone(),
+        false,
+        &admission,
+        &identity,
+        &bytes,
+    )?;
+    let original = prepare(retained, &tok, native.binding().eos_token_id(), &compiler)?;
+    let template = original
+        .first()
+        .ok_or_else(|| invalid("radial template absent"))?;
+    let construction =
+        composition_panel(template, &tok, &compiler, native.binding().eos_token_id())?;
+    let mut training28 = original.clone();
+    training28.extend(construction.clone());
+    let (old, _) = transfer_panel(
+        template,
+        &original,
+        &tok,
+        &compiler,
+        native.binding().eos_token_id(),
+    )?;
+    let (fresh, _) = fresh_transfer_panel(
+        template,
+        &training28,
+        &old,
+        &tok,
+        &compiler,
+        native.binding().eos_token_id(),
+    )?;
+    let spec: Value = serde_json::from_slice(&fs::read(&radial_admission.panel_spec)?)?;
+    if !radial_spec_valid(&spec) {
+        return Err(invalid("radial prospective curriculum schema differs"));
+    }
+    let mut excluded = training28
+        .iter()
+        .chain(&old)
+        .chain(&fresh)
+        .map(|e| e.source_text.clone())
+        .collect::<BTreeSet<_>>();
+    let (added, added_labels) = radial_compile_panel(
+        spec["training_added"]
+            .as_array()
+            .ok_or_else(|| invalid("radial added panel absent"))?,
+        template,
+        &training28,
+        &excluded,
+        &tok,
+        &compiler,
+        native.binding().eos_token_id(),
+    )?;
+    excluded.extend(added.iter().map(|e| e.source_text.clone()));
+    let (holdout, holdout_labels) = radial_compile_panel(
+        spec["holdout"]
+            .as_array()
+            .ok_or_else(|| invalid("radial holdout absent"))?,
+        template,
+        &training28,
+        &excluded,
+        &tok,
+        &compiler,
+        native.binding().eos_token_id(),
+    )?;
+    let mut training = training28.clone();
+    training.extend(added);
+    let panel = a.out.join("panel");
+    report_output::claim(&panel)?;
+    write(&panel.join("panel-spec.json"), &spec)?;
+    write(
+        &panel.join("compiled.json"),
+        &json!({"training64":episode_labels(&training),"original28":episode_labels(&training28),
+        "added36":added_labels,"untouched32":holdout_labels,"predictions":"NOT_RUN","all64_each_update":true,
+        "query_balance":"added36 18/18, holdout32 16/16; original28 unchanged, whole64 not claimed balanced",
+        "labels":"FrozenAnswers, never native.read inputs","source_emission_policy":"SCHEMA_V2 source-only; no label injection"}),
+    )?;
+    report_output::seal(&panel)?;
+    report_output::verify(&panel)?;
+    let factual_original = context_direction_measure(&native, &original, start, a)?;
+    let factual_construction = context_direction_measure(&native, &construction, start, a)?;
+    radial_saved_actions_equal(&factual_original, &stage["original_canonical"])?;
+    radial_saved_actions_equal(&factual_construction, &stage["construction_canonical"])?;
+    if factual_original["target_steps"].as_u64().unwrap_or(0)
+        + factual_construction["target_steps"].as_u64().unwrap_or(0)
+        != 178
+    {
+        return Err(invalid("radial factual preservation receipt count differs"));
+    }
+    let zero_source = SourceRealizerWeights::load_source(&parent.join("realizer-source"), &bytes)?;
+    let zero_coordinates = RadialCoordinates::zero(&zero_source, false)?;
+    zero_coordinates.verify()?;
+    let zero_native = zero_source.compile(identity.clone())?;
+    let zero_root = a.out.join("common-zero-native");
+    report_output::claim(&zero_root)?;
+    zero_native.save(&zero_root.join("realizer-native"))?;
+    let common_native_inventory = source_files(&zero_root.join("realizer-native"))?;
+    write(
+        &zero_root.join("receipt.json"),
+        &json!({"native_files_sha256":common_native_inventory,
+        "source_parameter_bit_receipts":radial_parameter_bit_receipts(&zero_source.parameters())?,"zero_radius_only":true}),
+    )?;
+    report_output::seal(&zero_root)?;
+    report_output::verify(&zero_root)?;
+    let mut probe_episodes = training28.clone();
+    probe_episodes.extend(fresh);
+    let probes = radial_zero_probes(&zero_native, &diagnostic, &probe_episodes, start, a)?;
+    write(
+        &a.out.join("baseline-admission.json"),
+        &json!({"factual178_original":factual_original,"factual178_construction":factual_construction,
+        "factual_canonical_action_replay_equal":true,"four_probes":probes,"zeroing":"only consumer.potential.context_radius","selected_parent_checkpoint":stage["checkpoint"]}),
+    )?;
+    let common = context_direction_measure(&zero_native, &training, start, a)?;
+    write(&a.out.join("common-zero-radial64.json"), &common)?;
+    let before = bin_files(&parent.join("realizer-native"))?;
+    let mut arms = Vec::new();
+    let work = (|| -> Result<()> {
+        for (name, shared) in [("grid1024", false), ("difference63", true)] {
+            arms.push(radial_arm(
+                a,
+                &radial_admission,
+                &a.out.join(name),
+                shared,
+                &parent,
+                &identity,
+                &bytes,
+                &training,
+                &holdout,
+                &tok,
+                &before,
+                start,
+                &common,
+                &common_native_inventory,
+            )?);
+        }
+        Ok(())
+    })();
+    if source_files(&parent)? != inventory
+        || sha256_file(&a.retained_report)? != retained_sha
+        || sha256_file(&a.tokenizer)? != identity.tokenizer_sha256
+        || sha256_file(&radial_admission.panel_spec)? != radial_admission.panel_spec_sha256
+    {
+        return Err(invalid("radial frozen input inventory changed"));
+    }
+    report_output::verify(&parent)?;
+    report_output::verify(&admission.frozen_fit_root)?;
+    report_output::verify(&admission.composition_root)?;
+    report_output::verify(&radial_admission.diagnostic_root)?;
+    let comparison = if arms.len() == 2 {
+        Some(generation_comparison(
+            &arms[0]["untouched32_selected_only"],
+            &arms[1]["untouched32_selected_only"],
+        )?)
+    } else {
+        None
+    };
+    let arm_references=arms.iter().map(|arm| {
+        let name=if arm["shared_signed_difference"]==true {"difference63"}else{"grid1024"};
+        let root=a.out.join(name);
+        Ok(json!({"format":"sealed-arm-report-reference/1","arm":name,
+            "report_path":format!("{name}/report.json"),"report_sha256":sha256_file(&root.join("report.json"))?,
+            "manifest_path":format!("{name}/manifest.json"),"manifest_sha256":sha256_file(&root.join("manifest.json"))?,
+            "status":arm["status"],"shared_signed_difference":arm["shared_signed_difference"],
+            "optimizer_updates":arm["optimizer_updates"],"selected_checkpoint_index":arm["selected_checkpoint_index"],
+            "first_packed_nonzero_update":arm["first_packed_nonzero_update"],
+            "selected_holdout_summary":{"cases":arm["untouched32_selected_only"]["cases"],"complete_answers":arm["untouched32_selected_only"]["complete_answers"],"eos_count":arm["untouched32_selected_only"]["eos_count"]}}))
+    }).collect::<Result<Vec<Value>>>()?;
+    write(
+        &a.out.join("report.json"),
+        &json!({"schema":"uor-r4.geometric-radial-sharing/1","status":if work.is_ok(){"completed"}else{"stopped_or_error"},
+        "source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"radial_admission":radial_admission,
+        "transfer_admission":admission,"saved_identity":identity,"arms":arm_references,"arm_payload_format":"sealed-arm-report-reference/1; paths relative to this run root","selected_holdout_comparison":comparison,
+        "starting_parent":"selected0064; zero radius common baseline; research candidates only","context_cache":"none; existing full native/context/credit recomputation",
+        "all_input_files_unchanged":true,"no_adopted_model":true,"work_error":work.as_ref().err().map(|e|e.to_string()),
+        "scope":"matched finite-cell radial parameter-sharing comparison on broader development64 and untouched32; no general chat, energy or geometry advantage qualification",
+        "wall_seconds":start.elapsed().as_secs_f64()}),
     )?;
     work
 }
@@ -8948,6 +10035,149 @@ mod direction_tests {
         var.set(&Tensor::from_vec(changed, 2, &Device::Cpu)?)?;
         var.set(&Tensor::from_vec(original.clone(), 2, &Device::Cpu)?)?;
         assert_eq!(var.flatten_all()?.to_vec1::<f32>()?, original);
+        Ok(())
+    }
+    #[test]
+    fn radial_signed_difference_has_no_cyclic_wrap_and_preserves_ratios() -> Result<()> {
+        assert_eq!(radial_difference_index(0, 31)?, 0);
+        assert_eq!(radial_difference_index(31, 0)?, 62);
+        assert_eq!(
+            radial_difference_index(7, 5)?,
+            radial_difference_index(19, 17)?
+        );
+        assert_ne!(
+            radial_difference_index(0, 31)?,
+            radial_difference_index(1, 0)?
+        );
+        assert!(radial_difference_index(32, 0).is_err());
+        let tiny = (0..126)
+            .map(|i| (i as i32 % 15 - 7) as f32 / 4.)
+            .collect::<Vec<_>>();
+        let expanded = radial_expand(&tiny, 2)?;
+        for lane in 0..2 {
+            for q in 0..32 {
+                for k in 0..32 {
+                    assert_eq!(
+                        (expanded[lane * 1024 + q * 32 + k] * 4.).round() as i8,
+                        (tiny[lane * 63 + radial_difference_index(q, k)?] * 4.).round() as i8
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn radial_gradient_reduction_matches_candle_gather_adjoint() -> Result<()> {
+        let tiny = Var::from_vec(vec![0f32; 126], 126, &Device::Cpu)?;
+        let indices = (0..2)
+            .flat_map(|lane| {
+                (0..32).flat_map(move |q| {
+                    (0..32)
+                        .map(move |k| (lane * 63 + (q as isize - k as isize + 31) as usize) as u32)
+                })
+            })
+            .collect::<Vec<_>>();
+        let gradient = (0..2048)
+            .map(|i| (i as i32 % 13 - 6) as f32 / 16.)
+            .collect::<Vec<_>>();
+        let expanded = tiny.index_select(&Tensor::from_vec(indices, 2048, &Device::Cpu)?, 0)?;
+        let objective =
+            (&expanded * &Tensor::from_vec(gradient.clone(), 2048, &Device::Cpu)?)?.sum_all()?;
+        let store = objective.backward()?;
+        let actual = store
+            .get(tiny.as_tensor())
+            .ok_or_else(|| invalid("gather tied adjoint absent"))?
+            .to_vec1::<f32>()?;
+        assert_eq!(actual, radial_reduce(&gradient, 2)?);
+        // A unit full-grid adjoint has 32 uses at zero difference. This must
+        // remain a sum, not a multiplicity-normalized average.
+        let units = radial_reduce(&vec![1.; 1024], 1)?;
+        assert_eq!(units[31], 32.);
+        assert_eq!(units[0], 1.);
+        Ok(())
+    }
+    #[test]
+    fn radial_quantum_requires_audible_optimizer_window() -> Result<()> {
+        let variable = Var::from_vec(vec![0f32], 1, &Device::Cpu)?;
+        let mut optimizer = AdamW::new(
+            vec![variable.clone()],
+            ParamsAdamW {
+                lr: 0.003,
+                beta1: 0.9,
+                beta2: 0.999,
+                eps: 1e-8,
+                weight_decay: 0.,
+            },
+        )?;
+        let mut packed32 = None;
+        for step in 1..=RADIAL_UPDATES {
+            let mut store = Tensor::new(0f32, &Device::Cpu)?.backward()?;
+            store.insert(
+                variable.as_tensor(),
+                Tensor::from_vec(vec![1f32], 1, &Device::Cpu)?,
+            );
+            optimizer.step(&store)?;
+            let value = variable.to_vec1::<f32>()?[0];
+            if step == 1 {
+                assert!(value.abs() <= 0.003001);
+            }
+            if step == 32 {
+                packed32 = Some((4. * value).round() as i8);
+            }
+        }
+        assert_eq!(packed32, Some(0));
+        assert_ne!((4. * variable.to_vec1::<f32>()?[0]).round() as i8, 0);
+        Ok(())
+    }
+
+    #[test]
+    fn radial_parameter_freeze_includes_inactive_copy_families_and_context() {
+        let original = BTreeMap::from([
+            ("consumer.context.token_root".into(), vec![1u32]),
+            ("consumer.potential.pair".into(), vec![2]),
+            (RADIAL_PARAMETER.into(), vec![0]),
+            ("consumer.potential.context_unary".into(), vec![3]),
+            ("period.bias".into(), vec![4]),
+        ]);
+        let mut changed = original.clone();
+        changed.insert(RADIAL_PARAMETER.into(), vec![6]);
+        changed.insert("period.bias".into(), vec![7]);
+        assert!(radial_source_bits_fixed(&original, &changed));
+        changed.insert("consumer.potential.pair".into(), vec![8]);
+        assert!(!radial_source_bits_fixed(&original, &changed));
+        changed = original.clone();
+        changed.insert("consumer.context.token_root".into(), vec![9]);
+        assert!(!radial_source_bits_fixed(&original, &changed));
+    }
+    #[test]
+    fn radial_full64_batch_and_canonical_admission_reject_partial_or_changed_receipts() -> Result<()>
+    {
+        assert!(readout_batch_admitted(
+            "readout-geometry-radial-learn",
+            &(0..64).collect::<Vec<_>>(),
+            64
+        ));
+        assert!(!readout_batch_admitted(
+            "readout-geometry-radial-learn",
+            &(0..28).collect::<Vec<_>>(),
+            64
+        ));
+        assert!(!readout_batch_admitted(
+            "readout-geometry-radial-learn",
+            &(1..65).collect::<Vec<_>>(),
+            64
+        ));
+        let original = json!({"rows":[{"id":"one","tokens":[{"target_label_only":7,"teacherforced_prefix_ids":[],"actions":{"total_weight_q31":10,"actions":[{"score_q24":3}],"token_masses":[{"token_id":7,"weight_q31":10}]}}]}]});
+        radial_saved_actions_equal(&original, &original)?;
+        let mut wrong = original.clone();
+        wrong["rows"][0]["tokens"][0]["actions"]["total_weight_q31"] = json!(11);
+        assert!(radial_saved_actions_equal(&original, &wrong).is_err());
+        wrong = original.clone();
+        wrong["rows"][0]["tokens"][0]["teacherforced_prefix_ids"] = json!([7]);
+        assert!(radial_saved_actions_equal(&original, &wrong).is_err());
+        wrong = original;
+        wrong["rows"][0]["tokens"][0]["actions"] = Value::Null;
+        assert!(radial_saved_actions_equal(&wrong, &wrong).is_err());
         Ok(())
     }
 }
