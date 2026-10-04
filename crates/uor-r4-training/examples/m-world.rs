@@ -4362,6 +4362,11 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         panel_block = Some(json!({
             "panel": panel_name, "panel_sha256": panel_sha,
             "panel_expected": expected_name, "panel_expected_sha256": expected_sha,
+            // The stored-value location rule. Widening a located value to word spans
+            // changed which spans a turn stores WITHOUT changing the compiler
+            // identity, so a re-run of an older sealed report would silently yield
+            // different values. Recording the rule makes that visible.
+            "value_location": "word-aligned/1",
             "rows_total": total, "correct": correct,
             // Storage is measured UNCONDITIONALLY and must be identical between the
             // off and sieve arms: the compiler sees only the current user turn.
