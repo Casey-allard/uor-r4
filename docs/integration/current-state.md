@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Native bank objective reaches geometric context and controllers — October 4
+
+The [Rust bank learning admission](geometric-bank-learning-admission-2026-10-04.md) adds ordinary `loss_bank` over actual causal candidate positions, full replay and one joint Copy/Period/Stop native alias objective at source5f2288. Integer serving is unchanged. All6 development cases/26 canonical targets have positive support;27 own-prefix steps and6 initial traces preserve prior bank outputs. Native equalepisode CE1.172177443457, quality1/6 unchanged, optimizer0. First/full finite nonzero recurrentcontext48,384; potential223/695, Stop142/314 andPeriod142/314. This is shared biased context credit, not independently isolated role sensitivity or trained retrieval.
+
+Source review confirms existing directed `inverse(query)*key` context-relative H4 angular and joint-radius interaction. Zero content/crosspair gradients are expected from absent content, not a missing attention binding. Two library+three driver tests/release/fmt pass. Independent saved audit verifies26canonical/27ownprefix/33prior complete traces, sourcebits/native aliases/BLAKE3; rawTensor/backward reconstruction is unverified. All9files902,062B and executable return with exactSHA/fullset. Initial analyst aggregate misgrouping is preserved/corrected without model changes. Workers609.810s, complete120min oncecharge; cumulative1,205,835,028/1,208,400,000ms. [Evidence](../evidence/geometric-bank-learning-admission-2026-10-04.json).
+
+**Next:** prepare/query-counterbalance broader bank learning with unchanged64single-source controls; exact broadbatch timing/support/gradient/RAM beforeoptimizeradmission. Proposed64bank episodes as32same-bank job/where pairs, source/order/distractor/repetition/version controls, fresh32bank transfer frozenbeforeupdate1; parent-inclusive nativeCEselection. No gold-record admission/reset/perrecord normalization. General Generate/chat/reasoning/longhorizon/M1energy remain obligations; sharedsessions untouched.
+
 ## Native winner crossings expose shared-policy harm; causal bank now exercised — October 4
 
 The [exact-crossing result](geometric-native-route-crossing-2026-10-04.md) validates32 real minimal legal root crossings at source82d0. Every witness improves locally; all full64 losses worsen, so strict selection retains parent CE0.492381624865,31/64 complete/EOS64. Best Joint0.528931824423 and Role0.534666236199; fresh0/32, seed20261009 exposed. Top16 witnesses per arm all target the same Period position, so this is shared-coefficient harm for a finite quota, not83-capacity or geometry-family failure. Saved audit784,922 checks0errors; source-bound limitations and every negative remain.

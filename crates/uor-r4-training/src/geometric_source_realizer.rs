@@ -363,7 +363,7 @@ fn snapshot(root: &Path, expected: &[&str]) -> Result<BTreeMap<String, String>> 
 }
 
 pub use uor_r4_integer::geometric_source_realizer::{
-    ObservedCode, RealizerTrace, SerializableContextReplay,
+    BankRealizerTrace, ObservedCode, RealizerTrace, SerializableContextReplay, SourceBankSegment,
 };
 fn context_replay_matches(replay: &SerializableContextReplay, trace: &NativeContextTrace) -> bool {
     trace.batch == 1
@@ -413,6 +413,26 @@ impl NativeSourceRealizer {
                     parent_config_sha256: i.parent_config_sha256.clone(),
                 },
             },
+        )
+    }
+    /// Target-free bank execution delegates to the same shared integer kernel.
+    pub fn read_bank(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+    ) -> Result<BankRealizerTrace> {
+        Ok(
+            uor_r4_integer::geometric_source_realizer::RealizerExecution {
+                context: &self.consumer.context,
+                potential_tables: &self.consumer.potential_tables,
+                no_read: &self.consumer.no_read,
+                geometry: &self.consumer.geometry,
+                exp: &self.consumer.exp,
+                period: &self.period,
+                binding: &self.binding,
+            }
+            .read_bank(segments, query, prefix)?,
         )
     }
     pub fn read_dependent(
@@ -622,6 +642,11 @@ pub struct RealizerLoss {
     pub trace: RealizerTrace,
     pub target_probability: f64,
 }
+pub struct BankRealizerLoss {
+    pub loss: Tensor,
+    pub trace: BankRealizerTrace,
+    pub target_probability: f64,
+}
 pub struct PreparedSourceRealizer<'a> {
     source: &'a SourceRealizerWeights,
     native: &'a NativeSourceRealizer,
@@ -738,6 +763,146 @@ impl PreparedSourceRealizer<'_> {
         let summed = Tensor::stack(&heads, 0)?.sum(0)?;
         let loss = marginal_action_loss(&trace.actions, &summed, target, target_probability)?;
         Ok(RealizerLoss {
+            loss,
+            trace,
+            target_probability,
+        })
+    }
+
+    /// Ordinary bank-wide alias CE. All source records are admitted by the
+    /// target-free integer reader. Context cues influence recurrence but never
+    /// become Copy candidates. Native probability is the exact hard forward;
+    /// existing coefficient STE and source/query context credit supply adjoints.
+    pub fn loss_bank(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+    ) -> Result<BankRealizerLoss> {
+        if target as usize >= self.source.binding.vocab_size() {
+            return Err(invalid("bank realizer target is out of vocabulary"));
+        }
+        let trace = self.native.read_bank(segments, query, prefix)?;
+        let mass = trace
+            .actions
+            .token_masses
+            .iter()
+            .find(|m| m.token_id == target)
+            .map_or(0, |m| m.weight_q31);
+        if mass == 0 || trace.actions.total_weight_q31 == 0 || mass > trace.actions.total_weight_q31
+        {
+            return Err(invalid(
+                "bank target has zero/invalid native mass; no parent or probability floor",
+            ));
+        }
+        let target_probability = mass as f64 / trace.actions.total_weight_q31 as f64;
+        let ids = &trace.context.tokens;
+        let time = ids.len();
+        let c = self.source.consumer.config();
+        let width = c.heads * c.lanes_per_head;
+        if time == 0
+            || trace.candidates.is_empty()
+            || trace.heads.len() != c.heads
+            || trace.period_q24.len() != c.heads
+        {
+            return Err(invalid("bank native replay/head/candidate shape differs"));
+        }
+        let positions = trace
+            .candidates
+            .iter()
+            .enumerate()
+            .map(|(j, candidate)| {
+                if candidate.bank_index != j || candidate.context_position >= time - 1 {
+                    return Err(invalid("bank candidate index/causal position differs"));
+                }
+                Ok(candidate.context_position as u32)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let index = Tensor::from_vec(positions.clone(), positions.len(), &Device::Cpu)?;
+        let context = self.consumer.context.forward(ids, 1, time, false)?;
+        if !context_replay_matches(&trace.context, &context.trace) {
+            return Err(invalid("bank native/training context replay differs"));
+        }
+        let absent = AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?;
+        let content = vec![absent; time * width];
+        let copy_coeff = self.source.consumer.potential.forward_codes(
+            1,
+            time,
+            &content,
+            &context.trace.codes,
+        )?;
+        let copy_context =
+            frozen_potential_forward(&self.source.consumer.potential, &content, &context)?;
+        if copy_coeff.scores_q24 != copy_context.scores_q24 {
+            return Err(invalid("bank Copy credit hard scores differ"));
+        }
+        let copy = (&copy_coeff.scores + (&copy_context.scores - copy_context.scores.detach())?)?;
+        let latent = context
+            .trace
+            .states
+            .iter()
+            .flatten()
+            .map(|&x| H4Code::try_from(x).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        let held = vec![H4Code::IDENTITY; latent.len()];
+        let valid = vec![false; time];
+        let batch = NoReadBatch {
+            ids,
+            batch: 1,
+            time,
+            latent: &latent,
+            observed: &context.trace.codes,
+            held: &held,
+            span_valid: &valid,
+        };
+        let period_coeff = self.source.period.forward(batch)?;
+        let stop_coeff = self.source.consumer.no_read.forward(batch)?;
+        let period_context =
+            frozen_no_read_forward(&self.source.period, ids, &context, &held, &valid)?;
+        let stop_context =
+            frozen_no_read_forward(&self.source.consumer.no_read, ids, &context, &held, &valid)?;
+        let mut heads = Vec::with_capacity(c.heads);
+        for h in 0..c.heads {
+            let hard = &trace.heads[h];
+            let at = h * time + time - 1;
+            if hard.scores_q24.len() != positions.len()
+                || hard
+                    .scores_q24
+                    .iter()
+                    .zip(&positions)
+                    .any(|(&score, &position)| {
+                        score != copy_coeff.scores_q24[at * time + position as usize]
+                    })
+                || hard.no_read_q24 != stop_context.scores_q24[at]
+                || trace.period_q24[h] != period_context.scores_q24[at]
+            {
+                return Err(invalid(
+                    "bank native/training actual-position Copy/Period/Stop Q24 differs",
+                ));
+            }
+            let period = scalar_credit(
+                trace.period_q24[h],
+                &period_coeff.i((0, h, time - 1))?,
+                &period_context.scores.i((0, h, time - 1))?,
+            )?;
+            let stop = scalar_credit(
+                hard.no_read_q24,
+                &stop_coeff.i((0, h, time - 1))?,
+                &stop_context.scores.i((0, h, time - 1))?,
+            )?;
+            heads.push(Tensor::cat(
+                &[
+                    copy.i((0, h, time - 1))?.index_select(&index, 0)?,
+                    period.reshape(1)?,
+                    stop.reshape(1)?,
+                ],
+                0,
+            )?);
+        }
+        let summed = Tensor::stack(&heads, 0)?.sum(0)?;
+        let loss = marginal_action_loss(&trace.actions, &summed, target, target_probability)?;
+        Ok(BankRealizerLoss {
             loss,
             trace,
             target_probability,
@@ -1401,6 +1566,182 @@ mod tests {
             before.stage2.actions.head_scores,
             after.stage2.actions.head_scores
         );
+        Ok(())
+    }
+
+    #[test]
+    fn bank_loss_single_source_and_interleaved_global_aliases_preserve_native() -> Result<()> {
+        let fixture = Fixture::new()?;
+        let w = &fixture.weights;
+        let native = w.compile(fixture.identity.clone())?;
+        let compiler = SourceEmissionCompiler::new(TOK.as_bytes())?;
+        let original = [4, 4, 4];
+        let view = compiler.compile(&original)?;
+        let single = [SourceBankSegment::Source {
+            frame: frame(&original),
+            view: &view,
+            event: 42,
+        }];
+        let prepared = w.prepare(&native)?;
+        for target in [4, 3, 1] {
+            let old = prepared.loss(frame(&original), &view, &[5], &[3], target)?;
+            let bank = prepared.loss_bank(&single, &[5], &[3], target)?;
+            assert_eq!(bank.trace.actions, old.trace.actions);
+            assert_eq!(bank.trace.context, old.trace.period_context);
+            assert_eq!(bank.target_probability, old.target_probability);
+            assert_eq!(bank.loss.to_scalar::<f32>()?, old.loss.to_scalar::<f32>()?);
+            let old_g = old.loss.backward()?;
+            let bank_g = bank.loss.backward()?;
+            for name in ["period.coefficients", "consumer.no_read.coefficients"] {
+                let vars = w.parameters();
+                let var = vars
+                    .get(name)
+                    .ok_or_else(|| invalid("fixture variable absent"))?;
+                let a = old_g
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("old gradient absent"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                let b = bank_g
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("bank gradient absent"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert_eq!(a, b);
+            }
+        }
+        let second = [4, 4];
+        let view2 = compiler.compile(&second)?;
+        let mut second_frame = frame(&second);
+        second_frame.identity = SourceIdentity {
+            record: 8,
+            commit: 11,
+        };
+        second_frame.metadata.relation = 4;
+        let bank = [
+            SourceBankSegment::Context {
+                token_ids: &[5, 3],
+                role: 1,
+                event: 42,
+            },
+            SourceBankSegment::Source {
+                frame: frame(&original),
+                view: &view,
+                event: 42,
+            },
+            SourceBankSegment::Context {
+                token_ids: &[3],
+                role: 1,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: second_frame,
+                view: &view2,
+                event: 7,
+            },
+        ];
+        for (target, p) in [(4, 3. / 7.), (7, 2. / 7.), (3, 1. / 7.), (1, 1. / 7.)] {
+            let output = prepared.loss_bank(&bank, &[5], &[3], target)?;
+            assert_eq!(
+                output
+                    .trace
+                    .candidates
+                    .iter()
+                    .map(|c| c.context_position)
+                    .collect::<Vec<_>>(),
+                [2, 3, 4, 6, 7]
+            );
+            assert_eq!(
+                output
+                    .trace
+                    .candidates
+                    .iter()
+                    .map(|c| c.event)
+                    .collect::<Vec<_>>(),
+                [42, 42, 42, 7, 7]
+            );
+            assert_eq!(output.trace.context.tokens, [5, 3, 7, 4, 4, 3, 7, 4, 5, 3]);
+            assert_eq!(output.trace.actions.actions.len(), 7);
+            assert_eq!(output.target_probability, p);
+            assert!((f64::from(output.loss.to_scalar::<f32>()?) + p.ln()).abs() < 1e-6);
+        }
+        assert!(prepared.loss_bank(&bank, &[5], &[], 5).is_err());
+        Ok(())
+    }
+    #[test]
+    fn bank_loss_actual_positions_and_copy_terminal_context_credit_are_connected() -> Result<()> {
+        let (fixture, _, _) = dependent_fixture()?;
+        let w = &fixture.weights;
+        // Break the zero-transition alternating pattern on cue/query token5,
+        // making source positions carry distinct signed latent/readout roots.
+        let transition = w
+            .consumer
+            .context
+            .parameters()
+            .get("token_transition")
+            .ok_or_else(|| invalid("token transition absent"))?;
+        let mut values = vec![0f32; transition.elem_count()];
+        values[5 * 120 + 1] = 1.75;
+        transition.set(&Tensor::from_vec(values, transition.shape(), &Device::Cpu)?)?;
+        let native = w.compile(fixture.identity.clone())?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5, 3],
+                role: 1,
+                event: 42,
+            },
+            SourceBankSegment::Source {
+                frame: frame(&ids),
+                view: &view,
+                event: 7,
+            },
+        ];
+        let prepared = w.prepare(&native)?;
+        let mut any_context = false;
+        for target in [4, 3, 1] {
+            let output = prepared.loss_bank(&segments, &[5], &[3], target)?;
+            assert_eq!(
+                output
+                    .trace
+                    .candidates
+                    .iter()
+                    .map(|c| c.context_position)
+                    .collect::<Vec<_>>(),
+                [2, 3, 4]
+            );
+            let grads = output.loss.backward()?;
+            let vars = w.parameters();
+            for name in [
+                "consumer.potential.context_unary",
+                "consumer.no_read.coefficients",
+                "period.coefficients",
+            ] {
+                let var = vars
+                    .get(name)
+                    .ok_or_else(|| invalid(format!("missing {name}")))?;
+                let g = grads
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid(format!("disconnected {name}")))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert!(g.iter().all(|x| x.is_finite()));
+                assert!(g.iter().any(|x| x.abs() > 1e-9), "{name} target{target}");
+            }
+            for (name, var) in &vars {
+                if name.starts_with("consumer.context.") {
+                    let g = grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid(format!("disconnected {name}")))?
+                        .flatten_all()?
+                        .to_vec1::<f32>()?;
+                    assert!(g.iter().all(|x| x.is_finite()));
+                    any_context |= g.iter().any(|x| x.abs() > 1e-9);
+                }
+            }
+        }
+        assert!(any_context);
         Ok(())
     }
 
