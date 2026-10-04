@@ -535,7 +535,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -562,6 +562,7 @@ fn generate(
                 | "context-transplant"
                 | "context-direction"
                 | "context-frontier-direction"
+                | "context-observation-learn"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -578,6 +579,7 @@ fn generate(
                         | "context-transplant"
                         | "context-direction"
                         | "context-frontier-direction"
+                        | "context-observation-learn"
                 ))
         {
             if let Some(row) = rows.last_mut() {
@@ -586,7 +588,11 @@ fn generate(
         }
         write(
             &a.out.join(format!("{stage}-progress.json")),
-            &json!({"completed_cases":rows.len(),"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64()}),
+            &if a.mode == "context-observation-learn" {
+                json!({"completed_cases":rows.len(),"complete_answers":complete,"eos_count":eos_count,"raw_rows_retained_in_enclosing_attempt":true,"elapsed_seconds":begun.elapsed().as_secs_f64()})
+            } else {
+                json!({"completed_cases":rows.len(),"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64()})
+            },
         )?;
     }
     Ok(
@@ -836,6 +842,7 @@ fn main() -> Result<()> {
             | "context-transplant"
             | "context-direction"
             | "context-frontier-direction"
+            | "context-observation-learn"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -863,7 +870,7 @@ fn main() -> Result<()> {
                 || a.fit_admission.is_some()))
         || (matches!(
             a.mode.as_str(),
-            "context-direction" | "context-frontier-direction"
+            "context-direction" | "context-frontier-direction" | "context-observation-learn"
         ) && (a.maximum_seconds > 900
             || a.audit_checkpoint.is_none()
             || a.transfer_checkpoint.is_none()
@@ -892,6 +899,7 @@ fn main() -> Result<()> {
                 | "context-transplant"
                 | "context-direction"
                 | "context-frontier-direction"
+                | "context-observation-learn"
         ) && a.transfer_checkpoint.is_some())
         || (!matches!(
             a.mode.as_str(),
@@ -904,6 +912,7 @@ fn main() -> Result<()> {
                 | "context-transplant"
                 | "context-direction"
                 | "context-frontier-direction"
+                | "context-observation-learn"
         ) && (a.audit_checkpoint.is_some()
             || a.expected_generation.is_some()
             || a.audit_report.is_some()))
@@ -924,14 +933,17 @@ fn main() -> Result<()> {
             | "context-transplant"
             | "context-direction"
             | "context-frontier-direction"
+            | "context-observation-learn"
     ) {
         audit_output_location(&a)?;
     }
     report_output::claim(&a.out)?;
     write(&a.out.join("args.json"), &a)?;
-    let result = if matches!(
+    let result = if a.mode == "context-observation-learn" {
+        context_observation_learn(&a)
+    } else if matches!(
         a.mode.as_str(),
-        "context-direction" | "context-frontier-direction"
+        "context-direction" | "context-frontier-direction" | "context-observation-learn"
     ) {
         context_direction(&a)
     } else if a.mode == "context-transplant" {
@@ -3122,7 +3134,7 @@ fn frontier_batch(
     }
     Ok(Batch {
         gradients,
-        report: json!({"episodes":8,"tokens":8,"objective":"mean8 first actual ownprefix divergence token CE; one position per construction episode","mean_episode_nll":mean,"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64()}),
+        report: json!({"episodes":8,"tokens":8,"objective":"mean8 frozen ownprefix next-token CE; one position per construction episode","mean_episode_nll":mean,"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64()}),
     })
 }
 fn frontier_measure(
@@ -3167,8 +3179,9 @@ fn frontier_measure(
         row["native_probability"] = json!(probability);
         row["native_ce"] = json!(ce);
         row["zero_target_mass"] = json!(mass == 0);
-        row["prefix_policy"] =
-            json!("same frozen baseline first actual ownprefix divergence for every candidate");
+        row["prefix_policy"] = json!(
+            "same frozen round positions for incumbent and every candidate; labels offline only"
+        );
         rows.push(row);
     }
     Ok(
@@ -3405,6 +3418,502 @@ fn context_direction_comparison(before: &Value, after: &Value) -> Result<Value> 
     Ok(
         json!({"delta_mean_episode_ce":before["mean_episode_ce"].as_f64().zip(after["mean_episode_ce"].as_f64()).map(|(a,b)|b-a),"rows":rows}),
     )
+}
+
+// An accepted alias is anchored on its actual trajectory, never the canonical
+// label sequence. The target EOS is used only by offline credit/measurement.
+fn completed_eos_prefix(row: &Value, id: &str, eos: u32) -> Result<Vec<u32>> {
+    if row["id"] != id || row["accepted_complete_answer"] != true || row["eos"] != true {
+        return Err(invalid("completion anchor identity/acceptance/EOS differs"));
+    }
+    let generated: Vec<u32> = serde_json::from_value(row["generated_ids"].clone())?;
+    let tokens = row["tokens"]
+        .as_array()
+        .ok_or_else(|| invalid("completion traces absent"))?;
+    if tokens.len() != generated.len() + 1 || generated.contains(&eos) {
+        return Err(invalid("completion trace length or embedded EOS differs"));
+    }
+    for (step, token) in tokens.iter().enumerate() {
+        let prefix: Vec<u32> = serde_json::from_value(token["own_prefix_ids"].clone())?;
+        let expected = if step == generated.len() {
+            eos
+        } else {
+            generated[step]
+        };
+        if prefix != generated[..step]
+            || token["chosen_token_id"] != expected
+            || token["step"] != step
+        {
+            return Err(invalid("completion actual prefix/EOS continuity differs"));
+        }
+    }
+    Ok(generated)
+}
+fn learning_frontiers(
+    episodes: &[Episode],
+    generation: &Value,
+    tok: &ByteBpeTokenizer,
+    native: &NativeSourceRealizer,
+) -> Result<Vec<FrontierPosition>> {
+    let rows = generation["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("learner rows absent"))?;
+    if episodes.len() != 8 || rows.len() != 8 {
+        return Err(invalid("learner requires B8"));
+    }
+    episodes
+        .iter()
+        .zip(rows)
+        .map(|(episode, row)| {
+            let (step, prefix_ids, target_label_only) = if row["accepted_complete_answer"] == true {
+                let prefix =
+                    completed_eos_prefix(row, &episode.id, native.binding().eos_token_id())?;
+                let decoded = String::from_utf8(tok.decode_bytes(&prefix))
+                    .map_err(|e| invalid(format!("completion UTF8: {e}")))?;
+                let text = native.binding().protocol().reply_text(&decoded);
+                if row["reply_text"] != text
+                    || !episode.accepted.iter().any(|answer| answer == text)
+                {
+                    return Err(invalid(
+                        "completion anchor differs from frozen answer membership",
+                    ));
+                }
+                (prefix.len(), prefix, native.binding().eos_token_id())
+            } else {
+                saved_failure_prefix(row, episode)?
+            };
+            Ok(FrontierPosition {
+                id: episode.id.clone(),
+                step,
+                prefix_ids,
+                target_label_only,
+            })
+        })
+        .collect()
+}
+// Strict native decrease; equal scores retain the earlier deterministic proposal.
+fn best_native_proposal(baseline: f64, scores: &[Option<f64>]) -> Option<usize> {
+    let mut best = baseline;
+    let mut selected = None;
+    for (index, score) in scores.iter().enumerate() {
+        if let Some(score) = score.filter(|v| v.is_finite()) {
+            if score < best {
+                best = score;
+                selected = Some(index);
+            }
+        }
+    }
+    selected
+}
+fn packed_byte_changes(before: &[u8], after: &[u8]) -> Result<Vec<Value>> {
+    if before.len() != after.len() {
+        return Err(invalid("cumulative packed inventory length differs"));
+    }
+    Ok(before
+        .iter()
+        .zip(after)
+        .enumerate()
+        .filter(|(_, (a, b))| a != b)
+        .map(|(index, (a, b))| json!({"byte_index":index,"parent_byte":a,"candidate_byte":b}))
+        .collect())
+}
+fn context_observation_learn(a: &Args) -> Result<()> {
+    let start = Instant::now();
+    let LoadedFinal {
+        identity,
+        tok,
+        episodes,
+        retained_sha,
+        before,
+        ..
+    } = load_final(a)?;
+    let LoadedContinuation {
+        mut source,
+        mut native,
+        fit,
+        evaluation,
+        bins,
+    } = load_context_parent(a, &identity, &retained_sha, &before)?;
+    let input = a
+        .transfer_checkpoint
+        .as_ref()
+        .ok_or_else(|| invalid("learner old32 absent"))?;
+    let input_files = source_files(input)?;
+    let parent_context = fs::read(input.join("realizer-native/consumer/context-q4.bin"))?;
+    let initial_bits = parameter_bits(&source.parameters())?;
+    let bytes = fs::read(&a.tokenizer)?;
+    let compiler = SourceEmissionCompiler::new(&bytes)?;
+    let template = episodes
+        .first()
+        .ok_or_else(|| invalid("original episodes absent"))?;
+    let construction =
+        composition_panel(template, &tok, &compiler, native.binding().eos_token_id())?;
+    let saved: Value = serde_json::from_slice(&fs::read(
+        input
+            .parent()
+            .ok_or_else(|| invalid("composition envelope absent"))?
+            .join("construction-panel/panel.json"),
+    )?)?;
+    if saved["original_cases"] != serde_json::to_value(episode_labels(&episodes))?
+        || saved["construction_cases"] != serde_json::to_value(episode_labels(&construction))?
+    {
+        return Err(invalid("learner fixed panels differ"));
+    }
+    write(
+        &a.out.join("frozen-panel.json"),
+        &json!({"original":episode_labels(&episodes),"construction":episode_labels(&construction)}),
+    )?;
+    let mut accepted = 0usize;
+    let mut candidate_count = 0usize;
+    let mut rounds: Vec<Value> = Vec::new();
+    let mut last_accepted_replies: Option<(Value, Value)> = None;
+    let mut stop = "accepted_quantum_limit";
+    for round in 0..8usize {
+        deadline(start, a)?;
+        let root = a.out.join(format!("round-{round:02}"));
+        report_output::claim(&root)?;
+        let old_original = generate(
+            &format!("learn-{round:02}-incumbent-original"),
+            &native,
+            &episodes,
+            &tok,
+            start,
+            a,
+        )?;
+        let old_construction = generate(
+            &format!("learn-{round:02}-incumbent-construction"),
+            &native,
+            &construction,
+            &tok,
+            start,
+            a,
+        )?;
+        if round == 0
+            && (old_original["rows"] != evaluation["ownprefix"]["rows"]
+                || old_construction["rows"] != evaluation["construction_ownprefix"]["rows"])
+        {
+            return Err(invalid("learner saved28 initial rows differ"));
+        }
+        if old_construction["complete_answers"] == 8 {
+            write(
+                &root.join("report.json"),
+                &json!({"round":round,"accepted_before_round":accepted,
+                "stop_reason":"construction_complete","incumbent_original_generation":old_original,
+                "incumbent_construction_generation":old_construction,
+                "incumbent_original_canonical":context_direction_measure(&native,&episodes,start,a)?,
+                "incumbent_construction_canonical":context_direction_measure(&native,&construction,start,a)?,
+                "proposals":[],"selected_proposal":null}),
+            )?;
+            report_output::seal(&root)?;
+            report_output::verify(&root)?;
+            rounds.push(
+                json!({"round":round,"report_path":format!("round-{round:02}/report.json"),
+                "report_sha256":sha256_file(&root.join("report.json"))?,"selected_proposal":null,
+                "candidate_evaluations":0,"stop_reason":"construction_complete"}),
+            );
+            stop = "construction_complete";
+            break;
+        }
+        let positions = learning_frontiers(&construction, &old_construction, &tok, &native)?;
+        write(
+            &root.join("frozen-frontier.json"),
+            &json!({"positions":positions,"completed_case_policy":"actual accepted pre-EOS prefix, validated membership/continuity; EOS label offline only","candidate_selection_before_predictions":true}),
+        )?;
+        let baseline = frontier_measure(&positions, &construction, &native, start, a)?;
+        let baseline_ce = baseline["mean_episode_ce"]
+            .as_f64()
+            .filter(|v| v.is_finite())
+            .ok_or_else(|| invalid("learner baseline frontier CE nonfinite"))?;
+        let old_original_ce = context_direction_measure(&native, &episodes, start, a)?;
+        let old_construction_ce = context_direction_measure(&native, &construction, start, a)?;
+        let params = source.parameters();
+        let all_bits = parameter_bits(&params)?;
+        let context = params
+            .iter()
+            .filter(|(name, _)| name.starts_with("consumer.context."))
+            .map(|(name, var)| Ok((name.clone(), var.flatten_all()?.to_vec1::<f32>()?)))
+            .collect::<Result<BTreeMap<String, Vec<f32>>>>()?;
+        let measured = frontier_batch(&positions, &construction, &source, &native, start, a)?;
+        let mut gradients = BTreeMap::new();
+        let mut eligible = Vec::new();
+        for (name, values) in &context {
+            let g = measured
+                .gradients
+                .get(name)
+                .map(|t| t.flatten_all()?.to_vec1::<f32>())
+                .transpose()?
+                .unwrap_or_else(|| vec![0.; values.len()]);
+            if g.len() != values.len() {
+                return Err(invalid("learner gradient shape differs"));
+            }
+            for (index, (&gradient, &shadow)) in g.iter().zip(values).enumerate() {
+                if !gradient.is_finite() || !shadow.is_finite() {
+                    return Err(invalid("learner nonfinite source/credit"));
+                }
+                if gradient != 0. {
+                    eligible.push(DirectionCoordinate{name:name.clone(),index,
+                    gradient:f64::from(gradient),original_shadow:shadow,original_q:(shadow*4.).round() as i8,
+                    calibration:false,eligibility:vec![json!({"objective":"round-frozen actual first error/EOS anchor mean8 CE","coordinate_class":frontier_coordinate_class(name)})]});
+                }
+            }
+            gradients.insert(name.clone(), g);
+        }
+        let selected = select_frontier_direction(eligible);
+        write(
+            &root.join("selection.json"),
+            &json!({"selected":selected,"gradient_values":gradients,"credit":measured.report,"selector":"strongest finite nonzero interior q[-6,6] per root/category, ties name/index, both signs; no replacement","maximum_candidates":4,"biased_credit_not_discrete_derivative":true}),
+        )?;
+        let packed_before = fs::read(if round == 0 {
+            input.join("realizer-native/consumer/context-q4.bin")
+        } else {
+            let previous = rounds
+                .last()
+                .ok_or_else(|| invalid("prior accepted round absent"))?;
+            let winner = previous["selected_proposal"]
+                .as_u64()
+                .ok_or_else(|| invalid("prior winner absent"))?;
+            a.out.join(format!("round-{:02}/candidate-{winner:02}/checkpoint/realizer-native/consumer/context-q4.bin",round-1))
+        })?;
+        let mut proposals = Vec::new();
+        for c in &selected {
+            for delta in [-1i8, 1] {
+                deadline(start, a)?;
+                if candidate_count >= 32 {
+                    return Err(invalid("learner candidate cap exceeded"));
+                }
+                let q = c.original_q + delta;
+                let var = params
+                    .get(&c.name)
+                    .ok_or_else(|| invalid("learner Var absent"))?;
+                let original = context
+                    .get(&c.name)
+                    .ok_or_else(|| invalid("learner shadow absent"))?;
+                let mut changed = original.clone();
+                *changed
+                    .get_mut(c.index)
+                    .ok_or_else(|| invalid("learner index absent"))? = f32::from(q) * 0.25;
+                let candidate_root = root.join(format!("candidate-{:02}", proposals.len()));
+                report_output::claim(&candidate_root)?;
+                var.set(&Tensor::from_vec(changed, var.shape(), &Device::Cpu)?)?;
+                let attempt = (|| -> Result<Value> {
+                    let mut expected = all_bits.clone();
+                    *expected
+                        .get_mut(&c.name)
+                        .and_then(|v| v.get_mut(c.index))
+                        .ok_or_else(|| invalid("learner expected bits absent"))? =
+                        (f32::from(q) * 0.25).to_bits();
+                    if parameter_bits(&params)? != expected {
+                        return Err(invalid("learner other source bits changed"));
+                    }
+                    let (receipt, loaded) = checkpoint(
+                        &candidate_root.join("checkpoint"),
+                        &source,
+                        &identity,
+                        &bytes,
+                        &episodes,
+                        0,
+                        "native_screened_observation_proposal",
+                    )?;
+                    let packed = bin_files(&candidate_root.join("checkpoint/realizer-native"))?;
+                    if bins.keys().ne(packed.keys())
+                        || bins.iter().any(|(name, sha)| {
+                            name != "consumer/context-q4.bin" && packed.get(name) != Some(sha)
+                        })
+                    {
+                        return Err(invalid("learner readout/table/inventory changed"));
+                    }
+                    let family = c
+                        .name
+                        .strip_prefix("consumer.context.")
+                        .ok_or_else(|| invalid("learner family prefix absent"))?;
+                    let mut offset = 0usize;
+                    let mut found = false;
+                    for name in uor_r4_integer::geometric_context_q4::FAMILY_NAMES {
+                        if name == family {
+                            found = true;
+                            break;
+                        }
+                        offset += context
+                            .get(&format!("consumer.context.{name}"))
+                            .map_or(0, Vec::len);
+                    }
+                    if !found {
+                        return Err(invalid("learner packed family absent"));
+                    }
+                    let quantum = quantum_change(
+                        &packed_before,
+                        &fs::read(
+                            candidate_root
+                                .join("checkpoint/realizer-native/consumer/context-q4.bin"),
+                        )?,
+                        offset + c.index,
+                        delta,
+                    )?;
+                    let frontier = frontier_measure(&positions, &construction, &loaded, start, a)?;
+                    let original_ce = context_direction_measure(&loaded, &episodes, start, a)?;
+                    let construction_ce =
+                        context_direction_measure(&loaded, &construction, start, a)?;
+                    let original_generation = generate(
+                        &format!("learn-{round:02}-candidate-{:02}-original", proposals.len()),
+                        &loaded,
+                        &episodes,
+                        &tok,
+                        start,
+                        a,
+                    )?;
+                    let construction_generation = generate(
+                        &format!(
+                            "learn-{round:02}-candidate-{:02}-construction",
+                            proposals.len()
+                        ),
+                        &loaded,
+                        &construction,
+                        &tok,
+                        start,
+                        a,
+                    )?;
+                    let cumulative = packed_byte_changes(
+                        &parent_context,
+                        &fs::read(
+                            candidate_root
+                                .join("checkpoint/realizer-native/consumer/context-q4.bin"),
+                        )?,
+                    )?;
+                    let result = json!({"cumulative_packed_byte_changes_from_parent":cumulative,"coordinate":c,"delta_q":delta,"checkpoint":receipt,"quantum":quantum,"native_payload_sha256":packed,"all_other_source_bits_fixed":true,"readouts_tables_transitions_fixed":true,"frontier":frontier,"delta_round_frozen_ce":frontier["mean_episode_ce"].as_f64().map(|v|v-baseline_ce),"original_canonical":original_ce,"construction_canonical":construction_ce,"original_canonical_comparison":context_direction_comparison(&old_original_ce,&original_ce)?,"construction_canonical_comparison":context_direction_comparison(&old_construction_ce,&construction_ce)?,"original_generation":original_generation,"construction_generation":construction_generation,"original_reply_comparison":generation_comparison(&old_original,&original_generation)?,"construction_reply_comparison":generation_comparison(&old_construction,&construction_generation)?});
+                    write(&candidate_root.join("result.json"), &result)?;
+                    Ok(result)
+                })();
+                var.set(&Tensor::from_vec(
+                    original.clone(),
+                    var.shape(),
+                    &Device::Cpu,
+                )?)?;
+                if parameter_bits(&params)? != all_bits {
+                    return Err(invalid("learner shadow restore differs"));
+                }
+                if let Err(error) = &attempt {
+                    write(
+                        &candidate_root.join("error.json"),
+                        &json!({"error":error.to_string(),"source_restored":true}),
+                    )?;
+                }
+                report_output::seal(&candidate_root)?;
+                report_output::verify(&candidate_root)?;
+                proposals.push(attempt?);
+                candidate_count += 1;
+                write(
+                    &root.join("proposal-progress.json"),
+                    &json!({"completed_candidates":candidate_count,"round_completed_candidates":proposals.len(),"raw_results":"candidate-NN/result.json"}),
+                )?;
+            }
+        }
+        let scores = proposals
+            .iter()
+            .map(|v| v["frontier"]["mean_episode_ce"].as_f64())
+            .collect::<Vec<_>>();
+        let best = best_native_proposal(baseline_ce, &scores);
+        let proposal_summaries = proposals.iter().enumerate().map(|(index,result)| {
+            Ok(json!({"index":index,"result_path":format!("candidate-{index:02}/result.json"),
+                "result_sha256":sha256_file(&root.join(format!("candidate-{index:02}/result.json")))?,
+                "coordinate":result["coordinate"],"delta_q":result["delta_q"],
+                "round_frozen_ce":result["frontier"]["mean_episode_ce"],
+                "delta_round_frozen_ce":result["delta_round_frozen_ce"],
+                "original_complete":result["original_generation"]["complete_answers"],
+                "construction_complete":result["construction_generation"]["complete_answers"]}))
+        }).collect::<Result<Vec<Value>>>()?;
+        let report = json!({"round":round,"accepted_before_round":accepted,"frontier_sha256":sha256_file(&root.join("frozen-frontier.json"))?,"positions":positions,"baseline_frontier":baseline,"incumbent_original_generation":old_original,"incumbent_construction_generation":old_construction,"incumbent_original_canonical":old_original_ce,"incumbent_construction_canonical":old_construction_ce,"proposals":proposal_summaries,"selected_proposal":best,"acceptance":"strict native CE decrease on same frozen round positions; deterministic first proposal ties; preservation diagnostic only","loss_scope":"iteration-local, not a comparable cross-round curve"});
+        write(&root.join("report.json"), &report)?;
+        report_output::seal(&root)?;
+        report_output::verify(&root)?;
+        rounds.push(json!({"round":round,"report_path":format!("round-{round:02}/report.json"),"report_sha256":sha256_file(&root.join("report.json"))?,"selected_proposal":best,"baseline_round_frozen_ce":baseline_ce,"accepted_round_frozen_ce":best.and_then(|index|scores[index]),"candidate_evaluations":proposals.len()}));
+        write(&a.out.join("learning-progress.json"), &rounds)?;
+        if let Some(best) = best {
+            last_accepted_replies = Some((
+                proposals[best]["original_generation"].clone(),
+                proposals[best]["construction_generation"].clone(),
+            ));
+            let path = root.join(format!("candidate-{best:02}/checkpoint"));
+            source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
+            native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
+            accepted += 1;
+        } else {
+            stop = "no_native_improving_declared_proposal";
+            break;
+        }
+    }
+    let final_bits = parameter_bits(&source.parameters())?;
+    if initial_bits.keys().ne(final_bits.keys())
+        || initial_bits.iter().any(|(name, bits)| {
+            frontier_coordinate_class(name).is_none() && final_bits.get(name) != Some(bits)
+        })
+    {
+        return Err(invalid("learner changed transition/readout source"));
+    }
+    let (receipt, loaded) = checkpoint(
+        &a.out.join("final-checkpoint"),
+        &source,
+        &identity,
+        &bytes,
+        &episodes,
+        0,
+        "bounded_observation_learning_candidate_unadopted",
+    )?;
+    let final_bins = bin_files(&a.out.join("final-checkpoint/realizer-native"))?;
+    if bins.keys().ne(final_bins.keys())
+        || bins.iter().any(|(name, sha)| {
+            name != "consumer/context-q4.bin" && final_bins.get(name) != Some(sha)
+        })
+    {
+        return Err(invalid("learner final frozen payload mismatch"));
+    }
+    let final_original = generate("learn-final-original", &loaded, &episodes, &tok, start, a)?;
+    let final_construction = generate(
+        "learn-final-construction",
+        &loaded,
+        &construction,
+        &tok,
+        start,
+        a,
+    )?;
+    let replay_original = generate(
+        "learn-final-replay-original",
+        &native,
+        &episodes,
+        &tok,
+        start,
+        a,
+    )?;
+    let replay_construction = generate(
+        "learn-final-replay-construction",
+        &native,
+        &construction,
+        &tok,
+        start,
+        a,
+    )?;
+    if final_original["rows"] != replay_original["rows"]
+        || final_construction["rows"] != replay_construction["rows"]
+    {
+        return Err(invalid("learner final reload full replies differ"));
+    }
+    if let Some((original, construction)) = &last_accepted_replies {
+        if original["rows"] != final_original["rows"]
+            || construction["rows"] != final_construction["rows"]
+        {
+            return Err(invalid(
+                "final reload differs from final accepted candidate replies",
+            ));
+        }
+    }
+    if source_files(input)? != input_files {
+        return Err(invalid("learner parent inputs changed"));
+    }
+    report_output::verify(input)?;
+    write(
+        &a.out.join("report.json"),
+        &json!({"schema":"uor-r4.geometric-observation-learning/1","mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"input_files_sha256":input_files,"input_files_unchanged":true,"saved_parent28_rows_exact":true,"optimizer_updates":0,"accepted_quanta":accepted,"native_candidate_evaluations":candidate_count,"maximum_accepted_quanta":8,"maximum_native_candidates":32,"stop_reason":stop,"rounds":rounds,"final_checkpoint":receipt,"final_native_payload_sha256":final_bins,"final_original_generation":final_original,"final_construction_generation":final_construction,"final_original_canonical":context_direction_measure(&loaded,&episodes,start,a)?,"final_construction_canonical":context_direction_measure(&loaded,&construction,start,a)?,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":last_accepted_replies.is_some(),"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"scope":"bounded root/category learning on8 exposed construction plus20 preservation development cases; no heldout/general-chat/geometry-advantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
+    )?;
+    Ok(())
 }
 fn context_direction(a: &Args) -> Result<()> {
     let frontier = a.mode == "context-frontier-direction";
@@ -4218,6 +4727,47 @@ mod direction_tests {
         after["original_source_ids"] = json!([8]);
         assert!(generation_comparison(&json!({"rows":[row]}), &json!({"rows":[after]})).is_err());
         Ok(())
+    }
+    #[test]
+    fn completed_anchor_uses_actual_alias_and_rejects_false_trace() -> Result<()> {
+        // The accepted alias may use IDs unlike the canonical target. This
+        // validator preserves its actual trajectory; caller checks text membership.
+        let row = json!({"id":"alias","accepted_complete_answer":true,"eos":true,
+            "generated_ids":[8,9],"tokens":[{"step":0,"own_prefix_ids":[],"chosen_token_id":8},
+            {"step":1,"own_prefix_ids":[8],"chosen_token_id":9},
+            {"step":2,"own_prefix_ids":[8,9],"chosen_token_id":1}]});
+        assert_eq!(completed_eos_prefix(&row, "alias", 1)?, vec![8, 9]);
+        let mut bad = row.clone();
+        bad["tokens"][2]["own_prefix_ids"] = json!([3, 4]);
+        assert!(completed_eos_prefix(&bad, "alias", 1).is_err());
+        let mut bad = row.clone();
+        bad["tokens"][2]["step"] = json!(7);
+        assert!(completed_eos_prefix(&bad, "alias", 1).is_err());
+        let mut bad = row.clone();
+        bad["tokens"][2]["chosen_token_id"] = json!(7);
+        assert!(completed_eos_prefix(&bad, "alias", 1).is_err());
+        let mut bad = row.clone();
+        bad["accepted_complete_answer"] = json!(false);
+        assert!(completed_eos_prefix(&bad, "alias", 1).is_err());
+        let mut bad = row;
+        bad["tokens"] = json!([]);
+        assert!(completed_eos_prefix(&bad, "alias", 1).is_err());
+        Ok(())
+    }
+    #[test]
+    fn native_screen_selects_best_strict_decrease_with_stable_ties() {
+        assert_eq!(
+            best_native_proposal(2., &[Some(1.9), Some(1.8), Some(1.8), None]),
+            Some(1)
+        );
+        assert_eq!(
+            best_native_proposal(2., &[Some(2.), Some(2.1), Some(f64::NAN), None]),
+            None
+        );
+        assert_eq!(
+            best_native_proposal(2., &[Some(f64::NEG_INFINITY), Some(1.9)]),
+            Some(1)
+        );
     }
     #[test]
     fn frontier_rejects_absence_and_invalid_saved_prefix() -> Result<()> {

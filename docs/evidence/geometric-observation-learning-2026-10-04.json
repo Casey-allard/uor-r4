@@ -1,0 +1,3965 @@
+{
+  "schema": "uor-r4.geometric-observation-learning-evidence/1",
+  "recorded_utc": "2026-10-04T06:13:59.318927+00:00",
+  "references": [
+    1552,
+    1512
+  ],
+  "executed_source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+  "executable_sha256": "6497f25500ff53f1169822ea4c3d6cd2db981be42d0f7c6dedaf8cf5cd69486a",
+  "source_review": {
+    "status": "APPROVED",
+    "review_role": "independent adversarial architecture and exact-source review",
+    "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+    "source_sha256": "70a75ac08137befdec1d0d2233eb229e6b9845eb0f0848ad7b83cbeae9e22d1d",
+    "clean_tree": true,
+    "scope": "static source review only; compile/tests/native outputs are not implied",
+    "reviewed_invariants": [
+      "eight accepted quanta maximum, 32 fixed native proposal evaluations maximum",
+      "incumbent own-prefix regeneration and same eight frozen first-error/EOS positions per round",
+      "completed aliases use actual trace-continuous UTF8 oracle-confirmed prefix, offline EOS label only",
+      "strongest eligible root/category coordinate selected before outcomes; both signs; best strict finite native decrease; deterministic ties",
+      "source restored after each candidate before propagation; normal export and independent reload",
+      "one packed quantum relative incumbent; cumulative byte changes from retained parent",
+      "transition source and readout/exp payloads fixed; all28 canonical/generation row comparisons retained",
+      "sealed child results and SHA bound references avoid duplicate large nested raw reports",
+      "stop on no improving declared proposal, all8 construction complete, or accepted cap",
+      "final export/reload replies equal incumbent and final accepted candidate"
+    ],
+    "limitations": [
+      "biased STE is proposal credit, not discrete derivative",
+      "proposal-limited no progress does not reject geometric family",
+      "development construction data already exposed; no heldout/general chat/attention/energy qualification",
+      "preservation and full-answer CE remain tradeoff diagnostics, not blanket vetoes"
+    ],
+    "findings": []
+  },
+  "raw_review": {
+    "status": "PASS",
+    "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+    "scope": "independent saved arithmetic and exact source/payload identity; no model execution",
+    "accepted_quanta": 2,
+    "native_candidates": 12,
+    "rounds": [
+      {
+        "round": 0,
+        "baseline": {
+          "mean_ce": 2.0848708169263865,
+          "zero_target_mass_positions": 0,
+          "correct_frontier_tokens": 0,
+          "rows": [
+            {
+              "id": "construction-00",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 871204254,
+              "target_margin_q31": -1276279394,
+              "native_ce": 1.4843295976756024
+            },
+            {
+              "id": "construction-01",
+              "step": 2,
+              "target": 1130,
+              "winner": 284,
+              "target_mass_q31": 1391358259,
+              "target_margin_q31": -1047283162,
+              "native_ce": 1.6597327490950524
+            },
+            {
+              "id": "construction-02",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 100789666,
+              "target_margin_q31": -2046693982,
+              "native_ce": 3.36196281974454
+            },
+            {
+              "id": "construction-03",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 277080350,
+              "target_margin_q31": -1870403298,
+              "native_ce": 2.8144935567272946
+            },
+            {
+              "id": "construction-04",
+              "step": 0,
+              "target": 2593,
+              "winner": 1,
+              "target_mass_q31": 244522551,
+              "target_margin_q31": -1902961097,
+              "native_ce": 2.43997997741025
+            },
+            {
+              "id": "construction-05",
+              "step": 0,
+              "target": 363,
+              "winner": 1,
+              "target_mass_q31": 549123907,
+              "target_margin_q31": -1598359741,
+              "native_ce": 1.7803371579252627
+            },
+            {
+              "id": "construction-06",
+              "step": 2,
+              "target": 1130,
+              "winner": 16,
+              "target_mass_q31": 854035115,
+              "target_margin_q31": -1293448533,
+              "native_ce": 1.542196191411637
+            },
+            {
+              "id": "construction-07",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 848403343,
+              "target_margin_q31": -1299080305,
+              "native_ce": 1.5959344854214503
+            }
+          ]
+        },
+        "selected_proposal": 2,
+        "candidates": [
+          {
+            "coordinate": "consumer.context.token_root",
+            "index": 15825,
+            "delta_q": -1,
+            "frontier": {
+              "mean_ce": 2.098427439124459,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 871204254,
+                  "target_margin_q31": -1276279394,
+                  "native_ce": 1.4843295976756024
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 277080350,
+                  "target_margin_q31": -1870403298,
+                  "native_ce": 2.8144935567272946
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 244522551,
+                  "target_margin_q31": -1902961097,
+                  "native_ce": 2.43997997741025
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 759323327,
+                  "target_margin_q31": -1388160321,
+                  "native_ce": 1.7043874630060332
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12653488155957832,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3528477166289297,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_root",
+            "index": 15825,
+            "delta_q": 1,
+            "frontier": {
+              "mean_ce": 2.0704339707931765,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 244522551,
+                  "target_margin_q31": -1902961097,
+                  "native_ce": 2.43997997741025
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12647363944665974,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3514805937220467,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_category",
+            "index": 4449,
+            "delta_q": -1,
+            "frontier": {
+              "mean_ce": 2.034711441259099,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 871204254,
+                  "target_margin_q31": -1276279394,
+                  "native_ce": 1.4843295976756024
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 277080350,
+                  "target_margin_q31": -1870403298,
+                  "native_ce": 2.8144935567272946
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12653488155957832,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3528176310068678,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_category",
+            "index": 4449,
+            "delta_q": 1,
+            "frontier": {
+              "mean_ce": 2.168064726335426,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 871204254,
+                  "target_margin_q31": -1276279394,
+                  "native_ce": 1.5426547445662357
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 47609667,
+                  "target_margin_q31": -2099873981,
+                  "native_ce": 3.969188948126224
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 277080350,
+                  "target_margin_q31": -1870403298,
+                  "native_ce": 2.8144935567272946
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 244522551,
+                  "target_margin_q31": -1902961097,
+                  "native_ce": 2.43997997741025
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12835822151526005,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3604872987184433,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "baseline": {
+          "mean_ce": 2.034711441259099,
+          "zero_target_mass_positions": 0,
+          "correct_frontier_tokens": 0,
+          "rows": [
+            {
+              "id": "construction-00",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 871204254,
+              "target_margin_q31": -1276279394,
+              "native_ce": 1.4843295976756024
+            },
+            {
+              "id": "construction-01",
+              "step": 2,
+              "target": 1130,
+              "winner": 284,
+              "target_mass_q31": 1391358259,
+              "target_margin_q31": -1047283162,
+              "native_ce": 1.6597327490950524
+            },
+            {
+              "id": "construction-02",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 100789666,
+              "target_margin_q31": -2046693982,
+              "native_ce": 3.36196281974454
+            },
+            {
+              "id": "construction-03",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 277080350,
+              "target_margin_q31": -1870403298,
+              "native_ce": 2.8144935567272946
+            },
+            {
+              "id": "construction-04",
+              "step": 0,
+              "target": 2593,
+              "winner": 1,
+              "target_mass_q31": 403149531,
+              "target_margin_q31": -1744334117,
+              "native_ce": 2.0387049720719523
+            },
+            {
+              "id": "construction-05",
+              "step": 0,
+              "target": 363,
+              "winner": 1,
+              "target_mass_q31": 549123907,
+              "target_margin_q31": -1598359741,
+              "native_ce": 1.7803371579252627
+            },
+            {
+              "id": "construction-06",
+              "step": 2,
+              "target": 1130,
+              "winner": 16,
+              "target_mass_q31": 854035115,
+              "target_margin_q31": -1293448533,
+              "native_ce": 1.542196191411637
+            },
+            {
+              "id": "construction-07",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 848403343,
+              "target_margin_q31": -1299080305,
+              "native_ce": 1.5959344854214503
+            }
+          ]
+        },
+        "selected_proposal": 1,
+        "candidates": [
+          {
+            "coordinate": "consumer.context.token_root",
+            "index": 15825,
+            "delta_q": -1,
+            "frontier": {
+              "mean_ce": 2.048268063457172,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 871204254,
+                  "target_margin_q31": -1276279394,
+                  "native_ce": 1.4843295976756024
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 277080350,
+                  "target_margin_q31": -1870403298,
+                  "native_ce": 2.8144935567272946
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 759323327,
+                  "target_margin_q31": -1388160321,
+                  "native_ce": 1.7043874630060332
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12653488155957832,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3545122087816268,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_root",
+            "index": 15825,
+            "delta_q": 1,
+            "frontier": {
+              "mean_ce": 2.0202745951258896,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12647363944665974,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3531450858747438,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_category",
+            "index": 4423,
+            "delta_q": -1,
+            "frontier": {
+              "mean_ce": 2.034711441259099,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 871204254,
+                  "target_margin_q31": -1276279394,
+                  "native_ce": 1.4843295976756024
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 277080350,
+                  "target_margin_q31": -1870403298,
+                  "native_ce": 2.8144935567272946
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.1315811857489797,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3528176310068678,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_category",
+            "index": 4423,
+            "delta_q": 1,
+            "frontier": {
+              "mean_ce": 2.092225836692549,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 465994075,
+                  "target_margin_q31": -1681489573,
+                  "native_ce": 1.9444447611432036
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 277080350,
+                  "target_margin_q31": -1870403298,
+                  "native_ce": 2.8144935567272946
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12653488155957832,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3600069304360491,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        ]
+      },
+      {
+        "round": 2,
+        "baseline": {
+          "mean_ce": 2.0202745951258896,
+          "zero_target_mass_positions": 0,
+          "correct_frontier_tokens": 0,
+          "rows": [
+            {
+              "id": "construction-00",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 781404467,
+              "target_margin_q31": -1366079181,
+              "native_ce": 1.5714193158999006
+            },
+            {
+              "id": "construction-01",
+              "step": 2,
+              "target": 1130,
+              "winner": 284,
+              "target_mass_q31": 1391358259,
+              "target_margin_q31": -1047283162,
+              "native_ce": 1.6597327490950524
+            },
+            {
+              "id": "construction-02",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 100789666,
+              "target_margin_q31": -2046693982,
+              "native_ce": 3.36196281974454
+            },
+            {
+              "id": "construction-03",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 323376228,
+              "target_margin_q31": -1824107420,
+              "native_ce": 2.6119090694373184
+            },
+            {
+              "id": "construction-04",
+              "step": 0,
+              "target": 2593,
+              "winner": 1,
+              "target_mass_q31": 403149531,
+              "target_margin_q31": -1744334117,
+              "native_ce": 2.0387049720719523
+            },
+            {
+              "id": "construction-05",
+              "step": 0,
+              "target": 363,
+              "winner": 1,
+              "target_mass_q31": 549123907,
+              "target_margin_q31": -1598359741,
+              "native_ce": 1.7803371579252627
+            },
+            {
+              "id": "construction-06",
+              "step": 2,
+              "target": 1130,
+              "winner": 16,
+              "target_mass_q31": 854035115,
+              "target_margin_q31": -1293448533,
+              "native_ce": 1.542196191411637
+            },
+            {
+              "id": "construction-07",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 848403343,
+              "target_margin_q31": -1299080305,
+              "native_ce": 1.5959344854214503
+            }
+          ]
+        },
+        "selected_proposal": null,
+        "candidates": [
+          {
+            "coordinate": "consumer.context.token_root",
+            "index": 15825,
+            "delta_q": -1,
+            "frontier": {
+              "mean_ce": 2.034711441259099,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 871204254,
+                  "target_margin_q31": -1276279394,
+                  "native_ce": 1.4843295976756024
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 277080350,
+                  "target_margin_q31": -1870403298,
+                  "native_ce": 2.8144935567272946
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12653488155957832,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3528176310068678,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_root",
+            "index": 15825,
+            "delta_q": 1,
+            "frontier": {
+              "mean_ce": 2.0202745951258896,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12653562114865988,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.351597472893078,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_category",
+            "index": 4423,
+            "delta_q": -1,
+            "frontier": {
+              "mean_ce": 2.0202745951258896,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.13150426276696217,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3531450858747438,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "coordinate": "consumer.context.token_category",
+            "index": 4423,
+            "delta_q": 1,
+            "frontier": {
+              "mean_ce": 2.0805539758727267,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 411527751,
+                  "target_margin_q31": -1735955897,
+                  "native_ce": 2.0536543618746
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12647363944665974,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3606800084680983,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "canonical_positions_checked": 2848,
+    "generated_steps_checked": 2348,
+    "credit_positions_checked": 24,
+    "native_frontier_positions_checked": 120,
+    "parent_files_checked": 21
+  },
+  "plateau_review": {
+    "status": "PASS",
+    "scope": "independent saved-trace plateau classification; no model execution",
+    "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+    "native_source_rule": "geometric_context.rs:571-580 category0 yields absent AddressLane regardless of selected raw root",
+    "interpretation": "final root+ candidate changes one raw root hidden by category0; final category- remains entirely within existing discrete observation cells; strongest-coordinate stop is proposal-limited",
+    "candidates": [
+      {
+        "round": 0,
+        "candidate": 0,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "root",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": -0.003012305125594139,
+          "index": 15825,
+          "name": "consumer.context.token_root",
+          "original_q": 2,
+          "original_shadow": 0.4318483769893646
+        },
+        "delta_q": -1,
+        "delta_frozen_ce": 0.013556622198072521,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 105,
+                "new_raw_root": 104,
+                "old_category": 16,
+                "new_category": 16,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 15,
+                  "root": 105
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 15,
+                  "root": 104
+                }
+              }
+            ]
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 0,
+        "candidate": 1,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "root",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": -0.003012305125594139,
+          "index": 15825,
+          "name": "consumer.context.token_root",
+          "original_q": 2,
+          "original_shadow": 0.4318483769893646
+        },
+        "delta_q": 1,
+        "delta_frozen_ce": -0.014436846133210057,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 9,
+                "new_raw_root": 105,
+                "old_category": 12,
+                "new_category": 12,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 11,
+                  "root": 9
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 11,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": false,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 52,
+                "new_raw_root": 105,
+                "old_category": 10,
+                "new_category": 10,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 9,
+                  "root": 52
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 9,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 62,
+                "new_raw_root": 105,
+                "old_category": 22,
+                "new_category": 22,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 21,
+                  "root": 62
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 21,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": false,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 104,
+                "new_raw_root": 105,
+                "old_category": 13,
+                "new_category": 13,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 12,
+                  "root": 104
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 12,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 0,
+        "candidate": 2,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "category",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": 0.022600501775741577,
+          "index": 4449,
+          "name": "consumer.context.token_category",
+          "original_q": 2,
+          "original_shadow": 0.39694902300834656
+        },
+        "delta_q": -1,
+        "delta_frozen_ce": -0.05015937566728734,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 1,
+              "codes": 1
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 0,
+        "candidate": 3,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "category",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": 0.022600501775741577,
+          "index": 4449,
+          "name": "consumer.context.token_category",
+          "original_q": 2,
+          "original_shadow": 0.39694902300834656
+        },
+        "delta_q": 1,
+        "delta_frozen_ce": 0.08319390940903926,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 1,
+              "codes": 1
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 1,
+              "codes": 1
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 1,
+        "candidate": 0,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "root",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": -0.002987475832924247,
+          "index": 15825,
+          "name": "consumer.context.token_root",
+          "original_q": 2,
+          "original_shadow": 0.4318483769893646
+        },
+        "delta_q": -1,
+        "delta_frozen_ce": 0.013556622198072965,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 105,
+                "new_raw_root": 104,
+                "old_category": 16,
+                "new_category": 16,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 15,
+                  "root": 105
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 15,
+                  "root": 104
+                }
+              }
+            ]
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 1,
+        "candidate": 1,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "root",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": -0.002987475832924247,
+          "index": 15825,
+          "name": "consumer.context.token_root",
+          "original_q": 2,
+          "original_shadow": 0.4318483769893646
+        },
+        "delta_q": 1,
+        "delta_frozen_ce": -0.014436846133209613,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 9,
+                "new_raw_root": 105,
+                "old_category": 12,
+                "new_category": 12,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 11,
+                  "root": 9
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 11,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": false,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 52,
+                "new_raw_root": 105,
+                "old_category": 10,
+                "new_category": 10,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 9,
+                  "root": 52
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 9,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 62,
+                "new_raw_root": 105,
+                "old_category": 22,
+                "new_category": 22,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 21,
+                  "root": 62
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 21,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": false,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 104,
+                "new_raw_root": 105,
+                "old_category": 13,
+                "new_category": 13,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 12,
+                  "root": 104
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 12,
+                  "root": 105
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 1,
+        "candidate": 2,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "category",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": 0.02213326469063759,
+          "index": 4423,
+          "name": "consumer.context.token_category",
+          "original_q": 1,
+          "original_shadow": 0.14334627985954285
+        },
+        "delta_q": -1,
+        "delta_frozen_ce": 0.0,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 1,
+        "candidate": 3,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "category",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": 0.02213326469063759,
+          "index": 4423,
+          "name": "consumer.context.token_category",
+          "original_q": 1,
+          "original_shadow": 0.14334627985954285
+        },
+        "delta_q": 1,
+        "delta_frozen_ce": 0.05751439543344983,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 1,
+              "codes": 1
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 2,
+        "candidate": 0,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "root",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": -0.0038153743371367455,
+          "index": 15825,
+          "name": "consumer.context.token_root",
+          "original_q": 3,
+          "original_shadow": 0.75
+        },
+        "delta_q": -1,
+        "delta_frozen_ce": 0.014436846133209613,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 105,
+                "new_raw_root": 9,
+                "old_category": 12,
+                "new_category": 12,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 11,
+                  "root": 105
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 11,
+                  "root": 9
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": false,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 105,
+                "new_raw_root": 52,
+                "old_category": 10,
+                "new_category": 10,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 9,
+                  "root": 105
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 9,
+                  "root": 52
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 105,
+                "new_raw_root": 62,
+                "old_category": 22,
+                "new_category": 22,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 21,
+                  "root": 105
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 21,
+                  "root": 62
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": false,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 1
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 105,
+                "new_raw_root": 104,
+                "old_category": 13,
+                "new_category": 13,
+                "old_code": {
+                  "present": true,
+                  "radius_bin": 12,
+                  "root": 105
+                },
+                "new_code": {
+                  "present": true,
+                  "radius_bin": 12,
+                  "root": 104
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 2,
+        "candidate": 1,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "root",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": -0.0038153743371367455,
+          "index": 15825,
+          "name": "consumer.context.token_root",
+          "original_q": 3,
+          "original_shadow": 0.75
+        },
+        "delta_q": 1,
+        "delta_frozen_ce": 0.0,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": false,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 1,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": [
+              {
+                "flat_index": 115,
+                "input_token": 16,
+                "head": 0,
+                "lane": 3,
+                "old_raw_root": 116,
+                "new_raw_root": 105,
+                "old_category": 0,
+                "new_category": 0,
+                "old_code": {
+                  "present": false,
+                  "radius_bin": 0,
+                  "root": 1
+                },
+                "new_code": {
+                  "present": false,
+                  "radius_bin": 0,
+                  "root": 1
+                }
+              }
+            ]
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 2,
+        "candidate": 2,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "category",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": 0.02241036854684353,
+          "index": 4423,
+          "name": "consumer.context.token_category",
+          "original_q": 1,
+          "original_shadow": 0.14334627985954285
+        },
+        "delta_q": -1,
+        "delta_frozen_ce": 0.0,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      },
+      {
+        "round": 2,
+        "candidate": 3,
+        "coordinate": {
+          "calibration": false,
+          "eligibility": [
+            {
+              "coordinate_class": "category",
+              "objective": "round-frozen actual first error/EOS anchor mean8 CE"
+            }
+          ],
+          "gradient": 0.02241036854684353,
+          "index": 4423,
+          "name": "consumer.context.token_category",
+          "original_q": 1,
+          "original_shadow": 0.14334627985954285
+        },
+        "delta_q": 1,
+        "delta_frozen_ce": 0.06027938074683714,
+        "rows": [
+          {
+            "id": "construction-00",
+            "same_full_native_trace": false,
+            "same_action_distribution": false,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 1,
+              "codes": 1
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-01",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-02",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-03",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-04",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-05",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-06",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          },
+          {
+            "id": "construction-07",
+            "same_full_native_trace": true,
+            "same_action_distribution": true,
+            "context_changes": {
+              "states": 0,
+              "actions": 0,
+              "raw_roots": 0,
+              "categories": 0,
+              "codes": 0
+            },
+            "raw_root_changes": []
+          }
+        ],
+        "original_complete": 20,
+        "construction_complete": 0
+      }
+    ]
+  },
+  "return_verification": {
+    "status": "PASS",
+    "file_count": 367,
+    "total_bytes": 974221835,
+    "exact_file_set_sha256_size": true
+  },
+  "worker_receipts": {
+    "observation-run-505d2d31-resource.json": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T06:03:09.156281+00:00",
+      "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/geometric-source-realizer-505d2d31-linux-x86_64",
+        "/root/codex/learn-args.json"
+      ],
+      "cwd": "/root/codex/geometric-observation-learning-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 166673,
+      "worker_pid": 166674,
+      "exit_code": 1,
+      "stop_reason": null,
+      "elapsed_seconds": 2.2044380512088537,
+      "sampled_process_tree_peak_rss_bytes": 1732608,
+      "rusage_children_max_rss_bytes": 13676544,
+      "codex_allocated_bytes_latest": 7131328512,
+      "free_bytes_final": 17013780480,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 8589934592,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "observation-test2-505d2d31-resource.json": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T05:57:30.609576+00:00",
+      "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-observation-learning-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 164647,
+      "worker_pid": 164648,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 99.0720403608866,
+      "sampled_process_tree_peak_rss_bytes": 8240631808,
+      "rusage_children_max_rss_bytes": 7702466560,
+      "codex_allocated_bytes_latest": 6562349056,
+      "free_bytes_final": 17023385600,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "observation-build-505d2d31-resource.json": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T06:02:25.623363+00:00",
+      "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-observation-learning-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 165428,
+      "worker_pid": 165429,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 287.29673285689205,
+      "sampled_process_tree_peak_rss_bytes": 5657309184,
+      "rusage_children_max_rss_bytes": 4185243648,
+      "codex_allocated_bytes_latest": 7121776640,
+      "free_bytes_final": 17023221760,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "observation-run2-505d2d31-resource.json": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T06:05:10.626793+00:00",
+      "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/geometric-source-realizer-505d2d31-linux-x86_64",
+        "/root/codex/learn2-args.json"
+      ],
+      "cwd": "/root/codex/geometric-observation-learning-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 166971,
+      "worker_pid": 166972,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 34.427486716769636,
+      "sampled_process_tree_peak_rss_bytes": 1336840192,
+      "rusage_children_max_rss_bytes": 1482842112,
+      "codex_allocated_bytes_latest": 7680819200,
+      "free_bytes_final": 16038526976,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 8589934592,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "observation-test-505d2d31-resource.json": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T05:54:52.555160+00:00",
+      "source_commit": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-observation-learning-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "505d2d310f34ed4344a69d550ea6dcebf1db5f24",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 164426,
+      "worker_pid": 164428,
+      "exit_code": 101,
+      "stop_reason": null,
+      "elapsed_seconds": 2.1308093299157917,
+      "sampled_process_tree_peak_rss_bytes": 1773568,
+      "rusage_children_max_rss_bytes": 20045824,
+      "codex_allocated_bytes_latest": 6239457280,
+      "free_bytes_final": 17877839872,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "resource_projection": {
+    "task": "native-screened iterative root/category observation learning",
+    "utc": "2026-10-04T05:49:43.683578+00:00",
+    "base": "557c8871",
+    "complete_work_projection_minutes": 120,
+    "ledger_before": {
+      "cumulative_ms": 1076235028,
+      "limit_ms": 1130000000
+    },
+    "threads_total_max": 48,
+    "gpu": false,
+    "build_and_test_each_seconds": 900,
+    "build_and_test_each_peak_rss_bytes": 17179869184,
+    "model_seconds": 900,
+    "model_peak_rss_bytes": 8589934592,
+    "accepted_quanta_max": 8,
+    "candidate_evaluations_max": 32,
+    "context_tokens": 128,
+    "response_tokens": 64,
+    "original_rows": 20,
+    "construction_rows": 8,
+    "transfer_rows": 0,
+    "new_pod_storage_max_bytes": 3221225472,
+    "new_local_return_max_bytes": 3758096384,
+    "pod_owned_stop_bytes": 10522669875,
+    "shared_free_stop_bytes": 4429185024,
+    "storage_stop_margin_bytes": 134217728,
+    "storage_precondition": "Verify prior direction-1/frontier-1 pod reports exactly against returned local file sets and hashes before removing ONLY those redundant remote copies; unique local copies and source-bound binaries preserved. New reports all retained and returned.",
+    "host": "existing authorized Runpod Linux x86_64 /root/codex CPU area",
+    "scope": "offline Rust guided discrete learning; existing native export/serving unchanged; no session edits/new paid compute/runner/GPU/laptop modelCPU",
+    "model_seconds_reason": "32 candidates plus per-round incumbent/final full28 replies, ordinary8credit and native export/reload; previous4candidates16s suggests <200s; 900s includes monitored stop/finalization margin"
+  },
+  "resource_charge": {
+    "utc": "2026-10-04T06:11:59.195097+00:00",
+    "task": "geometric-observation-learning-20261004",
+    "charged_ms": 7200000,
+    "basis": "single conservative complete120min envelope: prep/source/review/archive/failed setup repair/tests/build/native/return/docs/protected delivery/cleanup; not measured model elapsed or sum of concurrent agent time",
+    "before": {
+      "cumulative_ms": 1076235028,
+      "limit_ms": 1130000000
+    },
+    "after": {
+      "cumulative_ms": 1083435028,
+      "limit_ms": 1130000000
+    },
+    "ceiling_unchanged": true
+  },
+  "accepted_quanta": 2,
+  "candidate_evaluations": 12,
+  "stop_reason": "no_native_improving_declared_proposal",
+  "final_original_complete": 20,
+  "final_construction_complete": 0,
+  "final_original_ce": 0.12647363944665974,
+  "final_construction_ce": 1.3531450858747438,
+  "parent_inputs_unchanged": true,
+  "transitions_readouts_tables_fixed": true,
+  "final_independent_reload_equal": true,
+  "no_adopted_model": true,
+  "exposed_development_only": true,
+  "local_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-observation-learning-20261004",
+  "pod_card_released": true,
+  "pod_owned_kib_after_return": 8003252,
+  "scope": "offline Rust discrete observation learning; existing served numerical path unchanged. No heldout/general-chat/geometry-advantage/laptop-energy qualification. Compatibility CI names are not tests.",
+  "next": {
+    "status": "NOT_RUN",
+    "task": "offline observable-cell proposal builder using exact per-lane native root/category winner margins and presence; retain same-prefix native screening",
+    "constraints": [
+      "do not pair strongest root/category across different lanes",
+      "do not repeat strongest-coordinate quarter search unchanged",
+      "do not infer family failure from bounded proposal stop",
+      "no serving/runtime/session patch"
+    ]
+  }
+}

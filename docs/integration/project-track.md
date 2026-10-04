@@ -119,7 +119,7 @@ Both useful frontier directions preserve20 originals but construction stays0/8; 
 candidate is adopted. Next test bounded native-screened observation learning, comparing
 candidates on the same frozen frontiers within each round, then regenerate/refresh after
 acceptance. Transitions/readouts stay fixed initially; proposed8acceptedquanta/32candidate
-cap and explicit completed-case offline EOSanchor. This learner is NOT_RUN. Preserve
+cap and explicit completed-case offline EOSanchor. The [bounded learner](geometric-observation-learning-2026-10-04.md) is now executed:2acceptedquanta/12proposals, all20original replies preserved, construction0/8. Proposalpolicy stops at observable plateaus, including a latentroot hidden byabsence; the strongest root/category occupy different lanes. Next implement offline per-lane native winner-margin inspection and minimal legal observable-cell proposals, retaining same-prefix native screening and considering presence/root coupling only within the same lane. This successor is NOT_RUN. Preserve
 allrow tradeoffs/fullanswerCE; no single-quarter greedyflip gate, unchanged direction
 study, unrestricted jointdose, completion patch or geometry-family rejection. The inspected transfer remains development.
 Do not add a progress cursor from these first-token failures, repeat the original
