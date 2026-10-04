@@ -60,7 +60,7 @@ Select the device explicitly: `device=cuda`. There is **no implicit fallback**; 
 ## 6. Known gaps (from the evidence; check the code before relying on this list)
 
 - RoPE and flock selection inside the fused read use the **host (CPU) fallback**, so a RoPE-based control runs mostly on the CPU even with `device=cuda`. A CUDA RoPE kernel is tracked separately.
-- The pointer mixture uses the host fallback.
+- The pointer mixture has CUDA forward and backward kernels for Dot and Lorentz scores over every source; a `pointer_select` or `pointer_route` configuration still uses the host fallback.
 - Operations without a GPU kernel run on host copies; GPU speed-up is therefore workload-dependent.
 - The reported single-RTX-4090 training throughput at 8M, 20M and 29M was 55.4k, 67.8k and 49.6k tokens/s (a log summary in the evidence; not a benchmark of this page's recipe).
 

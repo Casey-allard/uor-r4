@@ -2,7 +2,8 @@
 //!
 //! Each op's `cuda_fwd` and its backward's `Device::Cuda` branch call into
 //! this module. Configurations without a kernel (a transport snap, RoPE or a
-//! flock selection in the read, the pointer mixture, non-contiguous inputs)
+//! flock selection in the read, a selected or prime-routed pointer mixture,
+//! non-contiguous inputs)
 //! run the exact CPU forward on host copies ([`via_host1`] and friends), and
 //! their backward takes the generic host path, so CUDA training always
 //! computes what the CPU computes. The kernels live in
@@ -1061,6 +1062,266 @@ impl FusedRead {
             tensor(dq, device, query.shape()),
             tensor(dkv, device, kv.shape()),
             d_aux,
+        ))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// The pointer-copy mixture loss.
+
+/// The device buffers of one evaluated batch of pointer rows.
+struct CudaPointerPass {
+    /// [rows, time] attention (forward) or per-source gradient (backward).
+    scratch: CudaSlice<f64>,
+    /// Forward: `-weight log mixture` per row.
+    row_value: CudaSlice<f64>,
+    /// Backward: the logit gradient's per-row factor `c share_generate`.
+    scale_z: CudaSlice<f64>,
+    /// Backward: the side gradient (gate column written by the row pass).
+    d_side: CudaSlice<f32>,
+    /// Backward: per-row d loss / d beta.
+    row_beta: CudaSlice<f64>,
+    /// Backward (Lorentz): the query's self coefficient per row.
+    query_self: CudaSlice<f64>,
+    query_lift: CudaSlice<f64>,
+    key_lift: CudaSlice<f64>,
+    /// Row log-sum-exps of the logits (f64) and the uploaded targets.
+    lse: CudaSlice<f64>,
+    targets: CudaSlice<u32>,
+}
+
+impl PointerMixture {
+    /// Whether the CUDA kernels cover this configuration: Dot or Lorentz
+    /// scores over every source. A selection, a prime route (and the L2
+    /// score `PointerConfig::validate` refuses) run on the host.
+    pub(super) fn cuda_covered(&self) -> bool {
+        self.select.is_none() && self.route.is_none() && self.score != ReadScore::L2
+    }
+
+    fn cuda_dims(&self, rows: usize, vocabulary: usize, backward: bool) -> CResult<[u32; 8]> {
+        Ok([
+            u32_of(rows, "rows")?,
+            u32_of(self.time, "time")?,
+            u32_of(self.dim, "pointer width")?,
+            u32_of(vocabulary, "vocabulary")?,
+            u32::from(self.score == ReadScore::Lorentz),
+            u32::from(backward),
+            0,
+            0,
+        ])
+    }
+
+    fn cuda_check(&self, vocabulary: usize) -> CResult<()> {
+        if self.dim == 0 || vocabulary == 0 {
+            candle_core::bail!("CUDA pointer mixture requires positive dimensions");
+        }
+        if self.targets.iter().any(|&t| t as usize >= vocabulary) {
+            candle_core::bail!("pointer mixture target outside the vocabulary");
+        }
+        Ok(())
+    }
+
+    /// The weights as uploaded (ones when unweighted).
+    fn cuda_weights(&self, rows: usize) -> Vec<f32> {
+        self.weights.clone().unwrap_or_else(|| vec![1.0; rows])
+    }
+
+    /// Log-sum-exps, lifts and the row pass on the device. `grad` is the
+    /// one-element upstream gradient (any one-element buffer in the forward).
+    #[allow(clippy::too_many_arguments)]
+    fn cuda_pass(
+        &self,
+        device: &CudaDevice,
+        logits: CudaView<'_, f32>,
+        side: CudaView<'_, f32>,
+        beta: CudaView<'_, f32>,
+        grad: CudaView<'_, f32>,
+        vocabulary: usize,
+        backward: bool,
+    ) -> CResult<CudaPointerPass> {
+        let rows = self.targets.len();
+        let dims = self.cuda_dims(rows, vocabulary, backward)?;
+        let targets = device.clone_htod(&self.targets)?;
+        let ids = device.clone_htod(&self.ids)?;
+        let weights = device.clone_htod(&self.cuda_weights(rows))?;
+        let total = device.clone_htod(&[self.total()])?;
+        let (lse, _) = cross_entropy_rows(device, logits.slice(..), &targets, rows, vocabulary)?;
+        let query_lift = zeros::<f64>(device, rows)?;
+        let key_lift = zeros::<f64>(device, rows)?;
+        if self.score == ReadScore::Lorentz {
+            launch(
+                device,
+                "pointer_lift",
+                rows,
+                &[
+                    Arg::F(side.slice(..)),
+                    Arg::d(&query_lift),
+                    Arg::d(&key_lift),
+                    Arg::Dims(dims),
+                ],
+            )?;
+        }
+        let stride = 2 * self.dim + 1;
+        let pass = CudaPointerPass {
+            scratch: zeros::<f64>(device, rows * self.time)?,
+            row_value: zeros::<f64>(device, rows)?,
+            scale_z: zeros::<f64>(device, rows)?,
+            d_side: zeros::<f32>(device, if backward { rows * stride } else { 1 })?,
+            row_beta: zeros::<f64>(device, rows)?,
+            query_self: zeros::<f64>(device, rows)?,
+            query_lift,
+            key_lift,
+            lse,
+            targets,
+        };
+        launch(
+            device,
+            "pointer_rows",
+            32 * rows,
+            &[
+                Arg::F(logits),
+                Arg::F(side),
+                Arg::F(beta),
+                Arg::u(&ids),
+                Arg::u(&pass.targets),
+                Arg::f(&weights),
+                Arg::d(&pass.lse),
+                Arg::d(&pass.query_lift),
+                Arg::d(&pass.key_lift),
+                Arg::F(grad),
+                Arg::d(&total),
+                Arg::d(&pass.scratch),
+                Arg::d(&pass.row_value),
+                Arg::d(&pass.scale_z),
+                Arg::f(&pass.d_side),
+                Arg::d(&pass.row_beta),
+                Arg::d(&pass.query_self),
+                Arg::Dims(dims),
+            ],
+        )?;
+        Ok(pass)
+    }
+
+    pub(super) fn cuda_fwd_impl(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+        s3: &CudaStorage,
+        l3: &Layout,
+    ) -> Forward {
+        if !self.cuda_covered() {
+            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
+        }
+        let (rows, vocabulary) = self.check(l1, l2, l3)?;
+        self.cuda_check(vocabulary)?;
+        let (Some(logits), Some(side), Some(beta)) =
+            (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
+        else {
+            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
+        };
+        let device = &s1.device;
+        let pass = self.cuda_pass(
+            device,
+            logits,
+            side,
+            beta.slice(..),
+            beta.slice(..),
+            vocabulary,
+            false,
+        )?;
+        let total = device.clone_htod(&[self.total()])?;
+        let out = zeros::<f32>(device, 1)?;
+        launch(
+            device,
+            "pointer_sum",
+            1,
+            &[
+                Arg::d(&pass.row_value),
+                Arg::d(&total),
+                Arg::f(&out),
+                Arg::U32(u32_of(rows, "rows")?),
+            ],
+        )?;
+        Ok((storage(out, device), Shape::from(())))
+    }
+
+    /// The exact backward on CUDA: the logit, side and scale gradients.
+    pub(super) fn cuda_bwd(
+        &self,
+        device: &CudaDevice,
+        logits: &Tensor,
+        side: &Tensor,
+        beta: &Tensor,
+        grad: &Tensor,
+    ) -> CResult<(Tensor, Tensor, Tensor)> {
+        let (rows, vocabulary) = self.check(logits.layout(), side.layout(), beta.layout())?;
+        self.cuda_check(vocabulary)?;
+        if grad.elem_count() != 1 {
+            candle_core::bail!("pointer mixture backward expects a scalar gradient");
+        }
+        let (lt, st, bt, gt) = (ready(logits)?, ready(side)?, ready(beta)?, ready(grad)?);
+        let (ls, ll) = lt.storage_and_layout();
+        let (ss, sl) = st.storage_and_layout();
+        let (bs, bl) = bt.storage_and_layout();
+        let (gs, gl) = gt.storage_and_layout();
+        let (lv, sv, bv, gv) = (
+            view(&ls, ll)?,
+            view(&ss, sl)?,
+            view(&bs, bl)?,
+            view(&gs, gl)?,
+        );
+        let pass = self.cuda_pass(device, lv.slice(..), sv.slice(..), bv, gv, vocabulary, true)?;
+        let dims = self.cuda_dims(rows, vocabulary, true)?;
+        launch(
+            device,
+            "pointer_side_grad",
+            rows * 2 * self.dim,
+            &[
+                Arg::F(sv),
+                Arg::d(&pass.scratch),
+                Arg::d(&pass.query_lift),
+                Arg::d(&pass.key_lift),
+                Arg::d(&pass.query_self),
+                Arg::f(&pass.d_side),
+                Arg::Dims(dims),
+            ],
+        )?;
+        // d z_v = c share_generate (softmax_v - [v = target]): the
+        // cross-entropy gradient kernel with the per-row factor.
+        let d_logits = zeros::<f32>(device, rows * vocabulary)?;
+        launch(
+            device,
+            "cross_entropy_grad",
+            rows * vocabulary,
+            &[
+                Arg::F(lv),
+                Arg::u(&pass.targets),
+                Arg::d(&pass.lse),
+                Arg::d(&pass.scale_z),
+                Arg::f(&d_logits),
+                Arg::U32(u32_of(rows, "rows")?),
+                Arg::U32(u32_of(vocabulary, "vocabulary")?),
+            ],
+        )?;
+        let one = device.clone_htod(&[1.0f64])?;
+        let d_beta = zeros::<f32>(device, 1)?;
+        launch(
+            device,
+            "pointer_sum",
+            1,
+            &[
+                Arg::d(&pass.row_beta),
+                Arg::d(&one),
+                Arg::f(&d_beta),
+                Arg::U32(u32_of(rows, "rows")?),
+            ],
+        )?;
+        Ok((
+            tensor(d_logits, device, logits.shape()),
+            tensor(pass.d_side, device, side.shape()),
+            tensor(d_beta, device, beta.shape()),
         ))
     }
 }

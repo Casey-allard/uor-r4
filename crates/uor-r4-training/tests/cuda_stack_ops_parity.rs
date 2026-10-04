@@ -1235,3 +1235,145 @@ fn test_recurrence_core_large_gate_parity() -> uor_r4_training::Result<()> {
     assert!(worst < 1e-3, "relative error {worst}");
     Ok(())
 }
+
+/// The pointer-copy mixture's loss and its logit, side and scale gradients
+/// for `upstream * loss`.
+#[cfg(feature = "cuda")]
+#[allow(clippy::too_many_arguments)]
+fn pointer_run(
+    device: &candle_core::Device,
+    logits: &[f32],
+    side: &[f32],
+    beta: f32,
+    shape: (usize, usize, usize),
+    score: uor_r4_training::geometric_stack::ReadScore,
+    ids: &[u32],
+    targets: &[u32],
+    weights: Option<&[f32]>,
+) -> uor_r4_training::Result<Vec<Vec<f32>>> {
+    let (rows, vocab, stride) = shape;
+    let z = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        logits.to_vec(),
+        (rows, vocab),
+        device,
+    )?)?;
+    let s = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        side.to_vec(),
+        (rows, stride),
+        device,
+    )?)?;
+    let b =
+        candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(vec![beta], (1,), device)?)?;
+    let time = rows / 2;
+    let loss = uor_r4_training::geometric_stack::pointer_mixture_loss(
+        z.as_tensor(),
+        s.as_tensor(),
+        b.as_tensor(),
+        time,
+        score,
+        ids,
+        targets,
+        weights,
+    )?;
+    let grads = (&loss * 1.3)?.backward()?;
+    let mut results = vec![values(&loss)?];
+    for var in [&z, &s, &b] {
+        results.push(values(grads.get(var.as_tensor()).expect("gradient"))?);
+    }
+    Ok(results)
+}
+
+/// The pointer mixture on CUDA against the CPU op: loss, logit, side
+/// (query, key, gate) and scale gradients, for Dot and Lorentz scores,
+/// unweighted and weighted (with a zero-weight row), with rows whose target
+/// no source holds and rows served by several sources.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_pointer_mixture_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::ReadScore;
+    let cuda_dev = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let cpu_dev = candle_core::Device::Cpu;
+    // Two windows of `time` positions; (time, dim, vocabulary).
+    let shapes = [(7usize, 4usize, 37usize), (40, 19, 300), (1, 3, 6)];
+    let mut case = 0u64;
+    for &(time, dim, vocab) in &shapes {
+        let rows = 2 * time;
+        let stride = 2 * dim + 1;
+        // Tokens from a small alphabet so many targets repeat in the window.
+        let ids: Vec<u32> = (0..rows).map(|n| ((n * 7 + n / 3) % 5) as u32).collect();
+        let mut targets: Vec<u32> = (0..rows).map(|n| ids[(n + 1).min(rows - 1)]).collect();
+        // Rows whose target no source holds (token vocab - 1 is never an id).
+        targets[0] = (vocab - 1) as u32;
+        if rows > 3 {
+            targets[3] = (vocab - 1) as u32;
+        }
+        let mut weights = noise(rows, 77 + time as u64, 1.0)
+            .iter()
+            .map(|v| v.abs() + 0.1)
+            .collect::<Vec<f32>>();
+        weights[rows - 1] = 0.0;
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            for weighted in [false, true] {
+                case += 1;
+                let seed = 5000 + 31 * case;
+                let logits = noise(rows * vocab, seed, 3.0);
+                let side = noise(rows * stride, seed + 1, 1.2);
+                let beta = 0.8f32;
+                let w = weighted.then_some(weights.as_slice());
+                let shape = (rows, vocab, stride);
+                let cpu = pointer_run(
+                    &cpu_dev, &logits, &side, beta, shape, score, &ids, &targets, w,
+                )?;
+                let cuda = pointer_run(
+                    &cuda_dev, &logits, &side, beta, shape, score, &ids, &targets, w,
+                )?;
+                let label = format!("Pointer {score:?} weighted{weighted} t{time} d{dim} v{vocab}");
+                compare(&cpu[0], &cuda[0], 1e-5, &format!("{label} loss"));
+                compare(&cpu[1], &cuda[1], 1e-4, &format!("{label} d_logits"));
+                // The query, key and gate columns separately.
+                let column = |all: &[f32], range: std::ops::Range<usize>| -> Vec<f32> {
+                    all.chunks(stride)
+                        .flat_map(|row| row[range.clone()].to_vec())
+                        .collect()
+                };
+                for (name, range) in [
+                    ("d_query", 0..dim),
+                    ("d_key", dim..2 * dim),
+                    ("d_gate", 2 * dim..stride),
+                ] {
+                    compare(
+                        &column(&cpu[2], range.clone()),
+                        &column(&cuda[2], range),
+                        1e-4,
+                        &format!("{label} {name}"),
+                    );
+                }
+                if score == ReadScore::Lorentz {
+                    compare(&cpu[3], &cuda[3], 1e-4, &format!("{label} d_beta"));
+                } else {
+                    assert_eq!(cuda[3], vec![0.0], "{label}: Dot has no scale gradient");
+                }
+                // Row 0's target is held by no source: its query and the key
+                // it reads alone (its own) get nothing from row 0, and its
+                // gate gradient is c g, as on the CPU.
+                assert!(
+                    cuda[2][..dim].iter().all(|&v| v == 0.0),
+                    "{label}: row 0 query"
+                );
+                if weighted {
+                    let last = (rows - 1) * stride;
+                    assert!(
+                        cuda[2][last..last + dim].iter().all(|&v| v == 0.0)
+                            && cuda[2][last + 2 * dim] == 0.0
+                            && cuda[1][(rows - 1) * vocab..].iter().all(|&v| v == 0.0),
+                        "{label}: the zero-weight row received gradient"
+                    );
+                }
+            }
+        }
+    }
+    Ok(())
+}

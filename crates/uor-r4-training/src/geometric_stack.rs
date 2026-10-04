@@ -11590,6 +11590,62 @@ pub fn logits_cross_entropy(
     })?)
 }
 
+/// The pointer-copy mixture loss of [`StackModel::weighted_loss`] over given
+/// logits `[rows, vocabulary]`, pointer side rows `[rows, 2 dim + 1]`
+/// (`[query | key | gate logit]`) and Lorentz scale `beta` `[1]`, for windows
+/// of `time` positions, with no pointer selection or prime route: for callers
+/// that form the pointer inputs themselves and for device parity checks.
+/// `ids` are the copied input tokens, one per row. The L2 score is refused,
+/// as `PointerConfig::validate` refuses it.
+pub fn pointer_mixture_loss(
+    logits: &Tensor,
+    side: &Tensor,
+    beta: &Tensor,
+    time: usize,
+    score: ReadScore,
+    ids: &[u32],
+    targets: &[u32],
+    weights: Option<&[f32]>,
+) -> Result<Tensor> {
+    if logits.dtype() != DType::F32 || side.dtype() != DType::F32 || beta.dtype() != DType::F32 {
+        return Err(invalid("pointer_mixture_loss requires F32 inputs"));
+    }
+    if score == ReadScore::L2 {
+        return Err(invalid("a pointer cannot use the L2 score"));
+    }
+    let (rows, vocabulary) = logits.dims2()?;
+    let (side_rows, width) = side.dims2()?;
+    if side_rows != rows || width < 3 || width % 2 == 0 {
+        return Err(invalid("pointer side rows must be [rows, 2 dim + 1]"));
+    }
+    if targets.iter().any(|&t| t as usize >= vocabulary) {
+        return Err(invalid("target outside the logit classes"));
+    }
+    if let Some(weights) = weights {
+        if weights.iter().any(|w| !w.is_finite() || *w < 0.0)
+            || weights.iter().map(|&w| f64::from(w)).sum::<f64>() <= 0.0
+        {
+            return Err(invalid(
+                "loss weights must be finite, nonnegative and not all zero",
+            ));
+        }
+    }
+    Ok(logits.contiguous()?.apply_op3(
+        &side.contiguous()?,
+        &beta.contiguous()?,
+        PointerMixture {
+            time,
+            dim: (width - 1) / 2,
+            score,
+            select: None,
+            route: None,
+            ids: ids.to_vec(),
+            targets: targets.to_vec(),
+            weights: weights.map(<[f32]>::to_vec),
+        },
+    )?)
+}
+
 /// Fused CrossEntropy loss: mean cross entropy of logits vs target class indices.
 pub fn cross_entropy(logits: &Tensor, targets: &[u32]) -> Result<Tensor> {
     logits_cross_entropy(logits, targets, None)
@@ -11971,7 +12027,7 @@ impl CustomOp3 for PointerMixture {
         s3: &CudaStorage,
         l3: &Layout,
     ) -> candle_core::Result<(CudaStorage, Shape)> {
-        cuda_ops::via_host3(self, [(s1, l1), (s2, l2), (s3, l3)])
+        self.cuda_fwd_impl(s1, l1, s2, l2, s3, l3)
     }
 
     fn bwd(
@@ -11982,6 +12038,11 @@ impl CustomOp3 for PointerMixture {
         _loss: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if let (Device::Cuda(device), true) = (logits.device(), self.cuda_covered()) {
+            let (d_logits, d_side, d_beta) = self.cuda_bwd(device, logits, side, beta, grad)?;
+            return Ok((Some(d_logits), Some(d_side), Some(d_beta)));
+        }
         let (rows, vocabulary) = logits.dims2()?;
         let (time, dim) = (self.time, self.dim);
         let stride = 2 * dim + 1;

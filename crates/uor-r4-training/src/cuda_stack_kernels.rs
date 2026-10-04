@@ -8,8 +8,9 @@
 //!
 //! - where the CPU computes in `f64` (RMSNorm statistics, cross-entropy
 //!   log-sum-exp, the recurrence's parameter partials and `log a`, the
-//!   read's Lorentz/L2 lifts, excesses and distances, and the read
-//!   backward's softmax gradient and per-head reductions) the kernels use
+//!   read's Lorentz/L2 lifts, excesses and distances, the read backward's
+//!   softmax gradient and per-head reductions, and the pointer mixture's
+//!   attention, copy mass, branch shares and gradients) the kernels use
 //!   `double` too; every other quantity is `float`, as on the CPU;
 //! - the U(1) recurrence control and the L2 read control have kernels (Metal
 //!   runs them on the host);
@@ -956,6 +957,252 @@ extern "C" __global__ void adam_update(
     v[i] = second;
     float step = __fdiv_rn(__fmul_rn(first, c[5]), __fadd_rn(__fsqrt_rn(__fmul_rn(second, c[6])), c[7]));
     p[i] = __fadd_rn(__fmul_rn(p[i], c[8]), -__fmul_rn(step, c[9]));
+}
+
+// ---------------------------------------------------------------------------
+// 9. Pointer-copy mixture loss (no selection, no route; Dot or Lorentz).
+// Rows are windows * time; side rows are [query(dim) | key(dim) | gate logit].
+// The scratch is [row, j] (j <= t used): the attention, then in the backward
+// d loss / d score (Dot) or d loss / d excess (Lorentz), all f64.
+// ---------------------------------------------------------------------------
+struct PointerDims {
+    uint rows;
+    uint time;
+    uint dim;
+    uint vocab;
+    uint score;
+    uint backward;
+    uint unused0;
+    uint unused1;
+};
+
+// sqrt(1 + |x|^2) in f64 for every row's query and key, as `pointer_lift`.
+extern "C" __global__ void pointer_lift(
+    const float* side, double* query_lift, double* key_lift, PointerDims d
+) {
+    uint row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row >= d.rows) return;
+    const float* q = side + (u64)row * (2 * d.dim + 1);
+    const float* k = q + d.dim;
+    double qq = 0.0;
+    double kk = 0.0;
+    for (uint c = 0; c < d.dim; ++c) {
+        qq += (double)q[c] * (double)q[c];
+        kk += (double)k[c] * (double)k[c];
+    }
+    query_lift[row] = sqrt(1.0 + qq);
+    key_lift[row] = sqrt(1.0 + kk);
+}
+
+// The f32 Dot score `dot(q, k) / sqrt(dim)` with the CPU `dot`'s sixteen
+// partial sums.
+__device__ __forceinline__ float pointer_dot(const float* q, const float* k, uint dim) {
+    float partial[16];
+    for (uint i = 0; i < 16; ++i) partial[i] = 0.0f;
+    uint whole = dim - dim % 16;
+    for (uint c = 0; c < whole; c += 16) {
+        for (uint i = 0; i < 16; ++i) partial[i] += q[c + i] * k[c + i];
+    }
+    float total = 0.0f;
+    for (uint i = 0; i < 16; ++i) total += partial[i];
+    for (uint c = whole; c < dim; ++c) total += q[c] * k[c];
+    return total;
+}
+
+// The Lorentz excess lift_q lift_k - <q, k> - 1 in f64.
+__device__ __forceinline__ double pointer_excess(
+    const float* q, const float* k, uint dim, double lift_q, double lift_k
+) {
+    double inner = 0.0;
+    for (uint c = 0; c < dim; ++c) inner += (double)q[c] * (double)k[c];
+    return lift_q * lift_k - inner - 1.0;
+}
+
+__device__ __forceinline__ double pointer_distance(double e) {
+    double x = fmax(e, LORENTZ_MIN_EXCESS);
+    return log1p(x + sqrt(x * (x + 2.0)));
+}
+
+__device__ __forceinline__ double softplus_d(double x) {
+    return x > 0.0 ? x + log1p(exp(-x)) : log1p(exp(x));
+}
+
+// One warp per row: the pointer's attention, p_copy and the mixture's log
+// probability, as `PointerMixture::evaluate`. Forward (d.backward == 0):
+// row_value[row] = -weight log mixture. Backward: scale_z[row] = c share_gen
+// (the logit gradient's factor), the gate logit's gradient into d_side, the
+// scratch's per-source gradient, the row's beta partial and (Lorentz) the
+// query's self coefficient. Rows of weight zero write nothing (zeros).
+extern "C" __global__ void pointer_rows(
+    const float* logits, const float* side, const float* beta_in, const uint* ids, const uint* targets,
+    const float* weights, const double* lse, const double* query_lift,
+    const double* key_lift, const float* grad_in, const double* total_in,
+    double* scratch, double* row_value, double* scale_z, float* d_side,
+    double* row_beta, double* query_self, PointerDims d
+) {
+    uint id = blockIdx.x * blockDim.x + threadIdx.x;
+    uint row = id / 32;
+    uint lane = id % 32;
+    if (row >= d.rows) return;
+    double weight = (double)weights[row];
+    if (weight == 0.0) return;
+    uint time = d.time;
+    uint dim = d.dim;
+    u64 stride = 2 * (u64)dim + 1;
+    uint t = row % time;
+    uint first = row - t;
+    uint target = targets[row];
+    const float* q = side + (u64)row * stride;
+    double beta = (double)beta_in[0];
+    double lift_q = d.score == 1 ? query_lift[row] : 1.0;
+    float scale_f = 1.0f / sqrtf((float)dim);
+    double* s = scratch + (u64)row * time;
+
+    float maximum = neg_inf();
+    for (uint j = lane; j <= t; j += 32) {
+        const float* k = side + (u64)(first + j) * stride + dim;
+        float score;
+        if (d.score == 0) {
+            score = pointer_dot(q, k, dim) * scale_f;
+        } else {
+            double e = pointer_excess(q, k, dim, lift_q, key_lift[first + j]);
+            score = (float)(-beta * pointer_distance(e));
+        }
+        s[j] = (double)score;
+        maximum = fmaxf(maximum, score);
+    }
+    maximum = warp_max(maximum);
+    double sum = 0.0;
+    for (uint j = lane; j <= t; j += 32) {
+        double a = exp((double)((float)s[j] - maximum));
+        s[j] = a;
+        sum += a;
+    }
+    sum = warp_sum_d(sum);
+    double copy = 0.0;
+    for (uint j = lane; j <= t; j += 32) {
+        double a = s[j] / sum;
+        s[j] = a;
+        if (ids[first + j] == target) copy += a;
+    }
+    copy = warp_sum_d(copy);
+
+    double logit = (double)q[2 * dim];
+    double generate =
+        -softplus_d(logit) + (double)logits[(u64)row * d.vocab + target] - lse[row];
+    // No source holds the target: the copy branch is exactly 0 (no floor).
+    double copied = copy > 0.0
+        ? -softplus_d(-logit) + log(copy)
+        : __longlong_as_double(0xfff0000000000000ULL);
+    double high = fmax(generate, copied);
+    double log_mixture = high + log(exp(generate - high) + exp(copied - high));
+
+    if (d.backward == 0) {
+        if (lane == 0) row_value[row] = -weight * log_mixture;
+        return;
+    }
+    double generate_share = exp(generate - log_mixture);
+    double copy_share = exp(copied - log_mixture);
+    double gate = 1.0 / (1.0 + exp(-logit));
+    double c = (double)grad_in[0] * weight / total_in[0];
+    if (lane == 0) {
+        scale_z[row] = c * generate_share;
+        d_side[(u64)row * stride + 2 * dim] =
+            (float)(c * (generate_share * gate - copy_share * (1.0 - gate)));
+    }
+    double d_beta = 0.0;
+    double self_q = 0.0;
+    for (uint j = lane; j <= t; j += 32) {
+        double a = s[j];
+        double out = 0.0;
+        if (copy > 0.0 && a != 0.0) {
+            double d_source = ids[first + j] == target
+                ? -c * copy_share * (a / copy) * (1.0 - copy)
+                : c * copy_share * a;
+            if (d.score == 0) {
+                out = d_source;
+            } else {
+                const float* k = side + (u64)(first + j) * stride + dim;
+                double lift_k = key_lift[first + j];
+                double e = pointer_excess(q, k, dim, lift_q, lift_k);
+                d_beta -= d_source * pointer_distance(e);
+                if (e > LORENTZ_MIN_EXCESS) {
+                    double de = -beta * d_source / sqrt(e * (e + 2.0));
+                    out = de;
+                    self_q += de * lift_k / lift_q;
+                }
+            }
+        }
+        s[j] = out;
+    }
+    d_beta = warp_sum_d(d_beta);
+    self_q = warp_sum_d(self_q);
+    if (lane == 0) {
+        row_beta[row] = d_beta;
+        query_self[row] = self_q;
+    }
+}
+
+// d_side[row, c] for c < 2 dim from the scratch's per-source gradients:
+// the query (c < dim) over its sources j <= t, the key over the positions
+// t >= j that read it.
+extern "C" __global__ void pointer_side_grad(
+    const float* side, const double* scratch, const double* query_lift,
+    const double* key_lift, const double* query_self, float* d_side, PointerDims d
+) {
+    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
+    uint dim = d.dim;
+    uint time = d.time;
+    if (id >= (u64)d.rows * 2 * dim) return;
+    uint c = (uint)(id % (2 * dim));
+    uint row = (uint)(id / (2 * dim));
+    u64 stride = 2 * (u64)dim + 1;
+    uint t = row % time;
+    uint first = row - t;
+    double scale = 1.0 / sqrt((double)dim);
+    double acc = 0.0;
+    if (c < dim) {
+        const double* s = scratch + (u64)row * time;
+        for (uint j = 0; j <= t; ++j) {
+            double g = s[j];
+            if (g == 0.0) continue;
+            double k = (double)side[(u64)(first + j) * stride + dim + c];
+            if (d.score == 0) {
+                acc += g * scale * k;
+            } else {
+                acc -= g * k;
+            }
+        }
+        if (d.score != 0) {
+            acc += query_self[row] * (double)side[(u64)row * stride + c];
+        }
+    } else {
+        uint cc = c - dim;
+        double own_key = (double)side[(u64)row * stride + dim + cc];
+        for (uint tt = t; tt < time; ++tt) {
+            double g = scratch[(u64)(first + tt) * time + t];
+            if (g == 0.0) continue;
+            double qv = (double)side[(u64)(first + tt) * stride + cc];
+            if (d.score == 0) {
+                acc += g * scale * qv;
+            } else {
+                double own = g * query_lift[first + tt] / key_lift[row];
+                acc += own * own_key - g * qv;
+            }
+        }
+    }
+    d_side[(u64)row * stride + c] = (float)acc;
+}
+
+// out[0] = (sum of values in index order) / divisor[0], as the CPU's ordered
+// f64 sums. One thread.
+extern "C" __global__ void pointer_sum(
+    const double* values, const double* divisor, float* out, uint n
+) {
+    if (blockIdx.x != 0 || threadIdx.x != 0) return;
+    double sum = 0.0;
+    for (uint i = 0; i < n; ++i) sum += values[i];
+    out[0] = (float)(sum / divisor[0]);
 }
 "#;
 
