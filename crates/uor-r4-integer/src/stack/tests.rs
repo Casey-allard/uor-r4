@@ -552,78 +552,28 @@ fn the_snap_trace_records_every_selection() {
     assert_eq!(with_trace, without_trace);
 }
 
-#[test]
-fn test_gemv_pairs_blocked4_bit_identical_to_scalar() {
-    use super::kernels::{
-        stack_activation_tables, stack_gemv_pairs, stack_gemv_pairs_blocked4, stack_pair_tables,
-        PackedMatrix,
-    };
-
-    let (rows, cols) = (16usize, 32usize);
-    let mut rng = Lcg(12345);
-
-    let nibbles: Vec<u8> = (0..rows * cols / 2)
-        .map(|_| (rng.next() & 0xFF) as u8)
-        .collect();
-    let scales: Vec<u8> = (0..rows * cols / 32)
-        .map(|_| (rng.next() & 0x3F) as u8)
-        .collect();
-    let min_de: Vec<u8> = scales
-        .chunks_exact(cols / 32)
-        .map(|row_scales| row_scales.iter().map(|&s| s >> 4).min().unwrap_or(0))
-        .collect();
-
-    let matrix = PackedMatrix {
-        rows,
-        cols,
-        exp_base: -9,
-        nibbles,
-        scales,
-        min_de,
-    };
-
-    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16) >> 4).collect();
-    let mut act_tables = vec![[0i32; 16]; cols];
-    stack_activation_tables(&x, &mut act_tables);
-
-    let mut pair_tables = vec![[0i32; 256]; cols / 2];
-    stack_pair_tables(&act_tables, &mut pair_tables);
-
-    let mut out_scalar = vec![0i32; rows];
-    let mut out_blocked = vec![0i32; rows];
-
-    stack_gemv_pairs(&matrix, &pair_tables, -14, &mut out_scalar);
-    stack_gemv_pairs_blocked4(&matrix, &pair_tables, -14, &mut out_blocked);
-
-    assert_eq!(
-        out_scalar, out_blocked,
-        "stack_gemv_pairs_blocked4 must produce bit-for-bit identical outputs to stack_gemv_pairs"
-    );
+/// A random packed map and a random 16-bit input with its nibble and pair
+/// tables, for the weight-map kernel tests.
+struct RandomMap {
+    matrix: super::kernels::PackedMatrix,
+    tables: Vec<[i32; 16]>,
+    pairs: Vec<[i32; 256]>,
 }
 
-#[test]
-fn test_gemv_pairs_blocked4_multiple_groups_and_remainder_rows() {
-    use super::kernels::{
-        stack_activation_tables, stack_gemv_pairs, stack_gemv_pairs_blocked4, stack_pair_tables,
-        PackedMatrix,
-    };
-
-    // Width 64 (2 groups of 32), 19 rows (4 full blocks of 4 + 3 remainder rows)
-    let (rows, cols) = (19usize, 64usize);
-    let mut rng = Lcg(54321);
-
+fn random_map(rows: usize, cols: usize, seed: u64) -> RandomMap {
+    use super::kernels::{stack_activation_tables, stack_pair_tables, PackedMatrix};
+    let mut rng = Lcg(seed);
     let nibbles: Vec<u8> = (0..rows * cols / 2)
         .map(|_| (rng.next() & 0xFF) as u8)
         .collect();
-    // Heterogeneous scales across groups (cols / 32 = 2 groups per row)
+    // Heterogeneous group scales, so that rows shift their groups apart.
     let scales: Vec<u8> = (0..rows * cols / 32)
         .map(|_| ((rng.next() & 0x3F) as u8).max(1))
         .collect();
     let min_de: Vec<u8> = scales
         .chunks_exact(cols / 32)
-        .map(|row_scales| row_scales.iter().map(|&s| s >> 4).min().unwrap_or(0))
+        .map(|row| row.iter().map(|&s| s >> 4).min().unwrap_or(0))
         .collect();
-
     let matrix = PackedMatrix {
         rows,
         cols,
@@ -632,24 +582,115 @@ fn test_gemv_pairs_blocked4_multiple_groups_and_remainder_rows() {
         scales,
         min_de,
     };
+    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16).max(-32767)).collect();
+    let mut tables = vec![[0i32; 16]; cols];
+    stack_activation_tables(&x, &mut tables);
+    let mut pairs = vec![[0i32; 256]; cols / 2];
+    stack_pair_tables(&tables, &mut pairs);
+    RandomMap {
+        matrix,
+        tables,
+        pairs,
+    }
+}
 
-    let x: Vec<i16> = (0..cols).map(|_| (rng.next() as i16) >> 4).collect();
-    let mut act_tables = vec![[0i32; 16]; cols];
-    stack_activation_tables(&x, &mut act_tables);
+/// The row-blocked pair-table kernel, over the whole map and over every split
+/// of it into two row ranges (the threaded path's unit of work), computes the
+/// row-by-row nibble-table kernel's integers, including partial row blocks.
+#[test]
+fn gemv_pairs_row_blocks_and_ranges_equal_the_nibble_kernel() {
+    use super::kernels::{stack_gemv, stack_gemv_pairs};
+    for (rows, cols, seed) in [
+        (1, 32, 1),
+        (7, 64, 2),
+        (19, 64, 3),
+        (40, 96, 4),
+        (67, 32, 5),
+    ] {
+        let map = random_map(rows, cols, seed);
+        let mut expected = vec![0i32; rows];
+        stack_gemv(&map.matrix, &map.tables, -14, 0, &mut expected);
+        let mut whole = vec![0i32; rows];
+        stack_gemv_pairs(&map.matrix, &map.pairs, -14, 0, &mut whole);
+        assert_eq!(whole, expected, "{rows}x{cols}");
+        for split in 1..rows {
+            let mut parts = vec![0i32; rows];
+            let (head, tail) = parts.split_at_mut(split);
+            stack_gemv_pairs(&map.matrix, &map.pairs, -14, 0, head);
+            stack_gemv_pairs(&map.matrix, &map.pairs, -14, split, tail);
+            assert_eq!(parts, expected, "{rows}x{cols} split at {split}");
+        }
+    }
+}
 
-    let mut pair_tables = vec![[0i32; 256]; cols / 2];
-    stack_pair_tables(&act_tables, &mut pair_tables);
-
-    let mut out_scalar = vec![0i32; rows];
-    let mut out_blocked = vec![0i32; rows];
-
-    stack_gemv_pairs(&matrix, &pair_tables, -14, &mut out_scalar);
-    stack_gemv_pairs_blocked4(&matrix, &pair_tables, -14, &mut out_blocked);
-
-    assert_eq!(
-        out_scalar, out_blocked,
-        "blocked4 must match scalar across multiple groups and remainder rows"
-    );
+/// Every thread count serves the same logits, copy weights and snap trace:
+/// on the Lorentz, L2 and Dot reads, the free and the snapped transport, with
+/// and without the copy scale. Under `cfg(test)` the maps split into tasks of
+/// two rows and the recurrence into tasks of one lane, so these small stacks
+/// take every split path, including uneven remainders.
+#[test]
+fn every_thread_count_serves_the_same_integers() {
+    let lorentz = artifact(13);
+    let relabel = |read: &'static str| {
+        with_header(&lorentz, move |header| {
+            header["shape"]["read"] = json!(read);
+        })
+    };
+    let snapped = with_header(&lorentz, |header| {
+        header["transport_snap"] = snap_record();
+    });
+    let ids = [3u32, 39, 0, 17, 17, 8];
+    let serve = |bytes: &[u8], threads: usize, copy: bool, trace: bool| {
+        let mut model = IntegerStackModel::parse(bytes).expect("parse");
+        model.set_threads(threads).expect("threads");
+        assert_eq!(model.threads(), threads);
+        let mut session = model.session();
+        if copy {
+            session.set_copy_scale(1 << 16).expect("copy scale");
+        }
+        if trace {
+            session.enable_snap_trace();
+        }
+        let mut served = Vec::new();
+        for &id in &ids {
+            served.push(session.step(id).expect("step").to_vec());
+            served.push(
+                session
+                    .pointer_weights()
+                    .iter()
+                    .map(|&w| w as i32)
+                    .collect(),
+            );
+        }
+        let roots: Vec<usize> = session
+            .snap_trace()
+            .unwrap_or_default()
+            .iter()
+            .map(|entry| entry.root)
+            .collect();
+        (served, roots)
+    };
+    for (name, bytes) in [
+        ("lorentz", lorentz.clone()),
+        ("l2", relabel("l2")),
+        ("dot", relabel("dot")),
+        ("snapped", snapped),
+    ] {
+        for (copy, trace) in [(false, false), (true, false), (false, true)] {
+            let one = serve(&bytes, 1, copy, trace);
+            for threads in [2, 3, 4] {
+                assert_eq!(
+                    serve(&bytes, threads, copy, trace),
+                    one,
+                    "{name}: {threads} threads (copy {copy}, trace {trace})"
+                );
+            }
+        }
+    }
+    // A loaded model starts no threads of its own.
+    let mut model = IntegerStackModel::parse(&lorentz).expect("parse");
+    assert_eq!(model.threads(), 1);
+    assert!(matches!(model.set_threads(0), Err(StackError::Threads(_))));
 }
 
 #[test]

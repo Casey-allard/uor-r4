@@ -98,16 +98,19 @@ fn bit_length(value: u64) -> i32 {
 }
 
 /// `(16 + m) a` by shifts and additions (`m < 16`), wrapping as the D10
-/// engine's release build.
+/// engine's release build: `((((2 a + m_3 a) 2 + m_2 a) 2 + m_1 a) 2 + m_0 a`
+/// over the bits `m_k` of `m`. Each bit selects `a` through a mask (`0` or
+/// all ones) rather than a branch: a group scale is data, and a branch on its
+/// bits is mispredicted about twice per weight group. The chain of shifts
+/// keeps the four terms dependent, so the vectorizer does not move them into
+/// SIMD registers (whose transfer back the R1 audit refuses).
 #[inline(always)]
 pub(crate) fn scale_16_plus(a: i64, m: u8) -> i64 {
-    let mut t = a << 4;
-    for bit in 0..4 {
-        if m & (1 << bit) != 0 {
-            t = t.wrapping_add(a << bit);
-        }
-    }
-    t
+    let select = |bit: u32| a & i64::from((m >> bit) & 1).wrapping_neg();
+    let t = (a << 1).wrapping_add(select(3));
+    let t = (t << 1).wrapping_add(select(2));
+    let t = (t << 1).wrapping_add(select(1));
+    (t << 1).wrapping_add(select(0))
 }
 
 /// Whether `code` is a grid code: zero, or `|code| = (e + 64) << 4 | m` with
@@ -544,31 +547,55 @@ pub(crate) struct PackedMatrix {
     pub min_de: Vec<u8>,
 }
 
-/// `out[r] = sum_c W[r][c] x[c]` at the residual exponent, for `x` given by
-/// its activation tables (built from the 16-bit vector at exponent `x_exp`).
-/// Per weight: one table read and one addition; per group of 32: the scale
+/// Byte offsets of row `row`'s nibbles and group scales in a map with
+/// `row_bytes` nibble bytes per row (16 per group of 32 weights, one scale
+/// byte per group): a digit-table product, so that a row range starts
+/// without a multiplier instruction.
+#[inline(always)]
+fn row_offsets(row: usize, row_bytes: usize) -> (usize, usize) {
+    if row == 0 {
+        return (0, 0);
+    }
+    let nibble_at = stack_mul_u64(row as u64, row_bytes as u64) as usize;
+    (nibble_at, nibble_at >> 4)
+}
+
+/// `out[r] = sum_c W[r][c] x[c]` at the residual exponent for the rows
+/// `first_row..first_row + out.len()`, for `x` given by its activation
+/// tables (built from the 16-bit vector at exponent `x_exp`). Per weight: one
+/// table read and one addition; per group of 32: the scale
 /// `(16 + m) 2^(de - de_min)` by shifts and additions. The group sums and the
-/// row accumulator are the D10 kernel's exact integers.
+/// row accumulator are the D10 kernel's exact integers. A row range lets
+/// disjoint ranges of one map run on different threads.
 /// The loader's shape checks make every size agree, so the early returns are
 /// unreachable: a debug build asserts, a release build returns rather than
 /// read out of bounds.
 #[inline(never)]
-pub(crate) fn stack_gemv(m: &PackedMatrix, tables: &[[i32; 16]], x_exp: i32, out: &mut [i32]) {
+pub(crate) fn stack_gemv(
+    m: &PackedMatrix,
+    tables: &[[i32; 16]],
+    x_exp: i32,
+    first_row: usize,
+    out: &mut [i32],
+) {
     let row_bytes = m.cols >> 1;
     let groups = m.cols >> 5;
     debug_assert!(
-        out.len() == m.rows && m.min_de.len() == m.rows && tables.len() >= m.cols,
-        "stack_gemv: {} outputs and {} activation tables for a {}x{} map",
+        first_row + out.len() <= m.rows && m.min_de.len() == m.rows && tables.len() >= m.cols,
+        "stack_gemv: rows {first_row}.. ({} outputs) and {} activation tables for a {}x{} map",
         out.len(),
         tables.len(),
         m.rows,
         m.cols
     );
-    let Some(tables) = tables.get(..m.cols) else {
+    let (Some(tables), Some(min_de)) = (
+        tables.get(..m.cols),
+        m.min_de.get(first_row..first_row + out.len()),
+    ) else {
         return;
     };
-    let (mut nibble_at, mut scale_at) = (0usize, 0usize);
-    for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
+    let (mut nibble_at, mut scale_at) = row_offsets(first_row, row_bytes);
+    for (slot, &min_de) in out.iter_mut().zip(min_de) {
         let (row, scales) = (
             m.nibbles.get(nibble_at..nibble_at + row_bytes),
             m.scales.get(scale_at..scale_at + groups),
@@ -638,31 +665,38 @@ pub(crate) fn stack_pair_tables(tables: &[[i32; 16]], pairs: &mut [[i32; 256]]) 
 }
 
 /// [`stack_gemv`] reading pair tables ([`stack_pair_tables`]): one table
-/// read and one addition per weight byte, that is per two weights. The group
-/// sums, and so the outputs, are the same integers. The early returns are
-/// unreachable after loading, as in [`stack_gemv`].
+/// read and one addition per weight byte, that is per two weights, for the
+/// rows `first_row..first_row + out.len()` of the map. The group sums, and so
+/// the outputs, are the same integers. A row range lets disjoint ranges of
+/// one map run on different threads; its starting byte offsets are
+/// digit-table products. The early returns are unreachable after loading, as
+/// in [`stack_gemv`].
 #[inline(never)]
 pub(crate) fn stack_gemv_pairs(
     m: &PackedMatrix,
     pairs: &[[i32; 256]],
     x_exp: i32,
+    first_row: usize,
     out: &mut [i32],
 ) {
     let row_bytes = m.cols >> 1;
     let groups = m.cols >> 5;
     debug_assert!(
-        out.len() == m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
-        "stack_gemv_pairs: {} outputs and {} pair tables for a {}x{} map",
+        first_row + out.len() <= m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
+        "stack_gemv_pairs: rows {first_row}.. ({} outputs) and {} pair tables for a {}x{} map",
         out.len(),
         pairs.len(),
         m.rows,
         m.cols
     );
-    let Some(pairs) = pairs.get(..row_bytes) else {
+    let (Some(pairs), Some(min_de)) = (
+        pairs.get(..row_bytes),
+        m.min_de.get(first_row..first_row + out.len()),
+    ) else {
         return;
     };
-    let (mut nibble_at, mut scale_at) = (0usize, 0usize);
-    for (slot, &min_de) in out.iter_mut().zip(&m.min_de).take(m.rows) {
+    let (mut nibble_at, mut scale_at) = row_offsets(first_row, row_bytes);
+    for (slot, &min_de) in out.iter_mut().zip(min_de) {
         let (row, scales) = (
             m.nibbles.get(nibble_at..nibble_at + row_bytes),
             m.scales.get(scale_at..scale_at + groups),
@@ -702,172 +736,6 @@ pub(crate) fn stack_gemv_pairs(
         );
         nibble_at += row_bytes;
         scale_at += groups;
-    }
-}
-
-/// [`stack_gemv_pairs`] unrolled across 4 adjacent matrix rows.
-///
-/// Groups 4 adjacent rows to share each 1 KB pair table reference across 4 row activations
-/// (locality hypothesis for pair table cache reuse; unmeasured cache traffic reduction in serving),
-/// producing bit-for-bit identical outputs to [`stack_gemv_pairs`].
-#[allow(dead_code)]
-#[inline(never)]
-pub(crate) fn stack_gemv_pairs_blocked4(
-    m: &PackedMatrix,
-    pairs: &[[i32; 256]],
-    x_exp: i32,
-    out: &mut [i32],
-) {
-    let row_bytes = m.cols >> 1;
-    let groups = m.cols >> 5;
-    debug_assert!(
-        out.len() == m.rows && m.min_de.len() == m.rows && pairs.len() >= row_bytes,
-        "stack_gemv_pairs_blocked4: {} outputs and {} pair tables for a {}x{} map",
-        out.len(),
-        pairs.len(),
-        m.rows,
-        m.cols
-    );
-    let Some(pairs) = pairs.get(..row_bytes) else {
-        return;
-    };
-
-    let full_blocks = m.rows / 4;
-    let mut row_offset = 0usize;
-    let mut scale_offset = 0usize;
-
-    for b in 0..full_blocks {
-        let r0 = b * 4;
-        let r1 = r0 + 1;
-        let r2 = r0 + 2;
-        let r3 = r0 + 3;
-
-        let b0_start = row_offset;
-        let b1_start = b0_start + row_bytes;
-        let b2_start = b1_start + row_bytes;
-        let b3_start = b2_start + row_bytes;
-
-        let s0_start = scale_offset;
-        let s1_start = s0_start + groups;
-        let s2_start = s1_start + groups;
-        let s3_start = s2_start + groups;
-
-        let (Some(b0), Some(b1), Some(b2), Some(b3)) = (
-            m.nibbles.get(b0_start..b0_start + row_bytes),
-            m.nibbles.get(b1_start..b1_start + row_bytes),
-            m.nibbles.get(b2_start..b2_start + row_bytes),
-            m.nibbles.get(b3_start..b3_start + row_bytes),
-        ) else {
-            return;
-        };
-
-        let (Some(s0), Some(s1), Some(s2), Some(s3)) = (
-            m.scales.get(s0_start..s0_start + groups),
-            m.scales.get(s1_start..s1_start + groups),
-            m.scales.get(s2_start..s2_start + groups),
-            m.scales.get(s3_start..s3_start + groups),
-        ) else {
-            return;
-        };
-
-        let min_de0 = m.min_de[r0];
-        let min_de1 = m.min_de[r1];
-        let min_de2 = m.min_de[r2];
-        let min_de3 = m.min_de[r3];
-
-        let mut acc0 = 0i64;
-        let mut acc1 = 0i64;
-        let mut acc2 = 0i64;
-        let mut acc3 = 0i64;
-
-        for g in 0..groups {
-            let chunk_bytes = g * 16;
-            let chunk_tables = g * 16;
-
-            let tables = &pairs[chunk_tables..chunk_tables + 16];
-            let g_b0 = &b0[chunk_bytes..chunk_bytes + 16];
-            let g_b1 = &b1[chunk_bytes..chunk_bytes + 16];
-            let g_b2 = &b2[chunk_bytes..chunk_bytes + 16];
-            let g_b3 = &b3[chunk_bytes..chunk_bytes + 16];
-
-            let mut sum0 = 0i32;
-            let mut sum1 = 0i32;
-            let mut sum2 = 0i32;
-            let mut sum3 = 0i32;
-
-            for i in 0..16 {
-                let t = &tables[i];
-                sum0 = sum0.wrapping_add(t[usize::from(g_b0[i])]);
-                sum1 = sum1.wrapping_add(t[usize::from(g_b1[i])]);
-                sum2 = sum2.wrapping_add(t[usize::from(g_b2[i])]);
-                sum3 = sum3.wrapping_add(t[usize::from(g_b3[i])]);
-            }
-
-            let sc0 = s0[g];
-            let sc1 = s1[g];
-            let sc2 = s2[g];
-            let sc3 = s3[g];
-
-            acc0 = acc0
-                .wrapping_add(scale_16_plus(i64::from(sum0), sc0 & 15) << ((sc0 >> 4) - min_de0));
-            acc1 = acc1
-                .wrapping_add(scale_16_plus(i64::from(sum1), sc1 & 15) << ((sc1 >> 4) - min_de1));
-            acc2 = acc2
-                .wrapping_add(scale_16_plus(i64::from(sum2), sc2 & 15) << ((sc2 >> 4) - min_de2));
-            acc3 = acc3
-                .wrapping_add(scale_16_plus(i64::from(sum3), sc3 & 15) << ((sc3 >> 4) - min_de3));
-        }
-
-        out[r0] = to_exp_i32(
-            acc0,
-            m.exp_base + i32::from(min_de0) - 4 + x_exp,
-            RESIDUAL_EXP,
-        );
-        out[r1] = to_exp_i32(
-            acc1,
-            m.exp_base + i32::from(min_de1) - 4 + x_exp,
-            RESIDUAL_EXP,
-        );
-        out[r2] = to_exp_i32(
-            acc2,
-            m.exp_base + i32::from(min_de2) - 4 + x_exp,
-            RESIDUAL_EXP,
-        );
-        out[r3] = to_exp_i32(
-            acc3,
-            m.exp_base + i32::from(min_de3) - 4 + x_exp,
-            RESIDUAL_EXP,
-        );
-
-        row_offset += 4 * row_bytes;
-        scale_offset += 4 * groups;
-    }
-
-    // Remainder rows if rows is not a multiple of 4
-    let rem_start = full_blocks * 4;
-    for (slot, &min_de) in out[rem_start..].iter_mut().zip(&m.min_de[rem_start..]) {
-        let (row, scales) = (
-            m.nibbles.get(row_offset..row_offset + row_bytes),
-            m.scales.get(scale_offset..scale_offset + groups),
-        );
-        let (Some(row), Some(scales)) = (row, scales) else {
-            return;
-        };
-        let mut acc = 0i64;
-        for ((bytes, tables), &s) in row.chunks_exact(16).zip(pairs.chunks_exact(16)).zip(scales) {
-            let mut sum = 0i32;
-            for i in 0..16 {
-                sum = sum.wrapping_add(tables[i][usize::from(bytes[i])]);
-            }
-            acc = acc.wrapping_add(scale_16_plus(i64::from(sum), s & 15) << ((s >> 4) - min_de));
-        }
-        *slot = to_exp_i32(
-            acc,
-            m.exp_base + i32::from(min_de) - 4 + x_exp,
-            RESIDUAL_EXP,
-        );
-        row_offset += row_bytes;
-        scale_offset += groups;
     }
 }
 
@@ -1432,8 +1300,8 @@ mod tests {
             let mut pairs = vec![[0i32; 256]; cols / 2];
             stack_pair_tables(&tables, &mut pairs);
             let (mut nibble_out, mut pair_out) = (vec![0i32; rows], vec![0i32; rows]);
-            stack_gemv(&m, &tables, x_exp, &mut nibble_out);
-            stack_gemv_pairs(&m, &pairs, x_exp, &mut pair_out);
+            stack_gemv(&m, &tables, x_exp, 0, &mut nibble_out);
+            stack_gemv_pairs(&m, &pairs, x_exp, 0, &mut pair_out);
             assert_eq!(nibble_out, pair_out, "{rows}x{cols}");
             for r in 0..rows {
                 let mut exact = 0i128;
@@ -1480,9 +1348,9 @@ mod tests {
             let mut out = vec![untouched; 2];
             let panicked = panics(&mut || {
                 if pairs_kernel {
-                    stack_gemv_pairs(&m, &pairs, -14, &mut out);
+                    stack_gemv_pairs(&m, &pairs, -14, 0, &mut out);
                 } else {
-                    stack_gemv(&m, &tables, -14, &mut out);
+                    stack_gemv(&m, &tables, -14, 0, &mut out);
                 }
             });
             assert_eq!(panicked, cfg!(debug_assertions), "pairs {pairs_kernel}");
@@ -1496,6 +1364,37 @@ mod tests {
         assert_eq!(panicked, cfg!(debug_assertions), "dequant_row");
         if !panicked {
             assert!(row.iter().all(|&v| v == untouched));
+        }
+    }
+
+    /// The branch-free group scale is the wrapping product `(16 + m) a` for
+    /// every `m` and for edge and random `a`.
+    #[test]
+    fn the_group_scale_is_the_wrapping_product() {
+        let mut values = vec![
+            0i64,
+            1,
+            -1,
+            i64::MAX,
+            i64::MIN,
+            i64::MAX >> 4,
+            i64::MIN >> 4,
+        ];
+        let mut x = 0x9E37_79B9_7F4A_7C15u64;
+        for _ in 0..200 {
+            x ^= x << 13;
+            x ^= x >> 7;
+            x ^= x << 17;
+            values.push(x as i64 >> (x % 60));
+        }
+        for &a in &values {
+            for m in 0..16u8 {
+                assert_eq!(
+                    scale_16_plus(a, m),
+                    a.wrapping_mul(16 + i64::from(m)),
+                    "a {a} m {m}"
+                );
+            }
         }
     }
 

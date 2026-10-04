@@ -171,9 +171,11 @@
 //! stops exactly as the float model's `reply_panel` (`chat-grade grade|reply`)
 //! has them, so the integer and float replies compare id for id. Sampling
 //! options (`temperature`, `top_k`, `top_p`, `seed`) are refused for a pointer
-//! artifact, and `engine=` for a plain one. Its `chat.json`
-//! (`uor-r4.geometric-stack-lut-chat/2`) records each reply's generated ids,
-//! seconds and ids per second, and the panel totals.
+//! artifact, and `engine=` for a plain one. The D11 engine runs its weight
+//! maps on `threads=` threads (default 1); the integers do not depend on it. Its
+//! `chat.json` (`uor-r4.geometric-stack-lut-chat/2`) records the engine's
+//! thread count, each reply's generated ids, seconds and ids per second, and
+//! the panel totals.
 //!
 //! `policy=` (`dialogue-train`) sets the training episodes' prefix; the
 //! development panel always keeps its full prefix. `full_prefix` (the default)
@@ -3030,8 +3032,10 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
     let result = (|| -> Result<()> {
         let bytes = fs::read(&artifact_path)?;
         let clock = Instant::now();
-        let d11 = IntegerStackModel::parse(&bytes).map_err(|e| invalid(e.to_string()))?;
+        let mut d11 = IntegerStackModel::parse(&bytes).map_err(|e| invalid(e.to_string()))?;
         let d11_load_seconds = clock.elapsed().as_secs_f64();
+        d11.set_threads(threads)
+            .map_err(|e| invalid(e.to_string()))?;
         if let Some(snap) = d11.transport_snap() {
             // The D10 comparator serves the free transport and refuses this
             // artifact; compare against the snapped float forward instead.
@@ -3163,7 +3167,7 @@ fn d11_evaluate_mode(arguments: &[String]) -> Result<()> {
             "engine": {
                 "d11_step_seconds": d11_seconds,
                 "d11_tokens_per_second": targets as f64 / d11_seconds,
-                "d11_threads": 1,
+                "d11_threads": d11.threads(),
                 "d11_load_seconds": d11_load_seconds,
                 "d10_step_seconds": d10_seconds,
                 "d10_tokens_per_second": targets as f64 / d10_seconds,
@@ -3286,7 +3290,7 @@ fn d11_evaluate_snapped(
         "engine": {
             "d11_step_seconds": d11_seconds,
             "d11_tokens_per_second": targets as f64 / d11_seconds,
-            "d11_threads": 1,
+            "d11_threads": d11.threads(),
             "d11_load_seconds": d11_load_seconds,
             "float_forward_seconds": float_seconds,
             "scope": "the D11 step calls only, timed separately from the float forward",
@@ -4592,9 +4596,12 @@ fn mixture_chat(
     let no_head = || invalid("the artifact's schema names a pointer head the engine did not load");
     let (mut record, failure, artifact_sha256, backend, threads, seconds) = match engine {
         MixtureEngine::D11 => {
-            let model = uor_r4_integer::stack::IntegerStackModel::parse(&bytes)
+            let mut model = uor_r4_integer::stack::IntegerStackModel::parse(&bytes)
                 .map_err(|e| invalid(e.to_string()))?;
             model.pointer().ok_or_else(no_head)?;
+            model
+                .set_threads(threads)
+                .map_err(|e| invalid(e.to_string()))?;
             let clock = Instant::now();
             let (record, failure) = chat_with(
                 &|| D11Mixture(model.session()),
@@ -4614,7 +4621,7 @@ fn mixture_chat(
                 failure,
                 model.artifact_sha256().to_owned(),
                 "d11 multiplier-free scalar".to_owned(),
-                None,
+                Some(model.threads()),
                 seconds,
             )
         }

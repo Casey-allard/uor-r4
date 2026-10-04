@@ -42,7 +42,11 @@
 //!
 //! The engine is dense: every weight map is read in full per token
 //! ([`IntegerStackModel::weights_per_token`]), the labelled interim stepping
-//! stone of R3, and it is single-threaded. The instruction audit of the
+//! stone of R3. The rows of a large map run on a worker pool
+//! ([`IntegerStackModel::set_threads`]; one thread, the calling one, by
+//! default); each output row is computed whole by one
+//! thread with the same kernel, so every thread count gives the same
+//! integers. The instruction audit of the
 //! `uor-r4-stack` binary (`scripts/audit_zero_matmul_serving.py --stack`)
 //! checks the step and every kernel for multiply, divide and floating-point
 //! instructions.
@@ -146,6 +150,8 @@ pub enum StackError {
     /// A positive copy scale was set on (or restored into) a model with a
     /// pointer-copy head, whose mixture D10 forms from unboosted logits.
     CopyScaleWithPointer,
+    /// A thread count of zero, or a worker pool that could not be built.
+    Threads(String),
 }
 
 impl fmt::Display for StackError {
@@ -218,6 +224,7 @@ impl fmt::Display for StackError {
                 f,
                 "a model with a pointer-copy head refuses a positive copy scale"
             ),
+            Self::Threads(reason) => write!(f, "stack engine threads: {reason}"),
         }
     }
 }

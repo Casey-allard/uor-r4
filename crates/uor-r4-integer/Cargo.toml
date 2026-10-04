@@ -11,6 +11,7 @@ serde_json = "1.0"
 sha2 = "0.10.8"
 hex = "0.4.3"
 blake3 = "=1.5.0"
+rayon = "1.10"
 
 uor-r4-tokenizer = { path = "../uor-r4-tokenizer" }
 
