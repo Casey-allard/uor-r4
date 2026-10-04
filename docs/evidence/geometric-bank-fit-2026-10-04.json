@@ -1,0 +1,540 @@
+{
+  "schema": "uor-r4.geometric-bank-fit-evidence/1",
+  "source_commit": "6aa5e0c6df4822a0b3da8f19d9260092aa5082ea",
+  "executable_sha256": "458561ae7d87570cc076ed21559b7bda1d1f95f2069371cb60b6e0091c2025f9",
+  "source_sha256": {
+    "crates/uor-r4-training/examples/geometric-bank-panel.rs": "4938cafc32ea71362ed6e7f238b731a70d04a1f515752d29f559b02608bfb832",
+    "crates/uor-r4-training/examples/geometric-bank-fit.rs": "cddf0231d53f3961748f78df8bf91a6603ddb49be69d353d7d0094101d764e3f"
+  },
+  "checkpoints": [
+    {
+      "updates": 0,
+      "all128_ce": 1.3276488868214145,
+      "single64_ce": 0.4923816248649195,
+      "bank64_ce": 2.1629161487779083,
+      "zero_support": 0
+    },
+    {
+      "updates": 16,
+      "all128_ce": 1.7590724302456737,
+      "single64_ce": 1.5369163984610217,
+      "bank64_ce": 1.9812284620303264,
+      "zero_support": 0
+    },
+    {
+      "updates": 32,
+      "all128_ce": 1.5875451313532136,
+      "single64_ce": 1.406865966017404,
+      "bank64_ce": 1.7682242966890207,
+      "zero_support": 0
+    },
+    {
+      "updates": 48,
+      "all128_ce": 1.4791009639117563,
+      "single64_ce": 1.222499874116768,
+      "bank64_ce": 1.7357020537067438,
+      "zero_support": 0
+    },
+    {
+      "updates": 64,
+      "all128_ce": 1.5426019827304522,
+      "single64_ce": 1.2768670259282084,
+      "bank64_ce": 1.8083369395326947,
+      "zero_support": 0
+    }
+  ],
+  "selected_updates": 0,
+  "generated": {
+    "development-parent": {
+      "complete": 31,
+      "cases": 128,
+      "single_complete": 31,
+      "bank_complete": 0
+    },
+    "development-selected": {
+      "complete": 31,
+      "cases": 128,
+      "single_complete": 31,
+      "bank_complete": 0
+    },
+    "fresh-parent": {
+      "complete": 0,
+      "cases": 32,
+      "single_complete": null,
+      "bank_complete": 0
+    },
+    "fresh-selected": {
+      "complete": 0,
+      "cases": 32,
+      "single_complete": null,
+      "bank_complete": 0
+    }
+  },
+  "fit_receipt": {
+    "host": "Runpod Linux x86_64",
+    "recorded_utc": "2026-10-04T22:33:55.088115+00:00",
+    "source_commit": "6aa5e0c6df4822a0b3da8f19d9260092aa5082ea",
+    "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+    "command": [
+      "/root/codex/target/release/examples/geometric-bank-fit",
+      "/root/codex/bank-fit-1.json"
+    ],
+    "cwd": "/root/codex/geometric-bank-fit-20261004",
+    "environment": {
+      "CARGO_HOME": "/root/codex/cargo-home",
+      "CARGO_TARGET_DIR": "/root/codex/target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "48",
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+      "RAYON_NUM_THREADS": "48",
+      "CUDA_VISIBLE_DEVICES": "",
+      "UOR_BUILD_SOURCE_COMMIT": "6aa5e0c6df4822a0b3da8f19d9260092aa5082ea",
+      "TMPDIR": "/root/codex/tmp"
+    },
+    "affinity_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "threads_budget": 48,
+    "wrapper_pid": 262942,
+    "worker_pid": 262944,
+    "exit_code": 0,
+    "stop_reason": null,
+    "elapsed_seconds": 443.25736554712057,
+    "sampled_process_tree_peak_rss_bytes": 1210200064,
+    "rusage_children_max_rss_bytes": 1239248896,
+    "codex_allocated_bytes_latest": 9972137984,
+    "free_bytes_final": 8145989632,
+    "maximum_seconds": 1200,
+    "maximum_rss_bytes": 8589934592,
+    "gpu_used": false,
+    "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+  },
+  "return_verification": {
+    "status": "PASS",
+    "files": 127,
+    "bytes": 267347893,
+    "remote_inventory_sha256": "d75c1f1370385d75b23627396f22050f33f8bf8b2e2786c5cf9587ce1af447bc",
+    "complete_file_set_and_sha256_equal": true
+  },
+  "broadbatch_audit": {
+    "status": "PASS",
+    "checks": 6521,
+    "errors": [],
+    "seals": {
+      "pod-return/panel-dev-2": {
+        "manifest_sha256": "037af9031ecb5224d5b98672285a4556c5a62a99e3b9a790568907afbb21f1ce",
+        "files": 5,
+        "BLAKE3": "VERIFIED"
+      },
+      "pod-return/panel-fresh-2": {
+        "manifest_sha256": "88bda91a9c532b6e4764dc1446f82c7a8a9fa78e24fad46892dc40f28a0454f3",
+        "files": 5,
+        "BLAKE3": "VERIFIED"
+      },
+      "pod-return/broadbatch-2": {
+        "manifest_sha256": "1c68dc478435447f70412e3517d69d3e95944850214b7797581afa9e53776430",
+        "files": 4,
+        "BLAKE3": "VERIFIED"
+      }
+    },
+    "gradient_groups": {
+      "consumer.context.": {
+        "elements": 8963136,
+        "nonzero": 85416
+      },
+      "consumer.no_read.": {
+        "elements": 8866,
+        "nonzero": 628
+      },
+      "consumer.potential.": {
+        "elements": 8288,
+        "nonzero": 7255
+      },
+      "period.": {
+        "elements": 8866,
+        "nonzero": 628
+      }
+    },
+    "auditor_sha256": "e970e4254e11f584aa02c192e7788cf100aa2c89af70776545579b8f330efa26",
+    "limits": [
+      "Exposure token-to-literal decode not independently reconstructed: /Users/casey.allard/uor-r4-local/workspace/research/geometric-native-route-crossing-20261004/pod-return/bank-panel-1/inputs.json case bank-repeated-word",
+      "Saved arithmetic only; no native/model/tokenizer reexecution. BPE preparation/native trace parity/gradient guards are source-bound execution receipts, not independently reconstructed backward.",
+      "Excluded source tuples audited for supplied exposure files only; declared list completeness remains prospective owner record.",
+      "Fresh predictions not read; broad objective is development only."
+    ]
+  },
+  "tests": {
+    "focused_rust_pass": 13,
+    "optimized_build": "PASS",
+    "initial_preparation": "FAILED before model calls: old accepted alternative count incorrectly assumed one; repaired without data seed change"
+  },
+  "cost": {
+    "complete_card_ms_charged_once": 10800000,
+    "cumulative_ms": 1216635028,
+    "limit_ms": 1219200000,
+    "initial_tests_seconds": 267.38878676714376,
+    "initial_release_seconds": 8.239191233646125,
+    "failed_preparation_seconds": 2.2310117692686617,
+    "repaired_tests_seconds": 139.6806398788467,
+    "repaired_release_seconds": 8.238816716242582,
+    "successful_preparation_seconds": 2.228516942821443,
+    "broadbatch_seconds": 111.42684928514063,
+    "fit_seconds": 443.25736554712057
+  },
+  "limitations": [
+    "Familiar literal pool, two fixed question templates, development bank learned four visits; fresh32 new combinations of same pool.",
+    "Only parent/selected actual generation; intermediate checkpoint own-prefix generation NOT_RUN.",
+    "Biased offline discrete adjoints have no native-descent guarantee.",
+    "No general Generate, chat, reasoning, whole-prefix recall, long-context or M1 energy qualification.",
+    "Local BLAKE3 unavailable; complete SHA256 file-set verified, Rust source-bound seal verification executed."
+  ],
+  "independent_fit_audit": {
+    "status": "PASS",
+    "checks": 27137,
+    "errors": [],
+    "source_commit": "6aa5e0c6df4822a0b3da8f19d9260092aa5082ea",
+    "executable_sha256": "458561ae7d87570cc076ed21559b7bda1d1f95f2069371cb60b6e0091c2025f9",
+    "seals": {
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/fit-1": {
+        "manifest_sha256": "92576572cd6c00b22fa99526e6a568f77121aac0c37f9049a9ee4a39945d0736",
+        "file_count": 126,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/panel-dev-2": {
+        "manifest_sha256": "037af9031ecb5224d5b98672285a4556c5a62a99e3b9a790568907afbb21f1ce",
+        "file_count": 5,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/panel-fresh-2": {
+        "manifest_sha256": "88bda91a9c532b6e4764dc1446f82c7a8a9fa78e24fad46892dc40f28a0454f3",
+        "file_count": 5,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/broadbatch-2": {
+        "manifest_sha256": "1c68dc478435447f70412e3517d69d3e95944850214b7797581afa9e53776430",
+        "file_count": 4,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/fit-1/checkpoint-0000": {
+        "manifest_sha256": "d11846662cd68b9c74904badc0e8486c4e6f04f2f84140fb869925840c6ade1b",
+        "file_count": 22,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/fit-1/checkpoint-0016": {
+        "manifest_sha256": "266f7cc09e7990a3a3e2f9dfbfa36de21a6c6380207f26f6543937502271d151",
+        "file_count": 22,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/fit-1/checkpoint-0032": {
+        "manifest_sha256": "293ce8439b13ea9f647472b0acafbf1c99096847785b28fe38f3e61c9aed9cb0",
+        "file_count": 22,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/fit-1/checkpoint-0048": {
+        "manifest_sha256": "2fd1493d1931c808783d6d0e3cec6d21611bdae30d018f19337c32c942efc359",
+        "file_count": 22,
+        "BLAKE3": "UNVERIFIED unavailable"
+      },
+      "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/fit-1/checkpoint-0064": {
+        "manifest_sha256": "3efc8dbb94b94b9cf64b4145b6c6283bd43aedfc480d9b3813b1d747d0813f89",
+        "file_count": 22,
+        "BLAKE3": "UNVERIFIED unavailable"
+      }
+    },
+    "checkpoints_native_ce": {
+      "0": 1.3276488868214145,
+      "16": 1.7590724302456737,
+      "32": 1.5875451313532136,
+      "48": 1.4791009639117563,
+      "64": 1.5426019827304522
+    },
+    "selected_updates": 0,
+    "generation_summary": {
+      "development-parent": {
+        "complete": 31,
+        "cases": 128,
+        "pairs_complete": 0,
+        "pairs": 32,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 46,
+          "repeated_two_token_pattern": 16,
+          "generation_cap": 2,
+          "exact_other_role_value": 1
+        }
+      },
+      "development-selected": {
+        "complete": 31,
+        "cases": 128,
+        "pairs_complete": 0,
+        "pairs": 32,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 46,
+          "repeated_two_token_pattern": 16,
+          "generation_cap": 2,
+          "exact_other_role_value": 1
+        }
+      },
+      "fresh-parent": {
+        "complete": 0,
+        "cases": 32,
+        "pairs_complete": 0,
+        "pairs": 16,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 17,
+          "repeated_two_token_pattern": 3
+        }
+      },
+      "fresh-selected": {
+        "complete": 0,
+        "cases": 32,
+        "pairs_complete": 0,
+        "pairs": 16,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 17,
+          "repeated_two_token_pattern": 3
+        }
+      }
+    },
+    "auditor_sha256": "74924415f013150c5fc57f4ba819cbfb762f86e0d8f8e1586c0b58d7b30420de",
+    "limits": [
+      "Saved arithmetic only; no model/native/tokenizer decode or backward execution. rawUTF8 bytes verified but tokenID-to-byte mapping source-bound, not independently recomputed.",
+      "Inactive bits checked emitted parameter receipts, not an independent safetensors raw-data parse. Omitted rawgradient arrays not reconstructed; runtime parity/finiteness guards source-bound.",
+      "selection-before-fresh ordering is source+receipt evidence, not independently measured time ordering.",
+      "Stop/loop annotations are immediate EOS or literal repeated-pattern indicators, not proven internal controller attribution or cycle dynamics; failure categories may overlap.",
+      "Freshness/panel exclusions rely on separately qualified panel/broad audit. No generalchat/geometricadvantage/longcontext/M1energy claim."
+    ]
+  },
+  "tradeoff_extraction": {
+    "checkpoints": {
+      "0": {
+        "single": {
+          "CE": 0.4923816248649196,
+          "rows_improved": 0,
+          "rows_worsened": 0,
+          "body_equalepisode_CE": 0.508015558974083,
+          "EOS_equalepisode_CE": 0.33379072373521335
+        },
+        "bank": {
+          "CE": 2.1629161487779087,
+          "rows_improved": 0,
+          "rows_worsened": 0,
+          "body_equalepisode_CE": 2.2275720265332404,
+          "EOS_equalepisode_CE": 1.9442609175581032
+        }
+      },
+      "16": {
+        "single": {
+          "CE": 1.5369163984610217,
+          "rows_improved": 0,
+          "rows_worsened": 64,
+          "body_equalepisode_CE": 1.5158707223902494,
+          "EOS_equalepisode_CE": 1.4892092629715414
+        },
+        "bank": {
+          "CE": 1.9812284620303262,
+          "rows_improved": 44,
+          "rows_worsened": 20,
+          "body_equalepisode_CE": 2.0321946873785426,
+          "EOS_equalepisode_CE": 1.7940160096704192
+        }
+      },
+      "32": {
+        "single": {
+          "CE": 1.4068659660174039,
+          "rows_improved": 1,
+          "rows_worsened": 63,
+          "body_equalepisode_CE": 1.457647936916166,
+          "EOS_equalepisode_CE": 0.9652020347064109
+        },
+        "bank": {
+          "CE": 1.7682242966890214,
+          "rows_improved": 53,
+          "rows_worsened": 11,
+          "body_equalepisode_CE": 1.869920542890973,
+          "EOS_equalepisode_CE": 1.1169609468145152
+        }
+      },
+      "48": {
+        "single": {
+          "CE": 1.2224998741167679,
+          "rows_improved": 0,
+          "rows_worsened": 64,
+          "body_equalepisode_CE": 1.3041052983673838,
+          "EOS_equalepisode_CE": 0.6562639525322566
+        },
+        "bank": {
+          "CE": 1.7357020537067438,
+          "rows_improved": 50,
+          "rows_worsened": 14,
+          "body_equalepisode_CE": 1.8150013270631584,
+          "EOS_equalepisode_CE": 1.1937738805810485
+        }
+      },
+      "64": {
+        "single": {
+          "CE": 1.2768670259282084,
+          "rows_improved": 0,
+          "rows_worsened": 64,
+          "body_equalepisode_CE": 1.3267631743191175,
+          "EOS_equalepisode_CE": 1.0272871527595224
+        },
+        "bank": {
+          "CE": 1.8083369395326947,
+          "rows_improved": 50,
+          "rows_worsened": 14,
+          "body_equalepisode_CE": 1.8341634343545041,
+          "EOS_equalepisode_CE": 1.6778204341464957
+        }
+      }
+    },
+    "generations": {
+      "development-parent": {
+        "complete": 31,
+        "cases": 128,
+        "pairs_complete": 0,
+        "pairs": 32,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 46,
+          "repeated_two_token_pattern": 16,
+          "generation_cap": 2,
+          "exact_other_role_value": 1
+        }
+      },
+      "development-selected": {
+        "complete": 31,
+        "cases": 128,
+        "pairs_complete": 0,
+        "pairs": 32,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 46,
+          "repeated_two_token_pattern": 16,
+          "generation_cap": 2,
+          "exact_other_role_value": 1
+        }
+      },
+      "fresh-parent": {
+        "complete": 0,
+        "cases": 32,
+        "pairs_complete": 0,
+        "pairs": 16,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 17,
+          "repeated_two_token_pattern": 3
+        }
+      },
+      "fresh-selected": {
+        "complete": 0,
+        "cases": 32,
+        "pairs_complete": 0,
+        "pairs": 16,
+        "stratum_complete": {
+          "roles-order": 0,
+          "distractors": 0,
+          "repetition": 0,
+          "currentversions": 0
+        },
+        "failure_annotations_nonexclusive": {
+          "immediate_Stop": 17,
+          "repeated_two_token_pattern": 3
+        }
+      }
+    }
+  },
+  "next_causal_source_review": {
+    "file": "next-causal-review.md",
+    "sha256": "fddbda7d57ca9703e16acc90dcffa83030ca668cb72e302928f6eb8f2c2754e3",
+    "query_pairs_distinct_codes_and_copy_score_vectors": 32,
+    "same_top_copy_pairs_parent": 4,
+    "same_top_copy_pairs_update48": 12,
+    "scope": "Saved canonical first-step contrasts, not independent model replay or learned own-prefix generation"
+  }
+}

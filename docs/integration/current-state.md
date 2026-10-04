@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Native bank fit exposes context/readout interference — October 4
+
+The [mixed-bank Rust fit](geometric-bank-fit-2026-10-04.md) completes at source6aa5e0c6, 128 development episodes (unchanged64 singles+64 counterbalanced bank), frozen32 fresh familiar-value combinations, 64 balanced B8 updates. Bank CE improves2.162916→1.735702 at48, but all64 single-source rows worsen and their CE rises0.492382→1.222500. Full128 criterion retains parent1.327649. All1,204 targets have native support throughout. Both body and EOS trade, so Stop-only harm is insufficient. Learned checkpoint complete generation is NOT_RUN; selected/parent31/128 are all oldcontrols, bank0/64 and fresh0/32. Retain every candidate; no geometry-family rejection or bank-generation claim follows.
+
+Broadbatch actual native parity/finite credit passes; independent panel audit6,521 and fit audit27,137 checks pass with source-bound gradient/tokenizer limitations. Repaired13 focused tests/release pass; initial accepted-alternative preparation defect occurs before modelcalls and is retained. ExactSHA/fullset fit return127files267,347,893B. Workers423.547s tests/builds+4.460s preparation+111.427s broad+443.257s fit; complete180min card oncecharge, cumulative1,216,635,028/1,219,200,000ms. PodCPU48/noGPU; owned9,972,137,984B. [Evidence](../evidence/geometric-bank-fit-2026-10-04.json).
+
+**Next:** diagnose learned development first-token query/source ranking and actual own-prefix replies before another fit; separate conditional Copy selection from controller competition and shared-context versus readout interference. Consider frozen-context readout continuation only when retained observations distinguish queries. No unchanged dose or stronger gold-record gate. General Generate/chat/reasoning/fullhistory/laptopcost remain obligations; sharedsession/compiler untouched.
+
 ## Native bank objective reaches geometric context and controllers — October 4
 
 The [Rust bank learning admission](geometric-bank-learning-admission-2026-10-04.md) adds ordinary `loss_bank` over actual causal candidate positions, full replay and one joint Copy/Period/Stop native alias objective at source5f2288. Integer serving is unchanged. All6 development cases/26 canonical targets have positive support;27 own-prefix steps and6 initial traces preserve prior bank outputs. Native equalepisode CE1.172177443457, quality1/6 unchanged, optimizer0. First/full finite nonzero recurrentcontext48,384; potential223/695, Stop142/314 andPeriod142/314. This is shared biased context credit, not independently isolated role sensitivity or trained retrieval.

@@ -1,0 +1,1208 @@
+//! Native bank full-answer hard-forward marginal CE and offline gradient admission.
+//! Zero updates; source-only runtime packets and separately frozen typed answers.
+use candle_core::{Device, Tensor, Var};
+use candle_nn::{AdamW, Optimizer, ParamsAdamW};
+use serde::Deserialize;
+use serde_json::{json, Value};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs, io,
+    path::{Path, PathBuf},
+    time::Instant,
+};
+use uor_r4_core::{
+    answer_oracle::{FrozenAnswers, RecordedValueIntent},
+    report_output,
+};
+use uor_r4_integer::{
+    geometric_occurrence_read::{FrameMetadata, FrameStatus, SelectedRecordFrame, SourceIdentity},
+    geometric_source_realizer::{
+        NativeArtifactBinding, NativeSourceRealizer as IntegerRealizer, SourceBankSegment,
+    },
+};
+use uor_r4_tokenizer::ByteBpeTokenizer;
+use uor_r4_training::{
+    geometric_occurrence_consumer::{
+        source_realizer::{NativeSourceRealizer, SourceRealizerWeights},
+        ConsumerIdentity,
+    },
+    sha256_bytes, sha256_file,
+};
+#[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
+mod output_support;
+type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+const REPORT_CAP: usize = 512 * 1024 * 1024;
+const UPDATES: usize = 64;
+const BATCH: usize = 8;
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Args {
+    mode: String,
+    source_weights: PathBuf,
+    native_artifact: PathBuf,
+    trusted_native_binding: PathBuf,
+    development_panel: PathBuf,
+    development_manifest_sha256: String,
+    fresh_panel: PathBuf,
+    fresh_manifest_sha256: String,
+    admission: Option<PathBuf>,
+    admission_manifest_sha256: Option<String>,
+    fit_authorization: Option<PathBuf>,
+    exposed_controls: Option<PathBuf>,
+    out: PathBuf,
+    maximum_seconds: u64,
+    maximum_context_tokens: usize,
+    maximum_generation_tokens: usize,
+    maximum_report_bytes: usize,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Authorization {
+    schema: String,
+    fit_admitted: bool,
+    admission_report_sha256: String,
+    development_manifest_sha256: String,
+    fresh_manifest_sha256: String,
+    trusted_binding_sha256: String,
+    updates: usize,
+    batch_episodes: usize,
+    maximum_fit_seconds: u64,
+}
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct Inputs {
+    schema: String,
+    cases: Vec<Packet>,
+}
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct Packet {
+    id: String,
+    segments: Vec<Segment>,
+    query_ids: Vec<u32>,
+    actual_prefix_ids: Vec<u32>,
+}
+#[derive(Deserialize, serde::Serialize)]
+#[serde(tag = "kind", deny_unknown_fields)]
+enum Segment {
+    Source {
+        event: u64,
+        record: u64,
+        commit: u64,
+        scope: String,
+        entity: Vec<u32>,
+        relation: u32,
+        view: u32,
+        original_source_ids: Vec<u32>,
+    },
+    Context {
+        event: u64,
+        role: u32,
+        token_ids: Vec<u32>,
+    },
+}
+impl Segment {
+    fn frame(&self) -> Option<SelectedRecordFrame<'_>> {
+        match self {
+            Self::Source {
+                record,
+                commit,
+                scope,
+                entity,
+                relation,
+                view,
+                original_source_ids,
+                ..
+            } => Some(SelectedRecordFrame {
+                identity: SourceIdentity {
+                    record: *record,
+                    commit: *commit,
+                },
+                metadata: FrameMetadata {
+                    scope: scope.as_bytes(),
+                    entity,
+                    relation: *relation,
+                    view: *view,
+                    status: FrameStatus::Found,
+                },
+                token_ids: original_source_ids,
+            }),
+            Self::Context { .. } => None,
+        }
+    }
+}
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct Labels {
+    schema: String,
+    protocol: String,
+    membership_only: bool,
+    cases: Vec<Label>,
+}
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct Label {
+    id: String,
+    answers: FrozenAnswers,
+}
+fn invalid(s: impl Into<String>) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidData, s.into())
+}
+fn read_json(path: &Path) -> Result<Value> {
+    Ok(serde_json::from_slice(&fs::read(path)?)?)
+}
+fn parameter_receipts(parameters: &BTreeMap<String, Var>) -> Result<Value> {
+    let mut receipts = BTreeMap::new();
+    for (name, var) in parameters {
+        let values = var.flatten_all()?.to_vec1::<f32>()?;
+        let bytes = values
+            .iter()
+            .flat_map(|v| v.to_bits().to_le_bytes())
+            .collect::<Vec<_>>();
+        receipts.insert(name, json!({"shape":var.dims(),"elements":values.len(),"f32_le_bits_sha256":sha256_bytes(&bytes)}));
+    }
+    Ok(serde_json::to_value(receipts)?)
+}
+fn peak_rss_kib() -> Option<u64> {
+    fs::read_to_string("/proc/self/status")
+        .ok()?
+        .lines()
+        .find_map(|s| {
+            s.strip_prefix("VmHWM:")?
+                .split_whitespace()
+                .next()?
+                .parse()
+                .ok()
+        })
+}
+fn executable() -> Result<(PathBuf, &'static str)> {
+    match std::env::current_exe() {
+        Ok(path) => Ok((path, "current_exe")),
+        Err(error) => {
+            let path = std::env::args().next().map(PathBuf::from).ok_or(error)?;
+            if !path.is_absolute() {
+                return Err(invalid("current_exe unavailable; argv0 must be absolute").into());
+            }
+            Ok((path, "absolute_argv0_fallback"))
+        }
+    }
+}
+
+fn directory_bytes(path: &Path) -> Result<usize> {
+    let mut n = 0usize;
+    for e in fs::read_dir(path)? {
+        let e = e?;
+        let m = e.file_type()?;
+        if m.is_symlink() {
+            return Err(invalid("symlink in owned artifact/report").into());
+        }
+        n = n
+            .checked_add(if m.is_dir() {
+                directory_bytes(&e.path())?
+            } else {
+                e.metadata()?.len() as usize
+            })
+            .ok_or_else(|| invalid("report size overflow"))?;
+    }
+    Ok(n)
+}
+fn write_json(root: &Path, name: &str, v: &Value) -> Result<()> {
+    let b = serde_json::to_vec(v)?;
+    let p = root.join(name);
+    let previous = fs::metadata(&p).map_or(0, |m| m.len() as usize);
+    let mut total_root = root;
+    while let Some(parent) = total_root.parent() {
+        if parent.join("attempt.json").is_file() {
+            total_root = parent;
+        } else {
+            break;
+        }
+    }
+    if directory_bytes(total_root)?
+        .saturating_sub(previous)
+        .saturating_add(b.len())
+        > REPORT_CAP - 1024 * 1024
+    {
+        return Err(invalid("report cap reached").into());
+    }
+    fs::write(p, b)?;
+    Ok(())
+}
+fn read_capped(path: &Path) -> Result<Vec<u8>> {
+    use std::io::Read;
+    let f = fs::File::open(path)?;
+    if f.metadata()?.len() > 16 * 1024 * 1024 {
+        return Err(invalid("input cap16MiB").into());
+    }
+    let mut b = Vec::new();
+    f.take(16 * 1024 * 1024 + 1).read_to_end(&mut b)?;
+    if b.len() > 16 * 1024 * 1024 {
+        return Err(invalid("input grew beyond16MiB").into());
+    }
+    Ok(b)
+}
+fn nearest_seal(p: &Path) -> Result<PathBuf> {
+    for a in p.ancestors() {
+        if a.join(report_output::MANIFEST_FILE).is_file() {
+            return Ok(a.to_path_buf());
+        }
+    }
+    Err(invalid("required sealed source ancestor absent").into())
+}
+fn deadline(a: &Args, start: Instant) -> Result<()> {
+    if start.elapsed().as_secs() >= a.maximum_seconds
+        || peak_rss_kib().is_some_and(|n| n > 8 * 1024 * 1024)
+    {
+        return Err(invalid("declared model wall/RSS cap reached").into());
+    }
+    Ok(())
+}
+fn checked_args() -> Result<Args> {
+    let mut av = std::env::args().skip(1);
+    let config = av
+        .next()
+        .ok_or_else(|| invalid("one config path required"))?;
+    if av.next().is_some() {
+        return Err(invalid("only one config path").into());
+    }
+    let a: Args = serde_json::from_slice(&read_capped(Path::new(&config))?)?;
+    if !["broadbatch", "fit"].contains(&a.mode.as_str())
+        || a.maximum_seconds == 0
+        || a.maximum_seconds > if a.mode == "fit" { 3600 } else { 300 }
+        || a.maximum_context_tokens != 128
+        || a.maximum_generation_tokens > 32
+        || a.maximum_report_bytes != REPORT_CAP
+    {
+        return Err(invalid("mode/resource contract differs").into());
+    }
+    if a.mode == "fit"
+        && (a.admission.is_none()
+            || a.admission_manifest_sha256.is_none()
+            || a.fit_authorization.is_none())
+    {
+        return Err(invalid(
+            "fit requires separate sealed broadbatch and explicit resource authorization",
+        )
+        .into());
+    }
+    if a.mode == "broadbatch" && (a.admission.is_some() || a.fit_authorization.is_some()) {
+        return Err(invalid("broadbatch cannot automatically fit").into());
+    }
+    let out = output_support::prospective_output(&a.out)?;
+    let mut paths = vec![
+        &a.source_weights,
+        &a.native_artifact,
+        &a.trusted_native_binding,
+        &a.development_panel,
+        &a.fresh_panel,
+    ];
+    paths.extend(a.admission.iter());
+    paths.extend(a.fit_authorization.iter());
+    paths.extend(a.exposed_controls.iter());
+    for p in paths {
+        let p = fs::canonicalize(p)?;
+        if out.starts_with(&p) {
+            return Err(invalid("output beneath input").into());
+        }
+        for ancestor in p.ancestors() {
+            if ancestor.join(report_output::MANIFEST_FILE).is_file() && out.starts_with(ancestor) {
+                return Err(invalid("output beneath sealed input").into());
+            }
+        }
+    }
+    Ok(a)
+}
+struct Episode {
+    packet: Packet,
+    answers: FrozenAnswers,
+    target: Vec<u32>,
+    views: Vec<Option<uor_r4_integer::geometric_source_emission_view::SourceEmissionView>>,
+}
+impl Episode {
+    fn segments(&self) -> Result<Vec<SourceBankSegment<'_>>> {
+        self.packet
+            .segments
+            .iter()
+            .enumerate()
+            .map(|(i, s)| {
+                Ok(match s {
+                    Segment::Source { event, .. } => SourceBankSegment::Source {
+                        frame: s.frame().ok_or_else(|| invalid("frame absent"))?,
+                        view: self.views[i]
+                            .as_ref()
+                            .ok_or_else(|| invalid("view absent"))?,
+                        event: *event,
+                    },
+                    Segment::Context {
+                        event,
+                        role,
+                        token_ids,
+                    } => SourceBankSegment::Context {
+                        token_ids,
+                        event: *event,
+                        role: *role,
+                    },
+                })
+            })
+            .collect()
+    }
+}
+fn validate_answers(answers: &FrozenAnswers, single_source: bool) -> Result<()> {
+    answers.validate()?;
+    if answers.intent != RecordedValueIntent::Current
+        || answers.accepted.is_empty()
+        || (!single_source && answers.accepted.len() != 1)
+    {
+        return Err(invalid("accepted answer policy differs").into());
+    }
+    Ok(())
+}
+fn load_panel(
+    root: &Path,
+    expected_count: usize,
+    native: &IntegerRealizer,
+    tok: &ByteBpeTokenizer,
+    receipt: bool,
+) -> Result<Vec<Episode>> {
+    report_output::verify(root)?;
+    let inputs: Inputs = serde_json::from_slice(&read_capped(&root.join("inputs.json"))?)?;
+    let labels: Labels = serde_json::from_slice(&read_capped(&root.join("labels.json"))?)?;
+    if inputs.schema != "uor-r4.native-source-bank-probe-input/1"
+        || labels.schema != "uor-r4.native-source-bank-labels/1"
+        || labels.protocol != "uor-r4.literal-role-dialogue/2"
+        || !labels.membership_only
+        || inputs.cases.len() != expected_count
+        || labels.cases.len() != expected_count
+    {
+        return Err(invalid("panel schema/count differs").into());
+    }
+    let context = if receipt {
+        Some(read_json(&root.join("context-data.json"))?)
+    } else {
+        None
+    };
+    let mut ids = BTreeSet::new();
+    let mut result = Vec::new();
+    for (i, (packet, label)) in inputs.cases.into_iter().zip(labels.cases).enumerate() {
+        let single_source = context
+            .as_ref()
+            .map(|c| c["cases"][i]["kind"] == "single-source")
+            .unwrap_or(true);
+        validate_answers(&label.answers, single_source)?;
+        if packet.id != label.id
+            || packet.id.is_empty()
+            || !ids.insert(packet.id.clone())
+            || packet.segments.is_empty()
+            || packet.query_ids.is_empty()
+            || !packet.actual_prefix_ids.is_empty()
+        {
+            return Err(
+                invalid("panel case/label binding differs; nonempty prefix unsupported").into(),
+            );
+        }
+        let mut target = tok.encode(&format!(" {}", label.answers.accepted[0]));
+        target.push(native.binding().eos_token_id());
+        for accepted in &label.answers.accepted {
+            let text = format!(" {accepted}");
+            if String::from_utf8(tok.decode_bytes(&tok.encode(&text)))? != text {
+                return Err(invalid("accepted alternative byte-BPE roundtrip differs").into());
+            }
+        }
+        if target.len() > 32
+            || String::from_utf8(tok.decode_bytes(&target[..target.len() - 1]))?
+                != format!(" {}", label.answers.accepted[0])
+        {
+            return Err(invalid("answer/EOS encoding differs or exceeds32").into());
+        }
+        let mut views = Vec::new();
+        for s in &packet.segments {
+            views.push(match s.frame() {
+                Some(f) => Some(native.compile_view(f.token_ids)?),
+                None => None,
+            });
+        }
+        if let Some(c) = &context {
+            let expected_views = views
+                .iter()
+                .enumerate()
+                .filter_map(|(j, v)| {
+                    v.as_ref()
+                        .map(|view| json!({"segment_index":j,"source_view":view}))
+                })
+                .collect::<Vec<_>>();
+            if c["cases"][i]["source_views"] != json!(expected_views) {
+                return Err(invalid("frozen context sourceview projection differs").into());
+            }
+            if c["schema"] != "uor-r4.geometric-bank-context-data/1"
+                || c["cases"][i]["id"] != packet.id
+                || c["cases"][i]["target_ids_labels_only"] != json!(target)
+            {
+                return Err(invalid("separate context receipt/target binding differs").into());
+            }
+        }
+        result.push(Episode {
+            packet,
+            answers: label.answers,
+            target,
+            views,
+        });
+    }
+    if let Some(c) = context {
+        let rows = c["cases"]
+            .as_array()
+            .ok_or_else(|| invalid("context cases absent"))?;
+        if rows.len() != expected_count {
+            return Err(invalid("context count differs").into());
+        }
+        let mut pairs = BTreeMap::<String, Vec<usize>>::new();
+        for (i, r) in rows.iter().enumerate() {
+            if let Some(pair) = r["pair_id"].as_str() {
+                pairs.entry(pair.into()).or_default().push(i);
+            }
+        }
+        if (expected_count == 128
+            && (pairs.len() != 32 || rows[..64].iter().any(|r| r["kind"] != "single-source")))
+            || (expected_count == 32 && pairs.len() != 16)
+        {
+            return Err(invalid("declared preservation/pair counts differ").into());
+        }
+        for indices in pairs.values() {
+            if indices.len() != 2
+                || !matches!(
+                    (
+                        rows[indices[0]]["query_role"].as_str(),
+                        rows[indices[1]]["query_role"].as_str()
+                    ),
+                    (Some("job"), Some("where")) | (Some("where"), Some("job"))
+                )
+                || (expected_count == 128
+                    && (indices[0] < 64
+                        || indices[1] != indices[0] + 1
+                        || (indices[0] - 64) % 2 != 0))
+                || serde_json::to_value(&result[indices[0]].packet.segments)?
+                    != serde_json::to_value(&result[indices[1]].packet.segments)?
+            {
+                return Err(invalid("same-bank different-query pair differs").into());
+            }
+        }
+    }
+    Ok(result)
+}
+fn active(name: &str) -> bool {
+    name.starts_with("consumer.context.")
+        || name.starts_with("consumer.no_read.")
+        || name.starts_with("period.")
+        || matches!(
+            name,
+            "consumer.potential.context_unary"
+                | "consumer.potential.context_radius"
+                | "consumer.potential.context_presence"
+                | "consumer.potential.content_presence"
+        )
+}
+fn inactive_bits(source: &SourceRealizerWeights) -> Result<Value> {
+    parameter_receipts(
+        &source
+            .parameters()
+            .into_iter()
+            .filter(|(n, _)| !active(n))
+            .collect(),
+    )
+}
+fn scale(episodes: usize, tokens: usize) -> Result<f64> {
+    if episodes == 0 || tokens == 0 {
+        return Err(invalid("empty objective").into());
+    }
+    Ok(1. / episodes as f64 / tokens as f64)
+}
+struct Batch {
+    gradients: BTreeMap<String, Tensor>,
+    report: Value,
+}
+fn batch(
+    indices: &[usize],
+    episodes: &[Episode],
+    source: &SourceRealizerWeights,
+    native: &NativeSourceRealizer,
+    a: &Args,
+    start: Instant,
+    independent: Option<&IntegerRealizer>,
+) -> Result<Batch> {
+    let begun = Instant::now();
+    let prepared = source.prepare(native)?;
+    let params = source.parameters();
+    let mut gradients = BTreeMap::<String, Tensor>::new();
+    let mut rows = Vec::new();
+    let mut mean = 0.;
+    let mut positions = 0;
+    for &i in indices {
+        let e = episodes.get(i).ok_or_else(|| invalid("batch index"))?;
+        let segments = e.segments()?;
+        let mut ce = 0.;
+        let mut first = None;
+        for (step, &target) in e.target.iter().enumerate() {
+            deadline(a, start)?;
+            let out =
+                prepared.loss_bank(&segments, &e.packet.query_ids, &e.target[..step], target)?;
+            if let Some(integer) = independent {
+                let expected =
+                    integer.read_bank(&segments, &e.packet.query_ids, &e.target[..step])?;
+                if expected != out.trace {
+                    return Err(invalid(
+                        "broadbatch complete native trace parity differs before backward",
+                    )
+                    .into());
+                }
+            }
+            let mass = out
+                .trace
+                .actions
+                .token_masses
+                .iter()
+                .filter(|v| v.token_id == target)
+                .map(|v| v.weight_q31)
+                .sum::<u64>();
+            let total = out.trace.actions.total_weight_q31;
+            if mass == 0 || total == 0 {
+                return Err(invalid(format!("infinite native objective id={} step={step}; no floor or positive-only gradient",e.packet.id)).into());
+            }
+            let expected = -(mass as f64 / total as f64).ln();
+            let scalar = out.loss.to_scalar::<f32>()?;
+            if !scalar.is_finite()
+                || out.target_probability != mass as f64 / total as f64
+                || (f64::from(scalar) - expected).abs() > 1e-4 + 1e-5 * expected.abs()
+            {
+                return Err(invalid("ordinary loss differs actual native marginal").into());
+            }
+            ce += expected;
+            positions += 1;
+            if step == 0 {
+                first = Some(expected);
+            }
+            let loss = (&out.loss * scale(indices.len(), e.target.len())?)?;
+            let store = loss.backward()?;
+            for (name, var) in &params {
+                if active(name) {
+                    if let Some(g) = store.get(var.as_tensor()) {
+                        let g = g.detach();
+                        let combined = match gradients.remove(name) {
+                            Some(old) => (&old + &g)?.detach(),
+                            None => g,
+                        };
+                        gradients.insert(name.clone(), combined);
+                    }
+                }
+            }
+        }
+        mean += ce / e.target.len() as f64 / indices.len() as f64;
+        rows.push(json!({"id":e.packet.id,"target_steps":e.target.len(),"native_mean_token_ce":ce/e.target.len() as f64,"first_token_ce":first}));
+    }
+    let mut stats = BTreeMap::new();
+    let mut square = 0.;
+    for (name, g) in &gradients {
+        let v = g.flatten_all()?.to_vec1::<f32>()?;
+        if v.iter().any(|x| !x.is_finite()) {
+            return Err(invalid("gradient nonfinite").into());
+        }
+        square += v.iter().map(|x| f64::from(*x).powi(2)).sum::<f64>();
+        stats.insert(name.clone(),json!({"elements":v.len(),"finite":true,"nonzero":v.iter().filter(|x|**x!=0.).count(),"l1":v.iter().map(|x|f64::from(x.abs())).sum::<f64>()}));
+    }
+    Ok(Batch {
+        gradients,
+        report: json!({"episodes":indices.len(),"episode_indices":indices,"target_positions":positions,"native_equal_episode_ce":mean,"gradient_global_norm":square.sqrt(),"gradient_families":stats,"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64(),"independent_native_trace_parity":independent.is_some(),"objective":"mean episodes(mean completeanswer+EOS marginal CE); pertoken backward detached F32 gradient accumulation; globalclip aftermean; no supportfloor"}),
+    })
+}
+fn apply(
+    source: &SourceRealizerWeights,
+    opt: &mut AdamW,
+    g: BTreeMap<String, Tensor>,
+) -> Result<f64> {
+    let params = source.parameters();
+    let mut sq = 0.;
+    for v in g.values() {
+        for x in v.flatten_all()?.to_vec1::<f32>()? {
+            sq += f64::from(x).powi(2);
+        }
+    }
+    let norm = sq.sqrt();
+    if !norm.is_finite() {
+        return Err(invalid("nonfinite clipnorm").into());
+    }
+    let clip = if norm > 1. { 1. / norm } else { 1. };
+    let mut store = Tensor::new(0f32, &Device::Cpu)?.backward()?;
+    for (n, g) in g {
+        let v = params
+            .get(&n)
+            .ok_or_else(|| invalid("gradient Var absent"))?;
+        store.insert(v.as_tensor(), (&g * clip)?.detach());
+    }
+    opt.step(&store)?;
+    source.project_quarter_range()?;
+    Ok(clip)
+}
+fn compact(trace: &uor_r4_integer::geometric_source_realizer::BankRealizerTrace) -> Result<Value> {
+    let end = trace.context.states.len() - 1;
+    let lanes = trace.context.heads * trace.context.lanes_per_head;
+    Ok(
+        json!({"actions":trace.actions,"bank_binding_sha256":trace.bank_binding_sha256,"context_sha256":sha256_bytes(&serde_json::to_vec(&trace.context)?),"final_latent_states":trace.context.states[end],"final_observed_codes":&trace.context.codes[end*lanes..(end+1)*lanes],"candidate_mapping":trace.candidates}),
+    )
+}
+fn canonical(
+    native: &IntegerRealizer,
+    episodes: &[Episode],
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut total = 0.;
+    let mut zeros = Vec::new();
+    let mut count = 0;
+    for e in episodes {
+        let segments = e.segments()?;
+        let mut tokens = Vec::new();
+        let mut rowce = 0.;
+        let mut rowzero = false;
+        for (step, &label) in e.target.iter().enumerate() {
+            deadline(a, start)?;
+            let trace = native.read_bank(&segments, &e.packet.query_ids, &e.target[..step])?;
+            let mass = trace
+                .actions
+                .token_masses
+                .iter()
+                .filter(|t| t.token_id == label)
+                .map(|t| t.weight_q31)
+                .sum::<u64>();
+            let normalizer = trace.actions.total_weight_q31;
+            if normalizer == 0 {
+                return Err(invalid("zero normalizer").into());
+            }
+            let ce = if mass == 0 {
+                rowzero = true;
+                zeros.push(json!({"id":e.packet.id,"step":step}));
+                None
+            } else {
+                let ce = -(mass as f64 / normalizer as f64).ln();
+                rowce += ce;
+                Some(ce)
+            };
+            tokens.push(json!({"step":step,"teacherforced_prefix_ids_labels_only":&e.target[..step],"target_label_only_after_read":label,"native_ce":ce,"target_mass_q31":mass,"total_weight_q31":normalizer,"native":compact(&trace)?}));
+            count += 1;
+        }
+        let mean = if rowzero {
+            None
+        } else {
+            Some(rowce / e.target.len() as f64)
+        };
+        if let Some(m) = mean {
+            total += m / episodes.len() as f64;
+        }
+        rows.push(json!({"id":e.packet.id,"native_mean_token_ce":mean,"tokens":tokens}));
+    }
+    Ok(
+        json!({"cases":episodes.len(),"target_positions":count,"native_equal_episode_ce":if zeros.is_empty(){Some(total)}else{None},"zero_support_positions":zeros,"rows":rows,"probability_floor":false,"infinite_native_objective_when_zero":true}),
+    )
+}
+fn generation(
+    native: &IntegerRealizer,
+    episodes: &[Episode],
+    tok: &ByteBpeTokenizer,
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut complete = 0;
+    for e in episodes {
+        let segments = e.segments()?;
+        let mut ids = Vec::new();
+        let mut traces = Vec::new();
+        let mut eos = false;
+        for step in 0..a.maximum_generation_tokens {
+            deadline(a, start)?;
+            let t = native.read_bank(&segments, &e.packet.query_ids, &ids)?;
+            let next = t.actions.chosen_token_id;
+            traces.push(json!({"step":step,"actual_prefix_ids":ids,"native":compact(&t)?}));
+            ids.push(next);
+            if next == native.binding().eos_token_id() {
+                eos = true;
+                break;
+            }
+        }
+        let bytes = tok.decode_bytes(if eos { &ids[..ids.len() - 1] } else { &ids });
+        let raw = String::from_utf8_lossy(&bytes);
+        let text = raw.strip_prefix(' ').unwrap_or(&raw);
+        let accepted = eos && String::from_utf8(bytes.clone()).is_ok() && e.answers.accepts(text);
+        complete += usize::from(accepted);
+        rows.push(json!({"id":e.packet.id,"generated_ids_including_eos":ids,"eos":eos,"reply_text":text,"raw_decoded_bytes_hex":hex::encode(bytes),"accepted_complete_answer":accepted,"tokens":traces}));
+    }
+    Ok(
+        json!({"cases":episodes.len(),"accepted_complete":complete,"maximum_generated_tokens":a.maximum_generation_tokens,"canonical_prefixes_used":false,"rows":rows}),
+    )
+}
+fn compare(old: &Value, new: &Value) -> Result<Value> {
+    let left = old["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("old rows absent"))?;
+    let right = new["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("new rows absent"))?;
+    if left.len() != right.len() {
+        return Err(invalid("row comparison count").into());
+    }
+    let mut rows = Vec::new();
+    for (a, b) in left.iter().zip(right) {
+        if a["id"] != b["id"] {
+            return Err(invalid("comparison identity").into());
+        }
+        rows.push(json!({"id":a["id"],"previous_native_ce":a["native_mean_token_ce"],"current_native_ce":b["native_mean_token_ce"],"tokens_changed":a["tokens"].as_array().zip(b["tokens"].as_array()).map(|(a,b)|a.iter().zip(b).filter(|(a,b)|a["native"]!=b["native"]).count())}));
+    }
+    Ok(json!({"rows":rows}))
+}
+fn checkpoint(
+    source: &SourceRealizerWeights,
+    identity: &ConsumerIdentity,
+    tok_bytes: &[u8],
+    episodes: &[Episode],
+    step: usize,
+    prior: &[Value],
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let required = directory_bytes(&a.source_weights)?
+        .checked_add(directory_bytes(&a.native_artifact)?)
+        .and_then(|n| n.checked_add(32 * 1024 * 1024))
+        .ok_or_else(|| invalid("checkpoint projection overflow"))?;
+    if directory_bytes(&a.out)?.saturating_add(required) > REPORT_CAP - 1024 * 1024 {
+        return Err(invalid("checkpoint source/native+32MiB report reserve exceeds cap").into());
+    }
+    let root = a.out.join(format!("checkpoint-{step:04}"));
+    report_output::claim(&root)?;
+    let result = (|| -> Result<Value> {
+        source.save_source(&root.join("realizer-source"))?;
+        let native = source.compile(identity.clone())?;
+        native.save(&root.join("realizer-native"))?;
+        let restored =
+            SourceRealizerWeights::load_source(&root.join("realizer-source"), tok_bytes)?;
+        let loaded =
+            NativeSourceRealizer::load(&root.join("realizer-native"), &restored, identity)?;
+        if parameter_receipts(&source.parameters())? != parameter_receipts(&restored.parameters())?
+        {
+            return Err(invalid("checkpoint source shadow replay differs").into());
+        }
+        let binding = loaded.artifact_binding()?;
+        let integer = IntegerRealizer::load_native(&root.join("realizer-native"), &binding)?;
+        let measured = canonical(&integer, episodes, a, start)?;
+        write_json(&root, "canonical.json", &measured)?;
+        let mut comparisons = Vec::new();
+        for old in prior {
+            let oldstep = old["updates"]
+                .as_u64()
+                .ok_or_else(|| invalid("prior step absent"))?;
+            let oldreport = read_json(
+                &a.out
+                    .join(format!("checkpoint-{oldstep:04}/canonical.json")),
+            )?;
+            comparisons
+                .push(json!({"prior_updates":oldstep,"comparison":compare(&oldreport,&measured)?}));
+        }
+        write_json(&root, "comparisons.json", &json!(comparisons))?;
+        let receipt = json!({"updates":step,"native_equal_episode_ce":measured["native_equal_episode_ce"],"zero_support_positions":measured["zero_support_positions"],"source_parameter_receipts":parameter_receipts(&source.parameters())?,"trusted_export_binding":binding,"canonical_sha256":sha256_file(&root.join("canonical.json"))?});
+        write_json(&root, "receipt.json", &receipt)?;
+        Ok(receipt)
+    })();
+    if let Err(e) = &result {
+        write_json(
+            &root,
+            "failure.json",
+            &json!({"error":e.to_string(),"updates":step}),
+        )?;
+    }
+    report_output::seal(&root)?;
+    report_output::verify(&root)?;
+    result
+}
+fn select(stages: &[Value]) -> Result<usize> {
+    let mut best = None;
+    for (i, s) in stages.iter().enumerate() {
+        if let Some(ce) = s["native_equal_episode_ce"]
+            .as_f64()
+            .filter(|x| x.is_finite())
+        {
+            if best.is_none_or(|(_, v)| ce < v) {
+                best = Some((i, ce));
+            }
+        }
+    }
+    best.map(|(i, _)| i)
+        .ok_or_else(|| invalid("no finite native checkpoint").into())
+}
+fn balanced_indices(update: usize) -> Vec<usize> {
+    (0..4)
+        .map(|i| (update * 4 + i) % 64)
+        .chain((0..4).map(|i| 64 + (update * 4 + i) % 64))
+        .collect()
+}
+fn admission_matches(report: &Value, development: &str, fresh: &str, trusted: &str) -> bool {
+    report["schema"] == "uor-r4.geometric-bank-fit/1"
+        && report["mode"] == "broadbatch"
+        && report["status"] == "completed"
+        && report["optimizer_updates"] == 0
+        && report["cases"] == 128
+        && report["complete_objective_finite"] == true
+        && report["source_parameters_unchanged"] == true
+        && report["development_manifest_sha256"] == development
+        && report["fresh_manifest_sha256"] == fresh
+        && report["trusted_binding_sha256"] == trusted
+        && report["gradient_report"]["independent_native_trace_parity"] == true
+}
+fn run(a: &Args, start: Instant) -> Result<Value> {
+    for (root, expected) in [
+        (&a.development_panel, &a.development_manifest_sha256),
+        (&a.fresh_panel, &a.fresh_manifest_sha256),
+    ] {
+        report_output::verify(root)?;
+        if sha256_file(&root.join("manifest.json"))? != *expected {
+            return Err(invalid("panel manifest binding differs").into());
+        }
+    }
+    let mut inputs = BTreeMap::new();
+    let mut sealed = BTreeSet::new();
+    for p in [
+        &a.source_weights,
+        &a.native_artifact,
+        &a.development_panel,
+        &a.fresh_panel,
+    ] {
+        let root = nearest_seal(p)?;
+        if sealed.insert(root.clone()) {
+            report_output::verify(&root)?;
+        }
+        let manifest = root.join("manifest.json");
+        inputs.insert(
+            manifest.to_string_lossy().into_owned(),
+            sha256_file(&manifest)?,
+        );
+    }
+    let trusted: NativeArtifactBinding =
+        serde_json::from_slice(&read_capped(&a.trusted_native_binding)?)?;
+    inputs.insert(
+        a.trusted_native_binding.to_string_lossy().into_owned(),
+        sha256_file(&a.trusted_native_binding)?,
+    );
+    let integer = IntegerRealizer::load_native(&a.native_artifact, &trusted)?;
+    let bytes = fs::read(a.native_artifact.join("tokenizer.json"))?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("ByteBPE absent"))?;
+    let source = SourceRealizerWeights::load_source(&a.source_weights, &bytes)?;
+    let metadata = read_json(&a.native_artifact.join("metadata.json"))?;
+    let identity: ConsumerIdentity = serde_json::from_value(metadata["identity"].clone())?;
+    let original = NativeSourceRealizer::load(&a.native_artifact, &source, &identity)?;
+    if original.artifact_binding()? != trusted {
+        return Err(invalid("trusted original source binding differs").into());
+    }
+    let development = load_panel(&a.development_panel, 128, &integer, &tok, true)?;
+    let fresh = load_panel(&a.fresh_panel, 32, &integer, &tok, true)?;
+    let inactive = inactive_bits(&source)?;
+    let initial = parameter_receipts(&source.parameters())?;
+    let base = canonical(&integer, &development, a, start)?;
+    write_json(&a.out, "initial-canonical.json", &base)?;
+    if base["native_equal_episode_ce"].is_null() {
+        return Err(invalid(
+            "infinite full128 objective before any update; retained canonical zero-support report",
+        )
+        .into());
+    }
+    if a.mode == "broadbatch" {
+        let indices = (0..128).collect::<Vec<_>>();
+        let measured = batch(
+            &indices,
+            &development,
+            &source,
+            &original,
+            a,
+            start,
+            Some(&integer),
+        )?;
+        write_json(&a.out, "broadbatch.json", &measured.report)?;
+        if initial != parameter_receipts(&source.parameters())? {
+            return Err(invalid("zero-update broadbatch changed source").into());
+        }
+        for (p, h) in &inputs {
+            if sha256_file(Path::new(p))? != *h {
+                return Err(invalid("immutable broadbatch input changed").into());
+            }
+        }
+        for p in &sealed {
+            report_output::verify(p)?;
+        }
+        return Ok(
+            json!({"schema":"uor-r4.geometric-bank-fit/1","mode":"broadbatch","status":"completed","optimizer_updates":0,"cases":128,"native_equal_episode_ce":base["native_equal_episode_ce"],"complete_objective_finite":true,"gradient_report":measured.report,"source_parameters_unchanged":true,"input_manifests_sha256":inputs,"development_manifest_sha256":a.development_manifest_sha256,"fresh_manifest_sha256":a.fresh_manifest_sha256,"trusted_binding_sha256":sha256_file(&a.trusted_native_binding)?,"source_parameter_receipts":initial,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"fit_admitted":false,"scope":"broadbatch instrument only; no automatic optimization or fresh predictions"}),
+        );
+    }
+    let admission = a
+        .admission
+        .as_ref()
+        .ok_or_else(|| invalid("admission absent"))?;
+    report_output::verify(admission)?;
+    if Some(sha256_file(&admission.join("manifest.json"))?) != a.admission_manifest_sha256 {
+        return Err(invalid("admission manifest differs").into());
+    }
+    let report = read_json(&admission.join("report.json"))?;
+    let auth_path = a
+        .fit_authorization
+        .as_ref()
+        .ok_or_else(|| invalid("authorization absent"))?;
+    let auth: Authorization = serde_json::from_slice(&read_capped(auth_path)?)?;
+    if !admission_matches(
+        &report,
+        &a.development_manifest_sha256,
+        &a.fresh_manifest_sha256,
+        &sha256_file(&a.trusted_native_binding)?,
+    ) || report["source_parameter_receipts"] != initial
+        || auth.schema != "uor-r4.bank-fit-authorization/1"
+        || !auth.fit_admitted
+        || auth.admission_report_sha256 != sha256_file(&admission.join("report.json"))?
+        || auth.development_manifest_sha256 != a.development_manifest_sha256
+        || auth.fresh_manifest_sha256 != a.fresh_manifest_sha256
+        || auth.trusted_binding_sha256 != sha256_file(&a.trusted_native_binding)?
+        || auth.updates != UPDATES
+        || auth.batch_episodes != BATCH
+        || auth.maximum_fit_seconds != a.maximum_seconds
+    {
+        return Err(
+            invalid("separate complete broadbatch/resource admission does not bind fit").into(),
+        );
+    }
+    inputs.insert(
+        auth_path.to_string_lossy().into_owned(),
+        sha256_file(auth_path)?,
+    );
+    inputs.insert(
+        admission
+            .join("manifest.json")
+            .to_string_lossy()
+            .into_owned(),
+        sha256_file(&admission.join("manifest.json"))?,
+    );
+    let mut stages = Vec::new();
+    let zero = checkpoint(
+        &source,
+        &identity,
+        &bytes,
+        &development,
+        0,
+        &stages,
+        a,
+        start,
+    )?;
+    stages.push(zero);
+    let baseline = read_json(&a.out.join("checkpoint-0000/canonical.json"))?;
+    if base != baseline {
+        // timings not included; exact allnative rows/objective must replay
+        return Err(invalid("exported baseline128 differs original parent").into());
+    }
+    write_json(
+        &a.out,
+        "development-parent-generation.json",
+        &generation(&integer, &development, &tok, a, start)?,
+    )?;
+    let mut optimizer = AdamW::new(
+        source
+            .parameters()
+            .into_iter()
+            .filter(|(n, _)| active(n))
+            .map(|(_, v)| v)
+            .collect(),
+        ParamsAdamW {
+            lr: 0.003,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1e-8,
+            weight_decay: 0.,
+        },
+    )?;
+    let mut batches = Vec::new();
+    for update in 0..UPDATES {
+        deadline(a, start)?;
+        let indices = balanced_indices(update);
+        let current = source.compile(identity.clone())?;
+        let measured = batch(&indices, &development, &source, &current, a, start, None)?;
+        let clip = apply(&source, &mut optimizer, measured.gradients)?;
+        if inactive_bits(&source)? != inactive {
+            return Err(invalid("inactive potential source bits changed").into());
+        }
+        batches.push(json!({"update":update+1,"clip_factor":clip,"batch":measured.report}));
+        write_json(
+            &a.out,
+            "progress.json",
+            &json!({"optimizer_updates":update+1,"batches":batches,"elapsed_seconds":start.elapsed().as_secs_f64()}),
+        )?;
+        if (update + 1) % 16 == 0 {
+            let s = checkpoint(
+                &source,
+                &identity,
+                &bytes,
+                &development,
+                update + 1,
+                &stages,
+                a,
+                start,
+            )?;
+            stages.push(s);
+        }
+    }
+    let selected = select(&stages)?;
+    let step = stages[selected]["updates"]
+        .as_u64()
+        .ok_or_else(|| invalid("selected step absent"))?;
+    write_json(
+        &a.out,
+        "selection-before-fresh.json",
+        &json!({"selected_updates":step,"criterion":"lowest finite full128 native equalepisodeCE including parent0, earliest exact ties","fresh_predictions_before_selection":0}),
+    )?;
+    let chosen_root = a.out.join(format!("checkpoint-{step:04}"));
+    let receipt = read_json(&chosen_root.join("receipt.json"))?;
+    let selected_binding: NativeArtifactBinding =
+        serde_json::from_value(receipt["trusted_export_binding"].clone())?;
+    let selected_model =
+        IntegerRealizer::load_native(&chosen_root.join("realizer-native"), &selected_binding)?;
+    write_json(
+        &a.out,
+        "development-selected-generation.json",
+        &generation(&selected_model, &development, &tok, a, start)?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-parent-generation.json",
+        &generation(&integer, &fresh, &tok, a, start)?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-selected-generation.json",
+        &generation(&selected_model, &fresh, &tok, a, start)?,
+    )?;
+    if let Some(root) = &a.exposed_controls {
+        let controls = load_panel(root, 6, &integer, &tok, false)?;
+        write_json(
+            &a.out,
+            "controls-parent-generation.json",
+            &generation(&integer, &controls, &tok, a, start)?,
+        )?;
+        write_json(
+            &a.out,
+            "controls-selected-generation.json",
+            &generation(&selected_model, &controls, &tok, a, start)?,
+        )?;
+    }
+    for (p, h) in &inputs {
+        if sha256_file(Path::new(p))? != *h {
+            return Err(invalid("immutable input changed").into());
+        }
+    }
+    for p in sealed {
+        report_output::verify(&p)?;
+    }
+    Ok(
+        json!({"schema":"uor-r4.geometric-bank-fit/1","mode":"fit","status":"completed","optimizer_updates":64,"batch_episodes":BATCH,"batch_schedule":"balanced four original+four bank, cyclic contiguous pairs; each update (update*4+i)%64 and64+(update*4+i)%64","episode_visits":4,"checkpoints":stages,"selected_updates":step,"input_manifests_sha256":inputs,"inactive_source_bits_unchanged":true,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"scope":"actual128 exposed causal bank jointlearning; fixed quarter STE ordinaryAdamW no descent guarantee; no pretrained float serving, hard preservation veto, hidden source selection or fullchat qualification"}),
+    )
+}
+fn main() {
+    let outcome = (|| -> Result<()> {
+        let a = checked_args()?;
+        report_output::claim(&a.out)?;
+        let start = Instant::now();
+        let result = run(&a, start);
+        match &result {
+            Ok(v) => {
+                let mut v = v.clone();
+                let (exe, lookup) = executable()?;
+                v["source_commit"] = json!(option_env!("UOR_BUILD_SOURCE_COMMIT"));
+                v["executable_sha256"] = json!(sha256_file(&exe)?);
+                v["executable_lookup"] = json!(lookup);
+                v["host_os"] = json!(std::env::consts::OS);
+                v["host_arch"] = json!(std::env::consts::ARCH);
+                write_json(&a.out, "report.json", &v)?;
+            }
+            Err(e) => {
+                write_json(
+                    &a.out,
+                    "failure.json",
+                    &json!({"status":"failed_or_stopped","error":e.to_string(),"mode":a.mode,"elapsed_seconds":start.elapsed().as_secs_f64(),"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"completed_updates_in_progress":read_json(&a.out.join("progress.json")).ok()}),
+                )?;
+            }
+        }
+        report_output::seal(&a.out)?;
+        report_output::verify(&a.out)?;
+        result.map(|_| ())
+    })();
+    if let Err(e) = outcome {
+        eprintln!("bank fit: {e}");
+        std::process::exit(1);
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn preserved_five_alias_answers_keep_canonical_first_and_all_membership() -> Result<()> {
+        let answers: FrozenAnswers = serde_json::from_value(
+            json!({"intent":"current","accepted":["singer.","It's singer.","It is singer.","You work as a singer.","Your job is singer."]}),
+        )?;
+        validate_answers(&answers, true)?;
+        assert_eq!(answers.accepted[0], "singer.");
+        assert_eq!(answers.accepted.len(), 5);
+        for text in &answers.accepted {
+            assert!(answers.accepts(text));
+        }
+        assert!(!answers.accepts("dancer."));
+        assert!(validate_answers(&answers, false).is_err());
+        Ok(())
+    }
+    #[test]
+    fn native_selection_infinity_ties_and_episode_scaling() -> Result<()> {
+        let s = vec![
+            json!({"updates":0,"native_equal_episode_ce":1.}),
+            json!({"updates":16,"native_equal_episode_ce":null}),
+            json!({"updates":32,"native_equal_episode_ce":1.}),
+            json!({"updates":48,"native_equal_episode_ce":0.5}),
+            json!({"updates":64,"native_equal_episode_ce":0.5}),
+        ];
+        assert_eq!(select(&s)?, 3);
+        assert_eq!(scale(2, 2)? * 2., 0.5);
+        assert_eq!(scale(2, 7)? * 7., 0.5);
+        assert!(scale(0, 1).is_err());
+        Ok(())
+    }
+    #[test]
+    fn balanced_schedule_preserves_four_visits_and_intact_query_pairs() {
+        let mut count = [0usize; 128];
+        for update in 0..64 {
+            let indices = balanced_indices(update);
+            assert_eq!(indices.len(), 8);
+            assert!(indices[..4].iter().all(|i| *i < 64));
+            assert!(indices[4..].iter().all(|i| *i >= 64));
+            for pair in indices[4..].chunks(2) {
+                assert_eq!(pair[0] % 2, 0);
+                assert_eq!(pair[1], pair[0] + 1);
+            }
+            for i in indices {
+                count[i] += 1;
+            }
+        }
+        assert!(count.iter().all(|n| *n == 4));
+    }
+    #[test]
+    fn admission_must_bind_current_panel_and_native_receipts() {
+        let mut r = json!({"schema":"uor-r4.geometric-bank-fit/1","mode":"broadbatch","status":"completed","optimizer_updates":0,"cases":128,"complete_objective_finite":true,"source_parameters_unchanged":true,"development_manifest_sha256":"dev","fresh_manifest_sha256":"fresh","trusted_binding_sha256":"native","gradient_report":{"independent_native_trace_parity":true}});
+        assert!(admission_matches(&r, "dev", "fresh", "native"));
+        assert!(!admission_matches(&r, "wrong", "fresh", "native"));
+        assert!(!admission_matches(&r, "dev", "wrong", "native"));
+        assert!(!admission_matches(&r, "dev", "fresh", "wrong"));
+        r["gradient_report"]["independent_native_trace_parity"] = json!(false);
+        assert!(!admission_matches(&r, "dev", "fresh", "native"));
+    }
+    #[test]
+    fn target_fields_rejected_from_runtime_packets() {
+        let s = r#"{"schema":"uor-r4.native-source-bank-probe-input/1","cases":[{"id":"x","segments":[],"query_ids":[1],"actual_prefix_ids":[],"target_ids":[3]}]}"#;
+        assert!(serde_json::from_str::<Inputs>(s).is_err());
+    }
+}
