@@ -52,6 +52,8 @@ struct Args {
     transfer_checkpoint: Option<PathBuf>,
     #[serde(default)]
     observation_checkpoint: Option<PathBuf>,
+    #[serde(default)]
+    consumed_checkpoint: Option<PathBuf>,
 }
 #[derive(Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -537,7 +539,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -567,6 +569,7 @@ fn generate(
                 | "context-observation-learn"
                 | "context-observable-cells"
                 | "context-consumed-cells"
+                | "context-later-query-cells"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -586,6 +589,7 @@ fn generate(
                         | "context-observation-learn"
                         | "context-observable-cells"
                         | "context-consumed-cells"
+                        | "context-later-query-cells"
                 ))
         {
             if let Some(row) = rows.last_mut() {
@@ -596,7 +600,10 @@ fn generate(
             &a.out.join(format!("{stage}-progress.json")),
             &if matches!(
                 a.mode.as_str(),
-                "context-observation-learn" | "context-observable-cells" | "context-consumed-cells"
+                "context-observation-learn"
+                    | "context-observable-cells"
+                    | "context-consumed-cells"
+                    | "context-later-query-cells"
             ) {
                 json!({"completed_cases":rows.len(),"complete_answers":complete,"eos_count":eos_count,"raw_rows_retained_in_enclosing_attempt":true,"elapsed_seconds":begun.elapsed().as_secs_f64()})
             } else {
@@ -854,6 +861,7 @@ fn main() -> Result<()> {
             | "context-observation-learn"
             | "context-observable-cells"
             | "context-consumed-cells"
+            | "context-later-query-cells"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -886,6 +894,7 @@ fn main() -> Result<()> {
                 | "context-observation-learn"
                 | "context-observable-cells"
                 | "context-consumed-cells"
+                | "context-later-query-cells"
         ) && (a.maximum_seconds > 900
             || a.audit_checkpoint.is_none()
             || a.transfer_checkpoint.is_none()
@@ -917,6 +926,7 @@ fn main() -> Result<()> {
                 | "context-observation-learn"
                 | "context-observable-cells"
                 | "context-consumed-cells"
+                | "context-later-query-cells"
         ) && a.transfer_checkpoint.is_some())
         || (!matches!(
             a.mode.as_str(),
@@ -932,6 +942,7 @@ fn main() -> Result<()> {
                 | "context-observation-learn"
                 | "context-observable-cells"
                 | "context-consumed-cells"
+                | "context-later-query-cells"
         ) && (a.audit_checkpoint.is_some()
             || a.expected_generation.is_some()
             || a.audit_report.is_some()))
@@ -942,11 +953,16 @@ fn main() -> Result<()> {
     }
     if matches!(
         a.mode.as_str(),
-        "context-observable-cells" | "context-consumed-cells"
+        "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells"
     ) != a.observation_checkpoint.is_some()
     {
         return Err(invalid(
             "observable-cell mode requires sole observation_checkpoint field",
+        ));
+    }
+    if (a.mode == "context-later-query-cells") != a.consumed_checkpoint.is_some() {
+        return Err(invalid(
+            "later-query mode requires sole consumed_checkpoint field",
         ));
     }
     let admitted = admission(&a)?;
@@ -964,6 +980,7 @@ fn main() -> Result<()> {
             | "context-observation-learn"
             | "context-observable-cells"
             | "context-consumed-cells"
+            | "context-later-query-cells"
     ) {
         audit_output_location(&a)?;
     }
@@ -971,7 +988,10 @@ fn main() -> Result<()> {
     write(&a.out.join("args.json"), &a)?;
     let result = if matches!(
         a.mode.as_str(),
-        "context-observation-learn" | "context-observable-cells" | "context-consumed-cells"
+        "context-observation-learn"
+            | "context-observable-cells"
+            | "context-consumed-cells"
+            | "context-later-query-cells"
     ) {
         context_observation_learn(&a)
     } else if matches!(
@@ -981,6 +1001,7 @@ fn main() -> Result<()> {
             | "context-observation-learn"
             | "context-observable-cells"
             | "context-consumed-cells"
+            | "context-later-query-cells"
     ) {
         context_direction(&a)
     } else if a.mode == "context-transplant" {
@@ -1087,6 +1108,16 @@ fn audit_output_location(a: &Args) -> Result<()> {
                 .ok_or_else(|| invalid("audit report envelope missing"))?,
         )?) {
             return Err(invalid("output beneath saved audit envelope"));
+        }
+    }
+    if let Some(candidate) = &a.consumed_checkpoint {
+        let root = candidate
+            .parent()
+            .ok_or_else(|| invalid("consumed continuation envelope absent"))?;
+        if output.starts_with(fs::canonicalize(root)?) {
+            return Err(invalid(
+                "later-query output beneath consumed parent envelope",
+            ));
         }
     }
     if let Some(candidate) = &a.observation_checkpoint {
@@ -3798,6 +3829,256 @@ fn consumed_cell_selection(
     Ok(selected)
 }
 
+fn later_query_cell_selection(
+    globals: &[CellProposal],
+    later: &[CellProposal],
+    pairs: &[CellProposal],
+) -> Result<Vec<CellProposal>> {
+    let seed = if let Some(reserved) = later.first() {
+        if reserved.edits.len() != 1
+            || reserved.predicted_gain <= 0.
+            || reserved.witness["reserved_later_query"] != true
+            || !reserved.witness["actual_nonempty_prefix_ids"]
+                .as_array()
+                .is_some_and(|prefix| !prefix.is_empty())
+        {
+            return Err(invalid("reserved later-query singleton invalid"));
+        }
+        let mut seed = globals.iter().take(3).cloned().collect::<Vec<_>>();
+        if let Some(existing) = seed.iter_mut().find(|p| cell_key(p) == cell_key(reserved)) {
+            existing.witness = reserved.witness.clone();
+        } else {
+            seed.push(reserved.clone());
+        }
+        seed
+    } else {
+        globals.iter().take(4).cloned().collect()
+    };
+    consumed_cell_selection(&seed, pairs)
+}
+fn only_token_observation_bits_changed(
+    before: &BTreeMap<String, Vec<u32>>,
+    after: &BTreeMap<String, Vec<u32>>,
+) -> bool {
+    before.keys().eq(after.keys())
+        && before.iter().all(|(name, bits)| {
+            after.get(name).is_some_and(|candidate| {
+                bits.len() == candidate.len()
+                    && (matches!(
+                        name.as_str(),
+                        "consumer.context.token_root" | "consumer.context.token_category"
+                    ) || bits == candidate)
+            })
+        })
+}
+fn consumed_parent_header(
+    parent: &Value,
+    identity: &ConsumerIdentity,
+    retained_sha: &str,
+    observation_manifest: &str,
+    receipt: &Value,
+) -> Result<()> {
+    if parent["schema"] != "uor-r4.geometric-consumed-cells/1"
+        || parent["mode"] != "context-consumed-cells"
+        || parent["status"] != "completed"
+        || parent["stop_reason"] != "accepted_candidate_limit"
+        || parent["maximum_accepted_candidates"] != 3
+        || parent["accepted_candidates"] != 3
+        || parent["maximum_native_candidates"] != 24
+        || !parent["native_candidate_evaluations"]
+            .as_u64()
+            .is_some_and(|n| (3..=24).contains(&n))
+        || parent["optimizer_updates"] != 0
+        || parent["parent_checkpoint_manifest_sha256"] != observation_manifest
+        || parent["saved_identity"] != serde_json::to_value(identity)?
+        || parent["retained_report_sha256"] != retained_sha
+        || parent["final_checkpoint"] != *receipt
+        || parent["final_independent_reload_full_replies_equal"] != true
+        || parent["final_accepted_candidate_replies_equal"] != true
+        || parent["transitions_readouts_tables_fixed"] != true
+        || parent["no_adopted_model"] != true
+        || !parent["source_commit"]
+            .as_str()
+            .is_some_and(|s| s.len() == 40 && s.bytes().all(|b| b.is_ascii_hexdigit()))
+    {
+        return Err(invalid("accepted consumed-run header/lineage differs"));
+    }
+    Ok(())
+}
+fn checkpoint_model_files(path: &Path) -> Result<BTreeMap<String, String>> {
+    Ok(source_files(path)?
+        .into_iter()
+        .filter(|(name, _)| {
+            name.starts_with("realizer-source/") || name.starts_with("realizer-native/")
+        })
+        .collect())
+}
+fn consumed_accepted_round(report: &Value, entry: &Value) -> Result<(usize, usize)> {
+    let selected = report["selected_proposal"]
+        .as_u64()
+        .ok_or_else(|| invalid("consumed round has no accepted selection"))?
+        as usize;
+    let summaries = report["proposals"]
+        .as_array()
+        .ok_or_else(|| invalid("consumed round candidate summaries absent"))?;
+    let count = report["main_proposal_count"]
+        .as_u64()
+        .ok_or_else(|| invalid("consumed main quota absent"))? as usize;
+    if count > 8
+        || count != summaries.len()
+        || report["ablation_count"] != 0
+        || selected >= count
+        || entry["selected_proposal"] != selected
+        || entry["candidate_evaluations"] != count
+    {
+        return Err(invalid(
+            "consumed selected candidate admission/count differs",
+        ));
+    }
+    let baseline = report["baseline_frontier"]["mean_episode_ce"]
+        .as_f64()
+        .filter(|n| n.is_finite())
+        .ok_or_else(|| invalid("consumed baseline CE nonfinite"))?;
+    let scores = summaries
+        .iter()
+        .map(|v| v["round_frozen_ce"].as_f64())
+        .collect::<Vec<_>>();
+    if best_native_proposal(baseline, &scores) != Some(selected) {
+        return Err(invalid("consumed selected candidate not native winner"));
+    }
+    Ok((selected, count))
+}
+fn admit_consumed_continuation(
+    path: &Path,
+    observation: &Path,
+    identity: &ConsumerIdentity,
+    retained_sha: &str,
+    frozen_bins: &BTreeMap<String, String>,
+) -> Result<(Value, Value)> {
+    if path.file_name().and_then(|x| x.to_str()) != Some("final-checkpoint") {
+        return Err(invalid(
+            "consumed continuation must be run final checkpoint",
+        ));
+    }
+    let envelope = path
+        .parent()
+        .ok_or_else(|| invalid("consumed continuation envelope absent"))?;
+    report_output::verify(envelope)?;
+    report_output::verify(path)?;
+    let parent: Value = serde_json::from_slice(&fs::read(envelope.join("report.json"))?)?;
+    let receipt: Value = serde_json::from_slice(&fs::read(path.join("checkpoint.json"))?)?;
+    let observation_manifest = sha256_file(&observation.join("manifest.json"))?;
+    consumed_parent_header(
+        &parent,
+        identity,
+        retained_sha,
+        &observation_manifest,
+        &receipt,
+    )?;
+    if source_files(observation)?
+        != serde_json::from_value::<BTreeMap<String, String>>(parent["input_files_sha256"].clone())?
+    {
+        return Err(invalid(
+            "consumed continuation observation ancestor inventory differs",
+        ));
+    }
+    let final_bins = bin_files(&path.join("realizer-native"))?;
+    if final_bins
+        != serde_json::from_value::<BTreeMap<String, String>>(
+            parent["final_native_payload_sha256"].clone(),
+        )?
+        || frozen_bins.keys().ne(final_bins.keys())
+        || frozen_bins.iter().any(|(name, sha)| {
+            name != "consumer/context-q4.bin" && final_bins.get(name) != Some(sha)
+        })
+    {
+        return Err(invalid(
+            "consumed continuation frozen payload/final hashes differ",
+        ));
+    }
+    let rounds = parent["rounds"]
+        .as_array()
+        .filter(|r| r.len() == 3)
+        .ok_or_else(|| invalid("consumed accepted rounds absent"))?;
+    let observation_report: Value = serde_json::from_slice(&fs::read(
+        observation
+            .parent()
+            .ok_or_else(|| invalid("observation envelope absent"))?
+            .join("report.json"),
+    )?)?;
+    let mut original_rows = observation_report["final_original_generation"]["rows"].clone();
+    let mut construction_rows = observation_report["final_construction_generation"]["rows"].clone();
+    let mut selected_chain = Vec::new();
+    let mut evaluations = 0usize;
+    let mut last_checkpoint = None;
+    for (round, entry) in rounds.iter().enumerate() {
+        let round_root = envelope.join(format!("round-{round:02}"));
+        report_output::verify(&round_root)?;
+        if entry["round"] != round
+            || entry["report_path"] != format!("round-{round:02}/report.json")
+            || entry["report_sha256"] != sha256_file(&round_root.join("report.json"))?
+        {
+            return Err(invalid("consumed round source binding differs"));
+        }
+        let report: Value = serde_json::from_slice(&fs::read(round_root.join("report.json"))?)?;
+        let (selected, count) = consumed_accepted_round(&report, entry)?;
+        let summaries = report["proposals"]
+            .as_array()
+            .ok_or_else(|| invalid("consumed round summaries absent"))?;
+        if report["incumbent_original_generation"]["rows"] != original_rows
+            || report["incumbent_construction_generation"]["rows"] != construction_rows
+        {
+            return Err(invalid("consumed incumbent reply chain differs"));
+        }
+        let summary = &summaries[selected];
+        let candidate_root = round_root.join(format!("candidate-{selected:02}"));
+        report_output::verify(&candidate_root)?;
+        if summary["index"] != selected
+            || summary["result_path"] != format!("candidate-{selected:02}/result.json")
+            || summary["result_sha256"] != sha256_file(&candidate_root.join("result.json"))?
+        {
+            return Err(invalid("consumed selected result binding differs"));
+        }
+        let result: Value = serde_json::from_slice(&fs::read(candidate_root.join("result.json"))?)?;
+        let candidate_checkpoint = candidate_root.join("checkpoint");
+        report_output::verify(&candidate_checkpoint)?;
+        let checkpoint_receipt: Value =
+            serde_json::from_slice(&fs::read(candidate_checkpoint.join("checkpoint.json"))?)?;
+        if result["checkpoint"] != checkpoint_receipt
+            || result["ablation_only"] != false
+            || result["all_other_source_bits_fixed"] != true
+            || result["readouts_tables_transitions_fixed"] != true
+            || result["frontier"]["mean_episode_ce"] != summary["round_frozen_ce"]
+            || bin_files(&candidate_checkpoint.join("realizer-native"))?
+                != serde_json::from_value::<BTreeMap<String, String>>(
+                    result["native_payload_sha256"].clone(),
+                )?
+        {
+            return Err(invalid("consumed selected checkpoint/decision differs"));
+        }
+        original_rows = result["original_generation"]["rows"].clone();
+        construction_rows = result["construction_generation"]["rows"].clone();
+        selected_chain.push(json!({"round":round,"selected_candidate":selected,"round_report_sha256":entry["report_sha256"],"result_sha256":summary["result_sha256"],"checkpoint_manifest_sha256":sha256_file(&candidate_checkpoint.join("manifest.json"))?}));
+        last_checkpoint = Some(candidate_checkpoint);
+        evaluations += count;
+    }
+    if parent["native_candidate_evaluations"] != evaluations
+        || parent["final_original_generation"]["rows"] != original_rows
+        || parent["final_construction_generation"]["rows"] != construction_rows
+        || checkpoint_model_files(path)?
+            != checkpoint_model_files(
+                &last_checkpoint
+                    .ok_or_else(|| invalid("consumed last accepted checkpoint absent"))?,
+            )?
+    {
+        return Err(invalid(
+            "consumed final does not equal last accepted model/replies",
+        ));
+    }
+    let binding = json!({"schema":"uor-r4.accepted-consumed-continuation/1","consumed_source_commit":parent["source_commit"],"consumed_report_sha256":sha256_file(&envelope.join("report.json"))?,"consumed_checkpoint_manifest_sha256":sha256_file(&path.join("manifest.json"))?,"observation_manifest_sha256":observation_manifest,"selected_chain":selected_chain,"final_equals_last_accepted_model_and_saved_replies":true,"reload_actual28_replies":"verified by first continuation round before learning","candidate_only_no_default_adoption":true});
+    Ok((parent, binding))
+}
+
 fn observable_cell_proposals(
     native: &NativeSourceRealizer,
     input: &Path,
@@ -3807,6 +4088,7 @@ fn observable_cell_proposals(
     gradients: &BTreeMap<String, Vec<f32>>,
     root: &Path,
     consumed: bool,
+    later: bool,
 ) -> Result<Vec<CellProposal>> {
     use uor_r4_integer::geometric_context_q4::{ContextQ4Config, NativeContextQ4};
     let metadata: Value = serde_json::from_slice(&fs::read(
@@ -3824,6 +4106,8 @@ fn observable_cell_proposals(
     let mut singles = Vec::new();
     let mut pairs = Vec::new();
     let mut single_witnesses = 0usize;
+    let mut later_query_singles = Vec::new();
+    let mut later_query_witnesses = 0usize;
     let mut pair_witnesses = 0usize;
     let coordinate = |family: &str,
                       token: usize,
@@ -3952,6 +4236,25 @@ fn observable_cell_proposals(
                             hidden.push((edit.clone(), witness.clone(), gain));
                         } else {
                             single_witnesses += 1;
+                            if later
+                                && !position.prefix_ids.is_empty()
+                                && consumed_roles.as_ref().and_then(|roles| roles[time])
+                                    == Some("final_query_address")
+                            {
+                                later_query_witnesses += 1;
+                                let mut later_witness = witness.clone();
+                                later_witness["reserved_later_query"] = json!(true);
+                                later_witness["actual_nonempty_prefix_ids"] =
+                                    json!(position.prefix_ids);
+                                retain_cell(
+                                    &mut later_query_singles,
+                                    CellProposal {
+                                        edits: vec![edit.clone()],
+                                        witness: later_witness,
+                                        predicted_gain: gain,
+                                    },
+                                );
+                            }
                             retain_cell(
                                 &mut singles,
                                 CellProposal {
@@ -3999,7 +4302,9 @@ fn observable_cell_proposals(
             }
         }
     }
-    let selected = if consumed {
+    let selected = if later {
+        later_query_cell_selection(&singles, &later_query_singles, &pairs)?
+    } else if consumed {
         consumed_cell_selection(&singles, &pairs)?
     } else {
         singles
@@ -4015,7 +4320,7 @@ fn observable_cell_proposals(
     )?;
     write(
         &root.join("observable-cell-selection.json"),
-        &json!({"single_ranked_top4":singles,"pair_ranked_top4":pairs,"single_crossing_witnesses_searched":single_witnesses,"pair_crossing_witnesses_searched":pair_witnesses,"unselected_offline_edges":"reconstructible from exactscoreevents/source/credit; not model-evaluated","selected":selected,"maximum_selected":8,"consumer_aware":consumed,"current_native_parent_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"rank":if consumed{"rank4visible singles+2positive-totalcredit pairs; prospectively admit each selected pair category part regardless partcredit; dedup no quota refill"}else{"positive signed coefficient credit gain per L1 quantum; deterministic edit/witness ties; max4 singles+4 same-event absence pairs"},"frozen_before_candidate_loss":true,"token_only":true,"basis_family_search":"NOT_RUN"}),
+        &json!({"single_ranked_top4":singles,"later_query_ranked_top4":later_query_singles,"later_query_crossing_witnesses_searched":later_query_witnesses,"later_query_slot_enabled":later,"later_query_fallback":if later && later_query_singles.is_empty(){Some("global fourth singleton; no eligible later-query edge before outcomes")}else{None},"pair_ranked_top4":pairs,"single_crossing_witnesses_searched":single_witnesses,"pair_crossing_witnesses_searched":pair_witnesses,"unselected_offline_edges":"reconstructible from exactscoreevents/source/credit; not model-evaluated","selected":selected,"maximum_selected":8,"consumer_aware":consumed,"current_native_parent_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"rank":if later{"top3global visible singles+best actualnonempty-prefix finalquery singleton; if noeligibleedge globalfourth fallback; top2pairs+bothparts; dedup preserves reserved witness and no refills"}else if consumed{"rank4visible singles+2positive-totalcredit pairs; prospectively admit each selected pair category part regardless partcredit; dedup no quota refill"}else{"positive signed coefficient credit gain per L1 quantum; deterministic edit/witness ties; max4 singles+4 same-event absence pairs"},"frozen_before_candidate_loss":true,"token_only":true,"basis_family_search":"NOT_RUN"}),
     )?;
     Ok(selected)
 }
@@ -4046,6 +4351,16 @@ fn verify_cell_witness(
         &positions[i].prefix_ids,
     )?;
     let replay = &trace.period_context;
+    if w["reserved_later_query"] == true {
+        if positions[i].prefix_ids.is_empty()
+            || w["actual_nonempty_prefix_ids"] != json!(positions[i].prefix_ids)
+            || time + 1 != replay.tokens.len()
+        {
+            return Err(invalid(
+                "reserved later-query witness no longer matches reached prefix",
+            ));
+        }
+    }
     let role = if consumed {
         consumed_replay_roles(&trace, &episodes[i].query, &positions[i].prefix_ids)?
             .get(time)
@@ -4148,10 +4463,14 @@ fn observation_incumbent_checkpoint(
 }
 fn context_observation_learn(a: &Args) -> Result<()> {
     let start = Instant::now();
-    let consumed = a.mode == "context-consumed-cells";
+    let later = a.mode == "context-later-query-cells";
+    let consumed = matches!(
+        a.mode.as_str(),
+        "context-consumed-cells" | "context-later-query-cells"
+    );
     let cells = matches!(
         a.mode.as_str(),
-        "context-observable-cells" | "context-consumed-cells"
+        "context-observable-cells" | "context-consumed-cells" | "context-later-query-cells"
     );
     let LoadedFinal {
         identity,
@@ -4219,6 +4538,44 @@ fn context_observation_learn(a: &Args) -> Result<()> {
     } else {
         input
     };
+    let observation_input = input;
+    let mut observation_parent_inventory = None;
+    let consumed_parent;
+    let mut continuation_binding = None;
+    let input = if later {
+        consumed_parent = a
+            .consumed_checkpoint
+            .as_ref()
+            .ok_or_else(|| invalid("accepted consumed continuation absent"))?;
+        let (parent, binding) = admit_consumed_continuation(
+            consumed_parent,
+            observation_input,
+            &identity,
+            &retained_sha,
+            &bins,
+        )?;
+        observation_parent_inventory = Some(source_files(observation_input)?);
+        let old_bits = parameter_bits(&source.parameters())?;
+        let bytes = fs::read(&a.tokenizer)?;
+        source =
+            SourceRealizerWeights::load_source(&consumed_parent.join("realizer-source"), &bytes)?;
+        if !only_token_observation_bits_changed(&old_bits, &parameter_bits(&source.parameters())?) {
+            return Err(invalid(
+                "consumed continuation changed frozen source parameters",
+            ));
+        }
+        native = NativeSourceRealizer::load(
+            &consumed_parent.join("realizer-native"),
+            &source,
+            &identity,
+        )?;
+        bins = bin_files(&consumed_parent.join("realizer-native"))?;
+        evaluation = json!({"ownprefix":parent["final_original_generation"],"construction_ownprefix":parent["final_construction_generation"]});
+        continuation_binding = Some(binding);
+        consumed_parent
+    } else {
+        input
+    };
     let input_files = source_files(input)?;
     let parent_context = fs::read(input.join("realizer-native/consumer/context-q4.bin"))?;
     let initial_bits = parameter_bits(&source.parameters())?;
@@ -4239,6 +4596,18 @@ fn context_observation_learn(a: &Args) -> Result<()> {
         || saved["construction_cases"] != serde_json::to_value(episode_labels(&construction))?
     {
         return Err(invalid("learner fixed panels differ"));
+    }
+    if later {
+        let envelope = input
+            .parent()
+            .ok_or_else(|| invalid("consumed envelope absent"))?;
+        let parent_panel: Value =
+            serde_json::from_slice(&fs::read(envelope.join("frozen-panel.json"))?)?;
+        if parent_panel
+            != json!({"original":episode_labels(&episodes),"construction":episode_labels(&construction)})
+        {
+            return Err(invalid("consumed continuation panels differ"));
+        }
     }
     write(
         &a.out.join("frozen-panel.json"),
@@ -4357,6 +4726,7 @@ fn context_observation_learn(a: &Args) -> Result<()> {
                 &gradients,
                 &root,
                 consumed,
+                later,
             )?)
         } else {
             None
@@ -4705,6 +5075,12 @@ fn context_observation_learn(a: &Args) -> Result<()> {
         return Err(invalid("learner parent inputs changed"));
     }
     report_output::verify(input)?;
+    if let Some(inventory) = observation_parent_inventory {
+        if source_files(observation_input)? != inventory {
+            return Err(invalid("observation ancestor inputs changed"));
+        }
+        report_output::verify(observation_input)?;
+    }
     if let Some(inventory) = cell_parent_inventory {
         if source_files(original_input)? != inventory {
             return Err(invalid("original0032 inputs changed"));
@@ -4713,7 +5089,7 @@ fn context_observation_learn(a: &Args) -> Result<()> {
     }
     write(
         &a.out.join("report.json"),
-        &json!({"schema":if consumed{"uor-r4.geometric-consumed-cells/1"}else if cells{"uor-r4.geometric-observable-cells/1"}else{"uor-r4.geometric-observation-learning/1"},"mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"input_files_sha256":input_files,"input_files_unchanged":true,"saved_parent28_rows_exact":true,"optimizer_updates":0,"accepted_candidates":accepted,"accepted_l1_quanta":accepted_l1_quanta,"total_accepted_edit_l1_quanta":total_accepted_l1_quanta,"accepted_l1_scope":"net packed difference from starting parent; total edit L1 charged separately","original0032_manifest_sha256":sha256_file(&original_input.join("manifest.json"))?,"accepted_quanta":if cells{Value::Null}else{json!(accepted)},"native_candidate_evaluations":candidate_count,"maximum_accepted_candidates":round_limit,"maximum_accepted_quanta":if cells{Value::Null}else{json!(8)},"maximum_native_candidates":candidate_limit,"stop_reason":stop,"rounds":rounds,"final_checkpoint":receipt,"final_native_payload_sha256":final_bins,"final_original_generation":final_original,"final_construction_generation":final_construction,"final_original_canonical":context_direction_measure(&loaded,&episodes,start,a)?,"final_construction_canonical":context_direction_measure(&loaded,&construction,start,a)?,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":last_accepted_replies.is_some(),"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"scope":"bounded root/category learning on8 exposed construction plus20 preservation development cases; no heldout/general-chat/geometry-advantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
+        &json!({"schema":if later{"uor-r4.geometric-later-query-cells/1"}else if consumed{"uor-r4.geometric-consumed-cells/1"}else if cells{"uor-r4.geometric-observable-cells/1"}else{"uor-r4.geometric-observation-learning/1"},"mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"observation_base_checkpoint_manifest_sha256":sha256_file(&observation_input.join("manifest.json"))?,"continuation_binding":continuation_binding,"input_files_sha256":input_files,"input_files_unchanged":true,"saved_parent28_rows_exact":true,"optimizer_updates":0,"accepted_candidates":accepted,"accepted_l1_quanta":accepted_l1_quanta,"total_accepted_edit_l1_quanta":total_accepted_l1_quanta,"accepted_l1_scope":"net packed difference from starting parent; total edit L1 charged separately","original0032_manifest_sha256":sha256_file(&original_input.join("manifest.json"))?,"accepted_quanta":if cells{Value::Null}else{json!(accepted)},"native_candidate_evaluations":candidate_count,"maximum_accepted_candidates":round_limit,"maximum_accepted_quanta":if cells{Value::Null}else{json!(8)},"maximum_native_candidates":candidate_limit,"stop_reason":stop,"rounds":rounds,"final_checkpoint":receipt,"final_native_payload_sha256":final_bins,"final_original_generation":final_original,"final_construction_generation":final_construction,"final_original_canonical":context_direction_measure(&loaded,&episodes,start,a)?,"final_construction_canonical":context_direction_measure(&loaded,&construction,start,a)?,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":last_accepted_replies.is_some(),"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"scope":"bounded root/category learning on8 exposed construction plus20 preservation development cases; no heldout/general-chat/geometry-advantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
     )?;
     Ok(())
 }
@@ -5507,6 +5883,118 @@ fn direction(a: &Args) -> Result<()> {
 #[cfg(test)]
 mod direction_tests {
     use super::*;
+    fn later_test_single(index: usize, reserved: bool) -> CellProposal {
+        CellProposal {
+            edits: vec![consumed_test_edit("token_category", index, -1.)],
+            predicted_gain: 1. / (index + 1) as f64,
+            witness: if reserved {
+                json!({"reserved_later_query":true,"actual_nonempty_prefix_ids":[363],"context_time":12,"family":"token_category"})
+            } else {
+                Value::Null
+            },
+        }
+    }
+    #[test]
+    fn later_query_quota_preserves_low_global_rank_before_native_outcomes() -> Result<()> {
+        let globals = (0..80)
+            .map(|index| later_test_single(index, false))
+            .collect::<Vec<_>>();
+        let selected = later_query_cell_selection(&globals, &[later_test_single(77, true)], &[])?;
+        assert_eq!(selected.len(), 4);
+        assert!(selected.iter().any(|p| p.edits[0].coordinate.index == 77));
+        assert!(!selected.iter().any(|p| p.edits[0].coordinate.index == 3));
+        Ok(())
+    }
+    #[test]
+    fn later_query_duplicate_keeps_reached_witness_and_fallback_does_not_refill() -> Result<()> {
+        let globals = (0..5)
+            .map(|index| later_test_single(index, false))
+            .collect::<Vec<_>>();
+        let selected = later_query_cell_selection(&globals, &[later_test_single(1, true)], &[])?;
+        assert_eq!(selected.len(), 3);
+        assert!(selected
+            .iter()
+            .find(|p| p.edits[0].coordinate.index == 1)
+            .is_some_and(|p| p.witness["reserved_later_query"] == true));
+        let fallback = later_query_cell_selection(&globals, &[], &[])?;
+        assert_eq!(fallback.len(), 4);
+        assert!(fallback.iter().any(|p| p.edits[0].coordinate.index == 3));
+        let mut malformed = later_test_single(77, true);
+        malformed.witness["actual_nonempty_prefix_ids"] = json!([]);
+        assert!(later_query_cell_selection(&globals, &[malformed], &[]).is_err());
+        Ok(())
+    }
+    #[test]
+    fn consumed_continuation_rejects_wrong_ancestor_and_unaccepted_control_header() -> Result<()> {
+        let identity: ConsumerIdentity = serde_json::from_value(
+            json!({"tokenizer_sha256":"a".repeat(64),"parent_checkpoint_manifest_sha256":"b".repeat(64),"parent_model_sha256":"c".repeat(64),"parent_config_sha256":"d".repeat(64)}),
+        )?;
+        let receipt = json!({"optimizer_updates":0});
+        let header = json!({"schema":"uor-r4.geometric-consumed-cells/1","mode":"context-consumed-cells","status":"completed","stop_reason":"accepted_candidate_limit","maximum_accepted_candidates":3,"accepted_candidates":3,"maximum_native_candidates":24,"native_candidate_evaluations":22,"optimizer_updates":0,"parent_checkpoint_manifest_sha256":"parent","saved_identity":identity,"retained_report_sha256":"retained","final_checkpoint":receipt,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":true,"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"source_commit":"a".repeat(40)});
+        consumed_parent_header(&header, &identity, "retained", "parent", &receipt)?;
+        assert!(
+            consumed_parent_header(&header, &identity, "retained", "wrong-parent", &receipt)
+                .is_err()
+        );
+        for (key, value) in [
+            ("accepted_candidates", json!(0)),
+            ("mode", json!("context-observable-cells")),
+            ("final_accepted_candidate_replies_equal", json!(false)),
+            ("native_candidate_evaluations", json!(25)),
+        ] {
+            let mut bad = header.clone();
+            bad[key] = value;
+            assert!(
+                consumed_parent_header(&bad, &identity, "retained", "parent", &receipt).is_err()
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn consumed_continuation_freezes_basis_transitions_readouts_and_parameter_inventory() {
+        let before = BTreeMap::from([
+            ("consumer.context.token_root".to_owned(), vec![1u32]),
+            ("consumer.context.self_root".to_owned(), vec![2]),
+            ("consumer.context.token_transition".to_owned(), vec![3]),
+            ("period.readout".to_owned(), vec![4]),
+        ]);
+        let mut allowed = before.clone();
+        allowed.insert("consumer.context.token_root".to_owned(), vec![5]);
+        assert!(only_token_observation_bits_changed(&before, &allowed));
+        for name in [
+            "consumer.context.self_root",
+            "consumer.context.token_transition",
+            "period.readout",
+        ] {
+            let mut bad = allowed.clone();
+            bad.insert(name.to_owned(), vec![6]);
+            assert!(!only_token_observation_bits_changed(&before, &bad));
+        }
+        let mut bad = allowed;
+        bad.insert("invented".to_owned(), vec![0]);
+        assert!(!only_token_observation_bits_changed(&before, &bad));
+    }
+    #[test]
+    fn consumed_continuation_accepts_only_native_selected_main_winner() -> Result<()> {
+        let entry = json!({"selected_proposal":1,"candidate_evaluations":2});
+        let report = json!({"selected_proposal":1,"main_proposal_count":2,"ablation_count":0,"proposals":[{"round_frozen_ce":1.9},{"round_frozen_ce":1.8}],"baseline_frontier":{"mean_episode_ce":2.}});
+        assert_eq!(consumed_accepted_round(&report, &entry)?, (1, 2));
+        let mut bad = report.clone();
+        bad["selected_proposal"] = json!(0);
+        assert!(consumed_accepted_round(
+            &bad,
+            &json!({"selected_proposal":0,"candidate_evaluations":2})
+        )
+        .is_err());
+        let mut bad = report.clone();
+        bad["ablation_count"] = json!(1);
+        assert!(consumed_accepted_round(&bad, &entry).is_err());
+        let mut bad = report;
+        bad["baseline_frontier"]["mean_episode_ce"] = json!(1.8);
+        assert!(consumed_accepted_round(&bad, &entry).is_err());
+        Ok(())
+    }
+
     #[test]
     fn consumed_footprint_moves_final_query_after_generated_prefix() -> Result<()> {
         assert_eq!(
