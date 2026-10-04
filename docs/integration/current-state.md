@@ -1,5 +1,14 @@
 # Current UOR-R4 research state
 
+## Frozen-context bank readout improves loss; attention binding remains open — October 4
+
+The [native readout fit](geometric-bank-readout-2026-10-04.md) executes64 balancedB8 updates on unchanged128 rows with context/inactive source bits and native context/configuration/table/tokenizer frozen. FullCE1.327649→1.146199 selects64; singles31→34/64 (six gains, three losses), banks0→1/64 (dancer, no completepair), fresh0/32. Preserve every candidate, regression and mutable-context48 donor; no shared-session default promotion or general attention/chat qualification.
+
+Source1ca0ab19,13focusedtests/build/fmt pass; full128 admission1204positive targets, finiteRnorm.218819/noCgradient; independent admission6530/outcome26736 checks pass with rawgradient/native/optimizer/localBLAKE limitations. Source-only seed20261011 transfer excludes olddev/fresh/six; generated newdev unused. Return130files267,705,347B exactSHA/set. CPU-only Runpod48: build352.335s, prep2.251s, broad6.321s, fit74.960s; same180min card/newcharge0, cumulative1,216,635,028/1,219,200,000ms. [Evidence](../evidence/geometric-bank-readout-2026-10-04.json).
+
+**Next:** initial-query/source causal review, then stable text-cue→actual-occurrence and query-only geometric carrier if initial relevance remains weak. Existing directed H4 relation already works algebraically; extra coefficients alone are not a diagnosis. Define cue lifetime, zero-term parity, matched information/access control and repeated-alias effects before learning. No unchangeddose, metadata selector, gold admission or session/compiler edit. GeneralGenerate/chat/reasoning/fullhistory/laptopcost unmet.
+
+
 ## Crossed geometric factors identify context drift without retiring learning — October 4
 
 The [zero-update factor probe](geometric-bank-factor-2026-10-04.md) executes four native exports on128 development rows with32 bankquerypairs. Parent0/full48 complete canonical endpoints and donor parameter/payload identities reproduce. Full48 gives0/64single+2/64bank completions (bothdancer, no completepair). Learnedcontext/parentreadout gives4/64single+0bank; parentcontext/learnedreadout gives27/64single+0bank and lower combinedCE1.305688 thanparent1.327649. This implicates shared context drift in old-control harm while retaining useful learned bank probability/behavior; it is not wholecontext/family failure. FirstbanktokenCE improves with learnedcontext/parentreadout2.632649 vsparent2.807629, so freezingcontext is a causal learning comparison, not a declaration that mutablegeometry is unnecessary. Parent0 staysselected; fresh NOT_RUN, optimizer0.

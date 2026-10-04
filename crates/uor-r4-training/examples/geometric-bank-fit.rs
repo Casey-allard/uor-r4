@@ -33,6 +33,15 @@ mod output_support;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const REPORT_CAP: usize = 512 * 1024 * 1024;
 const FACTOR_REPORT_CAP: usize = 256 * 1024 * 1024;
+const READOUT_FIT_CAP: usize = 300 * 1024 * 1024;
+const READOUT_BROAD_CAP: usize = 64 * 1024 * 1024;
+const READOUT_FAMILIES: &str = "active-contextual-Copy4+Stop+Period/1";
+fn readout_mode(a: &Args) -> bool {
+    a.mode.starts_with("readout-")
+}
+fn broad_mode(a: &Args) -> bool {
+    matches!(a.mode.as_str(), "broadbatch" | "readout-broadbatch")
+}
 const UPDATES: usize = 64;
 const BATCH: usize = 8;
 #[derive(Deserialize)]
@@ -71,6 +80,10 @@ struct Authorization {
     updates: usize,
     batch_episodes: usize,
     maximum_fit_seconds: u64,
+    #[serde(default)]
+    context_frozen: bool,
+    #[serde(default)]
+    active_families: Option<String>,
 }
 #[derive(Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -225,6 +238,15 @@ fn write_json_limited(root: &Path, name: &str, v: &Value, cap: usize) -> Result<
             break;
         }
     }
+    let cap = if total_root.join("resource-cap.json").is_file() {
+        cap.min(
+            read_json(&total_root.join("resource-cap.json"))?["maximum_report_bytes"]
+                .as_u64()
+                .ok_or_else(|| invalid("report cap receipt absent"))? as usize,
+        )
+    } else {
+        cap
+    };
     if directory_bytes(total_root)?
         .saturating_sub(previous)
         .saturating_add(b.len())
@@ -273,21 +295,39 @@ fn checked_args() -> Result<Args> {
         return Err(invalid("only one config path").into());
     }
     let a: Args = serde_json::from_slice(&read_capped(Path::new(&config))?)?;
-    if !["broadbatch", "fit", "factor-probe"].contains(&a.mode.as_str())
+    if ![
+        "broadbatch",
+        "fit",
+        "factor-probe",
+        "readout-broadbatch",
+        "readout-fit",
+    ]
+    .contains(&a.mode.as_str())
         || a.maximum_seconds == 0
-        || a.maximum_seconds > if a.mode == "fit" { 3600 } else { 300 }
+        || a.maximum_seconds
+            > if a.mode == "fit" {
+                3600
+            } else if a.mode == "readout-fit" {
+                1200
+            } else {
+                300
+            }
         || a.maximum_context_tokens != 128
         || a.maximum_generation_tokens > 32
         || a.maximum_report_bytes
             != if a.mode == "factor-probe" {
                 FACTOR_REPORT_CAP
+            } else if a.mode == "readout-fit" {
+                READOUT_FIT_CAP
+            } else if a.mode == "readout-broadbatch" {
+                READOUT_BROAD_CAP
             } else {
                 REPORT_CAP
             }
     {
         return Err(invalid("mode/resource contract differs").into());
     }
-    if a.mode == "fit"
+    if matches!(a.mode.as_str(), "fit" | "readout-fit")
         && (a.admission.is_none()
             || a.admission_manifest_sha256.is_none()
             || a.fit_authorization.is_none())
@@ -297,7 +337,7 @@ fn checked_args() -> Result<Args> {
         )
         .into());
     }
-    if a.mode == "broadbatch" && (a.admission.is_some() || a.fit_authorization.is_some()) {
+    if broad_mode(&a) && (a.admission.is_some() || a.fit_authorization.is_some()) {
         return Err(invalid("broadbatch cannot automatically fit").into());
     }
     let donors = [
@@ -533,12 +573,22 @@ fn active(name: &str) -> bool {
                 | "consumer.potential.content_presence"
         )
 }
-fn inactive_bits(source: &SourceRealizerWeights) -> Result<Value> {
+fn readout_active(name: &str) -> bool {
+    active(name) && !name.starts_with("consumer.context.")
+}
+fn active_for(name: &str, a: &Args) -> bool {
+    if readout_mode(a) {
+        readout_active(name)
+    } else {
+        active(name)
+    }
+}
+fn inactive_bits(source: &SourceRealizerWeights, a: &Args) -> Result<Value> {
     parameter_receipts(
         &source
             .parameters()
             .into_iter()
-            .filter(|(n, _)| !active(n))
+            .filter(|(n, _)| !active_for(n, a))
             .collect(),
     )
 }
@@ -575,8 +625,16 @@ fn batch(
         let mut first = None;
         for (step, &target) in e.target.iter().enumerate() {
             deadline(a, start)?;
-            let out =
-                prepared.loss_bank(&segments, &e.packet.query_ids, &e.target[..step], target)?;
+            let out = if readout_mode(a) {
+                prepared.loss_bank_readout(
+                    &segments,
+                    &e.packet.query_ids,
+                    &e.target[..step],
+                    target,
+                )?
+            } else {
+                prepared.loss_bank(&segments, &e.packet.query_ids, &e.target[..step], target)?
+            };
             if let Some(integer) = independent {
                 let expected =
                     integer.read_bank(&segments, &e.packet.query_ids, &e.target[..step])?;
@@ -614,8 +672,17 @@ fn batch(
             }
             let loss = (&out.loss * scale(indices.len(), e.target.len())?)?;
             let store = loss.backward()?;
+            if readout_mode(a)
+                && params.iter().any(|(name, var)| {
+                    name.starts_with("consumer.context.") && store.get(var.as_tensor()).is_some()
+                })
+            {
+                return Err(
+                    invalid("frozen readout loss unexpectedly has context gradient").into(),
+                );
+            }
             for (name, var) in &params {
-                if active(name) {
+                if active_for(name, a) {
                     if let Some(g) = store.get(var.as_tensor()) {
                         let g = g.detach();
                         let combined = match gradients.remove(name) {
@@ -642,7 +709,7 @@ fn batch(
     }
     Ok(Batch {
         gradients,
-        report: json!({"episodes":indices.len(),"episode_indices":indices,"target_positions":positions,"native_equal_episode_ce":mean,"gradient_global_norm":square.sqrt(),"gradient_families":stats,"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64(),"independent_native_trace_parity":independent.is_some(),"objective":"mean episodes(mean completeanswer+EOS marginal CE); pertoken backward detached F32 gradient accumulation; globalclip aftermean; no supportfloor"}),
+        report: json!({"episodes":indices.len(),"episode_indices":indices,"target_positions":positions,"native_equal_episode_ce":mean,"gradient_global_norm":square.sqrt(),"gradient_families":stats,"rows":rows,"elapsed_seconds":begun.elapsed().as_secs_f64(),"independent_native_trace_parity":independent.is_some(),"context_gradient_graph_absent":readout_mode(a),"active_families":if readout_mode(a){Some(READOUT_FAMILIES)}else{None},"preparation_cost_scope":"source/native validation and prepared context packing remain; readout mode omits per-prefix context adjoint", "objective":"mean episodes(mean completeanswer+EOS marginal CE); pertoken backward detached F32 gradient accumulation; globalclip aftermean; no supportfloor"}),
     })
 }
 fn apply(
@@ -797,6 +864,7 @@ fn checkpoint(
     episodes: &[Episode],
     step: usize,
     prior: &[Value],
+    frozen: &Value,
     a: &Args,
     start: Instant,
 ) -> Result<Value> {
@@ -804,12 +872,15 @@ fn checkpoint(
         .checked_add(directory_bytes(&a.native_artifact)?)
         .and_then(|n| n.checked_add(32 * 1024 * 1024))
         .ok_or_else(|| invalid("checkpoint projection overflow"))?;
-    if directory_bytes(&a.out)?.saturating_add(required) > REPORT_CAP - 1024 * 1024 {
+    if directory_bytes(&a.out)?.saturating_add(required) > a.maximum_report_bytes - 1024 * 1024 {
         return Err(invalid("checkpoint source/native+32MiB report reserve exceeds cap").into());
     }
     let root = a.out.join(format!("checkpoint-{step:04}"));
     report_output::claim(&root)?;
     let result = (|| -> Result<Value> {
+        if inactive_bits(source, a)? != *frozen {
+            return Err(invalid("frozen source bits changed before export").into());
+        }
         source.save_source(&root.join("realizer-source"))?;
         let native = source.compile(identity.clone())?;
         native.save(&root.join("realizer-native"))?;
@@ -822,6 +893,17 @@ fn checkpoint(
             return Err(invalid("checkpoint source shadow replay differs").into());
         }
         let binding = loaded.artifact_binding()?;
+        if inactive_bits(&restored, a)? != *frozen {
+            return Err(invalid("frozen reloaded source bits differ").into());
+        }
+        let frozen_native = if readout_mode(a) {
+            Some(verify_frozen_native(
+                &a.native_artifact,
+                &root.join("realizer-native"),
+            )?)
+        } else {
+            None
+        };
         let integer = IntegerRealizer::load_native(&root.join("realizer-native"), &binding)?;
         let measured = canonical(&integer, episodes, a, start)?;
         write_json(&root, "canonical.json", &measured)?;
@@ -838,7 +920,7 @@ fn checkpoint(
                 .push(json!({"prior_updates":oldstep,"comparison":compare(&oldreport,&measured)?}));
         }
         write_json(&root, "comparisons.json", &json!(comparisons))?;
-        let receipt = json!({"updates":step,"native_equal_episode_ce":measured["native_equal_episode_ce"],"zero_support_positions":measured["zero_support_positions"],"source_parameter_receipts":parameter_receipts(&source.parameters())?,"trusted_export_binding":binding,"canonical_sha256":sha256_file(&root.join("canonical.json"))?});
+        let receipt = json!({"updates":step,"frozen_native_context_receipt":frozen_native,"frozen_source_bits_unchanged":true,"native_equal_episode_ce":measured["native_equal_episode_ce"],"zero_support_positions":measured["zero_support_positions"],"source_parameter_receipts":parameter_receipts(&source.parameters())?,"trusted_export_binding":binding,"canonical_sha256":sha256_file(&root.join("canonical.json"))?});
         write_json(&root, "receipt.json", &receipt)?;
         Ok(receipt)
     })();
@@ -873,6 +955,46 @@ fn balanced_indices(update: usize) -> Vec<usize> {
         .map(|i| (update * 4 + i) % 64)
         .chain((0..4).map(|i| 64 + (update * 4 + i) % 64))
         .collect()
+}
+fn readout_admission_matches(
+    report: &Value,
+    development: &str,
+    fresh: &str,
+    trusted: &str,
+) -> bool {
+    let mut legacy = report.clone();
+    legacy["schema"] = json!("uor-r4.geometric-bank-fit/1");
+    legacy["mode"] = json!("broadbatch");
+    report["schema"] == "uor-r4.geometric-bank-readout-fit/1"
+        && report["mode"] == "readout-broadbatch"
+        && report["context_frozen"] == true
+        && report["active_families"] == READOUT_FAMILIES
+        && report["gradient_report"]["context_gradient_graph_absent"] == true
+        && admission_matches(&legacy, development, fresh, trusted)
+}
+fn verify_frozen_native(parent: &Path, candidate: &Path) -> Result<Value> {
+    let mut files = BTreeMap::new();
+    for name in [
+        "tokenizer.json",
+        "consumer/context-q4.bin",
+        "consumer/exp-q31.bin",
+    ] {
+        let old = fs::read(parent.join(name))?;
+        if old != fs::read(candidate.join(name))? {
+            return Err(invalid(format!("frozen native bytes differ: {name}")).into());
+        }
+        files.insert(name, sha256_bytes(&old));
+    }
+    for name in ["metadata.json", "consumer/metadata.json"] {
+        if configuration_only(read_json(&parent.join(name))?)?
+            != configuration_only(read_json(&candidate.join(name))?)?
+        {
+            return Err(invalid(format!("frozen native config/geometry differs: {name}")).into());
+        }
+    }
+    Ok(
+        json!({"parent_artifact":parent,"unchanged_payload_sha256":files,"configuration_geometry_tokenizer_equal":true}),
+    )
 }
 fn admission_matches(report: &Value, development: &str, fresh: &str, trusted: &str) -> bool {
     report["schema"] == "uor-r4.geometric-bank-fit/1"
@@ -1314,7 +1436,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     }
     let development = load_panel(&a.development_panel, 128, &integer, &tok, true)?;
     let fresh = load_panel(&a.fresh_panel, 32, &integer, &tok, true)?;
-    let inactive = inactive_bits(&source)?;
+    let inactive = inactive_bits(&source, a)?;
     let initial = parameter_receipts(&source.parameters())?;
     let base = canonical(&integer, &development, a, start)?;
     write_json(&a.out, "initial-canonical.json", &base)?;
@@ -1324,7 +1446,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         )
         .into());
     }
-    if a.mode == "broadbatch" {
+    if broad_mode(a) {
         let indices = (0..128).collect::<Vec<_>>();
         let measured = batch(
             &indices,
@@ -1348,7 +1470,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
             report_output::verify(p)?;
         }
         return Ok(
-            json!({"schema":"uor-r4.geometric-bank-fit/1","mode":"broadbatch","status":"completed","optimizer_updates":0,"cases":128,"native_equal_episode_ce":base["native_equal_episode_ce"],"complete_objective_finite":true,"gradient_report":measured.report,"source_parameters_unchanged":true,"input_manifests_sha256":inputs,"development_manifest_sha256":a.development_manifest_sha256,"fresh_manifest_sha256":a.fresh_manifest_sha256,"trusted_binding_sha256":sha256_file(&a.trusted_native_binding)?,"source_parameter_receipts":initial,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"fit_admitted":false,"scope":"broadbatch instrument only; no automatic optimization or fresh predictions"}),
+            json!({"schema":if readout_mode(a){"uor-r4.geometric-bank-readout-fit/1"}else{"uor-r4.geometric-bank-fit/1"},"mode":a.mode,"context_frozen":readout_mode(a),"active_families":if readout_mode(a){Some(READOUT_FAMILIES)}else{None},"status":"completed","optimizer_updates":0,"cases":128,"native_equal_episode_ce":base["native_equal_episode_ce"],"complete_objective_finite":true,"gradient_report":measured.report,"source_parameters_unchanged":true,"input_manifests_sha256":inputs,"development_manifest_sha256":a.development_manifest_sha256,"fresh_manifest_sha256":a.fresh_manifest_sha256,"trusted_binding_sha256":sha256_file(&a.trusted_native_binding)?,"source_parameter_receipts":initial,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"fit_admitted":false,"scope":"broadbatch instrument only; no automatic optimization or fresh predictions"}),
         );
     }
     let admission = a
@@ -1365,13 +1487,31 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         .as_ref()
         .ok_or_else(|| invalid("authorization absent"))?;
     let auth: Authorization = serde_json::from_slice(&read_capped(auth_path)?)?;
-    if !admission_matches(
-        &report,
-        &a.development_manifest_sha256,
-        &a.fresh_manifest_sha256,
-        &sha256_file(&a.trusted_native_binding)?,
-    ) || report["source_parameter_receipts"] != initial
-        || auth.schema != "uor-r4.bank-fit-authorization/1"
+    let matched = if readout_mode(a) {
+        readout_admission_matches(
+            &report,
+            &a.development_manifest_sha256,
+            &a.fresh_manifest_sha256,
+            &sha256_file(&a.trusted_native_binding)?,
+        )
+    } else {
+        admission_matches(
+            &report,
+            &a.development_manifest_sha256,
+            &a.fresh_manifest_sha256,
+            &sha256_file(&a.trusted_native_binding)?,
+        )
+    };
+    if !matched
+        || report["source_parameter_receipts"] != initial
+        || auth.schema
+            != if readout_mode(a) {
+                "uor-r4.bank-readout-fit-authorization/1"
+            } else {
+                "uor-r4.bank-fit-authorization/1"
+            }
+        || (readout_mode(a)
+            && (!auth.context_frozen || auth.active_families.as_deref() != Some(READOUT_FAMILIES)))
         || !auth.fit_admitted
         || auth.admission_report_sha256 != sha256_file(&admission.join("report.json"))?
         || auth.development_manifest_sha256 != a.development_manifest_sha256
@@ -1404,6 +1544,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         &development,
         0,
         &stages,
+        &inactive,
         a,
         start,
     )?;
@@ -1413,16 +1554,24 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         // timings not included; exact allnative rows/objective must replay
         return Err(invalid("exported baseline128 differs original parent").into());
     }
+    let parent_generation = generation(&integer, &development, &tok, a, start)?;
     write_json(
         &a.out,
         "development-parent-generation.json",
-        &generation(&integer, &development, &tok, a, start)?,
+        &parent_generation,
     )?;
+    if readout_mode(a) {
+        write_json(
+            &a.out,
+            "parent-query-pair-diagnostics.json",
+            &factor_pair_report(&a.development_panel, &base, &parent_generation)?,
+        )?;
+    }
     let mut optimizer = AdamW::new(
         source
             .parameters()
             .into_iter()
-            .filter(|(n, _)| active(n))
+            .filter(|(n, _)| active_for(n, a))
             .map(|(_, v)| v)
             .collect(),
         ParamsAdamW {
@@ -1437,10 +1586,13 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     for update in 0..UPDATES {
         deadline(a, start)?;
         let indices = balanced_indices(update);
+        if inactive_bits(&source, a)? != inactive {
+            return Err(invalid("frozen source bits changed before update").into());
+        }
         let current = source.compile(identity.clone())?;
         let measured = batch(&indices, &development, &source, &current, a, start, None)?;
         let clip = apply(&source, &mut optimizer, measured.gradients)?;
-        if inactive_bits(&source)? != inactive {
+        if inactive_bits(&source, a)? != inactive {
             return Err(invalid("inactive potential source bits changed").into());
         }
         batches.push(json!({"update":update+1,"clip_factor":clip,"batch":measured.report}));
@@ -1457,6 +1609,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
                 &development,
                 update + 1,
                 &stages,
+                &inactive,
                 a,
                 start,
             )?;
@@ -1478,11 +1631,27 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         serde_json::from_value(receipt["trusted_export_binding"].clone())?;
     let selected_model =
         IntegerRealizer::load_native(&chosen_root.join("realizer-native"), &selected_binding)?;
+    if readout_mode(a) {
+        verify_frozen_native(&a.native_artifact, &chosen_root.join("realizer-native"))?;
+    }
+    let selected_generation = generation(&selected_model, &development, &tok, a, start)?;
     write_json(
         &a.out,
         "development-selected-generation.json",
-        &generation(&selected_model, &development, &tok, a, start)?,
+        &selected_generation,
     )?;
+    if readout_mode(a) {
+        let selected_canonical = read_json(&chosen_root.join("canonical.json"))?;
+        write_json(
+            &a.out,
+            "selected-query-pair-diagnostics.json",
+            &factor_pair_report(
+                &a.development_panel,
+                &selected_canonical,
+                &selected_generation,
+            )?,
+        )?;
+    }
     write_json(
         &a.out,
         "fresh-parent-generation.json",
@@ -1515,13 +1684,19 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         report_output::verify(&p)?;
     }
     Ok(
-        json!({"schema":"uor-r4.geometric-bank-fit/1","mode":"fit","status":"completed","optimizer_updates":64,"batch_episodes":BATCH,"batch_schedule":"balanced four original+four bank, cyclic contiguous pairs; each update (update*4+i)%64 and64+(update*4+i)%64","episode_visits":4,"checkpoints":stages,"selected_updates":step,"input_manifests_sha256":inputs,"inactive_source_bits_unchanged":true,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"scope":"actual128 exposed causal bank jointlearning; fixed quarter STE ordinaryAdamW no descent guarantee; no pretrained float serving, hard preservation veto, hidden source selection or fullchat qualification"}),
+        json!({"schema":if readout_mode(a){"uor-r4.geometric-bank-readout-fit/1"}else{"uor-r4.geometric-bank-fit/1"},"mode":a.mode,"context_frozen":readout_mode(a),"active_families":if readout_mode(a){Some(READOUT_FAMILIES)}else{None},"status":"completed","optimizer_updates":64,"batch_episodes":BATCH,"batch_schedule":"balanced four original+four bank, cyclic contiguous pairs; each update (update*4+i)%64 and64+(update*4+i)%64","episode_visits":4,"checkpoints":stages,"selected_updates":step,"input_manifests_sha256":inputs,"inactive_source_bits_unchanged":true,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"scope":if readout_mode(a){"actual128 frozen-geometric-context readout coadaptation; quarter STE ordinaryAdamW, no descent guarantee or fullchat qualification"}else{"actual128 exposed causal bank jointlearning; fixed quarter STE ordinaryAdamW no descent guarantee; no pretrained float serving, hard preservation veto, hidden source selection or fullchat qualification"}}),
     )
 }
 fn main() {
     let outcome = (|| -> Result<()> {
         let a = checked_args()?;
         report_output::claim(&a.out)?;
+        if readout_mode(&a) {
+            fs::write(
+                a.out.join("resource-cap.json"),
+                serde_json::to_vec(&json!({"maximum_report_bytes":a.maximum_report_bytes}))?,
+            )?;
+        }
         let start = Instant::now();
         let result = run(&a, start);
         match &result {
@@ -1556,6 +1731,38 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn readout_admission_rejects_joint_or_wrong_freeze_receipt() {
+        let mut r = json!({"schema":"uor-r4.geometric-bank-readout-fit/1","mode":"readout-broadbatch","context_frozen":true,"active_families":READOUT_FAMILIES,"status":"completed","optimizer_updates":0,"cases":128,"complete_objective_finite":true,"source_parameters_unchanged":true,"development_manifest_sha256":"dev","fresh_manifest_sha256":"fresh","trusted_binding_sha256":"native","gradient_report":{"independent_native_trace_parity":true,"context_gradient_graph_absent":true}});
+        assert!(readout_admission_matches(&r, "dev", "fresh", "native"));
+        assert!(!admission_matches(&r, "dev", "fresh", "native"));
+        r["mode"] = json!("broadbatch");
+        assert!(!readout_admission_matches(&r, "dev", "fresh", "native"));
+        r["mode"] = json!("readout-broadbatch");
+        r["gradient_report"]["context_gradient_graph_absent"] = json!(false);
+        assert!(!readout_admission_matches(&r, "dev", "fresh", "native"));
+    }
+    #[test]
+    fn readout_mask_keeps_four_copy_and_terminal_families_only() {
+        for name in [
+            "consumer.potential.context_unary",
+            "consumer.potential.context_radius",
+            "consumer.potential.context_presence",
+            "consumer.potential.content_presence",
+            "consumer.no_read.coefficients",
+            "period.coefficients",
+        ] {
+            assert!(readout_active(name));
+        }
+        for name in [
+            "consumer.context.tokens",
+            "consumer.context.basis",
+            "consumer.potential.pair_unary",
+            "consumer.potential.phase",
+        ] {
+            assert!(!readout_active(name));
+        }
+    }
     #[test]
     fn factor_donors_preserve_inactive_bits_and_reject_shape_inventory_changes() -> Result<()> {
         let make = |v: Vec<f32>| -> Result<Var> {

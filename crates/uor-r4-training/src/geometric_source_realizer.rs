@@ -780,6 +780,30 @@ impl PreparedSourceRealizer<'_> {
         prefix: &[u32],
         target: u32,
     ) -> Result<BankRealizerLoss> {
+        self.loss_bank_with_context_credit(segments, query, prefix, target, true)
+    }
+
+    /// Ordinary bank alias CE with the native geometric context frozen. Native
+    /// codes and latent states are constants; only readout coefficient STEs
+    /// carry credit. No differentiable context replay or context adjoint is built.
+    pub fn loss_bank_readout(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+    ) -> Result<BankRealizerLoss> {
+        self.loss_bank_with_context_credit(segments, query, prefix, target, false)
+    }
+
+    fn loss_bank_with_context_credit(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+        learn_context: bool,
+    ) -> Result<BankRealizerLoss> {
         if target as usize >= self.source.binding.vocab_size() {
             return Err(invalid("bank realizer target is out of vocabulary"));
         }
@@ -820,31 +844,55 @@ impl PreparedSourceRealizer<'_> {
             })
             .collect::<Result<Vec<_>>>()?;
         let index = Tensor::from_vec(positions.clone(), positions.len(), &Device::Cpu)?;
-        let context = self.consumer.context.forward(ids, 1, time, false)?;
-        if !context_replay_matches(&trace.context, &context.trace) {
-            return Err(invalid("bank native/training context replay differs"));
-        }
-        let absent = AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?;
-        let content = vec![absent; time * width];
-        let copy_coeff = self.source.consumer.potential.forward_codes(
-            1,
-            time,
-            &content,
-            &context.trace.codes,
-        )?;
-        let copy_context =
-            frozen_potential_forward(&self.source.consumer.potential, &content, &context)?;
-        if copy_coeff.scores_q24 != copy_context.scores_q24 {
-            return Err(invalid("bank Copy credit hard scores differ"));
-        }
-        let copy = (&copy_coeff.scores + (&copy_context.scores - copy_context.scores.detach())?)?;
-        let latent = context
-            .trace
+        let context = if learn_context {
+            let context = self.consumer.context.forward(ids, 1, time, false)?;
+            if !context_replay_matches(&trace.context, &context.trace) {
+                return Err(invalid("bank native/training context replay differs"));
+            }
+            Some(context)
+        } else {
+            None
+        };
+        let codes = trace
+            .context
+            .codes
+            .iter()
+            .map(|code| {
+                AddressLane::new(code.root, code.radius_bin, code.present)
+                    .map_err(|e| invalid(e.to_string()))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let latent = trace
+            .context
             .states
             .iter()
             .flatten()
             .map(|&x| H4Code::try_from(x).map_err(|e| invalid(e.to_string())))
             .collect::<Result<Vec<_>>>()?;
+        if trace.context.heads != c.heads
+            || trace.context.lanes_per_head != c.lanes_per_head
+            || codes.len() != time * width
+            || latent.len() != time * width
+        {
+            return Err(invalid("bank frozen native context shape differs"));
+        }
+        let absent = AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?;
+        let content = vec![absent; time * width];
+        let copy_coeff = self
+            .source
+            .consumer
+            .potential
+            .forward_codes(1, time, &content, &codes)?;
+        let copy = if let Some(context) = &context {
+            let credit =
+                frozen_potential_forward(&self.source.consumer.potential, &content, context)?;
+            if copy_coeff.scores_q24 != credit.scores_q24 {
+                return Err(invalid("bank Copy credit hard scores differ"));
+            }
+            (&copy_coeff.scores + (&credit.scores - credit.scores.detach())?)?
+        } else {
+            copy_coeff.scores.clone()
+        };
         let held = vec![H4Code::IDENTITY; latent.len()];
         let valid = vec![false; time];
         let batch = NoReadBatch {
@@ -852,16 +900,37 @@ impl PreparedSourceRealizer<'_> {
             batch: 1,
             time,
             latent: &latent,
-            observed: &context.trace.codes,
+            observed: &codes,
             held: &held,
             span_valid: &valid,
         };
         let period_coeff = self.source.period.forward(batch)?;
         let stop_coeff = self.source.consumer.no_read.forward(batch)?;
-        let period_context =
-            frozen_no_read_forward(&self.source.period, ids, &context, &held, &valid)?;
-        let stop_context =
-            frozen_no_read_forward(&self.source.consumer.no_read, ids, &context, &held, &valid)?;
+        let period_context = context
+            .as_ref()
+            .map(|context| frozen_no_read_forward(&self.source.period, ids, context, &held, &valid))
+            .transpose()?;
+        let stop_context = context
+            .as_ref()
+            .map(|context| {
+                frozen_no_read_forward(&self.source.consumer.no_read, ids, context, &held, &valid)
+            })
+            .transpose()?;
+        // Independently check the terminal native scores from the SAME final
+        // reported state, without generating any differentiable state credit.
+        let final_latent = &latent[(time - 1) * width..time * width];
+        let final_codes = &codes[(time - 1) * width..time * width];
+        let period_hard = self
+            .native
+            .period
+            .score(ids[time - 1] as usize, final_latent, final_codes, None)
+            .map_err(|e| invalid(e.to_string()))?;
+        let stop_hard = self
+            .native
+            .consumer
+            .no_read
+            .score(ids[time - 1] as usize, final_latent, final_codes, None)
+            .map_err(|e| invalid(e.to_string()))?;
         let mut heads = Vec::with_capacity(c.heads);
         for h in 0..c.heads {
             let hard = &trace.heads[h];
@@ -874,23 +943,34 @@ impl PreparedSourceRealizer<'_> {
                     .any(|(&score, &position)| {
                         score != copy_coeff.scores_q24[at * time + position as usize]
                     })
-                || hard.no_read_q24 != stop_context.scores_q24[at]
-                || trace.period_q24[h] != period_context.scores_q24[at]
+                || hard.no_read_q24 != stop_hard[h]
+                || trace.period_q24[h] != period_hard[h]
             {
                 return Err(invalid(
                     "bank native/training actual-position Copy/Period/Stop Q24 differs",
                 ));
             }
-            let period = scalar_credit(
-                trace.period_q24[h],
-                &period_coeff.i((0, h, time - 1))?,
-                &period_context.scores.i((0, h, time - 1))?,
-            )?;
-            let stop = scalar_credit(
-                hard.no_read_q24,
-                &stop_coeff.i((0, h, time - 1))?,
-                &stop_context.scores.i((0, h, time - 1))?,
-            )?;
+            if period_context
+                .as_ref()
+                .is_some_and(|x| x.scores_q24[at] != period_hard[h])
+                || stop_context
+                    .as_ref()
+                    .is_some_and(|x| x.scores_q24[at] != stop_hard[h])
+            {
+                return Err(invalid("bank terminal context credit hard scores differ"));
+            }
+            let period_surrogate = period_coeff.i((0, h, time - 1))?;
+            let stop_surrogate = stop_coeff.i((0, h, time - 1))?;
+            let period_credit = match &period_context {
+                Some(x) => x.scores.i((0, h, time - 1))?,
+                None => Tensor::zeros_like(&period_surrogate)?,
+            };
+            let stop_credit = match &stop_context {
+                Some(x) => x.scores.i((0, h, time - 1))?,
+                None => Tensor::zeros_like(&stop_surrogate)?,
+            };
+            let period = scalar_credit(trace.period_q24[h], &period_surrogate, &period_credit)?;
+            let stop = scalar_credit(hard.no_read_q24, &stop_surrogate, &stop_credit)?;
             heads.push(Tensor::cat(
                 &[
                     copy.i((0, h, time - 1))?.index_select(&index, 0)?,
@@ -1666,6 +1746,7 @@ mod tests {
             assert!((f64::from(output.loss.to_scalar::<f32>()?) + p.ln()).abs() < 1e-6);
         }
         assert!(prepared.loss_bank(&bank, &[5], &[], 5).is_err());
+        assert!(prepared.loss_bank_readout(&bank, &[5], &[], 5).is_err());
         Ok(())
     }
     #[test]
@@ -1711,8 +1792,44 @@ mod tests {
                     .collect::<Vec<_>>(),
                 [2, 3, 4]
             );
+            let readout = prepared.loss_bank_readout(&segments, &[5], &[3], target)?;
+            assert_eq!(readout.trace, output.trace);
+            assert_eq!(readout.target_probability, output.target_probability);
+            assert_eq!(
+                readout.loss.to_scalar::<f32>()?,
+                output.loss.to_scalar::<f32>()?
+            );
             let grads = output.loss.backward()?;
+            let readout_grads = readout.loss.backward()?;
             let vars = w.parameters();
+            for (name, var) in &vars {
+                if name.starts_with("consumer.context.") {
+                    assert!(
+                        readout_grads.get(var.as_tensor()).is_none(),
+                        "context graph retained: {name}"
+                    );
+                } else {
+                    let a = grads.get(var.as_tensor());
+                    let b = readout_grads.get(var.as_tensor());
+                    assert_eq!(
+                        a.is_some(),
+                        b.is_some(),
+                        "readout connectivity differs: {name}"
+                    );
+                    if let (Some(a), Some(b)) = (a, b) {
+                        let a = a.flatten_all()?.to_vec1::<f32>()?;
+                        let b = b.flatten_all()?.to_vec1::<f32>()?;
+                        assert_eq!(a.len(), b.len());
+                        for (&x, &y) in a.iter().zip(&b) {
+                            assert!(x.is_finite() && y.is_finite());
+                            assert!(
+                                (x - y).abs() <= 2e-6 + 2e-5 * x.abs().max(y.abs()),
+                                "readout adjoint differs: {name} target{target}: {x} vs {y}"
+                            );
+                        }
+                    }
+                }
+            }
             for name in [
                 "consumer.potential.context_unary",
                 "consumer.no_read.coefficients",
