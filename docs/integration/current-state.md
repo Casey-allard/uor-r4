@@ -1,5 +1,15 @@
 # Current UOR-R4 research state
 
+## First paired geometric feedback fit changes native actions but regresses — October 4
+
+The [Rust paired fit](geometric-dependent-fit-2026-10-04.md) executes 64 AdamW updates per JointCopy/RoleSurface arm with frozen source/context/readouts, immutable keys and the same K2 producer. Fractional shadows move while checkpoints16/32 remain native identity. Both first cross the q4 boundary at update42. At48/64 all570 canonical positions have changed refined states and final action objects. This establishes native movement, not useful learned attention.
+
+The unchanged grid64 parent has equal-episode native CE0.492381624865 and31/64 complete development replies. JointCopy48/64 gives CE1.132988294686/1.040980654327 and13/16 complete replies; RoleSurface gives1.142282880240/1.023842708656 and9/20. Baseline-inclusive earliest-tie selection chooses update0 in both arms. The new prospectively frozen32-case panel has16 familiar-token and16 unseen-token rows; selected parent and unchanged-parent evaluations are0/32. Nonselected fitted candidates were not evaluated on this panel. These results do not establish source-conditioning benefit or geometry-family failure.
+
+Executed source44610cd3 passes8 focused example tests and optimized construction on Linux CPU. Independent saved-field arithmetic/shadow/selection review finds no discrepancies; exact remote SHA/file-set verification retains258 files396,808,649B. Local independent BLAKE3, native replay and optimizer reexecution were not performed. The all120-action offline STE is explicitly biased and has no native-descent guarantee. The complete120min card charge gives1,168,035,028/1,170,000,000ms; actual compute and retained pre-execution failures are separate in [evidence](../evidence/geometric-dependent-fit-2026-10-04.json). No GPU, runner, laptop-model CPU, Metal or energy qualification is counted.
+
+**Next:** correct action credit using bounded exact native action-loss comparisons before another fit. Preserve accepted parent and regressions; recompute all final heads and aliases for each counterfactual without target-selected serving reads. Consider local signed-H4 steps only with explicit reachability/control evidence. Directed spin, ordered prefix transport, geometric XOR/popcount and golden-shell donors remain available; no new mechanism is adopted from analogy alone. General Generate/compiler/store/session/reasoning obligations remain; shared session source is untouched.
+
 ## Geometric dependent-read bridge receives ordinary answer credit — October 4
 
 The [offline Rust learner](geometric-dependent-learning-2026-10-04.md) connects only the q4 action bridge through observation of the refined native state to final marginal Copy/Period/Stop loss. Stage1, source keys, producer and readouts remain frozen. Hard forward and final scores are checked against the actual integer two-read path; the all120 right-H4 action expectation is an explicitly biased offline backward. No fake transition or target-selected read is added.
