@@ -100,10 +100,18 @@ unchanged ordinary answer CE. Complete own-prefix replies improve4→18/20 with
 all four prior successes retained, EOS20/20 and final canonical112/114; intermediate
 regressions remain. Retain final64 as an unadopted component candidate, then test
 fixed novel-source/order transfer and paired source replacements against the
-original parent before shared-session integration. That panel is NOT_RUN. Do not
-add a new learner/progress state, repeat the settled collision audit or repeat the
-dose unchanged. Preserve these partial results; five exposed numerical groups do
-not establish complete chat, family capacity or generalization.
+original parent before shared-session integration. The [executed transfer](geometric-transfer-2026-10-03.md)
+completes2/16 versus1/16 parent, with only the singer/dancer replacement pair
+complete. Familiar-token composition fails at the first output; the original18/20
+replays exactly. The [executed varied-source continuation](geometric-composition-learning-2026-10-03.md)
+reuses ordinary answer CE with context frozen and original-case preservation.
+Original replies reach20/20 at16/32/48, but new construction0/8 and development
+transfer2/16 remain. Preserve32/48 and final regression; next enable existing
+context learning on the same frozen data before integration. That adaptation is
+NOT_RUN. The inspected transfer panel remains development evidence.
+Do not add a progress cursor from these first-token failures, repeat the original
+fit unchanged or reject the geometry family. Preserve all partial results; five
+exposed numerical groups do not establish complete chat or generalization.
 
 The earlier [hybrid occurrence consumer](geometric-source-consumer-2026-10-03.md)
 passes the bounded actual-BPE zero-update credit/export construction. Its hybrid

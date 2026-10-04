@@ -1,5 +1,35 @@
 # Current UOR-R4 research state
 
+## Native geometric varied-source learning — original replies20/20, composition open, October 3
+
+The [fixed-weight transfer](geometric-transfer-2026-10-03.md) replays saved parent4/20
+and coadapt18/20 exactly, zero updates. Candidate2/16 completes only singer/dancer
+source swaps; familiar composition fails at first output. Sixteen rows are fourteen
+distinct source/query signatures; no distractor/store-selection inference.
+
+The [new-source continuation](geometric-composition-learning-2026-10-03.md) reuses
+existing Rust loss/learner from coadapt64 with context frozen: original20 plus eight
+new multiword sources,64updates/B8. At16/32/48 the original replies reach20/20,
+EOS20/20; construction stays0/8 and exposed transfer2/16. At64 original18/20,
+EOS18/20, constructionEOS5/8 and transferEOS11/16. Every regression is retained.
+Six construction rows now diverge after the first token; this is partial learning,
+not complete composition or geometry-family incapacity. Preserve32/48 as unadopted
+component candidates; final64 is not a default.
+
+Next: enable the existing geometric context credit/parameters on the same frozen
+construction/preservation data, starting from retained32/48 and comparing all rows.
+Context gradients already reach the loss and were deliberately discarded. This
+adaptation is NOT_RUN; no new cursor, unchanged frozen-context dose or broad audit.
+Shared session integration still follows transferable source consumption and is
+coordinated on#1552. No general prose, chat, full-serving or energy qualification.
+
+Executedsourcee0117909 passes9focusedtests/releasebuild; fit305.301s, maxchildRSS
+1,620,905,984B. Independent reviews check3,268trainingpositions,220generatedrows,
+2,574steps and frozen context/source hashes. All135files/331,924,095B returned/hash
+verified; pod jobreleased, ownedarea~6.18GiB. Complete work charged60min once,
+cumulative1,064,235,028/1,130,000,000ms. No GPU/GitHubresearchrunner/localmodelCPU;
+Metal unavailableLinux notcounted. [Bound evidence](../evidence/geometric-composition-learning-2026-10-03.json).
+
 ## Existing geometric readouts — complete source replies18/20, October 3
 
 The [executed frozen-context continuation](geometric-readout-coadapt-2026-10-03.md)

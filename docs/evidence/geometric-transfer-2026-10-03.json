@@ -1,0 +1,845 @@
+{
+  "schema": "uor-r4.geometric-transfer-evidence/1",
+  "source_commit": "6643af209399469aa503bb0e84c312667190b0d3",
+  "executable_sha256": "d16354b8e914055cfd44e28b76bc28b405449b09e1bb7624e443e7d184c4ad58",
+  "report_sha256": "3e02f56788121be86c0a2755bdff2deb57671d7101babe73e5dd675447af922d",
+  "frozen_panel_sha256": "1ec887979350f2d2cc39be394959c1ac702602cebb0b64dfd2722d1e5e29ed11",
+  "optimizer_updates": 0,
+  "status": "completed",
+  "scope": "fixed zero-update selected-source consumption transfer; no store/compiler selection or distractor input, no general prose/geometry advantage/chat qualification",
+  "candidate_summaries": {
+    "all_familiar_emitted_ids": {
+      "cases": 10,
+      "complete": 2,
+      "eos": 10
+    },
+    "composition": {
+      "cases": 6,
+      "complete": 0,
+      "eos": 6
+    },
+    "contains_unseen_emitted_ids": {
+      "cases": 6,
+      "complete": 0,
+      "eos": 6
+    },
+    "novel_literal": {
+      "cases": 6,
+      "complete": 0,
+      "eos": 6
+    },
+    "replacement": {
+      "cases": 4,
+      "complete": 2,
+      "eos": 4
+    }
+  },
+  "independent_arithmetic_review": {
+    "schema": "uor-r4.transfer-independent-arithmetic/1",
+    "rows": {
+      "parent_generation": {
+        "complete": 1,
+        "eos": 16,
+        "cases": 16,
+        "rows": [
+          {
+            "id": "replacement-occupation-left",
+            "complete": false,
+            "eos": true,
+            "reply": "er.er.er.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "replacement-occupation-right",
+            "complete": true,
+            "eos": true,
+            "reply": "dancer.",
+            "first_target_token_divergence": null,
+            "expected": [
+              "dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "replacement-place-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Brimfold."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "replacement-place-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Louston."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-order-left",
+            "complete": false,
+            "eos": true,
+            "reply": ".er. dancer.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-order-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "dancer singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-repeat-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-repeat-right",
+            "complete": false,
+            "eos": true,
+            "reply": "er.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "dancer dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-shared_prefix-left",
+            "complete": false,
+            "eos": true,
+            "reply": ".er. dancer.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-shared_prefix-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "novel_literal-concatenation-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singersinger."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              300,
+              720
+            ]
+          },
+          {
+            "id": "novel_literal-concatenation-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "dancerdancer."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              69,
+              304
+            ]
+          },
+          {
+            "id": "novel_literal-unseen_literal-left",
+            "complete": false,
+            "eos": true,
+            "reply": "al Vpnornalor Voralnorp",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Vexalnorp."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              80,
+              82,
+              306,
+              421,
+              839,
+              3821
+            ]
+          },
+          {
+            "id": "novel_literal-unseen_literal-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Quendazith."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              51,
+              87,
+              223,
+              328,
+              355,
+              1088
+            ]
+          },
+          {
+            "id": "novel_literal-shared_prefix-left",
+            "complete": false,
+            "eos": true,
+            "reply": "p singexer.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Vexalnorp singer."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              80,
+              82,
+              306,
+              421,
+              839,
+              3821
+            ]
+          },
+          {
+            "id": "novel_literal-shared_prefix-right",
+            "complete": false,
+            "eos": true,
+            "reply": "dancal dancexnp dancexner.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Vexalnorp dancer."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              80,
+              82,
+              306,
+              421,
+              839,
+              3821
+            ]
+          }
+        ]
+      },
+      "candidate_generation": {
+        "complete": 2,
+        "eos": 16,
+        "cases": 16,
+        "rows": [
+          {
+            "id": "replacement-occupation-left",
+            "complete": true,
+            "eos": true,
+            "reply": "singer.",
+            "first_target_token_divergence": null,
+            "expected": [
+              "singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "replacement-occupation-right",
+            "complete": true,
+            "eos": true,
+            "reply": "dancer.",
+            "first_target_token_divergence": null,
+            "expected": [
+              "dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "replacement-place-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Brimfold."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "replacement-place-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Louston."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-order-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-order-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "dancer singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-repeat-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-repeat-right",
+            "complete": false,
+            "eos": true,
+            "reply": "ererer danc dancer.er.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "dancer dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-shared_prefix-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer dancer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "composition-shared_prefix-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singer singer."
+            ],
+            "token_support": "all_familiar_emitted_ids",
+            "never_seen_training_context_ids": []
+          },
+          {
+            "id": "novel_literal-concatenation-left",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "singersinger."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              300,
+              720
+            ]
+          },
+          {
+            "id": "novel_literal-concatenation-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "dancerdancer."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              69,
+              304
+            ]
+          },
+          {
+            "id": "novel_literal-unseen_literal-left",
+            "complete": false,
+            "eos": true,
+            "reply": "al Vpalnor Voraln Vorn.pex",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Vexalnorp."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              80,
+              82,
+              306,
+              421,
+              839,
+              3821
+            ]
+          },
+          {
+            "id": "novel_literal-unseen_literal-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Quendazith."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              51,
+              87,
+              223,
+              328,
+              355,
+              1088
+            ]
+          },
+          {
+            "id": "novel_literal-shared_prefix-left",
+            "complete": false,
+            "eos": true,
+            "reply": "p singer.",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Vexalnorp singer."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              80,
+              82,
+              306,
+              421,
+              839,
+              3821
+            ]
+          },
+          {
+            "id": "novel_literal-shared_prefix-right",
+            "complete": false,
+            "eos": true,
+            "reply": "",
+            "first_target_token_divergence": 0,
+            "expected": [
+              "Vexalnorp dancer."
+            ],
+            "token_support": "contains_unseen_emitted_ids",
+            "never_seen_training_context_ids": [
+              80,
+              82,
+              306,
+              421,
+              839,
+              3821
+            ]
+          }
+        ]
+      }
+    },
+    "pairs": [
+      {
+        "id": "replacement-occupation",
+        "both_exact": true
+      },
+      {
+        "id": "replacement-place",
+        "both_exact": false
+      },
+      {
+        "id": "composition-order",
+        "both_exact": false
+      },
+      {
+        "id": "composition-repeat",
+        "both_exact": false
+      },
+      {
+        "id": "composition-shared_prefix",
+        "both_exact": false
+      },
+      {
+        "id": "novel_literal-concatenation",
+        "both_exact": false
+      },
+      {
+        "id": "novel_literal-unseen_literal",
+        "both_exact": false
+      },
+      {
+        "id": "novel_literal-shared_prefix",
+        "both_exact": false
+      }
+    ],
+    "baseline": {
+      "original_baseline": {
+        "cases": 20,
+        "complete_answers": 4,
+        "eos_count": 20
+      },
+      "candidate_baseline": {
+        "cases": 20,
+        "complete_answers": 18,
+        "eos_count": 20
+      }
+    }
+  },
+  "transfer_inventory": {
+    "files": 10,
+    "bytes": 28509093,
+    "sha_verified": true
+  },
+  "resource_receipts": {
+    "test": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T02:16:56.653844+00:00",
+      "source_commit": "6643af209399469aa503bb0e84c312667190b0d3",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "6643af209399469aa503bb0e84c312667190b0d3",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 112092,
+      "worker_pid": 112093,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 99.07907736580819,
+      "sampled_process_tree_peak_rss_bytes": 8280539136,
+      "rusage_children_max_rss_bytes": 7778430976,
+      "codex_allocated_bytes_latest": 5664907264,
+      "free_bytes_final": 18012491776,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "build": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T02:22:12.877143+00:00",
+      "source_commit": "6643af209399469aa503bb0e84c312667190b0d3",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "6643af209399469aa503bb0e84c312667190b0d3",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 112971,
+      "worker_pid": 112972,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 274.94388145487756,
+      "sampled_process_tree_peak_rss_bytes": 5391126528,
+      "rusage_children_max_rss_bytes": 4186365952,
+      "codex_allocated_bytes_latest": 6195634176,
+      "free_bytes_final": 18012368896,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "run": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T02:22:53.218032+00:00",
+      "source_commit": "6643af209399469aa503bb0e84c312667190b0d3",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-source-realizer",
+        "/root/codex/transfer-args.json"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "6643af209399469aa503bb0e84c312667190b0d3",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 114146,
+      "worker_pid": 114147,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 6.199155882000923,
+      "sampled_process_tree_peak_rss_bytes": 1097191424,
+      "rusage_children_max_rss_bytes": 1248636928,
+      "codex_allocated_bytes_latest": 6271815680,
+      "free_bytes_final": 17992749056,
+      "maximum_seconds": 600,
+      "maximum_rss_bytes": 4294967296,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "source_review": {
+    "source_commit": "6643af209399469aa503bb0e84c312667190b0d3",
+    "example_sha256": "9c5b3c15591651ee0c8b93c30d1c2a78170813cb79533d8d0c6f7ae7a089ad55",
+    "reviewer": "independent transfer_critic",
+    "status": "approved",
+    "scope": [
+      "native fixed-weight inference labels excluded",
+      "saved original and candidate identity/replay",
+      "present context and exp table equality",
+      "paired shared prefix actual divergence",
+      "source and all-context exposure separated excluding EOS",
+      "no compiler/store/distractor/general-chat claim"
+    ],
+    "model_execution_at_review": "NOT_RUN"
+  }
+}

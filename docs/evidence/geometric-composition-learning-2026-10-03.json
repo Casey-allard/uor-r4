@@ -1,0 +1,1200 @@
+{
+  "schema": "uor-r4.geometric-composition-evidence/1",
+  "source_commit": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+  "executable_sha256": "2d929c13f9182091bfdef36e1bf4680ffd57b3459d5f5afdd1cb275099f3dcb4",
+  "report_sha256": "db855a849796c5e1f5e2cddf23e9c0f142feb6fe5c71541f3492b99cb07ebce0",
+  "schema_measured": "uor-r4.geometric-composition-continuation/1",
+  "status": "completed",
+  "optimizer_updates": 64,
+  "scope": "64-update readout-only composition continuation;20 preservation+8 fixed construction training,16 previously examined development transfer; no heldout/geometric-advantage/chat qualification",
+  "starting_checkpoint_manifest_sha256": "0aa8796f3865f0f16dde13547e5e192d44fdc8d6e28db2144189e211f485608f",
+  "construction_manifest_sha256": "5af44462e7e8202ffbfe8cf7b2a89e18a90092f4a7a8759afd69535f639b3419",
+  "measured_admission": {
+    "admitted": true,
+    "baseline_stage_seconds": 6.980625763,
+    "evaluation_and_stop_reserve_seconds": 57.922503051999996,
+    "first_b8_seconds": 5.205526233,
+    "projected_remaining_seconds": 391.07618196399994,
+    "remaining_declared_seconds": 1187.572097389
+  },
+  "independent_review": {
+    "source_commit": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+    "status": "independent saved-report arithmetic PASS",
+    "training_positions_checked": 3268,
+    "visits": {
+      "mw2-0246-s0-d0": 18,
+      "mw2-0246-s0-d1": 18,
+      "mw2-0246-s1-d0": 18,
+      "mw2-0246-s1-d1": 18,
+      "mw2-0146-s0-d0": 18,
+      "mw2-0146-s0-d1": 18,
+      "mw2-0146-s1-d0": 18,
+      "mw2-0146-s1-d1": 18,
+      "mw2-0288-s0-d0": 18,
+      "mw2-0288-s0-d1": 18,
+      "mw2-0288-s1-d0": 18,
+      "mw2-0288-s1-d1": 18,
+      "mw2-0124-s0-d0": 18,
+      "mw2-0124-s0-d1": 18,
+      "mw2-0124-s1-d0": 18,
+      "mw2-0124-s1-d1": 18,
+      "authored-city-city-s0-d0": 18,
+      "authored-city-city-s0-d1": 18,
+      "authored-city-city-s1-d0": 18,
+      "authored-city-city-s1-d1": 18,
+      "construction-00": 19,
+      "construction-01": 19,
+      "construction-02": 19,
+      "construction-03": 19,
+      "construction-04": 19,
+      "construction-05": 19,
+      "construction-06": 19,
+      "construction-07": 19
+    },
+    "stages": [
+      {
+        "updates": 0,
+        "panels": {
+          "original": {
+            "cases": 20,
+            "complete": 18,
+            "eos": 20,
+            "failures": [
+              {
+                "id": "mw2-0288-s0-d0",
+                "first_divergence": 4,
+                "reply": "Klotdl Kad K.otad"
+              },
+              {
+                "id": "mw2-0288-s0-d1",
+                "first_divergence": 4,
+                "reply": "Klotdl Kad K.otad"
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          },
+          "construction": {
+            "cases": 8,
+            "complete": 0,
+            "eos": 8,
+            "failures": [
+              {
+                "id": "construction-00",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-01",
+                "first_divergence": 2,
+                "reply": "dancerer.er.er. dancer."
+              },
+              {
+                "id": "construction-02",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-03",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-04",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-05",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-06",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-07",
+                "first_divergence": 0,
+                "reply": ""
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          },
+          "transfer": {
+            "cases": 16,
+            "complete": 2,
+            "eos": 16,
+            "failures": [
+              {
+                "id": "replacement-place-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "replacement-place-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-order-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-order-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-repeat-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-repeat-right",
+                "first_divergence": 0,
+                "reply": "ererer danc dancer.er."
+              },
+              {
+                "id": "composition-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-unseen_literal-left",
+                "first_divergence": 0,
+                "reply": "al Vpalnor Voraln Vorn.pex"
+              },
+              {
+                "id": "novel_literal-unseen_literal-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": "p singer."
+              },
+              {
+                "id": "novel_literal-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": ""
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          }
+        }
+      },
+      {
+        "updates": 16,
+        "panels": {
+          "original": {
+            "cases": 20,
+            "complete": 20,
+            "eos": 20,
+            "failures": [],
+            "versus_previous": {
+              "gains": 2,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 2,
+              "losses": 0
+            }
+          },
+          "construction": {
+            "cases": 8,
+            "complete": 0,
+            "eos": 2,
+            "failures": [
+              {
+                "id": "construction-00",
+                "first_divergence": 2,
+                "reply": "singerer singer singerererererer singer.ererer singer. sing singer singererer sing sing singererererererer singerer sing singer. singer sing dancerererer sing sing danc singer danc singer.er sing"
+              },
+              {
+                "id": "construction-01",
+                "first_divergence": 2,
+                "reply": "dancererer dancer dancerer dancerer dancererer.erer dancer sing dancer singerer."
+              },
+              {
+                "id": "construction-02",
+                "first_divergence": 0,
+                "reply": "Brer.oldf Brererolder Brim Brimimold sing Brim Brimoldf singerimold sing Br sing Brim Brimer singimerer. Br Brimold Brimoldferold Br Broldfolder.old singfoldf sing Br"
+              },
+              {
+                "id": "construction-03",
+                "first_divergence": 0,
+                "reply": "stonererouster Lonststoustoust Lon.er dancer dancer dancst dancerou dancererer Ler dancerststst dancou Louer dancer dancst dancer.er. Leroustouonstoust danc L"
+              },
+              {
+                "id": "construction-04",
+                "first_divergence": 1,
+                "reply": "Br sing Brer Br singold sing singf singoldoldold Br singerimff Brimimer. Br singeroldfffimim Br sing Brim singim Brer. Br sing singfold singer.imer singimer.er."
+              },
+              {
+                "id": "construction-05",
+                "first_divergence": 1,
+                "reply": "Lerer danc danconer.on dancouououston dancononstououster dancouer Ler.onou dancou L dancer. dancerousterou dancston danc Lstoust Lon danc dancsterer.onou dancerst"
+              },
+              {
+                "id": "construction-06",
+                "first_divergence": 6,
+                "reply": "singer singer singer sing singerer. sing singer sing singer.ererer. singerer singerererer singer sing sing singerererer.er. sing singer.ererer.erer singerer singerer sing singer. singer"
+              },
+              {
+                "id": "construction-07",
+                "first_divergence": 0,
+                "reply": "er danc dancerer danc danc danc dancer danc dancer dancer danc danc danc danc danc dancer dancer dancer dancer dancer.er danc dancerer dancer dancer dancerer danc dancer dancer dancerer.er.er dancer dancer dancer dancer danc"
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          },
+          "transfer": {
+            "cases": 16,
+            "complete": 2,
+            "eos": 10,
+            "failures": [
+              {
+                "id": "replacement-place-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "replacement-place-right",
+                "first_divergence": 0,
+                "reply": "ononouonstououou Lston. Lououononon.on Loustouonstononoustoustonon Loustonononoustonoustonouou Lon. Loustonouonouon Louon Lst"
+              },
+              {
+                "id": "composition-order-left",
+                "first_divergence": 0,
+                "reply": "er."
+              },
+              {
+                "id": "composition-order-right",
+                "first_divergence": 0,
+                "reply": "sing dancerer singerer singerererer. dancerer.er sing danc dancerererer dancerererererer."
+              },
+              {
+                "id": "composition-repeat-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-repeat-right",
+                "first_divergence": 0,
+                "reply": "ererer danc dancer dancer. dancer dancer dancererer dancer danc dancer.er dancer dancererer dancerer dancer dancererer dancer dancer dancerer danc dancer dancer dancer dancer.er dancer danc dancer. danc"
+              },
+              {
+                "id": "composition-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": "er."
+              },
+              {
+                "id": "composition-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-right",
+                "first_divergence": 0,
+                "reply": "d dancer.anerercerercerer. danccdderccccerer dancererer.derer danceranandererererer.canancer dancererdererc dancercandercer"
+              },
+              {
+                "id": "novel_literal-unseen_literal-left",
+                "first_divergence": 0,
+                "reply": "al Vpalnalnnoralalornnnornpporor Vorpnalpnnnnnppororalexnnaloralpnexexpexorp Valorppnorornpororor"
+              },
+              {
+                "id": "novel_literal-unseen_literal-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": "p singerer Vor V Vexornex singnornoreroralpperex Ver sing singn V singer V singer V singer Vorernex singnnex Ver Vper Vpporal singn sing singexpor"
+              },
+              {
+                "id": "novel_literal-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": "dancerorernn V dancorororp Vererpererper dancexex V Vexer Vnororal Ver dancerp dancnalpexorporerpnalererporor dancppn dancexexpexer"
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          }
+        }
+      },
+      {
+        "updates": 32,
+        "panels": {
+          "original": {
+            "cases": 20,
+            "complete": 20,
+            "eos": 20,
+            "failures": [],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 2,
+              "losses": 0
+            }
+          },
+          "construction": {
+            "cases": 8,
+            "complete": 0,
+            "eos": 8,
+            "failures": [
+              {
+                "id": "construction-00",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-01",
+                "first_divergence": 2,
+                "reply": "dancerer. singer dancerer. dancerererer.erer. dancer. dancer."
+              },
+              {
+                "id": "construction-02",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-03",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-04",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-05",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-06",
+                "first_divergence": 2,
+                "reply": "singer."
+              },
+              {
+                "id": "construction-07",
+                "first_divergence": 0,
+                "reply": ""
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          },
+          "transfer": {
+            "cases": 16,
+            "complete": 2,
+            "eos": 16,
+            "failures": [
+              {
+                "id": "replacement-place-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "replacement-place-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-order-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-order-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-repeat-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-repeat-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-unseen_literal-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-unseen_literal-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": "p singorororal.orn Vor Vex singorex singal singer."
+              },
+              {
+                "id": "novel_literal-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": ""
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          }
+        }
+      },
+      {
+        "updates": 48,
+        "panels": {
+          "original": {
+            "cases": 20,
+            "complete": 20,
+            "eos": 20,
+            "failures": [],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 2,
+              "losses": 0
+            }
+          },
+          "construction": {
+            "cases": 8,
+            "complete": 0,
+            "eos": 8,
+            "failures": [
+              {
+                "id": "construction-00",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-01",
+                "first_divergence": 2,
+                "reply": "dancerer. singer dancerer. dancer.er dancer."
+              },
+              {
+                "id": "construction-02",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-03",
+                "first_divergence": 0,
+                "reply": "ston. dancer. dancer."
+              },
+              {
+                "id": "construction-04",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-05",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "construction-06",
+                "first_divergence": 2,
+                "reply": "singer. singerer. singer."
+              },
+              {
+                "id": "construction-07",
+                "first_divergence": 0,
+                "reply": ""
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          },
+          "transfer": {
+            "cases": 16,
+            "complete": 2,
+            "eos": 16,
+            "failures": [
+              {
+                "id": "replacement-place-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "replacement-place-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-order-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-order-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-repeat-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-repeat-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-unseen_literal-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-unseen_literal-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": "p singororor singer. V.per."
+              },
+              {
+                "id": "novel_literal-shared_prefix-right",
+                "first_divergence": 0,
+                "reply": ""
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          }
+        }
+      },
+      {
+        "updates": 64,
+        "panels": {
+          "original": {
+            "cases": 20,
+            "complete": 18,
+            "eos": 18,
+            "failures": [
+              {
+                "id": "mw2-0288-s0-d0",
+                "first_divergence": 10,
+                "reply": "Klotdradburg.dgbdlotlr Kot Kadbadburdadbdotadg Kb Kururadlladbgadrggotd K Kuradbrrdadlbburad"
+              },
+              {
+                "id": "mw2-0288-s0-d1",
+                "first_divergence": 10,
+                "reply": "Klotdradburg.dgbdlotlr Kot Kadbadburdadbdotadg Kb Kururadlladbgadrggotd K Kuradbrrdadlbburad"
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 2
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          },
+          "construction": {
+            "cases": 8,
+            "complete": 0,
+            "eos": 5,
+            "failures": [
+              {
+                "id": "construction-00",
+                "first_divergence": 2,
+                "reply": "singerer. singer singer."
+              },
+              {
+                "id": "construction-01",
+                "first_divergence": 2,
+                "reply": "dancererer dancer dancerer dancer singer dancerer.erer dancer sing dancer danc dancerer.ererererer singer dancererer dancerer sing dancer dancerer danc dancerer singerer. sing dancer dancer sing danc"
+              },
+              {
+                "id": "construction-02",
+                "first_divergence": 0,
+                "reply": "Brer."
+              },
+              {
+                "id": "construction-03",
+                "first_divergence": 0,
+                "reply": "stoner. L danc dancouston dancst L L danc Lou Lst dancer dancou dancer Louou dancerstouston danc dancer dancer dancou Loustst dancer. dancerst dancouer."
+              },
+              {
+                "id": "construction-04",
+                "first_divergence": 2,
+                "reply": "Brim sing Brerimolder.erim Brf singold Br Br singfold sing sing sing sing singold sing Brimfim singer. singfim sing singfimferimer Br Br singer Br singer sing Brimff Brimf singerfold"
+              },
+              {
+                "id": "construction-05",
+                "first_divergence": 1,
+                "reply": "Lerer danc danconer.on dancououstonon dancer dancst dancererououston. Lstonsterouston dancerouon. L dancster dancon danc danc dancererer."
+              },
+              {
+                "id": "construction-06",
+                "first_divergence": 6,
+                "reply": "singer singer singerer sing singer singer. singererer. singerererer."
+              },
+              {
+                "id": "construction-07",
+                "first_divergence": 4,
+                "reply": "dancer dancerer dancer dancer dancer dancer dancer dancer danc danc danc dancer dancer danc dancer danc dancer danc dancer danc danc dancer. dancer dancer dancer dancer danc danc danc dancer dancerer danc dancer dancer dancer danc dancer"
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          },
+          "transfer": {
+            "cases": 16,
+            "complete": 2,
+            "eos": 11,
+            "failures": [
+              {
+                "id": "replacement-place-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "replacement-place-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "composition-order-left",
+                "first_divergence": 0,
+                "reply": "er."
+              },
+              {
+                "id": "composition-order-right",
+                "first_divergence": 0,
+                "reply": "sing danc singererer dancer dancerer.erer.ererer. sing dancer."
+              },
+              {
+                "id": "composition-repeat-left",
+                "first_divergence": 5,
+                "reply": "singer singer. singer sing singer. singerer singerer singer sing singer singerer singer sing sing singer singer sing sing singerer sing singererer sing singer singer singer sing sing sing sing sing sing singer singer. singerer"
+              },
+              {
+                "id": "composition-repeat-right",
+                "first_divergence": 0,
+                "reply": "erer dancer danc dancer. dancer dancer dancer danc danc danc dancerer dancer danc dancer danc dancer dancererer danc danc dancer danc danc danc danc dancerer."
+              },
+              {
+                "id": "composition-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": "er."
+              },
+              {
+                "id": "composition-shared_prefix-right",
+                "first_divergence": 5,
+                "reply": "singer singer. singer sing singer. singerer singerer singer sing singer singerer singer sing sing singer singer sing sing singerer sing singererer sing singer singer singer sing sing sing sing sing sing singer singer. singerer"
+              },
+              {
+                "id": "novel_literal-concatenation-left",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-concatenation-right",
+                "first_divergence": 1,
+                "reply": "dancanercandder."
+              },
+              {
+                "id": "novel_literal-unseen_literal-left",
+                "first_divergence": 0,
+                "reply": "al V Vpexorp Valornp Vornn Vexorpexornorororpexor Vexnor Vpnor Vnpp Valor Vnnp V Valorexornn Vn Voralorpor"
+              },
+              {
+                "id": "novel_literal-unseen_literal-right",
+                "first_divergence": 0,
+                "reply": ""
+              },
+              {
+                "id": "novel_literal-shared_prefix-left",
+                "first_divergence": 0,
+                "reply": "p singerer Vor V Vexorpex singn Vornp Verp Vexorpexalor singeralorpor Vpexor Vorer. sing V sing singexor singnorppexer singnexner. Verex"
+              },
+              {
+                "id": "novel_literal-shared_prefix-right",
+                "first_divergence": 1,
+                "reply": "Valp V danceralex Valororppppororerp dancnnornp Vex dancorpnpnp dancpornpnnororn Valorernalpexorporpnor Vnporn"
+              }
+            ],
+            "versus_previous": {
+              "gains": 0,
+              "losses": 0
+            },
+            "versus_start": {
+              "gains": 0,
+              "losses": 0
+            }
+          }
+        }
+      }
+    ]
+  },
+  "independent_raw_review": {
+    "reviewer": "transfer_critic",
+    "status": "PASS",
+    "rows": 220,
+    "generated_steps": 2574,
+    "initial_saved_rows_exact": true,
+    "context_source_and_native_and_exp_unchanged": true,
+    "unfiltered_context_gradient_nonzero": true
+  },
+  "resource_receipts": {
+    "test": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T02:33:19.935014+00:00",
+      "source_commit": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 115861,
+      "worker_pid": 115862,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 99.04882410913706,
+      "sampled_process_tree_peak_rss_bytes": 8296931328,
+      "rusage_children_max_rss_bytes": 7724060672,
+      "codex_allocated_bytes_latest": 5741080576,
+      "free_bytes_final": 17983774720,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "build": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T02:38:50.982027+00:00",
+      "source_commit": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 116779,
+      "worker_pid": 116780,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 274.93558203196153,
+      "sampled_process_tree_peak_rss_bytes": 5658624000,
+      "rusage_children_max_rss_bytes": 4190064640,
+      "codex_allocated_bytes_latest": 6300397568,
+      "free_bytes_final": 17983713280,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "run": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T02:45:02.086639+00:00",
+      "source_commit": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-source-realizer",
+        "/root/codex/composition-args.json"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 118046,
+      "worker_pid": 118047,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 305.3013055068441,
+      "sampled_process_tree_peak_rss_bytes": 1621872640,
+      "rusage_children_max_rss_bytes": 1620905984,
+      "codex_allocated_bytes_latest": 6623711232,
+      "free_bytes_final": 17660424192,
+      "maximum_seconds": 1200,
+      "maximum_rss_bytes": 8589934592,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "transfer": {
+    "files": 135,
+    "bytes": 331924095,
+    "all_sizes_and_sha256_equal": true
+  },
+  "complete_resource_charge": {
+    "schema": "uor-r4.complete-resource-charge/1",
+    "task": "geometric transfer and new composition learning",
+    "recorded_utc": "2026-10-04T02:51:40.017590+00:00",
+    "charge_ms": 3600000,
+    "method": "conservative 60-minute total work allowance, including remaining documentation/delivery/cleanup; not summed parallel-agent time",
+    "before": {
+      "cumulative_ms": 1060635028,
+      "limit_ms": 1130000000
+    },
+    "after": {
+      "cumulative_ms": 1064235028,
+      "limit_ms": 1130000000
+    },
+    "source_commits": [
+      "6643af209399469aa503bb0e84c312667190b0d3",
+      "e0117909bde8aa7a4f3c13a5973b18fb1f090f3f"
+    ],
+    "covered": [
+      "source preparation and independent review",
+      "two committed archives and builds/tests",
+      "zero-update transfer",
+      "64-update composition fit and five exports",
+      "return/hash/arithmetic verification",
+      "documentation/protected delivery/cleanup"
+    ],
+    "actual_worker_seconds": [
+      99.07907736580819,
+      274.94388145487756,
+      6.199155882000923,
+      99.04882410913706,
+      274.93558203196153,
+      305.3013055068441
+    ]
+  },
+  "retained_component_candidates": [
+    "checkpoint-0032",
+    "checkpoint-0048"
+  ],
+  "adopted_model": false,
+  "next": "existing context adaptation on same frozen construction/preservation data; NOT_RUN"
+}
