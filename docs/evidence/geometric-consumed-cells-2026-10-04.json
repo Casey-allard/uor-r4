@@ -1,0 +1,4675 @@
+{
+  "schema": "uor-r4.geometric-consumed-cells-evidence/1",
+  "utc": "2026-10-04T07:34:57.352363+00:00",
+  "references": [
+    1552,
+    1512
+  ],
+  "executed_source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+  "source_sha256": "6db36cc34e444f9c07f1a3cdc4db94db44475ae249b1cc0581a35e24121eeeb9",
+  "executable_sha256": "7dedd41ae7a2814f3f603d500c27555e976d9859168c862be03a67f2f47383fa",
+  "source_review": {
+    "status": "APPROVED_SCOPED_SOURCE",
+    "base_head": "e9d761a9bf2d40a6a11d0b4230e97a61199ba727",
+    "source_sha256": "6db36cc34e444f9c07f1a3cdc4db94db44475ae249b1cc0581a35e24121eeeb9",
+    "scope": "Independent read-only architecture, arithmetic and control-flow review. Actual compile/tests and saved-native outputs remain pending.",
+    "serving_source_authority": [
+      "geometric_occurrence_read.rs NativeOccurrenceReader::read stores all sequence outputs; Copy uses source-key addresses j<count and final address total-1",
+      "geometric_source_realizer.rs NativeSourceRealizer::read verifies additional replay Stop against occurrence reader and scores Period on final token/state/output",
+      "geometric_context.rs observation readouts consume NEW states without feeding state recurrence"
+    ],
+    "checks": [
+      "Only source keys and final current-query address eligible; exact source/query/prefix ordering and derived source occurrence identities verified",
+      "Observation positions are eligible inputs, not guaranteed active numeric features; native witness head-score arrays and Q24-specific flags retained, no added acceptance veto",
+      "Exact prior minimal legal q4 crossing, same-head NEW state score expansion and earliest tie policy preserved",
+      "Prospective four ranked singles plus two ranked pairs plus both matched category parts; part credit may be adverse; dedup before outcomes without refill",
+      "Three accepted rounds / 24 main evaluations fixed prospectively; no attribution-only candidates in new mode",
+      "Each accepted checkpoint supplies next round codec/source/packed baseline; no stale initial codec after acceptance",
+      "Existing alias-safe first-error positions refreshed only after acceptance; within-round candidate comparisons on same frozen positions",
+      "All 28 generated replies/full losses and rejected candidates retained; transitions/readouts/exp/geometry unchanged",
+      "Net final packed L1 difference and total accepted edit L1 separately recorded",
+      "Previous observable and old learner limits retained; focused tests cover footprint migration, order rejection, adverse part admission, dedup and accepted checkpoint selection"
+    ],
+    "historical_context": "Previous period-token update unlocked one first token, then disappeared from consumed features at prefix363. Presence-only control outperformed coupling but remains unadopted. This new policy begins from the same two-change parent and does not retrofit prior outcomes.",
+    "remaining": "Bind committed head after parent commits; compile/tests and independent raw review required.",
+    "blocking_findings": [],
+    "limits": {
+      "accepted_candidates": 3,
+      "native_candidate_evaluations": 24,
+      "maximum_main_candidates_per_round": 8,
+      "basis_search": "NOT_RUN",
+      "model_adoption": false
+    },
+    "reviewed_source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+    "source_commit_bound_after_review": true
+  },
+  "raw_review": {
+    "status": "PASS",
+    "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+    "scope": "Independent saved-native arithmetic and exact source/payload identities; no model execution.",
+    "accepted_candidates": 3,
+    "native_candidates": 22,
+    "total_accepted_edit_l1_quanta": 5,
+    "net_packed_l1_quanta": 5,
+    "rounds": [
+      {
+        "status": "PASS",
+        "scope": "independent saved-output arithmetic, no model execution",
+        "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+        "round": 0,
+        "baseline_frontier": {
+          "mean_ce": 2.0202745951258896,
+          "zero_target_mass_positions": 0,
+          "correct_frontier_tokens": 0,
+          "rows": [
+            {
+              "id": "construction-00",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 781404467,
+              "target_margin_q31": -1366079181,
+              "native_ce": 1.5714193158999006
+            },
+            {
+              "id": "construction-01",
+              "step": 2,
+              "target": 1130,
+              "winner": 284,
+              "target_mass_q31": 1391358259,
+              "target_margin_q31": -1047283162,
+              "native_ce": 1.6597327490950524
+            },
+            {
+              "id": "construction-02",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 100789666,
+              "target_margin_q31": -2046693982,
+              "native_ce": 3.36196281974454
+            },
+            {
+              "id": "construction-03",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 323376228,
+              "target_margin_q31": -1824107420,
+              "native_ce": 2.6119090694373184
+            },
+            {
+              "id": "construction-04",
+              "step": 0,
+              "target": 2593,
+              "winner": 1,
+              "target_mass_q31": 403149531,
+              "target_margin_q31": -1744334117,
+              "native_ce": 2.0387049720719523
+            },
+            {
+              "id": "construction-05",
+              "step": 0,
+              "target": 363,
+              "winner": 1,
+              "target_mass_q31": 549123907,
+              "target_margin_q31": -1598359741,
+              "native_ce": 1.7803371579252627
+            },
+            {
+              "id": "construction-06",
+              "step": 2,
+              "target": 1130,
+              "winner": 16,
+              "target_mass_q31": 854035115,
+              "target_margin_q31": -1293448533,
+              "native_ce": 1.542196191411637
+            },
+            {
+              "id": "construction-07",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 848403343,
+              "target_margin_q31": -1299080305,
+              "native_ce": 1.5959344854214503
+            }
+          ]
+        },
+        "events": 448,
+        "searched_single_witnesses": 29358,
+        "searched_pair_witnesses": 23229,
+        "deduplicated_single_edges": 16433,
+        "deduplicated_pair_edges": 9590,
+        "single_ranked": 4,
+        "pair_ranked": 4,
+        "candidate_count": 8,
+        "selected": 7,
+        "outcomes": [
+          {
+            "index": 0,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 1,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.018438026309013367,
+                  "index": 4456,
+                  "name": "consumer.context.token_category",
+                  "original_q": 2,
+                  "original_shadow": 0.38503018021583557
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 1.95515523388147,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 1626479133,
+                  "target_margin_q31": -521004515,
+                  "native_ce": 1.317780582580679
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 166174067,
+                  "target_margin_q31": -1981309581,
+                  "native_ce": 3.094646663108405
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.14277249743697454,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3474124951838231,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 1,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 27,
+                      "lane": 6,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.018013814464211464,
+                  "index": 4449,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.25
+                },
+                "delta_q": -2
+              }
+            ],
+            "l1_quanta": 2,
+            "frontier": {
+              "mean_ce": 1.990593144952916,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 533157265,
+                  "target_margin_q31": -1614326383,
+                  "native_ce": 2.3744574680535306
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12647363944665974,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.352949332232385,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 2,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 5,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.01719624549150467,
+                  "index": 4421,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.15221287310123444
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 1.953926118771463,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.13638855783259834,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3452852108669473,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 3,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 23,
+                      "lane": 4,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.0168619304895401,
+                  "index": 4379,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.3607565462589264
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 2.001357900280673,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 129416494,
+                  "target_margin_q31": -2018067154,
+                  "native_ce": 3.21062926098281
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.7803371579252627
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.1312595465896076,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3523687667252782,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 4,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 105,
+                      "lane": 3,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": -0.0038153743371367455,
+                  "index": 15825,
+                  "name": "consumer.context.token_root",
+                  "original_q": 3,
+                  "original_shadow": 0.75
+                },
+                "delta_q": 1
+              },
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 0,
+                      "lane": 3,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.01420645136386156,
+                  "index": 4323,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.3688323497772217
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 2,
+            "frontier": {
+              "mean_ce": 2.0311191574743575,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 549123907,
+                  "target_margin_q31": -1598359741,
+                  "native_ce": 1.8670936567130054
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12259384713602019,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3554219401367438,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 5,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 105,
+                      "lane": 3,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": -0.0038153743371367455,
+                  "index": 15825,
+                  "name": "consumer.context.token_root",
+                  "original_q": 3,
+                  "original_shadow": 0.75
+                },
+                "delta_q": 1
+              },
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 6,
+                      "lane": 3,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": -0.011429204605519772,
+                  "index": 4329,
+                  "name": "consumer.context.token_category",
+                  "original_q": 0,
+                  "original_shadow": 0.08442055433988571
+                },
+                "delta_q": 2
+              }
+            ],
+            "l1_quanta": 3,
+            "frontier": {
+              "mean_ce": 1.9228680867885923,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 1,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 363,
+                  "target_mass_q31": 2147483648,
+                  "target_margin_q31": 273575371,
+                  "native_ce": 1.0010850912268872
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.13002362434299403,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3546981783274314,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 6,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 0,
+                      "lane": 3,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.01420645136386156,
+                  "index": 4323,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.3688323497772217
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 1.9939681399447857,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 1,
+                  "target_mass_q31": 822899229,
+                  "target_margin_q31": -1324584419,
+                  "native_ce": 1.5698855164764343
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.12253186543402005,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3523256759272133,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 7,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 6,
+                      "lane": 3,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": -0.011429204605519772,
+                  "index": 4329,
+                  "name": "consumer.context.token_category",
+                  "original_q": 0,
+                  "original_shadow": 0.08442055433988571
+                },
+                "delta_q": 2
+              }
+            ],
+            "l1_quanta": 2,
+            "frontier": {
+              "mean_ce": 1.8955521095809018,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 1,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 0,
+                  "target": 363,
+                  "winner": 363,
+                  "target_mass_q31": 2147483648,
+                  "target_margin_q31": 897014485,
+                  "native_ce": 0.7825572735653623
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.1299616426409939,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.352831294158136,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        ],
+        "canonical_positions_checked": 1602,
+        "generated_steps_checked": 1374,
+        "frontier_positions_checked": 72,
+        "credit_positions_checked": 8
+      },
+      {
+        "status": "PASS",
+        "scope": "independent saved-output arithmetic, no model execution",
+        "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+        "round": 1,
+        "baseline_frontier": {
+          "mean_ce": 2.0757579766213827,
+          "zero_target_mass_positions": 0,
+          "correct_frontier_tokens": 0,
+          "rows": [
+            {
+              "id": "construction-00",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 781404467,
+              "target_margin_q31": -1366079181,
+              "native_ce": 1.5714193158999006
+            },
+            {
+              "id": "construction-01",
+              "step": 2,
+              "target": 1130,
+              "winner": 284,
+              "target_mass_q31": 1391358259,
+              "target_margin_q31": -1047283162,
+              "native_ce": 1.6597327490950524
+            },
+            {
+              "id": "construction-02",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 100789666,
+              "target_margin_q31": -2046693982,
+              "native_ce": 3.36196281974454
+            },
+            {
+              "id": "construction-03",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 323376228,
+              "target_margin_q31": -1824107420,
+              "native_ce": 2.6119090694373184
+            },
+            {
+              "id": "construction-04",
+              "step": 0,
+              "target": 2593,
+              "winner": 1,
+              "target_mass_q31": 403149531,
+              "target_margin_q31": -1744334117,
+              "native_ce": 2.0387049720719523
+            },
+            {
+              "id": "construction-05",
+              "step": 1,
+              "target": 277,
+              "winner": 292,
+              "target_mass_q31": 885171593,
+              "target_margin_q31": -1262312055,
+              "native_ce": 2.2242042098892103
+            },
+            {
+              "id": "construction-06",
+              "step": 2,
+              "target": 1130,
+              "winner": 16,
+              "target_mass_q31": 854035115,
+              "target_margin_q31": -1293448533,
+              "native_ce": 1.542196191411637
+            },
+            {
+              "id": "construction-07",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 848403343,
+              "target_margin_q31": -1299080305,
+              "native_ce": 1.5959344854214503
+            }
+          ]
+        },
+        "events": 448,
+        "searched_single_witnesses": 29431,
+        "searched_pair_witnesses": 22915,
+        "deduplicated_single_edges": 16630,
+        "deduplicated_pair_edges": 9369,
+        "single_ranked": 4,
+        "pair_ranked": 4,
+        "candidate_count": 7,
+        "selected": 3,
+        "outcomes": [
+          {
+            "index": 0,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 1,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.016272619366645813,
+                  "index": 4456,
+                  "name": "consumer.context.token_category",
+                  "original_q": 2,
+                  "original_shadow": 0.38503018021583557
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 2.0106386153769633,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 1626479133,
+                  "target_margin_q31": -521004515,
+                  "native_ce": 1.317780582580679
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 166174067,
+                  "target_margin_q31": -1981309581,
+                  "native_ce": 3.094646663108405
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.14626050063130872,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3470987034672153,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 1,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 23,
+                      "lane": 4,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.016082389280200005,
+                  "index": 4379,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.3607565462589264
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 2.0568412817761663,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 129416494,
+                  "target_margin_q31": -2018067154,
+                  "native_ce": 3.21062926098281
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.13474754978394177,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3520549750086706,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 2,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 27,
+                      "lane": 6,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.015842484310269356,
+                  "index": 4449,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.25
+                },
+                "delta_q": -2
+              }
+            ],
+            "l1_quanta": 2,
+            "frontier": {
+              "mean_ce": 2.0460765264484095,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 533157265,
+                  "target_margin_q31": -1614326383,
+                  "native_ce": 2.3744574680535306
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.1299616426409939,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.352635540515777,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 3,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 5,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.015823345631361008,
+                  "index": 4421,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.15221287310123444
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 2.0094095002669565,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.13987656102693252,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3503308779538175,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 4,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 81,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.00033630942925810814,
+                  "index": 1085721,
+                  "name": "consumer.context.token_root",
+                  "original_q": 2,
+                  "original_shadow": 0.3777182102203369
+                },
+                "delta_q": 1
+              },
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.005324129015207291,
+                  "index": 298583,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.13515393435955048
+                },
+                "delta_q": 4
+              }
+            ],
+            "l1_quanta": 5,
+            "frontier": {
+              "mean_ce": 2.082554617619249,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 736140133,
+                  "target_margin_q31": -1411343515,
+                  "native_ce": 1.6189843991297967
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 846677320,
+                  "target_margin_q31": -1300806328,
+                  "native_ce": 1.549004236164671
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.14271252455153313,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3578125717683396,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 5,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 35,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.00015320736565627158,
+                  "index": 1085675,
+                  "name": "consumer.context.token_root",
+                  "original_q": 1,
+                  "original_shadow": 0.129231259226799
+                },
+                "delta_q": 1
+              },
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.005324129015207291,
+                  "index": 298583,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.13515393435955048
+                },
+                "delta_q": 4
+              }
+            ],
+            "l1_quanta": 5,
+            "frontier": {
+              "mean_ce": 2.060178083883457,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 925258254,
+                  "target_margin_q31": -1222225394,
+                  "native_ce": 1.439972129243461
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 846677320,
+                  "target_margin_q31": -1300806328,
+                  "native_ce": 1.549004236164671
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.14271252455153313,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3548807740429814,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 6,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.005324129015207291,
+                  "index": 298583,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.13515393435955048
+                },
+                "delta_q": 4
+              }
+            ],
+            "l1_quanta": 4,
+            "frontier": {
+              "mean_ce": 2.0714411500214354,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 823501765,
+                  "target_margin_q31": -1323981883,
+                  "native_ce": 1.5300766583472887
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 403149531,
+                  "target_margin_q31": -1744334117,
+                  "native_ce": 2.0387049720719523
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 846677320,
+                  "target_margin_q31": -1300806328,
+                  "native_ce": 1.549004236164671
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.14271252455153313,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3563320631032774,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        ],
+        "canonical_positions_checked": 1424,
+        "generated_steps_checked": 1374,
+        "frontier_positions_checked": 64,
+        "credit_positions_checked": 8
+      },
+      {
+        "status": "PASS",
+        "scope": "independent saved-output arithmetic, no model execution",
+        "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+        "round": 2,
+        "baseline_frontier": {
+          "mean_ce": 2.0094095002669565,
+          "zero_target_mass_positions": 0,
+          "correct_frontier_tokens": 0,
+          "rows": [
+            {
+              "id": "construction-00",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 781404467,
+              "target_margin_q31": -1366079181,
+              "native_ce": 1.5714193158999006
+            },
+            {
+              "id": "construction-01",
+              "step": 2,
+              "target": 1130,
+              "winner": 284,
+              "target_mass_q31": 1391358259,
+              "target_margin_q31": -1047283162,
+              "native_ce": 1.6597327490950524
+            },
+            {
+              "id": "construction-02",
+              "step": 0,
+              "target": 1130,
+              "winner": 1,
+              "target_mass_q31": 100789666,
+              "target_margin_q31": -2046693982,
+              "native_ce": 3.36196281974454
+            },
+            {
+              "id": "construction-03",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 323376228,
+              "target_margin_q31": -1824107420,
+              "native_ce": 2.6119090694373184
+            },
+            {
+              "id": "construction-04",
+              "step": 0,
+              "target": 2593,
+              "winner": 1,
+              "target_mass_q31": 1095874043,
+              "target_margin_q31": -1051609605,
+              "native_ce": 1.5079171612365407
+            },
+            {
+              "id": "construction-05",
+              "step": 1,
+              "target": 277,
+              "winner": 292,
+              "target_mass_q31": 885171593,
+              "target_margin_q31": -1262312055,
+              "native_ce": 2.2242042098892103
+            },
+            {
+              "id": "construction-06",
+              "step": 2,
+              "target": 1130,
+              "winner": 16,
+              "target_mass_q31": 854035115,
+              "target_margin_q31": -1293448533,
+              "native_ce": 1.542196191411637
+            },
+            {
+              "id": "construction-07",
+              "step": 0,
+              "target": 1357,
+              "winner": 1,
+              "target_mass_q31": 848403343,
+              "target_margin_q31": -1299080305,
+              "native_ce": 1.5959344854214503
+            }
+          ]
+        },
+        "events": 448,
+        "searched_single_witnesses": 29391,
+        "searched_pair_witnesses": 22492,
+        "deduplicated_single_edges": 16633,
+        "deduplicated_pair_edges": 8999,
+        "single_ranked": 4,
+        "pair_ranked": 4,
+        "candidate_count": 7,
+        "selected": 3,
+        "outcomes": [
+          {
+            "index": 0,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 1,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.015648579224944115,
+                  "index": 4456,
+                  "name": "consumer.context.token_category",
+                  "original_q": 2,
+                  "original_shadow": 0.38503018021583557
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 1.944290139022537,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 1626479133,
+                  "target_margin_q31": -521004515,
+                  "native_ce": 1.317780582580679
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 166174067,
+                  "target_margin_q31": -1981309581,
+                  "native_ce": 3.094646663108405
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.17525327765504384,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3445982872628968,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 1,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 23,
+                      "lane": 4,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.015284844674170017,
+                  "index": 4379,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.3607565462589264
+                },
+                "delta_q": -1
+              }
+            ],
+            "l1_quanta": 1,
+            "frontier": {
+              "mean_ce": 1.9904928054217401,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 129416494,
+                  "target_margin_q31": -2018067154,
+                  "native_ce": 3.21062926098281
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.16238037978193956,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.349554558804352,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 2,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 27,
+                      "lane": 6,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.014709537848830223,
+                  "index": 4449,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.25
+                },
+                "delta_q": -2
+              }
+            ],
+            "l1_quanta": 2,
+            "frontier": {
+              "mean_ce": 1.979728050093983,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 781404467,
+                  "target_margin_q31": -1366079181,
+                  "native_ce": 1.5714193158999006
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 533157265,
+                  "target_margin_q31": -1614326383,
+                  "native_ce": 2.3744574680535306
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.13987656102693252,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3501351243114588,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 3,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 26,
+                      "lane": 5,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 16
+                    }
+                  ],
+                  "gradient": 0.012622511014342308,
+                  "index": 4415,
+                  "name": "consumer.context.token_category",
+                  "original_q": 2,
+                  "original_shadow": 0.4094920754432678
+                },
+                "delta_q": -2
+              }
+            ],
+            "l1_quanta": 2,
+            "frontier": {
+              "mean_ce": 1.9376285500138388,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 1,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1130,
+                  "target_mass_q31": 2754372525,
+                  "target_margin_q31": 606888877,
+                  "native_ce": 0.9971717138749607
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 854035115,
+                  "target_margin_q31": -1293448533,
+                  "native_ce": 1.542196191411637
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.1414854107239775,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3552797302214348,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 4,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 81,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.00033630942925810814,
+                  "index": 1085721,
+                  "name": "consumer.context.token_root",
+                  "original_q": 2,
+                  "original_shadow": 0.3777182102203369
+                },
+                "delta_q": 1
+              },
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.005321977660059929,
+                  "index": 298583,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.13515393435955048
+                },
+                "delta_q": 4
+              }
+            ],
+            "l1_quanta": 5,
+            "frontier": {
+              "mean_ce": 2.0162061412648224,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 736140133,
+                  "target_margin_q31": -1411343515,
+                  "native_ce": 1.6189843991297967
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 846677320,
+                  "target_margin_q31": -1300806328,
+                  "native_ce": 1.549004236164671
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.15262744293747177,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3563902132697228,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 5,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 35,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.00015320736565627158,
+                  "index": 1085675,
+                  "name": "consumer.context.token_root",
+                  "original_q": 1,
+                  "original_shadow": 0.129231259226799
+                },
+                "delta_q": 1
+              },
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.005321977660059929,
+                  "index": 298583,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.13515393435955048
+                },
+                "delta_q": 4
+              }
+            ],
+            "l1_quanta": 5,
+            "frontier": {
+              "mean_ce": 1.9938296075290307,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 925258254,
+                  "target_margin_q31": -1222225394,
+                  "native_ce": 1.439972129243461
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 846677320,
+                  "target_margin_q31": -1300806328,
+                  "native_ce": 1.549004236164671
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.15262744293747177,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3534584155443645,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          },
+          {
+            "index": 6,
+            "edits": [
+              {
+                "coordinate": {
+                  "calibration": false,
+                  "eligibility": [
+                    {
+                      "class": 32,
+                      "lane": 7,
+                      "ranking": "signed coefficient directional surrogate; not desired class probability",
+                      "token": 1130
+                    }
+                  ],
+                  "gradient": -0.005321977660059929,
+                  "index": 298583,
+                  "name": "consumer.context.token_category",
+                  "original_q": 1,
+                  "original_shadow": 0.13515393435955048
+                },
+                "delta_q": 4
+              }
+            ],
+            "l1_quanta": 4,
+            "frontier": {
+              "mean_ce": 2.0050926736670087,
+              "zero_target_mass_positions": 0,
+              "correct_frontier_tokens": 0,
+              "rows": [
+                {
+                  "id": "construction-00",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 823501765,
+                  "target_margin_q31": -1323981883,
+                  "native_ce": 1.5300766583472887
+                },
+                {
+                  "id": "construction-01",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 284,
+                  "target_mass_q31": 1391358259,
+                  "target_margin_q31": -1047283162,
+                  "native_ce": 1.6597327490950524
+                },
+                {
+                  "id": "construction-02",
+                  "step": 0,
+                  "target": 1130,
+                  "winner": 1,
+                  "target_mass_q31": 100789666,
+                  "target_margin_q31": -2046693982,
+                  "native_ce": 3.36196281974454
+                },
+                {
+                  "id": "construction-03",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 323376228,
+                  "target_margin_q31": -1824107420,
+                  "native_ce": 2.6119090694373184
+                },
+                {
+                  "id": "construction-04",
+                  "step": 0,
+                  "target": 2593,
+                  "winner": 1,
+                  "target_mass_q31": 1095874043,
+                  "target_margin_q31": -1051609605,
+                  "native_ce": 1.5079171612365407
+                },
+                {
+                  "id": "construction-05",
+                  "step": 1,
+                  "target": 277,
+                  "winner": 292,
+                  "target_mass_q31": 885171593,
+                  "target_margin_q31": -1262312055,
+                  "native_ce": 2.2242042098892103
+                },
+                {
+                  "id": "construction-06",
+                  "step": 2,
+                  "target": 1130,
+                  "winner": 16,
+                  "target_mass_q31": 846677320,
+                  "target_margin_q31": -1300806328,
+                  "native_ce": 1.549004236164671
+                },
+                {
+                  "id": "construction-07",
+                  "step": 0,
+                  "target": 1357,
+                  "winner": 1,
+                  "target_mass_q31": 848403343,
+                  "target_margin_q31": -1299080305,
+                  "native_ce": 1.5959344854214503
+                }
+              ]
+            },
+            "panels": {
+              "original": {
+                "mean_ce": 0.15262744293747177,
+                "zero_target_mass_positions": 0,
+                "positions": 114,
+                "complete": 20,
+                "eos": 20,
+                "cases": 20,
+                "gains": 0,
+                "losses": 0
+              },
+              "construction": {
+                "mean_ce": 1.3549097046046605,
+                "zero_target_mass_positions": 0,
+                "positions": 64,
+                "complete": 0,
+                "eos": 8,
+                "cases": 8,
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        ],
+        "canonical_positions_checked": 1424,
+        "generated_steps_checked": 1398,
+        "frontier_positions_checked": 64,
+        "credit_positions_checked": 8
+      }
+    ],
+    "canonical_positions_checked": 4628,
+    "generated_steps_checked": 4323,
+    "credit_positions_checked": 24,
+    "native_frontier_positions_checked": 200,
+    "score_events_checked": 1344,
+    "initial_parent_files_checked": 21
+  },
+  "execution_receipts": {
+    "test": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T07:17:36.021234+00:00",
+      "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-consumed-cells-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 182256,
+      "worker_pid": 182257,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 97.08811239665374,
+      "sampled_process_tree_peak_rss_bytes": 7778824192,
+      "rusage_children_max_rss_bytes": 7728156672,
+      "codex_allocated_bytes_latest": 7654875136,
+      "free_bytes_final": 15930568704,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "build": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T07:22:30.412146+00:00",
+      "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/.cargo/bin/cargo",
+        "build",
+        "--locked",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-consumed-cells-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 183064,
+      "worker_pid": 183065,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 279.0961172096431,
+      "sampled_process_tree_peak_rss_bytes": 5404872704,
+      "rusage_children_max_rss_bytes": 4190674944,
+      "codex_allocated_bytes_latest": 8214536192,
+      "free_bytes_final": 15930519552,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "run": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T07:24:46.434861+00:00",
+      "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/geometric-source-realizer-3671a00c-linux-x86_64",
+        "/root/codex/consumed-args.json"
+      ],
+      "cwd": "/root/codex/geometric-consumed-cells-20261004",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 184419,
+      "worker_pid": 184420,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 52.650621293112636,
+      "sampled_process_tree_peak_rss_bytes": 1383723008,
+      "rusage_children_max_rss_bytes": 1482117120,
+      "codex_allocated_bytes_latest": 9389912064,
+      "free_bytes_final": 14435405824,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 8589934592,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "return_verification": {
+    "status": "PASS",
+    "files": 633,
+    "bytes": 1483793801,
+    "exact_file_set_size_sha256": true
+  },
+  "resource_projection": {
+    "utc": "2026-10-04T07:10:03.781991+00:00",
+    "task": "consumer-aware observable geometric learning",
+    "complete_work_minutes": 120,
+    "ledger_before": {
+      "cumulative_ms": 1090635028,
+      "limit_ms": 1130000000
+    },
+    "threads": 48,
+    "host": "authorized existing Runpod Linux x86 CPU /root/codex only",
+    "gpu": false,
+    "max_accepted_rounds": 3,
+    "max_native_evaluations": 24,
+    "main_candidates_per_round_max": 8,
+    "policy": "4ranked singles+2ranked positive-total pairs+their2categoryparts regardlessindividualcredit; fixed dedup/no refill",
+    "starting_artifact": "retained two-change learn-2 final checkpoint; no control promotion",
+    "context_tokens": 128,
+    "response_tokens": 64,
+    "original_rows": 20,
+    "construction_rows": 8,
+    "transfer": "NOT_RUN",
+    "test_build_each_seconds": 900,
+    "test_build_rss_bytes": 17179869184,
+    "native_seconds": 900,
+    "native_rss_bytes": 8589934592,
+    "new_results_max_bytes": 2147483648,
+    "local_return_max_bytes": 2147483648,
+    "pod_owned_stop_bytes": 10522669875,
+    "shared_free_stop_bytes": 4429185024,
+    "storage_margin_bytes": 134217728,
+    "storage_precondition": "Verify and remove ONLY reproducible81bb164b pod archived source and alreadyexactreturned301file oldcells report; source replacement neutral. All unique local reports/models retained. Netpod\u22642GiB above postreplacement baseline\u22487.63GiB,\u22649.8GiBstop.",
+    "scope": "offline Rust token observation learning; transitions/readouts/runtime/session/compiler fixed; no externalnewcost/runners/laptopmodelCPU"
+  },
+  "ledger_charge": {
+    "id": "geometric-consumed-cells-20261004",
+    "utc": "2026-10-04T07:13:38.832810+00:00",
+    "charged_ms": 7200000,
+    "scope": "single complete120min conservative envelope prep/source/expert research/reviews/build/repairs/native/return/docs/protected delivery/cleanup; not model elapsed or summed parallel agents",
+    "before": {
+      "cumulative_ms": 1090635028,
+      "limit_ms": 1130000000
+    },
+    "after": {
+      "cumulative_ms": 1097835028,
+      "limit_ms": 1130000000
+    },
+    "ceiling_changed": false
+  },
+  "cleanup": [
+    {
+      "removed": "/root/codex/geometric-observable-cells-20261004",
+      "source_head": "81bb164b5e57b5c727818a286dd2b1add2eca9a8",
+      "exact_file_set_type_size_sha256": true,
+      "files": 16855,
+      "bytes": 1271096573,
+      "unique_material_removed": false
+    },
+    {
+      "removed": "/root/codex/results/geometric-observable-cells-20261004/cells-1",
+      "source_head": "81bb164b5e57b5c727818a286dd2b1add2eca9a8",
+      "exact_file_set_type_size_sha256": true,
+      "files": 301,
+      "bytes": 662534305,
+      "unique_material_removed": false
+    }
+  ],
+  "pod_finish": {
+    "job_card_released": true,
+    "owned_kib": 9482240,
+    "free_kib": 14096948,
+    "gpu": false
+  },
+  "result": {
+    "accepted_candidates": 3,
+    "net_packed_l1_quanta": 5,
+    "total_accepted_edit_l1_quanta": 5,
+    "native_evaluations": 22,
+    "stop_reason": "accepted_candidate_limit",
+    "no_policy_exhaustion_claim": true,
+    "original_complete": 20,
+    "construction_complete": 0,
+    "rounds": [
+      {
+        "round": 0,
+        "baseline_ce": 2.0202745951258896,
+        "selected": 7,
+        "candidates": [
+          {
+            "index": 0,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4456,
+                2,
+                -1
+              ]
+            ],
+            "frontier_ce": 1.95515523388147,
+            "full_original_ce": 0.14277249743697454,
+            "full_construction_ce": 1.3474124951838231,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 0,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 1,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4449,
+                1,
+                -2
+              ]
+            ],
+            "frontier_ce": 1.990593144952916,
+            "full_original_ce": 0.12647363944665974,
+            "full_construction_ce": 1.352949332232385,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 0,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 2,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4421,
+                1,
+                -1
+              ]
+            ],
+            "frontier_ce": 1.953926118771463,
+            "full_original_ce": 0.13638855783259834,
+            "full_construction_ce": 1.3452852108669473,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 0,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 3,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4379,
+                1,
+                -1
+              ]
+            ],
+            "frontier_ce": 2.001357900280673,
+            "full_original_ce": 0.1312595465896076,
+            "full_construction_ce": 1.3523687667252782,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 0,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 4,
+            "edits": [
+              [
+                "consumer.context.token_root",
+                15825,
+                3,
+                1
+              ],
+              [
+                "consumer.context.token_category",
+                4323,
+                1,
+                -1
+              ]
+            ],
+            "frontier_ce": 2.0311191574743575,
+            "full_original_ce": 0.12259384713602019,
+            "full_construction_ce": 1.3554219401367438,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 0,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 5,
+            "edits": [
+              [
+                "consumer.context.token_root",
+                15825,
+                3,
+                1
+              ],
+              [
+                "consumer.context.token_category",
+                4329,
+                0,
+                2
+              ]
+            ],
+            "frontier_ce": 1.9228680867885923,
+            "full_original_ce": 0.13002362434299403,
+            "full_construction_ce": 1.3546981783274314,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 6,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4323,
+                1,
+                -1
+              ]
+            ],
+            "frontier_ce": 1.9939681399447857,
+            "full_original_ce": 0.12253186543402005,
+            "full_construction_ce": 1.3523256759272133,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 0,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 7,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4329,
+                0,
+                2
+              ]
+            ],
+            "frontier_ce": 1.8955521095809018,
+            "full_original_ce": 0.1299616426409939,
+            "full_construction_ce": 1.352831294158136,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          }
+        ]
+      },
+      {
+        "round": 1,
+        "baseline_ce": 2.0757579766213827,
+        "selected": 3,
+        "candidates": [
+          {
+            "index": 0,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4456,
+                2,
+                -1
+              ]
+            ],
+            "frontier_ce": 2.0106386153769633,
+            "full_original_ce": 0.14626050063130872,
+            "full_construction_ce": 1.3470987034672153,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 1,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4379,
+                1,
+                -1
+              ]
+            ],
+            "frontier_ce": 2.0568412817761663,
+            "full_original_ce": 0.13474754978394177,
+            "full_construction_ce": 1.3520549750086706,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 2,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4449,
+                1,
+                -2
+              ]
+            ],
+            "frontier_ce": 2.0460765264484095,
+            "full_original_ce": 0.1299616426409939,
+            "full_construction_ce": 1.352635540515777,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 3,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4421,
+                1,
+                -1
+              ]
+            ],
+            "frontier_ce": 2.0094095002669565,
+            "full_original_ce": 0.13987656102693252,
+            "full_construction_ce": 1.3503308779538175,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 4,
+            "edits": [
+              [
+                "consumer.context.token_root",
+                1085721,
+                2,
+                1
+              ],
+              [
+                "consumer.context.token_category",
+                298583,
+                1,
+                4
+              ]
+            ],
+            "frontier_ce": 2.082554617619249,
+            "full_original_ce": 0.14271252455153313,
+            "full_construction_ce": 1.3578125717683396,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 1,
+              "construction-07": 0
+            },
+            "witness_role": "source_key",
+            "witness_effect": true
+          },
+          {
+            "index": 5,
+            "edits": [
+              [
+                "consumer.context.token_root",
+                1085675,
+                1,
+                1
+              ],
+              [
+                "consumer.context.token_category",
+                298583,
+                1,
+                4
+              ]
+            ],
+            "frontier_ce": 2.060178083883457,
+            "full_original_ce": 0.14271252455153313,
+            "full_construction_ce": 1.3548807740429814,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 1,
+              "construction-07": 0
+            },
+            "witness_role": "source_key",
+            "witness_effect": true
+          },
+          {
+            "index": 6,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                298583,
+                1,
+                4
+              ]
+            ],
+            "frontier_ce": 2.0714411500214354,
+            "full_original_ce": 0.14271252455153313,
+            "full_construction_ce": 1.3563320631032774,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 1,
+              "construction-07": 0
+            },
+            "witness_role": "source_key",
+            "witness_effect": true
+          }
+        ]
+      },
+      {
+        "round": 2,
+        "baseline_ce": 2.0094095002669565,
+        "selected": 3,
+        "candidates": [
+          {
+            "index": 0,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4456,
+                2,
+                -1
+              ]
+            ],
+            "frontier_ce": 1.944290139022537,
+            "full_original_ce": 0.17525327765504384,
+            "full_construction_ce": 1.3445982872628968,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 1,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4379,
+                1,
+                -1
+              ]
+            ],
+            "frontier_ce": 1.9904928054217401,
+            "full_original_ce": 0.16238037978193956,
+            "full_construction_ce": 1.349554558804352,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 2,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4449,
+                1,
+                -2
+              ]
+            ],
+            "frontier_ce": 1.979728050093983,
+            "full_original_ce": 0.13987656102693252,
+            "full_construction_ce": 1.3501351243114588,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 3,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                4415,
+                2,
+                -2
+              ]
+            ],
+            "frontier_ce": 1.9376285500138388,
+            "full_original_ce": 0.1414854107239775,
+            "full_construction_ce": 1.3552797302214348,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 2,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 2,
+              "construction-07": 0
+            },
+            "witness_role": "final_query_address",
+            "witness_effect": true
+          },
+          {
+            "index": 4,
+            "edits": [
+              [
+                "consumer.context.token_root",
+                1085721,
+                2,
+                1
+              ],
+              [
+                "consumer.context.token_category",
+                298583,
+                1,
+                4
+              ]
+            ],
+            "frontier_ce": 2.0162061412648224,
+            "full_original_ce": 0.15262744293747177,
+            "full_construction_ce": 1.3563902132697228,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 1,
+              "construction-07": 0
+            },
+            "witness_role": "source_key",
+            "witness_effect": true
+          },
+          {
+            "index": 5,
+            "edits": [
+              [
+                "consumer.context.token_root",
+                1085675,
+                1,
+                1
+              ],
+              [
+                "consumer.context.token_category",
+                298583,
+                1,
+                4
+              ]
+            ],
+            "frontier_ce": 1.9938296075290307,
+            "full_original_ce": 0.15262744293747177,
+            "full_construction_ce": 1.3534584155443645,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 1,
+              "construction-07": 0
+            },
+            "witness_role": "source_key",
+            "witness_effect": true
+          },
+          {
+            "index": 6,
+            "edits": [
+              [
+                "consumer.context.token_category",
+                298583,
+                1,
+                4
+              ]
+            ],
+            "frontier_ce": 2.0050926736670087,
+            "full_original_ce": 0.15262744293747177,
+            "full_construction_ce": 1.3549097046046605,
+            "original_complete": 20,
+            "construction_complete": 0,
+            "first_errors": {
+              "construction-00": 0,
+              "construction-01": 2,
+              "construction-02": 0,
+              "construction-03": 0,
+              "construction-04": 0,
+              "construction-05": 1,
+              "construction-06": 1,
+              "construction-07": 0
+            },
+            "witness_role": "source_key",
+            "witness_effect": true
+          }
+        ]
+      }
+    ],
+    "final_full_original_ce": 0.1414854107239775,
+    "final_full_construction_ce": 1.3552797302214348,
+    "initial_full_original_ce": 0.12647363944665974,
+    "initial_full_construction_ce": 1.3531450858747438,
+    "original0032_full_construction_ce": 1.3511531388541707,
+    "basis_search": "NOT_RUN",
+    "transfer": "NOT_RUN",
+    "default_model_adopted": false
+  },
+  "local_research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-consumed-cells-20261004",
+  "report_sha256": "fe318bd64849104812be07ff45410f8101dcd06c9e01a724b4dbd0d061f79e69",
+  "limitations": [
+    "20original+8construction exposeddevelopment",
+    "all acceptedchanges categoryobservations, angularrootlearningnotestablished",
+    "contentchannel absent inthiswrapper; no claimedpaired-H4/contentgeometry benefit",
+    "no heldout/generalchat/prose/reasoning/energyqualification",
+    "LinuxCPU; Metal unavailable notcounted",
+    "positionaleligibility isnotguaranteedfunctionalactivity; masks/nativeeffect independentlymeasured"
+  ],
+  "interpretation_review": {
+    "status": "PASS",
+    "source_commit": "3671a00cf72156672a4dc1dc3f9c8309a3325ace",
+    "scope": "Independent saved-native arithmetic, causal attribution and proposal coverage; no extra model execution.",
+    "raw_review": "independent-review.json",
+    "result": {
+      "accepted_candidates": 3,
+      "native_evaluations": 22,
+      "net_and_total_edit_l1_quanta": 5,
+      "all_accepted_coefficients": "token16 category observations",
+      "stop_reason": "accepted_candidate_limit",
+      "original_complete": 20,
+      "construction_complete": 0,
+      "final_original_ce": 0.1414854107239775,
+      "final_construction_ce": 1.3552797302214348,
+      "baseline_original_ce": 0.12647363944665974,
+      "baseline_construction_ce": 1.3531450858747438
+    },
+    "actual_new_failures": [
+      {
+        "id": "construction-00",
+        "reply": "singer.",
+        "baseline_first_divergence": 0,
+        "new_first_divergence": 2,
+        "actual_prefix_ids": [
+          1130,
+          284
+        ],
+        "target_token_id": 1357,
+        "chosen_token_id": 16,
+        "target_mass_q31": 166174067,
+        "chosen_mass_q31": 2147483648,
+        "target_probability": 0.037392060259028526,
+        "target_q24": -7281597,
+        "chosen_q24": 35651583,
+        "target_minus_chosen_q24": -42933180,
+        "target_rank": 5,
+        "action_heads": [
+          {
+            "copy_q24": [
+              -16777216,
+              -25660895,
+              -5490415,
+              5796385,
+              14374094,
+              12276943
+            ],
+            "period_q24": 18073326,
+            "stop_q24": -16660346
+          },
+          {
+            "copy_q24": [
+              801041,
+              -10485761,
+              -1791182,
+              6291456,
+              801041,
+              2898192
+            ],
+            "period_q24": 17578257,
+            "stop_q24": 13077983
+          }
+        ],
+        "parent_canonical_actions_equal_new_actual": true,
+        "source_codes_final_query_and_latent_states_equal_parent": true,
+        "all_final_query_lanes_present": true,
+        "only_changed_observations": [
+          117
+        ]
+      },
+      {
+        "id": "construction-05",
+        "reply": "Lon dancon.",
+        "baseline_first_divergence": 0,
+        "new_first_divergence": 1,
+        "actual_prefix_ids": [
+          363
+        ],
+        "target_token_id": 277,
+        "chosen_token_id": 292,
+        "target_mass_q31": 885171593,
+        "chosen_mass_q31": 2147483648,
+        "target_probability": 0.1081534518455263,
+        "target_q24": 4500274,
+        "chosen_q24": 19369439,
+        "target_minus_chosen_q24": -14869165,
+        "target_rank": 5,
+        "action_heads": [
+          {
+            "copy_q24": [
+              -2592223,
+              9189649,
+              18379297,
+              13077983,
+              -2898193,
+              801041
+            ],
+            "period_q24": -70196157,
+            "stop_q24": -32942492
+          },
+          {
+            "copy_q24": [
+              6786526,
+              -4689375,
+              -8388608,
+              6291456,
+              13573054,
+              15175135
+            ],
+            "period_q24": -41141999,
+            "stop_q24": -25660894
+          }
+        ],
+        "parent_canonical_actions_equal_new_actual": true,
+        "source_codes_final_query_and_latent_states_equal_parent": true,
+        "all_final_query_lanes_present": true,
+        "only_changed_observations": [
+          115
+        ]
+      }
+    ],
+    "coverage": {
+      "saved_incumbent": "round2, before final third accepted change",
+      "later_final_query_positive_credit_legal_single_edges": 1540,
+      "best_unselected": {
+        "edits": [
+          {
+            "name": "consumer.context.token_category",
+            "index": 75133,
+            "delta_q": 3,
+            "original_q": -1,
+            "gradient": -0.006359615363180637
+          }
+        ],
+        "credit_gain_per_l1_quantum": 0.0015899038407951593,
+        "witness": {
+          "class": 25,
+          "context_time": 16,
+          "event": 108,
+          "family": "token_category",
+          "id": "construction-01",
+          "lane": 4,
+          "minimal_legal_directional_crossing": true,
+          "new_winner": 25,
+          "old_category": 2,
+          "old_root": 60,
+          "old_winner": 2
+        },
+        "event": {
+          "category_scores_q24": [
+            9378750,
+            -10485760,
+            14374094,
+            -11781872,
+            -8082638,
+            -2097152,
+            -5490416,
+            8082638,
+            9378749,
+            3204163,
+            2097152,
+            8883679,
+            495071,
+            -8082638,
+            -5490416,
+            495070,
+            10485760,
+            801040,
+            -5985486,
+            4689375,
+            11781871,
+            1296112,
+            6786526,
+            -19369438,
+            -10179790,
+            3888334,
+            1791182,
+            -5490415,
+            -6786526,
+            -6291456,
+            -1602082,
+            8883679,
+            -1296111
+          ],
+          "category_winner": 2,
+          "consumed_role": "final_query_address",
+          "context_time": 16,
+          "copy_pair_presence_at_witness": {
+            "final_category_also_consumed_by_period_stop": true,
+            "final_query_lane_present": true,
+            "root_radius_require_query_and_key_presence": true,
+            "source_key_lane_present": null,
+            "source_present_counterparts": 6
+          },
+          "event": 108,
+          "frontier_step": 2,
+          "id": "construction-01",
+          "lane": 4,
+          "native_code": {
+            "present": true,
+            "radius_bin": 1,
+            "root": 60
+          },
+          "neighbor_lane": 5,
+          "neighbor_new_state": 45,
+          "own_new_state": 52,
+          "root_scores_q24": [
+            -12276942,
+            9378750,
+            4689374,
+            -16966317,
+            6291456,
+            -4194304,
+            -3393263,
+            -1296111,
+            8388608,
+            8883679,
+            -2898192,
+            -4689375,
+            -4995345,
+            2592223,
+            -1296112,
+            8388608,
+            -1296111,
+            1602081,
+            -21160621,
+            -7587568,
+            -3393264,
+            7587567,
+            -2403122,
+            7587567,
+            -3393263,
+            -2097152,
+            2592223,
+            495071,
+            -11475901,
+            2898193,
+            7587567,
+            801041,
+            2898193,
+            -3393264,
+            -6786527,
+            -5490415,
+            1296111,
+            2097152,
+            -3393264,
+            9684719,
+            2898193,
+            -3393264,
+            13077982,
+            -5490416,
+            -2097152,
+            7587567,
+            -2097152,
+            4995345,
+            -7281598,
+            -4995345,
+            -18568398,
+            13077983,
+            2097152,
+            -5184446,
+            7587567,
+            -6291456,
+            -11781871,
+            801041,
+            1107011,
+            -801041,
+            17767358,
+            6786527,
+            -1296112,
+            9684719,
+            10179790,
+            5490416,
+            1791182,
+            6291456,
+            9189649,
+            3699234,
+            5490416,
+            -4689375,
+            -495070,
+            -11475902,
+            0,
+            4500274,
+            -4194304,
+            -801040,
+            0,
+            -4194304,
+            -801040,
+            -2898192,
+            -8883678,
+            -1602082,
+            -2403122,
+            -9684719,
+            5490415,
+            -6786527,
+            -14374094,
+            -14374094,
+            8082638,
+            10179790,
+            6786527,
+            4689375,
+            4689375,
+            3393263,
+            -13573054,
+            -3888334,
+            12276942,
+            5490416,
+            0,
+            -2097152,
+            1296111,
+            -4194304,
+            -7587568,
+            7281597,
+            801040,
+            -2097152,
+            2097152,
+            2898193,
+            -4194304,
+            2097152,
+            8388608,
+            3393263,
+            2592223,
+            -801041,
+            -801040,
+            1296111,
+            -801041,
+            -10485760
+          ],
+          "root_winner": 60,
+          "tie": "earliest index",
+          "token_id": 284
+        },
+        "selected": false,
+        "global_deduplicated_single_rank": 77
+      },
+      "witness_minimality": "Exact legal q4 directional crossing over all 33 authoritative scores, independently reconstructed.",
+      "native_usefulness": "NOT_RUN",
+      "interpretation": "The bounded global rank excludes legal proposals at reached later final-query addresses. This is proposal coverage evidence, not a guarantee that the reserved proposal improves loss."
+    },
+    "interpretation": [
+      "This run stopped at its declared accepted-candidate limit, not at failure or exhausted legal proposals. It supports bounded continuation, not a geometry-family rejection.",
+      "Three accepted period-token category edits unlock two source beginnings, but do not change the newly reached later decisions because their only remaining observation differences are intermediate query positions.",
+      "Full-answer losses worsen and all constructions remain incomplete; the evidence is partial causal source consumption, not solved geometric attention or general conversation.",
+      "The first-round category-only part became a prospective main candidate; this is new declared admission, not retroactive adoption of the earlier control.",
+      "Per-round frontier losses use different reached positions. Round1 baseline increase after progress is not a global loss regression curve."
+    ],
+    "recommendation": {
+      "next_deliverable": "Source-bound continuation admission plus bounded later-query proposal coverage.",
+      "implementation": [
+        "Admit a sealed consumed-cell continuation artifact through exact source/parent lineage, tokenizer/panel/geometry and frozen payload checks, preserving the original two-change parent and all existing candidates.",
+        "Before predictions, reserve one visible-single slot for the best legal positive-credit final-query crossing at a reached nonempty prefix. Use top three global singles plus that slot, top two pairs and their matched category parts, deduplicated without outcome-driven refill; retain the same eight-per-round native cap.",
+        "If no later-query edge exists, declare the fallback prospectively and record the bound, rather than treating absence as architecture failure.",
+        "Refresh actual first errors after acceptance and continue comparing candidates on each round\u2019s same frozen prefixes. Keep all 28 outputs, full-answer losses, net/total edit cost and rejected candidates.",
+        "Record a new complete resource projection and stop conditions before continuation; do not silently extend the accepted-round cap."
+      ],
+      "why": "There is a concrete legal later-query candidate at global singleton rank77 that the current quota does not evaluate, while every accepted edit addresses token16 and leaves reached later failures unchanged. This changes causal proposal coverage rather than repeating the same dose.",
+      "deferred": "No forced cursor, new recurrent-read controller, arbitrary basis sweep or default artifact promotion. The existing geometric scorer distinguishes these source occurrences; next measure learned ranking at consumed later queries.",
+      "execution": "NOT_RUN"
+    }
+  },
+  "coverage_review_file": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-consumed-cells-20261004/independent-coverage-round-02.json",
+  "next_action": {
+    "next_deliverable": "Source-bound continuation admission plus bounded later-query proposal coverage.",
+    "implementation": [
+      "Admit a sealed consumed-cell continuation artifact through exact source/parent lineage, tokenizer/panel/geometry and frozen payload checks, preserving the original two-change parent and all existing candidates.",
+      "Before predictions, reserve one visible-single slot for the best legal positive-credit final-query crossing at a reached nonempty prefix. Use top three global singles plus that slot, top two pairs and their matched category parts, deduplicated without outcome-driven refill; retain the same eight-per-round native cap.",
+      "If no later-query edge exists, declare the fallback prospectively and record the bound, rather than treating absence as architecture failure.",
+      "Refresh actual first errors after acceptance and continue comparing candidates on each round\u2019s same frozen prefixes. Keep all 28 outputs, full-answer losses, net/total edit cost and rejected candidates.",
+      "Record a new complete resource projection and stop conditions before continuation; do not silently extend the accepted-round cap."
+    ],
+    "why": "There is a concrete legal later-query candidate at global singleton rank77 that the current quota does not evaluate, while every accepted edit addresses token16 and leaves reached later failures unchanged. This changes causal proposal coverage rather than repeating the same dose.",
+    "deferred": "No forced cursor, new recurrent-read controller, arbitrary basis sweep or default artifact promotion. The existing geometric scorer distinguishes these source occurrences; next measure learned ranking at consumed later queries.",
+    "execution": "NOT_RUN"
+  }
+}

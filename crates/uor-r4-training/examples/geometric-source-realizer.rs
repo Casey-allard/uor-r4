@@ -537,7 +537,7 @@ fn generate(
             if chosen as usize >= 4096 {
                 return Err(invalid("chosen action token outsideV4096"));
             }
-            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells")) {
+            traces.push(if (a.mode == "transfer" && stage.starts_with("transfer-")) || ((a.mode == "composition-fit" && stage != "readout-baseline") || matches!(a.mode.as_str(), "context-fit" | "context-transplant" | "context-direction" | "context-frontier-direction" | "context-observation-learn" | "context-observable-cells" | "context-consumed-cells")) {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"actions":trace.actions})
             } else {
                 json!({"step":step,"own_prefix_ids":prefix,"chosen_token_id":chosen,"trace":trace})
@@ -566,6 +566,7 @@ fn generate(
                 | "context-frontier-direction"
                 | "context-observation-learn"
                 | "context-observable-cells"
+                | "context-consumed-cells"
         ) {
             (0..actual_ids.len().max(e.target.len()))
                 .find(|i| actual_ids.get(*i) != e.target.get(*i))
@@ -584,6 +585,7 @@ fn generate(
                         | "context-frontier-direction"
                         | "context-observation-learn"
                         | "context-observable-cells"
+                        | "context-consumed-cells"
                 ))
         {
             if let Some(row) = rows.last_mut() {
@@ -594,7 +596,7 @@ fn generate(
             &a.out.join(format!("{stage}-progress.json")),
             &if matches!(
                 a.mode.as_str(),
-                "context-observation-learn" | "context-observable-cells"
+                "context-observation-learn" | "context-observable-cells" | "context-consumed-cells"
             ) {
                 json!({"completed_cases":rows.len(),"complete_answers":complete,"eos_count":eos_count,"raw_rows_retained_in_enclosing_attempt":true,"elapsed_seconds":begun.elapsed().as_secs_f64()})
             } else {
@@ -851,6 +853,7 @@ fn main() -> Result<()> {
             | "context-frontier-direction"
             | "context-observation-learn"
             | "context-observable-cells"
+            | "context-consumed-cells"
     ) || a.maximum_seconds == 0
         || (a.mode == "construction" && a.maximum_seconds > 300)
         || (a.mode == "fit" && a.maximum_seconds > 1200)
@@ -882,6 +885,7 @@ fn main() -> Result<()> {
                 | "context-frontier-direction"
                 | "context-observation-learn"
                 | "context-observable-cells"
+                | "context-consumed-cells"
         ) && (a.maximum_seconds > 900
             || a.audit_checkpoint.is_none()
             || a.transfer_checkpoint.is_none()
@@ -912,6 +916,7 @@ fn main() -> Result<()> {
                 | "context-frontier-direction"
                 | "context-observation-learn"
                 | "context-observable-cells"
+                | "context-consumed-cells"
         ) && a.transfer_checkpoint.is_some())
         || (!matches!(
             a.mode.as_str(),
@@ -926,6 +931,7 @@ fn main() -> Result<()> {
                 | "context-frontier-direction"
                 | "context-observation-learn"
                 | "context-observable-cells"
+                | "context-consumed-cells"
         ) && (a.audit_checkpoint.is_some()
             || a.expected_generation.is_some()
             || a.audit_report.is_some()))
@@ -934,7 +940,11 @@ fn main() -> Result<()> {
             "construction/audit/context-transplant limit 1..300; direction/transfer/context-direction limit 1..900; fit/readout-fit/composition-fit/context-fit limit 1..1200 with fixed64 updates",
         ));
     }
-    if (a.mode == "context-observable-cells") != a.observation_checkpoint.is_some() {
+    if matches!(
+        a.mode.as_str(),
+        "context-observable-cells" | "context-consumed-cells"
+    ) != a.observation_checkpoint.is_some()
+    {
         return Err(invalid(
             "observable-cell mode requires sole observation_checkpoint field",
         ));
@@ -953,6 +963,7 @@ fn main() -> Result<()> {
             | "context-frontier-direction"
             | "context-observation-learn"
             | "context-observable-cells"
+            | "context-consumed-cells"
     ) {
         audit_output_location(&a)?;
     }
@@ -960,7 +971,7 @@ fn main() -> Result<()> {
     write(&a.out.join("args.json"), &a)?;
     let result = if matches!(
         a.mode.as_str(),
-        "context-observation-learn" | "context-observable-cells"
+        "context-observation-learn" | "context-observable-cells" | "context-consumed-cells"
     ) {
         context_observation_learn(&a)
     } else if matches!(
@@ -969,6 +980,7 @@ fn main() -> Result<()> {
             | "context-frontier-direction"
             | "context-observation-learn"
             | "context-observable-cells"
+            | "context-consumed-cells"
     ) {
         context_direction(&a)
     } else if a.mode == "context-transplant" {
@@ -3691,6 +3703,101 @@ fn retain_cell(pool: &mut Vec<CellProposal>, proposal: CellProposal) {
     pool.sort_by(cell_order);
     pool.truncate(4);
 }
+// Exact observation footprint of NativeOccurrenceReader::read: Copy uses the
+// derived-source address at j<count and final address at total-1. Intermediate
+// query/prefix outputs do not feed recurrence and are not scored directly.
+fn consumed_context_roles(
+    source: &[u32],
+    query: &[u32],
+    prefix: &[u32],
+    actual: &[u32],
+) -> Result<Vec<Option<&'static str>>> {
+    if query.is_empty() {
+        return Err(invalid("consumed footprint query empty"));
+    }
+    let expected = source
+        .iter()
+        .chain(query)
+        .chain(prefix)
+        .copied()
+        .collect::<Vec<_>>();
+    if expected != actual || actual.is_empty() {
+        return Err(invalid("consumed footprint token order differs"));
+    }
+    Ok((0..actual.len())
+        .map(|time| {
+            if time < source.len() {
+                Some("source_key")
+            } else if time + 1 == actual.len() {
+                Some("final_query_address")
+            } else {
+                None
+            }
+        })
+        .collect())
+}
+fn consumed_replay_roles(
+    trace: &RealizerTrace,
+    query: &[u32],
+    prefix: &[u32],
+) -> Result<Vec<Option<&'static str>>> {
+    let replay = &trace.period_context;
+    let source = trace.source.emission_view.emitted_token_ids();
+    let roles = consumed_context_roles(source, query, prefix, &replay.tokens)?;
+    let kernel = &trace.source.view_kernel_trace;
+    let lanes = replay
+        .heads
+        .checked_mul(replay.lanes_per_head)
+        .ok_or_else(|| invalid("consumed footprint lane overflow"))?;
+    if kernel.sequence_tokens != replay.tokens.len()
+        || kernel.occurrences.len() != source.len()
+        || kernel.heads.len() != replay.heads
+        || replay.codes.len() != replay.tokens.len() * lanes
+        || kernel
+            .heads
+            .iter()
+            .any(|h| h.scores_q24.len() != source.len() || h.weights_q31.len() != source.len())
+    {
+        return Err(invalid("consumed footprint native dimensions differ"));
+    }
+    for (offset, (&token, occurrence)) in source.iter().zip(&kernel.occurrences).enumerate() {
+        if occurrence.token_offset as usize != offset
+            || occurrence.token_id != token
+            || occurrence.record != trace.source.record
+            || occurrence.commit != trace.source.commit
+        {
+            return Err(invalid("consumed footprint exact occurrence differs"));
+        }
+    }
+    Ok(roles)
+}
+fn consumed_cell_selection(
+    singles: &[CellProposal],
+    pairs: &[CellProposal],
+) -> Result<Vec<CellProposal>> {
+    let mut selected = singles.iter().take(4).cloned().collect::<Vec<_>>();
+    let selected_pairs = pairs.iter().take(2).cloned().collect::<Vec<_>>();
+    selected.extend(selected_pairs.iter().cloned());
+    for pair in selected_pairs {
+        if pair.edits.len() != 2 || !pair.edits[1].coordinate.name.ends_with("token_category") {
+            return Err(invalid("consumed matched category part absent"));
+        }
+        let edit = pair.edits[1].clone();
+        let w = &pair.witness;
+        selected.push(CellProposal{
+            predicted_gain:-edit.coordinate.gradient*f64::from(edit.delta_q)*0.25,
+            edits:vec![edit],
+            witness:json!({"event":w["event"],"id":w["id"],"context_time":w["context_time"],"lane":w["lane"],"old_root":w["old_root"],"old_category":w["old_category"],"family":"token_category","old_winner":w["old_category"],"new_winner":w["presence"]["new_winner"],"class":w["presence"]["class"],"prospective_matched_category_part":true,"paired_edits":pair.edits,"component_credit_may_be_adverse":true}),
+        });
+    }
+    let mut seen = BTreeSet::new();
+    selected.retain(|p| seen.insert(cell_key(p)));
+    if selected.len() > 8 {
+        return Err(invalid("consumed proposal bound exceeded"));
+    }
+    Ok(selected)
+}
+
 fn observable_cell_proposals(
     native: &NativeSourceRealizer,
     input: &Path,
@@ -3699,6 +3806,7 @@ fn observable_cell_proposals(
     context: &BTreeMap<String, Vec<f32>>,
     gradients: &BTreeMap<String, Vec<f32>>,
     root: &Path,
+    consumed: bool,
 ) -> Result<Vec<CellProposal>> {
     use uor_r4_integer::geometric_context_q4::{ContextQ4Config, NativeContextQ4};
     let metadata: Value = serde_json::from_slice(&fs::read(
@@ -3756,7 +3864,22 @@ fn observable_cell_proposals(
             &position.prefix_ids,
         )?;
         let replay = &trace.period_context;
+        let consumed_roles = if consumed {
+            Some(consumed_replay_roles(
+                &trace,
+                &episode.query,
+                &position.prefix_ids,
+            )?)
+        } else {
+            None
+        };
         for (time, &token) in replay.tokens.iter().enumerate() {
+            if consumed_roles
+                .as_ref()
+                .is_some_and(|roles| roles[time].is_none())
+            {
+                continue;
+            }
             for lane in 0..lanes {
                 let own = usize::from(replay.states[time][lane]);
                 let head = lane / config.lanes_per_head;
@@ -3801,7 +3924,7 @@ fn observable_cell_proposals(
                     return Err(invalid("cell reconstructed native winner differs"));
                 }
                 let event = events.len();
-                events.push(json!({"event":event,"id":position.id,"frontier_step":position.step,"context_time":time,"token_id":token,"lane":lane,"own_new_state":own,"neighbor_lane":neighbor,"neighbor_new_state":other,"root_scores_q24":roots,"category_scores_q24":categories,"root_winner":root_winner,"category_winner":category_winner,"native_code":replay.codes[observed],"tie":"earliest index"}));
+                events.push(json!({"event":event,"id":position.id,"frontier_step":position.step,"context_time":time,"token_id":token,"lane":lane,"own_new_state":own,"neighbor_lane":neighbor,"neighbor_new_state":other,"root_scores_q24":roots,"category_scores_q24":categories,"root_winner":root_winner,"category_winner":category_winner,"native_code":replay.codes[observed],"consumed_role":consumed_roles.as_ref().and_then(|roles|roles[time]),"copy_pair_presence_at_witness":if consumed{Some(json!({"final_query_lane_present":replay.codes[(replay.tokens.len()-1)*lanes+lane].present,"source_key_lane_present":if time<episode.view.emitted_token_ids().len(){Some(replay.codes[observed].present)}else{None},"source_present_counterparts":(0..episode.view.emitted_token_ids().len()).filter(|source_time|replay.codes[source_time*lanes+lane].present).count(),"root_radius_require_query_and_key_presence":true,"final_category_also_consumed_by_period_stop":time+1==replay.tokens.len()}))}else{None},"tie":"earliest index"}));
                 let mut hidden = Vec::new();
                 let mut presence = Vec::new();
                 for (family, values, classes) in [
@@ -3876,19 +3999,23 @@ fn observable_cell_proposals(
             }
         }
     }
-    let selected = singles
-        .iter()
-        .take(4)
-        .chain(pairs.iter().take(4))
-        .cloned()
-        .collect::<Vec<_>>();
+    let selected = if consumed {
+        consumed_cell_selection(&singles, &pairs)?
+    } else {
+        singles
+            .iter()
+            .take(4)
+            .chain(pairs.iter().take(4))
+            .cloned()
+            .collect::<Vec<_>>()
+    };
     write(
         &root.join("observable-cell-events.json"),
         &json!({"schema":"uor-r4.observable-cell-events/1","events":events,"native_winner_reconstruction_equal":true,"states":"completed NEW state; same-head next-neighbor; transitions fixed","scores":"authoritative regenerated native Q24 table token+self+neighbor i64 sums"}),
     )?;
     write(
         &root.join("observable-cell-selection.json"),
-        &json!({"single_ranked_top4":singles,"pair_ranked_top4":pairs,"single_crossing_witnesses_searched":single_witnesses,"pair_crossing_witnesses_searched":pair_witnesses,"unselected_offline_edges":"reconstructible from exactscoreevents/source/credit; not model-evaluated","selected":selected,"maximum_selected":8,"rank":"positive signed coefficient credit gain per L1 quantum; deterministic edit/witness ties; max4 singles+4 same-event absence pairs","frozen_before_candidate_loss":true,"token_only":true,"basis_family_search":"NOT_RUN"}),
+        &json!({"single_ranked_top4":singles,"pair_ranked_top4":pairs,"single_crossing_witnesses_searched":single_witnesses,"pair_crossing_witnesses_searched":pair_witnesses,"unselected_offline_edges":"reconstructible from exactscoreevents/source/credit; not model-evaluated","selected":selected,"maximum_selected":8,"consumer_aware":consumed,"current_native_parent_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"rank":if consumed{"rank4visible singles+2positive-totalcredit pairs; prospectively admit each selected pair category part regardless partcredit; dedup no quota refill"}else{"positive signed coefficient credit gain per L1 quantum; deterministic edit/witness ties; max4 singles+4 same-event absence pairs"},"frozen_before_candidate_loss":true,"token_only":true,"basis_family_search":"NOT_RUN"}),
     )?;
     Ok(selected)
 }
@@ -3898,6 +4025,8 @@ fn verify_cell_witness(
     native: &NativeSourceRealizer,
     positions: &[FrontierPosition],
     episodes: &[Episode],
+    consumed: bool,
+    incumbent: Option<&NativeSourceRealizer>,
 ) -> Result<Value> {
     let w = &proposal.witness;
     let i = positions
@@ -3917,6 +4046,15 @@ fn verify_cell_witness(
         &positions[i].prefix_ids,
     )?;
     let replay = &trace.period_context;
+    let role = if consumed {
+        consumed_replay_roles(&trace, &episodes[i].query, &positions[i].prefix_ids)?
+            .get(time)
+            .copied()
+            .flatten()
+            .ok_or_else(|| invalid("proposal witness not consumed"))?
+    } else {
+        "unrestricted_observation"
+    };
     let at = time * (replay.heads * replay.lanes_per_head) + lane;
     let oldroot = w["old_root"]
         .as_u64()
@@ -3959,13 +4097,62 @@ fn verify_cell_witness(
             "cell native prediction/witness differs or invisible",
         ));
     }
+    let consumed_score_effect = if let Some(incumbent) = incumbent {
+        let before = incumbent.read(
+            episodes[i].frame(),
+            &episodes[i].view,
+            &episodes[i].query,
+            &positions[i].prefix_ids,
+        )?;
+        consumed_replay_roles(&before, &episodes[i].query, &positions[i].prefix_ids)?;
+        let changed_heads=before.source.view_kernel_trace.heads.iter().zip(&trace.source.view_kernel_trace.heads).enumerate().map(|(head,(a,b))|json!({"head":head,"before_copy_q24":a.scores_q24,"after_copy_q24":b.scores_q24,"before_stop_q24":a.no_read_q24,"after_stop_q24":b.no_read_q24,"before_period_q24":before.period_q24[head],"after_period_q24":trace.period_q24[head]})).collect::<Vec<_>>();
+        Some(
+            json!({"native_head_scores":changed_heads,"copy_or_stop_head_traces_changed":before.source.view_kernel_trace.heads!=trace.source.view_kernel_trace.heads,"copy_or_stop_q24_changed":before.source.view_kernel_trace.heads.iter().zip(&trace.source.view_kernel_trace.heads).any(|(a,b)|a.scores_q24!=b.scores_q24 || a.no_read_q24!=b.no_read_q24),"period_scores_changed":before.period_q24!=trace.period_q24,"actions_changed":before.actions!=trace.actions,"source_observations_changed":before.period_context.codes[..episodes[i].view.emitted_token_ids().len()*replay.heads*replay.lanes_per_head]!=replay.codes[..episodes[i].view.emitted_token_ids().len()*replay.heads*replay.lanes_per_head],"measurement_only_no_extra_acceptance_gate":true}),
+        )
+    } else {
+        None
+    };
     Ok(
-        json!({"id":positions[i].id,"context_time":time,"lane":lane,"old_code":old,"predicted_code":expected,"actual_code":code,"actual_raw_root":root,"actual_category":category,"equal":true,"scope":"witness-local minimal directional crossing; repeated token effects retained in full native traces"}),
+        json!({"id":positions[i].id,"context_time":time,"lane":lane,"old_code":old,"predicted_code":expected,"actual_code":code,"actual_raw_root":root,"actual_category":category,"equal":true,"consumed_role":role,"consumed_score_effect":consumed_score_effect,"scope":"witness-local minimal directional crossing; repeated token effects retained in full native traces"}),
     )
+}
+fn observation_learning_limits(consumed: bool, cells: bool) -> (usize, usize) {
+    if consumed {
+        (3, 24)
+    } else if cells {
+        (1, 10)
+    } else {
+        (8, 32)
+    }
+}
+fn observation_incumbent_checkpoint(
+    input: &Path,
+    out: &Path,
+    round: usize,
+    rounds: &[Value],
+) -> Result<PathBuf> {
+    if rounds.len() != round {
+        return Err(invalid("incumbent round history differs"));
+    }
+    if round == 0 {
+        return Ok(input.to_path_buf());
+    }
+    let winner = rounds
+        .last()
+        .and_then(|previous| previous["selected_proposal"].as_u64())
+        .ok_or_else(|| invalid("next round has no accepted incumbent"))?;
+    Ok(out.join(format!(
+        "round-{:02}/candidate-{winner:02}/checkpoint",
+        round - 1
+    )))
 }
 fn context_observation_learn(a: &Args) -> Result<()> {
     let start = Instant::now();
-    let cells = a.mode == "context-observable-cells";
+    let consumed = a.mode == "context-consumed-cells";
+    let cells = matches!(
+        a.mode.as_str(),
+        "context-observable-cells" | "context-consumed-cells"
+    );
     let LoadedFinal {
         identity,
         tok,
@@ -4058,11 +4245,17 @@ fn context_observation_learn(a: &Args) -> Result<()> {
         &json!({"original":episode_labels(&episodes),"construction":episode_labels(&construction)}),
     )?;
     let mut accepted = 0usize;
+    let mut total_accepted_l1_quanta = 0usize;
     let mut candidate_count = 0usize;
     let mut rounds: Vec<Value> = Vec::new();
     let mut last_accepted_replies: Option<(Value, Value)> = None;
-    let mut stop = "accepted_quantum_limit";
-    for round in 0..if cells { 1usize } else { 8usize } {
+    let mut stop = if consumed {
+        "accepted_candidate_limit"
+    } else {
+        "accepted_quantum_limit"
+    };
+    let (round_limit, candidate_limit) = observation_learning_limits(consumed, cells);
+    for round in 0..round_limit {
         deadline(start, a)?;
         let root = a.out.join(format!("round-{round:02}"));
         report_output::claim(&root)?;
@@ -4153,34 +4346,27 @@ fn context_observation_learn(a: &Args) -> Result<()> {
             gradients.insert(name.clone(), g);
         }
         let selected = select_frontier_direction(eligible);
+        let current_checkpoint = observation_incumbent_checkpoint(input, &a.out, round, &rounds)?;
         let cell_proposals = if cells {
             Some(observable_cell_proposals(
                 &native,
-                input,
+                &current_checkpoint,
                 &positions,
                 &construction,
                 &context,
                 &gradients,
                 &root,
+                consumed,
             )?)
         } else {
             None
         };
         write(
             &root.join("selection.json"),
-            &json!({"selected":selected,"gradient_values":gradients,"credit":measured.report,"selector":"strongest finite nonzero interior q[-6,6] per root/category, ties name/index, both signs; no replacement","maximum_candidates":4,"biased_credit_not_discrete_derivative":true}),
+            &json!({"selected":selected,"gradient_values":gradients,"credit":measured.report,"selector":if cells{"actual prospective proposals bound in observable-cell-selection.json; strongest credit coordinates below are diagnostic only"}else{"strongest finite nonzero interior q[-6,6] per root/category, ties name/index, both signs; no replacement"},"maximum_candidates":if cells{8}else{4},"biased_credit_not_discrete_derivative":true}),
         )?;
-        let packed_before = fs::read(if round == 0 {
-            input.join("realizer-native/consumer/context-q4.bin")
-        } else {
-            let previous = rounds
-                .last()
-                .ok_or_else(|| invalid("prior accepted round absent"))?;
-            let winner = previous["selected_proposal"]
-                .as_u64()
-                .ok_or_else(|| invalid("prior winner absent"))?;
-            a.out.join(format!("round-{:02}/candidate-{winner:02}/checkpoint/realizer-native/consumer/context-q4.bin",round-1))
-        })?;
+        let packed_before =
+            fs::read(current_checkpoint.join("realizer-native/consumer/context-q4.bin"))?;
         let mut proposals = Vec::new();
         let mut declared = cell_proposals.clone().unwrap_or_else(|| {
             selected
@@ -4204,7 +4390,7 @@ fn context_observation_learn(a: &Args) -> Result<()> {
             let c = &proposal.edits[0].coordinate;
             let delta = proposal.edits[0].delta_q;
             deadline(start, a)?;
-            if candidate_count >= if cells { 10 } else { 32 } {
+            if candidate_count >= candidate_limit {
                 return Err(invalid("learner candidate cap exceeded"));
             }
             let q = c.original_q + delta;
@@ -4304,6 +4490,8 @@ fn context_observation_learn(a: &Args) -> Result<()> {
                         &loaded,
                         &positions,
                         &construction,
+                        consumed,
+                        if consumed { Some(&native) } else { None },
                     )?)
                 } else {
                     None
@@ -4373,7 +4561,7 @@ fn context_observation_learn(a: &Args) -> Result<()> {
                 &json!({"completed_candidates":candidate_count,"round_completed_candidates":proposals.len(),"raw_results":"candidate-NN/result.json"}),
             )?;
             proposal_index += 1;
-            if cells && proposal_index == main_proposal_count {
+            if cells && !consumed && proposal_index == main_proposal_count {
                 let scores = proposals
                     .iter()
                     .map(|v| v["frontier"]["mean_episode_ce"].as_f64())
@@ -4418,7 +4606,12 @@ fn context_observation_learn(a: &Args) -> Result<()> {
             source = SourceRealizerWeights::load_source(&path.join("realizer-source"), &bytes)?;
             native = NativeSourceRealizer::load(&path.join("realizer-native"), &source, &identity)?;
             accepted += 1;
-            if cells {
+            total_accepted_l1_quanta += declared[best]
+                .edits
+                .iter()
+                .map(|e| usize::from(e.delta_q.unsigned_abs()))
+                .sum::<usize>();
+            if cells && !consumed {
                 stop = "single_observable_cell_round_completed";
             }
         } else {
@@ -4520,7 +4713,7 @@ fn context_observation_learn(a: &Args) -> Result<()> {
     }
     write(
         &a.out.join("report.json"),
-        &json!({"schema":if cells{"uor-r4.geometric-observable-cells/1"}else{"uor-r4.geometric-observation-learning/1"},"mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"input_files_sha256":input_files,"input_files_unchanged":true,"saved_parent28_rows_exact":true,"optimizer_updates":0,"accepted_candidates":accepted,"accepted_l1_quanta":accepted_l1_quanta,"original0032_manifest_sha256":sha256_file(&original_input.join("manifest.json"))?,"accepted_quanta":if cells{Value::Null}else{json!(accepted)},"native_candidate_evaluations":candidate_count,"maximum_accepted_candidates":if cells{1}else{8},"maximum_accepted_quanta":if cells{Value::Null}else{json!(8)},"maximum_native_candidates":if cells{10}else{32},"stop_reason":stop,"rounds":rounds,"final_checkpoint":receipt,"final_native_payload_sha256":final_bins,"final_original_generation":final_original,"final_construction_generation":final_construction,"final_original_canonical":context_direction_measure(&loaded,&episodes,start,a)?,"final_construction_canonical":context_direction_measure(&loaded,&construction,start,a)?,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":last_accepted_replies.is_some(),"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"scope":"bounded root/category learning on8 exposed construction plus20 preservation development cases; no heldout/general-chat/geometry-advantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
+        &json!({"schema":if consumed{"uor-r4.geometric-consumed-cells/1"}else if cells{"uor-r4.geometric-observable-cells/1"}else{"uor-r4.geometric-observation-learning/1"},"mode":a.mode,"status":"completed","source_commit":source_commit()?,"executable_sha256":sha256_file(&std::env::current_exe()?)?,"saved_identity":identity,"fit_source_commit":fit["source_commit"],"retained_report_sha256":retained_sha,"parent_checkpoint_manifest_sha256":sha256_file(&input.join("manifest.json"))?,"input_files_sha256":input_files,"input_files_unchanged":true,"saved_parent28_rows_exact":true,"optimizer_updates":0,"accepted_candidates":accepted,"accepted_l1_quanta":accepted_l1_quanta,"total_accepted_edit_l1_quanta":total_accepted_l1_quanta,"accepted_l1_scope":"net packed difference from starting parent; total edit L1 charged separately","original0032_manifest_sha256":sha256_file(&original_input.join("manifest.json"))?,"accepted_quanta":if cells{Value::Null}else{json!(accepted)},"native_candidate_evaluations":candidate_count,"maximum_accepted_candidates":round_limit,"maximum_accepted_quanta":if cells{Value::Null}else{json!(8)},"maximum_native_candidates":candidate_limit,"stop_reason":stop,"rounds":rounds,"final_checkpoint":receipt,"final_native_payload_sha256":final_bins,"final_original_generation":final_original,"final_construction_generation":final_construction,"final_original_canonical":context_direction_measure(&loaded,&episodes,start,a)?,"final_construction_canonical":context_direction_measure(&loaded,&construction,start,a)?,"final_independent_reload_full_replies_equal":true,"final_accepted_candidate_replies_equal":last_accepted_replies.is_some(),"transitions_readouts_tables_fixed":true,"no_adopted_model":true,"scope":"bounded root/category learning on8 exposed construction plus20 preservation development cases; no heldout/general-chat/geometry-advantage/energy qualification","wall_seconds":start.elapsed().as_secs_f64()}),
     )?;
     Ok(())
 }
@@ -5314,6 +5507,121 @@ fn direction(a: &Args) -> Result<()> {
 #[cfg(test)]
 mod direction_tests {
     use super::*;
+    #[test]
+    fn consumed_footprint_moves_final_query_after_generated_prefix() -> Result<()> {
+        assert_eq!(
+            consumed_context_roles(&[10, 11], &[20, 21], &[], &[10, 11, 20, 21])?,
+            vec![
+                Some("source_key"),
+                Some("source_key"),
+                None,
+                Some("final_query_address")
+            ]
+        );
+        assert_eq!(
+            consumed_context_roles(&[10, 11], &[20, 21], &[30, 31], &[10, 11, 20, 21, 30, 31])?,
+            vec![
+                Some("source_key"),
+                Some("source_key"),
+                None,
+                None,
+                None,
+                Some("final_query_address")
+            ]
+        );
+        Ok(())
+    }
+    #[test]
+    fn consumed_footprint_rejects_original_source_substitution_and_token_reordering() {
+        assert!(consumed_context_roles(&[10, 11], &[20], &[], &[10, 12, 20]).is_err());
+        assert!(consumed_context_roles(&[10, 11], &[20], &[30], &[10, 11, 30, 20]).is_err());
+        assert!(consumed_context_roles(&[10], &[], &[30], &[10, 30]).is_err());
+    }
+    fn consumed_test_edit(family: &str, index: usize, gradient: f64) -> CellEdit {
+        CellEdit {
+            coordinate: DirectionCoordinate {
+                name: format!("consumer.context.{family}"),
+                index,
+                gradient,
+                original_shadow: 0.,
+                original_q: 0,
+                calibration: false,
+                eligibility: vec![],
+            },
+            delta_q: 1,
+        }
+    }
+    fn consumed_test_pair(index: usize, category_gradient: f64) -> CellProposal {
+        CellProposal {
+            edits: vec![
+                consumed_test_edit("token_root", index, -4.),
+                consumed_test_edit("token_category", index, category_gradient),
+            ],
+            predicted_gain: 1.,
+            witness: json!({"event":index,"id":"x","context_time":3,"lane":0,"old_root":1,"old_category":0,"presence":{"new_winner":2,"class":2}}),
+        }
+    }
+    #[test]
+    fn consumed_selection_admits_matched_category_even_when_part_credit_adverse() -> Result<()> {
+        let pairs = vec![
+            consumed_test_pair(0, 1.),
+            consumed_test_pair(1, -1.),
+            consumed_test_pair(2, -10.),
+        ];
+        let selected = consumed_cell_selection(&[], &pairs)?;
+        assert_eq!(selected.len(), 4);
+        assert_eq!(selected.iter().filter(|p| p.edits.len() == 2).count(), 2);
+        assert!(selected.iter().any(|p| p.edits.len() == 1
+            && p.predicted_gain < 0.
+            && p.witness["prospective_matched_category_part"] == true));
+        assert!(selected.iter().all(|p| p.edits[0].coordinate.index != 2));
+        Ok(())
+    }
+    #[test]
+    fn consumed_selection_deduplicates_parts_without_adaptive_quota_refill() -> Result<()> {
+        let pairs = vec![consumed_test_pair(0, -1.), consumed_test_pair(1, -1.)];
+        let mut singles = (0..5)
+            .map(|index| CellProposal {
+                edits: vec![consumed_test_edit("token_category", index, -1.)],
+                predicted_gain: 1.,
+                witness: Value::Null,
+            })
+            .collect::<Vec<_>>();
+        // Both matched parts already occupy prospective visible-single slots.
+        let selected = consumed_cell_selection(&singles, &pairs)?;
+        assert_eq!(selected.len(), 6);
+        assert!(!selected
+            .iter()
+            .any(|p| p.edits.len() == 1 && p.edits[0].coordinate.index == 4));
+        singles.reverse();
+        assert!(consumed_cell_selection(&singles, &pairs)?.len() <= 8);
+        Ok(())
+    }
+    #[test]
+    fn consumed_round_uses_only_accepted_checkpoint_and_preserves_other_mode_limits() -> Result<()>
+    {
+        assert_eq!(observation_learning_limits(true, true), (3, 24));
+        assert_eq!(observation_learning_limits(false, true), (1, 10));
+        assert_eq!(observation_learning_limits(false, false), (8, 32));
+        let input = Path::new("/retained/final-checkpoint");
+        let out = Path::new("/claimed/run");
+        assert_eq!(observation_incumbent_checkpoint(input, out, 0, &[])?, input);
+        let accepted = vec![json!({"selected_proposal":6})];
+        assert_eq!(
+            observation_incumbent_checkpoint(input, out, 1, &accepted)?,
+            out.join("round-00/candidate-06/checkpoint")
+        );
+        assert!(observation_incumbent_checkpoint(
+            input,
+            out,
+            1,
+            &[json!({"selected_proposal":null})]
+        )
+        .is_err());
+        assert!(observation_incumbent_checkpoint(input, out, 2, &accepted).is_err());
+        Ok(())
+    }
+
     #[test]
     fn observable_cell_bounded_reservoir_is_exact_deduplicated_rank() {
         let make = |index: usize, gain: f64, delta: i8, witness: usize| CellProposal {

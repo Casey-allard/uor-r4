@@ -1,5 +1,14 @@
 # Current UOR-R4 research state
 
+## Consumed geometric cell learning and later-query coverage — October 4
+
+The [consumer-aware Rust learner](geometric-consumed-cells-2026-10-04.md) executes three accepted rounds/22 native candidates from the retained two-change parent, preserving20/20 original replies while construction stays0/8. Five net/total category quanta unlock `Louston dancer` to `Lon dancon.`/error1 and `singer dancer singer` to `singer.`/error2. All accepted edits affect token16 categories; no root/angular update is accepted. Final full original/construction CE worsen to0.1414854107/1.3552797302 versus0.1264736394/1.3531450859. Preserve all candidate tradeoffs; no default artifact adopted. Per-round frontier CE uses different reached prefixes and is not one global loss curve.
+
+Independent native replay confirms both newly reached later failures retain the parent's entire action scores/source codes/finalquery/latent states. All query lanes are present; changed intermediate observations do not affect their consumed features. Independent saved arithmetic finds1540 legal positive-credit later-finalquery singleton crossings excluded by the global quota; best rank77 category[75133] has native usefulness NOT_RUN. Next implement source-bound accepted-checkpoint continuation and prospective top3 global singles+best1 later-finalquery single, top2pairs+bothcategoryparts, <=8dedup/no adaptive refill, retaining strict native same-prefix CE and full28 outputs. Stop was the accepted-round cap, not proposal exhaustion. This successorNOT_RUN changes coverage, not an unchanged dose or forced cursor/controller. Geometry-family failure, complete attention/chat and held-out transfer remain unestablished.
+
+Source3671a00c passes28 focusedtests/releasebuild; native50.889s LinuxCPU, maxchildRSS1,482,117,120B. Independent4628canonical/4323generated/200frontier/24credit/1344score-event checks and633files1,483,793,801B return pass. Card released; podowned9,482,240KiB. One complete120min conservative charge gives ledger1,097,835,028/1,130,000,000ms, unchanged ceiling. [Evidence](../evidence/geometric-consumed-cells-2026-10-04.json). NoGPU/runner/laptopmodelCPU/Metal/energy qualification. Continue coordinated#1552 without session/compiler edits.
+
+
 
 ## Observable geometric cells and presence attribution — October 4
 
