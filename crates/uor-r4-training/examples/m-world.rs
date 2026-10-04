@@ -3611,6 +3611,68 @@ fn same_value(a: &str, b: &str) -> bool {
     !x.is_empty() && x == y
 }
 
+/// The compiler's action for a turn, with the emitted VALUE recovered exactly from
+/// the span's byte range into the user text.
+fn describe_action(action: &CompiledAction, source: &str) -> (&'static str, Option<u32>, String) {
+    let slice = |sp: &SourceSpan| -> String {
+        // `get` rather than indexing: `start`/`end` are byte offsets that may not
+        // land on char boundaries, and indexing would panic on multi-byte text.
+        let (a, b) = (sp.start.min(source.len()), sp.end.min(source.len()));
+        if a > b {
+            return String::new();
+        }
+        source.get(a..b).unwrap_or_default().to_string()
+    };
+    match action {
+        CompiledAction::Assert { relation, span } => ("assert", Some(*relation), slice(span)),
+        CompiledAction::Correct { relation, span } => ("correct", Some(*relation), slice(span)),
+        CompiledAction::QueryCurrent { relation } => {
+            ("query_current", Some(*relation), String::new())
+        }
+        CompiledAction::Query { relation, .. } => ("query", Some(*relation), String::new()),
+        CompiledAction::Unresolved { .. } => ("unresolved", None, String::new()),
+        _ => ("other", None, String::new()),
+    }
+}
+
+/// The storage-vs-retrieval diagnosis for one row. Every argument is a mechanism
+/// fact the session already exposes; nothing is inferred from reply text.
+///
+///   fact_unresolved          no pre-question turn produced a write at all
+///   distractor_only_written  a write landed, but never for an accepted answer
+///   question_not_a_query     the final turn's action is not Query/QueryCurrent
+///   query_but_no_read        the question was a query, but no store read returned
+///   read_wrong_value         a store read returned, but not an accepted answer
+///   stored_and_read          the asked fact was stored AND a read returned it
+///
+/// `read_verified` is whether the read's decoded value equalled an accepted answer,
+/// so `stored_and_read` means the READ SUCCEEDED, not merely that a read occurred.
+fn diagnoses_row(
+    stored: bool,
+    read_found: bool,
+    read_verified: bool,
+    question_action: &str,
+    any_write: bool,
+) -> &'static str {
+    if stored {
+        if read_verified {
+            return "stored_and_read";
+        }
+        if !read_found {
+            return if matches!(question_action, "query" | "query_current") {
+                "query_but_no_read"
+            } else {
+                "question_not_a_query"
+            };
+        }
+        return "read_wrong_value";
+    }
+    if !any_write {
+        return "fact_unresolved";
+    }
+    "distractor_only_written"
+}
+
 /// Whether the ASKED fact is stored. Accepted answers are compared NORMALIZED, so a
 /// stored "dust." matches an accepted "dust", and a value equal to a listed
 /// distractor is rejected -- otherwise storing the distractor would count as storing
@@ -3885,6 +3947,8 @@ fn session(args: &Args, out: &Path) -> Result<()> {
 
     let mut arm_reports = serde_json::Map::new();
     let mut default_outcomes: Vec<Vec<Option<TurnOutcome>>> = Vec::new();
+    // Compiler trace over the GENERATED world, to compare against the panel trace.
+    let mut world_trace: Vec<Value> = Vec::new();
     for arm in &arms {
         let controls = controls_of(arm)?;
         let mut card = Scorecard::default();
@@ -3907,6 +3971,20 @@ fn session(args: &Args, out: &Path) -> Result<()> {
                 let gold = gold_action(compiler.base(), &turn.user, turn)?;
                 let (pass, row, outcome) = match session.turn_with_controls(&turn.user, controls) {
                     Ok(outcome) => {
+                        // Same mechanism trace as the panel path, so compiler defects
+                        // can be compared between the generated world (whose relations
+                        // the compiler KNOWS) and the disjoint panel (whose relations it
+                        // does not). This separates compiler-wide defects from
+                        // disjoint-panel artefacts.
+                        {
+                            let (akind, arel, aspan) = describe_action(&outcome.action, &turn.user);
+                            world_trace.push(json!({
+                                "conversation": index, "turn": rows.len(), "user": turn.user,
+                                "intent": turn.intent, "category": turn.category,
+                                "action": akind, "relation": arel, "span_text": aspan,
+                                "memory": format!("{:?}", outcome.memory),
+                            }));
+                        }
                         let pass = judge_v2(&turn.checks, &turn.user, &outcome.reply_text);
                         *dispositions
                             .entry(disposition_name(&outcome.recall))
@@ -4096,6 +4174,11 @@ fn session(args: &Args, out: &Path) -> Result<()> {
             let last = row.turns.len() - 1;
             let (mut stored, mut read_value, mut read_found, mut log_value) =
                 (false, String::new(), false, false);
+            // Per-turn mechanism trace for the storage-vs-retrieval diagnosis.
+            let mut trace: Vec<Value> = Vec::new();
+            let mut write_texts: Vec<String> = Vec::new();
+            let mut question_action = String::from("none");
+            let mut question_relation: Option<u32> = None;
             let mut stored_total_row = false;
             let mut log_answered = false;
             let mut reply = String::new();
@@ -4104,14 +4187,21 @@ fn session(args: &Args, out: &Path) -> Result<()> {
             for (i, user) in row.turns.iter().enumerate() {
                 match session.turn_with_controls(user, TurnControls::default()) {
                     Ok(outcome) => {
+                        let (akind, arel, aspan) = describe_action(&outcome.action, user);
+                        if i == last {
+                            question_action = akind.to_string();
+                            question_relation = arel;
+                        }
+                        trace.push(json!({
+                            "turn": i, "last": i == last, "user": user,
+                            "action": akind, "relation": arel, "span_text": aspan,
+                        }));
                         if i < last {
                             if let MemoryEffect::Write { value_tokens, .. } = &outcome.memory {
                                 stored_total_row = true;
-                                if asked_fact_is_stored(
-                                    &tokenizer.decode(value_tokens),
-                                    &row.answers,
-                                    &row.distractors,
-                                ) {
+                                let decoded = tokenizer.decode(value_tokens);
+                                write_texts.push(decoded.clone());
+                                if asked_fact_is_stored(&decoded, &row.answers, &row.distractors) {
                                     stored = true;
                                 }
                             }
@@ -4206,6 +4296,16 @@ fn session(args: &Args, out: &Path) -> Result<()> {
                 // arms can be DIFFED -- and they should be identical, because the
                 // compiler does not see the log sieve.
                 "stored": stored, "stored_any": stored_total_row,
+                "trace": trace,
+                "write_texts": write_texts, "question_action": question_action,
+                "question_relation": question_relation,
+                "diagnosis": diagnoses_row(
+                    stored,
+                    read_found,
+                    read_found && row.answers.iter().any(|a| same_value(a, &read_value)),
+                    &question_action,
+                    stored_total_row,
+                ),
                 "answered_from_store": answered_from_store, "answered_from_log": answered_from_log,
                 "read_found": read_found,
                 "read_value": read_value, "recalled_value": recalled_value,
@@ -4295,6 +4395,9 @@ fn session(args: &Args, out: &Path) -> Result<()> {
     let mut report = report;
     if let Some(block) = panel_block {
         report["external_panel"] = block;
+    }
+    if !world_trace.is_empty() {
+        report["world_trace"] = Value::Array(world_trace);
     }
     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
     Ok(())
@@ -5187,5 +5290,109 @@ mod panel_scoring_tests {
         let err = load_panel(p.to_str().unwrap(), e.to_str().unwrap()).unwrap_err();
         assert!(err.to_string().contains("unknown panel row"), "got: {err}");
         let _ = std::fs::remove_dir_all(&d);
+    }
+}
+
+#[cfg(test)]
+mod diagnosis_tests {
+    use super::{describe_action, diagnoses_row, CompiledAction, SourceSpan};
+
+    fn span(start: usize, end: usize) -> SourceSpan {
+        SourceSpan { start, end }
+    }
+
+    /// `describe_action` recovers the emitted value from the span's byte range.
+    #[test]
+    fn describe_action_recovers_the_span_text() {
+        let src = "I react badly to latex.";
+        let a = CompiledAction::Assert {
+            relation: 7,
+            span: span(17, 22),
+        }; // "latex", excluding the "."
+        let (kind, rel, text) = describe_action(&a, src);
+        assert_eq!(kind, "assert");
+        assert_eq!(rel, Some(7));
+        assert_eq!(text, "latex", "the span must recover the value exactly");
+    }
+
+    /// A span that does not land on a char boundary must NOT panic -- indexing would.
+    /// "naïve café" in bytes: n 0..1, a 1..2, ï 2..4, v 4..5, e 5..6, ' ' 6..7,
+    /// c 7..8, a 8..9, f 9..10, é 10..12. So boundaries are
+    /// {0,1,2,4,5,6,7,8,9,10,12} and ONLY (2,3) splits a character ("ï" at 2..4).
+    #[test]
+    fn describe_action_is_char_boundary_safe() {
+        let src = "naïve café";
+        for (a, b) in [(1, 2), (0, 1), (2, 3), (5, 6), (99, 120), (4, 2)] {
+            let act = CompiledAction::Assert {
+                relation: 1,
+                span: span(a, b),
+            };
+            let (kind, _, text) = describe_action(&act, src);
+            assert_eq!(kind, "assert", "must not panic for span {a}..{b}");
+            if (a, b) == (2, 3) {
+                assert!(
+                    text.is_empty(),
+                    "a range splitting \"ï\" (bytes 2..4) must yield empty"
+                );
+            }
+        }
+        // a span that IS on a boundary still yields the right text
+        let act = CompiledAction::Assert {
+            relation: 1,
+            span: span(0, 6),
+        };
+        assert_eq!(
+            describe_action(&act, src).2,
+            "naïve",
+            "0..6 is the full multi-byte word in BYTES"
+        );
+    }
+
+    /// Unresolved carries no relation and no value.
+    #[test]
+    fn describe_action_handles_unresolved() {
+        let (kind, rel, text) = describe_action(
+            &CompiledAction::Unresolved { reason: "x".into() },
+            "anything",
+        );
+        assert_eq!(kind, "unresolved");
+        assert_eq!(rel, None);
+        assert!(text.is_empty());
+    }
+
+    /// Every diagnosis category is reachable, and `stored_and_read` requires a
+    /// VERIFIED read rather than merely a read.
+    #[test]
+    fn diagnosis_categories_are_reachable() {
+        // stored + verified read -> success
+        assert_eq!(
+            diagnoses_row(true, true, true, "query_current", true),
+            "stored_and_read"
+        );
+        // stored, a read happened, but it returned something else
+        assert_eq!(
+            diagnoses_row(true, true, false, "query_current", true),
+            "read_wrong_value"
+        );
+        // stored, query attempted, nothing read back
+        assert_eq!(
+            diagnoses_row(true, false, false, "query_current", true),
+            "query_but_no_read"
+        );
+        // stored, but the final turn was not parsed as a query
+        assert_eq!(
+            diagnoses_row(true, false, false, "assert", true),
+            "question_not_a_query"
+        );
+        // nothing written at all
+        assert_eq!(
+            diagnoses_row(false, false, false, "query_current", false),
+            "fact_unresolved"
+        );
+        // something written, but never an accepted answer
+        assert_eq!(
+            diagnoses_row(false, false, false, "query_current", true),
+            "distractor_only_written"
+        );
     }
 }
