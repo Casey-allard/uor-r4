@@ -88,6 +88,53 @@ impl FeedbackBridgeWeights {
             &self.packed_coefficients()?,
         )?)
     }
+    /// Offline exact packed policy scores. This is arithmetic introspection,
+    /// not admission of an authored trace; callers must obtain/replay native traces.
+    pub fn exact_policy_scores_q24(&self, trace: &FeedbackTrace) -> Result<Vec<Vec<i64>>> {
+        let c = self.context;
+        let lanes = c.heads * c.lanes_per_head;
+        if trace.before.heads != c.heads
+            || trace.before.lanes_per_head != c.lanes_per_head
+            || trace.before.states.len() != lanes
+            || trace.value.heads != c.heads
+            || trace.value.packets.len() != c.heads * 4
+        {
+            return Err(invalid("exact policy trace dimensions differ"));
+        }
+        let q = unpack_coefficients(
+            NativeReadFeedback::bridge_coefficient_count(c)?,
+            &self.packed_coefficients()?,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let basis = canonical_basis_q25();
+        (0..lanes)
+            .map(|lane| {
+                let next = lane / c.lanes_per_head * c.lanes_per_head
+                    + (lane % c.lanes_per_head + 1) % c.lanes_per_head;
+                let value_lane = lane / c.lanes_per_head * 4 + lane % c.lanes_per_head;
+                (0..120)
+                    .map(|action| {
+                        let at = (lane * 120 + action) * ROW;
+                        policy_row_score_q24(
+                            &q[at..at + ROW],
+                            trace.before.states[lane],
+                            trace.before.states[next],
+                            &trace.value.packets[value_lane],
+                            &basis,
+                        )
+                    })
+                    .collect()
+            })
+            .collect()
+    }
+    /// Same signed nearest/ties-away factor used in native score parity.
+    /// Offline search supplies exact canonical Q25 coordinates, never F32 logits.
+    pub fn exact_root_factor_q24(q: &[i8], coordinates: &[i32; 4]) -> Result<i64> {
+        if q.len() != 4 || q.iter().any(|q| !(-7..=7).contains(q)) {
+            return Err(invalid("root factor requires four legal q4 coefficients"));
+        }
+        Ok(factor_q24(q, coordinates))
+    }
     /// Refined latent tensor [global_lane,4]. Actual producer atoms and selected
     /// actions come from the native trace; no loss target is accepted here.
     pub(crate) fn policy_logits(&self, trace: &FeedbackTrace) -> Result<Vec<Tensor>> {
@@ -162,23 +209,8 @@ impl FeedbackBridgeWeights {
             let mut integer_scores = Vec::new();
             for action in 0..120 {
                 let row = &q[(lane * 120 + action) * ROW..(lane * 120 + action + 1) * ROW];
-                let mut score = i64::from(row[0]) << 22;
-                score += factor_q24(&row[1..5], &basis[old.index() as usize]);
-                score += factor_q24(&row[5..9], &basis[neighbor.index() as usize]);
-                for (atom, p) in atoms.iter().enumerate() {
-                    let (r, cat) = if atom == 0 { (9, 13) } else { (46, 50) };
-                    let category = if p.state == "Absent" {
-                        0
-                    } else if p.state == "PresentZero" {
-                        1
-                    } else {
-                        2 + p.radius_bin as usize
-                    };
-                    score += i64::from(row[cat + category]) << 22;
-                    if p.state == "PresentNonzero" {
-                        score += factor_q24(&row[r..r + 4], &basis[p.root as usize]);
-                    }
-                }
+                let score =
+                    policy_row_score_q24(row, old.index(), neighbor.index(), atoms, &basis)?;
                 integer_scores.push(score);
                 scores.push((score as f64 / 16777216.) as f32);
             }
@@ -297,6 +329,34 @@ fn finite_transport_expectation(
         .matmul(&Tensor::from_vec(transported, (120, 4), &Device::Cpu)?)?
         .reshape(4)?)
 }
+fn policy_row_score_q24(
+    row: &[i8],
+    own: u8,
+    neighbor: u8,
+    atoms: &[uor_r4_integer::geometric_read_feedback::FeedbackAtom],
+    basis: &[[i32; 4]; 120],
+) -> Result<i64> {
+    if row.len() != ROW || own >= 120 || neighbor >= 120 || atoms.len() != 2 {
+        return Err(invalid("exact policy row/root/atom shape differs"));
+    }
+    let mut score = i64::from(row[0]) << 22;
+    score += factor_q24(&row[1..5], &basis[own as usize]);
+    score += factor_q24(&row[5..9], &basis[neighbor as usize]);
+    for (atom, p) in atoms.iter().enumerate() {
+        let (r, cat) = if atom == 0 { (9, 13) } else { (46, 50) };
+        let category = match p.state {
+            "Absent" => 0,
+            "PresentZero" => 1,
+            "PresentNonzero" if p.radius_bin <= 30 && p.root < 120 => 2 + p.radius_bin as usize,
+            _ => return Err(invalid("exact policy atom status/root/radius differs")),
+        };
+        score += i64::from(row[cat + category]) << 22;
+        if p.state == "PresentNonzero" {
+            score += factor_q24(&row[r..r + 4], &basis[p.root as usize]);
+        }
+    }
+    Ok(score)
+}
 fn factor_q24(coefficients: &[i8], basis: &[i32; 4]) -> i64 {
     let sum = coefficients
         .iter()
@@ -314,6 +374,42 @@ fn factor_q24(coefficients: &[i8], basis: &[i32; 4]) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn exact_policy_row_keeps_factor_rounding_and_absence_masks() -> Result<()> {
+        use uor_r4_integer::geometric_read_feedback::FeedbackAtom;
+        let mut basis = [[0i32; 4]; 120];
+        basis[1] = [4, 4, 0, 0];
+        basis[2] = [-4, 0, 0, 0];
+        let mut q = [0i8; ROW];
+        q[0] = 1;
+        q[1] = 1;
+        q[2] = -1;
+        q[5] = 1;
+        q[9] = 7;
+        q[13] = 2;
+        q[51] = -1;
+        let atoms = [
+            FeedbackAtom {
+                state: "Absent",
+                root: 1,
+                radius_bin: 0,
+            },
+            FeedbackAtom {
+                state: "PresentZero",
+                root: 2,
+                radius_bin: 0,
+            },
+        ];
+        // Own axes cancel BEFORE rounding; neighbor signed half rounds away;
+        // absent root q7 is masked while both status categories remain active.
+        assert_eq!(
+            policy_row_score_q24(&q, 1, 2, &atoms, &basis)?,
+            (2i64 << 22) - 1
+        );
+        assert!(policy_row_score_q24(&q, 120, 2, &atoms, &basis).is_err());
+        assert!(policy_row_score_q24(&q, 1, 2, &atoms[..1], &basis).is_err());
+        Ok(())
+    }
     #[test]
     fn native_route_mixture_adjoint_matches_probability_marginal_with_zero_alternatives(
     ) -> Result<()> {

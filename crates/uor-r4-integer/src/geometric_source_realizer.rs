@@ -5,8 +5,8 @@ use crate::{
     geometric_context_q4::{ContextQ4Config, NativeContextQ4},
     geometric_no_read::{NativeGeometricNoRead, NoReadConfig},
     geometric_occurrence_read::{
-        NativeOccurrenceReader, OccurrenceComponents, OccurrenceRead, PreparedOccurrenceContext,
-        QuerySnapshot, SelectedRecordFrame,
+        NativeOccurrenceReader, OccurrenceBankSegment, OccurrenceComponents, OccurrenceRead,
+        PreparedOccurrenceContext, QuerySnapshot, SelectedRecordFrame,
     },
     geometric_potential::{AddressLane, NativePotentialTables},
     geometric_potential_q4::{NativePotentialQ4, PotentialQ4Config},
@@ -258,6 +258,62 @@ fn trace_occurrence(output: OccurrenceRead<'_>) -> Result<OccurrenceTrace> {
         logical_owned_bytes: output.stats.logical_owned_bytes,
     })
 }
+/// Ordered caller-owned history. Source projection is segment-wise; Context
+/// is not a source and role is provenance only in the current numeric model.
+#[derive(Clone, Copy, Debug)]
+pub enum SourceBankSegment<'a> {
+    Source {
+        frame: SelectedRecordFrame<'a>,
+        view: &'a SourceEmissionView,
+        event: u64,
+    },
+    Context {
+        token_ids: &'a [u32],
+        event: u64,
+        role: u32,
+    },
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub enum BankSegmentTrace {
+    Source {
+        event: u64,
+        record: u64,
+        commit: u64,
+        scope: Vec<u8>,
+        entity: Vec<u32>,
+        relation: u32,
+        store_view: u32,
+        view: SourceEmissionView,
+    },
+    Context {
+        event: u64,
+        role: u32,
+        token_ids: Vec<u32>,
+    },
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct BankCandidateTrace {
+    pub bank_index: usize,
+    pub context_position: usize,
+    pub event: u64,
+    pub segment_index: usize,
+    pub occurrence: OccurrenceIdentity,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct BankRealizerTrace {
+    pub policy: &'static str,
+    /// Derived numerical replay digest, not the complete original lexical
+    /// identity. `segments` retains original IDs/bytes, tokenizer and view policy.
+    pub bank_binding_sha256: String,
+    pub segments: Vec<BankSegmentTrace>,
+    pub candidates: Vec<BankCandidateTrace>,
+    pub context: SerializableContextReplay,
+    pub heads: Vec<HeadTrace>,
+    pub period_q24: Vec<i64>,
+    pub actions: ActionTrace,
+    pub logical_prepared_bytes: usize,
+}
+
 pub struct RealizerExecution<'a> {
     pub context: &'a NativeContextQ4,
     pub potential_tables: &'a NativePotentialTables,
@@ -268,6 +324,187 @@ pub struct RealizerExecution<'a> {
     pub binding: &'a SourceActionBinding,
 }
 impl<'a> RealizerExecution<'a> {
+    /// One bounded causal replay and one bank-wide Copy/Period/Stop reduction.
+    /// No answer-based admission or per-record probability normalization.
+    pub fn read_bank(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+    ) -> Result<BankRealizerTrace> {
+        if self.period.config() != self.no_read.config()
+            || self.binding.vocab_size() != self.context.config().vocab_size
+        {
+            return Err(invalid("bank context/controller/vocabulary differs"));
+        }
+        self.binding.validate_tokens(query)?;
+        self.binding.validate_tokens(prefix)?;
+        if segments.len() > crate::geometric_occurrence_read::MAX_SEQUENCE {
+            return Err(invalid("bank segment cap exceeds128"));
+        }
+        let mut projected = query.len().checked_add(prefix.len()).unwrap_or(usize::MAX);
+        for segment in segments {
+            let n = match segment {
+                SourceBankSegment::Source { view, .. } => view.emitted_token_ids().len(),
+                SourceBankSegment::Context { token_ids, .. } => token_ids.len(),
+            };
+            projected = projected.checked_add(n).unwrap_or(usize::MAX);
+        }
+        if projected > crate::geometric_occurrence_read::MAX_SEQUENCE {
+            return Err(invalid(format!(
+                "bank projected context {projected} exceeds128"
+            )));
+        }
+        let mut derived = Vec::with_capacity(segments.len());
+        let mut inventory = Vec::with_capacity(segments.len());
+        let mut candidate_segments = Vec::new();
+        for (index, segment) in segments.iter().enumerate() {
+            match segment {
+                SourceBankSegment::Source { frame, view, event } => {
+                    if view.policy() != crate::geometric_source_emission_view::POLICY
+                        || view.tokenizer_sha256() != self.binding.tokenizer_sha256()
+                    {
+                        return Err(invalid("bank source tokenizer/view policy differs"));
+                    }
+                    derived.push(OccurrenceBankSegment::Source {
+                        frame: view.derived_frame(*frame)?,
+                        event: *event,
+                    });
+                    candidate_segments
+                        .extend(std::iter::repeat_n(index, view.emitted_token_ids().len()));
+                    inventory.push(BankSegmentTrace::Source {
+                        event: *event,
+                        record: frame.identity.record,
+                        commit: frame.identity.commit,
+                        scope: frame.metadata.scope.to_vec(),
+                        entity: frame.metadata.entity.to_vec(),
+                        relation: frame.metadata.relation,
+                        store_view: frame.metadata.view,
+                        view: (*view).clone(),
+                    });
+                }
+                SourceBankSegment::Context {
+                    token_ids,
+                    event,
+                    role,
+                } => {
+                    derived.push(OccurrenceBankSegment::Context {
+                        token_ids,
+                        event: *event,
+                        role: *role,
+                    });
+                    inventory.push(BankSegmentTrace::Context {
+                        event: *event,
+                        role: *role,
+                        token_ids: token_ids.to_vec(),
+                    });
+                }
+            }
+        }
+        let mut reader = NativeOccurrenceReader::new(OccurrenceComponents {
+            context: self.context.native(),
+            potential: self.potential_tables,
+            no_read: self.no_read,
+            geometry: self.geometry,
+            exp_q31: self.exp,
+        })
+        .map_err(|e| invalid(e.to_string()))?;
+        let prepared = reader
+            .prepare_bank(&derived, query, prefix)
+            .map_err(|e| invalid(e.to_string()))?;
+        let snapshot = prepared
+            .original_snapshot()
+            .map_err(|e| invalid(e.to_string()))?;
+        let c = self.context.config();
+        let lanes = c.heads * c.lanes_per_head;
+        let mut context = SerializableContextReplay {
+            tokens: prepared.tokens().to_vec(),
+            heads: c.heads,
+            lanes_per_head: c.lanes_per_head,
+            states: Vec::new(),
+            actions: Vec::new(),
+            raw_roots: Vec::new(),
+            categories: Vec::new(),
+            codes: Vec::new(),
+            coefficient_reads: 0,
+        };
+        for step in prepared.steps() {
+            context
+                .states
+                .push(step.states[..lanes].iter().map(|s| s.index()).collect());
+            context
+                .actions
+                .push(step.actions[..lanes].iter().map(|s| s.index()).collect());
+            context
+                .raw_roots
+                .extend(step.readout_roots[..lanes].iter().map(|s| s.index()));
+            context
+                .categories
+                .extend_from_slice(&step.categories[..lanes]);
+            context
+                .codes
+                .extend(step.output[..lanes].iter().copied().map(ObservedCode::from));
+            context.coefficient_reads += step.coefficient_reads;
+        }
+        let output = reader
+            .score_bank(&prepared, &snapshot)
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut heads = Vec::with_capacity(output.head_count());
+        for h in 0..output.head_count() {
+            let head = output.head(h).ok_or_else(|| invalid("bank head absent"))?;
+            heads.push(HeadTrace {
+                scores_q24: head.potential_q24.to_vec(),
+                weights_q31: head.occurrence_weights_q31.to_vec(),
+                no_read_q24: head.no_read_q24,
+                no_read_weight_q31: head.no_read_weight_q31,
+                total_weight_q31: head.total_weight_q31,
+            });
+        }
+        let period = self
+            .period
+            .score(
+                snapshot.last_token() as usize,
+                snapshot.states(),
+                snapshot.codes(),
+                None,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        let head_scores = heads
+            .iter()
+            .enumerate()
+            .map(|(h, s)| ActionHeadScores {
+                copy_q24: &s.scores_q24,
+                period_q24: period[h],
+                stop_q24: s.no_read_q24,
+            })
+            .collect::<Vec<_>>();
+        let ids = output
+            .occurrences()
+            .iter()
+            .map(|o| o.token_id)
+            .collect::<Vec<_>>();
+        let actions = NativeSourceActions::new(self.binding.clone(), c.heads, self.exp)?
+            .reduce(&ids, &head_scores)?;
+        let candidates = output
+            .occurrences()
+            .iter()
+            .enumerate()
+            .map(|(i, o)| BankCandidateTrace {
+                bank_index: i,
+                context_position: usize::from(prepared.candidate_positions()[i]),
+                event: prepared.candidate_events()[i],
+                segment_index: candidate_segments[i],
+                occurrence: OccurrenceIdentity {
+                    record: o.source.record,
+                    commit: o.source.commit,
+                    token_offset: o.token_offset,
+                    token_id: o.token_id,
+                },
+            })
+            .collect();
+        Ok(BankRealizerTrace {policy:"causal-bank-segment-emission-view;context/query/ownprefix-noncandidates;one-global-Copy-Period-Stop;roles-provenance-only;128-context/1",bank_binding_sha256:hex::encode(prepared.binding()),segments:inventory,candidates,context,heads,period_q24:period[..c.heads].to_vec(),actions,logical_prepared_bytes:prepared.logical_prepared_bytes()})
+    }
+
     pub fn read_source_view(
         &self,
         frame: SelectedRecordFrame<'_>,
@@ -978,6 +1215,25 @@ impl NativeSourceRealizer {
             mode,
         )
     }
+    pub fn read_bank(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+    ) -> Result<BankRealizerTrace> {
+        RealizerExecution {
+            context: &self.context,
+            potential_tables: &self.potential_tables,
+            no_read: &self.no_read,
+            geometry: &self.geometry,
+            exp: &self.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_bank(segments, query, prefix)
+    }
+    /// Bank-dependent feedback is intentionally not exposed yet: its legacy
+    /// source-local offset lookup must not be used as a bank candidate ordinal.
     pub fn binding(&self) -> &SourceActionBinding {
         &self.binding
     }
@@ -1257,6 +1513,76 @@ mod tests {
                 token_ids: tokens,
             }
         }
+    }
+    #[test]
+    fn native_bank_single_source_parent_exact_and_interleaved_global_reduction() -> Result<()> {
+        let f = ActionFixture::new()?;
+        let view = f.compiler.compile(&[4])?;
+        let execution = f.execution();
+        let frame = ActionFixture::frame(&[4]);
+        for prefix in [&[][..], &[4][..]] {
+            let old = execution.read(frame, &view, &[4], prefix)?;
+            let single = [SourceBankSegment::Source {
+                frame,
+                view: &view,
+                event: 1,
+            }];
+            let bank = execution.read_bank(&single, &[4], prefix)?;
+            assert_eq!(bank.actions, old.actions);
+            assert_eq!(bank.context, old.period_context);
+            assert_eq!(bank.heads, old.source.view_kernel_trace.heads);
+            assert_eq!(bank.period_q24, old.period_q24);
+        }
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[4],
+                event: 1,
+                role: 7,
+            },
+            SourceBankSegment::Source {
+                frame,
+                view: &view,
+                event: 2,
+            },
+            SourceBankSegment::Context {
+                token_ids: &[4],
+                event: 3,
+                role: 8,
+            },
+            SourceBankSegment::Source {
+                frame,
+                view: &view,
+                event: 4,
+            },
+        ];
+        let bank = execution.read_bank(&segments, &[4], &[4])?;
+        let n = view.emitted_token_ids().len();
+        assert_eq!(bank.candidates.len(), 2 * n);
+        assert_eq!(bank.candidates[0].context_position, 1);
+        assert_eq!(bank.candidates[n].context_position, n + 2);
+        assert_eq!(bank.candidates[0].occurrence, bank.candidates[n].occurrence);
+        assert_eq!(bank.candidates[0].segment_index, 1);
+        assert_eq!(bank.candidates[n].segment_index, 3);
+        let ids = bank
+            .candidates
+            .iter()
+            .map(|c| c.occurrence.token_id)
+            .collect::<Vec<_>>();
+        let heads = bank
+            .heads
+            .iter()
+            .enumerate()
+            .map(|(h, s)| ActionHeadScores {
+                copy_q24: &s.scores_q24,
+                period_q24: bank.period_q24[h],
+                stop_q24: s.no_read_q24,
+            })
+            .collect::<Vec<_>>();
+        let direct = NativeSourceActions::new(f.binding.clone(), f.context.config().heads, &f.exp)?
+            .reduce(&ids, &heads)?;
+        assert_eq!(bank.actions, direct);
+        assert_eq!(bank.actions.actions.len(), 2 * n + 2);
+        Ok(())
     }
     #[test]
     fn native_action_counterfactual_factual_replay_and_full_action_identity() -> Result<()> {
