@@ -12,6 +12,7 @@ use uor_r4_integer::{
     geometric_value_q4::{canonical_basis_q25, pack_coefficients, unpack_coefficients},
     h4_tables::{H4Code, HistoricalH4Tables},
 };
+pub const ROUTE_SURROGATE: &str = "native-Q31-factual-CE-forward;T1-all120-conditional-native-token-probability-mixture-adjoint;mean-global-lanes;quarter-shadow-STE;frozen-producer-stage1-sourcekeys-readouts;no-floor-no-zero-alternative-mask/1";
 pub const SURROGATE:&str="native-identity-first-q4-hard-action-forward;T1-softmax-all120-exact-right-composed-native-root-adjoint;quarter-shadow-STE;frozen-producer-stage1-sourcekeys-readouts;final-token-loss-only/1";
 const ROW: usize = 83;
 const ALGEBRA: &[u8] = include_bytes!("../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin");
@@ -89,7 +90,7 @@ impl FeedbackBridgeWeights {
     }
     /// Refined latent tensor [global_lane,4]. Actual producer atoms and selected
     /// actions come from the native trace; no loss target is accepted here.
-    pub(crate) fn refined_latent(&self, trace: &FeedbackTrace) -> Result<Tensor> {
+    pub(crate) fn policy_logits(&self, trace: &FeedbackTrace) -> Result<Vec<Tensor>> {
         let c = self.context;
         let width = c.heads * c.lanes_per_head;
         if trace.before.heads != c.heads
@@ -116,7 +117,7 @@ impl FeedbackBridgeWeights {
             &Device::Cpu,
         )?;
         let coefficients = (&hard + (self.bridge.as_tensor() - self.bridge.detach())?)?;
-        let mut refined = Vec::new();
+        let mut policies = Vec::new();
         for lane in 0..width {
             let next = lane / c.lanes_per_head * c.lanes_per_head
                 + (lane % c.lanes_per_head + 1) % c.lanes_per_head;
@@ -197,7 +198,23 @@ impl FeedbackBridgeWeights {
             }
             let logits = (&Tensor::from_vec(scores, 120, &Device::Cpu)?
                 + (&surrogate - surrogate.detach())?)?;
-            let expected = finite_transport_expectation(&logits, old, &geometry)?;
+            policies.push(logits);
+        }
+        Ok(policies)
+    }
+    /// Historical state-expectation adjoint retained unchanged in its own API.
+    pub(crate) fn refined_latent(&self, trace: &FeedbackTrace) -> Result<Tensor> {
+        let logits = self.policy_logits(trace)?;
+        let geometry =
+            HistoricalH4Tables::from_bytes(ALGEBRA).map_err(|e| invalid(e.to_string()))?;
+        let basis = canonical_basis_q25();
+        let mut refined = Vec::with_capacity(logits.len());
+        for (lane, logits) in logits.iter().enumerate() {
+            let old =
+                H4Code::try_from(trace.before.states[lane]).map_err(|e| invalid(e.to_string()))?;
+            let updated =
+                H4Code::try_from(trace.after.states[lane]).map_err(|e| invalid(e.to_string()))?;
+            let expected = finite_transport_expectation(logits, old, &geometry)?;
             let native = Tensor::from_vec(
                 basis[updated.index() as usize]
                     .map(|x| x as f32 / 33554432.)
@@ -209,6 +226,58 @@ impl FeedbackBridgeWeights {
         }
         Ok(Tensor::stack(&refined, 0)?)
     }
+}
+
+/// Detached native alias probabilities are mixed before taking the logarithm.
+/// Zero alternatives are legitimate; only zero/nonfinite total support fails.
+pub(crate) fn native_probability_mixture(logits: &Tensor, probabilities: &[f64]) -> Result<Tensor> {
+    if logits.dims() != [120]
+        || probabilities.len() != 120
+        || probabilities
+            .iter()
+            .any(|u| !u.is_finite() || !(0.0..=1.0).contains(u))
+        || logits.to_vec1::<f32>()?.iter().any(|z| !z.is_finite())
+    {
+        return Err(invalid(
+            "native route policy/probability dimensions or bounds differ",
+        ));
+    }
+    let u = Tensor::from_vec(
+        probabilities.iter().map(|u| *u as f32).collect(),
+        120,
+        &Device::Cpu,
+    )?;
+    let support = (candle_nn::ops::softmax(logits, 0)? * u)?.sum_all()?;
+    let value = support.to_scalar::<f32>()?;
+    if !value.is_finite() || value <= 0.0 {
+        return Err(invalid(
+            "native route mixture has zero or nonfinite support; no floor",
+        ));
+    }
+    Ok(support.log()?.neg()?)
+}
+
+/// Anchor at CE, not probability: the derivative denominator remains mixture support.
+pub(crate) fn anchor_native_route_loss(
+    native_probability: f64,
+    mixture: &Tensor,
+) -> Result<Tensor> {
+    if !native_probability.is_finite()
+        || !(0.0..=1.0).contains(&native_probability)
+        || native_probability == 0.0
+    {
+        return Err(invalid(
+            "native route factual target has zero/nonfinite support",
+        ));
+    }
+    let probability = native_probability as f32;
+    if !probability.is_finite() || probability <= 0.0 {
+        return Err(invalid(
+            "native route factual probability cannot be represented",
+        ));
+    }
+    let native_ce = Tensor::new(probability, &Device::Cpu)?.log()?.neg()?;
+    Ok((&native_ce + (mixture - mixture.detach())?)?)
 }
 fn finite_transport_expectation(
     logits: &Tensor,
@@ -245,6 +314,83 @@ fn factor_q24(coefficients: &[i8], basis: &[i32; 4]) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_route_mixture_adjoint_matches_probability_marginal_with_zero_alternatives(
+    ) -> Result<()> {
+        let z = (0..120).map(|a| (a as f32 - 60.) / 47.).collect::<Vec<_>>();
+        let u = (0..120)
+            .map(|a| {
+                if a % 7 == 0 {
+                    0.0
+                } else {
+                    (a % 19 + 1) as f64 / 40.
+                }
+            })
+            .collect::<Vec<_>>();
+        let var = Var::from_vec(z.clone(), 120, &Device::Cpu)?;
+        let mixture = native_probability_mixture(var.as_tensor(), &u)?;
+        let grad = mixture
+            .backward()?
+            .get(var.as_tensor())
+            .ok_or_else(|| invalid("native mixture policy disconnected"))?
+            .to_vec1::<f32>()?;
+        let smooth = |z: &[f64]| {
+            let max = z.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+            let exp = z.iter().map(|z| (z - max).exp()).collect::<Vec<_>>();
+            -(exp.iter().zip(&u).map(|(p, u)| p * u).sum::<f64>() / exp.iter().sum::<f64>()).ln()
+        };
+        let base = z.iter().map(|z| f64::from(*z)).collect::<Vec<_>>();
+        let max = base.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let exp = base.iter().map(|z| (z - max).exp()).collect::<Vec<_>>();
+        let denominator = exp.iter().sum::<f64>();
+        let support = exp.iter().zip(&u).map(|(p, u)| p * u).sum::<f64>() / denominator;
+        for a in 0..120 {
+            let p = exp[a] / denominator;
+            let analytic = p - p * u[a] / support;
+            let mut left = base.clone();
+            let mut right = base.clone();
+            left[a] -= 1e-5;
+            right[a] += 1e-5;
+            let numerical = (smooth(&right) - smooth(&left)) / 2e-5;
+            assert!((f64::from(grad[a]) - analytic).abs() < 3e-7);
+            assert!((f64::from(grad[a]) - numerical).abs() < 3e-7);
+            if u[a] == 0.0 {
+                assert!(grad[a] > 0.0);
+            }
+        }
+        assert!(native_probability_mixture(var.as_tensor(), &[0.0; 120]).is_err());
+        Ok(())
+    }
+    #[test]
+    fn native_route_loss_anchor_preserves_mixture_gradient_independent_of_factual_probability(
+    ) -> Result<()> {
+        let var = Var::from_vec(vec![0f32; 120], 120, &Device::Cpu)?;
+        let mut u = vec![0.0; 120];
+        u[1] = 0.4;
+        u[7] = 0.8;
+        let mixture = native_probability_mixture(var.as_tensor(), &u)?;
+        let raw = mixture
+            .backward()?
+            .get(var.as_tensor())
+            .ok_or_else(|| invalid("mixture gradient absent"))?
+            .to_vec1::<f32>()?;
+        for factual in [0.01, 0.4, 0.9] {
+            let anchored = anchor_native_route_loss(factual, &mixture)?;
+            let expected = Tensor::new(factual as f32, &Device::Cpu)?.log()?.neg()?;
+            assert_eq!(
+                anchored.to_scalar::<f32>()?.to_bits(),
+                expected.to_scalar::<f32>()?.to_bits()
+            );
+            let grad = anchored
+                .backward()?
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("anchored gradient absent"))?
+                .to_vec1::<f32>()?;
+            assert_eq!(grad, raw);
+        }
+        assert!(anchor_native_route_loss(0.0, &mixture).is_err());
+        Ok(())
+    }
     #[test]
     fn dependent_finite_action_adjoint_matches_declared_smooth_transport() -> Result<()> {
         let geometry =

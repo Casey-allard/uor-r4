@@ -1,5 +1,15 @@
 # Current UOR-R4 research state
 
+## Native token-mixture route credit admitted — October 4
+
+The [corrected Rust learner](geometric-native-route-credit-2026-10-04.md) scores all120 one-lane signed-H4 interventions against actual native Copy/Period/Stop alias probabilities, with other actions factual and original source keys/producer/readouts frozen. Its backward is conditional probability-mixture CE, anchored at the factual native CE; no target-selected serving read, floor, new token transition or floating serving path is introduced. This replaces expected-state credit for the next experiment; it is not a hard-action descent guarantee.
+
+Both zero-update JointCopy/RoleSurface admissions preserve570 canonical and530 live own-prefix comparisons. Each evaluates547,200 alternatives, finding169,338 with greater factual-target probability across4,412/4,560 lane-target combinations. Native equal-episode CE stays0.492381624865; reported bridge gradients are finite with18,240/79,680 nonzero coordinates. Initial utilities/actions are identical between arms, so no JointCopy advantage follows. Independent saved arithmetic/reference review passes4,576,514 checks; it is not native reexecution or aggregate-gradient reconstruction.
+
+Executed source3f7cc4a8 passes6 focused tests and release construction on LinuxCPU. All146files120,385,112B return with exactSHA/file-set equality. Admission times13.010s/12.604s; owned podjob released. Complete90min charge gives1,173,435,028/1,176,000,000ms. Local independent BLAKE3, Metal, GPU, laptop performance/energy and generalchat are not counted. [Evidence](../evidence/geometric-native-route-credit-2026-10-04.json).
+
+**Next:** separately project the paired native-token-mixture fit, retaining grid64 and all prior regressions, recomputing utilities for current packed actions and selecting against the unchanged parent by native development CE. Freeze a genuinely new32-case panel before update1: the old preparer has hardcoded pairs/no seed and would reproduce exposed rows, so add declared deterministic seed/pool plus sealed exposed-panel exclusions. This is a preparation correction, not target-support filtering. Preserve exact source/producer/readout identities,64-example complete-answer/EOS weighting and full row tradeoffs. Prime/factor-junction, zeta, directed path and shell donors remain conditional; no MoE/E8 lattice engine or shared-session edit is adopted. General Generate, compiler/store/session and reasoning obligations remain.
+
 ## First paired geometric feedback fit changes native actions but regresses — October 4
 
 The [Rust paired fit](geometric-dependent-fit-2026-10-04.md) executes 64 AdamW updates per JointCopy/RoleSurface arm with frozen source/context/readouts, immutable keys and the same K2 producer. Fractional shadows move while checkpoints16/32 remain native identity. Both first cross the q4 boundary at update42. At48/64 all570 canonical positions have changed refined states and final action objects. This establishes native movement, not useful learned attention.

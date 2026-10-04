@@ -17,7 +17,7 @@ use crate::{
         ActionHeadScores, ActionTrace, NativeSourceActions, SourceActionBinding,
     },
     geometric_source_emission_view::{SourceEmissionCompiler, SourceEmissionView},
-    h4_tables::HistoricalH4Tables,
+    h4_tables::{H4Code, HistoricalH4Tables, ROOT_COUNT},
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -175,6 +175,42 @@ pub struct DependentReadTrace {
     pub original_context_replays: usize,
     pub scoring_stages: usize,
 }
+
+/// A declared finite intervention, never a target-selected occurrence or state.
+/// H4Code construction rejects padded/noncanonical action IDs.
+#[derive(Clone, Debug)]
+pub struct NativeLaneActionRequest {
+    pub lane: usize,
+    pub actions: Vec<H4Code>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct NativeActionTrace {
+    pub action: u8,
+    pub action_vector: Vec<u8>,
+    /// Authoritative updated input to every final Copy/Period/Stop head.
+    pub controller_snapshot: QuerySnapshotReport,
+    pub final_actions: ActionTrace,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct NativeLaneActionTraces {
+    pub lane: usize,
+    pub actions: Vec<NativeActionTrace>,
+}
+
+/// Exact native distributions under declared one-lane replacements. No answer
+/// label, loss, utility or correctness decision enters this numerical API.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct NativeActionCounterfactualTrace {
+    pub policy: &'static str,
+    pub factual: DependentReadTrace,
+    pub lanes: Vec<NativeLaneActionTraces>,
+    pub original_context_replays: usize,
+    pub value_producer_evaluations: usize,
+    pub scoring_stages: usize,
+}
+const MAX_ACTION_COUNTERFACTUALS: usize = 8 * ROOT_COUNT;
 
 pub fn read_occurrence(
     components: OccurrenceComponents<'_>,
@@ -400,6 +436,91 @@ impl<'a> RealizerExecution<'a> {
         feedback: &NativeReadFeedback,
         mode: FeedbackInputMode,
     ) -> Result<DependentReadTrace> {
+        Ok(self
+            .read_dependent_action_traces_for(
+                frame,
+                view,
+                query,
+                prefix,
+                parent,
+                feedback,
+                mode,
+                &[],
+            )?
+            .factual)
+    }
+
+    /// All120 canonical actions for each configured lane, ordered0..119.
+    /// Factual source replay, provisional occurrence and producer are evaluated
+    /// once; other lane actions always remain the actual factual actions.
+    pub fn read_dependent_action_traces(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        parent: &NativeArtifactBinding,
+        feedback: &NativeReadFeedback,
+        mode: FeedbackInputMode,
+    ) -> Result<NativeActionCounterfactualTrace> {
+        let lanes = self.context.config().heads * self.context.config().lanes_per_head;
+        if lanes > 8 {
+            return Err(invalid("native action lane bound exceeded"));
+        }
+        let actions = (0..ROOT_COUNT)
+            .map(|action| H4Code::try_from(action as u8).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        let requests = (0..lanes)
+            .map(|lane| NativeLaneActionRequest {
+                lane,
+                actions: actions.clone(),
+            })
+            .collect::<Vec<_>>();
+        self.read_dependent_action_traces_for(
+            frame, view, query, prefix, parent, feedback, mode, &requests,
+        )
+    }
+
+    /// Declared subset of finite actions using the same prepared core. This
+    /// exposes no public construction of an arbitrary QuerySnapshot.
+    pub fn read_dependent_action_traces_for(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        parent: &NativeArtifactBinding,
+        feedback: &NativeReadFeedback,
+        mode: FeedbackInputMode,
+        requests: &[NativeLaneActionRequest],
+    ) -> Result<NativeActionCounterfactualTrace> {
+        let lane_count = self.context.config().heads * self.context.config().lanes_per_head;
+        if feedback.metadata().context != self.context.config()
+            || &feedback.metadata().parent_artifact != parent
+        {
+            return Err(invalid("counterfactual feedback context/parent differs"));
+        }
+        let mut used_lanes = BTreeSet::new();
+        let mut candidates = 0usize;
+        for request in requests {
+            if request.lane >= lane_count || !used_lanes.insert(request.lane) {
+                return Err(invalid("counterfactual lane is invalid or duplicated"));
+            }
+            let unique = request
+                .actions
+                .iter()
+                .map(|action| action.index())
+                .collect::<BTreeSet<_>>();
+            if request.actions.is_empty() || unique.len() != request.actions.len() {
+                return Err(invalid("counterfactual actions empty or duplicated"));
+            }
+            candidates = candidates
+                .checked_add(request.actions.len())
+                .ok_or_else(|| invalid("counterfactual count overflow"))?;
+        }
+        if lane_count > 8 || candidates > MAX_ACTION_COUNTERFACTUALS {
+            return Err(invalid("counterfactual native960 bound exceeded"));
+        }
         let (mut reader, prepared, replay) = self.prepare_view(frame, view, query, prefix)?;
         let snapshot = prepared
             .original_snapshot()
@@ -408,7 +529,7 @@ impl<'a> RealizerExecution<'a> {
         let (updated, feedback_trace) =
             feedback.apply(parent, &prepared, &snapshot, &stage1.actions, mode)?;
         let stage2 = self.score_view(frame, view, &mut reader, &prepared, &updated, &replay)?;
-        Ok(DependentReadTrace {
+        let factual=DependentReadTrace {
             policy: crate::geometric_read_feedback::POLICY,
             stage1,
             stage2,
@@ -418,7 +539,42 @@ impl<'a> RealizerExecution<'a> {
             logical_prepared_bytes: prepared.logical_prepared_bytes(),
             original_context_replays: 1,
             scoring_stages: 2,
-        })
+        };
+        let factual_actions = factual
+            .feedback
+            .actions
+            .iter()
+            .map(|action| H4Code::try_from(*action).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        if factual_actions.len() != lane_count {
+            return Err(invalid("factual action-vector shape differs"));
+        }
+        let mut lanes = Vec::with_capacity(requests.len());
+        for request in requests {
+            let mut actions = Vec::with_capacity(request.actions.len());
+            for action in &request.actions {
+                let mut vector = factual_actions.clone();
+                vector[request.lane] = *action;
+                // Compose every declared action against the ORIGINAL state, not
+                // the already-updated factual state; source keys remain immutable.
+                let candidate = prepared
+                    .apply_actions(&snapshot, &vector)
+                    .map_err(|e| invalid(e.to_string()))?;
+                let scored =
+                    self.score_view(frame, view, &mut reader, &prepared, &candidate, &replay)?;
+                actions.push(NativeActionTrace {
+                    action: action.index(),
+                    action_vector: vector.iter().map(|a| a.index()).collect(),
+                    controller_snapshot: QuerySnapshotReport::from(&candidate),
+                    final_actions: scored.actions,
+                });
+            }
+            lanes.push(NativeLaneActionTraces {
+                lane: request.lane,
+                actions,
+            });
+        }
+        Ok(NativeActionCounterfactualTrace{policy:"target-free-one-lane-H4-action-counterfactual;shared-factual-source-keys-original-query-producer;observation-only-right-composition;all-final-heads-and-alias-masses/1",factual,lanes,original_context_replays:1,value_producer_evaluations:1,scoring_stages:2+candidates})
     }
 }
 
@@ -825,6 +981,78 @@ impl NativeSourceRealizer {
     pub fn binding(&self) -> &SourceActionBinding {
         &self.binding
     }
+    pub fn read_dependent_action_traces(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        feedback: &NativeReadFeedback,
+        mode: FeedbackInputMode,
+    ) -> Result<NativeActionCounterfactualTrace> {
+        if feedback.metadata().context != self.context.config()
+            || feedback.metadata().parent_artifact != self.artifact_binding
+        {
+            return Err(invalid(
+                "counterfactual feedback does not bind this native artifact",
+            ));
+        }
+        RealizerExecution {
+            context: &self.context,
+            potential_tables: &self.potential_tables,
+            no_read: &self.no_read,
+            geometry: &self.geometry,
+            exp: &self.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_dependent_action_traces(
+            frame,
+            view,
+            query,
+            prefix,
+            &self.artifact_binding,
+            feedback,
+            mode,
+        )
+    }
+    pub fn read_dependent_action_traces_for(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        feedback: &NativeReadFeedback,
+        mode: FeedbackInputMode,
+        requests: &[NativeLaneActionRequest],
+    ) -> Result<NativeActionCounterfactualTrace> {
+        if feedback.metadata().context != self.context.config()
+            || feedback.metadata().parent_artifact != self.artifact_binding
+        {
+            return Err(invalid(
+                "counterfactual feedback does not bind this native artifact",
+            ));
+        }
+        RealizerExecution {
+            context: &self.context,
+            potential_tables: &self.potential_tables,
+            no_read: &self.no_read,
+            geometry: &self.geometry,
+            exp: &self.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_dependent_action_traces_for(
+            frame,
+            view,
+            query,
+            prefix,
+            &self.artifact_binding,
+            feedback,
+            mode,
+            requests,
+        )
+    }
     pub fn compile_view(&self, original_ids: &[u32]) -> Result<SourceEmissionView> {
         self.compiler.compile(original_ids)
     }
@@ -862,6 +1090,376 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
     const TOKENIZER:&[u8]=br#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"\u0120":6},"merges":[]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"},{"id":9,"content":"<gap>"}]}"#;
     static NEXT: AtomicU64 = AtomicU64::new(0);
+    struct ActionFixture {
+        context: NativeContextQ4,
+        potential: NativePotentialTables,
+        stop: NativeGeometricNoRead,
+        period: NativeGeometricNoRead,
+        geometry: HistoricalH4Tables,
+        exp: Vec<u32>,
+        binding: SourceActionBinding,
+        compiler: SourceEmissionCompiler,
+        parent: NativeArtifactBinding,
+        feedback: NativeReadFeedback,
+    }
+    impl ActionFixture {
+        fn new() -> Result<Self> {
+            let c = ContextQ4Config {
+                vocab_size: 10,
+                heads: 2,
+                lanes_per_head: 1,
+            };
+            let mut context_q = Vec::new();
+            for (name, shape) in c.coefficient_shapes().map_err(|e| invalid(e.to_string()))? {
+                let mut q = vec![0; shape.iter().product::<usize>()];
+                if name == "token_transition" {
+                    for row in q.chunks_exact_mut(ROOT_COUNT) {
+                        row[4] = 7;
+                    }
+                }
+                if name == "self_root" {
+                    for lane in q.chunks_exact_mut(ROOT_COUNT * 4) {
+                        for (root, basis) in crate::geometric_context_q4::canonical_basis_q25()
+                            .iter()
+                            .enumerate()
+                        {
+                            for (coordinate, x) in basis.iter().enumerate() {
+                                let numerator = i64::from(*x) * 7;
+                                lane[root * 4 + coordinate] = if numerator >= 0 {
+                                    ((numerator + (1 << 24)) >> 25) as i8
+                                } else {
+                                    -(((-numerator + (1 << 24)) >> 25) as i8)
+                                };
+                            }
+                        }
+                    }
+                }
+                if name == "token_category" {
+                    for token in q.chunks_exact_mut(33) {
+                        token[1] = 7;
+                    }
+                }
+                context_q.extend(q);
+            }
+            let context = NativeContextQ4::new(
+                c,
+                &crate::geometric_context_q4::pack_coefficients(&context_q)
+                    .map_err(|e| invalid(e.to_string()))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+            let p = PotentialQ4Config {
+                heads: 2,
+                lanes_per_head: 1,
+            };
+            let mut potential_q = Vec::new();
+            for (name, shape) in p.coefficient_shapes().map_err(|e| invalid(e.to_string()))? {
+                let mut q = vec![0; shape.iter().product::<usize>()];
+                if name == "context_unary" {
+                    q[0] = 4;
+                    q[4] = -4;
+                }
+                potential_q.extend(q);
+            }
+            let potential = NativePotentialQ4::new(
+                p,
+                &crate::geometric_potential_q4::pack_coefficients(&potential_q)
+                    .map_err(|e| invalid(e.to_string()))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?
+            .into_native()
+            .map_err(|e| invalid(e.to_string()))?;
+            let n = NoReadConfig {
+                vocabulary: 10,
+                heads: 2,
+                latent_lanes_per_head: 1,
+            };
+            let controller = |bias: i8| -> Result<NativeGeometricNoRead> {
+                let mut q = vec![0; n.coefficient_count()];
+                for row in q.chunks_exact_mut(n.coefficients_per_head()) {
+                    row[0] = bias;
+                    row[1 + n.vocabulary + 2] = 5;
+                    row[1 + n.vocabulary + 4 + 2] = 3;
+                }
+                NativeGeometricNoRead::new(
+                    n,
+                    &crate::geometric_no_read::pack_coefficients(&q)
+                        .map_err(|e| invalid(e.to_string()))?,
+                )
+                .map_err(|e| invalid(e.to_string()))
+            };
+            let binding = SourceActionBinding::new(TOKENIZER)?;
+            let parent = NativeArtifactBinding {
+                metadata_sha256: "0".repeat(64),
+                identity: ArtifactIdentity {
+                    tokenizer_sha256: binding.tokenizer_sha256().into(),
+                    parent_checkpoint_manifest_sha256: "1".repeat(64),
+                    parent_model_sha256: "2".repeat(64),
+                    parent_config_sha256: "3".repeat(64),
+                },
+            };
+            let value_config = NativeReadFeedback::value_config(c);
+            let value = vec![
+                0;
+                value_config
+                    .coefficient_count()
+                    .map_err(|e| invalid(e.to_string()))?
+                    .div_ceil(2)
+            ];
+            let mut bridge_q = vec![0; NativeReadFeedback::bridge_coefficient_count(c)?];
+            bridge_q[0] = 1; // factual nonidentity action0 on lane0; lane1 identity tie.
+            let feedback = NativeReadFeedback::compile(
+                parent.clone(),
+                c,
+                &value,
+                &crate::geometric_value_q4::pack_coefficients(&bridge_q)
+                    .map_err(|e| invalid(e.to_string()))?,
+            )?;
+            let mut exp = vec![0; crate::geometric_read::EXP_TABLE_LEN];
+            exp[0] = crate::geometric_read::WEIGHT_ONE as u32;
+            Ok(Self {
+                context,
+                potential,
+                stop: controller(7)?,
+                period: controller(-7)?,
+                geometry: HistoricalH4Tables::from_bytes(ALGEBRA)
+                    .map_err(|e| invalid(e.to_string()))?,
+                exp,
+                binding,
+                compiler: SourceEmissionCompiler::new(TOKENIZER)?,
+                parent,
+                feedback,
+            })
+        }
+        fn execution(&self) -> RealizerExecution<'_> {
+            RealizerExecution {
+                context: &self.context,
+                potential_tables: &self.potential,
+                no_read: &self.stop,
+                geometry: &self.geometry,
+                exp: &self.exp,
+                period: &self.period,
+                binding: &self.binding,
+            }
+        }
+        fn frame(tokens: &[u32]) -> SelectedRecordFrame<'_> {
+            SelectedRecordFrame {
+                identity: SourceIdentity {
+                    record: 7,
+                    commit: 9,
+                },
+                metadata: FrameMetadata {
+                    scope: b"unit",
+                    entity: &[],
+                    relation: 3,
+                    view: 0,
+                    status: FrameStatus::Found,
+                },
+                token_ids: tokens,
+            }
+        }
+    }
+    #[test]
+    fn native_action_counterfactual_factual_replay_and_full_action_identity() -> Result<()> {
+        let f = ActionFixture::new()?;
+        let view = f.compiler.compile(&[4])?;
+        let execution = f.execution();
+        let trace = execution.read_dependent_action_traces(
+            ActionFixture::frame(&[4]),
+            &view,
+            &[4],
+            &[],
+            &f.parent,
+            &f.feedback,
+            FeedbackInputMode::JointCopy,
+        )?;
+        let factual = execution.read_dependent(
+            ActionFixture::frame(&[4]),
+            &view,
+            &[4],
+            &[],
+            &f.parent,
+            &f.feedback,
+            FeedbackInputMode::JointCopy,
+        )?;
+        assert_eq!(trace.factual, factual);
+        assert_eq!(trace.lanes.len(), 2);
+        assert_eq!(trace.scoring_stages, 242);
+        assert_eq!(trace.original_context_replays, 1);
+        assert_eq!(trace.value_producer_evaluations, 1);
+        for lane in &trace.lanes {
+            assert_eq!(lane.actions.len(), 120);
+            for (index, candidate) in lane.actions.iter().enumerate() {
+                assert_eq!(candidate.action, index as u8);
+                for (other, actual) in factual.feedback.actions.iter().enumerate() {
+                    if other != lane.lane {
+                        assert_eq!(candidate.action_vector[other], *actual);
+                    }
+                }
+            }
+            let actual = lane
+                .actions
+                .get(factual.feedback.actions[lane.lane] as usize)
+                .ok_or_else(|| invalid("factual class missing"))?;
+            assert_eq!(actual.final_actions, factual.stage2.actions);
+            assert_eq!(
+                actual.controller_snapshot,
+                factual.stage2_controller_snapshot
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn native_action_counterfactual_right_composes_original_and_scores_all_families() -> Result<()>
+    {
+        let f = ActionFixture::new()?;
+        let view = f.compiler.compile(&[4])?;
+        let execution = f.execution();
+        let request = NativeLaneActionRequest {
+            lane: 0,
+            actions: vec![H4Code::try_from(2).map_err(|e| invalid(e.to_string()))?],
+        };
+        let trace = execution.read_dependent_action_traces_for(
+            ActionFixture::frame(&[4]),
+            &view,
+            &[4],
+            &[],
+            &f.parent,
+            &f.feedback,
+            FeedbackInputMode::JointCopy,
+            &[request],
+        )?;
+        let candidate = &trace.lanes[0].actions[0];
+        let (mut reader, prepared, replay) =
+            execution.prepare_view(ActionFixture::frame(&[4]), &view, &[4], &[])?;
+        let original = prepared
+            .original_snapshot()
+            .map_err(|e| invalid(e.to_string()))?;
+        let keys = prepared
+            .source_occurrences()
+            .iter()
+            .map(|o| (o.source, o.token_offset, o.token_id))
+            .collect::<Vec<_>>();
+        let actions = candidate
+            .action_vector
+            .iter()
+            .map(|a| H4Code::try_from(*a).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        for (lane, (old, action)) in original.states().iter().zip(&actions).enumerate() {
+            assert_eq!(
+                candidate.controller_snapshot.states[lane],
+                f.geometry.compose(*old, *action).index()
+            );
+        }
+        assert_ne!(
+            f.geometry.compose(original.states()[0], actions[0]),
+            f.geometry.compose(actions[0], original.states()[0])
+        );
+        let snapshot = prepared
+            .apply_actions(&original, &actions)
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(
+            candidate.controller_snapshot,
+            QuerySnapshotReport::from(&snapshot)
+        );
+        let scored = execution.score_view(
+            ActionFixture::frame(&[4]),
+            &view,
+            &mut reader,
+            &prepared,
+            &snapshot,
+            &replay,
+        )?;
+        assert_eq!(candidate.final_actions, scored.actions);
+        assert_eq!(
+            keys,
+            prepared
+                .source_occurrences()
+                .iter()
+                .map(|o| (o.source, o.token_offset, o.token_id))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(trace.factual.stage1.source.emission_view, view);
+        assert_ne!(
+            candidate.controller_snapshot.codes,
+            trace.factual.stage2_controller_snapshot.codes
+        );
+        assert_ne!(
+            candidate.final_actions.head_scores[0].copy_q24,
+            trace.factual.stage2.actions.head_scores[0].copy_q24
+        );
+        assert_eq!(
+            candidate.final_actions.head_scores[1].copy_q24,
+            trace.factual.stage2.actions.head_scores[1].copy_q24
+        );
+        for head in 0..2 {
+            assert_ne!(
+                candidate.final_actions.head_scores[head].stop_q24,
+                trace.factual.stage2.actions.head_scores[head].stop_q24
+            );
+            assert_ne!(
+                candidate.final_actions.head_scores[head].period_q24,
+                trace.factual.stage2.actions.head_scores[head].period_q24
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn native_action_counterfactual_invalid_lane_duplicates_and_binding_are_errors() -> Result<()> {
+        let f = ActionFixture::new()?;
+        let view = f.compiler.compile(&[4])?;
+        let execution = f.execution();
+        for requests in [
+            vec![NativeLaneActionRequest {
+                lane: 2,
+                actions: vec![H4Code::IDENTITY],
+            }],
+            vec![NativeLaneActionRequest {
+                lane: 0,
+                actions: vec![],
+            }],
+            vec![NativeLaneActionRequest {
+                lane: 0,
+                actions: vec![H4Code::IDENTITY, H4Code::IDENTITY],
+            }],
+            vec![
+                NativeLaneActionRequest {
+                    lane: 0,
+                    actions: vec![H4Code::IDENTITY],
+                },
+                NativeLaneActionRequest {
+                    lane: 0,
+                    actions: vec![H4Code::IDENTITY],
+                },
+            ],
+        ] {
+            assert!(execution
+                .read_dependent_action_traces_for(
+                    ActionFixture::frame(&[4]),
+                    &view,
+                    &[4],
+                    &[],
+                    &f.parent,
+                    &f.feedback,
+                    FeedbackInputMode::JointCopy,
+                    &requests
+                )
+                .is_err());
+        }
+        let mut foreign = f.parent.clone();
+        foreign.metadata_sha256 = "f".repeat(64);
+        assert!(execution
+            .read_dependent_action_traces(
+                ActionFixture::frame(&[4]),
+                &view,
+                &[4],
+                &[],
+                &foreign,
+                &f.feedback,
+                FeedbackInputMode::JointCopy
+            )
+            .is_err());
+        Ok(())
+    }
     struct Fixture {
         root: std::path::PathBuf,
         binding: NativeArtifactBinding,

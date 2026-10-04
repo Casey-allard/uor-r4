@@ -1,0 +1,143 @@
+{
+  "schema": "uor-r4.native-route-credit-evidence/1",
+  "executed_source_commit": "3f7cc4a8d40bccbdb74b070ac04970291d7f5160",
+  "executed_parent_main": "faf567d67da67f3e796e095abed05f32b6c2a2ba",
+  "host": "Runpod Linux x86_64; CPU only",
+  "executable_sha256": "09daa6b765245626e404b3267a12f542a40f3da4ae3eef4f46b4efbda4193a5e",
+  "optimizer_updates": 0,
+  "arms": {
+    "joint": {
+      "cases": 64,
+      "target_steps": 570,
+      "counterfactual_actions": 547200,
+      "native_equal_episode_ce": 0.4923816248649195,
+      "utility_useful_actions": 169338,
+      "utility_lanes_with_improvement": 4412,
+      "utility_zero_support_actions": 0,
+      "aggregate_gradient": {
+        "bridge.coefficients": {
+          "elements": 79680,
+          "f64_le_bits_sha256": "889aaa86c9c4638810e18ab3411bbf18b6de639688809adb94524cce4b25fdaf",
+          "finite": true,
+          "l1": 0.15616329606883272,
+          "l2": 0.0020470133581876656,
+          "nonzero": 18240
+        }
+      },
+      "elapsed_seconds": 13.010366664,
+      "counterfactual_seconds": 6.850013045000002
+    },
+    "role": {
+      "cases": 64,
+      "target_steps": 570,
+      "counterfactual_actions": 547200,
+      "native_equal_episode_ce": 0.4923816248649195,
+      "utility_useful_actions": 169338,
+      "utility_lanes_with_improvement": 4412,
+      "utility_zero_support_actions": 0,
+      "aggregate_gradient": {
+        "bridge.coefficients": {
+          "elements": 79680,
+          "f64_le_bits_sha256": "476bf856fa9bad693ac59db55fd53a15d5eb2473d00b5f8e08bac639c56d6e7f",
+          "finite": true,
+          "l1": 0.15609236044748706,
+          "l2": 0.0020446153455681584,
+          "nonzero": 18240
+        }
+      },
+      "elapsed_seconds": 12.603699044,
+      "counterfactual_seconds": 6.805306788000001
+    }
+  },
+  "return": {
+    "source_commit": "3f7cc4a8d40bccbdb74b070ac04970291d7f5160",
+    "files": 146,
+    "bytes": 120385112,
+    "file_set_exact": true,
+    "sha256_exact": true,
+    "executable_sha256_exact": true,
+    "local_blake3": "NOT_RUN"
+  },
+  "independent_review": {
+    "checks": 4576514,
+    "errors": 0,
+    "sha256": "0bbde1753a820c05bab71364e7e811868094f06cb570cf738f278c958f904de8",
+    "scope": "saved-field arithmetic/reference SHA; not native reexecution or aggregate-gradient reconstruction; no local BLAKE3"
+  },
+  "executed_checks": {
+    "integer_focused_tests": 3,
+    "training_focused_tests": 3,
+    "release_build_exit_code": 0,
+    "rustfmt_check_exit_code": 0,
+    "git_diff_check_exit_code": 0
+  },
+  "pod_receipts": [
+    {
+      "name": "native-route-credit-admission-joint-1-receipt.json",
+      "sha256": "1edbc32e79cd18a5322359ab0ceda2872cb4b20bd4cfce3b04f779fd1ae19d48",
+      "exit_code": 0,
+      "elapsed_seconds": 14.239985384047031,
+      "rusage_children_max_rss_bytes": 781070336
+    },
+    {
+      "name": "native-route-credit-admission-role-1-receipt.json",
+      "sha256": "0d4fed9003c977065d71862f63923180098d83c73b8cd9cdcab288d2b6435a02",
+      "exit_code": 0,
+      "elapsed_seconds": 14.264973532874137,
+      "rusage_children_max_rss_bytes": 780128256
+    },
+    {
+      "name": "native-route-credit-integer-tests-receipt.json",
+      "sha256": "f45882f98fc117c1a2bd34da5a3b62602531718e4301b1a63b34a76658d90c57",
+      "exit_code": 0,
+      "elapsed_seconds": 44.77405685884878,
+      "rusage_children_max_rss_bytes": 853213184
+    },
+    {
+      "name": "native-route-credit-release-receipt.json",
+      "sha256": "cb8a440ca936ae02adaac29618f0b62c465a6e3131ad3abf4e625d8e799887ff",
+      "exit_code": 0,
+      "elapsed_seconds": 162.0694025810808,
+      "rusage_children_max_rss_bytes": 2191790080
+    },
+    {
+      "name": "native-route-credit-training-tests-receipt.json",
+      "sha256": "0771094975fdd5bd050ac7ee981ea236787830af2dc95cc86b42c09bffabf4bf",
+      "exit_code": 0,
+      "elapsed_seconds": 524.8714752406813,
+      "rusage_children_max_rss_bytes": 4159442944
+    }
+  ],
+  "total_pod_receipt_seconds": 760.2198935975321,
+  "ledger": {
+    "utc": "2026-10-04T17:12:48.059899+00:00",
+    "task": "geometric-native-route-credit-20261004",
+    "previous": {
+      "cumulative_ms": 1168035028,
+      "limit_ms": 1170000000
+    },
+    "charged_ms": 5400000,
+    "necessary_limit_increment_ms": 6000000,
+    "reason": "New causal native action-credit implementation after verified paired regression; complete90min source/build/review/admission/delivery projection exceeds unreserved prior32.75min. Standing owner local time allowance extension; existing authorized pod CPU only, no provision/rental extension.",
+    "updated": {
+      "cumulative_ms": 1173435028,
+      "limit_ms": 1176000000
+    }
+  },
+  "research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-native-route-credit-20261004",
+  "remaining_obligations": [
+    "prospective paired fit and packed native behavior",
+    "independent fresh transfer",
+    "general Generate/prose/reasoning",
+    "native compiler/store/session integration",
+    "complete integer serving and laptop energy/performance"
+  ],
+  "not_claimed": [
+    "learned useful attention",
+    "hard-argmax descent",
+    "geometry advantage",
+    "native joint marginal objective",
+    "general chat",
+    "GPU or Metal qualification"
+  ]
+}

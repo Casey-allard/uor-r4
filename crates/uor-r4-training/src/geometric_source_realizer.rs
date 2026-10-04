@@ -445,6 +445,37 @@ impl NativeSourceRealizer {
             )?,
         )
     }
+    /// Offline target-free interventions reuse the same shared integer scorer.
+    pub fn read_dependent_action_traces(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        feedback: &uor_r4_integer::geometric_read_feedback::NativeReadFeedback,
+        mode: uor_r4_integer::geometric_read_feedback::FeedbackInputMode,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::NativeActionCounterfactualTrace> {
+        Ok(
+            uor_r4_integer::geometric_source_realizer::RealizerExecution {
+                context: &self.consumer.context,
+                potential_tables: &self.consumer.potential_tables,
+                no_read: &self.consumer.no_read,
+                geometry: &self.consumer.geometry,
+                exp: &self.consumer.exp,
+                period: &self.period,
+                binding: &self.binding,
+            }
+            .read_dependent_action_traces(
+                frame,
+                view,
+                query,
+                prefix,
+                &self.artifact_binding()?,
+                feedback,
+                mode,
+            )?,
+        )
+    }
     fn validate_source(&self, source: &SourceRealizerWeights) -> Result<()> {
         source.validate()?;
         self.consumer.validate_source(&source.consumer)?;
@@ -560,6 +591,30 @@ pub struct DependentRealizerLoss {
     pub loss: Tensor,
     pub trace: uor_r4_integer::geometric_source_realizer::DependentReadTrace,
     pub target_probability: f64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct NativeRouteLaneUtility {
+    pub lane: usize,
+    pub factual_action: u8,
+    pub target_mass_q31: Vec<u64>,
+    pub total_weight_q31: Vec<u64>,
+    pub target_probabilities: Vec<f64>,
+    pub policy_logits_nat: Vec<f32>,
+    pub policy_probabilities: Vec<f32>,
+    pub mixture_probability: f64,
+    pub policy_adjoint: Vec<f64>,
+    pub zero_support_actions: usize,
+    pub best_target_probability: f64,
+    pub useful_actions: usize,
+}
+pub struct NativeRouteRealizerLoss {
+    pub loss: Tensor,
+    pub trace: uor_r4_integer::geometric_source_realizer::DependentReadTrace,
+    pub target_probability: f64,
+    pub utilities: Vec<NativeRouteLaneUtility>,
+    pub counterfactual_actions: usize,
+    pub counterfactual_seconds: f64,
 }
 
 pub struct RealizerLoss {
@@ -691,6 +746,137 @@ impl PreparedSourceRealizer<'_> {
 
     /// Bridge-only dependent loss. All producer/stage1/source/readout factors are
     /// detached fixed copies; target is used only after both native reads finish.
+    /// Native conditional latent-action mixture; only bridge logits carry credit.
+    /// No target is supplied to the shared native intervention scorer.
+    pub fn loss_native_route_with_native(
+        &self,
+        frame: SelectedRecordFrame<'_>,
+        view: &SourceEmissionView,
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+        bridge: &FeedbackBridgeWeights,
+        feedback: &uor_r4_integer::geometric_read_feedback::NativeReadFeedback,
+        mode: uor_r4_integer::geometric_read_feedback::FeedbackInputMode,
+    ) -> Result<NativeRouteRealizerLoss> {
+        if feedback.metadata().parent_artifact != *bridge.parent_binding()
+            || feedback.metadata().context != bridge.context_config()
+            || feedback.value_packed() != bridge.value_packed()
+            || feedback.bridge_packed() != bridge.packed_coefficients()?
+            || bridge.parent_binding() != &self.native.artifact_binding()?
+            || target as usize >= self.source.binding.vocab_size()
+        {
+            return Err(invalid(
+                "native route compiled bridge/parent/target binding differs",
+            ));
+        }
+        let started = std::time::Instant::now();
+        let interventions = self
+            .native
+            .read_dependent_action_traces(frame, view, query, prefix, feedback, mode)?;
+        let counterfactual_seconds = started.elapsed().as_secs_f64();
+        let trace = interventions.factual;
+        let probability = |actions: &uor_r4_integer::geometric_source_actions::ActionTrace| -> Result<(u64, f64)> {
+            if actions.total_weight_q31 == 0 {
+                return Err(invalid("native route action total mass is zero"));
+            }
+            let mass = actions.token_masses.iter().find(|m| m.token_id == target)
+                .map_or(0, |m| m.weight_q31);
+            if mass > actions.total_weight_q31 {
+                return Err(invalid("native route target mass exceeds total"));
+            }
+            Ok((mass, mass as f64 / actions.total_weight_q31 as f64))
+        };
+        let (_, target_probability) = probability(&trace.stage2.actions)?;
+        if target_probability == 0.0 || !target_probability.is_finite() {
+            return Err(invalid(
+                "native route factual target has zero/nonfinite support; no floor",
+            ));
+        }
+        let logits = bridge.policy_logits(&trace.feedback)?;
+        if interventions.lanes.len() != logits.len() {
+            return Err(invalid("native route lane count differs"));
+        }
+        let mut mixtures = Vec::with_capacity(logits.len());
+        let mut utilities = Vec::with_capacity(logits.len());
+        for (lane, (records, policy)) in interventions.lanes.iter().zip(&logits).enumerate() {
+            if records.lane != lane || records.actions.len() != 120 {
+                return Err(invalid(
+                    "native route exhaustive lane/action ordering differs",
+                ));
+            }
+            let factual_action = trace.feedback.actions[lane];
+            let mut masses = Vec::with_capacity(120);
+            let mut totals = Vec::with_capacity(120);
+            let mut probabilities = Vec::with_capacity(120);
+            for (action, record) in records.actions.iter().enumerate() {
+                let mut expected = trace.feedback.actions.clone();
+                expected[lane] = action as u8;
+                if record.action != action as u8 || record.action_vector != expected {
+                    return Err(invalid("native route intervention changed another lane"));
+                }
+                if record.action == factual_action
+                    && (record.final_actions != trace.stage2.actions
+                        || record.controller_snapshot != trace.stage2_controller_snapshot)
+                {
+                    return Err(invalid(
+                        "native route factual intervention differs from actual read",
+                    ));
+                }
+                let (mass, u) = probability(&record.final_actions)?;
+                masses.push(mass);
+                totals.push(record.final_actions.total_weight_q31);
+                probabilities.push(u);
+            }
+            let mixture =
+                crate::geometric_read_feedback::native_probability_mixture(policy, &probabilities)?;
+            let p = candle_nn::ops::softmax(policy, 0)?.to_vec1::<f32>()?;
+            let support = p
+                .iter()
+                .zip(&probabilities)
+                .map(|(p, u)| f64::from(*p) * u)
+                .sum::<f64>();
+            if support <= 0.0 || !support.is_finite() {
+                return Err(invalid(
+                    "native route detached mixture support is zero/nonfinite",
+                ));
+            }
+            utilities.push(NativeRouteLaneUtility {
+                lane,
+                factual_action,
+                target_mass_q31: masses,
+                total_weight_q31: totals,
+                zero_support_actions: probabilities.iter().filter(|u| **u == 0.0).count(),
+                best_target_probability: probabilities.iter().copied().fold(0.0, f64::max),
+                useful_actions: probabilities
+                    .iter()
+                    .filter(|u| **u > target_probability)
+                    .count(),
+                policy_adjoint: p
+                    .iter()
+                    .zip(&probabilities)
+                    .map(|(p, u)| f64::from(*p) - f64::from(*p) * u / support)
+                    .collect(),
+                target_probabilities: probabilities,
+                policy_logits_nat: policy.to_vec1::<f32>()?,
+                policy_probabilities: p,
+                mixture_probability: support,
+            });
+            mixtures.push(mixture);
+        }
+        let mean = Tensor::stack(&mixtures, 0)?.mean_all()?;
+        let loss =
+            crate::geometric_read_feedback::anchor_native_route_loss(target_probability, &mean)?;
+        Ok(NativeRouteRealizerLoss {
+            loss,
+            trace,
+            target_probability,
+            utilities,
+            counterfactual_actions: logits.len() * 120,
+            counterfactual_seconds,
+        })
+    }
+
     pub fn loss_dependent(
         &self,
         frame: SelectedRecordFrame<'_>,
@@ -1005,6 +1191,74 @@ mod tests {
         )?;
         let bridge = FeedbackBridgeWeights::from_native(&feedback)?;
         Ok((fixture, native, bridge))
+    }
+    #[test]
+    fn native_route_exact_alias_utilities_are_target_free_and_only_bridge_has_credit() -> Result<()>
+    {
+        let (fixture, native, bridge) = dependent_fixture()?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let prepared = fixture.weights.prepare(&native)?;
+        let update = bridge.compile()?;
+        for mode in [
+            uor_r4_integer::geometric_read_feedback::FeedbackInputMode::JointCopy,
+            uor_r4_integer::geometric_read_feedback::FeedbackInputMode::RoleSurface,
+        ] {
+            let mut previous = None;
+            for target in [4, 3, 1] {
+                let ordinary = prepared.loss(frame(&ids), &view, &[5], &[], target)?;
+                let out = prepared.loss_native_route_with_native(
+                    frame(&ids),
+                    &view,
+                    &[5],
+                    &[],
+                    target,
+                    &bridge,
+                    &update,
+                    mode,
+                )?;
+                assert_eq!(out.trace.stage1, ordinary.trace);
+                assert_eq!(out.trace.stage2, ordinary.trace);
+                assert_eq!(
+                    out.loss.to_scalar::<f32>()?.to_bits(),
+                    ordinary.loss.to_scalar::<f32>()?.to_bits()
+                );
+                if let Some(prior) = &previous {
+                    assert_eq!(prior, &out.trace);
+                }
+                for utility in &out.utilities {
+                    assert_eq!(utility.target_probabilities.len(), 120);
+                    assert_eq!(
+                        utility.target_probabilities[utility.factual_action as usize],
+                        out.target_probability
+                    );
+                    let target_mass = ordinary
+                        .trace
+                        .actions
+                        .token_masses
+                        .iter()
+                        .find(|m| m.token_id == target)
+                        .map_or(0, |m| m.weight_q31);
+                    assert_eq!(
+                        utility.target_mass_q31[utility.factual_action as usize],
+                        target_mass
+                    );
+                }
+                let grads = out.loss.backward()?;
+                let var = &bridge.parameters()["bridge.coefficients"];
+                let g = grads
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("route policy credit disconnected"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert!(g.iter().all(|g| g.is_finite()));
+                for (name, var) in fixture.weights.parameters() {
+                    assert!(grads.get(var.as_tensor()).is_none(), "frozen{name}");
+                }
+                previous = Some(out.trace);
+            }
+        }
+        Ok(())
     }
     #[test]
     fn dependent_identity_marginal_alias_loss_matches_parent_and_relabel_is_trace_free(
