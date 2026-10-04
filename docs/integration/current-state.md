@@ -1,5 +1,51 @@
 # Current UOR-R4 research state
 
+
+## Geometric context learning and family isolation — October 4
+
+The [existing context adaptation](geometric-context-adaptation-2026-10-03.md) is
+executed from retained composition32 on the same frozen 28-case data. Context and
+readouts learn jointly through the existing Rust loss and biased surrogate; no
+new model, runtime or session path. All 44 saved starting replies replay exactly.
+At updates 0/16/32/48/64, original complete replies are 20/0/4/0/6, construction
+remains 0/8, and examined development transfer is 2/0/1/0/3. Final transfer has
+three gains and two losses: Louston and repeated singer complete, but both old
+singer/dancer swaps are lost. Two gains share one input. Final context changes
+14,049 packed bytes. Preserve all stages and new partial capabilities; no geometry
+family retirement or default change.
+
+Zero-update exact-family hybrids isolate the regression. Old context with new
+readouts preserves 20/20 originals; new context with old readouts completes 4/20;
+joint-new 6/20 and old 20/20 replay exactly. All four construction panels remain
+0/8. Context changes alone are sufficient for broad preservation loss. The 4/20
+and 6/20 success sets differ: new-context/old-readout has four gains and six losses
+versus joint-new. At the identical final first-failure prefix3, only joint-new
+repeats singer instead of EOS, so this local failure also involves an interaction.
+The context trajectory first changes at source position0, before query or output.
+This does not prove an exact surrogate defect or inability to learn geometry.
+
+Next: start from retained old32 with readouts fixed, and reuse the existing bounded
+native direction machinery for at most two justified packed context coordinates
+at the actual failed source/prefix. Compare surrogate credit with actual legal
+one-quarter changes, native target mass/CE, actions and all 28 original/construction
+reply gains and losses before another fit. This diagnostic is NOT_RUN. No unchanged
+dose, presumed completion anchor or session hook; coordinate on #1552 before any
+later shared-session edit. Preservation is stability evidence, not a blanket veto
+against a mechanism with broader measured usefulness.
+
+Context-fit source aca9173c passes 11 focused tests and release build; fit305.331s,
+maximum child RSS1,952,604,160B. Transplant source562a8013 passes 12 focused tests
+and release build; zero-update run12.207s. Independent reviews check3,268 training
+positions,220 fit replies and112 diagnostic replies, exact families/mosaics and
+all gains/losses. All134 fit files /277,204,456B and58 diagnostic files /99,025,583B
+are returned with exact file-set/SHA/size verification, plus both unique executables.
+CPU-only Runpod Linux x86_64; no GPU, GitHub research runner or laptop model CPU.
+Metal unavailable on Linux is not counted. Pod card released, owned area~6.55GiB.
+[Bound evidence](../evidence/geometric-context-adaptation-2026-10-03.json) retains
+parents and comparisons. Complete work is conservatively charged90min once:
+cumulative1,069,635,028/1,130,000,000ms, ceiling unchanged. Actual worker receipts
+remain separate from that envelope. No general-chat, serving or energy qualification.
+
 ## Native geometric varied-source learning — original replies20/20, composition open, October 3
 
 The [fixed-weight transfer](geometric-transfer-2026-10-03.md) replays saved parent4/20

@@ -106,9 +106,16 @@ complete. Familiar-token composition fails at the first output; the original18/2
 replays exactly. The [executed varied-source continuation](geometric-composition-learning-2026-10-03.md)
 reuses ordinary answer CE with context frozen and original-case preservation.
 Original replies reach20/20 at16/32/48, but new construction0/8 and development
-transfer2/16 remain. Preserve32/48 and final regression; next enable existing
-context learning on the same frozen data before integration. That adaptation is
-NOT_RUN. The inspected transfer panel remains development evidence.
+transfer2/16 remain. Preserve32/48 and final regression. The [executed context
+adaptation and exact-family isolation](geometric-context-adaptation-2026-10-03.md)
+then enables existing context learning on the same frozen data. Finaloriginal6/20,
+construction0/8 and transfer3/16 include new repeated-source capability alongside
+14original and2transfer losses. Oldcontext+newreadouts preserves20/20; newcontext+
+oldreadouts gives4/20. A fixed-prefix EOS failure also shows interaction. Retain
+all parents/stages/hybrids. Next extend existing native direction diagnosis to a
+few justified context packed quanta before another fit or session integration;
+this context-direction task is NOT_RUN. No unchanged dose, presumed completion
+patch or geometry-family rejection. The inspected transfer remains development.
 Do not add a progress cursor from these first-token failures, repeat the original
 fit unchanged or reject the geometry family. Preserve all partial results; five
 exposed numerical groups do not establish complete chat or generalization.

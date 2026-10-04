@@ -1,0 +1,1031 @@
+{
+  "schema": "uor-r4.geometric-context-adaptation-evidence/1",
+  "source_commit": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+  "executable_sha256": "170f43a94a521a0f1ac0debf4b8b212f44623823f39941bae379c783cd505370",
+  "measured_schema": "uor-r4.geometric-context-adaptation/1",
+  "status": "completed",
+  "optimizer_updates": 64,
+  "scope": "64-update existing context+readout adaptation;20 preservation+8 fixed construction training,16 previously examined development transfer; no heldout/geometric-advantage/chat qualification",
+  "starting_checkpoint_manifest_sha256": "83d02da60b3578abe79b1e1ce0a3dc6d8ffea6f15370cf9d8917bbd4b4507485",
+  "construction_manifest_sha256": "c7540658fd9a905a89d63496089ce180dbe99d50f0c531475eecf2cff21fed49",
+  "measured_admission": {
+    "admitted": true,
+    "baseline_stage_seconds": 8.633011312,
+    "evaluation_and_stop_reserve_seconds": 64.532045248,
+    "first_b8_seconds": 4.898489121,
+    "projected_remaining_seconds": 378.03534899199997,
+    "remaining_declared_seconds": 1186.213836253
+  },
+  "optimizer": {
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "epsilon": 1e-08,
+    "gradient_clip": 1.0,
+    "lr": 0.003,
+    "updates": 64,
+    "weight_decay": 0.0
+  },
+  "context_gradient_rule": "existing declared context straight-through estimator; biased adjoint, not exact derivative of hard integer transitions",
+  "first_context_gradient_l1": 7.911916862192253,
+  "matched_construction_b8_ce": [
+    1.3511531384428963,
+    1.2942328244098462
+  ],
+  "input_source_and_native_unchanged": true,
+  "baseline_all44_saved_rows_exact": true,
+  "adopted_model": false,
+  "stages": [
+    {
+      "new_updates": 0,
+      "panels": {
+        "original": {
+          "complete": 20,
+          "eos": 20,
+          "versus_start": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "construction": {
+          "complete": 0,
+          "eos": 8,
+          "versus_start": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "transfer": {
+          "complete": 2,
+          "eos": 16,
+          "versus_start": {
+            "gains": 0,
+            "losses": 0
+          }
+        }
+      },
+      "context_source_bits_changed": 0,
+      "context_native_bytes_changed": 0
+    },
+    {
+      "new_updates": 16,
+      "panels": {
+        "original": {
+          "complete": 0,
+          "eos": 20,
+          "versus_start": {
+            "gains": 0,
+            "losses": 20
+          }
+        },
+        "construction": {
+          "complete": 0,
+          "eos": 8,
+          "versus_start": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "transfer": {
+          "complete": 0,
+          "eos": 16,
+          "versus_start": {
+            "gains": 0,
+            "losses": 2
+          }
+        }
+      },
+      "context_source_bits_changed": 74856,
+      "context_native_bytes_changed": 9179
+    },
+    {
+      "new_updates": 32,
+      "panels": {
+        "original": {
+          "complete": 4,
+          "eos": 20,
+          "versus_start": {
+            "gains": 0,
+            "losses": 16
+          }
+        },
+        "construction": {
+          "complete": 0,
+          "eos": 8,
+          "versus_start": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "transfer": {
+          "complete": 1,
+          "eos": 16,
+          "versus_start": {
+            "gains": 0,
+            "losses": 1
+          }
+        }
+      },
+      "context_source_bits_changed": 74856,
+      "context_native_bytes_changed": 11672
+    },
+    {
+      "new_updates": 48,
+      "panels": {
+        "original": {
+          "complete": 0,
+          "eos": 20,
+          "versus_start": {
+            "gains": 0,
+            "losses": 20
+          }
+        },
+        "construction": {
+          "complete": 0,
+          "eos": 8,
+          "versus_start": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "transfer": {
+          "complete": 0,
+          "eos": 16,
+          "versus_start": {
+            "gains": 0,
+            "losses": 2
+          }
+        }
+      },
+      "context_source_bits_changed": 74856,
+      "context_native_bytes_changed": 12953
+    },
+    {
+      "new_updates": 64,
+      "panels": {
+        "original": {
+          "complete": 6,
+          "eos": 20,
+          "versus_start": {
+            "gains": 0,
+            "losses": 14
+          }
+        },
+        "construction": {
+          "complete": 0,
+          "eos": 8,
+          "versus_start": {
+            "gains": 0,
+            "losses": 0
+          }
+        },
+        "transfer": {
+          "complete": 3,
+          "eos": 16,
+          "versus_start": {
+            "gains": 3,
+            "losses": 2
+          }
+        }
+      },
+      "context_source_bits_changed": 74856,
+      "context_native_bytes_changed": 14049
+    }
+  ],
+  "resource_receipts": {
+    "test": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T03:35:16.438710+00:00",
+      "source_commit": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 128359,
+      "worker_pid": 128360,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 97.0584303829819,
+      "sampled_process_tree_peak_rss_bytes": 8014848000,
+      "rusage_children_max_rss_bytes": 7592624128,
+      "codex_allocated_bytes_latest": 6073753600,
+      "free_bytes_final": 17650151424,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "build": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T03:40:05.063610+00:00",
+      "source_commit": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "cargo",
+        "build",
+        "--locked",
+        "--release",
+        "-p",
+        "uor-r4-training",
+        "--example",
+        "geometric-source-realizer"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 129145,
+      "worker_pid": 129146,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 274.95794222084805,
+      "sampled_process_tree_peak_rss_bytes": 5613342720,
+      "rusage_children_max_rss_bytes": 4184043520,
+      "codex_allocated_bytes_latest": 6634061824,
+      "free_bytes_final": 17650040832,
+      "maximum_seconds": 900,
+      "maximum_rss_bytes": 17179869184,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    },
+    "run": {
+      "host": "Runpod Linux x86_64",
+      "recorded_utc": "2026-10-04T03:46:13.424520+00:00",
+      "source_commit": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+      "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+      "command": [
+        "/root/codex/target/release/examples/geometric-source-realizer",
+        "/root/codex/context-args.json"
+      ],
+      "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+      "environment": {
+        "CARGO_HOME": "/root/codex/cargo-home",
+        "CARGO_TARGET_DIR": "/root/codex/target",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_BUILD_JOBS": "48",
+        "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+        "RAYON_NUM_THREADS": "48",
+        "CUDA_VISIBLE_DEVICES": "",
+        "UOR_BUILD_SOURCE_COMMIT": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+        "TMPDIR": "/root/codex/tmp"
+      },
+      "affinity_cpu_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47
+      ],
+      "threads_budget": 48,
+      "wrapper_pid": 130432,
+      "worker_pid": 130434,
+      "exit_code": 0,
+      "stop_reason": null,
+      "elapsed_seconds": 305.33136460604146,
+      "sampled_process_tree_peak_rss_bytes": 1955930112,
+      "rusage_children_max_rss_bytes": 1952604160,
+      "codex_allocated_bytes_latest": 6872797184,
+      "free_bytes_final": 17372491776,
+      "maximum_seconds": 1200,
+      "maximum_rss_bytes": 8589934592,
+      "gpu_used": false,
+      "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+    }
+  },
+  "return_verification": {
+    "file_count": 134,
+    "bytes": 277204456,
+    "all_file_sets_sizes_and_sha256_equal": true,
+    "executable_sha256": "170f43a94a521a0f1ac0debf4b8b212f44623823f39941bae379c783cd505370"
+  },
+  "independent_fit_review": {
+    "status": "independent saved-report arithmetic PASS",
+    "training_positions_checked": 3268,
+    "generated_rows_checked": 220,
+    "generated_steps_checked": 949,
+    "initial_all44_saved_rows_exact": true,
+    "reviewer": "context_followup_architecture",
+    "review_sha256": "e0d15b1c18a424fa56b79dac9aaa6b1f5199960d8e41dbdbe26f64d925bf31d5"
+  },
+  "source_reviews": {
+    "source-review": {
+      "source_commit": "aca9173c431ee0108cec53edf5d81051bc946a6d",
+      "example_sha256": "2fa16a235661823f8604dec2f9e44bcea7fbd649f0ba6632627dcf3922778fc0",
+      "reviewer": "context_adaptation_critic",
+      "status": "approved for declared focused tests, release build and bounded fit",
+      "correction": "Removed hash guard for deliberately unused nonexistent initial_construction placeholder; all consumed identities remain bound",
+      "attribution": "Joint context and readout learning under all-family clipping; not isolated context causality",
+      "gradient_boundary": "Existing biased context straight-through estimator, not exact hard-transition derivative"
+    },
+    "transplant-source-review": {
+      "reviewer": "context_followup_architecture",
+      "source_commit": "562a80134491180a6a1feda5dfc1861625c60a40",
+      "example_sha256": "f8d8ff9be0ef02a1037c41243751d1ed0a6b9f8e2aee27040395dfdc8dcd1865",
+      "status": "independent focused source approved",
+      "trace_boundary": "fixed empty-prefix trace is not final firstdivergence witness",
+      "actual_failure_prefix_trace": "same saved final64 firstdivergence prefix3 for4cells, target reportonly"
+    }
+  },
+  "transplant": {
+    "source_commit": "562a80134491180a6a1feda5dfc1861625c60a40",
+    "executable_sha256": "221942e8cc22c7dbfa54ec14d73eefa0d29c62c047325538911e289f95787b97",
+    "report_sha256": "2c71655a8f823f637d6a6f51bbf74412bf56799899593cc01b02f902280d7d76",
+    "schema": "uor-r4.geometric-context-transplant/1",
+    "status": "completed",
+    "optimizer_updates": 0,
+    "context_fit_manifest_sha256": "f046fbc8ca78a750974081d112015fe45d4b3521dbc1b60d74c33c2e0c579e34",
+    "old_checkpoint_manifest_sha256": "83d02da60b3578abe79b1e1ce0a3dc6d8ffea6f15370cf9d8917bbd4b4507485",
+    "new_checkpoint_manifest_sha256": "541b6ac79e42bdc00c8c15cff17177857413666c51c26004bb505800112faf28",
+    "scope": "zero-update2x2 component transplant diagnosis on20 exposed original+8 construction replies; mathematical factorization intervention, no heldout/geometric-advantage/chat qualification",
+    "independent_review": {
+      "status": "independent returned artifact arithmetic PASS",
+      "source_commit": "562a80134491180a6a1feda5dfc1861625c60a40",
+      "executable_sha256": "221942e8cc22c7dbfa54ec14d73eefa0d29c62c047325538911e289f95787b97",
+      "optimizer_updates": 0,
+      "generated_rows_checked": 112,
+      "generated_action_alias_steps_checked": 665,
+      "fixed_full_traces_checked": 8,
+      "input_checkpoint_files_unchanged": true,
+      "source_f32_family_files_exact": true,
+      "native_payload_mosaics_exact": true,
+      "panels": [
+        {
+          "cell": "old-context-old-readouts",
+          "panels": {
+            "original": {
+              "complete": 20,
+              "eos": 20,
+              "cases": 20
+            },
+            "construction": {
+              "complete": 0,
+              "eos": 8,
+              "cases": 8
+            }
+          }
+        },
+        {
+          "cell": "new-context-new-readouts",
+          "panels": {
+            "original": {
+              "complete": 6,
+              "eos": 20,
+              "cases": 20
+            },
+            "construction": {
+              "complete": 0,
+              "eos": 8,
+              "cases": 8
+            }
+          }
+        },
+        {
+          "cell": "old-context-new-readouts",
+          "panels": {
+            "original": {
+              "complete": 20,
+              "eos": 20,
+              "cases": 20,
+              "versus_start": {
+                "gains": 0,
+                "losses": 0
+              },
+              "versus_final64": {
+                "gains": 14,
+                "losses": 0
+              }
+            },
+            "construction": {
+              "complete": 0,
+              "eos": 8,
+              "cases": 8,
+              "versus_start": {
+                "gains": 0,
+                "losses": 0
+              },
+              "versus_final64": {
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        },
+        {
+          "cell": "new-context-old-readouts",
+          "panels": {
+            "original": {
+              "complete": 4,
+              "eos": 20,
+              "cases": 20,
+              "versus_start": {
+                "gains": 0,
+                "losses": 16
+              },
+              "versus_final64": {
+                "gains": 4,
+                "losses": 6
+              }
+            },
+            "construction": {
+              "complete": 0,
+              "eos": 8,
+              "cases": 8,
+              "versus_start": {
+                "gains": 0,
+                "losses": 0
+              },
+              "versus_final64": {
+                "gains": 0,
+                "losses": 0
+              }
+            }
+          }
+        }
+      ],
+      "fixed_final_firstdivergence": [
+        {
+          "cell": "old-context-old-readouts",
+          "step": 3,
+          "prefix": [
+            1130,
+            284,
+            16
+          ],
+          "target": 1,
+          "winner": 1,
+          "target_minus_best_other_mass_q31": 2113782047
+        },
+        {
+          "cell": "new-context-new-readouts",
+          "step": 3,
+          "prefix": [
+            1130,
+            284,
+            16
+          ],
+          "target": 1,
+          "winner": 1130,
+          "target_minus_best_other_mass_q31": -1078883709
+        },
+        {
+          "cell": "old-context-new-readouts",
+          "step": 3,
+          "prefix": [
+            1130,
+            284,
+            16
+          ],
+          "target": 1,
+          "winner": 1,
+          "target_minus_best_other_mass_q31": 2060144481
+        },
+        {
+          "cell": "new-context-old-readouts",
+          "step": 3,
+          "prefix": [
+            1130,
+            284,
+            16
+          ],
+          "target": 1,
+          "winner": 1,
+          "target_minus_best_other_mass_q31": 874000691
+        }
+      ],
+      "interpretation": "Changed context with old readouts is sufficient to lose16 of20 originals; changed readouts with old context preserve20. At identical prefix3, only joint-new cell fails EOS, so readout/context interaction also exists. Neither overfit nor surrogate defect is established. Allfour construction panels remain0/8; no adoption or geometry-family retirement.",
+      "fixed_trajectory_context_matches_designated_donor": true,
+      "fixed_trajectory_first_native_context_action_change": {
+        "position": 0,
+        "source_token_id": 1130,
+        "old_actions": [
+          76,
+          2,
+          76,
+          29,
+          13,
+          69,
+          29,
+          59
+        ],
+        "new_actions": [
+          29,
+          2,
+          33,
+          29,
+          5,
+          15,
+          117,
+          29
+        ],
+        "old_states": [
+          76,
+          2,
+          76,
+          29,
+          13,
+          69,
+          29,
+          59
+        ],
+        "new_states": [
+          29,
+          2,
+          33,
+          29,
+          5,
+          15,
+          117,
+          29
+        ]
+      }
+    },
+    "return_verification": {
+      "file_count": 58,
+      "bytes": 99025583,
+      "all_file_sets_sizes_and_sha256_equal": true,
+      "executable_sha256": "221942e8cc22c7dbfa54ec14d73eefa0d29c62c047325538911e289f95787b97"
+    },
+    "resource_receipts": {
+      "test": {
+        "host": "Runpod Linux x86_64",
+        "recorded_utc": "2026-10-04T03:59:34.967242+00:00",
+        "source_commit": "562a80134491180a6a1feda5dfc1861625c60a40",
+        "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+        "command": [
+          "cargo",
+          "test",
+          "--locked",
+          "-p",
+          "uor-r4-training",
+          "--example",
+          "geometric-source-realizer"
+        ],
+        "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+        "environment": {
+          "CARGO_HOME": "/root/codex/cargo-home",
+          "CARGO_TARGET_DIR": "/root/codex/target",
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_BUILD_JOBS": "48",
+          "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+          "RAYON_NUM_THREADS": "48",
+          "CUDA_VISIBLE_DEVICES": "",
+          "UOR_BUILD_SOURCE_COMMIT": "562a80134491180a6a1feda5dfc1861625c60a40",
+          "TMPDIR": "/root/codex/tmp"
+        },
+        "affinity_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "threads_budget": 48,
+        "wrapper_pid": 133723,
+        "worker_pid": 133724,
+        "exit_code": 0,
+        "stop_reason": null,
+        "elapsed_seconds": 101.13263458898291,
+        "sampled_process_tree_peak_rss_bytes": 8235036672,
+        "rusage_children_max_rss_bytes": 7698309120,
+        "codex_allocated_bytes_latest": 6314184704,
+        "free_bytes_final": 15984410624,
+        "maximum_seconds": 900,
+        "maximum_rss_bytes": 17179869184,
+        "gpu_used": false,
+        "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+      },
+      "build": {
+        "host": "Runpod Linux x86_64",
+        "recorded_utc": "2026-10-04T04:04:36.944049+00:00",
+        "source_commit": "562a80134491180a6a1feda5dfc1861625c60a40",
+        "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+        "command": [
+          "cargo",
+          "build",
+          "--locked",
+          "--release",
+          "-p",
+          "uor-r4-training",
+          "--example",
+          "geometric-source-realizer"
+        ],
+        "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+        "environment": {
+          "CARGO_HOME": "/root/codex/cargo-home",
+          "CARGO_TARGET_DIR": "/root/codex/target",
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_BUILD_JOBS": "48",
+          "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+          "RAYON_NUM_THREADS": "48",
+          "CUDA_VISIBLE_DEVICES": "",
+          "UOR_BUILD_SOURCE_COMMIT": "562a80134491180a6a1feda5dfc1861625c60a40",
+          "TMPDIR": "/root/codex/tmp"
+        },
+        "affinity_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "threads_budget": 48,
+        "wrapper_pid": 135615,
+        "worker_pid": 135616,
+        "exit_code": 0,
+        "stop_reason": null,
+        "elapsed_seconds": 287.26848019566387,
+        "sampled_process_tree_peak_rss_bytes": 5417885696,
+        "rusage_children_max_rss_bytes": 4185657344,
+        "codex_allocated_bytes_latest": 6921474048,
+        "free_bytes_final": 17224740864,
+        "maximum_seconds": 900,
+        "maximum_rss_bytes": 17179869184,
+        "gpu_used": false,
+        "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+      },
+      "run": {
+        "host": "Runpod Linux x86_64",
+        "recorded_utc": "2026-10-04T04:06:04.891966+00:00",
+        "source_commit": "562a80134491180a6a1feda5dfc1861625c60a40",
+        "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+        "command": [
+          "/root/codex/target/release/examples/geometric-source-realizer",
+          "/root/codex/transplant-args.json"
+        ],
+        "cwd": "/root/codex/geometric-q4-readout-direction-20261003",
+        "environment": {
+          "CARGO_HOME": "/root/codex/cargo-home",
+          "CARGO_TARGET_DIR": "/root/codex/target",
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_BUILD_JOBS": "48",
+          "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+          "RAYON_NUM_THREADS": "48",
+          "CUDA_VISIBLE_DEVICES": "",
+          "UOR_BUILD_SOURCE_COMMIT": "562a80134491180a6a1feda5dfc1861625c60a40",
+          "TMPDIR": "/root/codex/tmp"
+        },
+        "affinity_cpu_ids": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          45,
+          46,
+          47
+        ],
+        "threads_budget": 48,
+        "wrapper_pid": 136963,
+        "worker_pid": 136964,
+        "exit_code": 0,
+        "stop_reason": null,
+        "elapsed_seconds": 12.20694577600807,
+        "sampled_process_tree_peak_rss_bytes": 1335463936,
+        "rusage_children_max_rss_bytes": 1334059008,
+        "codex_allocated_bytes_latest": 6921613312,
+        "free_bytes_final": 17125560320,
+        "maximum_seconds": 300,
+        "maximum_rss_bytes": 8589934592,
+        "gpu_used": false,
+        "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+      }
+    },
+    "input_files_unchanged": true,
+    "adopted_model": false
+  },
+  "report_sha256": "7c5d67f9cf50acee26243137e93fb3884139712ebcc0bedde2ee1abf426e6e6e",
+  "complete_resource_charge": {
+    "schema": "uor-r4.complete-resource-charge/1",
+    "task": "existing geometric context adaptation and zero-update family isolation",
+    "recorded_utc": "2026-10-04T04:10:52.011171+00:00",
+    "charge_ms": 5400000,
+    "method": "conservative declared90minute complete-work envelope, including remaining documentation/protected delivery/cleanup; not summed parallel agent time or measured worker elapsed",
+    "before": {
+      "cumulative_ms": 1064235028,
+      "limit_ms": 1130000000
+    },
+    "after": {
+      "cumulative_ms": 1069635028,
+      "limit_ms": 1130000000
+    },
+    "source_commits": [
+      "aca9173c431ee0108cec53edf5d81051bc946a6d",
+      "562a80134491180a6a1feda5dfc1861625c60a40"
+    ],
+    "covered": [
+      "source preparation and independent review",
+      "committed source archives/tests/release builds",
+      "64update context fit and five exports",
+      "two zero-update exact-family hybrids and saved endpoint replays",
+      "return/hash/arithmetic verification",
+      "documentation/protected delivery/cleanup"
+    ],
+    "actual_worker_seconds": [
+      97.0584303829819,
+      274.95794222084805,
+      305.33136460604146,
+      101.13263458898291,
+      287.26848019566387,
+      12.20694577600807
+    ]
+  },
+  "pod_jobs_released": true,
+  "pod_owned_kib": 6865160,
+  "next": "bounded existing native context one-quarter direction diagnosis from old32, readoutsfixed, atmosttwo declaredcoordinates; NOT_RUN"
+}
