@@ -1,0 +1,153 @@
+{"act":"assert","relation":"home","source_template":"I live in {v}.","text":"The place I call home is {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":140}
+{"act":"assert","relation":"home","source_template":"I live in {v}.","text":"{v} is where I live.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":141}
+{"act":"assert","relation":"home","source_template":"I live in {v}.","text":"I dwell in {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":142}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"I relocated to {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":143}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"{v} is where I live now.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":144}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"I settled in {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":145}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"{v} is my new home.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":146}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"I reside in a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":147}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"The place where I live is a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":148}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"{v} is my home.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":149}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"My residence is in a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":150}
+{"act":"query","relation":"home","source_template":"What city do I live in?","text":"Where do I reside?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":151}
+{"act":"query","relation":"home","source_template":"What city do I live in?","text":"Which city do I call home?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":152}
+{"act":"query","relation":"home","source_template":"What city do I live in?","text":"What town do I live in?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":153}
+{"act":"query","relation":"home","source_template":"What city do I live in?","text":"What city am I from?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":154}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where do I reside?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":155}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"What's my address?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":156}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"What town do I call home?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":157}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"Where is my house?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":158}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"What is my home address?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":159}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"Where is my place of residence?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":160}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"What is my address?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":161}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"Which house do I live in?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":162}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"Which location is my home?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":163}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I reside in a {v} now.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":164}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I call {v} my home.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":165}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I've moved into a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":166}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I'm currently living in a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":167}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I call {v} my current residence.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":168}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"I've relocated to a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":169}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"I've made the move to a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":170}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"I've just settled into a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":171}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"I've switched to a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":172}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"I've moved into a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":173}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"I've just moved to a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":174}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"I've changed my location to a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":175}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"My profession is {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":218}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"I am a {v} by profession.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":219}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"I am a {v} in my line of work.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":220}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"I am a {v} by choice.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":221}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"I am a {v} by nature.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":222}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"I am a {v} by vocation.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":223}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I work in a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":224}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I am a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":225}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I am a professional {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":226}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I am a {v} in the industry.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":227}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I am a {v} in the company.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":228}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I am a {v} in the organization.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":229}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I am a {v} in the team.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":230}
+{"act":"assert","relation":"job","source_template":"My job is {v}.","text":"The job I have is a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":231}
+{"act":"assert","relation":"job","source_template":"My job is {v}.","text":"I am employed in a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":232}
+{"act":"assert","relation":"job","source_template":"My job is {v}.","text":"{v} is my profession.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":233}
+{"act":"query","relation":"job","source_template":"What do I do for work?","text":"What is my profession?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":234}
+{"act":"query","relation":"job","source_template":"What do I do for work?","text":"What kind of job do I have?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":235}
+{"act":"query","relation":"job","source_template":"What do I do for work?","text":"What do I do professionally?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":236}
+{"act":"query","relation":"job","source_template":"What do I do for work?","text":"What is my line of work?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":237}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What is my profession?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":238}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What job do I hold?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":239}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What do I do for a living?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":240}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What's my line of work?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":241}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What kind of work do I do?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":242}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What's my career?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":243}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What is my profession?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":244}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What do I do for a living?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":245}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What is my line of work?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":246}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What am I employed in?","source_file":"paraphrases-1/paraphrases.jsonl","source_line":247}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"I've transitioned to a {v} role.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":248}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"I now work as a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":249}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"My current job is as a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":250}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"I've taken on the role of a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":251}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I made a career change and am now a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":252}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I switched to a new job and am now a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":253}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I changed careers and am now a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":254}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I made a career switch and am now a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":255}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I took a new job and am now a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":256}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I changed jobs and am now a {v}.","source_file":"paraphrases-1/paraphrases.jsonl","source_line":257}
+{"act":"assert","relation":"home","source_template":"I live in {v}.","text":"I reside in a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":151}
+{"act":"assert","relation":"home","source_template":"I live in {v}.","text":"The house I call home is a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":152}
+{"act":"assert","relation":"home","source_template":"I live in {v}.","text":"{v} is the place where I dwell.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":153}
+{"act":"assert","relation":"home","source_template":"I live in {v}.","text":"I inhabit a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":154}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"I relocated to {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":155}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"I settled in {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":156}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"I made a move to {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":157}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"I am now {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":158}
+{"act":"assert","relation":"home","source_template":"I moved to {v}.","text":"{v} is the place I live.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":159}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"My house is located in {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":160}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"The place where I reside is {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":161}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"I live in a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":162}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"My residence is in {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":163}
+{"act":"assert","relation":"home","source_template":"My home is in {v}.","text":"{v} is where I call home.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":164}
+{"act":"query","relation":"home","source_template":"What city do I live in?","text":"Which city do I reside in?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":165}
+{"act":"query","relation":"home","source_template":"What city do I live in?","text":"What town am I from?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":166}
+{"act":"query","relation":"home","source_template":"What city do I live in?","text":"Where do I call home?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":167}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where am I residing?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":168}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"What's my address?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":169}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where do I call home?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":170}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where do I live now?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":171}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"What's my place of residence?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":172}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where do I stay?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":173}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where do I reside?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":174}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where am I situated?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":175}
+{"act":"query","relation":"home","source_template":"Where do I live?","text":"Where do I live, specifically?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":176}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"Which house do I reside in?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":177}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"Where is my dwelling located?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":178}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"Where is my residence?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":179}
+{"act":"query","relation":"home","source_template":"Where is my home?","text":"What's the address to my home?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":180}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I reside in a {v} now.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":181}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I've moved into a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":182}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"These days, I call a {v} home.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":183}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"My current residence is a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":184}
+{"act":"update","relation":"home","source_template":"Actually, I live in {v} now.","text":"I've made a change and now live in a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":185}
+{"act":"update","relation":"home","source_template":"I just moved to {v}.","text":"Here are 10 different ways to rewrite the sentence \"I just moved to {v}\":","source_file":"paraphrases-2/paraphrases.jsonl","source_line":186}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"I am a {v} by profession.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":235}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"My job is to be a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":236}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"My role is to be a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":237}
+{"act":"assert","relation":"job","source_template":"I am a {v} by trade.","text":"I am a {v} in my line of work.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":238}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"My job is as a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":239}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"The role I fill is a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":240}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"I am employed as a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":241}
+{"act":"assert","relation":"job","source_template":"I work as a {v}.","text":"{v} is my profession.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":242}
+{"act":"assert","relation":"job","source_template":"My job is {v}.","text":"The position I hold is a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":243}
+{"act":"assert","relation":"job","source_template":"My job is {v}.","text":"I have a {v} as my job.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":244}
+{"act":"assert","relation":"job","source_template":"My job is {v}.","text":"{v} is my main source of income.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":245}
+{"act":"query","relation":"job","source_template":"What do I do for work?","text":"What line of work am I in?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":246}
+{"act":"query","relation":"job","source_template":"What do I do for work?","text":"What profession do I hold?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":247}
+{"act":"query","relation":"job","source_template":"What do I do for work?","text":"What do you think I do for a living?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":248}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What is my profession?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":249}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What kind of job do I do?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":250}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What activity am I engaged in?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":251}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What do I do for a living?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":252}
+{"act":"query","relation":"job","source_template":"What do I work as?","text":"What role do I fill in my life?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":253}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What position do I hold?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":254}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What is my professional role?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":255}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What's my job title?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":256}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What is my occupation?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":257}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What is my line of work?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":258}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What is my profession?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":259}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What is my place of employment?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":260}
+{"act":"query","relation":"job","source_template":"What is my job?","text":"What am I employed to do?","source_file":"paraphrases-2/paraphrases.jsonl","source_line":261}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"I work as a {v} these days.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":262}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"I drive a {v} now.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":263}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"My job has changed to a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":264}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"I'm a {v} these days.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":265}
+{"act":"update","relation":"job","source_template":"Actually, I work as a {v} now.","text":"I've taken up a {v} role.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":266}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I left my old job for a more fulfilling one, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":267}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I made a career change, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":268}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I traded one career for another, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":269}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I switched from my old job to a new one, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":270}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I made the switch, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":271}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I moved on to a new position, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":272}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I left my old job to pursue a new opportunity, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":273}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I changed careers, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":274}
+{"act":"update","relation":"job","source_template":"I changed jobs. Now I'm a {v}.","text":"I made a career shift, now I'm a {v}.","source_file":"paraphrases-2/paraphrases.jsonl","source_line":275}

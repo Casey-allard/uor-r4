@@ -10,7 +10,7 @@ use crate::{invalid, sha256_bytes, Result};
 use serde::{Deserialize, Serialize};
 use uor_r4_integer::{
     geometric_context::NativeContextState,
-    geometric_potential_q4::pack_coefficients,
+    geometric_potential_q4::{pack_coefficients, unpack_coefficients},
     geometric_source_realizer::{NativeArtifactBinding, NativeSourceRealizer},
     geometric_turn_compiler::{NativeTurnHead, TurnHeadConfig},
     h4_tables::{H4Code, HistoricalH4Tables, TRUSTED_MATHEMATICAL_SHA256},
@@ -530,6 +530,73 @@ fn argmax(scores: &[i64]) -> usize {
     best
 }
 
+/// Diagnostic arithmetic only: explain the already admitted native head without
+/// changing feature extraction, scoring, training, or the span decoder.
+fn inspect_head(
+    head: &NativeTurnHead,
+    rows: &[Vec<Option<u8>>],
+    lanes: usize,
+    groups: &[&str],
+) -> Result<serde_json::Value> {
+    let config = head.config();
+    if lanes == 0 || lanes.checked_mul(groups.len()) != Some(config.slots) {
+        return Err(invalid("inspection group shape mismatch"));
+    }
+    // Let the native scorer validate all row dimensions and active roots first.
+    let actual = head.scores_rows(rows).map_err(|e| invalid(e.to_string()))?;
+    let count = config
+        .coefficient_count()
+        .map_err(|e| invalid(e.to_string()))?;
+    let coefficients = unpack_coefficients(count, head.packed_coefficients())
+        .map_err(|e| invalid(e.to_string()))?;
+    let stride = 1 + config.slots * 120;
+    let bias: Vec<i64> = (0..config.classes)
+        .map(|class| i64::from(coefficients[class * stride]))
+        .collect();
+    let mut reconstructed = bias.clone();
+    let mut explained_rows = Vec::with_capacity(rows.len());
+    for (row_index, row) in rows.iter().enumerate() {
+        let mut explained_groups = Vec::with_capacity(groups.len());
+        for (group, name) in groups.iter().enumerate() {
+            let start = group * lanes;
+            let roots = &row[start..start + lanes];
+            let mut contributions = vec![0i64; config.classes];
+            let mut lane_contributions = vec![vec![0i64; config.classes]; lanes];
+            for class in 0..config.classes {
+                for (lane, root) in roots.iter().enumerate() {
+                    if let Some(root) = root {
+                        let coefficient = i64::from(
+                            coefficients
+                                [class * stride + 1 + (start + lane) * 120 + usize::from(*root)],
+                        );
+                        lane_contributions[lane][class] = coefficient;
+                        contributions[class] = contributions[class]
+                            .checked_add(coefficient)
+                            .ok_or_else(|| invalid("inspection group sum overflow"))?;
+                    }
+                }
+                reconstructed[class] = reconstructed[class]
+                    .checked_add(contributions[class])
+                    .ok_or_else(|| invalid("inspection score sum overflow"))?;
+            }
+            explained_groups.push(serde_json::json!({
+                "name":name,"slot_start":start,"slot_end_exclusive":start+lanes,
+                "roots":roots,"class_scores":contributions,"lane_class_scores":lane_contributions
+            }));
+        }
+        explained_rows.push(serde_json::json!({"row_index":row_index,"groups":explained_groups}));
+    }
+    if reconstructed != actual {
+        return Err(invalid(
+            "inspection contributions disagree with actual native head",
+        ));
+    }
+    Ok(
+        serde_json::json!({"scores":actual,"bias":bias,"rows":explained_rows,
+        "contribution_sum_verified":true,"bias_applications":1}),
+    )
+}
+
 pub struct NativeTurnCompiler<'a> {
     artifact: Artifact,
     bytes: Vec<u8>,
@@ -630,6 +697,126 @@ impl<'a> NativeTurnCompiler<'a> {
             relation,
             span,
         })
+    }
+    /// Source-only, diagnostic inspection of exact integer-quarter native scores.
+    /// This has no labels or templates and does not modify prediction or training.
+    pub fn inspect(&self, source: &str) -> Result<serde_json::Value> {
+        let f = features(
+            self.native,
+            self.tokenizer,
+            source,
+            self.artifact.max_tokens,
+            self.artifact.max_words,
+            self.artifact.feature_mode,
+        )?;
+        let endpoint = self.artifact.feature_mode == FeatureMode::Endpoint;
+        let turn_groups: &[&str] = if endpoint {
+            &["whole_turn"]
+        } else {
+            &["current", "previous", "transport"]
+        };
+        let span_groups: &[&str] = if endpoint {
+            &["local_word", "turn_relative", "prefix_transport"]
+        } else {
+            &["current", "previous", "next", "transport"]
+        };
+        let mut act = inspect_head(&self.act, &f.turn, self.artifact.lanes, turn_groups)?;
+        act["labels"] = serde_json::json!(ACTS);
+        let mut relation = inspect_head(&self.relation, &f.turn, self.artifact.lanes, turn_groups)?;
+        let mut relation_labels = self.artifact.relations.clone();
+        relation_labels.push(NONE.into());
+        relation["labels"] = serde_json::json!(relation_labels);
+        let mut words = Vec::with_capacity(f.words.len());
+        let mut span_heads = Vec::with_capacity(f.words.len());
+        let mut scores = Vec::with_capacity(f.words.len());
+        for (index, (roots, bounds)) in f.words.iter().zip(&f.spans).enumerate() {
+            let text = source
+                .get(bounds.start..bounds.end)
+                .ok_or_else(|| invalid("inspection word bounds invalid"))?;
+            words.push(serde_json::json!({"index":index,"span":bounds,"text":text,
+                "turn_roots":if endpoint {None} else {f.turn.get(index)},"span_roots":roots}));
+            let actual = self
+                .span
+                .scores_masked(roots)
+                .map_err(|e| invalid(e.to_string()))?;
+            let mut explained = inspect_head(
+                &self.span,
+                &[roots.clone()],
+                self.artifact.lanes,
+                span_groups,
+            )?;
+            let margin = actual[1]
+                .checked_sub(actual[0])
+                .ok_or_else(|| invalid("inspection margin overflow"))?;
+            explained["word_index"] = serde_json::json!(index);
+            explained["margin"] = serde_json::json!(margin);
+            explained["labels"] = serde_json::json!(["outside", "inside"]);
+            span_heads.push(explained);
+            scores.push(actual);
+        }
+        // Call the unchanged decoder even when the predicted act/relation is none.
+        let selected = selected_span(&scores, &f.spans, self.artifact.max_value_words);
+        let mut best_margin = 0i64;
+        let mut positive_ties = 0usize;
+        let mut candidate_count = 0usize;
+        for start in 0..scores.len() {
+            let mut sum = 0i64;
+            for end in start..scores.len().min(start + self.artifact.max_value_words) {
+                let margin = scores[end][1]
+                    .checked_sub(scores[end][0])
+                    .ok_or_else(|| invalid("inspection interval margin overflow"))?;
+                sum = sum
+                    .checked_add(margin)
+                    .ok_or_else(|| invalid("inspection interval sum overflow"))?;
+                candidate_count += 1;
+                if sum > best_margin {
+                    best_margin = sum;
+                    positive_ties = 1;
+                } else if sum == best_margin && sum > 0 {
+                    positive_ties += 1;
+                }
+            }
+        }
+        let selected_span = match selected {
+            None => serde_json::Value::Null,
+            Some(bounds) => {
+                let word_start = f
+                    .spans
+                    .iter()
+                    .position(|s| s.start == bounds.start)
+                    .ok_or_else(|| invalid("inspection selected start absent"))?;
+                let word_end = f
+                    .spans
+                    .iter()
+                    .position(|s| s.end == bounds.end)
+                    .ok_or_else(|| invalid("inspection selected end absent"))?;
+                let mut sum = 0i64;
+                for score in &scores[word_start..=word_end] {
+                    sum = sum
+                        .checked_add(score[1] - score[0])
+                        .ok_or_else(|| invalid("inspection selected sum overflow"))?;
+                }
+                if sum != best_margin || sum <= 0 {
+                    return Err(invalid("inspection interval disagrees with actual decoder"));
+                }
+                serde_json::json!({"start":bounds.start,"end":bounds.end,
+                    "text":source.get(bounds.start..bounds.end).ok_or_else(|| invalid("inspection selected bytes invalid"))?,
+                    "margin_sum":sum,"word_start":word_start,"word_end_exclusive":word_end+1})
+            }
+        };
+        if selected_span.is_null() && best_margin != 0 {
+            return Err(invalid("inspection decoder omitted positive interval"));
+        }
+        Ok(
+            serde_json::json!({"schema":"uor-r4.native-turn-inspection/1",
+            "score_units":"integer-quarter","feature_mode":self.artifact.feature_mode,
+            "lanes":self.artifact.lanes,"source":source,"words":words,
+            "act":act,"relation":relation,"span":span_heads,"selected_span":selected_span,
+            "span_selection":{"maximum_margin":best_margin,"positive_maximum_ties":positive_ties,
+                "candidate_count":candidate_count,"max_value_words":self.artifact.max_value_words,
+                "tie_policy":"strict-greater;ascending start then ascending end;positive-only"},
+            "action":self.predict(source)?}),
+        )
     }
     pub fn predict(&self, source: &str) -> Result<CompiledAction> {
         let f = features(
@@ -950,6 +1137,60 @@ mod tests {
         assert_eq!(
             h.scores(&[119]).map_err(|e| invalid(e.to_string()))?,
             vec![8, -7]
+        );
+        Ok(())
+    }
+    #[test]
+    fn inspection_matches_native_masks_repeats_and_bias_once() -> Result<()> {
+        let config = shape(2, 2);
+        let count = config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut q = vec![0i8; count];
+        q[0] = 2;
+        q[1 + 3] = 5;
+        q[1 + 120] = 7; // Must not appear for an absent neighbor.
+        q[1 + 120 + 4] = -2;
+        let stride = 1 + 2 * 120;
+        q[stride] = -1;
+        q[stride + 1 + 3] = -4;
+        q[stride + 1 + 120 + 4] = 3;
+        let packed = pack_coefficients(&q).map_err(|e| invalid(e.to_string()))?;
+        let head = NativeTurnHead::new(config, &packed).map_err(|e| invalid(e.to_string()))?;
+        let rows = vec![vec![Some(3), None], vec![Some(3), Some(4)]];
+        let inspected = inspect_head(&head, &rows, 1, &["current", "previous"])?;
+        assert_eq!(inspected["scores"], serde_json::json!([10, -6]));
+        assert_eq!(inspected["bias"], serde_json::json!([2, -1]));
+        assert_eq!(inspected["bias_applications"], serde_json::json!(1));
+        assert_eq!(
+            inspected["rows"][0]["groups"][1]["class_scores"],
+            serde_json::json!([0, 0])
+        );
+        assert_eq!(
+            inspected["rows"][0]["groups"][1]["roots"],
+            serde_json::json!([null])
+        );
+        assert_eq!(
+            inspected["rows"][1]["groups"][0]["lane_class_scores"],
+            serde_json::json!([[5, -4]])
+        );
+        let empty = inspect_head(&head, &[], 1, &["current", "previous"])?;
+        assert_eq!(empty["scores"], serde_json::json!([2, -1]));
+        assert!(inspect_head(&head, &rows, 1, &["wrong_shape"]).is_err());
+        assert!(
+            inspect_head(&head, &[vec![Some(120), None]], 1, &["current", "previous"]).is_err()
+        );
+        Ok(())
+    }
+    #[test]
+    fn inspection_endpoint_single_row_matches_legacy_scores() -> Result<()> {
+        let config = shape(2, 1);
+        let shadow = seeded_weights(&[config], Some(1001))?;
+        let head = head(config, &shadow[0])?;
+        let inspected = inspect_head(&head, &[vec![Some(7)]], 1, &["whole_turn"])?;
+        assert_eq!(
+            inspected["scores"],
+            serde_json::json!(head.scores(&[7]).map_err(|e| invalid(e.to_string()))?)
         );
         Ok(())
     }

@@ -1,0 +1,230 @@
+{
+  "schema": "uor-r4.geometric-head-scores/1",
+  "status": "COMPLETE_DIAGNOSIS_NOT_MODEL_QUALIFICATION",
+  "source_commit": "51be10a0c90b9453452423c52a5261c6736bb473",
+  "executable_sha256": "023d1f8e46b4e20ea2e6265ac336b350c24905675034a80c26896153f01d2e86",
+  "host": "approved Runpod Linux x86_64 CPU, not M1",
+  "gpu": false,
+  "updates": 0,
+  "fresh_predictions": 0,
+  "reselection": false,
+  "raw_cp64_familiar_frame_new_value": {
+    "rows": 384,
+    "act_correct": 377,
+    "role_correct": 381,
+    "final_act_correct": 171,
+    "exact_writes": 31,
+    "correct_start_negative_suffix_truncations": 71
+  },
+  "four_word_repeated_cp64": {
+    "rows": 48,
+    "raw_start_correct": 48,
+    "truncated": 48,
+    "final_start_correct": 39,
+    "exact_write": 0
+  },
+  "span_conflicts": {
+    "all_row_unique_signatures": 965,
+    "all_row_conflicts": 100,
+    "conditional_write_rows": 256,
+    "write_only_conflicts": 4,
+    "unused_NONE_conflicts_removed": 96,
+    "scope": "saved lexical triple reconstruction corroborates native source metadata; not causal fit ablation"
+  },
+  "next": "conditional labelled-write span learning and development criterion; explicit write-row mean; all act/role and actual false-write tests retained; no runtime gold mask",
+  "tests": {
+    "library": 9,
+    "probe": 2,
+    "curriculum_driver": 8,
+    "release": "PASS",
+    "replays": 6,
+    "metal": "UNAVAILABLE"
+  },
+  "independent_saved_admission": {
+    "schema": "uor-r4.independent-head-probe-admission/1",
+    "status": "PASS",
+    "source_commit": "51be10a0c90b9453452423c52a5261c6736bb473",
+    "parent_source_commit": "cc0070922f17c3c81a78d08eee5554198e0cfd45",
+    "checks": 8938809,
+    "rows": 7560,
+    "errors": [],
+    "runs": [
+      {
+        "tag": "local-relative-seed1001",
+        "checkpoints": 5,
+        "rows": 1260,
+        "probe_inputs_sha256": "5e10fc54dab097cb4ef4772514ab6c1503b46d207eb15fae5c008c01d1feae45"
+      },
+      {
+        "tag": "local-product-seed1001",
+        "checkpoints": 5,
+        "rows": 1260,
+        "probe_inputs_sha256": "5e10fc54dab097cb4ef4772514ab6c1503b46d207eb15fae5c008c01d1feae45"
+      },
+      {
+        "tag": "local-relative-seed1002",
+        "checkpoints": 5,
+        "rows": 1260,
+        "probe_inputs_sha256": "5e10fc54dab097cb4ef4772514ab6c1503b46d207eb15fae5c008c01d1feae45"
+      },
+      {
+        "tag": "local-product-seed1002",
+        "checkpoints": 5,
+        "rows": 1260,
+        "probe_inputs_sha256": "5e10fc54dab097cb4ef4772514ab6c1503b46d207eb15fae5c008c01d1feae45"
+      },
+      {
+        "tag": "local-relative-seed1003",
+        "checkpoints": 5,
+        "rows": 1260,
+        "probe_inputs_sha256": "5e10fc54dab097cb4ef4772514ab6c1503b46d207eb15fae5c008c01d1feae45"
+      },
+      {
+        "tag": "local-product-seed1003",
+        "checkpoints": 5,
+        "rows": 1260,
+        "probe_inputs_sha256": "5e10fc54dab097cb4ef4772514ab6c1503b46d207eb15fae5c008c01d1feae45"
+      }
+    ],
+    "elapsed_seconds": 9.017462124989834,
+    "configured_maximum_seconds": 120,
+    "updates": 0,
+    "fresh_predictions": "NOT_RUN",
+    "scope": "independent stored artifact coefficient/lane/group/native-score, hardaction, interval/tie, parent/plan/phase admission; no native/encoder/tokenizer/backward rerun or independent BLAKE3 validation",
+    "quality_verdict": "NOT_PROVIDED"
+  },
+  "execution": {
+    "source_commit": "51be10a0c90b9453452423c52a5261c6736bb473",
+    "status": "COMPLETE_PENDING_ADVERSARIAL_OUTCOME_REVIEW",
+    "phases": [
+      {
+        "name": "library-tests",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-library-tests-1-receipt.json"
+      },
+      {
+        "name": "probe-tests",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-probe-tests-1-receipt.json"
+      },
+      {
+        "name": "curriculum-tests",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-curriculum-tests-1-receipt.json"
+      },
+      {
+        "name": "release",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-release-1-receipt.json"
+      },
+      {
+        "name": "local-relative-seed1001",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-local-relative-seed1001-1-receipt.json"
+      },
+      {
+        "name": "local-product-seed1001",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-local-product-seed1001-1-receipt.json"
+      },
+      {
+        "name": "local-relative-seed1002",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-local-relative-seed1002-1-receipt.json"
+      },
+      {
+        "name": "local-product-seed1002",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-local-product-seed1002-1-receipt.json"
+      },
+      {
+        "name": "local-relative-seed1003",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-local-relative-seed1003-1-receipt.json"
+      },
+      {
+        "name": "local-product-seed1003",
+        "exit_code": 0,
+        "receipt": "/root/codex/head-scores-local-product-seed1003-1-receipt.json"
+      }
+    ],
+    "elapsed_seconds": 586.5796756879427,
+    "evaluation_seconds": 28.01680614007637,
+    "updates": 0,
+    "terminal": true,
+    "owned_initial_bytes": 9132294144,
+    "owned_final_bytes": 9337618432
+  },
+  "budget": {
+    "started_utc": "2026-10-05T08:58:51.023770+00:00",
+    "objective": "Reproduce existing native predictions and attribute act/relation/span failures to geometric head contributions; zero updates",
+    "causal_decisions": "payload-driven wrong acts => learned frame-sensitive state; correct start negative continuation => capture; zero ties => decoder/readout credit diagnosis",
+    "source_parent": "e21841746167b580d5ce545a0cb04285fe3aa2d5",
+    "fixed": "same6 completed fits, all5 checkpoints, frozen tokenizer/encoder; existing dev/factor/repetition plus matched train rows; no fresh selection/predictions; no reader fit",
+    "limits": {
+      "whole_card_seconds": 5400,
+      "build_seconds": 1500,
+      "evaluation_seconds": 300,
+      "threads": 48,
+      "rss_bytes": 8589934592,
+      "new_owned_bytes": 805306368,
+      "owned_cap_bytes": 10737418240,
+      "report_cap_bytes": 402653184,
+      "free_floor_bytes": 4294967296,
+      "stop_margin_bytes": 134217728
+    },
+    "ledger_before": {
+      "cumulative_ms": 1272435028,
+      "limit_ms": 1273200000
+    },
+    "ledger_after": {
+      "cumulative_ms": 1277835028,
+      "limit_ms": 1278600000
+    },
+    "authorization": "standing necessary extensions + approved podCPU area only, noGPU/newpaidhost",
+    "checks": "focused score decomposition/reconstruction arithmetic, predicted action equality, actual saved-row prediction parity, source+checkpoint hashes+seals, adversarial interpretation",
+    "projection_correction": "before compile: upstream Candle/training object rebuild plus diagnostic release/test binaries projects up to768MiB incremental instead of384; remains owned10GiB/freefloor4GiB+128MiB, no cardtime/compute reset",
+    "diagnostic_row_cap": 272,
+    "selection": "144factor+64devwrite+<=64deterministictrainingframe/exactrepeatedbasecounterparts",
+    "report_projection": "before compile: explicit allgroup/alllane JSON shape at6/10/14words projects103/170/237MiB over30CP reports; aggregate384MiB cap, individual128MiB drivercap unchanged; included in768MiB totalnewowned projection"
+  },
+  "cloud": {
+    "name": "geometric-head-scores-retained-20261005",
+    "bytes": 21184000,
+    "md5": "113d5641219a6d360bf2da010b6f766c",
+    "remote": "icloud:UOR-R4/results/codex/geometric-head-scores-retained-20261005.tar",
+    "verified": "cloud-store downloaded-content MD5 + independent index reread",
+    "inner_sha256": "7c8c5ee9f4281e591748235efee0e5138168de7efd530b7bde02633032949887"
+  },
+  "return": {
+    "files": 103,
+    "bytes": 202837702,
+    "sha256_file_set": "PASS"
+  },
+  "reviews": [
+    {
+      "file": "final-source-review-1.json",
+      "sha256": "a2dae188eb73680e4c08173ffca1a9ce13105033230d7e8a91b759ecd91a6ce8"
+    },
+    {
+      "file": "outcome-review-unused-span-branch-supplement-1.json",
+      "sha256": "c1e12f4e156dd2042832fe76ce30c6b10f54974847711f577bf60b08f9197b9f"
+    },
+    {
+      "file": "prospective-head-probe-review-1.json",
+      "sha256": "2f2c302098c03ba30b964d55c6a71ac401417462cf4b14703bd902e7e26000e8"
+    },
+    {
+      "file": "outcome-review-1.json",
+      "sha256": "982f58a7692a59867d1ac078989f7188a3e3a218c08024a33bb0ec6c898cb625"
+    }
+  ],
+  "limitations": [
+    "no new quality gain",
+    "no native/BPE/backward reexecution in arithmetic audit",
+    "no independent BLAKE3 reconstruction",
+    "no fresh reader inference",
+    "no general chat/reasoning/geometry superiority/energy claim"
+  ],
+  "issue_comment": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5991975611"
+}

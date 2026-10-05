@@ -1,5 +1,7 @@
 //! Bounded source-only learned native turn compiler and exact-store integration.
 //! Exact addressed admission and all-bank native reads are reported separately.
+#[path = "geometric_native_compiler/curriculum.rs"]
+mod curriculum;
 #[path = "geometric_native_compiler/reader.rs"]
 mod reader;
 use serde_json::{json, Value};
@@ -17,7 +19,7 @@ use uor_r4_integer::geometric_source_realizer::{NativeArtifactBinding, NativeSou
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::{
     geometric_turn_compiler::{fit_examples, FeatureMode, FitConfig, NativeTurnCompiler},
-    relation_compiler::{Example, NONE},
+    relation_compiler::{word_spans, Example, NONE},
     sha256_bytes,
     stack_grounded_session::{
         CompiledAction, CompilerIdentity, GroundedSessionError, RelationLabel, SourceSpan,
@@ -47,6 +49,7 @@ struct Args {
     seed: Option<u64>,
     fresh_split: String,
     compact_trace: bool,
+    curriculum: Option<String>,
 }
 fn args() -> Result<Args> {
     let mut flags = BTreeMap::new();
@@ -74,6 +77,11 @@ fn args() -> Result<Args> {
     let (cue, prefix, end) = (get("--cue")?, get("--prefix")?, get("--source-end")?);
     let binding_sha = flags.remove("--binding-sha");
     let audit_artifacts = flags.remove("--audit-artifacts").map(PathBuf::from);
+    let curriculum = flags.remove("--curriculum");
+    validate_curriculum_override(curriculum.as_deref(), audit_artifacts.is_some())?;
+    if curriculum.is_some() && flags.contains_key("--fresh-profile") {
+        return Err(fail("crossed curriculum owns its frozen fresh split").into());
+    }
     let feature_mode = match flags.remove("--feature-mode").as_deref() {
         None | Some("endpoint") => FeatureMode::Endpoint,
         Some("local-relative") => FeatureMode::LocalRelative,
@@ -119,7 +127,17 @@ fn args() -> Result<Args> {
         seed,
         fresh_split,
         compact_trace,
+        curriculum,
     })
+}
+fn validate_curriculum_override(curriculum: Option<&str>, audit: bool) -> Result<()> {
+    if curriculum.is_some_and(|v| v != "crossed-1") {
+        return Err(fail("unknown curriculum").into());
+    }
+    if audit && curriculum.is_some() {
+        return Err(fail("legacy checkpoint audit rejects curriculum override").into());
+    }
+    Ok(())
 }
 fn example(relation: &str, act: &'static str, template: &str, value: &str) -> Example {
     Example {
@@ -317,6 +335,79 @@ fn verify_prospective_panel(rows: &[Example]) -> Result<()> {
     }
     Ok(())
 }
+fn verify_crossed_fresh(rows: &[Example]) -> Result<()> {
+    let mut exposed = std::collections::BTreeSet::new();
+    for split in ["training", "development", "fresh", "fresh-local-1"] {
+        exposed.extend(panel(split).into_iter().map(|e| e.text));
+    }
+    exposed.extend(
+        panel_cross("training", "development")
+            .into_iter()
+            .map(|e| e.text),
+    );
+    exposed.extend(
+        panel_cross("development", "training")
+            .into_iter()
+            .map(|e| e.text),
+    );
+    exposed.extend(repeated_value_panel().into_iter().map(|e| e.text));
+    let mut seen = std::collections::BTreeSet::new();
+    if rows
+        .iter()
+        .any(|e| exposed.contains(&e.text) || !seen.insert(&e.text))
+    {
+        return Err(
+            fail("crossed fresh source overlaps an exposed compiler panel or itself").into(),
+        );
+    }
+    Ok(())
+}
+fn source_admission(rows: &[Example], tokenizer: &ByteBpeTokenizer) -> Result<Value> {
+    let mut receipts = Vec::new();
+    for e in rows {
+        let tokens = tokenizer.encode(&e.text);
+        let words = word_spans(&e.text);
+        if tokens.len() > 128 || words.is_empty() || words.len() > 64 {
+            return Err(fail("actual curriculum BPE/word bound exceeded").into());
+        }
+        for word in &words {
+            for source in [
+                &e.text[..word.start],
+                &e.text[..word.end],
+                &e.text[word.start..word.end],
+            ] {
+                if tokenizer.encode(source).len() > 128 {
+                    return Err(
+                        fail("actual geometric feature substring exceeds token bound").into(),
+                    );
+                }
+            }
+        }
+        let span = if matches!(e.act, "assert" | "update") {
+            let (start, end) = e
+                .slot_span()
+                .ok_or_else(|| fail("write label needs original exact span"))?;
+            let inside: Vec<_> = words
+                .iter()
+                .filter(|w| w.start < end && start < w.end)
+                .collect();
+            if inside.is_empty()
+                || inside.len() > 8
+                || inside[0].start != start
+                || inside[inside.len() - 1].end != end
+            {
+                return Err(fail("write span cuts word edges or exceeds value8 bound").into());
+            }
+            Some((start, end))
+        } else {
+            None
+        };
+        receipts.push(json!({"source":e.text,"actual_source_token_ids":tokens,"words":words.len(),"write_span_labels_only":span}));
+    }
+    Ok(
+        json!({"cases":rows.len(),"max_source_tokens":128,"max_source_words":64,"max_value_words":8,"model_calls":0,"rows":receipts}),
+    )
+}
 fn repeated_value_panel() -> Vec<Example> {
     let (_, asserts, updates, _) = pools("training");
     let mut rows = Vec::new();
@@ -370,7 +461,11 @@ fn evaluate(compiler: &dyn TurnCompiler, rows: &[Example]) -> Result<Value> {
             "home" => Some(2),
             _ => None,
         };
-        let gold_span = e.slot_span().map(|(start, end)| SourceSpan { start, end });
+        let gold_span = if matches!(e.act, "assert" | "update") {
+            e.slot_span().map(|(start, end)| SourceSpan { start, end })
+        } else {
+            None
+        };
         let ac = act == e.act;
         let rc = relation == gold_relation;
         let sc = span == gold_span;
@@ -438,13 +533,8 @@ fn store_episodes(
     a: &Args,
 ) -> Result<Value> {
     let (values, asserts, updates, queries) = pools(split);
-    let mut rows = Vec::new();
-    let (mut correct, mut queries_total, mut selected_complete, mut bank_complete) = (0, 0, 0, 0);
-    let mut reader_calls = 0;
+    let mut episodes = Vec::new();
     for (episode, relation) in ["job", "home"].iter().enumerate() {
-        let mut store = StackStore::new(100 + episode as u64, 16)?;
-        let mut journal = BTreeMap::<u64, (u64, Vec<u32>)>::new();
-        let mut steps = Vec::new();
         let distractor = if *relation == "job" { "home" } else { "job" };
         let turns = vec![
             example(
@@ -474,13 +564,60 @@ fn store_episodes(
             ),
             example(relation, "query", &queries[1].replace("{r}", relation), ""),
         ];
-        for (index, e) in turns.iter().enumerate() {
-            let expected = if index < 4 { values[0] } else { values[1] };
-            let answers = FrozenAnswers {
+        let query_expected = turns
+            .iter()
+            .enumerate()
+            .map(|(i, e)| {
+                (e.act == "query").then(|| if i < 4 { values[0] } else { values[1] }.to_owned())
+            })
+            .collect();
+        episodes.push(curriculum::StoreEpisode {
+            id: format!("legacy-{split}-{episode}"),
+            turns,
+            query_expected,
+        });
+    }
+    store_authored_episodes(
+        compiler,
+        tokenizer,
+        native,
+        split,
+        artifact_prefix,
+        a,
+        &episodes,
+    )
+}
+fn store_authored_episodes(
+    compiler: &dyn TurnCompiler,
+    tokenizer: &ByteBpeTokenizer,
+    native: &NativeSourceRealizer,
+    split: &str,
+    artifact_prefix: &str,
+    a: &Args,
+    episodes: &[curriculum::StoreEpisode],
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let (mut correct, mut queries_total, mut selected_complete, mut bank_complete) = (0, 0, 0, 0);
+    let mut reader_calls = 0;
+    for (episode, authored) in episodes.iter().enumerate() {
+        if authored.turns.len() != authored.query_expected.len() || authored.turns.len() > 32 {
+            return Err(fail("authored episode/expectation alignment or bound").into());
+        }
+        let mut store = StackStore::new(100 + episode as u64, 16)?;
+        let mut journal = BTreeMap::<u64, (u64, Vec<u32>)>::new();
+        let mut steps = Vec::new();
+        for (index, e) in authored.turns.iter().enumerate() {
+            let expected = authored.query_expected[index].as_deref();
+            if (e.act == "query") != expected.is_some() {
+                return Err(fail("query-only authored expected value contract").into());
+            }
+            let answers = expected.map(|v| FrozenAnswers {
                 intent: RecordedValueIntent::Current,
-                accepted: vec![expected.to_owned(), format!("{expected}.")],
-            };
-            answers.validate()?;
+                accepted: vec![v.to_owned(), format!("{v}.")],
+            });
+            if let Some(answers) = &answers {
+                answers.validate()?;
+            }
             let action = compiler.compile(&e.text)?;
             let mut read: Option<Value> = None;
             let mut write = None;
@@ -530,10 +667,11 @@ fn store_episodes(
                         HistoryView::Current,
                     )?;
                     let tokens = result.value().map(|v| v.tokens.clone());
-                    let expected = if index < 4 { values[0] } else { values[1] };
-                    let hit = tokens
-                        .as_ref()
-                        .is_some_and(|t| *t == tokenizer.encode(expected));
+                    let hit = expected.is_some_and(|expected| {
+                        tokens
+                            .as_ref()
+                            .is_some_and(|t| *t == tokenizer.encode(expected))
+                    });
                     let mut generated = Vec::new();
                     // Admission uses actual predicted store addresses, never the expected label.
                     let mut bank = Vec::new();
@@ -609,7 +747,9 @@ fn store_episodes(
                         let text = raw.strip_prefix(' ').unwrap_or(&raw);
                         let complete = eos
                             && String::from_utf8(bytes.clone()).is_ok()
-                            && answers.accepts(text);
+                            && answers
+                                .as_ref()
+                                .is_some_and(|answers| answers.accepts(text));
                         if e.act == "query" {
                             if lane == "selected-record" {
                                 selected_complete += usize::from(complete);
@@ -638,7 +778,7 @@ fn store_episodes(
             }
             steps.push(json!({"source":e.text,"predicted":action,"write":write,"read":read}));
         }
-        rows.push(json!({"episode":episode,"relation_evaluation_label":relation,"steps":steps,"final_store_history_sha256":store.history_sha256()?}));
+        rows.push(json!({"episode":episode,"episode_id":authored.id,"relation_evaluation_label":authored.turns.iter().find(|e|e.act=="query").map(|e|&e.relation),"steps":steps,"final_store_history_sha256":store.history_sha256()?}));
     }
     Ok(
         json!({"episodes":rows,"query_rows":queries_total,"native_reader_calls":reader_calls,"exact_store_answers":correct,"selected_record_complete":selected_complete,"all_bank_complete":bank_complete,"policy":"predicted-address-and-source-span-only;serialize-reload-after-writes;original-statement-cues;gold-used-only-to-score"}),
@@ -646,16 +786,52 @@ fn store_episodes(
 }
 fn run(a: &Args) -> Result<()> {
     let started = Instant::now();
-    let (training, development, fresh) = (
-        panel("training"),
-        panel("development"),
-        panel(&a.fresh_split),
-    );
-    if a.fresh_split == "fresh-local-1" {
+    let crossed = if a.curriculum.as_deref() == Some("crossed-1") {
+        Some(curriculum::build()?)
+    } else {
+        None
+    };
+    let (training, development, fresh) = if let Some(c) = &crossed {
+        (c.training.clone(), c.development.clone(), c.fresh.clone())
+    } else {
+        (
+            panel("training"),
+            panel("development"),
+            panel(&a.fresh_split),
+        )
+    };
+    if crossed.is_none() && a.fresh_split == "fresh-local-1" {
         verify_prospective_panel(&fresh)?;
     }
     if training.len() > 512 || development.len() > 128 || fresh.len() > 64 {
         return Err(fail("panel cap exceeded").into());
+    }
+    if crossed.is_some() && (training.len() != 512 || development.len() != 128) {
+        return Err(fail("crossed curriculum requires exact512 training/128 development").into());
+    }
+    let known_phrasing_new_values = crossed
+        .as_ref()
+        .map(|c| c.known_phrasing_new_values.clone())
+        .unwrap_or_else(|| panel_cross("training", "development"));
+    let new_phrasing_known_values = crossed
+        .as_ref()
+        .map(|c| c.new_phrasing_known_values.clone())
+        .unwrap_or_else(|| panel_cross("development", "training"));
+    let repeated_values = crossed
+        .as_ref()
+        .map(|c| c.repeated_values.clone())
+        .unwrap_or_else(repeated_value_panel);
+    let curriculum_receipt = crossed
+        .as_ref()
+        .map(|c| c.manifest.clone())
+        .unwrap_or(json!({"mode":"legacy"}));
+    let curriculum_sha = sha256_bytes(&serde_json::to_vec(&curriculum_receipt)?);
+    let episode_inputs = |episodes: &[curriculum::StoreEpisode]| {
+        json!(episodes.iter().map(|e|json!({"id":e.id,"turns":input_rows(&e.turns),"query_expected_evaluation_only":e.query_expected})).collect::<Vec<_>>())
+    };
+    let frozen_curriculum = crossed.as_ref().map(|c|json!({"manifest":c.manifest,"reference_templates_control_only":input_rows(&c.reference_templates),"development_store_episodes":episode_inputs(&c.development_episodes),"fresh_store_episodes":episode_inputs(&c.fresh_episodes)}));
+    if crossed.is_some() {
+        verify_crossed_fresh(&fresh)?;
     }
     let config = FitConfig {
         steps: 64,
@@ -667,10 +843,10 @@ fn run(a: &Args) -> Result<()> {
         seed: a.seed,
     };
     let panel_bytes = serde_json::to_vec(
-        &json!({"training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh)}),
+        &json!({"training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"curriculum":frozen_curriculum,"factors":{"known_phrasing_new_values":input_rows(&known_phrasing_new_values),"new_phrasing_known_values":input_rows(&new_phrasing_known_values),"repeated_values":input_rows(&repeated_values)}}),
     )?;
     let panel_sha = sha256_bytes(&panel_bytes);
-    let inputs = json!({"schema":"native-turn-frozen-inputs/1","training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"config":config,"panel_sha256":panel_sha,"fresh_profile":a.fresh_split,"fresh_exclusions":"local-1 excludes exact source rows and literal values from legacy compiler training/development/fresh;no claim of exclusion from every historical encoder corpus","limitations":"authored supervised panels;three seeded readouts on one frozen carrier are not independent encoder or architecture replications"});
+    let inputs = json!({"schema":"native-turn-frozen-inputs/1","training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"config":config,"panel_sha256":panel_sha,"fresh_profile":if crossed.is_some(){"crossed-1"}else{&a.fresh_split},"curriculum":a.curriculum,"curriculum_sha256":curriculum_sha,"curriculum_frozen":frozen_curriculum,"factor_inputs":{"known_phrasing_new_values":input_rows(&known_phrasing_new_values),"new_phrasing_known_values":input_rows(&new_phrasing_known_values),"repeated_values":input_rows(&repeated_values)},"fresh_exclusions":if crossed.is_some(){"crossed curriculum exclusion/provenance is bound in curriculum_frozen.manifest; no global encoder-corpus exclusion claim"}else{"local-1 excludes exact source rows and literal values from legacy compiler training/development/fresh;no claim of exclusion from every historical encoder corpus"},"limitations":"authored supervised panels;three seeded readouts on one frozen carrier are not independent encoder or architecture replications"});
     let input_bytes = serde_json::to_vec_pretty(&inputs)?;
     fs::write(a.output.join("frozen-inputs.json"), &input_bytes)?;
     let binding_bytes = fs::read(&a.binding)?;
@@ -690,6 +866,94 @@ fn run(a: &Args) -> Result<()> {
     if let Some(root) = &a.audit_artifacts {
         return audit(a, root, &native, &tokenizer, &tokenizer_bytes);
     }
+    let mut admitted_rows = Vec::new();
+    for rows in [
+        &training,
+        &development,
+        &fresh,
+        &known_phrasing_new_values,
+        &new_phrasing_known_values,
+        &repeated_values,
+    ] {
+        admitted_rows.extend(rows.iter().cloned());
+    }
+    if let Some(c) = &crossed {
+        for episode in c.development_episodes.iter().chain(&c.fresh_episodes) {
+            admitted_rows.extend(episode.turns.iter().cloned());
+        }
+    }
+    let token_admission = source_admission(&admitted_rows, &tokenizer)?;
+    let mut expected_value_admission = Vec::new();
+    if let Some(c) = &crossed {
+        for episode in c.development_episodes.iter().chain(&c.fresh_episodes) {
+            if episode.turns.len() != episode.query_expected.len() {
+                return Err(fail("frozen episode expectations not aligned").into());
+            }
+            for (step, (turn, expected)) in episode
+                .turns
+                .iter()
+                .zip(&episode.query_expected)
+                .enumerate()
+            {
+                if (turn.act == "query") != expected.is_some() {
+                    return Err(fail("frozen episode query expectation contract").into());
+                }
+                if let Some(value) = expected {
+                    let value_ids = tokenizer.encode(value);
+                    let answer_ids = tokenizer.encode(&format!(" {value}."));
+                    if value_ids.len() > 30 || answer_ids.len() + 1 > 32 {
+                        return Err(fail(
+                            "source-only expected value/Period/EOS exceeds declared generation32",
+                        )
+                        .into());
+                    }
+                    expected_value_admission.push(json!({"episode":episode.id,"step":step,"value_labels_only":value,"value_bpe_ids":value_ids,"complete_literal_period_bpe_ids_labels_only":answer_ids,"required_tokens_including_eos":answer_ids.len()+1,"generation_cap":32}));
+                }
+            }
+        }
+    }
+    let reference = if let Some(c) = &crossed {
+        ReferenceRule::new_with_templates(&tokenizer_sha, &c.reference_templates)?
+    } else {
+        ReferenceRule::new_with_splits(
+            &tokenizer_sha,
+            &["training", "development", &a.fresh_split],
+        )?
+    };
+    let mut reference_admission = Vec::new();
+    if crossed.is_some() {
+        for (name, rows) in [
+            ("training", &training),
+            ("development", &development),
+            ("fresh", &fresh),
+            ("known_phrasing_new_values", &known_phrasing_new_values),
+            ("new_phrasing_known_values", &new_phrasing_known_values),
+            ("repeated_values", &repeated_values),
+        ] {
+            let evaluated = evaluate(&reference, rows)?;
+            if evaluated["complete_exact"] != json!(rows.len())
+                || evaluated["prose_false_writes"] != json!(0)
+            {
+                return Err(fail("reference compilation instrument failed before fit").into());
+            }
+            reference_admission.push(json!({"panel":name,"result":evaluated}));
+        }
+        if let Some(c) = &crossed {
+            for episode in c.development_episodes.iter().chain(&c.fresh_episodes) {
+                let evaluated = evaluate(&reference, &episode.turns)?;
+                if evaluated["complete_exact"] != json!(episode.turns.len())
+                    || evaluated["prose_false_writes"] != json!(0)
+                {
+                    return Err(fail("reference episode instrument failed before fit").into());
+                }
+                reference_admission.push(json!({"episode":episode.id,"result":evaluated}));
+            }
+        }
+    }
+    write_json(
+        &a.output.join("curriculum-admission.json"),
+        &json!({"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"frozen_inputs_sha256":sha256_bytes(&input_bytes),"curriculum_sha256":curriculum_sha,"tokenizer_sha256":tokenizer_sha,"source_token_admission":token_admission,"expected_value_generation_admission_labels_only":expected_value_admission,"reference_compilation_admission":reference_admission,"reference_store_execution":"NOT_RUN at prefit admission","fit_updates":0}),
+    )?;
     let fit = fit_examples(
         &native,
         &tokenizer,
@@ -737,7 +1001,7 @@ fn run(a: &Args) -> Result<()> {
             &tokenizer,
             &tokenizer_bytes,
         )?;
-        factors.push(json!({"step":checkpoint.step,"artifact_sha256":sha256_bytes(&checkpoint.native_artifact),"training":evaluate(&c,&training)?,"development":evaluate(&c,&development)?,"known_phrasing_new_values":evaluate(&c,&panel_cross("training","development"))?,"new_phrasing_known_values":evaluate(&c,&panel_cross("development","training"))?,"repeated_values":evaluate(&c,&repeated_value_panel())?}));
+        factors.push(json!({"step":checkpoint.step,"artifact_sha256":sha256_bytes(&checkpoint.native_artifact),"training":evaluate(&c,&training)?,"development":evaluate(&c,&development)?,"known_phrasing_new_values":evaluate(&c,&known_phrasing_new_values)?,"new_phrasing_known_values":evaluate(&c,&new_phrasing_known_values)?,"repeated_values":evaluate(&c,&repeated_values)?}));
     }
     write_json(
         &a.output.join("checkpoint-factor-panels.json"),
@@ -745,24 +1009,44 @@ fn run(a: &Args) -> Result<()> {
     )?;
     let dev = evaluate(&compiler, &development)?;
     let fresh_eval = evaluate(&compiler, &fresh)?;
-    let dev_store = store_episodes(&compiler, &tokenizer, &native, "development", "learned", &a)?;
-    let fresh_store = store_episodes(
-        &compiler,
-        &tokenizer,
-        &native,
-        &a.fresh_split,
-        "learned",
-        &a,
-    )?;
-    let reference = ReferenceRule::new_with_splits(
-        &tokenizer_sha,
-        &["training", "development", &a.fresh_split],
-    )?;
+    let (dev_store, fresh_store) = if let Some(c) = &crossed {
+        (
+            store_authored_episodes(
+                &compiler,
+                &tokenizer,
+                &native,
+                "development",
+                "learned",
+                a,
+                &c.development_episodes,
+            )?,
+            store_authored_episodes(
+                &compiler,
+                &tokenizer,
+                &native,
+                "fresh",
+                "learned",
+                a,
+                &c.fresh_episodes,
+            )?,
+        )
+    } else {
+        (
+            store_episodes(&compiler, &tokenizer, &native, "development", "learned", a)?,
+            store_episodes(&compiler, &tokenizer, &native, &a.fresh_split, "learned", a)?,
+        )
+    };
+    let reference_store = if let Some(c) = &crossed {
+        json!({"development":store_authored_episodes(&reference, &tokenizer, &native, "development", "control", a, &c.development_episodes)?,
+               "fresh":store_authored_episodes(&reference, &tokenizer, &native, "fresh", "control", a, &c.fresh_episodes)?})
+    } else {
+        json!({"status":"NOT_RUN","scope":"legacy fit preserves prior reference compilation-only control"})
+    };
     let positive = json!({"label":"authored exact-template instrumentation control;not learned model or serving fallback","identity":reference.identity(),"training":evaluate(&reference,&training)?,"development":evaluate(&reference,&development)?,"fresh":evaluate(&reference,&fresh)?});
     let donor_identities = json!({"cue":serde_json::from_slice::<Value>(&fs::read(a.cue.join("native-metadata.json"))?)?,"prefix":serde_json::from_slice::<Value>(&fs::read(a.prefix.join("native-metadata.json"))?)?,"source_end":serde_json::from_slice::<Value>(&fs::read(a.end.join("native-metadata.json"))?)?});
     write_json(
         &a.output.join("report.json"),
-        &json!({"schema":"geometric-native-compiler-report/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"host":std::env::consts::ARCH,"elapsed_seconds":started.elapsed().as_secs_f64(),"binding_receipt_sha256":binding_sha,"tokenizer_sha256":tokenizer_sha,"binding_trust":if a.binding_sha.is_some(){"explicit-pinned-sha"}else{"caller-supplied-trusted-receipt"},"frozen_inputs_sha256":sha256_bytes(&input_bytes),"feature_mode":a.feature_mode,"learning_seed":a.seed,"seed_scope":"one frozen learned encoder;independent initialized Q4 readouts only","panel_sha256":panel_sha,"fresh_profile":a.fresh_split,"compact_trace":a.compact_trace,"instrument_positive_control":positive,"reader_donors":donor_identities,"transport_cost":"local-relative inverse+compose two group table operations per present lane;local-product compose one;same information/slots,not identical group-operation count","selected_step":fit.selected_step,"selected_artifact_sha256":selected_sha,"compiler_identity":compiler.identity(),"checkpoints":fit.checkpoints,"diagnostics":fit.diagnostics,"development":dev,"fresh":fresh_eval,"development_store":dev_store,"fresh_store":fresh_store,"geometric_reader_available":"selected-record-and-all-bank","native_reader_calls":dev_store["native_reader_calls"].as_u64().unwrap_or(0)+fresh_store["native_reader_calls"].as_u64().unwrap_or(0),"native_emission_status":if dev_store["native_reader_calls"]==0 && fresh_store["native_reader_calls"]==0 {"NOT_RUN"}else{"executed"},"claims":"authored native compiler/store/reader episodes;encoder frozen;authored panels;no general prose/reasoning/energy qualification"}),
+        &json!({"schema":"geometric-native-compiler-report/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"host":std::env::consts::ARCH,"elapsed_seconds":started.elapsed().as_secs_f64(),"binding_receipt_sha256":binding_sha,"tokenizer_sha256":tokenizer_sha,"binding_trust":if a.binding_sha.is_some(){"explicit-pinned-sha"}else{"caller-supplied-trusted-receipt"},"frozen_inputs_sha256":sha256_bytes(&input_bytes),"feature_mode":a.feature_mode,"learning_seed":a.seed,"seed_scope":"one frozen learned encoder;independent initialized Q4 readouts only","panel_sha256":panel_sha,"fresh_profile":if crossed.is_some(){"crossed-1"}else{&a.fresh_split},"curriculum":a.curriculum,"curriculum_sha256":curriculum_sha,"curriculum_manifest":curriculum_receipt,"compact_trace":a.compact_trace,"reference_store_execution":reference_store,"reference_native_reader_calls":reference_store["development"]["native_reader_calls"].as_u64().unwrap_or(0)+reference_store["fresh"]["native_reader_calls"].as_u64().unwrap_or(0),"instrument_positive_control":positive,"reader_donors":donor_identities,"transport_cost":"local-relative inverse+compose two group table operations per present lane;local-product compose one;same information/slots,not identical group-operation count","selected_step":fit.selected_step,"selected_artifact_sha256":selected_sha,"compiler_identity":compiler.identity(),"checkpoints":fit.checkpoints,"diagnostics":fit.diagnostics,"development":dev,"fresh":fresh_eval,"development_store":dev_store,"fresh_store":fresh_store,"geometric_reader_available":"selected-record-and-all-bank","native_reader_calls":dev_store["native_reader_calls"].as_u64().unwrap_or(0)+fresh_store["native_reader_calls"].as_u64().unwrap_or(0),"native_emission_status":if dev_store["native_reader_calls"]==0 && fresh_store["native_reader_calls"]==0 {"NOT_RUN"}else{"executed"},"claims":"authored native compiler/store/reader episodes;encoder frozen;authored panels;no general prose/reasoning/energy qualification"}),
     )?;
     report_output::seal(&a.output)?;
     report_output::verify(&a.output)?;
@@ -803,6 +1087,59 @@ impl ReferenceRule {
                 }
             }
         }
+        Self::from_templates(tokenizer_sha, writes, queries)
+    }
+    fn new_with_templates(tokenizer_sha: &str, examples: &[Example]) -> Result<Self> {
+        let mut writes = Vec::new();
+        let mut queries = Vec::new();
+        for e in examples {
+            let relation = match e.relation.as_str() {
+                "job" => 1,
+                "home" => 2,
+                NONE => continue,
+                _ => return Err(fail("reference template unknown relation").into()),
+            };
+            if e.act == "query" {
+                let row = (e.text.clone(), relation);
+                if !queries.contains(&row) {
+                    queries.push(row);
+                }
+            } else if e.act == "assert" || e.act == "update" {
+                let template = e
+                    .template
+                    .as_deref()
+                    .ok_or_else(|| fail("reference write lacks explicit frame"))?;
+                let (prefix, suffix) = template
+                    .split_once("{v}")
+                    .ok_or_else(|| fail("reference frame lacks value"))?;
+                if suffix.contains("{v}") {
+                    return Err(fail("reference frame must have one exact source span").into());
+                }
+                let row = (
+                    prefix.to_owned(),
+                    suffix.to_owned(),
+                    relation,
+                    e.act == "update",
+                );
+                if !writes.contains(&row) {
+                    writes.push(row);
+                }
+            }
+        }
+        // Explicit instrumentation prefers the most specific authored frame.
+        // It is never consulted by the learned compiler or native reader.
+        writes.sort_by(|a, b| {
+            (b.0.len() + b.1.len())
+                .cmp(&(a.0.len() + a.1.len()))
+                .then_with(|| b.3.cmp(&a.3))
+        });
+        Self::from_templates(tokenizer_sha, writes, queries)
+    }
+    fn from_templates(
+        tokenizer_sha: &str,
+        writes: Vec<(String, String, u32, bool)>,
+        queries: Vec<(String, u32)>,
+    ) -> Result<Self> {
         let bytes = serde_json::to_vec(
             &json!({"schema":"authored-exact-template-instrument-control/1","writes":writes,"queries":queries}),
         )?;
@@ -1014,6 +1351,11 @@ fn main() -> Result<()> {
             .file_name()
             .ok_or_else(|| fail("output needs basename"))?,
     );
+    for ancestor in output.ancestors() {
+        if ancestor.join(report_output::MANIFEST_FILE).is_file() {
+            return Err(fail("output is beneath sealed report").into());
+        }
+    }
     for input in [
         &a.native,
         &a.binding,
@@ -1058,6 +1400,61 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn crossed_fresh_exclusion_rejects_actual_legacy_sources() -> Result<()> {
+        let c = curriculum::build()?;
+        verify_crossed_fresh(&c.fresh)?;
+        assert!(verify_crossed_fresh(&panel("fresh-local-1")).is_err());
+        Ok(())
+    }
+    #[test]
+    fn crossed_override_rejects_checkpoint_audit_and_unknown_curriculum() -> Result<()> {
+        validate_curriculum_override(None, true)?;
+        validate_curriculum_override(Some("crossed-1"), false)?;
+        assert!(validate_curriculum_override(Some("crossed-1"), true).is_err());
+        assert!(validate_curriculum_override(Some("unknown"), false).is_err());
+        Ok(())
+    }
+    #[test]
+    fn none_value_provenance_is_not_a_gold_write_span_or_control_rule() -> Result<()> {
+        let none = example(
+            NONE,
+            NONE,
+            "I mentioned {v} while thinking.",
+            "singer singer",
+        );
+        assert!(none.slot_span().is_some());
+        let control = ReferenceRule::new_with_templates(&"0".repeat(64), &[none.clone()])?;
+        let result = evaluate(&control, &[none])?;
+        assert_eq!(result["complete_exact"], json!(1));
+        assert_eq!(result["prose_false_writes"], json!(0));
+        Ok(())
+    }
+    #[test]
+    fn explicit_control_uses_original_exact_span_and_full_template() -> Result<()> {
+        let assertion = example(
+            "job",
+            "assert",
+            "Please save {v} as my job.",
+            "singer singer",
+        );
+        let correction = example(
+            "job",
+            "update",
+            "For my job instead record {v}.",
+            "dancer dancer",
+        );
+        let query = example("job", "query", "What job do I currently have?", "");
+        let rows = vec![assertion, correction, query];
+        let control = ReferenceRule::new_with_templates(&"0".repeat(64), &rows)?;
+        let result = evaluate(&control, &rows)?;
+        assert_eq!(result["complete_exact"], json!(3));
+        assert!(matches!(
+            control.compile("Other job singer.")?,
+            CompiledAction::Unresolved { .. }
+        ));
+        Ok(())
+    }
     #[test]
     fn prospective_local_panel_is_excluded_and_reference_solvable() -> Result<()> {
         let rows = panel("fresh-local-1");
