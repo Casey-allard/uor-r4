@@ -14,6 +14,7 @@ pub mod addressing_arms;
 pub mod b3_e8_codecs;
 pub mod baseline_counts;
 pub mod baseline_protocol;
+pub mod binding_probe;
 pub mod cache_memory;
 pub mod copy_identity;
 pub mod cuda_stack_kernels;

@@ -537,8 +537,22 @@ pub struct StackBindingLoss {
 }
 
 struct BindingCapture<'a> {
-    target: &'a ReadBindingTarget,
+    /// The exact-source label of one layer/head, if any.
+    target: Option<&'a ReadBindingTarget>,
     masses: Option<Tensor>,
+    /// The diagnostic span probe ([`StackModel::read_span_probe`]), if any.
+    probe: Option<SpanProbeCapture<'a>>,
+}
+
+/// Every geometric read layer's per-head attention mass on declared source
+/// sets at one query of a single window. Like the binding label, each set is
+/// an auxiliary value channel sharing the read's exact scores, admission and
+/// NoRead normalization; the channels are removed before `read.out`.
+struct SpanProbeCapture<'a> {
+    spans: &'a [Vec<usize>],
+    query: usize,
+    /// `(layer, [heads, spans] masses)` in layer order.
+    layers: Vec<(usize, Tensor)>,
 }
 
 /// Refuse a flock the reads cannot evaluate. The selection itself is the shared
@@ -2123,8 +2137,8 @@ impl StackModel {
         // so neither the teacher mask nor its mass enters the residual stream.
         let target = binding
             .as_ref()
-            .filter(|binding| binding.target.layer == layer)
-            .map(|binding| binding.target);
+            .and_then(|binding| binding.target)
+            .filter(|target| target.layer == layer);
         let value_width = value.dim(3)?;
         let value = match target {
             None => value,
@@ -2136,6 +2150,27 @@ impl StackModel {
                     }
                 }
                 let mask = Tensor::from_vec(mask, (batch, heads, time, 1), &self.device)?;
+                Tensor::cat(&[&value, &mask], 3)?
+            }
+        };
+        // The span probe's channels: one per source set, the same set in every
+        // head. Like the label mask they never enter the scores.
+        let value = match binding.as_ref().and_then(|binding| binding.probe.as_ref()) {
+            None => value,
+            Some(probe) => {
+                let sets = probe.spans.len();
+                let mut mask = vec![0.0f32; batch * heads * time * sets];
+                for b in 0..batch {
+                    for h in 0..heads {
+                        for (s, span) in probe.spans.iter().enumerate() {
+                            for &source in span {
+                                mask[((b * heads + h) * time + source) * sets + s] = 1.0;
+                            }
+                        }
+                    }
+                }
+                let mask = Tensor::from_vec(mask, (batch, heads, time, sets), &self.device)?
+                    .to_dtype(value.dtype())?;
                 Tensor::cat(&[&value, &mask], 3)?
             }
         };
@@ -2154,8 +2189,18 @@ impl StackModel {
         let (batch, heads, time, _) = read.dims4()?;
         let target = binding
             .as_ref()
-            .filter(|binding| binding.target.layer == layer)
-            .map(|binding| binding.target);
+            .and_then(|binding| binding.target)
+            .filter(|target| target.layer == layer);
+        if let Some(probe) = binding.as_mut().and_then(|binding| binding.probe.as_mut()) {
+            // Batch item 0 (the probe is single-window), every head, the query.
+            let masses = read
+                .narrow(3, value_width, probe.spans.len())?
+                .get(0)?
+                .narrow(1, probe.query, 1)?
+                .squeeze(1)?
+                .to_dtype(DType::F32)?;
+            probe.layers.push((layer, masses));
+        }
         let read = if let Some(target) = target {
             let indices: Vec<u32> = target
                 .rows
@@ -2172,7 +2217,7 @@ impl StackModel {
             }
             read.narrow(3, 0, value_width)?
         } else {
-            read.clone()
+            read.narrow(3, 0, value_width)?
         };
         let merged = self.merge_heads(&read, batch, time)?;
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
@@ -2822,8 +2867,9 @@ impl StackModel {
         }
         let tokens = self.embed_with(&p, ids, batch, time)?;
         let mut binding = target.map(|target| BindingCapture {
-            target,
+            target: Some(target),
             masses: None,
+            probe: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -4782,8 +4828,9 @@ impl StackModel {
         }
         let tokens = self.embed_with(&p, ids, batch, time)?;
         let mut binding = target.map(|target| BindingCapture {
-            target,
+            target: Some(target),
             masses: None,
+            probe: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -5590,8 +5637,8 @@ impl StackModel {
         };
         let target = binding
             .as_ref()
-            .filter(|binding| binding.target.layer == layer)
-            .map(|binding| binding.target);
+            .and_then(|binding| binding.target)
+            .filter(|target| target.layer == layer);
         let read = if let Some(target) = target {
             // Labels observe raw normalized occurrence mass only AFTER the
             // predictive reduction. This channel is removed before read.out.
@@ -6424,8 +6471,9 @@ impl StackModel {
         self.validate_binding(batch, time, target)?;
         let x = self.embed_with(p, ids, batch, time)?;
         let mut binding = Some(BindingCapture {
-            target,
+            target: Some(target),
             masses: None,
+            probe: None,
         });
         let x = self.layer_range_with_source(
             p,
@@ -6471,6 +6519,126 @@ impl StackModel {
     ) -> Result<Tensor> {
         let p = self.params()?;
         Ok(self.hidden_with_binding(&p, ids, batch, time, binding)?.1)
+    }
+
+    /// Diagnostic of the next token after `ids` (one window, batch 1): every
+    /// geometric read layer's per-head attention mass, at the last position,
+    /// on each of `spans` (sets of window positions), and the output
+    /// distributions there. The forward is the ordinary one ([`Self::next_scores`]):
+    /// the span channels are auxiliary values sharing the read's exact scores,
+    /// age bias, admission and NoRead normalization, removed before
+    /// `read.out`, so they never change the hidden states or logits. A set's
+    /// mass is `sum_{j in set} a_j` with NoRead in the denominator; a set of
+    /// every position `0..=t` gives the read's total source mass (one minus
+    /// the NoRead mass). Geometric addressing and span production have their
+    /// own read paths and are refused.
+    pub fn read_span_probe(&self, ids: &[u32], spans: &[Vec<usize>]) -> Result<SpanProbe> {
+        let time = ids.len();
+        if time == 0 || time > self.config.context {
+            return Err(invalid(
+                "read span probe needs one window within the context",
+            ));
+        }
+        if self.config.arch != StackArch::Geometric {
+            return Err(invalid("read span probe needs the geometric stack"));
+        }
+        if self.geometric_address.is_some() || self.geometric_span.is_some() {
+            return Err(invalid(
+                "read span probe observes the plain fused read only (no geometric address or span)",
+            ));
+        }
+        if spans.is_empty() || spans.iter().flatten().any(|&source| source >= time) {
+            return Err(invalid(
+                "read span probe needs at least one set of in-window positions",
+            ));
+        }
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, 1, time)?;
+        let mut binding = Some(BindingCapture {
+            target: None,
+            masses: None,
+            probe: Some(SpanProbeCapture {
+                spans,
+                query: time - 1,
+                layers: Vec::new(),
+            }),
+        });
+        let x = self.layer_range_bound(
+            &p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut binding,
+            LatchGates::Soft,
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?.detach();
+        let reads = binding
+            .and_then(|binding| binding.probe)
+            .map(|probe| probe.layers)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(layer, masses)| -> Result<ReadSpanMasses> {
+                Ok(ReadSpanMasses {
+                    layer,
+                    heads: masses
+                        .to_vec2::<f32>()?
+                        .into_iter()
+                        .map(|row| row.into_iter().map(f64::from).collect())
+                        .collect(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let logits: Vec<f64> = hidden
+            .narrow(0, time - 1, 1)?
+            .to_dtype(DType::F32)?
+            .matmul(&p.head()?.t()?)?
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .into_iter()
+            .map(f64::from)
+            .collect();
+        let maximum = logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+        let total: f64 = logits.iter().map(|&z| (z - maximum).exp()).sum();
+        let generator: Vec<f64> = logits
+            .iter()
+            .map(|&z| (z - maximum).exp() / total)
+            .collect();
+        let Some(pointer) = self.config.pointer else {
+            return Ok(SpanProbe {
+                reads,
+                mixture: generator.clone(),
+                generator,
+                pointer: None,
+            });
+        };
+        let side = self
+            .pointer_side(&p, &hidden)?
+            .to_dtype(DType::F32)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let rule = PointerRule {
+            dim: pointer.dim,
+            score: pointer.score,
+            select: pointer.select,
+            beta: one_value(&self.pointer_beta(&p)?)?,
+            route: pointer.route,
+        };
+        let keys = self.pointer_route_keys(ids);
+        let attention =
+            pointer_attention(&side, 0, time - 1, &rule, keys.as_deref().unwrap_or(ids))?;
+        let gate = sigmoid_f64(f64::from(
+            side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
+        ));
+        let mut mixture: Vec<f64> = generator.iter().map(|&q| (1.0 - gate) * q).collect();
+        for (&a, &id) in attention.iter().zip(ids) {
+            mixture[id as usize] += gate * a;
+        }
+        Ok(SpanProbe {
+            reads,
+            generator,
+            mixture,
+            pointer: Some(PointerProbe { gate, attention }),
+        })
     }
 
     /// The existing exact-source observer under the explicit last-token span
@@ -12920,6 +13088,34 @@ impl CustomOp3 for PointerMixture {
     }
 }
 
+/// One geometric read layer's attention masses from [`StackModel::read_span_probe`]:
+/// `heads[h][s]` is head `h`'s mass on source set `s` at the probed query.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReadSpanMasses {
+    pub layer: usize,
+    pub heads: Vec<Vec<f64>>,
+}
+
+/// The pointer head at the probed query: its gate `g` and its attention over
+/// the window's positions `0..=t`.
+#[derive(Clone, Debug, PartialEq)]
+pub struct PointerProbe {
+    pub gate: f64,
+    pub attention: Vec<f64>,
+}
+
+/// [`StackModel::read_span_probe`]'s observation of the next token: read
+/// masses per layer and head, the generator's softmax, the pointer (if any)
+/// and the distribution greedy decoding ranks (the mixture `(1 - g)
+/// softmax(z) + g p_copy` for a pointer model, else the softmax).
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpanProbe {
+    pub reads: Vec<ReadSpanMasses>,
+    pub generator: Vec<f64>,
+    pub mixture: Vec<f64>,
+    pub pointer: Option<PointerProbe>,
+}
+
 /// What the pointer head did at one scored position.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct PointerRowStats {
@@ -18286,6 +18482,79 @@ mod tests {
             let after = objective()?.to_scalar::<f32>()?;
             assert!(after < before, "{read:?}: binding step {before} -> {after}");
         }
+        Ok(())
+    }
+
+    #[test]
+    fn read_span_probe_matches_binding_masses_and_next_scores() -> Result<()> {
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "rara", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        let ids = [3u32, 7, 9, 7, 5, 6, 2, 7];
+        let time = ids.len();
+        let spans = vec![vec![1, 3], vec![5], (0..time).collect::<Vec<_>>()];
+        for pointer in [false, true] {
+            if pointer {
+                model.add_pointer(PointerConfig::new(4), 11)?;
+            }
+            let probe = model.read_span_probe(&ids, &spans)?;
+            assert_eq!(
+                probe.reads.iter().map(|r| r.layer).collect::<Vec<_>>(),
+                vec![1, 3]
+            );
+            for read in &probe.reads {
+                assert_eq!(read.heads.len(), model.config.heads);
+                for (head, masses) in read.heads.iter().enumerate() {
+                    let label = |sources: Vec<usize>| -> Result<f64> {
+                        let target = ReadBindingTarget {
+                            layer: read.layer,
+                            head,
+                            rows: vec![ReadBinding {
+                                batch: 0,
+                                query: time - 1,
+                                sources,
+                            }],
+                        };
+                        Ok(f64::from(
+                            model
+                                .read_binding_masses(&ids, 1, time, &target)?
+                                .to_vec1::<f32>()?[0],
+                        ))
+                    };
+                    // Sets before the query equal the exact-source label's mass.
+                    for set in 0..2 {
+                        assert!((masses[set] - label(spans[set].clone())?).abs() < 1e-6);
+                    }
+                    // The full set adds the query's own mass; NoRead keeps it below one.
+                    let past = label((0..time - 1).collect())?;
+                    assert!(masses[2] > past - 1e-6 && masses[2] < 1.0);
+                    assert!((masses[0] + masses[1]) <= masses[2] + 1e-6);
+                }
+            }
+            // The observed distribution is exactly what greedy decoding ranks.
+            // (next_scores: raw logits without a pointer, the log mixture with one.)
+            let mut scores: Vec<f64> = model
+                .next_scores(&ids)?
+                .into_iter()
+                .map(f64::from)
+                .collect();
+            if !pointer {
+                let lse = scores.iter().map(|z| z.exp()).sum::<f64>().ln();
+                scores.iter_mut().for_each(|z| *z -= lse);
+            }
+            for (got, want) in probe.mixture.iter().zip(&scores) {
+                assert!((got.max(f64::MIN_POSITIVE).ln() - want).abs() < 1e-4);
+            }
+            assert_eq!(probe.pointer.is_some(), pointer);
+            if let Some(head) = &probe.pointer {
+                assert_eq!(head.attention.len(), time);
+                assert!((head.attention.iter().sum::<f64>() - 1.0).abs() < 1e-9);
+                assert!(head.gate > 0.0 && head.gate < 1.0);
+            }
+        }
+        assert!(model.read_span_probe(&ids, &[vec![time]]).is_err());
+        assert!(model.read_span_probe(&ids, &[]).is_err());
         Ok(())
     }
 
