@@ -17,7 +17,11 @@
 # The world=v2 corpus is rebuilt by this binary as the control; a world=v2 draw
 # is byte-identical to every earlier one (test the_v2_seed_9101_draw_is_unchanged),
 # so its tokens.u16 must equal Step 1's $D/ft/mw-hi/train/tokens.u16 when that
-# exists (the script compares and prints MATCH/DIFFER). The v2c stream is paired
+# exists. The script compares them: MATCH continues; DIFFER fails the run (exit
+# 3), because any comparison with Step 1's arms would then be invalid. Set
+# ALLOW_V2_DIFFER=1 to record DIFFER and continue (the A/B itself uses the
+# rebuilt hi-v2, so it stays valid; Step 1 comparisons do not). Note Step 1's
+# binary was built at dec3c096 and the pinned v2 digest test at e4922ec5. The v2c stream is paired
 # with v2's draw for draw until the first episode whose one-piece-longer reply
 # changes a context fit; after that the two are independent draws of the same
 # mix (corpus.json records episodes and tokens per kind for each).
@@ -27,7 +31,13 @@
 # ~8 min to build the two binaries (if not cached), ~2 min per 40,000-
 # conversation M-world corpus (400 took ~1 s on an M1 at 2 threads), ~1 min
 # per mix: about 15 min in all.
-set -euo pipefail
+#
+# Terminal markers, for a completion watcher: success writes
+# $OUT_ROOT/STEP4_DONE and prints "STEP4 CORPUS DONE"; any failing step writes
+# $OUT_ROOT/STEP4_FAILED (exit status, line and command) and prints
+# "STEP4 CORPUS FAILED", and the script exits non-zero. A run leaves exactly
+# one of the two markers.
+set -Eeuo pipefail
 
 REPO="${REPO:-/root/uor-r4}"           # a checkout of this PR's head
 D="${D:-/root/data}"                    # Step 1's data root
@@ -38,6 +48,26 @@ TARGET="${CARGO_TARGET_DIR:-/root/target-step4}"
 CARGO="${CARGO:-$HOME/.cargo/bin/cargo}"
 WORLDS="${WORLDS:-v2c v2}"
 export RAYON_NUM_THREADS="${RAYON_NUM_THREADS:-8}"
+ALLOW_V2_DIFFER="${ALLOW_V2_DIFFER:-0}"
+
+# Claim the marker names before any work: a retry needs a fresh OUT_ROOT.
+for marker in STEP4_DONE STEP4_FAILED; do
+  if [ -e "$OUT_ROOT/$marker" ]; then
+    echo "STEP4 CORPUS FAILED: $OUT_ROOT/$marker exists; pick a new OUT_ROOT" >&2
+    exit 2
+  fi
+done
+mkdir -p "$OUT_ROOT"
+fail() {
+  local status=$1 line=$2 command=$3
+  trap - ERR
+  printf 'status=%s\nline=%s\ncommand=%s\ntime=%s\n' \
+    "$status" "$line" "$command" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    > "$OUT_ROOT/STEP4_FAILED" || true
+  echo "STEP4 CORPUS FAILED status=$status line=$line: $command" >&2
+  exit "$status"
+}
+trap 'fail $? $LINENO "$BASH_COMMAND"' ERR
 
 sha256sum "$TOKENIZER"
 cd "$REPO"
@@ -47,7 +77,6 @@ CARGO_TARGET_DIR="$TARGET" "$CARGO" build --release -j 8 -p uor-r4-training \
 MW="$TARGET/release/examples/m-world"
 MIX="$TARGET/release/mix-chat-corpus"
 sha256sum "$MW" "$MIX"
-mkdir -p "$OUT_ROOT"
 
 for world in $WORLDS; do
   mw="$OUT_ROOT/mw-hi-$world"
@@ -75,7 +104,12 @@ PY
     if cmp -s "$mw/train/tokens.u16" "$D/ft/mw-hi/train/tokens.u16"; then
       echo "v2 control MATCHES Step 1's mw-hi"
     else
-      echo "v2 control DIFFERS from Step 1's mw-hi"
+      echo "v2 control DIFFERS from Step 1's mw-hi" >&2
+      echo "differ" > "$OUT_ROOT/V2_CONTROL_DIFFERS"
+      if [ "$ALLOW_V2_DIFFER" != 1 ]; then
+        fail 3 "$LINENO" "v2 control differs from Step 1's mw-hi (ALLOW_V2_DIFFER=1 to continue)"
+      fi
+      echo "ALLOW_V2_DIFFER=1: continuing; Step 1 comparisons are invalid" >&2
     fi
   fi
   start=$(date +%s)
@@ -87,4 +121,6 @@ PY
   echo "mix world=$world out=$hi seconds=$(( $(date +%s) - start ))"
   sha256sum "$hi/tokens.u16" "$hi/response_mask.u8" "$hi/manifest.json"
 done
+trap - ERR
+date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT_ROOT/STEP4_DONE"
 echo "STEP4 CORPUS DONE"

@@ -1799,7 +1799,12 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
                 identity.clone(),
             )
         });
-        let (route, record) = fit_route(&count, args.optional("route_paraphrases"), trunk)?;
+        let (route, record) = fit_route(
+            &count,
+            v2_variant(args)?,
+            args.optional("route_paraphrases"),
+            trunk,
+        )?;
         (Some(route), Some(record))
     } else {
         (None, None)
@@ -2680,8 +2685,11 @@ fn load_paraphrases(list: &str, train: &[Example]) -> Result<(Vec<Example>, Valu
 /// every user turn of relation-heavy draws with training phrasings (both value
 /// splits, 2,000 conversations each, seed 9,101: `compiler`'s draw), plus any
 /// teacher paraphrases, by 400 sparse gradient steps (rate 0.5, l2 1e-4).
+/// The draws use the evaluated `variant` (`world=v2c` fits on v2c draws), and
+/// the record names it, so a route's provenance matches the report's world.
 fn fit_route(
     count: &dyn Fn(&str) -> usize,
+    variant: Variant,
     paraphrases: Option<String>,
     trunk: Option<(&dyn Fn(&str) -> Result<Vec<f64>>, Value)>,
 ) -> Result<(RelationRoute, Value)> {
@@ -2694,7 +2702,7 @@ fn fit_route(
     };
     let mut train = Vec::new();
     for value in [Split::Train, Split::Development] {
-        let mut world = MWorld2::new(count, mix)?;
+        let mut world = MWorld2::new(count, mix)?.with_variant(variant);
         let mut rng = Rng::new(9_101);
         train.extend(collect(
             &mut world,
@@ -2731,6 +2739,8 @@ fn fit_route(
         "table": "sparse softmax over the words of a turn, 400 full-batch steps, rate 0.5, l2 1e-4",
         "training_turns": turns,
         "draw": "relation-heavy mix (MQAR .15, copy .05, relation .60, other .20), training phrasings, both value splits, 2,000 conversations each, seed 9101",
+        "world": variant.world_name(),
+        "world_digest": MWorld2::digest_for(variant),
         "paraphrases": paraphrase_record,
     });
     Ok((route, record))
