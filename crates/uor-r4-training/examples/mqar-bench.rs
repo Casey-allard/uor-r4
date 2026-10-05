@@ -3,14 +3,24 @@
 //! recall and measure in-context recall accuracy by query distance.
 //!
 //! ```text
-//! mqar-bench out=NEW_REPORT_ROOT [device=cpu|metal] [context=512] [pairs_per_bucket=8] \
+//! mqar-bench out=NEW_REPORT_ROOT [device=cpu|metal|cuda] [context=512] [pairs_per_bucket=8] \
 //!   [batch=8] [steps=1800] [lr=0.001] [warmup=100] [min_lr=0.1] [weight_decay=0.1] [clip=1.0] \
 //!   [eval_every=100] [curve_sequences=8] [final_sequences=64] [seed=1] [max_seconds=1200] \
-//!   [probe_steps=0,600,final|none] [probe_sequences=16] \
-//!   [mode=train|task-baselines] [arm=stack] ARM OPTIONS
+//!   [probe_steps=0,600,final|none] [probe_sequences=16] [save_model=false|true] \
+//!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
-//!   [mlp=384] [age=default|flat|spread] [key_shift=false|true]
+//!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
+//!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev] [learned_init=lag1|zero]
+//! layout=fact: tokenizer=TOKENIZER_JSON [gaps=0,1,2,3] [forms=rehearse,bare]
+//!   (context <= 384; defaults pairs_per_bucket=4, final_sequences=256)
+//! mqar-bench mode=decide runs=DIR_OF_SEALED_FACT_ROOTS out=NEW_REPORT_ROOT
 //! ```
+//!
+//! `layout=fact` (Step 2, the deployment-parity bench) and `mode=decide` (its
+//! frozen decision table) are documented in `mqar_bench_step2/fact.rs` and
+//! `mqar_bench_step2/decide.rs`. `lineage` selects the key/query lineage arm
+//! (`StackModel::set_read_key_shift` for `f2`, `StackModel::set_read_lineage`
+//! for the research-only controls); `key_shift=true` is kept as `lineage=f2`.
 //!
 //! Each sequence is a fixed-length window of filler tokens holding
 //! `pairs_per_bucket` key-value pairs per distance bucket. A pair writes its
@@ -50,10 +60,15 @@ use uor_r4_core::report_output;
 #[cfg(test)]
 use uor_r4_training::geometric_stack::quaternion_j_left;
 use uor_r4_training::geometric_stack::{
-    ReadBinding, ReadBindingTarget, ReadScore, RotationGroup, StackAdamW, StackArch, StackConfig,
-    StackModel,
+    ReadBinding, ReadBindingTarget, ReadLineage, ReadScore, RotationGroup, StackAdamW, StackArch,
+    StackConfig, StackModel,
 };
 use uor_r4_training::{Result, TrainingError};
+
+#[path = "mqar_bench_step2/decide.rs"]
+mod decide;
+#[path = "mqar_bench_step2/fact.rs"]
+mod fact;
 
 const VOCAB: usize = 512;
 /// Filler tokens: noise between the pairs and queries.
@@ -327,6 +342,9 @@ trait ContextArm {
     fn positions_scored(&self, position: usize) -> usize;
     /// What `positions_scored` counts, for the report.
     fn access_note(&self) -> String;
+    /// Saves the arm's weights under `directory` (`save_model=true`); an arm
+    /// without a saved form refuses.
+    fn save(&self, directory: &Path) -> Result<()>;
     /// The (layer, head) read heads whose source weights the probe observes;
     /// empty for an arm without position-scoring reads.
     fn read_heads(&self) -> Vec<(usize, usize)> {
@@ -380,6 +398,52 @@ impl AgeInit {
     }
 }
 
+/// The key/query lineage of a stack arm (Step 2 arms).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum LineageArm {
+    /// No lineage: the plain read keys.
+    None,
+    /// F2: `k_t + j k_{t-1}` (`StackModel::set_read_key_shift`, saveable).
+    F2,
+    /// A research-only lineage (`StackModel::set_read_lineage`).
+    Research(ReadLineage),
+}
+
+impl LineageArm {
+    fn name(self) -> &'static str {
+        match self {
+            LineageArm::None => "none",
+            LineageArm::F2 => "f2",
+            LineageArm::Research(lineage) => lineage.name(),
+        }
+    }
+
+    /// `lineage=NAME`; `seed` seeds the random SO(4) map, `lag1` the learned
+    /// controls' initial lag-1 channel (identity) or its absence (zero).
+    fn parse(name: &str, seed: u64, lag1: bool) -> Result<Self> {
+        Ok(match name {
+            "none" => LineageArm::None,
+            "f2" => LineageArm::F2,
+            "qk" => LineageArm::Research(ReadLineage::QueryKeyJ),
+            "qk_jj" => LineageArm::Research(ReadLineage::QueryKeyJSame),
+            "identity" => LineageArm::Research(ReadLineage::IdentityShift),
+            "so4" => LineageArm::Research(ReadLineage::RandomSo4 { seed }),
+            "conv" => LineageArm::Research(ReadLineage::LearnedConv { init_lag1: lag1 }),
+            "wprev" => LineageArm::Research(ReadLineage::LearnedPrev {
+                init_identity: lag1,
+            }),
+            other => return Err(invalid(format!("invalid lineage={other}"))),
+        })
+    }
+
+    fn record(self) -> Value {
+        match self {
+            LineageArm::None | LineageArm::F2 => json!({"name": self.name()}),
+            LineageArm::Research(lineage) => json!({"name": self.name(), "spec": lineage}),
+        }
+    }
+}
+
 /// The arm registry: one variant per context-access mechanism.
 #[derive(Clone, Debug)]
 enum ArmSpec {
@@ -393,14 +457,32 @@ enum ArmSpec {
         heads: usize,
         mlp_hidden: usize,
         age: AgeInit,
-        /// F2: every read key also carries the previous position's key,
-        /// turned by the unit quaternion `j` (`StackModel::set_read_key_shift`).
-        key_shift: bool,
+        /// The key/query lineage. F2 (`key_shift=true` or `lineage=f2`):
+        /// every read key also carries the previous position's key, turned by
+        /// the unit quaternion `j` (`StackModel::set_read_key_shift`).
+        lineage: LineageArm,
     },
 }
 
 impl ArmSpec {
-    fn parse(args: &mut Args) -> Result<Self> {
+    fn parse(args: &mut Args, seed: u64) -> Result<Self> {
+        let key_shift: bool = args.parsed("key_shift", false)?;
+        let lag1 = match args.take("learned_init").as_deref() {
+            None | Some("lag1") => true,
+            Some("zero") => false,
+            Some(other) => return Err(invalid(format!("invalid learned_init={other}"))),
+        };
+        let lineage = match args.take("lineage") {
+            None if key_shift => LineageArm::F2,
+            None => LineageArm::None,
+            Some(name) => {
+                let lineage = LineageArm::parse(&name, seed, lag1)?;
+                if key_shift && lineage != LineageArm::F2 {
+                    return Err(invalid("key_shift=true is lineage=f2; give one of them"));
+                }
+                lineage
+            }
+        };
         match args.take("arm").as_deref() {
             None | Some("stack") => Ok(ArmSpec::Stack {
                 pattern: args.take("pattern").unwrap_or_else(|| "aaaaaa".into()),
@@ -420,7 +502,7 @@ impl ArmSpec {
                     Some("spread") => AgeInit::Spread,
                     Some(other) => return Err(invalid(format!("invalid age={other}"))),
                 },
-                key_shift: args.parsed("key_shift", false)?,
+                lineage,
             }),
             Some(other) => Err(invalid(format!("unknown arm={other}"))),
         }
@@ -434,7 +516,7 @@ impl ArmSpec {
                 read,
                 rotation,
                 age,
-                key_shift,
+                lineage,
                 ..
             } => format!(
                 "stack-{pattern}-{read:?}{}{}{}",
@@ -442,7 +524,11 @@ impl ArmSpec {
                     AgeInit::Default => String::new(),
                     other => format!("-{}-age", other.name()),
                 },
-                if *key_shift { "-key-shift" } else { "" },
+                match lineage {
+                    LineageArm::None => String::new(),
+                    LineageArm::F2 => "-key-shift".into(),
+                    other => format!("-lineage-{}", other.name()),
+                },
                 if *rotation { "" } else { "-no-rotation" },
             )
             .to_lowercase(),
@@ -453,10 +539,16 @@ impl ArmSpec {
     fn validate(&self, common: &Common) -> Result<()> {
         match self {
             ArmSpec::Stack {
-                pattern, key_shift, ..
+                pattern,
+                lineage,
+                width,
+                ..
             } => {
-                if *key_shift && !pattern.contains('a') {
-                    return Err(invalid("key_shift=true needs a read layer"));
+                if *lineage != LineageArm::None && !pattern.contains('a') {
+                    return Err(invalid("a key/query lineage needs a read layer"));
+                }
+                if *lineage != LineageArm::None && !width.is_multiple_of(4) {
+                    return Err(invalid("a key/query lineage needs four-channel lanes"));
                 }
                 self.stack_config(common)?.validate()
             }
@@ -476,7 +568,7 @@ impl ArmSpec {
             } => {
                 let config = StackConfig {
                     arch: StackArch::Geometric,
-                    vocab_size: VOCAB,
+                    vocab_size: common.vocab,
                     width: *width,
                     heads: *heads,
                     mlp_hidden: *mlp_hidden,
@@ -498,7 +590,7 @@ impl ArmSpec {
 
     fn build(&self, common: &Common, device: &Device) -> Result<Box<dyn ContextArm>> {
         match self {
-            ArmSpec::Stack { age, key_shift, .. } => {
+            ArmSpec::Stack { age, lineage, .. } => {
                 let config = self.stack_config(common)?;
                 let mut model = StackModel::new(config.clone(), device)?;
                 if *age != AgeInit::Default {
@@ -520,12 +612,18 @@ impl ArmSpec {
                         )?)?;
                     }
                 }
-                model.set_read_key_shift(*key_shift)?;
+                // Before the optimizer: learned lineages add variables.
+                match lineage {
+                    LineageArm::None => {}
+                    LineageArm::F2 => model.set_read_key_shift(true)?,
+                    LineageArm::Research(research) => model.set_read_lineage(Some(*research))?,
+                }
                 let optimizer = StackAdamW::new(&model, common.weight_decay, common.clip)?;
                 Ok(Box::new(StackArm {
                     model,
                     optimizer,
                     age: *age,
+                    lineage: *lineage,
                 }))
             }
         }
@@ -536,6 +634,7 @@ struct StackArm {
     model: StackModel,
     optimizer: StackAdamW,
     age: AgeInit,
+    lineage: LineageArm,
 }
 
 impl StackArm {
@@ -564,6 +663,8 @@ impl ContextArm for StackArm {
                     .unwrap_or_else(|| 2f64.powf(-8.0 * (h + 1) as f64 / heads as f64)))
                 .collect::<Vec<_>>(),
             "read_key_shift": self.model.read_key_shift(),
+            "lineage": self.lineage.name(),
+            "lineage_record": self.lineage.record(),
             "read_layers": self.read_layers(),
             "recurrence_layers": self.model.config.layers() - self.read_layers(),
             "recurrent_state_floats_per_layer": self.model.config.width,
@@ -604,6 +705,10 @@ impl ContextArm for StackArm {
 
     fn access_note(&self) -> String {
         "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into()
+    }
+
+    fn save(&self, directory: &Path) -> Result<()> {
+        self.model.save(directory)
     }
 
     fn read_heads(&self) -> Vec<(usize, usize)> {
@@ -931,6 +1036,11 @@ impl Args {
 struct Common {
     out: PathBuf,
     device_name: String,
+    /// The model vocabulary: `VOCAB` for the synthetic layout, the
+    /// tokenizer's for `layout=fact`.
+    vocab: usize,
+    /// Save the trained weights under `model/` of the report root.
+    save_model: bool,
     context: usize,
     pairs_per_bucket: usize,
     batch: usize,
@@ -957,7 +1067,8 @@ impl Common {
             "device": self.device_name,
             "threads": std::env::var("RAYON_NUM_THREADS").ok(),
             "context": self.context,
-            "vocab": VOCAB,
+            "vocab": self.vocab,
+            "save_model": self.save_model,
             "token_ranges": {"filler": FILLER, "keys": KEYS, "values": VALUES},
             "pairing_split": {
                 "classes": CLASSES, "held_out_class": HELD_OUT_CLASS,
@@ -975,12 +1086,22 @@ impl Common {
     }
 }
 
-fn settings() -> Result<(Common, ArmSpec, bool)> {
-    let mut args = Args::parse()?;
-    let baselines_only = match args.take("mode").as_deref() {
-        None | Some("train") => false,
-        Some("task-baselines") => true,
+/// What `main` runs.
+enum Mode {
+    Train,
+    TaskBaselines,
+}
+
+fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactTask>)> {
+    let mode = match args.take("mode").as_deref() {
+        None | Some("train") => Mode::Train,
+        Some("task-baselines") => Mode::TaskBaselines,
         Some(other) => return Err(invalid(format!("invalid mode={other}"))),
+    };
+    let fact_layout = match args.take("layout").as_deref() {
+        None | Some("synthetic") => false,
+        Some("fact") => true,
+        Some(other) => return Err(invalid(format!("invalid layout={other}"))),
     };
     let out = PathBuf::from(
         args.take("out")
@@ -989,8 +1110,17 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
     let common = Common {
         out,
         device_name: args.take("device").unwrap_or_else(|| "cpu".into()),
-        context: args.parsed("context", 512usize)?,
-        pairs_per_bucket: args.parsed("pairs_per_bucket", 8usize)?,
+        vocab: VOCAB,
+        save_model: args.parsed("save_model", false)?,
+        context: args.parsed(
+            "context",
+            if fact_layout {
+                fact::SERVED_CONTEXT
+            } else {
+                512usize
+            },
+        )?,
+        pairs_per_bucket: args.parsed("pairs_per_bucket", if fact_layout { 4 } else { 8usize })?,
         batch: args.parsed("batch", 8usize)?,
         steps: args.parsed("steps", 1800usize)?,
         lr: args.parsed("lr", 1e-3f64)?,
@@ -1000,7 +1130,7 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
         clip: args.parsed("clip", 1.0f64)?,
         eval_every: args.parsed("eval_every", 100usize)?,
         curve_sequences: args.parsed("curve_sequences", 8usize)?,
-        final_sequences: args.parsed("final_sequences", 64usize)?,
+        final_sequences: args.parsed("final_sequences", if fact_layout { 256 } else { 64usize })?,
         seed: args.parsed("seed", 1u64)?,
         max_seconds: args.parsed("max_seconds", 1200f64)?,
         probe_steps: Vec::new(),
@@ -1009,7 +1139,11 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
     let mut common = common;
     let probe_text = args
         .take("probe_steps")
-        .unwrap_or_else(|| "0,600,final".into());
+        // The fact layout probes once, after training (or never: `none`).
+        .unwrap_or_else(|| if fact_layout { "final" } else { "0,600,final" }.into());
+    if fact_layout && !matches!(probe_text.as_str(), "final" | "none") {
+        return Err(invalid("layout=fact takes probe_steps=final|none"));
+    }
     if probe_text != "none" {
         for part in probe_text.split(',') {
             let step = match part {
@@ -1026,7 +1160,14 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
         common.probe_steps.sort_unstable();
         common.probe_steps.dedup();
     }
-    let arm = ArmSpec::parse(&mut args)?;
+    let fact_task = if fact_layout {
+        let task = fact::FactTask::parse(&mut args, &common)?;
+        common.vocab = task.vocab.vocab;
+        Some(task)
+    } else {
+        None
+    };
+    let arm = ArmSpec::parse(&mut args, common.seed)?;
     args.finish()?;
     if common.batch == 0
         || common.steps == 0
@@ -1044,7 +1185,7 @@ fn settings() -> Result<(Common, ArmSpec, bool)> {
         return Err(invalid("the context holds no distance bucket"));
     }
     arm.validate(&common)?;
-    Ok((common, arm, baselines_only))
+    Ok((common, arm, mode, fact_task))
 }
 
 const TRAIN_DOMAIN: u64 = 0x7472_6169_6E;
@@ -1276,6 +1417,18 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     }))
 }
 
+/// `save_model=true`: the arm's weights under `model/` of the report root,
+/// or the refusal of an arm without a saved form (recorded, not fatal).
+fn save_model(common: &Common, arm: &dyn ContextArm) -> Value {
+    if !common.save_model {
+        return json!({"requested": false});
+    }
+    match arm.save(&common.out.join("model")) {
+        Ok(()) => json!({"requested": true, "saved": true, "path": "model"}),
+        Err(error) => json!({"requested": true, "saved": false, "refusal": error.to_string()}),
+    }
+}
+
 fn write_json(path: &Path, value: &Value) -> Result<()> {
     fs::write(path, serde_json::to_vec_pretty(value)?)?;
     Ok(())
@@ -1311,8 +1464,16 @@ fn task_baselines_report(common: &Common) -> Result<Value> {
 }
 
 fn main() -> Result<()> {
-    let (common, spec, baselines_only) = settings()?;
-    if baselines_only {
+    let mut args = Args::parse()?;
+    if args.0.get("mode").map(String::as_str) == Some("decide") {
+        args.take("mode");
+        return decide::main(args);
+    }
+    let (common, spec, mode, fact_task) = settings(args)?;
+    if let Some(task) = fact_task {
+        return fact::main(&common, &spec, matches!(mode, Mode::TaskBaselines), &task);
+    }
+    if matches!(mode, Mode::TaskBaselines) {
         report_output::claim(&common.out)?;
         let report = task_baselines_report(&common)?;
         write_json(&common.out.join("report.json"), &report)?;
@@ -1338,7 +1499,8 @@ fn main() -> Result<()> {
             "parameters": arm.parameters(),
             "config": arm.record(),
         });
-        let results = run(&common, arm.as_mut(), &mut log)?;
+        let mut results = run(&common, arm.as_mut(), &mut log)?;
+        results["model_save"] = save_model(&common, arm.as_ref());
         Ok((arm_record, results))
     })();
     drop(log);
@@ -1476,6 +1638,8 @@ mod tests {
         let common = Common {
             out: PathBuf::from("unused"),
             device_name: "cpu".into(),
+            vocab: VOCAB,
+            save_model: false,
             context: 64,
             pairs_per_bucket: 2,
             batch: 2,
@@ -1501,7 +1665,7 @@ mod tests {
             heads: 2,
             mlp_hidden: 16,
             age: AgeInit::Flat,
-            key_shift: true,
+            lineage: LineageArm::F2,
         };
         spec.validate(&common).expect("valid arm");
         let mut arm = spec.build(&common, &Device::Cpu).expect("arm");
@@ -1518,6 +1682,7 @@ mod tests {
         assert_eq!(report["total"], 2 * 2 * buckets.len());
         assert_eq!(arm.record()["age_init"], "flat");
         assert_eq!(arm.record()["read_key_shift"], true);
+        assert_eq!(arm.record()["lineage"], "f2");
         let probe = read_probe(&*arm, &batch, common.context, &buckets).expect("probe");
         for bucket in &buckets {
             let entry = &probe["by_bucket"][bucket.name];

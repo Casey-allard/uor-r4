@@ -343,9 +343,9 @@ pub fn export_stack(
     if model.read_identity_carry() {
         return Err(invalid("read identity carry has no integer export"));
     }
-    if model.read_key_shift() {
+    if model.read_key_shift() || model.read_lineage().is_some() {
         return Err(invalid(
-            "the read key shift has no integer export yet (no D11 served form)",
+            "the read key shift or read lineage has no integer export yet (no D11 served form)",
         ));
     }
     if model.geometric_span().is_some() {
@@ -988,9 +988,9 @@ pub fn stack_grid_reference(
     model: &StackModel,
     artifact: &uor_r4_lut::format::StackArtifact,
 ) -> Result<GridReference> {
-    if model.read_key_shift() {
+    if model.read_key_shift() || model.read_lineage().is_some() {
         return Err(invalid(
-            "the read key shift has no integer grid reference yet (no D11 served form)",
+            "the read key shift or read lineage has no integer grid reference yet (no D11 served form)",
         ));
     }
     if model.read_identity_carry() {

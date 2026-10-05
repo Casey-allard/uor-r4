@@ -1346,6 +1346,10 @@ pub struct StackModel {
     /// Each read key also carries the previous position's key, turned by the
     /// fixed unit quaternion `j` ([`Self::set_read_key_shift`]).
     read_key_shift: bool,
+    /// A research-only read-lineage control ([`Self::set_read_lineage`]).
+    read_lineage: Option<ReadLineage>,
+    /// The fixed block-diagonal SO(4) map of [`ReadLineage::RandomSo4`].
+    read_lineage_so4: Option<Tensor>,
 }
 
 impl StackModel {
@@ -1449,6 +1453,8 @@ impl StackModel {
             geometric_address: None,
             geometric_span: None,
             read_key_shift: false,
+            read_lineage: None,
+            read_lineage_so4: None,
         })
     }
 
@@ -1857,6 +1863,9 @@ impl StackModel {
             if part == "key" && self.read_key_shift {
                 projected = previous_key_channel(&projected)?;
             }
+            if let Some(lineage) = self.read_lineage {
+                projected = self.read_lineage_projection(p, layer, lineage, part, projected)?;
+            }
             if part != "value" {
                 if let Some(identity) = &latched {
                     projected = projected.add(&Self::linear(
@@ -2151,6 +2160,11 @@ impl StackModel {
                     "the read key shift has no served or geometric-address form",
                 ));
             }
+            if self.read_lineage.is_some() {
+                return Err(invalid(
+                    "the read key shift and a read lineage are exclusive",
+                ));
+            }
         }
         self.read_key_shift = enabled;
         Ok(())
@@ -2159,6 +2173,165 @@ impl StackModel {
     /// Whether every read key carries the `j`-turned previous key.
     pub fn read_key_shift(&self) -> bool {
         self.read_key_shift
+    }
+
+    /// Opt into a research-only read-lineage control (Step 2 parity bench,
+    /// #820), or `None` to remove it. Each variant changes the read keys (and
+    /// for the two query-key variants also the queries) of every geometric
+    /// read layer; values, NoRead and age are unchanged:
+    ///
+    /// - `QueryKeyJ`: keys `k_t + j k_{t-1}` (as F2) and queries
+    ///   `q_t + j^{-1} q_{t-1}` ([`quaternion_j_inv_left`]).
+    /// - `QueryKeyJSame`: keys `k_t + j k_{t-1}` and queries `q_t + j q_{t-1}`.
+    /// - `IdentityShift`: keys `k_t + k_{t-1}`.
+    /// - `RandomSo4`: keys `k_t + R k_{t-1}`, `R` a fixed block-diagonal map
+    ///   with one Haar-random SO(4) block per four-channel lane, drawn from
+    ///   `seed` (not learned).
+    /// - `LearnedConv`: keys `sum_{i<4} w_i (.) k_{t-i}`, a learned depthwise
+    ///   width-4 causal convolution (one weight per channel and lag, the
+    ///   RWKV/H3 token-shift control).
+    /// - `LearnedPrev`: keys `k_t + W k_{t-1}`, `W` a learned width x width map.
+    ///
+    /// Zero stands before position 0 in every shift. The learned variants add
+    /// variables (`read.lineage_conv.weight`, `read.lineage_prev`, neither
+    /// weight-decayed), so set the lineage before creating the optimizer. None
+    /// of these has a saved, served or exported form: [`Self::save`], served
+    /// mode and the integer export refuse a model with one. F2
+    /// ([`Self::set_read_key_shift`]) is the saveable form and excludes these.
+    pub fn set_read_lineage(&mut self, lineage: Option<ReadLineage>) -> Result<()> {
+        if lineage.is_some() {
+            if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
+                return Err(invalid(
+                    "a read lineage needs a geometric stack with a read layer",
+                ));
+            }
+            if self.served.is_some()
+                || self.geometric_address.is_some()
+                || self.read_identity_latch.is_some()
+            {
+                return Err(invalid(
+                    "a read lineage has no served, geometric-address or latch form",
+                ));
+            }
+            if self.read_key_shift {
+                return Err(invalid(
+                    "a read lineage and the read key shift are exclusive",
+                ));
+            }
+            if !self.config.width.is_multiple_of(4) {
+                return Err(invalid("a read lineage needs four-channel lanes"));
+            }
+        }
+        self.variables
+            .retain(|name, _| !name.contains(READ_LINEAGE_PREFIX));
+        self.read_lineage_so4 = None;
+        let width = self.config.width;
+        let read_layers: Vec<usize> = (0..self.config.layers())
+            .filter(|&layer| self.config.pattern.as_bytes()[layer] == b'a')
+            .collect();
+        match lineage {
+            Some(ReadLineage::LearnedConv { init_lag1 }) => {
+                for &layer in &read_layers {
+                    let values: Vec<f32> = (0..width * 4)
+                        .map(|index| match index % 4 {
+                            0 => 1.0,
+                            1 if init_lag1 => 1.0,
+                            _ => 0.0,
+                        })
+                        .collect();
+                    self.variables.insert(
+                        layer_name(layer, READ_LINEAGE_CONV),
+                        Var::from_vec(values, (width, 4), &self.device)?,
+                    );
+                }
+            }
+            Some(ReadLineage::LearnedPrev { init_identity }) => {
+                for &layer in &read_layers {
+                    let values: Vec<f32> = (0..width * width)
+                        .map(|index| {
+                            if init_identity && index / width == index % width {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        })
+                        .collect();
+                    self.variables.insert(
+                        layer_name(layer, READ_LINEAGE_PREV),
+                        Var::from_vec(values, (width, width), &self.device)?,
+                    );
+                }
+            }
+            Some(ReadLineage::RandomSo4 { seed }) => {
+                let blocks = random_so4_blocks(width / 4, seed);
+                let mut matrix = vec![0f32; width * width];
+                for (lane, block) in blocks.iter().enumerate() {
+                    for (row, values) in block.iter().enumerate() {
+                        for (column, &value) in values.iter().enumerate() {
+                            matrix[(4 * lane + row) * width + 4 * lane + column] = value as f32;
+                        }
+                    }
+                }
+                self.read_lineage_so4 =
+                    Some(Tensor::from_vec(matrix, (width, width), &self.device)?);
+            }
+            _ => {}
+        }
+        self.read_lineage = lineage;
+        Ok(())
+    }
+
+    /// The research-only read lineage, if set ([`Self::set_read_lineage`]).
+    pub fn read_lineage(&self) -> Option<ReadLineage> {
+        self.read_lineage
+    }
+
+    /// The `part` projection (`query`, `key` or `value`) of one read layer
+    /// after the read lineage: see [`Self::set_read_lineage`].
+    fn read_lineage_projection(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        lineage: ReadLineage,
+        part: &str,
+        projected: Tensor,
+    ) -> Result<Tensor> {
+        match (part, lineage) {
+            ("query", ReadLineage::QueryKeyJ) => {
+                let previous = causal_shift(&projected, 1)?;
+                Ok(projected.add(&quaternion_j_inv_left(&previous)?)?)
+            }
+            ("query", ReadLineage::QueryKeyJSame) => previous_key_channel(&projected),
+            ("key", ReadLineage::QueryKeyJ | ReadLineage::QueryKeyJSame) => {
+                previous_key_channel(&projected)
+            }
+            ("key", ReadLineage::IdentityShift) => {
+                Ok(projected.add(&causal_shift(&projected, 1)?)?)
+            }
+            ("key", ReadLineage::RandomSo4 { .. }) => {
+                let rotation = self
+                    .read_lineage_so4
+                    .as_ref()
+                    .ok_or_else(|| invalid("the random SO(4) lineage map is missing"))?;
+                let previous = causal_shift(&projected, 1)?;
+                Ok(projected.add(&Self::linear(&previous, rotation)?)?)
+            }
+            ("key", ReadLineage::LearnedPrev { .. }) => {
+                let map = p.layer(layer, READ_LINEAGE_PREV)?;
+                let previous = causal_shift(&projected, 1)?;
+                Ok(projected.add(&Self::linear(&previous, map)?)?)
+            }
+            ("key", ReadLineage::LearnedConv { .. }) => {
+                let weight = p.layer(layer, READ_LINEAGE_CONV)?;
+                let mut mixed = projected.broadcast_mul(&weight.narrow(1, 0, 1)?.squeeze(1)?)?;
+                for lag in 1..4 {
+                    let tap = weight.narrow(1, lag, 1)?.squeeze(1)?;
+                    mixed = mixed.add(&causal_shift(&projected, lag)?.broadcast_mul(&tap)?)?;
+                }
+                Ok(mixed)
+            }
+            _ => Ok(projected),
+        }
     }
 
     /// Replace the geometric reader's scalar Held latch with an ordered token
@@ -6412,6 +6585,12 @@ impl StackModel {
     /// and pins its digest in config.json; a default save removes stale carry
     /// metadata and retains the legacy config byte format.
     pub fn save(&self, directory: &Path) -> Result<()> {
+        if let Some(lineage) = self.read_lineage {
+            return Err(invalid(format!(
+                "the research-only read lineage {} has no saved form",
+                lineage.name()
+            )));
+        }
         if let Some(span) = &self.geometric_span {
             span.validate(self.config.width)?;
             if self.geometric_address.is_none() || self.read_identity_latch.is_some() {
@@ -6922,6 +7101,8 @@ impl StackModel {
             geometric_address,
             geometric_span,
             read_key_shift: false,
+            read_lineage: None,
+            read_lineage_so4: None,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -8115,6 +8296,9 @@ impl StackModel {
             Some(_) if self.read_key_shift => {
                 return Err(invalid("the read key shift has no served representation"));
             }
+            Some(_) if self.read_lineage.is_some() => {
+                return Err(invalid("a read lineage has no served representation"));
+            }
             Some(_) if self.read_identity_latch.is_some() => {
                 return Err(invalid("read identity latch has no served representation"));
             }
@@ -8930,6 +9114,105 @@ pub fn quaternion_j_left(x: &Tensor) -> Result<Tensor> {
         axis,
     )?;
     Ok(turned.reshape(dims.as_slice())?)
+}
+
+/// Research-only read-lineage controls for the Step 2 parity bench (#820);
+/// see [`StackModel::set_read_lineage`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case", tag = "kind")]
+pub enum ReadLineage {
+    /// Queries `q_t + j^{-1} q_{t-1}` with keys `k_t + j k_{t-1}`.
+    QueryKeyJ,
+    /// Queries `q_t + j q_{t-1}` with keys `k_t + j k_{t-1}`.
+    QueryKeyJSame,
+    /// Keys `k_t + k_{t-1}`.
+    IdentityShift,
+    /// Keys `k_t + R k_{t-1}`, `R` fixed Haar-random SO(4) per lane.
+    RandomSo4 { seed: u64 },
+    /// Keys `sum_{i<4} w_i (.) k_{t-i}`, learned; always `w_0 = 1` and
+    /// `w_2 = w_3 = 0` at the start, and `w_1 = 1` if `init_lag1` (else 0).
+    LearnedConv { init_lag1: bool },
+    /// Keys `k_t + W k_{t-1}`, learned; `W` starts at the identity or zero.
+    LearnedPrev { init_identity: bool },
+}
+
+impl ReadLineage {
+    /// A short stable name for reports.
+    pub fn name(self) -> &'static str {
+        match self {
+            ReadLineage::QueryKeyJ => "qk",
+            ReadLineage::QueryKeyJSame => "qk_jj",
+            ReadLineage::IdentityShift => "identity",
+            ReadLineage::RandomSo4 { .. } => "so4",
+            ReadLineage::LearnedConv { .. } => "conv",
+            ReadLineage::LearnedPrev { .. } => "wprev",
+        }
+    }
+}
+
+/// Variable names of the learned read lineages ([`ReadLineage`]).
+const READ_LINEAGE_PREFIX: &str = ".read.lineage_";
+const READ_LINEAGE_CONV: &str = "read.lineage_conv.weight";
+const READ_LINEAGE_PREV: &str = "read.lineage_prev";
+
+/// Left multiplication by `j^{-1} = -j`: `(a, b, c, d) -> (c, -d, -a, b)`
+/// per four-channel lane, the inverse (and transpose) of
+/// [`quaternion_j_left`]. Note `<j^{-1} a, j b> = -<a, b>`.
+pub fn quaternion_j_inv_left(x: &Tensor) -> Result<Tensor> {
+    Ok(quaternion_j_left(x)?.neg()?)
+}
+
+/// `x` delayed by `lag` positions along time ([batch, time, width]), zero
+/// before position `lag`.
+fn causal_shift(x: &Tensor, lag: usize) -> Result<Tensor> {
+    let (batch, time, width) = x.dims3()?;
+    if lag == 0 {
+        return Ok(x.clone());
+    }
+    if lag >= time {
+        return Ok(x.zeros_like()?);
+    }
+    let zero = Tensor::zeros((batch, lag, width), x.dtype(), x.device())?;
+    Ok(Tensor::cat(&[&zero, &x.narrow(1, 0, time - lag)?], 1)?)
+}
+
+/// Quaternion product `a b` of (w, x, y, z) components.
+fn quaternion_product_f64(a: [f64; 4], b: [f64; 4]) -> [f64; 4] {
+    [
+        a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+        a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+        a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+        a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+    ]
+}
+
+/// `lanes` Haar-random SO(4) matrices from `seed`: each is `x -> p x conj(q)`
+/// for independent uniform unit quaternions `p`, `q` (row-major 4x4).
+pub fn random_so4_blocks(lanes: usize, seed: u64) -> Vec<[[f64; 4]; 4]> {
+    let mut rng = Initializer(seed ^ 0x736F_345F_6C69_6E65);
+    let mut unit = || loop {
+        let v = [rng.normal(), rng.normal(), rng.normal(), rng.normal()];
+        let norm = v.iter().map(|x| x * x).sum::<f64>().sqrt();
+        if norm > 1e-6 {
+            break v.map(|x| x / norm);
+        }
+    };
+    (0..lanes)
+        .map(|_| {
+            let (p, q) = (unit(), unit());
+            let conj = [q[0], -q[1], -q[2], -q[3]];
+            let mut block = [[0f64; 4]; 4];
+            for column in 0..4 {
+                let mut basis = [0f64; 4];
+                basis[column] = 1.0;
+                let image = quaternion_product_f64(quaternion_product_f64(p, basis), conj);
+                for (row, values) in block.iter_mut().enumerate() {
+                    values[column] = image[row];
+                }
+            }
+            block
+        })
+        .collect()
 }
 
 /// `k_t + j * k_{t-1}` for keys [batch, time, width], zero before position 0.
@@ -17345,6 +17628,200 @@ mod tests {
             .set_served_representation(Some(Arc::new(D11Interim)))
             .is_err());
         assert!(shifted.read_key_shift() && shifted.served_codec().is_none());
+        Ok(())
+    }
+
+    fn lineage_variants() -> Vec<ReadLineage> {
+        vec![
+            ReadLineage::QueryKeyJ,
+            ReadLineage::QueryKeyJSame,
+            ReadLineage::IdentityShift,
+            ReadLineage::RandomSo4 { seed: 11 },
+            ReadLineage::LearnedConv { init_lag1: true },
+            ReadLineage::LearnedConv { init_lag1: false },
+            ReadLineage::LearnedPrev {
+                init_identity: true,
+            },
+            ReadLineage::LearnedPrev {
+                init_identity: false,
+            },
+        ]
+    }
+
+    fn dot(a: &Tensor, b: &Tensor) -> Result<f32> {
+        Ok(a.mul(b)?.sum_all()?.to_scalar::<f32>()?)
+    }
+
+    #[test]
+    fn the_j_lineage_channels_are_orthogonal_and_j_inverse_undoes_j() -> Result<()> {
+        let mut rng = Initializer(91);
+        let draw = |rng: &mut Initializer| -> Result<Tensor> {
+            let values: Vec<f32> = (0..2 * 3 * 16).map(|_| rng.normal() as f32).collect();
+            Ok(Tensor::from_vec(values, (2, 3, 16), &cpu())?)
+        };
+        let (a, b) = (draw(&mut rng)?, draw(&mut rng)?);
+        // A key's current and j-turned channels are orthogonal per lane: the
+        // F2/QK predecessor channel cannot alias the current-token channel.
+        let lanes = |x: &Tensor| x.reshape((2 * 3 * 4, 4));
+        let per_lane = lanes(&a)?
+            .mul(&lanes(&quaternion_j_left(&a)?)?)?
+            .sum(1)?
+            .to_vec1::<f32>()?;
+        assert!(per_lane.iter().all(|v| v.abs() < 1e-5), "{per_lane:?}");
+        assert!(dot(&a, &quaternion_j_inv_left(&a)?)?.abs() < 1e-4);
+        // j^{-1} is the inverse and the transpose of j.
+        assert_eq!(
+            bits(&quaternion_j_inv_left(&quaternion_j_left(&a)?)?)?,
+            bits(&a)?
+        );
+        let tolerance = 1e-3 * dot(&a, &a)?.abs().max(1.0);
+        assert!(
+            (dot(&quaternion_j_left(&a)?, &b)? - dot(&a, &quaternion_j_inv_left(&b)?)?).abs()
+                < tolerance
+        );
+        // Same-turn pairs keep the inner product; the QK (j^{-1}, j) pairing
+        // enters the predecessor-predecessor term with a negative sign.
+        let ab = dot(&a, &b)?;
+        assert!((dot(&quaternion_j_left(&a)?, &quaternion_j_left(&b)?)? - ab).abs() < tolerance);
+        assert!(
+            (dot(&quaternion_j_inv_left(&a)?, &quaternion_j_left(&b)?)? + ab).abs() < tolerance
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn random_so4_lineage_blocks_are_rotations() {
+        for block in random_so4_blocks(8, 3) {
+            for i in 0..4 {
+                for j in 0..4 {
+                    let product: f64 = (0..4).map(|r| block[r][i] * block[r][j]).sum();
+                    let expected = if i == j { 1.0 } else { 0.0 };
+                    assert!((product - expected).abs() < 1e-12);
+                }
+            }
+            // Determinant +1 by cofactor expansion along the first row.
+            let minor = |skip: usize| {
+                let rows: Vec<Vec<f64>> = (1..4)
+                    .map(|r| (0..4).filter(|&c| c != skip).map(|c| block[r][c]).collect())
+                    .collect();
+                rows[0][0] * (rows[1][1] * rows[2][2] - rows[1][2] * rows[2][1])
+                    - rows[0][1] * (rows[1][0] * rows[2][2] - rows[1][2] * rows[2][0])
+                    + rows[0][2] * (rows[1][0] * rows[2][1] - rows[1][1] * rows[2][0])
+            };
+            let det: f64 = (0..4)
+                .map(|c| if c % 2 == 0 { 1.0 } else { -1.0 } * block[0][c] * minor(c))
+                .sum();
+            assert!((det - 1.0).abs() < 1e-9, "det {det}");
+        }
+        assert_ne!(random_so4_blocks(1, 3), random_so4_blocks(1, 4));
+        assert_eq!(random_so4_blocks(2, 3), random_so4_blocks(2, 3));
+    }
+
+    #[test]
+    fn read_lineages_are_causal_learnable_and_research_only() -> Result<()> {
+        let config = tiny(StackArch::Geometric, "rara", ReadScore::L2, true);
+        let ids = [1u32, 2, 3, 4, 5, 6, 7, 8];
+        let plain_model = StackModel::new(config.clone(), &cpu())?;
+        let plain = plain_model.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
+        let base_count = plain_model.parameter_count();
+        for lineage in lineage_variants() {
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            model.set_read_lineage(Some(lineage))?;
+            assert_eq!(model.read_lineage(), Some(lineage));
+            let logits = model.forward(&ids, 1, ids.len())?;
+            assert_eq!(logits.dims(), &[ids.len(), config.vocab_size]);
+            let rows = logits.to_vec2::<f32>()?;
+            // Position 0 has no predecessor: every lineage leaves it unchanged.
+            assert_eq!(rows[0], plain[0], "{lineage:?}");
+            let starts_plain = matches!(
+                lineage,
+                ReadLineage::LearnedConv { init_lag1: false }
+                    | ReadLineage::LearnedPrev {
+                        init_identity: false
+                    }
+            );
+            assert_eq!(rows[7] == plain[7], starts_plain, "{lineage:?}");
+            // Causal: a later token changes no earlier row.
+            let mut changed = ids;
+            changed[7] = 30;
+            let after = model.forward(&changed, 1, ids.len())?.to_vec2::<f32>()?;
+            for t in 0..7 {
+                assert_eq!(after[t], rows[t], "{lineage:?} row {t}");
+            }
+            assert_ne!(after[7], rows[7]);
+            // Learned lineages add their variables, which receive gradients.
+            let extra = match lineage {
+                ReadLineage::LearnedConv { .. } => 2 * config.width * 4,
+                ReadLineage::LearnedPrev { .. } => 2 * config.width * config.width,
+                _ => 0,
+            };
+            assert_eq!(model.parameter_count(), base_count + extra);
+            let mut optimizer = StackAdamW::new(&model, 0.1, 1.0)?;
+            let targets = [2u32, 3, 4, 5, 6, 7, 8, 9];
+            let loss = model.loss(&ids, &targets, 1, ids.len())?;
+            let grads = loss.backward()?;
+            for (name, var) in model.variables() {
+                if name.contains(READ_LINEAGE_PREFIX) {
+                    let grad = grads.get(var.as_tensor()).expect("lineage gradient");
+                    assert!(grad.sqr()?.sum_all()?.to_scalar::<f32>()? > 0.0, "{name}");
+                }
+            }
+            optimizer.update(&model, &grads, 1e-3)?;
+            // Research only: no saved, served or F2-combined form.
+            let dir = std::env::temp_dir().join(format!(
+                "stack-read-lineage-{}-{}",
+                lineage.name(),
+                std::process::id()
+            ));
+            assert!(model.save(&dir).is_err());
+            assert!(!dir.join("model.safetensors").exists());
+            assert!(model.set_read_key_shift(true).is_err());
+            // Removing the lineage restores the plain inventory.
+            model.set_read_lineage(None)?;
+            assert_eq!(model.parameter_count(), base_count);
+            model.set_read_key_shift(true)?;
+            assert!(model.set_read_lineage(Some(lineage)).is_err());
+        }
+        let mut dot_config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+        dot_config.width = 32;
+        dot_config.mlp_hidden = 64;
+        let mut served = StackModel::new(dot_config.clone(), &cpu())?;
+        served.set_served_representation(Some(Arc::new(D11Interim)))?;
+        assert!(served
+            .set_read_lineage(Some(ReadLineage::QueryKeyJ))
+            .is_err());
+        let mut lineage = StackModel::new(dot_config, &cpu())?;
+        lineage.set_read_lineage(Some(ReadLineage::IdentityShift))?;
+        assert!(lineage
+            .set_served_representation(Some(Arc::new(D11Interim)))
+            .is_err());
+        let mut recurrent = StackModel::new(
+            tiny(StackArch::Geometric, "rr", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        assert!(recurrent
+            .set_read_lineage(Some(ReadLineage::QueryKeyJ))
+            .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn the_qk_lineage_turns_the_query_and_the_key_shift_alone_does_not() -> Result<()> {
+        // QK differs from F2 only through the query channel.
+        let config = tiny(StackArch::Geometric, "aa", ReadScore::L2, true);
+        let ids = [1u32, 2, 3, 4, 5, 6];
+        let mut f2 = StackModel::new(config.clone(), &cpu())?;
+        f2.set_read_key_shift(true)?;
+        let mut qk = StackModel::new(config.clone(), &cpu())?;
+        qk.set_read_lineage(Some(ReadLineage::QueryKeyJ))?;
+        let mut same = StackModel::new(config, &cpu())?;
+        same.set_read_lineage(Some(ReadLineage::QueryKeyJSame))?;
+        let f2_rows = f2.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
+        let qk_rows = qk.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
+        let same_rows = same.forward(&ids, 1, ids.len())?.to_vec2::<f32>()?;
+        assert_eq!(f2_rows[0], qk_rows[0]);
+        assert_ne!(f2_rows[5], qk_rows[5]);
+        assert_ne!(qk_rows[5], same_rows[5]);
         Ok(())
     }
 
