@@ -1,0 +1,582 @@
+[
+  {
+    "id": "conv-v3-talk-01",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "Hello! How is your day going?"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-01",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We got two new pets this week. The turtle is Shelby and the goldfish is Flash.",
+      "Which name did we give the turtle?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-01",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Please say this in a kinder way: Give me that toy now."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-01",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Will you finish it before lunch?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-01",
+    "category": "story_continuation",
+    "user_turns": [
+      "Once upon a time, there was a little bunny who lost his carrot. What happened next?"
+    ]
+  },
+  {
+    "id": "conv-v3-unk-01",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What did I eat for breakfast yesterday?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-02",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "My tooth fell out this morning and I am a bit proud."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-02",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "At the market Grandpa bought plums, and Grandma bought pears.",
+      "Then we all walked home together.",
+      "What did Grandpa buy?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-02",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Give me three colors for painting a house."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-02",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "I want to make something. What do I need?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-02",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a short story about a girl and her red kite."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-02",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Who is my mom's best friend?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-03",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I just came back from swimming lessons and my hair is still wet."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-03",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "In our class play, Ella is the queen and Omar is the dragon.",
+      "Who is playing the queen?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-03",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "How many words are in this sentence: The cat sat on the mat."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-03",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Which of the two is nicer?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-03",
+    "category": "story_continuation",
+    "user_turns": [
+      "Finish this story: Tom found a small box under his bed. He opened it and"
+    ]
+  },
+  {
+    "id": "conv-v3-unk-03",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Where did I put my keys?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-04",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I feel a little sad because my friend did not call me."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-04",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My swimming lesson is on Wednesday and my piano lesson is on Saturday.",
+      "On which day is my piano lesson?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-04",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Make a short rhyme with the word cat."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-04",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Tell me about the thing we talked about."
+    ]
+  },
+  {
+    "id": "conv-v3-story-04",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a story about a kind dog who helps a lost kitten."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-04",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Do you know what color my shirt is right now?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-05",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I painted a picture of my cat and put it on the fridge."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-05",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I put the crayons in the red box and the stickers in the green box.",
+      "Where did I put the crayons?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-05",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Tom has a red hat. Is Tom's hat red? Answer yes or no."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-05",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Is this one ready yet?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-05",
+    "category": "story_continuation",
+    "user_turns": [
+      "Continue the story: The little bird wanted to fly, but it was scared."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-05",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "How many people are in my room?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-06",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I am so tired after playing outside all day."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-06",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My cousin Jada is nine and her brother Malik is four.",
+      "How old is Jada?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-06",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Say hello in a happy way."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-06",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "I need a name."
+    ]
+  },
+  {
+    "id": "conv-v3-story-06",
+    "category": "story_continuation",
+    "user_turns": [
+      "Write a short story about a boy who shares his toys."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-06",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What am I thinking about right now?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-07",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "Guess what? I learned to ride my bike today!"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-07",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The game today has a rule. Hopping is allowed but running is not.",
+      "So which one is against the rule?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-07",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Write one sentence about a sunny day."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-07",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Is it too big?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-07",
+    "category": "story_continuation",
+    "user_turns": [
+      "Once there was a tiny frog in a big pond. Tell me what the frog did one day."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-07",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you come to my house and play?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-08",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I am nervous about my test tomorrow."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-08",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The plan was to go to the beach on Sunday.",
+      "Now the plan changed. We are going to the lake instead.",
+      "Where are we going now?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-08",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Name three animals that could be a pet."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-08",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "What should I take along?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-08",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a bedtime story about the moon."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-08",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you give me a real hug?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-09",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "The power went out last night and we used candles."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-09",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My bike has a bell and my scooter has a basket.",
+      "What does my bike have?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-09",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Put these words in order to make a sentence: dog the ran fast."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-09",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Should I do it now or later?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-09",
+    "category": "story_continuation",
+    "user_turns": [
+      "Finish the story: Lily and her mom went to the park. Suddenly, it started to rain."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-09",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What was the name of my first pet?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-10",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I made a cake with my mom and it was yummy."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-10",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Kofi brought the ball to the park.",
+      "Lena brought the kite.",
+      "Who brought the ball?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-10",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Make this sentence shorter: The big brown dog ran very very fast down the long road."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-10",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Can you make it longer?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-10",
+    "category": "story_continuation",
+    "user_turns": [
+      "Make up a short story about a teddy bear who wants a friend."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-10",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you open my window for me?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-11",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "Hey! Can we talk for a little while?"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-11",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "For the bake sale I am making muffins.",
+      "My friend Priya is making brownies.",
+      "What am I making?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-11",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Give me a nice name for a teddy bear."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-11",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Where should I put them?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-11",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a story with a happy ending about a lost ball."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-11",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What will I dream about tonight?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-12",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "My cat is sleeping on my lap right now."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-12",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The library book is due on Thursday.",
+      "The movie has to go back on Monday.",
+      "When is the library book due?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-12",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Say thank you to my friend Anna for her gift."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-12",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Let's play the one we played before."
+    ]
+  },
+  {
+    "id": "conv-v3-story-12",
+    "category": "story_continuation",
+    "user_turns": [
+      "Continue: The old tree in the garden could talk. One morning it said"
+    ]
+  },
+  {
+    "id": "conv-v3-unk-12",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you taste this cookie and tell me if it is good?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-13",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I feel lonely today. Will you talk with me?"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-13",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Our team is the Foxes and the other team is the Owls.",
+      "What is our team called?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-13",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Write a short sentence that uses the word happy."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-13",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Help me pick one."
+    ]
+  },
+  {
+    "id": "conv-v3-story-13",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a short story about a fish named Bubbles."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-13",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What did my friend say to me this morning?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-14",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I am excited because it is my birthday next week."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-14",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I hid the blue marble under the pillow.",
+      "I hid the gold coin in the sock drawer.",
+      "Where is the blue marble?"
+    ]
+  }
+]

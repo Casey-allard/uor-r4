@@ -1,0 +1,68 @@
+# id	reason	cue -- one text-only criterion (chat-grade ill-posed; rule in data/panels/README.md) over 200 requests
+heldout-001	deictic	the recipe
+heldout-002	constraints_only	Your response should contain at least 3 sentences.
+heldout-006	open_end	,
+heldout-008	open_end	,
+heldout-009	open_end	,
+heldout-012	open_end	:
+heldout-013	slot	[city]
+heldout-014	variable	x/y/n
+heldout-015	slot	[city]
+heldout-016	constraints_only	Your response should contain less than 100 words.
+heldout-019	open_end	,
+heldout-030	deictic	the text
+heldout-035	open_end	,
+heldout-037	deictic	this article
+heldout-038	open_end	:
+heldout-039	deictic	the passage
+heldout-046	open_end	,
+heldout-049	slot	[city]
+heldout-051	open_end	:
+heldout-056	open_end	,
+heldout-059	deictic	your suggestion
+heldout-063	open_end	:
+heldout-066	open_end	,
+heldout-067	deictic	the passage
+heldout-068	own_material	here is
+heldout-069	deictic	the following essay
+heldout-070	constraints_only	Your response should contain at least 5 sentences.
+heldout-073	own_material	i've written
+heldout-074	open_end	,
+heldout-078	open_end	,
+heldout-079	open_end	:
+heldout-080	slot	[beverage]
+heldout-083	deictic	the text
+heldout-085	deictic	this particular
+heldout-086	deictic	the region
+heldout-091	open_end	,
+heldout-095	deictic	the following
+heldout-102	open_end	,
+heldout-105	deictic	the protagonist
+heldout-107	deictic	this
+heldout-110	open_end	,
+heldout-114	open_end	,
+heldout-117	constraints_only	Your response should contain less than 50 words.
+heldout-118	own_material	i wrote
+heldout-124	constraints_only	Your response should contain at least 2 paragraphs.
+heldout-128	deictic	the text
+heldout-131	open_end	,
+heldout-135	constraints_only	Your answer must contain exactly 4 bullet points.
+heldout-139	constraints_only	Your response should contain at least 4 paragraphs.
+heldout-144	constraints_only	Your response should contain at least 3 sentences.
+heldout-147	deictic	the following argument
+heldout-150	constraints_only	Your response should contain less than 50 words.
+heldout-154	deictic	the text
+heldout-156	open_end	,
+heldout-162	deictic	your supplies
+heldout-163	open_end	,
+heldout-166	open_end	,
+heldout-174	slot	[forbidden_words]
+heldout-176	constraints_only	Your answer must contain exactly 3 bullet points.
+heldout-179	open_end	,
+heldout-180	constraints_only	Your response should contain less than 150 words.
+heldout-182	slot	[event]
+heldout-189	open_end	,
+heldout-190	deictic	below
+heldout-191	open_end	:
+heldout-195	constraints_only	Your answer must contain a title, wrapped in double angular brackets, such as <<poem of joy>>.
+heldout-196	open_end	,

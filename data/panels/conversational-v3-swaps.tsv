@@ -1,0 +1,31 @@
+# id	reply -- binding-swap control for the conversational-v3 memory rows (chat-grade embeds this file; see data/panels/README.md). Each reply names a value stated in the conversation but binds it to the wrong key: the expected value with the distractor's key, or, on the four update rows and the rule row, the superseded or other value with the asked key. Every reply must fail its row's exact check.
+conv-v3-mem-01	The goldfish is Shelby.
+conv-v3-mem-02	Grandma bought plums.
+conv-v3-mem-03	Ella is playing the dragon.
+conv-v3-mem-04	Your swimming lesson is on Saturday.
+conv-v3-mem-05	You put the stickers in the red box.
+conv-v3-mem-06	Malik is nine.
+conv-v3-mem-07	Hopping is against the rule.
+conv-v3-mem-08	We are going to the beach.
+conv-v3-mem-09	Your scooter has a bell.
+conv-v3-mem-10	Kofi brought the kite.
+conv-v3-mem-11	Priya is making muffins.
+conv-v3-mem-12	The movie is due on Thursday.
+conv-v3-mem-13	The other team is the Foxes.
+conv-v3-mem-14	The gold coin is under the pillow.
+conv-v3-mem-15	The giant's name is Pip.
+conv-v3-mem-16	The fence ended up white.
+conv-v3-mem-17	You planted beans on the left side.
+conv-v3-mem-18	Your uncle lives near the mountains.
+conv-v3-mem-19	Zara sits by the door.
+conv-v3-mem-20	There are three cookies on the blue plate.
+conv-v3-mem-21	The class pet got the name Pebble.
+conv-v3-mem-22	Sunflowers grow by the gate.
+conv-v3-mem-23	You wore your boots after lunch.
+conv-v3-mem-24	The short snowman wears a scarf.
+conv-v3-mem-25	Your dad drinks coffee.
+conv-v3-mem-26	You sat in row eight.
+conv-v3-mem-27	The red train goes to the city.
+conv-v3-mem-28	The silver robot is Zip.
+conv-v3-mem-29	Noor sleeps in the bottom bunk.
+conv-v3-mem-30	After that you visit the dinosaur room.

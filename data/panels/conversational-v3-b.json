@@ -1,0 +1,588 @@
+[
+  {
+    "id": "conv-v3-do-14",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Count backwards from five to one."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-14",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "How long is it going to last?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-14",
+    "category": "story_continuation",
+    "user_turns": [
+      "Write a story about two friends who build a sandcastle."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-14",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Guess my age without any hints."
+    ]
+  },
+  {
+    "id": "conv-v3-talk-15",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "Sorry I was gone so long. I am back now."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-15",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The story we made up has a giant named Tumble and a mouse named Pip.",
+      "What is the mouse's name?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-15",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Sara has two cats and one dog. How many pets does Sara have?"
+    ]
+  },
+  {
+    "id": "conv-v3-clar-15",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "I don't like it. Can you change it?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-15",
+    "category": "story_continuation",
+    "user_turns": [
+      "Once upon a time, a little car did not want to go fast. What happened?"
+    ]
+  },
+  {
+    "id": "conv-v3-unk-15",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you see my drawing?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-16",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I lost my favorite toy and I feel upset."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-16",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "At first we wanted to paint the fence white.",
+      "Then Dad said we should paint it blue.",
+      "So we painted it the way Dad said.",
+      "So the fence ended up which color?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-16",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "The ball is under the bed. Where is the ball?"
+    ]
+  },
+  {
+    "id": "conv-v3-clar-16",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Write it the way she likes."
+    ]
+  },
+  {
+    "id": "conv-v3-story-16",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a story about a girl who is scared of the dark."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-16",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is in my backpack?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-17",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "It is a sunny day and I want to go to the park."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-17",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I planted carrots on the left side of the garden and beans on the right side.",
+      "What did I plant on the right side?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-17",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Make a rhyme with the word sun."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-17",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Can you bring me the other one?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-17",
+    "category": "story_continuation",
+    "user_turns": [
+      "Finish this story: The cat climbed up the tree and could not get down."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-17",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you make my homework disappear?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-18",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I am bored. What should we talk about?"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-18",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My aunt lives near the mountains and my uncle lives by the ocean.",
+      "Who lives by the ocean?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-18",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Write a polite way to ask someone to close the door."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-18",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Is she coming too?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-18",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a funny story about a duck who wears a hat."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-18",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Which shoes am I wearing today?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-19",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "Do you ever get tired of answering questions?"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-19",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Here are the seats for the trip. Zara sits by the window. Ben sits by the door.",
+      "Who sits by the window?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-19",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Tell me two things you can do on a rainy day."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-19",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Would that work better?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-19",
+    "category": "story_continuation",
+    "user_turns": [
+      "Make up a story about a boy who plants a seed."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-19",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What did we talk about last week?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-20",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I helped my little brother tie his shoes today."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-20",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "There are seven cookies on the blue plate and three on the white plate.",
+      "How many cookies are on the white plate?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-20",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Change this sentence to be about a girl: The boy ate his lunch."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-20",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Make it more fun."
+    ]
+  },
+  {
+    "id": "conv-v3-story-20",
+    "category": "story_continuation",
+    "user_turns": [
+      "Continue the story: Max the puppy saw a shiny ball in the yard."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-20",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you turn off the lights in my room?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-21",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I am scared of the thunder outside."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-21",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Our class pet was going to be called Pebble.",
+      "But we voted again and chose Biscuit.",
+      "What name did the class pet get?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-21",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Ben is taller than Sam. Who is shorter?"
+    ]
+  },
+  {
+    "id": "conv-v3-clar-21",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Should I add more of it?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-21",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a story about a snowman who wants to see summer."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-21",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you guess the secret I told my sister?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-22",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "My uncle showed me a card trick and I fooled my dad with it."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-22",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Grandma's garden has roses by the gate and sunflowers by the shed.",
+      "What grows by the shed?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-22",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Write a short goodbye message for a friend who is moving away."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-22",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "Which way should I go?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-22",
+    "category": "story_continuation",
+    "user_turns": [
+      "Write a short story where a girl learns to say sorry."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-22",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Which song is stuck in my head today?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-23",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I am proud of myself because I cleaned my room."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-23",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I wore my rain boots this morning and my sandals after lunch.",
+      "What did I wear this morning?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-23",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Is this a question or a statement: I like ice cream."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-23",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "What time does it start?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-23",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a story about a dragon who is afraid of fire."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-23",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you fly to the moon with me tonight?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-24",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "Hi there! What should I call you?"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-24",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We have two snowmen in the yard.",
+      "The tall one wears a scarf.",
+      "The short one wears a hat.",
+      "What does the tall snowman wear?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-24",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "List three things you might find in a kitchen."
+    ]
+  },
+  {
+    "id": "conv-v3-clar-24",
+    "category": "clarify_or_on_topic",
+    "user_turns": [
+      "I have a problem."
+    ]
+  },
+  {
+    "id": "conv-v3-story-24",
+    "category": "story_continuation",
+    "user_turns": [
+      "Once upon a time there was a princess named Sue who found a magic key. Continue the story."
+    ]
+  },
+  {
+    "id": "conv-v3-unk-24",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Who is standing behind me?"
+    ]
+  },
+  {
+    "id": "conv-v3-talk-25",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "I had a bad dream last night and I still feel funny."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-25",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My dad drinks tea in the morning.",
+      "My mom drinks coffee.",
+      "What does my mom drink?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-25",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Say this again but make it sound excited: We are going to the park."
+    ]
+  },
+  {
+    "id": "conv-v3-story-25",
+    "category": "story_continuation",
+    "user_turns": [
+      "Tell me a short story about a bee who is too small to carry honey."
+    ]
+  },
+  {
+    "id": "conv-v3-talk-26",
+    "category": "smalltalk_feelings",
+    "user_turns": [
+      "My grandma is coming to visit and I am very happy."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-26",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "On the bus, I sat in row two and my brother sat in row eight.",
+      "Which row did my brother sit in?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-26",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Which word means almost the same as big?"
+    ]
+  },
+  {
+    "id": "conv-v3-story-26",
+    "category": "story_continuation",
+    "user_turns": [
+      "Finish the story: Ben wanted a cookie, but the jar was too high."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-27",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The red train goes to the farm.",
+      "The yellow train goes to the city.",
+      "Where does the yellow train go?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-27",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Mia's kite is yellow. Mia's ball is green. What color is Mia's kite?"
+    ]
+  },
+  {
+    "id": "conv-v3-mem-28",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I gave names to my two toy robots.",
+      "The silver robot is Bolt and the black robot is Zip.",
+      "The black robot has which name?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-28",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Write a two-line poem about a little fish."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-29",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Ava wanted the top bunk and Noor wanted the bottom bunk.",
+      "They switched in the end, so Noor got the top bunk.",
+      "Who sleeps in the top bunk now?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-29",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Tell me the first word of this sentence: Birds sing in the morning."
+    ]
+  },
+  {
+    "id": "conv-v3-mem-30",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The museum trip starts at the dinosaur room.",
+      "After that we visit the space room.",
+      "Which room do we visit first?"
+    ]
+  },
+  {
+    "id": "conv-v3-do-30",
+    "category": "self_contained_instruction",
+    "user_turns": [
+      "Fix this sentence: me and him goes to school."
+    ]
+  }
+]

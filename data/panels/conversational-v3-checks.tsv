@@ -1,0 +1,85 @@
+# id	kind	history	terms	forbid	keys -- frozen row checks for conversational-v3 (chat-grade embeds this file; see data/panels/README.md)
+conv-v3-mem-01	exact	recall	shelby	flash	goldfish|goldfish's
+conv-v3-clar-01	question	none	-	-
+conv-v3-unk-01	abstain_exact	none	-	pancake|pancakes|cereal|toast|egg|eggs|oatmeal|waffle|waffles|bacon|yogurt|porridge|bread|banana|bananas|apple|apples|muffin|muffins|fruit
+conv-v3-mem-02	exact	recall	plum|plums	pear|pears	grandma|grandmother|grandma's|grandmother's
+conv-v3-clar-02	question	none	-	-
+conv-v3-unk-02	abstain_exact	none	-	aunt|auntie|neighbor|neighbour|teacher|sister|cousin|lady|coworker
+conv-v3-mem-03	exact	recall	ella	omar	dragon
+conv-v3-do-03	any	none	six|6	-
+conv-v3-clar-03	question	none	-	-
+conv-v3-unk-03	abstain_exact	none	-	under|table|drawer|pocket|kitchen|bag|couch|sofa|bed|car|counter|hook|desk|shelf|purse|jacket|coat|door|backpack
+conv-v3-mem-04	exact	recall	saturday	monday|tuesday|wednesday|thursday|friday|sunday	swimming|swim
+conv-v3-clar-04	question	none	-	-
+conv-v3-unk-04	abstain_exact	none	-	red|orange|yellow|green|blue|purple|pink|brown|black|white|gray|grey|gold|silver
+conv-v3-mem-05	exact	recall	red	orange|yellow|green|blue|purple|pink|brown|black|white|gray|grey|gold|silver	sticker|stickers
+conv-v3-clar-05	question	none	-	-
+conv-v3-unk-05	abstain_exact	none	-	two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen
+conv-v3-mem-06	exact	recall	nine|9	two|2|three|3|four|4|five|5|six|6|seven|7|eight|8|ten|10|eleven|11|twelve|12	malik|brother|malik's|brother's
+conv-v3-clar-06	question	none	-	-
+conv-v3-unk-06	abstain_exact	none	-	food|games|game|toys|toy|dinner|lunch|school|pizza|ice cream|cake|dog|puppy|cat|playing|friends|candy|dinosaurs|snack|cookies
+conv-v3-mem-07	exact	recall	running|run	hopping|hop	-
+conv-v3-clar-07	question	none	-	-
+conv-v3-unk-07	abstain_exact	none	-	on my way|coming over|i'm coming|be right there|see you soon
+conv-v3-mem-08	exact	recall	lake	beach	-
+conv-v3-clar-08	question	none	-	-
+conv-v3-unk-08	abstain_exact	none	-	here is a hug|here's a hug|sending a hug|giving you a hug|big hug|hugs you
+conv-v3-mem-09	exact	recall	bell	basket	scooter|scooter's
+conv-v3-do-09	any	none	the dog ran fast	-
+conv-v3-clar-09	question	none	-	-
+conv-v3-unk-09	abstain_exact	none	-	dog|cat|fish|puppy|kitten|hamster|bunny|rabbit|bird|turtle|goldfish|parrot
+conv-v3-mem-10	exact	recall	kofi	lena	kite
+conv-v3-clar-10	question	none	-	-
+conv-v3-unk-10	abstain_exact	none	-	opened|it's open|window is open|is open now
+conv-v3-mem-11	exact	recall	muffin|muffins	brownie|brownies	priya|priya's
+conv-v3-clar-11	question	none	-	-
+conv-v3-unk-11	abstain_exact	none	-	dragons|dragon|unicorn|unicorns|candy|flying|castle|ocean|space|monsters|monster|puppies|animals|princess|adventure|rainbow|rainbows
+conv-v3-mem-12	exact	recall	thursday	monday|tuesday|wednesday|friday|saturday|sunday	movie|movie's
+conv-v3-clar-12	question	none	-	-
+conv-v3-unk-12	abstain_exact	none	-	delicious|yummy|tasty|sweet|crunchy|chewy|best cookie
+conv-v3-mem-13	exact	recall	foxes|fox	owls|owl	other team|other team's
+conv-v3-clar-13	question	none	-	-
+conv-v3-unk-13	abstain_exact	none	-	said hello|said hi|said good morning|said happy|said thank|said sorry|said nice
+conv-v3-mem-14	exact	recall	pillow	sock|socks|drawer	gold|coin
+conv-v3-clar-14	question	none	-	-
+conv-v3-unk-14	abstain_exact	none	-	two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen
+conv-v3-mem-15	exact	recall	pip	tumble	giant|giant's
+conv-v3-do-15	any	none	three|3	-
+conv-v3-clar-15	question	none	-	-
+conv-v3-unk-15	abstain_exact	none	-	beautiful|pretty|lovely|colorful|colourful|amazing|wonderful|love it|like it
+conv-v3-mem-16	exact	recall	blue	red|orange|yellow|green|purple|pink|brown|black|white|gray|grey|gold|silver	-
+conv-v3-clar-16	question	none	-	-
+conv-v3-unk-16	abstain_exact	none	-	books|book|pencil|pencils|lunch|lunchbox|crayons|notebook|homework|toys|snack|water bottle|folder|paper|markers|eraser
+conv-v3-mem-17	exact	recall	bean|beans	carrot|carrots	left
+conv-v3-clar-17	question	none	-	-
+conv-v3-unk-17	abstain_exact	none	-	poof|gone|disappeared|abracadabra|vanished
+conv-v3-mem-18	exact	recall	uncle	aunt	mountains|mountain
+conv-v3-clar-18	question	none	-	-
+conv-v3-unk-18	abstain_exact	none	-	red|orange|yellow|green|blue|purple|pink|brown|black|white|gray|grey|gold|silver|sneakers|boots|sandals|slippers
+conv-v3-mem-19	exact	recall	zara	ben	door
+conv-v3-clar-19	question	none	-	-
+conv-v3-unk-19	abstain_exact	none	-	dinosaurs|space|animals|school|games|toys|pets|weather|food|holidays|sports|cars
+conv-v3-mem-20	exact	recall	three|3	two|2|four|4|five|5|six|6|seven|7|eight|8|nine|9|ten|10|eleven|11|twelve|12	blue
+conv-v3-do-20	any	none	girl ate her lunch	-
+conv-v3-clar-20	question	none	-	-
+conv-v3-unk-20	abstain_exact	none	-	turned off|lights are off|turned them off|off now|dark now
+conv-v3-mem-21	exact	recall	biscuit	pebble	-
+conv-v3-clar-21	question	none	-	-
+conv-v3-unk-21	abstain_exact	none	-	crush|surprise|birthday|present|gift|party|broke|hid|hiding
+conv-v3-mem-22	exact	recall	sunflower|sunflowers	rose|roses	gate
+conv-v3-clar-22	question	none	-	-
+conv-v3-unk-22	abstain_exact	none	-	twinkle|abc|alphabet|baby shark|happy birthday|wheels on the bus|old macdonald|let it go|itsy bitsy|row row|jingle bells|lullaby
+conv-v3-mem-23	exact	recall	boots|boot	sandals|sandal	lunch|afternoon
+conv-v3-clar-23	question	none	-	-
+conv-v3-unk-23	abstain_exact	none	-	blast off|liftoff|lift off|we're flying|here we go|zoom
+conv-v3-mem-24	exact	recall	scarf	hat	short
+conv-v3-clar-24	question	none	-	-
+conv-v3-unk-24	abstain_exact	none	-	mom|dad|mommy|daddy|brother|sister|friend|cat|dog|teacher|ghost|monster|grandma|grandpa|nobody is|no one is|nobody's
+conv-v3-mem-25	exact	recall	coffee	tea	dad|father|daddy|dad's|father's|daddy's
+conv-v3-mem-26	exact	recall	eight|8	two|2|three|3|four|4|five|5|six|6|seven|7|nine|9|ten|10|eleven|11|twelve|12	you sat|i sat
+conv-v3-do-26	any	none	large|huge|giant|enormous|gigantic|massive|great|tall	-
+conv-v3-mem-27	exact	recall	city	farm	red
+conv-v3-mem-28	exact	recall	zip	bolt	silver
+conv-v3-mem-29	exact	recall	noor	ava	bottom
+conv-v3-mem-30	exact	recall	dinosaur|dinosaurs	space	after
+conv-v3-do-30	any	none	he and i go|we go to school|i go to school with him	-
