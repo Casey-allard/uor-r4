@@ -15,7 +15,7 @@ use candle_core::{CpuStorage, CudaDevice, CudaStorage, CustomOp1, Storage};
 use cudarc::driver::{CudaSlice, CudaView};
 
 use super::*;
-use crate::cuda_stack_kernels::cuda::{launch, launch_groups, zeros, Arg};
+use crate::cuda_stack_kernels::cuda::{launch, launch_groups, uninit, zeros, Arg};
 
 type CResult<T> = candle_core::Result<T>;
 type Forward = CResult<(CudaStorage, Shape)>;
@@ -143,7 +143,7 @@ pub(super) fn straight_through_fwd(
         return via_host2(&StraightThrough, s1, l1, s2, l2);
     };
     let device = &s2.device;
-    let out = zeros::<f32>(device, total)?;
+    let out = uninit::<f32>(device, total)?;
     launch(
         device,
         "straight_through_fwd",
@@ -166,7 +166,7 @@ pub(super) fn swiglu_fwd(s1: &CudaStorage, l1: &Layout, s2: &CudaStorage, l2: &L
     };
     let device = &s1.device;
     let total = l1.shape().elem_count();
-    let out = zeros::<f32>(device, total)?;
+    let out = uninit::<f32>(device, total)?;
     launch(
         device,
         "swiglu_fwd",
@@ -195,8 +195,8 @@ pub(super) fn swiglu_bwd(
     let (gs, gl) = g.storage_and_layout();
     let (us, ul) = u.storage_and_layout();
     let (ds, dl) = d.storage_and_layout();
-    let d_gate = zeros::<f32>(device, total)?;
-    let d_up = zeros::<f32>(device, total)?;
+    let d_gate = uninit::<f32>(device, total)?;
+    let d_up = uninit::<f32>(device, total)?;
     launch(
         device,
         "swiglu_bwd",
@@ -237,7 +237,7 @@ pub(super) fn rms_norm_fwd(
     let device = &s1.device;
     let total = l1.shape().elem_count();
     let rows = total / width;
-    let out = zeros::<f32>(device, total)?;
+    let out = uninit::<f32>(device, total)?;
     launch_groups(
         device,
         "rms_norm_fwd",
@@ -270,8 +270,8 @@ pub(super) fn rms_norm_bwd(
     let (ws, wl) = wr.storage_and_layout();
     let (gs, gl) = gr.storage_and_layout();
     let (xv, wv, gv) = (view(&xs, xl)?, view(&ws, wl)?, view(&gs, gl)?);
-    let dx = zeros::<f32>(device, total)?;
-    let row_r = zeros::<f64>(device, rows)?;
+    let dx = uninit::<f32>(device, total)?;
+    let row_r = uninit::<f64>(device, rows)?;
     launch_groups(
         device,
         "rms_norm_bwd_dx",
@@ -287,7 +287,7 @@ pub(super) fn rms_norm_bwd(
         ],
     )?;
     let chunks = rows.div_ceil(RMS_CHUNK_ROWS);
-    let partials = zeros::<f64>(device, chunks * width)?;
+    let partials = uninit::<f64>(device, chunks * width)?;
     launch(
         device,
         "rms_norm_dw_partial",
@@ -302,7 +302,7 @@ pub(super) fn rms_norm_bwd(
             Arg::U32(RMS_CHUNK_ROWS as u32),
         ],
     )?;
-    let dw = zeros::<f32>(device, width)?;
+    let dw = uninit::<f32>(device, width)?;
     launch(
         device,
         "rms_norm_dw_reduce",
@@ -335,7 +335,7 @@ pub(super) fn quaternion_scan_fwd(
     };
     let device = &s1.device;
     let total = l1.shape().elem_count();
-    let out = zeros::<f32>(device, total)?;
+    let out = uninit::<f32>(device, total)?;
     launch(
         device,
         "quaternion_scan_fwd",
@@ -369,8 +369,8 @@ pub(super) fn quaternion_scan_bwd(
     let (ts, tl) = t.storage_and_layout();
     let (ss, sl) = s.storage_and_layout();
     let (gs, gl) = g.storage_and_layout();
-    let dq = zeros::<f32>(device, total)?;
-    let db = zeros::<f32>(device, total)?;
+    let dq = uninit::<f32>(device, total)?;
+    let db = uninit::<f32>(device, total)?;
     launch(
         device,
         "quaternion_scan_bwd",
@@ -491,7 +491,7 @@ pub(super) fn cross_entropy_bwd(
     let targets = device.clone_htod(&op.targets)?;
     let scale = device.clone_htod(&scales)?;
     let (lse, _) = cross_entropy_rows(device, lv.slice(..), &targets, rows, vocabulary)?;
-    let out = zeros::<f32>(device, rows * vocabulary)?;
+    let out = uninit::<f32>(device, rows * vocabulary)?;
     launch(
         device,
         "cross_entropy_grad",
@@ -544,7 +544,7 @@ impl RecurrenceCore {
         parameters: CudaView<'_, f32>,
     ) -> CResult<CudaSlice<f32>> {
         let lanes = self.lanes();
-        let log_a = zeros::<f32>(device, lanes)?;
+        let log_a = uninit::<f32>(device, lanes)?;
         launch(
             device,
             "recurrence_log_a",
@@ -571,9 +571,9 @@ impl RecurrenceCore {
     ) -> CResult<(CudaSlice<f32>, CudaSlice<f32>, CudaSlice<f32>)> {
         let (time, width, lanes) = (self.time, self.width, self.lanes());
         let total = self.batch * time * width;
-        let state = zeros::<f32>(device, total)?;
-        let drive = zeros::<f32>(device, total)?;
-        let out = zeros::<f32>(device, total)?;
+        let state = uninit::<f32>(device, total)?;
+        let drive = uninit::<f32>(device, total)?;
+        let out = uninit::<f32>(device, total)?;
         launch(
             device,
             "recurrence_core_fwd",
@@ -669,10 +669,10 @@ impl RecurrenceCore {
         let log_a = self.cuda_log_a(device, pv.slice(..))?;
         let (state, drive, _) =
             self.cuda_forward(device, bv.slice(..), gv.slice(..), pv.slice(..), &log_a)?;
-        let d_branches = zeros::<f32>(device, b.elem_count())?;
-        let d_gates = zeros::<f32>(device, g.elem_count())?;
-        let partials = zeros::<f64>(device, self.batch * param_len)?;
-        let d_parameters = zeros::<f32>(device, param_len)?;
+        let d_branches = uninit::<f32>(device, b.elem_count())?;
+        let d_gates = uninit::<f32>(device, g.elem_count())?;
+        let partials = uninit::<f64>(device, self.batch * param_len)?;
+        let d_parameters = uninit::<f32>(device, param_len)?;
         launch(
             device,
             "recurrence_core_bwd",
@@ -769,13 +769,13 @@ impl FusedRead {
         let rows = self.batch * self.heads * self.time;
         let square = rows * self.time;
         let scaled = self.score.scaled();
-        let probabilities = zeros::<f32>(device, square)?;
-        let null_probability = zeros::<f32>(device, rows)?;
+        let probabilities = uninit::<f32>(device, square)?;
+        let null_probability = uninit::<f32>(device, rows)?;
         let lift_len = if scaled { rows } else { 1 };
-        let query_lift = zeros::<f64>(device, lift_len)?;
-        let key_lift = zeros::<f64>(device, lift_len)?;
+        let query_lift = uninit::<f64>(device, lift_len)?;
+        let key_lift = uninit::<f64>(device, lift_len)?;
         let write_excess = scaled && keep_excess;
-        let excess = zeros::<f64>(device, if write_excess { square } else { 1 })?;
+        let excess = uninit::<f64>(device, if write_excess { square } else { 1 })?;
         if scaled {
             launch(
                 device,
@@ -877,7 +877,7 @@ impl FusedRead {
         let device = &s1.device;
         let pass = self.cuda_pass(device, query, kv.slice(..), aux, false)?;
         let total = rows * value;
-        let out = zeros::<f32>(device, total)?;
+        let out = uninit::<f32>(device, total)?;
         launch(
             device,
             "read_mix",
@@ -927,16 +927,16 @@ impl FusedRead {
         let pass = self.cuda_pass(device, qv.slice(..), kvv.slice(..), av.slice(..), true)?;
         let dims = self.cuda_dims()?;
         let square = rows * self.time;
-        let dp = zeros::<f32>(device, square)?;
-        let d_scores = zeros::<f64>(device, square)?;
-        let inner_grad = zeros::<f32>(device, square)?;
+        let dp = uninit::<f32>(device, square)?;
+        let d_scores = uninit::<f64>(device, square)?;
+        let inner_grad = uninit::<f32>(device, square)?;
         let row_len = if scaled { rows } else { 1 };
-        let query_self = zeros::<f64>(device, row_len)?;
-        let row_beta = zeros::<f64>(device, row_len)?;
-        let row_offset = zeros::<f64>(device, row_len)?;
-        let key_self = zeros::<f64>(device, row_len)?;
-        let dq = zeros::<f32>(device, q.elem_count())?;
-        let dkv = zeros::<f32>(device, kvt.elem_count())?;
+        let query_self = uninit::<f64>(device, row_len)?;
+        let row_beta = uninit::<f64>(device, row_len)?;
+        let row_offset = uninit::<f64>(device, row_len)?;
+        let key_self = uninit::<f64>(device, row_len)?;
+        let dq = uninit::<f32>(device, q.elem_count())?;
+        let dkv = uninit::<f32>(device, kvt.elem_count())?;
         let aux_parts = self.null || self.age || scaled;
         let d_aux = zeros::<f32>(device, a.elem_count())?;
         let tiles = self.time.div_ceil(16);
@@ -1290,7 +1290,7 @@ impl PointerMixture {
         )?;
         // d z_v = c share_generate (softmax_v - [v = target]): the
         // cross-entropy gradient kernel with the per-row factor.
-        let d_logits = zeros::<f32>(device, rows * vocabulary)?;
+        let d_logits = uninit::<f32>(device, rows * vocabulary)?;
         launch(
             device,
             "cross_entropy_grad",

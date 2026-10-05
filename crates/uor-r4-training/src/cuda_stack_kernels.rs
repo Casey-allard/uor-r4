@@ -940,6 +940,14 @@ extern "C" __global__ void read_dbeta(
     d_aux[read_beta_offset(d) + id] = (float)sum;
 }
 
+// Diagnostic only (UOR_CUDA_POISON_UNINIT=1): fills a fresh unspecified
+// buffer with all-ones words, a NaN in f32 and f64, so a read of an element
+// no kernel wrote shows up as a nonfinite result.
+extern "C" __global__ void poison_words(uint* dst, uint words) {
+    uint i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < words) dst[i] = 0xFFFFFFFFu;
+}
+
 // ---------------------------------------------------------------------------
 // 8. AdamW step in place, the CPU `adam_step`'s f32 operations in its order
 // (non-contracting intrinsics, IEEE sqrt and division).
@@ -1333,6 +1341,51 @@ extern "C" __global__ void sq_tree(
         T: cudarc::driver::DeviceRepr + cudarc::driver::ValidAsZeroBits,
     {
         device.alloc_zeros::<T>(len.max(1))
+    }
+
+    /// A device buffer of `len` elements (at least one) whose contents are
+    /// unspecified, for an output the following kernels write in full before
+    /// anything reads it: it skips [`zeros`]'s fill. Each call site names the
+    /// kernel that covers the buffer; a buffer a kernel writes only in part
+    /// (or not at all in some configuration) and later reads must stay
+    /// [`zeros`].
+    ///
+    /// `UOR_CUDA_POISON_UNINIT=1` (diagnostic) fills each such buffer with
+    /// NaN words first, so a kernel that leaves an element unwritten and a
+    /// later read of it surface as nonfinite values in the parity tests.
+    pub fn uninit<T>(device: &CudaDevice, len: usize) -> Result<CudaSlice<T>>
+    where
+        T: cudarc::driver::DeviceRepr + cudarc::driver::ValidAsZeroBits,
+    {
+        // SAFETY: `alloc` returns device memory that is not initialized.
+        // The element types used here (f32, f64, u32) have no invalid bit
+        // patterns, so unspecified device bytes are never undefined
+        // behaviour on the host; callers pass only buffers whose every
+        // element their kernels write before any read.
+        let slice = unsafe { device.alloc::<T>(len.max(1)) }?;
+        if poison_uninit() {
+            let words = slice.len() * std::mem::size_of::<T>() / 4;
+            // SAFETY: the view covers `words` whole 4-byte words inside the
+            // allocation (f32, f64 and u32 sizes are multiples of 4), and
+            // any bit pattern is a valid u32.
+            let view = unsafe { slice.transmute::<u32>(words) }
+                .ok_or_else(|| Error::Msg("poison view exceeds its buffer".into()))?;
+            let size = u32::try_from(words)
+                .map_err(|_| Error::Msg("poisoned buffer exceeds u32 words".into()))?;
+            launch(
+                device,
+                "poison_words",
+                words,
+                &[Arg::U(view), Arg::U32(size)],
+            )?;
+        }
+        Ok(slice)
+    }
+
+    /// `UOR_CUDA_POISON_UNINIT=1`: [`uninit`] buffers start as NaN words.
+    fn poison_uninit() -> bool {
+        static POISON: OnceLock<bool> = OnceLock::new();
+        *POISON.get_or_init(|| std::env::var("UOR_CUDA_POISON_UNINIT").is_ok_and(|v| v == "1"))
     }
 
     /// Threads per block of a 1-D launch.

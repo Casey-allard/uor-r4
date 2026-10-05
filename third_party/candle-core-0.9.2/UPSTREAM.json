@@ -113,5 +113,7 @@
   "omitted_distribution_files": [
     ".cargo-ok (registry marker)",
     "Cargo.lock (unused package-local lock; workspace owns resolution)"
-  ]
+  ],
+  "second_changed_source": "src/backprop.rs",
+  "second_changed_file_sha256": "50bb84380e9d2502a1d660f966302efc7952b98c770bd4ea0cb971b3c59c74c3"
 }
