@@ -32,9 +32,13 @@ pub mod cuda {
 
     use candle_core::{CudaDevice, Error, Result};
     use cudarc::driver::{CudaSlice, CudaView, LaunchConfig, PushKernelArg};
+    use half::bf16;
 
-    /// The Candle custom-module name the stack kernels are loaded under.
+    /// The Candle custom-module name the f32 stack kernels are loaded under.
     const MODULE: &str = "uor_r4_geometric_stack";
+    /// The Candle custom-module name the bf16 activation-storage kernels (the
+    /// same source compiled with UOR_STORAGE_BF16) are loaded under.
+    const MODULE_BF16: &str = "uor_r4_geometric_stack_bf16";
 
     pub const CUDA_STACK_SOURCE: &str = r#"
 typedef unsigned int uint;
@@ -72,6 +76,46 @@ struct AdamConstants {
 };
 
 __device__ __forceinline__ float neg_inf() { return __int_as_float(0xff800000); }
+
+// ---------------------------------------------------------------------------
+// 0. Activation storage: `float` in the default build, bf16 bits in the
+// UOR_STORAGE_BF16 build (the same CUDA C source is compiled twice by NVRTC
+// and loaded as two Candle custom modules). `act_t` is the storage of the
+// buffers that carry activations between ops; every parameter, statistic,
+// score, partial and carried state stays f32/f64 in both builds, and every
+// kernel converts on load and on store so its arithmetic is f32 (or f64)
+// throughout. The f32 build's `act_to_f`/`act_from_f` are the identity, and
+// its `ld4_act`/`st4_act` call `ld4`/`st4`, so its machine code is unchanged.
+//
+// The bf16 conversion is round-to-nearest-even on the top 16 bits, with
+// infinities preserved and NaN canonicalized to a quiet bf16 NaN: the same
+// rounding `half::bf16::from_f32` (Candle's f32 -> bf16 cast) performs.
+// ---------------------------------------------------------------------------
+#ifdef UOR_STORAGE_BF16
+typedef unsigned short act_t;
+#define UOR_ACT_BYTES 2
+
+__device__ __forceinline__ float act_to_f(act_t v) {
+    return __uint_as_float(((unsigned)v) << 16);
+}
+
+__device__ __forceinline__ act_t act_from_f(float f) {
+    unsigned u = __float_as_uint(f);
+    if ((u & 0x7f800000u) == 0x7f800000u) {
+        // Infinity keeps its sign; any NaN becomes the canonical quiet NaN.
+        return (act_t)(((u & 0x80000000u) >> 16) |
+                       ((u & 0x007fffffu) != 0u ? 0x7fc0u : 0x7f80u));
+    }
+    unsigned rounded = u + 0x7fffu + ((u >> 16) & 1u);
+    return (act_t)(rounded >> 16);
+}
+#else
+typedef float act_t;
+#define UOR_ACT_BYTES 4
+
+__device__ __forceinline__ float act_to_f(act_t v) { return v; }
+__device__ __forceinline__ act_t act_from_f(float v) { return v; }
+#endif
 
 __device__ __forceinline__ float warp_sum(float v) {
     for (int o = 16; o > 0; o >>= 1) v += __shfl_xor_sync(0xffffffffu, v, o);
@@ -124,6 +168,21 @@ __device__ __forceinline__ void st4(float* p, float4 v) {
     p[0] = v.x; p[1] = v.y; p[2] = v.z; p[3] = v.w;
 }
 
+// The activation-storage counterparts of `ld4`/`st4`. In the f32 build they
+// are the two functions above, so the generated code is unchanged.
+#ifndef UOR_STORAGE_BF16
+__device__ __forceinline__ float4 ld4_act(const act_t* p) { return ld4(p); }
+__device__ __forceinline__ void st4_act(act_t* p, float4 v) { st4(p, v); }
+#else
+__device__ __forceinline__ float4 ld4_act(const act_t* p) {
+    return make_float4(act_to_f(p[0]), act_to_f(p[1]), act_to_f(p[2]), act_to_f(p[3]));
+}
+__device__ __forceinline__ void st4_act(act_t* p, float4 v) {
+    p[0] = act_from_f(v.x); p[1] = act_from_f(v.y);
+    p[2] = act_from_f(v.z); p[3] = act_from_f(v.w);
+}
+#endif
+
 __device__ __forceinline__ float4 add4(float4 a, float4 b) {
     return make_float4(a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w);
 }
@@ -169,7 +228,7 @@ __device__ __forceinline__ float sigmoid_f(float x) {
 // ---------------------------------------------------------------------------
 // 1. Straight-through
 // ---------------------------------------------------------------------------
-extern "C" __global__ void straight_through_fwd(const float* src, float* dst, uint total) {
+extern "C" __global__ void straight_through_fwd(const act_t* src, act_t* dst, uint total) {
     uint id = blockIdx.x * blockDim.x + threadIdx.x;
     if (id < total) dst[id] = src[id];
 }
@@ -177,78 +236,84 @@ extern "C" __global__ void straight_through_fwd(const float* src, float* dst, ui
 // ---------------------------------------------------------------------------
 // 2. SwiGLU
 // ---------------------------------------------------------------------------
-extern "C" __global__ void swiglu_fwd(const float* gate, const float* up, float* out, uint total) {
-    uint id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (id >= total) return;
-    float g = gate[id];
-    float u = up[id];
-    out[id] = g * sigmoid_f(g) * u;
-}
-
-extern "C" __global__ void swiglu_bwd(
-    const float* gate, const float* up, const float* grad,
-    float* d_gate, float* d_up, uint total
+extern "C" __global__ void swiglu_fwd(
+    const act_t* gate, const act_t* up, act_t* out, uint total
 ) {
     uint id = blockIdx.x * blockDim.x + threadIdx.x;
     if (id >= total) return;
-    float g = gate[id];
-    float u = up[id];
-    float d = grad[id];
+    float g = act_to_f(gate[id]);
+    float u = act_to_f(up[id]);
+    out[id] = act_from_f(g * sigmoid_f(g) * u);
+}
+
+extern "C" __global__ void swiglu_bwd(
+    const act_t* gate, const act_t* up, const act_t* grad,
+    act_t* d_gate, act_t* d_up, uint total
+) {
+    uint id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= total) return;
+    float g = act_to_f(gate[id]);
+    float u = act_to_f(up[id]);
+    float d = act_to_f(grad[id]);
     float s = sigmoid_f(g);
-    d_up[id] = d * g * s;
-    d_gate[id] = d * u * s * (1.0f + g * (1.0f - s));
+    d_up[id] = act_from_f(d * g * s);
+    d_gate[id] = act_from_f(d * u * s * (1.0f + g * (1.0f - s)));
 }
 
 // ---------------------------------------------------------------------------
-// 3. RMSNorm: f64 statistics as the CPU; one block per row.
+// 3. RMSNorm: f64 statistics as the CPU; one block per row. The input, the
+// output and the gradients are activation storage, the gain and its gradient
+// are f32 parameters, and the statistics are f64 in both builds.
 // ---------------------------------------------------------------------------
 extern "C" __global__ void rms_norm_fwd(
-    const float* x, const float* w, float* out, uint width
+    const act_t* x, const float* w, act_t* out, uint width
 ) {
     __shared__ double shared[32];
     u64 offset = (u64)blockIdx.x * width;
     double sum_sq = 0.0;
     for (uint i = threadIdx.x; i < width; i += blockDim.x) {
-        double v = (double)x[offset + i];
+        double v = (double)act_to_f(x[offset + i]);
         sum_sq += v * v;
     }
     double total = block_sum_d(sum_sq, shared);
     float r = (float)(1.0 / sqrt(total / (double)width + RMS_EPSILON));
     for (uint i = threadIdx.x; i < width; i += blockDim.x) {
-        out[offset + i] = x[offset + i] * r * w[i];
+        float xv = act_to_f(x[offset + i]);
+        out[offset + i] = act_from_f(xv * r * w[i]);
     }
 }
 
 // dx = r (g w - xhat mean(g w xhat)); also stores the row's r for dw.
 extern "C" __global__ void rms_norm_bwd_dx(
-    const float* x, const float* w, const float* grad, float* dx,
+    const act_t* x, const float* w, const act_t* grad, act_t* dx,
     double* row_r, uint width
 ) {
     __shared__ double shared[32];
     u64 offset = (u64)blockIdx.x * width;
     double sum_sq = 0.0;
     for (uint i = threadIdx.x; i < width; i += blockDim.x) {
-        double v = (double)x[offset + i];
+        double v = (double)act_to_f(x[offset + i]);
         sum_sq += v * v;
     }
     double total = block_sum_d(sum_sq, shared);
     double r = 1.0 / sqrt(total / (double)width + RMS_EPSILON);
     double projection = 0.0;
     for (uint i = threadIdx.x; i < width; i += blockDim.x) {
-        double xhat = (double)x[offset + i] * r;
-        projection += (double)grad[offset + i] * (double)w[i] * xhat;
+        double xhat = (double)act_to_f(x[offset + i]) * r;
+        projection += (double)act_to_f(grad[offset + i]) * (double)w[i] * xhat;
     }
     projection = block_sum_d(projection, shared) / (double)width;
     for (uint i = threadIdx.x; i < width; i += blockDim.x) {
-        double xhat = (double)x[offset + i] * r;
-        dx[offset + i] = (float)(r * ((double)grad[offset + i] * (double)w[i] - xhat * projection));
+        double xhat = (double)act_to_f(x[offset + i]) * r;
+        dx[offset + i] = act_from_f((float)(r * ((double)act_to_f(grad[offset + i]) * (double)w[i]
+                                                - xhat * projection)));
     }
     if (threadIdx.x == 0) row_r[blockIdx.x] = r;
 }
 
 // partials[chunk, col] = sum over the chunk's rows of g xhat, in f64.
 extern "C" __global__ void rms_norm_dw_partial(
-    const float* x, const float* grad, const double* row_r, double* partials,
+    const act_t* x, const act_t* grad, const double* row_r, double* partials,
     uint rows, uint width, uint chunk_rows
 ) {
     uint id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -260,7 +325,7 @@ extern "C" __global__ void rms_norm_dw_partial(
     double sum = 0.0;
     for (uint r = chunk * chunk_rows; r < end; ++r) {
         u64 at = (u64)r * width + col;
-        sum += (double)grad[at] * ((double)x[at] * row_r[r]);
+        sum += (double)act_to_f(grad[at]) * ((double)act_to_f(x[at]) * row_r[r]);
     }
     partials[id] = sum;
 }
@@ -276,10 +341,12 @@ extern "C" __global__ void rms_norm_dw_reduce(
 }
 
 // ---------------------------------------------------------------------------
-// 4. Quaternion transport scan
+// 4. Quaternion transport scan. Transitions, drives, states and their
+// gradients are activation storage; the Hamilton products and the norm run in
+// f32 (the carried state itself is never rounded: `held` lives in registers).
 // ---------------------------------------------------------------------------
 extern "C" __global__ void quaternion_scan_fwd(
-    const float* transition, const float* drive, float* state_out,
+    const act_t* transition, const act_t* drive, act_t* state_out,
     uint time, uint lanes, uint total_seqs
 ) {
     uint seq_id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -289,15 +356,15 @@ extern "C" __global__ void quaternion_scan_fwd(
     float4 held = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     for (uint t = 0; t < time; ++t) {
         u64 idx = ((u64)(b * time + t) * lanes + lane) * 4;
-        float4 moved = quat_mul(ld4(transition + idx), held);
-        held = add4(moved, ld4(drive + idx));
-        st4(state_out + idx, held);
+        float4 moved = quat_mul(ld4_act(transition + idx), held);
+        held = add4(moved, ld4_act(drive + idx));
+        st4_act(state_out + idx, held);
     }
 }
 
 extern "C" __global__ void quaternion_scan_bwd(
-    const float* transition, const float* state, const float* grad,
-    float* dq, float* db, uint time, uint lanes, uint total_seqs
+    const act_t* transition, const act_t* state, const act_t* grad,
+    act_t* dq, act_t* db, uint time, uint lanes, uint total_seqs
 ) {
     uint seq_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (seq_id >= total_seqs) return;
@@ -306,17 +373,17 @@ extern "C" __global__ void quaternion_scan_bwd(
     float4 carried = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
     for (int t = (int)time - 1; t >= 0; --t) {
         u64 idx = ((u64)(b * time + (uint)t) * lanes + lane) * 4;
-        float4 total = ld4(grad + idx);
+        float4 total = ld4_act(grad + idx);
         if ((uint)(t + 1) < time) {
             u64 next_idx = ((u64)(b * time + (uint)(t + 1)) * lanes + lane) * 4;
-            total = add4(total, quat_mul(quat_conj(ld4(transition + next_idx)), carried));
+            total = add4(total, quat_mul(quat_conj(ld4_act(transition + next_idx)), carried));
         }
-        st4(db + idx, total);
+        st4_act(db + idx, total);
         if (t > 0) {
             u64 prev_idx = ((u64)(b * time + (uint)(t - 1)) * lanes + lane) * 4;
-            st4(dq + idx, quat_mul(total, quat_conj(ld4(state + prev_idx))));
+            st4_act(dq + idx, quat_mul(total, quat_conj(ld4_act(state + prev_idx))));
         } else {
-            st4(dq + idx, make_float4(0.0f, 0.0f, 0.0f, 0.0f));
+            st4_act(dq + idx, make_float4(0.0f, 0.0f, 0.0f, 0.0f));
         }
         carried = total;
     }
@@ -325,39 +392,73 @@ extern "C" __global__ void quaternion_scan_bwd(
 // ---------------------------------------------------------------------------
 // 5. Cross-entropy: f64 log-sum-exp per row as the CPU; elementwise gradient.
 // ---------------------------------------------------------------------------
-extern "C" __global__ void cross_entropy_rows(
-    const float* logits, const uint* targets, double* lse, double* loss, uint vocab
+// The log-sum-exp, the loss and the gradient's scale stay f64; the logits and
+// the logit gradient are activation storage. The `_act` variants serve the
+// activation dtype of the compiled module; the unsuffixed ones keep an f32
+// logits path for the pointer mixture's internal use.
+template <typename S>
+__device__ __forceinline__ void cross_entropy_rows_impl(
+    const S* logits, const uint* targets, double* lse, double* loss, uint vocab
 ) {
     __shared__ float shared_max[32];
     __shared__ double shared_sum[32];
     u64 offset = (u64)blockIdx.x * vocab;
     float m = neg_inf();
-    for (uint i = threadIdx.x; i < vocab; i += blockDim.x) m = fmaxf(m, logits[offset + i]);
+    for (uint i = threadIdx.x; i < vocab; i += blockDim.x) {
+        m = fmaxf(m, act_to_f(logits[offset + i]));
+    }
     float row_max = block_max(m, shared_max);
     double sum = 0.0;
     for (uint i = threadIdx.x; i < vocab; i += blockDim.x) {
-        sum += exp((double)(logits[offset + i] - row_max));
+        sum += exp((double)(act_to_f(logits[offset + i]) - row_max));
     }
     double total = block_sum_d(sum, shared_sum);
     if (threadIdx.x == 0) {
         double z = (double)row_max + log(total);
         lse[blockIdx.x] = z;
-        loss[blockIdx.x] = z - (double)logits[offset + targets[blockIdx.x]];
+        loss[blockIdx.x] = z - (double)act_to_f(logits[offset + targets[blockIdx.x]]);
     }
 }
 
-extern "C" __global__ void cross_entropy_grad(
-    const float* logits, const uint* targets, const double* lse, const double* scale,
-    float* grad, uint rows, uint vocab
+extern "C" __global__ void cross_entropy_rows(
+    const float* logits, const uint* targets, double* lse, double* loss, uint vocab
+) {
+    cross_entropy_rows_impl<float>(logits, targets, lse, loss, vocab);
+}
+
+extern "C" __global__ void cross_entropy_rows_act(
+    const act_t* logits, const uint* targets, double* lse, double* loss, uint vocab
+) {
+    cross_entropy_rows_impl<act_t>(logits, targets, lse, loss, vocab);
+}
+
+template <typename S>
+__device__ __forceinline__ void cross_entropy_grad_impl(
+    const S* logits, const uint* targets, const double* lse, const double* scale,
+    S* grad, uint rows, uint vocab
 ) {
     u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
     if (id >= (u64)rows * vocab) return;
     uint row = (uint)(id / vocab);
     uint i = (uint)(id % vocab);
     double s = scale[row];
-    float slot = (float)(exp((double)logits[id] - lse[row]) * s);
+    float slot = (float)(exp((double)act_to_f(logits[id]) - lse[row]) * s);
     if (i == targets[row]) slot -= (float)s;
-    grad[id] = slot;
+    grad[id] = act_from_f(slot);
+}
+
+extern "C" __global__ void cross_entropy_grad(
+    const float* logits, const uint* targets, const double* lse, const double* scale,
+    float* grad, uint rows, uint vocab
+) {
+    cross_entropy_grad_impl<float>(logits, targets, lse, scale, grad, rows, vocab);
+}
+
+extern "C" __global__ void cross_entropy_grad_act(
+    const act_t* logits, const uint* targets, const double* lse, const double* scale,
+    act_t* grad, uint rows, uint vocab
+) {
+    cross_entropy_grad_impl<act_t>(logits, targets, lse, scale, grad, rows, vocab);
 }
 
 // ---------------------------------------------------------------------------
@@ -392,16 +493,18 @@ extern "C" __global__ void recurrence_log_a(
 }
 
 // The transport unit quaternion of one lane at one position, as the CPU
-// `unit_quaternion` (U(1) zeroes j and k first).
+// `unit_quaternion` (U(1) zeroes j and k first). The raw components are
+// activation storage, the components are read in f32, the norm and the
+// normalization are f32.
 __device__ __forceinline__ float4 transport_unit(
-    const float* gates, u64 gate_row, uint lanes, uint lane, uint rotation, float* norm
+    const act_t* gates, u64 gate_row, uint lanes, uint lane, uint rotation, float* norm
 ) {
     if (rotation == 0) {
         *norm = 1.0f;
         return make_float4(1.0f, 0.0f, 0.0f, 0.0f);
     }
     u64 r = gate_row + lanes + 4 * lane;
-    float4 raw = ld4(gates + r);
+    float4 raw = ld4_act(gates + r);
     if (rotation == 2) {
         raw.z = 0.0f;
         raw.w = 0.0f;
@@ -412,8 +515,8 @@ __device__ __forceinline__ float4 transport_unit(
 }
 
 extern "C" __global__ void recurrence_core_fwd(
-    const float* branches, const float* gates, const float* params, const float* log_a,
-    float* state_out, float* drive_out, float* out,
+    const act_t* branches, const act_t* gates, const float* params, const float* log_a,
+    float* state_out, float* drive_out, act_t* out,
     uint time, uint width, uint lanes, uint gate_width, uint rotation, uint total_lanes
 ) {
     uint lane_id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -432,7 +535,8 @@ extern "C" __global__ void recurrence_core_fwd(
         for (uint k = 0; k < 4; ++k) {
             float c_val = bias[ch + k];
             for (uint shift = 0; shift < 4 && shift <= t; ++shift) {
-                c_val += taps[shift * width + ch + k] * branches[(row - shift) * two_w + ch + k];
+                c_val += taps[shift * width + ch + k]
+                         * act_to_f(branches[(row - shift) * two_w + ch + k]);
             }
             c[k] = c_val;
         }
@@ -441,7 +545,7 @@ extern "C" __global__ void recurrence_core_fwd(
         st4(drive_out + base, drive);
 
         u64 gate_row = row * gate_width;
-        float opening = sigmoid_f(gates[gate_row + lane]);
+        float opening = sigmoid_f(act_to_f(gates[gate_row + lane]));
         float lambda = expf(8.0f * opening * la);
         float complement = 1.0f - lambda * lambda;
         float keep = (complement < 1e-6f) ? 1e-3f : sqrtf(complement);
@@ -452,10 +556,10 @@ extern "C" __global__ void recurrence_core_fwd(
         st4(state_out + base, held);
 
         u64 branch_base = row * two_w + width + ch;
-        out[base + 0] = held.x * gelu_value(branches[branch_base + 0]);
-        out[base + 1] = held.y * gelu_value(branches[branch_base + 1]);
-        out[base + 2] = held.z * gelu_value(branches[branch_base + 2]);
-        out[base + 3] = held.w * gelu_value(branches[branch_base + 3]);
+        out[base + 0] = act_from_f(held.x * gelu_value(act_to_f(branches[branch_base + 0])));
+        out[base + 1] = act_from_f(held.y * gelu_value(act_to_f(branches[branch_base + 1])));
+        out[base + 2] = act_from_f(held.z * gelu_value(act_to_f(branches[branch_base + 2])));
+        out[base + 3] = act_from_f(held.w * gelu_value(act_to_f(branches[branch_base + 3])));
     }
 }
 
@@ -463,9 +567,9 @@ extern "C" __global__ void recurrence_core_fwd(
 // Writes d_branches and d_gates in full and the window's f64 parameter
 // partials (taps, bias, d log a) into partials[window * param_len ..].
 extern "C" __global__ void recurrence_core_bwd(
-    const float* branches, const float* gates, const float* params, const float* log_a,
-    const float* state, const float* drive, const float* d_out,
-    float* d_branches, float* d_gates, double* partials,
+    const act_t* branches, const act_t* gates, const float* params, const float* log_a,
+    const float* state, const float* drive, const act_t* d_out,
+    act_t* d_branches, act_t* d_gates, double* partials,
     uint time, uint width, uint lanes, uint gate_width, uint rotation, uint total_lanes,
     uint param_len
 ) {
@@ -480,7 +584,7 @@ extern "C" __global__ void recurrence_core_bwd(
 
     for (uint t = 0; t < time; ++t) {
         u64 src = ((u64)b * time + t) * two_w + ch;
-        st4(d_branches + src, make_float4(0.0f, 0.0f, 0.0f, 0.0f));
+        st4_act(d_branches + src, make_float4(0.0f, 0.0f, 0.0f, 0.0f));
     }
 
     float4 held = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -496,15 +600,15 @@ extern "C" __global__ void recurrence_core_bwd(
         u64 base = row * width + ch;
         u64 branch_row = row * two_w;
         float4 st = ld4(state + base);
-        float4 dy = ld4(d_out + base);
+        float4 dy = ld4_act(d_out + base);
         float direct[4];
         for (uint k = 0; k < 4; ++k) {
-            float2 vs = gelu_value_slope(branches[branch_row + width + ch + k]);
-            d_branches[branch_row + width + ch + k] = comp4(dy, k) * comp4(st, k) * vs.y;
+            float2 vs = gelu_value_slope(act_to_f(branches[branch_row + width + ch + k]));
+            d_branches[branch_row + width + ch + k] = act_from_f(comp4(dy, k) * comp4(st, k) * vs.y);
             direct[k] = comp4(dy, k) * vs.x;
         }
         u64 gate_row = row * gate_width;
-        float opening = sigmoid_f(gates[gate_row + lane]);
+        float opening = sigmoid_f(act_to_f(gates[gate_row + lane]));
         float lambda = expf(8.0f * opening * la);
         float complement = 1.0f - lambda * lambda;
         bool clamped = complement < 1e-6f;
@@ -530,20 +634,20 @@ extern "C" __global__ void recurrence_core_bwd(
         float d_log_lambda = d_lambda * lambda;
         float d_opening = d_log_lambda * 8.0f * la;
         d_log_a += (double)(d_log_lambda * 8.0f * opening);
-        d_gates[gate_row + lane] = d_opening * opening * (1.0f - opening);
+        d_gates[gate_row + lane] = act_from_f(d_opening * opening * (1.0f - opening));
         if (rotation != 0) {
             float4 du = scale4(dq, lambda);
             float projection = dot4(du, unit);
             u64 r = gate_row + lanes + ch;
-            d_gates[r + 0] = (du.x - unit.x * projection) / norm;
-            d_gates[r + 1] = (du.y - unit.y * projection) / norm;
+            d_gates[r + 0] = act_from_f((du.x - unit.x * projection) / norm);
+            d_gates[r + 1] = act_from_f((du.y - unit.y * projection) / norm);
             if (rotation == 2) {
                 // j and k were zeroed before normalization.
-                d_gates[r + 2] = 0.0f;
-                d_gates[r + 3] = 0.0f;
+                d_gates[r + 2] = act_from_f(0.0f);
+                d_gates[r + 3] = act_from_f(0.0f);
             } else {
-                d_gates[r + 2] = (du.z - unit.z * projection) / norm;
-                d_gates[r + 3] = (du.w - unit.w * projection) / norm;
+                d_gates[r + 2] = act_from_f((du.z - unit.z * projection) / norm);
+                d_gates[r + 3] = act_from_f((du.w - unit.w * projection) / norm);
             }
         }
         q_next = scale4(unit, lambda);
@@ -553,8 +657,9 @@ extern "C" __global__ void recurrence_core_bwd(
             u64 src = (row - shift) * two_w + ch;
             for (uint k = 0; k < 4; ++k) {
                 float ddk = comp4(dd, k);
-                d_tap[shift][k] += (double)(ddk * branches[src + k]);
-                d_branches[src + k] += taps[shift * width + ch + k] * ddk;
+                d_tap[shift][k] += (double)(ddk * act_to_f(branches[src + k]));
+                d_branches[src + k] = act_from_f(act_to_f(d_branches[src + k])
+                                                 + taps[shift * width + ch + k] * ddk);
             }
         }
     }
@@ -684,7 +789,7 @@ __device__ __forceinline__ float recurrence_dot(float4 a, float4 b) {
 // Per (window, position, lane): the drive c, the transition q = lambda unit
 // and the drive weight keep, as the single-kernel forward computes them.
 extern "C" __global__ void recurrence_prep(
-    const float* __restrict__ branches, const float* __restrict__ gates,
+    const act_t* __restrict__ branches, const act_t* __restrict__ gates,
     const float* __restrict__ params, const float* __restrict__ log_a,
     float* __restrict__ drive_out, float* __restrict__ q_out, float* __restrict__ keep_out,
     uint time, uint width, uint lanes, uint gate_width, uint rotation, uint total
@@ -704,7 +809,7 @@ extern "C" __global__ void recurrence_prep(
         float c_val = bias[ch + k];
         for (uint shift = 0; shift < 4 && shift <= t; ++shift) {
             c_val = __fmaf_rn(taps[shift * width + ch + k],
-                              branches[(row - shift) * two_w + ch + k], c_val);
+                              act_to_f(branches[(row - shift) * two_w + ch + k]), c_val);
         }
         c[k] = c_val;
     }
@@ -713,7 +818,7 @@ extern "C" __global__ void recurrence_prep(
     st4(drive_out + base, drive);
 
     u64 gate_row = row * gate_width;
-    float opening = sigmoid_f(gates[gate_row + lane]);
+    float opening = sigmoid_f(act_to_f(gates[gate_row + lane]));
     float lambda = expf(8.0f * opening * la);
     float complement = recurrence_complement(lambda);
     float keep = (complement < 1e-6f) ? 1e-3f : sqrtf(complement);
@@ -763,21 +868,22 @@ extern "C" __global__ void recurrence_scan_fwd(
 
 // Per element: out = held * gelu(output branch).
 extern "C" __global__ void recurrence_out(
-    const float* __restrict__ state, const float* __restrict__ branches,
-    float* __restrict__ out, uint width, uint total
+    const float* __restrict__ state, const act_t* __restrict__ branches,
+    act_t* __restrict__ out, uint width, uint total
 ) {
     u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
     if (id >= (u64)total) return;
     u64 row = id / width;
     uint c = (uint)(id % width);
-    out[id] = state[id] * gelu_value(branches[row * 2 * (u64)width + width + c]);
+    out[id] = act_from_f(state[id]
+                         * gelu_value(act_to_f(branches[row * 2 * (u64)width + width + c])));
 }
 
 // Per (window, position, lane): the output branch's gradient, and
 // gelu(output branch) written into `gelu`.
 extern "C" __global__ void recurrence_bwd_direct(
-    const float* __restrict__ branches, const float* __restrict__ state,
-    const float* __restrict__ d_out, float* __restrict__ d_branches,
+    const act_t* __restrict__ branches, const float* __restrict__ state,
+    const act_t* __restrict__ d_out, act_t* __restrict__ d_branches,
     float* __restrict__ gelu, uint width, uint lanes, uint total
 ) {
     u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
@@ -788,11 +894,12 @@ extern "C" __global__ void recurrence_bwd_direct(
     u64 base = row * width + ch;
     u64 branch_row = row * 2 * (u64)width;
     float4 st = ld4(state + base);
-    float4 dy = ld4(d_out + base);
+    float4 dy = ld4_act(d_out + base);
     float g[4];
     for (uint k = 0; k < 4; ++k) {
-        float2 vs = gelu_value_slope(branches[branch_row + width + ch + k]);
-        d_branches[branch_row + width + ch + k] = comp4(dy, k) * comp4(st, k) * vs.y;
+        float2 vs = gelu_value_slope(act_to_f(branches[branch_row + width + ch + k]));
+        d_branches[branch_row + width + ch + k] =
+            act_from_f(comp4(dy, k) * comp4(st, k) * vs.y);
         g[k] = vs.x;
     }
     st4(gelu + base, make_float4(g[0], g[1], g[2], g[3]));
@@ -801,7 +908,7 @@ extern "C" __global__ void recurrence_bwd_direct(
 // One thread per (window, lane), positions in reverse: the carried adjoint
 // total_t = dy_t gelu_t + conj(q_{t+1}) total_{t+1}, overwriting `gelu`.
 extern "C" __global__ void recurrence_scan_bwd(
-    const float* __restrict__ q, const float* __restrict__ d_out, float* gelu,
+    const float* __restrict__ q, const act_t* __restrict__ d_out, float* gelu,
     uint time, uint width, uint lanes, uint total_lanes
 ) {
     uint lane_id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -821,7 +928,7 @@ extern "C" __global__ void recurrence_scan_bwd(
             if (i < n) {
                 uint t = end - 1 - i;
                 u64 base = ((u64)b * time + t) * width + ch;
-                dys[i] = ld4(d_out + base);
+                dys[i] = ld4_act(d_out + base);
                 gs[i] = ld4(gelu + base);
                 qs[i] = (t + 1 < time) ? ld4(q + base + width)
                                        : make_float4(0.0f, 0.0f, 0.0f, 0.0f);
@@ -852,9 +959,9 @@ extern "C" __global__ void recurrence_scan_bwd(
 // adjoint `total`. Writes d_gates, dd = keep total and the f32 term of
 // d log a.
 extern "C" __global__ void recurrence_bwd_post(
-    const float* __restrict__ gates, const float* __restrict__ log_a,
+    const act_t* __restrict__ gates, const float* __restrict__ log_a,
     const float* __restrict__ state, const float* __restrict__ drive,
-    const float* __restrict__ total_in, float* __restrict__ d_gates,
+    const float* __restrict__ total_in, act_t* __restrict__ d_gates,
     float* __restrict__ dd_out, float* __restrict__ log_term,
     uint time, uint width, uint lanes, uint gate_width, uint rotation, uint total_threads
 ) {
@@ -867,7 +974,7 @@ extern "C" __global__ void recurrence_bwd_post(
     u64 base = row * width + ch;
     float la = log_a[lane];
     u64 gate_row = row * gate_width;
-    float opening = sigmoid_f(gates[gate_row + lane]);
+    float opening = sigmoid_f(act_to_f(gates[gate_row + lane]));
     float lambda = expf(8.0f * opening * la);
     float complement = recurrence_complement(lambda);
     bool clamped = complement < 1e-6f;
@@ -890,21 +997,21 @@ extern "C" __global__ void recurrence_bwd_post(
     float d_log_lambda = d_lambda * lambda;
     float d_opening = d_log_lambda * 8.0f * la;
     log_term[row * lanes + lane] = d_log_lambda * 8.0f * opening;
-    d_gates[gate_row + lane] = d_opening * opening * (1.0f - opening);
+    d_gates[gate_row + lane] = act_from_f(d_opening * opening * (1.0f - opening));
     if (rotation != 0) {
         float4 du = make_float4(__fmul_rn(lambda, dq.x), __fmul_rn(lambda, dq.y),
                                 __fmul_rn(lambda, dq.z), __fmul_rn(lambda, dq.w));
         float projection = recurrence_dot(du, unit);
         u64 r = gate_row + lanes + ch;
-        d_gates[r + 0] = __fdiv_rn(__fmaf_rn(projection, -unit.x, du.x), norm);
-        d_gates[r + 1] = __fdiv_rn(__fmaf_rn(projection, -unit.y, du.y), norm);
+        d_gates[r + 0] = act_from_f(__fdiv_rn(__fmaf_rn(projection, -unit.x, du.x), norm));
+        d_gates[r + 1] = act_from_f(__fdiv_rn(__fmaf_rn(projection, -unit.y, du.y), norm));
         if (rotation == 2) {
             // j and k were zeroed before normalization.
-            d_gates[r + 2] = 0.0f;
-            d_gates[r + 3] = 0.0f;
+            d_gates[r + 2] = act_from_f(0.0f);
+            d_gates[r + 3] = act_from_f(0.0f);
         } else {
-            d_gates[r + 2] = __fdiv_rn(__fmaf_rn(projection, -unit.z, du.z), norm);
-            d_gates[r + 3] = __fdiv_rn(__fmaf_rn(projection, -unit.w, du.w), norm);
+            d_gates[r + 2] = act_from_f(__fdiv_rn(__fmaf_rn(projection, -unit.z, du.z), norm));
+            d_gates[r + 3] = act_from_f(__fdiv_rn(__fmaf_rn(projection, -unit.w, du.w), norm));
         }
     }
     st4(dd_out + base, dd);
@@ -914,9 +1021,9 @@ extern "C" __global__ void recurrence_bwd_post(
 // input gradient (contributions in the single-kernel order, shift 3 first)
 // and the window's f64 tap, bias and d log a partials in its order.
 extern "C" __global__ void recurrence_bwd_params(
-    const float* __restrict__ branches, const float* __restrict__ params,
+    const act_t* __restrict__ branches, const float* __restrict__ params,
     const float* __restrict__ dd, const float* __restrict__ log_term,
-    float* __restrict__ d_branches, double* __restrict__ partials,
+    act_t* __restrict__ d_branches, double* __restrict__ partials,
     uint time, uint width, uint lanes, uint total_channels, uint param_len
 ) {
     uint id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -940,16 +1047,16 @@ extern "C" __global__ void recurrence_bwd_params(
         u64 row = (u64)b * time + t;
         float dd0 = dd[row * width + c];
         d_bias += (double)dd0;
-        d_tap0 += (double)__fmul_rn(dd0, branches[row * two_w + c]);
-        if (t >= 1) d_tap1 += (double)__fmul_rn(dd0, branches[(row - 1) * two_w + c]);
-        if (t >= 2) d_tap2 += (double)__fmul_rn(dd0, branches[(row - 2) * two_w + c]);
-        if (t >= 3) d_tap3 += (double)__fmul_rn(dd0, branches[(row - 3) * two_w + c]);
+        d_tap0 += (double)__fmul_rn(dd0, act_to_f(branches[row * two_w + c]));
+        if (t >= 1) d_tap1 += (double)__fmul_rn(dd0, act_to_f(branches[(row - 1) * two_w + c]));
+        if (t >= 2) d_tap2 += (double)__fmul_rn(dd0, act_to_f(branches[(row - 2) * two_w + c]));
+        if (t >= 3) d_tap3 += (double)__fmul_rn(dd0, act_to_f(branches[(row - 3) * two_w + c]));
         float acc = 0.0f;
         if (t + 3 < time) acc = __fmaf_rn(tap3, dd3, acc);
         if (t + 2 < time) acc = __fmaf_rn(tap2, dd2, acc);
         if (t + 1 < time) acc = __fmaf_rn(tap1, dd1, acc);
         acc = __fmaf_rn(tap0, dd0, acc);
-        d_branches[row * two_w + c] = acc;
+        d_branches[row * two_w + c] = act_from_f(acc);
         if (lane_owner) d_log_a += (double)log_term[row * lanes + lane];
         dd3 = dd2;
         dd2 = dd1;
@@ -988,18 +1095,20 @@ __device__ __forceinline__ double read_distance(ReadDims d, double e) {
 
 // Lorentz lifts sqrt(1 + |x|^2), or for L2 the squared norms |x|^2, in f64.
 extern "C" __global__ void read_lift(
-    const float* query, const float* kv, double* query_lift, double* key_lift, ReadDims d
+    const act_t* query, const act_t* kv, double* query_lift, double* key_lift, ReadDims d
 ) {
     uint id = blockIdx.x * blockDim.x + threadIdx.x;
     uint rows = d.batch * d.heads * d.time;
     if (id >= rows) return;
-    const float* q = query + (u64)id * d.key;
-    const float* k = kv + (u64)id * (d.key + d.value);
+    const act_t* q = query + (u64)id * d.key;
+    const act_t* k = kv + (u64)id * (d.key + d.value);
     float qq = 0.0f;
     float kk = 0.0f;
     for (uint c = 0; c < d.key; ++c) {
-        qq += q[c] * q[c];
-        kk += k[c] * k[c];
+        float qc = act_to_f(q[c]);
+        float kc = act_to_f(k[c]);
+        qq += qc * qc;
+        kk += kc * kc;
     }
     if (d.score == 1) {
         query_lift[id] = sqrt(1.0 + (double)qq);
@@ -1016,7 +1125,7 @@ extern "C" __global__ void read_lift(
 // and, with write_excess, the Lorentz excess or L2 squared distance.
 // Blocks are 16 x 16 threads over (j tile, t tile, index).
 extern "C" __global__ void read_tile_inner(
-    const float* a, const float* b, const float* aux,
+    const act_t* a, const act_t* b, const float* aux,
     const double* query_lift, const double* key_lift,
     float* out, double* excess, ReadDims d, Geom geom
 ) {
@@ -1036,9 +1145,9 @@ extern "C" __global__ void read_tile_inner(
     for (uint c0 = 0; c0 < geom.length; c0 += 16) {
         uint c = c0 + lx;
         tile_a[ly][lx] = (t < time && c < geom.length)
-            ? a[((u64)index * time + t) * geom.a_stride + geom.a_offset + c] : 0.0f;
+            ? act_to_f(a[((u64)index * time + t) * geom.a_stride + geom.a_offset + c]) : 0.0f;
         tile_b[ly][lx] = (b_row < time && c < geom.length)
-            ? b[((u64)index * time + b_row) * geom.b_stride + geom.b_offset + c] : 0.0f;
+            ? act_to_f(b[((u64)index * time + b_row) * geom.b_stride + geom.b_offset + c]) : 0.0f;
         __syncthreads();
         for (uint k = 0; k < 16; ++k) {
             acc += tile_a[ly][k] * tile_b[lx][k];
@@ -1104,7 +1213,7 @@ extern "C" __global__ void read_softmax_warp(
 
 // out[index, t, v] = sum_{j <= t} p[t, j] value[j, v].
 extern "C" __global__ void read_mix(
-    const float* probabilities, const float* kv, float* out, ReadDims d
+    const float* probabilities, const act_t* kv, act_t* out, ReadDims d
 ) {
     u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
     uint time = d.time;
@@ -1115,16 +1224,17 @@ extern "C" __global__ void read_mix(
     u64 index = row / time;
     uint width = d.key + d.value;
     const float* p = probabilities + row * time;
-    const float* values = kv + index * time * width + d.key + v;
+    const act_t* values = kv + index * time * width + d.key + v;
     float accum = 0.0f;
-    for (uint j = 0; j <= t; ++j) accum += p[j] * values[(u64)j * width];
-    out[id] = accum;
+    for (uint j = 0; j <= t; ++j) accum += p[j] * act_to_f(values[(u64)j * width]);
+    out[id] = act_from_f(accum);
 }
 
 // Per row, one warp: the softmax backward in f64 as the CPU. Writes
 // ds = p (dp - <p, dp>) (f64), the inner-product gradients (f32), the NoRead
 // logit gradient (into d_aux), and for Lorentz/L2 the query self coefficient
-// and the row's beta and offset partials (f64).
+// and the row's beta and offset partials (f64). `dp` and `inner_grad` are
+// score-space buffers and stay f32 in both storages.
 extern "C" __global__ void read_row_grad_warp(
     const float* probabilities, const float* dp, double* ds_out, float* inner_grad,
     const double* excess, const float* null_probability, const float* aux,
@@ -1234,8 +1344,8 @@ extern "C" __global__ void read_key_self(
 
 // dq[index, t, c] = sum_{j <= t} g[t, j] key[j, c] (+ the self term).
 extern "C" __global__ void read_dq(
-    const float* inner_grad, const float* query, const float* kv, const double* query_self,
-    float* dq, ReadDims d
+    const float* inner_grad, const act_t* query, const act_t* kv, const double* query_self,
+    act_t* dq, ReadDims d
 ) {
     u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
     uint time = d.time;
@@ -1246,20 +1356,20 @@ extern "C" __global__ void read_dq(
     u64 index = row / time;
     uint width = d.key + d.value;
     const float* g = inner_grad + row * time;
-    const float* keys = kv + index * time * width + c;
+    const act_t* keys = kv + index * time * width + c;
     float accum = 0.0f;
-    for (uint j = 0; j <= t; ++j) accum += g[j] * keys[(u64)j * width];
+    for (uint j = 0; j <= t; ++j) accum += g[j] * act_to_f(keys[(u64)j * width]);
     if (d.score != 0) {
-        accum += (float)query_self[row] * query[id];
+        accum += (float)query_self[row] * act_to_f(query[id]);
     }
-    dq[id] = accum;
+    dq[id] = act_from_f(accum);
 }
 
 // dkv[index, j, c]: keys sum_{t >= j} g[t, j] query[t, c] (+ the self term);
 // values sum_{t >= j} p[t, j] d_out[t, c - key].
 extern "C" __global__ void read_dkv(
-    const float* inner_grad, const float* probabilities, const float* query, const float* kv,
-    const float* d_out, const double* key_self, float* dkv, ReadDims d
+    const float* inner_grad, const float* probabilities, const act_t* query, const act_t* kv,
+    const act_t* d_out, const double* key_self, act_t* dkv, ReadDims d
 ) {
     u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
     uint time = d.time;
@@ -1272,18 +1382,20 @@ extern "C" __global__ void read_dkv(
     float accum = 0.0f;
     if (c < d.key) {
         for (uint t = j; t < time; ++t) {
-            accum += inner_grad[(index * time + t) * time + j] * query[(index * time + t) * d.key + c];
+            accum += inner_grad[(index * time + t) * time + j]
+                     * act_to_f(query[(index * time + t) * d.key + c]);
         }
         if (d.score != 0) {
-            accum += (float)key_self[row] * kv[id];
+            accum += (float)key_self[row] * act_to_f(kv[id]);
         }
     } else {
         uint v = c - d.key;
         for (uint t = j; t < time; ++t) {
-            accum += probabilities[(index * time + t) * time + j] * d_out[(index * time + t) * d.value + v];
+            accum += probabilities[(index * time + t) * time + j]
+                     * act_to_f(d_out[(index * time + t) * d.value + v]);
         }
     }
-    dkv[id] = accum;
+    dkv[id] = act_from_f(accum);
 }
 
 // Age-table gradient per (head, distance): the f64 sum over windows and
@@ -1366,17 +1478,19 @@ struct PointerDims {
 
 // sqrt(1 + |x|^2) in f64 for every row's query and key, as `pointer_lift`.
 extern "C" __global__ void pointer_lift(
-    const float* side, double* query_lift, double* key_lift, PointerDims d
+    const act_t* side, double* query_lift, double* key_lift, PointerDims d
 ) {
     uint row = blockIdx.x * blockDim.x + threadIdx.x;
     if (row >= d.rows) return;
-    const float* q = side + (u64)row * (2 * d.dim + 1);
-    const float* k = q + d.dim;
+    const act_t* q = side + (u64)row * (2 * d.dim + 1);
+    const act_t* k = q + d.dim;
     double qq = 0.0;
     double kk = 0.0;
     for (uint c = 0; c < d.dim; ++c) {
-        qq += (double)q[c] * (double)q[c];
-        kk += (double)k[c] * (double)k[c];
+        double qc = (double)act_to_f(q[c]);
+        double kc = (double)act_to_f(k[c]);
+        qq += qc * qc;
+        kk += kc * kc;
     }
     query_lift[row] = sqrt(1.0 + qq);
     key_lift[row] = sqrt(1.0 + kk);
@@ -1384,25 +1498,29 @@ extern "C" __global__ void pointer_lift(
 
 // The f32 Dot score `dot(q, k) / sqrt(dim)` with the CPU `dot`'s sixteen
 // partial sums.
-__device__ __forceinline__ float pointer_dot(const float* q, const float* k, uint dim) {
+__device__ __forceinline__ float pointer_dot(const act_t* q, const act_t* k, uint dim) {
     float partial[16];
     for (uint i = 0; i < 16; ++i) partial[i] = 0.0f;
     uint whole = dim - dim % 16;
     for (uint c = 0; c < whole; c += 16) {
-        for (uint i = 0; i < 16; ++i) partial[i] += q[c + i] * k[c + i];
+        for (uint i = 0; i < 16; ++i) {
+            partial[i] += act_to_f(q[c + i]) * act_to_f(k[c + i]);
+        }
     }
     float total = 0.0f;
     for (uint i = 0; i < 16; ++i) total += partial[i];
-    for (uint c = whole; c < dim; ++c) total += q[c] * k[c];
+    for (uint c = whole; c < dim; ++c) total += act_to_f(q[c]) * act_to_f(k[c]);
     return total;
 }
 
 // The Lorentz excess lift_q lift_k - <q, k> - 1 in f64.
 __device__ __forceinline__ double pointer_excess(
-    const float* q, const float* k, uint dim, double lift_q, double lift_k
+    const act_t* q, const act_t* k, uint dim, double lift_q, double lift_k
 ) {
     double inner = 0.0;
-    for (uint c = 0; c < dim; ++c) inner += (double)q[c] * (double)k[c];
+    for (uint c = 0; c < dim; ++c) {
+        inner += (double)act_to_f(q[c]) * (double)act_to_f(k[c]);
+    }
     return lift_q * lift_k - inner - 1.0;
 }
 
@@ -1422,10 +1540,10 @@ __device__ __forceinline__ double softplus_d(double x) {
 // scratch's per-source gradient, the row's beta partial and (Lorentz) the
 // query's self coefficient. Rows of weight zero write nothing (zeros).
 extern "C" __global__ void pointer_rows(
-    const float* logits, const float* side, const float* beta_in, const uint* ids, const uint* targets,
+    const act_t* logits, const act_t* side, const float* beta_in, const uint* ids, const uint* targets,
     const float* weights, const double* lse, const double* query_lift,
-    const double* key_lift, const float* grad_in, const double* total_in,
-    double* scratch, double* row_value, double* scale_z, float* d_side,
+    const double* key_lift, const act_t* grad_in, const double* total_in,
+    double* scratch, double* row_value, double* scale_z, act_t* d_side,
     double* row_beta, double* query_self, PointerDims d
 ) {
     uint id = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1440,7 +1558,7 @@ extern "C" __global__ void pointer_rows(
     uint t = row % time;
     uint first = row - t;
     uint target = targets[row];
-    const float* q = side + (u64)row * stride;
+    const act_t* q = side + (u64)row * stride;
     double beta = (double)beta_in[0];
     double lift_q = d.score == 1 ? query_lift[row] : 1.0;
     float scale_f = 1.0f / sqrtf((float)dim);
@@ -1448,7 +1566,7 @@ extern "C" __global__ void pointer_rows(
 
     float maximum = neg_inf();
     for (uint j = lane; j <= t; j += 32) {
-        const float* k = side + (u64)(first + j) * stride + dim;
+        const act_t* k = side + (u64)(first + j) * stride + dim;
         float score;
         if (d.score == 0) {
             score = pointer_dot(q, k, dim) * scale_f;
@@ -1475,9 +1593,9 @@ extern "C" __global__ void pointer_rows(
     }
     copy = warp_sum_d(copy);
 
-    double logit = (double)q[2 * dim];
+    double logit = (double)act_to_f(q[2 * dim]);
     double generate =
-        -softplus_d(logit) + (double)logits[(u64)row * d.vocab + target] - lse[row];
+        -softplus_d(logit) + (double)act_to_f(logits[(u64)row * d.vocab + target]) - lse[row];
     // No source holds the target: the copy branch is exactly 0 (no floor).
     double copied = copy > 0.0
         ? -softplus_d(-logit) + log(copy)
@@ -1492,11 +1610,11 @@ extern "C" __global__ void pointer_rows(
     double generate_share = exp(generate - log_mixture);
     double copy_share = exp(copied - log_mixture);
     double gate = 1.0 / (1.0 + exp(-logit));
-    double c = (double)grad_in[0] * weight / total_in[0];
+    double c = (double)act_to_f(grad_in[0]) * weight / total_in[0];
     if (lane == 0) {
         scale_z[row] = c * generate_share;
         d_side[(u64)row * stride + 2 * dim] =
-            (float)(c * (generate_share * gate - copy_share * (1.0 - gate)));
+            act_from_f((float)(c * (generate_share * gate - copy_share * (1.0 - gate))));
     }
     double d_beta = 0.0;
     double self_q = 0.0;
@@ -1510,7 +1628,7 @@ extern "C" __global__ void pointer_rows(
             if (d.score == 0) {
                 out = d_source;
             } else {
-                const float* k = side + (u64)(first + j) * stride + dim;
+                const act_t* k = side + (u64)(first + j) * stride + dim;
                 double lift_k = key_lift[first + j];
                 double e = pointer_excess(q, k, dim, lift_q, lift_k);
                 d_beta -= d_source * pointer_distance(e);
@@ -1535,8 +1653,8 @@ extern "C" __global__ void pointer_rows(
 // the query (c < dim) over its sources j <= t, the key over the positions
 // t >= j that read it.
 extern "C" __global__ void pointer_side_grad(
-    const float* side, const double* scratch, const double* query_lift,
-    const double* key_lift, const double* query_self, float* d_side, PointerDims d
+    const act_t* side, const double* scratch, const double* query_lift,
+    const double* key_lift, const double* query_self, act_t* d_side, PointerDims d
 ) {
     u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
     uint dim = d.dim;
@@ -1554,7 +1672,7 @@ extern "C" __global__ void pointer_side_grad(
         for (uint j = 0; j <= t; ++j) {
             double g = s[j];
             if (g == 0.0) continue;
-            double k = (double)side[(u64)(first + j) * stride + dim + c];
+            double k = (double)act_to_f(side[(u64)(first + j) * stride + dim + c]);
             if (d.score == 0) {
                 acc += g * scale * k;
             } else {
@@ -1562,15 +1680,15 @@ extern "C" __global__ void pointer_side_grad(
             }
         }
         if (d.score != 0) {
-            acc += query_self[row] * (double)side[(u64)row * stride + c];
+            acc += query_self[row] * (double)act_to_f(side[(u64)row * stride + c]);
         }
     } else {
         uint cc = c - dim;
-        double own_key = (double)side[(u64)row * stride + dim + cc];
+        double own_key = (double)act_to_f(side[(u64)row * stride + dim + cc]);
         for (uint tt = t; tt < time; ++tt) {
             double g = scratch[(u64)(first + tt) * time + t];
             if (g == 0.0) continue;
-            double qv = (double)side[(u64)(first + tt) * stride + cc];
+            double qv = (double)act_to_f(side[(u64)(first + tt) * stride + cc]);
             if (d.score == 0) {
                 acc += g * scale * qv;
             } else {
@@ -1579,7 +1697,7 @@ extern "C" __global__ void pointer_side_grad(
             }
         }
     }
-    d_side[(u64)row * stride + c] = (float)acc;
+    d_side[(u64)row * stride + c] = act_from_f((float)acc);
 }
 
 // out[0] = (sum of values in index order) / divisor[0], as the CPU's ordered
@@ -1653,16 +1771,52 @@ extern "C" __global__ void sq_tree(
 }
 "#;
 
-    /// The stack kernels' PTX, compiled once per process by NVRTC.
-    fn ptx() -> Result<&'static str> {
-        static PTX: OnceLock<std::result::Result<String, String>> = OnceLock::new();
-        let compiled = PTX.get_or_init(|| {
+    /// The storage of the activation buffers a kernel launch reads and writes.
+    /// Parameters, statistics, scores, partials and carried states are f32 or
+    /// f64 in both storages.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    pub enum Storage {
+        /// Every buffer is f32: the source compiled without UOR_STORAGE_BF16.
+        F32,
+        /// Activation buffers are bf16 (`act_t` is 16 bits wide): the source
+        /// compiled with UOR_STORAGE_BF16.
+        Bf16,
+    }
+
+    impl Storage {
+        /// The Candle custom module the storage's PTX is loaded as.
+        pub fn module(self) -> &'static str {
+            match self {
+                Storage::F32 => MODULE,
+                Storage::Bf16 => MODULE_BF16,
+            }
+        }
+    }
+
+    /// The stack kernels' PTX, compiled once per process and per storage by
+    /// NVRTC from the same source (the bf16 build defines UOR_STORAGE_BF16).
+    fn ptx(storage: Storage) -> Result<&'static str> {
+        static PTX_F32: OnceLock<std::result::Result<String, String>> = OnceLock::new();
+        static PTX_BF16: OnceLock<std::result::Result<String, String>> = OnceLock::new();
+        let cell = match storage {
+            Storage::F32 => &PTX_F32,
+            Storage::Bf16 => &PTX_BF16,
+        };
+        let compiled = cell.get_or_init(|| {
+            let (name, defines) = match storage {
+                Storage::F32 => ("uor_r4_geometric_stack.cu".to_string(), Vec::new()),
+                Storage::Bf16 => (
+                    "uor_r4_geometric_stack_bf16.cu".to_string(),
+                    vec!["-DUOR_STORAGE_BF16".to_string()],
+                ),
+            };
             let options = cudarc::nvrtc::CompileOptions {
                 use_fast_math: Some(false),
                 prec_sqrt: Some(true),
                 prec_div: Some(true),
                 ftz: Some(false),
-                name: Some("uor_r4_geometric_stack.cu".to_string()),
+                name: Some(name),
+                options: defines,
                 ..Default::default()
             };
             cudarc::nvrtc::compile_ptx_with_opts(CUDA_STACK_SOURCE, options)
@@ -1677,16 +1831,21 @@ extern "C" __global__ void sq_tree(
         }
     }
 
-    /// Compiles the kernel source with NVRTC (no device needed): a check that
-    /// the CUDA C source is valid for the installed toolkit.
+    /// Compiles both storages of the kernel source with NVRTC (no device
+    /// needed): a check that the CUDA C source is valid for the installed
+    /// toolkit.
     pub fn compile_check() -> Result<()> {
-        ptx().map(|_| ())
+        ptx(Storage::F32)?;
+        ptx(Storage::Bf16).map(|_| ())
     }
 
     /// One kernel argument, in parameter order.
     pub enum Arg<'a> {
         /// An f32 device buffer (read, written or both).
         F(CudaView<'a, f32>),
+        /// A bf16 activation buffer (read, written or both): the same device
+        /// pointer a kernel's `act_t*` parameter takes in the bf16 module.
+        B(CudaView<'a, bf16>),
         /// An f64 device buffer.
         D(CudaView<'a, f64>),
         /// A u32 device buffer.
@@ -1703,6 +1862,10 @@ extern "C" __global__ void sq_tree(
     impl<'a> Arg<'a> {
         pub fn f(slice: &'a CudaSlice<f32>) -> Self {
             Arg::F(slice.as_view())
+        }
+
+        pub fn b(slice: &'a CudaSlice<bf16>) -> Self {
+            Arg::B(slice.as_view())
         }
 
         pub fn d(slice: &'a CudaSlice<f64>) -> Self {
@@ -1773,11 +1936,31 @@ extern "C" __global__ void sq_tree(
 
     /// Launches `name` over `threads` threads (a 1-D grid of 256-thread blocks).
     pub fn launch(device: &CudaDevice, name: &str, threads: usize, args: &[Arg<'_>]) -> Result<()> {
+        launch_storage(device, Storage::F32, name, threads, args)
+    }
+
+    /// [`launch`] from the bf16 module.
+    pub fn launch_bf16(
+        device: &CudaDevice,
+        name: &str,
+        threads: usize,
+        args: &[Arg<'_>],
+    ) -> Result<()> {
+        launch_storage(device, Storage::Bf16, name, threads, args)
+    }
+
+    fn launch_storage(
+        device: &CudaDevice,
+        storage: Storage,
+        name: &str,
+        threads: usize,
+        args: &[Arg<'_>],
+    ) -> Result<()> {
         if threads == 0 {
             return Ok(());
         }
         let blocks = threads.div_ceil(BLOCK);
-        dispatch(device, name, (blocks, 1, 1), (BLOCK, 1, 1), args)
+        dispatch(device, storage, name, (blocks, 1, 1), (BLOCK, 1, 1), args)
     }
 
     /// Launches `name` over `groups` blocks of `group` threads each.
@@ -1788,10 +1971,32 @@ extern "C" __global__ void sq_tree(
         group: (usize, usize, usize),
         args: &[Arg<'_>],
     ) -> Result<()> {
+        launch_groups_storage(device, Storage::F32, name, groups, group, args)
+    }
+
+    /// [`launch_groups`] from the bf16 module.
+    pub fn launch_groups_bf16(
+        device: &CudaDevice,
+        name: &str,
+        groups: (usize, usize, usize),
+        group: (usize, usize, usize),
+        args: &[Arg<'_>],
+    ) -> Result<()> {
+        launch_groups_storage(device, Storage::Bf16, name, groups, group, args)
+    }
+
+    fn launch_groups_storage(
+        device: &CudaDevice,
+        storage: Storage,
+        name: &str,
+        groups: (usize, usize, usize),
+        group: (usize, usize, usize),
+        args: &[Arg<'_>],
+    ) -> Result<()> {
         if groups.0 * groups.1 * groups.2 == 0 {
             return Ok(());
         }
-        dispatch(device, name, groups, group, args)
+        dispatch(device, storage, name, groups, group, args)
     }
 
     fn dim(value: usize, limit: usize, what: &str) -> Result<u32> {
@@ -1805,6 +2010,7 @@ extern "C" __global__ void sq_tree(
 
     fn dispatch(
         device: &CudaDevice,
+        storage: Storage,
         name: &str,
         groups: (usize, usize, usize),
         group: (usize, usize, usize),
@@ -1823,12 +2029,15 @@ extern "C" __global__ void sq_tree(
             ),
             shared_mem_bytes: 0,
         };
-        let function = device.get_or_load_custom_func(name, MODULE, ptx()?)?;
+        let function = device.get_or_load_custom_func(name, storage.module(), ptx(storage)?)?;
         let started = profiling().then(std::time::Instant::now);
         let mut builder = function.builder();
         for arg in args {
             match arg {
                 Arg::F(view) => {
+                    builder.arg(view);
+                }
+                Arg::B(view) => {
                     builder.arg(view);
                 }
                 Arg::D(view) => {

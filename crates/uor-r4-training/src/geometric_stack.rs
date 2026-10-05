@@ -132,6 +132,8 @@ use uor_r4_integer::geometric_span::SpanAction;
 
 #[cfg(feature = "cuda")]
 mod cuda_ops;
+#[cfg(feature = "cuda")]
+mod cuda_ops_bf16;
 
 /// Lower bound on `z - 1` in the Lorentz score. Below it the distance is
 /// clamped and carries no gradient.
@@ -156,6 +158,62 @@ const INITIAL_LORENTZ_OFFSET: f64 = 2.5;
 pub enum StackArch {
     Geometric,
     Transformer,
+}
+
+/// The storage of a model's activations, chosen per run by `precision=`.
+///
+/// [`Precision::F32`] is the default and the behaviour of every run before the
+/// option existed: all activations, matmul operands and custom kernels work in
+/// f32. [`Precision::Bf16`] keeps the trunk's activations (and the operands of
+/// every matrix product, so cuBLAS runs the tensor-core bf16 GEMM with f32
+/// accumulation) in bf16, while the parameters, the Adam moments, the
+/// optimiser and every precision-sensitive internal quantity stay f32: see
+/// [`StackModel::precision`] for the exact list. Saved models are f32 in both
+/// modes: the precision is a run option, not part of the artifact.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Precision {
+    /// Every activation and kernel in f32 (default).
+    #[default]
+    F32,
+    /// Activations and matmul operands in bf16, accumulated in f32.
+    Bf16,
+}
+
+impl Precision {
+    /// `precision=` on the command line.
+    pub fn parse(name: &str) -> Result<Self> {
+        match name {
+            "f32" => Ok(Precision::F32),
+            "bf16" => Ok(Precision::Bf16),
+            other => Err(invalid(format!("precision must be f32|bf16, got {other}"))),
+        }
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            Precision::F32 => "f32",
+            Precision::Bf16 => "bf16",
+        }
+    }
+
+    /// Whether the activations are bf16.
+    pub fn is_bf16(self) -> bool {
+        self == Precision::Bf16
+    }
+
+    /// The dtype of this precision's activations.
+    pub fn activation_dtype(self) -> DType {
+        match self {
+            Precision::F32 => DType::F32,
+            Precision::Bf16 => DType::BF16,
+        }
+    }
+
+    /// The dtype of a parameter or moment (f32 in both precisions).
+    pub fn parameter_dtype(self) -> DType {
+        DType::F32
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -1380,6 +1438,25 @@ fn geometric_span_shapes(config: &StackConfig) -> BTreeMap<String, Vec<usize>> {
 
 pub struct StackModel {
     pub config: StackConfig,
+    /// Activation storage of this model's trunk. `F32` unless a run asked for
+    /// `precision=bf16`. In bf16 the activations between ops, the operands of
+    /// every matrix product and the activation arguments of the custom kernels
+    /// are bf16; these stay f32 (see [`Self::precision_note`]):
+    ///
+    /// - every parameter (`Var`) and its gradient, the Adam moments and the
+    ///   whole optimiser step;
+    /// - the RMSNorm statistics (`f64`), every read score, probability, lift,
+    ///   excess and distance, the cross-entropy's log-sum-exp and loss, the
+    ///   recurrence's carried state, drive, transition and `keep`, the
+    ///   pointer's attention scratch, and the global gradient squared norm;
+    /// - the unit-quaternion transport norm: the transition quaternion is
+    ///   read from bf16 storage and normalized and applied in f32;
+    /// - the head's logits are bf16 (the last matmul), but the loss and its
+    ///   log-sum-exp are f64 and evaluation runs in f32.
+    ///
+    /// A model saved from a bf16 run is f32: saving writes the master weights,
+    /// and the D11 export path never sees this flag.
+    precision: Precision,
     variables: BTreeMap<String, Var>,
     device: Device,
     /// The served representation the forward pass reads, if set
@@ -1500,6 +1577,7 @@ impl StackModel {
             config,
             variables,
             device: device.clone(),
+            precision: Precision::F32,
             served: None,
             transport: None,
             read_identity_carry: false,
@@ -1746,18 +1824,81 @@ impl StackModel {
         self.rms_norm(input, &ones)
     }
 
+    /// The activation storage of this model's trunk ([`Precision`]).
+    pub fn precision(&self) -> Precision {
+        self.precision
+    }
+
+    /// Sets the activation storage of the trunk. A run sets it once from
+    /// `precision=`; evaluation sets it back to f32, so a dev or final NLL
+    /// never includes the storage rounding a bf16 training step works with.
+    pub fn set_precision(&mut self, precision: Precision) {
+        self.precision = precision;
+    }
+
+    /// Runs `scored` with the trunk in f32 whatever this model's precision is,
+    /// and restores the precision afterwards (evaluation: the dev and final
+    /// NLL of a bf16 run must measure the trained weights, not the storage).
+    pub fn scored_in_f32<T>(
+        &mut self,
+        scored: impl FnOnce(&mut StackModel) -> Result<T>,
+    ) -> Result<T> {
+        let precision = self.precision;
+        self.precision = Precision::F32;
+        let result = scored(self);
+        self.precision = precision;
+        result
+    }
+
     /// `input @ weight^T` over the last dimension, as one matrix product.
-    fn linear(input: &Tensor, weight: &Tensor) -> Result<Tensor> {
+    ///
+    /// Under `precision=bf16` both operands are rounded to bf16 first, so this
+    /// is Candle's CUDA bf16 GEMM: `CUDA_R_16BF` inputs with
+    /// `CUBLAS_COMPUTE_32F` (f32 accumulation) on `CUBLAS_GEMM_DEFAULT_TENSOR_OP`,
+    /// producing a bf16 activation. The weight's gradient flows back through
+    /// its cast, so the master weight and the gradient that reaches it stay
+    /// f32.
+    fn linear(&self, input: &Tensor, weight: &Tensor) -> Result<Tensor> {
         let dims = input.dims().to_vec();
         let (rows, features) = (
             dims[..dims.len() - 1].iter().product::<usize>(),
             dims[dims.len() - 1],
         );
-        let output = input.reshape((rows, features))?.matmul(&weight.t()?)?;
+        let output = if self.precision.is_bf16() {
+            input
+                .to_dtype(DType::BF16)?
+                .reshape((rows, features))?
+                .matmul(&weight.to_dtype(DType::BF16)?.t()?)?
+        } else {
+            input.reshape((rows, features))?.matmul(&weight.t()?)?
+        };
         let mut shape = dims;
         let last = shape.len() - 1;
         shape[last] = weight.dim(0)?;
         Ok(output.reshape(shape)?)
+    }
+
+    /// A parameter read into the trunk's activation dtype: bf16 under
+    /// `precision=bf16` (the gradient still accumulates in f32 through the
+    /// cast), the parameter itself in f32. For a learned parameter the forward
+    /// consumes (the recurrence's gate bias), never for a master weight that
+    /// must keep f32 precision.
+    fn activation_parameter(&self, tensor: &Tensor) -> Result<Tensor> {
+        if self.precision.is_bf16() {
+            Ok(tensor.to_dtype(DType::BF16)?)
+        } else {
+            Ok(tensor.clone())
+        }
+    }
+
+    /// A trunk tensor in the activation dtype. The embedding lookup reads the
+    /// f32 master table and this is where the trunk becomes bf16.
+    fn cast_activation(&self, tensor: Tensor) -> Result<Tensor> {
+        if self.precision.is_bf16() {
+            Ok(tensor.to_dtype(DType::BF16)?)
+        } else {
+            Ok(tensor)
+        }
     }
 
     fn mlp(
@@ -1777,11 +1918,11 @@ impl StackModel {
         {
             return self.memory(p, layer, &u, memory);
         }
-        let gate = Self::linear(&u, p.layer(layer, "mlp.gate.weight")?)?;
-        let up = Self::linear(&u, p.layer(layer, "mlp.up.weight")?)?;
+        let gate = self.linear(&u, p.layer(layer, "mlp.gate.weight")?)?;
+        let up = self.linear(&u, p.layer(layer, "mlp.up.weight")?)?;
         let mixed = gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?;
         tap(capture, StackSite::Down(layer), || Ok(mixed.clone()))?;
-        Self::linear(&mixed, p.layer(layer, "mlp.down.weight")?)
+        self.linear(&mixed, p.layer(layer, "mlp.down.weight")?)
     }
 
     /// The product-key memory in place of `layer`'s MLP, on the normalized
@@ -1794,7 +1935,8 @@ impl StackModel {
         memory: &MemoryConfig,
     ) -> Result<Tensor> {
         let (batch, time, width) = u.dims3()?;
-        let query = Self::linear(u, p.layer(layer, "memory.query.weight")?)?
+        let query = self
+            .linear(u, p.layer(layer, "memory.query.weight")?)?
             .reshape((batch * time, memory.heads * memory.key_dim))?;
         let keys = p.layer(layer, "memory.keys")?.flatten_all()?;
         // Fixed codebook keys carry no gradient, so they never move.
@@ -1842,7 +1984,7 @@ impl StackModel {
         let u = self.norm(p, x, &layer_name(layer, "attn_norm.weight"))?;
         let project = |part: &str| -> Result<Tensor> {
             self.heads(
-                &Self::linear(&u, p.layer(layer, &format!("attn.{part}.weight"))?)?,
+                &self.linear(&u, p.layer(layer, &format!("attn.{part}.weight"))?)?,
                 batch,
                 time,
             )
@@ -1862,7 +2004,7 @@ impl StackModel {
         )?;
         let merged = self.merge_heads(&read, batch, time)?;
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
-        Self::linear(&merged, p.layer(layer, "attn.o.weight")?)
+        self.linear(&merged, p.layer(layer, "attn.o.weight")?)
     }
 
     fn geometric_read(
@@ -1914,7 +2056,7 @@ impl StackModel {
             }
             let input = if part == "value" { &u } else { &identity };
             let mut projected =
-                Self::linear(input, p.layer(layer, &format!("read.{part}.weight"))?)?;
+                self.linear(input, p.layer(layer, &format!("read.{part}.weight"))?)?;
             if part == "key" && self.read_key_shift {
                 projected = previous_key_channel(&projected)?;
             }
@@ -1923,7 +2065,7 @@ impl StackModel {
             }
             if part != "value" {
                 if let Some(identity) = &latched {
-                    projected = projected.add(&Self::linear(
+                    projected = projected.add(&self.linear(
                         identity,
                         p.layer(layer, &format!("read.{part}_identity.weight"))?,
                     )?)?;
@@ -1932,7 +2074,11 @@ impl StackModel {
             self.heads(&projected, batch, time)
         };
         let (query, key, value) = (project("query")?, project("key")?, project("value")?);
-        let null = Self::linear(&u, p.layer(layer, "read.null.weight")?)?
+        // The NoRead bias is a parameter and the read's auxiliary table is
+        // f32 in both precisions (see [`Precision`]).
+        let null = self
+            .linear(&u, p.layer(layer, "read.null.weight")?)?
+            .to_dtype(DType::F32)?
             .broadcast_add(p.layer(layer, "read.null.bias")?)?
             .transpose(1, 2)?
             .flatten_all()?;
@@ -2030,7 +2176,7 @@ impl StackModel {
         };
         let merged = self.merge_heads(&read, batch, time)?;
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
-        Self::linear(&merged, p.layer(layer, "read.out.weight")?)
+        self.linear(&merged, p.layer(layer, "read.out.weight")?)
     }
 
     fn read_identity_input(&self, normalized: &Tensor) -> Result<Tensor> {
@@ -2369,12 +2515,12 @@ impl StackModel {
                     .as_ref()
                     .ok_or_else(|| invalid("the random SO(4) lineage map is missing"))?;
                 let previous = causal_shift(&projected, 1)?;
-                Ok(projected.add(&Self::linear(&previous, rotation)?)?)
+                Ok(projected.add(&self.linear(&previous, rotation)?)?)
             }
             ("key", ReadLineage::LearnedPrev { .. }) => {
                 let map = p.layer(layer, READ_LINEAGE_PREV)?;
                 let previous = causal_shift(&projected, 1)?;
-                Ok(projected.add(&Self::linear(&previous, map)?)?)
+                Ok(projected.add(&self.linear(&previous, map)?)?)
             }
             ("key", ReadLineage::LearnedConv { .. }) => {
                 let weight = p.layer(layer, READ_LINEAGE_CONV)?;
@@ -2482,10 +2628,9 @@ impl StackModel {
             Tensor::cat(&[&zero, &u.narrow(1, 0, time - 1)?], 1)?
         };
         let input = Tensor::cat(&[u, &previous], 2)?;
-        Ok(
-            Self::linear(&input, p.layer(layer, "read.span_control.weight")?)?
-                .broadcast_add(p.layer(layer, "read.span_control.bias")?)?,
-        )
+        Ok(self
+            .linear(&input, p.layer(layer, "read.span_control.weight")?)?
+            .broadcast_add(p.layer(layer, "read.span_control.bias")?)?)
     }
 
     /// Actual learned controller logits [batch,time,4], ordered as HOLD,
@@ -2546,7 +2691,7 @@ impl StackModel {
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Replay the same saved reader with exported static token actions and
@@ -2562,7 +2707,7 @@ impl StackModel {
         let (hidden, _) =
             self.hidden_geometric_span_native(ids, batch, time, compiled, None, None)?;
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Observe exact source probabilities from that same native-producer read.
@@ -2594,7 +2739,7 @@ impl StackModel {
         let (hidden, _) =
             self.hidden_geometric_span_native(ids, batch, time, span, None, Some(potential))?;
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Source labels observe the same native-potential reader; they do not
@@ -2828,7 +2973,7 @@ impl StackModel {
             )?
         };
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Execute the native integer event controller and exact span register.
@@ -2858,7 +3003,7 @@ impl StackModel {
             Some(potential),
         )?;
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     pub fn read_binding_masses_geometric_event_native(
@@ -3000,7 +3145,7 @@ impl StackModel {
             Some(ContextInput::Training(&output.context)),
         )?;
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Offline joint answer-credit path with actual geometric retained-state
@@ -3093,7 +3238,7 @@ impl StackModel {
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     pub fn read_binding_masses_geometric_context(
@@ -3151,7 +3296,7 @@ impl StackModel {
             Some(ContextInput::Native(&ctx.codes)),
         )?;
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Native geometric scores, age, normalization and weighted payload
@@ -3184,7 +3329,7 @@ impl StackModel {
             None,
         )?;
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Capture the raw native reduction trace from the SAME predictive pass.
@@ -3218,7 +3363,7 @@ impl StackModel {
             None,
         )?;
         let p = self.params()?;
-        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let logits = self.linear(&hidden, p.head()?)?;
         let trace = trace
             .into_inner()
             .ok_or_else(|| invalid("native weighted read trace was not evaluated"))?;
@@ -3541,7 +3686,7 @@ impl StackModel {
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Offline event/age input credit through the SAME native retained reader.
@@ -3667,7 +3812,7 @@ impl StackModel {
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok((hidden.matmul(&p.head()?.t()?)?, output))
+        Ok((self.linear(&hidden, p.head()?)?, output))
     }
 
     /// Native geometric composition and wide integer per-head weighted read.
@@ -4021,7 +4166,7 @@ impl StackModel {
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let logits = self.linear(&hidden, p.head()?)?;
         Ok((logits, ctx, scores, values, null))
     }
 
@@ -4337,7 +4482,7 @@ impl StackModel {
             },
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let logits = self.linear(&hidden, p.head()?)?;
         if let Some(CompositionMode::FrozenValues { output, .. }) = composition {
             let mut sink = output
                 .try_borrow_mut()
@@ -4395,7 +4540,7 @@ impl StackModel {
             }),
         )?;
         let p = self.params()?;
-        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let logits = self.linear(&hidden, p.head()?)?;
         Ok((
             logits,
             read_trace
@@ -4535,7 +4680,7 @@ impl StackModel {
             Some(ContextInput::Native(&codes)),
         )?;
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Hard learned float producer through the same integer scorer, solely to
@@ -4961,7 +5106,11 @@ impl StackModel {
         scores = scores
             .broadcast_add(&age)?
             .broadcast_add(&Tensor::from_vec(mask, (1, 1, time, time), &self.device)?)?;
-        let null = Self::linear(&u, p.layer(layer, "read.null.weight")?)?
+        // The NoRead bias is a parameter and the read's auxiliary table is
+        // f32 in both precisions (see [`Precision`]).
+        let null = self
+            .linear(&u, p.layer(layer, "read.null.weight")?)?
+            .to_dtype(DType::F32)?
             .broadcast_add(p.layer(layer, "read.null.bias")?)?
             .transpose(1, 2)?
             .unsqueeze(3)?;
@@ -4993,7 +5142,7 @@ impl StackModel {
                 .values
         } else {
             self.heads(
-                &Self::linear(&u, p.layer(layer, "read.value.weight")?)?,
+                &self.linear(&u, p.layer(layer, "read.value.weight")?)?,
                 batch,
                 time,
             )?
@@ -5324,7 +5473,7 @@ impl StackModel {
             NoReadSource::LegacyFloat => {
                 let u = u.ok_or_else(|| invalid("legacy NoRead normalized input missing"))?;
                 Some(
-                    Self::linear(u, p.layer(layer, "read.null.weight")?)?
+                    self.linear(u, p.layer(layer, "read.null.weight")?)?
                         .broadcast_add(p.layer(layer, "read.null.bias")?)?
                         .transpose(1, 2)?,
                 )
@@ -5338,7 +5487,7 @@ impl StackModel {
             None
         } else {
             Some(self.heads(
-                &Self::linear(
+                &self.linear(
                     u.ok_or_else(|| invalid("legacy value normalized input missing"))?,
                     p.layer(layer, "read.value.weight")?,
                 )?,
@@ -5478,10 +5627,9 @@ impl StackModel {
             Tensor::cat(&[&zero, &u.narrow(1, 0, time - 1)?], 1)?
         };
         let gate_input = Tensor::cat(&[u, &previous], 2)?;
-        Ok(
-            Self::linear(&gate_input, p.layer(layer, "read.identity_gate.weight")?)?
-                .broadcast_add(p.layer(layer, "read.identity_gate.bias")?)?,
-        )
+        Ok(self
+            .linear(&gate_input, p.layer(layer, "read.identity_gate.weight")?)?
+            .broadcast_add(p.layer(layer, "read.identity_gate.bias")?)?)
     }
 
     fn read_latch_inputs(
@@ -5609,7 +5757,7 @@ impl StackModel {
         let (batch, time, width) = x.dims3()?;
         tap(capture, StackSite::Recurrence(layer), || self.unit_norm(x))?;
         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
-        let branches = Self::linear(&u, p.layer(layer, "rec.in.weight")?)?;
+        let branches = self.linear(&u, p.layer(layer, "rec.in.weight")?)?;
         let gates = self.recurrence_gates(p, layer, &u)?;
         let parameters = Tensor::cat(
             &[
@@ -5636,15 +5784,17 @@ impl StackModel {
             StackSite::RecurrenceOut(layer),
             || Ok(core.clone()),
         )?;
-        Self::linear(&core, p.layer(layer, "rec.out.weight")?)
+        self.linear(&core, p.layer(layer, "rec.out.weight")?)
     }
 
     /// A recurrence's gates [batch, time, lanes (+ width with rotation)] from
     /// its normalized input `u`: the decay-gate logits, then the raw rotation
     /// quaternions.
     fn recurrence_gates(&self, p: &Params<'_>, layer: usize, u: &Tensor) -> Result<Tensor> {
-        Ok(Self::linear(u, p.layer(layer, "rec.gate.weight")?)?
-            .broadcast_add(p.layer(layer, "rec.gate.bias")?)?)
+        let bias = self.activation_parameter(p.layer(layer, "rec.gate.bias")?)?;
+        Ok(self
+            .linear(u, p.layer(layer, "rec.gate.weight")?)?
+            .broadcast_add(&bias)?)
     }
 
     /// Logits [batch * time, vocabulary] for a batch of windows. Positions see
@@ -5652,7 +5802,7 @@ impl StackModel {
     pub fn forward(&self, ids: &[u32], batch: usize, time: usize) -> Result<Tensor> {
         let p = self.params()?;
         let hidden = self.hidden_hooked(&p, ids, batch, time, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Raw vocabulary logits with every learned read latch's gate replaced by
@@ -5682,7 +5832,7 @@ impl StackModel {
             LatchGates::Hard,
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Actual gained read input for the fixed single-read `rra` diagnostic.
@@ -5764,7 +5914,7 @@ impl StackModel {
             LatchGates::Replay(prior),
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Observes exact-source mass under the same numerical replay as its
@@ -5834,7 +5984,7 @@ impl StackModel {
             LatchGates::Projections(query, key),
         )?;
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// Observe source mass with the same supplied projections as the forward.
@@ -5951,9 +6101,11 @@ impl StackModel {
         }
         let embedding = p.get("embedding.weight")?;
         let index = Tensor::from_vec(ids.to_vec(), batch * time, &self.device)?;
-        Ok(embedding
-            .index_select(&index, 0)?
-            .reshape((batch, time, self.config.width))?)
+        let tokens =
+            embedding
+                .index_select(&index, 0)?
+                .reshape((batch, time, self.config.width))?;
+        self.cast_activation(tokens)
     }
 
     /// The final normalized states [batch * time, width] from a first-layer
@@ -5974,7 +6126,7 @@ impl StackModel {
     /// (in served mode, the served head).
     pub fn head(&self, hidden: &Tensor) -> Result<Tensor> {
         let p = self.params()?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// The residual stream [batch, time, width] after running `layers` on
@@ -6105,7 +6257,8 @@ impl StackModel {
             ],
             0,
         )?;
-        Ok(hidden.matmul(&weight.t()?)?.broadcast_add(&bias)?)
+        let bias = self.activation_parameter(&bias)?;
+        Ok(self.linear(hidden, &weight)?.broadcast_add(&bias)?)
     }
 
     /// The pointer's Lorentz scale `exp(pointer.log_beta)` as a one-element
@@ -6152,7 +6305,7 @@ impl StackModel {
             .config
             .pointer
             .ok_or_else(|| invalid("the model has no pointer head"))?;
-        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let logits = self.linear(&hidden, p.head()?)?;
         let side = self.pointer_side(p, hidden)?;
         let beta = self.pointer_beta(p)?;
         Ok(logits.contiguous()?.apply_op3(
@@ -6414,7 +6567,7 @@ impl StackModel {
         let language = if self.config.pointer.is_some() {
             self.pointer_loss_from_hidden(&p, &hidden, ids, targets, weights, time)?
         } else {
-            hidden.matmul(&p.head()?.t()?)?.apply_op1(CrossEntropy {
+            self.linear(&hidden, p.head()?)?.apply_op1(CrossEntropy {
                 targets: targets.to_vec(),
                 weights: weights.map(<[f32]>::to_vec),
             })?
@@ -6530,7 +6683,7 @@ impl StackModel {
         let hidden = self
             .hidden_hooked(&p, ids, batch, time, &mut None)?
             .detach();
-        let logits = hidden.matmul(&p.head()?.t()?)?;
+        let logits = self.linear(&hidden, p.head()?)?;
         let side = self.pointer_side(&p, &hidden)?;
         let beta = one_value(&self.pointer_beta(&p)?)?;
         let (logits, side) = (
@@ -6605,6 +6758,7 @@ impl StackModel {
         let hidden = self.hidden_hooked(&p, ids, 1, time, &mut None)?.detach();
         let logits = hidden
             .narrow(0, time - 1, 1)?
+            .to_dtype(DType::F32)?
             .matmul(&p.head()?.t()?)?
             .flatten_all()?
             .to_vec1::<f32>()?;
@@ -6665,7 +6819,7 @@ impl StackModel {
                 dims, self.config.vocab_size, self.config.width
             )));
         }
-        let hidden = self.hidden(ids, batch, time)?;
+        let hidden = self.hidden(ids, batch, time)?.to_dtype(DType::F32)?;
         let logits = hidden.matmul(&head.t()?)?.detach();
         row_nll(&logits, targets)
     }
@@ -7196,6 +7350,7 @@ impl StackModel {
             config,
             variables,
             device: device.clone(),
+            precision: Precision::F32,
             served: None,
             transport: None,
             read_identity_carry: false,
@@ -7295,7 +7450,7 @@ impl StackModel {
             x = x.add(&self.mlp(&p, layer, &x, &mut None)?)?;
         }
         let hidden = self.finish_hooked(&p, x, &mut None)?;
-        Ok(hidden.matmul(&p.head()?.t()?)?)
+        Ok(self.linear(&hidden, p.head()?)?)
     }
 
     /// The recurrence mixer composed from Candle operations: the reference
@@ -7310,7 +7465,7 @@ impl StackModel {
         let (batch, time, width) = x.dims3()?;
         let lanes = width / 4;
         let u = self.norm(p, x, &layer_name(layer, "rec_norm.weight"))?;
-        let branches = Self::linear(&u, p.layer(layer, "rec.in.weight")?)?;
+        let branches = self.linear(&u, p.layer(layer, "rec.in.weight")?)?;
         let input = branches.narrow(2, 0, width)?;
         let gate = branches.narrow(2, width, width)?;
         // Width-4 causal depthwise convolution over time.
@@ -7333,7 +7488,8 @@ impl StackModel {
             };
             convolved = convolved.add(&shifted.broadcast_mul(&weights.get(shift)?)?)?;
         }
-        let gates = Self::linear(&u, p.layer(layer, "rec.gate.weight")?)?
+        let gates = self
+            .linear(&u, p.layer(layer, "rec.gate.weight")?)?
             .broadcast_add(p.layer(layer, "rec.gate.bias")?)?;
         let opening = candle_nn::ops::sigmoid(&gates.narrow(2, 0, lanes)?)?;
         // log a = -softplus(-decay) keeps a in (0, 1); log lambda = c r log a.
@@ -7385,7 +7541,7 @@ impl StackModel {
             .broadcast_mul(&keep)?;
         let state = quaternion_scan(&transition.contiguous()?, &drive.contiguous()?)?
             .reshape((batch, time, width))?;
-        Self::linear(
+        self.linear(
             &state.mul(&gate.gelu()?)?,
             p.layer(layer, "rec.out.weight")?,
         )
@@ -8288,8 +8444,14 @@ impl CustomOp2 for StraightThrough {
 
 /// Straight-through estimator: forward is `quantized`, backward gradient flows to `continuous`.
 pub fn straight_through(continuous: &Tensor, quantized: &Tensor) -> Result<Tensor> {
-    if continuous.dtype() != DType::F32 || quantized.dtype() != DType::F32 {
-        return Err(invalid("straight_through requires F32 tensors"));
+    // Under `precision=bf16` both sides are bf16 activations; the op copies
+    // the served value's storage either way.
+    if !matches!(continuous.dtype(), DType::F32 | DType::BF16)
+        || quantized.dtype() != continuous.dtype()
+    {
+        return Err(invalid(
+            "straight_through needs one f32 or bf16 dtype on both sides",
+        ));
     }
     if continuous.shape() != quantized.shape() {
         return Err(invalid("straight-through inputs must have one shape"));
@@ -9362,8 +9524,14 @@ fn previous_key_channel(key: &Tensor) -> Result<Tensor> {
 
 /// Runs the quaternion transport recurrence over whole windows.
 pub fn quaternion_scan(transition: &Tensor, drive: &Tensor) -> Result<Tensor> {
-    if transition.dtype() != DType::F32 || drive.dtype() != DType::F32 {
-        return Err(invalid("quaternion_scan requires F32 tensors"));
+    // The scan reads bf16 storage and multiplies in f32 under
+    // `precision=bf16` (see [`Precision`]).
+    if !matches!(transition.dtype(), DType::F32 | DType::BF16)
+        || drive.dtype() != transition.dtype()
+    {
+        return Err(invalid(
+            "quaternion_scan needs one f32 or bf16 dtype on both inputs",
+        ));
     }
     let (batch, time, lanes, four) = transition.dims4()?;
     if four != 4 || drive.shape() != transition.shape() {
@@ -11290,12 +11458,18 @@ pub fn fused_read_selected(
     rope: bool,
     select: Option<FlockSelect>,
 ) -> Result<Tensor> {
-    if query.dtype() != DType::F32
-        || key.dtype() != DType::F32
-        || value.dtype() != DType::F32
+    // Under `precision=bf16` the query, key and value are bf16 (the fused-read
+    // CUDA kernels of the bf16 module read that storage and score in f32); the
+    // auxiliary table (NoRead bias, age table, `log_beta`, `offset`) is a
+    // parameter table and stays f32.
+    if !matches!(query.dtype(), DType::F32 | DType::BF16)
+        || key.dtype() != query.dtype()
+        || value.dtype() != query.dtype()
         || aux.dtype() != DType::F32
     {
-        return Err(invalid("fused_read requires F32 tensors"));
+        return Err(invalid(
+            "fused_read needs one f32 or bf16 query/key/value dtype and an f32 auxiliary table",
+        ));
     }
     if let Some(select) = &select {
         validate_flock(select)?;
@@ -11382,11 +11556,15 @@ pub fn recurrence_core_grouped(
             "recurrence_core requires positive dimensions with width divisible by 4",
         ));
     }
-    if branches.dtype() != DType::F32
-        || gates.dtype() != DType::F32
+    // Under `precision=bf16` the branches and gates are bf16 activations; the
+    // taps, bias and decay are f32 parameters.
+    if !matches!(branches.dtype(), DType::F32 | DType::BF16)
+        || gates.dtype() != branches.dtype()
         || parameters.dtype() != DType::F32
     {
-        return Err(invalid("recurrence_core requires F32 tensors"));
+        return Err(invalid(
+            "recurrence_core needs one f32 or bf16 branches/gates dtype and f32 parameters",
+        ));
     }
     let lanes = width / 4;
     let gate_width = lanes + if rotation { 4 * lanes } else { 0 };
@@ -12095,8 +12273,10 @@ pub fn logits_cross_entropy(
     targets: &[u32],
     weights: Option<&[f32]>,
 ) -> Result<Tensor> {
-    if logits.dtype() != DType::F32 {
-        return Err(invalid("logits_cross_entropy requires F32 logits"));
+    // bf16 logits are the bf16 trunk's last matmul output; the loss itself is
+    // f64 over them (see [`Precision`]).
+    if !matches!(logits.dtype(), DType::F32 | DType::BF16) {
+        return Err(invalid("logits_cross_entropy requires f32 or bf16 logits"));
     }
     let (rows, classes) = logits.dims2()?;
     if targets.len() != rows || weights.is_some_and(|w| w.len() != rows) {
@@ -12137,8 +12317,15 @@ pub fn pointer_mixture_loss(
     targets: &[u32],
     weights: Option<&[f32]>,
 ) -> Result<Tensor> {
-    if logits.dtype() != DType::F32 || side.dtype() != DType::F32 || beta.dtype() != DType::F32 {
-        return Err(invalid("pointer_mixture_loss requires F32 inputs"));
+    // bf16 logits and side are the bf16 trunk's; the attention, the mixture
+    // and the loss are f64 internally, and `beta` is an f32 parameter.
+    if !matches!(logits.dtype(), DType::F32 | DType::BF16)
+        || side.dtype() != logits.dtype()
+        || beta.dtype() != DType::F32
+    {
+        return Err(invalid(
+            "pointer_mixture_loss needs one f32 or bf16 logits/side dtype and an f32 beta",
+        ));
     }
     if score == ReadScore::L2 {
         return Err(invalid("a pointer cannot use the L2 score"));
@@ -16507,18 +16694,15 @@ mod tests {
         )?
         .flatten_all()?
         .to_vec1::<f32>()?;
-        let null = StackModel::linear(&u, p.layer(2, "read.null.weight")?)?
+        let null = model
+            .linear(&u, p.layer(2, "read.null.weight")?)?
             .broadcast_add(p.layer(2, "read.null.bias")?)?
             .transpose(1, 2)?
             .flatten_all()?
             .to_vec1::<f32>()?;
         let ages = p.layer(2, "read.age")?.flatten_all()?.to_vec1::<f32>()?;
         let value = model
-            .heads(
-                &StackModel::linear(&u, p.layer(2, "read.value.weight")?)?,
-                1,
-                8,
-            )?
+            .heads(&model.linear(&u, p.layer(2, "read.value.weight")?)?, 1, 8)?
             .flatten_all()?
             .to_vec1::<f32>()?;
         let (heads, time, width) = (2, 8, 8);
@@ -16549,7 +16733,7 @@ mod tests {
             }
         }
         let reference = Tensor::from_vec(reference, (1, heads, time, width), &cpu())?;
-        let reference = StackModel::linear(
+        let reference = model.linear(
             &model.merge_heads(&reference, 1, time)?,
             p.layer(2, "read.out.weight")?,
         )?;
@@ -17033,14 +17217,12 @@ mod tests {
                 .read_latch_inputs(&p, 2, &u, mode, LatchGates::Hard)?
                 .0;
             let project = |part: &str| -> Result<Tensor> {
-                Ok(
-                    StackModel::linear(&u, p.layer(2, &format!("read.{part}.weight"))?)?.add(
-                        &StackModel::linear(
-                            &prior,
-                            p.layer(2, &format!("read.{part}_identity.weight"))?,
-                        )?,
-                    )?,
-                )
+                Ok(model
+                    .linear(&u, p.layer(2, &format!("read.{part}.weight"))?)?
+                    .add(
+                        &model
+                            .linear(&prior, p.layer(2, &format!("read.{part}_identity.weight"))?)?,
+                    )?)
             };
             let query = project("query")?;
             let key = project("key")?;
@@ -17206,19 +17388,19 @@ mod tests {
                     }
                 }
                 let project = |part: &str| -> Result<Tensor> {
-                    let current =
-                        StackModel::linear(&u, p.layer(1, &format!("read.{part}.weight"))?)?;
+                    let current = model.linear(&u, p.layer(1, &format!("read.{part}.weight"))?)?;
                     let result = if part == "value" {
                         current
                     } else {
-                        current.add(&StackModel::linear(
+                        current.add(&model.linear(
                             &identity,
                             p.layer(1, &format!("read.{part}_identity.weight"))?,
                         )?)?
                     };
                     model.heads(&result, 2, 8)
                 };
-                let null = StackModel::linear(&u, p.layer(1, "read.null.weight")?)?
+                let null = model
+                    .linear(&u, p.layer(1, "read.null.weight")?)?
                     .broadcast_add(p.layer(1, "read.null.bias")?)?
                     .transpose(1, 2)?
                     .flatten_all()?;
@@ -17239,7 +17421,7 @@ mod tests {
                     false,
                     None,
                 )?;
-                let want = StackModel::linear(
+                let want = model.linear(
                     &model.merge_heads(&read, 2, 8)?,
                     p.layer(1, "read.out.weight")?,
                 )?;
@@ -17365,12 +17547,13 @@ mod tests {
                 ],
                 1,
             )?;
-            let expected = StackModel::linear(
-                &Tensor::cat(&[&u, &previous], 2)?,
-                p.layer(1, "read.identity_gate.weight")?,
-            )?
-            .broadcast_add(p.layer(1, "read.identity_gate.bias")?)?
-            .squeeze(2)?;
+            let expected = model
+                .linear(
+                    &Tensor::cat(&[&u, &previous], 2)?,
+                    p.layer(1, "read.identity_gate.weight")?,
+                )?
+                .broadcast_add(p.layer(1, "read.identity_gate.bias")?)?
+                .squeeze(2)?;
             assert_eq!(bits(&logits)?, bits(&expected)?);
             let actual_gates = model
                 .read_latch_inputs(&p, 1, &u, mode, LatchGates::Soft)?
@@ -17560,7 +17743,7 @@ mod tests {
             );
             let project = |input: &Tensor, part: &str| -> Result<Tensor> {
                 model.heads(
-                    &StackModel::linear(input, p.layer(1, &format!("read.{part}.weight"))?)?,
+                    &model.linear(input, p.layer(1, &format!("read.{part}.weight"))?)?,
                     2,
                     8,
                 )
@@ -17570,7 +17753,8 @@ mod tests {
             let query = project(&shifted, "query")?;
             let key = project(&shifted, "key")?;
             let value = project(&u, "value")?;
-            let null = StackModel::linear(&u, p.layer(1, "read.null.weight")?)?
+            let null = model
+                .linear(&u, p.layer(1, "read.null.weight")?)?
                 .broadcast_add(p.layer(1, "read.null.bias")?)?
                 .transpose(1, 2)?
                 .flatten_all()?;
@@ -17591,7 +17775,7 @@ mod tests {
                 false,
                 None,
             )?;
-            let reference = StackModel::linear(
+            let reference = model.linear(
                 &model.merge_heads(&reference, 2, 8)?,
                 p.layer(1, "read.out.weight")?,
             )?;
@@ -18772,7 +18956,8 @@ mod tests {
         let norm = |x: &Tensor, gain: &Tensor| -> Result<Tensor> {
             Ok(x.contiguous()?.apply_op2(&gain.contiguous()?, RmsNorm)?)
         };
-        let linear = StackModel::linear;
+        let linear =
+            |input: &Tensor, weight: &Tensor| -> Result<Tensor> { model.linear(input, weight) };
         let split = |x: &Tensor| -> Result<Tensor> {
             Ok(x.reshape((batch, time, c.heads, c.head_width()))?
                 .transpose(1, 2)?

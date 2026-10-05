@@ -1,84 +1,54 @@
-//! CUDA forward and backward paths of the geometric stack ops.
+//! CUDA paths of the geometric stack ops with bf16 activation storage.
 //!
-//! Each op's `cuda_fwd` and its backward's `Device::Cuda` branch call into
-//! this module. Configurations without a kernel (a transport snap, RoPE or a
-//! flock selection in the read, a selected or prime-routed pointer mixture,
-//! non-contiguous inputs)
-//! run the exact CPU forward on host copies ([`via_host1`] and friends), and
-//! their backward takes the generic host path, so CUDA training always
-//! computes what the CPU computes. The kernels live in
-//! [`crate::cuda_stack_kernels`].
+//! `precision=bf16` keeps every activation tensor of the trunk in bf16 and
+//! stores it in bf16; this module is the CUDA side of those ops. It mirrors
+//! [`super::cuda_ops`] (the f32 path) op for op and launch for launch: the
+//! kernel names, grid shapes and argument orders are the same, and the kernels
+//! come from the same CUDA C source compiled with `UOR_STORAGE_BF16`, so each
+//! one loads its activation arguments, computes in f32 (or f64) and rounds on
+//! store. The f32 module is untouched by this file, so a default run keeps
+//! exactly the machine code it had.
 //!
-//! Every entry point of this module is the f32 activation-storage path. When
-//! an activation input is bf16 (`precision=bf16`) the same entry point
-//! forwards to [`super::cuda_ops_bf16`], which launches the same kernels from
-//! the bf16 module of the same CUDA C source. A bf16 configuration without a
-//! kernel (a transport snap, RoPE or a flock selection in the read, a selected
-//! or prime-routed pointer mixture) is refused: the host fallback computes in
-//! f32 only.
+//! What stays f32 or f64 here, and why:
+//!
+//! - parameter tensors (the RMSNorm gain, the recurrence's taps/bias/decay,
+//!   the read's `aux`: null bias, age table, `log_beta`, `offset`, and the
+//!   pointer's `beta`): the master weights are f32 and only the matmul
+//!   operands are rounded, so a parameter keeps its full precision and its
+//!   gradient is f32;
+//! - RMSNorm statistics, every score, probability, lift, excess and distance,
+//!   the cross-entropy log-sum-exp and loss, the recurrence's carried state,
+//!   drive, transition and `keep`, and the pointer's attention scratch: all
+//!   internal buffers, accumulated in f32/f64 as before;
+//! - the unit-quaternion transport products and norms: the transition is read
+//!   from bf16 storage, then normalized and applied in f32;
+//! - the gradients of the activation arguments are bf16, the gradients of the
+//!   f32 parameters are f32.
 
-use candle_core::backend::{BackendDevice, BackendStorage};
+use candle_core::backend::BackendStorage;
 use candle_core::op::BackpropOp;
-use candle_core::{CpuStorage, CudaDevice, CudaStorage, CustomOp1, Storage};
+use candle_core::{CudaDevice, CudaStorage, DType, Storage, Tensor};
 use cudarc::driver::{CudaSlice, CudaView};
+use half::bf16;
 
 use super::*;
-use crate::cuda_stack_kernels::cuda::{launch, launch_groups, uninit, zeros, Arg};
+use crate::cuda_stack_kernels::cuda::{
+    launch, launch_bf16, launch_groups_bf16, uninit, zeros, Arg,
+};
 
 type CResult<T> = candle_core::Result<T>;
 type Forward = CResult<(CudaStorage, Shape)>;
 
 // ---------------------------------------------------------------------------
-// Host fallbacks and buffer helpers.
+// bf16 buffer helpers (the f32 counterparts live in `super::cuda_ops`).
 
-/// Uploads a host forward's F32 result to `device`.
-fn upload(device: &CudaDevice, out: CpuStorage, shape: Shape, name: &str) -> Forward {
-    if !matches!(out, CpuStorage::F32(_)) {
-        candle_core::bail!("{name} host fallback expects F32 output");
-    }
-    Ok((device.storage_from_cpu_storage(&out)?, shape))
-}
-
-/// Runs a one-input op's exact CPU forward on a host copy of its CUDA input.
-pub(super) fn via_host1(op: &impl CustomOp1, s1: &CudaStorage, l1: &Layout) -> Forward {
-    let (out, shape) = op.cpu_fwd(&s1.to_cpu_storage()?, l1)?;
-    upload(&s1.device, out, shape, op.name())
-}
-
-/// Runs a two-input op's exact CPU forward on host copies of its CUDA inputs.
-pub(super) fn via_host2(
-    op: &impl CustomOp2,
-    s1: &CudaStorage,
-    l1: &Layout,
-    s2: &CudaStorage,
-    l2: &Layout,
-) -> Forward {
-    let (out, shape) = op.cpu_fwd(&s1.to_cpu_storage()?, l1, &s2.to_cpu_storage()?, l2)?;
-    upload(&s1.device, out, shape, op.name())
-}
-
-/// Runs a three-input op's exact CPU forward on host copies of its CUDA
-/// inputs; used where no CUDA kernel covers the op's configuration.
-pub(super) fn via_host3(op: &impl CustomOp3, inputs: [(&CudaStorage, &Layout); 3]) -> Forward {
-    let [(s1, l1), (s2, l2), (s3, l3)] = inputs;
-    let (out, shape) = op.cpu_fwd(
-        &s1.to_cpu_storage()?,
-        l1,
-        &s2.to_cpu_storage()?,
-        l2,
-        &s3.to_cpu_storage()?,
-        l3,
-    )?;
-    upload(&s1.device, out, shape, op.name())
-}
-
-/// The F32 elements of a contiguous CUDA input (any start offset), or `None`
-/// when the layout is not contiguous or the dtype is not F32.
-fn input<'a>(storage: &'a CudaStorage, layout: &Layout) -> CResult<Option<CudaView<'a, f32>>> {
-    if !layout.is_contiguous() || storage.dtype() != DType::F32 {
+/// The bf16 elements of a contiguous CUDA activation input (any start
+/// offset), or `None` when the layout is not contiguous.
+fn bf_input<'a>(storage: &'a CudaStorage, layout: &Layout) -> CResult<Option<CudaView<'a, bf16>>> {
+    if !layout.is_contiguous() || storage.dtype() != DType::BF16 {
         return Ok(None);
     }
-    let slice = storage.as_cuda_slice::<f32>()?;
+    let slice = storage.as_cuda_slice::<bf16>()?;
     let start = layout.start_offset();
     let len = layout.shape().elem_count();
     match slice.try_slice(start..start + len) {
@@ -87,21 +57,21 @@ fn input<'a>(storage: &'a CudaStorage, layout: &Layout) -> CResult<Option<CudaVi
     }
 }
 
-/// The F32 elements of a CUDA tensor's storage prepared by [`ready`].
-fn view<'a>(storage: &'a Storage, layout: &Layout) -> CResult<CudaView<'a, f32>> {
+/// The bf16 elements of a CUDA tensor's storage prepared by [`ready_bf`].
+fn bf_view<'a>(storage: &'a Storage, layout: &Layout) -> CResult<CudaView<'a, bf16>> {
     let Storage::Cuda(storage) = storage else {
         candle_core::bail!("expected a CUDA tensor");
     };
-    match input(storage, layout)? {
+    match bf_input(storage, layout)? {
         Some(view) => Ok(view),
-        None => candle_core::bail!("CUDA stack kernels need contiguous F32 tensors"),
+        None => candle_core::bail!("CUDA bf16 stack kernels need contiguous bf16 tensors"),
     }
 }
 
-/// A CUDA F32 tensor laid out contiguously (copied only when it is not).
-fn ready(tensor: &Tensor) -> CResult<Tensor> {
-    if tensor.dtype() != DType::F32 {
-        candle_core::bail!("CUDA stack kernels require F32 tensors");
+/// A CUDA bf16 tensor laid out contiguously (copied only when it is not).
+fn ready_bf(tensor: &Tensor) -> CResult<Tensor> {
+    if tensor.dtype() != DType::BF16 {
+        candle_core::bail!("CUDA bf16 stack kernels require bf16 activation tensors");
     }
     if tensor.is_contiguous() {
         Ok(tensor.clone())
@@ -110,14 +80,57 @@ fn ready(tensor: &Tensor) -> CResult<Tensor> {
     }
 }
 
-fn storage(slice: CudaSlice<f32>, device: &CudaDevice) -> CudaStorage {
+/// A CUDA f32 tensor (a parameter or scalar argument) laid out contiguously.
+fn ready_f32(tensor: &Tensor) -> CResult<Tensor> {
+    if tensor.dtype() != DType::F32 {
+        candle_core::bail!("CUDA bf16 stack kernels require f32 parameter tensors");
+    }
+    if tensor.is_contiguous() {
+        Ok(tensor.clone())
+    } else {
+        tensor.force_contiguous()
+    }
+}
+
+/// The f32 elements of a CUDA tensor's storage prepared by [`ready_f32`].
+fn f32_view<'a>(storage: &'a Storage, layout: &Layout) -> CResult<CudaView<'a, f32>> {
+    let Storage::Cuda(storage) = storage else {
+        candle_core::bail!("expected a CUDA tensor");
+    };
+    if !layout.is_contiguous() || storage.dtype() != DType::F32 {
+        candle_core::bail!("CUDA bf16 stack kernels need contiguous f32 parameter tensors");
+    }
+    let slice = storage.as_cuda_slice::<f32>()?;
+    let start = layout.start_offset();
+    let len = layout.shape().elem_count();
+    match slice.try_slice(start..start + len) {
+        Some(view) => Ok(view),
+        None => candle_core::bail!("CUDA input layout exceeds its buffer"),
+    }
+}
+
+fn storage_bf(slice: CudaSlice<bf16>, device: &CudaDevice) -> CudaStorage {
     CudaStorage::wrap_cuda_slice(slice, device.clone())
 }
 
-/// A gradient tensor over a fresh CUDA buffer.
-fn tensor(slice: CudaSlice<f32>, device: &CudaDevice, shape: &Shape) -> Tensor {
+/// A bf16 tensor over a fresh CUDA buffer.
+fn tensor_bf(slice: CudaSlice<bf16>, device: &CudaDevice, shape: &Shape) -> Tensor {
     Tensor::from_storage(
-        Storage::Cuda(storage(slice, device)),
+        Storage::Cuda(storage_bf(slice, device)),
+        shape.clone(),
+        BackpropOp::none(),
+        false,
+    )
+}
+
+fn storage_f32(slice: CudaSlice<f32>, device: &CudaDevice) -> CudaStorage {
+    CudaStorage::wrap_cuda_slice(slice, device.clone())
+}
+
+/// An f32 tensor over a fresh CUDA buffer.
+fn tensor_f32(slice: CudaSlice<f32>, device: &CudaDevice, shape: &Shape) -> Tensor {
+    Tensor::from_storage(
+        Storage::Cuda(storage_f32(slice, device)),
         shape.clone(),
         BackpropOp::none(),
         false,
@@ -132,14 +145,11 @@ fn u32_of(value: usize, what: &str) -> CResult<u32> {
 // StraightThrough, SwiGLU, RMSNorm, the quaternion scan.
 
 pub(super) fn straight_through_fwd(
-    s1: &CudaStorage,
+    _s1: &CudaStorage,
     l1: &Layout,
     s2: &CudaStorage,
     l2: &Layout,
 ) -> Forward {
-    if s2.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::straight_through_fwd(s1, l1, s2, l2);
-    }
     if l1.shape() != l2.shape() {
         candle_core::bail!("straight-through inputs must have one shape");
     }
@@ -147,52 +157,46 @@ pub(super) fn straight_through_fwd(
     if total == 0 {
         candle_core::bail!("straight-through requires non-empty tensors");
     }
-    if s1.dtype() != DType::F32 {
-        candle_core::bail!("straight-through requires F32 tensors");
-    }
-    let Some(served) = input(s2, l2)? else {
-        return via_host2(&StraightThrough, s1, l1, s2, l2);
+    let Some(served) = bf_input(s2, l2)? else {
+        candle_core::bail!("bf16 straight-through needs contiguous bf16 tensors");
     };
     let device = &s2.device;
-    let out = uninit::<f32>(device, total)?;
-    launch(
+    let out = uninit::<bf16>(device, total)?;
+    launch_bf16(
         device,
         "straight_through_fwd",
         total,
         &[
-            Arg::F(served),
-            Arg::f(&out),
+            Arg::B(served),
+            Arg::b(&out),
             Arg::U32(u32_of(total, "size")?),
         ],
     )?;
-    Ok((storage(out, device), l2.shape().clone()))
+    Ok((storage_bf(out, device), l2.shape().clone()))
 }
 
 pub(super) fn swiglu_fwd(s1: &CudaStorage, l1: &Layout, s2: &CudaStorage, l2: &Layout) -> Forward {
-    if s1.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::swiglu_fwd(s1, l1, s2, l2);
-    }
     if l1.shape() != l2.shape() {
         candle_core::bail!("SwiGLU inputs must match");
     }
-    let (Some(gate), Some(up)) = (input(s1, l1)?, input(s2, l2)?) else {
-        return via_host2(&SwiGlu, s1, l1, s2, l2);
+    let (Some(gate), Some(up)) = (bf_input(s1, l1)?, bf_input(s2, l2)?) else {
+        candle_core::bail!("bf16 SwiGLU needs contiguous bf16 tensors");
     };
     let device = &s1.device;
     let total = l1.shape().elem_count();
-    let out = uninit::<f32>(device, total)?;
-    launch(
+    let out = uninit::<bf16>(device, total)?;
+    launch_bf16(
         device,
         "swiglu_fwd",
         total,
         &[
-            Arg::F(gate),
-            Arg::F(up),
-            Arg::f(&out),
+            Arg::B(gate),
+            Arg::B(up),
+            Arg::b(&out),
             Arg::U32(u32_of(total, "size")?),
         ],
     )?;
-    Ok((storage(out, device), l1.shape().clone()))
+    Ok((storage_bf(out, device), l1.shape().clone()))
 }
 
 pub(super) fn swiglu_bwd(
@@ -201,35 +205,32 @@ pub(super) fn swiglu_bwd(
     up: &Tensor,
     grad: &Tensor,
 ) -> CResult<(Tensor, Tensor)> {
-    if gate.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::swiglu_bwd(device, gate, up, grad);
-    }
     if gate.shape() != up.shape() || grad.shape() != gate.shape() {
         candle_core::bail!("CUDA SwiGLU backward inputs must match");
     }
-    let (g, u, d) = (ready(gate)?, ready(up)?, ready(grad)?);
+    let (g, u, d) = (ready_bf(gate)?, ready_bf(up)?, ready_bf(grad)?);
     let total = g.elem_count();
     let (gs, gl) = g.storage_and_layout();
     let (us, ul) = u.storage_and_layout();
     let (ds, dl) = d.storage_and_layout();
-    let d_gate = uninit::<f32>(device, total)?;
-    let d_up = uninit::<f32>(device, total)?;
-    launch(
+    let d_gate = uninit::<bf16>(device, total)?;
+    let d_up = uninit::<bf16>(device, total)?;
+    launch_bf16(
         device,
         "swiglu_bwd",
         total,
         &[
-            Arg::F(view(&gs, gl)?),
-            Arg::F(view(&us, ul)?),
-            Arg::F(view(&ds, dl)?),
-            Arg::f(&d_gate),
-            Arg::f(&d_up),
+            Arg::B(bf_view(&gs, gl)?),
+            Arg::B(bf_view(&us, ul)?),
+            Arg::B(bf_view(&ds, dl)?),
+            Arg::b(&d_gate),
+            Arg::b(&d_up),
             Arg::U32(u32_of(total, "size")?),
         ],
     )?;
     Ok((
-        tensor(d_gate, device, gate.shape()),
-        tensor(d_up, device, up.shape()),
+        tensor_bf(d_gate, device, gate.shape()),
+        tensor_bf(d_up, device, up.shape()),
     ))
 }
 
@@ -244,33 +245,39 @@ pub(super) fn rms_norm_fwd(
     s2: &CudaStorage,
     l2: &Layout,
 ) -> Forward {
-    if s1.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::rms_norm_fwd(s1, l1, s2, l2);
-    }
     let width = l2.shape().elem_count();
     if width == 0 || l1.shape().dims().last() != Some(&width) {
         candle_core::bail!("RMSNorm weight must match the last dimension");
     }
-    let (Some(x), Some(w)) = (input(s1, l1)?, input(s2, l2)?) else {
-        return via_host2(&RmsNorm, s1, l1, s2, l2);
+    if s2.dtype() != DType::F32 {
+        candle_core::bail!("bf16 RMSNorm keeps its gain in f32");
+    }
+    let Some(x) = bf_input(s1, l1)? else {
+        candle_core::bail!("bf16 RMSNorm needs a contiguous bf16 input");
+    };
+    let slice = s2.as_cuda_slice::<f32>()?;
+    let start = l2.start_offset();
+    let len = l2.shape().elem_count();
+    let Some(w) = slice.try_slice(start..start + len) else {
+        candle_core::bail!("CUDA input layout exceeds its buffer");
     };
     let device = &s1.device;
     let total = l1.shape().elem_count();
     let rows = total / width;
-    let out = uninit::<f32>(device, total)?;
-    launch_groups(
+    let out = uninit::<bf16>(device, total)?;
+    launch_groups_bf16(
         device,
         "rms_norm_fwd",
         (rows, 1, 1),
         (ROW_THREADS, 1, 1),
         &[
-            Arg::F(x),
+            Arg::B(x),
             Arg::F(w),
-            Arg::f(&out),
+            Arg::b(&out),
             Arg::U32(u32_of(width, "width")?),
         ],
     )?;
-    Ok((storage(out, device), l1.shape().clone()))
+    Ok((storage_bf(out, device), l1.shape().clone()))
 }
 
 pub(super) fn rms_norm_bwd(
@@ -279,45 +286,42 @@ pub(super) fn rms_norm_bwd(
     w: &Tensor,
     grad: &Tensor,
 ) -> CResult<(Tensor, Tensor)> {
-    if x.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::rms_norm_bwd(device, x, w, grad);
-    }
     let width = w.elem_count();
     if width == 0 || x.dims().last() != Some(&width) || grad.shape() != x.shape() {
         candle_core::bail!("CUDA RMSNorm backward shapes disagree");
     }
-    let (xr, wr, gr) = (ready(x)?, ready(w)?, ready(grad)?);
+    let (xr, wr, gr) = (ready_bf(x)?, ready_f32(w)?, ready_bf(grad)?);
     let total = xr.elem_count();
     let rows = total / width;
     let (xs, xl) = xr.storage_and_layout();
     let (ws, wl) = wr.storage_and_layout();
     let (gs, gl) = gr.storage_and_layout();
-    let (xv, wv, gv) = (view(&xs, xl)?, view(&ws, wl)?, view(&gs, gl)?);
-    let dx = uninit::<f32>(device, total)?;
+    let (xv, wv, gv) = (bf_view(&xs, xl)?, f32_view(&ws, wl)?, bf_view(&gs, gl)?);
+    let dx = uninit::<bf16>(device, total)?;
     let row_r = uninit::<f64>(device, rows)?;
-    launch_groups(
+    launch_groups_bf16(
         device,
         "rms_norm_bwd_dx",
         (rows, 1, 1),
         (ROW_THREADS, 1, 1),
         &[
-            Arg::F(xv.slice(..)),
+            Arg::B(xv.slice(..)),
             Arg::F(wv),
-            Arg::F(gv.slice(..)),
-            Arg::f(&dx),
+            Arg::B(gv.slice(..)),
+            Arg::b(&dx),
             Arg::d(&row_r),
             Arg::U32(u32_of(width, "width")?),
         ],
     )?;
     let chunks = rows.div_ceil(RMS_CHUNK_ROWS);
     let partials = uninit::<f64>(device, chunks * width)?;
-    launch(
+    launch_bf16(
         device,
         "rms_norm_dw_partial",
         chunks * width,
         &[
-            Arg::F(xv),
-            Arg::F(gv),
+            Arg::B(xv),
+            Arg::B(gv),
             Arg::d(&row_r),
             Arg::d(&partials),
             Arg::U32(u32_of(rows, "rows")?),
@@ -326,7 +330,7 @@ pub(super) fn rms_norm_bwd(
         ],
     )?;
     let dw = uninit::<f32>(device, width)?;
-    launch(
+    launch_bf16(
         device,
         "rms_norm_dw_reduce",
         width,
@@ -337,7 +341,10 @@ pub(super) fn rms_norm_bwd(
             Arg::U32(u32_of(width, "width")?),
         ],
     )?;
-    Ok((tensor(dx, device, x.shape()), tensor(dw, device, w.shape())))
+    Ok((
+        tensor_bf(dx, device, x.shape()),
+        tensor_f32(dw, device, w.shape()),
+    ))
 }
 
 pub(super) fn quaternion_scan_fwd(
@@ -346,9 +353,6 @@ pub(super) fn quaternion_scan_fwd(
     s2: &CudaStorage,
     l2: &Layout,
 ) -> Forward {
-    if s1.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::quaternion_scan_fwd(s1, l1, s2, l2);
-    }
     let (batch, time, lanes, four) = l1.shape().dims4()?;
     if four != 4 || l2.shape() != l1.shape() {
         candle_core::bail!("quaternion scan needs matching [batch, time, lanes, 4] inputs");
@@ -356,26 +360,26 @@ pub(super) fn quaternion_scan_fwd(
     if batch == 0 || time == 0 || lanes == 0 {
         candle_core::bail!("quaternion scan requires positive dimensions");
     }
-    let (Some(transition), Some(drive)) = (input(s1, l1)?, input(s2, l2)?) else {
-        return via_host2(&QuaternionScan, s1, l1, s2, l2);
+    let (Some(transition), Some(drive)) = (bf_input(s1, l1)?, bf_input(s2, l2)?) else {
+        candle_core::bail!("bf16 quaternion scan needs contiguous bf16 tensors");
     };
     let device = &s1.device;
     let total = l1.shape().elem_count();
-    let out = uninit::<f32>(device, total)?;
-    launch(
+    let out = uninit::<bf16>(device, total)?;
+    launch_bf16(
         device,
         "quaternion_scan_fwd",
         batch * lanes,
         &[
-            Arg::F(transition),
-            Arg::F(drive),
-            Arg::f(&out),
+            Arg::B(transition),
+            Arg::B(drive),
+            Arg::b(&out),
             Arg::U32(u32_of(time, "time")?),
             Arg::U32(u32_of(lanes, "lanes")?),
             Arg::U32(u32_of(batch * lanes, "sequences")?),
         ],
     )?;
-    Ok((storage(out, device), l1.shape().clone()))
+    Ok((storage_bf(out, device), l1.shape().clone()))
 }
 
 pub(super) fn quaternion_scan_bwd(
@@ -384,63 +388,59 @@ pub(super) fn quaternion_scan_bwd(
     state: &Tensor,
     grad: &Tensor,
 ) -> CResult<(Tensor, Tensor)> {
-    if transition.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::quaternion_scan_bwd(device, transition, state, grad);
-    }
     let (batch, time, lanes, four) = transition.dims4()?;
     if four != 4 || state.shape() != transition.shape() || grad.shape() != transition.shape() {
         candle_core::bail!(
             "CUDA quaternion scan backward inputs must match [batch, time, lanes, 4]"
         );
     }
-    let (t, s, g) = (ready(transition)?, ready(state)?, ready(grad)?);
+    let (t, s, g) = (ready_bf(transition)?, ready_bf(state)?, ready_bf(grad)?);
     let total = t.elem_count();
     let (ts, tl) = t.storage_and_layout();
     let (ss, sl) = s.storage_and_layout();
     let (gs, gl) = g.storage_and_layout();
-    let dq = uninit::<f32>(device, total)?;
-    let db = uninit::<f32>(device, total)?;
-    launch(
+    let dq = uninit::<bf16>(device, total)?;
+    let db = uninit::<bf16>(device, total)?;
+    launch_bf16(
         device,
         "quaternion_scan_bwd",
         batch * lanes,
         &[
-            Arg::F(view(&ts, tl)?),
-            Arg::F(view(&ss, sl)?),
-            Arg::F(view(&gs, gl)?),
-            Arg::f(&dq),
-            Arg::f(&db),
+            Arg::B(bf_view(&ts, tl)?),
+            Arg::B(bf_view(&ss, sl)?),
+            Arg::B(bf_view(&gs, gl)?),
+            Arg::b(&dq),
+            Arg::b(&db),
             Arg::U32(u32_of(time, "time")?),
             Arg::U32(u32_of(lanes, "lanes")?),
             Arg::U32(u32_of(batch * lanes, "sequences")?),
         ],
     )?;
     Ok((
-        tensor(dq, device, transition.shape()),
-        tensor(db, device, transition.shape()),
+        tensor_bf(dq, device, transition.shape()),
+        tensor_bf(db, device, transition.shape()),
     ))
 }
 
 // ---------------------------------------------------------------------------
-// Cross-entropy.
+// Cross-entropy: bf16 logits and logit gradient, f64 log-sum-exp and loss.
 
-/// Row log-sum-exps and losses (f64) of `[rows, vocabulary]` logits.
-fn cross_entropy_rows(
+fn cross_entropy_rows_bf(
     device: &CudaDevice,
-    logits: CudaView<'_, f32>,
+    logits: CudaView<'_, bf16>,
     targets: &CudaSlice<u32>,
     rows: usize,
     vocabulary: usize,
 ) -> CResult<(CudaSlice<f64>, CudaSlice<f64>)> {
     let lse = zeros::<f64>(device, rows)?;
     let loss = zeros::<f64>(device, rows)?;
-    launch_groups(
+    launch_groups_bf16(
         device,
-        "cross_entropy_rows",
+        "cross_entropy_rows_act",
         (rows, 1, 1),
         (ROW_THREADS, 1, 1),
         &[
-            Arg::F(logits),
+            Arg::B(logits),
             Arg::u(targets),
             Arg::d(&lse),
             Arg::d(&loss),
@@ -464,17 +464,14 @@ fn check_targets(op: &CrossEntropy, rows: usize, vocabulary: usize) -> CResult<(
 }
 
 pub(super) fn cross_entropy_fwd(op: &CrossEntropy, s: &CudaStorage, l: &Layout) -> Forward {
-    if s.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::cross_entropy_fwd(op, s, l);
-    }
     let (rows, vocabulary) = l.shape().dims2()?;
     check_targets(op, rows, vocabulary)?;
-    let Some(logits) = input(s, l)? else {
-        return via_host1(op, s, l);
+    let Some(logits) = bf_input(s, l)? else {
+        candle_core::bail!("bf16 CrossEntropy needs contiguous bf16 logits");
     };
     let device = &s.device;
     let targets = device.clone_htod(&op.targets)?;
-    let (_, loss) = cross_entropy_rows(device, logits, &targets, rows, vocabulary)?;
+    let (_, loss) = cross_entropy_rows_bf(device, logits, &targets, rows, vocabulary)?;
     let row_losses = device.clone_dtoh(&loss)?;
     let mean = match &op.weights {
         None => row_losses.iter().sum::<f64>() / rows as f64,
@@ -489,7 +486,7 @@ pub(super) fn cross_entropy_fwd(op: &CrossEntropy, s: &CudaStorage, l: &Layout) 
         }
     };
     let out = device.clone_htod(&vec![mean as f32])?;
-    Ok((storage(out, device), Shape::from(())))
+    Ok((storage_f32(out, device), Shape::from(())))
 }
 
 pub(super) fn cross_entropy_bwd(
@@ -498,9 +495,6 @@ pub(super) fn cross_entropy_bwd(
     logits: &Tensor,
     grad: &Tensor,
 ) -> CResult<Tensor> {
-    if logits.dtype() == DType::BF16 {
-        return super::cuda_ops_bf16::cross_entropy_bwd(op, device, logits, grad);
-    }
     let (rows, vocabulary) = logits.dims2()?;
     check_targets(op, rows, vocabulary)?;
     let grad = f64::from(grad.to_scalar::<f32>()?);
@@ -520,60 +514,60 @@ pub(super) fn cross_entropy_bwd(
                 .collect()
         }
     };
-    let l = ready(logits)?;
+    let l = ready_bf(logits)?;
     let (ls, ll) = l.storage_and_layout();
-    let lv = view(&ls, ll)?;
+    let lv = bf_view(&ls, ll)?;
     let targets = device.clone_htod(&op.targets)?;
     let scale = device.clone_htod(&scales)?;
-    let (lse, _) = cross_entropy_rows(device, lv.slice(..), &targets, rows, vocabulary)?;
-    let out = uninit::<f32>(device, rows * vocabulary)?;
-    launch(
+    let (lse, _) = cross_entropy_rows_bf(device, lv.slice(..), &targets, rows, vocabulary)?;
+    let out = uninit::<bf16>(device, rows * vocabulary)?;
+    launch_bf16(
         device,
-        "cross_entropy_grad",
+        "cross_entropy_grad_act",
         rows * vocabulary,
         &[
-            Arg::F(lv),
+            Arg::B(lv),
             Arg::u(&targets),
             Arg::d(&lse),
             Arg::d(&scale),
-            Arg::f(&out),
+            Arg::b(&out),
             Arg::U32(u32_of(rows, "rows")?),
             Arg::U32(u32_of(vocabulary, "vocabulary")?),
         ],
     )?;
-    Ok(tensor(out, device, logits.shape()))
+    Ok(tensor_bf(out, device, logits.shape()))
 }
 
 // ---------------------------------------------------------------------------
 // The recurrence core.
 
+/// Threads per block of the serial recurrence scans.
+const SCAN_GROUP: usize = 32;
+/// Threads per block of the per-(window, channel) parameter sweep.
+const PARAMS_GROUP: usize = 64;
+
+/// Launches a serial recurrence scan over `threads` (window, lane) threads.
+fn launch_scan(device: &CudaDevice, name: &str, threads: usize, args: &[Arg<'_>]) -> CResult<()> {
+    launch_groups_bf16(
+        device,
+        name,
+        (threads.div_ceil(SCAN_GROUP), 1, 1),
+        (SCAN_GROUP, 1, 1),
+        args,
+    )
+}
+
+/// The split recurrence path's per-position device buffers.
+struct SplitStates {
+    drive: CudaSlice<f32>,
+    q: CudaSlice<f32>,
+    keep: CudaSlice<f32>,
+    state: CudaSlice<f32>,
+}
+
 impl RecurrenceCore {
-    /// Whether the CUDA kernels cover this configuration (both rotation
-    /// groups; a transport snap runs on the host).
-    pub(super) fn cuda_covered(&self) -> bool {
-        self.snap.is_none()
-    }
-
-    /// Kernel rotation mode: 0 none, 1 quaternion (S3), 2 U(1).
-    pub(super) fn cuda_rotation(&self) -> u32 {
-        match (self.rotation, self.group) {
-            (false, _) => 0,
-            (true, RotationGroup::Quaternion) => 1,
-            (true, RotationGroup::U1) => 2,
-        }
-    }
-
-    pub(super) fn cuda_check(&self) -> CResult<()> {
-        if self.batch == 0 || self.time == 0 || self.width == 0 || self.width % 4 != 0 {
-            candle_core::bail!(
-                "CUDA RecurrenceCore requires positive dimensions with width divisible by 4"
-            );
-        }
-        Ok(())
-    }
-
-    /// `log a` per lane on the device.
-    fn cuda_log_a(
+    /// `log a` per lane on the device (the decay parameters are f32).
+    fn cuda_log_a_bf(
         &self,
         device: &CudaDevice,
         parameters: CudaView<'_, f32>,
@@ -594,33 +588,33 @@ impl RecurrenceCore {
         Ok(log_a)
     }
 
-    /// The forward recurrence: states, drives and outputs.
+    /// The single-kernel forward: states, drives and outputs.
     #[allow(clippy::type_complexity)]
-    fn cuda_forward(
+    fn cuda_forward_bf(
         &self,
         device: &CudaDevice,
-        branches: CudaView<'_, f32>,
-        gates: CudaView<'_, f32>,
+        branches: CudaView<'_, bf16>,
+        gates: CudaView<'_, bf16>,
         parameters: CudaView<'_, f32>,
         log_a: &CudaSlice<f32>,
-    ) -> CResult<(CudaSlice<f32>, CudaSlice<f32>, CudaSlice<f32>)> {
+    ) -> CResult<(CudaSlice<f32>, CudaSlice<f32>, CudaSlice<bf16>)> {
         let (time, width, lanes) = (self.time, self.width, self.lanes());
         let total = self.batch * time * width;
         let state = uninit::<f32>(device, total)?;
         let drive = uninit::<f32>(device, total)?;
-        let out = uninit::<f32>(device, total)?;
-        launch(
+        let out = uninit::<bf16>(device, total)?;
+        launch_bf16(
             device,
             "recurrence_core_fwd",
             self.batch * lanes,
             &[
-                Arg::F(branches),
-                Arg::F(gates),
+                Arg::B(branches),
+                Arg::B(gates),
                 Arg::F(parameters),
                 Arg::f(log_a),
                 Arg::f(&state),
                 Arg::f(&drive),
-                Arg::f(&out),
+                Arg::b(&out),
                 Arg::U32(u32_of(time, "time")?),
                 Arg::U32(u32_of(width, "width")?),
                 Arg::U32(u32_of(lanes, "lanes")?),
@@ -632,77 +626,12 @@ impl RecurrenceCore {
         Ok((state, drive, out))
     }
 
-    pub(super) fn cuda_fwd_impl(
-        &self,
-        s1: &CudaStorage,
-        l1: &Layout,
-        s2: &CudaStorage,
-        l2: &Layout,
-        s3: &CudaStorage,
-        l3: &Layout,
-    ) -> Forward {
-        if s1.dtype() == DType::BF16 {
-            if !self.cuda_covered() {
-                candle_core::bail!(
-                    "precision=bf16 has no bf16 recurrence kernel for a transport snap"
-                );
-            }
-            return self.cuda_fwd_impl_bf(s1, l1, s2, l2, s3, l3);
-        }
-        if !self.cuda_covered() {
-            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
-        }
-        self.cuda_check()?;
-        let (time, width) = (self.time, self.width);
-        if l1.shape().elem_count() != self.batch * time * 2 * width
-            || l2.shape().elem_count() != self.batch * time * self.gate_width()
-            || l3.shape().elem_count() != self.parameter_len()
-        {
-            candle_core::bail!("recurrence core inputs have the wrong sizes");
-        }
-        let (Some(branches), Some(gates), Some(parameters)) =
-            (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
-        else {
-            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
-        };
-        let device = &s1.device;
-        let log_a = self.cuda_log_a(device, parameters.slice(..))?;
-        let out = match cuda_recurrence_kernels() {
-            CudaRecurrenceKernels::Single => {
-                self.cuda_forward(device, branches, gates, parameters, &log_a)?
-                    .2
-            }
-            CudaRecurrenceKernels::Split => {
-                let states =
-                    self.cuda_split_states(device, &branches, &gates, &parameters, &log_a)?;
-                let total = self.batch * time * width;
-                let out = zeros::<f32>(device, total)?;
-                launch(
-                    device,
-                    "recurrence_out",
-                    total,
-                    &[
-                        Arg::f(&states.state),
-                        Arg::F(branches),
-                        Arg::f(&out),
-                        Arg::U32(u32_of(width, "width")?),
-                        Arg::U32(u32_of(total, "elements")?),
-                    ],
-                )?;
-                out
-            }
-        };
-        Ok((storage(out, device), Shape::from((self.batch, time, width))))
-    }
-
-    /// The split forward's per-position buffers and states: drive c,
-    /// transition q and weight keep from `recurrence_prep`, then the carried
-    /// states from the serial `recurrence_scan_fwd`.
-    fn cuda_split_states(
+    /// The split forward's per-position buffers and states.
+    fn cuda_split_states_bf(
         &self,
         device: &CudaDevice,
-        branches: &CudaView<'_, f32>,
-        gates: &CudaView<'_, f32>,
+        branches: &CudaView<'_, bf16>,
+        gates: &CudaView<'_, bf16>,
         parameters: &CudaView<'_, f32>,
         log_a: &CudaSlice<f32>,
     ) -> CResult<SplitStates> {
@@ -714,13 +643,13 @@ impl RecurrenceCore {
         let q = zeros::<f32>(device, total)?;
         let keep = zeros::<f32>(device, positions)?;
         let state = zeros::<f32>(device, total)?;
-        launch(
+        launch_bf16(
             device,
             "recurrence_prep",
             positions,
             &[
-                Arg::F(branches.slice(..)),
-                Arg::F(gates.slice(..)),
+                Arg::B(branches.slice(..)),
+                Arg::B(gates.slice(..)),
                 Arg::F(parameters.slice(..)),
                 Arg::f(log_a),
                 Arg::f(&drive),
@@ -757,20 +686,80 @@ impl RecurrenceCore {
         })
     }
 
-    /// The split backward: recomputes the split forward, then the direct
-    /// adjoints, the reverse carry scan, the per-position gradients and the
-    /// per-(window, channel) convolution gradient and f64 partials.
+    pub(super) fn cuda_fwd_impl_bf(
+        &self,
+        s1: &CudaStorage,
+        l1: &Layout,
+        s2: &CudaStorage,
+        l2: &Layout,
+        s3: &CudaStorage,
+        l3: &Layout,
+    ) -> Forward {
+        self.cuda_check()?;
+        let (time, width) = (self.time, self.width);
+        if l1.shape().elem_count() != self.batch * time * 2 * width
+            || l2.shape().elem_count() != self.batch * time * self.gate_width()
+            || l3.shape().elem_count() != self.parameter_len()
+        {
+            candle_core::bail!("recurrence core inputs have the wrong sizes");
+        }
+        let (Some(branches), Some(gates)) = (bf_input(s1, l1)?, bf_input(s2, l2)?) else {
+            candle_core::bail!("bf16 recurrence core needs contiguous bf16 activations");
+        };
+        if s3.dtype() != DType::F32 {
+            candle_core::bail!("bf16 recurrence core keeps its parameters in f32");
+        }
+        let ps = s3.as_cuda_slice::<f32>()?;
+        let start = l3.start_offset();
+        let len = l3.shape().elem_count();
+        let Some(parameters) = ps.try_slice(start..start + len) else {
+            candle_core::bail!("CUDA input layout exceeds its buffer");
+        };
+        let device = &s1.device;
+        let log_a = self.cuda_log_a_bf(device, parameters.slice(..))?;
+        let out = match cuda_recurrence_kernels() {
+            CudaRecurrenceKernels::Single => {
+                self.cuda_forward_bf(device, branches, gates, parameters, &log_a)?
+                    .2
+            }
+            CudaRecurrenceKernels::Split => {
+                let states =
+                    self.cuda_split_states_bf(device, &branches, &gates, &parameters, &log_a)?;
+                let total = self.batch * time * width;
+                let out = zeros::<bf16>(device, total)?;
+                launch_bf16(
+                    device,
+                    "recurrence_out",
+                    total,
+                    &[
+                        Arg::f(&states.state),
+                        Arg::B(branches),
+                        Arg::b(&out),
+                        Arg::U32(u32_of(width, "width")?),
+                        Arg::U32(u32_of(total, "elements")?),
+                    ],
+                )?;
+                out
+            }
+        };
+        Ok((
+            storage_bf(out, device),
+            Shape::from((self.batch, time, width)),
+        ))
+    }
+
+    /// The split backward.
     #[allow(clippy::too_many_arguments)]
-    fn cuda_split_bwd(
+    fn cuda_split_bwd_bf(
         &self,
         device: &CudaDevice,
-        bv: &CudaView<'_, f32>,
-        gv: &CudaView<'_, f32>,
+        bv: &CudaView<'_, bf16>,
+        gv: &CudaView<'_, bf16>,
         pv: &CudaView<'_, f32>,
-        dv: &CudaView<'_, f32>,
+        dv: &CudaView<'_, bf16>,
         log_a: &CudaSlice<f32>,
-        d_branches: &CudaSlice<f32>,
-        d_gates: &CudaSlice<f32>,
+        d_branches: &CudaSlice<bf16>,
+        d_gates: &CudaSlice<bf16>,
         partials: &CudaSlice<f64>,
     ) -> CResult<()> {
         let (time, width, lanes) = (self.time, self.width, self.lanes());
@@ -778,19 +767,17 @@ impl RecurrenceCore {
         let positions = self.batch * time * lanes;
         let windows = self.batch * lanes;
         let channels = self.batch * width;
-        // `direct` holds gelu(output branch), then the carried adjoints; q
-        // becomes dd and keep the d log a terms once read.
-        let states = self.cuda_split_states(device, bv, gv, pv, log_a)?;
+        let states = self.cuda_split_states_bf(device, bv, gv, pv, log_a)?;
         let direct = zeros::<f32>(device, total)?;
-        launch(
+        launch_bf16(
             device,
             "recurrence_bwd_direct",
             positions,
             &[
-                Arg::F(bv.slice(..)),
+                Arg::B(bv.slice(..)),
                 Arg::f(&states.state),
-                Arg::F(dv.slice(..)),
-                Arg::f(d_branches),
+                Arg::B(dv.slice(..)),
+                Arg::b(d_branches),
                 Arg::f(&direct),
                 Arg::U32(u32_of(width, "width")?),
                 Arg::U32(u32_of(lanes, "lanes")?),
@@ -803,7 +790,7 @@ impl RecurrenceCore {
             windows,
             &[
                 Arg::f(&states.q),
-                Arg::F(dv.slice(..)),
+                Arg::B(dv.slice(..)),
                 Arg::f(&direct),
                 Arg::U32(u32_of(time, "time")?),
                 Arg::U32(u32_of(width, "width")?),
@@ -811,17 +798,17 @@ impl RecurrenceCore {
                 Arg::U32(u32_of(windows, "lanes")?),
             ],
         )?;
-        launch(
+        launch_bf16(
             device,
             "recurrence_bwd_post",
             positions,
             &[
-                Arg::F(gv.slice(..)),
+                Arg::B(gv.slice(..)),
                 Arg::f(log_a),
                 Arg::f(&states.state),
                 Arg::f(&states.drive),
                 Arg::f(&direct),
-                Arg::f(d_gates),
+                Arg::b(d_gates),
                 Arg::f(&states.q),
                 Arg::f(&states.keep),
                 Arg::U32(u32_of(time, "time")?),
@@ -832,17 +819,17 @@ impl RecurrenceCore {
                 Arg::U32(u32_of(positions, "positions")?),
             ],
         )?;
-        launch_groups(
+        launch_groups_bf16(
             device,
             "recurrence_bwd_params",
             (channels.div_ceil(PARAMS_GROUP), 1, 1),
             (PARAMS_GROUP, 1, 1),
             &[
-                Arg::F(bv.slice(..)),
+                Arg::B(bv.slice(..)),
                 Arg::F(pv.slice(..)),
                 Arg::f(&states.q),
                 Arg::f(&states.keep),
-                Arg::f(d_branches),
+                Arg::b(d_branches),
                 Arg::d(partials),
                 Arg::U32(u32_of(time, "time")?),
                 Arg::U32(u32_of(width, "width")?),
@@ -854,10 +841,50 @@ impl RecurrenceCore {
         Ok(())
     }
 
-    /// The exact backward on CUDA: recomputes the forward states, sweeps
-    /// each (window, lane) in reverse, then reduces the windows' f64
-    /// parameter partials.
-    pub(super) fn cuda_bwd(
+    /// The single-kernel backward.
+    fn cuda_single_bwd_bf(
+        &self,
+        device: &CudaDevice,
+        [bv, gv, dv]: [&CudaView<'_, bf16>; 3],
+        pv_f32: &CudaView<'_, f32>,
+        log_a: &CudaSlice<f32>,
+        d_branches: &CudaSlice<bf16>,
+        d_gates: &CudaSlice<bf16>,
+        partials: &CudaSlice<f64>,
+    ) -> CResult<()> {
+        let (time, width, lanes) = (self.time, self.width, self.lanes());
+        let gate_width = self.gate_width();
+        let param_len = self.parameter_len();
+        let (state, drive, _) =
+            self.cuda_forward_bf(device, bv.slice(..), gv.slice(..), pv_f32.slice(..), log_a)?;
+        launch_bf16(
+            device,
+            "recurrence_core_bwd",
+            self.batch * lanes,
+            &[
+                Arg::B(bv.slice(..)),
+                Arg::B(gv.slice(..)),
+                Arg::F(pv_f32.slice(..)),
+                Arg::f(log_a),
+                Arg::f(&state),
+                Arg::f(&drive),
+                Arg::B(dv.slice(..)),
+                Arg::b(d_branches),
+                Arg::b(d_gates),
+                Arg::d(partials),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(gate_width, "gate width")?),
+                Arg::U32(self.cuda_rotation()),
+                Arg::U32(u32_of(self.batch * lanes, "lanes")?),
+                Arg::U32(u32_of(param_len, "parameters")?),
+            ],
+        )
+    }
+
+    /// The exact backward on CUDA with bf16 activation storage.
+    pub(super) fn cuda_bwd_bf(
         &self,
         device: &CudaDevice,
         branches: &Tensor,
@@ -865,15 +892,12 @@ impl RecurrenceCore {
         parameters: &Tensor,
         grad: &Tensor,
     ) -> CResult<(Tensor, Tensor, Tensor)> {
-        if branches.dtype() == DType::BF16 {
-            return self.cuda_bwd_bf(device, branches, gates, parameters, grad);
-        }
         self.cuda_check()?;
         let (b, g, p, dy) = (
-            ready(branches)?,
-            ready(gates)?,
-            ready(parameters)?,
-            ready(grad)?,
+            ready_bf(branches)?,
+            ready_bf(gates)?,
+            ready_f32(parameters)?,
+            ready_bf(grad)?,
         );
         let (time, width) = (self.time, self.width);
         let gate_width = self.gate_width();
@@ -890,18 +914,18 @@ impl RecurrenceCore {
         let (ps, pl) = p.storage_and_layout();
         let (ds, dl) = dy.storage_and_layout();
         let (bv, gv, pv, dv) = (
-            view(&bs, bl)?,
-            view(&gs, gl)?,
-            view(&ps, pl)?,
-            view(&ds, dl)?,
+            bf_view(&bs, bl)?,
+            bf_view(&gs, gl)?,
+            f32_view(&ps, pl)?,
+            bf_view(&ds, dl)?,
         );
-        let log_a = self.cuda_log_a(device, pv.slice(..))?;
-        let d_branches = zeros::<f32>(device, b.elem_count())?;
-        let d_gates = zeros::<f32>(device, g.elem_count())?;
+        let log_a = self.cuda_log_a_bf(device, pv.slice(..))?;
+        let d_branches = zeros::<bf16>(device, b.elem_count())?;
+        let d_gates = zeros::<bf16>(device, g.elem_count())?;
         let partials = zeros::<f64>(device, self.batch * param_len)?;
         let d_parameters = zeros::<f32>(device, param_len)?;
         if cuda_recurrence_kernels() == CudaRecurrenceKernels::Split {
-            self.cuda_split_bwd(
+            self.cuda_split_bwd_bf(
                 device,
                 &bv,
                 &gv,
@@ -913,9 +937,10 @@ impl RecurrenceCore {
                 &partials,
             )?;
         } else {
-            self.cuda_single_bwd(
+            self.cuda_single_bwd_bf(
                 device,
-                [&bv, &gv, &pv, &dv],
+                [&bv, &gv, &dv],
+                &pv,
                 &log_a,
                 &d_branches,
                 &d_gates,
@@ -936,87 +961,17 @@ impl RecurrenceCore {
             ],
         )?;
         Ok((
-            tensor(d_branches, device, branches.shape()),
-            tensor(d_gates, device, gates.shape()),
-            tensor(d_parameters, device, parameters.shape()),
+            tensor_bf(d_branches, device, branches.shape()),
+            tensor_bf(d_gates, device, gates.shape()),
+            tensor_f32(d_parameters, device, parameters.shape()),
         ))
     }
-
-    /// The single-kernel backward: recomputes the forward states, then sweeps
-    /// each (window, lane) in reverse in one thread.
-    fn cuda_single_bwd(
-        &self,
-        device: &CudaDevice,
-        [bv, gv, pv, dv]: [&CudaView<'_, f32>; 4],
-        log_a: &CudaSlice<f32>,
-        d_branches: &CudaSlice<f32>,
-        d_gates: &CudaSlice<f32>,
-        partials: &CudaSlice<f64>,
-    ) -> CResult<()> {
-        let (time, width, lanes) = (self.time, self.width, self.lanes());
-        let gate_width = self.gate_width();
-        let param_len = self.parameter_len();
-        let (state, drive, _) =
-            self.cuda_forward(device, bv.slice(..), gv.slice(..), pv.slice(..), log_a)?;
-        launch(
-            device,
-            "recurrence_core_bwd",
-            self.batch * lanes,
-            &[
-                Arg::F(bv.slice(..)),
-                Arg::F(gv.slice(..)),
-                Arg::F(pv.slice(..)),
-                Arg::f(log_a),
-                Arg::f(&state),
-                Arg::f(&drive),
-                Arg::F(dv.slice(..)),
-                Arg::f(d_branches),
-                Arg::f(d_gates),
-                Arg::d(partials),
-                Arg::U32(u32_of(time, "time")?),
-                Arg::U32(u32_of(width, "width")?),
-                Arg::U32(u32_of(lanes, "lanes")?),
-                Arg::U32(u32_of(gate_width, "gate width")?),
-                Arg::U32(self.cuda_rotation()),
-                Arg::U32(u32_of(self.batch * lanes, "lanes")?),
-                Arg::U32(u32_of(param_len, "parameters")?),
-            ],
-        )
-    }
-}
-
-/// The split recurrence path's per-position device buffers.
-struct SplitStates {
-    drive: CudaSlice<f32>,
-    q: CudaSlice<f32>,
-    keep: CudaSlice<f32>,
-    state: CudaSlice<f32>,
-}
-
-/// Threads per block of the serial recurrence scans: small blocks spread the
-/// (window, lane) threads over every multiprocessor.
-const SCAN_GROUP: usize = 32;
-
-/// Threads per block of the per-(window, channel) parameter sweep.
-const PARAMS_GROUP: usize = 64;
-
-/// Launches a serial recurrence scan over `threads` (window, lane) threads.
-fn launch_scan(device: &CudaDevice, name: &str, threads: usize, args: &[Arg<'_>]) -> CResult<()> {
-    launch_groups(
-        device,
-        name,
-        (threads.div_ceil(SCAN_GROUP), 1, 1),
-        (SCAN_GROUP, 1, 1),
-        args,
-    )
 }
 
 // ---------------------------------------------------------------------------
-// The fused read.
+// The fused read: bf16 query/key/value and their gradients, f32 aux.
 
-/// The device buffers of one recomputed read: probabilities [index, t, j]
-/// (j <= t used), NoRead probabilities, the f64 query and key lifts and,
-/// when asked for, the f64 Lorentz excesses or L2 squared distances.
+/// The device buffers of one recomputed read.
 struct CudaReadPass {
     probabilities: CudaSlice<f32>,
     null_probability: CudaSlice<f32>,
@@ -1026,35 +981,11 @@ struct CudaReadPass {
 }
 
 impl FusedRead {
-    /// Whether the CUDA kernels cover this configuration (all three scores;
-    /// RoPE and flock selection run on the host).
-    pub(super) fn cuda_covered(&self) -> bool {
-        !self.rope && self.select.is_none()
-    }
-
-    pub(super) fn cuda_dims(&self) -> CResult<[u32; 8]> {
-        Ok([
-            u32_of(self.batch, "batch")?,
-            u32_of(self.heads, "heads")?,
-            u32_of(self.time, "time")?,
-            u32_of(self.key, "key")?,
-            u32_of(self.value, "value")?,
-            u32::from(self.null),
-            u32::from(self.age),
-            match self.score {
-                ReadScore::Dot => 0,
-                ReadScore::Lorentz => 1,
-                ReadScore::L2 => 2,
-            },
-        ])
-    }
-
-    /// Scores and softmax of every row on the device.
-    fn cuda_pass(
+    fn cuda_pass_bf(
         &self,
         device: &CudaDevice,
-        query: CudaView<'_, f32>,
-        kv: CudaView<'_, f32>,
+        query: CudaView<'_, bf16>,
+        kv: CudaView<'_, bf16>,
         aux: CudaView<'_, f32>,
         keep_excess: bool,
     ) -> CResult<CudaReadPass> {
@@ -1070,13 +1001,13 @@ impl FusedRead {
         let write_excess = scaled && keep_excess;
         let excess = uninit::<f64>(device, if write_excess { square } else { 1 })?;
         if scaled {
-            launch(
+            launch_bf16(
                 device,
                 "read_lift",
                 rows,
                 &[
-                    Arg::F(query.slice(..)),
-                    Arg::F(kv.slice(..)),
+                    Arg::B(query.slice(..)),
+                    Arg::B(kv.slice(..)),
                     Arg::d(&query_lift),
                     Arg::d(&key_lift),
                     Arg::Dims(dims),
@@ -1093,14 +1024,14 @@ impl FusedRead {
             1,
             u32::from(write_excess),
         ];
-        launch_groups(
+        launch_groups_bf16(
             device,
             "read_tile_inner",
             (tiles, tiles, self.batch * self.heads),
             (16, 16, 1),
             &[
-                Arg::F(query),
-                Arg::F(kv),
+                Arg::B(query),
+                Arg::B(kv),
                 Arg::F(aux.slice(..)),
                 Arg::d(&query_lift),
                 Arg::d(&key_lift),
@@ -1110,7 +1041,7 @@ impl FusedRead {
                 Arg::Geom(geometry),
             ],
         )?;
-        launch(
+        launch_bf16(
             device,
             "read_softmax_warp",
             32 * rows,
@@ -1130,15 +1061,7 @@ impl FusedRead {
         })
     }
 
-    pub(super) fn cuda_check(&self) -> CResult<()> {
-        if self.batch == 0 || self.heads == 0 || self.time == 0 || self.key == 0 || self.value == 0
-        {
-            candle_core::bail!("CUDA FusedRead requires positive dimensions");
-        }
-        Ok(())
-    }
-
-    pub(super) fn cuda_fwd_impl(
+    pub(super) fn cuda_fwd_impl_bf(
         &self,
         s1: &CudaStorage,
         l1: &Layout,
@@ -1147,17 +1070,6 @@ impl FusedRead {
         s3: &CudaStorage,
         l3: &Layout,
     ) -> Forward {
-        if s1.dtype() == DType::BF16 {
-            if !self.cuda_covered() {
-                candle_core::bail!(
-                    "precision=bf16 has no bf16 read kernel for RoPE or a flock selection"
-                );
-            }
-            return self.cuda_fwd_impl_bf(s1, l1, s2, l2, s3, l3);
-        }
-        if !self.cuda_covered() {
-            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
-        }
         self.cuda_check()?;
         let (time, value) = (self.time, self.value);
         let rows = self.batch * self.heads * time;
@@ -1171,33 +1083,44 @@ impl FusedRead {
         {
             candle_core::bail!("FusedRead input element counts do not match declared dimensions");
         }
-        let (Some(query), Some(kv), Some(aux)) = (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
-        else {
-            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
+        if s3.dtype() != DType::F32 {
+            candle_core::bail!("bf16 FusedRead keeps its auxiliary table in f32");
+        }
+        let (Some(query), Some(kv)) = (bf_input(s1, l1)?, bf_input(s2, l2)?) else {
+            candle_core::bail!("bf16 FusedRead needs contiguous bf16 query and key/value");
+        };
+        let as_ = s3.as_cuda_slice::<f32>()?;
+        let start = l3.start_offset();
+        let len = l3.shape().elem_count();
+        let Some(aux) = as_.try_slice(start..start + len) else {
+            candle_core::bail!("CUDA input layout exceeds its buffer");
         };
         let device = &s1.device;
-        let pass = self.cuda_pass(device, query, kv.slice(..), aux, false)?;
+        let pass = self.cuda_pass_bf(device, query, kv.slice(..), aux, false)?;
         let total = rows * value;
-        let out = uninit::<f32>(device, total)?;
-        launch(
+        let out = uninit::<bf16>(device, total)?;
+        launch_bf16(
             device,
             "read_mix",
             total,
             &[
                 Arg::f(&pass.probabilities),
-                Arg::F(kv),
-                Arg::f(&out),
+                Arg::B(kv),
+                Arg::b(&out),
                 Arg::Dims(self.cuda_dims()?),
             ],
         )?;
         Ok((
-            storage(out, device),
+            storage_bf(out, device),
             Shape::from((self.batch, self.heads, time, value)),
         ))
     }
 
-    /// The exact backward on CUDA.
-    pub(super) fn cuda_bwd(
+    /// The exact backward on CUDA with bf16 activation storage: the read's
+    /// output gradient, query, keys/values and their gradients are bf16; the
+    /// score-space buffers (`dp`, `inner_grad`, probabilities, lifts, excess,
+    /// the row partials) stay f32/f64, and the auxiliary table is f32.
+    pub(super) fn cuda_bwd_bf(
         &self,
         device: &CudaDevice,
         query: &Tensor,
@@ -1205,11 +1128,13 @@ impl FusedRead {
         aux: &Tensor,
         grad: &Tensor,
     ) -> CResult<(Tensor, Tensor, Tensor)> {
-        if query.dtype() == DType::BF16 {
-            return self.cuda_bwd_bf(device, query, kv, aux, grad);
-        }
         self.cuda_check()?;
-        let (q, kvt, a, dy) = (ready(query)?, ready(kv)?, ready(aux)?, ready(grad)?);
+        let (q, kvt, a, dy) = (
+            ready_bf(query)?,
+            ready_bf(kv)?,
+            ready_f32(aux)?,
+            ready_bf(grad)?,
+        );
         let rows = self.batch * self.heads * self.time;
         if q.elem_count() != rows * self.key
             || kvt.elem_count() != rows * self.width()
@@ -1222,13 +1147,13 @@ impl FusedRead {
         let (as_, al) = a.storage_and_layout();
         let (ds, dl) = dy.storage_and_layout();
         let (qv, kvv, av, dyv) = (
-            view(&qs, ql)?,
-            view(&ks, kl)?,
-            view(&as_, al)?,
-            view(&ds, dl)?,
+            bf_view(&qs, ql)?,
+            bf_view(&ks, kl)?,
+            f32_view(&as_, al)?,
+            bf_view(&ds, dl)?,
         );
         let scaled = self.score.scaled();
-        let pass = self.cuda_pass(device, qv.slice(..), kvv.slice(..), av.slice(..), true)?;
+        let pass = self.cuda_pass_bf(device, qv.slice(..), kvv.slice(..), av.slice(..), true)?;
         let dims = self.cuda_dims()?;
         let square = rows * self.time;
         let dp = uninit::<f32>(device, square)?;
@@ -1239,8 +1164,8 @@ impl FusedRead {
         let row_beta = uninit::<f64>(device, row_len)?;
         let row_offset = uninit::<f64>(device, row_len)?;
         let key_self = uninit::<f64>(device, row_len)?;
-        let dq = uninit::<f32>(device, q.elem_count())?;
-        let dkv = uninit::<f32>(device, kvt.elem_count())?;
+        let dq = uninit::<bf16>(device, q.elem_count())?;
+        let dkv = uninit::<bf16>(device, kvt.elem_count())?;
         let aux_parts = self.null || self.age || scaled;
         let d_aux = zeros::<f32>(device, a.elem_count())?;
         let tiles = self.time.div_ceil(16);
@@ -1253,14 +1178,14 @@ impl FusedRead {
             0,
             0,
         ];
-        launch_groups(
+        launch_groups_bf16(
             device,
             "read_tile_inner",
             (tiles, tiles, self.batch * self.heads),
             (16, 16, 1),
             &[
-                Arg::F(dyv.slice(..)),
-                Arg::F(kvv.slice(..)),
+                Arg::B(dyv.slice(..)),
+                Arg::B(kvv.slice(..)),
                 Arg::F(av.slice(..)),
                 Arg::d(&pass.query_lift),
                 Arg::d(&pass.key_lift),
@@ -1270,7 +1195,7 @@ impl FusedRead {
                 Arg::Geom(geometry),
             ],
         )?;
-        launch(
+        launch_bf16(
             device,
             "read_row_grad_warp",
             32 * rows,
@@ -1307,31 +1232,31 @@ impl FusedRead {
                 ],
             )?;
         }
-        launch(
+        launch_bf16(
             device,
             "read_dq",
             q.elem_count(),
             &[
                 Arg::f(&inner_grad),
-                Arg::F(qv.slice(..)),
-                Arg::F(kvv.slice(..)),
+                Arg::B(qv.slice(..)),
+                Arg::B(kvv.slice(..)),
                 Arg::d(&query_self),
-                Arg::f(&dq),
+                Arg::b(&dq),
                 Arg::Dims(dims),
             ],
         )?;
-        launch(
+        launch_bf16(
             device,
             "read_dkv",
             kvt.elem_count(),
             &[
                 Arg::f(&inner_grad),
                 Arg::f(&pass.probabilities),
-                Arg::F(qv),
-                Arg::F(kvv),
-                Arg::F(dyv),
+                Arg::B(qv),
+                Arg::B(kvv),
+                Arg::B(dyv),
                 Arg::d(&key_self),
-                Arg::f(&dkv),
+                Arg::b(&dkv),
                 Arg::Dims(dims),
             ],
         )?;
@@ -1357,57 +1282,38 @@ impl FusedRead {
             )?;
         }
         let d_aux = if aux_parts {
-            tensor(d_aux, device, aux.shape())
+            tensor_f32(d_aux, device, aux.shape())
         } else {
             // The placeholder auxiliary input carries no gradient.
             Tensor::zeros(aux.shape(), DType::F32, aux.device())?
         };
         Ok((
-            tensor(dq, device, query.shape()),
-            tensor(dkv, device, kv.shape()),
+            tensor_bf(dq, device, query.shape()),
+            tensor_bf(dkv, device, kv.shape()),
             d_aux,
         ))
     }
 }
 
 // ---------------------------------------------------------------------------
-// The pointer-copy mixture loss.
+// The pointer-copy mixture: bf16 logits and side, f32 `beta`.
 
 /// The device buffers of one evaluated batch of pointer rows.
 struct CudaPointerPass {
-    /// [rows, time] attention (forward) or per-source gradient (backward).
     scratch: CudaSlice<f64>,
-    /// Forward: `-weight log mixture` per row.
     row_value: CudaSlice<f64>,
-    /// Backward: the logit gradient's per-row factor `c share_generate`.
     scale_z: CudaSlice<f64>,
-    /// Backward: the side gradient (gate column written by the row pass).
-    d_side: CudaSlice<f32>,
-    /// Backward: per-row d loss / d beta.
+    d_side: CudaSlice<bf16>,
     row_beta: CudaSlice<f64>,
-    /// Backward (Lorentz): the query's self coefficient per row.
     query_self: CudaSlice<f64>,
     query_lift: CudaSlice<f64>,
     key_lift: CudaSlice<f64>,
-    /// Row log-sum-exps of the logits (f64) and the uploaded targets.
     lse: CudaSlice<f64>,
     targets: CudaSlice<u32>,
 }
 
 impl PointerMixture {
-    /// Whether the CUDA kernels cover this configuration: Dot or Lorentz
-    /// scores over every source. A selection, a prime route (and the L2
-    /// score `PointerConfig::validate` refuses) run on the host.
-    pub(super) fn cuda_covered(&self) -> bool {
-        self.select.is_none() && self.route.is_none() && self.score != ReadScore::L2
-    }
-
-    pub(super) fn cuda_dims(
-        &self,
-        rows: usize,
-        vocabulary: usize,
-        backward: bool,
-    ) -> CResult<[u32; 8]> {
+    fn cuda_dims_bf(&self, rows: usize, vocabulary: usize, backward: bool) -> CResult<[u32; 8]> {
         Ok([
             u32_of(rows, "rows")?,
             u32_of(self.time, "time")?,
@@ -1420,7 +1326,7 @@ impl PointerMixture {
         ])
     }
 
-    pub(super) fn cuda_check(&self, vocabulary: usize) -> CResult<()> {
+    fn cuda_check_bf(&self, vocabulary: usize) -> CResult<()> {
         if self.dim == 0 || vocabulary == 0 {
             candle_core::bail!("CUDA pointer mixture requires positive dimensions");
         }
@@ -1431,51 +1337,57 @@ impl PointerMixture {
     }
 
     /// The weights as uploaded (ones when unweighted).
-    fn cuda_weights(&self, rows: usize) -> Vec<f32> {
+    fn cuda_weights_bf(&self, rows: usize) -> Vec<f32> {
         self.weights.clone().unwrap_or_else(|| vec![1.0; rows])
     }
 
-    /// Log-sum-exps, lifts and the row pass on the device. `grad` is the
-    /// one-element upstream gradient (any one-element buffer in the forward).
+    /// Log-sum-exps over the bf16 logits, lifts and the row pass on the
+    /// device. `grad` is the one-element upstream gradient (bf16).
     #[allow(clippy::too_many_arguments)]
-    fn cuda_pass(
+    fn cuda_pass_bf(
         &self,
         device: &CudaDevice,
-        logits: CudaView<'_, f32>,
-        side: CudaView<'_, f32>,
+        logits: CudaView<'_, bf16>,
+        side: CudaView<'_, bf16>,
         beta: CudaView<'_, f32>,
-        grad: CudaView<'_, f32>,
+        grad: CudaView<'_, bf16>,
         vocabulary: usize,
         backward: bool,
     ) -> CResult<CudaPointerPass> {
         let rows = self.targets.len();
-        let dims = self.cuda_dims(rows, vocabulary, backward)?;
+        let dims = self.cuda_dims_bf(rows, vocabulary, backward)?;
         let targets = device.clone_htod(&self.targets)?;
         let ids = device.clone_htod(&self.ids)?;
-        let weights = device.clone_htod(&self.cuda_weights(rows))?;
+        let weights = device.clone_htod(&self.cuda_weights_bf(rows))?;
         let total = device.clone_htod(&[self.total()])?;
-        let (lse, _) = cross_entropy_rows(device, logits.slice(..), &targets, rows, vocabulary)?;
+        let (lse, _) = cross_entropy_rows_bf(device, logits.slice(..), &targets, rows, vocabulary)?;
         let query_lift = zeros::<f64>(device, rows)?;
         let key_lift = zeros::<f64>(device, rows)?;
         if self.score == ReadScore::Lorentz {
-            launch(
+            launch_bf16(
                 device,
                 "pointer_lift",
                 rows,
                 &[
-                    Arg::F(side.slice(..)),
+                    Arg::B(side.slice(..)),
                     Arg::d(&query_lift),
                     Arg::d(&key_lift),
                     Arg::Dims(dims),
                 ],
             )?;
         }
-        let stride = 2 * self.dim + 1;
         let pass = CudaPointerPass {
             scratch: zeros::<f64>(device, rows * self.time)?,
             row_value: zeros::<f64>(device, rows)?,
             scale_z: zeros::<f64>(device, rows)?,
-            d_side: zeros::<f32>(device, if backward { rows * stride } else { 1 })?,
+            d_side: zeros::<bf16>(
+                device,
+                if backward {
+                    rows * (2 * self.dim + 1)
+                } else {
+                    1
+                },
+            )?,
             row_beta: zeros::<f64>(device, rows)?,
             query_self: zeros::<f64>(device, rows)?,
             query_lift,
@@ -1483,13 +1395,13 @@ impl PointerMixture {
             lse,
             targets,
         };
-        launch(
+        launch_bf16(
             device,
             "pointer_rows",
             32 * rows,
             &[
-                Arg::F(logits),
-                Arg::F(side),
+                Arg::B(logits),
+                Arg::B(side),
                 Arg::F(beta),
                 Arg::u(&ids),
                 Arg::u(&pass.targets),
@@ -1497,12 +1409,12 @@ impl PointerMixture {
                 Arg::d(&pass.lse),
                 Arg::d(&pass.query_lift),
                 Arg::d(&pass.key_lift),
-                Arg::F(grad),
+                Arg::B(grad),
                 Arg::d(&total),
                 Arg::d(&pass.scratch),
                 Arg::d(&pass.row_value),
                 Arg::d(&pass.scale_z),
-                Arg::f(&pass.d_side),
+                Arg::b(&pass.d_side),
                 Arg::d(&pass.row_beta),
                 Arg::d(&pass.query_self),
                 Arg::Dims(dims),
@@ -1511,7 +1423,7 @@ impl PointerMixture {
         Ok(pass)
     }
 
-    pub(super) fn cuda_fwd_impl(
+    pub(super) fn cuda_fwd_impl_bf(
         &self,
         s1: &CudaStorage,
         l1: &Layout,
@@ -1520,31 +1432,30 @@ impl PointerMixture {
         s3: &CudaStorage,
         l3: &Layout,
     ) -> Forward {
-        if s1.dtype() == DType::BF16 {
-            if !self.cuda_covered() {
-                candle_core::bail!(
-                    "precision=bf16 has no bf16 pointer kernel for a selection or a prime route"
-                );
-            }
-            return self.cuda_fwd_impl_bf(s1, l1, s2, l2, s3, l3);
-        }
-        if !self.cuda_covered() {
-            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
-        }
         let (rows, vocabulary) = self.check(l1, l2, l3)?;
-        self.cuda_check(vocabulary)?;
-        let (Some(logits), Some(side), Some(beta)) =
-            (input(s1, l1)?, input(s2, l2)?, input(s3, l3)?)
-        else {
-            return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
+        self.cuda_check_bf(vocabulary)?;
+        let (Some(logits), Some(side)) = (bf_input(s1, l1)?, bf_input(s2, l2)?) else {
+            candle_core::bail!("bf16 pointer mixture needs contiguous bf16 logits and side");
+        };
+        if s3.dtype() != DType::F32 {
+            candle_core::bail!("bf16 pointer mixture keeps its beta in f32");
+        }
+        let bs = s3.as_cuda_slice::<f32>()?;
+        let start = l3.start_offset();
+        let len = l3.shape().elem_count();
+        let Some(beta) = bs.try_slice(start..start + len) else {
+            candle_core::bail!("CUDA input layout exceeds its buffer");
         };
         let device = &s1.device;
-        let pass = self.cuda_pass(
+        // The forward reads only the row values; the one-element gradient
+        // slot is a bf16 placeholder.
+        let placeholder = zeros::<bf16>(device, 1)?;
+        let pass = self.cuda_pass_bf(
             device,
             logits,
             side,
             beta.slice(..),
-            beta.slice(..),
+            placeholder.as_view(),
             vocabulary,
             false,
         )?;
@@ -1561,11 +1472,12 @@ impl PointerMixture {
                 Arg::U32(u32_of(rows, "rows")?),
             ],
         )?;
-        Ok((storage(out, device), Shape::from(())))
+        Ok((storage_f32(out, device), Shape::from(())))
     }
 
-    /// The exact backward on CUDA: the logit, side and scale gradients.
-    pub(super) fn cuda_bwd(
+    /// The exact backward on CUDA with bf16 activation storage: the logit and
+    /// side gradients are bf16, the beta gradient is f32.
+    pub(super) fn cuda_bwd_bf(
         &self,
         device: &CudaDevice,
         logits: &Tensor,
@@ -1573,54 +1485,65 @@ impl PointerMixture {
         beta: &Tensor,
         grad: &Tensor,
     ) -> CResult<(Tensor, Tensor, Tensor)> {
-        if logits.dtype() == DType::BF16 {
-            return self.cuda_bwd_bf(device, logits, side, beta, grad);
-        }
         let (rows, vocabulary) = self.check(logits.layout(), side.layout(), beta.layout())?;
-        self.cuda_check(vocabulary)?;
+        self.cuda_check_bf(vocabulary)?;
         if grad.elem_count() != 1 {
             candle_core::bail!("pointer mixture backward expects a scalar gradient");
         }
-        let (lt, st, bt, gt) = (ready(logits)?, ready(side)?, ready(beta)?, ready(grad)?);
+        // The op's output is the f32 scalar loss, so its gradient arrives in
+        // f32; the kernel's one-element gradient slot is activation storage.
+        let grad = if grad.dtype() == DType::F32 {
+            grad.to_dtype(DType::BF16)?
+        } else {
+            grad.clone()
+        };
+        let (lt, st, bt, gt) = (
+            ready_bf(logits)?,
+            ready_bf(side)?,
+            ready_f32(beta)?,
+            ready_bf(&grad)?,
+        );
         let (ls, ll) = lt.storage_and_layout();
         let (ss, sl) = st.storage_and_layout();
-        let (bs, bl) = bt.storage_and_layout();
+        let (bs_, bl) = bt.storage_and_layout();
         let (gs, gl) = gt.storage_and_layout();
         let (lv, sv, bv, gv) = (
-            view(&ls, ll)?,
-            view(&ss, sl)?,
-            view(&bs, bl)?,
-            view(&gs, gl)?,
+            bf_view(&ls, ll)?,
+            bf_view(&ss, sl)?,
+            f32_view(&bs_, bl)?,
+            bf_view(&gs, gl)?,
         );
-        let pass = self.cuda_pass(device, lv.slice(..), sv.slice(..), bv, gv, vocabulary, true)?;
-        let dims = self.cuda_dims(rows, vocabulary, true)?;
-        launch(
+        let pass =
+            self.cuda_pass_bf(device, lv.slice(..), sv.slice(..), bv, gv, vocabulary, true)?;
+        let dims = self.cuda_dims_bf(rows, vocabulary, true)?;
+        launch_bf16(
             device,
             "pointer_side_grad",
             rows * 2 * self.dim,
             &[
-                Arg::F(sv),
+                Arg::B(sv),
                 Arg::d(&pass.scratch),
                 Arg::d(&pass.query_lift),
                 Arg::d(&pass.key_lift),
                 Arg::d(&pass.query_self),
-                Arg::f(&pass.d_side),
+                Arg::b(&pass.d_side),
                 Arg::Dims(dims),
             ],
         )?;
         // d z_v = c share_generate (softmax_v - [v = target]): the
-        // cross-entropy gradient kernel with the per-row factor.
-        let d_logits = uninit::<f32>(device, rows * vocabulary)?;
-        launch(
+        // cross-entropy gradient kernel with the per-row factor, on bf16
+        // logits and a bf16 logit gradient.
+        let d_logits = uninit::<bf16>(device, rows * vocabulary)?;
+        launch_bf16(
             device,
-            "cross_entropy_grad",
+            "cross_entropy_grad_act",
             rows * vocabulary,
             &[
-                Arg::F(lv),
+                Arg::B(lv),
                 Arg::u(&pass.targets),
                 Arg::d(&pass.lse),
                 Arg::d(&pass.scale_z),
-                Arg::f(&d_logits),
+                Arg::b(&d_logits),
                 Arg::U32(u32_of(rows, "rows")?),
                 Arg::U32(u32_of(vocabulary, "vocabulary")?),
             ],
@@ -1639,165 +1562,9 @@ impl PointerMixture {
             ],
         )?;
         Ok((
-            tensor(d_logits, device, logits.shape()),
-            tensor(pass.d_side, device, side.shape()),
-            tensor(d_beta, device, beta.shape()),
+            tensor_bf(d_logits, device, logits.shape()),
+            tensor_bf(pass.d_side, device, side.shape()),
+            tensor_f32(d_beta, device, beta.shape()),
         ))
     }
-}
-
-// ---------------------------------------------------------------------------
-// AdamW.
-
-/// [`adam_step`] on CUDA, in place in the variable's and moments' buffers,
-/// with the same f32 operations in the same order.
-pub(super) fn adam_step_cuda(
-    device: &CudaDevice,
-    var: &Var,
-    grad: &Tensor,
-    m: &Var,
-    v: &Var,
-    c: &AdamConstants,
-) -> CResult<()> {
-    let gradient = ready(grad)?;
-    let n = var.elem_count();
-    if gradient.elem_count() != n || m.elem_count() != n || v.elem_count() != n {
-        candle_core::bail!("CUDA AdamW sizes disagree");
-    }
-    let (ps, pl) = var.as_tensor().storage_and_layout();
-    let (gs, gl) = gradient.storage_and_layout();
-    let (ms, ml) = m.as_tensor().storage_and_layout();
-    let (vs, vl) = v.as_tensor().storage_and_layout();
-    let constants = [
-        c.scale, c.beta1, c.rest1, c.beta2, c.rest2, c.correct1, c.correct2, c.epsilon, c.keep,
-        c.lr,
-    ]
-    .map(f32::to_bits);
-    launch(
-        device,
-        "adam_update",
-        n,
-        &[
-            Arg::F(view(&ps, pl)?),
-            Arg::F(view(&ms, ml)?),
-            Arg::F(view(&vs, vl)?),
-            Arg::F(view(&gs, gl)?),
-            Arg::Adam(constants),
-            Arg::U32(u32_of(n, "size")?),
-        ],
-    )
-}
-
-// ---------------------------------------------------------------------------
-// Global gradient squared norm.
-
-/// Threads per block of `sq_lanes`: one warp per block spreads a tensor's
-/// (at most 1024) lanes over up to 32 multiprocessors.
-const SQ_LANE_BLOCK: usize = 32;
-
-/// The block width of Candle's `fast_sum` for an `n`-element full reduction.
-fn fast_sum_width(n: usize) -> usize {
-    n.min(1024).next_power_of_two()
-}
-
-/// `lanes[range]` as a view, or an error (never a panic) when out of range.
-fn sub_view(lanes: &CudaSlice<f32>, start: usize, len: usize) -> CResult<CudaView<'_, f32>> {
-    match lanes.try_slice(start..start + len) {
-        Some(view) => Ok(view),
-        None => candle_core::bail!("CUDA norm lane range exceeds its buffer"),
-    }
-}
-
-/// Writes Candle's per-thread `fast_sum` lane sums of the `n` values in `x`
-/// (squared first when `square`) into `out`, of length `fast_sum_width(n)`.
-fn sum_lanes(
-    device: &CudaDevice,
-    x: CudaView<'_, f32>,
-    n: usize,
-    out: CudaView<'_, f32>,
-    square: bool,
-) -> CResult<()> {
-    if n == 0 {
-        return Ok(());
-    }
-    let width = fast_sum_width(n);
-    launch_groups(
-        device,
-        "sq_lanes",
-        (width.div_ceil(SQ_LANE_BLOCK), 1, 1),
-        (SQ_LANE_BLOCK, 1, 1),
-        &[
-            Arg::F(x),
-            Arg::F(out),
-            Arg::U32(u32_of(n, "norm size")?),
-            Arg::U32(u32_of(width, "norm width")?),
-            Arg::U32(u32::from(square)),
-        ],
-    )
-}
-
-/// The sum over `tensors` of each one's squared entries, as one f32,
-/// bit-identical to Candle's
-/// `cat([t.sqr()?.sum_all()?.reshape(1)?, ..], 0)?.sum_all()?` on CUDA: the
-/// same f32 operations in the same order (see `sq_lanes` in the kernels),
-/// but each tensor's up-to-1024 lane sums run over many blocks instead of
-/// Candle's single block per full reduction. One host read.
-pub(super) fn squared_norm_cuda(device: &CudaDevice, tensors: &[&Tensor]) -> CResult<f32> {
-    if tensors.is_empty() {
-        candle_core::bail!("CUDA squared norm of no tensors");
-    }
-    let widths: Vec<usize> = tensors
-        .iter()
-        .map(|t| fast_sum_width(t.elem_count()))
-        .collect();
-    let lanes = zeros::<f32>(device, widths.iter().sum())?;
-    let mut segments = Vec::with_capacity(2 * tensors.len());
-    let mut offset = 0usize;
-    for (tensor, &width) in tensors.iter().zip(&widths) {
-        let tensor = ready(tensor)?;
-        let n = tensor.elem_count();
-        if n > 0 {
-            let (storage, layout) = tensor.storage_and_layout();
-            sum_lanes(
-                device,
-                view(&storage, layout)?,
-                n,
-                sub_view(&lanes, offset, width)?,
-                true,
-            )?;
-        }
-        segments.push(u32_of(offset, "norm offset")?);
-        segments.push(u32_of(width, "norm width")?);
-        offset += width;
-    }
-    let segments = device.clone_htod(&segments)?;
-    let count = tensors.len();
-    let sums = zeros::<f32>(device, count)?;
-    launch_groups(
-        device,
-        "sq_tree",
-        (count, 1, 1),
-        (1024, 1, 1),
-        &[Arg::f(&lanes), Arg::u(&segments), Arg::f(&sums)],
-    )?;
-    // The final `cat(..).sum_all()` over the per-tensor sums, unsquared.
-    let width = fast_sum_width(count);
-    let final_lanes = zeros::<f32>(device, width)?;
-    sum_lanes(
-        device,
-        sub_view(&sums, 0, count)?,
-        count,
-        final_lanes.as_view(),
-        false,
-    )?;
-    let segment = device.clone_htod(&[0u32, u32_of(width, "norm width")?])?;
-    let total = zeros::<f32>(device, 1)?;
-    launch_groups(
-        device,
-        "sq_tree",
-        (1, 1, 1),
-        (1024, 1, 1),
-        &[Arg::f(&final_lanes), Arg::u(&segment), Arg::f(&total)],
-    )?;
-    tensor(total, device, &Shape::from(())).to_scalar::<f32>()
 }

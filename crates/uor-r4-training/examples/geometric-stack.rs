@@ -277,9 +277,9 @@ use uor_r4_training::dialogue_episodes::{EpisodeIndex, PrefixPolicy, EPISODE_CON
 use uor_r4_training::flock::FlockSelect;
 use uor_r4_training::geometric_stack::{
     average_replica_gradients, logits_cross_entropy, parse_flock_select, parse_pointer_route,
-    parse_pointer_select, D11Interim, MapCodec, PointerConfig, PointerSelect, PrimeRoute,
-    ReadScore, RotationGroup, ServedStatistics, StackAdamW, StackArch, StackConfig, StackModel,
-    TransportSnap, TransportUsage,
+    parse_pointer_select, D11Interim, MapCodec, PointerConfig, PointerSelect, Precision,
+    PrimeRoute, ReadScore, RotationGroup, ServedStatistics, StackAdamW, StackArch, StackConfig,
+    StackModel, TransportSnap, TransportUsage,
 };
 use uor_r4_training::lut_export::export_llama;
 use uor_r4_training::stack_dialogue::{
@@ -718,6 +718,8 @@ struct Settings {
     /// `device=cpu|metal|cuda` (default cpu). A Metal or CUDA run needs the
     /// `metal` or `cuda` feature; ops without a GPU kernel run on host copies.
     device: Device,
+    /// `precision=f32|bf16` (default f32): the trunk's activation storage.
+    precision: Precision,
     /// `data_parallel=1|2` (default 1). 2: CUDA only; each step splits the
     /// batch into equal halves on GPUs 0 and 1, averages the replicas'
     /// gradients on GPU 0, updates there and copies the weights to GPU 1.
@@ -746,6 +748,57 @@ fn device_arg(args: &Args) -> Result<Device> {
 /// Whether CUDA f32 matmuls may use TF32 in this process (`tf32=`).
 fn tf32_enabled() -> bool {
     candle_core::cuda::gemm_reduced_precision_f32()
+}
+
+/// `precision=f32|bf16` (default f32): the activation storage of the trunk.
+/// `bf16` needs `device=cuda`: its matmuls are Candle's CUDA bf16 GEMMs (f32
+/// accumulation on tensor cores) and its custom kernels come from the bf16
+/// module of the CUDA stack kernels. Evaluation and saved models stay f32.
+fn precision_arg(args: &Args, device: &Device) -> Result<Precision> {
+    let precision = match args.optional("precision") {
+        None => Precision::F32,
+        Some(name) => Precision::parse(&name)?,
+    };
+    if precision.is_bf16() && !matches!(device, Device::Cuda(_)) {
+        return Err(invalid("precision=bf16 needs device=cuda"));
+    }
+    Ok(precision)
+}
+
+/// Refuses the options a bf16 run does not cover, before any work starts.
+fn check_bf16_options(
+    precision: Precision,
+    arch: StackArch,
+    qat: bool,
+    snapped: bool,
+    select: bool,
+    memory: bool,
+) -> Result<()> {
+    if !precision.is_bf16() {
+        return Ok(());
+    }
+    if arch != StackArch::Geometric {
+        return Err(invalid("precision=bf16 covers the geometric arms only"));
+    }
+    if memory {
+        return Err(invalid(
+            "precision=bf16 has no bf16 product-key memory kernels",
+        ));
+    }
+    if qat {
+        return Err(invalid("precision=bf16 does not run with qat=true"));
+    }
+    if snapped {
+        return Err(invalid(
+            "precision=bf16 has no bf16 recurrence kernel for transport_snap=",
+        ));
+    }
+    if select {
+        return Err(invalid(
+            "precision=bf16 has no bf16 read kernel for a flock selection",
+        ));
+    }
+    Ok(())
 }
 
 /// The served representation of `qat=true`.
@@ -1085,6 +1138,7 @@ impl Settings {
             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
             "final_windows": self.final_windows, "checkpoint_every": self.checkpoint_every,
             "sample_tokens": self.sample_tokens,
+            "precision": self.precision.name(),
         })
     }
 
@@ -1440,7 +1494,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
     {
         return Err(invalid("one positive train weight per training stream"));
     }
-    let settings = Settings {
+    let mut settings = Settings {
         train,
         train_weights,
         valid: PathBuf::from(args.required("valid")?),
@@ -1467,11 +1521,21 @@ fn train_settings(args: &Args) -> Result<Settings> {
         max_seconds: args.number("max_seconds", f64::INFINITY)?,
         sample_tokens: args.number("sample_tokens", 128)?,
         device: device_arg(args)?,
+        precision: Precision::F32,
         data_parallel: args.number("data_parallel", 1)?,
     };
+    settings.precision = precision_arg(args, &settings.device)?;
     if !(1..=2).contains(&settings.data_parallel) {
         return Err(invalid("data_parallel must be 1 or 2"));
     }
+    check_bf16_options(
+        settings.precision,
+        settings.config.arch,
+        settings.qat,
+        settings.transport_snap.is_some(),
+        settings.config.select.is_some(),
+        settings.config.memory.is_some(),
+    )?;
     if settings.data_parallel == 2
         && (!matches!(settings.device, Device::Cuda(_))
             || settings.batch % 2 != 0
@@ -1654,7 +1718,9 @@ fn in_both_modes<T>(
     model: &mut StackModel,
     f: impl Fn(&StackModel) -> Result<T>,
 ) -> Result<(T, Option<T>)> {
-    let current = f(model)?;
+    // Evaluation scores in f32 whatever the run's precision is: the dev and
+    // final NLL measure the trained weights, not the bf16 storage.
+    let current = model.scored_in_f32(|model| f(model))?;
     let float = match model.served_codec() {
         Some(_) => Some(model.with_float_forward(&f)?),
         None => None,
@@ -1685,8 +1751,9 @@ fn evaluate_transport(
     let Some(snap) = model.transport_snap() else {
         return Ok(None);
     };
-    let unsnapped =
-        model.with_unsnapped_transport(|model| evaluate(model, valid, lens, windows))?;
+    let unsnapped = model.scored_in_f32(|model| {
+        model.with_unsnapped_transport(|model| evaluate(model, valid, lens, windows))
+    })?;
     let time = model.config.context;
     let stride = (valid.len() - time - 1) / windows;
     let starts: Vec<usize> = (0..windows).map(|window| window * stride).collect();
@@ -1973,14 +2040,16 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
             (model, optimizer, progress, Some(state))
         }
     };
+    model.set_precision(settings.precision);
     let parameters = model.parameter_count();
     let active_parameters = model.config.active_parameter_count()?;
     eprintln!(
-        "{:?} pattern {} read {:?} rotation {}: {parameters} parameters ({active_parameters} read per token), mlp {}",
+        "{:?} pattern {} read {:?} rotation {} precision {}: {parameters} parameters ({active_parameters} read per token), mlp {}",
         model.config.arch,
         model.config.pattern,
         model.config.read,
         model.config.rotation,
+        settings.precision.name(),
         model.config.mlp_hidden
     );
     if settings.qat {
@@ -1992,6 +2061,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     // (after init= or a resume alike).
     let replica = if settings.data_parallel == 2 {
         let mut replica = StackModel::new(model.config.clone(), &Device::new_cuda(1)?)?;
+        replica.set_precision(settings.precision);
         replica.set_read_key_shift(model.read_key_shift())?;
         replica.copy_variables_from(&model)?;
         eprintln!(
@@ -2159,17 +2229,20 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         let _ = fs::remove_dir_all(out.join("checkpoint"));
     }
     let sample_record = if settings.sample_tokens > 0 {
-        samples(
-            &model,
-            &valid,
-            decoder.as_ref(),
-            3,
-            64,
-            settings.sample_tokens,
-            0.8,
-            40,
-            settings.config.seed,
-        )?
+        // Sampling reads the model like evaluation does: in f32.
+        model.scored_in_f32(|model| {
+            samples(
+                model,
+                &valid,
+                decoder.as_ref(),
+                3,
+                64,
+                settings.sample_tokens,
+                0.8,
+                40,
+                settings.config.seed,
+            )
+        })?
     } else {
         Value::Null
     };
@@ -3593,6 +3666,8 @@ struct DialogueSettings {
     /// `device=cpu|metal|cuda` (default cpu). A Metal or CUDA run needs the
     /// `metal` or `cuda` feature; ops without a GPU kernel run on host copies.
     device: Device,
+    /// `precision=f32|bf16` (default f32): the trunk's activation storage.
+    precision: Precision,
 }
 
 impl DialogueSettings {
@@ -3609,6 +3684,7 @@ impl DialogueSettings {
             "eval_every": self.eval_every, "dev_seed": self.dev_seed,
             "dev_per_source": self.dev_per_source, "checkpoint_every": self.checkpoint_every,
             "requests": self.requests, "max_new_tokens": self.max_new_tokens,
+            "precision": self.precision.name(),
         });
         if self.protocol != 1 {
             record["protocol"] = json!(self.protocol);
@@ -3763,13 +3839,14 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "pointer_route",
             "protocol",
             "tf32",
+            "precision",
         ],
     )?;
     // Validate the A1 options before anything is claimed or loaded.
     select_arg(&args)?;
     let pointer_requested = pointer_args(&args)?;
     let path = |key: &str| -> Result<PathBuf> { Ok(PathBuf::from(args.required(key)?)) };
-    let settings = DialogueSettings {
+    let mut settings = DialogueSettings {
         tokenizer: path("tokenizer")?,
         train: [
             path("train_tokens")?,
@@ -3791,6 +3868,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         pointer_select: args.optional("pointer_select"),
         pointer_route: args.optional("pointer_route"),
         policy: PrefixPolicy::parse(args.optional("policy").as_deref())?,
+        precision: Precision::F32,
         data_seed: args.number("data_seed", 1)?,
         steps: args.number("steps", 1024)?,
         batch: args.number("batch", 16)?,
@@ -3814,6 +3892,15 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         },
         device: device_arg(&args)?,
     };
+    settings.precision = precision_arg(&args, &settings.device)?;
+    check_bf16_options(
+        settings.precision,
+        StackArch::Geometric,
+        settings.qat,
+        settings.transport_snap.is_some(),
+        settings.select.is_some(),
+        false,
+    )?;
     if settings.steps == 0
         || !(1..=64).contains(&settings.batch)
         || settings.eval_every == 0
@@ -4001,7 +4088,9 @@ fn panel_transport(
     let Some(usage) = panel_transport_usage(model, dev, panel)? else {
         return Ok(None);
     };
-    let unsnapped = model.with_unsnapped_transport(|model| development(model, dev, panel, 16))?;
+    let unsnapped = model.scored_in_f32(|model| {
+        model.with_unsnapped_transport(|model| development(model, dev, panel, 16))
+    })?;
     Ok(Some((unsnapped, usage)))
 }
 
@@ -4119,16 +4208,18 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             (model, optimizer, progress, Some(state))
         }
     };
+    model.set_precision(s.precision);
     // After `init=` or a resume alike: the requested settings replace any mode the load restored.
     if s.qat {
         model.set_served_representation(Some(qat_codec()))?;
     }
     model.set_transport_snap(s.transport_snap)?;
     eprintln!(
-        "{:?} pattern {} read {:?}: {} parameters; {} training and {} development responses",
+        "{:?} pattern {} read {:?} precision {}: {} parameters; {} training and {} development responses",
         model.config.arch,
         model.config.pattern,
         model.config.read,
+        s.precision.name(),
         model.parameter_count(),
         train.episodes().len(),
         panel.len(),
@@ -5096,6 +5187,7 @@ fn main() -> Result<()> {
                     "key_shift",
                     "data_parallel",
                     "tf32",
+                    "precision",
                 ],
             )?;
             let settings = train_settings(&args)?;
