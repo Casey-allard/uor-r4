@@ -26,14 +26,24 @@ pub enum FeatureMode {
     Endpoint,
     LocalRelative,
     LocalProduct,
+    OrderedPrefixCarrier,
+    OrderedPrefixTransport,
 }
 impl FeatureMode {
     fn policy(self) -> &'static str {
-        match self {Self::Endpoint=>FEATURE_POLICY,Self::LocalRelative=>"frozen-signed-H4;ordered-independent-word;current-previous-inverse(previous)*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1",Self::LocalProduct=>"frozen-signed-H4;ordered-independent-word;current-previous-previous*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1"}
+        match self {Self::Endpoint=>FEATURE_POLICY,Self::LocalRelative=>"frozen-signed-H4;ordered-independent-word;current-previous-inverse(previous)*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1",Self::LocalProduct=>"frozen-signed-H4;ordered-independent-word;current-previous-previous*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1",Self::OrderedPrefixCarrier=>"frozen-signed-H4;local-product-base;incremental-ordered-prefix-before;added-prefix-unary;BOS-masked;aggregate-bias-once/1",Self::OrderedPrefixTransport=>"frozen-signed-H4;local-product-base;incremental-ordered-prefix-before;added-inverse(prefix-before)*current;BOS-masked;aggregate-bias-once/1"}
+    }
+    fn ordered_prefix(self) -> bool {
+        matches!(
+            self,
+            Self::OrderedPrefixCarrier | Self::OrderedPrefixTransport
+        )
     }
     fn turn_slots(self, lanes: usize) -> usize {
         if self == Self::Endpoint {
             lanes
+        } else if self.ordered_prefix() {
+            4 * lanes
         } else {
             3 * lanes
         }
@@ -41,6 +51,8 @@ impl FeatureMode {
     fn span_slots(self, lanes: usize) -> usize {
         if self == Self::Endpoint {
             3 * lanes
+        } else if self.ordered_prefix() {
+            5 * lanes
         } else {
             4 * lanes
         }
@@ -272,6 +284,13 @@ fn local_rows(
     }
     let mut rows = Vec::with_capacity(locals.len());
     let mut words = Vec::with_capacity(locals.len());
+    // Reuse the canonical H4 identity and exact ordered composition API.
+    // This carrier starts afresh for each source; no prefix is re-encoded.
+    let mut prefix = if mode.ordered_prefix() {
+        vec![H4Code::IDENTITY; lanes]
+    } else {
+        Vec::new()
+    };
     for (index, current) in locals.iter().enumerate() {
         let previous = index.checked_sub(1).and_then(|i| locals.get(i));
         let next = locals.get(index + 1);
@@ -290,11 +309,30 @@ fn local_rows(
         let mut row = current_roots.clone();
         row.extend(&previous_roots);
         row.extend(&transport);
-        rows.push(row);
         let mut word = current_roots;
         word.extend(previous_roots);
         word.extend((0..lanes).map(|lane| next.map(|n| n[lane].index())));
         word.extend(transport);
+        if mode.ordered_prefix() {
+            let added: Vec<Option<u8>> = (0..lanes)
+                .map(|lane| {
+                    if index == 0 {
+                        None
+                    } else {
+                        Some(match mode {
+                            FeatureMode::OrderedPrefixCarrier => prefix[lane].index(),
+                            _ => geometry.relative(prefix[lane], current[lane]).index(),
+                        })
+                    }
+                })
+                .collect();
+            row.extend(&added);
+            word.extend(added);
+            for lane in 0..lanes {
+                prefix[lane] = geometry.compose(prefix[lane], current[lane]);
+            }
+        }
+        rows.push(row);
         words.push(word);
     }
     Ok((rows, words))
@@ -738,11 +776,15 @@ impl<'a> NativeTurnCompiler<'a> {
         let endpoint = self.artifact.feature_mode == FeatureMode::Endpoint;
         let turn_groups: &[&str] = if endpoint {
             &["whole_turn"]
+        } else if self.artifact.feature_mode.ordered_prefix() {
+            &["current", "previous", "transport", "ordered_prefix"]
         } else {
             &["current", "previous", "transport"]
         };
         let span_groups: &[&str] = if endpoint {
             &["local_word", "turn_relative", "prefix_transport"]
+        } else if self.artifact.feature_mode.ordered_prefix() {
+            &["current", "previous", "next", "transport", "ordered_prefix"]
         } else {
             &["current", "previous", "next", "transport"]
         };
@@ -1566,6 +1608,67 @@ mod tests {
             FeatureMode::LocalRelative,
         )?;
         assert_eq!(singleton.1[0], vec![Some(1), None, None, None]);
+        Ok(())
+    }
+    #[test]
+    fn ordered_prefix_rows_are_incremental_directed_masked_and_reset() -> Result<()> {
+        let geometry = HistoricalH4Tables::from_bytes(include_bytes!(
+            "../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin"
+        ))
+        .map_err(|e| invalid(e.to_string()))?;
+        let mut witness = None;
+        'search: for a in 0..120u8 {
+            for b in 0..120u8 {
+                let a = H4Code::try_from(a).map_err(|e| invalid(e.to_string()))?;
+                let b = H4Code::try_from(b).map_err(|e| invalid(e.to_string()))?;
+                if geometry.compose(a, b) != geometry.compose(b, a)
+                    && geometry.relative(a, b) != geometry.relative(b, a)
+                {
+                    witness = Some((a, b));
+                    break 'search;
+                }
+            }
+        }
+        let (a, b) = witness.ok_or_else(|| invalid("ordered fixture absent"))?;
+        let locals = vec![vec![a; 8], vec![b; 8], vec![a; 8]];
+        let (base, base_span) = local_rows(&locals, &geometry, FeatureMode::LocalProduct)?;
+        let (carrier, carrier_span) =
+            local_rows(&locals, &geometry, FeatureMode::OrderedPrefixCarrier)?;
+        let (directed, directed_span) =
+            local_rows(&locals, &geometry, FeatureMode::OrderedPrefixTransport)?;
+        for i in 0..3 {
+            assert_eq!(&carrier[i][..24], base[i]);
+            assert_eq!(&directed[i][..24], base[i]);
+            assert_eq!(&carrier_span[i][..32], base_span[i]);
+            assert_eq!(&directed_span[i][..32], base_span[i]);
+            assert_eq!(carrier_span[i].len(), 40);
+            assert_eq!(carrier[i].len(), 32);
+        }
+        assert!(carrier[0][24..].iter().all(Option::is_none));
+        assert!(directed[0][24..].iter().all(Option::is_none));
+        let prefix = geometry.compose(a, b);
+        for lane in 0..8 {
+            assert_eq!(carrier[1][24 + lane], Some(a.index()));
+            assert_eq!(carrier[2][24 + lane], Some(prefix.index()));
+            let t = geometry.relative(prefix, a);
+            assert_eq!(directed[2][24 + lane], Some(t.index()));
+            // Exact information witness: T=P^-1*C => P=C*T^-1.
+            assert_eq!(geometry.compose(a, geometry.inverse(t)), prefix);
+            assert_eq!(directed_span[2][32 + lane], directed[2][24 + lane]);
+        }
+        let reversed = local_rows(
+            &[vec![b; 8], vec![a; 8], vec![a; 8]],
+            &geometry,
+            FeatureMode::OrderedPrefixCarrier,
+        )?;
+        assert_ne!(carrier[2][24], reversed.0[2][24]);
+        assert_eq!(
+            local_rows(&locals, &geometry, FeatureMode::OrderedPrefixCarrier)?,
+            (carrier, carrier_span)
+        );
+        assert_eq!(FeatureMode::Endpoint.turn_slots(8), 8);
+        assert_eq!(FeatureMode::LocalProduct.span_slots(8), 32);
+        assert_eq!(FeatureMode::OrderedPrefixTransport.span_slots(8), 40);
         Ok(())
     }
 }

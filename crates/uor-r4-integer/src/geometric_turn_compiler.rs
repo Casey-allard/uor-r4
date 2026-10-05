@@ -36,7 +36,7 @@ pub struct TurnHeadConfig {
 }
 impl TurnHeadConfig {
     pub fn coefficient_count(self) -> TurnHeadResult<usize> {
-        if !(2..=64).contains(&self.classes) || !(1..=32).contains(&self.slots) {
+        if !(2..=64).contains(&self.classes) || !(1..=40).contains(&self.slots) {
             return Err(TurnHeadError::InvalidConfig {
                 classes: self.classes,
                 slots: self.slots,
@@ -236,7 +236,7 @@ mod tests {
             },
             TurnHeadConfig {
                 classes: 2,
-                slots: 33,
+                slots: 41,
             },
         ] {
             assert!(cfg.coefficient_count().is_err());
@@ -281,6 +281,35 @@ mod tests {
         assert!(head.scores_rows(&vec![vec![None, None]; 65]).is_err());
         assert!(head.scores_masked(&[Some(120), None]).is_err());
         assert!(head.scores_masked(&[None]).is_err());
+        Ok(())
+    }
+    #[test]
+    fn forty_slots_preserve_signed_max_root_mask_and_bias_once(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let config = TurnHeadConfig {
+            classes: 2,
+            slots: 40,
+        };
+        let mut q = vec![0i8; config.coefficient_count()?];
+        q[0] = 3;
+        for slot in 0..40 {
+            q[1 + slot * ROOT_COUNT + 119] = -7;
+        }
+        let head = NativeTurnHead::new(config, &pack_coefficients(&q)?)?;
+        let mut row = vec![Some(119); 40];
+        row[39] = None;
+        assert_eq!(
+            head.scores_rows(&[row.clone(), row])?,
+            vec![3 - 2 * 39 * 7, 0]
+        );
+        assert_eq!(head.scores(&[119; 40])?, vec![3 - 40 * 7, 0]);
+        assert!(TurnHeadConfig {
+            classes: 2,
+            slots: 41
+        }
+        .coefficient_count()
+        .is_err());
+        assert!(head.scores_rows(&[vec![Some(119); 39]]).is_err());
         Ok(())
     }
 }

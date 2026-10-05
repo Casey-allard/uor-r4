@@ -252,6 +252,71 @@ fn fresh2_questions(relation: &str) -> Vec<Frame> {
         .map(|text| authored(relation, "query", text, "fresh-crossed-2"))
         .collect()
 }
+const FRESH3_VALUES: [&str; 8] = [
+    "Orielhaven",
+    "Fernwatch",
+    "Cobalt Causeway",
+    "Rosewood Terrace",
+    "moon compass beside brook",
+    "sunrise banner beyond glade",
+    "the moon compass rests beside the still brook",
+    "a sunrise banner stands beyond the shaded glade",
+];
+const FRESH3_NONE: [&str; 8] = [
+    "A stage backdrop depicts {v}.",
+    "Might a fable refer to {v}?",
+    "A playwright wrote this fictional line: My profession is {v}.",
+    "The museum labels a quotation: I live in {v}.",
+    "A proofreader circled {v} on a draft.",
+    "The invented diary contains the phrase {v}.",
+    "Does an old ballad describe {v}?",
+    "Students discussed the symbolism of {v}.",
+];
+fn fresh3_writes(relation: &str, a: &'static str) -> Vec<Frame> {
+    let frames = match (relation, a) {
+        ("job", "assert") => [
+            "Make a note of my occupation: {v}.",
+            "My own professional designation is {v}.",
+        ],
+        ("job", "update") => [
+            "Amend the occupation you remember for me to {v}.",
+            "My professional designation has changed to {v}.",
+        ],
+        ("home", "assert") => [
+            "Make a note of my residence: {v}.",
+            "My own residential location is {v}.",
+        ],
+        _ => [
+            "Amend the residence you remember for me to {v}.",
+            "My residential location has changed to {v}.",
+        ],
+    };
+    frames
+        .iter()
+        .map(|text| authored(relation, a, text, "fresh-crossed-3"))
+        .collect()
+}
+fn fresh3_questions(relation: &str) -> Vec<Frame> {
+    let frames = if relation == "job" {
+        [
+            "Tell me the occupation you currently remember for me.",
+            "What professional designation did I last give you?",
+            "Retrieve my recorded profession, please.",
+            "Which occupation did you retain about me?",
+        ]
+    } else {
+        [
+            "Tell me the residence you currently remember for me.",
+            "What residential location did I last give you?",
+            "Retrieve my recorded residence, please.",
+            "Which home location did you retain about me?",
+        ]
+    };
+    frames
+        .iter()
+        .map(|text| authored(relation, "query", text, "fresh-crossed-3"))
+        .collect()
+}
 const TRAIN_NONE: [&str; 16] = [
     "A story mentioned {v}.",
     "Someone painted a picture of {v}.",
@@ -463,58 +528,72 @@ fn episode(
 pub fn build() -> Result<Curriculum> {
     build_profile("crossed-1")
 }
-/// Crossed-2 changes only the prospective fresh panel and fresh store episodes.
+/// Crossed-2 and crossed-3 change only prospective fresh rows and store episodes.
 /// Training, development and opened factors remain exactly the retained inputs.
 pub fn build_profile(profile: &str) -> Result<Curriculum> {
-    if !matches!(profile, "crossed-1" | "crossed-2") {
+    if !matches!(profile, "crossed-1" | "crossed-2" | "crossed-3") {
         return Err(invalid("unknown crossed curriculum profile").into());
     }
     let curriculum = build_inner(profile)?;
-    if profile == "crossed-2" {
-        let old = build_inner("crossed-1")?;
-        let exposed_rows: Vec<&Example> = old
-            .training
-            .iter()
-            .chain(&old.development)
-            .chain(&old.fresh)
-            .chain(&old.known_phrasing_new_values)
-            .chain(&old.new_phrasing_known_values)
-            .chain(&old.repeated_values)
-            .chain(old.development_episodes.iter().flat_map(|e| e.turns.iter()))
-            .chain(old.fresh_episodes.iter().flat_map(|e| e.turns.iter()))
-            .collect();
-        let exposed_sources: BTreeSet<&str> =
-            exposed_rows.iter().map(|r| r.text.as_str()).collect();
-        let exposed_values: BTreeSet<&str> = exposed_rows
-            .iter()
-            .filter(|r| matches!(r.act, "assert" | "update"))
-            .filter_map(|r| r.slot_value())
-            .collect();
-        for value in FRESH2_VALUES {
-            if exposed_values.contains(value) {
-                return Err(invalid("crossed-2 fresh literal was previously exposed").into());
-            }
-        }
-        for row in curriculum.fresh.iter().chain(
-            curriculum
-                .fresh_episodes
+    if profile != "crossed-1" {
+        for old_profile in if profile == "crossed-3" {
+            vec!["crossed-1", "crossed-2"]
+        } else {
+            vec!["crossed-1"]
+        } {
+            let old = build_inner(old_profile)?;
+            let exposed_rows: Vec<&Example> = old
+                .training
                 .iter()
-                .flat_map(|e| e.turns.iter()),
-        ) {
-            if exposed_sources.contains(row.text.as_str()) {
-                return Err(invalid("crossed-2 fresh source was previously exposed").into());
+                .chain(&old.development)
+                .chain(&old.fresh)
+                .chain(&old.known_phrasing_new_values)
+                .chain(&old.new_phrasing_known_values)
+                .chain(&old.repeated_values)
+                .chain(old.development_episodes.iter().flat_map(|e| e.turns.iter()))
+                .chain(old.fresh_episodes.iter().flat_map(|e| e.turns.iter()))
+                .collect();
+            let exposed_sources: BTreeSet<&str> =
+                exposed_rows.iter().map(|r| r.text.as_str()).collect();
+            let exposed_values: BTreeSet<&str> = exposed_rows
+                .iter()
+                .filter(|r| matches!(r.act, "assert" | "update"))
+                .filter_map(|r| r.slot_value())
+                .collect();
+            for value in if profile == "crossed-3" {
+                FRESH3_VALUES
+            } else {
+                FRESH2_VALUES
+            } {
+                if exposed_values.contains(value) {
+                    return Err(invalid("fresh literal was previously exposed").into());
+                }
+            }
+            for row in curriculum.fresh.iter().chain(
+                curriculum
+                    .fresh_episodes
+                    .iter()
+                    .flat_map(|e| e.turns.iter()),
+            ) {
+                if exposed_sources.contains(row.text.as_str()) {
+                    return Err(invalid("fresh source was previously exposed").into());
+                }
             }
         }
     }
     Ok(curriculum)
 }
 fn build_inner(profile: &str) -> Result<Curriculum> {
-    let fresh_values = if profile == "crossed-2" {
+    let fresh_values = if profile == "crossed-3" {
+        &FRESH3_VALUES
+    } else if profile == "crossed-2" {
         &FRESH2_VALUES
     } else {
         &FRESH_VALUES
     };
-    let fresh_none = if profile == "crossed-2" {
+    let fresh_none = if profile == "crossed-3" {
+        &FRESH3_NONE
+    } else if profile == "crossed-2" {
         &FRESH2_NONE
     } else {
         &FRESH_NONE
@@ -564,7 +643,9 @@ fn build_inner(profile: &str) -> Result<Curriculum> {
             }
             let train = &candidates[..8];
             let wording = &candidates[8..10];
-            let new = if profile == "crossed-2" {
+            let new = if profile == "crossed-3" {
+                fresh3_writes(relation, a)
+            } else if profile == "crossed-2" {
                 fresh2_writes(relation, a)
             } else {
                 candidates[10..12].to_vec()
@@ -626,7 +707,9 @@ fn build_inner(profile: &str) -> Result<Curriculum> {
         if dev.len() != 16 {
             return Err(invalid("development question diversity inadequate").into());
         }
-        let new = if profile == "crossed-2" {
+        let new = if profile == "crossed-3" {
+            fresh3_questions(relation)
+        } else if profile == "crossed-2" {
             fresh2_questions(relation)
         } else {
             authored_questions(relation, "fresh")
@@ -782,7 +865,7 @@ fn build_inner(profile: &str) -> Result<Curriculum> {
             }
         }
     }
-    let manifest = json!({"schema":"uor-r4.compiler-crossed-curriculum/1","profile":profile,"fresh_exposed_exclusion":"crossed-2 rejects exact source/literal overlap with crossed-1 training/development/factors/fresh and all original store episode turns;driver additionally admits legacy/local exclusion;no claim of every encoder corpus exclusion","donor":donor,"partitions":partitions,"negative_frame_provenance":{"kind":"Rust-authored","training":TRAIN_NONE,"development":DEV_NONE,"fresh":fresh_none},"training_values":VALUES,"factor_values":FACTOR_VALUES,"fresh_values":fresh_values,"training_word_length_strata":[1,2,4,8],"factor_value_word_lengths":FACTOR_VALUES.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"fresh_value_word_lengths":fresh_values.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"training_schedule":"four cells8frames*8rotatingvalues;32values degree2percell;32distinctqueries4visits;16noneframes8rotatingvalues","selection":"128 distinct development source rows only;64 missing conjunction writes+32unseen questions+32unseen prose","panels":panels,"training_value_role_act_count":2,"development_conjunction_offsets":[8,17],"development_value_role_act_degree":1,"development_distinct_shared_conjunction_values":16,"runtime_templates":"labels/referenceinstrument only;never native features","exclusion_scope":"source-level train/dev/fresh disjoint;driver additionally checks exposed legacy/local panels","native_token_admission":"driver must verify all originaltext BPE <=128, not inferred from words","store_episodes":"predicted actions only;natural assertions/query;correct job and same-value home reassertion;both short-value orderings plus four/eight-word episode;expected values scorer only"});
+    let manifest = json!({"schema":"uor-r4.compiler-crossed-curriculum/1","profile":profile,"fresh_exposed_exclusion":"crossed-2 excludes crossed-1;crossed-3 excludes crossed-1+crossed-2 exact source/literal overlap across training/development/factors/fresh and original store episode turns;driver additionally admits legacy/local exclusion;no claim of every encoder corpus exclusion","donor":donor,"partitions":partitions,"negative_frame_provenance":{"kind":"Rust-authored","training":TRAIN_NONE,"development":DEV_NONE,"fresh":fresh_none},"training_values":VALUES,"factor_values":FACTOR_VALUES,"fresh_values":fresh_values,"training_word_length_strata":[1,2,4,8],"factor_value_word_lengths":FACTOR_VALUES.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"fresh_value_word_lengths":fresh_values.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"training_schedule":"four cells8frames*8rotatingvalues;32values degree2percell;32distinctqueries4visits;16noneframes8rotatingvalues","selection":"128 distinct development source rows only;64 missing conjunction writes+32unseen questions+32unseen prose","panels":panels,"training_value_role_act_count":2,"development_conjunction_offsets":[8,17],"development_value_role_act_degree":1,"development_distinct_shared_conjunction_values":16,"runtime_templates":"labels/referenceinstrument only;never native features","exclusion_scope":"source-level train/dev/fresh disjoint;driver additionally checks exposed legacy/local panels","native_token_admission":"driver must verify all originaltext BPE <=128, not inferred from words","store_episodes":"predicted actions only;natural assertions/query;correct job and same-value home reassertion;both short-value orderings plus four/eight-word episode;expected values scorer only"});
     Ok(Curriculum {
         training,
         development,
@@ -799,6 +882,64 @@ fn build_inner(profile: &str) -> Result<Curriculum> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn crossed3_retains_fixed_inputs_and_excludes_both_exposed_profiles() -> Result<()> {
+        let new = build_profile("crossed-3")?;
+        let identity = |rows: &[Example]| {
+            rows.iter()
+                .map(|r| {
+                    (
+                        r.text.clone(),
+                        r.relation.clone(),
+                        r.act,
+                        r.template.clone(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        for profile in ["crossed-1", "crossed-2"] {
+            let old = build_profile(profile)?;
+            for (a, b) in [
+                (&old.training, &new.training),
+                (&old.development, &new.development),
+                (
+                    &old.known_phrasing_new_values,
+                    &new.known_phrasing_new_values,
+                ),
+                (
+                    &old.new_phrasing_known_values,
+                    &new.new_phrasing_known_values,
+                ),
+                (&old.repeated_values, &new.repeated_values),
+            ] {
+                assert_eq!(identity(a), identity(b));
+            }
+            let exposed: BTreeSet<_> = old
+                .fresh
+                .iter()
+                .chain(old.fresh_episodes.iter().flat_map(|e| e.turns.iter()))
+                .map(|r| r.text.as_str())
+                .collect();
+            assert!(new
+                .fresh
+                .iter()
+                .chain(new.fresh_episodes.iter().flat_map(|e| e.turns.iter()))
+                .all(|r| !exposed.contains(r.text.as_str())));
+            let templates: BTreeSet<_> = old
+                .reference_templates
+                .iter()
+                .filter_map(|r| r.template.as_deref())
+                .collect();
+            assert!(new
+                .fresh
+                .iter()
+                .filter_map(|r| r.template.as_deref())
+                .all(|t| !templates.contains(t)));
+        }
+        assert_eq!(new.fresh.len(), 48);
+        assert_eq!(new.fresh_episodes.len(), 3);
+        Ok(())
+    }
     #[test]
     fn crossed2_changes_only_unexposed_fresh_rows_and_episodes() -> Result<()> {
         let old = build()?;

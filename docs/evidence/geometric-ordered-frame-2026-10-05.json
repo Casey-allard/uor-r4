@@ -1,0 +1,1540 @@
+{
+  "status": "measured component gains; selected fresh transfer unresolved",
+  "source_commit": "1068cf5f3f1398ad7691b9e81bee18908ef7cb9c",
+  "host": "Linux x86_64 approved pod CPU",
+  "threads": 48,
+  "gpu": false,
+  "tests": {
+    "integer": 4,
+    "training_library": 14,
+    "driver": 11,
+    "release": "PASS"
+  },
+  "executable_sha256": "dd8bde4a820ad029cc60b0b2141461c6f63dab4acb67edb8931dca909713f370",
+  "saved_audit": {
+    "status": "PASS",
+    "checks": 141472,
+    "exclusions": [
+      "native/BPE/backward/BLAKE3 independent reexecution",
+      "omitted raw per-head score reconstruction"
+    ]
+  },
+  "runs": [
+    {
+      "run": "ordered-prefix-carrier-seed1001",
+      "manifest_sha256": "d2ea31564e5bf4cc842ae57c07afae26bae7c822b9b8e07a03e85f01e8b32f8d",
+      "selected_step": 0,
+      "checkpoint_native_development_ce": [
+        2.5951503157129845,
+        4.2298712743043705,
+        3.449439423888127,
+        3.310820107078523,
+        3.3310584294209127
+      ],
+      "same_checkpoint_comparisons_to_conditional_product": {
+        "0": {
+          "training": {
+            "gains": 41,
+            "losses": 61,
+            "changed_actions": 419,
+            "new_complete": 71,
+            "old_complete": 91
+          },
+          "development": {
+            "gains": 8,
+            "losses": 12,
+            "changed_actions": 100,
+            "new_complete": 20,
+            "old_complete": 24
+          },
+          "known_phrasing_new_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 49,
+            "new_complete": 0,
+            "old_complete": 0
+          },
+          "new_phrasing_known_values": {
+            "gains": 0,
+            "losses": 1,
+            "changed_actions": 59,
+            "new_complete": 0,
+            "old_complete": 1
+          },
+          "repeated_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 12,
+            "new_complete": 0,
+            "old_complete": 0
+          }
+        },
+        "64": {
+          "training": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 512,
+            "old_complete": 508
+          },
+          "development": {
+            "gains": 3,
+            "losses": 12,
+            "changed_actions": 24,
+            "new_complete": 92,
+            "old_complete": 101
+          },
+          "known_phrasing_new_values": {
+            "gains": 11,
+            "losses": 2,
+            "changed_actions": 25,
+            "new_complete": 40,
+            "old_complete": 31
+          },
+          "new_phrasing_known_values": {
+            "gains": 9,
+            "losses": 3,
+            "changed_actions": 14,
+            "new_complete": 54,
+            "old_complete": 48
+          },
+          "repeated_values": {
+            "gains": 2,
+            "losses": 0,
+            "changed_actions": 2,
+            "new_complete": 10,
+            "old_complete": 8
+          }
+        }
+      },
+      "selected_comparison_to_prior_selected": {
+        "training": {
+          "gains": 0,
+          "losses": 430,
+          "changed_actions": 439,
+          "new_complete": 71,
+          "old_complete": 501
+        },
+        "development": {
+          "gains": 5,
+          "losses": 88,
+          "changed_actions": 107,
+          "new_complete": 20,
+          "old_complete": 103
+        },
+        "known_phrasing_new_values": {
+          "gains": 0,
+          "losses": 28,
+          "changed_actions": 64,
+          "new_complete": 0,
+          "old_complete": 28
+        },
+        "new_phrasing_known_values": {
+          "gains": 0,
+          "losses": 42,
+          "changed_actions": 50,
+          "new_complete": 0,
+          "old_complete": 42
+        },
+        "repeated_values": {
+          "gains": 0,
+          "losses": 11,
+          "changed_actions": 16,
+          "new_complete": 0,
+          "old_complete": 11
+        }
+      },
+      "stores": {
+        "development": {
+          "totals": {
+            "query_rows": 12,
+            "native_reader_calls": 2
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 5,
+              "lane": "selected-record",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 5,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            }
+          ]
+        },
+        "fresh": {
+          "totals": {
+            "query_rows": 12,
+            "native_reader_calls": 5
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "fresh-order-forward",
+              "step": 5,
+              "lane": "selected-record",
+              "reply": "professional pro.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-order-forward",
+              "step": 5,
+              "lane": "all-bank",
+              "reply": "professional pro.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-order-reversed",
+              "step": 5,
+              "lane": "selected-record",
+              "reply": "professional pro.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-order-reversed",
+              "step": 5,
+              "lane": "all-bank",
+              "reply": "professional pro.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 5,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            }
+          ]
+        }
+      },
+      "fresh": {
+        "act_correct": 9,
+        "complete_exact": 6,
+        "examples": 48,
+        "prose_false_writes": 2,
+        "prose_rows": 8,
+        "query_complete_exact": 2,
+        "query_rows": 8,
+        "relation_correct": 13,
+        "span_exact": 13,
+        "write_act_correct": 2,
+        "write_complete_exact": 0,
+        "write_relation_correct": 6,
+        "write_rows": 32,
+        "write_span_exact": 0
+      }
+    },
+    {
+      "run": "ordered-prefix-transport-seed1001",
+      "manifest_sha256": "1651af0644d54697f46a270c35da42ccf959708572b6f0a91c2dbb19857a2632",
+      "selected_step": 0,
+      "checkpoint_native_development_ce": [
+        2.483123517276768,
+        3.735225743675106,
+        3.7474360457753133,
+        3.7150797970557567,
+        3.7392477400258417
+      ],
+      "same_checkpoint_comparisons_to_conditional_product": {
+        "0": {
+          "training": {
+            "gains": 35,
+            "losses": 64,
+            "changed_actions": 406,
+            "new_complete": 62,
+            "old_complete": 91
+          },
+          "development": {
+            "gains": 9,
+            "losses": 14,
+            "changed_actions": 105,
+            "new_complete": 19,
+            "old_complete": 24
+          },
+          "known_phrasing_new_values": {
+            "gains": 1,
+            "losses": 0,
+            "changed_actions": 55,
+            "new_complete": 1,
+            "old_complete": 0
+          },
+          "new_phrasing_known_values": {
+            "gains": 0,
+            "losses": 1,
+            "changed_actions": 54,
+            "new_complete": 0,
+            "old_complete": 1
+          },
+          "repeated_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 11,
+            "new_complete": 0,
+            "old_complete": 0
+          }
+        },
+        "64": {
+          "training": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 512,
+            "old_complete": 508
+          },
+          "development": {
+            "gains": 2,
+            "losses": 15,
+            "changed_actions": 30,
+            "new_complete": 88,
+            "old_complete": 101
+          },
+          "known_phrasing_new_values": {
+            "gains": 14,
+            "losses": 4,
+            "changed_actions": 30,
+            "new_complete": 41,
+            "old_complete": 31
+          },
+          "new_phrasing_known_values": {
+            "gains": 14,
+            "losses": 3,
+            "changed_actions": 19,
+            "new_complete": 59,
+            "old_complete": 48
+          },
+          "repeated_values": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 12,
+            "old_complete": 8
+          }
+        }
+      },
+      "selected_comparison_to_prior_selected": {
+        "training": {
+          "gains": 0,
+          "losses": 439,
+          "changed_actions": 449,
+          "new_complete": 62,
+          "old_complete": 501
+        },
+        "development": {
+          "gains": 4,
+          "losses": 88,
+          "changed_actions": 108,
+          "new_complete": 19,
+          "old_complete": 103
+        },
+        "known_phrasing_new_values": {
+          "gains": 0,
+          "losses": 27,
+          "changed_actions": 63,
+          "new_complete": 1,
+          "old_complete": 28
+        },
+        "new_phrasing_known_values": {
+          "gains": 0,
+          "losses": 42,
+          "changed_actions": 52,
+          "new_complete": 0,
+          "old_complete": 42
+        },
+        "repeated_values": {
+          "gains": 0,
+          "losses": 11,
+          "changed_actions": 16,
+          "new_complete": 0,
+          "old_complete": 11
+        }
+      },
+      "stores": {
+        "development": {
+          "totals": {
+            "query_rows": 12,
+            "native_reader_calls": 2
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 1,
+              "lane": "selected-record",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 1,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            }
+          ]
+        },
+        "fresh": {
+          "totals": {
+            "query_rows": 12
+          },
+          "actual_reader_outputs": []
+        }
+      },
+      "fresh": {
+        "act_correct": 5,
+        "complete_exact": 1,
+        "examples": 48,
+        "prose_false_writes": 2,
+        "prose_rows": 8,
+        "query_complete_exact": 0,
+        "query_rows": 8,
+        "relation_correct": 6,
+        "span_exact": 11,
+        "write_act_correct": 3,
+        "write_complete_exact": 0,
+        "write_relation_correct": 3,
+        "write_rows": 32,
+        "write_span_exact": 0
+      }
+    },
+    {
+      "run": "ordered-prefix-carrier-seed1002",
+      "manifest_sha256": "9f3a75136e64e2ee4c855f21f08d67bc58317d0913a1ff59db712e4ff9dc5198",
+      "selected_step": 0,
+      "checkpoint_native_development_ce": [
+        2.562118661512998,
+        4.7554858283900066,
+        3.04567948881213,
+        2.7504268424343987,
+        2.7580665235355086
+      ],
+      "same_checkpoint_comparisons_to_conditional_product": {
+        "0": {
+          "training": {
+            "gains": 31,
+            "losses": 30,
+            "changed_actions": 394,
+            "new_complete": 78,
+            "old_complete": 77
+          },
+          "development": {
+            "gains": 0,
+            "losses": 19,
+            "changed_actions": 109,
+            "new_complete": 9,
+            "old_complete": 28
+          },
+          "known_phrasing_new_values": {
+            "gains": 0,
+            "losses": 2,
+            "changed_actions": 54,
+            "new_complete": 0,
+            "old_complete": 2
+          },
+          "new_phrasing_known_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 49,
+            "new_complete": 0,
+            "old_complete": 0
+          },
+          "repeated_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 15,
+            "new_complete": 0,
+            "old_complete": 0
+          }
+        },
+        "64": {
+          "training": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 512,
+            "old_complete": 508
+          },
+          "development": {
+            "gains": 3,
+            "losses": 15,
+            "changed_actions": 30,
+            "new_complete": 89,
+            "old_complete": 101
+          },
+          "known_phrasing_new_values": {
+            "gains": 11,
+            "losses": 1,
+            "changed_actions": 21,
+            "new_complete": 47,
+            "old_complete": 37
+          },
+          "new_phrasing_known_values": {
+            "gains": 13,
+            "losses": 1,
+            "changed_actions": 14,
+            "new_complete": 63,
+            "old_complete": 51
+          },
+          "repeated_values": {
+            "gains": 1,
+            "losses": 2,
+            "changed_actions": 3,
+            "new_complete": 10,
+            "old_complete": 11
+          }
+        }
+      },
+      "selected_comparison_to_prior_selected": {
+        "training": {
+          "gains": 0,
+          "losses": 426,
+          "changed_actions": 438,
+          "new_complete": 78,
+          "old_complete": 504
+        },
+        "development": {
+          "gains": 3,
+          "losses": 98,
+          "changed_actions": 118,
+          "new_complete": 9,
+          "old_complete": 104
+        },
+        "known_phrasing_new_values": {
+          "gains": 0,
+          "losses": 38,
+          "changed_actions": 63,
+          "new_complete": 0,
+          "old_complete": 38
+        },
+        "new_phrasing_known_values": {
+          "gains": 0,
+          "losses": 49,
+          "changed_actions": 62,
+          "new_complete": 0,
+          "old_complete": 49
+        },
+        "repeated_values": {
+          "gains": 0,
+          "losses": 12,
+          "changed_actions": 16,
+          "new_complete": 0,
+          "old_complete": 12
+        }
+      },
+      "stores": {
+        "development": {
+          "totals": {
+            "query_rows": 12
+          },
+          "actual_reader_outputs": []
+        },
+        "fresh": {
+          "totals": {
+            "query_rows": 12
+          },
+          "actual_reader_outputs": []
+        }
+      },
+      "fresh": {
+        "act_correct": 7,
+        "complete_exact": 6,
+        "examples": 48,
+        "prose_false_writes": 1,
+        "prose_rows": 8,
+        "query_complete_exact": 0,
+        "query_rows": 8,
+        "relation_correct": 15,
+        "span_exact": 13,
+        "write_act_correct": 1,
+        "write_complete_exact": 0,
+        "write_relation_correct": 8,
+        "write_rows": 32,
+        "write_span_exact": 0
+      }
+    },
+    {
+      "run": "ordered-prefix-transport-seed1002",
+      "manifest_sha256": "0d04bd9dbe20b3a08899b236294d0bcd9f6d64fa9b54f35dde7be9da41546e1b",
+      "selected_step": 64,
+      "checkpoint_native_development_ce": [
+        2.6749539859676172,
+        5.047858820066852,
+        2.9297694623534443,
+        2.64864374606708,
+        2.6156273284356533
+      ],
+      "same_checkpoint_comparisons_to_conditional_product": {
+        "64": {
+          "training": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 512,
+            "old_complete": 508
+          },
+          "development": {
+            "gains": 1,
+            "losses": 11,
+            "changed_actions": 25,
+            "new_complete": 91,
+            "old_complete": 101
+          },
+          "known_phrasing_new_values": {
+            "gains": 11,
+            "losses": 1,
+            "changed_actions": 19,
+            "new_complete": 47,
+            "old_complete": 37
+          },
+          "new_phrasing_known_values": {
+            "gains": 9,
+            "losses": 8,
+            "changed_actions": 18,
+            "new_complete": 52,
+            "old_complete": 51
+          },
+          "repeated_values": {
+            "gains": 1,
+            "losses": 1,
+            "changed_actions": 2,
+            "new_complete": 11,
+            "old_complete": 11
+          }
+        }
+      },
+      "selected_comparison_to_prior_selected": {
+        "training": {
+          "gains": 8,
+          "losses": 0,
+          "changed_actions": 8,
+          "new_complete": 512,
+          "old_complete": 504
+        },
+        "development": {
+          "gains": 1,
+          "losses": 14,
+          "changed_actions": 25,
+          "new_complete": 91,
+          "old_complete": 104
+        },
+        "known_phrasing_new_values": {
+          "gains": 10,
+          "losses": 1,
+          "changed_actions": 17,
+          "new_complete": 47,
+          "old_complete": 38
+        },
+        "new_phrasing_known_values": {
+          "gains": 10,
+          "losses": 7,
+          "changed_actions": 18,
+          "new_complete": 52,
+          "old_complete": 49
+        },
+        "repeated_values": {
+          "gains": 0,
+          "losses": 1,
+          "changed_actions": 1,
+          "new_complete": 11,
+          "old_complete": 12
+        }
+      },
+      "stores": {
+        "development": {
+          "totals": {
+            "query_rows": 12,
+            "exact_store_answers": 6,
+            "native_reader_calls": 12,
+            "selected_record_complete": 3,
+            "all_bank_complete": 1
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "development-order-forward",
+              "step": 2,
+              "lane": "selected-record",
+              "reply": "mariner.",
+              "eos": true,
+              "complete": true,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-forward",
+              "step": 2,
+              "lane": "all-bank",
+              "reply": "mariner.",
+              "eos": true,
+              "complete": true,
+              "record_count": 2
+            },
+            {
+              "episode": "development-order-forward",
+              "step": 6,
+              "lane": "selected-record",
+              "reply": "botanist.istotististananot b.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-forward",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "botanistan.",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            },
+            {
+              "episode": "development-order-reversed",
+              "step": 2,
+              "lane": "selected-record",
+              "reply": "mariner.",
+              "eos": true,
+              "complete": true,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-reversed",
+              "step": 2,
+              "lane": "all-bank",
+              "reply": "carpenter.",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            },
+            {
+              "episode": "development-order-reversed",
+              "step": 6,
+              "lane": "selected-record",
+              "reply": "botanist.istotististananot b.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-reversed",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "botanistan.",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 2,
+              "lane": "selected-record",
+              "reply": ".",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 2,
+              "lane": "all-bank",
+              "reply": "quiet ced.",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 6,
+              "lane": "selected-record",
+              "reply": "bright willow beyond meadow.",
+              "eos": true,
+              "complete": true,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "the quiet",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            }
+          ]
+        },
+        "fresh": {
+          "totals": {
+            "query_rows": 12
+          },
+          "actual_reader_outputs": []
+        }
+      },
+      "fresh": {
+        "act_correct": 16,
+        "complete_exact": 10,
+        "examples": 48,
+        "prose_false_writes": 0,
+        "prose_rows": 8,
+        "query_complete_exact": 0,
+        "query_rows": 8,
+        "relation_correct": 18,
+        "span_exact": 17,
+        "write_act_correct": 8,
+        "write_complete_exact": 2,
+        "write_relation_correct": 8,
+        "write_rows": 32,
+        "write_span_exact": 4
+      }
+    },
+    {
+      "run": "ordered-prefix-carrier-seed1003",
+      "manifest_sha256": "e349a20ec3e1cf424ed6df514c419ba000920397f47bb077f192f5bda7c03fd3",
+      "selected_step": 0,
+      "checkpoint_native_development_ce": [
+        2.047592855660997,
+        3.362238639329927,
+        3.50605696014303,
+        3.8060961294879654,
+        3.8971949860508945
+      ],
+      "same_checkpoint_comparisons_to_conditional_product": {
+        "0": {
+          "training": {
+            "gains": 35,
+            "losses": 59,
+            "changed_actions": 409,
+            "new_complete": 58,
+            "old_complete": 82
+          },
+          "development": {
+            "gains": 14,
+            "losses": 6,
+            "changed_actions": 101,
+            "new_complete": 19,
+            "old_complete": 11
+          },
+          "known_phrasing_new_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 54,
+            "new_complete": 0,
+            "old_complete": 0
+          },
+          "new_phrasing_known_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 59,
+            "new_complete": 0,
+            "old_complete": 0
+          },
+          "repeated_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 13,
+            "new_complete": 0,
+            "old_complete": 0
+          }
+        },
+        "64": {
+          "training": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 512,
+            "old_complete": 508
+          },
+          "development": {
+            "gains": 2,
+            "losses": 15,
+            "changed_actions": 30,
+            "new_complete": 88,
+            "old_complete": 101
+          },
+          "known_phrasing_new_values": {
+            "gains": 11,
+            "losses": 5,
+            "changed_actions": 18,
+            "new_complete": 41,
+            "old_complete": 35
+          },
+          "new_phrasing_known_values": {
+            "gains": 22,
+            "losses": 0,
+            "changed_actions": 25,
+            "new_complete": 61,
+            "old_complete": 39
+          },
+          "repeated_values": {
+            "gains": 4,
+            "losses": 1,
+            "changed_actions": 5,
+            "new_complete": 11,
+            "old_complete": 8
+          }
+        }
+      },
+      "selected_comparison_to_prior_selected": {
+        "training": {
+          "gains": 0,
+          "losses": 377,
+          "changed_actions": 451,
+          "new_complete": 58,
+          "old_complete": 435
+        },
+        "development": {
+          "gains": 10,
+          "losses": 83,
+          "changed_actions": 116,
+          "new_complete": 19,
+          "old_complete": 92
+        },
+        "known_phrasing_new_values": {
+          "gains": 0,
+          "losses": 31,
+          "changed_actions": 63,
+          "new_complete": 0,
+          "old_complete": 31
+        },
+        "new_phrasing_known_values": {
+          "gains": 0,
+          "losses": 38,
+          "changed_actions": 63,
+          "new_complete": 0,
+          "old_complete": 38
+        },
+        "repeated_values": {
+          "gains": 0,
+          "losses": 9,
+          "changed_actions": 14,
+          "new_complete": 0,
+          "old_complete": 9
+        }
+      },
+      "stores": {
+        "development": {
+          "totals": {
+            "query_rows": 12,
+            "exact_store_answers": 0,
+            "native_reader_calls": 14,
+            "selected_record_complete": 0,
+            "all_bank_complete": 0
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "development-order-forward",
+              "step": 6,
+              "lane": "selected-record",
+              "reply": "I inhabit a.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-forward",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "I inhabit a.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-forward",
+              "step": 7,
+              "lane": "all-bank",
+              "reply": "I inhabit a.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-reversed",
+              "step": 6,
+              "lane": "selected-record",
+              "reply": "I inhabit a.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-reversed",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "I inhabit a.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-order-reversed",
+              "step": 7,
+              "lane": "all-bank",
+              "reply": "I inhabit a.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 2,
+              "lane": "all-bank",
+              "reply": "in.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 3,
+              "lane": "selected-record",
+              "reply": ".",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 3,
+              "lane": "all-bank",
+              "reply": ".",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 4,
+              "lane": "selected-record",
+              "reply": "in",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 4,
+              "lane": "all-bank",
+              "reply": "in",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": ".",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 7,
+              "lane": "selected-record",
+              "reply": "I inhabit a",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 7,
+              "lane": "all-bank",
+              "reply": "I inhabit a",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            }
+          ]
+        },
+        "fresh": {
+          "totals": {
+            "query_rows": 12,
+            "exact_store_answers": 0,
+            "native_reader_calls": 4,
+            "all_bank_complete": 0,
+            "selected_record_complete": 0
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "fresh-order-forward",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-order-reversed",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 6,
+              "lane": "selected-record",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            }
+          ]
+        }
+      },
+      "fresh": {
+        "act_correct": 8,
+        "complete_exact": 4,
+        "examples": 48,
+        "prose_false_writes": 3,
+        "prose_rows": 8,
+        "query_complete_exact": 2,
+        "query_rows": 8,
+        "relation_correct": 23,
+        "span_exact": 12,
+        "write_act_correct": 3,
+        "write_complete_exact": 0,
+        "write_relation_correct": 18,
+        "write_rows": 32,
+        "write_span_exact": 0
+      }
+    },
+    {
+      "run": "ordered-prefix-transport-seed1003",
+      "manifest_sha256": "907362f93d61119112771c8e1696056ae3abb3ad75ec68741778bda4c0717d61",
+      "selected_step": 0,
+      "checkpoint_native_development_ce": [
+        1.9342536408813373,
+        3.0203933500980393,
+        3.6654156414950205,
+        4.0497371837164415,
+        4.1094357570702735
+      ],
+      "same_checkpoint_comparisons_to_conditional_product": {
+        "0": {
+          "training": {
+            "gains": 48,
+            "losses": 52,
+            "changed_actions": 421,
+            "new_complete": 78,
+            "old_complete": 82
+          },
+          "development": {
+            "gains": 19,
+            "losses": 7,
+            "changed_actions": 104,
+            "new_complete": 23,
+            "old_complete": 11
+          },
+          "known_phrasing_new_values": {
+            "gains": 1,
+            "losses": 0,
+            "changed_actions": 56,
+            "new_complete": 1,
+            "old_complete": 0
+          },
+          "new_phrasing_known_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 50,
+            "new_complete": 0,
+            "old_complete": 0
+          },
+          "repeated_values": {
+            "gains": 0,
+            "losses": 0,
+            "changed_actions": 12,
+            "new_complete": 0,
+            "old_complete": 0
+          }
+        },
+        "64": {
+          "training": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 512,
+            "old_complete": 508
+          },
+          "development": {
+            "gains": 1,
+            "losses": 19,
+            "changed_actions": 38,
+            "new_complete": 83,
+            "old_complete": 101
+          },
+          "known_phrasing_new_values": {
+            "gains": 10,
+            "losses": 8,
+            "changed_actions": 25,
+            "new_complete": 37,
+            "old_complete": 35
+          },
+          "new_phrasing_known_values": {
+            "gains": 19,
+            "losses": 1,
+            "changed_actions": 26,
+            "new_complete": 57,
+            "old_complete": 39
+          },
+          "repeated_values": {
+            "gains": 4,
+            "losses": 0,
+            "changed_actions": 4,
+            "new_complete": 12,
+            "old_complete": 8
+          }
+        }
+      },
+      "selected_comparison_to_prior_selected": {
+        "training": {
+          "gains": 0,
+          "losses": 357,
+          "changed_actions": 429,
+          "new_complete": 78,
+          "old_complete": 435
+        },
+        "development": {
+          "gains": 9,
+          "losses": 78,
+          "changed_actions": 110,
+          "new_complete": 23,
+          "old_complete": 92
+        },
+        "known_phrasing_new_values": {
+          "gains": 1,
+          "losses": 31,
+          "changed_actions": 64,
+          "new_complete": 1,
+          "old_complete": 31
+        },
+        "new_phrasing_known_values": {
+          "gains": 0,
+          "losses": 38,
+          "changed_actions": 60,
+          "new_complete": 0,
+          "old_complete": 38
+        },
+        "repeated_values": {
+          "gains": 0,
+          "losses": 9,
+          "changed_actions": 14,
+          "new_complete": 0,
+          "old_complete": 9
+        }
+      },
+      "stores": {
+        "development": {
+          "totals": {
+            "query_rows": 12,
+            "exact_store_answers": 0,
+            "native_reader_calls": 10,
+            "all_bank_complete": 0,
+            "selected_record_complete": 0
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 1,
+              "lane": "selected-record",
+              "reply": "am aed a hararbor c.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 1,
+              "lane": "all-bank",
+              "reply": "am aed a hararbor c.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 2,
+              "lane": "all-bank",
+              "reply": "am a prof aionb a quieted.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 3,
+              "lane": "selected-record",
+              "reply": "am a professional quiet cedar beside harbor caror pro",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 3,
+              "lane": "all-bank",
+              "reply": "am a professional quiet cedar beside harbor caror pro",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 4,
+              "lane": "selected-record",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 4,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "cedar stands be.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 7,
+              "lane": "selected-record",
+              "reply": "cedar stands beside a blue.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "development-four-eight-word-values",
+              "step": 7,
+              "lane": "all-bank",
+              "reply": "cedar stands beside a blue.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            }
+          ]
+        },
+        "fresh": {
+          "totals": {
+            "query_rows": 12,
+            "exact_store_answers": 0,
+            "native_reader_calls": 10,
+            "all_bank_complete": 0,
+            "selected_record_complete": 0
+          },
+          "actual_reader_outputs": [
+            {
+              "episode": "fresh-order-forward",
+              "step": 5,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-order-forward",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-order-reversed",
+              "step": 5,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-order-reversed",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 2,
+              "lane": "selected-record",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 2,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 4,
+              "lane": "selected-record",
+              "reply": "my residence my res.",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 4,
+              "lane": "all-bank",
+              "reply": "current.",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 6,
+              "lane": "selected-record",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 1
+            },
+            {
+              "episode": "fresh-four-eight-word-values",
+              "step": 6,
+              "lane": "all-bank",
+              "reply": "",
+              "eos": true,
+              "complete": false,
+              "record_count": 2
+            }
+          ]
+        }
+      },
+      "fresh": {
+        "act_correct": 8,
+        "complete_exact": 4,
+        "examples": 48,
+        "prose_false_writes": 4,
+        "prose_rows": 8,
+        "query_complete_exact": 1,
+        "query_rows": 8,
+        "relation_correct": 25,
+        "span_exact": 9,
+        "write_act_correct": 3,
+        "write_complete_exact": 0,
+        "write_relation_correct": 19,
+        "write_rows": 32,
+        "write_span_exact": 0
+      }
+    }
+  ],
+  "matched_cp64_pooled": {
+    "training": {
+      "new": 3072,
+      "old": 3048,
+      "gains": 24,
+      "losses": 0
+    },
+    "development": {
+      "new": 531,
+      "old": 606,
+      "gains": 12,
+      "losses": 87
+    },
+    "known_phrasing_new_values": {
+      "new": 253,
+      "old": 206,
+      "gains": 68,
+      "losses": 21
+    },
+    "new_phrasing_known_values": {
+      "new": 346,
+      "old": 276,
+      "gains": 86,
+      "losses": 16
+    },
+    "repeated_values": {
+      "new": 66,
+      "old": 54,
+      "gains": 16,
+      "losses": 4
+    }
+  },
+  "cost": {
+    "build_worker_seconds": 847.0545655400492,
+    "model_worker_seconds": 25.65932525927201,
+    "wrapper_seconds_excluding_storage_pause": 902.0391214271076,
+    "archive_io_timestamp_estimate_seconds": 623,
+    "archive_io_projection_seconds": 360,
+    "sampled_tree_rss_bytes": 3822182400,
+    "child_rusage_maxrss_bytes": 4151422976,
+    "owned_pod_bytes": 7430623232,
+    "os_free_bytes": 5596250112,
+    "ledger_cumulative_ms": 1292235028,
+    "ledger_limit_ms": 1293000000,
+    "card_seconds": 7200
+  },
+  "return": {
+    "fit_files": 341,
+    "fit_bytes": 429069043,
+    "outer_members": 73,
+    "outer_bytes": 29839360,
+    "sha256": "36046354bfaa0f068b35f2f040d10d20108fc4a13fb8017610b0d99de1498092"
+  },
+  "next": "Natural reader observed-root credit and learned task-relevant frame/capture representations; drafts NOT_COMPILED/NOT_RUN",
+  "limits": [
+    "three head seeds on one frozen encoder, not independent chat lineages",
+    "pooled repeated rows, not independent cases",
+    "fresh crossed3 exposed after selection",
+    "no consistent carrier/transport winner",
+    "no general chat/reasoning or laptop energy qualification"
+  ]
+}
