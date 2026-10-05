@@ -146,6 +146,16 @@
 //!   line just before the query's own user turn instead, so that the question
 //!   stays the last turn.
 //!
+//! `device=cpu|cuda|metal` (`evaluate`, `evaluate-cells`, `probe` and
+//! `session`; default `cpu`, so a command without it is unchanged) runs the
+//! emitter's float forward passes there, and a session's op-model `trunk=`
+//! and `evaluate`'s `route_trunk=` with it. Compiler tables, the sieve, the
+//! exact store and judging stay on the CPU. `cuda` needs a `--features cuda`
+//! build (`metal`: `--features metal`); the card is ordinal 0 of
+//! CUDA_VISIBLE_DEVICES. There is no fallback, TF32 is off, and each report
+//! records the device. Greedy replies can differ from the CPU's where float
+//! reduction order changes an argmax, so compare a device change row by row.
+//!
 //! A saved transport snap is restored; a saved served representation is
 //! refused. Every root is claimed before anything is loaded and sealed at the
 //! end. Set RAYON_NUM_THREADS to bound the threads.
@@ -290,11 +300,61 @@ impl Selection {
     }
 }
 
+/// `device=cpu|cuda|metal` of the model-reading modes (`evaluate`,
+/// `evaluate-cells`, `probe`, `session`): where the emitter (and a session's
+/// op-model trunk, and `evaluate`'s `route_trunk=`) runs its float forward
+/// passes. The default is `cpu`, so a command without `device=` is unchanged.
+/// There is no implicit fallback: a device the build lacks (`cuda` needs
+/// `--features cuda`, `metal` needs `--features metal`) is refused while the
+/// arguments are parsed, before any report root is claimed. On CUDA, f32
+/// matmuls keep full precision (TF32 off); replies can still differ from CPU
+/// in float reduction order, so a device change is a recorded condition.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+enum EvalDevice {
+    #[default]
+    Cpu,
+    Cuda,
+    Metal,
+}
+
+impl EvalDevice {
+    fn parse(text: Option<&str>) -> Result<Self> {
+        match text {
+            None | Some("cpu") => Ok(Self::Cpu),
+            Some("cuda") => Ok(Self::Cuda),
+            Some("metal") => Ok(Self::Metal),
+            Some(other) => Err(invalid(format!(
+                "unknown device={other} (cpu, cuda or metal; no implicit fallback)"
+            ))),
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::Cpu => "cpu",
+            Self::Cuda => "cuda",
+            Self::Metal => "metal",
+        }
+    }
+
+    /// Open the device (ordinal 0; select a CUDA card with
+    /// CUDA_VISIBLE_DEVICES). CUDA f32 matmuls are held at full precision.
+    fn open(self) -> Result<Device> {
+        let device = uor_r4_training::baseline_protocol::device(self.name())?;
+        candle_core::cuda::set_gemm_reduced_precision_f32(false);
+        Ok(device)
+    }
+}
+
 struct Args {
     pairs: BTreeMap<String, String>,
     /// `select=` and `pointer_select=`, parsed with the arguments; empty when
     /// neither was given (and always empty for a mode that does not allow them).
     selection: Selection,
+    /// `device=` as given (default cpu) and the device it opened: parsed and
+    /// opened with the arguments, before any root is claimed.
+    device_name: EvalDevice,
+    device: Device,
 }
 
 impl Args {
@@ -314,7 +374,23 @@ impl Args {
             pairs.insert(key.to_owned(), value.to_owned());
         }
         let selection = Selection::parse(&pairs)?;
-        Ok(Self { pairs, selection })
+        let device_name = EvalDevice::parse(pairs.get("device").map(String::as_str))?;
+        let device = device_name.open()?;
+        Ok(Self {
+            pairs,
+            selection,
+            device_name,
+            device,
+        })
+    }
+
+    /// The report record of where this run's float forward passes ran.
+    fn device_record(&self) -> Value {
+        json!({
+            "device": self.device_name.name(),
+            "tf32": false,
+            "cuda_visible_devices": std::env::var("CUDA_VISIBLE_DEVICES").ok(),
+        })
     }
 
     fn required(&self, key: &str) -> Result<String> {
@@ -1594,7 +1670,7 @@ fn evaluate(args: &Args, out: &Path) -> Result<()> {
     let encoder = protocol
         .bind(&tokenizer)
         .map_err(|e| invalid(format!("protocol: {e}")))?;
-    let device = Device::Cpu;
+    let device = args.device.clone();
     let (model, identity, selection_override) = load_model(&model_dir, &device, &args.selection)?;
     let context = model.config.context;
     let decode = |ids: &[u32]| tokenizer.decode(ids);
@@ -1698,6 +1774,7 @@ fn evaluate(args: &Args, out: &Path) -> Result<()> {
         "model": model_dir.display().to_string(),
         "model_identity": identity,
         "selection_override": selection_override,
+        "device": args.device_record(),
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
         "dialogue_protocol": protocol.schema,
@@ -1752,7 +1829,7 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
     let encoder = protocol
         .bind(&tokenizer)
         .map_err(|e| invalid(format!("protocol: {e}")))?;
-    let device = Device::Cpu;
+    let device = args.device.clone();
     let (model, identity, selection_override) = load_model(&model_dir, &device, &args.selection)?;
     let context = model.config.context;
     let recall = recall_of(args)?;
@@ -1952,6 +2029,7 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
         "model": model_dir.display().to_string(),
         "model_identity": identity,
         "selection_override": selection_override,
+        "device": args.device_record(),
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
         "split": split,
@@ -2317,7 +2395,7 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
     let encoder = protocol
         .bind(&tokenizer)
         .map_err(|e| invalid(format!("protocol: {e}")))?;
-    let device = Device::Cpu;
+    let device = args.device.clone();
     let (model, identity, selection_override) = open_model(&model_dir, &device, &args.selection)?;
     let context = model.config.context;
     let decode = |ids: &[u32]| tokenizer.decode(ids);
@@ -2434,6 +2512,7 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
         "model": model_dir.display().to_string(),
         "model_identity": identity,
         "selection_override": selection_override,
+        "device": args.device_record(),
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
         "seed": seed,
@@ -2997,7 +3076,7 @@ fn probe_evaluate(args: &Args, out: &Path) -> Result<()> {
     let encoder = protocol
         .bind(&tokenizer)
         .map_err(|e| invalid(format!("protocol: {e}")))?;
-    let device = Device::Cpu;
+    let device = args.device.clone();
     let (model, identity, selection_override) = open_model(&model_dir, &device, &args.selection)?;
     let context = model.config.context;
     let decode = |ids: &[u32]| tokenizer.decode(ids);
@@ -3093,6 +3172,7 @@ fn probe_evaluate(args: &Args, out: &Path) -> Result<()> {
         "model": model_dir.display().to_string(),
         "model_identity": identity,
         "selection_override": selection_override,
+        "device": args.device_record(),
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "protocol_identity": protocol.identity().map_err(|e| invalid(format!("protocol: {e}")))?,
         "history": "reference: the scored turn is answered after the item's own earlier replies",
@@ -3850,6 +3930,10 @@ fn session(args: &Args, out: &Path) -> Result<()> {
     if op_policy != OpPolicy::Op && trunk_directory.is_none() {
         return Err(invalid("op_policy= needs the op model's trunk="));
     }
+    // `device=`: the emitter and the op model's trunk run their forward passes
+    // there; the compiler's tables, the sieve and the exact store stay on the
+    // CPU (integer and table work, no tensors).
+    let device = args.device.clone();
     // A combined compiler loads only with the trunk it binds; otherwise the
     // artifact's own schema chooses the grounded compiler.
     let load_compiler = || -> Result<GroundedCompiler> {
@@ -3857,7 +3941,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
             Some(directory) => Ok(GroundedCompiler::Legacy(
                 SavedCompiler::load(
                     compiler_bytes.clone(),
-                    Some(Trunk::load(directory, &tokenizer_json, &Device::Cpu)?),
+                    Some(Trunk::load(directory, &tokenizer_json, &device)?),
                 )?
                 .with_op_policy(op_policy)?,
             )),
@@ -3865,7 +3949,6 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         }
     };
     let compiler = load_compiler()?;
-    let device = Device::Cpu;
     // The emitter as a sealed inference checkpoint with an empty store. Its
     // data identities are the training report's recorded inputs, bound by
     // the report's sealed manifest.
@@ -3912,8 +3995,13 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         sealed_manifest_sha256(&model_root).map_err(|e| invalid(e.to_string()))?,
     )
     .map_err(|e| invalid(e.to_string()))?;
-    let (model, model_identity, _) =
-        load_model(&model_root.join("model"), &device, &Selection::default())?;
+    // Read on the CPU only to write the checkpoint; each session loads that
+    // checkpoint onto `device`.
+    let (model, model_identity, _) = load_model(
+        &model_root.join("model"),
+        &Device::Cpu,
+        &Selection::default(),
+    )?;
     let checkpoint = out.join("checkpoint");
     let store = StackStore::new(1, 8).map_err(|e| invalid(e.to_string()))?;
     save_checkpoint(&checkpoint, &model, &identity, Some(&store))
@@ -4153,6 +4241,12 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         "log_recall": args.optional("log_recall").unwrap_or_else(|| "off".into()),
         "dialogue_protocol_version": protocol_version,
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+        "device": args.device_record(),
+        "device_placement": {
+            "emitter": args.device_name.name(),
+            "op_model_trunk": trunk_directory.as_ref().map(|_| args.device_name.name()),
+            "cpu": "the compiler's saved tables and op policy, the log sieve, the exact store, checkpoint writing and judging",
+        },
         "limits": limits,
         "scope": "MQAR keys have no channel in the one-entity session: MQAR turns compile to unresolved and are scored without recall",
         "arms": arm_reports,
@@ -4595,6 +4689,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "select",
         "pointer_select",
         "pointer_route",
+        "device",
         "mqar_share",
         "copy_share",
         "relation_share",
@@ -4621,6 +4716,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "select",
         "pointer_select",
         "pointer_route",
+        "device",
     ];
     let static_probe: &[&str] = &["out", "tokenizer", "context"];
     let relation_compiler: &[&str] = &[
@@ -4678,6 +4774,7 @@ fn run_v2_extras(mode: &str, rest: &[String]) -> Option<Result<()>> {
         "log_recall",
         "panel",
         "panel_expected",
+        "device",
     ];
     match mode {
         "compiler" => Some(claimed(rest, relation_compiler, compiler)),
@@ -4765,6 +4862,7 @@ fn main() -> Result<()> {
                 "route_acts",
                 "route_trunk",
                 "protocol",
+                "device",
             ],
         )?,
         "rejudge" => Args::parse(rest, &["out", "report", "tokenizer"])?,
@@ -4914,6 +5012,39 @@ mod tests {
         assert_eq!(*parsed, Some(PrimeRoute::exact(4)));
         // A mode that does not take them refuses them as unknown arguments.
         assert!(parse(&["out=r", "select=none"], &["out", "tokenizer"]).is_err());
+    }
+
+    /// `device=` defaults to the CPU (every earlier command is unchanged), is
+    /// one of three names, is refused for a mode that does not take it, and
+    /// is refused (not silently replaced) when the build lacks it.
+    #[test]
+    fn the_device_defaults_to_the_cpu_and_never_falls_back() {
+        let keys = ["out", "device"];
+        let absent = parse(&["out=r"], &keys).expect("no device");
+        assert_eq!(absent.device_name, EvalDevice::Cpu);
+        assert!(absent.device.is_cpu());
+        assert_eq!(absent.device_record()["device"], json!("cpu"));
+        assert_eq!(absent.device_record()["tf32"], json!(false));
+        let cpu = parse(&["out=r", "device=cpu"], &keys).expect("cpu");
+        assert_eq!(cpu.device_name, EvalDevice::Cpu);
+        assert!(cpu.device.is_cpu());
+        for bad in ["device=gpu", "device=CUDA", "device=", "device=cuda:1"] {
+            assert!(parse(&["out=r", bad], &keys).is_err(), "{bad}");
+        }
+        assert_eq!(
+            EvalDevice::parse(Some("cuda")).expect("cuda"),
+            EvalDevice::Cuda
+        );
+        assert_eq!(
+            EvalDevice::parse(Some("metal")).expect("metal"),
+            EvalDevice::Metal
+        );
+        #[cfg(not(feature = "cuda"))]
+        assert!(parse(&["out=r", "device=cuda"], &keys).is_err());
+        #[cfg(not(feature = "metal"))]
+        assert!(parse(&["out=r", "device=metal"], &keys).is_err());
+        // A mode that does not take it refuses it as an unknown argument.
+        assert!(parse(&["out=r", "device=cpu"], &["out"]).is_err());
     }
 
     #[test]
