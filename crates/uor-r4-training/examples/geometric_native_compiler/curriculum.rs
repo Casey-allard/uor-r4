@@ -187,6 +187,71 @@ const FRESH_VALUES: [&str; 8] = [
     "the winter beacon shines beyond the tranquil hillside",
     "a summer ribbon drifts above the quiet pasture",
 ];
+const FRESH2_VALUES: [&str; 8] = [
+    "Vellumspire",
+    "Duskharbor",
+    "Amber Footbridge",
+    "Indigo Clearing",
+    "dawn lantern beside stream",
+    "twilight compass beyond meadow",
+    "the dawn lantern stands beside the peaceful stream",
+    "a twilight compass rests beyond the open meadow",
+];
+const FRESH2_NONE: [&str; 8] = [
+    "A theatre program printed {v}.",
+    "Would an allegory mention {v}?",
+    "The novelist gave a character these words: My profession is {v}.",
+    "An exhibit quotes the sentence I live in {v}.",
+    "A copy editor underlined {v} in a manuscript.",
+    "An imaginary travel journal describes {v}.",
+    "Could a folk tale contain {v}?",
+    "The reading group examined imagery about {v}.",
+];
+fn fresh2_writes(relation: &str, a: &'static str) -> Vec<Frame> {
+    let frames = match (relation, a) {
+        ("job", "assert") => [
+            "The profession I want recorded is {v}.",
+            "For my occupation entry, remember {v}.",
+        ],
+        ("job", "update") => [
+            "Replace my saved occupation with {v}.",
+            "Please revise my professional role to {v}.",
+        ],
+        ("home", "assert") => [
+            "The residence I want recorded is {v}.",
+            "For my home location entry, remember {v}.",
+        ],
+        _ => [
+            "Replace my saved residence with {v}.",
+            "Please revise my home location to {v}.",
+        ],
+    };
+    frames
+        .iter()
+        .map(|text| authored(relation, a, text, "fresh-crossed-2"))
+        .collect()
+}
+fn fresh2_questions(relation: &str) -> Vec<Frame> {
+    let frames = if relation == "job" {
+        [
+            "What does my saved occupation entry currently say?",
+            "Read the professional role I asked you to record.",
+            "Can you recover my present profession from memory?",
+            "Which recorded occupation is associated with my name?",
+        ]
+    } else {
+        [
+            "What does my saved residence entry currently say?",
+            "Read the home location I asked you to record.",
+            "Can you recover my present residence from memory?",
+            "Which recorded home location is associated with my name?",
+        ]
+    };
+    frames
+        .iter()
+        .map(|text| authored(relation, "query", text, "fresh-crossed-2"))
+        .collect()
+}
 const TRAIN_NONE: [&str; 16] = [
     "A story mentioned {v}.",
     "Someone painted a picture of {v}.",
@@ -396,10 +461,68 @@ fn episode(
     })
 }
 pub fn build() -> Result<Curriculum> {
+    build_profile("crossed-1")
+}
+/// Crossed-2 changes only the prospective fresh panel and fresh store episodes.
+/// Training, development and opened factors remain exactly the retained inputs.
+pub fn build_profile(profile: &str) -> Result<Curriculum> {
+    if !matches!(profile, "crossed-1" | "crossed-2") {
+        return Err(invalid("unknown crossed curriculum profile").into());
+    }
+    let curriculum = build_inner(profile)?;
+    if profile == "crossed-2" {
+        let old = build_inner("crossed-1")?;
+        let exposed_rows: Vec<&Example> = old
+            .training
+            .iter()
+            .chain(&old.development)
+            .chain(&old.fresh)
+            .chain(&old.known_phrasing_new_values)
+            .chain(&old.new_phrasing_known_values)
+            .chain(&old.repeated_values)
+            .chain(old.development_episodes.iter().flat_map(|e| e.turns.iter()))
+            .chain(old.fresh_episodes.iter().flat_map(|e| e.turns.iter()))
+            .collect();
+        let exposed_sources: BTreeSet<&str> =
+            exposed_rows.iter().map(|r| r.text.as_str()).collect();
+        let exposed_values: BTreeSet<&str> = exposed_rows
+            .iter()
+            .filter(|r| matches!(r.act, "assert" | "update"))
+            .filter_map(|r| r.slot_value())
+            .collect();
+        for value in FRESH2_VALUES {
+            if exposed_values.contains(value) {
+                return Err(invalid("crossed-2 fresh literal was previously exposed").into());
+            }
+        }
+        for row in curriculum.fresh.iter().chain(
+            curriculum
+                .fresh_episodes
+                .iter()
+                .flat_map(|e| e.turns.iter()),
+        ) {
+            if exposed_sources.contains(row.text.as_str()) {
+                return Err(invalid("crossed-2 fresh source was previously exposed").into());
+            }
+        }
+    }
+    Ok(curriculum)
+}
+fn build_inner(profile: &str) -> Result<Curriculum> {
+    let fresh_values = if profile == "crossed-2" {
+        &FRESH2_VALUES
+    } else {
+        &FRESH_VALUES
+    };
+    let fresh_none = if profile == "crossed-2" {
+        &FRESH2_NONE
+    } else {
+        &FRESH_NONE
+    };
     let (frames, donor) = donor_frames()?;
     let training_literals: BTreeSet<_> = VALUES.iter().copied().collect();
     let factor_literals: BTreeSet<_> = FACTOR_VALUES.iter().copied().collect();
-    let fresh_literals: BTreeSet<_> = FRESH_VALUES.iter().copied().collect();
+    let fresh_literals: BTreeSet<_> = fresh_values.iter().copied().collect();
     if training_literals.len() != 32
         || factor_literals.len() != 8
         || fresh_literals.len() != 8
@@ -414,7 +537,7 @@ pub fn build() -> Result<Curriculum> {
             return Err(invalid("training value length stratum mismatch").into());
         }
     }
-    for values in [&FACTOR_VALUES, &FRESH_VALUES] {
+    for values in [&FACTOR_VALUES, fresh_values] {
         for (i, value) in values.iter().enumerate() {
             if word_spans(value).len() != [1, 2, 4, 8][i / 2] {
                 return Err(invalid("held-out value length stratum mismatch").into());
@@ -441,7 +564,11 @@ pub fn build() -> Result<Curriculum> {
             }
             let train = &candidates[..8];
             let wording = &candidates[8..10];
-            let new = &candidates[10..12];
+            let new = if profile == "crossed-2" {
+                fresh2_writes(relation, a)
+            } else {
+                candidates[10..12].to_vec()
+            };
             partitions.push(json!({"relation":relation,"act":a,"training_frames":train.iter().map(|f|json!({"text":f.text,"provenance":f.provenance})).collect::<Vec<_>>(),"factor_frames":wording.iter().map(|f|json!({"text":f.text,"provenance":f.provenance})).collect::<Vec<_>>(),"fresh_frames":new.iter().map(|f|json!({"text":f.text,"provenance":f.provenance})).collect::<Vec<_>>() }));
             for (f, frame) in train.iter().enumerate() {
                 for j in 0..8 {
@@ -461,7 +588,7 @@ pub fn build() -> Result<Curriculum> {
             }
             for (f, frame) in new.iter().enumerate() {
                 for j in 0..4 {
-                    fresh.push(fill(frame, FRESH_VALUES[f * 4 + j]));
+                    fresh.push(fill(frame, fresh_values[f * 4 + j]));
                 }
             }
             for (f, frame) in train.iter().take(2).enumerate() {
@@ -472,7 +599,8 @@ pub fn build() -> Result<Curriculum> {
             }
             dev_write.insert((relation.into(), a.into()), train[..2].to_vec());
             fresh_write.insert((relation.into(), a.into()), new.to_vec());
-            reference_templates.extend(train.iter().chain(wording).chain(new).map(|f| fill(f, "")));
+            reference_templates
+                .extend(train.iter().chain(wording).chain(&new).map(|f| fill(f, "")));
         }
         let questions = cell(&frames, relation, "query");
         if questions.len() < 16 {
@@ -498,7 +626,11 @@ pub fn build() -> Result<Curriculum> {
         if dev.len() != 16 {
             return Err(invalid("development question diversity inadequate").into());
         }
-        let new = authored_questions(relation, "fresh");
+        let new = if profile == "crossed-2" {
+            fresh2_questions(relation)
+        } else {
+            authored_questions(relation, "fresh")
+        };
         development.extend(dev.iter().map(|f| fill(f, "")));
         fresh.extend(new.iter().map(|f| fill(f, "")));
         dev_query.insert(relation.into(), dev.clone());
@@ -520,9 +652,9 @@ pub fn build() -> Result<Curriculum> {
         }
         reference_templates.push(fill(&frame, ""));
     }
-    for (f, text) in FRESH_NONE.iter().enumerate() {
+    for (f, text) in fresh_none.iter().enumerate() {
         let frame = authored(NONE, NONE, text, "fresh-negative");
-        fresh.push(fill(&frame, FRESH_VALUES[f]));
+        fresh.push(fill(&frame, fresh_values[f]));
         reference_templates.push(fill(&frame, ""));
     }
     if (
@@ -621,21 +753,21 @@ pub fn build() -> Result<Curriculum> {
             "fresh-order-forward",
             &fresh_write,
             &fresh_query,
-            &FRESH_VALUES,
+            fresh_values,
             false,
         )?,
         episode(
             "fresh-order-reversed",
             &fresh_write,
             &fresh_query,
-            &FRESH_VALUES,
+            fresh_values,
             true,
         )?,
         episode(
             "fresh-four-eight-word-values",
             &fresh_write,
             &fresh_query,
-            &[FRESH_VALUES[4], FRESH_VALUES[6], FRESH_VALUES[5]],
+            &[fresh_values[4], fresh_values[6], fresh_values[5]],
             false,
         )?,
     ];
@@ -650,7 +782,7 @@ pub fn build() -> Result<Curriculum> {
             }
         }
     }
-    let manifest = json!({"schema":"uor-r4.compiler-crossed-curriculum/1","donor":donor,"partitions":partitions,"negative_frame_provenance":{"kind":"Rust-authored","training":TRAIN_NONE,"development":DEV_NONE,"fresh":FRESH_NONE},"training_values":VALUES,"factor_values":FACTOR_VALUES,"fresh_values":FRESH_VALUES,"training_word_length_strata":[1,2,4,8],"factor_value_word_lengths":FACTOR_VALUES.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"fresh_value_word_lengths":FRESH_VALUES.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"training_schedule":"four cells8frames*8rotatingvalues;32values degree2percell;32distinctqueries4visits;16noneframes8rotatingvalues","selection":"128 distinct development source rows only;64 missing conjunction writes+32unseen questions+32unseen prose","panels":panels,"training_value_role_act_count":2,"development_conjunction_offsets":[8,17],"development_value_role_act_degree":1,"development_distinct_shared_conjunction_values":16,"runtime_templates":"labels/referenceinstrument only;never native features","exclusion_scope":"source-level train/dev/fresh disjoint;driver additionally checks exposed legacy/local panels","native_token_admission":"driver must verify all originaltext BPE <=128, not inferred from words","store_episodes":"predicted actions only;natural assertions/query;correct job and same-value home reassertion;both short-value orderings plus four/eight-word episode;expected values scorer only"});
+    let manifest = json!({"schema":"uor-r4.compiler-crossed-curriculum/1","profile":profile,"fresh_exposed_exclusion":"crossed-2 rejects exact source/literal overlap with crossed-1 training/development/factors/fresh and all original store episode turns;driver additionally admits legacy/local exclusion;no claim of every encoder corpus exclusion","donor":donor,"partitions":partitions,"negative_frame_provenance":{"kind":"Rust-authored","training":TRAIN_NONE,"development":DEV_NONE,"fresh":fresh_none},"training_values":VALUES,"factor_values":FACTOR_VALUES,"fresh_values":fresh_values,"training_word_length_strata":[1,2,4,8],"factor_value_word_lengths":FACTOR_VALUES.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"fresh_value_word_lengths":fresh_values.iter().map(|v|word_spans(v).len()).collect::<Vec<_>>(),"training_schedule":"four cells8frames*8rotatingvalues;32values degree2percell;32distinctqueries4visits;16noneframes8rotatingvalues","selection":"128 distinct development source rows only;64 missing conjunction writes+32unseen questions+32unseen prose","panels":panels,"training_value_role_act_count":2,"development_conjunction_offsets":[8,17],"development_value_role_act_degree":1,"development_distinct_shared_conjunction_values":16,"runtime_templates":"labels/referenceinstrument only;never native features","exclusion_scope":"source-level train/dev/fresh disjoint;driver additionally checks exposed legacy/local panels","native_token_admission":"driver must verify all originaltext BPE <=128, not inferred from words","store_episodes":"predicted actions only;natural assertions/query;correct job and same-value home reassertion;both short-value orderings plus four/eight-word episode;expected values scorer only"});
     Ok(Curriculum {
         training,
         development,
@@ -667,6 +799,71 @@ pub fn build() -> Result<Curriculum> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn crossed2_changes_only_unexposed_fresh_rows_and_episodes() -> Result<()> {
+        let old = build()?;
+        let new = build_profile("crossed-2")?;
+        let identity = |rows: &[Example]| {
+            rows.iter()
+                .map(|r| {
+                    (
+                        r.text.clone(),
+                        r.relation.clone(),
+                        r.act,
+                        r.template.clone(),
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        for (before, after) in [
+            (&old.training, &new.training),
+            (&old.development, &new.development),
+            (
+                &old.known_phrasing_new_values,
+                &new.known_phrasing_new_values,
+            ),
+            (
+                &old.new_phrasing_known_values,
+                &new.new_phrasing_known_values,
+            ),
+            (&old.repeated_values, &new.repeated_values),
+        ] {
+            assert_eq!(identity(before), identity(after));
+        }
+        let exposed: BTreeSet<_> = old
+            .training
+            .iter()
+            .chain(&old.development)
+            .chain(&old.fresh)
+            .chain(&old.known_phrasing_new_values)
+            .chain(&old.new_phrasing_known_values)
+            .chain(&old.repeated_values)
+            .map(|r| r.text.as_str())
+            .collect();
+        assert_eq!(new.fresh.len(), 48);
+        assert!(new.fresh.iter().all(|r| !exposed.contains(r.text.as_str())));
+        assert_eq!(new.manifest["profile"], "crossed-2");
+        assert_eq!(new.fresh_episodes.len(), 3);
+        for (before, after) in old
+            .development_episodes
+            .iter()
+            .zip(&new.development_episodes)
+        {
+            assert_eq!(identity(&before.turns), identity(&after.turns));
+            assert_eq!(before.query_expected, after.query_expected);
+        }
+        let old_templates: BTreeSet<_> = old
+            .reference_templates
+            .iter()
+            .filter_map(|r| r.template.as_deref())
+            .collect();
+        assert!(new.fresh.iter().all(|r| r
+            .template
+            .as_deref()
+            .is_some_and(|t| !old_templates.contains(t))));
+        assert!(build_profile("unknown").is_err());
+        Ok(())
+    }
     #[test]
     fn crossed_curriculum_distinct_balanced_and_eligible() -> Result<()> {
         let c = build()?;

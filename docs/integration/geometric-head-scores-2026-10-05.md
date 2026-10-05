@@ -26,6 +26,8 @@ For example, previous `ochre`, current `canyon`, next `in` is inside in `I am a 
 
 ## Next implementation and outcome decisions
 
+**Executed successor:** [conditional write-span learning](geometric-conditional-span-2026-10-05.md) removes96 unused-branch conflicts and improves matched capture. Remaining frame classification and source-binding/progression failures set the active next tasks. The proposal below preserves its original scope.
+
 Repair offline span supervision and its development criterion to condition on **labelled assert/update tasks**, with an explicit write-row mean. Preserve all act/role supervision, all query/NONE examples and actual final false-write evaluation. Never gate training loss on the model's predicted action; abstention must not evade span credit. Runtime receives only original source text and retains its own learned act/role decision. No gold span, selected record or supplied answer is added to serving.
 
 Retain the historical all-row objective for exact replay and compare three paired head seeds per arm under declared fixed conditions. Freeze new fresh inputs before a successor fit; exposed panels remain development evidence. Report actual predicted store, all-bank replies and reader calls separately. A correct compiler with failed natural replies advances reader cue/realization learning; residual negative continuation motivates conditional complete-interval credit and learned native OPEN/APPEND/COMMIT capture. The four genuine local ambiguities justify frame-sensitive geometric state if they remain limiting. Do not repeat the old objective/dose, force capture to the end or retire geometry from this instrument defect. Shared GroundedSession files remain unchanged.

@@ -46,9 +46,34 @@ impl FeatureMode {
         }
     }
 }
+/// Offline span-credit policy. Neither variant changes the native predictor.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpanObjective {
+    /// Historical replay: every labelled row supervises the span head.
+    #[default]
+    AllRows,
+    /// Only ground-truth assert/update rows supervise the otherwise unused head.
+    ConditionalWrite,
+}
+impl SpanObjective {
+    fn includes(self, labelled_act: usize) -> bool {
+        self == Self::AllRows || labelled_act < 2
+    }
+    fn policy(self) -> &'static str {
+        match self {
+            Self::AllRows => "equal-thirds-all-row-act-relation-mean-word-span/1",
+            Self::ConditionalWrite => {
+                "equal-thirds-all-row-act-relation-labelled-write-row-mean-word-span/1"
+            }
+        }
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FitConfig {
+    #[serde(default)]
+    pub span_objective: SpanObjective,
     #[serde(default)]
     pub feature_mode: FeatureMode,
     #[serde(default)]
@@ -62,6 +87,7 @@ pub struct FitConfig {
 impl Default for FitConfig {
     fn default() -> Self {
         Self {
+            span_objective: SpanObjective::AllRows,
             feature_mode: FeatureMode::Endpoint,
             seed: None,
             steps: 64,
@@ -882,6 +908,105 @@ impl TurnCompiler for NativeTurnCompiler<'_> {
     }
 }
 
+fn span_supervised_rows(rows: &[Labeled], objective: SpanObjective, split: &str) -> Result<usize> {
+    let count = rows
+        .iter()
+        .filter(|row| objective.includes(row.act))
+        .count();
+    if count == 0 {
+        return Err(invalid(format!(
+            "{split} has no supervised span rows for {objective:?}"
+        )));
+    }
+    Ok(count)
+}
+fn add_span_row_gradient(
+    head: &NativeTurnHead,
+    shape: TurnHeadConfig,
+    row: &Labeled,
+    objective: SpanObjective,
+    supervised_rows: usize,
+    gradient: &mut [f64],
+) -> Result<()> {
+    if !objective.includes(row.act) {
+        return Ok(());
+    }
+    if supervised_rows == 0 || row.inside.is_empty() {
+        return Err(invalid("span gradient needs supervised rows and words"));
+    }
+    for (word, target) in row.features.words.iter().zip(&row.inside) {
+        let scores = head
+            .scores_masked(word)
+            .map_err(|e| invalid(e.to_string()))?;
+        let (_, errors) = softmax_ce(&scores, *target);
+        add_gradient_rows(
+            gradient,
+            shape,
+            &[word.clone()],
+            &errors,
+            1.0 / (3.0 * supervised_rows as f64 * row.inside.len() as f64),
+        );
+    }
+    Ok(())
+}
+/// Checkpoint selection uses native packed forward values. The legacy branch
+/// retains its original summation order; conditional spans have a write-row mean.
+fn development_measurement(
+    heads: &[NativeTurnHead],
+    rows: &[Labeled],
+    config: &FitConfig,
+) -> Result<(f64, usize, usize, usize)> {
+    if heads.len() != 3 || rows.is_empty() {
+        return Err(invalid(
+            "development requires three heads and nonempty rows",
+        ));
+    }
+    let span_rows = span_supervised_rows(rows, config.span_objective, "development")?;
+    let mut loss = 0.0;
+    let mut conditional_span_loss = 0.0;
+    let (mut act_correct, mut relation_correct, mut span_exact) = (0, 0, 0);
+    for row in rows {
+        let a = heads[0]
+            .scores_rows(&row.features.turn)
+            .map_err(|e| invalid(e.to_string()))?;
+        let r = heads[1]
+            .scores_rows(&row.features.turn)
+            .map_err(|e| invalid(e.to_string()))?;
+        loss += softmax_ce(&a, row.act).0 / 3.0 + softmax_ce(&r, row.relation).0 / 3.0;
+        act_correct += usize::from(argmax(&a) == row.act);
+        relation_correct += usize::from(argmax(&r) == row.relation);
+        if row.inside.is_empty() {
+            return Err(invalid("development row needs span words"));
+        }
+        let mut scores = Vec::new();
+        for (word, label) in row.features.words.iter().zip(&row.inside) {
+            let score = heads[2]
+                .scores_masked(word)
+                .map_err(|e| invalid(e.to_string()))?;
+            match config.span_objective {
+                SpanObjective::AllRows => {
+                    loss += softmax_ce(&score, *label).0 / (3.0 * row.inside.len() as f64);
+                }
+                SpanObjective::ConditionalWrite if config.span_objective.includes(row.act) => {
+                    conditional_span_loss += softmax_ce(&score, *label).0
+                        / (3.0 * span_rows as f64 * row.inside.len() as f64);
+                }
+                SpanObjective::ConditionalWrite => {}
+            }
+            // Raw decoder accuracy remains an all-row diagnostic, not loss credit.
+            scores.push(score);
+        }
+        span_exact += usize::from(
+            selected_span(&scores, &row.features.spans, config.max_value_words) == row.gold_span,
+        );
+    }
+    loss /= rows.len() as f64;
+    if config.span_objective == SpanObjective::ConditionalWrite {
+        loss += conditional_span_loss;
+    }
+    Ok((loss, act_correct, relation_correct, span_exact))
+}
+
 pub fn fit_examples(
     native: &NativeSourceRealizer,
     tokenizer: &ByteBpeTokenizer,
@@ -901,6 +1026,8 @@ pub fn fit_examples(
     verified_tokenizer(native, tokenizer, tokenizer_bytes)?;
     let train = label_examples(native, tokenizer, relations, training, &config)?;
     let dev = label_examples(native, tokenizer, relations, development, &config)?;
+    let training_span_rows = span_supervised_rows(&train, config.span_objective, "training")?;
+    let development_span_rows = span_supervised_rows(&dev, config.span_objective, "development")?;
     let lanes = native.context_config().heads * native.context_config().lanes_per_head;
     let shapes = [
         shape(4, config.feature_mode.turn_slots(lanes)),
@@ -949,32 +1076,8 @@ pub fn fit_examples(
                 span_packed: packed(&weights[2])?,
             };
             let bytes = serde_json::to_vec(&artifact)?;
-            let mut loss = 0.0;
-            let (mut act_correct, mut relation_correct, mut span_exact) = (0, 0, 0);
-            for row in &dev {
-                let a = heads[0]
-                    .scores_rows(&row.features.turn)
-                    .map_err(|e| invalid(e.to_string()))?;
-                let r = heads[1]
-                    .scores_rows(&row.features.turn)
-                    .map_err(|e| invalid(e.to_string()))?;
-                loss += softmax_ce(&a, row.act).0 / 3.0 + softmax_ce(&r, row.relation).0 / 3.0;
-                act_correct += usize::from(argmax(&a) == row.act);
-                relation_correct += usize::from(argmax(&r) == row.relation);
-                let mut scores = Vec::new();
-                for (word, label) in row.features.words.iter().zip(&row.inside) {
-                    let s = heads[2]
-                        .scores_masked(word)
-                        .map_err(|e| invalid(e.to_string()))?;
-                    loss += softmax_ce(&s, *label).0 / (3.0 * row.inside.len() as f64);
-                    scores.push(s);
-                }
-                let gold = row.gold_span;
-                span_exact += usize::from(
-                    selected_span(&scores, &row.features.spans, config.max_value_words) == gold,
-                );
-            }
-            loss /= dev.len() as f64;
+            let (loss, act_correct, relation_correct, span_exact) =
+                development_measurement(&heads, &dev, &config)?;
             checkpoints.push(CheckpointReport {
                 step,
                 native_development_ce: loss,
@@ -1015,19 +1118,14 @@ pub fn fit_examples(
                     1.0 / (3.0 * train.len() as f64),
                 );
             }
-            for (word, target) in row.features.words.iter().zip(&row.inside) {
-                let scores = heads[2]
-                    .scores_masked(word)
-                    .map_err(|e| invalid(e.to_string()))?;
-                let (_, errors) = softmax_ce(&scores, *target);
-                add_gradient_rows(
-                    &mut gradient[2],
-                    shapes[2],
-                    &[word.clone()],
-                    &errors,
-                    1.0 / (3.0 * train.len() as f64 * row.inside.len() as f64),
-                );
-            }
+            add_span_row_gradient(
+                &heads[2],
+                shapes[2],
+                row,
+                config.span_objective,
+                training_span_rows,
+                &mut gradient[2],
+            )?;
         }
         gradient_norms.push(
             gradient
@@ -1053,6 +1151,8 @@ pub fn fit_examples(
         std::collections::BTreeMap::<Vec<usize>, std::collections::BTreeSet<(usize, usize)>>::new();
     let mut span_labels =
         std::collections::BTreeMap::<Vec<Option<u8>>, std::collections::BTreeSet<usize>>::new();
+    let mut supervised_span_labels =
+        std::collections::BTreeMap::<Vec<Option<u8>>, std::collections::BTreeSet<usize>>::new();
     let mut coverage =
         vec![std::collections::BTreeSet::new(); config.feature_mode.span_slots(lanes)];
     for row in &train {
@@ -1065,6 +1165,12 @@ pub fn fit_examples(
             .insert((row.act, row.relation));
         for (word, target) in row.features.words.iter().zip(&row.inside) {
             span_labels.entry(word.clone()).or_default().insert(*target);
+            if config.span_objective.includes(row.act) {
+                supervised_span_labels
+                    .entry(word.clone())
+                    .or_default()
+                    .insert(*target);
+            }
             for (i, r) in word.iter().enumerate() {
                 if let Some(root) = r {
                     coverage[i].insert(*root);
@@ -1072,9 +1178,9 @@ pub fn fit_examples(
             }
         }
     }
-    let diagnostics = serde_json::json!({"encoder":"frozen-no-gradient-credit","feature_mode":config.feature_mode,"feature_policy":config.feature_mode.policy(),"signature_scope":"actual-additive-row-slot-root-counts;span-masked-root-tuple;not-injective-sequence","initialization_seed":config.seed,"training_examples":train.len(),"development_examples":dev.len(),"turn_unique_signatures":turn_labels.len(),"turn_conflicting_signatures":turn_labels.values().filter(|s|s.len()>1).count(),"span_unique_signatures":span_labels.len(),"span_conflicting_signatures":span_labels.values().filter(|s|s.len()>1).count(),"span_slot_root_coverage":coverage.iter().map(|s|s.len()).collect::<Vec<_>>(),"step_head_gradient_l2":gradient_norms});
+    let diagnostics = serde_json::json!({"encoder":"frozen-no-gradient-credit","feature_mode":config.feature_mode,"feature_policy":config.feature_mode.policy(),"signature_scope":"actual-additive-row-slot-root-counts;span-masked-root-tuple;not-injective-sequence","initialization_seed":config.seed,"training_examples":train.len(),"development_examples":dev.len(),"span_objective":config.span_objective,"selection_objective":config.span_objective.policy(),"span_supervised_training_rows":training_span_rows,"span_supervised_development_rows":development_span_rows,"supervised_span_unique_signatures":supervised_span_labels.len(),"supervised_span_conflicting_signatures":supervised_span_labels.values().filter(|s|s.len()>1).count(),"turn_unique_signatures":turn_labels.len(),"turn_conflicting_signatures":turn_labels.values().filter(|s|s.len()>1).count(),"span_unique_signatures":span_labels.len(),"span_conflicting_signatures":span_labels.values().filter(|s|s.len()>1).count(),"span_slot_root_coverage":coverage.iter().map(|s|s.len()).collect::<Vec<_>>(),"step_head_gradient_l2":gradient_norms});
     let source_parameters = serde_json::to_vec(
-        &serde_json::json!({"schema":"uor-r4.geometric-turn-source/1","config":config,"policy":"ordinary-CE-f32-quarter-forward-STE-f64-Adam;frozen-encoder;equal-act-relation-mean-word-loss;deterministic-full-batch-Adam;earliest-strict-native-development-minimum/1","selected_step":selected_step,"native_artifact_sha256":sha256_bytes(&native_artifact),"selected_shadow_f32":selected_weights.iter().map(|w|w.iter().map(|x|*x as f32).collect::<Vec<_>>()).collect::<Vec<_>>(),"final_shadow_f32":weights.iter().map(|w|w.iter().map(|x|*x as f32).collect::<Vec<_>>()).collect::<Vec<_>>(),"diagnostics":diagnostics,"checkpoints":checkpoints}),
+        &serde_json::json!({"schema":"uor-r4.geometric-turn-source/1","config":config,"selection_objective":config.span_objective.policy(),"policy":"ordinary-CE-f32-quarter-forward-STE-f64-Adam;frozen-encoder;config-declared-span-objective;deterministic-full-batch-Adam;earliest-strict-native-development-minimum/1","selected_step":selected_step,"native_artifact_sha256":sha256_bytes(&native_artifact),"selected_shadow_f32":selected_weights.iter().map(|w|w.iter().map(|x|*x as f32).collect::<Vec<_>>()).collect::<Vec<_>>(),"final_shadow_f32":weights.iter().map(|w|w.iter().map(|x|*x as f32).collect::<Vec<_>>()).collect::<Vec<_>>(),"diagnostics":diagnostics,"checkpoints":checkpoints}),
     )?;
     Ok(FitResult {
         native_artifact,
@@ -1089,6 +1195,159 @@ pub fn fit_examples(
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn span_fixture(act: usize, root: u8) -> Labeled {
+        Labeled {
+            features: Features {
+                turn: vec![vec![Some(root)]],
+                words: vec![vec![Some(root)]],
+                spans: vec![SourceSpan { start: 0, end: 1 }],
+            },
+            act,
+            relation: usize::from(act == 3),
+            inside: vec![usize::from(act < 2)],
+            gold_span: (act < 2).then_some(SourceSpan { start: 0, end: 1 }),
+        }
+    }
+    fn fixture_head(config: TurnHeadConfig, edits: &[(usize, i8)]) -> Result<NativeTurnHead> {
+        let mut q = vec![
+            0i8;
+            config
+                .coefficient_count()
+                .map_err(|e| invalid(e.to_string()))?
+        ];
+        for (index, value) in edits {
+            q[*index] = *value;
+        }
+        NativeTurnHead::new(
+            config,
+            &pack_coefficients(&q).map_err(|e| invalid(e.to_string()))?,
+        )
+        .map_err(|e| invalid(e.to_string()))
+    }
+    #[test]
+    fn conditional_span_credit_survives_conflicting_unused_none_branch() -> Result<()> {
+        let config = shape(2, 1);
+        let head = fixture_head(config, &[])?;
+        let write = span_fixture(0, 7);
+        let none = span_fixture(3, 7); // Exact same roots, opposite span label.
+        let count = config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut legacy = vec![0.0; count];
+        for row in [&write, &none] {
+            add_span_row_gradient(&head, config, row, SpanObjective::AllRows, 2, &mut legacy)?;
+        }
+        assert!(legacy.iter().all(|v| *v == 0.0));
+        let mut conditional = vec![0.0; count];
+        add_span_row_gradient(
+            &head,
+            config,
+            &write,
+            SpanObjective::ConditionalWrite,
+            1,
+            &mut conditional,
+        )?;
+        let write_only = conditional.clone();
+        add_span_row_gradient(
+            &head,
+            config,
+            &none,
+            SpanObjective::ConditionalWrite,
+            1,
+            &mut conditional,
+        )?;
+        assert_eq!(conditional, write_only);
+        assert!((conditional[1 + 7] - 1.0 / 6.0).abs() < 1e-12);
+        assert!((conditional[121 + 1 + 7] + 1.0 / 6.0).abs() < 1e-12);
+        Ok(())
+    }
+    #[test]
+    fn conditional_selection_ignores_none_span_but_keeps_none_act_credit() -> Result<()> {
+        let rows = vec![span_fixture(0, 7), span_fixture(3, 9)];
+        let baseline = vec![
+            fixture_head(shape(4, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+        ];
+        let changed_none_span = vec![
+            fixture_head(shape(4, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+            fixture_head(shape(2, 1), &[(121 + 1 + 9, 4)])?,
+        ];
+        let changed_none_act = vec![
+            fixture_head(shape(4, 1), &[(3 * 121 + 1 + 9, 4)])?,
+            fixture_head(shape(2, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+        ];
+        let mut c = FitConfig::default();
+        c.span_objective = SpanObjective::ConditionalWrite;
+        let conditional = development_measurement(&baseline, &rows, &c)?.0;
+        assert_eq!(
+            conditional,
+            development_measurement(&changed_none_span, &rows, &c)?.0
+        );
+        assert!(development_measurement(&changed_none_act, &rows, &c)?.0 < conditional);
+        c.span_objective = SpanObjective::AllRows;
+        assert!(
+            development_measurement(&changed_none_span, &rows, &c)?.0
+                > development_measurement(&baseline, &rows, &c)?.0
+        );
+        Ok(())
+    }
+    #[test]
+    fn conditional_native_criterion_changes_wrong_unused_branch_selection() -> Result<()> {
+        let rows = vec![
+            span_fixture(0, 7),
+            span_fixture(3, 7),
+            span_fixture(3, 7),
+            span_fixture(3, 7),
+        ];
+        let write_correct = vec![
+            fixture_head(shape(4, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+            fixture_head(shape(2, 1), &[(121, 4)])?,
+        ];
+        let unused_correct = vec![
+            fixture_head(shape(4, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+            fixture_head(shape(2, 1), &[(121, -4)])?,
+        ];
+        let mut c = FitConfig::default();
+        assert!(
+            development_measurement(&unused_correct, &rows, &c)?.0
+                < development_measurement(&write_correct, &rows, &c)?.0
+        );
+        c.span_objective = SpanObjective::ConditionalWrite;
+        assert!(
+            development_measurement(&write_correct, &rows, &c)?.0
+                < development_measurement(&unused_correct, &rows, &c)?.0
+        );
+        Ok(())
+    }
+    #[test]
+    fn conditional_empty_write_splits_reject_and_old_config_defaults_replay() -> Result<()> {
+        let rows = vec![span_fixture(3, 7)];
+        assert!(span_supervised_rows(&rows, SpanObjective::ConditionalWrite, "training").is_err());
+        assert!(
+            span_supervised_rows(&rows, SpanObjective::ConditionalWrite, "development").is_err()
+        );
+        assert_eq!(
+            span_supervised_rows(&rows, SpanObjective::AllRows, "training")?,
+            1
+        );
+        let heads = vec![
+            fixture_head(shape(4, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+            fixture_head(shape(2, 1), &[])?,
+        ];
+        let mut c = FitConfig::default();
+        c.span_objective = SpanObjective::ConditionalWrite;
+        assert!(development_measurement(&heads, &rows, &c).is_err());
+        let old = serde_json::json!({"feature_mode":"local_relative","seed":1001,"steps":64,"learning_rate":0.03,"max_tokens":128,"max_words":64,"max_value_words":8});
+        let parsed: FitConfig = serde_json::from_value(old)?;
+        assert_eq!(parsed.span_objective, SpanObjective::AllRows);
+        Ok(())
+    }
     #[test]
     fn quarter_scores_have_ordinary_ce_gradient() {
         let (loss, gradient) = softmax_ce(&[0, 4], 1);

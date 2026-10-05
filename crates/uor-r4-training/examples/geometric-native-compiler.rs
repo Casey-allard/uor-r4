@@ -18,7 +18,9 @@ use uor_r4_core::{
 use uor_r4_integer::geometric_source_realizer::{NativeArtifactBinding, NativeSourceRealizer};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::{
-    geometric_turn_compiler::{fit_examples, FeatureMode, FitConfig, NativeTurnCompiler},
+    geometric_turn_compiler::{
+        fit_examples, FeatureMode, FitConfig, NativeTurnCompiler, SpanObjective,
+    },
     relation_compiler::{word_spans, Example, NONE},
     sha256_bytes,
     stack_grounded_session::{
@@ -46,6 +48,7 @@ struct Args {
     end: PathBuf,
     audit_artifacts: Option<PathBuf>,
     feature_mode: FeatureMode,
+    span_objective: SpanObjective,
     seed: Option<u64>,
     fresh_split: String,
     compact_trace: bool,
@@ -88,6 +91,7 @@ fn args() -> Result<Args> {
         Some("local-product") => FeatureMode::LocalProduct,
         _ => return Err(fail("unknown feature mode").into()),
     };
+    let span_objective = parse_span_objective(flags.remove("--span-objective").as_deref())?;
     let seed = flags
         .remove("--seed")
         .map(|s| s.parse::<u64>())
@@ -104,7 +108,10 @@ fn args() -> Result<Args> {
         .transpose()?
         .unwrap_or(false);
     if audit_artifacts.is_some()
-        && (feature_mode != FeatureMode::Endpoint || seed.is_some() || fresh_split != "fresh")
+        && (feature_mode != FeatureMode::Endpoint
+            || span_objective != SpanObjective::AllRows
+            || seed.is_some()
+            || fresh_split != "fresh")
     {
         return Err(
             fail("legacy checkpoint audit does not accept fit mode/seed/fresh overrides").into(),
@@ -124,14 +131,22 @@ fn args() -> Result<Args> {
         end,
         audit_artifacts,
         feature_mode,
+        span_objective,
         seed,
         fresh_split,
         compact_trace,
         curriculum,
     })
 }
+fn parse_span_objective(value: Option<&str>) -> Result<SpanObjective> {
+    match value {
+        None | Some("all-rows") => Ok(SpanObjective::AllRows),
+        Some("conditional-write") => Ok(SpanObjective::ConditionalWrite),
+        _ => Err(fail("unknown span objective").into()),
+    }
+}
 fn validate_curriculum_override(curriculum: Option<&str>, audit: bool) -> Result<()> {
-    if curriculum.is_some_and(|v| v != "crossed-1") {
+    if curriculum.is_some_and(|v| !matches!(v, "crossed-1" | "crossed-2")) {
         return Err(fail("unknown curriculum").into());
     }
     if audit && curriculum.is_some() {
@@ -337,8 +352,16 @@ fn verify_prospective_panel(rows: &[Example]) -> Result<()> {
 }
 fn verify_crossed_fresh(rows: &[Example]) -> Result<()> {
     let mut exposed = std::collections::BTreeSet::new();
+    let mut exposed_values = std::collections::BTreeSet::new();
     for split in ["training", "development", "fresh", "fresh-local-1"] {
-        exposed.extend(panel(split).into_iter().map(|e| e.text));
+        for e in panel(split) {
+            if matches!(e.act, "assert" | "update") {
+                if let Some(value) = e.slot_value() {
+                    exposed_values.insert(value.to_owned());
+                }
+            }
+            exposed.insert(e.text);
+        }
     }
     exposed.extend(
         panel_cross("training", "development")
@@ -352,10 +375,12 @@ fn verify_crossed_fresh(rows: &[Example]) -> Result<()> {
     );
     exposed.extend(repeated_value_panel().into_iter().map(|e| e.text));
     let mut seen = std::collections::BTreeSet::new();
-    if rows
-        .iter()
-        .any(|e| exposed.contains(&e.text) || !seen.insert(&e.text))
-    {
+    if rows.iter().any(|e| {
+        exposed.contains(&e.text)
+            || !seen.insert(&e.text)
+            || matches!(e.act, "assert" | "update")
+                && e.slot_value().is_some_and(|v| exposed_values.contains(v))
+    }) {
         return Err(
             fail("crossed fresh source overlaps an exposed compiler panel or itself").into(),
         );
@@ -786,11 +811,11 @@ fn store_authored_episodes(
 }
 fn run(a: &Args) -> Result<()> {
     let started = Instant::now();
-    let crossed = if a.curriculum.as_deref() == Some("crossed-1") {
-        Some(curriculum::build()?)
-    } else {
-        None
-    };
+    let crossed = a
+        .curriculum
+        .as_deref()
+        .map(curriculum::build_profile)
+        .transpose()?;
     let (training, development, fresh) = if let Some(c) = &crossed {
         (c.training.clone(), c.development.clone(), c.fresh.clone())
     } else {
@@ -840,13 +865,14 @@ fn run(a: &Args) -> Result<()> {
         max_words: 64,
         max_value_words: 8,
         feature_mode: a.feature_mode,
+        span_objective: a.span_objective,
         seed: a.seed,
     };
     let panel_bytes = serde_json::to_vec(
         &json!({"training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"curriculum":frozen_curriculum,"factors":{"known_phrasing_new_values":input_rows(&known_phrasing_new_values),"new_phrasing_known_values":input_rows(&new_phrasing_known_values),"repeated_values":input_rows(&repeated_values)}}),
     )?;
     let panel_sha = sha256_bytes(&panel_bytes);
-    let inputs = json!({"schema":"native-turn-frozen-inputs/1","training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"config":config,"panel_sha256":panel_sha,"fresh_profile":if crossed.is_some(){"crossed-1"}else{&a.fresh_split},"curriculum":a.curriculum,"curriculum_sha256":curriculum_sha,"curriculum_frozen":frozen_curriculum,"factor_inputs":{"known_phrasing_new_values":input_rows(&known_phrasing_new_values),"new_phrasing_known_values":input_rows(&new_phrasing_known_values),"repeated_values":input_rows(&repeated_values)},"fresh_exclusions":if crossed.is_some(){"crossed curriculum exclusion/provenance is bound in curriculum_frozen.manifest; no global encoder-corpus exclusion claim"}else{"local-1 excludes exact source rows and literal values from legacy compiler training/development/fresh;no claim of exclusion from every historical encoder corpus"},"limitations":"authored supervised panels;three seeded readouts on one frozen carrier are not independent encoder or architecture replications"});
+    let inputs = json!({"schema":"native-turn-frozen-inputs/1","training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"config":config,"panel_sha256":panel_sha,"fresh_profile":a.curriculum.as_deref().unwrap_or(&a.fresh_split),"curriculum":a.curriculum,"curriculum_sha256":curriculum_sha,"curriculum_frozen":frozen_curriculum,"factor_inputs":{"known_phrasing_new_values":input_rows(&known_phrasing_new_values),"new_phrasing_known_values":input_rows(&new_phrasing_known_values),"repeated_values":input_rows(&repeated_values)},"fresh_exclusions":if crossed.is_some(){"crossed curriculum exclusion/provenance is bound in curriculum_frozen.manifest; no global encoder-corpus exclusion claim"}else{"local-1 excludes exact source rows and literal values from legacy compiler training/development/fresh;no claim of exclusion from every historical encoder corpus"},"limitations":"authored supervised panels;three seeded readouts on one frozen carrier are not independent encoder or architecture replications"});
     let input_bytes = serde_json::to_vec_pretty(&inputs)?;
     fs::write(a.output.join("frozen-inputs.json"), &input_bytes)?;
     let binding_bytes = fs::read(&a.binding)?;
@@ -1046,7 +1072,7 @@ fn run(a: &Args) -> Result<()> {
     let donor_identities = json!({"cue":serde_json::from_slice::<Value>(&fs::read(a.cue.join("native-metadata.json"))?)?,"prefix":serde_json::from_slice::<Value>(&fs::read(a.prefix.join("native-metadata.json"))?)?,"source_end":serde_json::from_slice::<Value>(&fs::read(a.end.join("native-metadata.json"))?)?});
     write_json(
         &a.output.join("report.json"),
-        &json!({"schema":"geometric-native-compiler-report/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"host":std::env::consts::ARCH,"elapsed_seconds":started.elapsed().as_secs_f64(),"binding_receipt_sha256":binding_sha,"tokenizer_sha256":tokenizer_sha,"binding_trust":if a.binding_sha.is_some(){"explicit-pinned-sha"}else{"caller-supplied-trusted-receipt"},"frozen_inputs_sha256":sha256_bytes(&input_bytes),"feature_mode":a.feature_mode,"learning_seed":a.seed,"seed_scope":"one frozen learned encoder;independent initialized Q4 readouts only","panel_sha256":panel_sha,"fresh_profile":if crossed.is_some(){"crossed-1"}else{&a.fresh_split},"curriculum":a.curriculum,"curriculum_sha256":curriculum_sha,"curriculum_manifest":curriculum_receipt,"compact_trace":a.compact_trace,"reference_store_execution":reference_store,"reference_native_reader_calls":reference_store["development"]["native_reader_calls"].as_u64().unwrap_or(0)+reference_store["fresh"]["native_reader_calls"].as_u64().unwrap_or(0),"instrument_positive_control":positive,"reader_donors":donor_identities,"transport_cost":"local-relative inverse+compose two group table operations per present lane;local-product compose one;same information/slots,not identical group-operation count","selected_step":fit.selected_step,"selected_artifact_sha256":selected_sha,"compiler_identity":compiler.identity(),"checkpoints":fit.checkpoints,"diagnostics":fit.diagnostics,"development":dev,"fresh":fresh_eval,"development_store":dev_store,"fresh_store":fresh_store,"geometric_reader_available":"selected-record-and-all-bank","native_reader_calls":dev_store["native_reader_calls"].as_u64().unwrap_or(0)+fresh_store["native_reader_calls"].as_u64().unwrap_or(0),"native_emission_status":if dev_store["native_reader_calls"]==0 && fresh_store["native_reader_calls"]==0 {"NOT_RUN"}else{"executed"},"claims":"authored native compiler/store/reader episodes;encoder frozen;authored panels;no general prose/reasoning/energy qualification"}),
+        &json!({"schema":"geometric-native-compiler-report/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"host":std::env::consts::ARCH,"elapsed_seconds":started.elapsed().as_secs_f64(),"binding_receipt_sha256":binding_sha,"tokenizer_sha256":tokenizer_sha,"binding_trust":if a.binding_sha.is_some(){"explicit-pinned-sha"}else{"caller-supplied-trusted-receipt"},"frozen_inputs_sha256":sha256_bytes(&input_bytes),"feature_mode":a.feature_mode,"span_objective":a.span_objective,"learning_seed":a.seed,"seed_scope":"one frozen learned encoder;independent initialized Q4 readouts only","panel_sha256":panel_sha,"fresh_profile":a.curriculum.as_deref().unwrap_or(&a.fresh_split),"curriculum":a.curriculum,"curriculum_sha256":curriculum_sha,"curriculum_manifest":curriculum_receipt,"compact_trace":a.compact_trace,"reference_store_execution":reference_store,"reference_native_reader_calls":reference_store["development"]["native_reader_calls"].as_u64().unwrap_or(0)+reference_store["fresh"]["native_reader_calls"].as_u64().unwrap_or(0),"instrument_positive_control":positive,"reader_donors":donor_identities,"transport_cost":"local-relative inverse+compose two group table operations per present lane;local-product compose one;same information/slots,not identical group-operation count","selected_step":fit.selected_step,"selected_artifact_sha256":selected_sha,"compiler_identity":compiler.identity(),"checkpoints":fit.checkpoints,"diagnostics":fit.diagnostics,"development":dev,"fresh":fresh_eval,"development_store":dev_store,"fresh_store":fresh_store,"geometric_reader_available":"selected-record-and-all-bank","native_reader_calls":dev_store["native_reader_calls"].as_u64().unwrap_or(0)+fresh_store["native_reader_calls"].as_u64().unwrap_or(0),"native_emission_status":if dev_store["native_reader_calls"]==0 && fresh_store["native_reader_calls"]==0 {"NOT_RUN"}else{"executed"},"claims":"authored native compiler/store/reader episodes;encoder frozen;authored panels;no general prose/reasoning/energy qualification"}),
     )?;
     report_output::seal(&a.output)?;
     report_output::verify(&a.output)?;
@@ -1400,6 +1426,40 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn explicit_span_objective_and_crossed2_profile_admit() -> Result<()> {
+        assert_eq!(parse_span_objective(None)?, SpanObjective::AllRows);
+        assert_eq!(
+            parse_span_objective(Some("conditional-write"))?,
+            SpanObjective::ConditionalWrite
+        );
+        assert!(parse_span_objective(Some("predicted-write")).is_err());
+        validate_curriculum_override(Some("crossed-2"), false)?;
+        assert!(validate_curriculum_override(Some("crossed-2"), true).is_err());
+        let c = curriculum::build_profile("crossed-2")?;
+        verify_crossed_fresh(&c.fresh)?;
+        let reference = ReferenceRule::new_with_templates(&"0".repeat(64), &c.reference_templates)?;
+        for rows in [
+            &c.training,
+            &c.development,
+            &c.fresh,
+            &c.known_phrasing_new_values,
+            &c.new_phrasing_known_values,
+            &c.repeated_values,
+        ] {
+            assert_eq!(
+                evaluate(&reference, rows)?["complete_exact"],
+                json!(rows.len())
+            );
+        }
+        for episode in c.development_episodes.iter().chain(&c.fresh_episodes) {
+            assert_eq!(
+                evaluate(&reference, &episode.turns)?["complete_exact"],
+                json!(episode.turns.len())
+            );
+        }
+        Ok(())
+    }
     #[test]
     fn crossed_fresh_exclusion_rejects_actual_legacy_sources() -> Result<()> {
         let c = curriculum::build()?;

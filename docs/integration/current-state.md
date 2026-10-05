@@ -1,5 +1,17 @@
 # Current UOR-R4 research state
 
+## Conditional span repair improves capture; frame and reader transfer remain — October 5
+
+The [six corrected fits](geometric-conditional-span-2026-10-05.md) select trained checkpoints with development writes61/54/46 relative and62/60/57 product per64; product exact store11/12 each, selected replies7/12 and all-bank5/12. Matched familiar-wording/new-value writes48→205/384 and repetition8→65/96 establish bounded capture gains. All30 same-step act/relation arrays remain byte-identical to prior fits. Legacy replay/default and native prediction are unchanged; conditional labelled-write span credit/dev selection with explicit write-row mean is the intervention.
+
+New fresh writes1/1/2 per32 in each arm; fresh store0/12 and native calls0, so learned reader **NOT_RUN**. All8 new fresh questions fail in each head. Fresh decline reasons135/192 write evaluations are NONE act/relation versus6 span fallback; raw fresh scores are unmeasured. Novel-wording/known-value factors have no span fallbacks and only3 emitted boundary failures, but62 exact-span wrong act/role outputs and72 NONE/query outputs. Capture alone cannot address this frame barrier. Exposed old/new fresh rates are not compared.
+
+Reference compilation/store12/12 independently expose reader defects: selected fresh starts12/12 then8 wrong-Copy/3 Period/1 Stop failures; full bank9/12 first-token wrong-record failures with target present,0/12 completed in both modes. These are12 unique cases on one frozen reader, not72 independent trials. Same-input old/new75 traces are identical. Preserve source-progress/end donors and all regressions.
+
+**Next:** native ordered whole-frame/prefix composition with exact-byte capture and same-slot prefix-carrier control; incrementally maintain H4 state, no repeated full-prefix encoding or runtime gold mask. Natural cue/query geometric source-binding credit under actual all-source native loss is an independent reader seam. Conditional interval likelihood remains a narrower continuation option, not the default remedy for rejected queries or wrong-source first tokens. Use existing offline bridge machinery if frozen frame observations cannot learn; no unchanged-head/dose loop or geometry retirement.
+
+Source13d10d22, LinuxCPU48,13 library/10 driver tests+release/six validfitsPASS; independent133,922 saved-artifact checks pass with native/BPE/backward/BLAKE3 exclusions. OriginalP1003 report-cap interruption0.322s is excluded; prospective report512→768MiB enables only missingseed retry. Ten workers511.823s/model36.062s includinginterruption, sampledRSS2.922GB. Same120mincard/cumulative1,285,035,028ms, complete416-file757,758,064B return verified/retained; noGPU/Metalunavailable, sharedsession unchanged. Generalchat/reasoning/fullhistory/laptopenergy remain unqualified.
+
 ## Exact native score replay finds unused-span training defect — October 5
 
 The [zero-update replay](geometric-head-scores-2026-10-05.md) reproduces7,560 inspected predictions across six fits/five checkpoints. At CP64 familiar-frame/new-value, raw act377/384 and raw role381/384 contrast with final act171/384: failed span capture falls back to Unresolved. Earlier final-action counts are not raw-head error counts. Seventy-one correct-start truncations have negative omitted suffixes, not zero ties. Four-word repetition raw starts48/48 and truncations48/48 refine the earlier final39/48 count; selected checkpoints remain unchanged.
