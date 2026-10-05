@@ -592,6 +592,7 @@ impl FactTally {
             "total": self.total,
             "first_piece_accuracy": rate(self.first),
             "first_content_piece_accuracy": rate(self.first_content),
+            "first_content_correct": self.first_content,
             "full_accuracy": rate(self.full),
             "full_correct": self.full,
             "mean_nll_first_content_piece": self.nll_first_content / self.total.max(1) as f64,
@@ -983,10 +984,19 @@ fn run_fact(
             let in_class = evaluate(&*arm, &curve_in_class)?;
             let held_out = evaluate(&*arm, &curve_held_out)?;
             let train_loss = window_loss / window_steps.max(1) as f64;
+            let held_out_all = &held_out["marginals"]["all"];
+            let held_out_total = held_out_all["total"].as_u64().unwrap_or(0);
             let line = format!(
-                "step {step} lr {lr:.2e} train value NLL {train_loss:.4} grad {grad_norm:.3} in-class {} | held-out full {:.3} ({:.0}s)",
+                "step {step} lr {lr:.2e} train value NLL {train_loss:.4} grad {grad_norm:.3} \
+in-class {} | held-out (n={held_out_total}) full {:.3} {}/{held_out_total} \
+first-content {:.3} {}/{held_out_total} ({:.0}s)",
                 summary(&in_class),
-                held_out["marginals"]["all"]["full_accuracy"].as_f64().unwrap_or(f64::NAN),
+                held_out_all["full_accuracy"].as_f64().unwrap_or(f64::NAN),
+                held_out_all["full_correct"].as_u64().unwrap_or(0),
+                held_out_all["first_content_piece_accuracy"]
+                    .as_f64()
+                    .unwrap_or(f64::NAN),
+                held_out_all["first_content_correct"].as_u64().unwrap_or(0),
                 started.elapsed().as_secs_f64()
             );
             eprintln!("{line}");
