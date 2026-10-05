@@ -51,14 +51,15 @@
 //! **Row checks.** The grader judges only whether a reply is fluent and
 //! responds to the user's *last* message, so it cannot tell a recalled fact
 //! from an invented one. A row may carry a frozen deterministic check
-//! (`data/panels/conversational-v2-checks.tsv` and `-v3-checks.tsv`, embedded
-//! together; their ids are disjoint; `checks=` overrides): `any` (the reply
+//! (`data/panels/conversational-v2-checks.tsv`, `-v3-checks.tsv` and
+//! `-v4-checks.tsv`, embedded together; their ids are disjoint; `checks=`
+//! overrides): `any` (the reply
 //! contains one of the listed words or phrases), `abstain` (the reply says it
 //! does not know or cannot), `question` (the reply asks a question), `exact`
-//! (panel v3 memory: the reply names the expected value, no forbidden value
+//! (panel v3/v4 memory: the reply names the expected value, no forbidden value
 //! and no word of the distractor's key -- a wrong value, both values, the
 //! value bound to the wrong key or no value fails) or `abstain_exact` (panel
-//! v3 unknowable: an abstention that neither agrees, guesses, asserts after
+//! v3/v4 unknowable: an abstention that neither agrees, guesses, asserts after
 //! "but" nor names a made-up specific; [`abstention_fault`]). A
 //! checked row is acceptable only when it is fluent, relevant and passes its
 //! check.
@@ -70,8 +71,9 @@
 //! control passes as often as the model measures nothing about the model.
 //! The check-only controls (no grader) apply each row's check to its own last
 //! user turn and to all its user turns joined, so a check that an echo passes
-//! is visible; memory rows also get the first- and last-stated value (copy)
-//! and an authored wrong-binding reply (`conversational-v3-swaps.tsv`), and
+//! is visible; memory rows also get the first- and last-stated value (copy),
+//! an authored wrong-binding reply (`conversational-v3-swaps.tsv`,
+//! `-v4-swaps.tsv`) and each expected spelling as a bare reply, and
 //! `abstain_exact` rows three fixed adversarial abstentions.
 //!
 //! `check` runs the panel's context/turn check against a tokenizer with no
@@ -1065,9 +1067,9 @@ fn parse_checks(text: &str) -> Result<BTreeMap<String, RowCheck>, Error> {
 
 /// The tier C row checks of each conversational panel, embedded so a graded
 /// report is bound to them unless `checks=` overrides. The panels' ids are
-/// disjoint (`conv-*` in v2, `conv-v3-*` in v3), so the default is their union
-/// and a v2 report keeps its v2 checks.
-const EMBEDDED_CHECKS: [(&str, &str); 2] = [
+/// disjoint (`conv-*` in v2, `conv-v3-*` in v3, `conv-v4-*` in v4), so the
+/// default is their union and a v2 report keeps its v2 checks.
+const EMBEDDED_CHECKS: [(&str, &str); 3] = [
     (
         "data/panels/conversational-v2-checks.tsv",
         include_str!("../../../../data/panels/conversational-v2-checks.tsv"),
@@ -1075,6 +1077,10 @@ const EMBEDDED_CHECKS: [(&str, &str); 2] = [
     (
         "data/panels/conversational-v3-checks.tsv",
         include_str!("../../../../data/panels/conversational-v3-checks.tsv"),
+    ),
+    (
+        "data/panels/conversational-v4-checks.tsv",
+        include_str!("../../../../data/panels/conversational-v4-checks.tsv"),
     ),
 ];
 
@@ -2069,26 +2075,34 @@ impl CopyTally {
     }
 }
 
-/// The binding-swap replies of the conversational-v3 memory rows (`id reply`
-/// per line): each names a stated value bound to the wrong key, so each must
-/// fail its row's `exact` check.
-const EMBEDDED_SWAPS: (&str, &str) = (
-    "data/panels/conversational-v3-swaps.tsv",
-    include_str!("../../../../data/panels/conversational-v3-swaps.tsv"),
-);
+/// The binding-swap replies of the conversational-v3 and -v4 memory rows
+/// (`id reply` per line): each names a stated value bound to the wrong key, so
+/// each must fail its row's `exact` check. The files' ids are disjoint.
+const EMBEDDED_SWAPS: [(&str, &str); 2] = [
+    (
+        "data/panels/conversational-v3-swaps.tsv",
+        include_str!("../../../../data/panels/conversational-v3-swaps.tsv"),
+    ),
+    (
+        "data/panels/conversational-v4-swaps.tsv",
+        include_str!("../../../../data/panels/conversational-v4-swaps.tsv"),
+    ),
+];
 
-/// The binding-swap replies by row id.
+/// The binding-swap replies by row id (the union of the embedded files).
 fn swap_replies() -> Result<BTreeMap<String, String>, Error> {
     let mut out = BTreeMap::new();
-    for (number, line) in EMBEDDED_SWAPS.1.lines().enumerate() {
-        if line.trim().is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let Some((id, reply)) = line.split_once('\t') else {
-            return Err(format!("swaps line {}: expected id and reply", number + 1).into());
-        };
-        if out.insert(id.to_owned(), reply.to_owned()).is_some() {
-            return Err(format!("swaps repeat {id}").into());
+    for (path, text) in EMBEDDED_SWAPS {
+        for (number, line) in text.lines().enumerate() {
+            if line.trim().is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let Some((id, reply)) = line.split_once('\t') else {
+                return Err(format!("{path} line {}: expected id and reply", number + 1).into());
+            };
+            if out.insert(id.to_owned(), reply.to_owned()).is_some() {
+                return Err(format!("swaps repeat {id}").into());
+            }
         }
     }
     Ok(out)
@@ -2106,8 +2120,10 @@ const ADVERSARIAL_ABSTENTIONS: [&str; 3] = [
 /// Per category: how many checked rows each check-only reply passes -- the
 /// last user turn, all user turns joined, the first- and last-stated
 /// candidate values of an exact row, the binding-swap reply of a memory row,
-/// the adversarial abstentions on `abstain_exact` rows, and each constant
-/// reply. No grader.
+/// the expected value of an exact row (a row passes when each of its expected
+/// spellings, as a bare reply, passes; every exact row should), the
+/// adversarial abstentions on `abstain_exact` rows, and each constant reply.
+/// No grader.
 fn check_only_controls(
     requests: &[Request],
     checks: &Checks,
@@ -2119,6 +2135,7 @@ fn check_only_controls(
         echo_history: CheckTally,
         copy: CopyTally,
         binding_swap: CheckTally,
+        expected_value: CheckTally,
         adversarial: Vec<CheckTally>,
         constants: Vec<CheckTally>,
     }
@@ -2141,6 +2158,18 @@ fn check_only_controls(
                 .get(&request.id)
                 .and_then(|swap| checks.of(&request.id, &users, swap)),
         );
+        entry
+            .expected_value
+            .add(checks.rows.get(&request.id).and_then(|c| {
+                let CheckKind::Exact(terms) = &c.kind else {
+                    return None;
+                };
+                Some(
+                    terms
+                        .iter()
+                        .all(|t| c.passes(&users, &format!("{}.", t.join(" ")))),
+                )
+            }));
         entry
             .adversarial
             .resize_with(ADVERSARIAL_ABSTENTIONS.len(), CheckTally::default);
@@ -2169,6 +2198,7 @@ fn check_only_controls(
                     "echo_history": r.echo_history.record(),
                     "copy": r.copy.record(),
                     "binding_swap": r.binding_swap.record(),
+                    "expected_value": r.expected_value.record(),
                     "adversarial_abstentions": ADVERSARIAL_ABSTENTIONS
                         .iter()
                         .zip(&r.adversarial)
@@ -4554,7 +4584,115 @@ mod tests {
             .map(|r| r.id.as_str())
             .collect();
         assert_eq!(
-            swaps.keys().map(String::as_str).collect::<BTreeSet<_>>(),
+            swaps
+                .keys()
+                .map(String::as_str)
+                .filter(|id| id.starts_with("conv-v3-"))
+                .collect::<BTreeSet<_>>(),
+            memory_ids
+        );
+        assert_eq!(memory["expected_value"]["checked_rows"], 30);
+        assert_eq!(memory["expected_value"]["check_pass"], 30);
+    }
+
+    /// The conversational-v4 panel, parsed from the frozen files.
+    fn panel_v4() -> (Vec<Request>, Vec<Request>, Vec<Request>) {
+        let parse = |text: &str| serde_json::from_str::<Vec<Request>>(text).unwrap();
+        (
+            parse(include_str!(
+                "../../../../data/panels/conversational-v4.json"
+            )),
+            parse(include_str!(
+                "../../../../data/panels/conversational-v4-a.json"
+            )),
+            parse(include_str!(
+                "../../../../data/panels/conversational-v4-b.json"
+            )),
+        )
+    }
+
+    #[test]
+    fn panel_v4_rows_checks_and_check_only_controls() {
+        let (all, a, b) = panel_v4();
+        assert_eq!(all.len(), 64);
+        let joined: Vec<&str> = a.iter().chain(&b).map(|r| r.id.as_str()).collect();
+        let ids: Vec<&str> = all.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(joined, ids);
+        let mut categories: BTreeMap<&str, usize> = BTreeMap::new();
+        for r in &all {
+            assert!(r.id.starts_with("conv-v4-"));
+            *categories.entry(r.category.as_str()).or_default() += 1;
+            if r.category == "multi_turn_memory" {
+                assert!((2..=4).contains(&r.user_turns.len()), "{}", r.id);
+            }
+        }
+        assert_eq!(
+            categories,
+            BTreeMap::from([("multi_turn_memory", 40), ("unknowable_or_impossible", 24)])
+        );
+        let checks = embedded_checks().unwrap();
+        let unmatched = validate_checks(&checks, &all).unwrap();
+        assert!(unmatched.iter().all(|id| !id.starts_with("conv-v4-")));
+        for r in &all {
+            let expected = match r.category.as_str() {
+                "multi_turn_memory" => "exact",
+                _ => "abstain_exact",
+            };
+            assert_eq!(checks.rows[&r.id].kind.name(), expected, "{}", r.id);
+        }
+        let constants: Vec<String> = DEFAULT_CONSTANTS.iter().map(|c| (*c).to_owned()).collect();
+        let controls = check_only_controls(&all, &checks, &constants).unwrap();
+        let memory = &controls["multi_turn_memory"];
+        assert_eq!(memory["echo_last"]["check_pass"], 0);
+        assert_eq!(memory["echo_history"]["check_pass"], 0);
+        for c in 0..3 {
+            assert_eq!(memory["constants"][c]["check_pass"], 0);
+        }
+        // Every binding swap fails and every expected spelling passes its row.
+        assert_eq!(memory["binding_swap"]["checked_rows"], 40);
+        assert_eq!(memory["binding_swap"]["check_pass"], 0);
+        assert_eq!(memory["expected_value"]["checked_rows"], 40);
+        assert_eq!(memory["expected_value"]["check_pass"], 40);
+        let unknowable = &controls["unknowable_or_impossible"];
+        assert_eq!(unknowable["echo_last"]["check_pass"], 0);
+        for a in 0..ADVERSARIAL_ABSTENTIONS.len() {
+            let result = &unknowable["adversarial_abstentions"][a]["result"];
+            assert_eq!(result["checked_rows"], 24);
+            assert_eq!(result["check_pass"], 0, "{}", ADVERSARIAL_ABSTENTIONS[a]);
+        }
+        // Plain abstentions pass every unknowable row.
+        for reply in [
+            "I don't know.",
+            "I'm sorry, but I can't do that.",
+            "I don't know. Can you tell me?",
+            "You didn't tell me that.",
+        ] {
+            for row in all
+                .iter()
+                .filter(|r| r.category == "unknowable_or_impossible")
+            {
+                let users: Vec<&str> = row.user_turns.iter().map(String::as_str).collect();
+                assert_eq!(
+                    checks.of(&row.id, &users, reply),
+                    Some(true),
+                    "{} {reply}",
+                    row.id
+                );
+            }
+        }
+        // Every memory row has a swap reply.
+        let swaps = swap_replies().unwrap();
+        let memory_ids: BTreeSet<&str> = all
+            .iter()
+            .filter(|r| r.category == "multi_turn_memory")
+            .map(|r| r.id.as_str())
+            .collect();
+        assert_eq!(
+            swaps
+                .keys()
+                .map(String::as_str)
+                .filter(|id| id.starts_with("conv-v4-"))
+                .collect::<BTreeSet<_>>(),
             memory_ids
         );
     }
@@ -4576,7 +4714,7 @@ mod tests {
     }
 
     #[test]
-    fn panel_v3_shares_no_m_world_phrasing() {
+    fn panels_v3_v4_share_no_m_world_phrasing() {
         let patterns = m_world_patterns();
         assert!(patterns.len() > 500);
         let leaks = |turn: &str| -> Option<String> {
@@ -4592,8 +4730,9 @@ mod tests {
         assert!(leaks("What is my favorite color?").is_some());
         assert!(leaks("Hey, can you tell me the capital of Peru today").is_some());
         assert!(leaks("Grandpa grows tomatoes by the window.").is_none());
-        let (all, _, _) = panel_v3();
-        for r in &all {
+        let (v3, _, _) = panel_v3();
+        let (v4, _, _) = panel_v4();
+        for r in v3.iter().chain(&v4) {
             for turn in &r.user_turns {
                 assert_eq!(leaks(turn), None, "{}: {turn}", r.id);
             }

@@ -1,0 +1,41 @@
+# id	reply -- binding-swap control for the conversational-v4 memory rows (chat-grade embeds this file; see data/panels/README.md). Each reply names a value stated in the conversation bound to the wrong key: the expected value with the distractor's key, or the distractor value with the asked key. Every reply must fail its row's exact check.
+conv-v4-mem-01	Ezra has the gerbil.
+conv-v4-mem-02	Your uncle lives in a canoe.
+conv-v4-mem-03	Your grandpa is sixty.
+conv-v4-mem-04	Hamid ate a walrus.
+conv-v4-mem-05	The puppet show begins at the windmill.
+conv-v4-mem-06	You named the kitten Marzipan.
+conv-v4-mem-07	Your flashlight is in the cellar.
+conv-v4-mem-08	Kwame plays in a barn near Tucson.
+conv-v4-mem-09	Ingrid brought the marshmallows.
+conv-v4-mem-10	Your mom's birthday is in April.
+conv-v4-mem-11	Odette's boat is called Turquoise.
+conv-v4-mem-12	Bus 72 goes to the beach.
+conv-v4-mem-13	Teodor made the cake.
+conv-v4-mem-14	Dario is learning to walk Nutmeg.
+conv-v4-mem-15	The trip is going to the aquarium.
+conv-v4-mem-16	You drank the willow tree.
+conv-v4-mem-17	Your pen pal is called Halifax.
+conv-v4-mem-18	The boats leave at sunset.
+conv-v4-mem-19	Your brother picked lavender.
+conv-v4-mem-20	You are wearing a jigsaw.
+conv-v4-mem-21	Mr. Okonkwo is the dentist.
+conv-v4-mem-22	Your neighbor rides in Prague.
+conv-v4-mem-23	Bodhi got a postcard from Lisbon.
+conv-v4-mem-24	The caterpillar is in the jar.
+conv-v4-mem-25	Your brother has forty cents.
+conv-v4-mem-26	Your aunt made the lighthouse.
+conv-v4-mem-27	The second new kid was Yusuf.
+conv-v4-mem-28	Nico is a firefighter on weekends.
+conv-v4-mem-29	Your apartment is Juniper.
+conv-v4-mem-30	The bake sale is in the gym.
+conv-v4-mem-31	You love broccoli.
+conv-v4-mem-32	The llama's name was Waterfall.
+conv-v4-mem-33	Mireille owns the skateboard.
+conv-v4-mem-34	Your snail is called Cucumber.
+conv-v4-mem-35	Your aunt knits pumpkins.
+conv-v4-mem-36	Ms. Quill teaches you math.
+conv-v4-mem-37	Oskar gave you the harmonica.
+conv-v4-mem-38	Radishes are growing in the back yard.
+conv-v4-mem-39	Your best friend moved to the puffins.
+conv-v4-mem-40	Your tent this year is number 63.

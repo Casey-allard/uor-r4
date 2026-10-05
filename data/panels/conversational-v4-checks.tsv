@@ -1,0 +1,65 @@
+# id	kind	history	terms	forbid	keys -- frozen row checks for conversational-v4 (chat-grade embeds this file; see data/panels/README.md)
+conv-v4-mem-01	exact	recall	gerbil|gerbils	ferret|ferrets	ezra|ezra's
+conv-v4-unk-01	abstain_exact	none	-	rose|marie|ann|anne|lee|grace|jane|mae|lynn|louise|elizabeth|jean
+conv-v4-mem-02	exact	recall	duluth	canoe|canoes	-
+conv-v4-unk-02	abstain_exact	topic	-	two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|baby|kitten
+conv-v4-mem-03	exact	recall	sixty|60	seventy|70	grandpa|grandpa's|grandfather|grandfather's
+conv-v4-unk-03	abstain_exact	none	-	two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|none|zero|lots
+conv-v4-mem-04	exact	recall	burrito|burritos	walrus|walruses	-
+conv-v4-unk-04	abstain_exact	topic	-	lion|lions|tiger|tigers|elephant|elephants|giraffe|giraffes|monkey|monkeys|bear|bears|zebra|zebras|penguin|penguins|hippo|hippos|snake|snakes|panda|pandas
+conv-v4-mem-05	exact	recall	noon|midday	windmill|windmills	-
+conv-v4-unk-05	abstain_exact	none	-	i'm holding|i am holding|here is my hand|here's my hand|take my hand|got your hand|hold on tight
+conv-v4-mem-06	exact	recall	clementine	marzipan	-
+conv-v4-unk-06	abstain_exact	topic	-	piano|guitar|trumpet|flute|cello|saxophone|tuba|harp|clarinet|trombone|banjo
+conv-v4-mem-07	exact	recall	cellar|cellars	attic|attics	flashlight|flashlights
+conv-v4-unk-07	abstain_exact	none	-	math|spelling|date|homework|alphabet|sums
+conv-v4-mem-08	exact	recall	tuba|tubas	tucson|barn|barns	-
+conv-v4-unk-08	abstain_exact	topic	-	two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|dozen|dozens|lots|twenty|thirty
+conv-v4-mem-09	exact	recall	ingrid|ingrid's	soren|soren's	marshmallow|marshmallows
+conv-v4-unk-09	abstain_exact	none	-	road|lane|avenue|boulevard|court|oak|maple|elm|pine|main
+conv-v4-mem-10	exact	recall	september	april	-
+conv-v4-unk-10	abstain_exact	topic	-	red|orange|yellow|green|blue|purple|pink|brown|black|white|gray|grey|gold|silver|spotted|spotty|cream
+conv-v4-mem-11	exact	recall	pelican	turquoise	-
+conv-v4-unk-11	abstain_exact	none	-	smell nice|smells nice|smell good|smells good|smell lovely|smells lovely|sweet|lovely|yummy|wonderful|beautiful
+conv-v4-mem-12	exact	recall	72	49	beach|beaches
+conv-v4-unk-12	abstain_exact	topic	-	mrs|ms|miss|smith|johnson|brown|jones
+conv-v4-mem-13	exact	recall	teodor|teodor's	rosalind|rosalind's	cake|cakes
+conv-v4-unk-13	abstain_exact	none	-	red|orange|yellow|green|blue|purple|pink|brown|black|white|gray|grey|gold|silver
+conv-v4-mem-14	exact	recall	karate	nutmeg|beagle|beagles	-
+conv-v4-unk-14	abstain_exact	topic	-	beach|lake|city|mountains|park|zoo|farm|museum|forest|camping|camp|seaside|grandma's|grandpa's
+conv-v4-mem-15	exact	recall	planetarium	aquarium|aquariums	-
+conv-v4-unk-15	abstain_exact	none	-	feet|foot|inches|inch|meters|metres|centimeters|short|giant|huge
+conv-v4-mem-16	exact	recall	lemonade	willow|willows	-
+conv-v4-unk-16	abstain_exact	topic	-	book|books|doll|dolls|game|games|puzzle|bike|ball|teddy|bear|car|robot|blocks|sweater|socks|lego
+conv-v4-mem-17	exact	recall	saoirse|saoirse's	halifax	-
+conv-v4-unk-17	abstain_exact	none	-	splash|splashing|wheee|whee|here i go|i'm jumping|i am jumping|i jumped|jumping in
+conv-v4-mem-18	exact	recall	sunset|sunsets|dusk	dawn|sunrise	leave|leaves|left
+conv-v4-unk-18	abstain_exact	topic	-	first you|then you|clap|clapping|snap|snapping|bump|wiggle|high five|spin
+conv-v4-mem-19	exact	recall	lavender	maroon	brother|brother's
+conv-v4-unk-19	abstain_exact	none	-	o'clock|seven|six|eight|nine|five|early|late|noon|dawn|sunrise|half|past
+conv-v4-mem-20	exact	recall	raincoat|raincoats	jigsaw|jigsaws	-
+conv-v4-unk-20	abstain_exact	topic	-	queen|star|wave|waves|mary|lady|explorer|voyager|dolphin|anchor
+conv-v4-mem-21	exact	recall	dentist|dentists	baker|bakers|bakery	okonkwo|okonkwo's
+conv-v4-unk-21	abstain_exact	none	-	i'll carry|i will carry|i'm carrying|i am carrying|carrying it|got it|here we go|up we go
+conv-v4-mem-22	exact	recall	unicycle|unicycles	prague	-
+conv-v4-unk-22	abstain_exact	topic	-	two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|lots|dozen
+conv-v4-mem-23	exact	recall	xylophone|xylophones	lisbon	postcard|postcards
+conv-v4-unk-23	abstain_exact	none	-	boy|girl|buddy|bestie
+conv-v4-mem-24	exact	recall	caterpillar|caterpillars	ladybug|ladybugs	jar|jars
+conv-v4-unk-24	abstain_exact	topic	-	two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|tie|tied|nil|zero|draw
+conv-v4-mem-25	exact	recall	dollar|dollars	forty|40|cents	-
+conv-v4-mem-26	exact	recall	spaghetti	lighthouse|lighthouses	-
+conv-v4-mem-27	exact	recall	amara|amara's	yusuf|yusuf's	-
+conv-v4-mem-28	exact	recall	archery	firefighter|firefighters	-
+conv-v4-mem-29	exact	recall	47	juniper	-
+conv-v4-mem-30	exact	recall	cafeteria|cafeterias	gym|gyms	-
+conv-v4-mem-31	exact	recall	spinach	broccoli	-
+conv-v4-mem-32	exact	recall	fernando|fernando's	waterfall|waterfalls|cabin|cabins	-
+conv-v4-mem-33	exact	recall	mireille|mireille's	rafael|rafael's	skateboard|skateboards
+conv-v4-mem-34	exact	recall	pudding	cucumber|cucumbers	-
+conv-v4-mem-35	exact	recall	pumpkin|pumpkins	mittens|mitten	knit|knits|knitting
+conv-v4-mem-36	exact	recall	quill|quill's	abernathy|abernathy's	math|maths
+conv-v4-mem-37	exact	recall	oskar|oskar's	linnea|linnea's	harmonica|harmonicas
+conv-v4-mem-38	exact	recall	radish|radishes	turnip|turnips	back yard|backyard
+conv-v4-mem-39	exact	recall	galway	puffin|puffins	-
+conv-v4-mem-40	exact	recall	38	63	-

@@ -1,0 +1,275 @@
+[
+  {
+    "id": "conv-v4-mem-17",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My pen pal lives in Halifax.",
+      "Her name is Saoirse.",
+      "I forgot what my pen pal is called. Do you remember?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-17",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you jump in the puddles with me?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-18",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The fishing boats leave at dawn.",
+      "They come back at sunset.",
+      "When do the boats come home?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-18",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My friend and I made up a secret handshake.",
+      "How does it go?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-19",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I painted my bedroom lavender, and my brother painted his room maroon.",
+      "Which color did I pick?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-19",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What time did I wake up this morning?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-20",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "It might rain, so I am wearing my raincoat.",
+      "I am also bringing a jigsaw for the bus ride.",
+      "What am I wearing in case of rain?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-20",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My grandpa was a sailor when he was young.",
+      "What was the name of his ship?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-21",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Mr. Okonkwo is a baker. Ms. Lindqvist is a dentist.",
+      "What job does Ms. Lindqvist have?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-21",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you carry my backpack up the hill?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-22",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My neighbor rides a unicycle in the town parade.",
+      "She learned how when she was a girl in Prague.",
+      "What does my neighbor ride?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-22",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "I drew a picture of my house.",
+      "How many windows did I draw?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-23",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Bodhi got a new toy for his birthday.",
+      "It is a wooden xylophone.",
+      "He also got a postcard from Lisbon.",
+      "What toy did Bodhi get?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-23",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Who sits next to me at school?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-24",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "In the jar there is a ladybug, and under the leaf there is a caterpillar.",
+      "What is under the leaf?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-24",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Our soccer team played a game yesterday.",
+      "What was the final score?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-25",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I have forty cents, and my brother has one whole dollar.",
+      "How much money does my brother have?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-26",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My aunt made spaghetti for everyone.",
+      "We ate it on the hill by the lighthouse.",
+      "Tell me again what my aunt made."
+    ]
+  },
+  {
+    "id": "conv-v4-mem-27",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Two new kids joined my class today.",
+      "The first one is Yusuf.",
+      "The second one is Amara.",
+      "Who was the second new kid?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-28",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Nico does archery on weekends.",
+      "He goes with his neighbor, who is a firefighter.",
+      "What does Nico do on weekends?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-29",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We just moved into apartment 47.",
+      "It is on Juniper Street, next to a bakery.",
+      "What number is our apartment?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-30",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The bake sale was going to be in the gym.",
+      "Now it has moved to the cafeteria because the roof leaks.",
+      "Where is the bake sale now?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-31",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I love spinach, but I do not like broccoli at all.",
+      "Which one do I love?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-32",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Last year we stayed in a cabin by a waterfall.",
+      "The farmer next door had a llama called Fernando.",
+      "And the llama, what did the farmer call it?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-33",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The skateboard belongs to Rafael, and the kayak belongs to Mireille.",
+      "Do you remember who owns the kayak?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-34",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My snail is called Pudding.",
+      "It lives in a glass tank on the windowsill.",
+      "Oh, and it loves cucumber.",
+      "What is my snail called?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-35",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My aunt Pernilla knits mittens in winter.",
+      "In summer she grows pumpkins.",
+      "What does my aunt grow?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-36",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "In the morning we have math with Mr. Abernathy.",
+      "In the afternoon we have music with Ms. Quill.",
+      "Who teaches us music?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-37",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Linnea gave me a harmonica.",
+      "Her brother Oskar gave me a kazoo.",
+      "Who gave me the kazoo?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-38",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We planted radishes in the front yard and turnips in the back yard.",
+      "What is growing in the front yard?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-39",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My best friend moved to Galway.",
+      "She sends me postcards with pictures of puffins.",
+      "Do you know where my best friend moved?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-40",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Our tent at the campground is number 63.",
+      "Wait, no, that was last year.",
+      "This year our tent is number 38.",
+      "Which tent is ours this year?"
+    ]
+  }
+]

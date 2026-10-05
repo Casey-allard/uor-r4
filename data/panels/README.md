@@ -8,7 +8,94 @@ the failing heldout rows are ill-posed. A 30M–100M model trained mostly on Tin
 chat data cannot be expected to answer open-domain knowledge requests, so on that panel a
 change in conversation or mechanism barely moves the score.
 
+## Held-out memory panel `conversational-v4*` (acceptance panel for Step 6c)
+
+**Status.** `conversational-v4*` was authored blind on 2026-10-05 as the held-out acceptance
+panel for Step 6c. **v3 is now a development panel**: its misses were inspected, so a v3 gain
+no longer counts as held-out evidence. v4 was written without opening the dialogue-recall
+training generator, any Step 6 local material, or #820 comments after 2026-10-05 18:00 UTC,
+and without searching for the templates of any training generator. It is an independent
+test, not a sample of a training distribution. No model has replied to a v4 request.
+
+64 rows, ids `conv-v4-*` (tier C), two categories only. `conversational-v4-a.json` holds rows
+1–32 and `-b.json` rows 33–64 (pass both); rows interleave memory and unknowable rows, and the
+last 16 rows are memory rows. Checks are in `conversational-v4-checks.tsv` (same 6-column
+format as v3) and the binding-swap replies in `conversational-v4-swaps.tsv`; `chat-grade`
+embeds both next to the v2/v3 files (the id sets are disjoint).
+
+| Category | Rows | Turns | Check |
+|---|---|---|---|
+| `multi_turn_memory` | 40 | 13 with 2, 23 with 3, 4 with 4 | `exact` (same rule as v3) |
+| `unknowable_or_impossible` | 24 | 12 single, 12 with 2–3 | `abstain_exact` (same rule as v3) |
+
+- **Memory rows.** Short everyday user turns state facts, then the last turn asks about one.
+  Subjects vary (pets, food, family, school, jobs, places, times of day, months, numbers,
+  money, colours, toys, plants, animals), as do the question words (what, which, who, where,
+  when, how old, how much, whose) and forms ("Tell me again ...", "Do you remember ...?", a
+  question after a correction). In 22 rows the distractor is a value of the same type (two
+  pets, two names, two ages, two places; five of them are updates or corrections, such as
+  a tent number changed from one year to the next); in 18 rows the other stated values are of a
+  different type (a town and a boat, a sport and a dog's name). Every row's `forbid` lists its
+  distractor values, and `chat-grade check` refuses a row whose expected or forbidden value
+  is in the last turn or that has no distractor in an earlier turn. 16 rows also list the
+  distractor's key words (`keys`); the six same-type rows without keys are updates,
+  corrections or an order ("the second one"), where the asked key also appears in a correct
+  answer. No closed-class lists were added: `forbid` holds only values stated in the
+  conversation, so a hedge listing an unstated value of the same type is not caught.
+- **Binding-swap control.** One authored wrong-binding reply per memory row: the expected
+  value with the distractor's key where the row has keys, otherwise the distractor value in
+  the asked slot. All 40 must fail.
+- **Unknowable rows.** Twelve single-turn rows ask for a personal fact never given or an
+  impossible action. Twelve multi-turn rows state related facts but not the one asked (a pet's
+  name, then its age), so a reply that copies a stated value fails. Every row lists answer-class
+  or action words in `forbid`. Multi-turn unknowable rows use history `topic`.
+- **New values and names.** No expected or distractor value word and no proper name of v4
+  occurs in any earlier `data/panels/` file or `~/uor-r4-local/ladder/panel/*.json`
+  (`scripts/check_panel_v4_novelty.py`, chat-grade's word rule; 140 value words and 43 names
+  checked against a 2,520-word vocabulary from 31 files, this README read without its v4
+  section; no collision). Not checked by that script: key words and the answer-class lists of
+  the unknowable rows (ordinary words by design, never stated in a v4 turn).
+- **Leakage.** The unit test `panels_v3_v4_share_no_m_world_phrasing` checks every v4 turn
+  against the M-world string literals (whole template or 4-word run); six turns were reworded
+  while authoring until it passed. The corpus leak check (`chat-grade leak corpora=...`) was not
+  run on v4.
+
+`chat-grade check` on v4 (ladder tokenizer, context 384): pass, worst case 347 positions
+(conv-v4-mem-23). Check-only controls (no grader):
+
+| Category | checked | constant 1 | constants 2, 3 | echo last turn | echo history | copy first / last | binding swap | expected value | adversarial abstentions |
+|---|---|---|---|---|---|---|---|---|---|
+| `multi_turn_memory` | 40 | 0 | 0 | 0 | 0 | 19 / 20 | 0 | 40 | – |
+| `unknowable_or_impossible` | 24 | 24 | 0 | 0 | 0 | – | – | – | 0, 0, 0 |
+
+`expected value` (new check-only control, `check_only_controls.*.expected_value`) applies each
+expected spelling of an `exact` row as a bare reply (the spelling and a full stop) and counts the row when every
+spelling passes. As on v3, constant 1 passes every unknowable check, so that category is read
+only against its best constant.
+
+```text
+chat-grade check requests=conversational-v4-a.json,conversational-v4-b.json tokenizer=T.json context=384
+python3 scripts/check_panel_v4_novelty.py
+```
+
+**Freeze statement (v4).** Written on 2026-10-05; only `chat-grade check`, the unit tests
+and the novelty script have read it. sha256 (also in `MANIFEST.sha256`):
+
+| file | sha256 |
+|---|---|
+| `conversational-v4.json` | `bea6743c4d6c7c97eead6232179b6d0620455ab26565bb813a863da41c9c5cd1` |
+| `conversational-v4-a.json` | `f0029d57d8ab54e33709e933528e34a158b324c16cc53fb03ca75fbf47466ba0` |
+| `conversational-v4-b.json` | `57cbe574d7c09a4e48101b036161a4a06966833a29e2f3ab954a03bc254b889d` |
+| `conversational-v4-checks.tsv` | `b4238e112e5e66cfd773de75f71ae8eb39c9077c172fe8ff0f4ba8b33cc5793e` |
+| `conversational-v4-swaps.tsv` | `465b5fd4f555facdddbd71ed96e03b958b8458d0aecb002468c293d69eeb381c` |
+
+Any edit makes a new panel with a new name. Do not inspect v4 replies row by row before the
+Step 6c acceptance run; after that run v4 becomes a development panel too.
+
 ## Tiered eval v2: panel `conversational-v3*` and the missing-material K split
+
+**Status (5 October, later):** development panel. Its misses were inspected; held-out
+acceptance uses `conversational-v4*` above.
 
 The #1724 review and the re-score (#1733) found five faults in the first tiered instrument:
 (1) the qwen grader cannot fail a memory reply that recalls the wrong fact; (2) many

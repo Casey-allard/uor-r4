@@ -1,0 +1,263 @@
+[
+  {
+    "id": "conv-v4-mem-01",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My cousin Ezra keeps a ferret, and his sister Thea keeps a gerbil.",
+      "What kind of pet does Thea have?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-01",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is my grandma's middle name?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-02",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We are driving to see my uncle in Duluth.",
+      "He said we can paddle his canoe on the lake.",
+      "Which town does my uncle live in?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-02",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "We call our cat Mochi.",
+      "How old is my cat?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-03",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My grandpa is seventy and my grandma is sixty.",
+      "How old is my grandma?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-03",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "How many teeth have I lost so far?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-04",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Hamid ate a burrito at the fair.",
+      "Then he won a stuffed walrus at the ring toss.",
+      "What did Hamid eat at the fair?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-04",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Today I went to the zoo with my uncle.",
+      "Which animal did he like best?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-05",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The puppet show starts at noon.",
+      "It is in the striped tent by the windmill.",
+      "When does the puppet show begin?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-05",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you hold my hand while I cross the street?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-06",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "We were going to call the kitten Marzipan.",
+      "Then my dad liked Clementine better, so we picked that one.",
+      "What did we name the kitten in the end?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-06",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My sister plays the violin.",
+      "My brother plays the drums.",
+      "What instrument does my dad play?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-07",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I keep my flashlight in the attic and my sled in the cellar.",
+      "Where is my sled?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-07",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What did my teacher write on the board today?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-08",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My friend Kwame plays the tuba.",
+      "His band practices in a big barn near Tucson.",
+      "What instrument does Kwame play?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-08",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "We baked cookies after school.",
+      "How many cookies did we bake?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-09",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "At the sleepover, Ingrid brought the popcorn and Soren brought the marshmallows.",
+      "Who brought the popcorn?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-09",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "What is the name of my street?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-10",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "I was born in April, and my mom was born in September.",
+      "When is my mom's birthday?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-10",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My puppy is called Tofu.",
+      "He is very fluffy.",
+      "Is his fur dark or light?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-11",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Odette has a little boat.",
+      "She painted it turquoise and called it Pelican.",
+      "What is the name of Odette's boat?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-11",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Can you smell the flowers in my garden?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-12",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Bus 72 goes to the zoo, and bus 49 goes to the beach.",
+      "Which bus should I take to the zoo?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-12",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "I have a new teacher this year.",
+      "What is her name?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-13",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "The lemon cake was made by Rosalind.",
+      "The apple pie was made by Teodor.",
+      "Who made the pie?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-13",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "Do you know my toothbrush's color?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-14",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "My neighbor Dario is learning karate.",
+      "He walks to class with his beagle, Nutmeg.",
+      "What is Dario learning?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-14",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "My family went on a trip last weekend.",
+      "We took the train.",
+      "Where did we go?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-15",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "Our class trip is to the aquarium.",
+      "Oops, I got it wrong. The trip is to the planetarium, not the aquarium.",
+      "So where is the trip going?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-15",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "How tall is my dad?"
+    ]
+  },
+  {
+    "id": "conv-v4-mem-16",
+    "category": "multi_turn_memory",
+    "user_turns": [
+      "At the picnic I drank lemonade.",
+      "We sat in the shade of a big willow tree.",
+      "What did I drink at the picnic?"
+    ]
+  },
+  {
+    "id": "conv-v4-unk-16",
+    "category": "unknowable_or_impossible",
+    "user_turns": [
+      "I got a present from my aunt.",
+      "What was inside the box?"
+    ]
+  }
+]
