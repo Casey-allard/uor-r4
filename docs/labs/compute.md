@@ -127,8 +127,16 @@ These are the only network-volume datacenters that ever list 5090 stock
 non-canonical volumes are owner-approved and created lazily, only when a pod
 is first placed there (posted to the board).
 
-If none of the three has stock, `up` **does not fall back silently**: it prints
-the stock table and stops. Then:
+Stock can change between the listing and the request. When `runpodctl pod
+create` in one datacenter fails with Runpod's out-of-stock error ("no longer
+any instances available"), `up` moves on to the next listed datacenter in this
+order; any other create error stops at once. Before anything is listed or
+created, `up` checks every helper file it will upload (`uor-pod-bootstrap.sh`,
+`uor-reaper.sh`, `hot-set.txt`: present, readable, non-empty, `bash -n` clean),
+so a broken checkout costs nothing.
+
+If none of the three has stock, or all of them refuse at create time, `up`
+**does not fall back silently**: it prints the stock table and stops. Then:
 
 * `--wait [--wait-hours H]` retries every 5 minutes for up to H hours
   (default 2), posting "waiting" and "gave up" to the board;
@@ -194,7 +202,7 @@ Never delete another lab's material on the volume; it is the shared archive.
   IO-bound, rustc at ~20 % of one core), limits cargo to the pod's CPU quota
   (`RUNPOD_CPU_COUNT`; `nproc` reports the host), and builds only when
   `/workspace/bin/<sha>-sm<cap>/BUILD.json` with parity PASS is missing (a
-  cached build whose parity failed is moved to `…failed-<UTC>` and rebuilt):
+  cached build whose parity failed is moved to `…failed-<UTC>-<pod>` and rebuilt):
 
   ```
   CUDA_COMPUTE_CAP=<cap> cargo build --release -p uor-r4-training --features cuda \
@@ -226,6 +234,14 @@ Never delete another lab's material on the volume; it is the shared archive.
 * A lease is `{lab, session, id, pod, gpus, purpose, card, started, expires, renewed, hours}`
   in `~/.local/share/uor-r4/compute/leases/<pod>/<lab>-<session>.json` on the
   laptop all sessions share. Writes take one global `flock` and replace files by rename.
+  `uor-pod` writes times only as `YYYY-MM-DDTHH:MM:SSZ`. It reads any RFC 3339 /
+  ISO 8601 time with an explicit offset (fractional seconds, `Z`, `+HH:MM`,
+  `+HHMM`) or an epoch number, and so does the pod-side reaper. A lease whose
+  `expires` cannot be parsed (or has no offset), whose `gpus` is not a list of
+  indices, or that is not JSON is treated as **live** on the GPUs it names (all
+  of them when unknown), never as expired; `status` prints a
+  `MALFORMED LEASE FILE` warning naming it. Its holder fixes it with `renew`,
+  which rewrites the canonical form.
   `ledger.jsonl` (append-only) records every event; `pods.json` caches what the
   API does not say (GPU type, datacenter, volume, whether `up` made it).
 * `up`, `down`, `lease`, `release`, `takeover`, `reap`, `prune-stopped`,
@@ -302,9 +318,17 @@ keep their owner.
   not kill it there; use the standard template, which runs no Jupyter.
 * Start remote work detached so it survives the SSH session:
   `setsid nohup CMD > LOG 2>&1 < /dev/null &` — `uor-pod run` does this.
-* A `flock` on the network volume can outlive a deleted pod. The bootstrap's
-  build lock therefore waits only while the holder's heartbeat file
-  (`…lock.holder`) is fresh; results land by atomic rename either way.
+* A `flock` on the network volume can outlive a deleted pod, and a paid pod
+  must not idle behind another pod's build. The bootstrap's build lock only
+  avoids duplicate work: the holder refreshes `…lock.holder` with its phase
+  and progress every 20 s, and a waiter gives up after at most 3 minutes
+  (`UOR_BUILD_WAIT_S`), sooner when the heartbeat is older than 90 s or shows
+  no progress for 90 s. It then builds on its own container disk into a
+  private staging directory and publishes by a single `rename(2)` onto
+  `bin/<sha>-sm<cap>/`, which never merges into an existing directory: the
+  first parity-PASS build wins and a later one is discarded. A cached build
+  without parity PASS is moved to `…failed-<UTC>-<pod>` under a short publish
+  lock; without that lock the new build stays private (`…private-<pod>-<UTC>`).
 
 ## Validation record (5 October 2026)
 

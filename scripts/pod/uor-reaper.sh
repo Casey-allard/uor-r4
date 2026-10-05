@@ -20,8 +20,6 @@ INTERVAL=${UOR_REAPER_INTERVAL:-60}
 LOG=/workspace/uor-r4/pods/reaper.log
 SINCE=/root/.uor-idle-since
 env1() { tr '\0' '\n' < /proc/1/environ | sed -n "s/^$1=//p" | head -1; }
-POD=$(env1 RUNPOD_POD_ID)
-mkdir -p "$(dirname "$LOG")"
 log() { echo "$(date -u +%FT%TZ) pod=$POD $*" >> "$LOG"; }
 
 # The pod's own RUNPOD_API_KEY is accepted by the GraphQL API (verified
@@ -32,19 +30,44 @@ gql() {  # gql QUERY -> response body; the Authorization header comes from stdin
       -d "{\"query\": \"$1\"}" https://api.runpod.io/graphql
 }
 
+# Leases are mirrored verbatim from the laptop, where other tools may have
+# written them, so `expires` is parsed as any RFC 3339 / ISO 8601 time with an
+# explicit offset (fractional seconds, Z, +HH:MM, +HHMM, +HH) or an epoch
+# number, the same rules as uor-pod's `ts`. Anything unparseable (including a
+# time without an offset) counts as LIVE: never delete on doubt.
 live_lease() {
-  python3 - <<'PY'
-import glob, json, sys, time, calendar
-for f in glob.glob('/root/leases/*.json'):
+  python3 - "${UOR_REAPER_LEASES:-/root/leases}" <<'PY'
+import calendar, glob, json, re, sys, time
+RX = re.compile(r'^\s*(\d{4})-(\d{2})-(\d{2})[Tt ](\d{2}):(\d{2})(?::(\d{2})(?:[.,]\d+)?)?\s*([Zz]|[+-]\d{2}(?::?\d{2})?)\s*$')
+def epoch(v):
+    if isinstance(v, (int, float)) and not isinstance(v, bool):
+        return float(v)
+    m = RX.match(v) if isinstance(v, str) else None
+    if not m:
+        return None
+    y, mo, d, h, mi = (int(x) for x in m.groups()[:5])
+    s = int(m.group(6) or 0)
+    if not (1 <= mo <= 12 and 1 <= d <= 31 and h <= 23 and mi <= 59 and s <= 60):
+        return None
+    z = m.group(7)
+    off = 0
+    if z not in ('Z', 'z'):
+        z = z.replace(':', '')
+        off = (-1 if z[0] == '-' else 1) * (int(z[1:3]) * 3600 + int(z[3:5] or 0) * 60)
+    return calendar.timegm((y, mo, d, h, mi, s, 0, 0, 0)) - off
+for f in glob.glob(sys.argv[1] + '/*.json'):
     try:
-        exp = json.load(open(f))['expires']
-        if calendar.timegm(time.strptime(exp, '%Y-%m-%dT%H:%M:%SZ')) > time.time():
-            sys.exit(0)
+        t = epoch(json.load(open(f))['expires'])
     except Exception:
-        sys.exit(0)  # unreadable lease: treat as live (never delete on doubt)
+        t = None
+    if t is None or t > time.time():
+        sys.exit(0)  # live, or unreadable/unparseable: treat as live
 sys.exit(1)
 PY
 }
+if [ "${1:-}" = --live-lease ]; then live_lease; exit; fi  # test hook: exit 0 = a live lease exists
+POD=$(env1 RUNPOD_POD_ID)
+mkdir -p "$(dirname "$LOG")"
 
 busy() {
   local f
