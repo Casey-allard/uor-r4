@@ -4,7 +4,7 @@
 //! dialogue-recall-corpus generate out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   [panels=data/panels[,DIR...]] [seed=1] (dialogues=N | token_budget=N) \
 //!   [dev_seed=1000003] [dev_dialogues=300] [protocol=2] [context=384] \
-//!   [samples=200] [train_on=answers|all] [source_commit=SHA]
+//!   [samples=200] [train_on=answers|all] [generator=v2|v1] [source_commit=SHA]
 //! dialogue-recall-corpus leak out=NEW_REPORT_ROOT store=STORE_DIR tokenizer=TOKENIZER.json \
 //!   panels=DIR[,DIR...]
 //! ```
@@ -19,6 +19,22 @@
 //! the leak report against the frozen panels, and `OUT/generator.json`, the
 //! counts per category, seeds, source commit and SHA-256 of every file. The
 //! root is claimed before anything is written and sealed at the end.
+//!
+//! `generator=v2` (the default) mixes the v1 dialogues (share 0.46) with six
+//! more question families, each drawn equally often: `rule` (one activity
+//! allowed and another not, asked which is or is not allowed, sometimes as a
+//! choice between the two), `implicit_update` (a plan changes without
+//! "actually": "we voted again and chose ...", "it moved to ...", "now it's
+//! ..."; the latest value wins and the first plan can be asked for),
+//! `self_fact` (the user's own fact beside another person's: the assistant
+//! answers the user's stated fact and abstains only for a relation or person
+//! never stated), `attribute` (two objects of one kind told apart by colour,
+//! material or size, with different locations or owners), `count` (counts per
+//! container or per person, as numerals and number words) and `order`
+//! (sequences with first/second/last, after/before, day parts and times).
+//! Each family keeps the binding pressure, abstains for a never-stated key
+//! about one time in ten, and is reported per family in `generator.json`.
+//! `generator=v1` draws exactly the v1 stream (byte-identical stores).
 //!
 //! `train_on=answers` (the default) sets the response mask to 1 only on the
 //! assistant turns that answer a question (content and EOS). Acknowledgements,
@@ -1586,6 +1602,19 @@ struct World {
     /// Filtered templates, per frame: one list per template field.
     frames: Vec<FrameT>,
     dropped: BTreeMap<String, Vec<String>>,
+    /// Pools of the v2 families (their drops are reported only under v2).
+    v2: V2Pools,
+    /// Acknowledgement and acceptance turns that are not panel strings.
+    acks: Acks,
+}
+
+/// The fixed short turns, minus any that equal a panel string or share a
+/// 6-gram with one ("Got it." is a conversational-v4 check phrase).
+struct Acks {
+    plain: Vec<&'static str>,
+    update: Vec<&'static str>,
+    accepts: Vec<&'static str>,
+    accept_acks: Vec<&'static str>,
 }
 
 struct FrameT {
@@ -1808,6 +1837,31 @@ impl World {
             }
             frames.push(frame);
         }
+        let mut short = |list: &[&'static str]| -> Result<Vec<&'static str>> {
+            let kept: Vec<&'static str> = list
+                .iter()
+                .copied()
+                .filter(|t| {
+                    let ok = panel.turn_leak(t).is_none();
+                    if !ok {
+                        discard("acknowledgement", t);
+                    }
+                    ok
+                })
+                .collect();
+            if kept.is_empty() {
+                return Err("every acknowledgement of a list is a panel string".into());
+            }
+            Ok(kept)
+        };
+        let acks = Acks {
+            plain: short(ACKS)?,
+            update: short(UPDATE_ACKS)?,
+            accepts: short(ACCEPTS)?,
+            accept_acks: short(ACCEPT_ACKS)?,
+        };
+        let colors = values.get(&Vc::Color).cloned().unwrap_or_default();
+        let v2 = V2Pools::new(&panel, &colors)?;
         Ok(Self {
             panel,
             values,
@@ -1816,6 +1870,8 @@ impl World {
             fillers,
             frames,
             dropped,
+            v2,
+            acks,
         })
     }
 }
@@ -1831,6 +1887,12 @@ enum Category {
     AssistantStated,
     CrossRelation,
     Abstain,
+    Rule,
+    ImplicitUpdate,
+    SelfFact,
+    Attribute,
+    Count,
+    Order,
 }
 
 impl Category {
@@ -1842,6 +1904,12 @@ impl Category {
             Self::AssistantStated => "assistant_stated",
             Self::CrossRelation => "cross_relation",
             Self::Abstain => "abstain",
+            Self::Rule => "rule",
+            Self::ImplicitUpdate => "implicit_update",
+            Self::SelfFact => "self_fact",
+            Self::Attribute => "attribute",
+            Self::Count => "count",
+            Self::Order => "order",
         }
     }
 }
@@ -1888,6 +1956,8 @@ struct Question {
     forbid: Vec<String>,
     /// Other keys the answer must not name.
     forbid_keys: Vec<String>,
+    /// The never-stated key a v2 abstention asks about (`None` in v1).
+    unstated_key: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -2241,7 +2311,10 @@ impl<'w> Builder<'w> {
             }
             self.assistant(parts.join(" "), "acknowledgement");
         } else {
-            self.assistant(pick(rng, ACKS)?.to_string(), "acknowledgement");
+            self.assistant(
+                pick(rng, &self.world().acks.plain)?.to_string(),
+                "acknowledgement",
+            );
         }
         Ok(())
     }
@@ -2358,6 +2431,7 @@ impl<'w> Builder<'w> {
             expect: Some(expect),
             forbid,
             forbid_keys,
+            unstated_key: None,
         });
         Ok(())
     }
@@ -2400,6 +2474,7 @@ impl<'w> Builder<'w> {
             expect: None,
             forbid,
             forbid_keys,
+            unstated_key: None,
         });
         Ok(true)
     }
@@ -2502,8 +2577,11 @@ fn draw_dialogue(world: &World, rng: &mut Rng) -> Result<Drawn> {
                 fill(pick(rng, &frame.suggest_reply)?, &slots)?,
                 "suggestion",
             );
-            b.user(pick(rng, ACCEPTS)?.to_string());
-            b.assistant(pick(rng, ACCEPT_ACKS)?.to_string(), "acknowledgement");
+            b.user(pick(rng, &world.acks.accepts)?.to_string());
+            b.assistant(
+                pick(rng, &world.acks.accept_acks)?.to_string(),
+                "acknowledgement",
+            );
             b.note_frame(primary);
             for fact in &mut facts {
                 fact.by_assistant = true;
@@ -2553,7 +2631,10 @@ fn draw_dialogue(world: &World, rng: &mut Rng) -> Result<Drawn> {
         let slots = fact_slots(&b.facts[index], spec.art);
         let template = pick(rng, &world.frames[frame_index].update)?;
         b.user(fill(template, &slots)?);
-        b.assistant(pick(rng, UPDATE_ACKS)?.to_string(), "acknowledgement");
+        b.assistant(
+            pick(rng, &world.acks.update)?.to_string(),
+            "acknowledgement",
+        );
         updated = Some(index);
     }
 
@@ -2656,30 +2737,7 @@ fn draw_dialogue(world: &World, rng: &mut Rng) -> Result<Drawn> {
         facts: b.facts,
         keys: b.keys,
     };
-    // Redraw on any leak or collision; then the semantic checks must hold.
-    if let Some(reason) = collision(&dialogue) {
-        return Ok(Drawn::Redraw(reason));
-    }
-    for turn in &dialogue.turns {
-        if let Some(reason) = world.panel.turn_leak(&turn.text) {
-            return Ok(Drawn::Redraw(reason));
-        }
-    }
-    // A key or value word that coincides with an answer template's own words
-    // ("the school play" against "plays the viola") would make a correct
-    // answer look like it names another key: redraw such a dialogue.
-    for q in &dialogue.questions {
-        let answer = content_stems(&dialogue.turns[q.turn].text);
-        if q.forbid
-            .iter()
-            .chain(&q.forbid_keys)
-            .any(|other| content_stems(other).iter().any(|s| answer.contains(s)))
-        {
-            return Ok(Drawn::Redraw("key_or_value_word_in_answer_template"));
-        }
-    }
-    check_dialogue(&dialogue)?;
-    Ok(Drawn::Ok(dialogue))
+    finalize(world, dialogue)
 }
 
 /// A distractor or acknowledgement turn naming a key or value of the
@@ -2702,6 +2760,24 @@ fn collision(d: &Dialogue) -> Option<&'static str> {
         }
     }
     for q in d.questions.iter().filter(|q| q.expect.is_none()) {
+        if let Some(key) = &q.unstated_key {
+            let stated: BTreeSet<String> = d
+                .facts
+                .iter()
+                .flat_map(|f| content_stems(&f.key.user))
+                .collect();
+            let fresh: Vec<String> = content_stems(key)
+                .into_iter()
+                .filter(|s| !stated.contains(s))
+                .collect();
+            for turn in &d.turns[..q.turn - 1] {
+                let t = content_stems(&turn.text);
+                if fresh.iter().any(|s| t.contains(s)) {
+                    return Some("abstention_key_mentioned_earlier");
+                }
+            }
+            continue;
+        }
         // The abstention key is the last key pushed for it; it must not appear
         // in any turn before its question.
         let question_turn = q.turn - 1;
@@ -2815,7 +2891,10 @@ fn check_dialogue(d: &Dialogue) -> Result<()> {
                     d.turns[q.turn].text
                 ));
             }
-            if q.category != Category::Reverse && want.iter().any(|s| asked.contains(s)) {
+            if q.category != Category::Reverse
+                && !q.detail.ends_with("choice")
+                && want.iter().any(|s| asked.contains(s))
+            {
                 return Err(format!(
                     "question {:?} names its own answer",
                     d.turns[q.turn - 1].text
@@ -2843,6 +2922,1935 @@ fn check_dialogue(d: &Dialogue) -> Result<()> {
 }
 
 // ---------------------------------------------------------------------------
+// Generator v2: six more question families (`generator=v2`, the default).
+//
+// `generator=v1` draws exactly the v1 dialogues. Under v2 each draw is a v1
+// dialogue with probability `V1_SHARE` and otherwise one of the families
+// below, chosen uniformly: rules with negation, implicit updates, first-person
+// facts beside another person's, attribute-disambiguated objects, counts per
+// container or person, and temporal order.
+
+/// Share of v1 dialogues under `generator=v2`.
+const V1_SHARE: f64 = 0.46;
+const FAMILIES: [Category; 6] = [
+    Category::Rule,
+    Category::ImplicitUpdate,
+    Category::SelfFact,
+    Category::Attribute,
+    Category::Count,
+    Category::Order,
+];
+
+#[rustfmt::skip]
+const RULE_SETTINGS: &[&str] = &[
+    "at the library", "in the museum", "at the pool", "in the park", "on the bus",
+    "in the classroom", "at the campsite", "in the gym", "in the garden", "on the ferry",
+    "at the hostel", "at the cinema", "in the art studio", "at the ice rink", "in the hospital",
+    "at the stadium", "on the trail", "at the aquarium", "in the dormitory", "at the zoo",
+    "in the kitchen", "at the market", "on the playground", "at the skate rink", "in the lab",
+    "at the wedding", "on the plane", "at the concert hall", "in the waiting room",
+    "at the bowling alley", "in the greenhouse", "at the marina", "in the chapel", "at the spa",
+];
+
+#[rustfmt::skip]
+const RULE_ACTS: &[(&str, &str)] = &[
+    ("diving", "dive"), ("whistling", "whistle"), ("skateboarding", "skateboard"),
+    ("juggling", "juggle"), ("snacking", "snack"), ("singing", "sing"), ("napping", "nap"),
+    ("sketching", "sketch"), ("drumming", "drum"), ("sledding", "sled"), ("climbing", "climb"),
+    ("picnicking", "picnic"), ("cycling", "cycle"), ("rollerblading", "rollerblade"),
+    ("barbecuing", "barbecue"), ("camping", "camp"), ("paddling", "paddle"),
+    ("skipping", "skip"), ("dancing", "dance"), ("chanting", "chant"), ("texting", "text"),
+    ("clapping", "clap"), ("feeding the ducks", "feed the ducks"),
+    ("flying drones", "fly drones"), ("taking photos", "take photos"),
+    ("shouting", "shout"), ("splashing", "splash"), ("somersaulting", "somersault"),
+    ("humming", "hum"), ("knitting", "knit"), ("sunbathing", "sunbathe"),
+    ("tobogganing", "toboggan"), ("birdwatching", "birdwatch"), ("stretching", "stretch"),
+    ("meditating", "meditate"), ("snorkeling", "snorkel"), ("wrestling", "wrestle"),
+    ("vaping", "vape"), ("skydiving", "skydive"), ("fencing", "fence"), ("yodeling", "yodel"),
+    ("doodling", "doodle"), ("gardening", "garden"), ("gossiping", "gossip"),
+];
+
+#[rustfmt::skip]
+const RULE_STATES: &[&str] = &[
+    "{S}, {a} is allowed but {x} is not.",
+    "{S}, {a} is fine, but {x} isn't allowed.",
+    "{X} is banned {s}, though {a} is okay.",
+    "They told us {a} is permitted {s}, but {x} is not.",
+    "{S}, we can {ab} but we can't {xb}.",
+    "{S}, you're allowed to {ab}, but you're not allowed to {xb}.",
+    "The rule {s} is simple: {a} yes, {x} no.",
+    "{S}, {x} is off limits, but {a} is welcome.",
+];
+const RULE_ASK_ALLOWED: &[&str] = &[
+    "What is allowed {s}?",
+    "What are we allowed to do {s}?",
+    "What can we do {s}?",
+    "Which activity is fine {s}?",
+];
+const RULE_ASK_BANNED: &[&str] = &[
+    "What is not allowed {s}?",
+    "What can't we do {s}?",
+    "What is banned {s}?",
+    "Which activity is off limits {s}?",
+];
+const RULE_ASK_ALLOWED_CHOICE: &[&str] = &[
+    "{S}, is {p} or {q} allowed?",
+    "{S}, which one is okay, {p} or {q}?",
+];
+const RULE_ASK_BANNED_CHOICE: &[&str] = &[
+    "{S}, which is not allowed, {p} or {q}?",
+    "{S}, is {p} or {q} banned?",
+];
+const RULE_ANSWER_ALLOWED: &[&str] = &[
+    "{A} is allowed.",
+    "{A} is fine {s}.",
+    "{A}.",
+    "You can go ahead with {a}.",
+];
+const RULE_ANSWER_BANNED: &[&str] = &[
+    "{X} is not allowed.",
+    "{X} isn't allowed {s}.",
+    "{X} is off limits.",
+    "{X}.",
+];
+const RULE_ABSTAIN: &[&str] = &[
+    "You haven't told me the rules {s}.",
+    "I don't know. You didn't mention the rules {s}.",
+];
+
+/// Implicit-update plan kinds: keys, the value class and the templates.
+struct PlanKind {
+    keys: &'static [&'static str],
+    values: Vc,
+    initial: &'static [&'static str],
+    change: &'static [&'static str],
+    change_named: &'static [&'static str],
+    ask_latest: &'static [&'static str],
+    answer_latest: &'static [&'static str],
+    ask_first: &'static [&'static str],
+    answer_first: &'static [&'static str],
+}
+
+const PLAN_KINDS: &[PlanKind] = &[
+    PlanKind {
+        keys: &[
+            "our weekend trip",
+            "the class outing",
+            "the team retreat",
+            "the family holiday",
+            "the field trip",
+            "the reunion",
+            "the honeymoon",
+            "the ski weekend",
+            "the hiking trip",
+            "the road trip",
+            "the spring getaway",
+            "the work conference",
+        ],
+        values: Vc::Place,
+        initial: &[
+            "We're planning {k} to {v}.",
+            "{K} is going to be in {v}.",
+            "For {k}, we picked {v}.",
+        ],
+        change: &[
+            "The plan changed, we're going to {v} instead.",
+            "We voted again and chose {v}.",
+            "It moved to {v}.",
+            "Now it's {v}.",
+            "Everyone preferred {v}, so we switched.",
+            "Scratch that, we're heading to {v}.",
+            "New plan: {v}.",
+        ],
+        change_named: &[
+            "The plan for {k} changed, we're going to {v} instead.",
+            "We voted again on {k} and chose {v}.",
+            "{K} moved to {v}.",
+            "Now {k} is in {v}.",
+            "New plan for {k}: {v}.",
+        ],
+        ask_latest: &[
+            "Where are we going for {k}?",
+            "Where is {k} now?",
+            "What's the final plan for {k}?",
+            "Where did we end up for {k}?",
+        ],
+        answer_latest: &[
+            "You're going to {v} now.",
+            "It's {v} now.",
+            "{V}.",
+            "{KA} is in {v} now.",
+        ],
+        ask_first: &[
+            "What was the first plan for {k}?",
+            "Where did we pick at first for {k}?",
+            "What was the original plan for {k}?",
+        ],
+        answer_first: &[
+            "The first plan was {v}.",
+            "Originally it was {v}.",
+            "{V}, before the change.",
+        ],
+    },
+    PlanKind {
+        keys: &[
+            "the potluck dish",
+            "the party menu",
+            "the main course",
+            "the bake-off entry",
+            "the holiday meal",
+            "the team dinner dish",
+            "the fundraiser menu",
+            "the farewell meal",
+        ],
+        values: Vc::Dish,
+        initial: &[
+            "For {k}, we picked {v}.",
+            "We decided on {v} for {k}.",
+            "{K} is going to be {v}.",
+        ],
+        change: &[
+            "The plan changed, we're making {v} instead.",
+            "We voted again and chose {v}.",
+            "Now it's {v}.",
+            "Everyone wanted {v}, so we switched.",
+            "New plan: {v}.",
+        ],
+        change_named: &[
+            "The plan for {k} changed, we're making {v} instead.",
+            "We voted again on {k} and chose {v}.",
+            "Now {k} is {v}.",
+            "New plan for {k}: {v}.",
+        ],
+        ask_latest: &[
+            "What are we having for {k}?",
+            "What's {k} now?",
+            "What did we settle on for {k}?",
+        ],
+        answer_latest: &[
+            "It's {v} now.",
+            "{V}.",
+            "You settled on {v}.",
+            "{KA} is {v} now.",
+        ],
+        ask_first: &[
+            "What did we pick first for {k}?",
+            "What was the original plan for {k}?",
+            "What was the first choice for {k}?",
+        ],
+        answer_first: &[
+            "The first plan was {v}.",
+            "Originally it was {v}.",
+            "{V}, before the change.",
+        ],
+    },
+    PlanKind {
+        keys: &[
+            "the rehearsal",
+            "the landlord meeting",
+            "the yoga class",
+            "the team call",
+            "the open house",
+            "the parent evening",
+            "the dress fitting",
+            "the tasting",
+            "the sound check",
+            "the quiz night",
+        ],
+        values: Vc::Time,
+        initial: &[
+            "{K} is at {v}.",
+            "We set {k} for {v}.",
+            "{K} starts at {v}.",
+        ],
+        change: &[
+            "It moved to {v}.",
+            "Now it's at {v}.",
+            "They pushed it to {v}.",
+            "The plan changed, it's at {v} instead.",
+            "New time: {v}.",
+        ],
+        change_named: &[
+            "{K} moved to {v}.",
+            "Now {k} is at {v}.",
+            "They pushed {k} to {v}.",
+            "New time for {k}: {v}.",
+        ],
+        ask_latest: &[
+            "What time is {k} now?",
+            "When is {k}?",
+            "What's the latest time for {k}?",
+        ],
+        answer_latest: &["It's at {v} now.", "{V}.", "{KA} is at {v} now."],
+        ask_first: &[
+            "When was {k} originally?",
+            "What was the first time for {k}?",
+        ],
+        answer_first: &[
+            "Originally it was at {v}.",
+            "It was first at {v}.",
+            "{V}, before the change.",
+        ],
+    },
+];
+
+/// First-person relations: the user's own fact beside another person's.
+struct SelfRel {
+    id: &'static str,
+    values: Vc,
+    art: Art,
+    me: &'static str,
+    other: &'static str,
+    ask_me: &'static [&'static str],
+    ask_other: &'static [&'static str],
+    answer_me: &'static [&'static str],
+    answer_other: &'static [&'static str],
+}
+
+const SELF_RELS: &[SelfRel] = &[
+    SelfRel {
+        id: "making",
+        values: Vc::Dish,
+        art: Art::None,
+        me: "I'm making {v}.",
+        other: "{K} is making {v}.",
+        ask_me: &["What did I say I'm making?", "What dish am I making?"],
+        ask_other: &["What is {k} making?", "What's {k} cooking?"],
+        answer_me: &["You're making {v}.", "{V}.", "You said {v}."],
+        answer_other: &["{KA} is making {v}.", "{V}."],
+    },
+    SelfRel {
+        id: "bringing",
+        values: Vc::Food,
+        art: Art::None,
+        me: "I'm bringing {v} to the picnic.",
+        other: "{K} is bringing {v}.",
+        ask_me: &[
+            "What did I say I'm bringing to the picnic?",
+            "What did I say I'd bring?",
+        ],
+        ask_other: &[
+            "What is {k} bringing?",
+            "What's {k} bringing to the picnic?",
+        ],
+        answer_me: &["You're bringing {v}.", "{V}.", "You said {v}."],
+        answer_other: &["{KA} is bringing {v}.", "{V}."],
+    },
+    SelfRel {
+        id: "learning",
+        values: Vc::Instrument,
+        art: Art::The,
+        me: "I'm learning the {v}.",
+        other: "{K} is learning the {v}.",
+        ask_me: &[
+            "Which instrument am I learning?",
+            "What am I learning to play?",
+        ],
+        ask_other: &["What is {k} learning?", "Which instrument is {k} learning?"],
+        answer_me: &["You're learning the {v}.", "{AV}.", "You said the {v}."],
+        answer_other: &["{KA} is learning the {v}.", "{AV}."],
+    },
+    SelfRel {
+        id: "flying",
+        values: Vc::Place,
+        art: Art::None,
+        me: "I'm flying to {v} next month.",
+        other: "{K} is flying to {v}.",
+        ask_me: &[
+            "Where am I flying?",
+            "Where did I say I'm going next month?",
+        ],
+        ask_other: &["Where is {k} flying?", "Where is {k} going?"],
+        answer_me: &["You're flying to {v}.", "{V}.", "You said {v}."],
+        answer_other: &["{KA} is flying to {v}.", "{V}."],
+    },
+    SelfRel {
+        id: "planting",
+        values: Vc::Plant,
+        art: Art::None,
+        me: "I'm planting {v} this weekend.",
+        other: "{K} is planting {v}.",
+        ask_me: &["What am I planting?", "What did I say I'd plant?"],
+        ask_other: &["What is {k} planting?"],
+        answer_me: &["You're planting {v}.", "{V}.", "You said {v}."],
+        answer_other: &["{KA} is planting {v}.", "{V}."],
+    },
+    SelfRel {
+        id: "ordering",
+        values: Vc::Drink,
+        art: Art::None,
+        me: "I'll have {v}.",
+        other: "{K} wants {v}.",
+        ask_me: &["What did I order?", "What am I having?"],
+        ask_other: &["What does {k} want?", "What did {k} order?"],
+        answer_me: &["You ordered {v}.", "{V}.", "You're having {v}."],
+        answer_other: &["{KA} wants {v}.", "{V}."],
+    },
+    SelfRel {
+        id: "favorite_color",
+        values: Vc::Color,
+        art: Art::None,
+        me: "My favorite color is {v}.",
+        other: "{Kp} favorite color is {v}.",
+        ask_me: &[
+            "What's my favorite color?",
+            "Which color did I say I like best?",
+        ],
+        ask_other: &["What's {kp} favorite color?"],
+        answer_me: &["Your favorite color is {v}.", "{V}.", "You said {v}."],
+        answer_other: &["{KAP} favorite color is {v}.", "{V}."],
+    },
+    SelfRel {
+        id: "job",
+        values: Vc::Job,
+        art: Art::Indef,
+        me: "I work as {av}.",
+        other: "{K} works as {av}.",
+        ask_me: &["What do I do for work?", "What's my job?"],
+        ask_other: &["What does {k} do for work?", "What is {kp} job?"],
+        answer_me: &["You work as {av}.", "{AV}.", "You're {av}."],
+        answer_other: &["{KA} works as {av}.", "{AV}."],
+    },
+    SelfRel {
+        id: "age",
+        values: Vc::Age,
+        art: Art::None,
+        me: "I just turned {v}.",
+        other: "{K} just turned {v}.",
+        ask_me: &["How old did I say I am?", "What age did I just turn?"],
+        ask_other: &["How old is {k}?"],
+        answer_me: &["You're {v}.", "You just turned {v}.", "{V}."],
+        answer_other: &["{KA} is {v}.", "{KA} just turned {v}."],
+    },
+];
+const SELF_ABSTAIN: &[&str] = &[
+    "You haven't told me that.",
+    "You haven't mentioned that yet.",
+    "I don't know. You didn't tell me that about yourself.",
+];
+
+#[rustfmt::skip]
+const ATTR_OBJECTS: &[(&str, &str)] = &[
+    ("mug", "mugs"), ("notebook", "notebooks"), ("umbrella", "umbrellas"), ("candle", "candles"),
+    ("vase", "vases"), ("ring", "rings"), ("bracelet", "bracelets"), ("button", "buttons"),
+    ("spoon", "spoons"), ("jar", "jars"), ("lantern", "lanterns"), ("bottle", "bottles"),
+    ("pen", "pens"), ("brush", "brushes"), ("ribbon", "ribbons"), ("figurine", "figurines"),
+    ("badge", "badges"), ("purse", "purses"), ("glove", "gloves"), ("comb", "combs"),
+    ("teapot", "teapots"), ("cushion", "cushions"), ("bucket", "buckets"), ("stool", "stools"),
+    ("bead", "beads"), ("shell", "shells"), ("stone", "stones"), ("whistle", "whistles"),
+    ("towel", "towels"), ("bowl", "bowls"), ("thimble", "thimbles"), ("ladle", "ladles"),
+    ("compass", "compasses"), ("pendant", "pendants"), ("tin", "tins"), ("crate", "crates"),
+];
+const ATTR_MATERIALS: &[&str] = &[
+    "wooden", "glass", "ceramic", "brass", "wicker", "leather", "plastic", "cotton", "woolen",
+    "clay", "bamboo", "felt", "silk", "canvas", "crystal", "paper", "rubber", "steel", "pewter",
+];
+const ATTR_SIZES: &[&str] = &[
+    "tiny",
+    "small",
+    "large",
+    "oversized",
+    "miniature",
+    "chunky",
+    "slim",
+    "giant",
+];
+
+const ATTR_LOC_STATES: &[&str] = &[
+    "I put the {a1} {o} {l1} and the {a2} {o} {l2}.",
+    "The {a1} {o} is {l1}, and the {a2} one is {l2}.",
+    "We have a couple of {os}: the {a1} one is {l1} and the {a2} one is {l2}.",
+    "The {a2} {o} went {l2}, while the {a1} {o} is {l1}.",
+];
+const ATTR_LOC_THIRD: &[&str] = &["Oh, and the {a} {o} is {l}.", "I keep the {a} {o} {l}."];
+const ATTR_LOC_ASK: &[&str] = &[
+    "Where is the {a} {o}?",
+    "Where did I put the {a} {o}?",
+    "Where can I find the {a} {o}?",
+];
+const ATTR_LOC_ANSWER: &[&str] = &["The {a} {o} is {l}.", "You put the {a} {o} {l}.", "{L}."];
+const ATTR_OWN_STATES: &[&str] = &[
+    "The {a1} {o} belongs to {n1}, and the {a2} {o} is {n2}'s.",
+    "{N1} owns the {a1} {o}, and {n2} owns the {a2} one.",
+    "The {a1} {o} is {n1}'s and the {a2} one belongs to {n2}.",
+];
+const ATTR_OWN_THIRD: &[&str] = &[
+    "Oh, and the {a} {o} is {n}'s.",
+    "The {a} {o} belongs to {n}.",
+];
+const ATTR_OWN_ASK: &[&str] = &[
+    "Whose is the {a} {o}?",
+    "Who owns the {a} {o}?",
+    "Who does the {a} {o} belong to?",
+];
+const ATTR_OWN_ANSWER: &[&str] = &["The {a} {o} belongs to {n}.", "It's {n}'s.", "{N}."];
+const ATTR_REVERSE_LOC: &[&str] = &["Which {o} is {l}?"];
+const ATTR_REVERSE_OWN: &[&str] = &["Which {o} is {n}'s?", "Which {o} belongs to {n}?"];
+const ATTR_REVERSE_ANSWER: &[&str] = &["The {a} one.", "The {a} {o}.", "It's the {a} one."];
+const ATTR_ABSTAIN: &[&str] = &[
+    "You didn't mention {aa} {o}.",
+    "You haven't told me about {aa} {o}.",
+    "I don't know. You only told me about the {a1} and {a2} {os}.",
+];
+
+#[rustfmt::skip]
+const COUNT_ITEMS: &[&str] = &[
+    "stamps", "marbles", "stickers", "pencils", "coins", "shells", "buttons", "beads",
+    "postcards", "candles", "balloons", "cupcakes", "cookies", "acorns", "seashells",
+    "paper cranes", "tickets", "envelopes", "batteries", "spoons", "nails", "screws",
+    "napkins", "cards", "ribbons", "pine cones", "dumplings", "pretzels", "erasers", "magnets",
+    "keychains", "badges", "dominoes", "figurines", "bookmarks", "sachets",
+];
+const COUNT_CONTAINERS: &[(&str, &str)] = &[
+    ("plate", "on"),
+    ("shelf", "on"),
+    ("tray", "on"),
+    ("jar", "in"),
+    ("box", "in"),
+    ("bowl", "in"),
+    ("bag", "in"),
+    ("table", "on"),
+    ("bench", "on"),
+    ("windowsill", "on"),
+    ("tin", "in"),
+    ("crate", "in"),
+    ("bin", "in"),
+    ("cart", "in"),
+    ("desk", "on"),
+    ("envelope", "in"),
+    ("folder", "in"),
+    ("platter", "on"),
+];
+#[rustfmt::skip]
+const COUNT_WORDS: &[&str] = &[
+    "sixteen", "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty",
+    "sixty", "seventy", "eighty", "ninety", "twenty-one", "thirty-one", "forty-one", "fifty-one",
+];
+const COUNT_STATES: &[&str] = &[
+    "There are {v1} {it} {p1} {c1} and {v2} {p2} {c2}.",
+    "I counted {v1} {it} {p1} {c1}, and {v2} {p2} {c2}.",
+    "{C1} has {v1} {it}, and {c2} has {v2}.",
+    "We put {v1} {it} {p1} {c1} and {v2} {p2} {c2}.",
+];
+const COUNT_THIRD: &[&str] = &["There are also {v} {p} {c}.", "Oh, and {c} has {v}."];
+const COUNT_ASK: &[&str] = &[
+    "How many {it} are {p} {c}?",
+    "How many {it} did I count {p} {c}?",
+    "What's the count {p} {c}?",
+];
+const COUNT_ANSWER: &[&str] = &[
+    "There are {v} {it} {p} {c}.",
+    "{V}.",
+    "{C} has {v}.",
+    "{V} {it}.",
+];
+const COUNT_PERSON_STATES: &[&str] = &[
+    "{K1} has {v1} {it}, and {k2} has {v2}.",
+    "{K1} collected {v1} {it} and {k2} collected {v2}.",
+    "Between them, {k1} has {v1} {it} and {k2} has {v2}.",
+];
+const COUNT_PERSON_THIRD: &[&str] = &["{K} has {v}.", "Oh, and {k} has {v}."];
+const COUNT_PERSON_ASK: &[&str] = &["How many {it} does {k} have?", "What's {kp} count?"];
+const COUNT_PERSON_ANSWER: &[&str] = &["{KA} has {v} {it}.", "{V}.", "{KAP} count is {v}."];
+
+#[rustfmt::skip]
+const ORDER_EVENTS: &[&str] = &[
+    "pottery", "fencing", "calligraphy", "origami", "kickboxing", "archery", "aerobics",
+    "pilates", "karaoke", "trivia", "orienteering", "bouldering", "badminton", "croquet",
+    "snorkeling", "taekwondo", "beekeeping", "woodworking", "glassblowing", "embroidery",
+    "chemistry tutoring", "physiotherapy", "acupuncture", "carpentry", "a haircut", "the vet",
+    "the optician", "the pharmacy", "the bakery", "the tailor", "the locksmith",
+    "the post office", "the dry cleaner", "the barber", "the florist", "the notary",
+    "the hardware store", "the laundromat", "the dentist", "volleyball", "salsa",
+    "the chiropractor", "a podcast recording", "a photo shoot", "the recycling depot",
+];
+const ORDER_PLAIN_3: &[&str] = &[
+    "Tomorrow starts with {e1}, after that {e2}, and then {e3}.",
+    "First I have {e1}, later {e2}, and last {e3}.",
+    "My plan for tomorrow: first {e1}, then {e2}, and finally {e3}.",
+    "I'll do {e1} first, then {e2}, and {e3} at the end.",
+];
+const ORDER_PLAIN_4: &[&str] = &[
+    "Tomorrow starts with {e1}, then {e2}, after that {e3}, and finally {e4}.",
+    "First {e1}, then {e2}, then {e3}, and last {e4}.",
+];
+/// Day-part templates and the phrase that names each part in a question.
+const ORDER_PARTS: &[(&str, [&str; 3])] = &[
+    (
+        "This morning I have {e1}, after lunch {e2}, and in the evening {e3}.",
+        ["this morning", "after lunch", "in the evening"],
+    ),
+    (
+        "In the morning there's {e1}, in the afternoon {e2}, and at night {e3}.",
+        ["in the morning", "in the afternoon", "at night"],
+    ),
+];
+const ORDER_TIMES: &[&str] = &[
+    "At {t1} I have {e1}, at {t2} {e2}, and at {t3} {e3}.",
+    "{e1} is at {t1}, {e2} at {t2}, and {e3} at {t3}.",
+];
+const ORDER_ASK_RANK: [&[&str]; 4] = [
+    &[
+        "What's first?",
+        "What do I have first?",
+        "What comes first?",
+    ],
+    &["What comes second?", "What's the second thing?"],
+    &["What's third?", "What comes third?"],
+    &[
+        "What's last?",
+        "What do I end with?",
+        "What's the final thing?",
+    ],
+];
+const ORDER_ANSWER_RANK: [&[&str]; 4] = [
+    &["First is {e}.", "{E} comes first.", "{E}."],
+    &["Second is {e}.", "{E} comes second.", "{E}."],
+    &["Third is {e}.", "{E} comes third.", "{E}."],
+    &["Last is {e}.", "You end with {e}.", "{E}."],
+];
+const ORDER_ASK_AFTER: &[&str] = &["What comes after {p}?", "What do I have after {p}?"];
+const ORDER_ANSWER_AFTER: &[&str] = &["Next is {e}.", "{E} comes next.", "{E}."];
+const ORDER_ASK_BEFORE: &[&str] = &[
+    "What's right before {p}?",
+    "What do I have just before {p}?",
+];
+const ORDER_ANSWER_BEFORE: &[&str] = &["Right before that is {e}.", "{E}."];
+const ORDER_ASK_PART: &[&str] = &["What do I have {t}?", "What's on {t}?"];
+const ORDER_ANSWER_PART: &[&str] = &["{T}, you have {e}.", "{E}."];
+const ORDER_ASK_TIME: &[&str] = &["What's at {t}?", "What do I have at {t}?"];
+const ORDER_ANSWER_TIME: &[&str] = &["At {t} you have {e}.", "{E}."];
+const ORDER_ABSTAIN: &[&str] = &[
+    "You didn't mention anything at {t}.",
+    "You haven't told me about anything at {t}.",
+];
+
+/// Filtered pools of the v2 families. Key-type pools carry whether the entry
+/// shares a content word with a panel (used only outside strict-key draws).
+struct V2Pools {
+    rule_settings: Vec<(String, bool)>,
+    rule_acts: Vec<(String, String)>,
+    plan_keys: Vec<Vec<(String, bool)>>,
+    objects: Vec<(String, String, bool)>,
+    attributes: Vec<Vec<(String, bool)>>,
+    containers: Vec<(String, String, bool)>,
+    count_items: Vec<(String, bool)>,
+    count_values: Vec<String>,
+    order_events: Vec<String>,
+    dropped: BTreeMap<String, Vec<String>>,
+}
+
+impl V2Pools {
+    fn new(panel: &Panel, colors: &[String]) -> Result<Self> {
+        let mut dropped: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        let mut keys = |kind: &str, list: &[&str]| -> Vec<(String, bool)> {
+            let mut kept = Vec::new();
+            for item in list {
+                if panel.has_strict(item) {
+                    dropped
+                        .entry(kind.to_owned())
+                        .or_default()
+                        .push(item.to_string());
+                } else {
+                    kept.push((item.to_string(), panel.shares_content(item)));
+                }
+            }
+            kept
+        };
+        let rule_settings = keys("rule_setting", RULE_SETTINGS);
+        let plan_keys: Vec<Vec<(String, bool)>> = PLAN_KINDS
+            .iter()
+            .map(|k| keys("plan_key", k.keys))
+            .collect();
+        let materials = keys("attribute", ATTR_MATERIALS);
+        let sizes = keys("attribute", ATTR_SIZES);
+        let count_items = keys("count_item", COUNT_ITEMS);
+        let attributes = vec![
+            colors
+                .iter()
+                .map(|c| (c.clone(), false))
+                .collect::<Vec<_>>(),
+            materials,
+            sizes,
+        ];
+        let mut objects = Vec::new();
+        for (one, many) in ATTR_OBJECTS {
+            if panel.has_strict(one) || panel.has_strict(many) {
+                dropped
+                    .entry("object".into())
+                    .or_default()
+                    .push(one.to_string());
+            } else {
+                objects.push((one.to_string(), many.to_string(), panel.shares_content(one)));
+            }
+        }
+        let mut containers = Vec::new();
+        for (noun, prep) in COUNT_CONTAINERS {
+            if panel.has_strict(noun) {
+                dropped
+                    .entry("container".into())
+                    .or_default()
+                    .push(noun.to_string());
+            } else {
+                containers.push((
+                    noun.to_string(),
+                    prep.to_string(),
+                    panel.shares_content(noun),
+                ));
+            }
+        }
+        let mut value_ok = |kind: &str, item: &str| -> bool {
+            let ok = !content_stems(item).is_empty()
+                && !panel.shares_content(item)
+                && !panel.has_strict(item);
+            if !ok {
+                dropped
+                    .entry(kind.to_owned())
+                    .or_default()
+                    .push(item.to_owned());
+            }
+            ok
+        };
+        let rule_acts: Vec<(String, String)> = RULE_ACTS
+            .iter()
+            .filter(|(g, b)| value_ok("rule_activity", &format!("{g} {b}")))
+            .map(|(g, b)| (g.to_string(), b.to_string()))
+            .collect();
+        let mut count_values: Vec<String> = (13..=60).map(|n| n.to_string()).collect();
+        count_values.extend(COUNT_WORDS.iter().map(|w| w.to_string()));
+        count_values.retain(|v| value_ok("count", v));
+        let order_events: Vec<String> = ORDER_EVENTS
+            .iter()
+            .filter(|e| value_ok("order_event", e))
+            .map(|e| e.to_string())
+            .collect();
+        let pools = Self {
+            rule_settings,
+            rule_acts,
+            plan_keys,
+            objects,
+            attributes,
+            containers,
+            count_items,
+            count_values,
+            order_events,
+            dropped,
+        };
+        for (name, n) in [
+            ("rule settings", pools.rule_settings.len()),
+            ("rule activities", pools.rule_acts.len()),
+            ("objects", pools.objects.len()),
+            ("containers", pools.containers.len()),
+            ("count items", pools.count_items.len()),
+            ("count values", pools.count_values.len()),
+            ("order events", pools.order_events.len()),
+        ] {
+            if n < 8 {
+                return Err(format!(
+                    "v2 pool {name} has {n} entries after the panel filter"
+                ));
+            }
+        }
+        Ok(pools)
+    }
+
+    fn sizes(&self) -> Value {
+        json!({
+            "rule_settings": self.rule_settings.len(),
+            "rule_activities": self.rule_acts.len(),
+            "plan_keys": self.plan_keys.iter().map(Vec::len).collect::<Vec<_>>(),
+            "objects": self.objects.len(),
+            "attributes_color_material_size": self.attributes.iter().map(Vec::len).collect::<Vec<_>>(),
+            "containers": self.containers.len(),
+            "count_items": self.count_items.len(),
+            "count_values": self.count_values.len(),
+            "order_events": self.order_events.len(),
+        })
+    }
+}
+
+impl Draw<'_> {
+    /// A fresh key-type entry, honouring strict-key draws.
+    fn pick_key_entry(&mut self, rng: &mut Rng, pool: &[(String, bool)]) -> Result<Option<String>> {
+        for _ in 0..40 {
+            let (item, shared) = pick(rng, pool)?;
+            if (self.strict && *shared) || !self.fresh(item) {
+                continue;
+            }
+            let item = item.clone();
+            self.take(&item);
+            return Ok(Some(item));
+        }
+        Ok(None)
+    }
+
+    /// A fresh value from an already filtered pool.
+    fn pick_value_entry(&mut self, rng: &mut Rng, pool: &[String]) -> Result<Option<String>> {
+        for _ in 0..40 {
+            let item = pick(rng, pool)?;
+            if !self.fresh(item) {
+                continue;
+            }
+            let item = item.clone();
+            self.take(&item);
+            return Ok(Some(item));
+        }
+        Ok(None)
+    }
+}
+
+/// A candidate question of a v2 family, already rendered.
+struct QSpec {
+    /// Questions of one dialogue use distinct slots.
+    slot: usize,
+    weight: f64,
+    question: String,
+    answer: String,
+    category: Category,
+    detail: &'static str,
+    expect: Option<String>,
+    forbid: Vec<String>,
+    forbid_keys: Vec<String>,
+    /// For an abstention: the never-stated key it asks about.
+    unstated: Option<String>,
+}
+
+/// The words of `other` whose stems are not among `asked`'s: what tells the
+/// two keys apart ("maroon" for "the maroon mug" against "the teal mug").
+fn distinguishing(other: &str, asked: &str) -> String {
+    let asked = content_stems(asked);
+    words(other)
+        .into_iter()
+        .filter(|w| w.chars().count() > 1 && !is_stop(w) && !asked.contains(&stem(w)))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Template slots from `name => value` pairs (any `ToString` value).
+macro_rules! slots {
+    ($($k:expr => $v:expr),* $(,)?) => {{
+        let mut map: BTreeMap<String, String> = BTreeMap::new();
+        $( map.insert(String::from($k), ($v).to_string()); )*
+        map
+    }};
+}
+
+fn fact(key: &str, asst: &str, value: &str, old: Option<String>) -> Fact {
+    Fact {
+        frame: usize::MAX,
+        key: Key {
+            user: key.to_owned(),
+            asst: asst.to_owned(),
+            panel_shared: false,
+        },
+        value: value.to_owned(),
+        old,
+        by_assistant: false,
+    }
+}
+
+impl Builder<'_> {
+    fn ack_plain(&mut self, rng: &mut Rng) -> Result<()> {
+        self.assistant(
+            pick(rng, &self.world().acks.plain)?.to_string(),
+            "acknowledgement",
+        );
+        Ok(())
+    }
+
+    fn push_key(&mut self, user: &str, asst: &str) {
+        self.keys.push(Key {
+            user: user.to_owned(),
+            asst: asst.to_owned(),
+            panel_shared: self.draw.world.panel.shares_content(user),
+        });
+    }
+
+    /// A People key, sometimes "my friend NAME".
+    fn person(&mut self, rng: &mut Rng) -> Result<Option<Key>> {
+        if chance(rng, 0.4) {
+            let names = &self.draw.world.person_names;
+            for _ in 0..40 {
+                let name = pick(rng, names)?.clone();
+                if self.draw.fresh(&name) && !self.draw.taken.contains("friend") {
+                    self.draw.take(&name);
+                    self.draw.take("friend");
+                    return Ok(Some(Key {
+                        user: format!("my friend {name}"),
+                        asst: format!("your friend {name}"),
+                        panel_shared: false,
+                    }));
+                }
+            }
+        }
+        self.draw.key(rng, Kc::People)
+    }
+}
+
+fn fam_rule(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
+    let pools = &b.world().v2;
+    let n = 1 + usize::from(chance(rng, 0.45));
+    let mut rules: Vec<(String, (String, String), (String, String))> = Vec::new();
+    for _ in 0..n {
+        let Some(setting) = b.draw.pick_key_entry(rng, &pools.rule_settings)? else {
+            return Ok(None);
+        };
+        let mut acts = Vec::new();
+        for _ in 0..2 {
+            let mut found = None;
+            for _ in 0..40 {
+                let (g, base) = pick(rng, &pools.rule_acts)?;
+                if b.draw.fresh(g) && b.draw.fresh(base) {
+                    b.draw.take(g);
+                    b.draw.take(base);
+                    found = Some((g.clone(), base.clone()));
+                    break;
+                }
+            }
+            let Some(act) = found else {
+                return Ok(None);
+            };
+            acts.push(act);
+        }
+        let banned = acts.pop().ok_or("two activities")?;
+        let allowed = acts.pop().ok_or("two activities")?;
+        rules.push((setting, allowed, banned));
+    }
+    let mut sentences = Vec::new();
+    for (s, (a, ab), (x, xb)) in &rules {
+        let slots = slots! {"s" => s, "S" => &cap(s), "a" => a, "A" => &cap(a), "ab" => ab, "x" => x, "X" => &cap(x), "xb" => xb};
+        sentences.push(fill(pick(rng, RULE_STATES)?, &slots)?);
+        b.push_key(s, s);
+        b.facts.push(fact(s, s, a, None));
+        b.facts.push(fact(s, s, x, None));
+    }
+    if sentences.len() == 2 && chance(rng, 0.5) {
+        b.user(sentences.join(" "));
+        b.ack_plain(rng)?;
+    } else {
+        for s in sentences {
+            b.user(s);
+            b.ack_plain(rng)?;
+        }
+    }
+    b.frames.push("rule");
+    let mut specs = Vec::new();
+    for (i, (s, (a, ab), (x, xb))) in rules.iter().enumerate() {
+        let mut others: Vec<String> = Vec::new();
+        let mut other_keys = Vec::new();
+        for (j, (s2, (a2, ab2), (x2, xb2))) in rules.iter().enumerate() {
+            if j != i {
+                others.extend([a2.clone(), ab2.clone(), x2.clone(), xb2.clone()]);
+                other_keys.push(distinguishing(s2, s));
+            }
+        }
+        let (p, q) = if chance(rng, 0.5) { (a, x) } else { (x, a) };
+        let slots = slots! {"s" => s, "S" => &cap(s), "a" => a, "A" => &cap(a), "x" => x, "X" => &cap(x), "p" => p, "q" => q};
+        for (allowed, choice) in [(true, false), (false, false), (true, true), (false, true)] {
+            let asks = match (allowed, choice) {
+                (true, false) => RULE_ASK_ALLOWED,
+                (false, false) => RULE_ASK_BANNED,
+                (true, true) => RULE_ASK_ALLOWED_CHOICE,
+                (false, true) => RULE_ASK_BANNED_CHOICE,
+            };
+            let answers = if allowed {
+                RULE_ANSWER_ALLOWED
+            } else {
+                RULE_ANSWER_BANNED
+            };
+            let (expect, wrong, wrong_base) = if allowed { (a, x, xb) } else { (x, a, ab) };
+            let mut forbid = vec![wrong.clone(), wrong_base.clone()];
+            forbid.extend(others.iter().cloned());
+            specs.push(QSpec {
+                slot: i * 2 + usize::from(!allowed),
+                weight: if choice { 0.12 } else { 0.33 },
+                question: fill(pick(rng, asks)?, &slots)?,
+                answer: fill(pick(rng, answers)?, &slots)?,
+                category: Category::Rule,
+                detail: match (allowed, choice) {
+                    (true, false) => "allowed",
+                    (false, false) => "not_allowed",
+                    (true, true) => "allowed_choice",
+                    (false, true) => "not_allowed_choice",
+                },
+                expect: Some(expect.clone()),
+                forbid,
+                forbid_keys: other_keys.clone(),
+                unstated: None,
+            });
+        }
+    }
+    if let Some(s3) = b.draw.pick_key_entry(rng, &pools.rule_settings)? {
+        let slots = slots! {"s" => &s3, "S" => &cap(&s3)};
+        let forbid = rules
+            .iter()
+            .flat_map(|(_, (a, ab), (x, xb))| [a.clone(), ab.clone(), x.clone(), xb.clone()])
+            .collect();
+        specs.push(QSpec {
+            slot: 90,
+            weight: 0.13,
+            question: fill(pick(rng, RULE_ASK_ALLOWED)?, &slots)?,
+            answer: fill(pick(rng, RULE_ABSTAIN)?, &slots)?,
+            category: Category::Abstain,
+            detail: "rule_unstated_setting",
+            expect: None,
+            forbid,
+            forbid_keys: rules
+                .iter()
+                .map(|(s, _, _)| distinguishing(s, &s3))
+                .collect(),
+            unstated: Some(s3.clone()),
+        });
+        b.push_key(&s3, &s3);
+    }
+    Ok(Some(specs))
+}
+
+fn fam_implicit(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
+    let kind_index = {
+        let r = rng.below(100);
+        if r < 45 {
+            0
+        } else if r < 75 {
+            1
+        } else {
+            2
+        }
+    };
+    let kind = &PLAN_KINDS[kind_index];
+    let key_pool = &b.world().v2.plan_keys[kind_index];
+    let n = 1 + usize::from(chance(rng, 0.35));
+    let mut plans: Vec<(String, Vec<String>)> = Vec::new();
+    for _ in 0..n {
+        let Some(key) = b.draw.pick_key_entry(rng, key_pool)? else {
+            return Ok(None);
+        };
+        let Some(v) = b.draw.value(rng, kind.values)? else {
+            return Ok(None);
+        };
+        plans.push((key, vec![v]));
+    }
+    let plan_forms = |k: &str| {
+        let ka = if let Some(rest) = k.strip_prefix("our ") {
+            format!("your {rest}")
+        } else {
+            k.to_owned()
+        };
+        (k.to_owned(), ka)
+    };
+    let mut initial = Vec::new();
+    for (k, values) in &plans {
+        let (k, ka) = plan_forms(k);
+        let slots = slots! {"k" => &k, "K" => &cap(&k), "ka" => &ka, "v" => &values[0]};
+        initial.push(fill(pick(rng, kind.initial)?, &slots)?);
+    }
+    if initial.len() == 2 && chance(rng, 0.6) {
+        b.user(initial.join(" "));
+        b.ack_plain(rng)?;
+    } else {
+        for s in initial {
+            b.user(s);
+            b.ack_plain(rng)?;
+        }
+    }
+    if chance(rng, 0.4) {
+        b.filler(rng)?;
+    }
+    let target = rng.below(n);
+    let changes = 1 + usize::from(chance(rng, 0.3));
+    for _ in 0..changes {
+        let Some(v) = b.draw.value(rng, kind.values)? else {
+            return Ok(None);
+        };
+        let (k, _) = plan_forms(&plans[target].0);
+        let slots = slots! {"k" => &k, "K" => &cap(&k), "v" => &v};
+        let template = if n == 1 && chance(rng, 0.75) {
+            pick(rng, kind.change)?
+        } else {
+            pick(rng, kind.change_named)?
+        };
+        b.user(fill(template, &slots)?);
+        if chance(rng, 0.5) {
+            b.assistant(
+                pick(rng, &b.world().acks.update)?.to_string(),
+                "acknowledgement",
+            );
+        } else {
+            b.ack_plain(rng)?;
+        }
+        plans[target].1.push(v);
+    }
+    b.frames.push("implicit_update");
+    let all_values: Vec<String> = plans.iter().flat_map(|(_, v)| v.clone()).collect();
+    for (k, values) in &plans {
+        let (k, ka) = plan_forms(k);
+        b.push_key(&k, &ka);
+        let latest = values.last().ok_or("a plan without values")?;
+        let old = (values.len() > 1).then(|| values[0].clone());
+        b.facts.push(fact(&k, &ka, latest, old));
+    }
+    let mut specs = Vec::new();
+    for (i, (k, values)) in plans.iter().enumerate() {
+        let (k, ka) = plan_forms(k);
+        let other_keys: Vec<String> = plans
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| *j != i)
+            .map(|(_, (k2, _))| distinguishing(k2, &k))
+            .collect();
+        let forbid_except = |keep: &str| -> Vec<String> {
+            all_values
+                .iter()
+                .filter(|v| v.as_str() != keep)
+                .cloned()
+                .collect()
+        };
+        let latest = values.last().ok_or("a plan without values")?;
+        let slots = slots! {"k" => &k, "K" => &cap(&k), "ka" => &ka, "KA" => &cap(&ka), "v" => latest, "V" => &cap(latest)};
+        let changed = i == target;
+        specs.push(QSpec {
+            slot: i * 2,
+            weight: if changed { 0.55 } else { 0.15 },
+            question: fill(pick(rng, kind.ask_latest)?, &slots)?,
+            answer: fill(pick(rng, kind.answer_latest)?, &slots)?,
+            category: Category::ImplicitUpdate,
+            detail: if changed { "latest" } else { "unchanged" },
+            expect: Some(latest.clone()),
+            forbid: forbid_except(latest),
+            forbid_keys: other_keys.clone(),
+            unstated: None,
+        });
+        if changed {
+            let first = &values[0];
+            let slots =
+                slots! {"k" => &k, "K" => &cap(&k), "ka" => &ka, "v" => first, "V" => &cap(first)};
+            specs.push(QSpec {
+                slot: i * 2 + 1,
+                weight: 0.25,
+                question: fill(pick(rng, kind.ask_first)?, &slots)?,
+                answer: fill(pick(rng, kind.answer_first)?, &slots)?,
+                category: Category::ImplicitUpdate,
+                detail: "first",
+                expect: Some(first.clone()),
+                forbid: forbid_except(first),
+                forbid_keys: other_keys,
+                unstated: None,
+            });
+        }
+    }
+    if let Some(k3) = b.draw.pick_key_entry(rng, key_pool)? {
+        let (k3, ka3) = plan_forms(&k3);
+        let slots = slots! {"k" => &k3, "K" => &cap(&k3), "ka" => &ka3};
+        specs.push(QSpec {
+            slot: 90,
+            weight: 0.1,
+            question: fill(pick(rng, kind.ask_latest)?, &slots)?,
+            answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &slots)?,
+            category: Category::Abstain,
+            detail: "plan_unstated",
+            expect: None,
+            forbid: all_values.clone(),
+            forbid_keys: plans.iter().map(|(k, _)| distinguishing(k, &k3)).collect(),
+            unstated: Some(k3.clone()),
+        });
+        b.push_key(&k3, &ka3);
+    }
+    Ok(Some(specs))
+}
+
+fn self_slots(rel: &SelfRel, key: Option<&Key>, value: &str) -> BTreeMap<String, String> {
+    let mut slots = BTreeMap::new();
+    if let Some(key) = key {
+        key_slots(&mut slots, "", key);
+    }
+    value_slots(&mut slots, "", value, rel.art);
+    slots
+}
+
+fn fam_self(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
+    let r = rng.below(SELF_RELS.len());
+    let rel = &SELF_RELS[r];
+    let Some(other) = b.person(rng)? else {
+        return Ok(None);
+    };
+    let (Some(mine), Some(theirs)) = (
+        b.draw.value(rng, rel.values)?,
+        b.draw.value(rng, rel.values)?,
+    ) else {
+        return Ok(None);
+    };
+    // Sometimes a second first-person fact of another relation.
+    let second = if chance(rng, 0.35) {
+        let r2 = (r + 1 + rng.below(SELF_RELS.len() - 1)) % SELF_RELS.len();
+        match b.draw.value(rng, SELF_RELS[r2].values)? {
+            Some(v) => Some((r2, v)),
+            None => return Ok(None),
+        }
+    } else {
+        None
+    };
+    let me = fill(rel.me, &self_slots(rel, None, &mine))?;
+    let joined = chance(rng, 0.6);
+    let other_template = if joined {
+        rel.other.replace("{K}", "{k}").replace("{Kp}", "{kp}")
+    } else {
+        rel.other.to_owned()
+    };
+    let them = fill(&other_template, &self_slots(rel, Some(&other), &theirs))?;
+    if joined {
+        let me_clause = me.trim_end_matches('.');
+        if chance(rng, 0.7) {
+            b.user(format!("{me_clause}, and {them}"));
+        } else {
+            b.user(format!(
+                "{}, and {}",
+                cap(them.trim_end_matches('.')),
+                lower_first_unless_i(&me)
+            ));
+        }
+        b.ack_plain(rng)?;
+    } else if chance(rng, 0.5) {
+        b.user(me.clone());
+        b.ack_plain(rng)?;
+        b.user(cap(&them));
+        b.ack_plain(rng)?;
+    } else {
+        b.user(format!("{} {}", cap(&them), me));
+        b.ack_plain(rng)?;
+    }
+    if let Some((r2, v2)) = &second {
+        b.user(fill(
+            SELF_RELS[*r2].me,
+            &self_slots(&SELF_RELS[*r2], None, v2),
+        )?);
+        b.ack_plain(rng)?;
+    }
+    b.frames.push("self_fact");
+    b.frames.push(rel.id);
+    b.keys.push(other.clone());
+    b.facts.push(fact("I", "you", &mine, None));
+    b.facts.push(fact(&other.user, &other.asst, &theirs, None));
+    let mut stated_values = vec![mine.clone(), theirs.clone()];
+    if let Some((_, v2)) = &second {
+        b.facts.push(fact("I", "you", v2, None));
+        stated_values.push(v2.clone());
+    }
+    let except = |keep: &str| -> Vec<String> {
+        stated_values
+            .iter()
+            .filter(|v| v.as_str() != keep)
+            .cloned()
+            .collect()
+    };
+    let other_words = vec![distinguishing(&other.asst, "you")];
+    let mut specs = Vec::new();
+    let s = self_slots(rel, None, &mine);
+    specs.push(QSpec {
+        slot: 0,
+        weight: 0.5,
+        question: fill(pick(rng, rel.ask_me)?, &s)?,
+        answer: fill(pick(rng, rel.answer_me)?, &s)?,
+        category: Category::SelfFact,
+        detail: "self",
+        expect: Some(mine.clone()),
+        forbid: except(&mine),
+        forbid_keys: other_words.clone(),
+        unstated: None,
+    });
+    let s = self_slots(rel, Some(&other), &theirs);
+    specs.push(QSpec {
+        slot: 1,
+        weight: 0.3,
+        question: fill(pick(rng, rel.ask_other)?, &s)?,
+        answer: fill(pick(rng, rel.answer_other)?, &s)?,
+        category: Category::SelfFact,
+        detail: "other",
+        expect: Some(theirs.clone()),
+        forbid: except(&theirs),
+        forbid_keys: vec![],
+        unstated: None,
+    });
+    if let Some((r2, v2)) = &second {
+        let rel2 = &SELF_RELS[*r2];
+        let s = self_slots(rel2, None, v2);
+        specs.push(QSpec {
+            slot: 2,
+            weight: 0.2,
+            question: fill(pick(rng, rel2.ask_me)?, &s)?,
+            answer: fill(pick(rng, rel2.answer_me)?, &s)?,
+            category: Category::SelfFact,
+            detail: "self",
+            expect: Some(v2.clone()),
+            forbid: except(v2),
+            forbid_keys: other_words.clone(),
+            unstated: None,
+        });
+    }
+    // Abstentions only for keys that were truly never stated: the user's own
+    // fact of an unstated relation (rarely), or a third person.
+    let stated_rels: Vec<usize> = std::iter::once(r)
+        .chain(second.iter().map(|(r2, _)| *r2))
+        .collect();
+    let unstated: Vec<usize> = (0..SELF_RELS.len())
+        .filter(|i| !stated_rels.contains(i))
+        .collect();
+    let r3 = *pick(rng, &unstated)?;
+    let s = self_slots(&SELF_RELS[r3], None, "x");
+    specs.push(QSpec {
+        slot: 3,
+        weight: 0.04,
+        question: fill(pick(rng, SELF_RELS[r3].ask_me)?, &s)?,
+        answer: pick(rng, SELF_ABSTAIN)?.to_string(),
+        category: Category::Abstain,
+        detail: "self_unstated_relation",
+        expect: None,
+        forbid: stated_values.clone(),
+        forbid_keys: other_words.clone(),
+        unstated: Some(String::new()),
+    });
+    if let Some(third) = b.draw.key(rng, Kc::People)? {
+        let s = self_slots(rel, Some(&third), "x");
+        specs.push(QSpec {
+            slot: 4,
+            weight: 0.09,
+            question: fill(pick(rng, rel.ask_other)?, &s)?,
+            answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &s)?,
+            category: Category::Abstain,
+            detail: "other_unstated_person",
+            expect: None,
+            forbid: stated_values.clone(),
+            forbid_keys: vec![distinguishing(&other.asst, &third.asst)],
+            unstated: Some(third.user.clone()),
+        });
+        b.keys.push(third);
+    }
+    Ok(Some(specs))
+}
+
+/// `text` with its first letter lowered unless it starts with the pronoun I.
+fn lower_first_unless_i(text: &str) -> String {
+    if text.starts_with("I ") || text.starts_with("I'") {
+        text.to_owned()
+    } else {
+        lower_first(text)
+    }
+}
+
+fn fam_attribute(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
+    let pools = &b.world().v2;
+    let mut object = None;
+    for _ in 0..40 {
+        let (one, many, shared) = pick(rng, &pools.objects)?;
+        if (b.draw.strict && *shared) || !b.draw.fresh(one) {
+            continue;
+        }
+        b.draw.take(one);
+        b.draw.take(many);
+        object = Some((one.clone(), many.clone()));
+        break;
+    }
+    let Some((o, os)) = object else {
+        return Ok(None);
+    };
+    let dimension = rng.below(pools.attributes.len());
+    let n = 2 + usize::from(chance(rng, 0.25));
+    let mut attrs = Vec::new();
+    for _ in 0..n + 1 {
+        let Some(a) = b.draw.pick_key_entry(rng, &pools.attributes[dimension])? else {
+            return Ok(None);
+        };
+        attrs.push(a);
+    }
+    let unstated = attrs.pop().ok_or("an unstated attribute")?;
+    let owner = chance(rng, 0.4);
+    let mut values = Vec::new();
+    for _ in 0..n {
+        let v = if owner {
+            b.draw.value(rng, Vc::PersonName)?
+        } else {
+            b.draw.value(rng, Vc::Spot)?
+        };
+        let Some(v) = v else {
+            return Ok(None);
+        };
+        values.push(v);
+    }
+    let pair = slots! {"o" => &o, "os" => &os, "a1" => &attrs[0], "a2" => &attrs[1], "l1" => &values[0], "l2" => &values[1], "n1" => &values[0], "N1" => &cap(&values[0]), "n2" => &values[1]};
+    let states = if owner {
+        ATTR_OWN_STATES
+    } else {
+        ATTR_LOC_STATES
+    };
+    b.user(fill(pick(rng, states)?, &pair)?);
+    b.ack_plain(rng)?;
+    if n == 3 {
+        let slots = slots! {"o" => &o, "a" => &attrs[2], "l" => &values[2], "n" => &values[2]};
+        let third = if owner {
+            ATTR_OWN_THIRD
+        } else {
+            ATTR_LOC_THIRD
+        };
+        b.user(fill(pick(rng, third)?, &slots)?);
+        b.ack_plain(rng)?;
+    }
+    b.frames.push("attribute");
+    let keys: Vec<String> = attrs.iter().map(|a| format!("the {a} {o}")).collect();
+    for (k, v) in keys.iter().zip(&values) {
+        b.push_key(k, k);
+        b.facts.push(fact(k, k, v, None));
+    }
+    let mut specs = Vec::new();
+    for i in 0..n {
+        let others: Vec<String> = (0..n)
+            .filter(|j| *j != i)
+            .map(|j| values[j].clone())
+            .collect();
+        let other_attrs: Vec<String> = (0..n)
+            .filter(|j| *j != i)
+            .map(|j| attrs[j].clone())
+            .collect();
+        let slots = slots! {"o" => &o, "a" => &attrs[i], "l" => &values[i], "L" => &cap(&values[i]), "n" => &values[i], "N" => &cap(&values[i])};
+        let (asks, answers) = if owner {
+            (ATTR_OWN_ASK, ATTR_OWN_ANSWER)
+        } else {
+            (ATTR_LOC_ASK, ATTR_LOC_ANSWER)
+        };
+        specs.push(QSpec {
+            slot: i,
+            weight: 0.8 / n as f64,
+            question: fill(pick(rng, asks)?, &slots)?,
+            answer: fill(pick(rng, answers)?, &slots)?,
+            category: Category::Attribute,
+            detail: if owner { "owner" } else { "location" },
+            expect: Some(values[i].clone()),
+            forbid: others.clone(),
+            forbid_keys: other_attrs.clone(),
+            unstated: None,
+        });
+        let reverse = if owner {
+            ATTR_REVERSE_OWN
+        } else {
+            ATTR_REVERSE_LOC
+        };
+        specs.push(QSpec {
+            slot: 10 + i,
+            weight: 0.12 / n as f64,
+            question: fill(pick(rng, reverse)?, &slots)?,
+            answer: fill(pick(rng, ATTR_REVERSE_ANSWER)?, &slots)?,
+            category: Category::Attribute,
+            detail: "reverse",
+            expect: Some(attrs[i].clone()),
+            forbid: others,
+            forbid_keys: other_attrs,
+            unstated: None,
+        });
+    }
+    let slots = slots! {"o" => &o, "os" => &os, "a" => &unstated, "aa" => &article(&unstated, Art::Indef), "a1" => &attrs[0], "a2" => &attrs[1]};
+    let asks = if owner { ATTR_OWN_ASK } else { ATTR_LOC_ASK };
+    let answers: &[&str] = if n == 2 {
+        ATTR_ABSTAIN
+    } else {
+        &ATTR_ABSTAIN[..2]
+    };
+    specs.push(QSpec {
+        slot: 90,
+        weight: 0.1,
+        question: fill(pick(rng, asks)?, &slots)?,
+        answer: fill(pick(rng, answers)?, &slots)?,
+        category: Category::Abstain,
+        detail: "attribute_unstated",
+        expect: None,
+        forbid: values.clone(),
+        forbid_keys: vec![],
+        unstated: Some(format!("the {unstated} {o}")),
+    });
+    let k = format!("the {unstated} {o}");
+    b.push_key(&k, &k);
+    Ok(Some(specs))
+}
+
+fn fam_count(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
+    let pools = &b.world().v2;
+    let Some(items) = b.draw.pick_key_entry(rng, &pools.count_items)? else {
+        return Ok(None);
+    };
+    let n = 2 + usize::from(chance(rng, 0.25));
+    let mut counts = Vec::new();
+    for _ in 0..n {
+        let Some(v) = b.draw.pick_value_entry(rng, &pools.count_values)? else {
+            return Ok(None);
+        };
+        counts.push(v);
+    }
+    b.frames.push("count");
+    let by_person = chance(rng, 0.4);
+    let mut specs = Vec::new();
+    if by_person {
+        let mut people = Vec::new();
+        for _ in 0..n + 1 {
+            let Some(p) = b.person(rng)? else {
+                return Ok(None);
+            };
+            people.push(p);
+        }
+        let unstated = people.pop().ok_or("an unstated person")?;
+        let mut slots = slots! {"it" => &items, "v1" => &counts[0], "v2" => &counts[1]};
+        key_slots(&mut slots, "1", &people[0]);
+        key_slots(&mut slots, "2", &people[1]);
+        b.user(fill(pick(rng, COUNT_PERSON_STATES)?, &slots)?);
+        b.ack_plain(rng)?;
+        if n == 3 {
+            let mut slots = slots! {"v" => &counts[2]};
+            key_slots(&mut slots, "", &people[2]);
+            b.user(fill(pick(rng, COUNT_PERSON_THIRD)?, &slots)?);
+            b.ack_plain(rng)?;
+        }
+        for (p, v) in people.iter().zip(&counts) {
+            b.keys.push(p.clone());
+            b.facts.push(fact(&p.user, &p.asst, v, None));
+        }
+        for i in 0..n {
+            let mut slots = slots! {"it" => &items, "v" => &counts[i], "V" => &cap(&counts[i])};
+            key_slots(&mut slots, "", &people[i]);
+            specs.push(QSpec {
+                slot: i,
+                weight: 0.9 / n as f64,
+                question: fill(pick(rng, COUNT_PERSON_ASK)?, &slots)?,
+                answer: fill(pick(rng, COUNT_PERSON_ANSWER)?, &slots)?,
+                category: Category::Count,
+                detail: "per_person",
+                expect: Some(counts[i].clone()),
+                forbid: (0..n)
+                    .filter(|j| *j != i)
+                    .map(|j| counts[j].clone())
+                    .collect(),
+                forbid_keys: (0..n)
+                    .filter(|j| *j != i)
+                    .map(|j| distinguishing(&people[j].asst, &people[i].asst))
+                    .collect(),
+                unstated: None,
+            });
+        }
+        let mut slots = slots! {"it" => &items};
+        key_slots(&mut slots, "", &unstated);
+        specs.push(QSpec {
+            slot: 90,
+            weight: 0.1,
+            question: fill(pick(rng, COUNT_PERSON_ASK)?, &slots)?,
+            answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &slots)?,
+            category: Category::Abstain,
+            detail: "count_unstated",
+            expect: None,
+            forbid: counts.clone(),
+            forbid_keys: people
+                .iter()
+                .map(|p| distinguishing(&p.asst, &unstated.asst))
+                .collect(),
+            unstated: Some(unstated.user.clone()),
+        });
+        b.keys.push(unstated);
+        return Ok(Some(specs));
+    }
+    // Containers: the same noun told apart by an attribute, or different nouns.
+    let same_noun = chance(rng, 0.6);
+    let mut containers: Vec<(String, String)> = Vec::new();
+    let mut shared_noun: Option<(String, String)> = None;
+    for _ in 0..n + 1 {
+        let entry = if same_noun {
+            if shared_noun.is_none() {
+                let mut found = None;
+                for _ in 0..40 {
+                    let (noun, prep, shared) = pick(rng, &pools.containers)?;
+                    if (b.draw.strict && *shared) || !b.draw.fresh(noun) {
+                        continue;
+                    }
+                    b.draw.take(noun);
+                    found = Some((noun.clone(), prep.clone()));
+                    break;
+                }
+                shared_noun = found;
+            }
+            let Some((noun, prep)) = shared_noun.clone() else {
+                return Ok(None);
+            };
+            let dim = &pools.attributes[0];
+            let Some(a) = b.draw.pick_key_entry(rng, dim)? else {
+                return Ok(None);
+            };
+            (format!("the {a} {noun}"), prep)
+        } else {
+            let mut found = None;
+            for _ in 0..40 {
+                let (noun, prep, shared) = pick(rng, &pools.containers)?;
+                if (b.draw.strict && *shared) || !b.draw.fresh(noun) {
+                    continue;
+                }
+                b.draw.take(noun);
+                found = Some((format!("the {noun}"), prep.clone()));
+                break;
+            }
+            let Some(entry) = found else {
+                return Ok(None);
+            };
+            entry
+        };
+        containers.push(entry);
+    }
+    let (unstated, unstated_prep) = containers.pop().ok_or("an unstated container")?;
+    let slots = slots! {"it" => &items, "v1" => &counts[0], "v2" => &counts[1], "c1" => &containers[0].0, "C1" => &cap(&containers[0].0), "p1" => &containers[0].1, "c2" => &containers[1].0, "p2" => &containers[1].1};
+    b.user(fill(pick(rng, COUNT_STATES)?, &slots)?);
+    b.ack_plain(rng)?;
+    if n == 3 {
+        let slots = slots! {"v" => &counts[2], "c" => &containers[2].0, "p" => &containers[2].1};
+        b.user(fill(pick(rng, COUNT_THIRD)?, &slots)?);
+        b.ack_plain(rng)?;
+    }
+    for ((c, _), v) in containers.iter().zip(&counts) {
+        b.push_key(c, c);
+        b.facts.push(fact(c, c, v, None));
+    }
+    for i in 0..n {
+        let (c, p) = &containers[i];
+        let slots = slots! {"it" => &items, "v" => &counts[i], "V" => &cap(&counts[i]), "c" => c, "C" => &cap(c), "p" => p};
+        specs.push(QSpec {
+            slot: i,
+            weight: 0.9 / n as f64,
+            question: fill(pick(rng, COUNT_ASK)?, &slots)?,
+            answer: fill(pick(rng, COUNT_ANSWER)?, &slots)?,
+            category: Category::Count,
+            detail: if same_noun {
+                "per_container_attribute"
+            } else {
+                "per_container"
+            },
+            expect: Some(counts[i].clone()),
+            forbid: (0..n)
+                .filter(|j| *j != i)
+                .map(|j| counts[j].clone())
+                .collect(),
+            forbid_keys: (0..n)
+                .filter(|j| *j != i)
+                .map(|j| distinguishing(&containers[j].0, c))
+                .collect(),
+            unstated: None,
+        });
+    }
+    let slots = slots! {"it" => &items, "c" => &unstated, "ka" => &unstated, "p" => &unstated_prep};
+    specs.push(QSpec {
+        slot: 90,
+        weight: 0.1,
+        question: fill(pick(rng, COUNT_ASK)?, &slots)?,
+        answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &slots)?,
+        category: Category::Abstain,
+        detail: "count_unstated",
+        expect: None,
+        forbid: counts.clone(),
+        forbid_keys: containers
+            .iter()
+            .map(|(c, _)| distinguishing(c, &unstated))
+            .collect(),
+        unstated: Some(unstated.clone()),
+    });
+    b.push_key(&unstated, &unstated);
+    Ok(Some(specs))
+}
+
+fn fam_order(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
+    let pools = &b.world().v2;
+    let variant = rng.below(4); // 0-1 plain, 2 day parts, 3 times
+    let n = if variant <= 1 && chance(rng, 0.3) {
+        4
+    } else {
+        3
+    };
+    let mut events = Vec::new();
+    for _ in 0..n {
+        let Some(e) = b.draw.pick_value_entry(rng, &pools.order_events)? else {
+            return Ok(None);
+        };
+        events.push(e);
+    }
+    let mut anchors: Vec<String> = Vec::new();
+    let mut slots = BTreeMap::new();
+    for (i, e) in events.iter().enumerate() {
+        slots.insert(format!("e{}", i + 1), e.clone());
+    }
+    let template = match variant {
+        2 => {
+            let (template, parts) = pick(rng, ORDER_PARTS)?;
+            anchors = parts.iter().map(|p| p.to_string()).collect();
+            template.to_string()
+        }
+        3 => {
+            let mut times = Vec::new();
+            for _ in 0..4 {
+                let Some(t) = b.draw.value(rng, Vc::Time)? else {
+                    return Ok(None);
+                };
+                times.push(t);
+            }
+            let spare = times.pop().ok_or("a spare time")?;
+            times.sort();
+            anchors = times;
+            anchors.push(spare);
+            pick(rng, ORDER_TIMES)?.to_string()
+        }
+        _ if n == 4 => pick(rng, ORDER_PLAIN_4)?.to_string(),
+        _ => pick(rng, ORDER_PLAIN_3)?.to_string(),
+    };
+    for (i, t) in anchors.iter().take(3).enumerate() {
+        slots.insert(format!("t{}", i + 1), t.clone());
+    }
+    b.user(cap(&fill(&template, &slots)?));
+    b.ack_plain(rng)?;
+    b.frames.push("order");
+    for (i, e) in events.iter().enumerate() {
+        let key = anchors.get(i).cloned().unwrap_or_default();
+        if !key.is_empty() {
+            b.push_key(&key, &key);
+        }
+        b.facts.push(fact(&key, &key, e, None));
+    }
+    let except = |i: usize| -> Vec<String> {
+        events
+            .iter()
+            .enumerate()
+            .filter(|(j, _)| *j != i)
+            .map(|(_, e)| e.clone())
+            .collect()
+    };
+    let mut specs = Vec::new();
+    for i in 0..n {
+        let e = &events[i];
+        let rank = if i == n - 1 { 3 } else { i };
+        let s = slots! {"e" => e, "E" => &cap(e)};
+        specs.push(QSpec {
+            slot: i,
+            weight: 0.35 / n as f64,
+            question: fill(pick(rng, ORDER_ASK_RANK[rank])?, &s)?,
+            answer: fill(pick(rng, ORDER_ANSWER_RANK[rank])?, &s)?,
+            category: Category::Order,
+            detail: ["first", "second", "third", "last"][rank],
+            expect: Some(e.clone()),
+            forbid: except(i),
+            forbid_keys: vec![],
+            unstated: None,
+        });
+        if i > 0 {
+            let s = slots! {"e" => e, "E" => &cap(e), "p" => &events[i - 1]};
+            specs.push(QSpec {
+                slot: 10 + i,
+                weight: 0.2 / (n - 1) as f64,
+                question: fill(pick(rng, ORDER_ASK_AFTER)?, &s)?,
+                answer: fill(pick(rng, ORDER_ANSWER_AFTER)?, &s)?,
+                category: Category::Order,
+                detail: "after",
+                expect: Some(e.clone()),
+                forbid: except(i),
+                forbid_keys: vec![],
+                unstated: None,
+            });
+        }
+        if i + 1 < n {
+            let s = slots! {"e" => e, "E" => &cap(e), "p" => &events[i + 1]};
+            specs.push(QSpec {
+                slot: 20 + i,
+                weight: 0.15 / (n - 1) as f64,
+                question: fill(pick(rng, ORDER_ASK_BEFORE)?, &s)?,
+                answer: fill(pick(rng, ORDER_ANSWER_BEFORE)?, &s)?,
+                category: Category::Order,
+                detail: "before",
+                expect: Some(e.clone()),
+                forbid: except(i),
+                forbid_keys: vec![],
+                unstated: None,
+            });
+        }
+        if variant >= 2 && i < 3 {
+            let t = &anchors[i];
+            let s = slots! {"e" => e, "E" => &cap(e), "t" => t, "T" => &cap(t)};
+            let (asks, answers, detail) = if variant == 2 {
+                (ORDER_ASK_PART, ORDER_ANSWER_PART, "day_part")
+            } else {
+                (ORDER_ASK_TIME, ORDER_ANSWER_TIME, "at_time")
+            };
+            specs.push(QSpec {
+                slot: 30 + i,
+                weight: 0.3 / n as f64,
+                question: fill(pick(rng, asks)?, &s)?,
+                answer: fill(pick(rng, answers)?, &s)?,
+                category: Category::Order,
+                detail,
+                expect: Some(e.clone()),
+                forbid: except(i),
+                forbid_keys: (0..3)
+                    .filter(|j| *j != i)
+                    .map(|j| distinguishing(&anchors[j], t))
+                    .collect(),
+                unstated: None,
+            });
+        }
+    }
+    if variant == 3 {
+        let t = &anchors[3];
+        let s = slots! {"t" => t};
+        specs.push(QSpec {
+            slot: 90,
+            weight: 0.12,
+            question: fill(pick(rng, ORDER_ASK_TIME)?, &s)?,
+            answer: fill(pick(rng, ORDER_ABSTAIN)?, &s)?,
+            category: Category::Abstain,
+            detail: "order_unstated_time",
+            expect: None,
+            forbid: events.clone(),
+            forbid_keys: anchors[..3].iter().map(|a| distinguishing(a, t)).collect(),
+            unstated: Some(t.clone()),
+        });
+    }
+    Ok(Some(specs))
+}
+
+/// One v2-family dialogue: optional distractors, the family's statements,
+/// more distractors, then one to three of its questions.
+fn draw_family(world: &World, rng: &mut Rng, family: Category) -> Result<Drawn> {
+    let strict = chance(rng, STRICT_KEY_SHARE);
+    let mut b = Builder {
+        draw: Draw {
+            world,
+            taken: BTreeSet::new(),
+            strict,
+        },
+        turns: Vec::new(),
+        facts: Vec::new(),
+        keys: Vec::new(),
+        frames: Vec::new(),
+        questions: Vec::new(),
+        used_fillers: BTreeSet::new(),
+    };
+    let distractors = rng.below(MAX_DISTRACTORS + 1);
+    let pre = usize::from(distractors > 0 && chance(rng, 0.25));
+    b.fillers(rng, pre)?;
+    let specs = match family {
+        Category::Rule => fam_rule(&mut b, rng)?,
+        Category::ImplicitUpdate => fam_implicit(&mut b, rng)?,
+        Category::SelfFact => fam_self(&mut b, rng)?,
+        Category::Attribute => fam_attribute(&mut b, rng)?,
+        Category::Count => fam_count(&mut b, rng)?,
+        Category::Order => fam_order(&mut b, rng)?,
+        _ => return Err("not a v2 family".into()),
+    };
+    let Some(specs) = specs else {
+        return Ok(Drawn::Redraw("key_or_value_pool"));
+    };
+    let remaining = distractors - pre;
+    let questions = {
+        let r = rng.below(100);
+        if r < 60 {
+            1
+        } else if r < 88 {
+            2
+        } else {
+            3
+        }
+    };
+    let between = usize::from(questions > 1 && remaining > 0 && chance(rng, 0.5));
+    b.fillers(rng, remaining - between)?;
+    let mut used = BTreeSet::new();
+    let mut abstained = false;
+    for i in 0..questions {
+        let open: Vec<usize> = (0..specs.len())
+            .filter(|&j| {
+                !used.contains(&specs[j].slot) && !(abstained && specs[j].expect.is_none())
+            })
+            .collect();
+        if open.is_empty() {
+            break;
+        }
+        let total: f64 = open.iter().map(|&j| specs[j].weight).sum();
+        let mut x = ((rng.next_u64() >> 11) as f64) / ((1u64 << 53) as f64) * total;
+        let mut chosen = open[open.len() - 1];
+        for &j in &open {
+            if x < specs[j].weight {
+                chosen = j;
+                break;
+            }
+            x -= specs[j].weight;
+        }
+        if i == 1 && between > 0 {
+            b.fillers(rng, between)?;
+        }
+        let spec = &specs[chosen];
+        used.insert(spec.slot);
+        abstained |= spec.expect.is_none();
+        let question = b.question_text(rng, spec.question.clone())?;
+        b.user(question);
+        b.assistant(spec.answer.clone(), "answer");
+        b.questions.push(Question {
+            turn: b.turns.len() - 1,
+            category: spec.category,
+            followup: i > 0,
+            detail: spec.detail,
+            expect: spec.expect.clone(),
+            forbid: spec.forbid.clone(),
+            forbid_keys: spec
+                .forbid_keys
+                .iter()
+                .filter(|k| !k.is_empty())
+                .cloned()
+                .collect(),
+            unstated_key: spec.unstated.clone(),
+        });
+    }
+    let dialogue = Dialogue {
+        category: family,
+        frames: b.frames,
+        strict_keys: strict,
+        turns: b.turns,
+        questions: b.questions,
+        facts: b.facts,
+        keys: b.keys,
+    };
+    finalize(world, dialogue)
+}
+
+/// A `generator=v2` draw: a v1 dialogue or one of the six families.
+fn draw_v2(world: &World, rng: &mut Rng) -> Result<Drawn> {
+    if chance(rng, V1_SHARE) {
+        return draw_dialogue(world, rng);
+    }
+    let family = FAMILIES[rng.below(FAMILIES.len())];
+    draw_family(world, rng, family)
+}
+
+/// The checks every drawn dialogue passes: redraw on a leak or collision,
+/// then the semantic contract must hold.
+fn finalize(world: &World, dialogue: Dialogue) -> Result<Drawn> {
+    if let Some(reason) = collision(&dialogue) {
+        return Ok(Drawn::Redraw(reason));
+    }
+    for turn in &dialogue.turns {
+        if let Some(reason) = world.panel.turn_leak(&turn.text) {
+            return Ok(Drawn::Redraw(reason));
+        }
+    }
+    // A key or value word that coincides with an answer template's own words
+    // ("the school play" against "plays the viola") would make a correct
+    // answer look like it names another key: redraw such a dialogue.
+    for q in &dialogue.questions {
+        let answer = content_stems(&dialogue.turns[q.turn].text);
+        if q.forbid
+            .iter()
+            .chain(&q.forbid_keys)
+            .any(|other| content_stems(other).iter().any(|s| answer.contains(s)))
+        {
+            return Ok(Drawn::Redraw("key_or_value_word_in_answer_template"));
+        }
+    }
+    check_dialogue(&dialogue)?;
+    Ok(Drawn::Ok(dialogue))
+}
+
+// ---------------------------------------------------------------------------
 // Splits.
 
 #[derive(Default)]
@@ -2867,6 +4875,10 @@ struct Tally {
     recall_response_tokens: usize,
     /// (replies, reply tokens incl. EOS) per reply kind, trained (mask 1).
     trained_replies: BTreeMap<String, (usize, usize)>,
+    /// Dialogues per family (`v1` or a v2 family).
+    families: BTreeMap<String, usize>,
+    /// Questions per family and category.
+    family_questions: BTreeMap<String, BTreeMap<String, usize>>,
     /// The same for context-only replies (mask 0).
     context_replies: BTreeMap<String, (usize, usize)>,
     max_tokens: usize,
@@ -2903,6 +4915,20 @@ impl Tally {
         self.dialogues += 1;
         self.turns += d.turns.len();
         *self.primary.entry(d.category.name().into()).or_default() += 1;
+        let family = if FAMILIES.contains(&d.category) {
+            d.category.name()
+        } else {
+            "v1"
+        };
+        *self.families.entry(family.into()).or_default() += 1;
+        for q in &d.questions {
+            *self
+                .family_questions
+                .entry(family.into())
+                .or_default()
+                .entry(q.category.name().into())
+                .or_default() += 1;
+        }
         for q in &d.questions {
             *self.questions.entry(q.category.name().into()).or_default() += 1;
             let detail = format!(
@@ -2968,6 +4994,8 @@ impl Tally {
             "response_tokens": self.response_tokens,
             "recall_answer_tokens": self.recall_response_tokens,
             "replies": self.replies_json(),
+            "dialogues_per_family": self.families.keys().any(|f| f != "v1").then_some(&self.families),
+            "questions_per_family": self.families.keys().any(|f| f != "v1").then_some(&self.family_questions),
             "tokens_per_dialogue": self.tokens as f64 / self.dialogues.max(1) as f64,
             "max_dialogue_tokens": self.max_tokens,
         })
@@ -2993,6 +5021,8 @@ struct Encoding<'t> {
     /// Mask only the question answers (`true`, `train_on=answers`) or every
     /// assistant turn (`false`, `train_on=all`).
     answers_only: bool,
+    /// Draw with the six v2 families (`generator=v2`) or v1 alone.
+    generator_v2: bool,
 }
 
 /// Apply `train_on` to an encoded document's response mask: under
@@ -3053,7 +5083,12 @@ fn write_split(world: &World, enc: &Encoding, spec: &SplitSpec) -> Result<Tally>
         if spec.dialogues > 0 && tally.dialogues >= spec.dialogues {
             break;
         }
-        let dialogue = match draw_dialogue(world, &mut rng)? {
+        let drawn = if enc.generator_v2 {
+            draw_v2(world, &mut rng)?
+        } else {
+            draw_dialogue(world, &mut rng)?
+        };
+        let dialogue = match drawn {
             Drawn::Ok(d) => d,
             Drawn::Redraw(reason) => {
                 *tally.redraws.entry(reason.into()).or_default() += 1;
@@ -3417,6 +5452,11 @@ fn generate(args: &[String]) -> Result<()> {
         return Err("context= must be at least 256".into());
     }
     let samples = number(args, "samples", 200)? as usize;
+    let generator_v2 = match arg(args, "generator").unwrap_or("v2") {
+        "v2" => true,
+        "v1" => false,
+        other => return Err(format!("unknown generator={other}: v1 or v2")),
+    };
     let train_on = arg(args, "train_on").unwrap_or("answers").to_owned();
     let answers_only = match train_on.as_str() {
         "answers" => true,
@@ -3441,6 +5481,7 @@ fn generate(args: &[String]) -> Result<()> {
         context,
         vocab,
         answers_only,
+        generator_v2,
     };
     let train = write_split(
         &world,
@@ -3533,6 +5574,7 @@ fn generate(args: &[String]) -> Result<()> {
         "panel_recall_value_stems": world.panel.strict,
         "panel_recall_key_stems": world.panel.keys,
         "dropped_by_panel_filter": world.dropped,
+        "dropped_by_panel_filter_v2": generator_v2.then(|| &world.v2.dropped),
         "train": {"decoded": train_leak.json(), "records": structured(&train)},
         "dev": {"decoded": dev_leak.json(), "records": structured(&dev)},
     });
@@ -3584,6 +5626,13 @@ fn generate(args: &[String]) -> Result<()> {
         },
         "dialogue_protocol": enc.protocol.schema,
         "context": context,
+        "generator": if generator_v2 { "v2" } else { "v1" },
+        "v2": generator_v2.then(|| json!({
+            "v1_share": V1_SHARE,
+            "families": FAMILIES.iter().map(|c| c.name()).collect::<Vec<_>>(),
+            "family_share_each": (1.0 - V1_SHARE) / FAMILIES.len() as f64,
+            "pool_sizes": world.v2.sizes(),
+        })),
         "train_on": train_on,
         "train_on_rule": if answers_only {
             "answers: response_mask is 1 only on the assistant turns that answer a recall or abstention question (content and EOS); acknowledgements, suggestions and distractor replies stay in the context with mask 0, so dialogue-train neither samples nor trains them"
@@ -3960,6 +6009,7 @@ mod tests {
             context,
             vocab,
             answers_only,
+            generator_v2: false,
         };
         let dir = std::env::temp_dir().join(format!(
             "dialogue-recall-test-{}-{answers_only}-{seed}",
@@ -4040,6 +6090,363 @@ mod tests {
             for reply in replies {
                 assert!(w.panel.turn_leak(reply).is_none(), "{reply}");
             }
+        }
+    }
+
+    fn family_dialogues(w: &World, family: Category, seed: u64, n: usize) -> Vec<Dialogue> {
+        let mut rng = Rng::new(seed);
+        let mut out = Vec::new();
+        let mut tries = 0;
+        while out.len() < n {
+            tries += 1;
+            assert!(tries < 50 * n, "too many redraws for {family:?}");
+            match draw_family(w, &mut rng, family).expect("no generator error") {
+                Drawn::Ok(d) => out.push(d),
+                Drawn::Redraw(_) => {}
+            }
+        }
+        out
+    }
+
+    /// Clauses of the user statement turns before the first question, each as
+    /// a set of stems.
+    fn statement_clauses(d: &Dialogue) -> Vec<BTreeSet<String>> {
+        let first_question = d.questions.iter().map(|q| q.turn - 1).min().unwrap_or(0);
+        let mut out = Vec::new();
+        for t in d.turns[..first_question]
+            .iter()
+            .filter(|t| t.role == Role::User && !t.filler)
+        {
+            let mut text = format!(" {} ", t.text);
+            // Keep a value such as "mac and cheese" in one clause.
+            for f in &d.facts {
+                if f.value.contains(" and ") {
+                    text = text.replace(&f.value, &f.value.replace(" and ", " "));
+                }
+            }
+            for sep in [
+                ". ", ", ", ": ", "; ", " and ", " but ", " while ", " though ", " then ",
+            ] {
+                text = text.replace(sep, "|");
+            }
+            out.extend(
+                text.split('|')
+                    .map(|c| {
+                        words(c)
+                            .iter()
+                            .map(|w| stem(w))
+                            .collect::<BTreeSet<String>>()
+                    })
+                    .filter(|c| !c.is_empty()),
+            );
+        }
+        out
+    }
+
+    fn clause_with<'a>(clauses: &'a [BTreeSet<String>], text: &str) -> &'a BTreeSet<String> {
+        let want = content_stems(text);
+        clauses
+            .iter()
+            .find(|c| want.iter().all(|s| c.contains(s)))
+            .unwrap_or_else(|| panic!("no clause holds {text:?}: {clauses:?}"))
+    }
+
+    fn statement_text(d: &Dialogue) -> String {
+        let first_question = d.questions.iter().map(|q| q.turn - 1).min().unwrap_or(0);
+        d.turns[..first_question]
+            .iter()
+            .filter(|t| t.role == Role::User && !t.filler)
+            .map(|t| t.text.to_lowercase())
+            .collect::<Vec<_>>()
+            .join(" | ")
+    }
+
+    #[test]
+    fn rules_answer_the_allowed_or_banned_activity() {
+        let w = world();
+        let base: BTreeMap<&str, &str> = RULE_ACTS.iter().copied().collect();
+        let negation: BTreeSet<String> =
+            ["not", "isnt", "cant", "banned", "forbidden", "limits", "no"]
+                .iter()
+                .map(|s| stem(s))
+                .collect();
+        let mut seen = [0usize; 2];
+        for d in family_dialogues(&w, Category::Rule, 31, 600) {
+            let clauses = statement_clauses(&d);
+            for q in d.questions.iter().filter(|q| q.category == Category::Rule) {
+                let gerund = q.expect.clone().unwrap_or_default();
+                let clause = clauses
+                    .iter()
+                    .find(|c| {
+                        let g = content_stems(&gerund);
+                        let b = content_stems(base.get(gerund.as_str()).copied().unwrap_or(""));
+                        g.iter().all(|s| c.contains(s))
+                            || (!b.is_empty() && b.iter().all(|s| c.contains(s)))
+                    })
+                    .unwrap_or_else(|| panic!("{gerund} not stated"));
+                let negated = clause.iter().any(|s| negation.contains(s));
+                let allowed = q.detail.starts_with("allowed");
+                assert_eq!(negated, !allowed, "{gerund}: {clause:?} {}", q.detail);
+                seen[usize::from(allowed)] += 1;
+            }
+        }
+        assert!(seen[0] > 200 && seen[1] > 200, "{seen:?}");
+    }
+
+    #[test]
+    fn implicit_updates_keep_the_latest_value_and_can_recall_the_first() {
+        let w = world();
+        let first_turn = |d: &Dialogue, v: &str| {
+            let want = content_stems(v);
+            d.turns
+                .iter()
+                .position(|t| want.iter().all(|s| content_stems(&t.text).contains(s)))
+                .unwrap_or(usize::MAX)
+        };
+        let mut counts = BTreeMap::new();
+        for d in family_dialogues(&w, Category::ImplicitUpdate, 37, 600) {
+            for q in d
+                .questions
+                .iter()
+                .filter(|q| q.category == Category::ImplicitUpdate)
+            {
+                let expect = q.expect.clone().unwrap_or_default();
+                *counts.entry(q.detail).or_insert(0) += 1;
+                match q.detail {
+                    "latest" => {
+                        let fact = d
+                            .facts
+                            .iter()
+                            .find(|f| f.value == expect)
+                            .expect("a current value");
+                        let old = fact
+                            .old
+                            .clone()
+                            .expect("a changed plan keeps its first value");
+                        assert!(q.forbid.contains(&old));
+                        assert!(first_turn(&d, &old) < first_turn(&d, &expect));
+                        // No user statement is "actually" or "correction" phrased.
+                        assert!(!statement_text(&d).contains("actually"));
+                    }
+                    "first" => {
+                        let fact = d
+                            .facts
+                            .iter()
+                            .find(|f| f.old.as_deref() == Some(expect.as_str()))
+                            .expect("the first value of a changed plan");
+                        assert!(q.forbid.contains(&fact.value));
+                        assert!(first_turn(&d, &expect) < first_turn(&d, &fact.value));
+                    }
+                    "unchanged" => {
+                        let fact = d.facts.iter().find(|f| f.value == expect).expect("a value");
+                        assert!(fact.old.is_none());
+                    }
+                    other => panic!("unknown detail {other}"),
+                }
+            }
+        }
+        assert!(
+            counts.get("latest").copied().unwrap_or(0) > 200,
+            "{counts:?}"
+        );
+        assert!(counts.get("first").copied().unwrap_or(0) > 80, "{counts:?}");
+    }
+
+    #[test]
+    fn self_facts_are_answered_and_bound_to_the_right_person() {
+        let w = world();
+        let (mut me, mut other, mut abstain) = (0, 0, 0);
+        for d in family_dialogues(&w, Category::SelfFact, 41, 800) {
+            let clauses = statement_clauses(&d);
+            let person = d
+                .facts
+                .iter()
+                .find(|f| f.key.user != "I")
+                .expect("another person's fact");
+            let person_words = content_stems(&person.key.user);
+            for q in &d.questions {
+                let Some(expect) = q.expect.clone() else {
+                    abstain += 1;
+                    continue;
+                };
+                let clause = clause_with(&clauses, &expect);
+                if q.detail == "self" {
+                    me += 1;
+                    assert!(
+                        person_words.iter().all(|s| !clause.contains(s)),
+                        "{clause:?}"
+                    );
+                    // The user's own stated fact is answered, never abstained.
+                    assert!(!d.turns[q.turn].text.contains("haven't"));
+                } else {
+                    other += 1;
+                    assert!(
+                        person_words.iter().all(|s| clause.contains(s)),
+                        "{clause:?}"
+                    );
+                }
+            }
+        }
+        assert!(
+            me > other && other > abstain / 2 && abstain * 4 < me + other,
+            "{me} {other} {abstain}"
+        );
+    }
+
+    #[test]
+    fn attribute_objects_are_told_apart_by_their_attribute() {
+        let w = world();
+        let mut seen = 0;
+        for d in family_dialogues(&w, Category::Attribute, 43, 600) {
+            let clauses = statement_clauses(&d);
+            let attribute = |key: &str| words(key).get(1).cloned().unwrap_or_default();
+            for q in d
+                .questions
+                .iter()
+                .filter(|q| q.category == Category::Attribute)
+            {
+                let expect = q.expect.clone().unwrap_or_default();
+                let (fact, value) = if q.detail == "reverse" {
+                    let f = d
+                        .facts
+                        .iter()
+                        .find(|f| attribute(&f.key.user) == expect.to_lowercase())
+                        .expect("the attribute's object");
+                    assert!(content_stems(&d.turns[q.turn - 1].text)
+                        .is_superset(&content_stems(&f.value)));
+                    (f, f.value.clone())
+                } else {
+                    (
+                        d.facts.iter().find(|f| f.value == expect).expect("a value"),
+                        expect.clone(),
+                    )
+                };
+                let clause = clause_with(&clauses, &value);
+                assert!(
+                    clause.contains(&stem(&attribute(&fact.key.user))),
+                    "{clause:?}"
+                );
+                for other in d.facts.iter().filter(|f| f.key.user != fact.key.user) {
+                    assert!(
+                        !clause.contains(&stem(&attribute(&other.key.user))),
+                        "{clause:?}"
+                    );
+                }
+                seen += 1;
+            }
+        }
+        assert!(seen > 400, "{seen}");
+    }
+
+    #[test]
+    fn counts_belong_to_their_container_or_person() {
+        let w = world();
+        let mut seen = 0;
+        for d in family_dialogues(&w, Category::Count, 47, 600) {
+            let clauses = statement_clauses(&d);
+            for q in d.questions.iter().filter(|q| q.category == Category::Count) {
+                let expect = q.expect.clone().unwrap_or_default();
+                let fact = d.facts.iter().find(|f| f.value == expect).expect("a count");
+                let clause = clause_with(&clauses, &expect);
+                for other in d.facts.iter().filter(|f| f.key.user != fact.key.user) {
+                    let mine = content_stems(&distinguishing(&fact.key.user, &other.key.user));
+                    let theirs = content_stems(&distinguishing(&other.key.user, &fact.key.user));
+                    assert!(
+                        mine.iter().all(|s| clause.contains(s)),
+                        "{clause:?} {}",
+                        fact.key.user
+                    );
+                    assert!(theirs.iter().all(|s| !clause.contains(s)), "{clause:?}");
+                }
+                seen += 1;
+            }
+        }
+        assert!(seen > 400, "{seen}");
+    }
+
+    #[test]
+    fn temporal_order_answers_follow_the_stated_sequence() {
+        let w = world();
+        let mut seen = BTreeMap::new();
+        for d in family_dialogues(&w, Category::Order, 53, 800) {
+            let text = statement_text(&d);
+            let mut events: Vec<(usize, String)> = d
+                .facts
+                .iter()
+                .map(|f| {
+                    (
+                        text.find(&f.value.to_lowercase()).expect("stated"),
+                        f.value.clone(),
+                    )
+                })
+                .collect();
+            events.sort();
+            let order: Vec<String> = events.into_iter().map(|(_, e)| e).collect();
+            let rank = |e: &str| order.iter().position(|x| x == e).expect("an event");
+            for q in d.questions.iter().filter(|q| q.category == Category::Order) {
+                let expect = q.expect.clone().unwrap_or_default();
+                let r = rank(&expect);
+                let question = d.turns[q.turn - 1].text.to_lowercase();
+                match q.detail {
+                    "first" => assert_eq!(r, 0),
+                    "second" => assert_eq!(r, 1),
+                    "third" => assert_eq!(r, 2),
+                    "last" => assert_eq!(r, order.len() - 1),
+                    "after" => assert!(question.contains(&order[r - 1].to_lowercase())),
+                    "before" => assert!(question.contains(&order[r + 1].to_lowercase())),
+                    "at_time" | "day_part" => {
+                        let fact = d
+                            .facts
+                            .iter()
+                            .find(|f| f.value == expect)
+                            .expect("an event");
+                        assert!(question.contains(&fact.key.user.to_lowercase()));
+                    }
+                    other => panic!("unknown detail {other}"),
+                }
+                *seen.entry(q.detail).or_insert(0) += 1;
+            }
+        }
+        assert!(seen.len() >= 7, "{seen:?}");
+    }
+
+    #[test]
+    fn v2_draws_are_deterministic_clean_and_mixed() {
+        let w = world();
+        let draw = |seed: u64, n: usize| {
+            let mut rng = Rng::new(seed);
+            let mut out = Vec::new();
+            while out.len() < n {
+                if let Drawn::Ok(d) = draw_v2(&w, &mut rng).expect("no generator error") {
+                    out.push(d);
+                }
+            }
+            out
+        };
+        let a = draw(59, 3000);
+        assert_eq!(jsonl(&a), jsonl(&draw(59, 3000)));
+        let mut families = BTreeMap::new();
+        for d in &a {
+            check_dialogue(d).expect("the contract holds");
+            *families.entry(d.category.name()).or_insert(0) += 1;
+            for t in &d.turns {
+                assert!(!w.panel.turns.contains(&normalized(&t.text)), "{}", t.text);
+                assert!(
+                    grams(&t.text).iter().all(|g| !w.panel.grams.contains(g)),
+                    "{}",
+                    t.text
+                );
+                assert!(!w.panel.has_strict(&t.text), "{}", t.text);
+            }
+            for f in &d.facts {
+                assert!(!w.panel.shares_content(&f.value), "{}", f.value);
+            }
+        }
+        for family in FAMILIES {
+            assert!(
+                families.get(family.name()).copied().unwrap_or(0) > 150,
+                "{families:?}"
+            );
         }
     }
 
