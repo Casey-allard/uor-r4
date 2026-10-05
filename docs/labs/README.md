@@ -42,6 +42,7 @@ its [continuous startup packet](prompts/opencode-continuous-start.md). Additiona
 capability declaration and board. The [client adapter contract](adapters.md)
 keeps the packets portable. [Operations](operations.md) covers the host,
 recovery, storage, rollout and administrative checks.
+Shared Runpod GPU pods follow one cadence and one tool, `scripts/pod/uor-pod`: see [compute](compute.md).
 
 The September 30 goals begin with integration of existing work. A pushed branch,
 finished run or queued PR is a checkpoint, not the end of a lab's responsibility.

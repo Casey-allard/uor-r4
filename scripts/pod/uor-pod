@@ -1,0 +1,1137 @@
+#!/usr/bin/env bash
+# uor-pod — the one shared tool every UOR-R4 lab session uses to see, lease,
+# create, share and delete Runpod GPU pods (#820). Rules: docs/labs/compute.md.
+# Identity on every mutating command: --lab L --session S (or UOR_POD_SESSION=S).
+#
+#   uor-pod                                    the rules (one screen)
+#   uor-pod status [--du] [--all]              rules, pods (running and stopped), leases,
+#                                              per-GPU use, free GPUs, 5090 stock, volume use
+#   uor-pod up --lab L --session S --purpose "..." --hours H [--gpu 5090] [--count 2]
+#              [--card URL] [--wait [--wait-hours 2]] [--ref SHA|main] [--with-ollama]
+#              [--test] [--allow-off-volume] [--no-bootstrap] [--keep-on-failure] [--owner-approved]
+#   uor-pod lease   POD --lab L --session S --gpus 0,1 --purpose "..." --hours H [--card URL] [--gpu KEY]
+#   uor-pod renew   POD --lab L --session S [--hours H]
+#   uor-pod release POD --lab L --session S
+#   uor-pod down    POD --lab L --session S [--discard-local] [--confirm-archived]
+#   uor-pod run     POD --lab L --session S --gpu K[,K2] -- CMD...
+#   uor-pod register POD --lab L --session S --purpose "..." [--gpu KEY] [--keep REASON]
+#   uor-pod keep|unkeep POD [--purpose REASON]   protect a pod with unique data from down/reap
+#   uor-pod prune-stopped [--older-than 24h] [--yes]   list (and with --yes delete) stopped pods
+#   uor-pod ssh     POD [CMD...]
+#   uor-pod bootstrap POD [--ref SHA|main] [--with-ollama] [--force]
+#   uor-pod seed    POD [--with-ollama] [--via CANONPOD]   copy the hot set (hot-set.txt)
+#   uor-pod pull|push POD PATH... [--via CANONPOD]   /workspace PATHs canonical volume <-> POD
+#   uor-pod reap                               delete unleased pods idle >= 20 min
+#   uor-pod log [-n N]                         tail of the shared event ledger
+#   uor-pod gpus                               GPU policy and live stock by datacenter
+#
+# State (source of truth, shared by every session on this machine):
+#   ${UOR_POD_STATE:-~/.local/share/uor-r4/compute}/leases/<pod>/<lab>-<session>.json,
+#   ledger.jsonl (append-only), pods.json (cache of what the API does not say).
+# Environment: UOR_POD_DRY_RUN=1 prints every mutation (pod/volume create, delete,
+# remote writes, GitHub comments) instead of doing it; UOR_POD_SSH_KEY, UOR_POD_BOARD,
+# UOR_POD_TEMPLATE and (for tests) UOR_POD_MAX_PODS/UOR_POD_MAX_RATE override defaults.
+# Secrets: this tool never reads ~/.runpod/config.toml and never prints pod env.
+set -euo pipefail
+
+REPO_SLUG=UOR-Foundation/uor-r4
+REPO_URL=https://github.com/$REPO_SLUG.git
+STATE=${UOR_POD_STATE:-$HOME/.local/share/uor-r4/compute}
+DRY=${UOR_POD_DRY_RUN:-0}
+BOARD=${UOR_POD_BOARD:-1750}
+SSH_KEY=${UOR_POD_SSH_KEY:-$HOME/.ssh/uor_compute}
+TEMPLATE_ID=${UOR_POD_TEMPLATE:-h15vb984sw}
+# Placement order: the network-volume datacenters that list RTX 5090 stock.
+# EUR-NO-1's volume is the canonical store; the others get uor-shared-<DC> lazily.
+VOLUME_DCS=${UOR_POD_VOLUME_DCS:-EUR-NO-1 EU-RO-1 EUR-IS-1}
+CANONICAL_DC=EUR-NO-1
+VOLUME_ID=lmd1pfah3y
+NEW_VOLUME_GB=100
+# Owner's spending rule (2026-10-05), not a Runpod limit: <= 4 pods, <= $8/h in
+# total, so each lab can run its own 2 x 5090 pod in parallel. Only
+# --owner-approved overrides it; the variables exist for the dry-run tests.
+MAX_PODS=${UOR_POD_MAX_PODS:-4}
+MAX_RATE=${UOR_POD_MAX_RATE:-8.00}
+IDLE_MIN=${UOR_POD_IDLE_MIN:-20}
+TEST_PREFIX=uor-test-                        # validation/test pods: not counted toward the pod cap
+WAIT_INTERVAL=${UOR_POD_WAIT_INTERVAL:-300}
+CONTAINER_DISK_GB=60
+OFF_VOLUME_DISK_GB=150
+SSH_WAIT_SECONDS=${UOR_POD_SSH_WAIT:-900}
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+
+# ---------------------------------------------------------------- GPU policy
+# key|Runpod gpuId|CUDA_COMPUTE_CAP|tier   (docs/labs/compute.md "GPU policy")
+# default: the only automatic choice (owner decision 2026-10-05: 5090 is
+# ~1.7-2x a 4090 per 96M step and ~25% cheaper per job); explicit: only with
+# --gpu KEY; forbidden: never automatic, refused without --owner-approved (the
+# FP32/TF32 trainer measured A100 at 0.6-0.75x a 4090; revisit after bf16 Phase 2).
+GPU_POLICY='5090|NVIDIA GeForce RTX 5090|120|default
+4090|NVIDIA GeForce RTX 4090|89|explicit
+l40s|NVIDIA L40S|89|explicit
+6000ada|NVIDIA RTX 6000 Ada Generation|89|explicit
+a100|NVIDIA A100 80GB PCIe|80|forbidden
+a100sxm|NVIDIA A100-SXM4-80GB|80|forbidden
+h100|NVIDIA H100 80GB HBM3|90|forbidden
+h100pcie|NVIDIA H100 PCIe|90|forbidden
+h200|NVIDIA H200|90|forbidden
+b200|NVIDIA B200|100|forbidden'
+
+gpu_field() {  # gpu_field KEY N -> field N (2 id, 3 cap, 4 tier)
+  printf '%s\n' "$GPU_POLICY" | awk -F'|' -v k="$1" -v n="$2" '$1==k {print $n}'
+}
+gpu_key_of_name() {  # Runpod gpuId or nvidia-smi name -> policy key
+  printf '%s\n' "$GPU_POLICY" | awk -F'|' -v n="$1" '
+    { id=$2; short=id; sub(/^NVIDIA (GeForce )?/, "", short) }
+    n==id || index(n, short) { print $1; exit }'
+}
+
+# ---------------------------------------------------------------- helpers
+die()  { echo "uor-pod: $*" >&2; exit 1; }
+warn() { echo "uor-pod: warning: $*" >&2; }
+info() { echo "uor-pod: $*" >&2; }
+now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+now_epoch() { date -u +%s; }
+iso_epoch() { jq -rn --arg t "$1" '$t | fromdateiso8601'; }
+plus_hours() { jq -rn --argjson h "$1" 'now + ($h * 3600) | floor | todate'; }
+is_dry() { [ "$DRY" = 1 ]; }
+mut() { if is_dry; then echo "DRY-RUN: $*" >&2; else "$@"; fi; }
+
+check_lab() {
+  case $1 in ''|*[!a-z0-9-]*) die "lab must match [a-z0-9-]+ (claude, codex, deepseek...)";; esac
+}
+# Identity = lab + session: several sessions of one lab run at once, and each
+# holds its own leases. Sets ID (file/mirror name lab-session) and WHO (lab/session).
+check_who() {
+  check_lab "$LAB"
+  SESSION=${SESSION:-${UOR_POD_SESSION:-}}
+  case $SESSION in
+    '') die "--session NAME is required (or export UOR_POD_SESSION): leases belong to one session of a lab";;
+    *[!a-z0-9-]*) die "session must match [a-z0-9-]+ (got '$SESSION')";;
+  esac
+  ID="$LAB-$SESSION" WHO="$LAB/$SESSION"
+}
+check_pod_id() {
+  case $1 in ''|*[!a-z0-9]*) die "pod id must be alphanumeric (got '$1')";; esac
+}
+check_hours() {
+  jq -en --arg h "$1" '($h | tonumber) > 0 and ($h | tonumber) <= 24' >/dev/null 2>&1 ||
+    die "--hours must be a number in (0, 24] (renew to extend)"
+}
+
+mkdir -p "$STATE/leases" "$STATE/idle"
+touch "$STATE/ledger.jsonl"
+[ -f "$STATE/pods.json" ] || echo '{}' > "$STATE/pods.json"
+
+# One global lock serialises every read-modify-write of the state directory.
+# flock(1) when installed, else flock(2) through perl on the same descriptor
+# (macOS ships no flock binary); closing fd 9 releases it.
+lock_acquire() {
+  exec 9>>"$STATE/.lock"
+  if command -v flock >/dev/null 2>&1; then
+    flock -w 120 9 || die "state lock busy for 120 s ($STATE/.lock)"
+  else
+    perl -MFcntl=:flock -e 'open(my $f, ">&=", 9) or exit 2; my $t = time + 120;
+      until (flock($f, LOCK_EX | LOCK_NB)) { exit 1 if time > $t; select(undef, undef, undef, 0.2) }' ||
+      die "state lock busy for 120 s ($STATE/.lock)"
+  fi
+}
+lock_release() { exec 9>&-; }
+
+atomic_write() {  # atomic_write PATH  (content on stdin)
+  local tmp
+  tmp="$1.tmp.$$"
+  cat > "$tmp" && mv -f "$tmp" "$1"
+}
+
+ledger() {  # ledger EVENT LAB POD [JSON-OBJECT]  (caller holds the lock or the write is a single append)
+  local extra=${4:-'{}'}
+  jq -cn --arg ts "$(now_iso)" --arg ev "$1" --arg lab "$2" --arg session "${SESSION:-}" --arg pod "$3" \
+    --arg by "${USER:-?}@$(hostname -s 2>/dev/null || echo host)" --argjson x "$extra" \
+    '{ts: $ts, event: $ev, lab: $lab, session: $session, pod: $pod, by: $by} + $x' >> "$STATE/ledger.jsonl"
+}
+
+board() {  # board TEXT -> one-line comment on the Compute board issue
+  local text="[uor-pod] $1"
+  if is_dry; then echo "DRY-RUN: gh issue comment $BOARD: $text" >&2; return 0; fi
+  gh issue comment "$BOARD" -R "$REPO_SLUG" --body "$text" >/dev/null 2>&1 ||
+    warn "could not post to Compute board #$BOARD (event is in the ledger)"
+}
+
+# ---------------------------------------------------------------- Runpod API (env never printed)
+pods_all() { runpodctl pod list --all -o json | jq '[.[] | del(.env)]'; }
+pod_get()  { runpodctl pod get "$1" -o json 2>/dev/null | jq 'del(.env)'; }
+gpu_stock() { runpodctl gpu list --include-unavailable -o json; }
+
+cache_get() { jq -c --arg p "$1" '.[$p] // {}' "$STATE/pods.json"; }
+cache_put() {  # cache_put POD JSON-OBJECT (merged); caller holds the lock
+  jq --arg p "$1" --argjson v "$2" '.[$p] = ((.[$p] // {}) + $v)' "$STATE/pods.json" |
+    atomic_write "$STATE/pods.json"
+}
+cache_del() { jq --arg p "$1" 'del(.[$p])' "$STATE/pods.json" | atomic_write "$STATE/pods.json"; }
+
+# ---------------------------------------------------------------- leases
+lease_file() { echo "$STATE/leases/$1/$2.json"; }
+lease_live() {  # lease_live FILE -> 0 if unexpired
+  [ -f "$1" ] && jq -e '(.expires | fromdateiso8601) > now' "$1" >/dev/null 2>&1
+}
+live_leases_json() {  # POD -> JSON array of live leases
+  local d="$STATE/leases/$1"
+  if [ -d "$d" ] && ls "$d"/*.json >/dev/null 2>&1; then
+    jq -s '[.[] | select((.expires | fromdateiso8601) > now)]' "$d"/*.json
+  else
+    echo '[]'
+  fi
+}
+all_leases_json() {  # POD -> JSON array of all lease files with a live flag
+  local d="$STATE/leases/$1"
+  if [ -d "$d" ] && ls "$d"/*.json >/dev/null 2>&1; then
+    jq -s '[.[] | . + {live: ((.expires | fromdateiso8601) > now)}]' "$d"/*.json
+  else
+    echo '[]'
+  fi
+}
+taken_gpus() {  # POD [EXCEPT_ID] -> JSON array of GPU indices under live leases
+  live_leases_json "$1" | jq -c --arg ex "${2:-}" '[.[] | select((.id // .lab) != $ex) | .gpus[]] | unique'
+}
+expired_leases_json() {  # POD -> JSON array of expired leases
+  all_leases_json "$1" | jq -c '[.[] | select(.live | not)]'
+}
+
+# ---------------------------------------------------------------- SSH
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=30
+  -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+# The API's runtime status sometimes flaps to "initializing" on a healthy pod and
+# then omits the SSH block, so the last address seen is kept in $STATE/addr/<pod>.
+pod_addr() {  # POD -> "ip port" (empty when not reachable)
+  local j a
+  j=$(pod_get "$1")
+  a=$(echo "$j" | jq -r 'if .ssh.ip and .ssh.port then "\(.ssh.ip) \(.ssh.port)" else empty end' 2>/dev/null)
+  mkdir -p "$STATE/addr"
+  if [ -n "$a" ]; then
+    echo "$a" > "$STATE/addr/$1"
+  elif [ "$(echo "$j" | jq -r '.desiredStatus // ""' 2>/dev/null)" = RUNNING ] && [ -s "$STATE/addr/$1" ]; then
+    a=$(cat "$STATE/addr/$1")
+  fi
+  [ -z "$a" ] || echo "$a"
+}
+pod_ssh() {  # pod_ssh POD CMD...   (stdin passes through)
+  local addr ip port
+  addr=$(pod_addr "$1"); shift
+  [ -n "$addr" ] || { warn "no SSH address (pod not running?)"; return 255; }
+  ip=${addr% *}; port=${addr#* }
+  ssh -i "$SSH_KEY" -p "$port" "${SSH_OPTS[@]}" "root@$ip" "$@"
+}
+# SSH is often refused for 1-2 min after a pod reports ready (keys still being
+# installed): retry with backoff before declaring failure.
+wait_ssh() {  # POD SECONDS -> 0 once `ssh true` works
+  local deadline delay=5
+  deadline=$(( $(now_epoch) + $2 ))
+  until pod_ssh "$1" true </dev/null 2>/dev/null; do
+    [ "$(now_epoch)" -lt "$deadline" ] || return 1
+    sleep "$delay"; [ "$delay" -ge 30 ] || delay=$((delay * 2))
+  done
+}
+
+# One read-only probe: GPUs, compute apps, reaper, held GPU locks, unmirrored /root/runs.
+# shellcheck disable=SC2016  # expanded on the pod, not here
+PROBE='nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,uuid --format=csv,noheader,nounits 2>/dev/null | sed "s/^/gpu=/"
+nvidia-smi --query-compute-apps=gpu_uuid --format=csv,noheader 2>/dev/null | sed "s/^/app=/"
+[ -f /root/.uor-idle-since ] && echo "idle_since=$(cat /root/.uor-idle-since)"
+if pgrep -f "uor-reaper[.]sh --loop" >/dev/null 2>&1; then echo reaper=1; else echo reaper=0; fi
+for f in /root/gpu*.lock; do [ -e "$f" ] || continue; flock -n "$f" true || echo "busy_lock=$f"; done
+if [ -d /root/runs ]; then echo "root_runs_kb=$(du -sk /root/runs 2>/dev/null | cut -f1)"; fi
+if mountpoint -q /workspace 2>/dev/null; then echo workspace_mount=1; fi
+echo probe_ok=1'
+probe_pod() { pod_ssh "$1" "$PROBE" 2>/dev/null </dev/null || true; }
+probe_val() { printf '%s\n' "$1" | sed -n "s/^$2=//p"; }
+probe_idle() {  # PROBE-OUTPUT -> 0 when every GPU is at <=2 % and no compute process runs
+  local out=$1
+  [ -n "$(probe_val "$out" probe_ok)" ] || return 1
+  [ -z "$(probe_val "$out" app)" ] || return 1
+  [ -z "$(probe_val "$out" busy_lock)" ] || return 1
+  probe_val "$out" gpu | awk -F', *' '$3 > 2 { busy = 1 } END { exit busy }'
+}
+
+# Per-GPU state from one probe: busy = >= 5 % utilisation, a compute process on
+# that GPU, or a held /root/gpuK.lock. Idle time is tracked across probes in
+# $STATE/gpuidle/<pod>.json. An idle GPU under a live lease is NOT free: only its
+# holder (release) or expiry frees it.
+gpu_states() {  # POD PROBE -> JSON [{gpu, util, mem, busy, lab, expired_by, idle_min}]
+  local f="$STATE/gpuidle/$1.json" rows
+  mkdir -p "$STATE/gpuidle"
+  [ -s "$f" ] || echo '{}' > "$f"
+  rows=$(jq -n --arg g "$(probe_val "$2" gpu)" --arg a "$(probe_val "$2" app)" --arg l "$(probe_val "$2" busy_lock)" \
+    --argjson leases "$(live_leases_json "$1")" --argjson expired "$(expired_leases_json "$1")" --argjson prev "$(cat "$f")" --argjson now "$(now_epoch)" '
+    ($a | split("\n") | map(select(length > 0))) as $apps
+    | ($l | split("\n") | map(select(length > 0) | capture("gpu(?<k>[0-9]+)[.]lock").k | tonumber)) as $locked
+    | [$g | split("\n")[] | select(length > 0) | split(", ")
+       | {gpu: (.[0] | tonumber), util: (.[2] | tonumber), mem: (.[3] | tonumber), uuid: (.[4] // "")}]
+    | map(. as $r
+        | .busy = (.util >= 5 or (.uuid != "" and ($apps | index($r.uuid)) != null) or ($locked | index($r.gpu)) != null)
+        | .lab = ([$leases[] | select(.gpus | index($r.gpu)) | "\(.lab)/\(.session // "-")"] | first // null)
+        | .expired_by = ([$expired[] | select(.gpus | index($r.gpu)) | "\(.lab)/\(.session // "-")"] | first // null)
+        | .since = (if .busy then null else ($prev[$r.gpu | tostring] // $now) end)
+        | .idle_min = (if .since then (($now - .since) / 60 | floor) else null end))')
+  echo "$rows" | jq '[.[] | select(.since) | {key: (.gpu | tostring), value: .since}] | from_entries' | atomic_write "$f"
+  echo "$rows"
+}
+gpu_free_lines() {  # POD STATES-JSON -> "POD free K [EXPIRED-HOLDER]" lines (no live lease, not busy)
+  echo "$2" | jq -r --arg p "$1" '.[] | select(.lab == null and (.busy | not))
+    | "\($p) free \(.gpu) \(.expired_by // "")"'
+}
+free_report() {  # PODS-JSON -> human summary of GPUs a lab can use now (probes every running pod)
+  local id probe lines='' st
+  for id in $(echo "$1" | jq -r '.[] | select(.desiredStatus == "RUNNING") | .id'); do
+    probe=$(probe_pod "$id")
+    [ -n "$(probe_val "$probe" probe_ok)" ] || continue
+    st=$(gpu_states "$id" "$probe")
+    lines="$lines$(gpu_free_lines "$id" "$st")
+"
+  done
+  printf '%s' "$lines" | format_free
+}
+format_free() {  # gpu_free_lines output on stdin -> summary lines
+  awk '
+    $2 == "free" { u[$1] = u[$1] (u[$1] ? "," : "") $3; if ($4 != "") x[$1] = x[$1] " gpu" $3 "<-expired lease of " $4 }
+    END { for (p in u) printf "  %s gpus %s: free -> uor-pod lease %s --lab L --session S --gpus %s --purpose ... --hours H%s\n", p, u[p], p, u[p], (x[p] ? "  (takes over" x[p] ")" : "") }'
+}
+no_gpu_guidance() {  # printed whenever a lease/up attempt is refused
+  echo "  No free GPU? If the pod/rate caps allow it, spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H" >&2
+  echo "  (2 x RTX 5090; EUR-NO-1 -> EU-RO-1 -> EUR-IS-1). Never fall back to the laptop CPU, never use another session's GPU." >&2
+}
+
+mirror_lease() {  # POD ID  -> copy the laptop lease to /root/leases/<lab>-<session>.json (best effort)
+  local f
+  f=$(lease_file "$1" "$2")
+  if is_dry; then echo "DRY-RUN: mirror $f -> $1:/root/leases/$2.json" >&2; return 0; fi
+  [ "$(pod_get "$1" | jq -r '.desiredStatus // ""')" = RUNNING ] ||
+    { warn "pod $1 not running; lease not mirrored"; return 0; }
+  pod_ssh "$1" "mkdir -p /root/leases && cat > /root/leases/.$2.tmp && mv -f /root/leases/.$2.tmp /root/leases/$2.json" < "$f" ||
+    warn "could not mirror the lease onto $1: its pod-side reaper may not see it — retry renew"
+}
+unmirror_lease() {
+  if is_dry; then echo "DRY-RUN: remove $1:/root/leases/$2.json" >&2; return 0; fi
+  [ "$(pod_get "$1" | jq -r '.desiredStatus // ""')" = RUNNING ] || return 0
+  pod_ssh "$1" "rm -f /root/leases/$2.json" </dev/null || warn "could not remove the mirrored lease on $1"
+}
+
+# ---------------------------------------------------------------- argument parsing
+LAB='' SESSION='' ID='' WHO='' PURPOSE='' HOURS='' CARD='' GPUS='' GPU='' COUNT='' REF=main
+OWNER_OK=0 OFF_VOLUME=0 WAIT=0 WAIT_HOURS=2 NO_BOOT=0 KEEP_FAIL=0 OLLAMA=0 FORCE=0
+NO_MIRROR=0 DISCARD_LOCAL=0 CONFIRM_ARCHIVED=0 DU=0 NLINES=20 VIA='' UP_TEST=0 KEEP_REASON='' OLDER=24h YES=0
+POS=()
+parse() {
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --lab) LAB=${2:?--lab needs a value}; shift 2;;
+      --session) SESSION=${2:?--session needs a value}; shift 2;;
+      --older-than) OLDER=${2:?}; shift 2;;
+      --yes) YES=1; shift;;
+      --all) shift;;  # status always lists stopped pods
+      --purpose) PURPOSE=${2:?}; shift 2;;
+      --hours) HOURS=${2:?}; shift 2;;
+      --card) CARD=${2:?}; shift 2;;
+      --gpus) GPUS=${2:?}; shift 2;;
+      --gpu) GPU=${2:?}; shift 2;;
+      --count) COUNT=${2:?}; shift 2;;
+      --ref) REF=${2:?}; shift 2;;
+      --via) VIA=${2:?}; shift 2;;
+      -n) NLINES=${2:?}; shift 2;;
+      --owner-approved) OWNER_OK=1; shift;;
+      --allow-off-volume) OFF_VOLUME=1; shift;;
+      --wait) WAIT=1; shift;;
+      --wait-hours) WAIT_HOURS=${2:?}; shift 2
+        jq -en --arg h "$WAIT_HOURS" '($h | tonumber) > 0 and ($h | tonumber) <= 24' >/dev/null 2>&1 || die "--wait-hours must be in (0, 24]";;
+      --no-bootstrap) NO_BOOT=1; shift;;
+      --keep-on-failure) KEEP_FAIL=1; shift;;
+      --with-ollama) OLLAMA=1; shift;;
+      --force) FORCE=1; shift;;
+      --no-mirror) NO_MIRROR=1; shift;;
+      --discard-local) DISCARD_LOCAL=1; shift;;
+      --confirm-archived|--confirm-pushed) CONFIRM_ARCHIVED=1; shift;;
+      --du) DU=1; shift;;
+      --test) UP_TEST=1; shift;;
+      --keep) KEEP_REASON=${2:?}; shift 2;;
+      --) shift; POS+=("$@"); break;;
+      -*) die "unknown option $1";;
+      *) POS+=("$1"); shift;;
+    esac
+  done
+}
+gpus_json() {  # "0,1" -> [0,1]
+  printf '%s' "$1" | jq -Rc 'split(",") | map(select(length > 0) | tonumber) | unique' 2>/dev/null ||
+    die "--gpus must look like 0 or 0,1"
+}
+
+# ---------------------------------------------------------------- rules
+print_rules() {
+  cat <<RULES
+UOR-R4 shared GPU pods — rules (docs/labs/compute.md; AGENTS.md "GPU pods")
+ 1. Only this tool touches pods. Run 'uor-pod status' before any GPU work.
+ 2. Identity = --lab L --session S (or UOR_POD_SESSION). Lease the GPUs you use:
+    uor-pod lease POD --lab L --session S --gpus 0,1 --purpose ... --hours H
+    renew every <= 30 min while working; release when done. Leases auto-expire.
+ 3. Another session's GPU is never yours, even when idle: only its holder
+    (release) or expiry frees it. An EXPIRED lease may be taken over after a
+    probe shows no live job. Never touch another session's lease or KEEP_ALIVE.
+ 4. No free GPU and caps allow (<= $MAX_PODS pods, <= \$$MAX_RATE/h, all labs together):
+    uor-pod up --lab L --session S --purpose ... --hours H  (2 x RTX 5090;
+    EUR-NO-1 -> EU-RO-1 -> EUR-IS-1). Never fall back to the laptop CPU.
+    Caps reached and nothing free: wait for an expiry or ask the owner.
+ 5. One job per GPU: uor-pod run POD --lab L --session S --gpu K -- CMD (device=cuda).
+ 6. Durable output only on /workspace (network volume). No stopped pods as storage.
+ 7. Done: release, then 'uor-pod down POD' if no other session holds it.
+    Never print API keys or ~/.runpod/config.toml.
+RULES
+}
+
+# ---------------------------------------------------------------- status
+cmd_status() {
+  local pods total=0 n_run=0 n_cap=0 id states freelines='' free keep stopped=0
+  print_rules
+  echo
+  pods=$(pods_all)
+  echo "Pods (caps: <= $MAX_PODS running pods, <= \$$MAX_RATE/h; idle reap after $IDLE_MIN min without a live lease)"
+  for id in $(echo "$pods" | jq -r '.[].id'); do
+    local p name st n cost up leases cache gtype live flag probe line
+    p=$(echo "$pods" | jq -c --arg i "$id" '.[] | select(.id == $i)')
+    name=$(echo "$p" | jq -r .name); st=$(echo "$p" | jq -r .desiredStatus)
+    n=$(echo "$p" | jq -r '.gpuCount // 0'); cost=$(echo "$p" | jq -r '.costPerHr // 0')
+    up=$(echo "$p" | jq -r '((.uptimeSeconds // 0) / 3600 * 10 | floor) / 10')
+    cache=$(cache_get "$id"); gtype=$(echo "$cache" | jq -r '.gpu // "?"')
+    if [ "$st" = RUNNING ]; then
+      n_run=$((n_run + 1)); total=$(jq -n --argjson a "$total" --argjson b "$cost" '($a + $b) * 100 | round / 100')
+      case $name in "$TEST_PREFIX"*) ;; *) n_cap=$((n_cap + 1));; esac
+    fi
+    keep=$(echo "$cache" | jq -r '.keep // empty')
+    leases=$(all_leases_json "$id")
+    live=$(echo "$leases" | jq '[.[] | select(.live)] | length')
+    flag=''
+    if [ "$st" = RUNNING ] && [ "$live" = 0 ]; then flag='  <-- NO LIVE LEASE (reap candidate)'; fi
+    if [ "$st" != RUNNING ]; then
+      stopped=$((stopped + 1))
+      flag="  <-- CLEANUP: stopped since $(echo "$p" | jq -r '.lastStatusChange // "?"' | sed 's/^[^:]*: //; s/ GMT.*//'); bills container disk. Copy what matters to the volume, then delete (uor-pod prune-stopped)"
+    fi
+    printf '%s %-24s %-8s %sx%-7s $%-5s/h up %sh vol=%s%s\n' "$id" "$name" "$st" "$n" "$gtype" "$cost" "$up" \
+      "$(echo "$cache" | jq -r 'if .off_volume then "OFF" elif .volume == false then "none" elif .canonical == false then "non-canonical" elif .volume then "yes" else "?" end')" "$flag"
+    [ -z "$keep" ] || echo "    KEEP (never down/reap): $keep"
+    echo "$leases" | jq -r '.[] | "    lease \(.lab)/\(.session // "-") gpus=\(.gpus | map(tostring) | join(",")) until \(.expires) \(if .live then "" else "EXPIRED (abandoned: may be taken over once a probe shows no live job)" end) — \(.purpose)\(if (.card // "") != "" then " [" + .card + "]" else "" end)"'
+    if [ "$st" = RUNNING ]; then
+      probe=$(probe_pod "$id")
+      if [ -n "$(probe_val "$probe" probe_ok)" ]; then
+        states=$(gpu_states "$id" "$probe")
+        echo "$states" | jq -r '.[] | "    gpu \(.gpu) \(.util)% \(.mem) MiB  "
+          + (if .lab then "leased by \(.lab)" else "no live lease" end) + "  "
+          + (if .busy then "BUSY"
+             elif .lab == null then "idle -> FREE, lease it" + (if .expired_by then " (expired lease of \(.expired_by))" else "" end)
+             else "leased but idle \(.idle_min // 0) min (not free: only the holder or expiry frees it)" end)'
+        freelines="$freelines$(gpu_free_lines "$id" "$states")
+"
+        line="    reaper=$(probe_val "$probe" reaper)"
+        [ -n "$(probe_val "$probe" idle_since)" ] && line="$line idle_since=$(probe_val "$probe" idle_since)"
+        [ -n "$(probe_val "$probe" busy_lock)" ] && line="$line busy_locks=$(probe_val "$probe" busy_lock | tr '\n' ' ')"
+        [ -n "$(probe_val "$probe" root_runs_kb)" ] && line="$line /root/runs=$(probe_val "$probe" root_runs_kb)KB"
+        echo "$line"
+        if [ "$gtype" = '?' ]; then
+          gtype=$(gpu_key_of_name "$(probe_val "$probe" gpu | head -1 | awk -F', *' '{print $2}')")
+          if [ -n "$gtype" ]; then lock_acquire; cache_put "$id" "{\"gpu\":\"$gtype\"}"; lock_release; fi
+        fi
+      else
+        echo "    (SSH probe failed: GPU use unknown)"
+      fi
+    fi
+  done
+  # lease files of pods the API no longer lists: archive them (the ledger keeps the history)
+  local d gone
+  for d in "$STATE"/leases/*/; do
+    [ -d "$d" ] || continue
+    gone=$(basename "$d")
+    if ! echo "$pods" | jq -e --arg i "$gone" 'any(.[]; .id == $i)' >/dev/null; then
+      if ls "$d"*.json >/dev/null 2>&1 && ! is_dry; then
+        lock_acquire
+        mkdir -p "$STATE/gone"; mv "$d" "$STATE/gone/$gone-$(date -u +%Y%m%dT%H%M%SZ)"
+        ledger gone '' "$gone" '{"note": "pod no longer listed by Runpod; lease files archived"}'
+        lock_release
+        echo "$gone: gone from Runpod; its lease files were archived under $STATE/gone/"
+      fi
+    fi
+  done
+  # stray temporary files (an interrupted write); leases are written only by this tool
+  local strays
+  strays=$(find "$STATE" \( -name '*.tmp*' -o -name '*.new' \) -mmin +2 2>/dev/null | head -5)
+  [ -z "$strays" ] || echo "WARNING: stray temporary files in the state directory (interrupted writes; leases must be written only by uor-pod): $strays"
+  echo "Running: $n_run pod(s) ($n_cap counted toward the cap of $MAX_PODS; $TEST_PREFIX* pods are not), \$$total/h of \$$MAX_RATE/h"
+  [ "$stopped" = 0 ] || echo "Stopped pods: $stopped (cleanup items: do not keep stopped pods as storage)"
+  free=$(printf '%s' "$freelines" | format_free)
+  if [ -n "$free" ]; then
+    echo "Free GPUs you can lease now:"
+    echo "$free"
+  elif [ "$n_cap" -ge "$MAX_PODS" ]; then
+    echo "Free GPUs you can lease now: none, and the pod cap is reached: wait for a lease to expire or ask the owner. Never fall back to the laptop CPU."
+  else
+    echo "Free GPUs you can lease now: none. Spin up your own pod: uor-pod up --lab L --session S --purpose ... --hours H. Never fall back to the laptop CPU."
+  fi
+  print_stock_table "$(gpu_stock)" "5090 4090"
+  if [ "$DU" = 1 ]; then
+    local vp
+    vp=$(volume_pod "$pods") || { echo "Volume $VOLUME_ID: no running pod mounts it; usage unknown"; return 0; }
+    echo "Volume $VOLUME_ID usage (du via $vp; quota 200 GB):"
+    pod_ssh "$vp" 'timeout 300 du -sh /workspace/* 2>/dev/null | sort -h; timeout 300 du -sh /workspace 2>/dev/null' </dev/null |
+      sed 's/^/    /' || echo "    du failed"
+  else
+    echo "Volume $VOLUME_ID: run 'uor-pod status --du' for usage (du over the network volume takes a while)"
+  fi
+}
+
+# Stopped pods bill container-disk storage and hide unsaved files. Durable data
+# lives on the network volume; a stopped pod is copied now or accepted as lost.
+cmd_prune_stopped() {
+  local pods secs list id
+  secs=$(echo "$OLDER" | awk '/^[0-9]+h$/ { print $0 * 3600; next } /^[0-9]+d$/ { print $0 * 86400; next } /^[0-9]+m$/ { print $0 * 60; next } { print -1 }')
+  [ "$secs" -ge 0 ] 2>/dev/null || die "--older-than takes e.g. 24h, 2d or 90m"
+  pods=$(pods_all)
+  list=$(echo "$pods" | jq -r '.[] | select(.desiredStatus != "RUNNING") | .id')
+  [ -n "$list" ] || { echo "No stopped pods."; return 0; }
+  for id in $list; do
+    local p since age keep
+    p=$(echo "$pods" | jq -c --arg i "$id" '.[] | select(.id == $i)')
+    since=$(echo "$p" | jq -r '.lastStatusChange // ""' | sed -n 's/^[^:]*: [A-Z][a-z][a-z] \([A-Z][a-z][a-z] [0-9]* [0-9]* [0-9:]*\).*/\1/p')
+    age=$(jq -rn --arg s "$since" 'try (($s | strptime("%b %d %Y %H:%M:%S") | mktime) as $t | (now - $t) | floor) catch -1')
+    keep=$(cache_get "$id" | jq -r '.keep // empty')
+    printf '%s %-24s %s stopped %s (%s h)%s\n' "$id" "$(echo "$p" | jq -r .name)" "$(echo "$p" | jq -r .desiredStatus)" \
+      "${since:-?}" "$( [ "$age" -ge 0 ] && echo $((age / 3600)) || echo '?')" "${keep:+  KEEP: $keep}"
+    if [ "$YES" != 1 ]; then continue; fi
+    if [ -n "$keep" ]; then echo "  skipped: marked KEEP"; continue; fi
+    if [ "$age" -lt "$secs" ]; then echo "  skipped: stopped for less than $OLDER"; continue; fi
+    mut runpodctl pod delete "$id" >/dev/null
+    lock_acquire; ledger prune-stopped "${LAB:-}" "$id" "{\"stopped_s\": $age}"; lock_release
+    board "prune-stopped $id (stopped $((age / 3600)) h; durable data belongs on the volume)${LAB:+ by=$LAB/${SESSION:-}}"
+    echo "  deleted"
+  done
+  [ "$YES" = 1 ] || echo "Listed only. Confirm nothing unique is on them (owner approval for pods with data), then re-run with --yes."
+}
+
+volume_pod() {  # PODS-JSON -> id of a running pod mounting the shared volume
+  local id
+  for id in $(echo "$1" | jq -r '.[] | select(.desiredStatus == "RUNNING") | .id'); do
+    if [ "$(pod_get "$id" | jq -r '.networkVolumeId // ""')" = "$VOLUME_ID" ]; then echo "$id"; return 0; fi
+  done
+  return 1
+}
+
+# ---------------------------------------------------------------- up
+stock_in() {  # STOCK-JSON GPU-ID DC -> stock status ('' when none)
+  echo "$1" | jq -r --arg g "$2" --arg dc "$3" \
+    '.[] | select(.gpuId == $g) | .dataCenterAvailability[]? | select(.dataCenterId == $dc) | .stockStatus // ""
+     | select(. != "none" and . != "")' | head -1
+}
+price_of() { echo "$1" | jq -r --arg g "$2" '.[] | select(.gpuId == $g) | .securePricePerHr // empty' | head -1; }
+print_stock_table() {  # STOCK-JSON [KEYS]
+  local stock=$1 k
+  echo "Stock by datacenter (secure \$/GPU/h; * = volume datacenter, placement order $VOLUME_DCS):"
+  for k in ${2:-5090 4090 l40s 6000ada}; do
+    echo "$stock" | jq -r --arg g "$(gpu_field "$k" 2)" --arg k "$k" --arg vdcs " $VOLUME_DCS " \
+      '.[] | select(.gpuId == $g) | "  \($k) $\(.securePricePerHr // "?"): \([.dataCenterAvailability[]? | select(.stockStatus != "none" and .stockStatus != "")
+        | .dataCenterId as $d | "\($d)\(if ($vdcs | contains(" " + $d + " ")) then "*" else "" end)=\(.stockStatus)"] | join(" ") | if . == "" then "no stock" else . end)"'
+  done
+}
+
+volume_for_dc() {  # DC -> id of the lab volume uor-shared-<DC> ('' when none)
+  if [ "$1" = "$CANONICAL_DC" ]; then echo "$VOLUME_ID"; return 0; fi
+  runpodctl network-volume list -o json | jq -r --arg n "uor-shared-$1" --arg dc "$1" \
+    '.[] | select(.name == $n and .dataCenterId == $dc) | .id' | head -1
+}
+ensure_volume() {  # DC -> volume id; creates uor-shared-<DC> (100 GB, owner-approved 2026-10-05) on first use
+  local v
+  v=$(volume_for_dc "$1")
+  if [ -n "$v" ]; then echo "$v"; return 0; fi
+  if is_dry; then
+    echo "DRY-RUN: runpodctl network-volume create --name uor-shared-$1 --size $NEW_VOLUME_GB --data-center-id $1" >&2
+    echo "dryrunvolume"; return 0
+  fi
+  v=$(runpodctl network-volume create --name "uor-shared-$1" --size "$NEW_VOLUME_GB" --data-center-id "$1" -o json | jq -r '.id // empty')
+  [ -n "$v" ] || return 1
+  ledger volume-create "$LAB" '' "$(jq -cn --arg v "$v" --arg dc "$1" --argjson gb "$NEW_VOLUME_GB" '{volume: $v, dc: $dc, gb: $gb}')"
+  board "volume-create $v uor-shared-$1 ($NEW_VOLUME_GB GB) for $WHO — non-canonical: seed the hot set, archive results to $CANONICAL_DC"
+  echo "$v"
+}
+
+# One placement attempt (caller holds the lock). Sets UP_* or returns 2 when no stock.
+up_attempt() {
+  local req=$1 count=$2 pods stock id free gtype n taken n_run rate gid price dc='' off=0 add
+  pods=$(pods_all); stock=$(gpu_stock)
+
+  # 1. a free leased-compatible GPU already exists? (same GPU type, or type not yet known)
+  for id in $(echo "$pods" | jq -r '.[] | select(.desiredStatus == "RUNNING") | .id'); do
+    gtype=$(cache_get "$id" | jq -r '.gpu // "?"')
+    [ "$gtype" = "$req" ] || [ "$gtype" = '?' ] || continue
+    n=$(echo "$pods" | jq -r --arg i "$id" '.[] | select(.id == $i) | .gpuCount')
+    taken=$(taken_gpus "$id")
+    free=$(jq -cn --argjson n "$n" --argjson t "$taken" '[range(0; $n)] - $t')
+    # (a --test pod validates pod creation itself, so free GPUs elsewhere do not stop it)
+    if [ "$(echo "$free" | jq length)" -ge "$count" ] && [ "$OWNER_OK" != 1 ] && [ "$UP_TEST" != 1 ]; then
+      lock_release
+      echo "Free GPUs already exist: pod $id ($gtype) gpus $(echo "$free" | jq -r 'map(tostring) | join(",")')"
+      echo "Lease them instead:  uor-pod lease $id --lab $LAB --session $SESSION --gpus $(echo "$free" | jq -r 'map(tostring) | join(",")') --purpose \"...\" --hours $HOURS"
+      [ "$gtype" = '?' ] && echo "(GPU type of $id unknown to the cache; 'uor-pod status' records it)"
+      exit 3
+    fi
+  done
+
+  # 2. caps
+  n_run=$(echo "$pods" | jq --arg t "$TEST_PREFIX" '[.[] | select(.desiredStatus == "RUNNING" and ((.name // "") | startswith($t) | not))] | length')
+  rate=$(echo "$pods" | jq '[.[] | select(.desiredStatus == "RUNNING") | .costPerHr // 0] | (add // 0) * 100 | round / 100')
+  if [ "$UP_TEST" != 1 ] && [ $((n_run + 1)) -gt "$MAX_PODS" ] && [ "$OWNER_OK" != 1 ]; then
+    lock_release
+    local free
+    free=$(free_report "$pods")
+    if [ -n "$free" ]; then
+      echo "cap reached ($n_run of $MAX_PODS pods) — free GPUs exist; lease those:"
+      echo "$free"
+      exit 4
+    fi
+    die "cap reached ($n_run of $MAX_PODS pods) and no GPU is free: wait for a lease to expire (uor-pod status) or ask the owner. Do not fall back to the laptop CPU because of the cap."
+  fi
+  gid=$(gpu_field "$req" 2); price=$(price_of "$stock" "$gid")
+  [ -n "$price" ] || { lock_release; die "no secure-cloud price listed for $gid"; }
+  add=$(jq -n --argjson p "$price" --argjson c "$count" '$p * $c')
+  if jq -en --argjson r "$rate" --argjson a "$add" --argjson m "$MAX_RATE" '$r + $a > $m' >/dev/null && [ "$OWNER_OK" != 1 ]; then
+    lock_release; die "cap: running \$$rate/h + new \$$add/h exceeds \$$MAX_RATE/h; needs --owner-approved"
+  fi
+
+  # 3. placement: the volume datacenters in order, never silently elsewhere
+  for dc in $VOLUME_DCS; do
+    [ -n "$(stock_in "$stock" "$gid" "$dc")" ] && break
+    info "no $req stock in $dc"
+    dc=''
+  done
+  if [ -z "$dc" ] && [ "$OFF_VOLUME" = 1 ]; then
+    dc=$(echo "$stock" | jq -r --arg g "$gid" '.[] | select(.gpuId == $g) | .dataCenterAvailability[]?
+      | select(.stockStatus != "none" and .stockStatus != "") | .dataCenterId' | head -1)
+    [ -n "$dc" ] && off=1 && warn "OFF-VOLUME placement: $req in $dc with a local /workspace"
+  fi
+  if [ -z "$dc" ]; then UP_STOCK=$(print_stock_table "$stock"); return 2; fi
+  UP_DC=$dc UP_OFF=$off UP_GID=$gid UP_ADD=$add UP_VOL=''
+  if [ "$off" = 0 ]; then
+    UP_VOL=$(ensure_volume "$dc") || { lock_release; die "could not find or create volume uor-shared-$dc"; }
+  fi
+  return 0
+}
+
+cmd_up() {
+  [ -n "$LAB" ] && [ -n "$PURPOSE" ] && [ -n "$HOURS" ] || die "up needs --lab, --session, --purpose and --hours"
+  check_who; check_hours "$HOURS"
+  local req=${GPU:-5090} count=${COUNT:-2} tier rc deadline waited=0
+  tier=$(gpu_field "$req" 4)
+  [ -n "$tier" ] || die "unknown --gpu '$req' (policy keys: $(printf '%s\n' "$GPU_POLICY" | cut -d'|' -f1 | tr '\n' ' '))"
+  if [ "$tier" = forbidden ] && [ "$OWNER_OK" != 1 ]; then
+    die "$req is not used for this trainer (FP32/TF32: measured A100 at 0.6-0.75x an RTX 4090; revisit after bf16 Phase 2); needs --owner-approved citing an owner decision"
+  fi
+  case $count in 1|2|3|4|5|6|7|8) ;; *) die "--count must be 1..8";; esac
+  # resolve the commit before anything is created, so a bad ref costs nothing
+  if [ "$NO_BOOT" != 1 ] && ! is_dry; then REF=$(resolve_ref "$REF"); fi
+  deadline=$(jq -rn --argjson h "$WAIT_HOURS" 'now + $h * 3600 | floor')
+
+  while :; do
+    lock_acquire
+    rc=0; up_attempt "$req" "$count" || rc=$?
+    [ "$rc" = 0 ] && break
+    lock_release
+    echo "$UP_STOCK"
+    if [ "$WAIT" != 1 ]; then
+      die "no $req stock in $VOLUME_DCS. Re-run with --wait (retries every 5 min for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
+    fi
+    if is_dry; then echo "DRY-RUN: would retry every $((WAIT_INTERVAL / 60)) min until $(jq -rn --argjson t "$deadline" '$t | todate')"; return 0; fi
+    if [ "$(now_epoch)" -ge "$deadline" ]; then
+      lock_acquire; ledger up-gave-up "$LAB" '' "{\"gpu\": \"$req\", \"count\": $count, \"waited_s\": $waited}"; lock_release
+      board "up gave up: no $count x $req in $VOLUME_DCS after $((waited / 60)) min (by=$WHO — $PURPOSE)"
+      die "no $req stock after waiting $((waited / 60)) min"
+    fi
+    if [ "$waited" = 0 ]; then
+      lock_acquire; ledger up-waiting "$LAB" '' "{\"gpu\": \"$req\", \"count\": $count, \"wait_hours\": $WAIT_HOURS}"; lock_release
+      board "up waiting: no $count x $req in $VOLUME_DCS; by=$WHO retries every $((WAIT_INTERVAL / 60)) min for up to ${WAIT_HOURS} h — $PURPOSE"
+    fi
+    info "retrying in $((WAIT_INTERVAL / 60)) min (until $(jq -rn --argjson t "$deadline" '$t | todate'))"
+    sleep "$WAIT_INTERVAL"; waited=$((waited + WAIT_INTERVAL))
+  done
+
+  local name args canon=false
+  [ "$UP_DC" = "$CANONICAL_DC" ] && [ "$UP_OFF" = 0 ] && canon=true
+  name="uor-$LAB-$(date -u +%m%d-%H%M)"
+  if [ "$UP_TEST" = 1 ]; then name="$TEST_PREFIX$LAB-$(date -u +%m%d-%H%M)"; fi
+  args=(pod create --template-id "$TEMPLATE_ID" --name "$name" --gpu-id "$UP_GID" --gpu-count "$count"
+    --data-center-ids "$UP_DC" --cloud-type SECURE --min-cuda-version 12.8
+    --container-disk-in-gb "$CONTAINER_DISK_GB" --ports 22/tcp -o json)
+  if [ "$UP_OFF" = 1 ]; then args+=(--volume-in-gb "$OFF_VOLUME_DISK_GB"); else args+=(--network-volume-id "$UP_VOL"); fi
+  local where="$UP_DC"
+  if [ "$UP_OFF" = 1 ]; then where="$UP_DC OFF-VOLUME"; elif [ "$canon" = false ]; then where="$UP_DC volume $UP_VOL (non-canonical)"; fi
+  echo "Creating $count x $req (\$$UP_ADD/h) in $where for $WHO: $PURPOSE"
+  if is_dry; then
+    echo "DRY-RUN: runpodctl ${args[*]}" >&2
+    lock_release
+    return 0
+  fi
+  local created pod t_create
+  t_create=$(now_epoch)
+  created=$(runpodctl "${args[@]}" 2>&1) || { lock_release; die "pod create failed: $(echo "$created" | tail -3)"; }
+  pod=$(echo "$created" | jq -r '.id // empty' 2>/dev/null)
+  [ -n "$pod" ] || { lock_release; die "pod create returned no id: $(echo "$created" | head -3)"; }
+  cache_put "$pod" "$(jq -cn --arg g "$req" --argjson cap "$(gpu_field "$req" 3)" --arg dc "$UP_DC" --arg v "$UP_VOL" \
+    --argjson off "$( [ "$UP_OFF" = 1 ] && echo true || echo false)" --argjson canon "$canon" --arg lab "$LAB" --arg t "$(now_iso)" \
+    '{gpu: $g, cap: $cap, dc: $dc, volume_id: $v, volume: ($off | not), off_volume: $off, canonical: $canon, tool: true, created_by: $lab, created: $t}')"
+  mkdir -p "$STATE/leases/$pod"
+  write_lease "$pod" "$ID" "$(jq -cn --argjson c "$count" '[range(0; $c)]')"
+  ledger up "$LAB" "$pod" "$(jq -cn --arg g "$req" --argjson c "$count" --arg dc "$UP_DC" --argjson usd "$UP_ADD" \
+    --arg purpose "$PURPOSE" --arg card "$CARD" --arg v "$UP_VOL" --argjson canon "$canon" \
+    '{gpu: $g, count: $c, dc: $dc, volume: $v, canonical: $canon, usd_per_h: $usd, purpose: $purpose, card: $card}')"
+  lock_release
+  board "up $pod ($count x $req, $where, \$$UP_ADD/h) by=$WHO hours=$HOURS — $PURPOSE${CARD:+ [$CARD]}"
+  echo "Pod $pod created; waiting for SSH (up to $SSH_WAIT_SECONDS s)"
+
+  local deadline addr t_ssh
+  deadline=$(( $(now_epoch) + SSH_WAIT_SECONDS ))
+  while :; do
+    addr=$(pod_addr "$pod" || true)
+    if [ -n "$addr" ] && pod_ssh "$pod" true </dev/null 2>/dev/null; then break; fi
+    if [ "$(now_epoch)" -ge "$deadline" ]; then
+      up_failed "$pod" "SSH not reachable after $SSH_WAIT_SECONDS s"
+      return 1
+    fi
+    sleep 10
+  done
+  t_ssh=$(( $(now_epoch) - t_create ))
+  echo "SSH ready after ${t_ssh}s: $(addr_line "$pod")"
+  lock_acquire; ledger ssh-ready "$LAB" "$pod" "{\"create_to_ssh_s\": $t_ssh}"; lock_release
+  mirror_lease "$pod" "$ID"
+  if [ "$canon" = false ]; then
+    # a non-canonical /workspace starts empty: copy the hot set before bootstrap
+    # (toolchain and cached binaries make the bootstrap warm). Best effort.
+    do_seed "$pod" || warn "hot-set seeding incomplete: run 'uor-pod seed $pod' once a canonical pod is up, or copy from the laptop"
+  fi
+  if [ "$NO_BOOT" = 1 ]; then return 0; fi
+  if ! do_bootstrap "$pod"; then
+    if [ "$KEEP_FAIL" = 1 ]; then
+      warn "bootstrap failed; pod $pod kept under $WHO's lease (until $(jq -r .expires "$(lease_file "$pod" "$ID")")) — fix or 'uor-pod down $pod --lab $LAB --session $SESSION'"
+      return 1
+    fi
+    up_failed "$pod" "bootstrap failed"
+    return 1
+  fi
+  echo "Ready: $(addr_line "$pod")   lease: $WHO gpus 0..$((count - 1)) until $(jq -r .expires "$(lease_file "$pod" "$ID")")"
+}
+addr_line() { local a; a=$(pod_addr "$1"); echo "ssh -i $SSH_KEY -p ${a#* } root@${a% *}"; }
+
+up_failed() {  # POD REASON -> delete the new pod so nothing idles
+  warn "$2: deleting pod $1"
+  runpodctl pod delete "$1" >/dev/null 2>&1 || warn "DELETE FAILED for $1 — delete it by hand now: runpodctl pod delete $1"
+  lock_acquire
+  rm -rf "${STATE:?}/leases/$1"; cache_put "$1" '{"deleted": true}'
+  ledger up-failed "$LAB" "$1" "$(jq -cn --arg r "$2" '{reason: $r}')"
+  lock_release
+  board "up-failed $1 by=$WHO: $2 (pod deleted)"
+}
+
+write_lease() {  # POD ID GPUS-JSON  (caller holds the lock; LAB/SESSION from the identity)
+  local f started
+  f=$(lease_file "$1" "$2")
+  mkdir -p "$(dirname "$f")"
+  started=$(now_iso)
+  if [ -f "$f" ] && lease_live "$f"; then started=$(jq -r .started "$f"); fi
+  jq -n --arg lab "$LAB" --arg session "$SESSION" --arg id "$2" --arg pod "$1" --argjson gpus "$3" --arg purpose "$PURPOSE" --arg card "$CARD" \
+    --arg started "$started" --arg expires "$(plus_hours "$HOURS")" --arg renewed "$(now_iso)" --argjson hours "$HOURS" \
+    '{lab: $lab, session: $session, id: $id, pod: $pod, gpus: $gpus, purpose: $purpose, card: $card, started: $started, expires: $expires, renewed: $renewed, hours: $hours}' |
+    atomic_write "$f"
+}
+
+# ---------------------------------------------------------------- lease / renew / release
+cmd_lease() {
+  local pod=${POS[0]:-}
+  check_pod_id "$pod"; check_who
+  [ -n "$GPUS" ] && [ -n "$PURPOSE" ] && [ -n "$HOURS" ] || die "lease needs POD --lab L --session S --gpus 0,1 --purpose ... --hours H"
+  check_hours "$HOURS"
+  local want p n clash
+  want=$(gpus_json "$GPUS")
+  p=$(pod_get "$pod"); [ -n "$p" ] && [ "$p" != null ] || die "no pod $pod in the account"
+  n=$(echo "$p" | jq -r '.gpuCount // 0')
+  echo "$want" | jq -e --argjson n "$n" 'all(.[]; . >= 0 and . < $n)' >/dev/null || die "pod $pod has $n GPU(s); --gpus $GPUS is out of range"
+  local states='[]' probe expired_clash
+  # GPUs under another session's EXPIRED lease may be taken over, but only after
+  # a fresh probe shows no live job on them.
+  expired_clash=$(jq -cn --argjson a "$want" --argjson b "$(expired_leases_json "$pod" | jq -c --arg me "$ID" '[.[] | select((.id // .lab) != $me) | .gpus[]] | unique')" '[$a[] | select(. as $g | $b | index($g))]')
+  if [ "$expired_clash" != '[]' ]; then  # read-only probe, also in dry runs
+    probe=$(probe_pod "$pod")
+    [ -n "$(probe_val "$probe" probe_ok)" ] || die "GPU(s) $expired_clash are under an expired lease; taking over needs a live SSH probe of $pod (no live job), which failed"
+    states=$(gpu_states "$pod" "$probe")
+    if [ "$(echo "$states" | jq -c --argjson c "$expired_clash" '[.[] | select(.busy and (.gpu as $g | $c | index($g))) | .gpu]')" != '[]' ]; then
+      die "GPU(s) $expired_clash are under an EXPIRED lease but still running a job: ask its session, do not take it over"
+    fi
+  fi
+  lock_acquire
+  clash=$(jq -cn --argjson a "$want" --argjson b "$(taken_gpus "$pod" "$ID")" '[$a[] | select(. as $g | $b | index($g))]')
+  if [ "$clash" != '[]' ]; then
+    lock_release
+    live_leases_json "$pod" | jq -r '.[] | "  held: \(.lab)/\(.session // "-") gpus=\(.gpus) until \(.expires) — \(.purpose)"' >&2
+    echo "uor-pod: GPU(s) $clash on $pod are under another session's live lease. An idle leased GPU is not free: only its holder (release) or expiry frees it." >&2
+    local free
+    free=$(free_report "$(pods_all)")
+    if [ -n "$free" ]; then echo "Free GPUs you can lease now:" >&2; echo "$free" >&2; fi
+    no_gpu_guidance
+    exit 1
+  fi
+  if [ "$expired_clash" != '[]' ]; then
+    local lf left holder
+    for lf in "$STATE/leases/$pod"/*.json; do
+      [ -f "$lf" ] || continue
+      lease_live "$lf" && continue
+      [ "$(jq -r '.id // .lab' "$lf")" != "$ID" ] || continue
+      left=$(jq -c --argjson c "$expired_clash" '[.gpus[] | select(. as $g | $c | index($g) | not)]' "$lf")
+      [ "$left" != "$(jq -c .gpus "$lf")" ] || continue
+      holder=$(jq -r '"\(.lab)/\(.session // "-")"' "$lf")
+      if [ "$left" = '[]' ]; then rm -f "$lf"; else jq --argjson g "$left" '.gpus = $g' "$lf" | atomic_write "$lf"; fi
+      ledger takeover "$LAB" "$pod" "$(jq -cn --argjson t "$expired_clash" --arg from "$holder" '{gpus: $t, from_expired: $from}')"
+      board "takeover $pod GPU(s) $expired_clash from the EXPIRED lease of $holder by=$WHO (no live job on them)"
+    done
+  fi
+  write_lease "$pod" "$ID" "$want"
+  if [ "$(cache_get "$pod")" = '{}' ]; then
+    cache_put "$pod" "$(jq -cn --arg net "$(echo "$p" | jq -r '.networkVolumeId // ""')" '{tool: false, volume: ($net != "")}')"
+  fi
+  if [ -n "$GPU" ]; then  # optional --gpu KEY records the type of a pod the API does not describe
+    [ -n "$(gpu_field "$GPU" 4)" ] || { lock_release; die "unknown --gpu '$GPU'"; }
+    cache_put "$pod" "{\"gpu\": \"$GPU\", \"cap\": $(gpu_field "$GPU" 3)}"
+  fi
+  ledger lease "$LAB" "$pod" "$(jq -cn --argjson g "$want" --arg p "$PURPOSE" --arg c "$CARD" --argjson h "$HOURS" '{gpus: $g, purpose: $p, card: $c, hours: $h}')"
+  lock_release
+  [ "$NO_MIRROR" = 1 ] || mirror_lease "$pod" "$ID"
+  board "lease $pod gpus=$GPUS by=$WHO hours=$HOURS — $PURPOSE${CARD:+ [$CARD]}"
+  echo "Leased $pod gpus $GPUS to $WHO until $(jq -r .expires "$(lease_file "$pod" "$ID")")"
+}
+
+# Backfill a pod made outside `up`: lease only the GPUs that are busy right now,
+# for at most 1 h (the lab renews if it is really working). Idle GPUs stay free.
+cmd_register() {
+  local pod=${POS[0]:-} p probe states busy
+  check_pod_id "$pod"; check_who
+  [ -n "$PURPOSE" ] || die "register needs POD --lab L --purpose \"...\" [--gpu KEY] [--keep REASON]"
+  p=$(pod_get "$pod"); [ -n "$p" ] && [ "$p" != null ] || die "no pod $pod in the account"
+  lock_acquire
+  cache_put "$pod" "$(jq -cn --arg net "$(echo "$p" | jq -r '.networkVolumeId // ""')" '{tool: false, volume: ($net != "")}' )"
+  [ -z "$GPU" ] || cache_put "$pod" "{\"gpu\": \"$GPU\", \"cap\": $(gpu_field "$GPU" 3)}"
+  [ -z "$KEEP_REASON" ] || cache_put "$pod" "$(jq -cn --arg r "$KEEP_REASON" '{keep: $r}')"
+  lock_release
+  if [ "$(echo "$p" | jq -r .desiredStatus)" != RUNNING ]; then
+    echo "$pod is $(echo "$p" | jq -r .desiredStatus): no GPU in use, no lease written${KEEP_REASON:+ (marked KEEP: $KEEP_REASON)}"
+    return 0
+  fi
+  probe=$(probe_pod "$pod")
+  [ -n "$(probe_val "$probe" probe_ok)" ] || die "cannot probe $pod over SSH; lease by hand only the GPUs you know are busy (--hours 1)"
+  states=$(gpu_states "$pod" "$probe")
+  busy=$(echo "$states" | jq -r '[.[] | select(.busy) | .gpu | tostring] | join(",")')
+  if [ -z "$busy" ]; then echo "$pod: no busy GPU; nothing leased (its GPUs are free to lease)"; return 0; fi
+  GPUS=$busy HOURS=1 KEEP_REASON='' cmd_lease
+}
+
+cmd_keep() {  # keep POD --purpose REASON | unkeep POD : protect a pod from down/reap (unique data)
+  local pod=${POS[0]:-}
+  check_pod_id "$pod"
+  lock_acquire
+  if [ "$1" = keep ]; then
+    [ -n "$PURPOSE" ] || { lock_release; die "keep needs --purpose REASON"; }
+    cache_put "$pod" "$(jq -cn --arg r "$PURPOSE" '{keep: $r}')"
+    ledger keep "${LAB:-?}" "$pod" "$(jq -cn --arg r "$PURPOSE" '{reason: $r}')"
+  else
+    jq --arg p "$pod" 'del(.[$p].keep)' "$STATE/pods.json" | atomic_write "$STATE/pods.json"
+    ledger unkeep "${LAB:-?}" "$pod"
+  fi
+  lock_release
+  board "$1 $pod by ${LAB:-a lab}${PURPOSE:+ — $PURPOSE}"
+}
+
+cmd_renew() {
+  local pod=${POS[0]:-} f
+  check_pod_id "$pod"; check_who
+  f=$(lease_file "$pod" "$ID")
+  [ -f "$f" ] || die "$WHO holds no lease on $pod (use lease)"
+  lock_acquire
+  local gpus clash
+  gpus=$(jq -c .gpus "$f")
+  if ! lease_live "$f"; then
+    clash=$(jq -cn --argjson a "$gpus" --argjson b "$(taken_gpus "$pod" "$ID")" '[$a[] | select(. as $g | $b | index($g))]')
+    [ "$clash" = '[]' ] || { lock_release; die "your lease expired and GPU(s) $clash were taken over; lease free GPUs instead"; }
+    warn "lease had expired at $(jq -r .expires "$f"); renewing (no other lab took the GPUs)"
+  fi
+  HOURS=${HOURS:-$(jq -r '.hours // 2' "$f")}; check_hours "$HOURS"
+  PURPOSE=$(jq -r .purpose "$f"); CARD=$(jq -r '.card // ""' "$f")
+  write_lease "$pod" "$ID" "$gpus"
+  ledger renew "$LAB" "$pod" "{\"hours\": $HOURS}"
+  lock_release
+  [ "$NO_MIRROR" = 1 ] || mirror_lease "$pod" "$ID"
+  echo "Renewed $WHO on $pod until $(jq -r .expires "$f")"
+}
+
+cmd_release() {
+  local pod=${POS[0]:-} f
+  check_pod_id "$pod"; check_who
+  f=$(lease_file "$pod" "$ID")
+  [ -f "$f" ] || die "$WHO holds no lease on $pod"
+  lock_acquire
+  rm -f "$f"
+  ledger release "$LAB" "$pod"
+  lock_release
+  unmirror_lease "$pod" "$ID"
+  board "release $pod by=$WHO"
+  echo "Released $WHO's lease on $pod. If nobody else holds it, 'uor-pod down $pod --lab $LAB --session $SESSION' now (the reaper deletes it after $IDLE_MIN idle min)."
+}
+
+# ---------------------------------------------------------------- down
+cmd_down() {
+  local pod=${POS[0]:-} others p cache probe kb
+  check_pod_id "$pod"; check_who
+  p=$(pod_get "$pod"); [ -n "$p" ] && [ "$p" != null ] || die "no pod $pod in the account"
+  others=$(live_leases_json "$pod" | jq -c --arg l "$ID" '[.[] | select((.id // .lab) != $l)]')
+  if [ "$others" != '[]' ]; then
+    echo "$others" | jq -r '.[] | "  live lease: \(.lab)/\(.session // "-") gpus=\(.gpus) until \(.expires) — \(.purpose)"' >&2
+    die "refusing: another session holds a live lease on $pod (wait for release or expiry)"
+  fi
+  cache=$(cache_get "$pod")
+  if [ -n "$(echo "$cache" | jq -r '.keep // empty')" ]; then
+    die "$pod is marked KEEP ($(echo "$cache" | jq -r .keep)); 'uor-pod unkeep $pod' first, with the owner's or holder's agreement"
+  fi
+  if [ "$(echo "$p" | jq -r .desiredStatus)" = RUNNING ]; then
+    probe=$(probe_pod "$pod")
+    if [ -z "$(probe_val "$probe" probe_ok)" ]; then
+      [ "$FORCE" = 1 ] || die "cannot probe $pod over SSH (jobs/unsaved results unknown); re-run with --force to delete anyway"
+    fi
+    if [ -n "$(probe_val "$probe" busy_lock)" ]; then
+      die "jobs still hold $(probe_val "$probe" busy_lock | tr '\n' ' ')— stop or wait for them first"
+    fi
+    kb=$(probe_val "$probe" root_runs_kb)
+    if [ -n "$kb" ] && [ "$kb" -gt 4 ] && [ "$DISCARD_LOCAL" != 1 ]; then
+      die "/root/runs holds ${kb} KB on the container disk (lost on delete). Copy what matters to /workspace, then re-run with --discard-local"
+    fi
+  fi
+  if [ "$CONFIRM_ARCHIVED" != 1 ]; then
+    local net
+    net=$(echo "$p" | jq -r '.networkVolumeId // ""')
+    if [ -z "$net" ]; then
+      die "$pod has no network volume: its /workspace dies with it. Archive results to the canonical volume ('uor-pod push $pod PATH...') or the laptop, record where, then re-run with --confirm-archived"
+    fi
+    if [ "$net" != "$VOLUME_ID" ]; then
+      die "$pod uses non-canonical volume $net: archive its results to the canonical $CANONICAL_DC volume ('uor-pod push $pod PATH...') or the laptop, record where, then re-run with --confirm-archived"
+    fi
+  fi
+  mut runpodctl pod delete "$pod" >/dev/null
+  lock_acquire
+  if ! is_dry; then rm -rf "${STATE:?}/leases/$pod" "$STATE/idle/$pod"; cache_put "$pod" '{"deleted": true}'; fi
+  ledger down "$LAB" "$pod" "$(jq -cn --argjson usd "$(echo "$p" | jq '.costPerHr // 0')" --argjson up "$(echo "$p" | jq '.uptimeSeconds // 0')" '{usd_per_h: $usd, uptime_s: $up}')"
+  lock_release
+  board "down $pod by=$WHO (was \$$(echo "$p" | jq -r '.costPerHr // 0')/h, up $(echo "$p" | jq -r '((.uptimeSeconds // 0) / 60 | floor)') min)"
+  echo "Deleted $pod"
+}
+
+# ---------------------------------------------------------------- reap
+cmd_reap() {
+  local pods id probe since now f deleted=0
+  pods=$(pods_all); now=$(now_epoch)
+  for id in $(echo "$pods" | jq -r '.[] | select(.desiredStatus == "RUNNING") | .id'); do
+    if [ -n "$(cache_get "$id" | jq -r '.keep // empty')" ]; then echo "$id: marked KEEP, never reaped"; continue; fi
+    if [ "$(live_leases_json "$id")" != '[]' ]; then echo "$id: live lease, kept"; rm -f "$STATE/idle/$id"; continue; fi
+    probe=$(probe_pod "$id")
+    if [ -z "$(probe_val "$probe" probe_ok)" ]; then echo "$id: no live lease but SSH probe failed — NOT reaped (check by hand)"; continue; fi
+    f="$STATE/idle/$id"
+    if ! probe_idle "$probe"; then echo "$id: no live lease, GPUs busy — kept (lease it!)"; rm -f "$f"; continue; fi
+    since=$(probe_val "$probe" idle_since)
+    if [ -z "$since" ]; then
+      [ -f "$f" ] || echo "$now" > "$f"
+      since=$(cat "$f")
+    fi
+    if [ $(( now - since )) -lt $(( IDLE_MIN * 60 )) ]; then
+      echo "$id: no live lease, idle $(( (now - since) / 60 )) min (< $IDLE_MIN) — kept for now"
+      continue
+    fi
+    echo "$id: no live lease, idle $(( (now - since) / 60 )) min — deleting"
+    mut runpodctl pod delete "$id" >/dev/null
+    lock_acquire
+    if ! is_dry; then rm -f "$f"; cache_put "$id" '{"deleted": true}'; fi
+    ledger reap "${LAB:-any}" "$id" "{\"idle_min\": $(( (now - since) / 60 ))}"
+    lock_release
+    board "reap $id (no live lease, GPUs idle $(( (now - since) / 60 )) min) by ${LAB:-a lab}"
+    deleted=$((deleted + 1))
+  done
+  echo "reap: $deleted pod(s) deleted"
+}
+
+# ---------------------------------------------------------------- run / ssh / bootstrap / transfer
+cmd_run() {
+  local pod=${POS[0]:-} f cmd ks k b64 locks='' lockcmd=''
+  check_pod_id "$pod"; check_who
+  [ -n "$GPU" ] || die "run needs --gpu K (or K1,K2)"
+  [ ${#POS[@]} -ge 2 ] || die "run needs -- CMD..."
+  cmd=${POS[*]:1}
+  f=$(lease_file "$pod" "$ID")
+  lease_live "$f" || die "$WHO holds no live lease on $pod (lease or renew first)"
+  ks=$(gpus_json "$GPU")
+  echo "$ks" | jq -e --argjson have "$(jq -c .gpus "$f")" 'all(.[]; . as $g | $have | index($g))' >/dev/null ||
+    die "GPU(s) $GPU are not in $WHO's lease ($(jq -c .gpus "$f"))"
+  for k in $(echo "$ks" | jq -r '.[]'); do
+    locks="$locks /root/gpu$k.lock"
+    lockcmd="$lockcmd exec $((20 + k))>/root/gpu$k.lock; flock $((20 + k));"
+  done
+  b64=$(printf '%s' "$cmd" | base64 | tr -d '\n')
+  local remote
+  remote="set -e; ts=\$(date -u +%Y%m%dT%H%M%SZ); d=/workspace/uor-r4/jobs/$LAB; mkdir -p \$d; log=\$d/\$ts-$SESSION-gpu${GPU//,/-}.log
+cat > /tmp/uor-job-\$ts.sh <<'JOB'
+CMD=\$(echo $b64 | base64 -d)
+echo \"# uor-pod job by=$WHO pod=$pod gpu=$GPU queued \$(date -u +%FT%TZ)\"
+echo \"# cmd: \$CMD\"
+$lockcmd
+echo \"# start \$(date -u +%FT%TZ) (holding$locks)\"
+[ -f /root/.uor-pod-env ] && . /root/.uor-pod-env
+set +e
+CUDA_VISIBLE_DEVICES=$GPU bash -c \"\$CMD\"
+rc=\$?
+echo \"# exit=\$rc end=\$(date -u +%FT%TZ)\"
+JOB
+nohup setsid bash /tmp/uor-job-\$ts.sh > \$log 2>&1 < /dev/null &
+echo \$log"
+  if is_dry; then echo "DRY-RUN: on $pod: $remote" >&2; return 0; fi
+  local log
+  log=$(pod_ssh "$pod" "$remote" </dev/null) || die "could not start the job"
+  lock_acquire; ledger run "$LAB" "$pod" "$(jq -cn --arg g "$GPU" --arg c "$cmd" --arg l "$log" '{gpu: $g, cmd: $c, log: $l}')"; lock_release
+  echo "Started on $pod gpu $GPU (queues behind any job holding the GPU lock). Log: $log"
+  echo "Follow: uor-pod ssh $pod tail -f $log"
+}
+
+cmd_ssh() {
+  local pod=${POS[0]:-} addr
+  check_pod_id "$pod"
+  addr=$(pod_addr "$pod"); [ -n "$addr" ] || die "pod $pod has no SSH address (not running?)"
+  if [ ${#POS[@]} -ge 2 ]; then
+    exec ssh -i "$SSH_KEY" -p "${addr#* }" "${SSH_OPTS[@]}" "root@${addr% *}" "${POS[*]:1}"
+  fi
+  exec ssh -t -i "$SSH_KEY" -p "${addr#* }" "${SSH_OPTS[@]}" "root@${addr% *}"
+}
+
+resolve_ref() {  # main|branch|sha -> full commit SHA of the public repository
+  case $1 in
+    [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*) [ ${#1} = 40 ] && { echo "$1"; return; };;
+  esac
+  git ls-remote "$REPO_URL" "refs/heads/$1" | cut -f1 | grep . || die "cannot resolve ref '$1' on $REPO_URL (give a full 40-char SHA)"
+}
+
+do_bootstrap() {  # POD -> copy reaper + bootstrap, mirror leases, run bootstrap
+  local pod=$1 sha l cache
+  cache=$(cache_get "$pod")
+  if [ "$(echo "$cache" | jq -r '.tool // false')" != true ] && [ "$FORCE" != 1 ]; then
+    die "$pod was not created by 'uor-pod up' (no reaper/bootstrap on hand-made pods); --force overrides"
+  fi
+  sha=$(resolve_ref "$REF")
+  echo "Bootstrapping $pod at $sha"
+  if is_dry; then echo "DRY-RUN: copy uor-pod-bootstrap.sh + uor-reaper.sh to $pod and run bootstrap" >&2; return 0; fi
+  wait_ssh "$pod" 300 || { warn "SSH to $pod still refused after 300 s"; return 1; }
+  pod_ssh "$pod" 'mkdir -p /root/leases && cat > /root/uor-reaper.sh && chmod 755 /root/uor-reaper.sh' < "$HERE/uor-reaper.sh" || return 1
+  pod_ssh "$pod" 'cat > /root/uor-pod-bootstrap.sh && chmod 755 /root/uor-pod-bootstrap.sh' < "$HERE/uor-pod-bootstrap.sh" || return 1
+  for l in "$STATE/leases/$pod"/*.json; do
+    [ -f "$l" ] || continue
+    mirror_lease "$pod" "$(basename "$l" .json)"
+  done
+  local t0 rc=0
+  t0=$(now_epoch)
+  pod_ssh "$pod" "bash /root/uor-pod-bootstrap.sh --sha $sha --pod $pod $( [ "$OLLAMA" = 1 ] && echo --with-ollama ) $( [ "$(echo "$cache" | jq -r '.off_volume // false')" = true ] && echo --off-volume )" </dev/null || rc=$?
+  lock_acquire
+  ledger bootstrap "${LAB:-?}" "$pod" "$(jq -cn --arg s "$sha" --argjson rc "$rc" --argjson t "$(( $(now_epoch) - t0 ))" '{sha: $s, rc: $rc, seconds: $t}')"
+  cache_put "$pod" '{"reaper": true}'
+  lock_release
+  [ "$rc" = 0 ]
+}
+cmd_bootstrap() { check_pod_id "${POS[0]:-}"; do_bootstrap "${POS[0]}"; }
+
+transfer() {  # DIRECTION POD PATH...  relays /workspace paths through this laptop
+  local dir=$1 pod=$2 vp src dst
+  shift 2
+  [ $# -ge 1 ] || die "$dir needs at least one path relative to /workspace"
+  for p in "$@"; do case $p in /*|*..*) die "paths are relative to /workspace without '..' (got $p)";; esac; done
+  vp=${VIA:-$(volume_pod "$(pods_all)")} || die "no running pod mounts volume $VOLUME_ID; start one (uor-pod up) or copy from the laptop"
+  [ "$vp" != "$pod" ] || die "$pod already mounts the volume"
+  if [ "$dir" = pull ]; then src=$vp; dst=$pod; else src=$pod; dst=$vp; fi
+  echo "Relaying $* : $src:/workspace -> $dst:/workspace (via this laptop)"
+  if is_dry; then echo "DRY-RUN: tar from $src | tar into $dst" >&2; return 0; fi
+  local q
+  q=$(printf '%q ' "$@")
+  pod_ssh "$src" "cd /workspace && tar -cf - $q" </dev/null | pod_ssh "$dst" "mkdir -p /workspace && cd /workspace && tar -xf -"
+  lock_acquire; ledger "$dir" "${LAB:-?}" "$pod" "$(jq -cn --arg v "$vp" --arg p "$*" '{via: $v, paths: $p}')"; lock_release
+}
+
+do_seed() {  # POD -> copy the missing hot-set paths from the canonical volume (or $UOR_POD_HOT_MIRROR)
+  local pod=$1 want=() line path tag cap sha missing vp
+  while IFS= read -r line; do
+    line=${line%%#*}; [ -n "${line// /}" ] || continue
+    path=$(echo "$line" | awk '{print $1}'); tag=$(echo "$line" | awk '{print $2}')
+    if [ "$tag" = ollama ] && [ "$OLLAMA" != 1 ]; then continue; fi
+    want+=("$path")
+  done < "$HERE/hot-set.txt"
+  cap=$(cache_get "$pod" | jq -r '.cap // empty')
+  if [ -n "$cap" ]; then
+    sha=$(resolve_ref "$REF" 2>/dev/null || true)
+    [ -n "$sha" ] && want+=("bin/$sha-sm$cap")
+  fi
+  if is_dry; then echo "DRY-RUN: seed $pod with: ${want[*]}" >&2; return 0; fi
+  missing=$(pod_ssh "$pod" "cd /workspace 2>/dev/null || exit 0; for p in ${want[*]}; do [ -e \"\$p\" ] || echo \"\$p\"; done" </dev/null) || return 1
+  [ -n "$missing" ] || { echo "Hot set already present on $pod"; return 0; }
+  # shellcheck disable=SC2086  # one path per word
+  set -- $missing
+  if vp=${VIA:-$(volume_pod "$(pods_all)")}; then
+    local have
+    have=$(pod_ssh "$vp" "cd /workspace && for p in $*; do [ -e \"\$p\" ] && echo \"\$p\"; done" </dev/null) || return 1
+    [ -n "$have" ] || { echo "Nothing of the hot set exists on the canonical volume yet"; return 0; }
+    # shellcheck disable=SC2086
+    VIA=$vp transfer pull "$pod" $have
+  elif [ -n "${UOR_POD_HOT_MIRROR:-}" ] && [ -d "$UOR_POD_HOT_MIRROR" ]; then
+    echo "No canonical pod running: seeding $pod from the laptop mirror $UOR_POD_HOT_MIRROR"
+    local p have=()
+    for p in "$@"; do [ -e "$UOR_POD_HOT_MIRROR/$p" ] && have+=("$p"); done
+    [ ${#have[@]} -gt 0 ] || return 1
+    tar -C "$UOR_POD_HOT_MIRROR" -cf - "${have[@]}" | pod_ssh "$pod" "mkdir -p /workspace && cd /workspace && tar -xf -"
+  else
+    warn "no running pod mounts the canonical volume and UOR_POD_HOT_MIRROR is unset; missing on $pod: $*"
+    return 1
+  fi
+}
+cmd_seed() { check_pod_id "${POS[0]:-}"; do_seed "${POS[0]}"; }
+
+cmd_log() { tail -n "$NLINES" "$STATE/ledger.jsonl" | jq -r '"\(.ts) \(.event) \(.lab) \(.pod) \(del(.ts, .event, .lab, .pod, .by) | tostring) (\(.by))"'; }
+
+cmd_gpus() {
+  echo "GPU policy (key, CUDA_COMPUTE_CAP, tier):"
+  printf '%s\n' "$GPU_POLICY" | awk -F'|' '{printf "  %-8s cap %-4s %-10s %s\n", $1, $3, $4, $2}'
+  print_stock_table "$(gpu_stock)" 2>&1
+}
+
+# ---------------------------------------------------------------- main
+sub=${1:-rules}; [ $# -gt 0 ] && shift
+case $sub in
+  status|up|lease|renew|release|down|reap|run|ssh|bootstrap|seed|register|keep|unkeep|pull|push|log|gpus|prune-stopped) parse "$@";;
+esac
+case $sub in
+  status) cmd_status;;
+  up) cmd_up;;
+  lease) cmd_lease;;
+  renew) cmd_renew;;
+  release) cmd_release;;
+  down) cmd_down;;
+  reap) cmd_reap;;
+  run) cmd_run;;
+  ssh) cmd_ssh;;
+  bootstrap) cmd_bootstrap;;
+  seed) cmd_seed;;
+  pull|push) check_pod_id "${POS[0]:-}"; transfer "$sub" "${POS[@]}";;
+  register) cmd_register;;
+  keep|unkeep) cmd_keep "$sub";;
+  prune-stopped) cmd_prune_stopped;;
+  log) cmd_log;;
+  gpus) cmd_gpus;;
+  rules) print_rules; echo; echo "Commands: uor-pod help";;
+  help|-h|--help) sed -n '2,33p' "$0";;
+  *) die "unknown subcommand '$sub' (uor-pod help)";;
+esac

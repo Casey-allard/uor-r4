@@ -1,0 +1,19 @@
+# Hot set: what a non-canonical /workspace (uor-shared-EU-RO-1, uor-shared-EUR-IS-1,
+# or an --allow-off-volume pod) receives from the canonical EUR-NO-1 volume before
+# bootstrap. `uor-pod seed POD` (run automatically by `up`) copies every listed path
+# that exists on the canonical volume and is missing on POD. Paths are relative to
+# /workspace. A line "PATH ollama" is copied only with --with-ollama. The binary
+# cache bin/<sha>-sm<cap>/ for the bootstrapped commit is added automatically.
+# Keep this list small: it is the working inputs, not the archive. Edit it in a PR
+# when a lab starts depending on a new input; record sizes in docs/labs/compute.md.
+#
+# toolchain archives (Rust 1.97.1 rustup tree; cargo registry cache; Ollama binary)
+toolchain/rust-1.97.1-x86_64.tar
+toolchain/cargo-registry.tar
+toolchain/ollama ollama
+# shared inputs: tokenizer, fine-tune stores (ft-*), the 100M base model being
+# fine-tuned (geo-100m-*), paraphrases, step5 inputs (corpora, sieve compiler and
+# trunk, open panels) — 2.6 GB on 2026-10-05, tar files with MD5SUMS
+uor-r4/data
+# judge model for chat-grade (qwen2.5:7b, ~4.7 GB)
+ollama ollama

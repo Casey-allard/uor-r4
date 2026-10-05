@@ -165,7 +165,18 @@ acceptance criteria and protected delivery requirements remain in force.
 
 ## Resources, verification and delivery
 
-Project complete preparation/build/fit/controls/evaluation/retries/checkpoint work before execution: context/data windows, wall time, CPU/threads, peak RAM, new/temporary/retained storage and stop margin. Charge the shared cumulative ledger; an issue or session does not reset it. Training duration is secondary to inference usefulness and efficiency, but authorization and machine ceilings still apply. Do not silently raise limits or incur external compute cost. Reuse valid binaries/checkpoints and preserve negative candidates. No CUDA/external GPU is authorized by this plan.
+### GPU pods (every session, owner rules of 5 October 2026)
+
+- Touch Runpod pods only through `scripts/pod/uor-pod`; run `uor-pod status` before any GPU work and read its "Free GPUs you can lease now" line.
+- Identity is lab + session: pass `--lab L --session S` (or export `UOR_POD_SESSION`). Lease the GPUs you use (`uor-pod lease POD --lab L --session S --gpus 0,1 --purpose … --hours H`), renew every ≤ 30 min while working, release when done; leases expire automatically.
+- Another session's GPU is never yours, even when idle; never touch another session's lease, files or `KEEP_ALIVE`. Only an expired lease may be taken over, and `lease` checks there is no live job.
+- No free GPU and within the caps (≤ 4 running pods, ≤ $8/h, all labs together): `uor-pod up --lab L --session S --purpose … --hours H` (2 × RTX 5090; EUR-NO-1 → EU-RO-1 → EUR-IS-1). Never fall back to the laptop CPU; caps reached and nothing free: wait for an expiry or ask the owner.
+- One job per GPU with `uor-pod run … --gpu K -- CMD`; GPU evaluation uses `device=cuda`.
+- Durable output only on `/workspace` (network volume). Do not keep stopped pods as storage. Release, then `uor-pod down POD` when no other session holds it.
+- Local disk is small: results downloaded to the laptop are moved to iCloud once used (`~/.local/share/uor-r4/bin/cloud-store put <lab> <dir>`, MD5 round-trip and index, then the local copy to the Trash; `cloud-store fetch` restores them). Keep 30–70 GB free.
+- Never read or print API keys or `~/.runpod/config.toml`. Details: [docs/labs/compute.md](docs/labs/compute.md).
+
+Project complete preparation/build/fit/controls/evaluation/retries/checkpoint work before execution: context/data windows, wall time, CPU/threads, peak RAM, new/temporary/retained storage and stop margin. Charge the shared cumulative ledger; an issue or session does not reset it. Training duration is secondary to inference usefulness and efficiency, but authorization and machine ceilings still apply. Do not silently raise limits or incur external compute cost. Reuse valid binaries/checkpoints and preserve negative candidates. External GPU compute is authorized only through `uor-pod` within the caps above (owner, 5 October 2026); no other external or paid compute.
 
 Compile and exercise a changed Rust path with focused checks for real arithmetic, causality, serialization, interfaces and allocation risks. Typical commands use rustup-managed `~/.cargo/bin/cargo`: `cargo fmt --check`, a touched-package offline check and named focused tests. Run actual generated behavior for a model change. Run `python3 scripts/check_claim_wording.py` when editing capability claims. No blanket full suite, proof campaign, ledger/replay framework or corpus run is required for every edit.
 
