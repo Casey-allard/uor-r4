@@ -1,0 +1,192 @@
+{
+  "schema": "uor-r4.geometric-terminal-coadapt-evidence/1",
+  "source_commit": "aa92b826ce7370d62fb914051b8c8cf59e896b39",
+  "executable_sha256": "eb2628426cd134f761ec0ef85e59988c4be16a7d9c0cf119a52a9608ac257e55",
+  "report_sha256": "23b41309e7a41a357d76f4a72641b13e9f6b2a61961b33f02d594ff6cbb35228",
+  "status": "completed",
+  "selected_updates": 64,
+  "first_native_packed_crossing_update": 1,
+  "checkpoints": [
+    {
+      "updates": 0,
+      "native_equal_episode_ce": 0.2771607605944637
+    },
+    {
+      "updates": 16,
+      "native_equal_episode_ce": 0.27000803064829976
+    },
+    {
+      "updates": 32,
+      "native_equal_episode_ce": 0.26496403744959246
+    },
+    {
+      "updates": 48,
+      "native_equal_episode_ce": 0.2555293994120686
+    },
+    {
+      "updates": 64,
+      "native_equal_episode_ce": 0.24834034910855737
+    }
+  ],
+  "comparisons": {
+    "development": {
+      "parent_complete": 89,
+      "selected_complete": 88,
+      "cases": 128,
+      "gains": [
+        "development-roles-order-03-job",
+        "development-roles-order-04-job",
+        "development-repetition-04-where",
+        "development-currentversions-00-job",
+        "development-currentversions-04-job"
+      ],
+      "losses": [
+        "construction-02",
+        "construction-06",
+        "radial-train-02",
+        "radial-train-12",
+        "radial-train-22",
+        "development-repetition-06-where"
+      ]
+    },
+    "fresh": {
+      "parent_complete": 5,
+      "selected_complete": 5,
+      "cases": 32,
+      "gains": [
+        "fresh-repetition-02-where"
+      ],
+      "losses": [
+        "fresh-currentversions-02-where"
+      ]
+    }
+  },
+  "fit_receipt": {
+    "host": "Runpod Linux x86_64",
+    "recorded_utc": "2026-10-05T03:40:16.931053+00:00",
+    "source_commit": "aa92b826ce7370d62fb914051b8c8cf59e896b39",
+    "source_scope": "git archive of committed local HEAD; no uncommitted source shipped",
+    "command": [
+      "/root/codex/target/release/examples/geometric-bank-fit",
+      "/root/codex/terminal-fit-1.json"
+    ],
+    "cwd": "/root/codex/geometric-bank-fit-20261004",
+    "environment": {
+      "CARGO_HOME": "/root/codex/cargo-home",
+      "CARGO_TARGET_DIR": "/root/codex/target",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "48",
+      "CARGO_PROFILE_RELEASE_CODEGEN_UNITS": "1",
+      "RAYON_NUM_THREADS": "48",
+      "CUDA_VISIBLE_DEVICES": "",
+      "UOR_BUILD_SOURCE_COMMIT": "aa92b826ce7370d62fb914051b8c8cf59e896b39",
+      "TMPDIR": "/root/codex/tmp"
+    },
+    "affinity_cpu_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47
+    ],
+    "threads_budget": 48,
+    "wrapper_pid": 333480,
+    "worker_pid": 333481,
+    "exit_code": 0,
+    "stop_reason": null,
+    "elapsed_seconds": 85.12067079404369,
+    "sampled_process_tree_peak_rss_bytes": 1267691520,
+    "rusage_children_max_rss_bytes": 1284792320,
+    "codex_allocated_bytes_latest": 7560732672,
+    "free_bytes_final": 9573634048,
+    "maximum_seconds": 900,
+    "maximum_rss_bytes": 8589934592,
+    "gpu_used": false,
+    "metal_tests": "UNAVAILABLE_ON_LINUX_NOT_COUNTED"
+  },
+  "return_verification": {
+    "complete_sha256_and_file_set": "PASS",
+    "files": 157,
+    "bytes": 346946674,
+    "local_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/terminal-fit-1",
+    "extract_note": "local Python lacks filter argument; allmembers prevalidated regular files/directories and safe relative paths"
+  },
+  "independent_outcome_review": {
+    "status": "PASS",
+    "checks": 181029,
+    "errors": [],
+    "report_sha256": "23b41309e7a41a357d76f4a72641b13e9f6b2a61961b33f02d594ff6cbb35228",
+    "auditor_sha256": "1754e8244ad0ad85259adc4a67ecfeca28000e25bf2791af208f5adf94e0b19f",
+    "interpretation": "Native full likelihood improves but complete-answer development regresses1 and fresh remains flat; preserve calibration positive without complete-answer-gain claim. Frozen Copy remains exact at identical prefixes.",
+    "limits": [
+      "Saved rawF32/q4, metadata/payload/source receipts and native recorded score/mass arithmetic; no native/BPE/autodiff/optimizer reexecution.",
+      "BLAKE3 unavailable; manifest sizes/sets checked and root complete remoteSHA verification separately accepted.",
+      "Gradients and per-update raw shadows omitted: finite graph/norm/crossing is executable-reported not independently reconstructed.",
+      "Fresh expanded literal pool is new distribution; only contemporaneous parent/candidate comparison is supported."
+    ],
+    "review_sha256": "b2955605e207de8c9a74ce15a01d5ae587fa41940beaa231123bc14310b6da1e"
+  },
+  "scope": "native existing Period/Stop-only calibration; likelihood positive, completion not improved; no generalchat or wholegeometry negative",
+  "next": "retain prefix64 serving research parent and terminal64 as likelihood donor; investigate source-end versus actualresponse H4 relation with same-information unary control, no unchangeddose",
+  "completion_subsets": {
+    "single": [
+      59,
+      54
+    ],
+    "bank": [
+      30,
+      34
+    ],
+    "complete_bank_pairs": [
+      8,
+      10
+    ],
+    "fresh_complete_pairs": [
+      1,
+      1
+    ]
+  }
+}

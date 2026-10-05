@@ -25,7 +25,8 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::{
     geometric_occurrence_consumer::{
         source_realizer::{
-            CueAngularWeights, NativeSourceRealizer, PrefixAngularWeights, SourceRealizerWeights,
+            terminal_parameter, verify_terminal_copy_frozen, CueAngularWeights,
+            NativeSourceRealizer, PrefixAngularWeights, SourceRealizerWeights,
         },
         ConsumerIdentity,
     },
@@ -58,6 +59,10 @@ const PREFIX_FAMILIES: &str = "prefix-angular-HxLx120/1";
 fn prefix_mode(a: &Args) -> bool {
     a.mode.starts_with("prefix-")
 }
+const TERMINAL_FAMILIES: &str = "existing-Stop+Period-only/1";
+fn terminal_mode(a: &Args) -> bool {
+    a.mode.starts_with("terminal-")
+}
 const UPDATES: usize = 64;
 const BATCH: usize = 8;
 #[derive(Deserialize)]
@@ -69,6 +74,9 @@ struct Args {
     frozen_cue_bundle: Option<PathBuf>,
     frozen_cue_native_metadata_sha256: Option<String>,
     frozen_cue_packed_sha256: Option<String>,
+    frozen_prefix_bundle: Option<PathBuf>,
+    frozen_prefix_native_metadata_sha256: Option<String>,
+    frozen_prefix_packed_sha256: Option<String>,
     learned_source_weights: Option<PathBuf>,
     learned_native_artifact: Option<PathBuf>,
     learned_trusted_native_binding: Option<PathBuf>,
@@ -326,11 +334,15 @@ fn checked_args() -> Result<Args> {
         "cue-fit",
         "prefix-broadbatch",
         "prefix-fit",
+        "terminal-broadbatch",
+        "terminal-fit",
     ]
     .contains(&a.mode.as_str())
         || a.maximum_seconds == 0
         || a.maximum_seconds
-            > if a.mode == "fit" {
+            > if a.mode == "terminal-fit" {
+                900
+            } else if a.mode == "fit" {
                 3600
             } else if matches!(a.mode.as_str(), "readout-fit" | "cue-fit" | "prefix-fit") {
                 1200
@@ -340,7 +352,11 @@ fn checked_args() -> Result<Args> {
         || a.maximum_context_tokens != 128
         || a.maximum_generation_tokens > 32
         || a.maximum_report_bytes
-            != if a.mode == "factor-probe" {
+            != if a.mode == "terminal-fit" {
+                1024 * 1024 * 1024
+            } else if a.mode == "terminal-broadbatch" {
+                128 * 1024 * 1024
+            } else if a.mode == "factor-probe" {
                 FACTOR_REPORT_CAP
             } else if a.mode == "prefix-fit" {
                 PREFIX_FIT_CAP
@@ -362,7 +378,7 @@ fn checked_args() -> Result<Args> {
     }
     if matches!(
         a.mode.as_str(),
-        "fit" | "readout-fit" | "cue-fit" | "prefix-fit"
+        "fit" | "readout-fit" | "cue-fit" | "prefix-fit" | "terminal-fit"
     ) && (a.admission.is_none()
         || a.admission_manifest_sha256.is_none()
         || a.fit_authorization.is_none())
@@ -372,7 +388,10 @@ fn checked_args() -> Result<Args> {
         )
         .into());
     }
-    if (broad_mode(&a) || a.mode == "cue-broadbatch" || a.mode == "prefix-broadbatch")
+    if (broad_mode(&a)
+        || a.mode == "cue-broadbatch"
+        || a.mode == "prefix-broadbatch"
+        || a.mode == "terminal-broadbatch")
         && (a.admission.is_some() || a.fit_authorization.is_some())
     {
         return Err(invalid("broadbatch cannot automatically fit").into());
@@ -386,11 +405,27 @@ fn checked_args() -> Result<Args> {
         a.frozen_cue_native_metadata_sha256.is_some(),
         a.frozen_cue_packed_sha256.is_some(),
     ];
-    if (prefix_mode(&a) && !prefix_inputs.iter().all(|v| *v))
-        || (!prefix_mode(&a) && prefix_inputs.iter().any(|v| *v))
+    if ((prefix_mode(&a) || terminal_mode(&a)) && !prefix_inputs.iter().all(|v| *v))
+        || (!(prefix_mode(&a) || terminal_mode(&a)) && prefix_inputs.iter().any(|v| *v))
     {
         return Err(invalid(
             "prefix mode requires complete explicit frozen cue native binding and mode",
+        )
+        .into());
+    }
+    let terminal_inputs = [
+        a.frozen_prefix_bundle.is_some(),
+        a.frozen_prefix_native_metadata_sha256.is_some(),
+        a.frozen_prefix_packed_sha256.is_some(),
+    ];
+    if (terminal_mode(&a)
+        && (!terminal_inputs.iter().all(|x| *x)
+            || a.prefix_score_mode != Some(PrefixScoreMode::DirectedRelative)
+            || a.maximum_generation_tokens != 32))
+        || (!terminal_mode(&a) && terminal_inputs.iter().any(|x| *x))
+    {
+        return Err(invalid(
+            "terminal modes require complete frozen directed prefix64 binding and generation32",
         )
         .into());
     }
@@ -424,6 +459,7 @@ fn checked_args() -> Result<Args> {
     paths.extend(a.learned_native_artifact.iter());
     paths.extend(a.learned_trusted_native_binding.iter());
     paths.extend(a.frozen_cue_bundle.iter());
+    paths.extend(a.frozen_prefix_bundle.iter());
     paths.extend(a.admission.iter());
     paths.extend(a.fit_authorization.iter());
     paths.extend(a.exposed_controls.iter());
@@ -2925,7 +2961,955 @@ fn prefix_run(a: &Args, start: Instant) -> Result<Value> {
     )
 }
 
+fn terminal_canonical(
+    native: &IntegerRealizer,
+    cue: &NativeCueCarrier<'_>,
+    carrier: &NativePrefixTransport<'_>,
+    frozen: (
+        &IntegerRealizer,
+        &NativeCueCarrier<'_>,
+        &NativePrefixTransport<'_>,
+    ),
+    episodes: &[Episode],
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut total = 0.;
+    let mut zeros = Vec::new();
+    let mut count = 0;
+    for e in episodes {
+        let segments = e.segments()?;
+        let mut tokens = Vec::new();
+        let mut rowce = 0.;
+        let mut rowzero = false;
+        for (step, &target) in e.target.iter().enumerate() {
+            deadline(a, start)?;
+            let out = native.read_bank_with_prefix_transport(
+                &segments,
+                &e.packet.query_ids,
+                &e.target[..step],
+                cue,
+                carrier,
+            )?;
+            let original = frozen.0.read_bank_with_prefix_transport(
+                &segments,
+                &e.packet.query_ids,
+                &e.target[..step],
+                frozen.1,
+                frozen.2,
+            )?;
+            verify_terminal_copy_frozen(&original, &out)?;
+            let mass = out
+                .cue_bank
+                .bank
+                .actions
+                .token_masses
+                .iter()
+                .filter(|x| x.token_id == target)
+                .map(|x| x.weight_q31)
+                .sum::<u64>();
+            let den = out.cue_bank.bank.actions.total_weight_q31;
+            if den == 0 {
+                return Err(invalid("cue native zero normalizer").into());
+            }
+            let ce = if mass == 0 {
+                rowzero = true;
+                zeros.push(json!({"id":e.packet.id,"step":step}));
+                None
+            } else {
+                let v = -(mass as f64 / den as f64).ln();
+                rowce += v;
+                Some(v)
+            };
+            tokens.push(json!({"step":step,"teacherforced_prefix_ids_labels_only":&e.target[..step],"target_label_only_after_read":target,"native_ce":ce,"target_mass_q31":mass,"total_weight_q31":den,"native":compact(&out.cue_bank.bank)?,"cue_carrier":out.cue_bank.carrier,"prefix_transport":out.prefix}));
+            count += 1;
+        }
+        let mean = if rowzero {
+            None
+        } else {
+            Some(rowce / e.target.len() as f64)
+        };
+        if let Some(v) = mean {
+            total += v / episodes.len() as f64;
+        }
+        rows.push(json!({"id":e.packet.id,"native_mean_token_ce":mean,"tokens":tokens}));
+    }
+    Ok(
+        json!({"cases":episodes.len(),"target_positions":count,"native_equal_episode_ce":if zeros.is_empty(){Some(total)}else{None},"zero_support_positions":zeros,"rows":rows,"probability_floor":false,"infinite_native_objective_when_zero":true}),
+    )
+}
+fn terminal_generation(
+    native: &IntegerRealizer,
+    cue: &NativeCueCarrier<'_>,
+    carrier: &NativePrefixTransport<'_>,
+    frozen: (
+        &IntegerRealizer,
+        &NativeCueCarrier<'_>,
+        &NativePrefixTransport<'_>,
+    ),
+    episodes: &[Episode],
+    tok: &ByteBpeTokenizer,
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut complete = 0;
+    for e in episodes {
+        let segments = e.segments()?;
+        let mut ids = Vec::new();
+        let mut traces = Vec::new();
+        for step in 0..a.maximum_generation_tokens {
+            deadline(a, start)?;
+            let out = native.read_bank_with_prefix_transport(
+                &segments,
+                &e.packet.query_ids,
+                &ids,
+                cue,
+                carrier,
+            )?;
+            let original = frozen.0.read_bank_with_prefix_transport(
+                &segments,
+                &e.packet.query_ids,
+                &ids,
+                frozen.1,
+                frozen.2,
+            )?;
+            verify_terminal_copy_frozen(&original, &out)?;
+            if a.mode == "terminal-broadbatch"
+                && (original.cue_bank.bank.actions != out.cue_bank.bank.actions
+                    || original.cue_bank.bank.heads != out.cue_bank.bank.heads
+                    || original.cue_bank.bank.period_q24 != out.cue_bank.bank.period_q24)
+            {
+                return Err(
+                    invalid("zero export ownprefix terminal/head/action parity differs").into(),
+                );
+            }
+            let chosen = out.cue_bank.bank.actions.chosen_token_id;
+            traces.push(json!({"step":step,"actual_prefix_ids":ids,"native":compact(&out.cue_bank.bank)?,"cue_carrier":out.cue_bank.carrier,"prefix_transport":out.prefix}));
+            ids.push(chosen);
+            if chosen == native.binding().eos_token_id() {
+                break;
+            }
+        }
+        let eos = ids.last() == Some(&native.binding().eos_token_id());
+        let plain = if eos { &ids[..ids.len() - 1] } else { &ids[..] };
+        let bytes = tok.decode_bytes(plain);
+        let raw = String::from_utf8_lossy(&bytes);
+        let text = raw.strip_prefix(' ').unwrap_or(&raw);
+        let accepted = eos && String::from_utf8(bytes.clone()).is_ok() && e.answers.accepts(text);
+        complete += usize::from(accepted);
+        rows.push(json!({"id":e.packet.id,"generated_ids_including_eos":ids,"eos":eos,"reply_text":text,"raw_decoded_bytes_hex":hex::encode(bytes),"accepted_complete_answer":accepted,"tokens":traces}));
+    }
+    Ok(
+        json!({"cases":episodes.len(),"accepted_complete":complete,"maximum_generated_tokens":a.maximum_generation_tokens,"canonical_prefixes_used":false,"native_only_prefix_load":true,"rows":rows}),
+    )
+}
+fn terminal_packed_hashes(source: &SourceRealizerWeights) -> Result<Vec<String>> {
+    terminal_parameter_packed_hashes(&source.terminal_parameters())
+}
+fn terminal_parameter_packed_hashes(params: &BTreeMap<String, Var>) -> Result<Vec<String>> {
+    ["consumer.no_read.coefficients", "period.coefficients"]
+        .iter()
+        .map(|name| {
+            let values = params
+                .get(*name)
+                .ok_or_else(|| invalid("terminal Var missing"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            if values.iter().any(|x| !x.is_finite() || x.abs() > 1.75) {
+                return Err(invalid("terminal shadow range/finite differs").into());
+            }
+            let q = values
+                .into_iter()
+                .map(|x| (x * 4.).round() as i8)
+                .collect::<Vec<_>>();
+            let packed = uor_r4_integer::geometric_no_read::pack_coefficients(&q)
+                .map_err(|e| invalid(e.to_string()))?;
+            Ok(sha256_bytes(&packed))
+        })
+        .collect()
+}
+fn terminal_frozen(source: &SourceRealizerWeights) -> Result<Value> {
+    parameter_receipts(
+        &source
+            .parameters()
+            .into_iter()
+            .filter(|(n, _)| !terminal_parameter(n))
+            .collect(),
+    )
+}
+fn terminal_sidecars<'a>(
+    native: &'a NativeSourceRealizer,
+    cue_root: &Path,
+    prefix_root: &Path,
+) -> Result<(NativeCueCarrier<'a>, PrefixAngularConfig, Vec<u8>)> {
+    let cm = read_json(&cue_root.join("native-metadata.json"))?;
+    let pm = read_json(&prefix_root.join("native-metadata.json"))?;
+    let cue = native.compile_cue_carrier(
+        CueAngularQ4::new(
+            serde_json::from_value(cm["potential"].clone())?,
+            &fs::read(cue_root.join("cue-q4.bin"))?,
+        )
+        .map_err(|e| invalid(e.to_string()))?,
+    )?;
+    let config = serde_json::from_value(pm["potential"].clone())?;
+    Ok((cue, config, fs::read(prefix_root.join("prefix-q4.bin"))?))
+}
+fn terminal_batch(
+    indices: &[usize],
+    episodes: &[Episode],
+    source: &SourceRealizerWeights,
+    frozen_parent: &NativeSourceRealizer,
+    frozen_integer: &IntegerRealizer,
+    a: &Args,
+    start: Instant,
+) -> Result<Batch> {
+    let began = Instant::now();
+    let cue_root = a
+        .frozen_cue_bundle
+        .as_ref()
+        .ok_or_else(|| invalid("frozen cue absent"))?;
+    let prefix_root = a
+        .frozen_prefix_bundle
+        .as_ref()
+        .ok_or_else(|| invalid("frozen prefix absent"))?;
+    // Compiled inventory identity is derived from current payloads, never the stale parent binding.
+    let current = source.compile_terminal_rebound(frozen_parent)?;
+    let prepared = source.prepare(&current)?;
+    let (cue, config, packed) = terminal_sidecars(&current, cue_root, prefix_root)?;
+    let prefix = current.compile_prefix_transport(
+        &cue,
+        PrefixAngularQ4::new(config, &packed).map_err(|e| invalid(e.to_string()))?,
+    )?;
+    let oldcue = cue_native_load(cue_root, frozen_integer)?;
+    let oldprefix = prefix_native_load(prefix_root, frozen_integer, &oldcue)?;
+    let params = source.terminal_parameters();
+    let frozenvars = source
+        .parameters()
+        .into_iter()
+        .filter(|(n, _)| !terminal_parameter(n))
+        .collect::<BTreeMap<_, _>>();
+    let mut gradients = BTreeMap::<String, Tensor>::new();
+    let mut rows = Vec::new();
+    let mut mean = 0.;
+    let mut positions = 0;
+    for &idx in indices {
+        let e = &episodes[idx];
+        let segments = e.segments()?;
+        let mut ce = 0.;
+        for (step, &target) in e.target.iter().enumerate() {
+            deadline(a, start)?;
+            let out = match prepared.loss_bank_terminal(
+                &segments,
+                &e.packet.query_ids,
+                &e.target[..step],
+                target,
+                &cue,
+                &prefix,
+            ) {
+                Ok(out) => out,
+                Err(error) => {
+                    let witness = a.out.join("terminal-error-witness");
+                    report_output::claim(&witness)?;
+                    let preserved = (|| -> Result<()> {
+                        let frozen_cue = prefix_training_cue_load(cue_root, frozen_parent)?;
+                        let frozen_config: PrefixAngularConfig = serde_json::from_value(
+                            read_json(&prefix_root.join("native-metadata.json"))?["potential"]
+                                .clone(),
+                        )?;
+                        let frozen_prefix = frozen_parent.compile_prefix_transport(
+                            &frozen_cue,
+                            PrefixAngularQ4::new(frozen_config, &packed)
+                                .map_err(|e| invalid(e.to_string()))?,
+                        )?;
+                        source.save_terminal_rebound(
+                            &witness.join("candidate"),
+                            frozen_parent,
+                            &a.native_artifact,
+                            &frozen_cue,
+                            &frozen_prefix,
+                        )?;
+                        let trace = current.read_bank_with_prefix_transport(
+                            &segments,
+                            &e.packet.query_ids,
+                            &e.target[..step],
+                            &cue,
+                            &prefix,
+                        )?;
+                        write_json(
+                            &witness,
+                            "failure.json",
+                            &json!({"error":error.to_string(),"id":e.packet.id,"step":step,"actual_prefix_ids_labels_only":&e.target[..step],"target_label_only_after_read":target,"native_trace":trace}),
+                        )?;
+                        Ok(())
+                    })();
+                    if let Err(e) = &preserved {
+                        write_json(
+                            &witness,
+                            "preservation-error.json",
+                            &json!({"error":e.to_string()}),
+                        )?;
+                    }
+                    report_output::seal(&witness)?;
+                    report_output::verify(&witness)?;
+                    preserved?;
+                    return Err(error.into());
+                }
+            };
+            let original = frozen_integer.read_bank_with_prefix_transport(
+                &segments,
+                &e.packet.query_ids,
+                &e.target[..step],
+                &oldcue,
+                &oldprefix,
+            )?;
+            verify_terminal_copy_frozen(&original, &out.trace)?;
+            if a.mode == "terminal-broadbatch"
+                && (original.cue_bank.bank.actions != out.trace.cue_bank.bank.actions
+                    || original.cue_bank.bank.period_q24 != out.trace.cue_bank.bank.period_q24
+                    || original.cue_bank.bank.heads != out.trace.cue_bank.bank.heads)
+            {
+                return Err(
+                    invalid("zero terminal broad native full action/head parity differs").into(),
+                );
+            }
+            let expected = -out.target_probability.ln();
+            let scalar = out.loss.to_scalar::<f32>()?;
+            if !expected.is_finite()
+                || !scalar.is_finite()
+                || (f64::from(scalar) - expected).abs() > 1e-4 + 1e-5 * expected.abs()
+            {
+                return Err(invalid("terminal native hard CE differs").into());
+            }
+            ce += expected;
+            positions += 1;
+            let store = (&out.loss * scale(indices.len(), e.target.len())?)?.backward()?;
+            if frozenvars
+                .values()
+                .any(|v| store.get(v.as_tensor()).is_some())
+            {
+                return Err(invalid("terminal loss connects frozen nonterminal Var").into());
+            }
+            for (name, var) in &params {
+                let g = store
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("terminal Var disconnected"))?
+                    .detach();
+                let sum = match gradients.remove(name) {
+                    Some(old) => (&old + &g)?.detach(),
+                    None => g,
+                };
+                gradients.insert(name.clone(), sum);
+            }
+        }
+        mean += ce / e.target.len() as f64 / indices.len() as f64;
+        rows.push(json!({"id":e.packet.id,"target_steps":e.target.len(),"native_mean_token_ce":ce/e.target.len() as f64}));
+    }
+    let mut stats = BTreeMap::new();
+    let mut sq = 0.;
+    for (n, g) in &gradients {
+        let v = g.flatten_all()?.to_vec1::<f32>()?;
+        if v.iter().any(|x| !x.is_finite()) {
+            return Err(invalid("terminal gradient nonfinite").into());
+        }
+        sq += v.iter().map(|x| f64::from(*x).powi(2)).sum::<f64>();
+        stats.insert(n.clone(),json!({"elements":v.len(),"finite":true,"nonzero":v.iter().filter(|x|**x!=0.).count(),"l1":v.iter().map(|x|f64::from(x.abs())).sum::<f64>()}));
+    }
+    Ok(Batch {
+        gradients,
+        report: json!({"episodes":indices.len(),"episode_indices":indices,"target_positions":positions,"native_equal_episode_ce":mean,"gradient_global_norm":sq.sqrt(),"gradient_families":stats,"rows":rows,"elapsed_seconds":began.elapsed().as_secs_f64(),"nonterminal_gradient_graph_absent":true,"fixed_input_Copy_context_cue_prefix_unchanged":true,"active_families":TERMINAL_FAMILIES,"objective":"equalepisode mean fullanswer+EOS ordinary native aliasCE; all target positions; no floor; detached F32 token gradient accumulation/globalclip aftermean","binding_scope":"honestly derived current compiled inventory; checkpoint independent saved native reload","held_valid_credit":"structurally zero; not all terminal coefficients active"}),
+    })
+}
+fn terminal_apply(
+    source: &SourceRealizerWeights,
+    opt: &mut AdamW,
+    grad: BTreeMap<String, Tensor>,
+) -> Result<f64> {
+    let params = source.terminal_parameters();
+    let mut sq = 0.;
+    for (name, g) in &grad {
+        if !params.contains_key(name) {
+            return Err(invalid("nonterminal optimizer gradient rejected").into());
+        }
+        for x in g.flatten_all()?.to_vec1::<f32>()? {
+            if !x.is_finite() {
+                return Err(invalid("terminal clip gradient nonfinite").into());
+            }
+            sq += f64::from(x).powi(2);
+        }
+    }
+    let norm = sq.sqrt();
+    let clip = if norm > 1. { 1. / norm } else { 1. };
+    let mut store = Tensor::new(0f32, &Device::Cpu)?.backward()?;
+    for (name, g) in grad {
+        store.insert(
+            params
+                .get(&name)
+                .ok_or_else(|| invalid("terminal Var missing"))?
+                .as_tensor(),
+            (&g * clip)?.detach(),
+        );
+    }
+    opt.step(&store)?;
+    for var in params.values() {
+        let values = var.flatten_all()?.to_vec1::<f32>()?;
+        if values.iter().any(|x| !x.is_finite()) {
+            return Err(invalid("terminal optimizer shadow nonfinite").into());
+        }
+        var.set(&Tensor::from_vec(
+            values
+                .into_iter()
+                .map(|x| x.clamp(-1.75, 1.75))
+                .collect::<Vec<_>>(),
+            var.shape(),
+            &Device::Cpu,
+        )?)?;
+    }
+    Ok(clip)
+}
+fn terminal_current_recovery(
+    source: &SourceRealizerWeights,
+    a: &Args,
+    update: usize,
+) -> Result<()> {
+    let mut receipt = BTreeMap::new();
+    for (name, var) in source.terminal_parameters() {
+        let values = var.flatten_all()?.to_vec1::<f32>()?;
+        let bytes = values
+            .iter()
+            .flat_map(|x| x.to_bits().to_le_bytes())
+            .collect::<Vec<_>>();
+        let file = if name == "period.coefficients" {
+            "current-period-f32.bin"
+        } else {
+            "current-Stop-f32.bin"
+        };
+        fs::write(a.out.join(file), &bytes)?;
+        receipt.insert(name,json!({"file":file,"shape":var.dims(),"f32_le_bits_sha256":sha256_bytes(&bytes),"elements":values.len()}));
+    }
+    write_json(
+        &a.out,
+        "current-terminal-recovery.json",
+        &json!({"updates":update,"frozen_source_weights":a.source_weights,"trusted_native_binding":a.trusted_native_binding,"terminal_shadows":receipt,"nonterminal_reconstruction_source":"immutable frozen parent; exact current terminal F32 bytes preserved even if next wall/support guard stops before checkpoint"}),
+    )
+}
+fn terminal_checkpoint(
+    source: &SourceRealizerWeights,
+    parent: &NativeSourceRealizer,
+    frozen: (
+        &IntegerRealizer,
+        &NativeCueCarrier<'_>,
+        &NativePrefixTransport<'_>,
+    ),
+    episodes: &[Episode],
+    step: usize,
+    prior: &[Value],
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let required = directory_bytes(&a.source_weights)?
+        .saturating_add(directory_bytes(&a.native_artifact)?)
+        .saturating_add(64 * 1024 * 1024);
+    if directory_bytes(&a.out)?.saturating_add(required) > a.maximum_report_bytes - 1024 * 1024 {
+        return Err(invalid("terminal export+trace storage reserve exceeds cap").into());
+    }
+    let root = a.out.join(format!("checkpoint-{step:04}"));
+    report_output::claim(&root)?;
+    let result = (|| -> Result<Value> {
+        let cue = prefix_training_cue_load(
+            a.frozen_cue_bundle
+                .as_ref()
+                .ok_or_else(|| invalid("cue absent"))?,
+            parent,
+        )?;
+        let pm = read_json(
+            &a.frozen_prefix_bundle
+                .as_ref()
+                .ok_or_else(|| invalid("prefix absent"))?
+                .join("native-metadata.json"),
+        )?;
+        let packed = fs::read(
+            a.frozen_prefix_bundle
+                .as_ref()
+                .ok_or_else(|| invalid("prefix absent"))?
+                .join("prefix-q4.bin"),
+        )?;
+        let prefix = parent.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(serde_json::from_value(pm["potential"].clone())?, &packed)
+                .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let receipt = source.save_terminal_rebound(
+            &root.join("candidate"),
+            parent,
+            &a.native_artifact,
+            &cue,
+            &prefix,
+        )?;
+        let restored = SourceRealizerWeights::load_source(
+            &root.join("candidate/source"),
+            &fs::read(a.native_artifact.join("tokenizer.json"))?,
+        )?;
+        if parameter_receipts(&source.parameters())? != parameter_receipts(&restored.parameters())?
+        {
+            return Err(invalid("terminal fractional source reload differs").into());
+        }
+        let integer =
+            IntegerRealizer::load_native(&root.join("candidate/native"), &receipt.new_parent)?;
+        let cue = cue_native_load(&root.join("candidate/cue"), &integer)?;
+        let prefix = prefix_native_load(&root.join("candidate/prefix"), &integer, &cue)?;
+        let can = terminal_canonical(&integer, &cue, &prefix, frozen, episodes, a, start)?;
+        write_json(&root, "canonical.json", &can)?;
+        let mut comparisons = Vec::new();
+        for old in prior {
+            let previous = old["updates"]
+                .as_u64()
+                .ok_or_else(|| invalid("terminal prior step absent"))?;
+            comparisons.push(json!({"prior_updates":previous,"comparison":compare(&read_json(&a.out.join(format!("checkpoint-{previous:04}/canonical.json")))?,&can)?}));
+        }
+        write_json(&root, "comparisons.json", &json!(comparisons))?;
+        let out = json!({"updates":step,"native_equal_episode_ce":can["native_equal_episode_ce"],"zero_support_positions":can["zero_support_positions"],"source_parameter_receipts":parameter_receipts(&source.parameters())?,"terminal_rebind_receipt":receipt,"fixed_input_Copy_unchanged":true,"canonical_sha256":sha256_file(&root.join("canonical.json"))?});
+        write_json(&root, "receipt.json", &out)?;
+        Ok(out)
+    })();
+    if let Err(e) = &result {
+        write_json(
+            &root,
+            "failure.json",
+            &json!({"error":e.to_string(),"updates":step}),
+        )?;
+    }
+    report_output::seal(&root)?;
+    report_output::verify(&root)?;
+    result
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TerminalAuthorization {
+    schema: String,
+    fit_admitted: bool,
+    admission_report_sha256: String,
+    development_manifest_sha256: String,
+    fresh_manifest_sha256: String,
+    trusted_binding_sha256: String,
+    frozen_cue_native_metadata_sha256: String,
+    frozen_cue_packed_sha256: String,
+    frozen_prefix_native_metadata_sha256: String,
+    frozen_prefix_packed_sha256: String,
+    active_families: String,
+    updates: usize,
+    batch_episodes: usize,
+    maximum_fit_seconds: u64,
+}
+fn terminal_admission_matches(r: &Value, a: &Args, trusted: &str, frozen: &Value) -> bool {
+    r["schema"] == "uor-r4.geometric-terminal-fit/1"
+        && r["mode"] == "terminal-broadbatch"
+        && r["status"] == "completed"
+        && r["optimizer_updates"] == 0
+        && r["cases"] == 128
+        && r["active_families"] == TERMINAL_FAMILIES
+        && r["complete_objective_finite"] == true
+        && r["gradient_report"]["nonterminal_gradient_graph_absent"] == true
+        && r["gradient_report"]["fixed_input_Copy_context_cue_prefix_unchanged"] == true
+        && r["development_manifest_sha256"] == a.development_manifest_sha256
+        && r["fresh_manifest_sha256"] == a.fresh_manifest_sha256
+        && r["trusted_binding_sha256"] == trusted
+        && r["frozen_nonterminal_source_receipts"] == *frozen
+        && r["frozen_cue_native_metadata_sha256"] == json!(a.frozen_cue_native_metadata_sha256)
+        && r["frozen_cue_packed_sha256"] == json!(a.frozen_cue_packed_sha256)
+        && r["frozen_prefix_native_metadata_sha256"]
+            == json!(a.frozen_prefix_native_metadata_sha256)
+        && r["frozen_prefix_packed_sha256"] == json!(a.frozen_prefix_packed_sha256)
+}
+fn terminal_run(a: &Args, start: Instant) -> Result<Value> {
+    let cue_root = a
+        .frozen_cue_bundle
+        .as_ref()
+        .ok_or_else(|| invalid("frozen cue absent"))?;
+    let prefix_root = a
+        .frozen_prefix_bundle
+        .as_ref()
+        .ok_or_else(|| invalid("frozen prefix absent"))?;
+    for (root, name, expected) in [
+        (
+            cue_root,
+            "native-metadata.json",
+            &a.frozen_cue_native_metadata_sha256,
+        ),
+        (cue_root, "cue-q4.bin", &a.frozen_cue_packed_sha256),
+        (
+            prefix_root,
+            "native-metadata.json",
+            &a.frozen_prefix_native_metadata_sha256,
+        ),
+        (prefix_root, "prefix-q4.bin", &a.frozen_prefix_packed_sha256),
+    ] {
+        if Some(sha256_file(&root.join(name))?) != *expected {
+            return Err(invalid("terminal frozen bundle SHA differs").into());
+        }
+    }
+    let mut sealed = BTreeSet::new();
+    let mut inputs = BTreeMap::new();
+    for (root, expected) in [
+        (&a.development_panel, &a.development_manifest_sha256),
+        (&a.fresh_panel, &a.fresh_manifest_sha256),
+    ] {
+        report_output::verify(root)?;
+        if sha256_file(&root.join("manifest.json"))? != *expected {
+            return Err(invalid("terminal panel manifest differs").into());
+        }
+    }
+    for p in [
+        cue_root,
+        prefix_root,
+        &a.source_weights,
+        &a.native_artifact,
+        &a.development_panel,
+        &a.fresh_panel,
+    ] {
+        let root = nearest_seal(p)?;
+        report_output::verify(&root)?;
+        inputs.insert(
+            root.join("manifest.json").to_string_lossy().into_owned(),
+            sha256_file(&root.join("manifest.json"))?,
+        );
+        sealed.insert(root);
+    }
+    for (root, names) in [
+        (cue_root, ["native-metadata.json", "cue-q4.bin"]),
+        (prefix_root, ["native-metadata.json", "prefix-q4.bin"]),
+    ] {
+        for n in names {
+            let path = root.join(n);
+            inputs.insert(path.to_string_lossy().into_owned(), sha256_file(&path)?);
+        }
+    }
+    let binding: NativeArtifactBinding =
+        serde_json::from_slice(&read_capped(&a.trusted_native_binding)?)?;
+    let trusted_sha = sha256_file(&a.trusted_native_binding)?;
+    inputs.insert(
+        a.trusted_native_binding.to_string_lossy().into_owned(),
+        trusted_sha.clone(),
+    );
+    let integer = IntegerRealizer::load_native(&a.native_artifact, &binding)?;
+    let bytes = fs::read(a.native_artifact.join("tokenizer.json"))?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("terminal ByteBPE absent"))?;
+    let source = SourceRealizerWeights::load_source(&a.source_weights, &bytes)?;
+    let identity: ConsumerIdentity = serde_json::from_value(
+        read_json(&a.native_artifact.join("metadata.json"))?["identity"].clone(),
+    )?;
+    let parent = NativeSourceRealizer::load(&a.native_artifact, &source, &identity)?;
+    if parent.artifact_binding()? != binding {
+        return Err(invalid("terminal source/native parent differs").into());
+    }
+    let cue = cue_native_load(cue_root, &integer)?;
+    let prefix = prefix_native_load(prefix_root, &integer, &cue)?;
+    if prefix.metadata().potential.mode != PrefixScoreMode::DirectedRelative {
+        return Err(invalid("terminal parent prefix is not selected directed geometry").into());
+    }
+    let development = load_panel(&a.development_panel, 128, &integer, &tok, true)?;
+    let fresh = load_panel(&a.fresh_panel, 32, &integer, &tok, true)?;
+    let fresh_preparation_report = read_json(&a.fresh_panel.join("report.json"))?;
+    write_json(
+        &a.out,
+        "fresh-preparation-scope.json",
+        &fresh_preparation_report,
+    )?;
+    let frozen = terminal_frozen(&source)?;
+    let original_receipts = parameter_receipts(&source.parameters())?;
+    let mut stages = Vec::new();
+    stages.push(terminal_checkpoint(
+        &source,
+        &parent,
+        (&integer, &cue, &prefix),
+        &development,
+        0,
+        &[],
+        a,
+        start,
+    )?);
+    let baseline = read_json(&a.out.join("checkpoint-0000/canonical.json"))?;
+    if baseline["native_equal_episode_ce"].is_null() {
+        return Err(invalid("terminal full128 objective infinite; no support filter").into());
+    }
+    let zero_binding: NativeArtifactBinding =
+        serde_json::from_value(stages[0]["terminal_rebind_receipt"]["new_parent"].clone())?;
+    let zero = IntegerRealizer::load_native(
+        &a.out.join("checkpoint-0000/candidate/native"),
+        &zero_binding,
+    )?;
+    let zero_cue = cue_native_load(&a.out.join("checkpoint-0000/candidate/cue"), &zero)?;
+    let zero_prefix = prefix_native_load(
+        &a.out.join("checkpoint-0000/candidate/prefix"),
+        &zero,
+        &zero_cue,
+    )?;
+    let parent_gen = terminal_generation(
+        &zero,
+        &zero_cue,
+        &zero_prefix,
+        (&integer, &cue, &prefix),
+        &development,
+        &tok,
+        a,
+        start,
+    )?;
+    write_json(&a.out, "development-parent-generation.json", &parent_gen)?;
+    write_json(
+        &a.out,
+        "parent-query-pair-diagnostics.json",
+        &factor_pair_report(&a.development_panel, &baseline, &parent_gen)?,
+    )?;
+    if a.mode == "terminal-broadbatch" {
+        let batch = terminal_batch(
+            &(0..128).collect::<Vec<_>>(),
+            &development,
+            &source,
+            &parent,
+            &integer,
+            a,
+            start,
+        )?;
+        write_json(&a.out, "broadbatch.json", &batch.report)?;
+        if parameter_receipts(&source.parameters())? != original_receipts {
+            return Err(invalid("terminal broadbatch changed source").into());
+        }
+        for (p, h) in &inputs {
+            if sha256_file(Path::new(p))? != *h {
+                return Err(invalid("terminal input changed").into());
+            }
+        }
+        for root in &sealed {
+            report_output::verify(root)?;
+        }
+        return Ok(
+            json!({"schema":"uor-r4.geometric-terminal-fit/1","mode":a.mode,"status":"completed","optimizer_updates":0,"cases":128,"active_families":TERMINAL_FAMILIES,"gradient_report":batch.report,"complete_objective_finite":true,"native_equal_episode_ce":baseline["native_equal_episode_ce"],"checkpoint":stages[0],"frozen_nonterminal_source_receipts":frozen,"development_manifest_sha256":a.development_manifest_sha256,"fresh_manifest_sha256":a.fresh_manifest_sha256,"trusted_binding_sha256":trusted_sha,"frozen_cue_native_metadata_sha256":a.frozen_cue_native_metadata_sha256,"frozen_cue_packed_sha256":a.frozen_cue_packed_sha256,"frozen_prefix_native_metadata_sha256":a.frozen_prefix_native_metadata_sha256,"frozen_prefix_packed_sha256":a.frozen_prefix_packed_sha256,"input_manifests_sha256":inputs,"fit_admitted":false,"fresh_predictions":"NOT_RUN","elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib()}),
+        );
+    }
+    let admission = a
+        .admission
+        .as_ref()
+        .ok_or_else(|| invalid("terminal admission absent"))?;
+    report_output::verify(admission)?;
+    if Some(sha256_file(&admission.join("manifest.json"))?) != a.admission_manifest_sha256 {
+        return Err(invalid("terminal admission manifest differs").into());
+    }
+    let report = read_json(&admission.join("report.json"))?;
+    let authpath = a
+        .fit_authorization
+        .as_ref()
+        .ok_or_else(|| invalid("terminal authorization absent"))?;
+    let auth: TerminalAuthorization = serde_json::from_slice(&read_capped(authpath)?)?;
+    if !terminal_admission_matches(&report, a, &trusted_sha, &frozen)
+        || auth.schema != "uor-r4.terminal-fit-authorization/1"
+        || !auth.fit_admitted
+        || auth.active_families != TERMINAL_FAMILIES
+        || auth.updates != UPDATES
+        || auth.batch_episodes != BATCH
+        || auth.maximum_fit_seconds != a.maximum_seconds
+        || auth.admission_report_sha256 != sha256_file(&admission.join("report.json"))?
+        || auth.development_manifest_sha256 != a.development_manifest_sha256
+        || auth.fresh_manifest_sha256 != a.fresh_manifest_sha256
+        || auth.trusted_binding_sha256 != trusted_sha
+        || Some(auth.frozen_cue_native_metadata_sha256) != a.frozen_cue_native_metadata_sha256
+        || Some(auth.frozen_cue_packed_sha256) != a.frozen_cue_packed_sha256
+        || Some(auth.frozen_prefix_native_metadata_sha256) != a.frozen_prefix_native_metadata_sha256
+        || Some(auth.frozen_prefix_packed_sha256) != a.frozen_prefix_packed_sha256
+    {
+        return Err(invalid(
+            "terminal distinct broadbatch/resource/frozen binding admission differs",
+        )
+        .into());
+    }
+    inputs.insert(
+        admission
+            .join("manifest.json")
+            .to_string_lossy()
+            .into_owned(),
+        sha256_file(&admission.join("manifest.json"))?,
+    );
+    sealed.insert(admission.clone());
+    inputs.insert(
+        authpath.to_string_lossy().into_owned(),
+        sha256_file(authpath)?,
+    );
+    let storage_projection =
+        (directory_bytes(&a.source_weights)? + directory_bytes(&a.native_artifact)?) * 5
+            + 384 * 1024 * 1024;
+    if storage_projection > a.maximum_report_bytes - 128 * 1024 * 1024 {
+        return Err(
+            invalid("terminal fullfiveexport+trace projection exceeds admitted storage").into(),
+        );
+    }
+    let mut optimizer = AdamW::new(
+        source.terminal_parameters().into_values().collect(),
+        ParamsAdamW {
+            lr: 0.003,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1e-8,
+            weight_decay: 0.,
+        },
+    )?;
+    let mut batches = Vec::new();
+    let mut first_cross = None;
+    let initial_terminal = parameter_receipts(&source.terminal_parameters())?;
+    let initial_native = vec![
+        sha256_file(&a.native_artifact.join("consumer/no-read-q4.bin"))?,
+        sha256_file(&a.native_artifact.join("period-q4.bin"))?,
+    ];
+    for update in 0..UPDATES {
+        deadline(a, start)?;
+        if terminal_frozen(&source)? != frozen {
+            return Err(invalid("terminal frozen source changed before update").into());
+        }
+        let batch = terminal_batch(
+            &balanced_indices(update),
+            &development,
+            &source,
+            &parent,
+            &integer,
+            a,
+            start,
+        )?;
+        if update == 0 {
+            let projected = batch.report["elapsed_seconds"]
+                .as_f64()
+                .ok_or_else(|| invalid("terminal batch wall absent"))?
+                * UPDATES as f64
+                * 1.25
+                + 180.;
+            write_json(
+                &a.out,
+                "first-batch-projection.json",
+                &json!({"measured_batch_seconds":batch.report["elapsed_seconds"],"projected_remaining_fit_seconds":projected,"storage_projection_bytes":storage_projection,"optimizer_updates":0}),
+            )?;
+            if projected > a.maximum_seconds as f64 - start.elapsed().as_secs_f64() {
+                return Err(invalid(
+                    "terminal measured firstbatch projection does not fit; before optimizer1",
+                )
+                .into());
+            }
+        }
+        let clip = terminal_apply(&source, &mut optimizer, batch.gradients)?;
+        terminal_current_recovery(&source, a, update + 1)?;
+        // Fractional shadows persist; compile Q4 solely to observe real payload crossings.
+        let packed_hashes = terminal_packed_hashes(&source)?;
+        if first_cross.is_none() && packed_hashes != initial_native {
+            first_cross = Some(update + 1);
+        }
+        batches.push(json!({"update":update+1,"clip_factor":clip,"terminal_packed_sha256":packed_hashes,"batch":batch.report}));
+        write_json(
+            &a.out,
+            "progress.json",
+            &json!({"optimizer_updates":update+1,"first_native_packed_crossing_update":first_cross,"batches":batches,"elapsed_seconds":start.elapsed().as_secs_f64()}),
+        )?;
+        if terminal_frozen(&source)? != frozen {
+            return Err(invalid("terminal frozen source changed after update").into());
+        }
+        if (update + 1) % 16 == 0 {
+            stages.push(terminal_checkpoint(
+                &source,
+                &parent,
+                (&integer, &cue, &prefix),
+                &development,
+                update + 1,
+                &stages,
+                a,
+                start,
+            )?);
+        }
+    }
+    let selected = select(&stages)?;
+    let step = stages[selected]["updates"]
+        .as_u64()
+        .ok_or_else(|| invalid("terminal selected step absent"))?;
+    write_json(
+        &a.out,
+        "selection-before-fresh.json",
+        &json!({"selected_updates":step,"criterion":"full128 native equalepisode aliasCE includingparent0 earliestties","fresh_predictions_before_selection":0}),
+    )?;
+    let selected_root = a.out.join(format!("checkpoint-{step:04}/candidate"));
+    let selected_binding: NativeArtifactBinding =
+        serde_json::from_value(stages[selected]["terminal_rebind_receipt"]["new_parent"].clone())?;
+    let selected_native =
+        IntegerRealizer::load_native(&selected_root.join("native"), &selected_binding)?;
+    let selected_cue = cue_native_load(&selected_root.join("cue"), &selected_native)?;
+    let selected_prefix = prefix_native_load(
+        &selected_root.join("prefix"),
+        &selected_native,
+        &selected_cue,
+    )?;
+    let generated = terminal_generation(
+        &selected_native,
+        &selected_cue,
+        &selected_prefix,
+        (&integer, &cue, &prefix),
+        &development,
+        &tok,
+        a,
+        start,
+    )?;
+    write_json(&a.out, "development-selected-generation.json", &generated)?;
+    write_json(
+        &a.out,
+        "selected-query-pair-diagnostics.json",
+        &factor_pair_report(
+            &a.development_panel,
+            &read_json(&a.out.join(format!("checkpoint-{step:04}/canonical.json")))?,
+            &generated,
+        )?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-parent-generation.json",
+        &terminal_generation(
+            &integer,
+            &cue,
+            &prefix,
+            (&integer, &cue, &prefix),
+            &fresh,
+            &tok,
+            a,
+            start,
+        )?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-selected-generation.json",
+        &terminal_generation(
+            &selected_native,
+            &selected_cue,
+            &selected_prefix,
+            (&integer, &cue, &prefix),
+            &fresh,
+            &tok,
+            a,
+            start,
+        )?,
+    )?;
+    if terminal_frozen(&source)? != frozen {
+        return Err(invalid("terminal final frozen source differs").into());
+    }
+    for (p, h) in &inputs {
+        if sha256_file(Path::new(p))? != *h {
+            return Err(invalid("terminal input changed").into());
+        }
+    }
+    for root in sealed {
+        report_output::verify(&root)?;
+    }
+    Ok(
+        json!({"schema":"uor-r4.geometric-terminal-fit/1","mode":a.mode,"status":"completed","active_families":TERMINAL_FAMILIES,"optimizer_updates":UPDATES,"batch_episodes":BATCH,"episode_visits":4,"batch_schedule":"balanced4single+4bank intactpairs","checkpoints":stages,"selected_updates":step,"first_native_packed_crossing_update":first_cross,"initial_terminal_source_receipts":initial_terminal,"frozen_nonterminal_source_receipts":frozen,"input_manifests_sha256":inputs,"fresh_predictions_before_selection":0,"frozen_cue_native_metadata_sha256":a.frozen_cue_native_metadata_sha256,"frozen_cue_packed_sha256":a.frozen_cue_packed_sha256,"frozen_prefix_native_metadata_sha256":a.frozen_prefix_native_metadata_sha256,"frozen_prefix_packed_sha256":a.frozen_prefix_packed_sha256,"full_candidate_parent_exports_rebound_and_independently_reloaded":true,"fixed_prefix_Copy_preservation":"allcanonical and reachedownprefix; joint masses may legitimately change","elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"scope":"bounded existing terminal calibration after geometric cue/prefix attention; no new terminal input or forceddecision; no chatqualification"}),
+    )
+}
+
 fn run(a: &Args, start: Instant) -> Result<Value> {
+    if terminal_mode(a) {
+        return terminal_run(a, start);
+    }
     if prefix_mode(a) {
         return prefix_run(a, start);
     }
@@ -3236,7 +4220,7 @@ fn main() {
     let outcome = (|| -> Result<()> {
         let a = checked_args()?;
         report_output::claim(&a.out)?;
-        if readout_mode(&a) || cue_mode(&a) || prefix_mode(&a) {
+        if readout_mode(&a) || cue_mode(&a) || prefix_mode(&a) || terminal_mode(&a) {
             fs::write(
                 a.out.join("resource-cap.json"),
                 serde_json::to_vec(&json!({"maximum_report_bytes":a.maximum_report_bytes}))?,
@@ -3276,6 +4260,64 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn terminal_admission_rejects_old_mode_and_changed_frozen_prefix_or_fresh() -> Result<()> {
+        let a: Args = serde_json::from_value(
+            json!({"mode":"terminal-fit","source_weights":"source","native_artifact":"native","trusted_native_binding":"binding","development_panel":"dev","development_manifest_sha256":"devSHA","fresh_panel":"fresh","fresh_manifest_sha256":"freshSHA","out":"out","maximum_seconds":900,"maximum_context_tokens":128,"maximum_generation_tokens":32,"maximum_report_bytes":1073741824,"prefix_score_mode":"DirectedRelative","frozen_cue_bundle":"cue","frozen_cue_native_metadata_sha256":"cueMeta","frozen_cue_packed_sha256":"cuePacked","frozen_prefix_bundle":"prefix","frozen_prefix_native_metadata_sha256":"prefixMeta","frozen_prefix_packed_sha256":"prefixPacked"}),
+        )?;
+        let frozen = json!({"consumer.context.token_transition":"actualbits"});
+        let r = json!({"schema":"uor-r4.geometric-terminal-fit/1","mode":"terminal-broadbatch","status":"completed","optimizer_updates":0,"cases":128,"active_families":TERMINAL_FAMILIES,"complete_objective_finite":true,"gradient_report":{"nonterminal_gradient_graph_absent":true,"fixed_input_Copy_context_cue_prefix_unchanged":true},"development_manifest_sha256":"devSHA","fresh_manifest_sha256":"freshSHA","trusted_binding_sha256":"trusted","frozen_nonterminal_source_receipts":frozen,"frozen_cue_native_metadata_sha256":"cueMeta","frozen_cue_packed_sha256":"cuePacked","frozen_prefix_native_metadata_sha256":"prefixMeta","frozen_prefix_packed_sha256":"prefixPacked"});
+        assert!(terminal_admission_matches(&r, &a, "trusted", &frozen));
+        for (key, value) in [
+            ("schema", json!("uor-r4.geometric-prefix-fit/1")),
+            ("fresh_manifest_sha256", json!("oldexposed")),
+            ("frozen_prefix_packed_sha256", json!("different")),
+            ("active_families", json!(PREFIX_FAMILIES)),
+            ("complete_objective_finite", json!(false)),
+        ] {
+            let mut bad = r.clone();
+            bad[key] = value;
+            assert!(!terminal_admission_matches(&bad, &a, "trusted", &frozen));
+        }
+        let mut bad = r.clone();
+        bad["gradient_report"]["nonterminal_gradient_graph_absent"] = json!(false);
+        assert!(!terminal_admission_matches(&bad, &a, "trusted", &frozen));
+        Ok(())
+    }
+    #[test]
+    fn terminal_crossing_receipt_matches_native_quarter_codec_without_rounding_shadows(
+    ) -> Result<()> {
+        let values = vec![0.124f32, 0.125, -0.124, -0.125, 1.75, -1.75];
+        let stop = Var::from_tensor(&Tensor::from_vec(values.clone(), 6, &Device::Cpu)?)?;
+        let period = Var::from_tensor(&Tensor::from_vec(vec![0f32; 6], 6, &Device::Cpu)?)?;
+        let params = BTreeMap::from([
+            ("consumer.no_read.coefficients".into(), stop.clone()),
+            ("period.coefficients".into(), period),
+        ]);
+        let hashes = terminal_parameter_packed_hashes(&params)?;
+        assert_eq!(
+            hashes[0],
+            sha256_bytes(
+                &uor_r4_integer::geometric_no_read::pack_coefficients(&[0, 1, 0, -1, 7, -7])
+                    .map_err(|e| invalid(e.to_string()))?
+            )
+        );
+        assert_eq!(
+            hashes[1],
+            sha256_bytes(
+                &uor_r4_integer::geometric_no_read::pack_coefficients(&[0; 6])
+                    .map_err(|e| invalid(e.to_string()))?
+            )
+        );
+        assert_eq!(stop.to_vec1::<f32>()?, values);
+        let mut crossed = values;
+        crossed[0] = 0.125;
+        stop.set(&Tensor::from_vec(crossed, 6, &Device::Cpu)?)?;
+        assert_ne!(terminal_parameter_packed_hashes(&params)?[0], hashes[0]);
+        stop.set(&Tensor::from_vec(vec![f32::NAN; 6], 6, &Device::Cpu)?)?;
+        assert!(terminal_parameter_packed_hashes(&params).is_err());
+        Ok(())
+    }
     #[test]
     fn prefix_zero_fidelity_checks_all_rows_tokens_and_cue_parent() -> Result<()> {
         let token = json!({"step":0,"teacherforced_prefix_ids_labels_only":[],"target_label_only_after_read":4,"native":{"actions":"actual"},"target_mass_q31":9,"total_weight_q31":10,"cue_carrier":{"actual":"frozen cue48"}});

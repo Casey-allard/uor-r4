@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Native terminal coadaptation improves likelihood without completion gain — October 4
+
+The [terminal-only fit](geometric-terminal-coadapt-2026-10-04.md) updates existing Stop/Period coefficients with R64 context/Copy, cue48 and prefix64 frozen. Full128 native CE decreases0.2771607606→0.2483403491 and selects64. Actual development completions89→88/128 (five gains/six losses), new fresh5→5/32 (one gain/one loss). Retain prefix64 as completion research parent and terminal64 as likelihood donor; do not repeat the dose or claim general chat. Fresh seed20261014 uses a prospectively expanded source-literal pool after finite sampling exhaustion before model calls; compare only its matched parent/candidate, not raw rates against the older8/32 panel.
+
+Sourceaa92b826/executableeb262842; focused library/driver tests, release and formatting pass. Independent broad admission3800 checks passes; independent saved outcome audit181029 checks passes, with no native/autodiff/optimizer reexecution and local BLAKE3 unavailable. CPU-only Linux48, worker85.121s/model83.084s, exit0, peak process accounting1.285GB. Full157files346946674B returned exactSHA/file-set. Same180min card charged once, cumulative1238235028/1239000000ms. [Evidence](../evidence/geometric-terminal-coadapt-2026-10-04.json).
+
+**Next:** diagnose residual phases and add the missing fullSource-end versus actualresponse-prefix directed H4 relation only if supported, with same-information source-unary control, zero parity and all-source admission. Keep shorter-distractor/uncued-source/version/punctuation risks visible. Explicit predecessor binding remains an occurrence-selection donor; terminal calibration alone did not break completion. No cursor/goldgate, forcedStop or default/shared-session promotion. GeneralGenerate/chat/reasoning/fullhistory/laptopenergy/integration remain unmet; coordinate#1552 before shared-session changes.
+
 ## Learned ordered-prefix transport improves native attention — October 4
 
 The [paired native prefix fit](geometric-ordered-prefix-2026-10-04.md) learns only960 Q4 coefficients relating independently encoded source-prefix-before-candidate and actual emitted response-prefix states, with R64 and cue48 frozen. Directed selects64: full128 nativeCE1.0400545984→0.2771607606; singles34→59/64, banks2→30/64, completebankquerypairs0→8. Fresh0→8/32 (onecompletepair), correctactualfirst8→23, EOS21→31/caps11→1. Source-unary final64 regresses1.0452933667 and selects unchanged0. Fresh highestindividualcurrentrecord27/32 staysunchanged; position/progression is the new gain. Preserve all positives/regressions; bounded attention improvement is not generalchat or universalgeometry advantage.

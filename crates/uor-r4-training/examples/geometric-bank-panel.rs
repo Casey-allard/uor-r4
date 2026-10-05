@@ -38,6 +38,10 @@ struct Args {
     dev_out: PathBuf,
     #[serde(default)]
     fresh_only: bool,
+    /// Prospective source-only pool expansion after retained tuples are exhausted.
+    /// Never selected using model predictions or target support.
+    #[serde(default)]
+    fresh_literal_pool: Vec<String>,
     fresh_out: PathBuf,
     tokenizer: PathBuf,
     trusted_binding: PathBuf,
@@ -187,6 +191,17 @@ fn args() -> Result<Args> {
         || a.exposed_panel_roots.is_empty()
     {
         return Err(invalid("distinct roots/nonzero seed/exposures required").into());
+    }
+    if (!a.fresh_only && !a.fresh_literal_pool.is_empty())
+        || a.fresh_literal_pool.len() > 64
+        || a.fresh_literal_pool.iter().any(|s| {
+            s.is_empty() || s.len() > 256 || s.trim() != s || s.chars().any(char::is_control)
+        })
+    {
+        return Err(invalid(
+            "fresh literal expansion requires fresh-only and bounded clean literals",
+        )
+        .into());
     }
     for input in [
         &a.tokenizer,
@@ -707,6 +722,12 @@ fn run(a: &Args, start: Instant) -> Result<()> {
         exposures.push(json!({"root":e.root,"manifest_sha256":e.manifest_sha256,"source_packets":count,"files":files}));
     }
     exposure_tuples(&read::<Value>(&a.exposed_bank_spec)?, &tok, &mut excluded)?;
+    for literal in &a.fresh_literal_pool {
+        // Validate surface encoding only; no model or supported-answer probe.
+        let ids = encoded(&tok, literal, binding.vocab_size())?;
+        compiler.compile(&ids)?;
+        literals.insert(literal.clone());
+    }
     let single = literals
         .iter()
         .filter(|s| !s.contains(' '))
@@ -785,7 +806,7 @@ fn run(a: &Args, start: Instant) -> Result<()> {
     }
     let exe = std::env::current_exe()?;
     let lookup = "current_exe";
-    let common = json!({"schema":"uor-r4.geometric-bank-panel/1","status":"completed","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":sha256_file(&exe)?,"executable_lookup":lookup,"seed":a.seed,"rng":if a.fresh_only {"xorshift64;lexicallysorted_unique_compiled_literal_pool;fresh-only/2"} else {"xorshift64;lexicallysorted_unique_compiled_literal_pool;devthenfresh/1"},"fresh_only":a.fresh_only,"all64_input_golden_validated":true,"development_output_created":!a.fresh_only,"queries":{"job":JOB,"where":WHERE},"trusted_binding":expected,"input_files_sha256":hashes,"exposed_roots":exposures,"source_tuple_exclusion":"ordered query-independent source literal sequence; not semantic metric","fresh_source_tuples_disjoint_declared_exposures_and_development":true,"samebank_queryswap_segments_exact":true,"all64_golden_preserved":if a.fresh_only {Value::Bool(false)} else {json!(golden)},"maximum_context_and_generation":128,"reserved_generation":32,"model_calls":0,"support_filters":false,"predictions":"NOT_RUN","labels_outside_serving_inputs":true,"metadata_roles_relations_are_opaque_provenance":true,"pool":{"singletons":single,"multiword":multi},"rejections":rejections,"elapsed_seconds":start.elapsed().as_secs_f64()});
+    let common = json!({"schema":"uor-r4.geometric-bank-panel/1","status":"completed","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":sha256_file(&exe)?,"executable_lookup":lookup,"seed":a.seed,"rng":if a.fresh_only {"xorshift64;lexicallysorted_unique_compiled_literal_pool;fresh-only/2"} else {"xorshift64;lexicallysorted_unique_compiled_literal_pool;devthenfresh/1"},"fresh_only":a.fresh_only,"prospective_fresh_literal_pool":a.fresh_literal_pool,"all64_input_golden_validated":true,"development_output_created":!a.fresh_only,"queries":{"job":JOB,"where":WHERE},"trusted_binding":expected,"input_files_sha256":hashes,"exposed_roots":exposures,"source_tuple_exclusion":"ordered query-independent source literal sequence; not semantic metric","fresh_source_tuples_disjoint_declared_exposures_and_development":true,"samebank_queryswap_segments_exact":true,"all64_golden_preserved":if a.fresh_only {Value::Bool(false)} else {json!(golden)},"maximum_context_and_generation":128,"reserved_generation":32,"model_calls":0,"support_filters":false,"predictions":"NOT_RUN","labels_outside_serving_inputs":true,"metadata_roles_relations_are_opaque_provenance":true,"pool":{"singletons":single,"multiword":multi},"rejections":rejections,"elapsed_seconds":start.elapsed().as_secs_f64()});
     let mut outputs = Vec::new();
     if let Some(dev) = dev {
         outputs.push(("development", &a.dev_out, dev, 32));

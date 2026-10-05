@@ -185,6 +185,198 @@ impl SourceRealizerWeights {
             .collect()
     }
 
+    /// Only the existing Stop and Period shadows; no new terminal features.
+    pub fn terminal_parameters(&self) -> BTreeMap<String, Var> {
+        self.parameters()
+            .into_iter()
+            .filter(|(name, _)| terminal_parameter(name))
+            .collect()
+    }
+
+    /// Export a new complete parent, then honestly rebind unchanged cue/prefix
+    /// payloads to its actual loaded native identity. The caller owns the report
+    /// root/seal; this artifact directory is created exclusively beneath it.
+    pub fn save_terminal_rebound(
+        &self,
+        path: &Path,
+        frozen_parent: &NativeSourceRealizer,
+        frozen_native_root: &Path,
+        frozen_cue: &NativeCueCarrier<'_>,
+        frozen_prefix: &NativePrefixTransport<'_>,
+    ) -> Result<TerminalRebindReceipt> {
+        self.validate()?;
+        let old_binding = frozen_parent.artifact_binding()?;
+        if crate::sha256_file(&frozen_native_root.join("metadata.json"))?
+            != old_binding.metadata_sha256
+            || frozen_cue.metadata().parent_artifact != old_binding
+            || frozen_prefix.metadata().parent_artifact != old_binding
+            || frozen_prefix.metadata().frozen_cue != *frozen_cue.metadata()
+        {
+            return Err(invalid("terminal frozen parent/cue/prefix binding differs"));
+        }
+        let now = parameter_identities(self)?;
+        let frozen_nonterminal = frozen_parent
+            .metadata
+            .source_parameters
+            .iter()
+            .filter(|(name, _)| !terminal_parameter(name))
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let current_nonterminal = now
+            .iter()
+            .filter(|(name, _)| !terminal_parameter(name))
+            .map(|(name, value)| (name.clone(), value.clone()))
+            .collect::<BTreeMap<_, _>>();
+        if current_nonterminal != frozen_nonterminal {
+            return Err(invalid(
+                "terminal export changed frozen nonterminal source bits",
+            ));
+        }
+        fs::create_dir(path)?;
+        self.save_source(&path.join("source"))?;
+        self.compile(frozen_parent.metadata.identity.clone())?
+            .save(&path.join("native"))?;
+        let source =
+            SourceRealizerWeights::load_source(&path.join("source"), &self.tokenizer_bytes)?;
+        let parent = NativeSourceRealizer::load(
+            &path.join("native"),
+            &source,
+            &frozen_parent.metadata.identity,
+        )?;
+        let binding = parent.artifact_binding()?;
+        // These numeric payloads cannot change. Consumer and outer metadata do
+        // change legitimately because the terminal source/payload is bound there.
+        let mut frozen_files = BTreeMap::new();
+        for name in [
+            "tokenizer.json",
+            "consumer/context-q4.bin",
+            "consumer/potential-q4.bin",
+            "consumer/exp-q31.bin",
+        ] {
+            let old = crate::sha256_file(&frozen_native_root.join(name))?;
+            let new = crate::sha256_file(&path.join("native").join(name))?;
+            if old != new {
+                return Err(invalid(format!(
+                    "terminal export changed frozen payload {name}"
+                )));
+            }
+            frozen_files.insert(name.to_owned(), new);
+        }
+        if parent.consumer.context.config() != frozen_parent.consumer.context.config()
+            || parent.consumer.potential.config() != frozen_parent.consumer.potential.config()
+            || parent.binding != frozen_parent.binding
+        {
+            return Err(invalid(
+                "terminal export changed frozen configuration/tokenizer/algebra",
+            ));
+        }
+        // Execute the exported native inventory through the independent integer
+        // loader before publishing sidecars; never manufacture its binding.
+        let integer = uor_r4_integer::geometric_source_realizer::NativeSourceRealizer::load_native(
+            &path.join("native"),
+            &binding,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let cue = integer
+            .compile_cue_carrier(
+                CueAngularQ4::new(
+                    frozen_cue.metadata().potential,
+                    frozen_cue.packed_coefficients(),
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        let prefix = integer
+            .compile_prefix_transport(
+                &cue,
+                PrefixAngularQ4::new(
+                    frozen_prefix.metadata().potential,
+                    frozen_prefix.packed_coefficients(),
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        if cue.metadata().context != frozen_cue.metadata().context
+            || cue.metadata().context_packed_sha256 != frozen_cue.metadata().context_packed_sha256
+            || cue.metadata().algebra_sha256 != frozen_cue.metadata().algebra_sha256
+            || prefix.metadata().algebra_sha256 != frozen_prefix.metadata().algebra_sha256
+        {
+            return Err(invalid("terminal rebind changed frozen geometry/context"));
+        }
+        for (name, metadata, packed) in [
+            (
+                "cue",
+                serde_json::to_value(cue.metadata())?,
+                frozen_cue.packed_coefficients(),
+            ),
+            (
+                "prefix",
+                serde_json::to_value(prefix.metadata())?,
+                frozen_prefix.packed_coefficients(),
+            ),
+        ] {
+            let root = path.join(name);
+            fs::create_dir(&root)?;
+            fs::write(
+                root.join("native-metadata.json"),
+                serde_json::to_vec_pretty(&metadata)?,
+            )?;
+            fs::write(root.join(format!("{name}-q4.bin")), packed)?;
+        }
+        let receipt = TerminalRebindReceipt {
+            schema: "uor-r4.geometric-terminal-rebind/1".into(),
+            old_parent: old_binding,
+            new_parent: binding,
+            frozen_numeric_payloads_sha256: frozen_files,
+            frozen_nonterminal_source_receipts: serde_json::to_value(current_nonterminal)?,
+            terminal_source_receipts: serde_json::to_value(
+                now.into_iter()
+                    .filter(|(name, _)| terminal_parameter(name))
+                    .collect::<BTreeMap<_, _>>(),
+            )?,
+            cue_packed_sha256: sha256_bytes(cue.packed_coefficients()),
+            prefix_packed_sha256: sha256_bytes(prefix.packed_coefficients()),
+            old_cue_metadata: serde_json::to_value(frozen_cue.metadata())?,
+            new_cue_metadata: serde_json::to_value(cue.metadata())?,
+            old_prefix_metadata: serde_json::to_value(frozen_prefix.metadata())?,
+            new_prefix_metadata: serde_json::to_value(prefix.metadata())?,
+            native_metadata_sha256: crate::sha256_file(&path.join("native/metadata.json"))?,
+            cue_native_metadata_sha256: crate::sha256_file(&path.join("cue/native-metadata.json"))?,
+            prefix_native_metadata_sha256: crate::sha256_file(
+                &path.join("prefix/native-metadata.json"),
+            )?,
+        };
+        fs::write(
+            path.join("terminal-rebind.json"),
+            serde_json::to_vec_pretty(&receipt)?,
+        )?;
+        Ok(receipt)
+    }
+    /// Compile a current terminal-only parent without writing its full payload.
+    /// Its execution identity is derived from the exact would-export inventory;
+    /// it is not evidence of an independent file reload.
+    pub fn compile_terminal_rebound(
+        &self,
+        frozen_parent: &NativeSourceRealizer,
+    ) -> Result<NativeSourceRealizer> {
+        frozen_parent.artifact_binding()?;
+        let current = parameter_identities(self)?;
+        for (name, receipt) in &frozen_parent.metadata.source_parameters {
+            if !terminal_parameter(name) && current.get(name) != Some(receipt) {
+                return Err(invalid(
+                    "terminal compile changed frozen nonterminal source bits",
+                ));
+            }
+        }
+        if current.len() != frozen_parent.metadata.source_parameters.len() {
+            return Err(invalid("terminal compile source inventory differs"));
+        }
+        let mut native = self.compile(frozen_parent.metadata.identity.clone())?;
+        let (_, metadata) = native.export_payloads()?;
+        native.compiled_metadata_sha256 = Some(sha256_bytes(&metadata));
+        Ok(native)
+    }
+
     pub fn project_quarter_range(&self) -> Result<()> {
         self.consumer.project_quarter_range()?;
         self.period.project_shadow_range()
@@ -210,6 +402,7 @@ impl SourceRealizerWeights {
         };
         Ok(NativeSourceRealizer {
             loaded_metadata_sha256: None,
+            compiled_metadata_sha256: None,
             consumer,
             period,
             binding: self.binding.clone(),
@@ -314,6 +507,95 @@ fn parameter_identities(
         .collect()
 }
 
+pub fn terminal_parameter(name: &str) -> bool {
+    matches!(
+        name,
+        "consumer.no_read.coefficients" | "period.coefficients"
+    )
+}
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TerminalRebindReceipt {
+    pub schema: String,
+    pub old_parent: uor_r4_integer::geometric_source_realizer::NativeArtifactBinding,
+    pub new_parent: uor_r4_integer::geometric_source_realizer::NativeArtifactBinding,
+    pub frozen_numeric_payloads_sha256: BTreeMap<String, String>,
+    pub frozen_nonterminal_source_receipts: serde_json::Value,
+    pub terminal_source_receipts: serde_json::Value,
+    pub cue_packed_sha256: String,
+    pub prefix_packed_sha256: String,
+    pub old_cue_metadata: serde_json::Value,
+    pub new_cue_metadata: serde_json::Value,
+    pub old_prefix_metadata: serde_json::Value,
+    pub new_prefix_metadata: serde_json::Value,
+    pub native_metadata_sha256: String,
+    pub cue_native_metadata_sha256: String,
+    pub prefix_native_metadata_sha256: String,
+}
+
+/// Compare identical source/query/prefix reads. Terminal logits and global
+/// normalized masses may change; raw Copy scores and encoders must not.
+pub fn verify_terminal_copy_frozen(
+    old: &uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace,
+    new: &uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace,
+) -> Result<()> {
+    let a = &old.cue_bank.bank;
+    let b = &new.cue_bank.bank;
+    if a.context != b.context
+        || a.candidates != b.candidates
+        || a.heads.len() != b.heads.len()
+        || a.heads
+            .iter()
+            .zip(&b.heads)
+            .any(|(x, y)| x.scores_q24 != y.scores_q24)
+        || old.cue_bank.carrier.query != new.cue_bank.carrier.query
+        || old.cue_bank.carrier.cues != new.cue_bank.carrier.cues
+        || old.cue_bank.carrier.candidate_cue_indices != new.cue_bank.carrier.candidate_cue_indices
+        || old.cue_bank.carrier.angular_indices != new.cue_bank.carrier.angular_indices
+        || old.cue_bank.carrier.relative_roots != new.cue_bank.carrier.relative_roots
+        || old.cue_bank.carrier.copy_q24 != new.cue_bank.carrier.copy_q24
+        || old.prefix.response != new.prefix.response
+        || old.prefix.sources != new.prefix.sources
+        || old.prefix.candidate_source_indices != new.prefix.candidate_source_indices
+        || old.prefix.candidate_offsets != new.prefix.candidate_offsets
+        || old.prefix.angular_indices != new.prefix.angular_indices
+        || old.prefix.relative_roots != new.prefix.relative_roots
+        || old.prefix.copy_q24 != new.prefix.copy_q24
+    {
+        return Err(invalid(
+            "terminal update changed fixed-input Copy/context/cue/prefix",
+        ));
+    }
+    let mut old_cue = serde_json::to_value(old.cue_bank.carrier.metadata.clone())?;
+    let mut new_cue = serde_json::to_value(new.cue_bank.carrier.metadata.clone())?;
+    old_cue
+        .as_object_mut()
+        .ok_or_else(|| invalid("cue metadata object absent"))?
+        .remove("parent_artifact");
+    new_cue
+        .as_object_mut()
+        .ok_or_else(|| invalid("cue metadata object absent"))?
+        .remove("parent_artifact");
+    let mut old_prefix = serde_json::to_value(old.prefix.metadata.clone())?;
+    let mut new_prefix = serde_json::to_value(new.prefix.metadata.clone())?;
+    for metadata in [&mut old_prefix, &mut new_prefix] {
+        metadata
+            .as_object_mut()
+            .ok_or_else(|| invalid("prefix metadata object absent"))?
+            .remove("parent_artifact");
+        metadata["frozen_cue"]
+            .as_object_mut()
+            .ok_or_else(|| invalid("prefix frozen cue metadata absent"))?
+            .remove("parent_artifact");
+    }
+    if old_cue != new_cue || old_prefix != new_prefix {
+        return Err(invalid(
+            "terminal update changed frozen sidecar numerical metadata",
+        ));
+    }
+    Ok(())
+}
+
 /// Verify the exact recursive file set, excluding only this root's own metadata.
 /// Never traverse symbolic links or trust file paths supplied by metadata.
 fn snapshot(root: &Path, expected: &[&str]) -> Result<BTreeMap<String, String>> {
@@ -390,6 +672,7 @@ fn context_replay_matches(replay: &SerializableContextReplay, trace: &NativeCont
 
 pub struct NativeSourceRealizer {
     loaded_metadata_sha256: Option<String>,
+    compiled_metadata_sha256: Option<String>,
     consumer: NativeConsumerArtifact,
     period: NativeGeometricNoRead,
     binding: SourceActionBinding,
@@ -398,6 +681,15 @@ pub struct NativeSourceRealizer {
 }
 
 impl NativeSourceRealizer {
+    /// Current packed Stop and Period payloads, in that order. This exposes
+    /// numerical bytes only and does not assert independently loaded provenance.
+    pub fn terminal_packed_payloads(&self) -> (&[u8], &[u8]) {
+        (
+            self.consumer.no_read.packed_coefficients(),
+            self.period.packed_coefficients(),
+        )
+    }
+
     pub fn binding(&self) -> &SourceActionBinding {
         &self.binding
     }
@@ -407,18 +699,38 @@ impl NativeSourceRealizer {
         let metadata_sha256 = self.loaded_metadata_sha256.clone().ok_or_else(|| {
             invalid("feedback learning requires an independently saved/reloaded native parent")
         })?;
+        Ok(self.binding_with_digest(metadata_sha256))
+    }
+
+    /// A loaded identity or an explicitly derived terminal would-export identity.
+    /// Only artifact_binding() establishes independently loaded provenance.
+    pub fn execution_binding(
+        &self,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::NativeArtifactBinding> {
+        let digest = self
+            .loaded_metadata_sha256
+            .as_ref()
+            .or(self.compiled_metadata_sha256.as_ref())
+            .ok_or_else(|| {
+                invalid("native execution requires loaded or terminal-derived inventory")
+            })?;
+        Ok(self.binding_with_digest(digest.clone()))
+    }
+
+    fn binding_with_digest(
+        &self,
+        metadata_sha256: String,
+    ) -> uor_r4_integer::geometric_source_realizer::NativeArtifactBinding {
         let i = &self.metadata.identity;
-        Ok(
-            uor_r4_integer::geometric_source_realizer::NativeArtifactBinding {
-                metadata_sha256,
-                identity: uor_r4_integer::geometric_source_realizer::ArtifactIdentity {
-                    tokenizer_sha256: i.tokenizer_sha256.clone(),
-                    parent_checkpoint_manifest_sha256: i.parent_checkpoint_manifest_sha256.clone(),
-                    parent_model_sha256: i.parent_model_sha256.clone(),
-                    parent_config_sha256: i.parent_config_sha256.clone(),
-                },
+        uor_r4_integer::geometric_source_realizer::NativeArtifactBinding {
+            metadata_sha256,
+            identity: uor_r4_integer::geometric_source_realizer::ArtifactIdentity {
+                tokenizer_sha256: i.tokenizer_sha256.clone(),
+                parent_checkpoint_manifest_sha256: i.parent_checkpoint_manifest_sha256.clone(),
+                parent_model_sha256: i.parent_model_sha256.clone(),
+                parent_config_sha256: i.parent_config_sha256.clone(),
             },
-        )
+        }
     }
     /// Target-free bank execution delegates to the same shared integer kernel.
     pub fn read_bank(
@@ -442,7 +754,7 @@ impl NativeSourceRealizer {
     }
     pub fn compile_cue_carrier(&self, angular: CueAngularQ4) -> Result<NativeCueCarrier<'_>> {
         NativeCueCarrier::compile(
-            self.artifact_binding()?,
+            self.execution_binding()?,
             &self.consumer.context,
             &self.consumer.geometry,
             angular,
@@ -458,7 +770,7 @@ impl NativeSourceRealizer {
         prefix: &[u32],
         carrier: &uor_r4_integer::geometric_cue_carrier::NativeCueCarrier<'_>,
     ) -> Result<uor_r4_integer::geometric_source_realizer::CueBankRealizerTrace> {
-        let parent = self.artifact_binding()?;
+        let parent = self.execution_binding()?;
         uor_r4_integer::geometric_source_realizer::RealizerExecution {
             context: &self.consumer.context,
             potential_tables: &self.consumer.potential_tables,
@@ -477,7 +789,7 @@ impl NativeSourceRealizer {
         angular: PrefixAngularQ4,
     ) -> Result<NativePrefixTransport<'_>> {
         NativePrefixTransport::compile(
-            self.artifact_binding()?,
+            self.execution_binding()?,
             &self.consumer.context,
             &self.consumer.geometry,
             cue.metadata().clone(),
@@ -493,7 +805,7 @@ impl NativeSourceRealizer {
         cue: &NativeCueCarrier<'_>,
         transport: &NativePrefixTransport<'_>,
     ) -> Result<uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace> {
-        let parent = self.artifact_binding()?;
+        let parent = self.execution_binding()?;
         uor_r4_integer::geometric_source_realizer::RealizerExecution {
             context: &self.consumer.context,
             potential_tables: &self.consumer.potential_tables,
@@ -530,7 +842,7 @@ impl NativeSourceRealizer {
                 view,
                 query,
                 prefix,
-                &self.artifact_binding()?,
+                &self.execution_binding()?,
                 feedback,
                 mode,
             )?,
@@ -561,7 +873,7 @@ impl NativeSourceRealizer {
                 view,
                 query,
                 prefix,
-                &self.artifact_binding()?,
+                &self.execution_binding()?,
                 feedback,
                 mode,
             )?,
@@ -611,20 +923,53 @@ impl NativeSourceRealizer {
             "scope":"native integer components inside allocating wrapper; no parent-model inference, no complete-path opcode/allocation qualification"})
     }
 
-    pub fn save(&self, path: &Path) -> Result<()> {
-        fs::create_dir(path)?;
-        self.consumer.save(&path.join("consumer"))?;
-        fs::write(path.join("tokenizer.json"), &self.tokenizer_bytes)?;
-        fs::write(
-            path.join("period-q4.bin"),
-            self.period.packed_coefficients(),
-        )?;
+    /// Exact serializer shared by disk export and terminal execution identities.
+    fn export_payloads(&self) -> Result<(BTreeMap<String, Vec<u8>>, Vec<u8>)> {
+        let mut payloads = BTreeMap::new();
+        let exp = self
+            .consumer
+            .exp
+            .iter()
+            .flat_map(|x| x.to_le_bytes())
+            .collect::<Vec<_>>();
+        let consumer_payloads = [
+            self.consumer.context.packed_coefficients(),
+            self.consumer.potential.packed_coefficients(),
+            self.consumer.no_read.packed_coefficients(),
+            exp.as_slice(),
+        ];
+        let mut consumer_metadata = self.consumer.metadata.clone();
+        for (name, bytes) in super::NATIVE_FILES.into_iter().zip(consumer_payloads) {
+            consumer_metadata
+                .files
+                .insert(name.into(), sha256_bytes(bytes));
+            payloads.insert(format!("consumer/{name}"), bytes.to_vec());
+        }
+        payloads.insert(
+            "consumer/metadata.json".into(),
+            serde_json::to_vec_pretty(&consumer_metadata)?,
+        );
+        payloads.insert("tokenizer.json".into(), self.tokenizer_bytes.clone());
+        payloads.insert(
+            "period-q4.bin".into(),
+            self.period.packed_coefficients().to_vec(),
+        );
         let mut metadata = self.metadata.clone();
-        metadata.files = snapshot(path, &NATIVE_FILES)?;
-        fs::write(
-            path.join("metadata.json"),
-            serde_json::to_vec_pretty(&metadata)?,
-        )?;
+        metadata.files = payloads
+            .iter()
+            .map(|(name, bytes)| (name.clone(), sha256_bytes(bytes)))
+            .collect();
+        Ok((payloads, serde_json::to_vec_pretty(&metadata)?))
+    }
+
+    pub fn save(&self, path: &Path) -> Result<()> {
+        let (payloads, metadata) = self.export_payloads()?;
+        fs::create_dir(path)?;
+        fs::create_dir(path.join("consumer"))?;
+        for (name, bytes) in payloads {
+            fs::write(path.join(name), bytes)?;
+        }
+        fs::write(path.join("metadata.json"), metadata)?;
         Ok(())
     }
 
@@ -661,6 +1006,7 @@ impl NativeSourceRealizer {
         // Execute admitted saved bytes, not a freshly compiled replacement.
         let result = Self {
             loaded_metadata_sha256: Some(sha256_bytes(&metadata_bytes)),
+            compiled_metadata_sha256: None,
             consumer: NativeConsumerArtifact::load(
                 &path.join("consumer"),
                 &source.consumer,
@@ -1398,6 +1744,110 @@ impl PreparedSourceRealizer<'_> {
         )?;
         let probability = mass as f64 / actions.total_weight_q31 as f64;
         let loss = marginal_action_loss(actions, &credit, target, probability)?;
+        Ok(PrefixBankRealizerLoss {
+            loss,
+            trace,
+            target_probability: probability,
+        })
+    }
+
+    /// Actual parent+cue+prefix Copy scores remain factual. Only the existing
+    /// Stop and Period shadows receive credit; labels enter after native read.
+    pub fn loss_bank_terminal(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+        cue: &NativeCueCarrier<'_>,
+        transport: &NativePrefixTransport<'_>,
+    ) -> Result<PrefixBankRealizerLoss> {
+        if target as usize >= self.source.binding.vocab_size() {
+            return Err(invalid("terminal target out of vocabulary"));
+        }
+        let trace = self
+            .native
+            .read_bank_with_prefix_transport(segments, query, prefix, cue, transport)?;
+        let bank = &trace.cue_bank.bank;
+        let mass = bank
+            .actions
+            .token_masses
+            .iter()
+            .find(|m| m.token_id == target)
+            .map_or(0, |m| m.weight_q31);
+        let den = bank.actions.total_weight_q31;
+        if mass == 0 || den == 0 || mass > den {
+            return Err(invalid(
+                "terminal native target zero/invalid support; no floor",
+            ));
+        }
+        let c = self.source.consumer.config();
+        let width = c.heads * c.lanes_per_head;
+        let time = bank.context.tokens.len();
+        if time == 0
+            || bank.heads.len() != c.heads
+            || bank.period_q24.len() != c.heads
+            || bank.context.states.len() != time
+            || bank.context.codes.len() != time * width
+        {
+            return Err(invalid("terminal native final-row shape differs"));
+        }
+        let latent = bank.context.states[time - 1]
+            .iter()
+            .copied()
+            .map(|x| H4Code::try_from(x).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<Vec<_>>>()?;
+        let codes = bank.context.codes[(time - 1) * width..time * width]
+            .iter()
+            .map(|code| {
+                AddressLane::new(code.root, code.radius_bin, code.present)
+                    .map_err(|e| invalid(e.to_string()))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let held = vec![H4Code::IDENTITY; width];
+        let valid = [false];
+        let batch = NoReadBatch {
+            ids: &bank.context.tokens[time - 1..],
+            batch: 1,
+            time: 1,
+            latent: &latent,
+            observed: &codes,
+            held: &held,
+            span_valid: &valid,
+        };
+        let period = self.source.period.forward(batch)?;
+        let stop = self.source.consumer.no_read.forward(batch)?;
+        let token = bank.context.tokens[time - 1] as usize;
+        let period_hard = self
+            .native
+            .period
+            .score(token, &latent, &codes, None)
+            .map_err(|e| invalid(e.to_string()))?;
+        let stop_hard = self
+            .native
+            .consumer
+            .no_read
+            .score(token, &latent, &codes, None)
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut heads = Vec::with_capacity(c.heads);
+        for h in 0..c.heads {
+            if period_hard[h] != bank.period_q24[h] || stop_hard[h] != bank.heads[h].no_read_q24 {
+                return Err(invalid("terminal final-row native Q24 differs"));
+            }
+            heads.push(Tensor::cat(
+                &[
+                    Tensor::zeros(bank.candidates.len(), candle_core::DType::F32, &Device::Cpu)?,
+                    period.i((0, h, 0))?.reshape(1)?,
+                    stop.i((0, h, 0))?.reshape(1)?,
+                ],
+                0,
+            )?);
+        }
+        // Zero Copy adjoint, not zero Copy logits. marginal_action_loss anchors
+        // every action to its actual final native score and alias probability.
+        let credit = Tensor::stack(&heads, 0)?.sum(0)?;
+        let probability = mass as f64 / den as f64;
+        let loss = marginal_action_loss(&bank.actions, &credit, target, probability)?;
         Ok(PrefixBankRealizerLoss {
             loss,
             trace,
@@ -2268,6 +2718,316 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn terminal_final_row_alias_loss_matches_full_row_gradients() -> Result<()> {
+        let (fixture, native, _) = dependent_fixture()?;
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 1,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &[0x11; 60],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let transport = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 1,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &[0x11; 60],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [SourceBankSegment::Source {
+            frame: frame(&ids),
+            view: &view,
+            event: 7,
+        }];
+        let prepared = fixture.weights.prepare(&native)?;
+        for target in [4, 3, 1] {
+            let out =
+                prepared.loss_bank_terminal(&segments, &[5], &[4], target, &cue, &transport)?;
+            let expected =
+                native.read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &transport)?;
+            assert_eq!(out.trace, expected);
+            assert!(
+                (f64::from(out.loss.to_scalar::<f32>()?) + out.target_probability.ln()).abs()
+                    < 1e-6
+            );
+            let bank = &out.trace.cue_bank.bank;
+            let time = bank.context.tokens.len();
+            let roots = bank
+                .context
+                .states
+                .iter()
+                .flatten()
+                .copied()
+                .map(|x| H4Code::try_from(x).map_err(|e| invalid(e.to_string())))
+                .collect::<Result<Vec<_>>>()?;
+            let codes = bank
+                .context
+                .codes
+                .iter()
+                .map(|c| {
+                    AddressLane::new(c.root, c.radius_bin, c.present)
+                        .map_err(|e| invalid(e.to_string()))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let held = vec![H4Code::IDENTITY; roots.len()];
+            let valid = vec![false; time];
+            let full = NoReadBatch {
+                ids: &bank.context.tokens,
+                batch: 1,
+                time,
+                latent: &roots,
+                observed: &codes,
+                held: &held,
+                span_valid: &valid,
+            };
+            let period = fixture
+                .weights
+                .period
+                .forward(full)?
+                .i((0, 0, time - 1))?
+                .reshape(1)?;
+            let stop = fixture
+                .weights
+                .consumer
+                .no_read
+                .forward(full)?
+                .i((0, 0, time - 1))?
+                .reshape(1)?;
+            let credit = Tensor::cat(
+                &[
+                    Tensor::zeros(bank.candidates.len(), candle_core::DType::F32, &Device::Cpu)?,
+                    period,
+                    stop,
+                ],
+                0,
+            )?;
+            let full_loss =
+                marginal_action_loss(&bank.actions, &credit, target, out.target_probability)?;
+            let a = out.loss.backward()?;
+            let b = full_loss.backward()?;
+            for (name, var) in fixture.weights.parameters() {
+                if terminal_parameter(&name) {
+                    let x = a
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid("terminal row credit absent"))?
+                        .flatten_all()?
+                        .to_vec1::<f32>()?;
+                    let y = b
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid("terminal full credit absent"))?
+                        .flatten_all()?
+                        .to_vec1::<f32>()?;
+                    assert!(x.iter().all(|v| v.is_finite()));
+                    assert!(x.iter().any(|v| v.abs() > 1e-8));
+                    assert!(x.iter().zip(y).all(|(x, y)| (*x - y).abs() < 1e-6));
+                } else {
+                    assert!(a.get(var.as_tensor()).is_none());
+                }
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn terminal_compiled_inventory_matches_zero_and_changed_disk_exports() -> Result<()> {
+        let (fixture, frozen, _) = dependent_fixture()?;
+        for stage in 0..2 {
+            if stage == 1 {
+                let parameters = fixture.weights.terminal_parameters();
+                let var = &parameters["period.coefficients"];
+                let mut values = var.flatten_all()?.to_vec1::<f32>()?;
+                values[0] += 0.25;
+                var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+            }
+            let current = fixture.weights.compile_terminal_rebound(&frozen)?;
+            assert!(current.artifact_binding().is_err());
+            fixture.weights.prepare(&current)?;
+            let path = fixture.path.join(format!("compiled-inventory-{stage}"));
+            current.save(&path)?;
+            let loaded =
+                NativeSourceRealizer::load(&path, &fixture.weights, &frozen.metadata.identity)?;
+            assert_eq!(current.execution_binding()?, loaded.artifact_binding()?);
+            assert_eq!(
+                current.execution_binding()?.metadata_sha256,
+                crate::sha256_file(&path.join("metadata.json"))?
+            );
+            if stage == 0 {
+                assert_eq!(current.execution_binding()?, frozen.artifact_binding()?);
+            } else {
+                assert_ne!(current.execution_binding()?, frozen.artifact_binding()?);
+            }
+            // Compare nested export bytes to the original consumer serializer,
+            // not merely to the shared new outer serializer.
+            let consumer_path = fixture.path.join(format!("consumer-export-{stage}"));
+            current.consumer.save(&consumer_path)?;
+            for name in super::super::NATIVE_FILES
+                .into_iter()
+                .chain(["metadata.json"])
+            {
+                assert_eq!(
+                    fs::read(consumer_path.join(name))?,
+                    fs::read(path.join("consumer").join(name))?
+                );
+            }
+            let cue = current.compile_cue_carrier(
+                CueAngularQ4::new(
+                    CueAngularConfig {
+                        heads: 1,
+                        lanes_per_head: 1,
+                        mode: CueScoreMode::DirectedRelative,
+                    },
+                    &[0x11; 60],
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )?;
+            let prefix = current.compile_prefix_transport(
+                &cue,
+                PrefixAngularQ4::new(
+                    PrefixAngularConfig {
+                        heads: 1,
+                        lanes_per_head: 1,
+                        mode: PrefixScoreMode::DirectedRelative,
+                    },
+                    &[0x11; 60],
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )?;
+            let ids = [4, 4, 4];
+            let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+            let segments = [SourceBankSegment::Source {
+                frame: frame(&ids),
+                view: &view,
+                event: 7,
+            }];
+            let trace =
+                current.read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &prefix)?;
+            let prepared = fixture.weights.prepare(&current)?;
+            let loss = prepared.loss_bank_terminal(&segments, &[5], &[4], 4, &cue, &prefix)?;
+            assert_eq!(trace, loss.trace);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn terminal_rebind_preserves_copy_and_rejects_stale_parent() -> Result<()> {
+        let (fixture, native, _) = dependent_fixture()?;
+        let old_root = fixture.path.join("dependent-native");
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 1,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &[0x11; 60],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let prefix = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 1,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &[0x11; 60],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [SourceBankSegment::Source {
+            frame: frame(&ids),
+            view: &view,
+            event: 7,
+        }];
+        let before =
+            native.read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &prefix)?;
+        let terminal_params = fixture.weights.terminal_parameters();
+        let var = &terminal_params["period.coefficients"];
+        let mut values = var.flatten_all()?.to_vec1::<f32>()?;
+        values[0] += 0.25;
+        var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        let path = fixture.path.join("terminal-rebound");
+        let receipt = fixture
+            .weights
+            .save_terminal_rebound(&path, &native, &old_root, &cue, &prefix)?;
+        assert_ne!(receipt.old_parent, receipt.new_parent);
+        assert_eq!(
+            receipt.cue_packed_sha256,
+            sha256_bytes(cue.packed_coefficients())
+        );
+        assert_eq!(
+            receipt.prefix_packed_sha256,
+            sha256_bytes(prefix.packed_coefficients())
+        );
+        let source = SourceRealizerWeights::load_source(&path.join("source"), TOK.as_bytes())?;
+        let parent = NativeSourceRealizer::load(&path.join("native"), &source, &fixture.identity)?;
+        assert!(parent
+            .read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &prefix)
+            .is_err());
+        let newcue = parent.compile_cue_carrier(
+            CueAngularQ4::new(
+                cue.metadata().potential,
+                &fs::read(path.join("cue/cue-q4.bin"))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let newprefix = parent.compile_prefix_transport(
+            &newcue,
+            PrefixAngularQ4::new(
+                prefix.metadata().potential,
+                &fs::read(path.join("prefix/prefix-q4.bin"))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        assert_eq!(
+            serde_json::to_value(newcue.metadata())?,
+            serde_json::from_slice::<serde_json::Value>(&fs::read(
+                path.join("cue/native-metadata.json")
+            )?)?
+        );
+        assert_eq!(
+            serde_json::to_value(newprefix.metadata())?,
+            serde_json::from_slice::<serde_json::Value>(&fs::read(
+                path.join("prefix/native-metadata.json")
+            )?)?
+        );
+        let after =
+            parent.read_bank_with_prefix_transport(&segments, &[5], &[4], &newcue, &newprefix)?;
+        verify_terminal_copy_frozen(&before, &after)?;
+        assert_ne!(
+            before.cue_bank.bank.period_q24,
+            after.cue_bank.bank.period_q24
+        );
+        let context = &fixture.weights.consumer.context.parameters()["token_category"];
+        let mut changed = context.flatten_all()?.to_vec1::<f32>()?;
+        changed[0] += 0.25;
+        context.set(&Tensor::from_vec(changed, context.shape(), &Device::Cpu)?)?;
+        assert!(fixture
+            .weights
+            .save_terminal_rebound(
+                &fixture.path.join("bad-nonterminal"),
+                &native,
+                &old_root,
+                &cue,
+                &prefix
+            )
+            .is_err());
+        Ok(())
+    }
     #[test]
     fn prefix_zero_alias_loss_credit_and_native_bundle_binding() -> Result<()> {
         let (fixture, native, _) = dependent_fixture()?;
