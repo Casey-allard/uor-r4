@@ -1204,6 +1204,65 @@ extern "C" __global__ void pointer_sum(
     for (uint i = 0; i < n; ++i) sum += values[i];
     out[0] = (float)(sum / divisor[0]);
 }
+
+// ---------------------------------------------------------------------------
+// 10. Global gradient squared norm, bit-identical to Candle's
+// `x.sqr()?.sum_all()` per tensor and `cat(..).sum_all()` over the tensors.
+// Candle's `fast_sum` runs one block of `width = min(1024, n).next_power_of_two()`
+// threads: thread `t` adds elements t, t + width, ... into a zeroed f32 in
+// index order, then a shared-memory tree halves `width` down to one value.
+// `sq_lanes` computes those per-thread sums for `width` lanes spread over
+// many blocks (the same f32 additions in the same order; `__fmul_rn` and
+// `__fadd_rn` forbid contraction), and `sq_tree` replays the tree, one block
+// per segment of `width` lane sums.
+// ---------------------------------------------------------------------------
+extern "C" __global__ void sq_lanes(
+    const float* x, float* lanes_out, uint n, uint width, uint square
+) {
+    uint lane = blockIdx.x * blockDim.x + threadIdx.x;
+    if (lane >= width) return;
+    float acc = 0.0f;
+    u64 i = lane;
+    u64 stride = width;
+    u64 total = n;
+    // Eight loads in flight, then their additions in index order.
+    while (i + 7 * stride < total) {
+        float v[8];
+#pragma unroll
+        for (int k = 0; k < 8; ++k) v[k] = x[i + (u64)k * stride];
+#pragma unroll
+        for (int k = 0; k < 8; ++k) {
+            float term = square ? __fmul_rn(v[k], v[k]) : v[k];
+            acc = __fadd_rn(acc, term);
+        }
+        i += 8 * stride;
+    }
+    while (i < total) {
+        float value = x[i];
+        float term = square ? __fmul_rn(value, value) : value;
+        acc = __fadd_rn(acc, term);
+        i += stride;
+    }
+    lanes_out[lane] = acc;
+}
+
+// segments[2 * b] = offset of block b's lane sums, segments[2 * b + 1] = its
+// power-of-two width (<= 1024, <= blockDim.x). out[b] = the tree's result.
+extern "C" __global__ void sq_tree(
+    const float* lane_sums, const uint* segments, float* out
+) {
+    __shared__ float shr[1024];
+    uint b = blockIdx.x;
+    uint offset = segments[2 * b];
+    uint width = segments[2 * b + 1];
+    uint t = threadIdx.x;
+    if (t < width) shr[t] = lane_sums[(u64)offset + t];
+    for (uint s = width / 2; s > 0; s >>= 1) {
+        __syncthreads();
+        if (t < s) shr[t] = __fadd_rn(shr[t], shr[t + s]);
+    }
+    if (t == 0) out[b] = shr[0];
+}
 "#;
 
     /// The stack kernels' PTX, compiled once per process by NVRTC.

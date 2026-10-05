@@ -1367,3 +1367,117 @@ pub(super) fn adam_step_cuda(
         ],
     )
 }
+
+// ---------------------------------------------------------------------------
+// Global gradient squared norm.
+
+/// Threads per block of `sq_lanes`: one warp per block spreads a tensor's
+/// (at most 1024) lanes over up to 32 multiprocessors.
+const SQ_LANE_BLOCK: usize = 32;
+
+/// The block width of Candle's `fast_sum` for an `n`-element full reduction.
+fn fast_sum_width(n: usize) -> usize {
+    n.min(1024).next_power_of_two()
+}
+
+/// `lanes[range]` as a view, or an error (never a panic) when out of range.
+fn sub_view(lanes: &CudaSlice<f32>, start: usize, len: usize) -> CResult<CudaView<'_, f32>> {
+    match lanes.try_slice(start..start + len) {
+        Some(view) => Ok(view),
+        None => candle_core::bail!("CUDA norm lane range exceeds its buffer"),
+    }
+}
+
+/// Writes Candle's per-thread `fast_sum` lane sums of the `n` values in `x`
+/// (squared first when `square`) into `out`, of length `fast_sum_width(n)`.
+fn sum_lanes(
+    device: &CudaDevice,
+    x: CudaView<'_, f32>,
+    n: usize,
+    out: CudaView<'_, f32>,
+    square: bool,
+) -> CResult<()> {
+    if n == 0 {
+        return Ok(());
+    }
+    let width = fast_sum_width(n);
+    launch_groups(
+        device,
+        "sq_lanes",
+        (width.div_ceil(SQ_LANE_BLOCK), 1, 1),
+        (SQ_LANE_BLOCK, 1, 1),
+        &[
+            Arg::F(x),
+            Arg::F(out),
+            Arg::U32(u32_of(n, "norm size")?),
+            Arg::U32(u32_of(width, "norm width")?),
+            Arg::U32(u32::from(square)),
+        ],
+    )
+}
+
+/// The sum over `tensors` of each one's squared entries, as one f32,
+/// bit-identical to Candle's
+/// `cat([t.sqr()?.sum_all()?.reshape(1)?, ..], 0)?.sum_all()?` on CUDA: the
+/// same f32 operations in the same order (see `sq_lanes` in the kernels),
+/// but each tensor's up-to-1024 lane sums run over many blocks instead of
+/// Candle's single block per full reduction. One host read.
+pub(super) fn squared_norm_cuda(device: &CudaDevice, tensors: &[&Tensor]) -> CResult<f32> {
+    if tensors.is_empty() {
+        candle_core::bail!("CUDA squared norm of no tensors");
+    }
+    let widths: Vec<usize> = tensors
+        .iter()
+        .map(|t| fast_sum_width(t.elem_count()))
+        .collect();
+    let lanes = zeros::<f32>(device, widths.iter().sum())?;
+    let mut segments = Vec::with_capacity(2 * tensors.len());
+    let mut offset = 0usize;
+    for (tensor, &width) in tensors.iter().zip(&widths) {
+        let tensor = ready(tensor)?;
+        let n = tensor.elem_count();
+        if n > 0 {
+            let (storage, layout) = tensor.storage_and_layout();
+            sum_lanes(
+                device,
+                view(&storage, layout)?,
+                n,
+                sub_view(&lanes, offset, width)?,
+                true,
+            )?;
+        }
+        segments.push(u32_of(offset, "norm offset")?);
+        segments.push(u32_of(width, "norm width")?);
+        offset += width;
+    }
+    let segments = device.clone_htod(&segments)?;
+    let count = tensors.len();
+    let sums = zeros::<f32>(device, count)?;
+    launch_groups(
+        device,
+        "sq_tree",
+        (count, 1, 1),
+        (1024, 1, 1),
+        &[Arg::f(&lanes), Arg::u(&segments), Arg::f(&sums)],
+    )?;
+    // The final `cat(..).sum_all()` over the per-tensor sums, unsquared.
+    let width = fast_sum_width(count);
+    let final_lanes = zeros::<f32>(device, width)?;
+    sum_lanes(
+        device,
+        sub_view(&sums, 0, count)?,
+        count,
+        final_lanes.as_view(),
+        false,
+    )?;
+    let segment = device.clone_htod(&[0u32, u32_of(width, "norm width")?])?;
+    let total = zeros::<f32>(device, 1)?;
+    launch_groups(
+        device,
+        "sq_tree",
+        (1, 1, 1),
+        (1024, 1, 1),
+        &[Arg::f(&final_lanes), Arg::u(&segment), Arg::f(&total)],
+    )?;
+    tensor(total, device, &Shape::from(())).to_scalar::<f32>()
+}

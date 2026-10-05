@@ -1377,3 +1377,148 @@ fn test_pointer_mixture_parity() -> uor_r4_training::Result<()> {
     }
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Global gradient squared norm: the multi-block CUDA kernels against Candle's
+// single-block `sqr().sum_all()` + `cat().sum_all()` (must be bit-identical)
+// and against an f64 CPU sum (float tolerance).
+// ---------------------------------------------------------------------------
+
+/// Checks one tensor list: the kernel path equals Candle's bits and is
+/// within float tolerance of the f64 CPU sum.
+#[cfg(feature = "cuda")]
+fn square_sum_case(tensors: &[candle_core::Tensor], name: &str) -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::{gradient_square_sum, gradient_square_sum_reference};
+    let refs: Vec<&candle_core::Tensor> = tensors.iter().collect();
+    let new = gradient_square_sum(&refs)?;
+    let reference = gradient_square_sum_reference(&refs)?;
+    assert_eq!(
+        new.to_bits(),
+        reference.to_bits(),
+        "{name}: kernel {new:e} != Candle {reference:e}"
+    );
+    let mut exact = 0f64;
+    for tensor in tensors {
+        for value in values(tensor)? {
+            exact += f64::from(value) * f64::from(value);
+        }
+    }
+    let relative = if exact > 0.0 {
+        ((f64::from(new) - exact) / exact).abs()
+    } else {
+        f64::from(new).abs()
+    };
+    println!("{name}: {new:e} (bit-identical to Candle), f64 CPU {exact:e}, rel {relative:.2e}");
+    assert!(
+        relative < 1e-4,
+        "{name}: relative error {relative} vs f64 CPU"
+    );
+    Ok(())
+}
+
+#[cfg(feature = "cuda")]
+#[test]
+fn test_gradient_square_sum_parity() -> uor_r4_training::Result<()> {
+    use candle_core::{Device, Tensor};
+    let dev = match Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let make = |shape: &[usize], seed: u64, scale: f32| -> uor_r4_training::Result<Tensor> {
+        let len = shape.iter().product();
+        Ok(Tensor::from_vec(noise(len, seed, scale), shape, &dev)?)
+    };
+    // Single tensors across Candle's width boundaries (1, powers of two,
+    // one past 1024, the 96M model's largest variable).
+    let sizes: [&[usize]; 11] = [
+        &[1],
+        &[3],
+        &[16],
+        &[1000],
+        &[1024],
+        &[1025],
+        &[2049],
+        &[703, 1024],
+        &[2048, 1024],
+        &[4096, 1024],
+        &[7, 11, 13],
+    ];
+    for (i, shape) in sizes.iter().enumerate() {
+        let tensor = make(shape, 50 + i as u64, 0.03)?;
+        square_sum_case(&[tensor], &format!("single {shape:?}"))?;
+    }
+    square_sum_case(&[Tensor::new(0.25f32, &dev)?], "scalar")?;
+    // Non-contiguous (transposed) and offset (narrowed) views.
+    let base = make(&[37, 53], 7, 1.0)?;
+    square_sum_case(&[base.t()?], "transposed 53x37")?;
+    let wide = make(&[300, 64], 8, 1.0)?;
+    square_sum_case(&[wide.narrow(0, 17, 200)?], "narrowed rows 17..217")?;
+    square_sum_case(&[wide.narrow(1, 5, 40)?], "narrowed cols 5..45")?;
+    // Tiny values whose squares are f32 subnormals or zero, and large ones.
+    square_sum_case(&[make(&[5000], 9, 1e-21)?], "subnormal squares")?;
+    square_sum_case(&[make(&[5000], 10, 1e16)?], "large values")?;
+    // A 96M-like variable list (embedding, 14 layers of large and small
+    // variables), and more than 1024 tensors (the final reduction then chains
+    // within each lane).
+    let mut model_like = vec![make(&[4096, 1024], 100, 0.02)?];
+    for layer in 0..14u64 {
+        model_like.push(make(&[2048, 1024], 200 + layer, 0.01)?);
+        model_like.push(make(&[1024, 703], 300 + layer, 0.01)?);
+        model_like.push(make(&[1024], 400 + layer, 0.1)?);
+        for small in 0..9u64 {
+            model_like.push(make(&[16 + small as usize], 500 + 16 * layer + small, 0.1)?);
+        }
+    }
+    square_sum_case(
+        &model_like,
+        &format!("model-like {} tensors", model_like.len()),
+    )?;
+    let many: Vec<Tensor> = (0..1500u64)
+        .map(|i| make(&[1 + (i as usize % 37)], 2000 + i, 0.5))
+        .collect::<uor_r4_training::Result<_>>()?;
+    square_sum_case(&many, "1500 small tensors")?;
+    Ok(())
+}
+
+/// Wall time of the kernel and the Candle reference norm over a 96M-like
+/// variable set (informative; no threshold).
+#[cfg(feature = "cuda")]
+#[test]
+fn test_gradient_square_sum_speed() -> uor_r4_training::Result<()> {
+    use candle_core::{Device, Tensor};
+    use std::time::Instant;
+    use uor_r4_training::geometric_stack::{gradient_square_sum, gradient_square_sum_reference};
+    let dev = match Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let mut tensors = vec![Tensor::randn(0f32, 0.02, (4096, 1024), &dev)?];
+    for _ in 0..14 {
+        tensors.push(Tensor::randn(0f32, 0.01, (2048, 1024), &dev)?);
+        tensors.push(Tensor::randn(0f32, 0.01, (1024, 2048), &dev)?);
+        tensors.push(Tensor::randn(0f32, 0.01, (1024, 703), &dev)?);
+        tensors.push(Tensor::randn(0f32, 0.1, 1024, &dev)?);
+    }
+    let refs: Vec<&Tensor> = tensors.iter().collect();
+    let elements: usize = tensors.iter().map(|t| t.elem_count()).sum();
+    type Norm = fn(&[&Tensor]) -> uor_r4_training::Result<f32>;
+    let runs: [(&str, Norm); 2] = [
+        ("kernel", gradient_square_sum),
+        ("candle", gradient_square_sum_reference),
+    ];
+    for (name, run) in runs {
+        run(&refs)?;
+        let reps = 5;
+        let started = Instant::now();
+        let mut last = 0f32;
+        for _ in 0..reps {
+            last = run(&refs)?;
+        }
+        let ms = started.elapsed().as_secs_f64() * 1e3 / f64::from(reps);
+        println!(
+            "gradient square sum {name}: {} tensors, {elements} elements, {ms:.2} ms ({last:e})",
+            refs.len()
+        );
+    }
+    Ok(())
+}

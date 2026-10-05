@@ -8643,6 +8643,40 @@ fn adam_step_metal(
     Ok(())
 }
 
+/// The f32 sum of every tensor's squared entries, as Candle computes
+/// `cat([t.sqr()?.sum_all()?.reshape(1)?, ..], 0)?.sum_all()?`: the squared
+/// global gradient norm [`StackAdamW::update`] reads on GPU devices (one host
+/// synchronization). On CUDA, when every tensor is there, it runs the stack
+/// kernels' multi-block replay of Candle's single-block `fast_sum`, which is
+/// bit-identical; elsewhere it runs the Candle ops themselves
+/// ([`gradient_square_sum_reference`]). An empty list is an error.
+pub fn gradient_square_sum(tensors: &[&Tensor]) -> Result<f32> {
+    #[cfg(feature = "cuda")]
+    if let Some(Device::Cuda(device)) = tensors.first().map(|t| t.device()) {
+        if tensors
+            .iter()
+            .all(|t| t.device().same_device(tensors[0].device()))
+        {
+            return Ok(cuda_ops::squared_norm_cuda(device, tensors)?);
+        }
+    }
+    gradient_square_sum_reference(tensors)
+}
+
+/// [`gradient_square_sum`] through Candle's own `sqr`, `sum_all` and `cat`
+/// (the path before the CUDA norm kernels; Candle reduces each tensor in a
+/// single block on CUDA). Kept as the parity reference.
+pub fn gradient_square_sum_reference(tensors: &[&Tensor]) -> Result<f32> {
+    if tensors.is_empty() {
+        return Err(invalid("squared norm of no tensors"));
+    }
+    let sums = tensors
+        .iter()
+        .map(|grad| grad.sqr()?.sum_all()?.reshape(1))
+        .collect::<candle_core::Result<Vec<_>>>()?;
+    Ok(Tensor::cat(&sums, 0)?.sum_all()?.to_scalar::<f32>()?)
+}
+
 /// AdamW with global gradient-norm clipping and resumable moments.
 pub struct StackAdamW {
     pub beta1: f64,
@@ -8724,16 +8758,13 @@ impl StackAdamW {
     ) -> Result<f64> {
         let mut total = 0f64;
         if matches!(model.device(), Device::Metal(_) | Device::Cuda(_)) {
-            // One host synchronization for the whole norm: each variable's
-            // squared sum stays on the device, then their f32 sum is read.
-            let sums = model
+            let present: Vec<&Tensor> = model
                 .variables()
                 .values()
                 .filter_map(|var| grads.get(var.as_tensor()))
-                .map(|grad| grad.sqr()?.sum_all()?.reshape(1))
-                .collect::<candle_core::Result<Vec<_>>>()?;
-            if !sums.is_empty() {
-                total = f64::from(Tensor::cat(&sums, 0)?.sum_all()?.to_scalar::<f32>()?);
+                .collect();
+            if !present.is_empty() {
+                total = f64::from(gradient_square_sum(&present)?);
             }
         } else {
             for var in model.variables().values() {
