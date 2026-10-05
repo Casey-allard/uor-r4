@@ -351,10 +351,15 @@ impl<'a> EpisodeIndex<'a> {
                 index.population.documents += 1;
                 index.population.sources[source_index].documents += 1;
             }
+            // An unmasked EOS inside a document is admitted only when it closes
+            // an unmasked (context-only) assistant turn: its segment since the
+            // previous EOS holds the exact assistant marker. Such a turn stays
+            // in every later episode's prefix but is never a sampled response.
             if token == index.contract.eos_id
                 && selected == 0
                 && position + 1 < tokens.len()
                 && u32::from(tokens[position + 1]) != index.contract.bos_id
+                && !closes_context_assistant_turn(tokens, mask, document, position, &index.contract)
             {
                 return Err(invalid("unmasked dialogue EOS must terminate its document"));
             }
@@ -603,6 +608,33 @@ impl<'a> EpisodeIndex<'a> {
     }
 }
 
+/// Whether the unmasked EOS at `eos` closes a context-only assistant turn of
+/// the document starting at `document`: the tokens after the previous EOS (or
+/// after BOS) contain the exact assistant marker, every token from that marker
+/// to `eos` is unmasked, and no masked token lies in the segment.
+fn closes_context_assistant_turn(
+    tokens: &[u16],
+    mask: &[u8],
+    document: usize,
+    eos: usize,
+    contract: &EpisodeContract,
+) -> bool {
+    let start = tokens[document..eos]
+        .iter()
+        .rposition(|&id| u32::from(id) == contract.eos_id)
+        .map_or(document + 1, |offset| document + offset + 1);
+    let marker = &contract.assistant_marker_ids;
+    if eos < start + marker.len() || mask[start..=eos].iter().any(|&m| m != 0) {
+        return false;
+    }
+    tokens[start..eos].windows(marker.len()).any(|window| {
+        window
+            .iter()
+            .map(|&id| u32::from(id))
+            .eq(marker.iter().copied())
+    })
+}
+
 /// The prefix IDs after BOS that TruncatedPrefix keeps for the response
 /// `start..end` of the document beginning at `document`: at most `keep_last`,
 /// no more than fit in `context` beside BOS and the whole response, and no
@@ -707,6 +739,37 @@ mod tests {
         }
         assert_eq!(full.counts.prefix_positions, 17);
         assert_eq!(role.counts.prefix_positions, 6);
+        Ok(())
+    }
+
+    #[test]
+    fn context_only_assistant_turns_are_prefix_never_responses() -> Result<()> {
+        // BOS, user 10, assistant marker + 20 + EOS unmasked (context only),
+        // separator 9, user 11, marker + 22 + EOS masked (the answer).
+        let tokens: Vec<u16> = vec![0, 10, 7, 8, 20, 1, 9, 11, 7, 8, 22, 1];
+        let mask: Vec<u8> = vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1];
+        let index = EpisodeIndex::new(&tokens, &mask, contract(), &source(tokens.len()))?;
+        assert_eq!(index.population().response_runs, 1);
+        assert_eq!(index.population().eligible_responses, 1);
+        assert_eq!(index.episodes()[0].response_start, 10);
+        let batch = index.materialize(&[0], PrefixPolicy::FullPrefix)?;
+        // The unmasked turn is in the prefix with weight 0; only the answer
+        // and its EOS carry loss.
+        assert_eq!(&batch.inputs[..11], &[0, 10, 7, 8, 20, 1, 9, 11, 7, 8, 22]);
+        assert_eq!(supervised(&batch, 0), [22, 1]);
+        for _ in 0..4 {
+            assert_eq!(index.sample_ids(3, 0, 8)?, vec![0; 8]);
+        }
+        // An unmasked mid-document EOS that closes no assistant turn is still
+        // refused, as is one whose segment holds a masked token.
+        let stray: Vec<u16> = vec![0, 10, 1, 9, 7, 8, 22, 1];
+        let stray_mask: Vec<u8> = vec![0, 0, 0, 0, 0, 0, 1, 1];
+        assert!(EpisodeIndex::new(&stray, &stray_mask, contract(), &source(stray.len())).is_err());
+        let partial: Vec<u16> = vec![0, 10, 7, 8, 20, 1, 9, 7, 8, 22, 1];
+        let partial_mask: Vec<u8> = vec![0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1];
+        assert!(
+            EpisodeIndex::new(&partial, &partial_mask, contract(), &source(partial.len())).is_err()
+        );
         Ok(())
     }
 
