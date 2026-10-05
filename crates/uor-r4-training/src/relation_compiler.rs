@@ -1108,6 +1108,14 @@ pub enum ActRule {
     Span,
 }
 
+/// What [`SavedCompiler::op_probe`] observed: the op model's raw text, or the guard that
+/// stopped generation. The reason matches the `Unresolved` reason `op_action` returns.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum OpProbe {
+    Text(String),
+    Refused(String),
+}
+
 impl ActRule {
     pub fn parse(text: &str) -> Result<Self> {
         match text {
@@ -1140,6 +1148,186 @@ impl Default for CompilerSettings {
 pub const COMPILE_PROMPT: &str = "Compile.";
 /// The longest op an op model may generate, in tokens.
 const OP_MAX_TOKENS: usize = 24;
+
+// ---------------------------------------------------------------- open relation identity
+
+/// The frozen stop-word lists, pinned by sha256 on #1552. Short by design: every extra
+/// word is a chance to merge two genuinely different relations.
+const RELATION_DETERMINERS: [&str; 10] = [
+    "my", "your", "our", "the", "a", "an", "his", "her", "their", "its",
+];
+/// The subset that marks a turn as BEING ABOUT the speaker's own record. A non-possessive
+/// determiner is only read on an interrogative turn: otherwise an ordinary sentence
+/// ("The weather is nice today.") yields a relation ("weather") and the compiler would
+/// answer a question nobody asked. Out-of-scope rejection belongs here rather than in a
+/// learned class — a classifier trained in-scope is exactly what misses out-of-scope input.
+const RELATION_POSSESSIVES: [&str; 7] = ["my", "your", "our", "his", "her", "their", "its"];
+const RELATION_GENERICS: [&str; 4] = ["name", "number", "called", "word"];
+/// Pronouns that must never be read as a relation: they are anaphoric, so the row needs
+/// previous-turn state and keying on the pronoun would address a wrong slot.
+const RELATION_PRONOUNS: [&str; 10] = [
+    "it", "that", "this", "they", "them", "those", "these", "he", "she", "one",
+];
+
+/// A relation's key: its HEAD PHRASE, already extracted as a span, normalized.
+///
+/// Deterministic, NOT a semantic metric. Strips determiners, the possessive `'s`, and
+/// trailing generic slot words — so `my vet`, `the vet` and `my vet's name` all key to
+/// `vet`, which is what lets a statement and a question address the same record without
+/// either knowing a label.
+///
+/// The trailing strip NEVER reduces to empty: a relation that IS a generic word keeps its
+/// last token, so `my name` keys to `name` rather than collapsing into one shared empty
+/// key with every other generic relation.
+pub fn relation_key(phrase: &str) -> String {
+    let lowered = phrase.to_lowercase();
+    let no_possessive = lowered
+        .replace("'s ", " ")
+        .replace("\u{2019}s ", " ")
+        .replace("'s", "")
+        .replace("\u{2019}s", "");
+    let mut toks: Vec<String> = no_possessive
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .filter(|w| !RELATION_DETERMINERS.contains(w))
+        .map(str::to_string)
+        .collect();
+    while toks.len() > 1 && RELATION_GENERICS.contains(&toks[toks.len() - 1].as_str()) {
+        toks.pop();
+    }
+    toks.join(" ")
+}
+
+/// The relation phrase a turn NAMES, taken from the turn's own words.
+///
+/// This is the deterministic relation identity. Neither learned component can supply it:
+/// the table's relation head predicts `NONE` on an unseen name, and the op model emits
+/// either `Op: none` or a CLOSED label (measured — see the `op-probe` instrument). So for
+/// a relation outside the closed set, the only signal is the turn's text.
+///
+/// The rule is the determiner: a relation is the words after a determiner (`my`, `the`,
+/// `your`, ...) up to the copula `is` or the end of the turn. Statements and questions
+/// share it, so both derive the same address without either knowing a label:
+///
+///   "My sculptor is Klisttritse."   -> "sculptor"
+///   "What is my sculptor?"          -> "sculptor"
+///   "What is the spice rack?"       -> "spice rack"
+///   "What is it?"                   -> None   (no relation word: declines)
+///
+/// `None` is a real answer, not a failure: an anaphoric turn carries no relation phrase,
+/// which is exactly why those rows cannot be recovered by phrase identity.
+pub fn relation_phrase(source: &str) -> Option<String> {
+    let words = word_spans(source);
+    let text = |w: &WordSpan| &source[w.start..w.end];
+    // A phrase directly after a determiner: "my sculptor", "the spice rack".
+    let interrogative = source.trim_end().ends_with('?');
+    let after_determiner = words.iter().position(|w| {
+        let word = text(w).to_lowercase();
+        if !RELATION_DETERMINERS.contains(&word.as_str()) {
+            return false;
+        }
+        // A non-possessive determiner ("the", "a", "an") is only a relation marker on a
+        // question; elsewhere it is ordinary prose.
+        interrogative || RELATION_POSSESSIVES.contains(&word.as_str())
+    });
+    let (start, stop_at_is) = match after_determiner {
+        Some(i) => (i + 1, true),
+        None => {
+            // No determiner: take what follows the copula, which is the possessive form
+            // "What is sculptor's name?" -> "sculptor's name", keyed to "sculptor".
+            // This is the form that carries the relation for the `<REL>'s name`
+            // questions; requiring a determiner left 70 rows unread.
+            //
+            // INTERROGATIVE ONLY. Without this the branch reads ordinary prose: "The
+            // weather is nice today." has no relation determiner but does have a copula,
+            // and would yield the relation "nice today". An out-of-scope sentence must
+            // stay Unresolved rather than be answered.
+            if !interrogative {
+                return None;
+            }
+            let copula = words.iter().position(|w| {
+                text(w).eq_ignore_ascii_case("is") || text(w).eq_ignore_ascii_case("are")
+            })?;
+            (copula + 1, false)
+        }
+    };
+    let mut end = words.len();
+    if stop_at_is {
+        for (i, w) in words.iter().enumerate().skip(start) {
+            if text(w).eq_ignore_ascii_case("is") {
+                end = i;
+                break;
+            }
+        }
+    }
+    if start >= end {
+        return None;
+    }
+    let phrase: Vec<&str> = words[start..end].iter().map(|w| text(w)).collect();
+    // A pronoun is not a relation: "What is it?" must DECLINE rather than key on "it",
+    // because those rows need previous-turn state and a guess would be a wrong address.
+    if phrase.len() == 1 && RELATION_PRONOUNS.contains(&phrase[0].to_lowercase().as_str()) {
+        return None;
+    }
+    let key = relation_key(&phrase.join(" "));
+    if key.is_empty() {
+        None
+    } else {
+        Some(key)
+    }
+}
+
+/// Whether a turn opens with a cue that asks for something rather than states it.
+/// Imperatives and wh-words, so a question written without a `?` is still read as one.
+fn recall_cue(source: &str) -> bool {
+    const CUES: [&str; 12] = [
+        "what", "where", "who", "when", "which", "how", "tell me", "remind me", "do you",
+        "did i", "can you", "could you",
+    ];
+    let lower = source.trim_start().to_lowercase();
+    CUES.iter().any(|cue| lower.starts_with(cue))
+}
+
+/// Whether every word of a marked span already appears in the relation phrase — i.e. the
+/// span is the relation's own words rather than a value held for it.
+fn phrase_words(span_text: &str, phrase: &str) -> bool {
+    let p: Vec<String> = phrase.split_whitespace().map(|w| w.to_lowercase()).collect();
+    let words: Vec<String> = span_text
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|w| !w.is_empty())
+        .map(|w| w.to_lowercase())
+        .collect();
+    !words.is_empty() && words.iter().all(|w| p.contains(w))
+}
+
+/// The first derived relation ID. Chosen far above any identity ID (the closed table has
+/// 11 labels, so IDs are small) so a derived ID can never collide with a closed one, and
+/// so a derived ID is recognisable as derived.
+pub const DERIVED_RELATION_ID_BASE: u32 = 1 << 20;
+
+/// A stable store ID for a relation the identity does not carry.
+///
+/// The store address is already a `u32` (`StackStore::key(scope, entity, relation)`), so
+/// deriving one needs no change to the session or the store. The key is the NORMALIZED
+/// phrase, and the hash is over those bytes, so two turns that name the relation with the
+/// same words — a statement and its question — derive the same ID.
+///
+/// This is an address, not a semantic metric: `vet` and `animal doctor` derive DIFFERENT
+/// IDs and will not unify. That limit is measured separately, not papered over here.
+pub fn derived_relation_id(phrase: &str) -> u32 {
+    let key = relation_key(phrase);
+    // FNV-1a over the normalized key: deterministic across runs and platforms.
+    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
+    for b in key.as_bytes() {
+        h ^= *b as u64;
+        h = h.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    // 26 bits of the hash. At 20 bits the 5,175-name pool produced 10 collision buckets
+    // (birthday-expected ~12.8), each an address shared by two relations; at 26 bits the
+    // same pool collides ZERO times. The range stays far above the identity IDs, so a
+    // derived ID still cannot collide with a closed one.
+    DERIVED_RELATION_ID_BASE + (h as u32 & 0x03ff_ffff)
+}
 
 /// The op a labelled turn compiles to: `Op: none`, `Op: query <relation>`, or
 /// `Op: assert|update <relation> <value>` with the template's slot value.
@@ -1850,6 +2038,12 @@ impl SavedCompiler {
 
     /// The store relation ID of a relation label: its 1-based position
     /// among the table's relations, [`NONE`] excluded.
+    ///
+    /// CLOSED FIRST, OPEN AS FALLBACK. A name in the identity resolves exactly as before,
+    /// so every closed relation keeps its ID and its behaviour is unchanged by
+    /// construction. A name the identity does not carry falls back to a **derived ID**
+    /// from the normalized relation key, so an unseen relation can still address the
+    /// store instead of failing at this lookup.
     pub fn relation_id(&self, name: &str) -> Option<u32> {
         self.identity
             .relations
@@ -1858,11 +2052,38 @@ impl SavedCompiler {
             .map(|label| label.id)
     }
 
+    /// The store address for a relation as NAMED IN A TURN: the identity id when the name
+    /// is a saved label, otherwise a deterministic DERIVED address from the name.
+    ///
+    /// Addressing is deliberately separate from [`Self::relation_id`]. That function is
+    /// also the schema VALIDATION — supervision and artifacts use it to reject a row
+    /// naming a relation outside the labels — so teaching it to accept anything would have
+    /// silently disabled that check. Only the serving path, which must address a relation
+    /// the compiler was never trained on, uses the derived fallback.
+    pub fn relation_address(&self, name: &str) -> u32 {
+        self.relation_id(name)
+            .unwrap_or_else(|| derived_relation_id(name))
+    }
+
     /// The op model's action for a turn read alone: the prompt is
     /// `System: Compile.` and the turn, the op is decoded greedily up to EOS
     /// ([`OP_MAX_TOKENS`] at most) and parsed by [`parse_op`].
     fn op_action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
         use crate::stack_grounded_session::CompiledAction;
+        match self.op_probe(source)? {
+            OpProbe::Refused(reason) => Ok(CompiledAction::Unresolved { reason }),
+            OpProbe::Text(text) => Ok(parse_op(&text, source, |name| self.relation_id(name))),
+        }
+    }
+
+    /// What the op model actually emitted for a turn, for DIAGNOSTICS.
+    ///
+    /// The compiled action alone does not show this: a turn whose op read `Op: query
+    /// sculptor` and a turn whose op read nonsense both surface as `Unresolved` once the
+    /// policy discards a non-statement op. Recording the raw text separates "the op model
+    /// named the right relation" from "the op model named nothing", which the action
+    /// cannot. Behaviour is identical to [`Self::op_action`]; this only exposes the text.
+    pub fn op_probe(&self, source: &str) -> Result<OpProbe> {
         use uor_r4_tokenizer::dialogue::Message;
         let op = self
             .op
@@ -1883,14 +2104,12 @@ impl SavedCompiler {
             },
         ]);
         if prompt.emitted_turns != 2 || prompt.special_token_occurrences != 0 {
-            return Ok(CompiledAction::Unresolved {
-                reason: "the turn does not encode as a compile prompt".into(),
-            });
+            return Ok(OpProbe::Refused(
+                "the turn does not encode as a compile prompt".into(),
+            ));
         }
         if prompt.tokens.len() + OP_MAX_TOKENS + 1 > op.model.config.context {
-            return Ok(CompiledAction::Unresolved {
-                reason: "the turn is too long to compile".into(),
-            });
+            return Ok(OpProbe::Refused("the turn is too long to compile".into()));
         }
         let reply = crate::stack_dialogue::greedy_reply(
             &op.model,
@@ -1904,8 +2123,7 @@ impl SavedCompiler {
             .copied()
             .filter(|&id| id != op.protocol.eos_id)
             .collect();
-        let text = op.tokenizer.decode(&ids);
-        Ok(parse_op(&text, source, |name| self.relation_id(name)))
+        Ok(OpProbe::Text(op.tokenizer.decode(&ids)))
     }
 
     /// The relation and act the compiler's heads name for a turn: the
@@ -2005,7 +2223,27 @@ impl SavedCompiler {
                     return Ok(table);
                 }
                 let op = self.op_action(source)?;
-                Ok(if statement(&op) { op } else { table })
+                // A DERIVED-ADDRESS table action is NOT overridden by the op model.
+                //
+                // `unless_query` prefers the op's statement when it produces one ("the op
+                // model's statement is used unless the table reads a query"). That is right
+                // in the closed world, where both name the same labels. It is wrong for an
+                // open relation: the op model emits CLOSED labels only (measured), so it
+                // would overwrite an address derived from the turn's own words with a
+                // closed one — and the QUESTION, whose heads say NONE, then derives the
+                // phrase address and reads an empty slot. Measured: the fact written at
+                // closed id 3/6/7 while its question queried a derived id.
+                let table_derived = matches!(
+                    &table,
+                    CompiledAction::Assert { relation, .. }
+                        | CompiledAction::Correct { relation, .. }
+                        if *relation >= DERIVED_RELATION_ID_BASE
+                );
+                Ok(if statement(&op) && !table_derived {
+                    op
+                } else {
+                    table
+                })
             }
             OpPolicy::UnlessQuery => {
                 let table = self.table_action(source)?;
@@ -2016,7 +2254,29 @@ impl SavedCompiler {
                     return Ok(table);
                 }
                 let op = self.op_action(source)?;
-                Ok(if statement(&op) { op } else { table })
+                // A DERIVED-ADDRESS table action is NOT overridden by the op model.
+                //
+                // `unless_query` prefers the op's statement when it produces one. That is
+                // right in the closed world, where both name the same labels. It is wrong
+                // for an open relation: the op model emits CLOSED labels only (measured),
+                // so it would overwrite an address derived from the turn's own words with a
+                // closed one, and the QUESTION — whose heads say NONE — then derives the
+                // phrase address and reads an empty slot.
+                //
+                // THIS GUARD MUST LIVE HERE. It was first written into the TableStatements
+                // arm above, which sessions never take (they run op_policy=unless_query), so
+                // it was unreached and its "no effect" measurement was meaningless.
+                let table_derived = matches!(
+                    &table,
+                    CompiledAction::Assert { relation, .. }
+                        | CompiledAction::Correct { relation, .. }
+                        if *relation >= DERIVED_RELATION_ID_BASE
+                );
+                Ok(if statement(&op) && !table_derived {
+                    op
+                } else {
+                    table
+                })
             }
         }
     }
@@ -3047,5 +3307,137 @@ mod tests {
             }
             other => panic!("expected an assert, got {other:?}"),
         }
+    }
+
+    /// The normalizer unifies the three surface forms the reviewer named, so one relation
+    /// yields ONE key.
+    #[test]
+    fn one_relation_yields_one_key() {
+        assert_eq!(relation_key("my vet"), "vet");
+        assert_eq!(relation_key("the vet"), "vet");
+        assert_eq!(relation_key("my vet's name"), "vet");
+    }
+
+    /// A relation that IS a generic word keeps its last token, so generic relations do not
+    /// all collapse into one shared empty key.
+    #[test]
+    fn generic_relation_never_normalizes_to_empty() {
+        assert_eq!(relation_key("my name"), "name");
+        assert_eq!(relation_key("my number"), "number");
+        assert_ne!(relation_key("my name"), relation_key("my number"));
+    }
+
+    /// The paraphrase limit, as a DOCUMENTED expected behaviour rather than a bug: exact
+    /// identity does not unify different wording, and no semantic metric is claimed.
+    #[test]
+    fn paraphrase_relations_do_not_unify() {
+        assert_ne!(relation_key("my vet"), relation_key("my animal doctor"));
+        assert_ne!(relation_key("my hometown"), relation_key("my home town"));
+        assert_ne!(
+            derived_relation_id("my vet"),
+            derived_relation_id("my animal doctor")
+        );
+    }
+
+    /// A statement and its question derive the SAME store ID, which is what lets an unseen
+    /// relation be addressed without a label.
+    #[test]
+    fn statement_and_question_derive_the_same_id() {
+        assert_eq!(
+            derived_relation_id("my vet"),
+            derived_relation_id("the vet")
+        );
+        assert_eq!(
+            derived_relation_id("my vet"),
+            derived_relation_id("my vet's name")
+        );
+        assert_ne!(
+            derived_relation_id("my vet"),
+            derived_relation_id("my bank")
+        );
+    }
+
+    /// A derived ID can never collide with a closed identity ID, so using it cannot silently
+    /// alias an open relation onto a closed one.
+    #[test]
+    fn derived_ids_stay_above_the_closed_range() {
+        for name in ["my vet", "my bank", "poustroud", "my landline number", "x"] {
+            assert!(
+                derived_relation_id(name) >= DERIVED_RELATION_ID_BASE,
+                "{name}"
+            );
+        }
+        // and the derivation is stable across calls
+        assert_eq!(
+            derived_relation_id("poustroud"),
+            derived_relation_id("poustroud")
+        );
+    }
+
+    /// A statement and its question name the SAME relation phrase, which is what lets
+    /// both address one record without either knowing a label.
+    #[test]
+    fn a_statement_and_its_question_name_the_same_phrase() {
+        let stmt = relation_phrase("My sculptor is Klisttritse.");
+        let query = relation_phrase("What is my sculptor?");
+        assert_eq!(stmt.as_deref(), Some("sculptor"));
+        assert_eq!(query.as_deref(), Some("sculptor"));
+        assert_eq!(
+            derived_relation_id(&stmt.unwrap()),
+            derived_relation_id(&query.unwrap())
+        );
+    }
+
+    /// Multi-word relations survive extraction whole — "spice rack" is one relation, not
+    /// "spice". This is the case `parse_op`'s `splitn(3, ' ')` cannot represent.
+    #[test]
+    fn a_multi_word_relation_extracts_whole() {
+        assert_eq!(
+            relation_phrase("What is the spice rack?").as_deref(),
+            Some("spice rack")
+        );
+        assert_eq!(
+            relation_phrase("My mortar and pestle is Granite.").as_deref(),
+            Some("mortar and pestle")
+        );
+    }
+
+    /// An anaphoric turn names no relation, and `None` is the correct answer — those rows
+    /// need previous-turn state, so phrase identity must decline rather than guess.
+    #[test]
+    fn an_anaphoric_turn_names_no_phrase() {
+        assert_eq!(relation_phrase("What is it?"), None);
+        assert_eq!(relation_phrase("What is that?"), None);
+    }
+
+    /// The wrong determiner must not be picked: "my" in the question, not an earlier one.
+    #[test]
+    fn the_phrase_starts_after_the_determiner() {
+        assert_eq!(
+            relation_phrase("What's my dentist?").as_deref(),
+            Some("dentist")
+        );
+        assert_eq!(
+            relation_phrase("I'd say my plumber is Ola.").as_deref(),
+            Some("plumber")
+        );
+    }
+
+    /// The exact two turns from the failing row rs-011. Structurally identical statements
+    /// received DIFFERENT addressing in that run — one closed id, one derived — and the
+    /// question then read an empty slot. If both extract here, the extractor is not the
+    /// cause and the difference is upstream of it.
+    #[test]
+    fn the_two_statements_from_the_failing_row_both_extract() {
+        let a = relation_phrase("My mousbror is bokstaik.");
+        let b = relation_phrase("My fumgrek is jirkdraik.");
+        assert_eq!(a.as_deref(), Some("mousbror"), "turn 0 of rs-011");
+        assert_eq!(b.as_deref(), Some("fumgrek"), "turn 1 of rs-011");
+        // and the question must land on the SAME address as its statement
+        assert_eq!(
+            relation_phrase("My mousbror is bokstaik.").map(|p| derived_relation_id(&p)),
+            relation_phrase("What is mousbror's name?").map(|p| derived_relation_id(&p)),
+            "the question must derive its statement's address"
+        );
     }
 }

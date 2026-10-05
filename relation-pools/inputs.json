@@ -1,0 +1,18 @@
+{
+ "train_english": {
+  "file": "train-english.json",
+  "sha256": "9181c3a6edebf38b6351fee72d1eb6c4b7c2428b1e8b43667b362d3a34012533"
+ },
+ "heldout_english": {
+  "file": "heldout-english.json",
+  "sha256": "39d72d6c4e81c166b98f910fb818cd3319df3e3b0fa053e63af6fa8d11485c00"
+ },
+ "stopwords": {
+  "file": "/Users/casey.allard/uor-r4-local/ladder/relations/stopwords.json",
+  "sha256": "83e174a5f1cf24fdf5f6676e431b3599ce259ad7cea8eb0c7adab51ed8e0be71"
+ },
+ "nonsense_scheme": {
+  "source": "milestone_world_v2.rs ONSETS/VOWELS/CODAS + fn word",
+  "note": "relation names drawn with a distinct split assignment"
+ }
+}
