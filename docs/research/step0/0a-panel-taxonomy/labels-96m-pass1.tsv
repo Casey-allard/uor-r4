@@ -1,0 +1,186 @@
+talk-05	O	0	0	0	answers greeting not the sleep question; near-acceptable
+talk-06	O	0	0	0	sympathetic reply; grader false negative
+talk-07	O	0	0	0	canned persona deflection
+talk-08	N	0	0	0	"you live in the beach" misparaphrase
+ask-01	K	0	0	0	invented causes of leaf colour
+ask-02	K	0	0	0	"a bee says buzz", no honey
+ask-03	K	0	0	0	"200 glasses", circular
+ask-06	N	0	0	0	ungrammatical, no animals
+ask-07	K	0	0	0	tautology, no reason
+ask-08	I	0	0	0	sympathy template instead of advice
+do-01	N	0	0	0	"brave brave" degeneration
+do-02	N	0	0	0	self-contradictory, no ideas
+do-03	O	0	0	0	valid one sentence; grader false negative
+do-05	I	0	0	0	not a kind message
+do-06	K	0	0	0	format kept, items repeated/wrong
+do-07	I	0	0	0	no story
+do-08	K	0	0	0	list of unwind tips, partly off
+follow-01	N	1	0	0	turn-2 reply semantically empty; topic "bake" carried
+follow-02	K	1	0	0	anaphor resolved (scratching) but no useful advice
+follow-03	R	1	1	0	"make it longer" ignores earlier story request
+follow-05	O	1	0	0	canned deflection; turn-2 answerable standalone
+follow-06	R	1	1	0	"why do you like it" needs turn-1 referent; canned reply
+follow-07	N	1	1	0	"you look like a good friend"; anaphor "it" also unresolved
+follow-08	T	1	0	0	good packing list using trip context, cut mid-word
+heldout-000	N	0	0	0	stage-direction loop
+heldout-001	K	0	0	0	invented "spicue"
+heldout-003	K	0	0	0	story-idea list, idea is filler
+heldout-004	K	0	0	0	generic filler
+heldout-007	K	0	0	0	no definition
+heldout-008	O	0	0	1	letter salutation fragment
+heldout-010	T	0	0	0	on-track steps, cut
+heldout-011	O	0	0	0	empty code fence
+heldout-012	O	0	0	1	query missing from request
+heldout-013	O	0	0	1	[city] placeholder; reply mirrors placeholders
+heldout-014	O	0	0	1	no equation given
+heldout-016	I	0	0	0	format-only request; one paragraph, meta text
+heldout-017	O	0	0	0	reply is only a divider
+heldout-018	K	0	0	0	one garbled feature
+heldout-020	K	0	0	0	describes photosynthesis
+heldout-021	O	0	0	1	equation missing from request
+heldout-022	O	0	0	0	empty code fence
+heldout-023	O	0	0	1	citation fragment
+heldout-025	K	0	0	0	restates question
+heldout-027	N	0	0	0	word salad
+heldout-028	K	0	0	0	universe orbits Earth
+heldout-029	I	0	0	0	plans an art school/expedition instead of gala
+heldout-031	N	0	0	1	echo loop of fragment
+heldout-032	T	0	0	0	roughly on track, cut
+heldout-033	K	0	0	0	wrong significance, repetitive
+heldout-034	N	0	0	1	garbled echo of news lead
+heldout-035	O	0	0	1	salutation fragment
+heldout-036	T	0	0	0	good tips, cut
+heldout-037	N	0	0	1	echo-repeat of fragment
+heldout-038	N	0	0	1	data missing; counting run
+heldout-040	T	0	0	0	good content, cut
+heldout-041	K	0	0	0	nonsense mechanics
+heldout-042	K	0	0	0	disclaimer then start of filler
+heldout-043	K	0	0	0	wrong arithmetic
+heldout-045	K	0	0	0	vague/wrong items
+heldout-046	O	0	0	1	salutation fragment
+heldout-048	K	0	0	0	wrong statistics
+heldout-049	O	0	0	1	placeholders; Eiffel Tower
+heldout-051	O	0	0	1	question missing
+heldout-052	K	0	0	0	adopts role, filler content
+heldout-053	T	0	0	0	on track, cut
+heldout-054	N	0	0	1	equation/list loop on product blurb
+heldout-055	N	0	0	0	repetition "American Americ"
+heldout-056	O	0	0	1	salutation fragment
+heldout-057	K	0	0	0	restates question, "diversity systems"
+heldout-058	K	0	0	0	wrong analysis types
+heldout-059	O	0	0	1	continues a missing prior conversation
+heldout-060	K	0	0	0	no distinction given
+heldout-062	K	0	0	0	password tips not input validation
+heldout-063	N	0	0	1	code missing; formula loop
+heldout-064	I	0	0	0	technical, ignores "without programming background"
+heldout-065	K	0	0	0	places/bungee, no plan
+heldout-066	O	0	0	1	salutation fragment
+heldout-067	O	0	0	1	passage missing
+heldout-068	O	0	0	1	text fragment, no instruction; echo
+heldout-070	T	1	0	0	keywords used, cut
+heldout-072	T	0	0	0	on track, cut
+heldout-077	K	0	0	0	wrong astrophysics
+heldout-078	O	0	0	1	salutation fragment
+heldout-079	O	0	0	1	bio text missing
+heldout-080	O	0	0	1	[beverage] placeholder; refusal
+heldout-081	K	0	0	0	colostrum "bacteria"
+heldout-082	O	0	0	1	recipe-step fragment; plausible continuation
+heldout-083	R	1	1	1	supplied recipe text ignored (instruction missing)
+heldout-084	K	0	0	0	disclaimer then filler
+heldout-085	O	0	0	1	"this particular sport" refers to missing context
+heldout-087	O	0	0	0	greeting deflection
+heldout-088	T	0	0	0	on-track list, cut
+heldout-089	K	0	0	0	wrong CLT
+heldout-090	T	0	0	0	good, cut
+heldout-091	O	0	0	1	salutation fragment
+heldout-092	K	1	0	0	options used; "maybe" wrong
+heldout-093	N	0	0	0	loop
+heldout-094	T	0	0	0	on-track plan, cut
+heldout-095	O	0	0	1	code snippet missing
+heldout-096	K	0	0	0	wrong
+heldout-097	N	0	0	0	speaker confusion
+heldout-098	K	0	0	0	circular
+heldout-099	K	0	0	0	circular
+heldout-101	N	0	0	0	"Year 2021" loop
+heldout-103	K	0	0	0	lists all integers, no primes
+heldout-104	T	0	0	0	good, cut
+heldout-105	O	0	0	1	source story missing
+heldout-106	K	0	0	0	circular
+heldout-107	O	0	0	1	text to edit missing
+heldout-108	K	0	0	0	filler
+heldout-109	I	0	0	0	answers hiring process not degrees
+heldout-111	T	0	0	0	in-role, cut
+heldout-112	O	0	0	1	data missing
+heldout-113	T	0	0	0	circular but on track, cut
+heldout-114	O	0	0	1	salutation fragment
+heldout-115	I	0	0	0	asks back instead of suggesting
+heldout-117	I	1	0	0	violates word/forbidden constraints
+heldout-119	K	0	0	0	garbled list
+heldout-120	N	0	0	0	"[Image" loop
+heldout-121	O	0	0	0	canned persona deflection
+heldout-122	K	0	0	0	differentiation instead of subtraction
+heldout-123	K	0	0	0	disclaimer then filler
+heldout-124	I	0	0	0	format-only; one paragraph
+heldout-125	K	0	0	0	wrong algebra
+heldout-126	I	0	0	0	greeting instead of code
+heldout-127	O	0	0	1	quote fragment
+heldout-128	R	1	1	0	garbles the supplied quotation
+heldout-129	O	0	0	1	numbered-list fragment
+heldout-130	K	0	0	0	generic list
+heldout-132	K	0	0	0	wrong
+heldout-133	K	0	0	0	"climate-paleidal", wrong-domain advice
+heldout-134	K	0	0	0	wrong function, empty code
+heldout-135	I	0	0	0	3 bullets not 4
+heldout-137	O	0	0	1	refers to unnamed book series
+heldout-138	K	0	0	0	filler
+heldout-139	I	0	0	0	format-only; meta
+heldout-140	N	0	0	1	statement fragment; repeated list
+heldout-141	O	0	0	0	statement; disclaimer deflection
+heldout-142	N	0	0	0	"European European"
+heldout-143	K	0	0	0	wrong logic
+heldout-145	K	0	0	0	wrong
+heldout-146	K	0	0	0	restates
+heldout-147	O	0	0	1	argument missing
+heldout-148	K	0	0	0	generic wrong
+heldout-149	K	0	0	0	"kickboard app"
+heldout-150	I	0	0	0	format-only; meta
+heldout-151	K	1	0	0	wrong explanation; supplied phrase reused
+heldout-152	I	0	0	0	rambling, not a catchphrase
+heldout-153	K	0	0	0	vague
+heldout-154	O	0	0	1	text missing
+heldout-155	O	0	0	0	empty code fence
+heldout-156	O	0	0	1	salutation fragment
+heldout-157	N	0	0	0	repeated invented name
+heldout-158	O	0	0	0	deflection
+heldout-159	O	0	0	0	refusal
+heldout-160	K	0	0	0	disclaimer then start
+heldout-161	N	0	0	0	ungrammatical repetition
+heldout-162	O	0	0	1	"your supplies" undefined
+heldout-163	O	0	0	1	salutation fragment
+heldout-164	K	0	0	0	unsupported answer
+heldout-165	K	0	0	0	tautology
+heldout-166	O	0	0	1	salutation fragment
+heldout-167	K	0	0	0	wrong
+heldout-169	K	0	0	0	nonsense steps
+heldout-170	N	0	0	0	"specific provided information" loop
+heldout-171	K	0	0	0	wrong
+heldout-172	O	0	0	0	empty code fence
+heldout-175	N	0	0	0	emoji loop
+heldout-176	O	0	0	0	3 bullets as asked; grader false negative
+heldout-177	N	0	0	0	not a story, confused
+heldout-178	K	0	0	0	circular
+heldout-179	O	0	0	1	salutation fragment
+heldout-180	I	0	0	0	format-only; meta
+heldout-181	O	0	0	1	bullet fragment
+heldout-183	T	0	0	0	good, cut
+heldout-185	T	1	0	0	all keywords, cut
+heldout-186	K	0	0	0	wrong function
+heldout-187	K	0	0	0	partly wrong
+heldout-188	K	0	0	0	vague
+heldout-189	O	0	0	1	salutation fragment
+heldout-192	T	0	0	0	on track, cut
+heldout-193	I	0	0	0	ignores astronaut role
+heldout-194	K	0	0	0	wrong function
+heldout-195	T	0	0	0	title + prose, cut
+heldout-198	T	0	0	0	on track, cut
+heldout-199	O	0	0	1	fragment

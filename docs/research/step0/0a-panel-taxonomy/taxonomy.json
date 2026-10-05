@@ -1,0 +1,235 @@
+{
+ "decision_rule": {
+  "observed_96m_recall_share": 0.0215,
+  "observed_96m_recall_upper_bound": 0.0269,
+  "outcome": "retrieval cannot move the open panel; panel lever = corpus/knowledge (Step 5)",
+  "threshold_recall_share": 0.15
+ },
+ "instrument": "Step 0a failure taxonomy, open 232-request panel, annotator = Claude (Opus 5.5), training-free",
+ "models": {
+  "29m_B_lr5e-4": {
+   "acceptable": 43,
+   "context_dependent_failing_rows": 11,
+   "counts": {
+    "incoherent": 48,
+    "instruction": 19,
+    "knowledge-absent": 50,
+    "other": 56,
+    "recall-anaphora-consistency": 5,
+    "truncation": 11
+   },
+   "counts_by_panel_category": {
+    "follow_up": {
+     "incoherent": 2,
+     "instruction": 0,
+     "knowledge-absent": 0,
+     "other": 1,
+     "recall-anaphora-consistency": 4,
+     "truncation": 0
+    },
+    "heldout_first_turn": {
+     "incoherent": 41,
+     "instruction": 16,
+     "knowledge-absent": 46,
+     "other": 51,
+     "recall-anaphora-consistency": 1,
+     "truncation": 11
+    },
+    "simple_instruction": {
+     "incoherent": 2,
+     "instruction": 2,
+     "knowledge-absent": 1,
+     "other": 2,
+     "recall-anaphora-consistency": 0,
+     "truncation": 0
+    },
+    "simple_question": {
+     "incoherent": 3,
+     "instruction": 1,
+     "knowledge-absent": 3,
+     "other": 0,
+     "recall-anaphora-consistency": 0,
+     "truncation": 0
+    },
+    "smalltalk": {
+     "incoherent": 0,
+     "instruction": 0,
+     "knowledge-absent": 0,
+     "other": 2,
+     "recall-anaphora-consistency": 0,
+     "truncation": 0
+    }
+   },
+   "counts_excluding_ill_posed": {
+    "incoherent": 36,
+    "instruction": 19,
+    "knowledge-absent": 50,
+    "other": 19,
+    "recall-anaphora-consistency": 5,
+    "truncation": 11
+   },
+   "failing_rows": 189,
+   "grader": "qwen2.5:7b",
+   "ill_posed_failing_rows": 49,
+   "labels_file_sha256": "b5ec12fdc4d3c0898ac970242615be3792cb281da25bbae515ba0ce763243619",
+   "model_dir": "chat-29m-B-lr5e-4-powered-7b",
+   "model_sha256": "d8a3c971ef07a82ca0db0704b34821e24782c7734baaafb504fd754f82988068",
+   "panel_rows": 232,
+   "parameters": 28958761,
+   "r_any_rows": [
+    "follow-02",
+    "follow-03",
+    "follow-06",
+    "follow-07",
+    "heldout-128"
+   ],
+   "recall_rows": [
+    "follow-02",
+    "follow-03",
+    "follow-06",
+    "follow-07",
+    "heldout-128"
+   ],
+   "recall_share_excluding_ill_posed": 0.0357,
+   "recall_share_wilson95": [
+    0.0114,
+    0.0604
+   ],
+   "recall_upper_bound_r_any": {
+    "rows": 5,
+    "share": 0.0265
+   },
+   "report_sha256": "72ab32a211c8d57cb20a429c1ccac4eacd794a686f35c6e9140545473fe259d4",
+   "shares": {
+    "incoherent": 0.254,
+    "instruction": 0.1005,
+    "knowledge-absent": 0.2646,
+    "other": 0.2963,
+    "recall-anaphora-consistency": 0.0265,
+    "truncation": 0.0582
+   }
+  },
+  "96m_C": {
+   "acceptable": 46,
+   "context_dependent_failing_rows": 14,
+   "counts": {
+    "incoherent": 26,
+    "instruction": 17,
+    "knowledge-absent": 65,
+    "other": 55,
+    "recall-anaphora-consistency": 4,
+    "truncation": 19
+   },
+   "counts_by_panel_category": {
+    "follow_up": {
+     "incoherent": 2,
+     "instruction": 0,
+     "knowledge-absent": 1,
+     "other": 1,
+     "recall-anaphora-consistency": 2,
+     "truncation": 1
+    },
+    "heldout_first_turn": {
+     "incoherent": 20,
+     "instruction": 14,
+     "knowledge-absent": 58,
+     "other": 50,
+     "recall-anaphora-consistency": 2,
+     "truncation": 18
+    },
+    "simple_instruction": {
+     "incoherent": 2,
+     "instruction": 2,
+     "knowledge-absent": 2,
+     "other": 1,
+     "recall-anaphora-consistency": 0,
+     "truncation": 0
+    },
+    "simple_question": {
+     "incoherent": 1,
+     "instruction": 1,
+     "knowledge-absent": 4,
+     "other": 0,
+     "recall-anaphora-consistency": 0,
+     "truncation": 0
+    },
+    "smalltalk": {
+     "incoherent": 1,
+     "instruction": 0,
+     "knowledge-absent": 0,
+     "other": 3,
+     "recall-anaphora-consistency": 0,
+     "truncation": 0
+    }
+   },
+   "counts_excluding_ill_posed": {
+    "incoherent": 19,
+    "instruction": 17,
+    "knowledge-absent": 65,
+    "other": 16,
+    "recall-anaphora-consistency": 3,
+    "truncation": 19
+   },
+   "failing_rows": 186,
+   "grader": "qwen2.5:7b",
+   "ill_posed_failing_rows": 47,
+   "labels_file_sha256": "bd782b2d5d712ebe2115d7efec3c5888e3fa6f2d5c0b64d504f9513aac66bc3b",
+   "model_dir": "chat-100m-C-powered-7b",
+   "model_sha256": "a746e1fc57ed9fa9f34136a272a3255880a4742d260f7aba4dcec53dc4e10df4",
+   "panel_rows": 232,
+   "parameters": 96023745,
+   "r_any_rows": [
+    "follow-03",
+    "follow-06",
+    "follow-07",
+    "heldout-083",
+    "heldout-128"
+   ],
+   "recall_rows": [
+    "follow-03",
+    "follow-06",
+    "heldout-083",
+    "heldout-128"
+   ],
+   "recall_share_excluding_ill_posed": 0.0216,
+   "recall_share_wilson95": [
+    0.0084,
+    0.054
+   ],
+   "recall_upper_bound_r_any": {
+    "rows": 5,
+    "share": 0.0269
+   },
+   "report_sha256": "3d5a2914a444905d041f510d1c7bdc700cb2ee1c674727fb4668600acadbccf6",
+   "shares": {
+    "incoherent": 0.1398,
+    "instruction": 0.0914,
+    "knowledge-absent": 0.3495,
+    "other": 0.2957,
+    "recall-anaphora-consistency": 0.0215,
+    "truncation": 0.1022
+   }
+  }
+ },
+ "precedence": "N > R > I > K > T > O",
+ "rubric_sha256": "5e458e5a97d071924034513ce00eaf74133d4e967731166d7ec1f7648ae365e7",
+ "schema": "uor-r4.step0a-panel-taxonomy/1",
+ "self_agreement": {
+  "caveat": "same annotator, same session; ids visible; a self-consistency check, not inter-rater reliability",
+  "chance_agreement": 0.2556,
+  "cohen_kappa": 0.9664,
+  "disagreements": [
+   [
+    "heldout-178",
+    "K",
+    "N"
+   ]
+  ],
+  "observed_agreement": 0.975,
+  "pass2_sha256": "5d0821db6aae4a9dc6f1a099fffbeffe53a6fef4f56c9be2b626374048e1bf6f",
+  "subset_ids_sha256": "38a4ac91221557caa8f067939581ad206885193f68676869a3f1918d3da808e0",
+  "subset_rows": 40,
+  "subset_seed": 20261005
+ },
+ "tabulator_sha256": "a7a16eb50669f4dcb9a956cb9a151f5b98da19eddce10404ff0611c9596ec705"
+}

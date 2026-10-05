@@ -1,0 +1,189 @@
+talk-05	O	0	0	0	answers greeting not sleep question
+talk-07	O	0	0	0	canned persona deflection
+ask-01	N	0	0	0	ungrammatical tautology
+ask-02	K	0	0	0	"a bee says buzz"
+ask-04	N	0	0	0	"... is Yum"
+ask-05	K	0	0	0	first aid kit, infections
+ask-06	N	0	0	0	"Roar! horse"
+ask-07	K	0	0	0	tautology
+ask-08	I	0	0	0	sympathy instead of advice
+do-01	O	0	0	0	canned persona deflection
+do-02	N	0	0	0	"rainy day, rainy day, or sunny day"
+do-03	O	0	0	0	valid sentence; grader false negative
+do-04	I	0	0	0	not a description
+do-05	I	0	0	0	not a kind message
+do-06	K	0	0	0	four items, repeated hat
+do-08	N	0	0	0	"dental tip"
+follow-01	N	1	0	0	turn-2 template mismatch; standalone-answerable
+follow-02	R	1	1	0	asks what "it" means; referent in turn 1
+follow-03	R	1	1	0	"make it longer" not applied to the story
+follow-05	O	1	0	0	canned reply; standalone-answerable
+follow-06	R	1	1	0	"why do you like it" without referent
+follow-07	R	1	1	0	lost toy treated as a shopping item
+follow-08	N	1	0	0	carries "mountains" but no answer
+heldout-000	N	0	0	0	confused first-person ramble
+heldout-001	K	0	0	0	circular
+heldout-003	N	0	0	0	circular loop
+heldout-004	N	0	0	0	"sculpture" repetition
+heldout-005	K	0	0	0	presentation tips not protagonists
+heldout-007	K	0	0	0	filler
+heldout-008	O	0	0	1	salutation fragment
+heldout-011	I	0	0	0	writes "sum" program; empty fence
+heldout-012	O	0	0	1	query missing
+heldout-013	O	0	0	1	[city] placeholder
+heldout-014	O	0	0	1	no equation given
+heldout-016	I	0	0	0	format-only; meta
+heldout-018	K	0	0	0	"RAM, and RAM"
+heldout-020	N	0	0	0	"species of species of"
+heldout-021	O	0	0	1	equation missing
+heldout-022	I	0	0	0	writes "sum" program
+heldout-023	O	0	0	1	citation fragment
+heldout-025	N	0	0	0	loop
+heldout-026	T	1	0	0	keywords started, cut
+heldout-027	K	0	0	0	wrong
+heldout-028	N	0	0	0	"lens of the universe" loop
+heldout-029	N	0	0	0	"art of art" loop
+heldout-032	T	0	0	0	roughly on track, cut
+heldout-033	K	0	0	0	vague significance
+heldout-034	O	0	0	1	news-lead fragment
+heldout-035	O	0	0	1	salutation fragment; letter continuation
+heldout-036	T	0	0	0	on track, cut
+heldout-037	O	0	0	1	article fragment; asks for text
+heldout-038	N	0	0	1	data missing; counting
+heldout-039	O	0	0	1	passage missing
+heldout-040	T	0	0	0	good, cut
+heldout-041	N	0	0	0	"CPU, the CPU"
+heldout-042	K	0	0	0	filler
+heldout-043	K	0	0	0	wrong formula
+heldout-044	I	0	0	0	offers to edit instead of answering
+heldout-045	N	0	0	0	loop
+heldout-046	O	0	0	1	salutation fragment
+heldout-048	N	0	0	0	"number of number"
+heldout-049	O	0	0	1	placeholders
+heldout-051	N	0	0	1	question missing; loop
+heldout-052	N	0	0	0	"I'm Ryan" repetition
+heldout-053	K	0	0	0	filler
+heldout-054	N	0	0	1	echo-repeat
+heldout-055	N	0	0	0	"Vincent Valley" loop
+heldout-056	O	0	0	1	salutation fragment
+heldout-057	K	0	0	0	restates
+heldout-058	N	0	0	0	loop
+heldout-060	N	0	0	0	"square root" loop
+heldout-062	K	0	0	0	vague
+heldout-063	O	0	0	1	code missing; empty fence
+heldout-064	I	0	0	0	code for lay audience
+heldout-065	I	0	0	0	narrative instead of plan
+heldout-066	O	0	0	1	salutation fragment
+heldout-067	N	0	0	1	passage missing; loop
+heldout-068	O	0	0	1	text fragment
+heldout-069	O	0	0	1	essay missing
+heldout-072	O	0	0	0	deflection asking for story name
+heldout-074	O	0	0	1	salutation fragment
+heldout-075	T	0	0	0	on track, cut
+heldout-076	K	0	0	0	disclaimer then weak start
+heldout-077	O	0	0	0	refusal
+heldout-078	N	0	0	1	"Dr. Patel's Dr. Patel"
+heldout-079	O	0	0	1	bio text missing
+heldout-080	O	0	0	1	[beverage] placeholder
+heldout-081	K	0	0	0	wrong
+heldout-084	N	0	0	0	line loop
+heldout-085	O	0	0	1	"this particular sport" missing context
+heldout-086	N	0	0	0	"lower risks" loop
+heldout-087	O	0	0	0	statement; disclaimer
+heldout-088	I	0	0	0	asks back instead of ideas
+heldout-089	K	0	0	0	wrong
+heldout-091	O	0	0	1	salutation fragment
+heldout-093	K	0	0	0	disclaimer then garbled steps
+heldout-094	K	0	0	0	disclaimer then filler
+heldout-095	N	0	0	1	code missing; loop
+heldout-096	N	0	0	0	loop
+heldout-097	N	0	0	0	speaker confusion
+heldout-098	K	0	0	0	circular
+heldout-099	K	0	0	0	wrong
+heldout-101	N	0	0	0	loop
+heldout-103	K	0	0	0	lists integers
+heldout-104	T	0	0	0	good, cut
+heldout-105	O	0	0	1	source story missing
+heldout-106	K	0	0	0	wrong
+heldout-107	O	0	0	1	text missing
+heldout-108	K	0	0	0	filler
+heldout-109	N	0	0	0	"a attractive candidate for a attractive candidate"
+heldout-110	O	0	0	1	salutation fragment
+heldout-111	I	0	0	0	"Chef James" not a witch
+heldout-112	O	0	0	1	data missing
+heldout-113	K	0	0	0	wrong
+heldout-114	O	0	0	1	salutation fragment
+heldout-119	K	0	0	0	restates
+heldout-120	N	0	0	0	garbled list
+heldout-121	K	0	0	0	wrong-domain steps
+heldout-122	K	0	0	0	wrong
+heldout-123	O	0	0	0	deflection
+heldout-124	I	0	0	0	format-only; meta
+heldout-125	K	0	0	0	wrong
+heldout-126	I	0	0	0	output not C code
+heldout-128	R	1	1	0	quotes part of supplied text then rambles
+heldout-129	O	0	0	1	numbered-list fragment
+heldout-130	N	0	0	0	echoes question only
+heldout-132	K	0	0	0	broken steps
+heldout-133	K	0	0	0	wrong-domain advice
+heldout-134	K	0	0	0	`sort`
+heldout-135	I	0	0	0	3 bullets not 4
+heldout-136	T	0	0	0	on track, cut
+heldout-137	O	0	0	1	unnamed book series
+heldout-138	K	0	0	0	filler
+heldout-139	I	0	0	0	format-only; meta
+heldout-140	N	0	0	1	statement fragment; "dress code"
+heldout-141	O	0	0	0	statement; disclaimer
+heldout-142	K	0	0	0	filler
+heldout-143	K	0	0	0	wrong
+heldout-145	K	0	0	0	wrong
+heldout-146	N	0	0	0	repetition
+heldout-147	N	0	0	1	argument missing; loop
+heldout-148	K	0	0	0	vague
+heldout-149	N	0	0	0	loop
+heldout-150	I	0	0	0	format-only; meta
+heldout-151	K	1	0	0	wrong
+heldout-152	O	0	0	0	canned reply
+heldout-153	K	0	0	0	vague
+heldout-154	O	0	0	1	text missing
+heldout-155	O	0	0	0	empty code fence
+heldout-156	N	0	0	1	"recent recent recent"
+heldout-157	K	0	0	0	no restaurants named
+heldout-158	K	0	0	0	filler
+heldout-159	K	0	0	0	disclaimer then start
+heldout-160	O	0	0	0	refusal
+heldout-161	N	0	0	0	ungrammatical repetition
+heldout-162	O	0	0	1	"your supplies" undefined
+heldout-163	O	0	0	1	salutation fragment
+heldout-164	N	0	0	0	ungrammatical
+heldout-165	K	0	0	0	filler
+heldout-167	N	0	0	0	loop
+heldout-169	K	0	0	0	nonsense steps
+heldout-170	O	0	0	0	refusal
+heldout-171	O	0	0	0	refusal
+heldout-172	O	0	0	0	empty code fence
+heldout-173	O	0	0	0	canned persona deflection
+heldout-174	T	1	0	0	keywords used, cut
+heldout-175	N	0	0	0	nonsense numbers
+heldout-176	O	0	0	0	3 bullets as asked; grader false negative
+heldout-177	I	0	0	0	letter instead of story
+heldout-178	N	0	0	0	ungrammatical
+heldout-179	N	0	0	1	"the Dr. Turner's reaction to the Dr. Turner"
+heldout-180	I	0	0	0	format-only; meta
+heldout-181	O	0	0	1	bullet fragment
+heldout-182	O	0	0	1	placeholders; good bullets
+heldout-183	T	0	0	0	good, cut
+heldout-184	T	0	0	0	on track, cut
+heldout-186	K	0	0	0	empty code
+heldout-187	K	0	0	0	wrong
+heldout-188	K	0	0	0	wrong
+heldout-189	O	0	0	1	salutation fragment
+heldout-190	N	0	0	1	introduction missing; loop
+heldout-191	N	0	0	1	essay missing; loop
+heldout-193	I	0	0	0	ignores astronaut role
+heldout-194	K	0	0	0	wrong
+heldout-195	O	0	0	0	title + short prose; grader false negative
+heldout-196	O	0	0	1	salutation fragment
+heldout-197	K	0	0	0	weak, cut
+heldout-198	T	0	0	0	on track, cut
+heldout-199	O	0	0	1	fragment
