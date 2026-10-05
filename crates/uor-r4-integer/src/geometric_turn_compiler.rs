@@ -18,6 +18,7 @@ pub enum TurnHeadError {
     InvalidPartition,
     ScoreOverflow,
     NotBinary,
+    TooManyRows(usize),
 }
 impl fmt::Display for TurnHeadError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -117,6 +118,47 @@ impl NativeTurnHead {
         }
         Ok(scores)
     }
+    /// One masked row; absent slots contribute nothing, including identity bins.
+    pub fn scores_masked(&self, features: &[Option<u8>]) -> TurnHeadResult<Vec<i64>> {
+        self.scores_rows(&[features.to_vec()])
+    }
+    /// Sum actual ordered rows, applying each class bias exactly once.
+    /// Empty rows permit bias-only scoring; at most 64 words are supported.
+    pub fn scores_rows(&self, rows: &[Vec<Option<u8>>]) -> TurnHeadResult<Vec<i64>> {
+        if rows.len() > 64 {
+            return Err(TurnHeadError::TooManyRows(rows.len()));
+        }
+        for row in rows {
+            if row.len() != self.config.slots {
+                return Err(TurnHeadError::FeatureCount {
+                    expected: self.config.slots,
+                    actual: row.len(),
+                });
+            }
+            for (slot, root) in row.iter().enumerate() {
+                if let Some(root) = root {
+                    if usize::from(*root) >= ROOT_COUNT {
+                        return Err(TurnHeadError::InvalidRoot { slot, root: *root });
+                    }
+                }
+            }
+        }
+        let mut scores = Vec::with_capacity(self.classes.len());
+        for class in &self.classes {
+            let mut score = i64::from(class.bias);
+            for row in rows {
+                for (table, root) in class.slots.iter().zip(row) {
+                    if let Some(root) = root {
+                        score = score
+                            .checked_add(i64::from(table[usize::from(*root)]))
+                            .ok_or(TurnHeadError::ScoreOverflow)?;
+                    }
+                }
+            }
+            scores.push(score);
+        }
+        Ok(scores)
+    }
     /// Lower class index wins exact ties, matching the declared label order.
     pub fn predict(&self, features: &[u8]) -> TurnHeadResult<usize> {
         let scores = self.scores(features)?;
@@ -161,6 +203,10 @@ mod tests {
         q[other + 1 + 120 + 1] = -4;
         let head = NativeTurnHead::new(cfg, &pack_coefficients(&q)?)?;
         assert_eq!(head.scores(&[119, 1])?, vec![-1, 1]);
+        assert_eq!(
+            head.scores_rows(&[vec![Some(119), Some(1)]])?,
+            head.scores(&[119, 1])?
+        );
         assert_eq!(head.binary_margin(&[119, 1])?, 2);
         assert_eq!(head.predict(&[119, 1])?, 1);
         let zero =
@@ -215,6 +261,26 @@ mod tests {
         let last = padded.len() - 1;
         padded[last] |= 0x10;
         assert!(NativeTurnHead::new(nonbinary, &padded).is_err());
+        Ok(())
+    }
+    #[test]
+    fn masked_aggregate_bias_once_repeats_and_absence() -> Result<(), Box<dyn std::error::Error>> {
+        let config = TurnHeadConfig {
+            classes: 2,
+            slots: 2,
+        };
+        let mut q = vec![0; config.coefficient_count()?];
+        q[0] = 3;
+        q[1 + 1] = 2;
+        q[1 + 120 + 1] = 7;
+        let head = NativeTurnHead::new(config, &pack_coefficients(&q)?)?;
+        let rows = vec![vec![Some(1), None], vec![Some(1), None]];
+        assert_eq!(head.scores_rows(&rows)?, vec![7, 0]);
+        assert_eq!(head.scores_masked(&[None, None])?, vec![3, 0]);
+        assert_eq!(head.scores_masked(&[None, Some(1)])?, vec![10, 0]);
+        assert!(head.scores_rows(&vec![vec![None, None]; 65]).is_err());
+        assert!(head.scores_masked(&[Some(120), None]).is_err());
+        assert!(head.scores_masked(&[None]).is_err());
         Ok(())
     }
 }

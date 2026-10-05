@@ -16,7 +16,7 @@ use uor_r4_core::{
 use uor_r4_integer::geometric_source_realizer::{NativeArtifactBinding, NativeSourceRealizer};
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::{
-    geometric_turn_compiler::{fit_examples, FitConfig, NativeTurnCompiler},
+    geometric_turn_compiler::{fit_examples, FeatureMode, FitConfig, NativeTurnCompiler},
     relation_compiler::{Example, NONE},
     sha256_bytes,
     stack_grounded_session::{
@@ -43,6 +43,10 @@ struct Args {
     prefix: PathBuf,
     end: PathBuf,
     audit_artifacts: Option<PathBuf>,
+    feature_mode: FeatureMode,
+    seed: Option<u64>,
+    fresh_split: String,
+    compact_trace: bool,
 }
 fn args() -> Result<Args> {
     let mut flags = BTreeMap::new();
@@ -70,6 +74,34 @@ fn args() -> Result<Args> {
     let (cue, prefix, end) = (get("--cue")?, get("--prefix")?, get("--source-end")?);
     let binding_sha = flags.remove("--binding-sha");
     let audit_artifacts = flags.remove("--audit-artifacts").map(PathBuf::from);
+    let feature_mode = match flags.remove("--feature-mode").as_deref() {
+        None | Some("endpoint") => FeatureMode::Endpoint,
+        Some("local-relative") => FeatureMode::LocalRelative,
+        Some("local-product") => FeatureMode::LocalProduct,
+        _ => return Err(fail("unknown feature mode").into()),
+    };
+    let seed = flags
+        .remove("--seed")
+        .map(|s| s.parse::<u64>())
+        .transpose()?;
+    let fresh_split = match flags.remove("--fresh-profile").as_deref() {
+        None | Some("legacy") => "fresh",
+        Some("local-1") => "fresh-local-1",
+        _ => return Err(fail("unknown fresh profile").into()),
+    }
+    .to_owned();
+    let compact_trace = flags
+        .remove("--compact-trace")
+        .map(|s| s.parse::<bool>())
+        .transpose()?
+        .unwrap_or(false);
+    if audit_artifacts.is_some()
+        && (feature_mode != FeatureMode::Endpoint || seed.is_some() || fresh_split != "fresh")
+    {
+        return Err(
+            fail("legacy checkpoint audit does not accept fit mode/seed/fresh overrides").into(),
+        );
+    }
     if !flags.is_empty() {
         return Err(fail("unknown arguments").into());
     }
@@ -83,6 +115,10 @@ fn args() -> Result<Args> {
         prefix,
         end,
         audit_artifacts,
+        feature_mode,
+        seed,
+        fresh_split,
+        compact_trace,
     })
 }
 fn example(relation: &str, act: &'static str, template: &str, value: &str) -> Example {
@@ -145,6 +181,15 @@ fn pools(
             vec![
                 "Can you recall the saved {r}?",
                 "What did I give as my {r}?",
+            ],
+        ),
+        "fresh-local-1" => (
+            vec!["Velorin", "Nareth Cove", "Tarnbridge", "Opal Terrace"],
+            vec!["For my {r}, please save {v}.", "My recorded {r} is {v}."],
+            vec!["Please update my {r} to {v}.", "My {r} has changed to {v}."],
+            vec![
+                "Please tell me the {r} I saved.",
+                "What is the current value of my {r}?",
             ],
         ),
         _ => (
@@ -214,6 +259,16 @@ fn panel(split: &str) -> Vec<Example> {
             "The sunset was bright.",
             "Thank you very much.",
         ],
+        "fresh-local-1" => vec![
+            "I enjoy quiet mornings.",
+            "A job title can change.",
+            "Many people share a home.",
+            "The clouds moved slowly.",
+            "Thanks for explaining that.",
+            "There are several ways to think.",
+            "I am reading a long novel.",
+            "We can talk about another idea.",
+        ],
         _ => vec![
             "We can discuss ideas.",
             "A quiet walk is pleasant.",
@@ -237,6 +292,47 @@ fn panel(split: &str) -> Vec<Example> {
 }
 fn input_rows(rows: &[Example]) -> Value {
     json!(rows.iter().map(|e|json!({"text":e.text,"relation":e.relation,"act":e.act,"template":e.template,"gold_span":e.slot_span()})).collect::<Vec<_>>())
+}
+fn verify_prospective_panel(rows: &[Example]) -> Result<()> {
+    let mut exposed = std::collections::BTreeSet::new();
+    let mut exposed_values = std::collections::BTreeSet::new();
+    for split in ["training", "development", "fresh"] {
+        for row in panel(split) {
+            exposed.insert(row.text);
+        }
+        exposed_values.extend(pools(split).0);
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    if rows
+        .iter()
+        .any(|row| exposed.contains(&row.text) || !seen.insert(row.text.clone()))
+        || pools("fresh-local-1")
+            .0
+            .iter()
+            .any(|value| exposed_values.contains(value))
+    {
+        return Err(
+            fail("prospective source rows or values overlap legacy compiler panels").into(),
+        );
+    }
+    Ok(())
+}
+fn repeated_value_panel() -> Vec<Example> {
+    let (_, asserts, updates, _) = pools("training");
+    let mut rows = Vec::new();
+    for relation in ["job", "home"] {
+        for (act, frame) in [("assert", asserts[0]), ("update", updates[0])] {
+            for value in ["engineer engineer", "green valley green valley"] {
+                rows.push(example(
+                    relation,
+                    act,
+                    &frame.replace("{r}", relation),
+                    value,
+                ));
+            }
+        }
+    }
+    rows
 }
 fn action_fields(action: &CompiledAction) -> (&str, Option<u32>, Option<SourceSpan>) {
     match action {
@@ -306,11 +402,39 @@ fn evaluate(compiler: &dyn TurnCompiler, rows: &[Example]) -> Result<Value> {
         json!({"rows":records,"examples":rows.len(),"act_correct":act_correct,"relation_correct":relation_correct,"span_exact":span_correct,"complete_exact":exact,"prose_rows":prose,"prose_false_writes":false_writes,"write_rows":writes,"write_complete_exact":write_exact,"write_act_correct":write_act,"write_relation_correct":write_relation,"write_span_exact":write_span,"query_rows":queries,"query_complete_exact":query_exact}),
     )
 }
+fn compact_generation(output: &mut Value) -> Result<()> {
+    let tokens = output["tokens"]
+        .as_array_mut()
+        .ok_or_else(|| fail("reader lacks token traces"))?;
+    for token in tokens {
+        let native = &token["native"];
+        let bank = &native["prefix_bank"]["cue_bank"]["bank"];
+        let end = &native["source_end"];
+        let compact = json!({
+            "actions":native["actions"],
+            "bank_binding_sha256":bank["bank_binding_sha256"],
+            "segments":bank["segments"],"candidates":bank["candidates"],
+            "context":bank["context"],
+            "cue_angular_indices":native["prefix_bank"]["cue_bank"]["carrier"]["angular_indices"],
+            "prefix_relative_roots":native["prefix_bank"]["prefix"]["relative_roots"],
+            "source_end":{"selected_bank_index":end["selected_bank_index"],"selected_source_index":end["selected_source_index"],"angular_indices":end["angular_indices"],"relative_roots":end["relative_roots"],"period_q24":end["period_q24"],"stop_q24":end["stop_q24"],"factual_joint_copy_q24":end["factual_joint_copy_q24"]}
+        });
+        if compact["actions"]["chosen_token_id"].is_null() || compact["segments"].is_null() {
+            return Err(
+                fail("compact trace would lose authoritative actions or source identity").into(),
+            );
+        }
+        token["native"] = compact;
+    }
+    output["trace_scope"] = json!("authoritative final actions/aliases, actual own-prefix, admitted source/occurrence identities and selected geometry indices; duplicated sidecar metadata omitted; donor identities bound once in report");
+    Ok(())
+}
 fn store_episodes(
     compiler: &dyn TurnCompiler,
     tokenizer: &ByteBpeTokenizer,
     native: &NativeSourceRealizer,
     split: &str,
+    artifact_prefix: &str,
     a: &Args,
 ) -> Result<Value> {
     let (values, asserts, updates, queries) = pools(split);
@@ -386,8 +510,9 @@ fn store_episodes(
                     let bytes = store.to_bytes()?;
                     let history = store.history_sha256()?;
                     fs::write(
-                        a.output
-                            .join(format!("{split}-episode-{episode}-step-{index}-store.bin")),
+                        a.output.join(format!(
+                            "{artifact_prefix}-{split}-episode-{episode}-step-{index}-store.bin"
+                        )),
                         &bytes,
                     )?;
                     store = StackStore::from_bytes(&bytes, 100 + episode as u64)?;
@@ -472,6 +597,9 @@ fn store_episodes(
                             &owned,
                             32,
                         )?;
+                        if a.compact_trace {
+                            compact_generation(&mut output)?;
+                        }
                         let ids: Vec<u32> =
                             serde_json::from_value(output["generated_ids_including_eos"].clone())?;
                         let eos = output["eos"] == true;
@@ -518,7 +646,14 @@ fn store_episodes(
 }
 fn run(a: &Args) -> Result<()> {
     let started = Instant::now();
-    let (training, development, fresh) = (panel("training"), panel("development"), panel("fresh"));
+    let (training, development, fresh) = (
+        panel("training"),
+        panel("development"),
+        panel(&a.fresh_split),
+    );
+    if a.fresh_split == "fresh-local-1" {
+        verify_prospective_panel(&fresh)?;
+    }
     if training.len() > 512 || development.len() > 128 || fresh.len() > 64 {
         return Err(fail("panel cap exceeded").into());
     }
@@ -528,8 +663,14 @@ fn run(a: &Args) -> Result<()> {
         max_tokens: 128,
         max_words: 64,
         max_value_words: 8,
+        feature_mode: a.feature_mode,
+        seed: a.seed,
     };
-    let inputs = json!({"schema":"native-turn-frozen-inputs/1","training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"config":config,"limitations":"authored supervised panels;no general-language qualification"});
+    let panel_bytes = serde_json::to_vec(
+        &json!({"training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh)}),
+    )?;
+    let panel_sha = sha256_bytes(&panel_bytes);
+    let inputs = json!({"schema":"native-turn-frozen-inputs/1","training":input_rows(&training),"development":input_rows(&development),"fresh":input_rows(&fresh),"config":config,"panel_sha256":panel_sha,"fresh_profile":a.fresh_split,"fresh_exclusions":"local-1 excludes exact source rows and literal values from legacy compiler training/development/fresh;no claim of exclusion from every historical encoder corpus","limitations":"authored supervised panels;three seeded readouts on one frozen carrier are not independent encoder or architecture replications"});
     let input_bytes = serde_json::to_vec_pretty(&inputs)?;
     fs::write(a.output.join("frozen-inputs.json"), &input_bytes)?;
     let binding_bytes = fs::read(&a.binding)?;
@@ -587,13 +728,41 @@ fn run(a: &Args) -> Result<()> {
         &tokenizer,
         &tokenizer_bytes,
     )?;
+    let mut factors = Vec::new();
+    for checkpoint in &fit.checkpoint_artifacts {
+        let c = NativeTurnCompiler::load(
+            &checkpoint.native_artifact,
+            &sha256_bytes(&checkpoint.native_artifact),
+            &native,
+            &tokenizer,
+            &tokenizer_bytes,
+        )?;
+        factors.push(json!({"step":checkpoint.step,"artifact_sha256":sha256_bytes(&checkpoint.native_artifact),"training":evaluate(&c,&training)?,"development":evaluate(&c,&development)?,"known_phrasing_new_values":evaluate(&c,&panel_cross("training","development"))?,"new_phrasing_known_values":evaluate(&c,&panel_cross("development","training"))?,"repeated_values":evaluate(&c,&repeated_value_panel())?}));
+    }
+    write_json(
+        &a.output.join("checkpoint-factor-panels.json"),
+        &json!(factors),
+    )?;
     let dev = evaluate(&compiler, &development)?;
     let fresh_eval = evaluate(&compiler, &fresh)?;
-    let dev_store = store_episodes(&compiler, &tokenizer, &native, "development", &a)?;
-    let fresh_store = store_episodes(&compiler, &tokenizer, &native, "fresh", &a)?;
+    let dev_store = store_episodes(&compiler, &tokenizer, &native, "development", "learned", &a)?;
+    let fresh_store = store_episodes(
+        &compiler,
+        &tokenizer,
+        &native,
+        &a.fresh_split,
+        "learned",
+        &a,
+    )?;
+    let reference = ReferenceRule::new_with_splits(
+        &tokenizer_sha,
+        &["training", "development", &a.fresh_split],
+    )?;
+    let positive = json!({"label":"authored exact-template instrumentation control;not learned model or serving fallback","identity":reference.identity(),"training":evaluate(&reference,&training)?,"development":evaluate(&reference,&development)?,"fresh":evaluate(&reference,&fresh)?});
+    let donor_identities = json!({"cue":serde_json::from_slice::<Value>(&fs::read(a.cue.join("native-metadata.json"))?)?,"prefix":serde_json::from_slice::<Value>(&fs::read(a.prefix.join("native-metadata.json"))?)?,"source_end":serde_json::from_slice::<Value>(&fs::read(a.end.join("native-metadata.json"))?)?});
     write_json(
         &a.output.join("report.json"),
-        &json!({"schema":"geometric-native-compiler-report/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"host":std::env::consts::ARCH,"elapsed_seconds":started.elapsed().as_secs_f64(),"binding_receipt_sha256":binding_sha,"tokenizer_sha256":tokenizer_sha,"binding_trust":if a.binding_sha.is_some(){"explicit-pinned-sha"}else{"caller-supplied-trusted-receipt"},"frozen_inputs_sha256":sha256_bytes(&input_bytes),"selected_step":fit.selected_step,"selected_artifact_sha256":selected_sha,"compiler_identity":compiler.identity(),"checkpoints":fit.checkpoints,"diagnostics":fit.diagnostics,"development":dev,"fresh":fresh_eval,"development_store":dev_store,"fresh_store":fresh_store,"geometric_reader_available":"selected-record-and-all-bank","native_reader_calls":dev_store["native_reader_calls"].as_u64().unwrap_or(0)+fresh_store["native_reader_calls"].as_u64().unwrap_or(0),"native_emission_status":if dev_store["native_reader_calls"]==0 && fresh_store["native_reader_calls"]==0 {"NOT_RUN"}else{"executed"},"claims":"authored native compiler/store/reader episodes;encoder frozen;authored panels;no general prose/reasoning/energy qualification"}),
+        &json!({"schema":"geometric-native-compiler-report/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"host":std::env::consts::ARCH,"elapsed_seconds":started.elapsed().as_secs_f64(),"binding_receipt_sha256":binding_sha,"tokenizer_sha256":tokenizer_sha,"binding_trust":if a.binding_sha.is_some(){"explicit-pinned-sha"}else{"caller-supplied-trusted-receipt"},"frozen_inputs_sha256":sha256_bytes(&input_bytes),"feature_mode":a.feature_mode,"learning_seed":a.seed,"seed_scope":"one frozen learned encoder;independent initialized Q4 readouts only","panel_sha256":panel_sha,"fresh_profile":a.fresh_split,"compact_trace":a.compact_trace,"instrument_positive_control":positive,"reader_donors":donor_identities,"transport_cost":"local-relative inverse+compose two group table operations per present lane;local-product compose one;same information/slots,not identical group-operation count","selected_step":fit.selected_step,"selected_artifact_sha256":selected_sha,"compiler_identity":compiler.identity(),"checkpoints":fit.checkpoints,"diagnostics":fit.diagnostics,"development":dev,"fresh":fresh_eval,"development_store":dev_store,"fresh_store":fresh_store,"geometric_reader_available":"selected-record-and-all-bank","native_reader_calls":dev_store["native_reader_calls"].as_u64().unwrap_or(0)+fresh_store["native_reader_calls"].as_u64().unwrap_or(0),"native_emission_status":if dev_store["native_reader_calls"]==0 && fresh_store["native_reader_calls"]==0 {"NOT_RUN"}else{"executed"},"claims":"authored native compiler/store/reader episodes;encoder frozen;authored panels;no general prose/reasoning/energy qualification"}),
     )?;
     report_output::seal(&a.output)?;
     report_output::verify(&a.output)?;
@@ -610,10 +779,13 @@ struct ReferenceRule {
 }
 impl ReferenceRule {
     fn new(tokenizer_sha: &str) -> Result<Self> {
+        Self::new_with_splits(tokenizer_sha, &["training", "development"])
+    }
+    fn new_with_splits(tokenizer_sha: &str, splits: &[&str]) -> Result<Self> {
         let mut writes = Vec::new();
         let mut queries = Vec::new();
         for update in [true, false] {
-            for split in ["training", "development"] {
+            for split in splits {
                 let (_, asserts, updates, qs) = pools(split);
                 for (id, rel) in [(1, "job"), (2, "home")] {
                     for frame in if update { &updates } else { &asserts } {
@@ -817,7 +989,7 @@ fn audit(
     for (name, rows) in &panels {
         control_panels.insert((*name).into(), evaluate(&control, rows)?);
     }
-    let control_store = store_episodes(&control, tokenizer, native, "development", a)?;
+    let control_store = store_episodes(&control, tokenizer, native, "development", "control", a)?;
     write_json(
         &a.output.join("report.json"),
         &json!({"schema":"native-compiler-zero-update-audit/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"parent_fit":root,"parent_report_sha256":sha256_bytes(&parent_report_bytes),"parent_manifest_sha256":parent_manifest_sha,"checkpoint_step_hashes_matched_parent":true,"fitted_input_rows_exactly_matched":true,"updates":0,"selection_changes":false,"fresh_used_for_design":false,"checkpoint_panels":results,"positive_control":{"label":"exact-template instrumentation control;not a learned language result","identity":control.identity(),"panels":control_panels,"store_reader":control_store},"original_report_erratum":"Fit-1 made zero store writes, reads and native reader calls. Mechanism-available strings in its sealed report did not mean execution; reader NOT_RUN. Original bytes retained.","scope":"candidate bound;one deterministic readout fit on one frozen carrier;not multi-seed architecture verdict"}),
@@ -886,6 +1058,22 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn prospective_local_panel_is_excluded_and_reference_solvable() -> Result<()> {
+        let rows = panel("fresh-local-1");
+        verify_prospective_panel(&rows)?;
+        assert_eq!(rows.len(), 44);
+        let control = ReferenceRule::new_with_splits(
+            &"0".repeat(64),
+            &["training", "development", "fresh-local-1"],
+        )?;
+        let report = evaluate(&control, &rows)?;
+        assert_eq!(report["complete_exact"], json!(44));
+        assert_eq!(report["write_complete_exact"], json!(32));
+        assert_eq!(report["prose_false_writes"], json!(0));
+        assert!(verify_prospective_panel(&panel("fresh")).is_err());
+        Ok(())
+    }
     #[test]
     fn exact_template_control_passes_the_same_action_span_instrument() -> Result<()> {
         let control = ReferenceRule::new(&"0".repeat(64))?;

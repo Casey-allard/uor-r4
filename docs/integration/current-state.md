@@ -1,5 +1,11 @@
 # Current UOR-R4 research state
 
+## Local H4 compiler learns training; joint transfer stays unresolved — October 5
+
+The [six-run local compiler](geometric-local-compiler-2026-10-05.md) now executes source-only current/predecessor/next-word H4 observations with masked additive Q4 heads. Relative and ordered-product arms each use three actual head seeds on the same frozen carrier. All six select initialized step0 by native development CE: exact writes0/32, actual store answers0/4 and native completions0/4 per development/fresh split. Erroneous query acts do make native calls; this is not an isolated reader-quality verdict. Retained step64 models fit152/152 actions and128/128 training writes, improve crossed new-value writes10–18/64 and new-wording writes26–42/64 over historical Endpoint1/64 and13/64, but joint development writes remain0–2/32. No consistent transport winner; old Endpoint differs in capacity/initialization. Preserve all checkpoints, false writes and boundaries.
+
+**Next:** keep the local mechanism and independently cross the existing153 job/home paraphrases with broader arbitrary values, balancing acts/roles and prospectively freezing unseen conjunctions. Do not reuse the helper unchanged: it cycles the old value pool. No unchanged-dose fit or retroactive step64 selection. Capture-register reuse is conditional on correct acts/starts with measured truncation; natural reader cue learning remains separate. Three integer/seven training/two driver tests, release and touched-file fmt pass; sourceabb20ef7, approved CPU-only Linux build860.733s/model13.421s, peak sampled4.015GB, owned8.0GiB. Full archive returned SHA/set identity; independent saved review and limitations in machine evidence. Same90min card/cumulative1,261,635,028ms. Shared session untouched; general chat, Generate/reasoning/full history and laptop energy remain unmet.
+
 ## Native compiler learns training but fails value transfer — October 5
 
 The [native compiler fit and zero-update audit](geometric-native-compiler-2026-10-05.md)
@@ -18,7 +24,7 @@ and consumer deployment-distribution transfer are separate blockers. Original
 retain authored cue/extracted-span assistance, as the [a–e audit](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5989197931)
 records. Preserve sealed originals and their execution-count erratum.
 
-**Next:** implement target-free ordered local occurrence/predecessor geometry
+**Historical next, now executed above:** implement target-free ordered local occurrence/predecessor geometry
 for act/relation and nearby source-frame observations for span, reusing existing
 compiler contracts and labelled paraphrases. No unchanged endpoint fit. Keep
 reader cue/query parity as a separate measured learning boundary; do not replace

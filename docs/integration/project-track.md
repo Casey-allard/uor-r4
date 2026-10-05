@@ -41,21 +41,22 @@ teacher text or a larger model needs a new causal case under the
 
 ### Current geometric attention experiment — October 4
 
-The [October5 native compiler/instrument audit](geometric-native-compiler-2026-10-05.md)
-advances the missing language interface and corrects its evaluation scope. The
-native head fits all152 training actions, but familiar-wording/new-value writes
-are1/64; another endpoint-only dose is not justified. The next compiler seam is
-ordered local word/predecessor geometry plus nearby source-frame span information,
-with exact occurrence identity and existing paraphrase knowledge retained. An
-authored compiler control proves actual store4/4 but native selected-record2/4
-and all-bank0/4, exposing a separate original-statement/query distribution gap.
-Preserve those distinct boundaries and useful reader parents. New fits need a
-same-instrument positive control, tokenizer/casing/gap/reply parity, actual
-retrieval-required inputs and complete/matched run admission. Three genuine
-learning seeds precede benchmark architecture verdicts; two independent chat
-lineages precede chat verdicts. Panel draw seeds and deterministic repeats do not
-meet that ladder. Supplied-record and authored-cue positives retain their original
-scopes, and no mechanism family is retired by this audit.
+The [native compiler audit](geometric-native-compiler-2026-10-05.md) and
+[six-run local H4 successor](geometric-local-compiler-2026-10-05.md) now execute.
+Local current/predecessor transport and source-frame span observations fit all
+training actions across three actual head seeds per arm, but baseline-inclusive
+native development selection retains initialization in every run. Retain the
+crossed value/wording improvements without selecting an unqualified checkpoint.
+Next independently cross existing paraphrases and arbitrary values across roles,
+frames and acts; freeze unseen conjunctions before learning. No unchanged-dose
+fit, geometry-family retirement or unconditional capture-register replacement.
+An authored compiler control proves the store instrument; original-statement/
+natural-query consumer transfer remains a separate boundary. Preserve actual
+predicted spans/addresses, exact occurrence identity and distinct selected-record
+versus all-bank admission. Three genuine learning seeds precede benchmark
+verdicts; two independent chat lineages precede chat verdicts. Panel draws or
+head seeds on one frozen carrier do not qualify whole-model chat. Current state
+owns exact results and remaining limitations.
 
 The [source-end geometric completion](geometric-source-end-2026-10-05.md) now executes with a bounded directed completion gain and all regressions retained. Current state owns its exact results. Preserve the directed64 research parent and prefix64 recovery; next use prospectively bounded native-accepted refinement of the learned geometric terminal field from measured phase margins, rather than repeating Adam or inventing missing endpoint information. Keep predecessor/value binding for wrong-Source errors and reuse/native-lower the existing learned relation/act/span compiler for the integrated exact-store→native-consumer path. Zero complete fresh query pairs prevents chat promotion; shared-session integration remains coordinated on #1552.
 

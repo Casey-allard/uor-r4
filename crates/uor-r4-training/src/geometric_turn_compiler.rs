@@ -13,15 +13,46 @@ use uor_r4_integer::{
     geometric_potential_q4::pack_coefficients,
     geometric_source_realizer::{NativeArtifactBinding, NativeSourceRealizer},
     geometric_turn_compiler::{NativeTurnHead, TurnHeadConfig},
-    h4_tables::{H4Code, TRUSTED_MATHEMATICAL_SHA256},
+    h4_tables::{H4Code, HistoricalH4Tables, TRUSTED_MATHEMATICAL_SHA256},
 };
 use uor_r4_tokenizer::ByteBpeTokenizer;
 
 pub const SCHEMA: &str = "uor-r4.native-geometric-turn-compiler/1";
 pub const FEATURE_POLICY: &str = "frozen-signed-H4;turn-final;word-local,inverse(turn)*word,inverse(prefix-before)*prefix-after;independent-original-slice-BPE/1";
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum FeatureMode {
+    #[default]
+    Endpoint,
+    LocalRelative,
+    LocalProduct,
+}
+impl FeatureMode {
+    fn policy(self) -> &'static str {
+        match self {Self::Endpoint=>FEATURE_POLICY,Self::LocalRelative=>"frozen-signed-H4;ordered-independent-word;current-previous-inverse(previous)*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1",Self::LocalProduct=>"frozen-signed-H4;ordered-independent-word;current-previous-previous*current;span-current-previous-next-transport;absent-masked;aggregate-bias-once/1"}
+    }
+    fn turn_slots(self, lanes: usize) -> usize {
+        if self == Self::Endpoint {
+            lanes
+        } else {
+            3 * lanes
+        }
+    }
+    fn span_slots(self, lanes: usize) -> usize {
+        if self == Self::Endpoint {
+            3 * lanes
+        } else {
+            4 * lanes
+        }
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct FitConfig {
+    #[serde(default)]
+    pub feature_mode: FeatureMode,
+    #[serde(default)]
+    pub seed: Option<u64>,
     pub steps: usize,
     pub learning_rate: f64,
     pub max_tokens: usize,
@@ -31,6 +62,8 @@ pub struct FitConfig {
 impl Default for FitConfig {
     fn default() -> Self {
         Self {
+            feature_mode: FeatureMode::Endpoint,
+            seed: None,
             steps: 64,
             learning_rate: 0.1,
             max_tokens: 128,
@@ -44,6 +77,12 @@ impl Default for FitConfig {
 struct Artifact {
     schema: String,
     feature_policy: String,
+    #[serde(default)]
+    feature_mode: FeatureMode,
+    #[serde(default)]
+    initialization_seed: Option<u64>,
+    #[serde(default)]
+    initialization_policy: Option<String>,
     parent: NativeArtifactBinding,
     algebra_sha256: String,
     relations: Vec<String>,
@@ -82,8 +121,8 @@ pub struct FitResult {
 }
 #[derive(Clone, Debug)]
 struct Features {
-    turn: Vec<u8>,
-    words: Vec<Vec<u8>>,
+    turn: Vec<Vec<Option<u8>>>,
+    words: Vec<Vec<Option<u8>>>,
     spans: Vec<SourceSpan>,
 }
 #[derive(Clone, Debug)]
@@ -138,34 +177,49 @@ fn features(
     source: &str,
     max_tokens: usize,
     max_words: usize,
+    mode: FeatureMode,
 ) -> Result<Features> {
-    let turn = encode(native, tokenizer, source, max_tokens)?;
+    // Whole-text token count is a bound only in local mode; its latent endpoint is unused.
+    let token_count = tokenizer.encode(source).len();
+    if token_count > max_tokens {
+        return Err(invalid("native compiler text exceeds token cap"));
+    }
     let spans = word_spans(source);
     if spans.len() > max_words {
         return Err(invalid("native compiler text exceeds word cap"));
     }
     let (_, geometry) = native.context_encoder_parts();
+    let locals: Vec<Vec<H4Code>> = spans
+        .iter()
+        .map(|span| encode(native, tokenizer, &source[span.start..span.end], max_tokens))
+        .collect::<Result<_>>()?;
     let mut words = Vec::with_capacity(spans.len());
-    for span in &spans {
-        let local = encode(native, tokenizer, &source[span.start..span.end], max_tokens)?;
-        let before = encode(native, tokenizer, &source[..span.start], max_tokens)?;
-        let after = encode(native, tokenizer, &source[..span.end], max_tokens)?;
-        let mut roots: Vec<u8> = local.iter().map(|c| c.index()).collect();
-        roots.extend(
-            turn.iter()
-                .zip(&local)
-                .map(|(a, b)| geometry.relative(*a, *b).index()),
-        );
-        roots.extend(
-            before
-                .iter()
-                .zip(&after)
-                .map(|(a, b)| geometry.relative(*a, *b).index()),
-        );
-        words.push(roots);
+    let mut rows = Vec::new();
+    if mode == FeatureMode::Endpoint {
+        let turn = encode(native, tokenizer, source, max_tokens)?;
+        rows.push(turn.iter().map(|c| Some(c.index())).collect());
+        for (span, local) in spans.iter().zip(&locals) {
+            let before = encode(native, tokenizer, &source[..span.start], max_tokens)?;
+            let after = encode(native, tokenizer, &source[..span.end], max_tokens)?;
+            let mut roots: Vec<Option<u8>> = local.iter().map(|c| Some(c.index())).collect();
+            roots.extend(
+                turn.iter()
+                    .zip(local)
+                    .map(|(a, b)| Some(geometry.relative(*a, *b).index())),
+            );
+            roots.extend(
+                before
+                    .iter()
+                    .zip(&after)
+                    .map(|(a, b)| Some(geometry.relative(*a, *b).index())),
+            );
+            words.push(roots);
+        }
+    } else {
+        (rows, words) = local_rows(&locals, geometry, mode)?;
     }
     Ok(Features {
-        turn: turn.iter().map(|c| c.index()).collect(),
+        turn: rows,
         words,
         spans: spans
             .iter()
@@ -176,6 +230,50 @@ fn features(
             .collect(),
     })
 }
+
+fn local_rows(
+    locals: &[Vec<H4Code>],
+    geometry: &HistoricalH4Tables,
+    mode: FeatureMode,
+) -> Result<(Vec<Vec<Option<u8>>>, Vec<Vec<Option<u8>>>)> {
+    if mode == FeatureMode::Endpoint || locals.len() > 64 {
+        return Err(invalid("invalid local feature row request"));
+    }
+    let lanes = locals.first().map_or(0, Vec::len);
+    if !locals.is_empty() && (!(1..=8).contains(&lanes) || locals.iter().any(|r| r.len() != lanes))
+    {
+        return Err(invalid("local feature lane shape mismatch"));
+    }
+    let mut rows = Vec::with_capacity(locals.len());
+    let mut words = Vec::with_capacity(locals.len());
+    for (index, current) in locals.iter().enumerate() {
+        let previous = index.checked_sub(1).and_then(|i| locals.get(i));
+        let next = locals.get(index + 1);
+        let current_roots: Vec<Option<u8>> = current.iter().map(|c| Some(c.index())).collect();
+        let previous_roots: Vec<Option<u8>> = (0..lanes)
+            .map(|lane| previous.map(|p| p[lane].index()))
+            .collect();
+        let transport: Vec<Option<u8>> = (0..lanes)
+            .map(|lane| {
+                previous.map(|p| match mode {
+                    FeatureMode::LocalRelative => geometry.relative(p[lane], current[lane]).index(),
+                    _ => geometry.compose(p[lane], current[lane]).index(),
+                })
+            })
+            .collect();
+        let mut row = current_roots.clone();
+        row.extend(&previous_roots);
+        row.extend(&transport);
+        rows.push(row);
+        let mut word = current_roots;
+        word.extend(previous_roots);
+        word.extend((0..lanes).map(|lane| next.map(|n| n[lane].index())));
+        word.extend(transport);
+        words.push(word);
+    }
+    Ok((rows, words))
+}
+
 fn config_valid(c: &FitConfig) -> Result<()> {
     if c.steps == 0
         || c.steps > 64
@@ -223,6 +321,7 @@ fn label_examples(
                 &e.text,
                 config.max_tokens,
                 config.max_words,
+                config.feature_mode,
             )?;
             if f.words.is_empty() {
                 return Err(invalid(
@@ -324,6 +423,7 @@ fn softmax_ce(scores: &[i64], target: usize) -> (f64, Vec<f64>) {
     p[target] -= 1.0;
     (loss, p)
 }
+#[cfg(test)]
 fn add_gradient(
     gradient: &mut [f64],
     config: TurnHeadConfig,
@@ -339,6 +439,64 @@ fn add_gradient(
             gradient[base + 1 + slot * 120 + usize::from(*root)] += error * weight;
         }
     }
+}
+fn add_gradient_rows(
+    gradient: &mut [f64],
+    config: TurnHeadConfig,
+    rows: &[Vec<Option<u8>>],
+    errors: &[f64],
+    weight: f64,
+) {
+    let stride = 1 + config.slots * 120;
+    for (class, error) in errors.iter().enumerate() {
+        let base = class * stride;
+        gradient[base] += error * weight;
+        for row in rows {
+            for (slot, root) in row.iter().enumerate() {
+                if let Some(root) = root {
+                    gradient[base + 1 + slot * 120 + usize::from(*root)] += error * weight;
+                }
+            }
+        }
+    }
+}
+fn seeded_weights(shapes: &[TurnHeadConfig], seed: Option<u64>) -> Result<Vec<Vec<f64>>> {
+    let mut state = seed.unwrap_or(0);
+    shapes
+        .iter()
+        .map(|s| {
+            let n = s.coefficient_count().map_err(|e| invalid(e.to_string()))?;
+            Ok((0..n)
+                .map(|_| {
+                    if seed.is_none() {
+                        0.0
+                    } else {
+                        state = state.wrapping_add(0x9e3779b97f4a7c15);
+                        let mut z = state;
+                        z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+                        z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+                        z ^= z >> 31;
+                        match z % 3 {
+                            0 => -0.25,
+                            1 => 0.0,
+                            _ => 0.25,
+                        }
+                    }
+                })
+                .collect())
+        })
+        .collect()
+}
+fn aggregate_signature(rows: &[Vec<Option<u8>>], slots: usize) -> Vec<usize> {
+    let mut counts = vec![0; slots * 120];
+    for row in rows {
+        for (slot, root) in row.iter().enumerate() {
+            if let Some(root) = root {
+                counts[slot * 120 + usize::from(*root)] += 1;
+            }
+        }
+    }
+    counts
 }
 fn selected_span(
     scores: &[Vec<i64>],
@@ -400,8 +558,17 @@ impl<'a> NativeTurnCompiler<'a> {
         let artifact: Artifact = serde_json::from_slice(bytes)?;
         relation_valid(&artifact.relations)?;
         let lanes = native.context_config().heads * native.context_config().lanes_per_head;
+        if artifact.initialization_policy.as_deref().is_some_and(|p| {
+            p != if artifact.initialization_seed.is_some() {
+                "splitmix64-three-point-quarter-Q4[-1,0,1]/1"
+            } else {
+                "zero/1"
+            }
+        }) {
+            return Err(invalid("compiler initialization identity mismatch"));
+        }
         if artifact.schema != SCHEMA
-            || artifact.feature_policy != FEATURE_POLICY
+            || artifact.feature_policy != artifact.feature_mode.policy()
             || artifact.parent != *native.artifact_binding()
             || artifact.lanes != lanes
             || artifact.algebra_sha256 != TRUSTED_MATHEMATICAL_SHA256.unwrap_or("")
@@ -415,15 +582,24 @@ impl<'a> NativeTurnCompiler<'a> {
         {
             return Err(invalid("compiler binding or feature caps mismatch"));
         }
-        let act = NativeTurnHead::new(shape(4, lanes), &artifact.act_packed)
-            .map_err(|e| invalid(e.to_string()))?;
+        let act = NativeTurnHead::new(
+            shape(4, artifact.feature_mode.turn_slots(lanes)),
+            &artifact.act_packed,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
         let relation = NativeTurnHead::new(
-            shape(artifact.relations.len() + 1, lanes),
+            shape(
+                artifact.relations.len() + 1,
+                artifact.feature_mode.turn_slots(lanes),
+            ),
             &artifact.relation_packed,
         )
         .map_err(|e| invalid(e.to_string()))?;
-        let span = NativeTurnHead::new(shape(2, 3 * lanes), &artifact.span_packed)
-            .map_err(|e| invalid(e.to_string()))?;
+        let span = NativeTurnHead::new(
+            shape(2, artifact.feature_mode.span_slots(lanes)),
+            &artifact.span_packed,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
         let identity = CompilerIdentity {
             schema: SCHEMA.into(),
             artifact_sha256: trusted_sha.into(),
@@ -462,17 +638,18 @@ impl<'a> NativeTurnCompiler<'a> {
             source,
             self.artifact.max_tokens,
             self.artifact.max_words,
+            self.artifact.feature_mode,
         )?;
         let act = argmax(
             &self
                 .act
-                .scores(&f.turn)
+                .scores_rows(&f.turn)
                 .map_err(|e| invalid(e.to_string()))?,
         );
         let relation = argmax(
             &self
                 .relation
-                .scores(&f.turn)
+                .scores_rows(&f.turn)
                 .map_err(|e| invalid(e.to_string()))?,
         );
         if act == 3 || relation == self.artifact.relations.len() {
@@ -487,7 +664,11 @@ impl<'a> NativeTurnCompiler<'a> {
         let scores: Vec<Vec<i64>> = f
             .words
             .iter()
-            .map(|w| self.span.scores(w).map_err(|e| invalid(e.to_string())))
+            .map(|w| {
+                self.span
+                    .scores_masked(w)
+                    .map_err(|e| invalid(e.to_string()))
+            })
             .collect::<Result<_>>()?;
         let Some(span) = selected_span(&scores, &f.spans, self.artifact.max_value_words) else {
             return Ok(CompiledAction::Unresolved {
@@ -535,20 +716,13 @@ pub fn fit_examples(
     let dev = label_examples(native, tokenizer, relations, development, &config)?;
     let lanes = native.context_config().heads * native.context_config().lanes_per_head;
     let shapes = [
-        shape(4, lanes),
-        shape(relations.len() + 1, lanes),
-        shape(2, 3 * lanes),
+        shape(4, config.feature_mode.turn_slots(lanes)),
+        shape(relations.len() + 1, config.feature_mode.turn_slots(lanes)),
+        shape(2, config.feature_mode.span_slots(lanes)),
     ];
-    let mut weights: Vec<Vec<f64>> = shapes
-        .iter()
-        .map(|s| {
-            s.coefficient_count()
-                .map(|n| vec![0.0; n])
-                .map_err(|e| invalid(e.to_string()))
-        })
-        .collect::<Result<_>>()?;
-    let mut m = weights.clone();
-    let mut v = weights.clone();
+    let mut weights = seeded_weights(&shapes, config.seed)?;
+    let mut m: Vec<Vec<f64>> = weights.iter().map(|w| vec![0.0; w.len()]).collect();
+    let mut v = m.clone();
     let mut checkpoints = Vec::new();
     let mut checkpoint_artifacts = Vec::new();
     let mut gradient_norms = Vec::new();
@@ -563,7 +737,17 @@ pub fn fit_examples(
         if step == 0 || step % 16 == 0 || step == config.steps {
             let artifact = Artifact {
                 schema: SCHEMA.into(),
-                feature_policy: FEATURE_POLICY.into(),
+                feature_policy: config.feature_mode.policy().into(),
+                feature_mode: config.feature_mode,
+                initialization_seed: config.seed,
+                initialization_policy: Some(
+                    if config.seed.is_some() {
+                        "splitmix64-three-point-quarter-Q4[-1,0,1]/1"
+                    } else {
+                        "zero/1"
+                    }
+                    .into(),
+                ),
                 parent: native.artifact_binding().clone(),
                 algebra_sha256: TRUSTED_MATHEMATICAL_SHA256
                     .ok_or_else(|| invalid("canonical H4 digest absent"))?
@@ -582,17 +766,19 @@ pub fn fit_examples(
             let (mut act_correct, mut relation_correct, mut span_exact) = (0, 0, 0);
             for row in &dev {
                 let a = heads[0]
-                    .scores(&row.features.turn)
+                    .scores_rows(&row.features.turn)
                     .map_err(|e| invalid(e.to_string()))?;
                 let r = heads[1]
-                    .scores(&row.features.turn)
+                    .scores_rows(&row.features.turn)
                     .map_err(|e| invalid(e.to_string()))?;
                 loss += softmax_ce(&a, row.act).0 / 3.0 + softmax_ce(&r, row.relation).0 / 3.0;
                 act_correct += usize::from(argmax(&a) == row.act);
                 relation_correct += usize::from(argmax(&r) == row.relation);
                 let mut scores = Vec::new();
                 for (word, label) in row.features.words.iter().zip(&row.inside) {
-                    let s = heads[2].scores(word).map_err(|e| invalid(e.to_string()))?;
+                    let s = heads[2]
+                        .scores_masked(word)
+                        .map_err(|e| invalid(e.to_string()))?;
                     loss += softmax_ce(&s, *label).0 / (3.0 * row.inside.len() as f64);
                     scores.push(s);
                 }
@@ -631,10 +817,10 @@ pub fn fit_examples(
         for row in &train {
             for (h, target) in [(0, row.act), (1, row.relation)] {
                 let scores = heads[h]
-                    .scores(&row.features.turn)
+                    .scores_rows(&row.features.turn)
                     .map_err(|e| invalid(e.to_string()))?;
                 let (_, errors) = softmax_ce(&scores, target);
-                add_gradient(
+                add_gradient_rows(
                     &mut gradient[h],
                     shapes[h],
                     &row.features.turn,
@@ -643,12 +829,14 @@ pub fn fit_examples(
                 );
             }
             for (word, target) in row.features.words.iter().zip(&row.inside) {
-                let scores = heads[2].scores(word).map_err(|e| invalid(e.to_string()))?;
+                let scores = heads[2]
+                    .scores_masked(word)
+                    .map_err(|e| invalid(e.to_string()))?;
                 let (_, errors) = softmax_ce(&scores, *target);
-                add_gradient(
+                add_gradient_rows(
                     &mut gradient[2],
                     shapes[2],
-                    word,
+                    &[word.clone()],
                     &errors,
                     1.0 / (3.0 * train.len() as f64 * row.inside.len() as f64),
                 );
@@ -675,23 +863,29 @@ pub fn fit_examples(
     let (selected_step, native_artifact, selected_weights) =
         selected.ok_or_else(|| invalid("compiler fit produced no finite checkpoint"))?;
     let mut turn_labels =
-        std::collections::BTreeMap::<Vec<u8>, std::collections::BTreeSet<(usize, usize)>>::new();
+        std::collections::BTreeMap::<Vec<usize>, std::collections::BTreeSet<(usize, usize)>>::new();
     let mut span_labels =
-        std::collections::BTreeMap::<Vec<u8>, std::collections::BTreeSet<usize>>::new();
-    let mut coverage = vec![std::collections::BTreeSet::new(); lanes * 3];
+        std::collections::BTreeMap::<Vec<Option<u8>>, std::collections::BTreeSet<usize>>::new();
+    let mut coverage =
+        vec![std::collections::BTreeSet::new(); config.feature_mode.span_slots(lanes)];
     for row in &train {
         turn_labels
-            .entry(row.features.turn.clone())
+            .entry(aggregate_signature(
+                &row.features.turn,
+                config.feature_mode.turn_slots(lanes),
+            ))
             .or_default()
             .insert((row.act, row.relation));
         for (word, target) in row.features.words.iter().zip(&row.inside) {
             span_labels.entry(word.clone()).or_default().insert(*target);
             for (i, r) in word.iter().enumerate() {
-                coverage[i].insert(*r);
+                if let Some(root) = r {
+                    coverage[i].insert(*root);
+                }
             }
         }
     }
-    let diagnostics = serde_json::json!({"encoder":"frozen-no-gradient-credit","training_examples":train.len(),"development_examples":dev.len(),"turn_unique_signatures":turn_labels.len(),"turn_conflicting_signatures":turn_labels.values().filter(|s|s.len()>1).count(),"span_unique_signatures":span_labels.len(),"span_conflicting_signatures":span_labels.values().filter(|s|s.len()>1).count(),"span_slot_root_coverage":coverage.iter().map(|s|s.len()).collect::<Vec<_>>(),"step_head_gradient_l2":gradient_norms});
+    let diagnostics = serde_json::json!({"encoder":"frozen-no-gradient-credit","feature_mode":config.feature_mode,"feature_policy":config.feature_mode.policy(),"signature_scope":"actual-additive-row-slot-root-counts;span-masked-root-tuple;not-injective-sequence","initialization_seed":config.seed,"training_examples":train.len(),"development_examples":dev.len(),"turn_unique_signatures":turn_labels.len(),"turn_conflicting_signatures":turn_labels.values().filter(|s|s.len()>1).count(),"span_unique_signatures":span_labels.len(),"span_conflicting_signatures":span_labels.values().filter(|s|s.len()>1).count(),"span_slot_root_coverage":coverage.iter().map(|s|s.len()).collect::<Vec<_>>(),"step_head_gradient_l2":gradient_norms});
     let source_parameters = serde_json::to_vec(
         &serde_json::json!({"schema":"uor-r4.geometric-turn-source/1","config":config,"policy":"ordinary-CE-f32-quarter-forward-STE-f64-Adam;frozen-encoder;equal-act-relation-mean-word-loss;deterministic-full-batch-Adam;earliest-strict-native-development-minimum/1","selected_step":selected_step,"native_artifact_sha256":sha256_bytes(&native_artifact),"selected_shadow_f32":selected_weights.iter().map(|w|w.iter().map(|x|*x as f32).collect::<Vec<_>>()).collect::<Vec<_>>(),"final_shadow_f32":weights.iter().map(|w|w.iter().map(|x|*x as f32).collect::<Vec<_>>()).collect::<Vec<_>>(),"diagnostics":diagnostics,"checkpoints":checkpoints}),
     )?;
@@ -757,6 +951,121 @@ mod tests {
             h.scores(&[119]).map_err(|e| invalid(e.to_string()))?,
             vec![8, -7]
         );
+        Ok(())
+    }
+    #[test]
+    fn seeded_initialization_reproducible_and_native_distinct() -> Result<()> {
+        let shapes = [shape(2, 2), shape(3, 1)];
+        let a = seeded_weights(&shapes, Some(1))?;
+        let b = seeded_weights(&shapes, Some(1))?;
+        let c = seeded_weights(&shapes, Some(2))?;
+        assert_eq!(a, b);
+        assert_ne!(packed(&a[0])?, packed(&c[0])?);
+        assert!(seeded_weights(&shapes, None)?
+            .iter()
+            .flatten()
+            .all(|v| *v == 0.0));
+        assert!(a.iter().flatten().all(|v| v.abs() <= 0.25));
+        Ok(())
+    }
+    #[test]
+    fn aggregated_gradient_matches_continuous_ce_extension() -> Result<()> {
+        let config = shape(2, 2);
+        let rows = vec![vec![Some(3), None], vec![Some(3), Some(1)]];
+        let errors = softmax_ce(&[2, -1], 1).1;
+        let mut gradient = vec![
+            0.0;
+            config
+                .coefficient_count()
+                .map_err(|e| invalid(e.to_string()))?
+        ];
+        add_gradient_rows(&mut gradient, config, &rows, &errors, 1.0);
+        // Finite differences of the continuous CE logit extension used by the STE,
+        // not a claim that the discontinuous Q4 forward has this derivative.
+        let loss = |delta: f64, multiplicity: f64| {
+            let a = 0.5 + delta * multiplicity;
+            let b = -0.25;
+            let max = a.max(b);
+            max + ((a - max).exp() + (b - max).exp()).ln() - b
+        };
+        let epsilon = 1e-6;
+        assert!(
+            (gradient[0] - (loss(epsilon, 1.0) - loss(-epsilon, 1.0)) / (2.0 * epsilon)).abs()
+                < 1e-8
+        );
+        assert!(
+            (gradient[4] - (loss(epsilon, 2.0) - loss(-epsilon, 2.0)) / (2.0 * epsilon)).abs()
+                < 1e-8
+        );
+        assert_eq!(gradient[1 + 120 + 1], errors[0]);
+        assert_eq!(gradient[1 + 120], 0.0);
+        Ok(())
+    }
+    #[test]
+    fn aggregation_signature_tracks_repeats_and_ignores_absent_identity() {
+        let first = vec![vec![Some(1), None], vec![Some(1), Some(2)]];
+        let swapped = vec![first[1].clone(), first[0].clone()];
+        assert_eq!(
+            aggregate_signature(&first, 2),
+            aggregate_signature(&swapped, 2)
+        );
+        assert_eq!(aggregate_signature(&first, 2)[1], 2);
+        assert_eq!(aggregate_signature(&first, 2)[121], 0);
+    }
+    #[test]
+    fn local_word_rows_preserve_noncommuting_orientation_and_absence() -> Result<()> {
+        let geometry = HistoricalH4Tables::from_bytes(include_bytes!(
+            "../../uor-r4-integer/fixtures/historical-h4-tables-v1.bin"
+        ))
+        .map_err(|e| invalid(e.to_string()))?;
+        let mut witness = None;
+        'search: for a in 0..120u8 {
+            for b in 0..120u8 {
+                let a = H4Code::try_from(a).map_err(|e| invalid(e.to_string()))?;
+                let b = H4Code::try_from(b).map_err(|e| invalid(e.to_string()))?;
+                if geometry.compose(a, b) != geometry.compose(b, a)
+                    && geometry.relative(a, b) != geometry.compose(a, b)
+                    && geometry.relative(a, b) != geometry.relative(b, a)
+                {
+                    witness = Some((a, b));
+                    break 'search;
+                }
+            }
+        }
+        let (a, b) = witness.ok_or_else(|| invalid("noncommuting directional fixture absent"))?;
+        let locals = vec![vec![a], vec![b], vec![a]];
+        let (relative, span) = local_rows(&locals, &geometry, FeatureMode::LocalRelative)?;
+        let (product, product_span) = local_rows(&locals, &geometry, FeatureMode::LocalProduct)?;
+        assert_eq!(relative[0], vec![Some(a.index()), None, None]);
+        assert_eq!(span[0], vec![Some(a.index()), None, Some(b.index()), None]);
+        assert_eq!(
+            relative[1],
+            vec![
+                Some(b.index()),
+                Some(a.index()),
+                Some(geometry.compose(geometry.inverse(a), b).index())
+            ]
+        );
+        assert_eq!(
+            product[1],
+            vec![
+                Some(b.index()),
+                Some(a.index()),
+                Some(geometry.compose(a, b).index())
+            ]
+        );
+        assert_ne!(product[1][2], Some(geometry.compose(b, a).index()));
+        assert_eq!(span[2][2], None);
+        assert_eq!(span[1][2], Some(a.index()));
+        assert_eq!(span[1][3], relative[1][2]);
+        assert_eq!(product_span[1][3], product[1][2]);
+        assert_ne!(relative[1][2], product[1][2]);
+        let singleton = local_rows(
+            &[vec![H4Code::IDENTITY]],
+            &geometry,
+            FeatureMode::LocalRelative,
+        )?;
+        assert_eq!(singleton.1[0], vec![Some(1), None, None, None]);
         Ok(())
     }
 }
