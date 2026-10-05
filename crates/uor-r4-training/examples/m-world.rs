@@ -2,7 +2,10 @@
 //! and A1). `world=v1` (the default) is `uor_r4_training::milestone_world`, R1's
 //! sealed instrument; `world=v2` is `uor_r4_training::milestone_world_v2`, the
 //! retrieval instrument (open value pools, MQAR and copy episodes, the #1516
-//! oracle fixes).
+//! oracle fixes). `world=v2c` (Step 4, #820) is v2 whose rehearsing MQAR
+//! replies read "So {k} is {v}." so the key keeps its asserted casing
+//! (`milestone_world_v2::Variant::V2c`); every mode that takes `world=v2`
+//! takes `world=v2c`, and reports record `m-world-v2c` and its own digest.
 //!
 //! ```text
 //! m-world corpus [world=v1] out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json chat=CHAT_V0_TRAIN_DIR \
@@ -165,7 +168,7 @@ use uor_r4_training::geometric_stack::{
 };
 use uor_r4_training::milestone_world::{judge, normalized, Category, MWorld, Split};
 use uor_r4_training::milestone_world_v2::{
-    judge_v2, render, Conversation2, Kind, MWorld2, Mix, Pool, Scorecard, Turn2, CONTEXT,
+    judge_v2, render, Conversation2, Kind, MWorld2, Mix, Pool, Scorecard, Turn2, Variant, CONTEXT,
 };
 use uor_r4_training::stack_dialogue::{
     check_panel, episode_contract, episode_contract_for, greedy_reply, load_requests, reply_panel,
@@ -340,6 +343,14 @@ impl Args {
 enum World {
     V1,
     V2,
+    /// v2 with the rehearsed MQAR key in its asserted casing (Step 4, #820).
+    V2c,
+}
+
+impl World {
+    fn is_v2(self) -> bool {
+        matches!(self, Self::V2 | Self::V2c)
+    }
 }
 
 /// `recall=` of `evaluate world=v2`: the emission of the log-sieve design
@@ -427,7 +438,8 @@ fn world_of(args: &Args) -> Result<World> {
             Ok(World::V1)
         }
         Some("v2") => Ok(World::V2),
-        Some(other) => Err(invalid(format!("unknown world={other}; use v1 or v2"))),
+        Some("v2c") => Ok(World::V2c),
+        Some(other) => Err(invalid(format!("unknown world={other}; use v1, v2 or v2c"))),
     }
 }
 
@@ -1092,7 +1104,7 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
     };
     let count = |text: &str| tokenizer.encode(text).len();
     let spaced_meter = uor_r4_training::milestone_world_v2::Meter::spaced(&count);
-    let mut world = MWorld2::new(&count, mix)?;
+    let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
     let mut rng = Rng::new(seed);
     // Training excludes the sealed English probe by an overlap rule: a
     // conversation that shares an 8-word user-turn n-gram with it is drawn
@@ -1357,8 +1369,8 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
             "probe_screen": screened.record,
         })),
         "m_world": {
-            "version": "m-world-v2",
-            "world_digest": MWorld2::digest(),
+            "version": v2_variant(args)?.world_name(),
+            "world_digest": MWorld2::digest_for(v2_variant(args)?),
             "split": "train",
             "seed": seed,
             "mix": world.mix(),
@@ -1443,8 +1455,8 @@ fn corpus_v2(args: &Args, out: &Path) -> Result<()> {
         serde_json::to_vec_pretty(&json!({
             "schema": "uor-r4.m-world-corpus/2",
             "executable_sha256": sha256_file(&executable)?,
-            "world": "m-world-v2",
-            "world_digest": MWorld2::digest(),
+            "world": v2_variant(args)?.world_name(),
+            "world_digest": MWorld2::digest_for(v2_variant(args)?),
             "v1_world_digest": MWorld::digest(),
             "mix": world.mix(),
             "tokenizer_sha256": sha256_file(&tokenizer_path)?,
@@ -1795,7 +1807,7 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
     let reserved = reserved_words();
     // Relation queries the route's table named correctly, of those evaluated.
     let mut route_named = (0usize, 0usize);
-    let mut world = MWorld2::new(&count, mix)?;
+    let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
     let mut rng = Rng::new(seed);
     let mut card = Scorecard::default();
     let (mut whole, mut judged) = (0usize, Vec::with_capacity(conversations));
@@ -1930,8 +1942,8 @@ fn evaluate_v2(args: &Args, out: &Path) -> Result<()> {
     let mut report = json!({
         "schema": "uor-r4.m-world-evaluation/2",
         "executable_sha256": executable_sha256,
-        "world": "m-world-v2",
-        "world_digest": MWorld2::digest(),
+        "world": v2_variant(args)?.world_name(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "model": model_dir.display().to_string(),
         "model_identity": identity,
         "selection_override": selection_override,
@@ -2123,9 +2135,10 @@ fn rejudge_v2(args: &Args, out: &Path, report_path: &Path, old: &Value) -> Resul
         .and_then(|n| usize::try_from(n).ok())
         .ok_or_else(|| invalid("the report has no conversation count"))?;
     let mix: Mix = serde_json::from_value(old["mix"].clone())?;
+    let variant = Variant::from_world_name(old["world"].as_str())?;
     let tokenizer = load_tokenizer(&tokenizer_path)?;
     let count = |text: &str| tokenizer.encode(text).len();
-    let mut world = MWorld2::new(&count, mix)?;
+    let mut world = MWorld2::new(&count, mix)?.with_variant(variant);
     let mut rng = Rng::new(seed);
     let conversations: Vec<Conversation2> = (0..drawn)
         .map(|_| world.conversation(&mut rng, split))
@@ -2181,7 +2194,7 @@ fn rejudge_v2(args: &Args, out: &Path, report_path: &Path, old: &Value) -> Resul
     let executable = std::env::current_exe()?;
     let mut report = json!({
         "schema": "uor-r4.m-world-rejudge/2",
-        "world_digest": MWorld2::digest(),
+        "world_digest": MWorld2::digest_for(variant),
         "source_world_digest": old["world_digest"],
         "executable_sha256": sha256_file(&executable)?,
         "source_report": report_path.display().to_string(),
@@ -2220,13 +2233,23 @@ fn open_model(
     load_model(directory, device, selection)
 }
 
-/// These modes are world=v2 only; `world=v2` may be spelled out.
+/// These modes are world=v2 only; `world=v2` may be spelled out, and
+/// `world=v2c` is v2 with the rehearsed MQAR key in its asserted casing.
 fn require_v2(args: &Args) -> Result<()> {
     match args.optional("world").as_deref() {
-        None | Some("v2") => Ok(()),
+        None | Some("v2" | "v2c") => Ok(()),
         Some(other) => Err(invalid(format!(
-            "this mode is world=v2 only, not world={other}"
+            "this mode is world=v2 (or v2c) only, not world={other}"
         ))),
+    }
+}
+
+/// The v2 table set a v2 mode draws from: `world=v2c` is
+/// [`Variant::V2c`]; `world=v2` or no `world=` is v2.
+fn v2_variant(args: &Args) -> Result<Variant> {
+    match args.optional("world").as_deref() {
+        None => Ok(Variant::V2),
+        Some(text) => Variant::parse(text),
     }
 }
 
@@ -2301,7 +2324,7 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
     for cell in Cell::ALL {
         // A fresh world and stream per cell: each cell cycles the same MQAR
         // (distance, N) sequence from the same seed.
-        let mut world = MWorld2::new(&count, mix)?;
+        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
         let mut rng = Rng::new(seed);
         for index in 0..conversations {
             let conversation = world.conversation_in(&mut rng, cell)?;
@@ -2400,8 +2423,8 @@ fn evaluate_cells(args: &Args, out: &Path) -> Result<()> {
     let mut report = json!({
         "schema": "uor-r4.m-world-cells/1",
         "executable_sha256": sha256_file(&executable)?,
-        "world": "m-world-v2",
-        "world_digest": MWorld2::digest(),
+        "world": v2_variant(args)?.world_name(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "revision": REVISION,
         "model": model_dir.display().to_string(),
         "model_identity": identity,
@@ -2481,7 +2504,7 @@ fn baselines(args: &Args, out: &Path) -> Result<()> {
     };
     let mut by_cell: BTreeMap<Cell, BTreeMap<&'static str, RuleRun>> = BTreeMap::new();
     for cell in &to_run {
-        let mut world = MWorld2::new(&count, mix)?;
+        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
         let mut rng = Rng::new(seed);
         by_cell.insert(
             *cell,
@@ -2527,8 +2550,8 @@ fn baselines(args: &Args, out: &Path) -> Result<()> {
     let report = json!({
         "schema": "uor-r4.m-world-baselines/1",
         "executable_sha256": sha256_file(&executable)?,
-        "world": "m-world-v2",
-        "world_digest": MWorld2::digest(),
+        "world": v2_variant(args)?.world_name(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "revision": REVISION,
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "split": split,
@@ -2582,7 +2605,7 @@ fn route(args: &Args, out: &Path) -> Result<()> {
     };
     let mut cells_json: BTreeMap<&str, Value> = BTreeMap::new();
     for cell in &to_run {
-        let mut world = MWorld2::new(&count, mix)?;
+        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
         let mut rng = Rng::new(seed);
         let runs = run_route(&mut world, &mut rng, *cell, conversations)?;
         let rows: BTreeMap<&str, Value> = runs
@@ -2605,8 +2628,8 @@ fn route(args: &Args, out: &Path) -> Result<()> {
     let report = json!({
         "schema": "uor-r4.m-world-route/1",
         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
-        "world": "m-world-v2",
-        "world_digest": MWorld2::digest(),
+        "world": v2_variant(args)?.world_name(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "revision": REVISION,
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "split": split,
@@ -2751,7 +2774,7 @@ fn compiler(args: &Args, out: &Path) -> Result<()> {
         ..Mix::default()
     };
     let draw = |cell: Cell, conversations: usize, seed: u64| -> Result<Vec<Example>> {
-        let mut world = MWorld2::new(&count, mix)?;
+        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
         let mut rng = Rng::new(seed);
         collect(&mut world, &mut rng, cell, conversations)
     };
@@ -2912,8 +2935,8 @@ fn compiler(args: &Args, out: &Path) -> Result<()> {
     let report = json!({
         "schema": "uor-r4.m-world-compiler/1",
         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
-        "world": "m-world-v2",
-        "world_digest": MWorld2::digest(),
+        "world": v2_variant(args)?.world_name(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "revision": REVISION,
         "model": model_dir.display().to_string(),
         "model_identity": identity,
@@ -3197,7 +3220,7 @@ fn compiler_save(args: &Args, out: &Path) -> Result<()> {
         ..Mix::default()
     };
     let draw = |cell: Cell, conversations: usize, seed: u64| -> Result<Vec<Example>> {
-        let mut world = MWorld2::new(&count, mix)?;
+        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
         let mut rng = Rng::new(seed);
         collect(&mut world, &mut rng, cell, conversations)
     };
@@ -3223,8 +3246,8 @@ fn compiler_save(args: &Args, out: &Path) -> Result<()> {
         None => Value::Null,
     };
     let training = json!({
-        "world": "m-world-v2",
-        "world_digest": MWorld2::digest(),
+        "world": v2_variant(args)?.world_name(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "mix": "relation-heavy: mqar .15, copy .05, relation .60, other .20",
         "phrasing": "train",
         "values": values,
@@ -3774,8 +3797,8 @@ pub(crate) fn judge_row(
 /// with a save and load at their middle turn, and must match.
 fn session(args: &Args, out: &Path) -> Result<()> {
     let started = Instant::now();
-    if args.optional("world").as_deref() != Some("v2") {
-        return Err(invalid("session needs world=v2"));
+    if !matches!(args.optional("world").as_deref(), Some("v2" | "v2c")) {
+        return Err(invalid("session needs world=v2 or world=v2c"));
     }
     let model_root = PathBuf::from(args.required("model_root")?);
     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
@@ -3928,7 +3951,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
         })
     };
     let count = |text: &str| tokenizer.encode(text).len();
-    let mut world = MWorld2::new(&count, Mix::default())?;
+    let mut world = MWorld2::new(&count, Mix::default())?.with_variant(v2_variant(args)?);
     let mut rng = Rng::new(seed);
     let drawn: Vec<Conversation2> = (0..conversations)
         .map(|_| world.conversation(&mut rng, Split::Development))
@@ -4103,8 +4126,8 @@ fn session(args: &Args, out: &Path) -> Result<()> {
     let report = json!({
         "schema": "uor-r4.m-world-session/1",
         "executable_sha256": sha256_file(&executable)?,
-        "world": "m-world-v2",
-        "world_digest": MWorld2::digest(),
+        "world": v2_variant(args)?.world_name(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "split": "development phrasings and values (evaluate's default cell)",
         "seed": seed,
         "conversations": conversations,
@@ -4440,7 +4463,7 @@ fn compile_corpus(args: &Args, out: &Path) -> Result<()> {
         ..Mix::default()
     };
     let draw = |value: Split, conversations: usize, seed: u64| -> Result<Vec<Example>> {
-        let mut world = MWorld2::new(&count, mix)?;
+        let mut world = MWorld2::new(&count, mix)?.with_variant(v2_variant(args)?);
         let mut rng = Rng::new(seed);
         collect(
             &mut world,
@@ -4536,7 +4559,7 @@ fn compile_corpus(args: &Args, out: &Path) -> Result<()> {
     let report = json!({
         "schema": "uor-r4.m-world-compile-corpus-report/1",
         "executable_sha256": sha256_file(&std::env::current_exe()?)?,
-        "world_digest": MWorld2::digest(),
+        "world_digest": MWorld2::digest_for(v2_variant(args)?),
         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
         "prompt": COMPILE_PROMPT,
         "op_format": "Op: none | Op: query <relation> | Op: assert <relation> <value> | Op: update <relation> <value>",
@@ -4742,7 +4765,7 @@ fn main() -> Result<()> {
     // `protocol=`, which only world=v2 encodes, and never with chat=.
     if mode == "corpus" || mode == "evaluate" {
         let version = protocol_version_of(&args)?;
-        if version != 1 && world_of(&args)? != World::V2 {
+        if version != 1 && !world_of(&args)?.is_v2() {
             return Err(invalid("protocol=2 needs world=v2"));
         }
     }
@@ -4775,7 +4798,7 @@ fn main() -> Result<()> {
     if mode == "evaluate" {
         let recall = recall_of(&args)?;
         recall_at_of(&args)?;
-        if recall != Recall::Off && world_of(&args)? != World::V2 {
+        if recall != Recall::Off && !world_of(&args)?.is_v2() {
             return Err(invalid("recall= needs world=v2"));
         }
         if recall == Recall::Off && args.optional("recall_at").is_some() {
@@ -4800,10 +4823,10 @@ fn main() -> Result<()> {
     report_output::claim(&out)?;
     let result = match (mode.as_str(), world) {
         ("corpus", World::V1) => corpus(&args, &out),
-        ("corpus", World::V2) => corpus_v2(&args, &out),
+        ("corpus", World::V2 | World::V2c) => corpus_v2(&args, &out),
         ("rejudge", _) => rejudge(&args, &out),
         (_, World::V1) => evaluate(&args, &out),
-        (_, World::V2) => evaluate_v2(&args, &out),
+        (_, World::V2 | World::V2c) => evaluate_v2(&args, &out),
     };
     if let Err(error) = &result {
         fs::write(

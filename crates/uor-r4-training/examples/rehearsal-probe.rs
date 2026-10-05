@@ -4,7 +4,8 @@
 //! ```text
 //! rehearsal-probe out=NEW_REPORT_ROOT model_root=RUN_ROOT tokenizer=TOKENIZER.json \
 //!   compiler=COMPILER.json [trunk=OP_MODEL_DIR] [op_policy=unless_query] \
-//!   [conversations=300] [seed=9101] [max_new_tokens=32]
+//!   [conversations=300] [seed=9101] [max_new_tokens=32] \
+//!   [pointer_route=none|ngram-ranked:W|...] [key_fold=off|on]
 //! ```
 //!
 //! The prompt of every MQAR query is the one the grounded session serves
@@ -41,19 +42,31 @@
 //! scores the session's own judge (`judge_v2`) and whether the value appears,
 //! and splits by reply form (rehearse, bare, other).
 //!
+//! Step 4 (#820) adds two opt-in controls; with neither, every output is the
+//! Step 0c probe's. `pointer_route=` routes the pointer's sources by exact
+//! token identity (`geometric_stack::PrimeRoute`; saved into the probe's
+//! checkpoint, so the session's free run uses it too). `key_fold=on` builds the
+//! copy-identity table from the tokenizer (`copy_identity::CopyIdentity`,
+//! written as `copy_identity.json`) and makes a routed pointer match keys on
+//! canonical ids in the forced arms; the session's free run loads the
+//! checkpoint, which does not carry the table. Without a route the fold has no
+//! effect (a learned pointer does not match by token identity).
+//!
 //! Every root is claimed before anything is loaded and sealed at the end. Set
 //! RAYON_NUM_THREADS to bound the threads.
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::time::Instant;
 
 use candle_core::Device;
 use serde_json::{json, Value};
 use uor_r4_core::report_output;
 use uor_r4_tokenizer::ByteBpeTokenizer;
-use uor_r4_training::geometric_stack::StackModel;
+use uor_r4_training::copy_identity::{CopyIdentity, FOLD_RULE};
+use uor_r4_training::geometric_stack::{parse_pointer_route, PrimeRoute, StackModel};
 use uor_r4_training::milestone_world::Split;
 use uor_r4_training::milestone_world_v2::{judge_v2, Category2, Kind, MWorld2, Mix};
 use uor_r4_training::relation_compiler::{OpPolicy, SavedCompiler, Trunk};
@@ -83,6 +96,8 @@ const ALLOWED: &[&str] = &[
     "conversations",
     "seed",
     "max_new_tokens",
+    "pointer_route",
+    "key_fold",
 ];
 
 /// The forced arms: name, and the gold reply text whose pieces before the
@@ -219,6 +234,18 @@ fn rank(scores: &[f32], id: u32) -> usize {
         .enumerate()
         .filter(|(i, v)| **v > target || (**v == target && (*i as u32) < id))
         .count()
+}
+
+/// `pointer_route=` (default `none`) and `key_fold=off|on` (default `off`,
+/// Step 4): checked before the root is claimed.
+fn pointer_controls(args: &Args) -> Result<(Option<PrimeRoute>, bool)> {
+    let route = parse_pointer_route(&args.optional("pointer_route").unwrap_or("none".into()))?;
+    let fold = match args.optional("key_fold").as_deref() {
+        None | Some("off") => false,
+        Some("on") => true,
+        Some(other) => return Err(invalid(format!("key_fold={other}: off or on"))),
+    };
+    Ok((route, fold))
 }
 
 struct Args(BTreeMap<String, String>);
@@ -364,6 +391,12 @@ fn run(args: &Args, out: &Path) -> Result<()> {
     let mut model = StackModel::load(&model_dir, &device)?;
     let snap = StackModel::saved_transport_snap(&model_dir)?;
     model.set_transport_snap(snap)?;
+    // The route is part of the model's configuration, so the checkpoint the
+    // session serves carries it too.
+    let (pointer_route, key_fold) = pointer_controls(args)?;
+    if pointer_route.is_some() {
+        model.set_pointer_route(pointer_route)?;
+    }
     let mut model_files = serde_json::Map::new();
     for name in ["config.json", "model.safetensors", "transport.json"] {
         let path = model_dir.join(name);
@@ -375,6 +408,25 @@ fn run(args: &Args, out: &Path) -> Result<()> {
     let store = StackStore::new(1, 8).map_err(|e| invalid(e.to_string()))?;
     save_checkpoint(&checkpoint, &model, &identity, Some(&store))
         .map_err(|e| invalid(e.to_string()))?;
+    // The copy-identity table is a runtime setting the checkpoint does not
+    // carry: it applies to the forced arms, which score on `model`, and not
+    // to the session's free run.
+    let copy_identity = if key_fold {
+        let table = Arc::new(CopyIdentity::from_tokenizer(&tokenizer)?);
+        table.save(&out.join("copy_identity.json"))?;
+        model.set_pointer_key_fold(Some(table.clone()))?;
+        Some(json!({
+            "digest": table.digest(),
+            "fold": FOLD_RULE,
+            "ids": table.len(),
+            "merged_ids": table.merged(),
+            "tokenizer": table.tokenizer(),
+            "scope": "forced arms only; the session's free run serves the saved checkpoint, which does not carry the table",
+            "effective": pointer_route.is_some(),
+        }))
+    } else {
+        None
+    };
     let scope = SessionScope {
         scope: b"m-world-v2".to_vec(),
         entity: tokenizer.encode("user"),
@@ -627,6 +679,9 @@ fn run(args: &Args, out: &Path) -> Result<()> {
         "compiler_sha256": sha256_file(&compiler_path)?,
         "trunk": trunk_directory.as_ref().map(|d| d.display().to_string()),
         "op_policy": op_policy_text,
+        "pointer_route": pointer_route,
+        "key_fold": key_fold,
+        "copy_identity": copy_identity,
         "limits": limits,
         "arms": ARMS.iter().map(|(name, pattern)| json!({"name": name, "gold_reply": pattern})).collect::<Vec<_>>(),
         "mqar_rows": rows.len(),
@@ -651,6 +706,7 @@ fn main() -> Result<()> {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     let args = Args::parse(&arguments)?;
     let out = PathBuf::from(args.required("out")?);
+    pointer_controls(&args)?;
     report_output::claim(&out)?;
     let result = run(&args, &out);
     if let Err(error) = &result {
@@ -667,6 +723,19 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_step4_controls_default_off_and_refuse_bad_values() -> Result<()> {
+        let parse = |a: &[&str]| Args::parse(&a.iter().map(|s| s.to_string()).collect::<Vec<_>>());
+        assert_eq!(pointer_controls(&parse(&[])?)?, (None, false));
+        let (route, fold) =
+            pointer_controls(&parse(&["pointer_route=ngram-ranked:3", "key_fold=on"])?)?;
+        assert!(route.is_some_and(|r| r.ranked && r.window == 3));
+        assert!(fold);
+        assert!(pointer_controls(&parse(&["key_fold=yes"])?).is_err());
+        assert!(pointer_controls(&parse(&["pointer_route=ngram:9"])?).is_err());
+        Ok(())
+    }
 
     #[test]
     fn key_is_recovered_from_every_template_shape() {

@@ -113,6 +113,7 @@ use sha2::{Digest, Sha256};
 use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
 use uor_r4_lut::GROUP;
 
+use crate::copy_identity::CopyIdentity;
 use crate::flock::{self, FlockSelect};
 use crate::geometric_address::{self, AddressWeights, GeometricAddressConfig};
 use crate::geometric_context::{self, CompiledContext, ContextWeights};
@@ -1350,6 +1351,9 @@ pub struct StackModel {
     read_lineage: Option<ReadLineage>,
     /// The fixed block-diagonal SO(4) map of [`ReadLineage::RandomSo4`].
     read_lineage_so4: Option<Tensor>,
+    /// A routed pointer matches keys on these canonical ids
+    /// ([`Self::set_pointer_key_fold`]); not saved.
+    pointer_key_fold: Option<Arc<CopyIdentity>>,
 }
 
 impl StackModel {
@@ -1455,6 +1459,7 @@ impl StackModel {
             read_key_shift: false,
             read_lineage: None,
             read_lineage_so4: None,
+            pointer_key_fold: None,
         })
     }
 
@@ -2332,6 +2337,49 @@ impl StackModel {
             }
             _ => Ok(projected),
         }
+    }
+
+    /// Match a routed pointer's keys on canonical ids
+    /// ([`crate::copy_identity::CopyIdentity`], Step 4, #820): the route
+    /// admits sources by comparing the table's ids, so a rehearsed key in
+    /// another casing (" Luk") matches its asserted form (" luk"), while the
+    /// pointer still copies the input token at the admitted source and the
+    /// generated branch never reads the table. It changes only a pointer with
+    /// a [`PrimeRoute`]; a learned (unrouted) pointer scores sources by its
+    /// query and key, not by token identity, and is unaffected. `None`, the
+    /// default, matches on the raw ids, bit for bit as before.
+    ///
+    /// It is a runtime setting like a selection: [`Self::save`] does not
+    /// record it and [`Self::load`] does not restore it. `Some` is refused on
+    /// a model without a pointer head or with a table shorter than the
+    /// vocabulary.
+    pub fn set_pointer_key_fold(&mut self, table: Option<Arc<CopyIdentity>>) -> Result<()> {
+        if let Some(table) = &table {
+            if self.config.pointer.is_none() {
+                return Err(invalid("the model has no pointer head to fold keys for"));
+            }
+            if table.len() < self.config.vocab_size {
+                return Err(invalid(format!(
+                    "the copy-identity table covers {} ids, the vocabulary {}",
+                    table.len(),
+                    self.config.vocab_size
+                )));
+            }
+        }
+        self.pointer_key_fold = table;
+        Ok(())
+    }
+
+    /// The copy-identity table a routed pointer matches keys on, if set.
+    pub fn pointer_key_fold(&self) -> Option<&CopyIdentity> {
+        self.pointer_key_fold.as_deref()
+    }
+
+    /// The ids a routed pointer matches its keys on, when a fold is set and
+    /// the pointer is routed; `None` means the raw ids.
+    fn pointer_route_keys(&self, ids: &[u32]) -> Option<Vec<u32>> {
+        self.config.pointer.and_then(|pointer| pointer.route)?;
+        self.pointer_key_fold.as_ref().map(|table| table.fold(ids))
     }
 
     /// Replace the geometric reader's scalar Held latch with an ordered token
@@ -6067,6 +6115,7 @@ impl StackModel {
                 select: pointer.select,
                 route: pointer.route,
                 ids: ids.to_vec(),
+                keys: self.pointer_route_keys(ids),
                 targets: targets.to_vec(),
                 weights: weights.map(<[f32]>::to_vec),
             },
@@ -6446,6 +6495,7 @@ impl StackModel {
             select: pointer.select,
             route: pointer.route,
             ids: ids.to_vec(),
+            keys: self.pointer_route_keys(ids),
             targets: targets.to_vec(),
             weights: weights.map(<[f32]>::to_vec),
         };
@@ -6519,7 +6569,9 @@ impl StackModel {
             beta: one_value(&self.pointer_beta(&p)?)?,
             route: pointer.route,
         };
-        let attention = pointer_attention(&side, 0, time - 1, &rule, ids)?;
+        let keys = self.pointer_route_keys(ids);
+        let attention =
+            pointer_attention(&side, 0, time - 1, &rule, keys.as_deref().unwrap_or(ids))?;
         let gate = sigmoid_f64(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
@@ -7103,6 +7155,7 @@ impl StackModel {
             read_key_shift: false,
             read_lineage: None,
             read_lineage_so4: None,
+            pointer_key_fold: None,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -12036,6 +12089,7 @@ pub fn pointer_mixture_loss(
             select: None,
             route: None,
             ids: ids.to_vec(),
+            keys: None,
             targets: targets.to_vec(),
             weights: weights.map(<[f32]>::to_vec),
         },
@@ -12269,6 +12323,9 @@ struct PointerMixture {
     route: Option<PrimeRoute>,
     /// The input token of every position: what the head copies.
     ids: Vec<u32>,
+    /// The ids a routed pointer matches its keys on, when they differ from
+    /// `ids` ([`StackModel::set_pointer_key_fold`]); `None` matches on `ids`.
+    keys: Option<Vec<u32>>,
     targets: Vec<u32>,
     weights: Option<Vec<f32>>,
 }
@@ -12305,7 +12362,10 @@ impl PointerMixture {
     ) -> candle_core::Result<MixtureRow> {
         let (first, t) = (n - n % self.time, n % self.time);
         let target = self.targets[n];
-        let attention = pointer_attention(side, first, t, &self.rule(beta), &self.ids)?;
+        // A routed pointer matches keys on `keys` (canonical ids) when set;
+        // what it copies is always the input token.
+        let keys = self.keys.as_deref().unwrap_or(&self.ids);
+        let attention = pointer_attention(side, first, t, &self.rule(beta), keys)?;
         let copy: f64 = attention
             .iter()
             .zip(&self.ids[first..=first + t])
@@ -21529,6 +21589,80 @@ mod tests {
     }
 
     #[test]
+    fn a_key_fold_admits_a_recased_key_and_is_inert_unless_routed() -> Result<()> {
+        // A 37-id vocabulary whose ids 5 (" luk") and 6 (" Luk") fold together;
+        // every other piece is its own class.
+        let mut pieces: Vec<Vec<u8>> = (0..37).map(|i| format!("#{i}").into_bytes()).collect();
+        pieces[5] = b" luk".to_vec();
+        pieces[6] = b" Luk".to_vec();
+        let table = Arc::new(CopyIdentity::from_pieces(&pieces)?);
+        assert_eq!(table.fold(&[5, 6, 9]), vec![5, 5, 9]);
+        // "... luk 9 ... Luk": the asserted key, its value, then the key
+        // recased. An exact 1-token route admits nothing on raw ids at the
+        // last position; under the fold it admits the value after " luk".
+        let ids = [1u32, 5, 9, 2, 6];
+        let route = PrimeRoute::exact(1).admitting(RouteAdmission::Ngram);
+        let mut model = pointer_model(ReadScore::Dot, None, 0)?;
+        let learned = model.next_scores(&ids)?;
+        // An unrouted pointer scores by query and key: the fold changes nothing.
+        model.set_pointer_key_fold(Some(table.clone()))?;
+        assert_eq!(score_bits(&model.next_scores(&ids)?), score_bits(&learned));
+        model.set_pointer_key_fold(None)?;
+        model.set_pointer_route(Some(route))?;
+        let raw = model.next_scores(&ids)?;
+        model.set_pointer_key_fold(Some(table.clone()))?;
+        assert!(model.pointer_key_fold().is_some());
+        let folded = model.next_scores(&ids)?;
+        // The fold puts copy mass on the value (id 9), and none on the key
+        // ids themselves: what is copied is the input token, not its class.
+        assert!(folded[9] > raw[9] + 0.1, "{} against {}", folded[9], raw[9]);
+        assert_eq!(score_bits(&folded[5..=6]), score_bits(&raw[5..=6]));
+        // The loss and the scored rows read the same fold; clearing it
+        // restores the raw route bit for bit.
+        let targets = [5u32, 9, 2, 6, 9];
+        let with_fold = model.score_targets(&ids, &targets, None, 1, 5)?;
+        let loss_fold = model.loss(&ids, &targets, 1, 5)?.to_scalar::<f32>()?;
+        assert!(with_fold.nll[4] < -f64::from(raw[9]) - 0.1);
+        assert!((f64::from(folded[9]) + with_fold.nll[4]).abs() < 1e-4);
+        model.set_pointer_key_fold(None)?;
+        assert_eq!(score_bits(&model.next_scores(&ids)?), score_bits(&raw));
+        let without = model.score_targets(&ids, &targets, None, 1, 5)?;
+        let loss_raw = model.loss(&ids, &targets, 1, 5)?.to_scalar::<f32>()?;
+        assert_ne!(loss_fold.to_bits(), loss_raw.to_bits());
+        let mut never = pointer_model(ReadScore::Dot, None, 0)?;
+        never.set_pointer_route(Some(route))?;
+        let never_scored = never.score_targets(&ids, &targets, None, 1, 5)?;
+        assert_eq!(
+            without.nll.iter().map(|x| x.to_bits()).collect::<Vec<_>>(),
+            never_scored
+                .nll
+                .iter()
+                .map(|x| x.to_bits())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            never
+                .loss(&ids, &targets, 1, 5)?
+                .to_scalar::<f32>()?
+                .to_bits(),
+            loss_raw.to_bits()
+        );
+        // A short table, or a model with no pointer, is refused.
+        let short = Arc::new(CopyIdentity::from_pieces(&pieces[..36])?);
+        assert!(model.set_pointer_key_fold(Some(short)).is_err());
+        let mut plain = StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        assert!(plain.set_pointer_key_fold(Some(table)).is_err());
+        Ok(())
+    }
+
+    fn score_bits(scores: &[f32]) -> Vec<u32> {
+        scores.iter().map(|s| s.to_bits()).collect()
+    }
+
+    #[test]
     fn a_routed_pointer_trains_its_gate_and_leaves_its_scores_alone() -> Result<()> {
         exact_route_trains_only_its_gate(PrimeRoute::exact(1))?;
         exact_route_trains_only_its_gate(PrimeRoute::exact(2).admitting(RouteAdmission::Ngram))
@@ -21647,6 +21781,7 @@ mod tests {
             select: None,
             route: None,
             ids: ids.clone(),
+            keys: None,
             targets: targets.clone(),
             weights: None,
         };
@@ -21723,6 +21858,7 @@ mod tests {
                 select: None,
                 route: None,
                 ids: ids.clone(),
+                keys: None,
                 targets: targets.clone(),
                 weights: None,
             };
@@ -21778,6 +21914,7 @@ mod tests {
             select: None,
             route: None,
             ids: ids.clone(),
+            keys: None,
             targets: targets.clone(),
             weights: None,
         };

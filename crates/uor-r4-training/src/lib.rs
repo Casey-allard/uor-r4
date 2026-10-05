@@ -15,6 +15,7 @@ pub mod b3_e8_codecs;
 pub mod baseline_counts;
 pub mod baseline_protocol;
 pub mod cache_memory;
+pub mod copy_identity;
 pub mod cuda_stack_kernels;
 pub mod d4_codecs;
 pub use d4_codecs::{codec_by_name, HeadCompensatedMapCodec, RecurrenceOutMinMseMapCodec};

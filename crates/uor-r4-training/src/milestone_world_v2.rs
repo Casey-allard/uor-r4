@@ -1020,6 +1020,78 @@ const MQAR_ACKS: &[&str] = &[
     "Thanks for telling me, I'll remember.",
 ];
 const MQAR_REPLIES: &[&str] = &["{k} is {v}.", "{k} is {v}.", "It's {v}.", "That's {v}."];
+/// World v2c's MQAR replies (Step 4, #820): index for index v2's, with each
+/// rehearsal framed as "So {k} is {v}." so the key is never the reply's first
+/// word. v2 capitalizes the reply's first character, which turns a rehearsed
+/// key "luk" into "Luk", a token tuple that never occurs in the assertion or
+/// the question (Step 0b, #1709: 41 of 41 rehearsals in the D19 draw). Under
+/// the frame the key keeps its asserted casing and, as in the assertion and
+/// the question, follows a space mid-sentence, under protocol 1 and 2 alike.
+/// The bare forms do not state the key and are unchanged.
+const MQAR_REPLIES_V2C: &[&str] = &[
+    "So {k} is {v}.",
+    "So {k} is {v}.",
+    "It's {v}.",
+    "That's {v}.",
+];
+
+/// Which M-world v2 table set a generator draws from.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Variant {
+    /// The revision-2.1 world (#1511), byte-identical to every earlier draw.
+    #[default]
+    V2,
+    /// v2 with [`MQAR_REPLIES_V2C`]: a rehearsed MQAR key keeps its asserted
+    /// casing. Every RNG draw is v2's; the reply text differs only in the
+    /// frame, so a draw differs from v2's where the one-token-longer reply
+    /// changes a context fit (see [`MWorld2::with_variant`]).
+    V2c,
+}
+
+impl Variant {
+    /// The `world=` spelling: `v2` or `v2c`.
+    pub fn key(self) -> &'static str {
+        match self {
+            Self::V2 => "v2",
+            Self::V2c => "v2c",
+        }
+    }
+
+    /// The `world` field reports record: `m-world-v2` or `m-world-v2c`.
+    pub fn world_name(self) -> &'static str {
+        match self {
+            Self::V2 => "m-world-v2",
+            Self::V2c => "m-world-v2c",
+        }
+    }
+
+    /// Parse a `world=` value (`v2` or `v2c`).
+    pub fn parse(text: &str) -> Result<Self> {
+        match text {
+            "v2" => Ok(Self::V2),
+            "v2c" => Ok(Self::V2c),
+            other => Err(invalid(format!("unknown v2 world {other:?} (v2 or v2c)"))),
+        }
+    }
+
+    /// The variant a report's `world` field names; `m-world-v2` and an absent
+    /// field are v2.
+    pub fn from_world_name(name: Option<&str>) -> Result<Self> {
+        match name {
+            None | Some("m-world-v2") => Ok(Self::V2),
+            Some("m-world-v2c") => Ok(Self::V2c),
+            Some(other) => Err(invalid(format!("not an M-world v2 report: {other:?}"))),
+        }
+    }
+
+    fn mqar_replies(self) -> &'static [&'static str] {
+        match self {
+            Self::V2 => MQAR_REPLIES,
+            Self::V2c => MQAR_REPLIES_V2C,
+        }
+    }
+}
 static COPY: Phrasings = Phrasings {
     train: &[
         "Repeat exactly: {w}",
@@ -1280,6 +1352,7 @@ pub struct MWorld2<'a> {
     meter: Meter<'a>,
     mix: Mix,
     mqar_seen: usize,
+    variant: Variant,
 }
 
 impl<'a> MWorld2<'a> {
@@ -1289,7 +1362,22 @@ impl<'a> MWorld2<'a> {
             meter: Meter::new(count),
             mix,
             mqar_seen: 0,
+            variant: Variant::V2,
         })
+    }
+
+    /// The same generator drawing from `variant`'s tables. The MQAR reply is
+    /// chosen by v2's template lengths and then written from the variant's
+    /// table at the same index, so a seed makes the same choices in v2 and
+    /// v2c; the draws differ only where the longer v2c reply changes whether
+    /// an episode fits the context.
+    pub fn with_variant(mut self, variant: Variant) -> Self {
+        self.variant = variant;
+        self
+    }
+
+    pub fn variant(&self) -> Variant {
+        self.variant
     }
 
     pub fn meter(&self) -> &Meter<'a> {
@@ -1438,10 +1526,13 @@ impl<'a> MWorld2<'a> {
         let query_template = template(rng, &MQAR_QUERY);
         let mut query = fill(query_template, &[("k", key)]);
         capitalize(&mut query);
-        let reply = (0..if compact { 4 } else { 1 })
-            .map(|_| *pick(rng, MQAR_REPLIES))
-            .min_by_key(|t| self.meter.text(t))
+        // The choice is made on v2's table (as v2 always made it), then
+        // written from the variant's table at the same index.
+        let reply_index = (0..if compact { 4 } else { 1 })
+            .map(|_| rng.below(MQAR_REPLIES.len()))
+            .min_by_key(|&i| self.meter.text(MQAR_REPLIES[i]))
             .unwrap_or_default();
+        let reply = self.variant.mqar_replies()[reply_index];
         let mut answer = fill(reply, &[("k", key), ("v", value)]);
         capitalize(&mut answer);
         let others: Vec<String> = values
@@ -1787,6 +1878,25 @@ impl<'a> MWorld2<'a> {
             }).collect::<Vec<_>>(),
         });
         hex::encode(Sha256::digest(tables.to_string().as_bytes()))
+    }
+
+    /// The digest of `variant`'s tables: [`Self::digest`] for v2, unchanged;
+    /// for v2c the SHA-256 of v2's digest, the variant's name and its MQAR
+    /// reply table. ("So" is one syllable, so it cannot collide with a
+    /// generated word, and the reserved words stay v2's.)
+    pub fn digest_for(variant: Variant) -> String {
+        match variant {
+            Variant::V2 => Self::digest(),
+            Variant::V2c => {
+                let tables = json!({
+                    "base": Self::digest(),
+                    "variant": variant.world_name(),
+                    "mqar_replies": MQAR_REPLIES_V2C,
+                    "reply_choice": "v2 template lengths, same index",
+                });
+                hex::encode(Sha256::digest(tables.to_string().as_bytes()))
+            }
+        }
     }
 }
 
@@ -3244,6 +3354,124 @@ mod tests {
             digest, STREAM_DIGEST,
             "the revision-2.1 episode stream moved: a generator or a table changed"
         );
+    }
+
+    /// SHA-256 over the JSON of the D19 session draw's shape under the toy
+    /// meter: development split, default mix, seed 9101, 300 conversations
+    /// (`m-world session world=v2`'s defaults). Taken on `origin/main`
+    /// `e4922ec5`, before world=v2c existed (Step 4, #820): adding v2c must
+    /// leave every v2 draw byte-identical.
+    const V2_SEED_9101_DIGEST: &str =
+        "e3cb5d2a65b856b6db4432f5e1d031487ee742904b195a166c6b1ccf0bf8410f";
+
+    fn session_draw_digest(world: &mut MWorld2<'_>) -> String {
+        let mut hasher = Sha256::new();
+        let mut rng = Rng::new(9_101);
+        for _ in 0..300 {
+            let conversation = world
+                .conversation(&mut rng, Split::Development)
+                .expect("an episode");
+            hasher.update(serde_json::to_vec(&conversation).expect("serializable"));
+            hasher.update([0u8]);
+        }
+        hex::encode(hasher.finalize())
+    }
+
+    #[test]
+    fn the_v2_seed_9101_draw_is_unchanged() {
+        let digest = session_draw_digest(&mut world());
+        assert_eq!(
+            digest, V2_SEED_9101_DIGEST,
+            "the world=v2 seed-9101 draw moved"
+        );
+        // Naming the variant explicitly draws the same stream.
+        let mut explicit = world().with_variant(Variant::V2);
+        assert_eq!(session_draw_digest(&mut explicit), V2_SEED_9101_DIGEST);
+        assert_eq!(MWorld2::digest_for(Variant::V2), MWorld2::digest());
+        assert_eq!(MWorld2::digest(), V2_DIGEST);
+    }
+
+    #[test]
+    fn v2c_rehearses_the_key_in_its_asserted_casing() {
+        let mut v2c = world().with_variant(Variant::V2c);
+        assert_eq!(v2c.variant(), Variant::V2c);
+        assert_ne!(session_draw_digest(&mut v2c), V2_SEED_9101_DIGEST);
+        assert_ne!(MWorld2::digest_for(Variant::V2c), MWorld2::digest());
+        let mut v2c = world().with_variant(Variant::V2c);
+        let mut v2 = world();
+        let (mut rng_c, mut rng_2) = (Rng::new(9_101), Rng::new(9_101));
+        let (mut queries, mut rehearsals, mut same_choice, mut paired) = (0, 0, 0, 0);
+        for _ in 0..300 {
+            let c = v2c
+                .conversation(&mut rng_c, Split::Development)
+                .expect("a v2c episode");
+            let b = v2
+                .conversation(&mut rng_2, Split::Development)
+                .expect("a v2 episode");
+            let users =
+                |x: &Conversation2| x.turns.iter().map(|t| t.user.clone()).collect::<Vec<_>>();
+            let same_episode = users(&c) == users(&b);
+            paired += usize::from(same_episode);
+            let Some(assertion) = c.turns.iter().find(|t| t.intent == "mqar_assert") else {
+                continue;
+            };
+            let query = c.turns.last().expect("a query");
+            assert_eq!(query.intent, "mqar_query");
+            assert!(judge_v2(&query.checks, &query.user, &query.reply));
+            queries += 1;
+            let value = query.tag.answer.as_deref().expect("an answer");
+            if let Some(rest) = query.reply.strip_prefix("So ") {
+                rehearsals += 1;
+                let key = rest
+                    .strip_suffix(&format!(" is {value}."))
+                    .expect("So {k} is {v}.");
+                // The key is written exactly as asserted and as asked.
+                assert!(assertion.user.contains(&format!(" {key} is {value}")));
+                assert!(query.user.contains(&format!(" {key}")));
+                assert_eq!(key, key.to_lowercase());
+                if same_episode {
+                    let old = &b.turns.last().expect("a query").reply;
+                    assert_eq!(
+                        *old,
+                        format!("{}{} is {value}.", key[..1].to_uppercase(), &key[1..])
+                    );
+                    same_choice += 1;
+                }
+            } else {
+                assert!(
+                    query.reply.starts_with("It's ") || query.reply.starts_with("That's "),
+                    "{:?}",
+                    query.reply
+                );
+                if same_episode {
+                    assert_eq!(b.turns.last().expect("a query").reply, query.reply);
+                }
+            }
+        }
+        // About a third of the queries rehearse, as in v2 (#1709: 41 of 109);
+        // the streams stay paired, episode for episode, until the first fit
+        // the one-token frame changes (near the context at D200); after that
+        // they are independent draws of the same distribution.
+        assert!(queries > 80, "{queries}");
+        assert!(
+            rehearsals * 5 > queries && rehearsals * 2 < queries,
+            "{rehearsals}/{queries}"
+        );
+        assert!(same_choice > 0 && paired > 0, "{same_choice} {paired}");
+    }
+
+    #[test]
+    fn variants_parse_and_name_their_worlds() {
+        for variant in [Variant::V2, Variant::V2c] {
+            assert_eq!(Variant::parse(variant.key()).expect("parses"), variant);
+            assert_eq!(
+                Variant::from_world_name(Some(variant.world_name())).expect("named"),
+                variant
+            );
+        }
+        assert_eq!(Variant::from_world_name(None).expect("v2"), Variant::V2);
+        assert!(Variant::parse("v3").is_err());
+        assert!(Variant::from_world_name(Some("m-world-v1")).is_err());
     }
 
     /// A hand-built turn; `values` are the open values its user text states.
