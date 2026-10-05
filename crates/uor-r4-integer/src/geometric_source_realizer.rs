@@ -11,6 +11,7 @@ use crate::{
     },
     geometric_potential::{AddressLane, NativePotentialTables},
     geometric_potential_q4::{NativePotentialQ4, PotentialQ4Config},
+    geometric_prefix_transport::{NativePrefixTransport, PrefixAngularQ4, PrefixTransportTrace},
     geometric_read_feedback::{
         FeedbackInputMode, FeedbackTrace, NativeReadFeedback, QuerySnapshotReport,
     },
@@ -323,6 +324,17 @@ pub struct CueBankRealizerTrace {
     pub carrier: CueCarrierTrace,
 }
 
+/// Prefix evidence is separate from the unchanged cue/bank baseline traces.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct PrefixBankRealizerTrace {
+    pub cue_bank: CueBankRealizerTrace,
+    pub prefix: PrefixTransportTrace,
+    /// Extra combined cue+prefix score buffer; Vec descriptors/allocator metadata
+    /// are separate from this logical payload count.
+    pub combined_score_payload_bytes: usize,
+    pub combined_score_vec_containers: usize,
+}
+
 pub struct RealizerExecution<'a> {
     pub context: &'a NativeContextQ4,
     pub potential_tables: &'a NativePotentialTables,
@@ -341,7 +353,7 @@ impl<'a> RealizerExecution<'a> {
         query: &[u32],
         prefix: &[u32],
     ) -> Result<BankRealizerTrace> {
-        Ok(self.read_bank_impl(segments, query, prefix, None)?.0)
+        Ok(self.read_bank_impl(segments, query, prefix, None, None)?.0)
     }
     pub fn read_bank_with_cue_carrier(
         &self,
@@ -355,10 +367,39 @@ impl<'a> RealizerExecution<'a> {
         if parent.identity.tokenizer_sha256 != self.binding.tokenizer_sha256() {
             return Err(invalid("cue carrier tokenizer parent differs"));
         }
-        let (bank, carrier) = self.read_bank_impl(segments, query, prefix, Some(carrier))?;
+        let (bank, carrier, _) =
+            self.read_bank_impl(segments, query, prefix, Some(carrier), None)?;
         Ok(CueBankRealizerTrace {
             bank,
             carrier: carrier.ok_or_else(|| invalid("cue carrier trace absent"))?,
+        })
+    }
+    pub fn read_bank_with_prefix_transport(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        parent: &NativeArtifactBinding,
+        cue: &NativeCueCarrier<'_>,
+        transport: &NativePrefixTransport<'_>,
+    ) -> Result<PrefixBankRealizerTrace> {
+        cue.validate_execution(parent, self.context, self.geometry)?;
+        transport.validate_execution(parent, self.context, self.geometry, cue.metadata())?;
+        if parent.identity.tokenizer_sha256 != self.binding.tokenizer_sha256() {
+            return Err(invalid("prefix transport tokenizer parent differs"));
+        }
+        let (bank, carrier, ordered) =
+            self.read_bank_impl(segments, query, prefix, Some(cue), Some(transport))?;
+        let combined_score_payload_bytes = bank.heads.len() * bank.candidates.len() * 8;
+        let combined_score_vec_containers = 1 + bank.heads.len();
+        Ok(PrefixBankRealizerTrace {
+            cue_bank: CueBankRealizerTrace {
+                bank,
+                carrier: carrier.ok_or_else(|| invalid("cue trace absent"))?,
+            },
+            combined_score_payload_bytes,
+            combined_score_vec_containers,
+            prefix: ordered.ok_or_else(|| invalid("prefix trace absent"))?,
         })
     }
     fn read_bank_impl(
@@ -367,7 +408,12 @@ impl<'a> RealizerExecution<'a> {
         query: &[u32],
         prefix: &[u32],
         carrier: Option<&NativeCueCarrier<'_>>,
-    ) -> Result<(BankRealizerTrace, Option<CueCarrierTrace>)> {
+        ordered: Option<&NativePrefixTransport<'_>>,
+    ) -> Result<(
+        BankRealizerTrace,
+        Option<CueCarrierTrace>,
+        Option<PrefixTransportTrace>,
+    )> {
         if self.period.config() != self.no_read.config()
             || self.binding.vocab_size() != self.context.config().vocab_size
         {
@@ -485,11 +531,39 @@ impl<'a> RealizerExecution<'a> {
         let carrier = carrier
             .map(|carrier| carrier.prepare(&derived, query, &candidate_segments))
             .transpose()?;
-        let output = match &carrier {
-            Some(carrier) => {
+        let ordered = ordered
+            .map(|transport| transport.prepare(&derived, prefix, &candidate_segments))
+            .transpose()?;
+        let combined = if let Some(ordered) = &ordered {
+            let cue = carrier
+                .as_ref()
+                .ok_or_else(|| invalid("prefix transport requires frozen cue"))?;
+            if ordered.copy_q24.len() != cue.copy_q24.len() {
+                return Err(invalid("prefix/cue head count differs"));
+            }
+            let mut scores = ordered.copy_q24.clone();
+            for (head, cue_head) in scores.iter_mut().zip(&cue.copy_q24) {
+                if head.len() != cue_head.len() {
+                    return Err(invalid("prefix/cue candidate count differs"));
+                }
+                for (score, cue_score) in head.iter_mut().zip(cue_head) {
+                    *score = score
+                        .checked_add(*cue_score)
+                        .ok_or_else(|| invalid("prefix/cue sum overflow"))?;
+                }
+            }
+            Some(scores)
+        } else {
+            None
+        };
+        let output = match (&combined, &carrier) {
+            (Some(scores), _) => {
+                reader.score_bank_with_copy_adjustments(&prepared, &snapshot, scores)
+            }
+            (None, Some(carrier)) => {
                 reader.score_bank_with_copy_adjustments(&prepared, &snapshot, &carrier.copy_q24)
             }
-            None => reader.score_bank(&prepared, &snapshot),
+            (None, None) => reader.score_bank(&prepared, &snapshot),
         }
         .map_err(|e| invalid(e.to_string()))?;
         let mut heads = Vec::with_capacity(output.head_count());
@@ -545,7 +619,7 @@ impl<'a> RealizerExecution<'a> {
                 },
             })
             .collect();
-        Ok((BankRealizerTrace {policy:"causal-bank-segment-emission-view;context/query/ownprefix-noncandidates;one-global-Copy-Period-Stop;roles-provenance-only;128-context/1",bank_binding_sha256:hex::encode(prepared.binding()),segments:inventory,candidates,context,heads,period_q24:period[..c.heads].to_vec(),actions,logical_prepared_bytes:prepared.logical_prepared_bytes()},carrier))
+        Ok((BankRealizerTrace {policy:"causal-bank-segment-emission-view;context/query/ownprefix-noncandidates;one-global-Copy-Period-Stop;roles-provenance-only;128-context/1",bank_binding_sha256:hex::encode(prepared.binding()),segments:inventory,candidates,context,heads,period_q24:period[..c.heads].to_vec(),actions,logical_prepared_bytes:prepared.logical_prepared_bytes()},carrier,ordered))
     }
 
     pub fn read_source_view(
@@ -1258,6 +1332,46 @@ impl NativeSourceRealizer {
             mode,
         )
     }
+    pub fn compile_prefix_transport(
+        &self,
+        cue: &NativeCueCarrier<'_>,
+        potential: PrefixAngularQ4,
+    ) -> Result<NativePrefixTransport<'_>> {
+        cue.validate_execution(&self.artifact_binding, &self.context, &self.geometry)?;
+        NativePrefixTransport::compile(
+            self.artifact_binding.clone(),
+            &self.context,
+            &self.geometry,
+            cue.metadata().clone(),
+            potential,
+        )
+    }
+    pub fn read_bank_with_prefix_transport(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        transport: &NativePrefixTransport<'_>,
+    ) -> Result<PrefixBankRealizerTrace> {
+        RealizerExecution {
+            context: &self.context,
+            potential_tables: &self.potential_tables,
+            no_read: &self.no_read,
+            geometry: &self.geometry,
+            exp: &self.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_bank_with_prefix_transport(
+            segments,
+            query,
+            prefix,
+            &self.artifact_binding,
+            cue,
+            transport,
+        )
+    }
     pub fn compile_cue_carrier(&self, potential: CueAngularQ4) -> Result<NativeCueCarrier<'_>> {
         NativeCueCarrier::compile(
             self.artifact_binding.clone(),
@@ -1660,6 +1774,252 @@ mod tests {
         )
         .is_err());
         assert!(CueAngularQ4::new(config, &vec![0x88; config.coefficient_count()? / 2]).is_err());
+        Ok(())
+    }
+    fn prefix_potential(
+        c: ContextQ4Config,
+        mode: crate::geometric_prefix_transport::PrefixScoreMode,
+        nonzero: bool,
+    ) -> Result<PrefixAngularQ4> {
+        let config = crate::geometric_prefix_transport::PrefixAngularConfig {
+            heads: c.heads,
+            lanes_per_head: c.lanes_per_head,
+            mode,
+        };
+        let mut q = vec![0; config.coefficient_count()?];
+        if nonzero {
+            for row in q.chunks_exact_mut(ROOT_COUNT) {
+                row.fill(-2);
+                row[usize::from(H4Code::IDENTITY.index())] = 7;
+            }
+        }
+        PrefixAngularQ4::new(
+            config,
+            &crate::geometric_potential_q4::pack_coefficients(&q)
+                .map_err(|e| invalid(e.to_string()))?,
+        )
+    }
+    #[test]
+    fn ordered_prefix_zero_preserves_cue_bank_and_before_token_provenance() -> Result<()> {
+        use crate::geometric_prefix_transport::PrefixScoreMode;
+        let f = ActionFixture::new()?;
+        let ids = [4, 5];
+        let view = f.compiler.compile(&ids)?;
+        let source = || SourceBankSegment::Source {
+            frame: ActionFixture::frame(&ids),
+            view: &view,
+            event: 7,
+        };
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 2,
+            },
+            source(),
+            source(),
+        ];
+        let cue = NativeCueCarrier::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue_potential(f.context.config(), true)?,
+        )?;
+        let transport = NativePrefixTransport::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue.metadata().clone(),
+            prefix_potential(f.context.config(), PrefixScoreMode::DirectedRelative, false)?,
+        )?;
+        let old =
+            f.execution()
+                .read_bank_with_cue_carrier(&segments, &[5], &[4], &f.parent, &cue)?;
+        let added = f.execution().read_bank_with_prefix_transport(
+            &segments,
+            &[5],
+            &[4],
+            &f.parent,
+            &cue,
+            &transport,
+        )?;
+        assert_eq!(old, added.cue_bank);
+        assert_eq!(added.prefix.sources.len(), 2);
+        assert_eq!(added.prefix.sources[0].token_ids, view.emitted_token_ids());
+        assert_eq!(
+            added.prefix.sources[0].states_before,
+            added.prefix.sources[1].states_before
+        );
+        let c = f.context.config();
+        let width = c.heads * c.lanes_per_head;
+        let mut state =
+            crate::geometric_context::NativeContextState::new(c.heads, c.lanes_per_head)
+                .map_err(|e| invalid(e.to_string()))?;
+        for (j, &token) in view.emitted_token_ids().iter().enumerate() {
+            assert_eq!(
+                added.prefix.sources[0].states_before[j],
+                state.states().iter().map(|x| x.index()).collect::<Vec<_>>()
+            );
+            state
+                .step(token as usize, f.context.native(), &f.geometry)
+                .map_err(|e| invalid(e.to_string()))?;
+        }
+        assert_eq!(
+            added.prefix.sources[0].states_before[0],
+            vec![H4Code::IDENTITY.index(); width]
+        );
+        assert_eq!(
+            added.prefix.costs.extra_source_encoder_tokens,
+            2 * (view.emitted_token_ids().len() - 1)
+        );
+        assert_eq!(added.prefix.costs.extra_response_encoder_tokens, 1);
+        for candidate in &added.cue_bank.bank.candidates {
+            let i = candidate.bank_index;
+            let source = added.prefix.candidate_source_indices[i];
+            assert_eq!(
+                added.prefix.sources[source].source_segment_index,
+                candidate.segment_index
+            );
+            assert_eq!(
+                added.prefix.candidate_offsets[i],
+                usize::try_from(candidate.occurrence.token_offset)
+                    .map_err(|e| invalid(e.to_string()))?
+            );
+            assert_eq!(
+                added.prefix.sources[source].token_ids[added.prefix.candidate_offsets[i]],
+                candidate.occurrence.token_id
+            );
+        }
+        let empty = f.execution().read_bank_with_prefix_transport(
+            &segments,
+            &[5],
+            &[],
+            &f.parent,
+            &cue,
+            &transport,
+        )?;
+        assert_eq!(
+            empty.prefix.response.states,
+            vec![H4Code::IDENTITY.index(); width]
+        );
+        assert_eq!(empty.prefix.sources, added.prefix.sources);
+        let foreign = ActionFixture::new()?;
+        assert!(foreign
+            .execution()
+            .read_bank_with_prefix_transport(&segments, &[5], &[], &f.parent, &cue, &transport)
+            .is_err());
+        let changed_cue = NativeCueCarrier::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue_potential(f.context.config(), false)?,
+        )?;
+        assert!(f
+            .execution()
+            .read_bank_with_prefix_transport(
+                &segments,
+                &[5],
+                &[],
+                &f.parent,
+                &changed_cue,
+                &transport
+            )
+            .is_err());
+        Ok(())
+    }
+    #[test]
+    fn ordered_prefix_nonzero_is_occurrence_and_actual_prefix_dependent_with_matched_control(
+    ) -> Result<()> {
+        use crate::geometric_prefix_transport::PrefixScoreMode;
+        let f = ActionFixture::new()?;
+        let ids = [4, 5];
+        let view = f.compiler.compile(&ids)?;
+        // No cue at all: ordered factor still scores every Source occurrence.
+        let segments = [SourceBankSegment::Source {
+            frame: ActionFixture::frame(&ids),
+            view: &view,
+            event: 7,
+        }];
+        let cue = NativeCueCarrier::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue_potential(f.context.config(), true)?,
+        )?;
+        let directed = NativePrefixTransport::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue.metadata().clone(),
+            prefix_potential(f.context.config(), PrefixScoreMode::DirectedRelative, true)?,
+        )?;
+        let unary = NativePrefixTransport::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue.metadata().clone(),
+            prefix_potential(f.context.config(), PrefixScoreMode::SourcePrefixUnary, true)?,
+        )?;
+        let read = |prefix: &[u32], transport: &NativePrefixTransport<'_>| {
+            f.execution().read_bank_with_prefix_transport(
+                &segments,
+                &[5],
+                prefix,
+                &f.parent,
+                &cue,
+                transport,
+            )
+        };
+        let a = read(&[], &directed)?;
+        let b = read(&[4], &directed)?;
+        let control = read(&[4], &unary)?;
+        assert!(a.cue_bank.carrier.cues.is_empty());
+        assert_ne!(a.prefix.copy_q24[0][0], a.prefix.copy_q24[0][1]);
+        assert_ne!(a.prefix.angular_indices, b.prefix.angular_indices);
+        assert_ne!(a.prefix.copy_q24, b.prefix.copy_q24);
+        assert_eq!(b.prefix.sources, control.prefix.sources);
+        assert_eq!(b.prefix.response, control.prefix.response);
+        assert_eq!(b.prefix.relative_roots, control.prefix.relative_roots);
+        assert_eq!(b.prefix.costs, control.prefix.costs);
+        assert_ne!(b.prefix.angular_indices, control.prefix.angular_indices);
+        for lane in 0..control.prefix.angular_indices.len() {
+            for j in 0..control.prefix.candidate_offsets.len() {
+                let source = control.prefix.candidate_source_indices[j];
+                let offset = control.prefix.candidate_offsets[j];
+                assert_eq!(
+                    control.prefix.angular_indices[lane][j],
+                    control.prefix.sources[source].states_before[offset][lane]
+                );
+                assert_eq!(
+                    b.prefix.angular_indices[lane][j],
+                    b.prefix.relative_roots[lane][j]
+                );
+            }
+        }
+        let baseline =
+            f.execution()
+                .read_bank_with_cue_carrier(&segments, &[5], &[], &f.parent, &cue)?;
+        assert_eq!(a.cue_bank.bank.context, baseline.bank.context);
+        assert_eq!(a.cue_bank.bank.candidates, baseline.bank.candidates);
+        assert_eq!(a.cue_bank.bank.period_q24, baseline.bank.period_q24);
+        for h in 0..baseline.bank.heads.len() {
+            assert_eq!(
+                a.cue_bank.bank.heads[h].no_read_q24,
+                baseline.bank.heads[h].no_read_q24
+            );
+            for j in 0..baseline.bank.candidates.len() {
+                assert_eq!(
+                    a.cue_bank.bank.heads[h].scores_q24[j],
+                    baseline.bank.heads[h].scores_q24[j] + a.prefix.copy_q24[h][j]
+                );
+            }
+        }
+        assert_eq!(directed.packed_coefficients(), unary.packed_coefficients());
+        assert!(PrefixAngularQ4::new(
+            directed.metadata().potential,
+            &vec![0x88; directed.packed_coefficients().len()]
+        )
+        .is_err());
         Ok(())
     }
     struct ActionFixture {

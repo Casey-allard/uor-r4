@@ -29,6 +29,9 @@ use uor_r4_integer::{
     geometric_occurrence_read::SelectedRecordFrame,
     geometric_potential::AddressLane,
     geometric_potential_q4::pack_coefficients,
+    geometric_prefix_transport::{
+        NativePrefixTransport, PrefixAngularConfig, PrefixAngularQ4, PrefixScoreMode,
+    },
     h4_tables::H4Code,
 };
 
@@ -468,6 +471,41 @@ impl NativeSourceRealizer {
         .read_bank_with_cue_carrier(segments, query, prefix, &parent, carrier)
         .map_err(|e| invalid(e.to_string()))
     }
+    pub fn compile_prefix_transport(
+        &self,
+        cue: &NativeCueCarrier<'_>,
+        angular: PrefixAngularQ4,
+    ) -> Result<NativePrefixTransport<'_>> {
+        NativePrefixTransport::compile(
+            self.artifact_binding()?,
+            &self.consumer.context,
+            &self.consumer.geometry,
+            cue.metadata().clone(),
+            angular,
+        )
+        .map_err(|e| invalid(e.to_string()))
+    }
+    pub fn read_bank_with_prefix_transport(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        transport: &NativePrefixTransport<'_>,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace> {
+        let parent = self.artifact_binding()?;
+        uor_r4_integer::geometric_source_realizer::RealizerExecution {
+            context: &self.consumer.context,
+            potential_tables: &self.consumer.potential_tables,
+            no_read: &self.consumer.no_read,
+            geometry: &self.consumer.geometry,
+            exp: &self.consumer.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_bank_with_prefix_transport(segments, query, prefix, &parent, cue, transport)
+        .map_err(|e| invalid(e.to_string()))
+    }
     pub fn read_dependent(
         &self,
         frame: SelectedRecordFrame<'_>,
@@ -855,9 +893,220 @@ impl CueAngularWeights {
         Ok(result)
     }
 }
+pub struct PrefixAngularWeights {
+    coefficients: Var,
+    metadata: PrefixAngularSourceMetadata,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PrefixAngularSourceMetadata {
+    schema: String,
+    parent: uor_r4_integer::geometric_source_realizer::NativeArtifactBinding,
+    parent_native_files_sha256: BTreeMap<String, String>,
+    cue_native_files_sha256: BTreeMap<String, String>,
+    cue_native_metadata: serde_json::Value,
+    config: PrefixAngularConfig,
+    source_sha256: String,
+    packed_sha256: String,
+    native_metadata: serde_json::Value,
+}
+fn prefix_parent_files(
+    native: &NativeSourceRealizer,
+    root: &Path,
+) -> Result<BTreeMap<String, String>> {
+    if crate::sha256_file(&root.join("metadata.json"))?
+        != native.artifact_binding()?.metadata_sha256
+    {
+        return Err(invalid("cue bound parent metadata differs"));
+    }
+    [
+        "metadata.json",
+        "consumer/context-q4.bin",
+        "consumer/metadata.json",
+        "tokenizer.json",
+    ]
+    .into_iter()
+    .map(|name| Ok((name.into(), crate::sha256_file(&root.join(name))?)))
+    .collect()
+}
+fn prefix_cue_files(root: &Path, cue: &NativeCueCarrier<'_>) -> Result<BTreeMap<String, String>> {
+    let metadata = fs::read(root.join("native-metadata.json"))?;
+    if serde_json::from_slice::<serde_json::Value>(&metadata)?
+        != serde_json::to_value(cue.metadata())?
+        || fs::read(root.join("cue-q4.bin"))? != cue.packed_coefficients()
+    {
+        return Err(invalid("prefix frozen cue native bundle differs"));
+    }
+    ["native-metadata.json", "cue-q4.bin"]
+        .into_iter()
+        .map(|name| Ok((name.into(), crate::sha256_file(&root.join(name))?)))
+        .collect()
+}
+impl PrefixAngularWeights {
+    pub fn zero(
+        parent: &NativeSourceRealizer,
+        native_root: &Path,
+        cue_root: &Path,
+        cue: &NativeCueCarrier<'_>,
+        mode: PrefixScoreMode,
+    ) -> Result<Self> {
+        let c = parent.consumer.context.config();
+        let config = PrefixAngularConfig {
+            heads: c.heads,
+            lanes_per_head: c.lanes_per_head,
+            mode,
+        };
+        let count = config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?;
+        let result = Self {
+            coefficients: Var::from_vec(vec![0f32; count], count, &Device::Cpu)?,
+            metadata: PrefixAngularSourceMetadata {
+                schema: "uor-r4.geometric-prefix-angular-source/1".into(),
+                parent: parent.artifact_binding()?,
+                parent_native_files_sha256: prefix_parent_files(parent, native_root)?,
+                cue_native_files_sha256: prefix_cue_files(cue_root, cue)?,
+                cue_native_metadata: serde_json::to_value(cue.metadata())?,
+                config,
+                source_sha256: String::new(),
+                packed_sha256: String::new(),
+                native_metadata: serde_json::Value::Null,
+            },
+        };
+        let mut result = result;
+        result.metadata.native_metadata = serde_json::to_value(
+            parent
+                .compile_prefix_transport(cue, result.native()?)?
+                .metadata(),
+        )?;
+        Ok(result)
+    }
+    pub fn config(&self) -> PrefixAngularConfig {
+        self.metadata.config
+    }
+    pub fn parent_binding(
+        &self,
+    ) -> &uor_r4_integer::geometric_source_realizer::NativeArtifactBinding {
+        &self.metadata.parent
+    }
+    pub fn parameters(&self) -> BTreeMap<String, Var> {
+        BTreeMap::from([("prefix.coefficients".into(), self.coefficients.clone())])
+    }
+    pub fn project_shadow_range(&self) -> Result<()> {
+        let v = self.coefficients.to_vec1::<f32>()?;
+        if v.iter().any(|x| !x.is_finite()) {
+            return Err(invalid("nonfinite prefix angular shadow"));
+        }
+        self.coefficients.set(&Tensor::from_vec(
+            v.into_iter()
+                .map(|x| x.clamp(-1.75, 1.75))
+                .collect::<Vec<_>>(),
+            self.coefficients.shape(),
+            &Device::Cpu,
+        )?)?;
+        Ok(())
+    }
+    pub fn packed_coefficients(&self) -> Result<Vec<u8>> {
+        let v = self.coefficients.to_vec1::<f32>()?;
+        if v.iter().any(|x| !x.is_finite() || *x < -1.75 || *x > 1.75) {
+            return Err(invalid("prefix angular shadow outside legal quarter range"));
+        }
+        pack_coefficients(
+            &v.into_iter()
+                .map(|x| (x * 4.).round() as i8)
+                .collect::<Vec<_>>(),
+        )
+        .map_err(|e| invalid(e.to_string()))
+    }
+    pub fn native(&self) -> Result<PrefixAngularQ4> {
+        PrefixAngularQ4::new(self.config(), &self.packed_coefficients()?)
+            .map_err(|e| invalid(e.to_string()))
+    }
+    fn source_bytes(&self) -> Result<Vec<u8>> {
+        Ok(self
+            .coefficients
+            .to_vec1::<f32>()?
+            .into_iter()
+            .flat_map(f32::to_le_bytes)
+            .collect())
+    }
+    pub fn save(&self, path: &Path) -> Result<()> {
+        fs::create_dir(path)?;
+        let source = self.source_bytes()?;
+        let packed = self.packed_coefficients()?;
+        let mut m = self.metadata.clone();
+        m.source_sha256 = sha256_bytes(&source);
+        m.packed_sha256 = sha256_bytes(&packed);
+        m.native_metadata["potential_packed_sha256"] = serde_json::json!(m.packed_sha256);
+        fs::write(
+            path.join("native-metadata.json"),
+            serde_json::to_vec_pretty(&m.native_metadata)?,
+        )?;
+        fs::write(path.join("prefix-source-f32.bin"), source)?;
+        fs::write(path.join("prefix-q4.bin"), packed)?;
+        fs::write(path.join("metadata.json"), serde_json::to_vec_pretty(&m)?)?;
+        Ok(())
+    }
+    pub fn load(
+        path: &Path,
+        parent: &NativeSourceRealizer,
+        native_root: &Path,
+        cue_root: &Path,
+        cue: &NativeCueCarrier<'_>,
+    ) -> Result<Self> {
+        let m: PrefixAngularSourceMetadata =
+            serde_json::from_slice(&fs::read(path.join("metadata.json"))?)?;
+        let raw = fs::read(path.join("prefix-source-f32.bin"))?;
+        let packed = fs::read(path.join("prefix-q4.bin"))?;
+        let count = m
+            .config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?;
+        if m.schema != "uor-r4.geometric-prefix-angular-source/1"
+            || m.parent != parent.artifact_binding()?
+            || m.parent_native_files_sha256 != prefix_parent_files(parent, native_root)?
+            || m.cue_native_files_sha256 != prefix_cue_files(cue_root, cue)?
+            || m.cue_native_metadata != serde_json::to_value(cue.metadata())?
+            || raw.len() != count * 4
+            || m.source_sha256 != sha256_bytes(&raw)
+            || m.packed_sha256 != sha256_bytes(&packed)
+        {
+            return Err(invalid(
+                "prefix source/native parent bundle binding differs",
+            ));
+        }
+        let values = raw
+            .chunks_exact(4)
+            .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+            .collect::<Vec<_>>();
+        let result = Self {
+            coefficients: Var::from_vec(values, count, &Device::Cpu)?,
+            metadata: m,
+        };
+        if result.packed_coefficients()? != packed {
+            return Err(invalid("prefix source/native packed replay differs"));
+        }
+        let carrier = parent.compile_prefix_transport(cue, result.native()?)?;
+        if serde_json::to_value(carrier.metadata())? != result.metadata.native_metadata
+            || serde_json::from_slice::<serde_json::Value>(&fs::read(
+                path.join("native-metadata.json"),
+            )?)? != result.metadata.native_metadata
+            || carrier.metadata().parent_artifact != *result.parent_binding()
+        {
+            return Err(invalid("prefix compiled parent differs"));
+        }
+        Ok(result)
+    }
+}
 pub struct CueBankRealizerLoss {
     pub loss: Tensor,
     pub trace: uor_r4_integer::geometric_source_realizer::CueBankRealizerTrace,
+    pub target_probability: f64,
+}
+
+pub struct PrefixBankRealizerLoss {
+    pub loss: Tensor,
+    pub trace: uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace,
     pub target_probability: f64,
 }
 
@@ -1071,6 +1320,85 @@ impl PreparedSourceRealizer<'_> {
         let probability = mass as f64 / actions.total_weight_q31 as f64;
         let loss = marginal_action_loss(actions, &credit, target, probability)?;
         Ok(CueBankRealizerLoss {
+            loss,
+            trace,
+            target_probability: probability,
+        })
+    }
+
+    /// Only the prefix table receives credit. Parent heads, cue table and both
+    /// native prefix encoders are constants; labels enter after native scoring.
+    pub fn loss_bank_prefix(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        target: u32,
+        weights: &PrefixAngularWeights,
+        cue: &NativeCueCarrier<'_>,
+        carrier: &NativePrefixTransport<'_>,
+    ) -> Result<PrefixBankRealizerLoss> {
+        if weights.parent_binding() != &self.native.artifact_binding()?
+            || weights.packed_coefficients()?.as_slice() != carrier.packed_coefficients()
+            || weights.metadata.cue_native_metadata != serde_json::to_value(cue.metadata())?
+        {
+            return Err(invalid("prefix current packed/source parent differs"));
+        }
+        let trace = self
+            .native
+            .read_bank_with_prefix_transport(segments, query, prefix, cue, carrier)?;
+        if trace.prefix.metadata.potential != weights.config() {
+            return Err(invalid("prefix source/native angular mode differs"));
+        }
+        let actions = &trace.cue_bank.bank.actions;
+        let mass = actions
+            .token_masses
+            .iter()
+            .find(|v| v.token_id == target)
+            .map_or(0, |v| v.weight_q31);
+        if mass == 0 || actions.total_weight_q31 == 0 || mass > actions.total_weight_q31 {
+            return Err(invalid(
+                "prefix native target has zero/invalid support; no floor",
+            ));
+        }
+        let count = trace.cue_bank.bank.candidates.len();
+        let lanes = weights.config().heads * weights.config().lanes_per_head;
+        if count == 0
+            || trace.prefix.angular_indices.len() != lanes
+            || trace
+                .prefix
+                .angular_indices
+                .iter()
+                .any(|v| v.len() != count)
+        {
+            return Err(invalid("prefix native coefficient address shape differs"));
+        }
+        let mut indices = Vec::with_capacity(lanes * count);
+        let mut masks = Vec::with_capacity(lanes * count);
+        for (lane, row) in trace.prefix.angular_indices.iter().enumerate() {
+            for index in row {
+                if *index >= 120 {
+                    return Err(invalid("prefix native angular address exceeds120"));
+                }
+                indices.push((lane * 120 + usize::from(*index)) as u32);
+                masks.push(1f32);
+            }
+        }
+        let selected = weights
+            .coefficients
+            .index_select(&Tensor::from_vec(indices, lanes * count, &Device::Cpu)?, 0)?;
+        let mask = Tensor::from_vec(masks, lanes * count, &Device::Cpu)?;
+        let copies = (selected * mask)?.reshape((lanes, count))?.sum(0)?;
+        let credit = Tensor::cat(
+            &[
+                copies,
+                Tensor::zeros(2, candle_core::DType::F32, &Device::Cpu)?,
+            ],
+            0,
+        )?;
+        let probability = mass as f64 / actions.total_weight_q31 as f64;
+        let loss = marginal_action_loss(actions, &credit, target, probability)?;
+        Ok(PrefixBankRealizerLoss {
             loss,
             trace,
             target_probability: probability,
@@ -1940,6 +2268,86 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn prefix_zero_alias_loss_credit_and_native_bundle_binding() -> Result<()> {
+        let (fixture, native, _) = dependent_fixture()?;
+        let parent = fixture.path.join("dependent-native");
+        let cue_weights =
+            CueAngularWeights::zero(&native, &parent, CueScoreMode::DirectedRelative)?;
+        let cue_path = fixture.path.join("prefix-frozen-cue");
+        cue_weights.save(&cue_path)?;
+        let cue = native.compile_cue_carrier(cue_weights.native()?)?;
+        let weights = PrefixAngularWeights::zero(
+            &native,
+            &parent,
+            &cue_path,
+            &cue,
+            PrefixScoreMode::DirectedRelative,
+        )?;
+        let transport = native.compile_prefix_transport(&cue, weights.native()?)?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [SourceBankSegment::Source {
+            frame: frame(&ids),
+            view: &view,
+            event: 7,
+        }];
+        let prepared = fixture.weights.prepare(&native)?;
+        for target in [4, 3, 1] {
+            let out = prepared.loss_bank_prefix(
+                &segments,
+                &[5],
+                &[],
+                target,
+                &weights,
+                &cue,
+                &transport,
+            )?;
+            assert_eq!(
+                out.trace.cue_bank,
+                native.read_bank_with_cue_carrier(&segments, &[5], &[], &cue)?
+            );
+            assert!(
+                (f64::from(out.loss.to_scalar::<f32>()?) + out.target_probability.ln()).abs()
+                    < 1e-6
+            );
+            let grad = out.loss.backward()?;
+            for var in fixture
+                .weights
+                .parameters()
+                .values()
+                .chain(cue_weights.parameters().values())
+            {
+                assert!(grad.get(var.as_tensor()).is_none());
+            }
+            let g = grad
+                .get(weights.coefficients.as_tensor())
+                .ok_or_else(|| invalid("prefix credit missing"))?
+                .to_vec1::<f32>()?;
+            assert!(g.iter().all(|x| x.is_finite()));
+            assert!(g.iter().any(|x| x.abs() > 1e-8));
+        }
+        let path = fixture.path.join("prefix-bundle");
+        weights.save(&path)?;
+        let restored = PrefixAngularWeights::load(&path, &native, &parent, &cue_path, &cue)?;
+        assert_eq!(
+            restored.packed_coefficients()?,
+            weights.packed_coefficients()?
+        );
+        let mut values = weights.coefficients.to_vec1::<f32>()?;
+        values[0] = 0.25;
+        weights.coefficients.set(&Tensor::from_vec(
+            values,
+            weights.coefficients.shape(),
+            &Device::Cpu,
+        )?)?;
+        assert!(prepared
+            .loss_bank_prefix(&segments, &[5], &[], 4, &weights, &cue, &transport)
+            .is_err());
+        fs::write(cue_path.join("cue-q4.bin"), [1u8])?;
+        assert!(PrefixAngularWeights::load(&path, &native, &parent, &cue_path, &cue).is_err());
+        Ok(())
+    }
     #[test]
     fn cue_loss_zero_replay_alias_credit_and_frozen_parent_graph() -> Result<()> {
         let (fixture, native, _) = dependent_fixture()?;

@@ -26,6 +26,7 @@ pub mod geometric_no_read;
 pub mod geometric_occurrence_read;
 pub mod geometric_potential;
 pub mod geometric_potential_q4;
+pub mod geometric_prefix_transport;
 pub mod geometric_read;
 pub mod geometric_read_feedback;
 pub mod geometric_source_actions;
