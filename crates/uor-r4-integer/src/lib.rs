@@ -34,6 +34,7 @@ pub mod geometric_source_emission_view;
 pub mod geometric_source_end_transport;
 pub mod geometric_source_realizer;
 pub mod geometric_span;
+pub mod geometric_turn_compiler;
 pub mod geometric_value;
 pub mod geometric_value_producer;
 pub mod geometric_value_q4;

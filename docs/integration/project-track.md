@@ -41,6 +41,22 @@ teacher text or a larger model needs a new causal case under the
 
 ### Current geometric attention experiment — October 4
 
+The [October5 native compiler/instrument audit](geometric-native-compiler-2026-10-05.md)
+advances the missing language interface and corrects its evaluation scope. The
+native head fits all152 training actions, but familiar-wording/new-value writes
+are1/64; another endpoint-only dose is not justified. The next compiler seam is
+ordered local word/predecessor geometry plus nearby source-frame span information,
+with exact occurrence identity and existing paraphrase knowledge retained. An
+authored compiler control proves actual store4/4 but native selected-record2/4
+and all-bank0/4, exposing a separate original-statement/query distribution gap.
+Preserve those distinct boundaries and useful reader parents. New fits need a
+same-instrument positive control, tokenizer/casing/gap/reply parity, actual
+retrieval-required inputs and complete/matched run admission. Three genuine
+learning seeds precede benchmark architecture verdicts; two independent chat
+lineages precede chat verdicts. Panel draw seeds and deterministic repeats do not
+meet that ladder. Supplied-record and authored-cue positives retain their original
+scopes, and no mechanism family is retired by this audit.
+
 The [source-end geometric completion](geometric-source-end-2026-10-05.md) now executes with a bounded directed completion gain and all regressions retained. Current state owns its exact results. Preserve the directed64 research parent and prefix64 recovery; next use prospectively bounded native-accepted refinement of the learned geometric terminal field from measured phase margins, rather than repeating Adam or inventing missing endpoint information. Keep predecessor/value binding for wrong-Source errors and reuse/native-lower the existing learned relation/act/span compiler for the integrated exact-store→native-consumer path. Zero complete fresh query pairs prevents chat promotion; shared-session integration remains coordinated on #1552.
 
 The [dependent-read construction](geometric-dependent-read-2026-10-04.md) and [ordinary-answer learning admission](geometric-dependent-learning-2026-10-04.md) now execute. A selected occurrence's retained value can refine the query before a second read of immutable keys, and final Copy/Period/Stop loss reaches only the action bridge. Identity/causal construction and finite connected credit are distinct from learned usefulness; no fitted feedback candidate is yet qualified.

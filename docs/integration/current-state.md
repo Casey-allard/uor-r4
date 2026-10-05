@@ -1,5 +1,33 @@
 # Current UOR-R4 research state
 
+## Native compiler learns training but fails value transfer — October 5
+
+The [native compiler fit and zero-update audit](geometric-native-compiler-2026-10-05.md)
+retain all five checkpoints. Native development CE selects untrained step0;
+its8/44 exact outcomes are only prose abstentions, and all24 integration turns
+decline: no reader calls, so reader **NOT_RUN**. Saved steps32/48/64 nevertheless
+fit152/152 training actions and128/128 writes. Familiar wording/new values gives
+only1/64 exact writes; new wording/familiar values gives11–13/64. This is a bounded
+value/phrasing transfer negative, not a frozen-learning or geometry-family result.
+
+The same-instrument exact-template control passes every compiler row and actual
+store4/4 queries. Eight actual native calls complete selected-record2/4 versus
+all-bank0/4 with original statement cues and natural questions. Compiler transfer
+and consumer deployment-distribution transfer are separate blockers. Original
+64-row training supplied answer-bearing single records; later bank experiments
+retain authored cue/extracted-span assistance, as the [a–e audit](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-5989197931)
+records. Preserve sealed originals and their execution-count erratum.
+
+**Next:** implement target-free ordered local occurrence/predecessor geometry
+for act/relation and nearby source-frame observations for span, reusing existing
+compiler contracts and labelled paraphrases. No unchanged endpoint fit. Keep
+reader cue/query parity as a separate measured learning boundary; do not replace
+natural text with authored gold cues. Require real learning seeds (three for a
+benchmark verdict; two independent chat lineages), a positive control and complete
+source/artifact/run identities before aggregation. Current deterministic carrier
+does not supply those replications. Shared session untouched; coordinate#1552.
+General chat, Generate, reasoning, full history and laptop energy remain unmet.
+
 ## Learned endpoint geometry improves bounded native completion — October 5
 
 The [source-end fit](geometric-source-end-2026-10-05.md) learns1920Q4 Period/Stop cells conditioned on frozen factual Copy occurrence and fullSource-end/actualresponse relative H4 geometry. Directed64 nativeCE0.2771607606→0.2412554844; singles59/64 unchanged, banks30→33/64, development89→92/128 (+3/−0), newfresh3→8/32 (+5/−0), controls2→4/6. Unary89/128 and4/32. Completepairs8→9/32development but0/16fresh. Preserve directed64 as bounded completion donor/research parent, originalprefix64 recovery and every regression. This is not generalchat or improvedSource selection.

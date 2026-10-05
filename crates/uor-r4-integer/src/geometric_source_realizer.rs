@@ -1370,6 +1370,16 @@ impl NativeSourceRealizer {
     pub fn context_config(&self) -> ContextQ4Config {
         self.context.config()
     }
+    /// Read-only encoder view of this admitted artifact, preserving its exact
+    /// token transitions and signed-H4 algebra. No independent mutable encoder.
+    pub fn context_encoder_parts(
+        &self,
+    ) -> (
+        &crate::geometric_context::NativeContextTables,
+        &HistoricalH4Tables,
+    ) {
+        (self.context.native(), &self.geometry)
+    }
     pub fn read_dependent(
         &self,
         frame: SelectedRecordFrame<'_>,
