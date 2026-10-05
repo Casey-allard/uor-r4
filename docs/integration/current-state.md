@@ -88,6 +88,14 @@ source/artifact/run identities before aggregation. Current deterministic carrier
 does not supply those replications. Shared session untouched; coordinate#1552.
 General chat, Generate, reasoning, full history and laptop energy remain unmet.
 
+## Retained historical native-accepted endpoint refinement — October 5
+
+The [bounded discrete round](geometric-source-end-native-refinement-2026-10-05.md) selects `gradient-stop-q2` from six frozen proposals/four unique payloads using actual full128 native global-alias CE:0.2412554844→0.2181241687. Complete development92→96/128 (+4/−0), banks33→37/64, singles59/64 unchanged; newly frozen seed16 transfer7→9/32 (+2/−0). Complete pairs9→10/32 development but0/16 transfer. Retain the selected Stop field and every rejected proposal; no general chat qualification. Rejected own-prefix generation is NOT_RUN under the prospective storage policy.
+
+Numerical source5eca7aec/executablecdb09a70; Linux CPU-only scoped formatting/five tests/release pass, build184.874s and worker18.284s exit0. Static adversarial source review approved; independent saved-outcome audit205817 checks PASS. All six new completions repair missed EOS; selected changes37 Stop coefficients, zero Period. Wrong-Source/early-Stop/punctuation failures unchanged. Verified same-pod `/workspace` archive preserves74 files194596060B; local disk fluctuation below128MiB prevented large downloads. Same charged180min card, new ledger charge0. No GPU/shared-session edits.
+
+**Historical next (superseded by the active reader plan above):** end this finite calibration round and reuse/native-lower existing learned compiler act/key/span decisions into actual store→native consumer behavior on varied English. Learn consistent and separate frame addresses plus memory/prose discrimination; exposed prose false writes and compiler float scoring remain integration risks. Coordinate #1552 ownership before shared compiler changes. Predecessor geometric binding remains a separate wrong-Source donor. General Generate/chat/reasoning/full-history/laptop energy remain unmet.
+
 ## Learned endpoint geometry improves bounded native completion — October 5
 
 The [source-end fit](geometric-source-end-2026-10-05.md) learns1920Q4 Period/Stop cells conditioned on frozen factual Copy occurrence and fullSource-end/actualresponse relative H4 geometry. Directed64 nativeCE0.2771607606→0.2412554844; singles59/64 unchanged, banks30→33/64, development89→92/128 (+3/−0), newfresh3→8/32 (+5/−0), controls2→4/6. Unary89/128 and4/32. Completepairs8→9/32development but0/16fresh. Preserve directed64 as bounded completion donor/research parent, originalprefix64 recovery and every regression. This is not generalchat or improvedSource selection.

@@ -726,6 +726,25 @@ pub(super) fn run(a: &Args, start: Instant) -> Result<Value> {
         "fresh-preparation-scope.json",
         &read_json(&a.fresh_panel.join("report.json"))?,
     )?;
+    if a.mode == "source-end-refine" {
+        return refine(
+            a,
+            start,
+            &source,
+            &parent,
+            &integer,
+            &tok,
+            &tc,
+            &tp,
+            &cue,
+            &prefix,
+            &development,
+            &fresh,
+            &receipts,
+            inputs,
+            sealed,
+        );
+    }
     weights.save(&a.out.join("initial-source-end"))?;
     recovery(&weights, a, 0)?;
     let initial_sha = sha256_file(&a.out.join("initial-source-end/native-metadata.json"))?;
@@ -1054,5 +1073,523 @@ mod tests {
             )
         );
         Ok(())
+    }
+}
+
+// One prospective native acceptance round. Gradients propose; complete native
+// alias likelihood alone selects. No optimizer, support floor, or adaptive quota.
+#[derive(Clone)]
+struct EndProposal {
+    id: String,
+    period: Vec<i8>,
+    stop: Vec<i8>,
+    duplicate_of: Option<String>,
+}
+fn endpoint_proposals(
+    period: &[i8],
+    stop: &[i8],
+    pg: &[f32],
+    sg: &[f32],
+) -> Result<(f64, Vec<EndProposal>)> {
+    if period.len() != 960
+        || stop.len() != 960
+        || pg.len() != 960
+        || sg.len() != 960
+        || period.iter().chain(stop).any(|q| !(-7..=7).contains(q))
+        || pg.iter().chain(sg).any(|g| !g.is_finite())
+    {
+        return Err(invalid(
+            "refinement requires legal eight-lane endpoint tables and finite full gradients",
+        )
+        .into());
+    }
+    let max = pg
+        .iter()
+        .chain(sg)
+        .map(|g| f64::from(g.abs()))
+        .fold(0f64, f64::max);
+    let mut result = Vec::new();
+    for scale in [1i8, 2] {
+        let mut q = period.to_vec();
+        for lane in 0..8 {
+            q[lane * 120 + 1] =
+                (i16::from(q[lane * 120 + 1]) + i16::from(scale)).clamp(-7, 7) as i8;
+        }
+        result.push(EndProposal {
+            id: format!("identity-period-q{scale}"),
+            period: q,
+            stop: stop.to_vec(),
+            duplicate_of: None,
+        });
+    }
+    for (family, grad) in [("period", pg), ("stop", sg)] {
+        for scale in [1i8, 2] {
+            let base = if family == "period" { period } else { stop };
+            let q = base
+                .iter()
+                .zip(grad)
+                .map(|(&q, &g)| {
+                    let delta = if max == 0. {
+                        0.
+                    } else {
+                        (-f64::from(scale) * f64::from(g) / max).round()
+                    };
+                    (i16::from(q) + delta as i16).clamp(-7, 7) as i8
+                })
+                .collect::<Vec<_>>();
+            result.push(EndProposal {
+                id: format!("gradient-{family}-q{scale}"),
+                period: if family == "period" {
+                    q.clone()
+                } else {
+                    period.to_vec()
+                },
+                stop: if family == "stop" { q } else { stop.to_vec() },
+                duplicate_of: None,
+            });
+        }
+    }
+    let mut seen = vec![(period.to_vec(), stop.to_vec(), "incumbent".to_string())];
+    for p in &mut result {
+        if let Some((_, _, id)) = seen.iter().find(|(x, y, _)| *x == p.period && *y == p.stop) {
+            p.duplicate_of = Some(id.clone());
+        } else {
+            seen.push((p.period.clone(), p.stop.clone(), p.id.clone()));
+        }
+    }
+    Ok((max, result))
+}
+fn set_endpoint_grid(w: &SourceEndAngularWeights, period: &[i8], stop: &[i8]) -> Result<()> {
+    let params = w.parameters();
+    for (name, values) in [
+        ("source_end.period_coefficients", period),
+        ("source_end.stop_coefficients", stop),
+    ] {
+        let var = params
+            .get(name)
+            .ok_or_else(|| invalid("endpoint variable missing"))?;
+        var.set(&Tensor::from_vec(
+            values
+                .iter()
+                .map(|q| f32::from(*q) * 0.25)
+                .collect::<Vec<_>>(),
+            var.shape(),
+            &Device::Cpu,
+        )?)?;
+    }
+    Ok(())
+}
+fn refinement_better(candidate: &Value, incumbent: &Value) -> bool {
+    match (
+        candidate["native_equal_episode_ce"].as_f64(),
+        incumbent["native_equal_episode_ce"].as_f64(),
+    ) {
+        (Some(c), Some(i)) => c.is_finite() && i.is_finite() && c < i,
+        _ => false,
+    }
+}
+fn refine(
+    a: &Args,
+    start: Instant,
+    source: &SourceRealizerWeights,
+    parent: &NativeSourceRealizer,
+    integer: &IntegerRealizer,
+    tok: &ByteBpeTokenizer,
+    tc: &NativeCueCarrier<'_>,
+    tp: &NativePrefixTransport<'_>,
+    cue: &NativeCueCarrier<'_>,
+    prefix: &NativePrefixTransport<'_>,
+    development: &[Episode],
+    fresh: &[Episode],
+    receipts: &Value,
+    mut inputs: BTreeMap<String, String>,
+    mut sealed: BTreeSet<PathBuf>,
+) -> Result<Value> {
+    let oldroot = a
+        .source_end_incumbent_fit
+        .as_ref()
+        .ok_or_else(|| invalid("incumbent absent"))?;
+    report_output::verify(oldroot)?;
+    let manifest = sha256_file(&oldroot.join("manifest.json"))?;
+    if Some(&manifest) != a.source_end_incumbent_manifest_sha256.as_ref() {
+        return Err(invalid("incumbent manifest differs").into());
+    }
+    inputs.insert(
+        oldroot.join("manifest.json").to_string_lossy().into_owned(),
+        manifest.clone(),
+    );
+    sealed.insert(oldroot.clone());
+    let oldreport = read_json(&oldroot.join("report.json"))?;
+    if oldreport["schema"] != "uor-r4.geometric-source-end-fit/1"
+        || oldreport["status"] != "completed"
+        || oldreport["mode"] != "source-end-fit"
+        || oldreport["optimizer_updates"] != 64
+        || oldreport["selected_updates"] != 64
+        || oldreport["source_end_score_mode"] != "DirectedRelative"
+        || oldreport["parent_frozen"] != true
+        || oldreport["frozen_parent_source_receipts"] != *receipts
+        || oldreport["active_families"] != SOURCE_END_FAMILIES
+    {
+        return Err(invalid(
+            "refinement admits only completed selected directed64 with unchanged parent",
+        )
+        .into());
+    }
+    for (key, expected) in [
+        (
+            "frozen_cue_native_metadata_sha256",
+            a.frozen_cue_native_metadata_sha256.as_ref(),
+        ),
+        (
+            "frozen_cue_packed_sha256",
+            a.frozen_cue_packed_sha256.as_ref(),
+        ),
+        (
+            "frozen_prefix_native_metadata_sha256",
+            a.frozen_prefix_native_metadata_sha256.as_ref(),
+        ),
+        (
+            "frozen_prefix_packed_sha256",
+            a.frozen_prefix_packed_sha256.as_ref(),
+        ),
+    ] {
+        if oldreport[key].as_str() != expected.map(String::as_str) {
+            return Err(invalid("refinement frozen carrier identity differs").into());
+        }
+    }
+    if !oldreport["input_manifests_sha256"]
+        .as_object()
+        .ok_or_else(|| invalid("old input seals absent"))?
+        .values()
+        .any(|v| v.as_str() == Some(a.development_manifest_sha256.as_str()))
+    {
+        return Err(invalid("refinement development panel is not retained fit panel").into());
+    }
+    let cr = a
+        .frozen_cue_bundle
+        .as_ref()
+        .ok_or_else(|| invalid("cue absent"))?;
+    let pr = a
+        .frozen_prefix_bundle
+        .as_ref()
+        .ok_or_else(|| invalid("prefix absent"))?;
+    let oldbundle = oldroot.join("checkpoint-0064/source-end");
+    let incumbent =
+        SourceEndAngularWeights::load(&oldbundle, parent, &a.native_artifact, cr, pr, tc, tp)?;
+    let count = incumbent
+        .config()
+        .coefficient_count()
+        .map_err(|e| invalid(e.to_string()))?;
+    let unpack = |bytes: &[u8]| {
+        uor_r4_integer::geometric_potential_q4::unpack_coefficients(count, bytes)
+            .map_err(|e| invalid(e.to_string()))
+    };
+    let period = unpack(&incumbent.period_packed_coefficients()?)?;
+    let stop = unpack(&incumbent.stop_packed_coefficients()?)?;
+    let original_shadow_receipts = parameter_receipts(&incumbent.parameters())?;
+    set_endpoint_grid(&incumbent, &period, &stop)?;
+    let initial_root = a.out.join("incumbent");
+    report_output::claim(&initial_root)?;
+    incumbent.save(&initial_root.join("source-end"))?;
+    let end = native_load(&initial_root.join("source-end"), integer, cue, prefix)?;
+    let oldend = native_load(&oldbundle, integer, cue, prefix)?;
+    if serde_json::to_value(end.metadata())? != serde_json::to_value(oldend.metadata())? {
+        return Err(invalid("grid incumbent native metadata differs").into());
+    }
+    let baseline = canonical(integer, cue, prefix, &end, development, a, start)?;
+    let oldcanonical = read_json(&oldroot.join("checkpoint-0064/canonical.json"))?;
+    if baseline != oldcanonical
+        || baseline["native_equal_episode_ce"]
+            .as_f64()
+            .filter(|x| x.is_finite())
+            .is_none()
+    {
+        return Err(invalid("selected64 native grid canonical replay differs").into());
+    }
+    write_json(&initial_root, "canonical.json", &baseline)?;
+    let b = batch(
+        &(0..128).collect::<Vec<_>>(),
+        development,
+        source,
+        parent,
+        &incumbent,
+        Some(integer),
+        a,
+        start,
+    )?;
+    write_json(&a.out, "full128-gradient.json", &b.report)?;
+    let pg = b
+        .gradients
+        .get("source_end.period_coefficients")
+        .ok_or_else(|| invalid("Period gradient absent"))?
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+    let sg = b
+        .gradients
+        .get("source_end.stop_coefficients")
+        .ok_or_else(|| invalid("Stop gradient absent"))?
+        .flatten_all()?
+        .to_vec1::<f32>()?;
+    let (globalmax, proposals) = endpoint_proposals(&period, &stop, &pg, &sg)?;
+    let pack = |q: &[i8]| {
+        uor_r4_integer::geometric_potential_q4::pack_coefficients(q)
+            .map_err(|e| invalid(e.to_string()))
+    };
+    let frozen_proposals=proposals.iter().map(|p|Ok(json!({"id":p.id,"duplicate_of":p.duplicate_of,
+        "period_q":p.period,"stop_q":p.stop,"period_delta_q":p.period.iter().zip(&period).map(|(a,b)|i16::from(*a)-i16::from(*b)).collect::<Vec<_>>(),
+        "stop_delta_q":p.stop.iter().zip(&stop).map(|(a,b)|i16::from(*a)-i16::from(*b)).collect::<Vec<_>>(),
+        "period_packed_sha256":sha256_bytes(&pack(&p.period)?),"stop_packed_sha256":sha256_bytes(&pack(&p.stop)?)}))).collect::<Result<Vec<_>>>()?;
+    write_json(
+        &a.out,
+        "proposals-before-candidate-evaluation.json",
+        &json!({"global_max_abs_gradient":globalmax,"normalizer":"shared across both endpoint tables; round(-scale*g/globalmax), half away from zero, legal clamp[-7,7]","gradient_period":pg,"gradient_stop":sg,"proposals":frozen_proposals,"refill":false,"rounds":1,"maximum_accepted_candidates":1}),
+    )?;
+    // Project actual trace shape before candidate evaluation. Never select which
+    // candidates get generation using their quality. Every unique canonical stays.
+    let parentgen = generation(integer, cue, prefix, &end, development, tok, a, start)?;
+    write_json(&initial_root, "generation.json", &parentgen)?;
+    report_output::seal(&initial_root)?;
+    report_output::verify(&initial_root)?;
+    let mut max_token = 0usize;
+    for row in parentgen["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("generation rows absent"))?
+    {
+        for t in row["tokens"]
+            .as_array()
+            .ok_or_else(|| invalid("generation tokens absent"))?
+        {
+            max_token = max_token.max(serde_json::to_vec(t)?.len());
+        }
+    }
+    let unique = proposals
+        .iter()
+        .filter(|p| p.duplicate_of.is_none())
+        .count();
+    let canbytes = serde_json::to_vec(&baseline)?.len();
+    let current = directory_bytes(&a.out)?;
+    let admin = 24 * 1024 * 1024usize;
+    let tokenreserve = max_token.saturating_add(4096);
+    let projected = |devcopies: usize| {
+        current
+            .saturating_add(unique.saturating_mul(canbytes.saturating_add(65536)))
+            .saturating_add((devcopies * 128 + 2 * 32) * 32 * tokenreserve)
+            .saturating_add(admin)
+    };
+    let all_generation =
+        projected(unique) < a.maximum_report_bytes.saturating_sub(128 * 1024 * 1024);
+    let required = projected(if all_generation { unique } else { 1 });
+    write_json(
+        &a.out,
+        "storage-projection.json",
+        &json!({"candidate_canonicals":unique,"observed_canonical_bytes":canbytes,"observed_generation_token_bytes":max_token,"per_token_growth_reserve_bytes":4096,"administration_reserve_bytes":admin,"projected_report_bytes":required,"maximum_report_bytes":a.maximum_report_bytes,"stop_margin_bytes":128*1024*1024,"all_candidate_development_generation":all_generation,"scope":"observed-shape prospective projection; actual report cap authoritative"}),
+    )?;
+    if required > a.maximum_report_bytes.saturating_sub(128 * 1024 * 1024) {
+        return Err(invalid(
+            "refinement complete report projection exceeds cap before candidate evaluation",
+        )
+        .into());
+    }
+    let mut selected = "incumbent".to_string();
+    let mut best = baseline.clone();
+    let mut evaluated = vec![("incumbent".to_string(), baseline.clone())];
+    let mut records = Vec::new();
+    for p in &proposals {
+        deadline(a, start)?;
+        if let Some(prior) = &p.duplicate_of {
+            records.push(json!({"id":p.id,"duplicate_of":prior,"canonical":"REUSED_IDENTICAL_PAYLOAD","generation":"NOT_RUN_DUPLICATE"}));
+            continue;
+        }
+        let root = a.out.join(&p.id);
+        report_output::claim(&root)?;
+        let attempt = (|| -> Result<Value> {
+            let w = SourceEndAngularWeights::load(
+                &oldbundle,
+                parent,
+                &a.native_artifact,
+                cr,
+                pr,
+                tc,
+                tp,
+            )?;
+            set_endpoint_grid(&w, &p.period, &p.stop)?;
+            w.save(&root.join("source-end"))?;
+            let reloaded = SourceEndAngularWeights::load(
+                &root.join("source-end"),
+                parent,
+                &a.native_artifact,
+                cr,
+                pr,
+                tc,
+                tp,
+            )?;
+            if parameter_receipts(&w.parameters())? != parameter_receipts(&reloaded.parameters())?
+                || w.period_packed_coefficients()? != pack(&p.period)?
+                || w.stop_packed_coefficients()? != pack(&p.stop)?
+            {
+                return Err(invalid("refinement export/grid reload differs").into());
+            }
+            let native = native_load(&root.join("source-end"), integer, cue, prefix)?;
+            let c = canonical(integer, cue, prefix, &native, development, a, start)?;
+            write_json(&root, "canonical.json", &c)?;
+            let mut comparisons = Vec::new();
+            for (id, old) in &evaluated {
+                comparisons.push(json!({"prior_candidate":id,"comparison":compare(old,&c)?}));
+            }
+            write_json(
+                &root,
+                "all-prior-canonical-comparisons.json",
+                &json!(comparisons),
+            )?;
+            if all_generation {
+                write_json(
+                    &root,
+                    "generation.json",
+                    &generation(integer, cue, prefix, &native, development, tok, a, start)?,
+                )?;
+            }
+            let rec = json!({"id":p.id,"native_equal_episode_ce":c["native_equal_episode_ce"],"zero_support_positions":c["zero_support_positions"],"canonical_sha256":sha256_file(&root.join("canonical.json"))?,"period_packed_sha256":sha256_file(&root.join("source-end/source-end-period-q4.bin"))?,"stop_packed_sha256":sha256_file(&root.join("source-end/source-end-stop-q4.bin"))?,"source_parameter_receipts":parameter_receipts(&reloaded.parameters())?,"generation":if all_generation {"RUN"}else{"NOT_RUN_UNSELECTED_PROSPECTIVE_STORAGE_POLICY"}});
+            write_json(&root, "receipt.json", &rec)?;
+            if refinement_better(&c, &best) {
+                selected = p.id.clone();
+                best = c.clone();
+            }
+            evaluated.push((p.id.clone(), c));
+            Ok(rec)
+        })();
+        if let Err(e) = &attempt {
+            write_json(
+                &root,
+                "failure.json",
+                &json!({"error":e.to_string(),"candidate":p.id}),
+            )?;
+        }
+        report_output::seal(&root)?;
+        report_output::verify(&root)?;
+        records.push(attempt?);
+        frozen(a, source, receipts)?;
+    }
+    write_json(
+        &a.out,
+        "selection-before-fresh.json",
+        &json!({"selected_candidate":selected,"accepted_candidates":usize::from(selected!="incumbent"),"criterion":"full128 native equalepisode fullanswer+EOS aliasCE; strict improvement; ties incumbent then earliest declared candidate","fresh_predictions_before_selection":0}),
+    )?;
+    let selectedroot = a.out.join(&selected);
+    let selectedend = native_load(&selectedroot.join("source-end"), integer, cue, prefix)?;
+    if !all_generation && selected != "incumbent" {
+        write_json(
+            &a.out,
+            "selected-development-generation.json",
+            &generation(
+                integer,
+                cue,
+                prefix,
+                &selectedend,
+                development,
+                tok,
+                a,
+                start,
+            )?,
+        )?;
+    }
+    let selectedgen = if selected == "incumbent" {
+        parentgen.clone()
+    } else if all_generation {
+        read_json(&selectedroot.join("generation.json"))?
+    } else {
+        read_json(&a.out.join("selected-development-generation.json"))?
+    };
+    write_json(
+        &a.out,
+        "selected-query-pair-diagnostics.json",
+        &factor_pair_report(&a.development_panel, &best, &selectedgen)?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-incumbent-generation.json",
+        &generation(integer, cue, prefix, &end, fresh, tok, a, start)?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-selected-generation.json",
+        &generation(integer, cue, prefix, &selectedend, fresh, tok, a, start)?,
+    )?;
+    let zero_path = oldroot.join("checkpoint-0000/canonical.json");
+    let zero = read_json(&zero_path)?;
+    write_json(
+        &a.out,
+        "zero-parent-comparisons.json",
+        &json!({"immutable_zero_parent_canonical":zero_path,"sha256":sha256_file(&zero_path)?,"incumbent":compare(&zero,&baseline)?,"selected":compare(&zero,&best)?}),
+    )?;
+    frozen(a, source, receipts)?;
+    immutable(&inputs, &sealed)?;
+    Ok(
+        json!({"schema":"uor-r4.geometric-source-end-native-refinement/1","mode":a.mode,"status":"completed","incumbent_fit_manifest_sha256":manifest,"incumbent_selected_updates":64,"original_incumbent_fractional_source_receipts":original_shadow_receipts,"incumbent_grid_source_receipts":parameter_receipts(&incumbent.parameters())?,"frozen_parent_source_receipts":receipts,"input_manifests_sha256":inputs,"proposals":records,"declared_proposals":6,"unique_proposals":unique,"accepted_candidates":usize::from(selected!="incumbent"),"selected_candidate":selected,"selected_native_equal_episode_ce":best["native_equal_episode_ce"],"incumbent_native_equal_episode_ce":baseline["native_equal_episode_ce"],"optimizer_updates":0,"gradient_full128_batches":1,"fresh_predictions_before_selection":0,"all_candidate_development_generation":all_generation,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"scope":"one bounded native-accepted endpoint-table round; all Source aliases and Copy scores frozen; no runtime gates/cursor; no general language qualification"}),
+    )
+}
+
+#[cfg(test)]
+mod refinement_tests {
+    use super::*;
+    #[test]
+    fn source_end_refinement_shared_normalization_signed_rounding_legal_grid() -> Result<()> {
+        let mut p = vec![0i8; 960];
+        let mut s = vec![0i8; 960];
+        p[0] = 7;
+        s[0] = -7;
+        let mut pg = vec![0f32; 960];
+        let mut sg = vec![0f32; 960];
+        pg[0] = -2.;
+        pg[2] = 1.;
+        sg[0] = 2.;
+        sg[2] = -0.5;
+        let (max, proposals) = endpoint_proposals(&p, &s, &pg, &sg)?;
+        assert_eq!(max, 2.);
+        assert_eq!(proposals.len(), 6);
+        assert_eq!(proposals[2].period[0], 7); // saturation
+        assert_eq!(proposals[2].period[2], -1); // -0.5 rounds away
+        assert_eq!(proposals[2].stop, s);
+        assert_eq!(proposals[4].stop[2], 0); // shared maximum, not per-family normalization
+        assert_eq!(proposals[5].stop[2], 1);
+        assert!(proposals.iter().all(|p| p
+            .period
+            .iter()
+            .chain(&p.stop)
+            .all(|q| (-7..=7).contains(q))));
+        assert_eq!(proposals[0].period.iter().filter(|q| **q == 1).count(), 8);
+        Ok(())
+    }
+    #[test]
+    fn source_end_refinement_deduplicates_noops_before_evaluation_without_refill() -> Result<()> {
+        let p = vec![7i8; 960];
+        let s = vec![0i8; 960];
+        let g = vec![0f32; 960];
+        let (_, proposals) = endpoint_proposals(&p, &s, &g, &g)?;
+        assert_eq!(proposals.len(), 6);
+        assert!(proposals
+            .iter()
+            .all(|p| p.duplicate_of.as_deref() == Some("incumbent")));
+        let mut nonfinite = g.clone();
+        nonfinite[10] = f32::NAN;
+        assert!(endpoint_proposals(&p, &s, &nonfinite, &g).is_err());
+        assert!(endpoint_proposals(&vec![-8; 960], &s, &g, &g).is_err());
+        Ok(())
+    }
+    #[test]
+    fn source_end_refinement_native_objective_keeps_ties_and_zero_support_nonselectable() {
+        let current = json!({"native_equal_episode_ce":0.25});
+        assert!(!refinement_better(&current, &current));
+        assert!(!refinement_better(
+            &json!({"native_equal_episode_ce":null}),
+            &current
+        ));
+        assert!(!refinement_better(
+            &json!({"native_equal_episode_ce":0.26}),
+            &current
+        ));
+        assert!(refinement_better(
+            &json!({"native_equal_episode_ce":0.24}),
+            &current
+        ));
     }
 }
