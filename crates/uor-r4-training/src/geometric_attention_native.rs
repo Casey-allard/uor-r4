@@ -442,6 +442,7 @@ impl<'a> CompiledGeometricAttention<'a> {
             || c.pointer.is_some()
             || model.served_codec().is_some()
             || model.read_identity_carry()
+            || model.read_key_shift()
             || model.read_identity_latch().is_some()
         {
             return Err(invalid(

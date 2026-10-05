@@ -2134,8 +2134,11 @@ impl StackModel {
     /// position whose predecessor carried my key" through the `j`-turned
     /// channel, separately from the current-token channel.
     ///
-    /// Offline float research only: there is no saved or served form, so
-    /// [`Self::save`] refuses a model with it enabled. The default is false.
+    /// [`Self::save`] records it as `"read_key_shift": true` in
+    /// `config.json` ([`READ_KEY_SHIFT_FIELD`]) and [`Self::load`] restores
+    /// it; a model without it keeps the legacy config bytes exactly. It has
+    /// no served (QAT) representation and no integer export yet: both refuse
+    /// it. The default is false.
     pub fn set_read_key_shift(&mut self, enabled: bool) -> Result<()> {
         if enabled {
             if self.config.arch != StackArch::Geometric || !self.config.pattern.contains('a') {
@@ -6409,11 +6412,6 @@ impl StackModel {
     /// and pins its digest in config.json; a default save removes stale carry
     /// metadata and retains the legacy config byte format.
     pub fn save(&self, directory: &Path) -> Result<()> {
-        if self.read_key_shift {
-            return Err(invalid(
-                "the read key shift is an unsaved research option; refusing to save without it",
-            ));
-        }
         if let Some(span) = &self.geometric_span {
             span.validate(self.config.width)?;
             if self.geometric_address.is_none() || self.read_identity_latch.is_some() {
@@ -6566,6 +6564,12 @@ impl StackModel {
                 Err(error) => return Err(error.into()),
             }
         }
+        if self.read_key_shift {
+            // Only when set, so every model without it keeps its exact bytes.
+            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
+            with_field[READ_KEY_SHIFT_FIELD] = serde_json::Value::Bool(true);
+            config = serde_json::to_vec_pretty(&with_field)?;
+        }
         fs::write(directory.join("config.json"), config)?;
         let record = directory.join(TRANSPORT_RECORD);
         match self.transport {
@@ -6618,6 +6622,22 @@ impl StackModel {
             )));
         }
         Ok(Some(snap))
+    }
+
+    /// Whether `directory`'s `config.json` records the read key shift
+    /// ([`Self::set_read_key_shift`]). Absent means false, as for every model
+    /// saved before the field existed; only `true` is ever written, so any
+    /// other value is refused rather than read as false.
+    pub fn saved_read_key_shift(directory: &Path) -> Result<bool> {
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        match config.get(READ_KEY_SHIFT_FIELD) {
+            None => Ok(false),
+            Some(serde_json::Value::Bool(true)) => Ok(true),
+            Some(_) => Err(invalid(format!(
+                "config.json's {READ_KEY_SHIFT_FIELD} must be absent or true"
+            ))),
+        }
     }
 
     /// Read and verify the opt-in carry record. Legacy directories without a
@@ -6905,6 +6925,7 @@ impl StackModel {
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
+        model.set_read_key_shift(Self::saved_read_key_shift(directory)?)?;
         Ok(model)
     }
 }
@@ -8091,6 +8112,9 @@ impl StackModel {
             Some(_) if self.read_identity_carry => {
                 return Err(invalid("read identity carry has no served representation"));
             }
+            Some(_) if self.read_key_shift => {
+                return Err(invalid("the read key shift has no served representation"));
+            }
             Some(_) if self.read_identity_latch.is_some() => {
                 return Err(invalid("read identity latch has no served representation"));
             }
@@ -8877,6 +8901,10 @@ impl CustomOp2 for QuaternionScan {
         ))
     }
 }
+
+/// The `config.json` field that records the read key shift
+/// ([`StackModel::set_read_key_shift`]); written only when it is set.
+pub const READ_KEY_SHIFT_FIELD: &str = "read_key_shift";
 
 /// Left multiplication by the unit quaternion `j` of every four-channel lane
 /// of the last dimension: `j (a + b i + c j + d k) = -c + d i + a j - b k`,
@@ -17256,6 +17284,67 @@ mod tests {
             serde_json::to_vec_pretty(&loaded.config)?
         );
         fs::remove_dir_all(root)?;
+        Ok(())
+    }
+
+    #[test]
+    fn read_key_shift_save_load_is_bit_exact_and_default_format_stays_legacy() -> Result<()> {
+        let root =
+            std::env::temp_dir().join(format!("stack-read-key-shift-{}", std::process::id()));
+        let (free_dir, shift_dir) = (root.join("free"), root.join("shift"));
+        let mut model = StackModel::new(
+            tiny(StackArch::Geometric, "rra", ReadScore::L2, true),
+            &cpu(),
+        )?;
+        let ids = [1, 2, 3, 4, 5, 6, 7, 8];
+        model.save(&free_dir)?;
+        assert_eq!(
+            fs::read(free_dir.join("config.json"))?,
+            serde_json::to_vec_pretty(&model.config)?
+        );
+        assert!(!StackModel::saved_read_key_shift(&free_dir)?);
+        assert!(!StackModel::load(&free_dir, &cpu())?.read_key_shift());
+        let unshifted = bits(&model.forward(&ids, 1, ids.len())?)?;
+        model.set_read_key_shift(true)?;
+        let expected = bits(&model.forward(&ids, 1, ids.len())?)?;
+        assert_ne!(expected, unshifted);
+        model.save(&shift_dir)?;
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(shift_dir.join("config.json"))?)?;
+        assert_eq!(config[READ_KEY_SHIFT_FIELD], serde_json::json!(true));
+        // The field sits beside an unchanged StackConfig.
+        assert_eq!(
+            serde_json::from_value::<StackConfig>(config.clone())?,
+            model.config
+        );
+        assert!(StackModel::saved_read_key_shift(&shift_dir)?);
+        let loaded = StackModel::load(&shift_dir, &cpu())?;
+        assert!(loaded.read_key_shift());
+        assert_eq!(bits(&loaded.forward(&ids, 1, ids.len())?)?, expected);
+        // Only `true` is ever written; any other value is refused, not read as false.
+        for bad in [serde_json::json!(false), serde_json::json!("yes")] {
+            let mut altered = config.clone();
+            altered[READ_KEY_SHIFT_FIELD] = bad;
+            fs::write(
+                shift_dir.join("config.json"),
+                serde_json::to_vec_pretty(&altered)?,
+            )?;
+            assert!(StackModel::load(&shift_dir, &cpu()).is_err());
+        }
+        fs::remove_dir_all(root)?;
+        // No served form: refused in both orders (on a Dot read, which has one).
+        let mut config = tiny(StackArch::Geometric, "ra", ReadScore::Dot, true);
+        config.width = 32;
+        config.mlp_hidden = 64;
+        let mut served = StackModel::new(config.clone(), &cpu())?;
+        served.set_served_representation(Some(Arc::new(D11Interim)))?;
+        assert!(served.set_read_key_shift(true).is_err());
+        let mut shifted = StackModel::new(config, &cpu())?;
+        shifted.set_read_key_shift(true)?;
+        assert!(shifted
+            .set_served_representation(Some(Arc::new(D11Interim)))
+            .is_err());
+        assert!(shifted.read_key_shift() && shifted.served_codec().is_none());
         Ok(())
     }
 

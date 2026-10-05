@@ -8,7 +8,7 @@
 //! geometric-stack train train=TRAIN.u16[,MORE.u16] [train_weights=W1,W2] valid=VALID.u16 \
 //!   out=NEW_REPORT_ROOT (init=ROOT/model | arch=transformer|geometric) [pattern=rrarra] \
 //!   [read=lorentz|dot|l2] [rotation=true|false] [rotation_group=quaternion|u1] [qat=false|true] \
-//!   [transport_snap=none|icosian] \
+//!   [transport_snap=none|icosian] [key_shift=false|true|add] \
 //!   [seed=1] [steps=7324] [batch=16] [lr=0.002] [warmup=200] [min_lr=0.1] [weight_decay=0.1] \
 //!   [clip=1.0] [eval_every=250] [eval_windows=64] [final_windows=512] [lens=LENS.u16] \
 //!   [merges=MERGES.txt] [checkpoint_every=250] [resume=OLD_ROOT/checkpoint] [max_seconds=inf] \
@@ -42,7 +42,8 @@
 //!   train_tokens=TRAIN.uort train_mask=TRAIN.mask train_manifest=TRAIN/manifest.json \
 //!   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \
 //!   (init=ROOT/model | arch=geometric|transformer [shape options as train]) [qat=false|true] \
-//!   [transport_snap=none|icosian] [select=none|flock:WINDOW:K] [pointer=none|DIM] \
+//!   [transport_snap=none|icosian] [key_shift=false|true|add] [select=none|flock:WINDOW:K] \
+//!   [pointer=none|DIM] \
 //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
 //!   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \
 //!   [context=256] \
@@ -92,6 +93,20 @@
 //! lies in the commutative subgroup `{a + b i}`. Both keep the parameter
 //! count of the configuration they control (`read=lorentz`,
 //! `rotation_group=quaternion`, the default).
+//!
+//! `key_shift=true` (in `train` and `dialogue-train`) trains every geometric
+//! read with the previous-token key channel (`StackModel::set_read_key_shift`):
+//! each read key also carries the previous position's key turned by the unit
+//! quaternion `j`, with no parameters. The saved model records it in its
+//! `config.json` and every later load restores it. After `init=` the setting
+//! must equal the saved model's: `key_shift=false` from a shifted model is
+//! refused (it would silently change its reads), and `key_shift=true` from an
+//! unshifted one is refused too. `key_shift=add` is the explicit way to add
+//! the channel to a model trained without it (a design choice: its weights
+//! are kept and its reads change from the first step, so the run's report and
+//! lineage record `added_to_init`). A resume must present the same setting.
+//! It has no served representation or integer export yet, so `qat=true`
+//! refuses it and the export modes refuse a model with it.
 //!
 //! `transport_snap=icosian` (in `train` and `dialogue-train`, after `init=`
 //! and on a resume alike) trains with every recurrence's unit transport
@@ -684,6 +699,8 @@ struct Settings {
     qat: bool,
     /// Train with the transport snapped (`transport_snap=`).
     transport_snap: Option<TransportSnap>,
+    /// `key_shift=`: the reads' previous-token key channel.
+    key_shift: KeyShift,
     steps: usize,
     batch: usize,
     lr: f64,
@@ -949,6 +966,85 @@ impl InitFiles {
         })
     }
 }
+/// `key_shift=false|true|add` (default false); see the module notes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum KeyShift {
+    Off,
+    On,
+    /// Add the channel to an `init=` model saved without it.
+    AddToInit,
+}
+
+impl KeyShift {
+    fn enabled(self) -> bool {
+        self != KeyShift::Off
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            KeyShift::Off => "false",
+            KeyShift::On => "true",
+            KeyShift::AddToInit => "added_to_init",
+        }
+    }
+
+    /// Set the requested key shift on a model just built (`from_init`
+    /// false) or loaded from `init=` (true), refusing any silent change.
+    fn apply(self, model: &mut StackModel, from_init: bool) -> Result<()> {
+        let saved = model.read_key_shift();
+        match (self, from_init, saved) {
+            (KeyShift::Off, _, false) | (KeyShift::On, _, true) => Ok(()),
+            (KeyShift::On, false, false) | (KeyShift::AddToInit, true, false) => {
+                model.set_read_key_shift(true)
+            }
+            (KeyShift::Off, _, true) => Err(invalid(
+                "init='s model has the read key shift; key_shift=false would drop it",
+            )),
+            (KeyShift::On, true, false) => Err(invalid(
+                "init='s model has no read key shift; key_shift=add adds it explicitly",
+            )),
+            (KeyShift::AddToInit, true, true) => Err(invalid(
+                "init='s model already has the read key shift; use key_shift=true",
+            )),
+            (KeyShift::AddToInit, false, _) => Err(invalid(
+                "key_shift=add needs init= of a model without the shift",
+            )),
+        }
+    }
+
+    /// A resumed model must carry the setting its run requested.
+    fn check_resumed(self, model: &StackModel) -> Result<()> {
+        if model.read_key_shift() != self.enabled() {
+            return Err(invalid(
+                "the checkpoint's model and key_shift= disagree on the read key shift",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn key_shift_arg(args: &Args) -> Result<KeyShift> {
+    let shift = match args.optional("key_shift").as_deref() {
+        None | Some("false") => KeyShift::Off,
+        Some("true") => KeyShift::On,
+        Some("add") => KeyShift::AddToInit,
+        Some(other) => {
+            return Err(invalid(format!(
+                "invalid key_shift={other} (false, true or add)"
+            )))
+        }
+    };
+    if shift.enabled() && qat_flag(args)? {
+        return Err(invalid(
+            "the read key shift has no served representation; train it without qat=true",
+        ));
+    }
+    if shift == KeyShift::AddToInit && args.optional("init").is_none() {
+        return Err(invalid("key_shift=add needs init="));
+    }
+    Ok(shift)
+}
+
 /// `transport_snap=none|icosian` (default none).
 fn transport_snap_arg(args: &Args) -> Result<Option<TransportSnap>> {
     match args.optional("transport_snap").as_deref() {
@@ -983,6 +1079,7 @@ impl Settings {
             "config": self.config, "init": init,
             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
             "transport_snap": self.transport_snap,
+            "key_shift": self.key_shift.name(),
             "steps": self.steps, "batch": self.batch, "lr": self.lr,
             "warmup": self.warmup, "min_lr": self.min_lr, "weight_decay": self.weight_decay,
             "clip": self.clip, "eval_every": self.eval_every, "eval_windows": self.eval_windows,
@@ -1007,6 +1104,10 @@ impl Settings {
         }
         if let Some(snap) = self.transport_snap {
             lineage["transport_snap"] = snap.record();
+        }
+        // Only when set, so earlier runs' checkpoints still resume.
+        if self.key_shift.enabled() {
+            lineage["key_shift"] = json!(self.key_shift.name());
         }
         lineage
     }
@@ -1310,6 +1411,13 @@ fn train_settings(args: &Args) -> Result<Settings> {
     if let Some(snap) = transport_snap {
         snap.check(&config)?;
     }
+    let key_shift = key_shift_arg(args)?;
+    if key_shift.enabled() && (config.arch != StackArch::Geometric || !config.pattern.contains('a'))
+    {
+        return Err(invalid(
+            "key_shift needs a geometric stack with a read layer",
+        ));
+    }
     let train: Vec<PathBuf> = args
         .required("train")?
         .split(',')
@@ -1343,6 +1451,7 @@ fn train_settings(args: &Args) -> Result<Settings> {
         init,
         qat,
         transport_snap,
+        key_shift,
         steps: args.number("steps", 7324)?,
         batch: args.number("batch", 16)?,
         lr: args.number("lr", 0.002)?,
@@ -1839,9 +1948,14 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
                         return Err(invalid("init='s model differs from its config.json"));
                     }
                     model.config = saved;
+                    settings.key_shift.apply(&mut model, true)?;
                     model
                 }
-                None => StackModel::new(settings.config.clone(), &device)?,
+                None => {
+                    let mut model = StackModel::new(settings.config.clone(), &device)?;
+                    settings.key_shift.apply(&mut model, false)?;
+                    model
+                }
             };
             let optimizer = StackAdamW::new(&model, settings.weight_decay, settings.clip)?;
             let progress = Progress {
@@ -1855,6 +1969,7 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
         Some(checkpoint) => {
             let (model, optimizer, progress, state) =
                 load_checkpoint(checkpoint, &lineage, &device)?;
+            settings.key_shift.check_resumed(&model)?;
             (model, optimizer, progress, Some(state))
         }
     };
@@ -1876,7 +1991,8 @@ fn train(settings: &Settings, out: &Path) -> Result<()> {
     // data_parallel=2: a replica on GPU 1 with the primary's current weights
     // (after init= or a resume alike).
     let replica = if settings.data_parallel == 2 {
-        let replica = StackModel::new(model.config.clone(), &Device::new_cuda(1)?)?;
+        let mut replica = StackModel::new(model.config.clone(), &Device::new_cuda(1)?)?;
+        replica.set_read_key_shift(model.read_key_shift())?;
         replica.copy_variables_from(&model)?;
         eprintln!(
             "data parallel: replica on GPU 1, batch halves of {}",
@@ -3445,6 +3561,8 @@ struct DialogueSettings {
     qat: bool,
     /// Train with the transport snapped (`transport_snap=`), as `train` does.
     transport_snap: Option<TransportSnap>,
+    /// `key_shift=`, as `train` takes it.
+    key_shift: KeyShift,
     /// `select=`, `pointer=`, `pointer_score=`, `pointer_select=` and
     /// `pointer_route=` as given (the A1 read mechanisms and the prime route).
     select: Option<String>,
@@ -3484,6 +3602,7 @@ impl DialogueSettings {
             "init": self.init,
             "qat": self.qat, "qat_codec": self.qat.then(|| qat_codec().name().to_owned()),
             "transport_snap": self.transport_snap,
+            "key_shift": self.key_shift.name(),
             "policy": self.policy, "data_seed": self.data_seed,
             "steps": self.steps, "batch": self.batch, "lr": self.lr, "warmup": self.warmup,
             "min_lr": self.min_lr, "weight_decay": self.weight_decay, "clip": self.clip,
@@ -3546,6 +3665,10 @@ impl DialogueSettings {
         }
         if let Some(snap) = self.transport_snap {
             lineage["transport_snap"] = snap.record();
+        }
+        // Only when set, so earlier runs' checkpoints still resume.
+        if self.key_shift.enabled() {
+            lineage["key_shift"] = json!(self.key_shift.name());
         }
         Ok(lineage)
     }
@@ -3632,6 +3755,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "device",
             "qat",
             "transport_snap",
+            "key_shift",
             "select",
             "pointer",
             "pointer_score",
@@ -3660,6 +3784,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         init: args.optional("init").map(PathBuf::from),
         qat: qat_flag(&args)?,
         transport_snap: transport_snap_arg(&args)?,
+        key_shift: key_shift_arg(&args)?,
         select: args.optional("select"),
         pointer: args.optional("pointer"),
         pointer_score: args.optional("pointer_score"),
@@ -3956,9 +4081,14 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                             "the extended init= model differs from its configuration",
                         ));
                     }
+                    s.key_shift.apply(&mut model, true)?;
                     model
                 }
-                None => StackModel::new(config.clone(), &device)?,
+                None => {
+                    let mut model = StackModel::new(config.clone(), &device)?;
+                    s.key_shift.apply(&mut model, false)?;
+                    model
+                }
             };
             // The optimizer is built after any pointer head is added.
             let optimizer = StackAdamW::new(&model, s.weight_decay, s.clip)?;
@@ -3985,6 +4115,7 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                     "the checkpoint's model records a different pointer init seed than its lineage",
                 ));
             }
+            s.key_shift.check_resumed(&model)?;
             (model, optimizer, progress, Some(state))
         }
     };
@@ -4844,7 +4975,7 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   train_tokens=TRAIN.uort train_mask=TRAIN.mask train_manifest=TRAIN/manifest.json \\
   dev_tokens=DEV.uort dev_mask=DEV.mask dev_manifest=DEV/manifest.json \\
   (init=ROOT/model | arch=geometric|transformer [width= heads= layers= pattern= read= rotation= \\
-  stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] \\
+  stack_mlp= mlp=]) [qat=false|true] [transport_snap=none|icosian] [key_shift=false|true|add] \\
   [select=none|flock:WINDOW:K] [pointer=none|DIM] [pointer_score=dot|lorentz] \\
   [pointer_select=none|flock:WINDOW:K|top:K] \\
   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \\
@@ -4962,6 +5093,7 @@ fn main() -> Result<()> {
                     "init",
                     "qat",
                     "transport_snap",
+                    "key_shift",
                     "data_parallel",
                     "tf32",
                 ],
@@ -5450,6 +5582,47 @@ mod tests {
         // Sampling options are refused for a pointer artifact.
         assert!(refuse_mixture_sampling(&["temperature"]).is_err());
         assert!(refuse_mixture_sampling(&[]).is_ok());
+        Ok(())
+    }
+
+    #[test]
+    fn key_shift_is_never_changed_silently() -> Result<()> {
+        let config = StackConfig::geometric_matched_to(
+            &StackConfig::transformer(16, 2, 3, 24, 12, 5)?,
+            "rra",
+            ReadScore::L2,
+            true,
+        )?;
+        let fresh = || StackModel::new(config.clone(), &Device::Cpu);
+        // A new model takes the request.
+        let mut model = fresh()?;
+        KeyShift::On.apply(&mut model, false)?;
+        assert!(model.read_key_shift());
+        KeyShift::On.check_resumed(&model)?;
+        assert!(KeyShift::Off.check_resumed(&model).is_err());
+        assert!(KeyShift::AddToInit.apply(&mut fresh()?, false).is_err());
+        // From init=: equal settings pass, adding needs key_shift=add, dropping is refused.
+        let mut plain = fresh()?;
+        KeyShift::Off.apply(&mut plain, true)?;
+        assert!(!plain.read_key_shift());
+        assert!(KeyShift::On.apply(&mut plain, true).is_err());
+        KeyShift::AddToInit.apply(&mut plain, true)?;
+        assert!(plain.read_key_shift());
+        assert!(KeyShift::Off.apply(&mut plain, true).is_err());
+        assert!(KeyShift::AddToInit.apply(&mut plain, true).is_err());
+        KeyShift::On.apply(&mut plain, true)?;
+        // qat has no served form for it; add needs init=.
+        let keys = ["key_shift", "qat", "init"];
+        let parse = |pairs: &[&str]| {
+            let arguments: Vec<String> = pairs.iter().map(|p| (*p).to_owned()).collect();
+            Args::parse(&arguments, &keys).and_then(|args| key_shift_arg(&args))
+        };
+        assert_eq!(parse(&[])?, KeyShift::Off);
+        assert_eq!(parse(&["key_shift=true"])?, KeyShift::On);
+        assert!(parse(&["key_shift=true", "qat=true"]).is_err());
+        assert!(parse(&["key_shift=add"]).is_err());
+        assert_eq!(parse(&["key_shift=add", "init=x"])?, KeyShift::AddToInit);
+        assert!(parse(&["key_shift=yes"]).is_err());
         Ok(())
     }
 }

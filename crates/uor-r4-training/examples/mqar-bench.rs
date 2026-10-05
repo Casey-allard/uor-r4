@@ -1598,7 +1598,7 @@ mod tests {
     }
 
     #[test]
-    fn the_key_shift_is_causal_reads_the_previous_token_and_refuses_save() {
+    fn the_key_shift_is_causal_reads_the_previous_token_and_survives_save() {
         let mut model = StackModel::new(small("aa", true), &Device::Cpu).expect("model");
         let ids: Vec<u32> = (0..12).map(|i| 64 + 7 * i).collect();
         let plain = last_logits(&model, &ids);
@@ -1615,8 +1615,11 @@ mod tests {
         // Position 0 has no predecessor: its key is unchanged by the shift.
         assert_eq!(plain[0], shifted[0]);
         let dir = std::env::temp_dir().join(format!("mqar-key-shift-{}", std::process::id()));
-        assert!(model.save(&dir).is_err());
-        assert!(!dir.exists());
+        model.save(&dir).expect("save");
+        let loaded = StackModel::load(&dir, &Device::Cpu).expect("load");
+        assert!(loaded.read_key_shift());
+        assert_eq!(last_logits(&loaded, &changed), after);
+        std::fs::remove_dir_all(&dir).expect("cleanup");
     }
 
     #[test]

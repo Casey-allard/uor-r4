@@ -343,6 +343,11 @@ pub fn export_stack(
     if model.read_identity_carry() {
         return Err(invalid("read identity carry has no integer export"));
     }
+    if model.read_key_shift() {
+        return Err(invalid(
+            "the read key shift has no integer export yet (no D11 served form)",
+        ));
+    }
     if model.geometric_span().is_some() {
         return Err(invalid("geometric span producer has no integer export"));
     }
@@ -983,6 +988,11 @@ pub fn stack_grid_reference(
     model: &StackModel,
     artifact: &uor_r4_lut::format::StackArtifact,
 ) -> Result<GridReference> {
+    if model.read_key_shift() {
+        return Err(invalid(
+            "the read key shift has no integer grid reference yet (no D11 served form)",
+        ));
+    }
     if model.read_identity_carry() {
         return Err(invalid("read identity carry has no integer grid reference"));
     }
@@ -1707,6 +1717,17 @@ mod tests {
         let (bytes, _) = export_stack(&model, json!({}), None, None)?;
         let artifact = StackArtifact::parse(bytes).map_err(lut_error)?;
         model.set_read_identity_carry(true)?;
+        assert!(export_stack(&model, json!({}), None, None).is_err());
+        assert!(stack_grid_reference(&model, &artifact).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn read_key_shift_refuses_export_and_grid_reference() -> Result<()> {
+        let mut model = small("rra", ReadScore::L2, true);
+        let (bytes, _) = export_stack(&model, json!({}), None, None)?;
+        let artifact = StackArtifact::parse(bytes).map_err(lut_error)?;
+        model.set_read_key_shift(true)?;
         assert!(export_stack(&model, json!({}), None, None).is_err());
         assert!(stack_grid_reference(&model, &artifact).is_err());
         Ok(())
