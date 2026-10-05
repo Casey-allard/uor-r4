@@ -34,7 +34,10 @@ const STRATA: [&str; 4] = [
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Args {
+    // Kept as a validated, unused placeholder in fresh-only mode.
     dev_out: PathBuf,
+    #[serde(default)]
+    fresh_only: bool,
     fresh_out: PathBuf,
     tokenizer: PathBuf,
     trusted_binding: PathBuf,
@@ -721,26 +724,37 @@ fn run(a: &Args, start: Instant) -> Result<()> {
     let mut used = BTreeSet::new();
     let mut fingerprints = BTreeSet::new();
     let mut rejections = Vec::new();
-    authored.extend(bank_rows(
-        "development",
-        8,
-        &mut rng,
-        &single,
-        &multi,
-        &excluded,
-        &mut used,
-        &mut fingerprints,
-        &tok,
-        &compiler,
-        &binding,
-        start,
-        &mut rejections,
-    )?);
-    let dev = finish(authored, &tok, &binding)?;
-    if dev.packets.len() != 128 {
-        return Err(invalid("development128 required").into());
-    }
-    pairs_valid(&dev.packets, &dev.data, 32)?;
+    let dev = if a.fresh_only {
+        // Validate the retained typed answers and exact canonical targets without
+        // drawing new banks, consuming RNG state, or creating development output.
+        let preserved = finish(authored, &tok, &binding)?;
+        if preserved.packets.len() != 64 {
+            return Err(invalid("preserved64 input validation required").into());
+        }
+        None
+    } else {
+        authored.extend(bank_rows(
+            "development",
+            8,
+            &mut rng,
+            &single,
+            &multi,
+            &excluded,
+            &mut used,
+            &mut fingerprints,
+            &tok,
+            &compiler,
+            &binding,
+            start,
+            &mut rejections,
+        )?);
+        let dev = finish(authored, &tok, &binding)?;
+        if dev.packets.len() != 128 {
+            return Err(invalid("development128 required").into());
+        }
+        pairs_valid(&dev.packets, &dev.data, 32)?;
+        Some(dev)
+    };
     let dev_tuple_keys = used.clone();
     let fresh_rows = bank_rows(
         "fresh",
@@ -771,11 +785,13 @@ fn run(a: &Args, start: Instant) -> Result<()> {
     }
     let exe = std::env::current_exe()?;
     let lookup = "current_exe";
-    let common = json!({"schema":"uor-r4.geometric-bank-panel/1","status":"completed","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":sha256_file(&exe)?,"executable_lookup":lookup,"seed":a.seed,"rng":"xorshift64;lexicallysorted_unique_compiled_literal_pool;devthenfresh/1","queries":{"job":JOB,"where":WHERE},"trusted_binding":expected,"input_files_sha256":hashes,"exposed_roots":exposures,"source_tuple_exclusion":"ordered query-independent source literal sequence; not semantic metric","fresh_source_tuples_disjoint_declared_exposures_and_development":true,"samebank_queryswap_segments_exact":true,"all64_golden_preserved":golden,"maximum_context_and_generation":128,"reserved_generation":32,"model_calls":0,"support_filters":false,"predictions":"NOT_RUN","labels_outside_serving_inputs":true,"metadata_roles_relations_are_opaque_provenance":true,"pool":{"singletons":single,"multiword":multi},"rejections":rejections,"elapsed_seconds":start.elapsed().as_secs_f64()});
-    for (split, out, panel, pairs) in [
-        ("development", &a.dev_out, dev, 32),
-        ("fresh", &a.fresh_out, fresh, 16),
-    ] {
+    let common = json!({"schema":"uor-r4.geometric-bank-panel/1","status":"completed","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":sha256_file(&exe)?,"executable_lookup":lookup,"seed":a.seed,"rng":if a.fresh_only {"xorshift64;lexicallysorted_unique_compiled_literal_pool;fresh-only/2"} else {"xorshift64;lexicallysorted_unique_compiled_literal_pool;devthenfresh/1"},"fresh_only":a.fresh_only,"all64_input_golden_validated":true,"development_output_created":!a.fresh_only,"queries":{"job":JOB,"where":WHERE},"trusted_binding":expected,"input_files_sha256":hashes,"exposed_roots":exposures,"source_tuple_exclusion":"ordered query-independent source literal sequence; not semantic metric","fresh_source_tuples_disjoint_declared_exposures_and_development":true,"samebank_queryswap_segments_exact":true,"all64_golden_preserved":if a.fresh_only {Value::Bool(false)} else {json!(golden)},"maximum_context_and_generation":128,"reserved_generation":32,"model_calls":0,"support_filters":false,"predictions":"NOT_RUN","labels_outside_serving_inputs":true,"metadata_roles_relations_are_opaque_provenance":true,"pool":{"singletons":single,"multiword":multi},"rejections":rejections,"elapsed_seconds":start.elapsed().as_secs_f64()});
+    let mut outputs = Vec::new();
+    if let Some(dev) = dev {
+        outputs.push(("development", &a.dev_out, dev, 32));
+    }
+    outputs.push(("fresh", &a.fresh_out, fresh, 16));
+    for (split, out, panel, pairs) in outputs {
         write(
             out,
             "inputs.json",
@@ -824,10 +840,22 @@ fn run(a: &Args, start: Instant) -> Result<()> {
     limit(start)?;
     Ok(())
 }
+fn output_roots(a: &Args) -> Vec<&PathBuf> {
+    if a.fresh_only {
+        vec![&a.fresh_out]
+    } else {
+        vec![&a.dev_out, &a.fresh_out]
+    }
+}
 fn main() -> Result<()> {
     let a = args()?;
-    report_output::claim(&a.dev_out)?;
+    if !a.fresh_only {
+        report_output::claim(&a.dev_out)?;
+    }
     if let Err(e) = report_output::claim(&a.fresh_out) {
+        if a.fresh_only {
+            return Err(e.into());
+        }
         write(&a.dev_out, "failure.json", &json!({"error":e.to_string()}))?;
         report_output::seal(&a.dev_out)?;
         return Err(e.into());
@@ -835,7 +863,7 @@ fn main() -> Result<()> {
     let start = Instant::now();
     let result = run(&a, start);
     if let Err(e) = &result {
-        for out in [&a.dev_out, &a.fresh_out] {
+        for out in output_roots(&a) {
             write(
                 out,
                 "failure.json",
@@ -843,7 +871,7 @@ fn main() -> Result<()> {
             )?;
         }
     }
-    for out in [&a.dev_out, &a.fresh_out] {
+    for out in output_roots(&a) {
         report_output::seal(out)?;
         report_output::verify(out)?;
     }
@@ -852,6 +880,26 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fresh_only_omits_development_root_and_is_opt_in() -> Result<()> {
+        let config = json!({
+            "dev_out":"unused-development-placeholder", "fresh_out":"fresh-output",
+            "tokenizer":"tokenizer", "trusted_binding":"binding",
+            "compiled_panel":"compiled", "seed":20261012,
+            "exposed_panel_roots":[], "exposed_bank_spec":"bank-spec"
+        });
+        let default: Args = serde_json::from_value(config.clone())?;
+        assert!(!default.fresh_only);
+        assert_eq!(
+            output_roots(&default),
+            vec![&default.dev_out, &default.fresh_out]
+        );
+        let mut opted = config;
+        opted["fresh_only"] = json!(true);
+        let fresh: Args = serde_json::from_value(opted)?;
+        assert_eq!(output_roots(&fresh), vec![&fresh.fresh_out]);
+        Ok(())
+    }
     #[test]
     fn preservation_keeps_all_answer_aliases_and_original_canonical_target() -> Result<()> {
         const TOKENIZER: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"Ġ":6,"Ġa":7},"merges":["Ġ a"]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;

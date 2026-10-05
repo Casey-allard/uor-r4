@@ -15,6 +15,7 @@ use uor_r4_core::{
     report_output,
 };
 use uor_r4_integer::{
+    geometric_cue_carrier::{CueAngularConfig, CueAngularQ4, CueScoreMode, NativeCueCarrier},
     geometric_occurrence_read::{FrameMetadata, FrameStatus, SelectedRecordFrame, SourceIdentity},
     geometric_source_realizer::{
         NativeArtifactBinding, NativeSourceRealizer as IntegerRealizer, SourceBankSegment,
@@ -23,7 +24,7 @@ use uor_r4_integer::{
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::{
     geometric_occurrence_consumer::{
-        source_realizer::{NativeSourceRealizer, SourceRealizerWeights},
+        source_realizer::{CueAngularWeights, NativeSourceRealizer, SourceRealizerWeights},
         ConsumerIdentity,
     },
     sha256_bytes, sha256_file,
@@ -42,12 +43,18 @@ fn readout_mode(a: &Args) -> bool {
 fn broad_mode(a: &Args) -> bool {
     matches!(a.mode.as_str(), "broadbatch" | "readout-broadbatch")
 }
+const CUE_FIT_CAP: usize = 128 * 1024 * 1024;
+const CUE_FAMILIES: &str = "cue-angular-HxLx120/1";
+fn cue_mode(a: &Args) -> bool {
+    a.mode.starts_with("cue-")
+}
 const UPDATES: usize = 64;
 const BATCH: usize = 8;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Args {
     mode: String,
+    cue_score_mode: Option<CueScoreMode>,
     learned_source_weights: Option<PathBuf>,
     learned_native_artifact: Option<PathBuf>,
     learned_trusted_native_binding: Option<PathBuf>,
@@ -301,13 +308,15 @@ fn checked_args() -> Result<Args> {
         "factor-probe",
         "readout-broadbatch",
         "readout-fit",
+        "cue-broadbatch",
+        "cue-fit",
     ]
     .contains(&a.mode.as_str())
         || a.maximum_seconds == 0
         || a.maximum_seconds
             > if a.mode == "fit" {
                 3600
-            } else if a.mode == "readout-fit" {
+            } else if matches!(a.mode.as_str(), "readout-fit" | "cue-fit") {
                 1200
             } else {
                 300
@@ -317,6 +326,10 @@ fn checked_args() -> Result<Args> {
         || a.maximum_report_bytes
             != if a.mode == "factor-probe" {
                 FACTOR_REPORT_CAP
+            } else if a.mode == "cue-fit" {
+                CUE_FIT_CAP
+            } else if a.mode == "cue-broadbatch" {
+                READOUT_BROAD_CAP
             } else if a.mode == "readout-fit" {
                 READOUT_FIT_CAP
             } else if a.mode == "readout-broadbatch" {
@@ -327,7 +340,7 @@ fn checked_args() -> Result<Args> {
     {
         return Err(invalid("mode/resource contract differs").into());
     }
-    if matches!(a.mode.as_str(), "fit" | "readout-fit")
+    if matches!(a.mode.as_str(), "fit" | "readout-fit" | "cue-fit")
         && (a.admission.is_none()
             || a.admission_manifest_sha256.is_none()
             || a.fit_authorization.is_none())
@@ -337,8 +350,13 @@ fn checked_args() -> Result<Args> {
         )
         .into());
     }
-    if broad_mode(&a) && (a.admission.is_some() || a.fit_authorization.is_some()) {
+    if (broad_mode(&a) || a.mode == "cue-broadbatch")
+        && (a.admission.is_some() || a.fit_authorization.is_some())
+    {
         return Err(invalid("broadbatch cannot automatically fit").into());
+    }
+    if cue_mode(&a) != a.cue_score_mode.is_some() {
+        return Err(invalid("cue_score_mode required only for explicit cue modes").into());
     }
     let donors = [
         a.learned_source_weights.is_some(),
@@ -1386,9 +1404,695 @@ fn factor_probe(a: &Args, start: Instant) -> Result<Value> {
     )
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CueAuthorization {
+    schema: String,
+    fit_admitted: bool,
+    admission_report_sha256: String,
+    development_manifest_sha256: String,
+    fresh_manifest_sha256: String,
+    trusted_binding_sha256: String,
+    parent_frozen: bool,
+    active_families: String,
+    cue_score_mode: CueScoreMode,
+    zero_cue_native_metadata_sha256: String,
+    updates: usize,
+    batch_episodes: usize,
+    maximum_fit_seconds: u64,
+}
+fn cue_native_load<'a>(root: &Path, parent: &'a IntegerRealizer) -> Result<NativeCueCarrier<'a>> {
+    let metadata = read_json(&root.join("native-metadata.json"))?;
+    let binding: NativeArtifactBinding =
+        serde_json::from_value(metadata["parent_artifact"].clone())?;
+    if &binding != parent.artifact_binding() {
+        return Err(invalid("native-only cue parent binding differs").into());
+    }
+    let config: CueAngularConfig = serde_json::from_value(metadata["potential"].clone())?;
+    let packed = fs::read(root.join("cue-q4.bin"))?;
+    let angular = CueAngularQ4::new(config, &packed).map_err(|e| invalid(e.to_string()))?;
+    let carrier = parent.compile_cue_carrier(angular)?;
+    if serde_json::to_value(carrier.metadata())? != metadata {
+        return Err(invalid("native-only cue metadata/context/geometry/q4 receipt differs").into());
+    }
+    Ok(carrier)
+}
+fn cue_canonical(
+    native: &IntegerRealizer,
+    carrier: &NativeCueCarrier<'_>,
+    episodes: &[Episode],
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut total = 0.;
+    let mut zeros = Vec::new();
+    let mut count = 0;
+    for e in episodes {
+        let segments = e.segments()?;
+        let mut tokens = Vec::new();
+        let mut rowce = 0.;
+        let mut rowzero = false;
+        for (step, &target) in e.target.iter().enumerate() {
+            deadline(a, start)?;
+            let out = native.read_bank_with_cue_carrier(
+                &segments,
+                &e.packet.query_ids,
+                &e.target[..step],
+                carrier,
+            )?;
+            let mass = out
+                .bank
+                .actions
+                .token_masses
+                .iter()
+                .filter(|x| x.token_id == target)
+                .map(|x| x.weight_q31)
+                .sum::<u64>();
+            let den = out.bank.actions.total_weight_q31;
+            if den == 0 {
+                return Err(invalid("cue native zero normalizer").into());
+            }
+            let ce = if mass == 0 {
+                rowzero = true;
+                zeros.push(json!({"id":e.packet.id,"step":step}));
+                None
+            } else {
+                let v = -(mass as f64 / den as f64).ln();
+                rowce += v;
+                Some(v)
+            };
+            tokens.push(json!({"step":step,"teacherforced_prefix_ids_labels_only":&e.target[..step],"target_label_only_after_read":target,"native_ce":ce,"target_mass_q31":mass,"total_weight_q31":den,"native":compact(&out.bank)?,"cue_carrier":out.carrier}));
+            count += 1;
+        }
+        let mean = if rowzero {
+            None
+        } else {
+            Some(rowce / e.target.len() as f64)
+        };
+        if let Some(v) = mean {
+            total += v / episodes.len() as f64;
+        }
+        rows.push(json!({"id":e.packet.id,"native_mean_token_ce":mean,"tokens":tokens}));
+    }
+    Ok(
+        json!({"cases":episodes.len(),"target_positions":count,"native_equal_episode_ce":if zeros.is_empty(){Some(total)}else{None},"zero_support_positions":zeros,"rows":rows,"probability_floor":false,"infinite_native_objective_when_zero":true}),
+    )
+}
+fn cue_generation(
+    native: &IntegerRealizer,
+    carrier: &NativeCueCarrier<'_>,
+    episodes: &[Episode],
+    tok: &ByteBpeTokenizer,
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let mut rows = Vec::new();
+    let mut complete = 0;
+    for e in episodes {
+        let segments = e.segments()?;
+        let mut ids = Vec::new();
+        let mut traces = Vec::new();
+        for step in 0..a.maximum_generation_tokens {
+            deadline(a, start)?;
+            let out =
+                native.read_bank_with_cue_carrier(&segments, &e.packet.query_ids, &ids, carrier)?;
+            let chosen = out.bank.actions.chosen_token_id;
+            traces.push(json!({"step":step,"actual_prefix_ids":ids,"native":compact(&out.bank)?,"cue_carrier":out.carrier}));
+            ids.push(chosen);
+            if chosen == native.binding().eos_token_id() {
+                break;
+            }
+        }
+        let eos = ids.last() == Some(&native.binding().eos_token_id());
+        let plain = if eos { &ids[..ids.len() - 1] } else { &ids[..] };
+        let bytes = tok.decode_bytes(plain);
+        let raw = String::from_utf8_lossy(&bytes);
+        let text = raw.strip_prefix(' ').unwrap_or(&raw);
+        let accepted = eos && String::from_utf8(bytes.clone()).is_ok() && e.answers.accepts(text);
+        complete += usize::from(accepted);
+        rows.push(json!({"id":e.packet.id,"generated_ids_including_eos":ids,"eos":eos,"reply_text":text,"raw_decoded_bytes_hex":hex::encode(bytes),"accepted_complete_answer":accepted,"tokens":traces}));
+    }
+    Ok(
+        json!({"cases":episodes.len(),"accepted_complete":complete,"maximum_generated_tokens":a.maximum_generation_tokens,"canonical_prefixes_used":false,"native_only_cue_load":true,"rows":rows}),
+    )
+}
+fn cue_batch(
+    indices: &[usize],
+    episodes: &[Episode],
+    source: &SourceRealizerWeights,
+    parent: &NativeSourceRealizer,
+    weights: &CueAngularWeights,
+    integer: Option<&IntegerRealizer>,
+    a: &Args,
+    start: Instant,
+) -> Result<Batch> {
+    let began = Instant::now();
+    let prepared = source.prepare(parent)?;
+    let carrier = parent.compile_cue_carrier(weights.native()?)?;
+    let independent = integer
+        .map(|p| -> Result<_> { Ok(p.compile_cue_carrier(weights.native()?)?) })
+        .transpose()?;
+    let params = weights.parameters();
+    let parentvars = source.parameters();
+    let mut gradients = BTreeMap::<String, Tensor>::new();
+    let mut rows = Vec::new();
+    let mut mean = 0.;
+    let mut positions = 0;
+    let lanes = weights.config().heads * weights.config().lanes_per_head;
+    let mut visited = vec![BTreeSet::<u8>::new(); lanes];
+    let mut address_counts = vec![[0usize; 2]; lanes];
+    for &idx in indices {
+        let e = &episodes[idx];
+        let segments = e.segments()?;
+        let mut ce = 0.;
+        let mut first = None;
+        for (step, &target) in e.target.iter().enumerate() {
+            deadline(a, start)?;
+            let out = prepared.loss_bank_cue(
+                &segments,
+                &e.packet.query_ids,
+                &e.target[..step],
+                target,
+                weights,
+                &carrier,
+            )?;
+            if let (Some(native), Some(c)) = (integer, independent.as_ref()) {
+                if out.trace
+                    != native.read_bank_with_cue_carrier(
+                        &segments,
+                        &e.packet.query_ids,
+                        &e.target[..step],
+                        c,
+                    )?
+                {
+                    return Err(invalid("cue loss independent native full trace differs").into());
+                }
+            }
+            for (lane, row) in out.trace.carrier.angular_indices.iter().enumerate() {
+                for index in row {
+                    if let Some(i) = index {
+                        visited[lane].insert(*i);
+                        address_counts[lane][1] += 1;
+                    } else {
+                        address_counts[lane][0] += 1;
+                    }
+                }
+            }
+            let expected = -out.target_probability.ln();
+            let scalar = out.loss.to_scalar::<f32>()?;
+            if !scalar.is_finite()
+                || (f64::from(scalar) - expected).abs() > 1e-4 + 1e-5 * expected.abs()
+            {
+                return Err(invalid("cue loss native marginal differs").into());
+            }
+            ce += expected;
+            positions += 1;
+            if step == 0 {
+                first = Some(expected);
+            }
+            let store = (&out.loss * scale(indices.len(), e.target.len())?)?.backward()?;
+            if parentvars
+                .values()
+                .any(|var| store.get(var.as_tensor()).is_some())
+            {
+                return Err(invalid("cue loss unexpectedly connects frozen parent Var").into());
+            }
+            for (name, var) in &params {
+                if let Some(g) = store.get(var.as_tensor()) {
+                    let g = g.detach();
+                    let sum = match gradients.remove(name) {
+                        Some(old) => (&old + &g)?.detach(),
+                        None => g,
+                    };
+                    gradients.insert(name.clone(), sum);
+                }
+            }
+        }
+        mean += ce / e.target.len() as f64 / indices.len() as f64;
+        rows.push(json!({"id":e.packet.id,"target_steps":e.target.len(),"native_mean_token_ce":ce/e.target.len() as f64,"first_token_ce":first}));
+    }
+    let mut stats = BTreeMap::new();
+    let mut sq = 0.;
+    for (name, g) in &gradients {
+        let v = g.flatten_all()?.to_vec1::<f32>()?;
+        if v.iter().any(|x| !x.is_finite()) {
+            return Err(invalid("cue gradient nonfinite").into());
+        }
+        sq += v.iter().map(|x| f64::from(*x).powi(2)).sum::<f64>();
+        stats.insert(name.clone(),json!({"elements":v.len(),"finite":true,"nonzero":v.iter().filter(|x|**x!=0.).count(),"l1":v.iter().map(|x|f64::from(x.abs())).sum::<f64>()}));
+    }
+    Ok(Batch {
+        gradients,
+        report: json!({"episodes":indices.len(),"episode_indices":indices,"target_positions":positions,"native_equal_episode_ce":mean,"gradient_global_norm":sq.sqrt(),"gradient_families":stats,"rows":rows,"angular_visited_bins":visited,"angular_address_counts_absent_present":address_counts,"parent_gradient_graph_absent":true,"independent_native_trace_parity":integer.is_some(),"cue_score_mode":weights.config().mode,"active_families":CUE_FAMILIES,"elapsed_seconds":began.elapsed().as_secs_f64(),"objective":"equal episode mean fullanswer+EOS ordinary native marginal CE; detached F32 token gradient accumulation, globalclip aftermean","cost_scope":"frozen parent source validation/prepared codec packing remains; only cue960Vars backward/Adam"}),
+    })
+}
+fn cue_apply(
+    weights: &CueAngularWeights,
+    opt: &mut AdamW,
+    grad: BTreeMap<String, Tensor>,
+) -> Result<f64> {
+    let sq = grad
+        .values()
+        .map(|g| {
+            Ok(g.flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .map(|x| f64::from(*x).powi(2))
+                .sum::<f64>())
+        })
+        .collect::<Result<Vec<_>>>()?
+        .into_iter()
+        .sum::<f64>();
+    let norm = sq.sqrt();
+    if !norm.is_finite() {
+        return Err(invalid("cue clip norm nonfinite").into());
+    }
+    let clip = if norm > 1. { 1. / norm } else { 1. };
+    let mut store = Tensor::new(0f32, &Device::Cpu)?.backward()?;
+    let params = weights.parameters();
+    for (name, g) in grad {
+        let var = params
+            .get(&name)
+            .ok_or_else(|| invalid("unexpected cue gradient family"))?;
+        store.insert(var.as_tensor(), (&g * clip)?.detach());
+    }
+    opt.step(&store)?;
+    weights.project_shadow_range()?;
+    Ok(clip)
+}
+fn cue_checkpoint(
+    weights: &CueAngularWeights,
+    parent: &NativeSourceRealizer,
+    integer: &IntegerRealizer,
+    episodes: &[Episode],
+    step: usize,
+    prior: &[Value],
+    a: &Args,
+    start: Instant,
+) -> Result<Value> {
+    let root = a.out.join(format!("checkpoint-{step:04}"));
+    report_output::claim(&root)?;
+    let result = (|| -> Result<Value> {
+        weights.save(&root.join("cue"))?;
+        let restored = CueAngularWeights::load(&root.join("cue"), parent, &a.native_artifact)?;
+        if parameter_receipts(&weights.parameters())? != parameter_receipts(&restored.parameters())?
+        {
+            return Err(invalid("cue checkpoint shadows differ").into());
+        }
+        let carrier = cue_native_load(&root.join("cue"), integer)?;
+        let report = cue_canonical(integer, &carrier, episodes, a, start)?;
+        write_json(&root, "canonical.json", &report)?;
+        let mut comparisons = Vec::new();
+        for old in prior {
+            let previous = old["updates"]
+                .as_u64()
+                .ok_or_else(|| invalid("prior cue step absent"))?;
+            let saved = read_json(
+                &a.out
+                    .join(format!("checkpoint-{previous:04}/canonical.json")),
+            )?;
+            comparisons
+                .push(json!({"prior_updates":previous,"comparison":compare(&saved,&report)?}));
+        }
+        write_json(&root, "comparisons.json", &json!(comparisons))?;
+        let receipt = json!({"updates":step,"native_equal_episode_ce":report["native_equal_episode_ce"],"zero_support_positions":report["zero_support_positions"],"cue_source_parameter_receipts":parameter_receipts(&weights.parameters())?,"cue_native_metadata_sha256":sha256_file(&root.join("cue/native-metadata.json"))?,"cue_packed_sha256":sha256_file(&root.join("cue/cue-q4.bin"))?,"canonical_sha256":sha256_file(&root.join("canonical.json"))?,"frozen_parent_native_binding":integer.artifact_binding(),"native_only_generation_contract":true});
+        write_json(&root, "receipt.json", &receipt)?;
+        Ok(receipt)
+    })();
+    if let Err(e) = &result {
+        write_json(
+            &root,
+            "failure.json",
+            &json!({"error":e.to_string(),"updates":step}),
+        )?;
+    }
+    report_output::seal(&root)?;
+    report_output::verify(&root)?;
+    result
+}
+fn cue_admission_matches(
+    report: &Value,
+    mode: CueScoreMode,
+    development: &str,
+    fresh: &str,
+    trusted: &str,
+    zero_metadata: &str,
+    frozen: &Value,
+) -> bool {
+    report["schema"] == "uor-r4.geometric-cue-fit/1"
+        && report["mode"] == "cue-broadbatch"
+        && report["status"] == "completed"
+        && report["optimizer_updates"] == 0
+        && report["cases"] == 128
+        && report["cue_score_mode"] == json!(mode)
+        && report["parent_frozen"] == true
+        && report["active_families"] == CUE_FAMILIES
+        && report["complete_objective_finite"] == true
+        && report["gradient_report"]["parent_gradient_graph_absent"] == true
+        && report["gradient_report"]["independent_native_trace_parity"] == true
+        && report["development_manifest_sha256"] == development
+        && report["fresh_manifest_sha256"] == fresh
+        && report["trusted_binding_sha256"] == trusted
+        && report["zero_cue_native_metadata_sha256"] == zero_metadata
+        && report["frozen_parent_source_receipts"] == *frozen
+}
+fn cue_run(a: &Args, start: Instant) -> Result<Value> {
+    let mut sealed = BTreeSet::new();
+    let mut inputs = BTreeMap::new();
+    if let Some(controls) = &a.exposed_controls {
+        let root = nearest_seal(controls)?;
+        report_output::verify(&root)?;
+        inputs.insert(
+            root.join("manifest.json").to_string_lossy().into_owned(),
+            sha256_file(&root.join("manifest.json"))?,
+        );
+        sealed.insert(root);
+    }
+    for (path, expected) in [
+        (&a.development_panel, &a.development_manifest_sha256),
+        (&a.fresh_panel, &a.fresh_manifest_sha256),
+    ] {
+        report_output::verify(path)?;
+        if sha256_file(&path.join("manifest.json"))? != *expected {
+            return Err(invalid("cue panel manifest differs").into());
+        }
+    }
+    for p in [
+        &a.source_weights,
+        &a.native_artifact,
+        &a.development_panel,
+        &a.fresh_panel,
+    ] {
+        let root = nearest_seal(p)?;
+        report_output::verify(&root)?;
+        inputs.insert(
+            root.join("manifest.json").to_string_lossy().into_owned(),
+            sha256_file(&root.join("manifest.json"))?,
+        );
+        sealed.insert(root);
+    }
+    let binding: NativeArtifactBinding =
+        serde_json::from_slice(&read_capped(&a.trusted_native_binding)?)?;
+    let trusted_sha = sha256_file(&a.trusted_native_binding)?;
+    inputs.insert(
+        a.trusted_native_binding.to_string_lossy().into_owned(),
+        trusted_sha.clone(),
+    );
+    let integer = IntegerRealizer::load_native(&a.native_artifact, &binding)?;
+    let bytes = fs::read(a.native_artifact.join("tokenizer.json"))?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
+        .ok_or_else(|| invalid("cue ByteBPE absent"))?;
+    let source = SourceRealizerWeights::load_source(&a.source_weights, &bytes)?;
+    let identity: ConsumerIdentity = serde_json::from_value(
+        read_json(&a.native_artifact.join("metadata.json"))?["identity"].clone(),
+    )?;
+    let parent = NativeSourceRealizer::load(&a.native_artifact, &source, &identity)?;
+    if parent.artifact_binding()? != binding {
+        return Err(invalid("cue loaded parent source/native binding differs").into());
+    }
+    let development = load_panel(&a.development_panel, 128, &integer, &tok, true)?;
+    let fresh = load_panel(&a.fresh_panel, 32, &integer, &tok, true)?;
+    let mode = a
+        .cue_score_mode
+        .ok_or_else(|| invalid("cue_score_mode absent"))?;
+    let weights = CueAngularWeights::zero(&parent, &a.native_artifact, mode)?;
+    let frozen = parameter_receipts(&source.parameters())?;
+    weights.save(&a.out.join("initial-cue"))?;
+    let initial_metadata_sha = sha256_file(&a.out.join("initial-cue/native-metadata.json"))?;
+    let carrier = cue_native_load(&a.out.join("initial-cue"), &integer)?;
+    let baseline = cue_canonical(&integer, &carrier, &development, a, start)?;
+    write_json(&a.out, "initial-canonical.json", &baseline)?;
+    if baseline["native_equal_episode_ce"].is_null() {
+        return Err(
+            invalid("cue parent full128 native objective infinite; no support filter").into(),
+        );
+    }
+    let original = canonical(&integer, &development, a, start)?;
+    for (old, new) in original["rows"]
+        .as_array()
+        .ok_or_else(|| invalid("parent rows absent"))?
+        .iter()
+        .zip(
+            baseline["rows"]
+                .as_array()
+                .ok_or_else(|| invalid("cue rows absent"))?,
+        )
+    {
+        for (x, y) in old["tokens"]
+            .as_array()
+            .ok_or_else(|| invalid("parent tokens absent"))?
+            .iter()
+            .zip(
+                new["tokens"]
+                    .as_array()
+                    .ok_or_else(|| invalid("cue tokens absent"))?,
+            )
+        {
+            if x["native"] != y["native"]
+                || x["target_mass_q31"] != y["target_mass_q31"]
+                || x["total_weight_q31"] != y["total_weight_q31"]
+            {
+                return Err(invalid("zero cue native parent fidelity differs").into());
+            }
+        }
+    }
+    let measured = if a.mode == "cue-broadbatch" {
+        Some(cue_batch(
+            &(0..128).collect::<Vec<_>>(),
+            &development,
+            &source,
+            &parent,
+            &weights,
+            Some(&integer),
+            a,
+            start,
+        )?)
+    } else {
+        None
+    };
+    if let Some(batch) = measured {
+        write_json(&a.out, "broadbatch.json", &batch.report)?;
+        let parent_generation = cue_generation(&integer, &carrier, &development, &tok, a, start)?;
+        write_json(
+            &a.out,
+            "development-parent-generation.json",
+            &parent_generation,
+        )?;
+        write_json(
+            &a.out,
+            "parent-query-pair-diagnostics.json",
+            &factor_pair_report(&a.development_panel, &baseline, &parent_generation)?,
+        )?;
+        if parameter_receipts(&source.parameters())? != frozen {
+            return Err(invalid("cue broadbatch changed frozen parent").into());
+        }
+        for (p, h) in &inputs {
+            if sha256_file(Path::new(p))? != *h {
+                return Err(invalid("cue broad input changed").into());
+            }
+        }
+        for p in &sealed {
+            report_output::verify(p)?;
+        }
+        return Ok(
+            json!({"schema":"uor-r4.geometric-cue-fit/1","mode":a.mode,"status":"completed","optimizer_updates":0,"cases":128,"cue_score_mode":mode,"parent_frozen":true,"active_families":CUE_FAMILIES,"gradient_report":batch.report,"native_equal_episode_ce":baseline["native_equal_episode_ce"],"complete_objective_finite":true,"zero_cue_native_metadata_sha256":initial_metadata_sha,"development_manifest_sha256":a.development_manifest_sha256,"fresh_manifest_sha256":a.fresh_manifest_sha256,"trusted_binding_sha256":trusted_sha,"frozen_parent_source_receipts":frozen,"input_manifests_sha256":inputs,"fit_admitted":false,"fresh_predictions":"NOT_RUN","elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib()}),
+        );
+    }
+    let admission = a
+        .admission
+        .as_ref()
+        .ok_or_else(|| invalid("cue admission absent"))?;
+    report_output::verify(admission)?;
+    if Some(sha256_file(&admission.join("manifest.json"))?) != a.admission_manifest_sha256 {
+        return Err(invalid("cue admission manifest differs").into());
+    }
+    let report = read_json(&admission.join("report.json"))?;
+    let authpath = a
+        .fit_authorization
+        .as_ref()
+        .ok_or_else(|| invalid("cue authorization absent"))?;
+    let auth: CueAuthorization = serde_json::from_slice(&read_capped(authpath)?)?;
+    if !cue_admission_matches(
+        &report,
+        mode,
+        &a.development_manifest_sha256,
+        &a.fresh_manifest_sha256,
+        &trusted_sha,
+        &initial_metadata_sha,
+        &frozen,
+    ) || auth.schema != "uor-r4.cue-fit-authorization/1"
+        || !auth.fit_admitted
+        || !auth.parent_frozen
+        || auth.active_families != CUE_FAMILIES
+        || auth.cue_score_mode != mode
+        || auth.zero_cue_native_metadata_sha256 != initial_metadata_sha
+        || auth.admission_report_sha256 != sha256_file(&admission.join("report.json"))?
+        || auth.development_manifest_sha256 != a.development_manifest_sha256
+        || auth.fresh_manifest_sha256 != a.fresh_manifest_sha256
+        || auth.trusted_binding_sha256 != trusted_sha
+        || auth.updates != UPDATES
+        || auth.batch_episodes != BATCH
+        || auth.maximum_fit_seconds != a.maximum_seconds
+    {
+        return Err(invalid(
+            "cue distinct broadbatch/resource/mode/zero-artifact admission differs",
+        )
+        .into());
+    }
+    inputs.insert(
+        admission
+            .join("manifest.json")
+            .to_string_lossy()
+            .into_owned(),
+        sha256_file(&admission.join("manifest.json"))?,
+    );
+    sealed.insert(admission.clone());
+    inputs.insert(
+        authpath.to_string_lossy().into_owned(),
+        sha256_file(authpath)?,
+    );
+    let mut stages = Vec::new();
+    let zero = cue_checkpoint(
+        &weights,
+        &parent,
+        &integer,
+        &development,
+        0,
+        &stages,
+        a,
+        start,
+    )?;
+    stages.push(zero);
+    if baseline != read_json(&a.out.join("checkpoint-0000/canonical.json"))? {
+        return Err(invalid("cue zero export baseline differs").into());
+    }
+    let parent_gen = cue_generation(&integer, &carrier, &development, &tok, a, start)?;
+    write_json(&a.out, "development-parent-generation.json", &parent_gen)?;
+    write_json(
+        &a.out,
+        "parent-query-pair-diagnostics.json",
+        &factor_pair_report(&a.development_panel, &baseline, &parent_gen)?,
+    )?;
+    let mut optimizer = AdamW::new(
+        weights.parameters().into_values().collect(),
+        ParamsAdamW {
+            lr: 0.003,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1e-8,
+            weight_decay: 0.,
+        },
+    )?;
+    let initial_packed = weights.packed_coefficients()?;
+    let mut first_cross = None;
+    let mut batches = Vec::new();
+    for update in 0..UPDATES {
+        deadline(a, start)?;
+        if parameter_receipts(&source.parameters())? != frozen {
+            return Err(invalid("frozen cue parent changed before update").into());
+        }
+        let batch = cue_batch(
+            &balanced_indices(update),
+            &development,
+            &source,
+            &parent,
+            &weights,
+            None,
+            a,
+            start,
+        )?;
+        let clip = cue_apply(&weights, &mut optimizer, batch.gradients)?;
+        let packed = weights.packed_coefficients()?;
+        if first_cross.is_none() && packed != initial_packed {
+            first_cross = Some(update + 1);
+        }
+        batches.push(json!({"update":update+1,"clip_factor":clip,"cue_packed_sha256":sha256_bytes(&packed),"batch":batch.report}));
+        write_json(
+            &a.out,
+            "progress.json",
+            &json!({"optimizer_updates":update+1,"first_native_packed_crossing_update":first_cross,"batches":batches,"elapsed_seconds":start.elapsed().as_secs_f64()}),
+        )?;
+        if parameter_receipts(&source.parameters())? != frozen {
+            return Err(invalid("frozen cue parent changed after update").into());
+        }
+        if (update + 1) % 16 == 0 {
+            stages.push(cue_checkpoint(
+                &weights,
+                &parent,
+                &integer,
+                &development,
+                update + 1,
+                &stages,
+                a,
+                start,
+            )?);
+        }
+    }
+    let selected = select(&stages)?;
+    let step = stages[selected]["updates"]
+        .as_u64()
+        .ok_or_else(|| invalid("cue selected step absent"))?;
+    write_json(
+        &a.out,
+        "selection-before-fresh.json",
+        &json!({"selected_updates":step,"criterion":"full128 native equalepisodeCE including parent0 earliestties","fresh_predictions_before_selection":0}),
+    )?;
+    let selected_carrier =
+        cue_native_load(&a.out.join(format!("checkpoint-{step:04}/cue")), &integer)?;
+    let selected_can = read_json(&a.out.join(format!("checkpoint-{step:04}/canonical.json")))?;
+    let generated = cue_generation(&integer, &selected_carrier, &development, &tok, a, start)?;
+    write_json(&a.out, "development-selected-generation.json", &generated)?;
+    write_json(
+        &a.out,
+        "selected-query-pair-diagnostics.json",
+        &factor_pair_report(&a.development_panel, &selected_can, &generated)?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-parent-generation.json",
+        &cue_generation(&integer, &carrier, &fresh, &tok, a, start)?,
+    )?;
+    write_json(
+        &a.out,
+        "fresh-selected-generation.json",
+        &cue_generation(&integer, &selected_carrier, &fresh, &tok, a, start)?,
+    )?;
+    if let Some(root) = &a.exposed_controls {
+        let controls = load_panel(root, 6, &integer, &tok, false)?;
+        write_json(
+            &a.out,
+            "controls-parent-generation.json",
+            &cue_generation(&integer, &carrier, &controls, &tok, a, start)?,
+        )?;
+        write_json(
+            &a.out,
+            "controls-selected-generation.json",
+            &cue_generation(&integer, &selected_carrier, &controls, &tok, a, start)?,
+        )?;
+    }
+    if parameter_receipts(&source.parameters())? != frozen {
+        return Err(invalid("cue final frozen parent source changed").into());
+    }
+    for (p, h) in &inputs {
+        if sha256_file(Path::new(p))? != *h {
+            return Err(invalid("cue immutable input changed").into());
+        }
+    }
+    for root in sealed {
+        report_output::verify(&root)?;
+    }
+    Ok(
+        json!({"schema":"uor-r4.geometric-cue-fit/1","mode":a.mode,"status":"completed","cue_score_mode":mode,"parent_frozen":true,"active_families":CUE_FAMILIES,"optimizer_updates":UPDATES,"batch_episodes":BATCH,"episode_visits":4,"batch_schedule":"balanced4single+4bank intactpairs","checkpoints":stages,"selected_updates":step,"first_native_packed_crossing_update":first_cross,"frozen_parent_source_receipts":frozen,"input_manifests_sha256":inputs,"fresh_predictions_before_selection":0,"no_parent_artifact_copies":true,"native_only_cue_generation":true,"elapsed_seconds":start.elapsed().as_secs_f64(),"peak_rss_kib_linux":peak_rss_kib(),"scope":"bounded source-text cue carrier learning; observedH4roots only, presence-masked; radius and latentfiber retainedunusedv1; sharedaliasnormalization; no goldrecord filter or fullchat qualification"}),
+    )
+}
+
 fn run(a: &Args, start: Instant) -> Result<Value> {
     if a.mode == "factor-probe" {
         return factor_probe(a, start);
+    }
+    if cue_mode(a) {
+        return cue_run(a, start);
     }
     for (root, expected) in [
         (&a.development_panel, &a.development_manifest_sha256),
@@ -1691,7 +2395,7 @@ fn main() {
     let outcome = (|| -> Result<()> {
         let a = checked_args()?;
         report_output::claim(&a.out)?;
-        if readout_mode(&a) {
+        if readout_mode(&a) || cue_mode(&a) {
             fs::write(
                 a.out.join("resource-cap.json"),
                 serde_json::to_vec(&json!({"maximum_report_bytes":a.maximum_report_bytes}))?,
@@ -1731,6 +2435,57 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn cue_admission_binds_mode_zero_artifact_and_all_frozen_inputs() {
+        let frozen = json!({"context":"exact","readout":"exact"});
+        let r = json!({"schema":"uor-r4.geometric-cue-fit/1","mode":"cue-broadbatch","status":"completed","optimizer_updates":0,"cases":128,"cue_score_mode":"DirectedRelative","parent_frozen":true,"active_families":CUE_FAMILIES,"complete_objective_finite":true,"gradient_report":{"parent_gradient_graph_absent":true,"independent_native_trace_parity":true},"development_manifest_sha256":"dev","fresh_manifest_sha256":"fresh","trusted_binding_sha256":"parent","zero_cue_native_metadata_sha256":"zero","frozen_parent_source_receipts":frozen});
+        assert!(cue_admission_matches(
+            &r,
+            CueScoreMode::DirectedRelative,
+            "dev",
+            "fresh",
+            "parent",
+            "zero",
+            &frozen
+        ));
+        assert!(!cue_admission_matches(
+            &r,
+            CueScoreMode::CueUnary,
+            "dev",
+            "fresh",
+            "parent",
+            "zero",
+            &frozen
+        ));
+        for (field, value) in [
+            ("development_manifest_sha256", "wrong"),
+            ("fresh_manifest_sha256", "wrong"),
+            ("trusted_binding_sha256", "wrong"),
+            ("zero_cue_native_metadata_sha256", "wrong"),
+            ("mode", "readout-broadbatch"),
+        ] {
+            let mut other = r.clone();
+            other[field] = json!(value);
+            assert!(!cue_admission_matches(
+                &other,
+                CueScoreMode::DirectedRelative,
+                "dev",
+                "fresh",
+                "parent",
+                "zero",
+                &frozen
+            ));
+        }
+        assert!(!cue_admission_matches(
+            &r,
+            CueScoreMode::DirectedRelative,
+            "dev",
+            "fresh",
+            "parent",
+            "zero",
+            &json!({"context":"changed"})
+        ));
+    }
     #[test]
     fn readout_admission_rejects_joint_or_wrong_freeze_receipt() {
         let mut r = json!({"schema":"uor-r4.geometric-bank-readout-fit/1","mode":"readout-broadbatch","context_frozen":true,"active_families":READOUT_FAMILIES,"status":"completed","optimizer_updates":0,"cases":128,"complete_objective_finite":true,"source_parameters_unchanged":true,"development_manifest_sha256":"dev","fresh_manifest_sha256":"fresh","trusted_binding_sha256":"native","gradient_report":{"independent_native_trace_parity":true,"context_gradient_graph_absent":true}});

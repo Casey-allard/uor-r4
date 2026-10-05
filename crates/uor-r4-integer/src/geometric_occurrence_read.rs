@@ -1022,6 +1022,24 @@ impl<'a> NativeOccurrenceReader<'a> {
             &bank.prepared,
             snapshot,
             Some(&bank.positions[..bank.prepared.count]),
+            None,
+        )?;
+        Ok(BankOccurrenceRead { inner })
+    }
+
+    /// Adds an explicit opt-in per-head/per-candidate term before the existing
+    /// reduction. Keys, controllers, admission and candidate order remain fixed.
+    pub(crate) fn score_bank_with_copy_adjustments(
+        &mut self,
+        bank: &BankPreparedOccurrenceContext<'a>,
+        snapshot: &QuerySnapshot<'_, 'a>,
+        adjustments: &[Vec<i64>],
+    ) -> OccurrenceReadResult<BankOccurrenceRead<'_>> {
+        let inner = self.score_indices(
+            &bank.prepared,
+            snapshot,
+            Some(&bank.positions[..bank.prepared.count]),
+            Some(adjustments),
         )?;
         Ok(BankOccurrenceRead { inner })
     }
@@ -1032,13 +1050,14 @@ impl<'a> NativeOccurrenceReader<'a> {
         prepared: &PreparedOccurrenceContext<'a>,
         snapshot: &QuerySnapshot<'_, 'a>,
     ) -> OccurrenceReadResult<OccurrenceRead<'_>> {
-        self.score_indices(prepared, snapshot, None)
+        self.score_indices(prepared, snapshot, None, None)
     }
     fn score_indices(
         &mut self,
         prepared: &PreparedOccurrenceContext<'a>,
         snapshot: &QuerySnapshot<'_, 'a>,
         positions: Option<&[u8]>,
+        adjustments: Option<&[Vec<i64>]>,
     ) -> OccurrenceReadResult<OccurrenceRead<'_>> {
         if !std::ptr::eq(prepared.components.context, self.components.context)
             || !std::ptr::eq(prepared.components.potential, self.components.potential)
@@ -1068,6 +1087,9 @@ impl<'a> NativeOccurrenceReader<'a> {
         let absent =
             [AddressLane::new(1, 0, false).map_err(OccurrenceReadError::Potential)?; MAX_LANES];
         let count = prepared.count;
+        if adjustments.is_some_and(|a| a.len() != heads || a.iter().any(|row| row.len() != count)) {
+            return Err(OccurrenceReadError::ComponentShape);
+        }
         let zeros = [0i32; MAX_SEQUENCE];
         let ages = [0i64; MAX_SEQUENCE];
         let mut summaries = [HeadSummary::default(); MAX_HEADS];
@@ -1093,6 +1115,11 @@ impl<'a> NativeOccurrenceReader<'a> {
                         self.components.geometry,
                     )
                     .map_err(OccurrenceReadError::Potential)?;
+                if let Some(adjustments) = adjustments {
+                    self.scratch_scores[h][j] = self.scratch_scores[h][j]
+                        .checked_add(adjustments[h][j])
+                        .ok_or(OccurrenceReadError::ComponentShape)?;
+                }
                 for (query_lane, source_lane) in q.iter().zip(k) {
                     stats.potential_table_reads += 2;
                     if query_lane.present() && source_lane.present() {

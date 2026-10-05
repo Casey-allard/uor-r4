@@ -1,0 +1,221 @@
+{
+  "schema": "uor-r4.geometric-cue-carrier-evidence/1",
+  "source_commit": "d2a899271e4a41abf916120f104b2be6bc626885",
+  "executable_sha256": "4c8fd2bc362d1bbbc022ebfb78765bdbab4a79cafe2fe9cfabc8bb49b3762962",
+  "status": "completed",
+  "host": "Runpod Linux x86_64 CPU",
+  "threads": 48,
+  "gpu": false,
+  "development_cases": 128,
+  "canonical_targets": 1204,
+  "fresh_cases": 32,
+  "seed": 20261012,
+  "context_and_generation_total_cap": 128,
+  "generation_cap": 32,
+  "batch_episodes": 8,
+  "schedule": "four unchanged singles plus four bank episodes; intact query pairs; four visits per episode",
+  "objective": "mean canonical token CE per episode then equal mean across all128; actual native aliases including Period/Stop; baseline-inclusive earliest ties",
+  "parent": {
+    "ce": 1.146199478403535,
+    "single_complete": 34,
+    "bank_complete": 1,
+    "fresh_complete": 0,
+    "native_metadata_sha256": "86850bb259756bfae5960b05810a8710c32a1d59465b3dd16b121b02426c6aab"
+  },
+  "arms": {
+    "relative": {
+      "mode": "DirectedRelative",
+      "updates": 64,
+      "selected_updates": 48,
+      "checkpoint_ce": [
+        {
+          "updates": 0,
+          "ce": 1.146199478403535,
+          "canonical_sha256": "8d9c83d161cc7af1304282899b32ca5255aec6b492f8644d491345153857b8c2",
+          "cue_packed_sha256": "4b48f21a4b7a02bfbec19ef880a967a02334a3cdcef8ae83de2ef327ba8bc5dd"
+        },
+        {
+          "updates": 16,
+          "ce": 1.146199478403535,
+          "canonical_sha256": "8d9c83d161cc7af1304282899b32ca5255aec6b492f8644d491345153857b8c2",
+          "cue_packed_sha256": "4b48f21a4b7a02bfbec19ef880a967a02334a3cdcef8ae83de2ef327ba8bc5dd"
+        },
+        {
+          "updates": 32,
+          "ce": 1.146199478403535,
+          "canonical_sha256": "8d9c83d161cc7af1304282899b32ca5255aec6b492f8644d491345153857b8c2",
+          "cue_packed_sha256": "4b48f21a4b7a02bfbec19ef880a967a02334a3cdcef8ae83de2ef327ba8bc5dd"
+        },
+        {
+          "updates": 48,
+          "ce": 1.0400545984231264,
+          "canonical_sha256": "eb123e947eaecddec066ed8e9f923f1313ddead222b691b4435bebc28ad0b8e4",
+          "cue_packed_sha256": "629c1b909b6364cb2c755b488fdf6939243793482d62a866c899f09d1435451a"
+        },
+        {
+          "updates": 64,
+          "ce": 1.0400545984231264,
+          "canonical_sha256": "eb123e947eaecddec066ed8e9f923f1313ddead222b691b4435bebc28ad0b8e4",
+          "cue_packed_sha256": "629c1b909b6364cb2c755b488fdf6939243793482d62a866c899f09d1435451a"
+        }
+      ],
+      "first_packed_crossing": 45,
+      "source_report_seconds": 47.240507591,
+      "peak_rss_kib_linux": 1130716,
+      "files": 64,
+      "returned_bytes": 111172769,
+      "selected_complete_single": 34,
+      "selected_complete_bank": 2,
+      "fresh_complete": 0,
+      "complete_query_pairs": 0,
+      "nonzero_q4": 26,
+      "canonical_rows_improved": 49,
+      "canonical_rows_worsened": 15,
+      "canonical_rows_equal": 64,
+      "native_metadata_sha256": "627c3fb4087495da8a05cce78fb43d95c9dab1caa1e1ea508581822cf491787e",
+      "packed_sha256": "629c1b909b6364cb2c755b488fdf6939243793482d62a866c899f09d1435451a"
+    },
+    "unary": {
+      "mode": "CueUnary",
+      "updates": 64,
+      "selected_updates": 48,
+      "checkpoint_ce": [
+        {
+          "updates": 0,
+          "ce": 1.146199478403535,
+          "canonical_sha256": "cbd0039138f647b403916f70bff32efbee6923ad0af318d5a41cd47c9f625714",
+          "cue_packed_sha256": "4b48f21a4b7a02bfbec19ef880a967a02334a3cdcef8ae83de2ef327ba8bc5dd"
+        },
+        {
+          "updates": 16,
+          "ce": 1.146199478403535,
+          "canonical_sha256": "cbd0039138f647b403916f70bff32efbee6923ad0af318d5a41cd47c9f625714",
+          "cue_packed_sha256": "4b48f21a4b7a02bfbec19ef880a967a02334a3cdcef8ae83de2ef327ba8bc5dd"
+        },
+        {
+          "updates": 32,
+          "ce": 1.146199478403535,
+          "canonical_sha256": "cbd0039138f647b403916f70bff32efbee6923ad0af318d5a41cd47c9f625714",
+          "cue_packed_sha256": "4b48f21a4b7a02bfbec19ef880a967a02334a3cdcef8ae83de2ef327ba8bc5dd"
+        },
+        {
+          "updates": 48,
+          "ce": 1.1242191199335103,
+          "canonical_sha256": "70f46595165477fb0e51c44aff301d4005dc2e5ec5298f613868bb2c2696eee7",
+          "cue_packed_sha256": "5fc459c69d7d425aa5b79f5bfbaa980f5bee123e0d49423d8a98bb3e7759a8d9"
+        },
+        {
+          "updates": 64,
+          "ce": 1.1242191199335103,
+          "canonical_sha256": "70f46595165477fb0e51c44aff301d4005dc2e5ec5298f613868bb2c2696eee7",
+          "cue_packed_sha256": "5fc459c69d7d425aa5b79f5bfbaa980f5bee123e0d49423d8a98bb3e7759a8d9"
+        }
+      ],
+      "first_packed_crossing": 46,
+      "source_report_seconds": 46.909966008,
+      "peak_rss_kib_linux": 929876,
+      "files": 64,
+      "returned_bytes": 97144643,
+      "selected_complete_single": 34,
+      "selected_complete_bank": 1,
+      "fresh_complete": 1,
+      "complete_query_pairs": 0,
+      "nonzero_q4": 2,
+      "canonical_rows_improved": 29,
+      "canonical_rows_worsened": 3,
+      "canonical_rows_equal": 96,
+      "native_metadata_sha256": "46c31f86c607d958f584ef10fe2d59656e534f70355d85ab9295424699de77fe",
+      "packed_sha256": "5fc459c69d7d425aa5b79f5bfbaa980f5bee123e0d49423d8a98bb3e7759a8d9"
+    }
+  },
+  "operator": {
+    "coefficients": 960,
+    "packed_bytes": 480,
+    "expanded_table_bytes": 3840,
+    "quarter_nat": true,
+    "relative": "inverse(query observed root) times immediate preceding text-cue observed root",
+    "control": "cue observed root; same capacity, carriers, presence masks, relative computation and access",
+    "source_role": "all candidates admitted independently of labels; same additive bonus for all occurrences within a source",
+    "query": "query alone from identity; independent of generated prefix",
+    "unused": "radius, raw roots and retained latent state retained but unused by cue v1"
+  },
+  "review": {
+    "relative_development_checks": 564121,
+    "unary_development_checks": 563515,
+    "matched_and_fresh_checks": 5824,
+    "status": "PASS",
+    "limits": [
+      "saved-field arithmetic and bindings; no independent native rerun, raw Tensor gradient or optimizer reconstruction",
+      "no model-quality claim from tests or source review"
+    ]
+  },
+  "relative_fresh_diagnostics": {
+    "highest_individual_copy_from_current_source_parent": 19,
+    "highest_individual_copy_from_current_source_selected": 29,
+    "top_copy_correct_token_parent": 8,
+    "top_copy_correct_token_selected": 11,
+    "joint_first_correct_parent": 3,
+    "joint_first_correct_selected": 8,
+    "generation_caps_parent": 0,
+    "generation_caps_selected": 7,
+    "current_source_noninitial_offsets": 21
+  },
+  "validation": {
+    "native_cue_tests": "PASS",
+    "angular_lookup_test": "PASS",
+    "training_cue_tests": 3,
+    "bank_loss_regression_tests": 2,
+    "driver_tests": 12,
+    "panel_tests": 7,
+    "release": "PASS",
+    "claim_wording": "PASS"
+  },
+  "preserved_failures": [
+    "first integer compile failure; repaired same changed path",
+    "prospective fresh pool exhausted before model calls; opt-in fresh_only skips unused development draw with unchanged exclusions and seed",
+    "first relative broad rejected cue panel manifest differs before model loading; repaired bound config retained",
+    "duplicate-cleanup script AttributeError before deletion; repaired with exact returned SHA/file-set guard"
+  ],
+  "resources": {
+    "same_card_minutes": 240,
+    "extension_minutes": 60,
+    "new_charge_ms": 3600000,
+    "cumulative_ms": 1220235028,
+    "limit_ms": 1221000000,
+    "source_report_fit_seconds": {
+      "relative": 47.240507591,
+      "unary": 46.909966008
+    },
+    "supervisor_fit_seconds_parent_receipt": {
+      "relative": 48.769,
+      "unary": 48.782
+    },
+    "fit_cap_seconds_each": 600,
+    "broad_cap_seconds_each": 300,
+    "fit_report_cap_bytes_each": 134217728,
+    "broad_report_cap_bytes_each": 67108864,
+    "pod_owned_final_bytes": 10158575616,
+    "pod_free_final_bytes": 7336603648,
+    "storage_stop_margin_bytes": 134217728,
+    "complete_projection_receipt": "cue-complete-card-extension-1.json",
+    "unique_local_artifacts_retained": true,
+    "no_live_codex_jobs": true
+  },
+  "not_run": [
+    "new ordered transport or presence/fiber operator",
+    "general prose/Generate/chat/reasoning qualification",
+    "shared GroundedSession integration",
+    "M1/Metal/energy measurement"
+  ],
+  "next": "NOT_RUN: freeze development-selected R64+cue48, learn full120 directed relation between independently encoded source-prefix-before-token and emitted own-prefix states versus same-information source-prefix-unary120 control; retain all candidates/globalalias, zero parity and nonzero within-source prefix witness, no cursor or gold gate; new prospective transfer",
+  "artifact_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-bank-fit-20261004/pod-return/cue-fit-1",
+  "relative_development_diagnostics": {
+    "highest_individual_copy_requested_role": 64,
+    "highest_individual_copy_current_record": 59,
+    "highest_individual_copy_correct_token": 28,
+    "joint_first_correct_token": 23,
+    "first_stop_errors": 18,
+    "first_wrong_copy_errors": 23,
+    "later_wrong_copy_errors": 21
+  }
+}

@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Learned native cue carrier improves role association; ordered emission remains open — October 4
+
+The [matched cue fit](geometric-cue-carrier-2026-10-04.md) executes64 balancedB8 updates per arm with parent context/readout/controllers frozen. Directed H4 relative cue/query selects48 CE1.0400545984 versus parent1.1461994784 and cue-only1.1242191199. Singles34/64 unchanged, banks2/64 versus1, fresh0/32 versus1; no completequerypair or geometric advantage is established. Relative gains two development replies and loses one;49canonical rows improve/15worsen. Fresh current-source individualCopy19→29/32 and correctjointfirst3→8 expose role progress, but seven capped loops and0complete show start/progression/termination remain open.
+
+Sourced2a89927; native/training/driver/panel tests and releases pass. Independent reviews564121/563515/5824 pass with saved-field/gradient/optimizer limitations. Both64file roots return exactSHA/set111,172,769/97,144,643B. CPU-only Linux48, modelreports47.241/46.910s; complete card180→240min charged60once, cumulative1,220,235,028/1,221,000,000ms. Preserve pre-model compile/preparation/admission failures, all parents/candidates and freshseed20261012 now exposed. [Evidence](../evidence/geometric-cue-carrier-2026-10-04.json).
+
+**Next:** freeze development-selected R64+cue48 and learn a full120 directed relation between independent source-prefix-before-token and emitted own-prefix geometric states, versus a same-information source-prefix-unary120 control. Require zero parity and a nonzero within-Source prefix witness; keep all-source admission/global normalization and new prospective transfer. No cursor or offset gate; finite collisions/cycles remain possible. The prefix-stable uniform Source bonus cannot alter within-record Copy differences. Preserve useful role geometry; no unchanged dose, goldrecord gate, controller suppression, family retirement or shared-session promotion. Claude #1704 is separate floating Stack/MQAR evidence; coordinate #1552. GeneralGenerate/chat/reasoning/fullhistory/laptopenergy remain unmet.
+
 ## Frozen-context bank readout improves loss; attention binding remains open — October 4
 
 The [native readout fit](geometric-bank-readout-2026-10-04.md) executes64 balancedB8 updates on unchanged128 rows with context/inactive source bits and native context/configuration/table/tokenizer frozen. FullCE1.327649→1.146199 selects64; singles31→34/64 (six gains, three losses), banks0→1/64 (dancer, no completepair), fresh0/32. Preserve every candidate, regression and mutable-context48 donor; no shared-session default promotion or general attention/chat qualification.

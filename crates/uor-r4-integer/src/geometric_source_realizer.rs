@@ -3,6 +3,7 @@
 //! Trusted receipt loading is separate from offline float-source equivalence.
 use crate::{
     geometric_context_q4::{ContextQ4Config, NativeContextQ4},
+    geometric_cue_carrier::{CueAngularQ4, CueCarrierTrace, NativeCueCarrier},
     geometric_no_read::{NativeGeometricNoRead, NoReadConfig},
     geometric_occurrence_read::{
         NativeOccurrenceReader, OccurrenceBankSegment, OccurrenceComponents, OccurrenceRead,
@@ -314,6 +315,14 @@ pub struct BankRealizerTrace {
     pub logical_prepared_bytes: usize,
 }
 
+/// Added carrier evidence/cost is separate so a zero term preserves the entire
+/// historical BankRealizerTrace, including its legacy replay accounting.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct CueBankRealizerTrace {
+    pub bank: BankRealizerTrace,
+    pub carrier: CueCarrierTrace,
+}
+
 pub struct RealizerExecution<'a> {
     pub context: &'a NativeContextQ4,
     pub potential_tables: &'a NativePotentialTables,
@@ -332,6 +341,33 @@ impl<'a> RealizerExecution<'a> {
         query: &[u32],
         prefix: &[u32],
     ) -> Result<BankRealizerTrace> {
+        Ok(self.read_bank_impl(segments, query, prefix, None)?.0)
+    }
+    pub fn read_bank_with_cue_carrier(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        parent: &NativeArtifactBinding,
+        carrier: &NativeCueCarrier<'_>,
+    ) -> Result<CueBankRealizerTrace> {
+        carrier.validate_execution(parent, self.context, self.geometry)?;
+        if parent.identity.tokenizer_sha256 != self.binding.tokenizer_sha256() {
+            return Err(invalid("cue carrier tokenizer parent differs"));
+        }
+        let (bank, carrier) = self.read_bank_impl(segments, query, prefix, Some(carrier))?;
+        Ok(CueBankRealizerTrace {
+            bank,
+            carrier: carrier.ok_or_else(|| invalid("cue carrier trace absent"))?,
+        })
+    }
+    fn read_bank_impl(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        carrier: Option<&NativeCueCarrier<'_>>,
+    ) -> Result<(BankRealizerTrace, Option<CueCarrierTrace>)> {
         if self.period.config() != self.no_read.config()
             || self.binding.vocab_size() != self.context.config().vocab_size
         {
@@ -446,9 +482,16 @@ impl<'a> RealizerExecution<'a> {
                 .extend(step.output[..lanes].iter().copied().map(ObservedCode::from));
             context.coefficient_reads += step.coefficient_reads;
         }
-        let output = reader
-            .score_bank(&prepared, &snapshot)
-            .map_err(|e| invalid(e.to_string()))?;
+        let carrier = carrier
+            .map(|carrier| carrier.prepare(&derived, query, &candidate_segments))
+            .transpose()?;
+        let output = match &carrier {
+            Some(carrier) => {
+                reader.score_bank_with_copy_adjustments(&prepared, &snapshot, &carrier.copy_q24)
+            }
+            None => reader.score_bank(&prepared, &snapshot),
+        }
+        .map_err(|e| invalid(e.to_string()))?;
         let mut heads = Vec::with_capacity(output.head_count());
         for h in 0..output.head_count() {
             let head = output.head(h).ok_or_else(|| invalid("bank head absent"))?;
@@ -502,7 +545,7 @@ impl<'a> RealizerExecution<'a> {
                 },
             })
             .collect();
-        Ok(BankRealizerTrace {policy:"causal-bank-segment-emission-view;context/query/ownprefix-noncandidates;one-global-Copy-Period-Stop;roles-provenance-only;128-context/1",bank_binding_sha256:hex::encode(prepared.binding()),segments:inventory,candidates,context,heads,period_q24:period[..c.heads].to_vec(),actions,logical_prepared_bytes:prepared.logical_prepared_bytes()})
+        Ok((BankRealizerTrace {policy:"causal-bank-segment-emission-view;context/query/ownprefix-noncandidates;one-global-Copy-Period-Stop;roles-provenance-only;128-context/1",bank_binding_sha256:hex::encode(prepared.binding()),segments:inventory,candidates,context,heads,period_q24:period[..c.heads].to_vec(),actions,logical_prepared_bytes:prepared.logical_prepared_bytes()},carrier))
     }
 
     pub fn read_source_view(
@@ -824,7 +867,7 @@ pub struct ArtifactIdentity {
     pub parent_config_sha256: String,
 }
 impl ArtifactIdentity {
-    fn validate(&self) -> Result<()> {
+    pub(crate) fn validate(&self) -> Result<()> {
         for digest in [
             &self.tokenizer_sha256,
             &self.parent_checkpoint_manifest_sha256,
@@ -1215,6 +1258,38 @@ impl NativeSourceRealizer {
             mode,
         )
     }
+    pub fn compile_cue_carrier(&self, potential: CueAngularQ4) -> Result<NativeCueCarrier<'_>> {
+        NativeCueCarrier::compile(
+            self.artifact_binding.clone(),
+            &self.context,
+            &self.geometry,
+            potential,
+        )
+    }
+    pub fn read_bank_with_cue_carrier(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        prefix: &[u32],
+        carrier: &NativeCueCarrier<'_>,
+    ) -> Result<CueBankRealizerTrace> {
+        RealizerExecution {
+            context: &self.context,
+            potential_tables: &self.potential_tables,
+            no_read: &self.no_read,
+            geometry: &self.geometry,
+            exp: &self.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_bank_with_cue_carrier(
+            segments,
+            query,
+            prefix,
+            &self.artifact_binding,
+            carrier,
+        )
+    }
     pub fn read_bank(
         &self,
         segments: &[SourceBankSegment<'_>],
@@ -1346,6 +1421,247 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering};
     const TOKENIZER:&[u8]=br#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"\u0120":6},"merges":[]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"},{"id":9,"content":"<gap>"}]}"#;
     static NEXT: AtomicU64 = AtomicU64::new(0);
+    fn cue_potential(config: ContextQ4Config, nonzero: bool) -> Result<CueAngularQ4> {
+        let config = crate::geometric_cue_carrier::CueAngularConfig {
+            heads: config.heads,
+            lanes_per_head: config.lanes_per_head,
+            mode: crate::geometric_cue_carrier::CueScoreMode::DirectedRelative,
+        };
+        let mut coefficients = vec![if nonzero { 2 } else { 0 }; config.coefficient_count()?];
+        if nonzero {
+            for lane in coefficients.chunks_exact_mut(ROOT_COUNT) {
+                lane[1] = 7;
+            }
+        }
+        CueAngularQ4::new(
+            config,
+            &crate::geometric_potential_q4::pack_coefficients(&coefficients)
+                .map_err(|e| invalid(e.to_string()))?,
+        )
+    }
+    #[test]
+    fn cue_carrier_zero_preserves_full_bank_and_fixed_lifetime_query_prefix() -> Result<()> {
+        let f = ActionFixture::new()?;
+        let ids = [4];
+        let view = f.compiler.compile(&ids)?;
+        let source = || SourceBankSegment::Source {
+            frame: ActionFixture::frame(&ids),
+            view: &view,
+            event: 7,
+        };
+        let segments = [
+            source(),
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 99,
+                event: 20,
+            },
+            source(),
+            source(),
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 9,
+            },
+            SourceBankSegment::Context {
+                token_ids: &[4, 5],
+                role: 2,
+                event: 1,
+            },
+            source(),
+            SourceBankSegment::Context {
+                token_ids: &[],
+                role: 3,
+                event: 0,
+            },
+            source(),
+        ];
+        let carrier = NativeCueCarrier::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue_potential(f.context.config(), false)?,
+        )?;
+        let old = f.execution().read_bank(&segments, &[5], &[])?;
+        let added =
+            f.execution()
+                .read_bank_with_cue_carrier(&segments, &[5], &[], &f.parent, &carrier)?;
+        assert_eq!(old, added.bank);
+        assert_eq!(added.carrier.cues.len(), 2);
+        assert_eq!(added.carrier.cues[0].source_segment_index, 2);
+        assert_eq!(added.carrier.cues[0].context_segment_index, 1);
+        assert_eq!(added.carrier.cues[0].state.token_ids, [5]);
+        assert_eq!(added.carrier.cues[1].source_segment_index, 6);
+        assert_eq!(added.carrier.cues[1].context_segment_index, 5);
+        assert_eq!(added.carrier.cues[1].state.token_ids, [4, 5]);
+        for candidate in &added.bank.candidates {
+            let expected = match candidate.segment_index {
+                2 => Some(0),
+                6 => Some(1),
+                _ => None,
+            };
+            assert_eq!(
+                added.carrier.candidate_cue_indices[candidate.bank_index],
+                expected
+            );
+        }
+        let prefix = f.execution().read_bank_with_cue_carrier(
+            &segments,
+            &[5],
+            &[3, 4],
+            &f.parent,
+            &carrier,
+        )?;
+        assert_eq!(prefix.carrier, added.carrier); // no prefix in carrier or local costs
+        assert_ne!(prefix.bank.context.tokens, added.bank.context.tokens);
+        assert!(added.carrier.copy_q24.iter().flatten().all(|x| *x == 0));
+        assert_eq!(added.carrier.costs.extra_encoder_tokens, 4);
+        let foreign = ActionFixture::new()?;
+        assert!(foreign
+            .execution()
+            .read_bank_with_cue_carrier(&segments, &[5], &[], &f.parent, &carrier)
+            .is_err());
+        Ok(())
+    }
+    #[test]
+    fn cue_carrier_nonzero_affects_every_copy_before_global_alias_terminal_reduce() -> Result<()> {
+        let f = ActionFixture::new()?;
+        let ids = [4, 4];
+        let view = f.compiler.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 32,
+                event: 999,
+            },
+            SourceBankSegment::Source {
+                frame: ActionFixture::frame(&ids),
+                view: &view,
+                event: 7,
+            },
+        ];
+        let carrier = NativeCueCarrier::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue_potential(f.context.config(), true)?,
+        )?;
+        let old = f.execution().read_bank(&segments, &[5], &[])?;
+        let added =
+            f.execution()
+                .read_bank_with_cue_carrier(&segments, &[5], &[], &f.parent, &carrier)?;
+        assert_eq!(old.context, added.bank.context);
+        assert_eq!(old.candidates, added.bank.candidates);
+        assert_eq!(old.segments, added.bank.segments);
+        assert_eq!(old.period_q24, added.bank.period_q24);
+        for (h, (before, after)) in old.heads.iter().zip(&added.bank.heads).enumerate() {
+            assert_eq!(before.no_read_q24, after.no_read_q24);
+            for j in 0..old.candidates.len() {
+                assert!(added.carrier.copy_q24[h][j] > 0);
+                assert_eq!(
+                    after.scores_q24[j],
+                    before.scores_q24[j] + added.carrier.copy_q24[h][j]
+                );
+            }
+        }
+        let ids = added
+            .bank
+            .candidates
+            .iter()
+            .map(|c| c.occurrence.token_id)
+            .collect::<Vec<_>>();
+        let scores = added
+            .bank
+            .heads
+            .iter()
+            .enumerate()
+            .map(|(h, s)| ActionHeadScores {
+                copy_q24: &s.scores_q24,
+                period_q24: added.bank.period_q24[h],
+                stop_q24: s.no_read_q24,
+            })
+            .collect::<Vec<_>>();
+        let independent =
+            NativeSourceActions::new(f.binding.clone(), f.context.config().heads, &f.exp)?
+                .reduce(&ids, &scores)?;
+        assert_eq!(independent, added.bank.actions);
+        assert_eq!(
+            added
+                .bank
+                .actions
+                .token_masses
+                .iter()
+                .map(|x| x.weight_q31)
+                .sum::<u64>(),
+            added.bank.actions.total_weight_q31
+        );
+        Ok(())
+    }
+    #[test]
+    fn cue_carrier_modes_share_capacity_codes_and_cost_but_use_declared_bins() -> Result<()> {
+        use crate::geometric_cue_carrier::{CueAngularConfig, CueScoreMode};
+        let f = ActionFixture::new()?;
+        let ids = [4];
+        let view = f.compiler.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 77,
+                event: 999,
+            },
+            SourceBankSegment::Source {
+                frame: ActionFixture::frame(&ids),
+                view: &view,
+                event: 7,
+            },
+        ];
+        let directed = cue_potential(f.context.config(), true)?;
+        let config = CueAngularConfig {
+            mode: CueScoreMode::CueUnary,
+            ..directed.config()
+        };
+        let control = CueAngularQ4::new(config, directed.packed_coefficients())?;
+        let directed =
+            NativeCueCarrier::compile(f.parent.clone(), &f.context, &f.geometry, directed)?;
+        let control =
+            NativeCueCarrier::compile(f.parent.clone(), &f.context, &f.geometry, control)?;
+        let a =
+            f.execution()
+                .read_bank_with_cue_carrier(&segments, &[5], &[], &f.parent, &directed)?;
+        let b =
+            f.execution()
+                .read_bank_with_cue_carrier(&segments, &[5], &[], &f.parent, &control)?;
+        assert_eq!(a.carrier.query, b.carrier.query);
+        assert_eq!(a.carrier.cues, b.carrier.cues);
+        assert_eq!(a.carrier.costs, b.carrier.costs);
+        assert_eq!(a.carrier.relative_roots, b.carrier.relative_roots);
+        assert_eq!(
+            directed.packed_coefficients(),
+            control.packed_coefficients()
+        );
+        for lane in 0..a.carrier.angular_indices.len() {
+            for (candidate, bin) in a.carrier.angular_indices[lane].iter().enumerate() {
+                assert_eq!(*bin, a.carrier.relative_roots[lane][candidate]);
+                assert_eq!(
+                    b.carrier.angular_indices[lane][candidate],
+                    Some(b.carrier.cues[0].state.codes[lane].root)
+                );
+            }
+        }
+        assert_ne!(a.carrier.angular_indices, b.carrier.angular_indices);
+        assert_ne!(a.carrier.copy_q24, b.carrier.copy_q24);
+        assert!(CueAngularQ4::new(
+            CueAngularConfig {
+                heads: 3,
+                lanes_per_head: 1,
+                mode: CueScoreMode::DirectedRelative
+            },
+            &[]
+        )
+        .is_err());
+        assert!(CueAngularQ4::new(config, &vec![0x88; config.coefficient_count()? / 2]).is_err());
+        Ok(())
+    }
     struct ActionFixture {
         context: NativeContextQ4,
         potential: NativePotentialTables,
