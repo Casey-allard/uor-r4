@@ -197,6 +197,56 @@ fn is_quaternion(group: &RotationGroup) -> bool {
     *group == RotationGroup::Quaternion
 }
 
+/// The CUDA kernels that run the recurrence core (a training-speed choice;
+/// both compute the same values, bit for bit).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CudaRecurrenceKernels {
+    /// Time-parallel work in kernels of one thread per (window, position,
+    /// lane) and only the quaternion carry in a serial scan per (window,
+    /// lane). The default.
+    Split,
+    /// The original single kernel per direction: one thread per (window,
+    /// lane) computes every position serially. Selected for a whole process
+    /// with `UOR_R4_CUDA_RECURRENCE=single`.
+    Single,
+}
+
+/// 0: not yet read from the environment, 1: split, 2: single.
+static CUDA_RECURRENCE_KERNELS: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// The CUDA recurrence kernels in use: the last
+/// [`set_cuda_recurrence_kernels`] choice, else `UOR_R4_CUDA_RECURRENCE`
+/// (`single` or `split`), else [`CudaRecurrenceKernels::Split`].
+pub fn cuda_recurrence_kernels() -> CudaRecurrenceKernels {
+    use std::sync::atomic::Ordering;
+    let mut code = CUDA_RECURRENCE_KERNELS.load(Ordering::Relaxed);
+    if code == 0 {
+        code = match std::env::var("UOR_R4_CUDA_RECURRENCE").as_deref() {
+            Ok("single") => 2,
+            _ => 1,
+        };
+        // Keep an explicit choice made concurrently.
+        let _ =
+            CUDA_RECURRENCE_KERNELS.compare_exchange(0, code, Ordering::Relaxed, Ordering::Relaxed);
+        code = CUDA_RECURRENCE_KERNELS.load(Ordering::Relaxed);
+    }
+    if code == 2 {
+        CudaRecurrenceKernels::Single
+    } else {
+        CudaRecurrenceKernels::Split
+    }
+}
+
+/// Selects the CUDA recurrence kernels for the whole process (tests compare
+/// the two paths with it).
+pub fn set_cuda_recurrence_kernels(kernels: CudaRecurrenceKernels) {
+    let code = match kernels {
+        CudaRecurrenceKernels::Split => 1,
+        CudaRecurrenceKernels::Single => 2,
+    };
+    CUDA_RECURRENCE_KERNELS.store(code, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Matched identity-input mechanisms for geometric reads. Both use the same
 /// learned gate and current-role plus identity projections. Only Held retains
 /// identity across multiple intervening positions.

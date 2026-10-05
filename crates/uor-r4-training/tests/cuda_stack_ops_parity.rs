@@ -1005,6 +1005,90 @@ fn test_recurrence_core_backward_parity() -> uor_r4_training::Result<()> {
     Ok(())
 }
 
+/// The split CUDA recurrence kernels (time-parallel prep and gradient
+/// kernels around a serial carry scan) equal the single-kernel path bit for
+/// bit: output and all three gradients, with and without rotation, both
+/// groups, lengths below, at and off the scan chunk and the training shape.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_recurrence_split_matches_single_bitwise() -> uor_r4_training::Result<()> {
+    use std::time::Instant;
+    use uor_r4_training::geometric_stack::{
+        set_cuda_recurrence_kernels, CudaRecurrenceKernels, RotationGroup,
+    };
+    let cuda_dev = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    // (batch, time, width, rotation, group)
+    for (case, &(batch, time, width, rotation, group)) in [
+        (2usize, 7usize, 16usize, true, RotationGroup::Quaternion),
+        (3, 13, 32, false, RotationGroup::Quaternion),
+        (2, 37, 64, true, RotationGroup::Quaternion),
+        (1, 5, 4, true, RotationGroup::Quaternion),
+        (2, 8, 16, true, RotationGroup::Quaternion),
+        (2, 7, 16, true, RotationGroup::U1),
+        (2, 37, 64, true, RotationGroup::U1),
+        (16, 364, 1024, true, RotationGroup::Quaternion),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let lanes = width / 4;
+        let gate_width = lanes + if rotation { width } else { 0 };
+        let seed = 500 + case as u64 * 10;
+        let b_data = noise(batch * time * 2 * width, seed, 1.0);
+        let mut g_data = noise(batch * time * gate_width, seed + 1, 1.5);
+        if rotation {
+            for row in g_data.chunks_mut(gate_width) {
+                for lane in 0..lanes {
+                    row[lanes + 4 * lane] += 1.0;
+                }
+            }
+        }
+        let mut p_data = noise(5 * width + lanes, seed + 2, 0.5);
+        for (i, value) in p_data.iter_mut().enumerate().skip(5 * width) {
+            *value = -1.0 + 2.0 * (i % 5) as f32;
+        }
+        let w_data = noise(batch * time * width, seed + 3, 1.0);
+        let data = [&b_data, &g_data, &p_data, &w_data];
+        let mut runs = Vec::new();
+        for kernels in [CudaRecurrenceKernels::Single, CudaRecurrenceKernels::Split] {
+            set_cuda_recurrence_kernels(kernels);
+            let start = Instant::now();
+            runs.push(recurrence_run(
+                &cuda_dev, data, batch, time, width, rotation, group, gate_width,
+            )?);
+            println!(
+                "b{batch} t{time} w{width} rot{rotation} {group:?} {kernels:?}: {:?}",
+                start.elapsed()
+            );
+        }
+        set_cuda_recurrence_kernels(CudaRecurrenceKernels::Split);
+        for (k, name) in ["out", "d_branches", "d_gates", "d_parameters"]
+            .iter()
+            .enumerate()
+        {
+            let (single, split) = (&runs[0][k], &runs[1][k]);
+            assert_eq!(single.len(), split.len(), "{name}: length mismatch");
+            let differing: Vec<(usize, f32, f32)> = single
+                .iter()
+                .zip(split)
+                .enumerate()
+                .filter(|(_, (a, b))| a.to_bits() != b.to_bits())
+                .map(|(i, (a, b))| (i, *a, *b))
+                .collect();
+            assert!(
+                differing.is_empty(),
+                "b{batch} t{time} w{width} rot{rotation} {group:?} {name}: {} values differ, first {:?}",
+                differing.len(),
+                &differing[..differing.len().min(16)]
+            );
+        }
+    }
+    Ok(())
+}
+
 /// Output and input gradients of the fused read for a weighted-sum loss.
 #[cfg(feature = "cuda")]
 #[allow(clippy::too_many_arguments)]

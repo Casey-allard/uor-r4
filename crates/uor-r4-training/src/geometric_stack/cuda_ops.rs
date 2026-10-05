@@ -624,8 +624,191 @@ impl RecurrenceCore {
         };
         let device = &s1.device;
         let log_a = self.cuda_log_a(device, parameters.slice(..))?;
-        let (_, _, out) = self.cuda_forward(device, branches, gates, parameters, &log_a)?;
+        let out = match cuda_recurrence_kernels() {
+            CudaRecurrenceKernels::Single => {
+                self.cuda_forward(device, branches, gates, parameters, &log_a)?
+                    .2
+            }
+            CudaRecurrenceKernels::Split => {
+                let states =
+                    self.cuda_split_states(device, &branches, &gates, &parameters, &log_a)?;
+                let total = self.batch * time * width;
+                let out = zeros::<f32>(device, total)?;
+                launch(
+                    device,
+                    "recurrence_out",
+                    total,
+                    &[
+                        Arg::f(&states.state),
+                        Arg::F(branches),
+                        Arg::f(&out),
+                        Arg::U32(u32_of(width, "width")?),
+                        Arg::U32(u32_of(total, "elements")?),
+                    ],
+                )?;
+                out
+            }
+        };
         Ok((storage(out, device), Shape::from((self.batch, time, width))))
+    }
+
+    /// The split forward's per-position buffers and states: drive c,
+    /// transition q and weight keep from `recurrence_prep`, then the carried
+    /// states from the serial `recurrence_scan_fwd`.
+    fn cuda_split_states(
+        &self,
+        device: &CudaDevice,
+        branches: &CudaView<'_, f32>,
+        gates: &CudaView<'_, f32>,
+        parameters: &CudaView<'_, f32>,
+        log_a: &CudaSlice<f32>,
+    ) -> CResult<SplitStates> {
+        let (time, width, lanes) = (self.time, self.width, self.lanes());
+        let total = self.batch * time * width;
+        let positions = self.batch * time * lanes;
+        let windows = self.batch * lanes;
+        let drive = zeros::<f32>(device, total)?;
+        let q = zeros::<f32>(device, total)?;
+        let keep = zeros::<f32>(device, positions)?;
+        let state = zeros::<f32>(device, total)?;
+        launch(
+            device,
+            "recurrence_prep",
+            positions,
+            &[
+                Arg::F(branches.slice(..)),
+                Arg::F(gates.slice(..)),
+                Arg::F(parameters.slice(..)),
+                Arg::f(log_a),
+                Arg::f(&drive),
+                Arg::f(&q),
+                Arg::f(&keep),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(self.gate_width(), "gate width")?),
+                Arg::U32(self.cuda_rotation()),
+                Arg::U32(u32_of(positions, "positions")?),
+            ],
+        )?;
+        launch_scan(
+            device,
+            "recurrence_scan_fwd",
+            windows,
+            &[
+                Arg::f(&q),
+                Arg::f(&drive),
+                Arg::f(&keep),
+                Arg::f(&state),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(windows, "lanes")?),
+            ],
+        )?;
+        Ok(SplitStates {
+            drive,
+            q,
+            keep,
+            state,
+        })
+    }
+
+    /// The split backward: recomputes the split forward, then the direct
+    /// adjoints, the reverse carry scan, the per-position gradients and the
+    /// per-(window, channel) convolution gradient and f64 partials.
+    #[allow(clippy::too_many_arguments)]
+    fn cuda_split_bwd(
+        &self,
+        device: &CudaDevice,
+        bv: &CudaView<'_, f32>,
+        gv: &CudaView<'_, f32>,
+        pv: &CudaView<'_, f32>,
+        dv: &CudaView<'_, f32>,
+        log_a: &CudaSlice<f32>,
+        d_branches: &CudaSlice<f32>,
+        d_gates: &CudaSlice<f32>,
+        partials: &CudaSlice<f64>,
+    ) -> CResult<()> {
+        let (time, width, lanes) = (self.time, self.width, self.lanes());
+        let total = self.batch * time * width;
+        let positions = self.batch * time * lanes;
+        let windows = self.batch * lanes;
+        let channels = self.batch * width;
+        // `direct` holds gelu(output branch), then the carried adjoints; q
+        // becomes dd and keep the d log a terms once read.
+        let states = self.cuda_split_states(device, bv, gv, pv, log_a)?;
+        let direct = zeros::<f32>(device, total)?;
+        launch(
+            device,
+            "recurrence_bwd_direct",
+            positions,
+            &[
+                Arg::F(bv.slice(..)),
+                Arg::f(&states.state),
+                Arg::F(dv.slice(..)),
+                Arg::f(d_branches),
+                Arg::f(&direct),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(positions, "positions")?),
+            ],
+        )?;
+        launch_scan(
+            device,
+            "recurrence_scan_bwd",
+            windows,
+            &[
+                Arg::f(&states.q),
+                Arg::F(dv.slice(..)),
+                Arg::f(&direct),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(windows, "lanes")?),
+            ],
+        )?;
+        launch(
+            device,
+            "recurrence_bwd_post",
+            positions,
+            &[
+                Arg::F(gv.slice(..)),
+                Arg::f(log_a),
+                Arg::f(&states.state),
+                Arg::f(&states.drive),
+                Arg::f(&direct),
+                Arg::f(d_gates),
+                Arg::f(&states.q),
+                Arg::f(&states.keep),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(self.gate_width(), "gate width")?),
+                Arg::U32(self.cuda_rotation()),
+                Arg::U32(u32_of(positions, "positions")?),
+            ],
+        )?;
+        launch_groups(
+            device,
+            "recurrence_bwd_params",
+            (channels.div_ceil(PARAMS_GROUP), 1, 1),
+            (PARAMS_GROUP, 1, 1),
+            &[
+                Arg::F(bv.slice(..)),
+                Arg::F(pv.slice(..)),
+                Arg::f(&states.q),
+                Arg::f(&states.keep),
+                Arg::f(d_branches),
+                Arg::d(partials),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(channels, "channels")?),
+                Arg::U32(u32_of(self.parameter_len(), "parameters")?),
+            ],
+        )?;
+        Ok(())
     }
 
     /// The exact backward on CUDA: recomputes the forward states, sweeps
@@ -646,7 +829,7 @@ impl RecurrenceCore {
             ready(parameters)?,
             ready(grad)?,
         );
-        let (time, width, lanes) = (self.time, self.width, self.lanes());
+        let (time, width) = (self.time, self.width);
         let gate_width = self.gate_width();
         let param_len = self.parameter_len();
         if b.elem_count() != self.batch * time * 2 * width
@@ -667,36 +850,32 @@ impl RecurrenceCore {
             view(&ds, dl)?,
         );
         let log_a = self.cuda_log_a(device, pv.slice(..))?;
-        let (state, drive, _) =
-            self.cuda_forward(device, bv.slice(..), gv.slice(..), pv.slice(..), &log_a)?;
-        let d_branches = uninit::<f32>(device, b.elem_count())?;
-        let d_gates = uninit::<f32>(device, g.elem_count())?;
-        let partials = uninit::<f64>(device, self.batch * param_len)?;
-        let d_parameters = uninit::<f32>(device, param_len)?;
-        launch(
-            device,
-            "recurrence_core_bwd",
-            self.batch * lanes,
-            &[
-                Arg::F(bv),
-                Arg::F(gv),
-                Arg::F(pv.slice(..)),
-                Arg::f(&log_a),
-                Arg::f(&state),
-                Arg::f(&drive),
-                Arg::F(dv),
-                Arg::f(&d_branches),
-                Arg::f(&d_gates),
-                Arg::d(&partials),
-                Arg::U32(u32_of(time, "time")?),
-                Arg::U32(u32_of(width, "width")?),
-                Arg::U32(u32_of(lanes, "lanes")?),
-                Arg::U32(u32_of(gate_width, "gate width")?),
-                Arg::U32(self.cuda_rotation()),
-                Arg::U32(u32_of(self.batch * lanes, "lanes")?),
-                Arg::U32(u32_of(param_len, "parameters")?),
-            ],
-        )?;
+        let d_branches = zeros::<f32>(device, b.elem_count())?;
+        let d_gates = zeros::<f32>(device, g.elem_count())?;
+        let partials = zeros::<f64>(device, self.batch * param_len)?;
+        let d_parameters = zeros::<f32>(device, param_len)?;
+        if cuda_recurrence_kernels() == CudaRecurrenceKernels::Split {
+            self.cuda_split_bwd(
+                device,
+                &bv,
+                &gv,
+                &pv,
+                &dv,
+                &log_a,
+                &d_branches,
+                &d_gates,
+                &partials,
+            )?;
+        } else {
+            self.cuda_single_bwd(
+                device,
+                [&bv, &gv, &pv, &dv],
+                &log_a,
+                &d_branches,
+                &d_gates,
+                &partials,
+            )?;
+        }
         launch(
             device,
             "recurrence_param_reduce",
@@ -716,6 +895,74 @@ impl RecurrenceCore {
             tensor(d_parameters, device, parameters.shape()),
         ))
     }
+
+    /// The single-kernel backward: recomputes the forward states, then sweeps
+    /// each (window, lane) in reverse in one thread.
+    fn cuda_single_bwd(
+        &self,
+        device: &CudaDevice,
+        [bv, gv, pv, dv]: [&CudaView<'_, f32>; 4],
+        log_a: &CudaSlice<f32>,
+        d_branches: &CudaSlice<f32>,
+        d_gates: &CudaSlice<f32>,
+        partials: &CudaSlice<f64>,
+    ) -> CResult<()> {
+        let (time, width, lanes) = (self.time, self.width, self.lanes());
+        let gate_width = self.gate_width();
+        let param_len = self.parameter_len();
+        let (state, drive, _) =
+            self.cuda_forward(device, bv.slice(..), gv.slice(..), pv.slice(..), log_a)?;
+        launch(
+            device,
+            "recurrence_core_bwd",
+            self.batch * lanes,
+            &[
+                Arg::F(bv.slice(..)),
+                Arg::F(gv.slice(..)),
+                Arg::F(pv.slice(..)),
+                Arg::f(log_a),
+                Arg::f(&state),
+                Arg::f(&drive),
+                Arg::F(dv.slice(..)),
+                Arg::f(d_branches),
+                Arg::f(d_gates),
+                Arg::d(partials),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(gate_width, "gate width")?),
+                Arg::U32(self.cuda_rotation()),
+                Arg::U32(u32_of(self.batch * lanes, "lanes")?),
+                Arg::U32(u32_of(param_len, "parameters")?),
+            ],
+        )
+    }
+}
+
+/// The split recurrence path's per-position device buffers.
+struct SplitStates {
+    drive: CudaSlice<f32>,
+    q: CudaSlice<f32>,
+    keep: CudaSlice<f32>,
+    state: CudaSlice<f32>,
+}
+
+/// Threads per block of the serial recurrence scans: small blocks spread the
+/// (window, lane) threads over every multiprocessor.
+const SCAN_GROUP: usize = 32;
+
+/// Threads per block of the per-(window, channel) parameter sweep.
+const PARAMS_GROUP: usize = 64;
+
+/// Launches a serial recurrence scan over `threads` (window, lane) threads.
+fn launch_scan(device: &CudaDevice, name: &str, threads: usize, args: &[Arg<'_>]) -> CResult<()> {
+    launch_groups(
+        device,
+        name,
+        (threads.div_ceil(SCAN_GROUP), 1, 1),
+        (SCAN_GROUP, 1, 1),
+        args,
+    )
 }
 
 // ---------------------------------------------------------------------------
