@@ -4,12 +4,19 @@
 # final-assessment.md Step 2 and completeness-critique.md points 2, 5, 6).
 #
 # Runs `mqar-bench layout=fact` for patterns rararr, rrarra (production) and
-# aaaaaa (diagnostic) x arms none/f2/qk/conv (3 seeds) and identity/so4/
-# wprev/qk_jj (2 seeds): 60 runs, K at a time, round-robin over the GPUs.
+# aaaaaa (diagnostic) x arms none/f2/qk/conv/qk_jj (3 seeds) and identity/
+# so4/wprev (2 seeds): 63 runs, K at a time, round-robin over the GPUs.
 # Every run writes its own exclusively claimed, sealed report root under
-# $OUT_ROOT/runs; a rerun of this script skips every (pattern, arm, seed)
-# that already has a complete sealed root and gives a failed one a new
-# attempt root (a root is never reused). Then `mode=decide` writes a new
+# $OUT_ROOT/runs. A rerun of this script skips every (pattern, arm, seed)
+# that already has a sealed root which trained its full budget
+# (status complete, stopped_early_at_max_seconds=false and
+# steps_completed == STEPS, read from its report.json). A sealed root that
+# stopped short of that budget (for example at MAX_SECONDS) is moved aside
+# to <root>.incomplete-<UTC stamp>, never deleted, and the seed is re-run:
+# `mode=decide` drops such roots, so skipping them would leave the seed
+# missing for good. A failed or unsealed root keeps its place and the seed
+# gets a new attempt root (a root path is never reused). A report.json that
+# cannot be read stops the grid. Then `mode=decide` writes a new
 # sealed decision root $OUT_ROOT/decision-<UTC stamp> with decision.json and
 # decision.md.
 #
@@ -19,10 +26,13 @@
 #            THREADS=2 CUDA_COMPUTE_CAP=89 SKIP_BUILD=0 REPO=<this checkout>
 #            BIN=<prebuilt mqar-bench> (implies SKIP_BUILD=1)
 #            PATTERNS="rararr rrarra aaaaaa"
-#            ARMS="none:3 f2:3 qk:3 conv:3 identity:2 so4:2 wprev:2 qk_jj:2" (arm:seeds)
+#            ARMS="none:3 f2:3 qk:3 conv:3 qk_jj:3 identity:2 so4:2 wprev:2" (arm:seeds)
 # A calibration run of one job: PATTERNS=rararr ARMS=none:1 K=1 (its root is
-# then reused by the full grid, which skips complete roots).
+# then reused by the full grid when it trained the same STEPS; otherwise it
+# is moved aside and re-run).
 set -euo pipefail
+
+command -v python3 >/dev/null || { echo "python3 is required to read report.json" >&2; exit 1; }
 
 : "${TOKENIZER:?set TOKENIZER to the #1017 tokenizer.json}"
 : "${OUT_ROOT:?set OUT_ROOT}"
@@ -71,20 +81,60 @@ mkdir -p "$OUT_ROOT/runs" "$OUT_ROOT/logs"
   echo "settings PATTERNS=${PATTERNS:-default} ARMS=${ARMS:-default} K=$K GPUS=$GPUS DEVICE=$DEVICE STEPS=$STEPS BATCH=$BATCH LR=$LR WARMUP=$WARMUP EVAL_EVERY=$EVAL_EVERY FINAL_SEQUENCES=$FINAL_SEQUENCES MAX_SECONDS=$MAX_SECONDS THREADS=$THREADS"
 } >> "$OUT_ROOT/pod-manifest.txt"
 
-complete() { [ -f "$1/manifest.json" ] && grep -q '"status": "complete"' "$1/report.json" 2>/dev/null; }
+# The state of one existing root: prints `full` (sealed, status complete,
+# not stopped at max_seconds, steps_completed == STEPS), `truncated ...`
+# (sealed and complete but short of that budget), `failed` (sealed, status
+# not complete) or `unsealed`. Returns non-zero when a sealed report.json
+# cannot be read or lacks the budget fields: never guess.
+root_state() {
+  if [ ! -f "$1/manifest.json" ] || [ ! -f "$1/report.json" ]; then echo unsealed; return 0; fi
+  python3 -c '
+import json, sys
+path, steps = sys.argv[1], int(sys.argv[2])
+report = json.load(open(path))
+if report.get("status") != "complete":
+    print("failed")
+    sys.exit(0)
+results = report["results"]
+early, done = results["stopped_early_at_max_seconds"], results["steps_completed"]
+if not isinstance(early, bool) or not isinstance(done, int) or isinstance(done, bool):
+    sys.exit(f"{path}: stopped_early_at_max_seconds / steps_completed missing or mistyped")
+if not early and done == steps:
+    print("full")
+else:
+    print(f"truncated steps_completed={done} of {steps} stopped_early_at_max_seconds={str(early).lower()}")
+' "$1/report.json" "$STEPS"
+}
 
 # One job: "<index> <pattern> <arm> <seed>".
 run_job() {
   local index=$1 pattern=$2 arm=$3 seed=$4
-  local name="$pattern-$arm-s$seed" root attempt=1
+  local name="$pattern-$arm-s$seed" root attempt=1 state aside
   for root in "$OUT_ROOT/runs/$name" "$OUT_ROOT/runs/$name"-a*; do
-    if [ -d "$root" ] && complete "$root"; then
-      echo "skip $name: complete at $root"
-      return 0
+    [ -d "$root" ] || continue
+    case $root in *.incomplete-*) continue ;; esac  # already moved aside
+    if ! state=$(root_state "$root"); then
+      echo "ERROR $name: cannot read the budget of $root/report.json; stopping the grid" >&2
+      exit 255  # makes xargs stop launching jobs
     fi
+    case $state in
+      full)
+        echo "skip $name: full budget at $root"
+        return 0 ;;
+      truncated*)
+        aside="$root.incomplete-$(date -u +%Y%m%dT%H%M%SZ)"
+        if [ -e "$aside" ] || ! mv -- "$root" "$aside"; then
+          echo "ERROR $name: could not move $root aside to $aside; stopping the grid" >&2
+          exit 255
+        fi
+        echo "moved $name aside ($state): $root -> $aside" ;;
+    esac
   done
+  # A path is never reused, including one whose root was moved aside.
   root="$OUT_ROOT/runs/$name"
-  while [ -e "$root" ]; do attempt=$((attempt + 1)); root="$OUT_ROOT/runs/$name-a$attempt"; done
+  while [ -e "$root" ] || compgen -G "$root.incomplete-*" >/dev/null; do
+    attempt=$((attempt + 1)); root="$OUT_ROOT/runs/$name-a$attempt"
+  done
   local gpus=($GPUS)
   local gpu=${gpus[$((index % ${#gpus[@]}))]}
   local start=$SECONDS
@@ -103,13 +153,13 @@ run_job() {
     echo "FAILED $name after $((SECONDS - start))s (see $OUT_ROOT/logs/$(basename "$root").stderr)"
   fi
 }
-export -f run_job complete
+export -f run_job root_state
 export OUT_ROOT GPUS BIN TOKENIZER DEVICE BATCH STEPS LR WARMUP EVAL_EVERY FINAL_SEQUENCES MAX_SECONDS THREADS
 
 jobs=()
 index=0
 for pattern in ${PATTERNS:-rararr rrarra aaaaaa}; do
-  for spec in ${ARMS:-none:3 f2:3 qk:3 conv:3 identity:2 so4:2 wprev:2 qk_jj:2}; do
+  for spec in ${ARMS:-none:3 f2:3 qk:3 conv:3 qk_jj:3 identity:2 so4:2 wprev:2}; do
     arm=${spec%:*}
     for seed in $(seq 1 "${spec#*:}"); do
       jobs+=("$index $pattern $arm $seed")

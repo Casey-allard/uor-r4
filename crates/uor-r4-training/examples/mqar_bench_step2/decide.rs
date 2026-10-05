@@ -58,7 +58,7 @@ const DECISION_SCHEMA: &str = "uor-r4/mqar-bench/step2-decision/v1";
 /// Seeds each arm needs before its cells can pass.
 fn required_seeds(arm: &str) -> usize {
     match arm {
-        "none" | "f2" | "qk" | "conv" => 3,
+        "none" | "f2" | "qk" | "conv" | "qk_jj" => 3,
         _ => 2,
     }
 }
@@ -193,20 +193,7 @@ fn collect(runs: &Path) -> Result<(BTreeMap<(String, String), ArmRuns>, Vec<Valu
                 "two complete roots for pattern {pattern} arm {arm} seed {seed}; keep one"
             )));
         }
-        let cells = report["results"]["final_in_class_fresh_pairings"]["cells"]
-            .as_object()
-            .ok_or_else(|| invalid(format!("{name}: no cells")))?
-            .iter()
-            .map(|(cell, record)| {
-                (
-                    cell.clone(),
-                    (
-                        record["full_accuracy"].as_f64().unwrap_or(f64::NAN),
-                        record["rule_full_accuracy"].as_f64().unwrap_or(f64::NAN),
-                    ),
-                )
-            })
-            .collect();
+        let cells = seed_cells(&name, &report)?;
         grouped
             .entry((pattern, arm))
             .or_default()
@@ -221,6 +208,32 @@ fn collect(runs: &Path) -> Result<(BTreeMap<(String, String), ArmRuns>, Vec<Valu
         runs.seeds.sort_by_key(|run| run.seed);
     }
     Ok((grouped, skipped))
+}
+
+/// The per-cell (model, rule) full-value accuracy of one fact report. A cell
+/// without a numeric `full_accuracy` or `rule_full_accuracy` is an error: a
+/// NaN would silently drop out of the seed minimum and the means.
+fn seed_cells(name: &str, report: &Value) -> Result<BTreeMap<String, (f64, f64)>> {
+    let accuracy = |cell: &str, record: &Value, field: &str| {
+        record[field]
+            .as_f64()
+            .filter(|value| value.is_finite())
+            .ok_or_else(|| invalid(format!("{name}: cell {cell} has no numeric {field}")))
+    };
+    report["results"]["final_in_class_fresh_pairings"]["cells"]
+        .as_object()
+        .ok_or_else(|| invalid(format!("{name}: no cells")))?
+        .iter()
+        .map(|(cell, record)| {
+            Ok((
+                cell.clone(),
+                (
+                    accuracy(cell, record, "full_accuracy")?,
+                    accuracy(cell, record, "rule_full_accuracy")?,
+                ),
+            ))
+        })
+        .collect()
 }
 
 /// The parts of a fact report that define the experiment: the shared task
@@ -447,7 +460,7 @@ fn decide(grouped: &BTreeMap<(String, String), ArmRuns>) -> Value {
             "pass": PASS, "tie": TIE, "rule_tolerance": RULE_TOLERANCE,
             "metric": "full-value accuracy, final in-class fresh pairings",
             "decision_cells": all_cells,
-            "required_seeds": {"none": 3, "f2": 3, "qk": 3, "conv": 3, "other": 2},
+            "required_seeds": {"none": 3, "f2": 3, "qk": 3, "conv": 3, "qk_jj": 3, "other": 2},
             "production_patterns": PRODUCTION_PATTERNS,
             "diagnostic_patterns": DIAGNOSTIC_PATTERNS,
             "order": "R1 none passes (first) -> R2 F2 passes -> R3 conv tie only if none fails -> R4 reply form -> R5 rule comparison -> R6 Step 2b -> R7 query lineage",
@@ -463,6 +476,7 @@ fn markdown(decision: &Value, skipped: &[Value]) -> String {
         out.push_str(&format!("- {}\n", line.as_str().unwrap_or_default()));
     }
     out.push_str("\nMetric: full-value accuracy on the final in-class fresh pairings. Decision cells: g >= 1, key pieces >= 2. `min` is the minimum over decision cells of the seed mean; `pass` needs every seed >= 0.95 on every decision cell with the required seeds.\n");
+    out.push_str("\nR3 caveat: the conv arm is a learned width-4 causal depthwise convolution over keys k_t..k_{t-3}, so it reaches lags 1-3, while F2 (k_t + j k_{t-1}) reaches lag 1 only; a conv that ties or beats F2 has the wider receptive field, and its result is not a lag-1-only comparison.\n");
     for (pattern, entry) in decision["patterns"].as_object().into_iter().flatten() {
         out.push_str(&format!(
             "\n## {pattern} ({})\n\n| arm | seeds | min rehearse | min bare | pass rehearse | pass bare | cells meeting rule (of 12) | capability cells (of 12) |\n|---|---|---|---|---|---|---|---|\n",
@@ -651,6 +665,36 @@ mod tests {
             decision["patterns"]["rararr"]["arms"]["none"]["decision_cells_meeting_rule"],
             0
         );
+    }
+
+    #[test]
+    fn a_missing_or_non_numeric_accuracy_is_refused_not_dropped() {
+        let report = |record: Value| {
+            json!({"results": {"final_in_class_fresh_pairings": {"cells": {
+                "rehearse.g1.k2": {"full_accuracy": 0.97, "rule_full_accuracy": 1.0},
+                "bare.g1.k2": record,
+            }}}})
+        };
+        let cells = seed_cells(
+            "ok",
+            &report(json!({"full_accuracy": 0.5, "rule_full_accuracy": 0.9})),
+        )
+        .expect("numeric cells parse");
+        assert_eq!(cells["bare.g1.k2"], (0.5, 0.9));
+        for record in [
+            json!({"rule_full_accuracy": 0.9}),
+            json!({"full_accuracy": null, "rule_full_accuracy": 0.9}),
+            json!({"full_accuracy": "0.5", "rule_full_accuracy": 0.9}),
+            json!({"full_accuracy": 0.5}),
+        ] {
+            let error = seed_cells("root-x", &report(record.clone()))
+                .expect_err("a missing accuracy must be an error");
+            let text = error.to_string();
+            assert!(
+                text.contains("root-x") && text.contains("bare.g1.k2"),
+                "{record}: {text}"
+            );
+        }
     }
 
     #[test]
