@@ -510,6 +510,25 @@ impl NativeContextState {
         })
     }
 
+    /// Resume an admitted finite retained state without a token transition.
+    pub fn from_states(
+        heads: usize,
+        lanes_per_head: usize,
+        retained: &[H4Code],
+    ) -> ContextResult<Self> {
+        let mut state = Self::new(heads, lanes_per_head)?;
+        if retained.len() != state.total {
+            return Err(ContextError::ShapeMismatch {
+                state_heads: heads,
+                state_lanes: retained.len(),
+                table_heads: heads,
+                table_lanes: lanes_per_head,
+            });
+        }
+        state.states[..state.total].copy_from_slice(retained);
+        Ok(state)
+    }
+
     pub fn states(&self) -> &[H4Code] {
         &self.states[..self.total]
     }

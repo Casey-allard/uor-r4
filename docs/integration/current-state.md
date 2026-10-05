@@ -1,5 +1,13 @@
 # Current UOR-R4 research state
 
+## Learned endpoint geometry improves bounded native completion — October 5
+
+The [source-end fit](geometric-source-end-2026-10-05.md) learns1920Q4 Period/Stop cells conditioned on frozen factual Copy occurrence and fullSource-end/actualresponse relative H4 geometry. Directed64 nativeCE0.2771607606→0.2412554844; singles59/64 unchanged, banks30→33/64, development89→92/128 (+3/−0), newfresh3→8/32 (+5/−0), controls2→4/6. Unary89/128 and4/32. Completepairs8→9/32development but0/16fresh. Preserve directed64 as bounded completion donor/research parent, originalprefix64 recovery and every regression. This is not generalchat or improvedSource selection.
+
+Source8b55fec5/executable761bd4d9; integer4/library1/driver2 and cap-only driver2/release/fmt pass. Independent saved admission110746/outcome1496467checks and harness-author adversarial54917checks pass, with native/backward/encoder/optimizer/BLAKE3 limits. Full164files450538751B returnSHA/setPASS. CPU-onlyLinux48 workers56.678/60.671s, peak child accounting1.782GB; same180min card charged once, cumulative1249035028/1249800000ms. Report-only512→640MiB extension declared beforefit. [Evidence](../evidence/geometric-source-end-2026-10-05.json).
+
+**Next:** measured correctSource endpoint identity supplies2nat Period, but five fresh correctSource boundary failures still lose0.89–3.71nat to aggregateCopy. Prospectively bound native-accepted Q4 refinement of the learned terminal field under actualfull128nativealiasCE and ownprefix trade review, not unchangedAdam or a hardgate. WrongCopy7fresh and0completefreshpairs remain a separate predecessor/value-binding obligation. Reuse/native-lower existing learned relation/act/span compiler for variedEnglish frames before integratedchat; do not expand noun extraction or duplicatecompiler. Newfresh20261015 nowexposed. Sharedsession untouched; coordinate#1552 before integration. GeneralGenerate/chat/reasoning/fullhistory/laptopenergy remain unmet.
+
 ## Native terminal coadaptation improves likelihood without completion gain — October 4
 
 The [terminal-only fit](geometric-terminal-coadapt-2026-10-04.md) updates existing Stop/Period coefficients with R64 context/Copy, cue48 and prefix64 frozen. Full128 native CE decreases0.2771607606→0.2483403491 and selects64. Actual development completions89→88/128 (five gains/six losses), new fresh5→5/32 (one gain/one loss). Retain prefix64 as completion research parent and terminal64 as likelihood donor; do not repeat the dose or claim general chat. Fresh seed20261014 uses a prospectively expanded source-literal pool after finite sampling exhaustion before model calls; compare only its matched parent/candidate, not raw rates against the older8/32 panel.

@@ -37,6 +37,8 @@ mod output_support;
 use uor_r4_integer::geometric_prefix_transport::{
     NativePrefixTransport, PrefixAngularConfig, PrefixAngularQ4, PrefixScoreMode,
 };
+#[path = "support/geometric_source_end_fit.rs"]
+mod source_end_fit;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 const REPORT_CAP: usize = 512 * 1024 * 1024;
 const FACTOR_REPORT_CAP: usize = 256 * 1024 * 1024;
@@ -63,6 +65,10 @@ const TERMINAL_FAMILIES: &str = "existing-Stop+Period-only/1";
 fn terminal_mode(a: &Args) -> bool {
     a.mode.starts_with("terminal-")
 }
+const SOURCE_END_FAMILIES: &str = "source-end-Period+Stop-HxLx120/1";
+fn source_end_mode(a: &Args) -> bool {
+    a.mode.starts_with("source-end-")
+}
 const UPDATES: usize = 64;
 const BATCH: usize = 8;
 #[derive(Deserialize)]
@@ -71,6 +77,8 @@ struct Args {
     mode: String,
     cue_score_mode: Option<CueScoreMode>,
     prefix_score_mode: Option<PrefixScoreMode>,
+    source_end_score_mode:
+        Option<uor_r4_integer::geometric_source_end_transport::SourceEndScoreMode>,
     frozen_cue_bundle: Option<PathBuf>,
     frozen_cue_native_metadata_sha256: Option<String>,
     frozen_cue_packed_sha256: Option<String>,
@@ -336,11 +344,13 @@ fn checked_args() -> Result<Args> {
         "prefix-fit",
         "terminal-broadbatch",
         "terminal-fit",
+        "source-end-broadbatch",
+        "source-end-fit",
     ]
     .contains(&a.mode.as_str())
         || a.maximum_seconds == 0
         || a.maximum_seconds
-            > if a.mode == "terminal-fit" {
+            > if matches!(a.mode.as_str(), "terminal-fit" | "source-end-fit") {
                 900
             } else if a.mode == "fit" {
                 3600
@@ -352,7 +362,17 @@ fn checked_args() -> Result<Args> {
         || a.maximum_context_tokens != 128
         || a.maximum_generation_tokens > 32
         || a.maximum_report_bytes
-            != if a.mode == "terminal-fit" {
+            != if a.mode == "source-end-fit" {
+                // Observed full-cap projection is 568 MB; retain legacy admission
+                // while permitting the prospectively recorded 640 MiB fit cap.
+                if a.maximum_report_bytes == 640 * 1024 * 1024 {
+                    640 * 1024 * 1024
+                } else {
+                    512 * 1024 * 1024
+                }
+            } else if a.mode == "source-end-broadbatch" {
+                128 * 1024 * 1024
+            } else if a.mode == "terminal-fit" {
                 1024 * 1024 * 1024
             } else if a.mode == "terminal-broadbatch" {
                 128 * 1024 * 1024
@@ -378,7 +398,7 @@ fn checked_args() -> Result<Args> {
     }
     if matches!(
         a.mode.as_str(),
-        "fit" | "readout-fit" | "cue-fit" | "prefix-fit" | "terminal-fit"
+        "fit" | "readout-fit" | "cue-fit" | "prefix-fit" | "terminal-fit" | "source-end-fit"
     ) && (a.admission.is_none()
         || a.admission_manifest_sha256.is_none()
         || a.fit_authorization.is_none())
@@ -391,10 +411,14 @@ fn checked_args() -> Result<Args> {
     if (broad_mode(&a)
         || a.mode == "cue-broadbatch"
         || a.mode == "prefix-broadbatch"
-        || a.mode == "terminal-broadbatch")
+        || a.mode == "terminal-broadbatch"
+        || a.mode == "source-end-broadbatch")
         && (a.admission.is_some() || a.fit_authorization.is_some())
     {
         return Err(invalid("broadbatch cannot automatically fit").into());
+    }
+    if source_end_mode(&a) != a.source_end_score_mode.is_some() {
+        return Err(invalid("source_end_score_mode required only for source-end modes").into());
     }
     if cue_mode(&a) != a.cue_score_mode.is_some() {
         return Err(invalid("cue_score_mode required only for explicit cue modes").into());
@@ -405,8 +429,10 @@ fn checked_args() -> Result<Args> {
         a.frozen_cue_native_metadata_sha256.is_some(),
         a.frozen_cue_packed_sha256.is_some(),
     ];
-    if ((prefix_mode(&a) || terminal_mode(&a)) && !prefix_inputs.iter().all(|v| *v))
-        || (!(prefix_mode(&a) || terminal_mode(&a)) && prefix_inputs.iter().any(|v| *v))
+    if ((prefix_mode(&a) || terminal_mode(&a) || source_end_mode(&a))
+        && !prefix_inputs.iter().all(|v| *v))
+        || (!(prefix_mode(&a) || terminal_mode(&a) || source_end_mode(&a))
+            && prefix_inputs.iter().any(|v| *v))
     {
         return Err(invalid(
             "prefix mode requires complete explicit frozen cue native binding and mode",
@@ -418,11 +444,11 @@ fn checked_args() -> Result<Args> {
         a.frozen_prefix_native_metadata_sha256.is_some(),
         a.frozen_prefix_packed_sha256.is_some(),
     ];
-    if (terminal_mode(&a)
+    if ((terminal_mode(&a) || source_end_mode(&a))
         && (!terminal_inputs.iter().all(|x| *x)
             || a.prefix_score_mode != Some(PrefixScoreMode::DirectedRelative)
             || a.maximum_generation_tokens != 32))
-        || (!terminal_mode(&a) && terminal_inputs.iter().any(|x| *x))
+        || (!(terminal_mode(&a) || source_end_mode(&a)) && terminal_inputs.iter().any(|x| *x))
     {
         return Err(invalid(
             "terminal modes require complete frozen directed prefix64 binding and generation32",
@@ -3907,6 +3933,9 @@ fn terminal_run(a: &Args, start: Instant) -> Result<Value> {
 }
 
 fn run(a: &Args, start: Instant) -> Result<Value> {
+    if source_end_mode(a) {
+        return source_end_fit::run(a, start);
+    }
     if terminal_mode(a) {
         return terminal_run(a, start);
     }
@@ -4220,7 +4249,12 @@ fn main() {
     let outcome = (|| -> Result<()> {
         let a = checked_args()?;
         report_output::claim(&a.out)?;
-        if readout_mode(&a) || cue_mode(&a) || prefix_mode(&a) || terminal_mode(&a) {
+        if readout_mode(&a)
+            || cue_mode(&a)
+            || prefix_mode(&a)
+            || terminal_mode(&a)
+            || source_end_mode(&a)
+        {
             fs::write(
                 a.out.join("resource-cap.json"),
                 serde_json::to_vec(&json!({"maximum_report_bytes":a.maximum_report_bytes}))?,

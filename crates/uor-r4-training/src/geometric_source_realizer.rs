@@ -32,6 +32,9 @@ use uor_r4_integer::{
     geometric_prefix_transport::{
         NativePrefixTransport, PrefixAngularConfig, PrefixAngularQ4, PrefixScoreMode,
     },
+    geometric_source_end_transport::{
+        NativeSourceEndTransport, SourceEndAngularConfig, SourceEndAngularQ4, SourceEndScoreMode,
+    },
     h4_tables::H4Code,
 };
 
@@ -818,6 +821,53 @@ impl NativeSourceRealizer {
         .read_bank_with_prefix_transport(segments, query, prefix, &parent, cue, transport)
         .map_err(|e| invalid(e.to_string()))
     }
+    pub fn compile_source_end_transport(
+        &self,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        angular: SourceEndAngularQ4,
+    ) -> Result<NativeSourceEndTransport<'_>> {
+        NativeSourceEndTransport::compile(
+            self.execution_binding()?,
+            &self.consumer.context,
+            &self.consumer.geometry,
+            cue.metadata().clone(),
+            prefix.metadata().clone(),
+            angular,
+        )
+        .map_err(|e| invalid(e.to_string()))
+    }
+    pub fn read_bank_with_source_end_transport(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        end: &NativeSourceEndTransport<'_>,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::SourceEndBankRealizerTrace> {
+        let parent = self.execution_binding()?;
+        uor_r4_integer::geometric_source_realizer::RealizerExecution {
+            context: &self.consumer.context,
+            potential_tables: &self.consumer.potential_tables,
+            no_read: &self.consumer.no_read,
+            geometry: &self.consumer.geometry,
+            exp: &self.consumer.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_bank_with_source_end_transport(
+            segments,
+            query,
+            actual_prefix,
+            &parent,
+            cue,
+            prefix,
+            end,
+        )
+        .map_err(|e| invalid(e.to_string()))
+    }
+
     pub fn read_dependent(
         &self,
         frame: SelectedRecordFrame<'_>,
@@ -1444,6 +1494,250 @@ impl PrefixAngularWeights {
         Ok(result)
     }
 }
+pub struct SourceEndAngularWeights {
+    period_coefficients: Var,
+    stop_coefficients: Var,
+    metadata: SourceEndAngularSourceMetadata,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SourceEndAngularSourceMetadata {
+    schema: String,
+    parent: uor_r4_integer::geometric_source_realizer::NativeArtifactBinding,
+    parent_native_files_sha256: BTreeMap<String, String>,
+    cue_native_files_sha256: BTreeMap<String, String>,
+    prefix_native_files_sha256: BTreeMap<String, String>,
+    cue_native_metadata: serde_json::Value,
+    prefix_native_metadata: serde_json::Value,
+    config: SourceEndAngularConfig,
+    period_source_sha256: String,
+    stop_source_sha256: String,
+    period_packed_sha256: String,
+    stop_packed_sha256: String,
+    native_metadata: serde_json::Value,
+}
+fn source_end_prefix_files(
+    root: &Path,
+    prefix: &NativePrefixTransport<'_>,
+) -> Result<BTreeMap<String, String>> {
+    if serde_json::from_slice::<serde_json::Value>(&fs::read(root.join("native-metadata.json"))?)?
+        != serde_json::to_value(prefix.metadata())?
+        || fs::read(root.join("prefix-q4.bin"))? != prefix.packed_coefficients()
+    {
+        return Err(invalid("source-end frozen prefix bundle differs"));
+    }
+    ["native-metadata.json", "prefix-q4.bin"]
+        .into_iter()
+        .map(|name| Ok((name.into(), crate::sha256_file(&root.join(name))?)))
+        .collect()
+}
+fn source_end_source_bytes(var: &Var) -> Result<Vec<u8>> {
+    Ok(var
+        .to_vec1::<f32>()?
+        .into_iter()
+        .flat_map(f32::to_le_bytes)
+        .collect())
+}
+fn source_end_packed(var: &Var) -> Result<Vec<u8>> {
+    let values = var.to_vec1::<f32>()?;
+    if values.iter().any(|x| !x.is_finite() || x.abs() > 1.75) {
+        return Err(invalid("source-end shadow outside legal quarter range"));
+    }
+    pack_coefficients(
+        &values
+            .into_iter()
+            .map(|x| (x * 4.).round() as i8)
+            .collect::<Vec<_>>(),
+    )
+    .map_err(|e| invalid(e.to_string()))
+}
+impl SourceEndAngularWeights {
+    pub fn zero(
+        parent: &NativeSourceRealizer,
+        native_root: &Path,
+        cue_root: &Path,
+        prefix_root: &Path,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        mode: SourceEndScoreMode,
+    ) -> Result<Self> {
+        let c = parent.consumer.context.config();
+        let config = SourceEndAngularConfig {
+            heads: c.heads,
+            lanes_per_head: c.lanes_per_head,
+            mode,
+        };
+        let count = config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut result = Self {
+            period_coefficients: Var::from_vec(vec![0f32; count], count, &Device::Cpu)?,
+            stop_coefficients: Var::from_vec(vec![0f32; count], count, &Device::Cpu)?,
+            metadata: SourceEndAngularSourceMetadata {
+                schema: "uor-r4.geometric-source-end-angular-source/1".into(),
+                parent: parent.artifact_binding()?,
+                parent_native_files_sha256: prefix_parent_files(parent, native_root)?,
+                cue_native_files_sha256: prefix_cue_files(cue_root, cue)?,
+                prefix_native_files_sha256: source_end_prefix_files(prefix_root, prefix)?,
+                cue_native_metadata: serde_json::to_value(cue.metadata())?,
+                prefix_native_metadata: serde_json::to_value(prefix.metadata())?,
+                config,
+                period_source_sha256: String::new(),
+                stop_source_sha256: String::new(),
+                period_packed_sha256: String::new(),
+                stop_packed_sha256: String::new(),
+                native_metadata: serde_json::Value::Null,
+            },
+        };
+        result.metadata.native_metadata = serde_json::to_value(
+            parent
+                .compile_source_end_transport(cue, prefix, result.native()?)?
+                .metadata(),
+        )?;
+        Ok(result)
+    }
+    pub fn config(&self) -> SourceEndAngularConfig {
+        self.metadata.config
+    }
+    pub fn parent_binding(
+        &self,
+    ) -> &uor_r4_integer::geometric_source_realizer::NativeArtifactBinding {
+        &self.metadata.parent
+    }
+    pub fn parameters(&self) -> BTreeMap<String, Var> {
+        BTreeMap::from([
+            (
+                "source_end.period_coefficients".into(),
+                self.period_coefficients.clone(),
+            ),
+            (
+                "source_end.stop_coefficients".into(),
+                self.stop_coefficients.clone(),
+            ),
+        ])
+    }
+    pub fn project_shadow_range(&self) -> Result<()> {
+        for var in [&self.period_coefficients, &self.stop_coefficients] {
+            let values = var.to_vec1::<f32>()?;
+            if values.iter().any(|x| !x.is_finite()) {
+                return Err(invalid("nonfinite source-end shadow"));
+            }
+            var.set(&Tensor::from_vec(
+                values
+                    .into_iter()
+                    .map(|x| x.clamp(-1.75, 1.75))
+                    .collect::<Vec<_>>(),
+                var.shape(),
+                &Device::Cpu,
+            )?)?;
+        }
+        Ok(())
+    }
+    pub fn period_packed_coefficients(&self) -> Result<Vec<u8>> {
+        source_end_packed(&self.period_coefficients)
+    }
+    pub fn stop_packed_coefficients(&self) -> Result<Vec<u8>> {
+        source_end_packed(&self.stop_coefficients)
+    }
+    pub fn native(&self) -> Result<SourceEndAngularQ4> {
+        SourceEndAngularQ4::new(
+            self.config(),
+            &self.period_packed_coefficients()?,
+            &self.stop_packed_coefficients()?,
+        )
+        .map_err(|e| invalid(e.to_string()))
+    }
+    pub fn save(&self, path: &Path) -> Result<()> {
+        let period_source = source_end_source_bytes(&self.period_coefficients)?;
+        let stop_source = source_end_source_bytes(&self.stop_coefficients)?;
+        let period_packed = self.period_packed_coefficients()?;
+        let stop_packed = self.stop_packed_coefficients()?;
+        let mut m = self.metadata.clone();
+        m.period_source_sha256 = sha256_bytes(&period_source);
+        m.stop_source_sha256 = sha256_bytes(&stop_source);
+        m.period_packed_sha256 = sha256_bytes(&period_packed);
+        m.stop_packed_sha256 = sha256_bytes(&stop_packed);
+        m.native_metadata["period_packed_sha256"] = serde_json::json!(m.period_packed_sha256);
+        m.native_metadata["stop_packed_sha256"] = serde_json::json!(m.stop_packed_sha256);
+        fs::create_dir(path)?;
+        fs::write(path.join("source-end-period-f32.bin"), period_source)?;
+        fs::write(path.join("source-end-stop-f32.bin"), stop_source)?;
+        fs::write(path.join("source-end-period-q4.bin"), period_packed)?;
+        fs::write(path.join("source-end-stop-q4.bin"), stop_packed)?;
+        fs::write(
+            path.join("native-metadata.json"),
+            serde_json::to_vec_pretty(&m.native_metadata)?,
+        )?;
+        fs::write(path.join("metadata.json"), serde_json::to_vec_pretty(&m)?)?;
+        Ok(())
+    }
+    pub fn load(
+        path: &Path,
+        parent: &NativeSourceRealizer,
+        native_root: &Path,
+        cue_root: &Path,
+        prefix_root: &Path,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+    ) -> Result<Self> {
+        let m: SourceEndAngularSourceMetadata =
+            serde_json::from_slice(&fs::read(path.join("metadata.json"))?)?;
+        let period_raw = fs::read(path.join("source-end-period-f32.bin"))?;
+        let stop_raw = fs::read(path.join("source-end-stop-f32.bin"))?;
+        let period_packed = fs::read(path.join("source-end-period-q4.bin"))?;
+        let stop_packed = fs::read(path.join("source-end-stop-q4.bin"))?;
+        let count = m
+            .config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?;
+        if m.schema != "uor-r4.geometric-source-end-angular-source/1"
+            || m.parent != parent.artifact_binding()?
+            || m.parent_native_files_sha256 != prefix_parent_files(parent, native_root)?
+            || m.cue_native_files_sha256 != prefix_cue_files(cue_root, cue)?
+            || m.prefix_native_files_sha256 != source_end_prefix_files(prefix_root, prefix)?
+            || m.cue_native_metadata != serde_json::to_value(cue.metadata())?
+            || m.prefix_native_metadata != serde_json::to_value(prefix.metadata())?
+            || period_raw.len() != count * 4
+            || stop_raw.len() != count * 4
+            || m.period_source_sha256 != sha256_bytes(&period_raw)
+            || m.stop_source_sha256 != sha256_bytes(&stop_raw)
+            || m.period_packed_sha256 != sha256_bytes(&period_packed)
+            || m.stop_packed_sha256 != sha256_bytes(&stop_packed)
+        {
+            return Err(invalid("source-end source/native/frozen bundles differ"));
+        }
+        let decode = |raw: &[u8]| {
+            raw.chunks_exact(4)
+                .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+                .collect::<Vec<_>>()
+        };
+        let result = Self {
+            period_coefficients: Var::from_vec(decode(&period_raw), count, &Device::Cpu)?,
+            stop_coefficients: Var::from_vec(decode(&stop_raw), count, &Device::Cpu)?,
+            metadata: m,
+        };
+        if result.period_packed_coefficients()? != period_packed
+            || result.stop_packed_coefficients()? != stop_packed
+        {
+            return Err(invalid("source-end shadow/native replay differs"));
+        }
+        let carrier = parent.compile_source_end_transport(cue, prefix, result.native()?)?;
+        if serde_json::to_value(carrier.metadata())? != result.metadata.native_metadata
+            || serde_json::from_slice::<serde_json::Value>(&fs::read(
+                path.join("native-metadata.json"),
+            )?)? != result.metadata.native_metadata
+        {
+            return Err(invalid("source-end native metadata differs"));
+        }
+        Ok(result)
+    }
+}
+pub struct SourceEndBankRealizerLoss {
+    pub loss: Tensor,
+    pub trace: uor_r4_integer::geometric_source_realizer::SourceEndBankRealizerTrace,
+    pub target_probability: f64,
+}
+
 pub struct CueBankRealizerLoss {
     pub loss: Tensor,
     pub trace: uor_r4_integer::geometric_source_realizer::CueBankRealizerTrace,
@@ -1745,6 +2039,119 @@ impl PreparedSourceRealizer<'_> {
         let probability = mass as f64 / actions.total_weight_q31 as f64;
         let loss = marginal_action_loss(actions, &credit, target, probability)?;
         Ok(PrefixBankRealizerLoss {
+            loss,
+            trace,
+            target_probability: probability,
+        })
+    }
+
+    /// Learn only two endpoint tables. The factual provisional Source route is
+    /// native, frozen and target-free; no source-selection adjoint is claimed.
+    pub fn loss_bank_source_end(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        target: u32,
+        weights: &SourceEndAngularWeights,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        end: &NativeSourceEndTransport<'_>,
+    ) -> Result<SourceEndBankRealizerLoss> {
+        if weights.parent_binding() != &self.native.artifact_binding()?
+            || weights.period_packed_coefficients()?.as_slice() != end.period_packed_coefficients()
+            || weights.stop_packed_coefficients()?.as_slice() != end.stop_packed_coefficients()
+            || weights.metadata.cue_native_metadata != serde_json::to_value(cue.metadata())?
+            || weights.metadata.prefix_native_metadata != serde_json::to_value(prefix.metadata())?
+        {
+            return Err(invalid(
+                "source-end current source/native/frozen bindings differ",
+            ));
+        }
+        let trace = self.native.read_bank_with_source_end_transport(
+            segments,
+            query,
+            actual_prefix,
+            cue,
+            prefix,
+            end,
+        )?;
+        if trace.source_end.metadata.potential != weights.config() {
+            return Err(invalid("source-end angular mode/config differs"));
+        }
+        let actions = &trace.actions;
+        let mass = actions
+            .token_masses
+            .iter()
+            .find(|v| v.token_id == target)
+            .map_or(0, |v| v.weight_q31);
+        if mass == 0 || actions.total_weight_q31 == 0 || mass > actions.total_weight_q31 {
+            return Err(invalid(
+                "source-end target has zero/invalid native support; no floor",
+            ));
+        }
+        let lanes = weights.config().heads * weights.config().lanes_per_head;
+        if trace.source_end.angular_indices.len() != lanes {
+            return Err(invalid("source-end native angular shape differs"));
+        }
+        let mut indices = Vec::with_capacity(lanes);
+        for (lane, &index) in trace.source_end.angular_indices.iter().enumerate() {
+            if index >= 120 {
+                return Err(invalid("source-end angular address exceeds120"));
+            }
+            indices.push((lane * 120 + usize::from(index)) as u32);
+        }
+        let period_values = weights.period_coefficients.to_vec1::<f32>()?;
+        let stop_values = weights.stop_coefficients.to_vec1::<f32>()?;
+        let mut expected_period = vec![0i64; weights.config().heads];
+        let mut expected_stop = expected_period.clone();
+        if trace.source_end.selected_source_index.is_some() {
+            for (lane, &index) in indices.iter().enumerate() {
+                let head = lane / weights.config().lanes_per_head;
+                expected_period[head] +=
+                    ((period_values[index as usize] * 4.).round() as i64) << 22;
+                expected_stop[head] += ((stop_values[index as usize] * 4.).round() as i64) << 22;
+            }
+        }
+        if trace.source_end.period_q24 != expected_period
+            || trace.source_end.stop_q24 != expected_stop
+        {
+            return Err(invalid("source-end native/gather hard residuals differ"));
+        }
+        let ids = Tensor::from_vec(indices, lanes, &Device::Cpu)?;
+        let mask = Tensor::from_vec(
+            vec![
+                if trace.source_end.selected_source_index.is_some() {
+                    1f32
+                } else {
+                    0f32
+                };
+                lanes
+            ],
+            lanes,
+            &Device::Cpu,
+        )?;
+        let period = (weights.period_coefficients.index_select(&ids, 0)? * &mask)?
+            .sum_all()?
+            .unsqueeze(0)?;
+        let stop = (weights.stop_coefficients.index_select(&ids, 0)? * &mask)?
+            .sum_all()?
+            .unsqueeze(0)?;
+        let credit = Tensor::cat(
+            &[
+                Tensor::zeros(
+                    trace.prefix_bank.cue_bank.bank.candidates.len(),
+                    candle_core::DType::F32,
+                    &Device::Cpu,
+                )?,
+                period,
+                stop,
+            ],
+            0,
+        )?;
+        let probability = mass as f64 / actions.total_weight_q31 as f64;
+        let loss = marginal_action_loss(actions, &credit, target, probability)?;
+        Ok(SourceEndBankRealizerLoss {
             loss,
             trace,
             target_probability: probability,
@@ -2839,6 +3246,141 @@ mod tests {
         }
         Ok(())
     }
+    #[test]
+    fn source_end_zero_alias_loss_gradients_and_bound_bundle_replay() -> Result<()> {
+        let (fixture, native, _) = dependent_fixture()?;
+        let native_root = fixture.path.join("dependent-native");
+        let cue_root = fixture.path.join("source-end-cue");
+        let prefix_root = fixture.path.join("source-end-prefix");
+        let cue_weights =
+            CueAngularWeights::zero(&native, &native_root, CueScoreMode::DirectedRelative)?;
+        cue_weights.save(&cue_root)?;
+        let cue = native.compile_cue_carrier(cue_weights.native()?)?;
+        let prefix_weights = PrefixAngularWeights::zero(
+            &native,
+            &native_root,
+            &cue_root,
+            &cue,
+            PrefixScoreMode::DirectedRelative,
+        )?;
+        prefix_weights.save(&prefix_root)?;
+        let prefix = native.compile_prefix_transport(&cue, prefix_weights.native()?)?;
+        let weights = SourceEndAngularWeights::zero(
+            &native,
+            &native_root,
+            &cue_root,
+            &prefix_root,
+            &cue,
+            &prefix,
+            SourceEndScoreMode::DirectedRelative,
+        )?;
+        let end = native.compile_source_end_transport(&cue, &prefix, weights.native()?)?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [SourceBankSegment::Source {
+            frame: frame(&ids),
+            view: &view,
+            event: 7,
+        }];
+        let original =
+            native.read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &prefix)?;
+        let prepared = fixture.weights.prepare(&native)?;
+        for target in [4, 3, 1] {
+            let out = prepared.loss_bank_source_end(
+                &segments,
+                &[5],
+                &[4],
+                target,
+                &weights,
+                &cue,
+                &prefix,
+                &end,
+            )?;
+            assert_eq!(out.trace.prefix_bank, original);
+            assert_eq!(out.trace.actions, original.cue_bank.bank.actions);
+            assert!(
+                (f64::from(out.loss.to_scalar::<f32>()?) + out.target_probability.ln()).abs()
+                    < 1e-5
+            );
+            let grad = out.loss.backward()?;
+            for var in weights.parameters().values() {
+                let values = grad
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("source-end gradient absent"))?
+                    .to_vec1::<f32>()?;
+                assert!(values.iter().all(|x| x.is_finite()));
+                assert!(values.iter().any(|x| x.abs() > 1e-8));
+            }
+            let frozen_source_parameters = fixture.weights.parameters();
+            let frozen_cue_parameters = cue_weights.parameters();
+            let frozen_prefix_parameters = prefix_weights.parameters();
+            for var in frozen_source_parameters
+                .values()
+                .chain(frozen_cue_parameters.values())
+                .chain(frozen_prefix_parameters.values())
+            {
+                assert!(grad.get(var.as_tensor()).is_none());
+            }
+        }
+        let empty = [SourceBankSegment::Context {
+            token_ids: &[4],
+            role: 1,
+            event: 19,
+        }];
+        // Context-only banks are outside the retained reader's admitted
+        // Source contract; the loss preserves that error without a fake target.
+        assert!(prepared
+            .loss_bank_source_end(&empty, &[5], &[], 3, &weights, &cue, &prefix, &end)
+            .is_err());
+        let root = fixture.path.join("source-end-bundle");
+        weights.save(&root)?;
+        let loaded = SourceEndAngularWeights::load(
+            &root,
+            &native,
+            &native_root,
+            &cue_root,
+            &prefix_root,
+            &cue,
+            &prefix,
+        )?;
+        assert_eq!(
+            loaded.period_packed_coefficients()?,
+            weights.period_packed_coefficients()?
+        );
+        assert_eq!(
+            loaded.stop_packed_coefficients()?,
+            weights.stop_packed_coefficients()?
+        );
+        let mut values = weights.period_coefficients.to_vec1::<f32>()?;
+        values[0] = 0.125;
+        weights.period_coefficients.set(&Tensor::from_vec(
+            values,
+            weights.period_coefficients.shape(),
+            &Device::Cpu,
+        )?)?;
+        let mut expected = vec![0i8; 120];
+        expected[0] = 1;
+        assert_eq!(
+            weights.period_packed_coefficients()?,
+            pack_coefficients(&expected).map_err(|e| invalid(e.to_string()))?
+        );
+        assert!(prepared
+            .loss_bank_source_end(&segments, &[5], &[4], 4, &weights, &cue, &prefix, &end)
+            .is_err());
+        fs::write(prefix_root.join("prefix-q4.bin"), vec![0x11; 60])?;
+        assert!(SourceEndAngularWeights::load(
+            &root,
+            &native,
+            &native_root,
+            &cue_root,
+            &prefix_root,
+            &cue,
+            &prefix
+        )
+        .is_err());
+        Ok(())
+    }
+
     #[test]
     fn terminal_compiled_inventory_matches_zero_and_changed_disk_exports() -> Result<()> {
         let (fixture, frozen, _) = dependent_fixture()?;

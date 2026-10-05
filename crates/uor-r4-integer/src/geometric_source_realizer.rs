@@ -19,6 +19,9 @@ use crate::{
         ActionHeadScores, ActionTrace, NativeSourceActions, SourceActionBinding,
     },
     geometric_source_emission_view::{SourceEmissionCompiler, SourceEmissionView},
+    geometric_source_end_transport::{
+        NativeSourceEndTransport, SourceEndAngularQ4, SourceEndTransportTrace,
+    },
     h4_tables::{H4Code, HistoricalH4Tables, ROOT_COUNT},
 };
 use serde::{Deserialize, Serialize};
@@ -335,6 +338,15 @@ pub struct PrefixBankRealizerTrace {
     pub combined_score_vec_containers: usize,
 }
 
+/// Nested prefix bank remains the factual baseline. `actions` is the
+/// authoritative terminal-adjusted global action/alias normalization.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct SourceEndBankRealizerTrace {
+    pub prefix_bank: PrefixBankRealizerTrace,
+    pub source_end: SourceEndTransportTrace,
+    pub actions: ActionTrace,
+}
+
 pub struct RealizerExecution<'a> {
     pub context: &'a NativeContextQ4,
     pub potential_tables: &'a NativePotentialTables,
@@ -402,6 +414,67 @@ impl<'a> RealizerExecution<'a> {
             prefix: ordered.ok_or_else(|| invalid("prefix trace absent"))?,
         })
     }
+    pub fn read_bank_with_source_end_transport(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        parent: &NativeArtifactBinding,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        end: &NativeSourceEndTransport<'_>,
+    ) -> Result<SourceEndBankRealizerTrace> {
+        end.validate_execution(
+            parent,
+            self.context,
+            self.geometry,
+            cue.metadata(),
+            prefix.metadata(),
+        )?;
+        let prefix_bank = self.read_bank_with_prefix_transport(
+            segments,
+            query,
+            actual_prefix,
+            parent,
+            cue,
+            prefix,
+        )?;
+        let bank = &prefix_bank.cue_bank.bank;
+        let source_end = end.prepare(&prefix_bank.prefix, &bank.heads)?;
+        let mut periods = bank.period_q24.clone();
+        let mut stops = bank.heads.iter().map(|h| h.no_read_q24).collect::<Vec<_>>();
+        for h in 0..bank.heads.len() {
+            periods[h] = periods[h]
+                .checked_add(source_end.period_q24[h])
+                .ok_or_else(|| invalid("source-end Period total overflow"))?;
+            stops[h] = stops[h]
+                .checked_add(source_end.stop_q24[h])
+                .ok_or_else(|| invalid("source-end Stop total overflow"))?;
+        }
+        let scores = bank
+            .heads
+            .iter()
+            .enumerate()
+            .map(|(h, head)| ActionHeadScores {
+                copy_q24: &head.scores_q24,
+                period_q24: periods[h],
+                stop_q24: stops[h],
+            })
+            .collect::<Vec<_>>();
+        let ids = bank
+            .candidates
+            .iter()
+            .map(|c| c.occurrence.token_id)
+            .collect::<Vec<_>>();
+        let actions = NativeSourceActions::new(self.binding.clone(), bank.heads.len(), self.exp)?
+            .reduce(&ids, &scores)?;
+        Ok(SourceEndBankRealizerTrace {
+            prefix_bank,
+            source_end,
+            actions,
+        })
+    }
+
     fn read_bank_impl(
         &self,
         segments: &[SourceBankSegment<'_>],
@@ -1332,6 +1405,53 @@ impl NativeSourceRealizer {
             mode,
         )
     }
+    pub fn compile_source_end_transport(
+        &self,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        potential: SourceEndAngularQ4,
+    ) -> Result<NativeSourceEndTransport<'_>> {
+        let binding = self.artifact_binding.clone();
+        cue.validate_execution(&binding, &self.context, &self.geometry)?;
+        prefix.validate_execution(&binding, &self.context, &self.geometry, cue.metadata())?;
+        NativeSourceEndTransport::compile(
+            binding,
+            &self.context,
+            &self.geometry,
+            cue.metadata().clone(),
+            prefix.metadata().clone(),
+            potential,
+        )
+    }
+    pub fn read_bank_with_source_end_transport(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        end: &NativeSourceEndTransport<'_>,
+    ) -> Result<SourceEndBankRealizerTrace> {
+        let binding = self.artifact_binding.clone();
+        RealizerExecution {
+            context: &self.context,
+            potential_tables: &self.potential_tables,
+            no_read: &self.no_read,
+            geometry: &self.geometry,
+            exp: &self.exp,
+            period: &self.period,
+            binding: &self.binding,
+        }
+        .read_bank_with_source_end_transport(
+            segments,
+            query,
+            actual_prefix,
+            &binding,
+            cue,
+            prefix,
+            end,
+        )
+    }
     pub fn compile_prefix_transport(
         &self,
         cue: &NativeCueCarrier<'_>,
@@ -1799,6 +1919,302 @@ mod tests {
                 .map_err(|e| invalid(e.to_string()))?,
         )
     }
+    #[test]
+    fn source_end_zero_full_parity_last_token_and_bank_source_binding() -> Result<()> {
+        use crate::geometric_prefix_transport::PrefixScoreMode;
+        use crate::geometric_source_end_transport::{SourceEndAngularConfig, SourceEndScoreMode};
+        let f = ActionFixture::new()?;
+        let ids = [4, 5];
+        let view = f.compiler.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 2,
+            },
+            SourceBankSegment::Source {
+                frame: ActionFixture::frame(&ids),
+                view: &view,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: ActionFixture::frame(&ids),
+                view: &view,
+                event: 8,
+            },
+        ];
+        let cue = NativeCueCarrier::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue_potential(f.context.config(), true)?,
+        )?;
+        let prefix = NativePrefixTransport::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue.metadata().clone(),
+            prefix_potential(f.context.config(), PrefixScoreMode::DirectedRelative, true)?,
+        )?;
+        let c = f.context.config();
+        let config = SourceEndAngularConfig {
+            heads: c.heads,
+            lanes_per_head: c.lanes_per_head,
+            mode: SourceEndScoreMode::DirectedRelative,
+        };
+        let zero = vec![0; config.coefficient_count()? / 2];
+        let end = NativeSourceEndTransport::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue.metadata().clone(),
+            prefix.metadata().clone(),
+            SourceEndAngularQ4::new(config, &zero, &zero)?,
+        )?;
+        let old = f.execution().read_bank_with_prefix_transport(
+            &segments,
+            &[5],
+            &[4],
+            &f.parent,
+            &cue,
+            &prefix,
+        )?;
+        let result = f.execution().read_bank_with_source_end_transport(
+            &segments,
+            &[5],
+            &[4],
+            &f.parent,
+            &cue,
+            &prefix,
+            &end,
+        )?;
+        assert_eq!(result.prefix_bank, old);
+        assert_eq!(result.actions, old.cue_bank.bank.actions);
+        assert_eq!(result.source_end.response, old.prefix.response);
+        assert_eq!(result.source_end.costs.extra_source_encoder_tokens, 2);
+        let mut state =
+            crate::geometric_context::NativeContextState::new(c.heads, c.lanes_per_head)
+                .map_err(|e| invalid(e.to_string()))?;
+        for &token in view.emitted_token_ids() {
+            state
+                .step(token as usize, f.context.native(), &f.geometry)
+                .map_err(|e| invalid(e.to_string()))?;
+        }
+        assert_eq!(
+            result.source_end.sources[0].states,
+            state.states().iter().map(|s| s.index()).collect::<Vec<_>>()
+        );
+        assert_eq!(result.source_end.sources[0].source_segment_index, 1);
+        let selected = result
+            .source_end
+            .selected_bank_index
+            .ok_or_else(|| invalid("fixture Copy route absent"))?;
+        let source = result
+            .source_end
+            .selected_source_index
+            .ok_or_else(|| invalid("fixture Source route absent"))?;
+        assert_eq!(
+            old.cue_bank.bank.candidates[selected].segment_index,
+            result.source_end.sources[source].source_segment_index
+        );
+        // Terminal coefficients cannot change the factual route, Copy scores,
+        // or the latent response/end carriers; both tables independently add.
+        let q =
+            crate::geometric_potential_q4::pack_coefficients(&vec![1; config.coefficient_count()?])
+                .map_err(|e| invalid(e.to_string()))?;
+        let nonzero = NativeSourceEndTransport::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue.metadata().clone(),
+            prefix.metadata().clone(),
+            SourceEndAngularQ4::new(config, &q, &zero)?,
+        )?;
+        let changed = f.execution().read_bank_with_source_end_transport(
+            &segments,
+            &[5],
+            &[4],
+            &f.parent,
+            &cue,
+            &prefix,
+            &nonzero,
+        )?;
+        assert_eq!(changed.prefix_bank, old);
+        assert_eq!(
+            changed.source_end.selected_bank_index,
+            result.source_end.selected_bank_index
+        );
+        assert_eq!(changed.source_end.stop_q24, vec![0; c.heads]);
+        assert_eq!(
+            changed.source_end.period_q24,
+            vec![(c.lanes_per_head as i64) << 22; c.heads]
+        );
+        let h = old
+            .cue_bank
+            .bank
+            .heads
+            .iter()
+            .enumerate()
+            .map(|(i, h)| ActionHeadScores {
+                copy_q24: &h.scores_q24,
+                period_q24: old.cue_bank.bank.period_q24[i] + changed.source_end.period_q24[i],
+                stop_q24: h.no_read_q24,
+            })
+            .collect::<Vec<_>>();
+        let tokens = old
+            .cue_bank
+            .bank
+            .candidates
+            .iter()
+            .map(|c| c.occurrence.token_id)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            changed.actions,
+            NativeSourceActions::new(f.binding.clone(), c.heads, &f.exp)?.reduce(&tokens, &h)?
+        );
+        let unary = NativeSourceEndTransport::compile(
+            f.parent.clone(),
+            &f.context,
+            &f.geometry,
+            cue.metadata().clone(),
+            prefix.metadata().clone(),
+            SourceEndAngularQ4::new(
+                SourceEndAngularConfig {
+                    mode: SourceEndScoreMode::SourceEndUnary,
+                    ..config
+                },
+                &q,
+                &zero,
+            )?,
+        )?;
+        let control = f.execution().read_bank_with_source_end_transport(
+            &segments,
+            &[5],
+            &[4],
+            &f.parent,
+            &cue,
+            &prefix,
+            &unary,
+        )?;
+        assert_eq!(control.source_end.sources, changed.source_end.sources);
+        assert_eq!(
+            control.source_end.relative_roots,
+            changed.source_end.relative_roots
+        );
+        assert_eq!(control.source_end.costs, changed.source_end.costs);
+        for (lane, &index) in control.source_end.angular_indices.iter().enumerate() {
+            assert_eq!(index, control.source_end.sources[source].states[lane]);
+        }
+        let alternate = f.execution().read_bank_with_source_end_transport(
+            &segments,
+            &[5],
+            &[5],
+            &f.parent,
+            &cue,
+            &prefix,
+            &end,
+        )?;
+        assert_eq!(alternate.source_end.sources, result.source_end.sources);
+        assert_ne!(
+            alternate.source_end.response.token_ids,
+            result.source_end.response.token_ids
+        );
+        // A shorter source and repeated opaque events cannot let terminal
+        // coefficients reroute the factual donor. Prefix/query changes are
+        // independently recomputed rather than retaining a hidden cursor.
+        let short_ids = [4];
+        let short_view = f.compiler.compile(&short_ids)?;
+        let mixed = [
+            SourceBankSegment::Source {
+                frame: ActionFixture::frame(&short_ids),
+                view: &short_view,
+                event: 7,
+            },
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: ActionFixture::frame(&ids),
+                view: &view,
+                event: 7,
+            },
+        ];
+        for (query, actual) in [(&[4][..], &[4][..]), (&[5][..], &[4, 3][..])] {
+            let base = f.execution().read_bank_with_source_end_transport(
+                &mixed, query, actual, &f.parent, &cue, &prefix, &end,
+            )?;
+            let changed = f.execution().read_bank_with_source_end_transport(
+                &mixed, query, actual, &f.parent, &cue, &prefix, &nonzero,
+            )?;
+            assert_eq!(changed.prefix_bank, base.prefix_bank);
+            assert_eq!(
+                changed.source_end.selected_bank_index,
+                base.source_end.selected_bank_index
+            );
+            assert_eq!(
+                changed.source_end.selected_source_index,
+                base.source_end.selected_source_index
+            );
+            let index = base
+                .source_end
+                .selected_bank_index
+                .ok_or_else(|| invalid("mixed route absent"))?;
+            let source = base
+                .source_end
+                .selected_source_index
+                .ok_or_else(|| invalid("mixed Source absent"))?;
+            assert_eq!(
+                base.prefix_bank.cue_bank.bank.candidates[index].segment_index,
+                base.source_end.sources[source].source_segment_index
+            );
+        }
+        let empty = [SourceBankSegment::Context {
+            token_ids: &[5],
+            role: 1,
+            event: 2,
+        }];
+        // The retained occurrence reader requires a Source. This wrapper
+        // preserves its EmptyBank error rather than inventing an absent-source
+        // serving path. The standalone factual-route test covers zero atoms.
+        let old_empty = f.execution().read_bank_with_prefix_transport(
+            &empty,
+            &[5],
+            &[],
+            &f.parent,
+            &cue,
+            &prefix,
+        );
+        let new_empty = f.execution().read_bank_with_source_end_transport(
+            &empty,
+            &[5],
+            &[],
+            &f.parent,
+            &cue,
+            &prefix,
+            &nonzero,
+        );
+        assert!(old_empty.is_err());
+        assert!(new_empty.is_err());
+        let mut foreign = f.parent.clone();
+        foreign.metadata_sha256 = "1".repeat(64);
+        assert_ne!(foreign.metadata_sha256, f.parent.metadata_sha256);
+        assert!(f
+            .execution()
+            .read_bank_with_source_end_transport(
+                &segments,
+                &[5],
+                &[],
+                &foreign,
+                &cue,
+                &prefix,
+                &end
+            )
+            .is_err());
+        Ok(())
+    }
+
     #[test]
     fn ordered_prefix_zero_preserves_cue_bank_and_before_token_provenance() -> Result<()> {
         use crate::geometric_prefix_transport::PrefixScoreMode;
