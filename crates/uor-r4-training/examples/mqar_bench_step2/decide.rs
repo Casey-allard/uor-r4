@@ -126,6 +126,7 @@ fn collect(runs: &Path) -> Result<(BTreeMap<(String, String), ArmRuns>, Vec<Valu
     let mut grouped: BTreeMap<(String, String), ArmRuns> = BTreeMap::new();
     let mut skipped = Vec::new();
     let mut seen = BTreeSet::new();
+    let mut shared_config: Option<(Value, String)> = None;
     let mut entries: Vec<PathBuf> = fs::read_dir(runs)?
         .map(|entry| entry.map(|e| e.path()))
         .collect::<std::io::Result<_>>()?;
@@ -148,6 +149,32 @@ fn collect(runs: &Path) -> Result<(BTreeMap<(String, String), ArmRuns>, Vec<Valu
                 json!({"root": name, "reason": "status is not complete", "error": report["error"]}),
             );
             continue;
+        }
+        // A seed counts only if it trained its full budget: a run cut short by
+        // max_seconds is a different (smaller) experiment, not a seed of this one.
+        let planned = report["task"]["common"]["steps"].as_u64();
+        let completed = report["results"]["steps_completed"].as_u64();
+        if report["results"]["stopped_early_at_max_seconds"] == true || completed != planned {
+            skipped.push(json!({
+                "root": name,
+                "reason": "did not train its full step budget",
+                "steps_completed": report["results"]["steps_completed"],
+                "steps_planned": report["task"]["common"]["steps"],
+            }));
+            continue;
+        }
+        // Every counted seed must share one training configuration; only the
+        // seed and the execution environment may differ.
+        let fingerprint = training_fingerprint(&report);
+        match &shared_config {
+            None => shared_config = Some((fingerprint, name.clone())),
+            Some((first, first_root)) if *first != fingerprint => {
+                return Err(invalid(format!(
+                    "{name} was trained with a different configuration than {first_root}; \
+                     decide one grid at a time"
+                )));
+            }
+            Some(_) => {}
         }
         let config = &report["arm"]["config"];
         let pattern = config["stack_config"]["pattern"]
@@ -194,6 +221,27 @@ fn collect(runs: &Path) -> Result<(BTreeMap<(String, String), ArmRuns>, Vec<Valu
         runs.seeds.sort_by_key(|run| run.seed);
     }
     Ok((grouped, skipped))
+}
+
+/// The parts of a fact report that define the experiment: the shared task
+/// settings and the fact layout, without the per-run seed and execution
+/// environment (device, threads, model saving, the wall-time cap, probe).
+fn training_fingerprint(report: &Value) -> Value {
+    let mut common = report["task"]["common"].clone();
+    if let Some(map) = common.as_object_mut() {
+        for key in [
+            "seed",
+            "threads",
+            "device",
+            "save_model",
+            "max_seconds",
+            "probe_steps",
+            "probe_sequences",
+        ] {
+            map.remove(key);
+        }
+    }
+    json!({"common": common, "fact": report["task"]["fact"]})
 }
 
 /// Rules 1-3 and 6 on `cells` for one pattern.
