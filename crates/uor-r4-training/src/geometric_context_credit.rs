@@ -1447,3 +1447,432 @@ pub fn frozen_snapshot_no_read_forward(
         &vec![false; snapshot.d.rows()],
     )
 }
+
+// PATCH DRAFT: append to training/src/geometric_context_credit.rs.
+// Reuses private admit/code/choice_pullback/checked/contiguous/Q24/ALGEBRA.
+// Offline only. Hard native cue output with a declared finite-choice adjoint.
+use uor_r4_integer::geometric_cue_carrier::{
+    CarrierState, CueAngularConfig, CueCarrierTrace, CueScoreMode,
+};
+
+pub struct CueRootCreditOutput {
+    pub scores: Tensor,
+    pub scores_q24: Vec<Vec<i64>>,
+}
+
+fn cue_final_roots(context: &ContextQ4Output, packet: &CarrierState) -> Result<Tensor> {
+    let (d, _) = admit(context)?;
+    if d.batch != 1 || packet.token_ids.len() != d.time {
+        return Err(invalid(
+            "cue root credit requires one actual nonempty local encoding",
+        ));
+    }
+    let at = (d.time - 1) * d.width();
+    let codes = context.trace.codes[at..at + d.width()]
+        .iter()
+        .copied()
+        .map(uor_r4_integer::geometric_source_realizer::ObservedCode::from)
+        .collect::<Vec<_>>();
+    if context.trace.states[d.time - 1] != packet.states
+        || context.trace.emitted_roots[at..at + d.width()] != packet.raw_roots
+        || context.trace.categories[at..at + d.width()] != packet.categories
+        || codes != packet.codes
+    {
+        return Err(invalid(
+            "cue local final packet differs from native carrier",
+        ));
+    }
+    Ok(context
+        .root_logits
+        .narrow(1, d.time - 1, 1)?
+        .reshape((d.width(), 120))?
+        .contiguous()?)
+}
+
+/// Caller verifies actual token IDs/reset-from-identity replay and enclosing
+/// artifact identity. Final raw/observed packet and payload binding are checked
+/// here. No category credit or latent substitution; absent endpoints remain zero.
+/// Output heads x candidates matches the native cue sidecar, in nat units.
+pub fn frozen_cue_root_forward(
+    config: CueAngularConfig,
+    packed: &[u8],
+    carrier: &CueCarrierTrace,
+    query: &ContextQ4Output,
+    cues: &[ContextQ4Output],
+) -> Result<CueRootCreditOutput> {
+    use sha2::{Digest, Sha256};
+    if config != carrier.metadata.potential
+        || hex::encode(Sha256::digest(packed)) != carrier.metadata.potential_packed_sha256
+        || cues.len() != carrier.cues.len()
+        || query.trace.heads != config.heads
+        || query.trace.lanes_per_head != config.lanes_per_head
+    {
+        return Err(invalid(
+            "cue credit config/payload/local encoding binding differs",
+        ));
+    }
+    let q = cue_final_roots(query, &carrier.query)?;
+    let mut local = Vec::with_capacity(cues.len());
+    for (context, packet) in cues.iter().zip(&carrier.cues) {
+        if context.trace.heads != config.heads
+            || context.trace.lanes_per_head != config.lanes_per_head
+        {
+            return Err(invalid("cue credit local encoder dimensions differ"));
+        }
+        local.push(cue_final_roots(context, &packet.state)?);
+    }
+    // No-cue banks need a graph-compatible empty second input, not a fake cue.
+    let k = if local.is_empty() {
+        Tensor::zeros(
+            (0, config.heads * config.lanes_per_head, 120),
+            DType::F32,
+            &Device::Cpu,
+        )?
+    } else {
+        Tensor::stack(&local, 0)?.contiguous()?
+    };
+    let op = CueRootCredit::new(config, packed, carrier)?;
+    let scores_q24 = op.hard.clone();
+    let scores = q.apply_op2(&k, op)?;
+    Ok(CueRootCreditOutput { scores, scores_q24 })
+}
+
+struct CueRootCredit {
+    config: CueAngularConfig,
+    coefficients: Vec<i8>,
+    algebra: HistoricalH4Tables,
+    query: Vec<AddressLane>,
+    cues: Vec<Vec<AddressLane>>,
+    candidate_cues: Vec<Option<usize>>,
+    hard: Vec<Vec<i64>>,
+}
+impl CueRootCredit {
+    fn new(config: CueAngularConfig, packed: &[u8], trace: &CueCarrierTrace) -> Result<Self> {
+        let coefficients = geometric_potential_q4::unpack_coefficients(
+            config
+                .coefficient_count()
+                .map_err(|e| invalid(e.to_string()))?,
+            packed,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let addresses = |p: &CarrierState| -> Result<Vec<AddressLane>> {
+            p.codes
+                .iter()
+                .map(|c| {
+                    AddressLane::new(c.root, c.radius_bin, c.present)
+                        .map_err(|e| invalid(e.to_string()))
+                })
+                .collect()
+        };
+        let width = config.heads * config.lanes_per_head;
+        let query = addresses(&trace.query)?;
+        let cues = trace
+            .cues
+            .iter()
+            .map(|x| addresses(&x.state))
+            .collect::<Result<Vec<_>>>()?;
+        if query.len() != width
+            || cues.iter().any(|x| x.len() != width)
+            || trace
+                .candidate_cue_indices
+                .iter()
+                .flatten()
+                .any(|&x| x >= cues.len())
+            || trace.copy_q24.len() != config.heads
+            || trace
+                .copy_q24
+                .iter()
+                .any(|x| x.len() != trace.candidate_cue_indices.len())
+        {
+            return Err(invalid("cue credit native trace shape differs"));
+        }
+        let op = Self {
+            config,
+            coefficients,
+            algebra: HistoricalH4Tables::from_bytes(ALGEBRA).map_err(|e| invalid(e.to_string()))?,
+            query,
+            cues,
+            candidate_cues: trace.candidate_cue_indices.clone(),
+            hard: trace.copy_q24.clone(),
+        };
+        for h in 0..config.heads {
+            for n in 0..op.candidate_cues.len() {
+                let mut exact = 0i64;
+                if let Some(s) = op.candidate_cues[n] {
+                    for l in 0..config.lanes_per_head {
+                        let lane = h * config.lanes_per_head + l;
+                        exact = exact
+                            .checked_add(op.score(lane, op.query[lane], op.cues[s][lane])?)
+                            .ok_or_else(|| invalid("cue hard score overflow"))?;
+                    }
+                }
+                if exact != op.hard[h][n] {
+                    return Err(invalid("cue native hard Q24 differs"));
+                }
+            }
+        }
+        Ok(op)
+    }
+    fn score(&self, lane: usize, q: AddressLane, k: AddressLane) -> Result<i64> {
+        if !q.present() || !k.present() {
+            return Ok(0);
+        }
+        // Compute directed relation in both arms, matching the native contract.
+        let relative = self
+            .algebra
+            .relative(code(q.root())?, code(k.root())?)
+            .index();
+        let index = match self.config.mode {
+            CueScoreMode::DirectedRelative => relative,
+            CueScoreMode::CueUnary => k.root(),
+        };
+        Ok(i64::from(self.coefficients[lane * 120 + usize::from(index)]) << 22)
+    }
+    fn backward(&self, q: &[f32], k: &[f32], g: &[f32]) -> Result<(Vec<f32>, Vec<f32>)> {
+        let width = self.query.len();
+        let n = self.candidate_cues.len();
+        if q.len() != width * 120
+            || k.len() != self.cues.len() * width * 120
+            || g.len() != self.config.heads * n
+            || q.iter().chain(k).chain(g).any(|x| !x.is_finite())
+        {
+            return Err(invalid("cue root adjoint shape/nonfinite input"));
+        }
+        let mut qcredit = vec![0f64; q.len()];
+        let mut kcredit = vec![0f64; k.len()];
+        for h in 0..self.config.heads {
+            for candidate in 0..n {
+                let Some(s) = self.candidate_cues[candidate] else {
+                    continue;
+                };
+                let adj = f64::from(g[h * n + candidate]);
+                for l in 0..self.config.lanes_per_head {
+                    let lane = h * self.config.lanes_per_head + l;
+                    let rq = self.query[lane];
+                    let rk = self.cues[s][lane];
+                    if !rq.present() || !rk.present() {
+                        continue;
+                    }
+                    for alternative in 0..120u8 {
+                        let aq = AddressLane::new(alternative, rq.radius_bin(), true)
+                            .map_err(|e| invalid(e.to_string()))?;
+                        let ak = AddressLane::new(alternative, rk.radius_bin(), true)
+                            .map_err(|e| invalid(e.to_string()))?;
+                        qcredit[lane * 120 + usize::from(alternative)] +=
+                            adj * self.score(lane, aq, rk)? as f64 / Q24;
+                        kcredit[(s * width + lane) * 120 + usize::from(alternative)] +=
+                            adj * self.score(lane, rq, ak)? as f64 / Q24;
+                    }
+                }
+            }
+        }
+        // Choice credit is invariant to a rowwise constant. Remove it exactly
+        // before pullback so unary-query and constant-table ties are EXACT zero,
+        // rather than tiny numerical residuals of summing120 probabilities.
+        for row in qcredit.chunks_exact_mut(120) {
+            let anchor = row[0];
+            for x in row {
+                *x -= anchor;
+            }
+        }
+        for row in kcredit.chunks_exact_mut(120) {
+            let anchor = row[0];
+            for x in row {
+                *x -= anchor;
+            }
+        }
+        let mut dq = vec![0f64; q.len()];
+        let mut dk = vec![0f64; k.len()];
+        // Sum all candidate contributions sharing a cue BEFORE the softmax adjoint.
+        for lane in 0..width {
+            let at = lane * 120;
+            choice_pullback(
+                &q[at..at + 120],
+                &qcredit[at..at + 120],
+                &mut dq[at..at + 120],
+            );
+        }
+        for at in (0..k.len()).step_by(120) {
+            choice_pullback(
+                &k[at..at + 120],
+                &kcredit[at..at + 120],
+                &mut dk[at..at + 120],
+            );
+        }
+        Ok((checked(dq)?, checked(dk)?))
+    }
+}
+impl CustomOp2 for CueRootCredit {
+    fn name(&self) -> &'static str {
+        "frozen-cue-native-root120-choice-credit"
+    }
+    fn cpu_fwd(
+        &self,
+        a: &CpuStorage,
+        la: &Layout,
+        b: &CpuStorage,
+        lb: &Layout,
+    ) -> candle_core::Result<(CpuStorage, Shape)> {
+        let q = contiguous(a, la)?;
+        let k = contiguous(b, lb)?;
+        if q.len() != self.query.len() * 120
+            || k.len() != self.cues.len() * self.query.len() * 120
+            || q.iter().chain(k).any(|x| !x.is_finite())
+        {
+            candle_core::bail!("cue credit forward inputs differ");
+        }
+        Ok((
+            CpuStorage::F32(
+                self.hard
+                    .iter()
+                    .flatten()
+                    .map(|&x| (x as f64 / Q24) as f32)
+                    .collect(),
+            ),
+            Shape::from((self.config.heads, self.candidate_cues.len())),
+        ))
+    }
+    fn bwd(
+        &self,
+        a: &Tensor,
+        b: &Tensor,
+        _: &Tensor,
+        g: &Tensor,
+    ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        let (dq, dk) = self
+            .backward(
+                &a.flatten_all()?.to_vec1::<f32>()?,
+                &b.flatten_all()?.to_vec1::<f32>()?,
+                &g.flatten_all()?.to_vec1::<f32>()?,
+            )
+            .map_err(|e| candle_core::Error::Msg(e.to_string()))?;
+        Ok((
+            Some(Tensor::from_vec(dq, a.shape(), a.device())?),
+            Some(Tensor::from_vec(dk, b.shape(), b.device())?),
+        ))
+    }
+}
+
+#[cfg(test)]
+mod cue_root_credit_draft_tests {
+    use super::*;
+    use candle_core::Var;
+    fn fixture(mode: CueScoreMode, present: bool) -> Result<CueRootCredit> {
+        let config = CueAngularConfig {
+            heads: 1,
+            lanes_per_head: 1,
+            mode,
+        };
+        let q = if present {
+            AddressLane::new(4, 7, true)
+        } else {
+            AddressLane::new(H4Code::IDENTITY.index(), 0, false)
+        }
+        .map_err(|e| invalid(e.to_string()))?;
+        let k = AddressLane::new(9, 3, true).map_err(|e| invalid(e.to_string()))?;
+        let mut op = CueRootCredit {
+            config,
+            coefficients: (0..120).map(|r| (r % 15) as i8 - 7).collect(),
+            algebra: HistoricalH4Tables::from_bytes(ALGEBRA).map_err(|e| invalid(e.to_string()))?,
+            query: vec![q],
+            cues: vec![vec![k]],
+            candidate_cues: vec![Some(0), Some(0), None],
+            hard: vec![vec![0; 3]],
+        };
+        let exact = op.score(0, q, k)?;
+        op.hard[0] = vec![exact, exact, 0];
+        Ok(op)
+    }
+    #[test]
+    fn cue_root_credit_native_hard_shared_candidate_adjoint_and_finite_choice() -> Result<()> {
+        let op = fixture(CueScoreMode::DirectedRelative, true)?;
+        let hard = op.hard.clone();
+        let q = Var::from_vec(vec![0f32; 120], (1, 120), &Device::Cpu)?;
+        let k = Var::from_vec(vec![0f32; 120], (1, 1, 120), &Device::Cpu)?;
+        let out = q.as_tensor().apply_op2(k.as_tensor(), op)?;
+        assert_eq!(
+            out.to_vec2::<f32>()?,
+            hard.iter()
+                .map(|r| r
+                    .iter()
+                    .map(|&x| (x as f64 / Q24) as f32)
+                    .collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        );
+        let grad = (out * Tensor::from_vec(vec![1f32, 2., 0.], (1, 3), &Device::Cpu)?)?
+            .sum_all()?
+            .backward()?;
+        let dq = grad
+            .get(q.as_tensor())
+            .ok_or_else(|| invalid("query root graph disconnected"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let dk = grad
+            .get(k.as_tensor())
+            .ok_or_else(|| invalid("cue root graph disconnected"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(dq.iter().any(|x| x.abs() > 1e-6) && dk.iter().any(|x| x.abs() > 1e-6));
+        let op = fixture(CueScoreMode::DirectedRelative, true)?;
+        let (singleq, singlek) = op.backward(&vec![0f32; 120], &vec![0f32; 120], &[1., 0., 0.])?;
+        for i in 0..120 {
+            assert!((dq[i] - 3. * singleq[i]).abs() < 1e-6);
+            assert!((dk[i] - 3. * singlek[i]).abs() < 1e-6);
+        }
+        // Finite difference of the declared smooth expectation, NOT hard argmax.
+        let mut logits = vec![0f32; 120];
+        let axis = 17;
+        let epsilon = 0.001f32;
+        let expectation = |xs: &[f32]| -> Result<f64> {
+            probabilities(xs)
+                .iter()
+                .enumerate()
+                .try_fold(0., |sum, (r, p)| {
+                    let aq = AddressLane::new(r as u8, op.query[0].radius_bin(), true)
+                        .map_err(|e| invalid(e.to_string()))?;
+                    Ok(sum + 3. * p * op.score(0, aq, op.cues[0][0])? as f64 / Q24)
+                })
+        };
+        logits[axis] = epsilon;
+        let plus = expectation(&logits)?;
+        logits[axis] = -epsilon;
+        let minus = expectation(&logits)?;
+        assert!(((plus - minus) / (2. * f64::from(epsilon)) - f64::from(dq[axis])).abs() < 1e-5);
+        Ok(())
+    }
+    #[test]
+    fn cue_root_credit_masks_absence_and_unary_query_and_preserves_tied_hard_forward() -> Result<()>
+    {
+        for mode in [CueScoreMode::DirectedRelative, CueScoreMode::CueUnary] {
+            let absent = fixture(mode, false)?;
+            assert_eq!(absent.hard, vec![vec![0i64; 3]]);
+            let (q, k) = absent.backward(&vec![0f32; 120], &vec![0f32; 120], &[1., 2., 7.])?;
+            assert!(q.iter().chain(&k).all(|&x| x == 0.));
+        }
+        for mode in [CueScoreMode::DirectedRelative, CueScoreMode::CueUnary] {
+            let mut absent_cue = fixture(mode, true)?;
+            absent_cue.cues[0][0] = AddressLane::new(H4Code::IDENTITY.index(), 0, false)
+                .map_err(|e| invalid(e.to_string()))?;
+            absent_cue.hard = vec![vec![0i64; 3]];
+            let (q, k) = absent_cue.backward(&vec![0f32; 120], &vec![0f32; 120], &[1., 2., 7.])?;
+            assert!(q.iter().chain(&k).all(|&x| x == 0.));
+        }
+        let unary = fixture(CueScoreMode::CueUnary, true)?;
+        let (q, k) = unary.backward(&vec![0f32; 120], &vec![0f32; 120], &[1., 0., 0.])?;
+        assert!(q.iter().all(|&x| x == 0.));
+        assert!(k.iter().any(|&x| x != 0.));
+        let mut tied = fixture(CueScoreMode::DirectedRelative, true)?;
+        tied.coefficients.fill(3);
+        tied.hard = vec![vec![3i64 << 22, 3i64 << 22, 0]];
+        let (q, k) = tied.backward(&vec![0f32; 120], &vec![0f32; 120], &[1., 2., 0.])?;
+        assert!(q.iter().chain(&k).all(|&x| x == 0.));
+        // No tie winner is invented: all120 alternatives equal, actual hard packet retained.
+        let q = Tensor::zeros((1, 120), DType::F32, &Device::Cpu)?;
+        let k = Tensor::zeros((1, 1, 120), DType::F32, &Device::Cpu)?;
+        assert_eq!(
+            q.apply_op2(&k, tied)?.to_vec2::<f32>()?,
+            vec![vec![0.75, 0.75, 0.]]
+        );
+        Ok(())
+    }
+}

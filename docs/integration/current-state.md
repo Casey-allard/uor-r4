@@ -1,5 +1,11 @@
 # Current UOR-R4 research state
 
+## Natural reader root-credit implementation passes scoped Rust checks — October 5
+
+The [observation-credit implementation](geometric-natural-reader-observation-2026-10-05.md) connects existing natural cue/query roots to actual full cue/prefix/SourceEnd alias loss, with exact hard native forward and offline finite H4 credit. Root-only optimizer filtering, frozen transition/category/donor guards and honest export rebinding retain existing mechanisms. Two cue tests and four intended realizer tests pass at8e57 (plus two incidental tests);22 driver/reused checks pass at34592. The zero-match initial filter remains NOT_RUN; source/storage/compile failures are retained separately. No natural panel, broad gradient admission, fit or new recall result has run.
+
+**Next:** compile/exercise the drafted Rust natural-panel preparer, prospectively seal original-statement/all-current-record construction, audit reference controls/byteBPE parity/descriptor collisions, then measure actual-parent zero-update full-pipeline gradients and B8 cost before admitting genuine episode-order fits. Compiler frame/capture transfer and coherent updated-reader/compiler binding remain separate obligations. Shared session untouched; no general chat/energy qualification. CPU48/noGPU;30min source/preservation card charged once, cumulative1,294,035,028ms.
+
 ## Ordered H4 frame gains are retained; selected fresh transfer remains — October 5
 
 The [six ordered-frame fits](geometric-ordered-frame-2026-10-05.md) learn256/256 training writes each and60–62/64 dev writes atCP64. Matched CP64 new-value206→253/384, new-wording276→346/384 and repetition54→66/96 improve, while whole dev606→531/768 regresses. These repeat rows across three head seeds per arm. Native dev CE selectsCP0 five times andCP64 once; all selected fresh store answers0/12. Preserve component gains, query/nonwrite regressions and all checkpoints; no retroactive selection or geometry retirement.

@@ -44,7 +44,9 @@ use super::{
 };
 use crate::{
     geometric_context::NativeContextTrace,
-    geometric_context_credit::{frozen_no_read_forward, frozen_potential_forward},
+    geometric_context_credit::{
+        frozen_cue_root_forward, frozen_no_read_forward, frozen_potential_forward,
+    },
     geometric_no_read::{NoReadBatch, NoReadWeights},
     geometric_source_actions::{SourceActionBinding, POLICY as ACTION_POLICY},
     geometric_source_emission_view::SourceEmissionView,
@@ -186,6 +188,30 @@ impl SourceRealizerWeights {
                     .map(|(name, var)| (format!("period.{name}"), var.clone())),
             )
             .collect()
+    }
+
+    /// Existing observation coefficients only; optimizer selection must precede clipping.
+    pub fn observation_root_parameters(&self) -> BTreeMap<String, Var> {
+        self.parameters()
+            .into_iter()
+            .filter(|(name, _)| observation_root_parameter(name))
+            .collect()
+    }
+
+    /// Root-only would-export identity. This is not an independent artifact reload.
+    pub fn compile_observation_rebound(
+        &self,
+        frozen_parent: &NativeSourceRealizer,
+    ) -> Result<NativeSourceRealizer> {
+        frozen_parent.artifact_binding()?;
+        verify_observation_inventory(
+            &parameter_identities(self)?,
+            &frozen_parent.metadata.source_parameters,
+        )?;
+        let mut native = self.compile(frozen_parent.metadata.identity.clone())?;
+        let (_, metadata) = native.export_payloads()?;
+        native.compiled_metadata_sha256 = Some(sha256_bytes(&metadata));
+        Ok(native)
     }
 
     /// Only the existing Stop and Period shadows; no new terminal features.
@@ -508,6 +534,35 @@ fn parameter_identities(
             ))
         })
         .collect()
+}
+
+/// Exact admitted source Var names; no prefix-based permission widening.
+pub fn observation_root_parameter(name: &str) -> bool {
+    matches!(
+        name,
+        "consumer.context.token_root"
+            | "consumer.context.self_root"
+            | "consumer.context.neighbor_root"
+    )
+}
+fn verify_observation_inventory(
+    current: &BTreeMap<String, ParameterIdentity>,
+    frozen: &BTreeMap<String, ParameterIdentity>,
+) -> Result<()> {
+    if current.keys().ne(frozen.keys()) {
+        return Err(invalid("observation compile source inventory differs"));
+    }
+    for (name, receipt) in frozen {
+        let now = current
+            .get(name)
+            .ok_or_else(|| invalid("observation compile source family absent"))?;
+        if now.shape != receipt.shape || (!observation_root_parameter(name) && now != receipt) {
+            return Err(invalid(
+                "observation compile changed frozen family or source shape",
+            ));
+        }
+    }
+    Ok(())
 }
 
 pub fn terminal_parameter(name: &str) -> bool {
@@ -1738,6 +1793,12 @@ pub struct SourceEndBankRealizerLoss {
     pub target_probability: f64,
 }
 
+pub struct ObservationBankRealizerLoss {
+    pub loss: Tensor,
+    pub trace: uor_r4_integer::geometric_source_realizer::SourceEndBankRealizerTrace,
+    pub target_probability: f64,
+}
+
 pub struct CueBankRealizerLoss {
     pub loss: Tensor,
     pub trace: uor_r4_integer::geometric_source_realizer::CueBankRealizerTrace,
@@ -1884,6 +1945,191 @@ impl PreparedSourceRealizer<'_> {
         target: u32,
     ) -> Result<BankRealizerLoss> {
         self.loss_bank_with_context_credit(segments, query, prefix, target, true)
+    }
+
+    /// Ordinary token marginal on a nonempty factual source bank and query.
+    /// No-source/empty-query behavior is outside this scoped learning adapter.
+    /// Only observation-root Vars are admitted by the caller's optimizer. Frozen
+    /// prefix/end choices are stopped-gradient branches, not differentiable routes.
+    pub fn loss_bank_observation(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        target: u32,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        end: &NativeSourceEndTransport<'_>,
+    ) -> Result<ObservationBankRealizerLoss> {
+        if target as usize >= self.source.binding.vocab_size() {
+            return Err(invalid("observation target out of vocabulary"));
+        }
+        // Every source/route/action is obtained before labels enter marginal loss.
+        let trace = self.native.read_bank_with_source_end_transport(
+            segments,
+            query,
+            actual_prefix,
+            cue,
+            prefix,
+            end,
+        )?;
+        let actions = &trace.actions;
+        let mass = actions
+            .token_masses
+            .iter()
+            .find(|v| v.token_id == target)
+            .map_or(0, |v| v.weight_q31);
+        if mass == 0 || actions.total_weight_q31 == 0 || mass > actions.total_weight_q31 {
+            return Err(invalid(
+                "observation native target has zero/invalid support; no floor",
+            ));
+        }
+        let probability = mass as f64 / actions.total_weight_q31 as f64;
+        let bank = &trace.prefix_bank.cue_bank.bank;
+        let carrier = &trace.prefix_bank.cue_bank.carrier;
+        let ids = &bank.context.tokens;
+        let time = ids.len();
+        let c = self.source.consumer.config();
+        let lanes = c.heads * c.lanes_per_head;
+        let count = bank.candidates.len();
+        if time == 0
+            || count == 0
+            || bank.heads.len() != c.heads
+            || actions.actions.len() != count + 2
+            || carrier.query.token_ids != query
+        {
+            return Err(invalid("observation complete bank shape/query differs"));
+        }
+        let context = self.consumer.context.forward(ids, 1, time, false)?;
+        if !context_replay_matches(&bank.context, &context.trace) {
+            return Err(invalid("observation full replay differs"));
+        }
+        let positions = bank
+            .candidates
+            .iter()
+            .enumerate()
+            .map(|(j, v)| {
+                if v.bank_index != j || v.context_position >= time - 1 {
+                    return Err(invalid(
+                        "observation candidate ordinal/causal position differs",
+                    ));
+                }
+                Ok(v.context_position as u32)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let index = Tensor::from_vec(positions.clone(), count, &Device::Cpu)?;
+        let absent = AddressLane::new(H4Code::IDENTITY.index(), 0, false)
+            .map_err(|e| invalid(e.to_string()))?;
+        let copy = frozen_potential_forward(
+            &self.source.consumer.potential,
+            &vec![absent; time * lanes],
+            &context,
+        )?;
+        let query_output = self
+            .consumer
+            .context
+            .forward(query, 1, query.len(), false)?;
+        let mut cue_outputs = Vec::with_capacity(carrier.cues.len());
+        for local in &carrier.cues {
+            let previous = local
+                .source_segment_index
+                .checked_sub(1)
+                .ok_or_else(|| invalid("observation cue predecessor absent"))?;
+            if previous != local.context_segment_index {
+                return Err(invalid("observation cue predecessor ordinal differs"));
+            }
+            let Some(SourceBankSegment::Context { token_ids, .. }) = segments.get(previous) else {
+                return Err(invalid("observation cue input is not Context"));
+            };
+            if *token_ids != local.state.token_ids.as_slice() {
+                return Err(invalid("observation cue input token IDs differ"));
+            }
+            if !matches!(
+                segments.get(local.source_segment_index),
+                Some(SourceBankSegment::Source { .. })
+            ) {
+                return Err(invalid("observation cue Source ordinal differs"));
+            }
+            cue_outputs.push(self.consumer.context.forward(
+                token_ids,
+                1,
+                token_ids.len(),
+                false,
+            )?);
+        }
+        // The adapter checks final native states, roots, categories and codes;
+        // independent identity-reset encodes are connected to current root Vars.
+        let cue_credit = frozen_cue_root_forward(
+            carrier.metadata.potential,
+            cue.packed_coefficients(),
+            carrier,
+            &query_output,
+            &cue_outputs,
+        )?;
+        if cue_credit.scores_q24 != carrier.copy_q24 {
+            return Err(invalid("observation cue hard scores differ"));
+        }
+        let mut heads = Vec::with_capacity(c.heads);
+        for h in 0..c.heads {
+            if bank.heads[h].scores_q24.len() != count
+                || trace
+                    .prefix_bank
+                    .prefix
+                    .copy_q24
+                    .get(h)
+                    .is_none_or(|v| v.len() != count)
+            {
+                return Err(invalid("observation head/candidate score shape differs"));
+            }
+            let at = h * time + time - 1;
+            for (j, &position) in positions.iter().enumerate() {
+                let expected = copy.scores_q24[at * time + position as usize]
+                    .checked_add(carrier.copy_q24[h][j])
+                    .and_then(|v| v.checked_add(trace.prefix_bank.prefix.copy_q24[h][j]))
+                    .ok_or_else(|| invalid("observation hard Copy sum overflow"))?;
+                if expected != bank.heads[h].scores_q24[j] {
+                    return Err(invalid("observation combined Copy hard parity differs"));
+                }
+            }
+            heads.push(
+                (copy.scores.i((0, h, time - 1))?.index_select(&index, 0)?
+                    + cue_credit.scores.i(h)?)?,
+            );
+        }
+        for j in 0..count {
+            let summed = bank.heads.iter().try_fold(0i64, |sum, head| {
+                sum.checked_add(head.scores_q24[j])
+                    .ok_or_else(|| invalid("observation final Copy sum overflow"))
+            })?;
+            let original = bank
+                .actions
+                .actions
+                .get(j)
+                .ok_or_else(|| invalid("observation nested Copy action absent"))?;
+            let final_action = &actions.actions[j];
+            if final_action.score_q24 != summed
+                || final_action.action != original.action
+                || final_action.token_id != original.token_id
+                || final_action.action_offset != original.action_offset
+            {
+                return Err(invalid("SourceEnd changed factual Copy score/identity"));
+            }
+        }
+        let credit = Tensor::cat(
+            &[
+                Tensor::stack(&heads, 0)?.sum(0)?,
+                Tensor::zeros(2, candle_core::DType::F32, &Device::Cpu)?,
+            ],
+            0,
+        )?;
+        // Zero terminal adjoints never zero numerical Period/Stop: the existing
+        // marginal primitive anchors EVERY action to authoritative final scores.
+        let loss = marginal_action_loss(actions, &credit, target, probability)?;
+        Ok(ObservationBankRealizerLoss {
+            loss,
+            trace,
+            target_probability: probability,
+        })
     }
 
     /// Ordinary bank alias CE with the native geometric context frozen. Native
@@ -4126,6 +4372,232 @@ mod tests {
         metadata.policy = "unknown".into();
         fs::write(source_meta, serde_json::to_vec(&metadata)?)?;
         assert!(SourceRealizerWeights::load_source(&source_path, TOK.as_bytes()).is_err());
+        Ok(())
+    }
+    #[test]
+    fn observation_inventory_admits_only_root_values_with_fixed_shapes() -> Result<()> {
+        let identity = ParameterIdentity {
+            shape: vec![1],
+            f32_sha256: "a".repeat(64),
+        };
+        let mut frozen = BTreeMap::new();
+        for name in [
+            "consumer.context.token_root",
+            "consumer.context.self_root",
+            "consumer.context.neighbor_root",
+            "consumer.context.token_category",
+            "consumer.context.token_transition",
+            "period.coefficients",
+        ] {
+            frozen.insert(name.to_string(), identity.clone());
+        }
+        let mut current = frozen.clone();
+        for name in [
+            "consumer.context.token_root",
+            "consumer.context.self_root",
+            "consumer.context.neighbor_root",
+        ] {
+            current
+                .get_mut(name)
+                .ok_or_else(|| invalid("fixture key absent"))?
+                .f32_sha256 = "b".repeat(64);
+        }
+        verify_observation_inventory(&current, &frozen)?;
+        for name in [
+            "consumer.context.token_category",
+            "consumer.context.token_transition",
+            "period.coefficients",
+        ] {
+            let mut changed = current.clone();
+            changed
+                .get_mut(name)
+                .ok_or_else(|| invalid("fixture key absent"))?
+                .f32_sha256 = "c".repeat(64);
+            assert!(verify_observation_inventory(&changed, &frozen).is_err());
+        }
+        current
+            .get_mut("consumer.context.token_root")
+            .ok_or_else(|| invalid("fixture key absent"))?
+            .shape = vec![2];
+        assert!(verify_observation_inventory(&current, &frozen).is_err());
+        assert!(!observation_root_parameter(
+            "consumer.context.token_root_extra"
+        ));
+        Ok(())
+    }
+    #[test]
+    fn observation_rebound_retains_loaded_guard_and_matches_actual_saved_inventory() -> Result<()> {
+        let (fixture, frozen, _) = dependent_fixture()?;
+        let zero = fixture.weights.compile_observation_rebound(&frozen)?;
+        assert_eq!(zero.execution_binding()?, frozen.artifact_binding()?);
+        let roots = fixture.weights.observation_root_parameters();
+        let var = roots
+            .get("consumer.context.token_root")
+            .ok_or_else(|| invalid("fixture root absent"))?;
+        let mut values = var.flatten_all()?.to_vec1::<f32>()?;
+        values[0] += 0.25;
+        var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        assert!(fixture.weights.compile_terminal_rebound(&frozen).is_err());
+        let current = fixture.weights.compile_observation_rebound(&frozen)?;
+        assert!(current.artifact_binding().is_err());
+        fixture.weights.prepare(&current)?;
+        let path = fixture.path.join("observation-inventory");
+        current.save(&path)?;
+        let loaded = NativeSourceRealizer::load(&path, &fixture.weights, &fixture.identity)?;
+        assert_eq!(current.execution_binding()?, loaded.artifact_binding()?);
+        assert_ne!(current.execution_binding()?, frozen.artifact_binding()?);
+        let forbidden = fixture.weights.parameters();
+        let var = forbidden
+            .get("period.coefficients")
+            .ok_or_else(|| invalid("fixture terminal absent"))?;
+        let mut values = var.flatten_all()?.to_vec1::<f32>()?;
+        values[0] += 0.25;
+        var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        assert!(fixture
+            .weights
+            .compile_observation_rebound(&frozen)
+            .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn observation_loss_anchors_final_source_end_period_mass_and_zeroes_terminal_credit(
+    ) -> Result<()> {
+        let (fixture, native, _) = dependent_fixture()?;
+        let c = native.consumer.context.config();
+        let n = c.heads * c.lanes_per_head * 120;
+        let zero = pack_coefficients(&vec![0; n]).map_err(|e| invalid(e.to_string()))?;
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: c.heads,
+                    lanes_per_head: c.lanes_per_head,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &zero,
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let prefix = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: c.heads,
+                    lanes_per_head: c.lanes_per_head,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &zero,
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let period = pack_coefficients(&vec![4; n]).map_err(|e| invalid(e.to_string()))?;
+        let end = native.compile_source_end_transport(
+            &cue,
+            &prefix,
+            SourceEndAngularQ4::new(
+                SourceEndAngularConfig {
+                    heads: c.heads,
+                    lanes_per_head: c.lanes_per_head,
+                    mode: SourceEndScoreMode::DirectedRelative,
+                },
+                &period,
+                &zero,
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let ids = [4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [SourceBankSegment::Source {
+            frame: frame(&ids),
+            view: &view,
+            event: 7,
+        }];
+        let baseline =
+            native.read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &prefix)?;
+        let prepared = fixture.weights.prepare(&native)?;
+        let out = prepared.loss_bank_observation(&segments, &[5], &[4], 3, &cue, &prefix, &end)?;
+        assert!(out.trace.source_end.selected_source_index.is_some());
+        assert_ne!(out.trace.actions, baseline.cue_bank.bank.actions);
+        let expected = -(out.target_probability as f32).ln();
+        assert!((out.loss.to_scalar::<f32>()? - expected).abs() < 1e-6);
+        let mass = out
+            .trace
+            .actions
+            .token_masses
+            .iter()
+            .find(|v| v.token_id == 3)
+            .ok_or_else(|| invalid("fixture final Period unsupported"))?
+            .weight_q31;
+        assert_eq!(
+            out.target_probability,
+            mass as f64 / out.trace.actions.total_weight_q31 as f64
+        );
+        let gradients = out.loss.backward()?;
+        for (_, var) in fixture.weights.terminal_parameters() {
+            assert!(gradients.get(var.as_tensor()).is_none());
+        }
+        assert!(fixture
+            .weights
+            .observation_root_parameters()
+            .values()
+            .any(|v| gradients.get(v.as_tensor()).is_some()));
+        Ok(())
+    }
+    #[test]
+    fn observation_root_change_preserves_actual_latent_and_category_replay() -> Result<()> {
+        let (fixture, frozen, _) = dependent_fixture()?;
+        let ids = [4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let before = frozen.read(frame(&ids), &view, &[5], &[4])?;
+        let var = fixture
+            .weights
+            .observation_root_parameters()
+            .get("consumer.context.token_root")
+            .cloned()
+            .ok_or_else(|| invalid("fixture root absent"))?;
+        let lanes = frozen.consumer.context.config().heads
+            * frozen.consumer.context.config().lanes_per_head;
+        let mut values = var.flatten_all()?.to_vec1::<f32>()?;
+        // Both ±identity winners receive a negative bias; root3 wins for
+        // either latent polarity without changing recurrence or categories.
+        values[5 * lanes * 120] = -1.75;
+        values[5 * lanes * 120 + 1] = -1.75;
+        values[5 * lanes * 120 + 3] = 1.75;
+        var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        let current = fixture.weights.compile_observation_rebound(&frozen)?;
+        let after = current.read(frame(&ids), &view, &[5], &[4])?;
+        assert_eq!(before.period_context.states, after.period_context.states);
+        assert_eq!(before.period_context.actions, after.period_context.actions);
+        assert_eq!(
+            before.period_context.categories,
+            after.period_context.categories
+        );
+        assert_ne!(
+            before.period_context.raw_roots,
+            after.period_context.raw_roots
+        );
+        let c = frozen.consumer.context.config();
+        let zero = pack_coefficients(&vec![0; c.heads * c.lanes_per_head * 120])
+            .map_err(|e| invalid(e.to_string()))?;
+        let stale = frozen.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: c.heads,
+                    lanes_per_head: c.lanes_per_head,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &zero,
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let segments = [SourceBankSegment::Source {
+            frame: frame(&ids),
+            view: &view,
+            event: 7,
+        }];
+        assert!(current
+            .read_bank_with_cue_carrier(&segments, &[5], &[4], &stale)
+            .is_err());
         Ok(())
     }
 }
