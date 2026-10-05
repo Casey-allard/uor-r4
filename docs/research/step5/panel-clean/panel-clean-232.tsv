@@ -1,0 +1,233 @@
+id	status	reason	note
+talk-01	clean	-	-
+talk-02	clean	-	-
+talk-03	clean	-	-
+talk-04	clean	-	-
+talk-05	clean	-	-
+talk-06	clean	-	-
+talk-07	clean	-	-
+talk-08	clean	-	-
+ask-01	clean	-	-
+ask-02	clean	-	-
+ask-03	clean	-	-
+ask-04	clean	-	-
+ask-05	clean	-	-
+ask-06	clean	-	-
+ask-07	clean	-	-
+ask-08	clean	-	-
+do-01	clean	-	-
+do-02	clean	-	-
+do-03	clean	-	-
+do-04	clean	-	-
+do-05	clean	-	-
+do-06	clean	-	-
+do-07	clean	-	-
+do-08	clean	-	-
+follow-01	clean	-	-
+follow-02	clean	-	-
+follow-03	clean	-	-
+follow-04	clean	-	-
+follow-05	clean	-	-
+follow-06	clean	-	-
+follow-07	clean	-	-
+follow-08	clean	-	-
+heldout-000	clean	-	-
+heldout-001	clean	-	-
+heldout-002	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-003	clean	-	-
+heldout-004	clean	-	-
+heldout-005	clean	-	-
+heldout-006	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-007	clean	-	-
+heldout-008	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-009	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-010	clean	-	-
+heldout-011	clean	-	-
+heldout-012	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-013	ill	placeholder	unfilled [template] placeholder
+heldout-014	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
+heldout-015	ill	placeholder	unfilled [template] placeholder
+heldout-016	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-017	clean	-	-
+heldout-018	clean	-	-
+heldout-019	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-020	clean	-	-
+heldout-021	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-022	clean	-	-
+heldout-023	ill	fragment	one line of a larger document; no request
+heldout-024	underspecified	statement_no_request	a standalone statement, announcement or title with no request
+heldout-025	clean	-	-
+heldout-026	clean	-	-
+heldout-027	clean	-	-
+heldout-028	clean	-	-
+heldout-029	clean	-	-
+heldout-030	ill	missing_instruction	supplies text but the instruction that followed it was cut
+heldout-031	ill	fragment	one line of a larger document; no request
+heldout-032	clean	-	-
+heldout-033	clean	-	-
+heldout-034	ill	fragment	one line of a larger document; no request
+heldout-035	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-036	clean	-	-
+heldout-037	ill	fragment	one line of a larger document; no request
+heldout-038	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-039	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-040	clean	-	-
+heldout-041	clean	-	-
+heldout-042	clean	-	-
+heldout-043	clean	-	-
+heldout-044	clean	-	-
+heldout-045	clean	-	-
+heldout-046	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-047	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-048	clean	-	-
+heldout-049	ill	placeholder	unfilled [template] placeholder
+heldout-050	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-051	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-052	clean	-	-
+heldout-053	clean	-	-
+heldout-054	ill	fragment	one line of a larger document; no request
+heldout-055	clean	-	-
+heldout-056	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-057	clean	-	-
+heldout-058	clean	-	-
+heldout-059	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
+heldout-060	clean	-	-
+heldout-061	clean	-	-
+heldout-062	clean	-	-
+heldout-063	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-064	clean	-	-
+heldout-065	clean	-	-
+heldout-066	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-067	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-068	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-069	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-070	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-071	clean	-	-
+heldout-072	clean	-	-
+heldout-073	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-074	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-075	clean	-	-
+heldout-076	clean	-	-
+heldout-077	clean	-	-
+heldout-078	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-079	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-080	ill	placeholder	unfilled [template] placeholder
+heldout-081	clean	-	-
+heldout-082	ill	fragment	one line of a larger document; no request
+heldout-083	ill	missing_instruction	supplies text but the instruction that followed it was cut
+heldout-084	clean	-	-
+heldout-085	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
+heldout-086	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
+heldout-087	underspecified	statement_no_request	a standalone statement, announcement or title with no request
+heldout-088	clean	-	-
+heldout-089	clean	-	-
+heldout-090	clean	-	-
+heldout-091	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-092	clean	-	-
+heldout-093	clean	-	-
+heldout-094	clean	-	-
+heldout-095	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-096	clean	-	-
+heldout-097	underspecified	statement_no_request	a standalone statement, announcement or title with no request
+heldout-098	clean	-	-
+heldout-099	clean	-	-
+heldout-100	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-101	clean	-	-
+heldout-102	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-103	clean	-	-
+heldout-104	clean	-	-
+heldout-105	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
+heldout-106	clean	-	-
+heldout-107	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-108	clean	-	-
+heldout-109	clean	-	-
+heldout-110	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-111	clean	-	-
+heldout-112	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-113	clean	-	-
+heldout-114	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-115	clean	-	-
+heldout-116	underspecified	statement_no_request	a standalone statement, announcement or title with no request
+heldout-117	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-118	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-119	clean	-	-
+heldout-120	clean	-	-
+heldout-121	clean	-	-
+heldout-122	clean	-	-
+heldout-123	underspecified	statement_no_request	a standalone statement, announcement or title with no request
+heldout-124	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-125	clean	-	-
+heldout-126	clean	-	-
+heldout-127	ill	fragment	one line of a larger document; no request
+heldout-128	ill	missing_instruction	supplies text but the instruction that followed it was cut
+heldout-129	ill	fragment	one line of a larger document; no request
+heldout-130	clean	-	-
+heldout-131	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-132	clean	-	-
+heldout-133	clean	-	-
+heldout-134	clean	-	-
+heldout-135	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-136	clean	-	-
+heldout-137	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
+heldout-138	clean	-	-
+heldout-139	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-140	ill	fragment	one line of a larger document; no request
+heldout-141	underspecified	statement_no_request	a standalone statement, announcement or title with no request
+heldout-142	clean	-	-
+heldout-143	clean	-	-
+heldout-144	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-145	clean	-	-
+heldout-146	clean	-	-
+heldout-147	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-148	clean	-	-
+heldout-149	clean	-	-
+heldout-150	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-151	clean	-	-
+heldout-152	clean	-	-
+heldout-153	clean	-	-
+heldout-154	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-155	clean	-	-
+heldout-156	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-157	clean	-	-
+heldout-158	clean	-	-
+heldout-159	clean	-	-
+heldout-160	clean	-	-
+heldout-161	clean	-	-
+heldout-162	ill	unresolved_reference	refers to a specific entity or earlier context the panel does not supply
+heldout-163	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-164	clean	-	-
+heldout-165	clean	-	-
+heldout-166	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-167	clean	-	-
+heldout-168	clean	-	-
+heldout-169	clean	-	-
+heldout-170	clean	-	-
+heldout-171	clean	-	-
+heldout-172	clean	-	-
+heldout-173	clean	-	-
+heldout-174	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-175	underspecified	statement_no_request	a standalone statement, announcement or title with no request
+heldout-176	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-177	clean	-	-
+heldout-178	clean	-	-
+heldout-179	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-180	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-181	ill	fragment	one line of a larger document; no request
+heldout-182	ill	placeholder	unfilled [template] placeholder
+heldout-183	clean	-	-
+heldout-184	clean	-	-
+heldout-185	clean	-	-
+heldout-186	clean	-	-
+heldout-187	clean	-	-
+heldout-188	clean	-	-
+heldout-189	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-190	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-191	ill	missing_material	refers to material (text, code, data, passage, equation) the request does not contain
+heldout-192	clean	-	-
+heldout-193	clean	-	-
+heldout-194	clean	-	-
+heldout-195	underspecified	constraints_only	format/length constraints with no topic or question
+heldout-196	ill	salutation_only	letter or message opener only; the body was cut by the first-line extract
+heldout-197	clean	-	-
+heldout-198	clean	-	-
+heldout-199	ill	fragment	one line of a larger document; no request

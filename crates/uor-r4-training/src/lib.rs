@@ -73,6 +73,7 @@ pub mod joint_rounding;
 pub mod joint_rounding_campaign;
 pub mod joint_transfer;
 pub mod kappa_llama;
+pub mod knowledge_corpus;
 pub mod lut_export;
 pub mod metal_stack_kernels;
 pub mod milestone_world;
