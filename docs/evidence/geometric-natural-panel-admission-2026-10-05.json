@@ -1,0 +1,298 @@
+{
+  "schema": "uor-r4.geometric-natural-panel-admission-evidence/1",
+  "date": "2026-10-05",
+  "execution_source_commit": "6a21e2719a6cdd5ebc652626612211e8669e9e9a",
+  "guard_revision": {
+    "source": "6a21e2719a6cdd5ebc652626612211e8669e9e9a",
+    "execution": "PASS_FOCUSED_TEST_RELEASE_AND_ACTUAL_BROAD3",
+    "scope": "complete generation-context horizon",
+    "exact_prior_outputs_128": true,
+    "canonical_ce_and_rows_exact": true,
+    "root_gradient_family_receipts_exact": true,
+    "saved_comparison": "guard-admission-comparison-3.json"
+  },
+  "host": {
+    "kind": "Runpod Linux x86_64",
+    "address": "47.47.180.127:17255",
+    "toolchain": "1.97.1",
+    "cpu_threads": 48,
+    "gpu": false,
+    "metal": "UNAVAILABLE_NOT_COUNTED",
+    "new_paid_host_started": false
+  },
+  "development": {
+    "histories": 64,
+    "episodes": 128,
+    "query_pairs": 64,
+    "queries": {
+      "job": 64,
+      "home": 64
+    },
+    "supplied_selected_record": false,
+    "manifest_sha256": "0fa9330622a6ffab9f511879053f343831a21e4786843fe8b8c1a6b9315af3ca",
+    "canonical_positions": 1268,
+    "native_ce": 1.0606013660985218,
+    "own_prefix_complete_with_eos": 9,
+    "updates": 0,
+    "full_trace_hard_parity": true,
+    "fixed_input_latent_actions_categories_prefix_invariants": true
+  },
+  "fresh": {
+    "histories": 16,
+    "episodes": 32,
+    "queries": {
+      "job": 16,
+      "home": 16
+    },
+    "manifest_sha256": "751365f95cad1f81d6e7a7634ef08eb42f4a3a9eb48e2e4db37b2db28db7989c",
+    "prepared": true,
+    "predictions": "NOT_RUN",
+    "selection": "NOT_RUN"
+  },
+  "construction": {
+    "reference_compiler_store": "offline data-construction control;actual store serialization/reload and all-current-bank projection",
+    "original_assertion_bytes": true,
+    "raw_natural_queries": true,
+    "labels_runtime": false,
+    "opened_source_strings": 798,
+    "exposure_bundles": 12,
+    "subset_seals": "new exact retained-byte bundle seals;original full-report seal not asserted",
+    "quality_based_support_filter": false
+  },
+  "gradient": {
+    "scope": "combined Copy-context and independent natural query/cue biased root credit",
+    "families": {
+      "consumer.context.neighbor_root": {
+        "elements": 3840,
+        "finite": true,
+        "l1": 0.08759819190058193,
+        "nonzero": 3840,
+        "shape": [
+          2,
+          4,
+          120,
+          4
+        ]
+      },
+      "consumer.context.self_root": {
+        "elements": 3840,
+        "finite": true,
+        "l1": 0.08115740053341192,
+        "nonzero": 3840,
+        "shape": [
+          2,
+          4,
+          120,
+          4
+        ]
+      },
+      "consumer.context.token_root": {
+        "elements": 3932160,
+        "finite": true,
+        "l1": 0.22288185508957828,
+        "nonzero": 59040,
+        "shape": [
+          4096,
+          2,
+          4,
+          120
+        ]
+      }
+    },
+    "global_norm": 0.0030016180982810918,
+    "frozen_connected_families_discarded": [
+      "consumer.context.neighbor_category",
+      "consumer.context.neighbor_transition",
+      "consumer.context.self_category",
+      "consumer.context.self_transition",
+      "consumer.context.token_category",
+      "consumer.context.token_transition"
+    ],
+    "cue_only_magnitude": "NOT_MEASURED",
+    "native_argmax_derivative": false,
+    "descent_guarantee": false,
+    "source_end_selection_adjoint": "STOPPED"
+  },
+  "descriptors": {
+    "query_unique": 16,
+    "cue_unique": 60,
+    "opposite_role_pair_collisions": 0,
+    "within_row_cue_collisions": 0,
+    "query_final_token_id": 33,
+    "cue_final_token_id": 16,
+    "joint_presence_lane_counts": [
+      228,
+      256,
+      256,
+      244,
+      244,
+      252,
+      232,
+      232
+    ],
+    "scope": "saved final-token/latent/category descriptors and current raw roots;not injectivity guarantee"
+  },
+  "bindings": {
+    "trusted_native_binding_sha256": "c7fc3503937bcf0dc01767efbcfa554beedf7efce0cd68dc44385d7ae65a0981",
+    "frozen_sidecars": {
+      "cue_metadata": "627c3fb4087495da8a05cce78fb43d95c9dab1caa1e1ea508581822cf491787e",
+      "cue_packed": "629c1b909b6364cb2c755b488fdf6939243793482d62a866c899f09d1435451a",
+      "end_metadata": "2da4776cec74484e9166b99db4bdefea78d711975cc4d96d9737d4a64a9cf5d7",
+      "end_period_packed": "7730b6f24d2cbfc81a2f0b685672dc0b2c56b50e80506dbdca8dbfe017904a33",
+      "end_stop_packed": "e5e87df23a0f444572e6a158ffe396023b54c7f986884d8e15b35c52cb309ccc",
+      "prefix_metadata": "ddb0591df711ef80e7db69964dcec7e2525db84d9abdc21c4ab82be078fb39c3",
+      "prefix_packed": "8d2d2cdf307e08ac0d4021d91b38c9718ceeeb5b17c16344f2330fe27d36e6ee"
+    }
+  },
+  "validation": {
+    "focused_tests": 3,
+    "release_examples": 3,
+    "source_files_verified": 17004,
+    "expanded_lfs_identities_verified": 1824,
+    "saved_review_checks": 5352,
+    "saved_review_scope": "saved panel/current-label/provenance/exposure-binding evidence only; reference control and native hard-forward/gradient parity are separate executed Rust receipts",
+    "guard_exact_head_execution": "PASS",
+    "corrected_guard_focused_tests": 1
+  },
+  "cost": {
+    "model_seconds": 150.294172889,
+    "supervisor_seconds": 152.1048837620765,
+    "full128_gradient_seconds": 134.201929023,
+    "B8_seconds": 11.338391976,
+    "B8_episodes": 8,
+    "B8_targets": 92,
+    "B8_gradient_norm": 0.009787726734869112,
+    "gradient_bytes": 15759360,
+    "peak_rss_kib": 663832,
+    "broad_bytes": 28584259,
+    "test_worker_seconds": 780.3540167380124,
+    "release_worker_seconds": 24.528422257862985,
+    "build_sampled_tree_peak_rss_bytes": 5424492544,
+    "complete_card_reserved_seconds": 5400,
+    "cumulative_ms": 1299435028,
+    "limit_ms": 1300200000,
+    "rss_cap_bytes": 8589934592,
+    "owned_cap_bytes": 10737418240,
+    "new_owned_cap_bytes_after_prospective_correction": 6442450944,
+    "shared_free_floor_bytes": 4429185024,
+    "fit_projection_seconds_using_broad_elapsed": 1076.144793379,
+    "fit_projection_status": "NOT_EXECUTED;must recheck at admitted exact head",
+    "five_parent_plus_trace_projection_bytes_approx": 338100000,
+    "prior_source5079_model_seconds": 144.908777435,
+    "guard_test_seconds": 184.62020562868565,
+    "guard_release_seconds": 12.266733032651246
+  },
+  "infrastructure": {
+    "old_pod": "EXITED_CONNECTION_REFUSED;no model admission there",
+    "expanded_lfs_pointer_guard": "FAILED_BEFORE_BUILD then corrected",
+    "checkpoint_recovery": "exact original parent64/cue48/prefix64 complete SHA inventories;no substitutes",
+    "broad2": {
+      "status": "REJECTED_PRE_MODEL_CONFIG_UNKNOWN_TOPLEVEL_OUT",
+      "seconds": 2.257526039145887,
+      "mechanism_evidence": false
+    }
+  },
+  "unrun": [
+    "corrected supported-current-role optimizer fits",
+    "corrected evaluation predictions",
+    "untouched semantic/composition/paraphrase transfer",
+    "cue-only gradient magnitude",
+    "M1/Metal",
+    "laptop latency",
+    "energy",
+    "learned whole-chat qualification"
+  ],
+  "planned_replication_scope": "same learned initialization;actual episode-order seeds only",
+  "artifacts": {
+    "local_research_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-natural-panel-admission-20261005",
+    "actual_return_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-natural-panel-admission-20261005/guard-return-3",
+    "broad_report_sha256": "8cf0f7d9777e70da87a9da49efce5c3c182ef65acd86643d19d658647d0e6ff6",
+    "broad_manifest_sha256": "40c739c722cc829e4ff496a8bf92614026dc2ed7e36070e22c805560c06a2dcd",
+    "B8_calibration_sha256": "af6619a6fe19d3e76355d8ec47c5fb55736e4ac9436594575c1fc3eb838bd209",
+    "executable_sha256": "f6accc9e866f69fb1a94b92795d68db49609297702ada25f2d91c5fefda25f98",
+    "prior_source5079_return_root": "/Users/casey.allard/uor-r4-local/workspace/research/geometric-natural-panel-admission-20261005/pod-return-source5079"
+  },
+  "next": "Freeze untouched composition/paraphrase panel and declare supported-task root learning separately from transfer;old three-order schedule stopped after semantic audit.",
+  "prior_execution_source_commit": "5079bcc4d8d668c18124755c0fd747eeba9757b3",
+  "prospective_fit_card": {
+    "reserved_seconds": 7200,
+    "cumulative_ms": 1306635028,
+    "limit_ms": 1307400000,
+    "sequential_order_seeds": [
+      202610051,
+      202610052,
+      202610053
+    ],
+    "same_initialization": true,
+    "cpu_threads": 48,
+    "new_owned_bytes": 2147483648,
+    "per_fit_report_bytes": 536870912,
+    "projection_each_seconds": 1175,
+    "cap_each_seconds": 1200,
+    "updates_each": 64,
+    "batch_episodes": 8,
+    "worker_first_pid_reported": 29299,
+    "status": "SUPERSEDED_TWO_COMPLETE_THIRD_INTERRUPTED_AT30_NO_THREE_ORDER_VERDICT",
+    "fresh_predictions": "Original-panel parent/selected predictions completed for two order runs;corrected-panel evaluation NOT_RUN",
+    "complete_order_seeds": [
+      202610051,
+      202610052
+    ],
+    "interrupted_order_seed": 202610053,
+    "interrupted_updates": 30
+  },
+  "semantic_audit_correction": {
+    "status": "OLD_PANEL_SYNTHETIC_LITERAL_ROLE_PILOT_ONLY",
+    "rows": 160,
+    "structural_eligibility": 160,
+    "origin_not_entailed": {
+      "development": 20,
+      "fresh": 4
+    },
+    "address_specificity_not_supplied": {
+      "development": 26,
+      "fresh": 6
+    },
+    "fresh_unseen_query_wording": false,
+    "control_scope": "exact template question bytes and current store, not independent English entailment",
+    "complete_order_runs": [
+      202610051,
+      202610052
+    ],
+    "interrupted_order": 202610053,
+    "interrupted_updates": 30,
+    "three_order_verdict": "NOT_AVAILABLE",
+    "next_policy": "supported-current-role/1",
+    "changed_path_execution": "PASS_AT_83d6722f",
+    "no_further_fit_before_admission": true
+  },
+  "supported_current_role_admission": {
+    "source_commit": "83d6722f025010635a1e8fc4cf7a7e1188c8b632",
+    "release_tests": {
+      "plan": 5,
+      "panel": 18,
+      "observation": 26
+    },
+    "release_build": "PASS_ALL_THREE_EXAMPLES",
+    "construction": {
+      "development": 128,
+      "evaluation": 32
+    },
+    "saved_semantic_checks": 5332,
+    "actual_native_zero_trace_parity": true,
+    "target_positions": 1268,
+    "root_gradients_finite": true,
+    "gradient_global_norm": 0.003230170463729881,
+    "native_ce": 1.1386944226545161,
+    "own_prefix_complete": 10,
+    "own_prefix_total": 128,
+    "worker_seconds": 154.26055342145264,
+    "sampled_process_tree_RSS_bytes": 645132288,
+    "b8_seconds": 11.249103006,
+    "corrected_fit": "NOT_RUN",
+    "corrected_evaluation_predictions": "NOT_RUN",
+    "evaluation_scope": "rewritten packets over exposed donor histories, values and dev-seen queries;not unexposed semantic transfer",
+    "query_wordings_shared": 12,
+    "donor_histories_reused": true
+  }
+}

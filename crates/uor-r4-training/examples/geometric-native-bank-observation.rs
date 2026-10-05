@@ -13,10 +13,10 @@
 //! Config: schema=uor-r4.native-bank-observation-args/1; bank={existing strict Args,
 //! mode:observation-broadbatch|observation-fit; maxcontext128/maxgen32; broad<=300s,
 //! 64MiB; fit<=1200s,512MiB}; frozen_end_bundle and exact metadata/period/stop SHA;
-//! data_scope=original-assertion-cues/raw-queries/all-source-candidates/1.
+//! data_scope explicitly selects retained original cues or supported current-role authored cues.
 //! Existing cue/prefix SHA fields required. Development128, sealed fresh32 REQUIRED
 //! before fit; this draft never draws data and does not inspect fresh until selection.
-//! Natural panel report requires cue_origin_policy=original-assertion-bytes/bound-byteBPE/1.
+//! Each panel report must bind the matching original/authored cue policy.
 //! Root-owned preparer must supply original-statement provenance receipt before execution.
 //! New fit authorization schema=uor-r4.native-bank-observation-fit-authorization/1:
 //! fit_admitted,admission_report_sha256,development_manifest_sha256,fresh_manifest_sha256,
@@ -519,6 +519,42 @@ mod reuse {
         }
         Ok(clip)
     }
+    fn generation_read_budget(base_len: usize, maximum_generation_tokens: usize) -> Result<usize> {
+        let limit = uor_r4_integer::geometric_occurrence_read::MAX_SEQUENCE;
+        if base_len > limit {
+            return Err(
+                invalid("generation bank/query/initial-prefix exceeds native context cap").into(),
+            );
+        }
+        let remaining_decisions = limit
+            .checked_sub(base_len)
+            .and_then(|n| n.checked_add(1))
+            .ok_or_else(|| invalid("generation read-budget arithmetic overflow"))?;
+        Ok(maximum_generation_tokens.min(remaining_decisions))
+    }
+    fn public_generation_base_length(
+        native: &IntegerRealizer,
+        segments: &[SourceBankSegment<'_>],
+        query_length: usize,
+        initial_prefix_length: usize,
+    ) -> Result<usize> {
+        let mut base = query_length
+            .checked_add(initial_prefix_length)
+            .ok_or_else(|| invalid("generation query/prefix length overflow"))?;
+        for segment in segments {
+            let length = match segment {
+                SourceBankSegment::Context { token_ids, .. } => token_ids.len(),
+                SourceBankSegment::Source { frame, .. } => native
+                    .compile_view(frame.token_ids)?
+                    .emitted_token_ids()
+                    .len(),
+            };
+            base = base
+                .checked_add(length)
+                .ok_or_else(|| invalid("generation public bank length overflow"))?;
+        }
+        Ok(base)
+    }
     fn generation_observation(
         n: &IntegerRealizer,
         c: &NativeCueCarrier<'_>,
@@ -550,10 +586,14 @@ mod reuse {
         let mut invariant_reads = 0;
         for e in es {
             let segments = e.segments()?;
+            // Loader rejects initial prefixes; serving begins from the actual empty prefix.
+            let base_len =
+                public_generation_base_length(n, &segments, e.packet.query_ids.len(), 0)?;
+            let read_budget = generation_read_budget(base_len, a.maximum_generation_tokens)?;
             let mut ids = Vec::new();
             let mut actions = Vec::new();
             let mut states = None;
-            for step in 0..a.maximum_generation_tokens {
+            for step in 0..read_budget {
                 deadline(a, start)?;
                 let out = n.read_bank_with_source_end_transport(
                     &segments,
@@ -598,6 +638,7 @@ mod reuse {
                 }
             }
             let eos = ids.last() == Some(&n.binding().eos_token_id());
+            let budget_exhausted = !eos && ids.len() == read_budget;
             let plain = if eos { &ids[..ids.len() - 1] } else { &ids[..] };
             let bytes = tok.decode_bytes(plain);
             let raw = String::from_utf8_lossy(&bytes);
@@ -605,7 +646,7 @@ mod reuse {
             let accepted =
                 eos && String::from_utf8(bytes.clone()).is_ok() && e.answers.accepts(text);
             complete += usize::from(accepted);
-            rows.push(json!({"id":e.packet.id,"generated_ids_including_eos":ids,"eos":eos,"reply_text":text,"accepted_complete_answer":accepted,"carrier_state_packet_once":states,"fixed_input_frozen_signature_checked":true,"tokens":actions}));
+            rows.push(json!({"id":e.packet.id,"generated_ids_including_eos":ids,"public_base_context_tokens":base_len,"read_budget":read_budget,"budget_exhausted":budget_exhausted,"termination":if eos {"eos"} else {"read_budget_exhausted"},"eos":eos,"reply_text":text,"accepted_complete_answer":accepted,"carrier_state_packet_once":states,"fixed_input_frozen_signature_checked":true,"tokens":actions}));
         }
         Ok(
             json!({"cases":es.len(),"accepted_complete":complete,"maximum_generated_tokens":a.maximum_generation_tokens,"canonical_prefixes_used":false,"native_only_parent_and_rebound_sidecars":true,"extra_original_native_invariant_reads":invariant_reads,"rows":rows}),
@@ -708,7 +749,9 @@ mod reuse {
         }
         if a.schema != "uor-r4.native-bank-observation-args/1"
             || (!fit && !broad)
-            || a.data_scope != "original-assertion-cues/raw-queries/all-source-candidates/1"
+            || !matches!(a.data_scope.as_str(),
+                "original-assertion-cues/raw-queries/all-source-candidates/1"
+                | "explicit-current-role-assertions/raw-current-role-queries/all-source-candidates/2")
             || a.bank.maximum_context_tokens != 128
             || a.bank.maximum_generation_tokens != 32
             || a.bank.maximum_seconds == 0
@@ -784,7 +827,7 @@ mod reuse {
                         .collect::<Vec<_>>();
                     if matching.len() != 1 {
                         return Err(invalid(
-                            "each raw Context needs one original-utterance receipt",
+                            "each raw Context needs one recorded-assertion receipt",
                         )
                         .into());
                     }
@@ -913,12 +956,26 @@ mod reuse {
         // dedicated task; old authored cue packets cannot masquerade as raw statements.
         // Root-owned preparation must hash actual original utterance bytes/tokenization;
         // this field is provenance admission, never an inference filter.
-        let panel_report = read_json(&a.bank.development_panel.join("report.json"))?;
-        if panel_report["cue_origin_policy"] != "original-assertion-bytes/bound-byteBPE/1" {
+        let expected_cue_origin = match a.data_scope.as_str() {
+            "original-assertion-cues/raw-queries/all-source-candidates/1" => {
+                "original-assertion-bytes/bound-byteBPE/1"
+            }
+            "explicit-current-role-assertions/raw-current-role-queries/all-source-candidates/2" => {
+                "prospectively-authored-current-role-bytes/bound-byteBPE/2"
+            }
+            _ => return Err(invalid("unrecognized cue data scope").into()),
+        };
+        // Metadata admission does not evaluate fresh predictions or use its labels.
+        for panel in [&a.bank.development_panel, &a.bank.fresh_panel] {
+            let panel_report = read_json(&panel.join("report.json"))?;
+            if panel_report["cue_origin_policy"] != expected_cue_origin
+            || (a.data_scope == "explicit-current-role-assertions/raw-current-role-queries/all-source-candidates/2"
+                && panel_report["source_policy"] != a.data_scope) {
             return Err(invalid(
                 "natural cue construction receipt absent; no synthetic Memory-line fallback",
             )
             .into());
+        }
         }
         // Validate all frozen sidecars against original loaded parent BEFORE rebinding payloads.
         let oldcue = cue_native_load(
@@ -937,7 +994,7 @@ mod reuse {
             &oldcue,
         )?;
         let _oldend = end_native_load(&a.frozen_end_bundle, &native, &oldcue, &oldprefix)?;
-        let episodes = load_panel(&a.bank.development_panel, 128, &native, &tok, true)?;
+        let episodes = load_natural_panel(&a.bank.development_panel, 128, &native, &tok)?;
         let raw_cues = validate_raw_cues(
             &a.bank.development_panel,
             &episodes,
@@ -949,7 +1006,7 @@ mod reuse {
         write_json(
             &a.bank.out,
             "frozen-inputs.json",
-            &json!({"schema":a.schema,"host":std::env::consts::OS,"architecture":std::env::consts::ARCH,"executable_sha256":sha256_file(&executable()?.0)?,"executable_lookup":executable()?.1,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"mode":a.bank.mode,"input_sha256":inputs,"frozen_sidecars":f.receipt,"data_scope":a.data_scope,"validated_original_cue_records":raw_cues,"active_families":ROOT_FAMILIES,"learning_seed":a.learning_seed,"learning_schedule":schedule,"learning_schedule_sha256":schedule_sha,"initialization":"same unchanged learned parent;no random root perturbation","updates":if a.bank.mode=="observation-fit"{64}else{0},"fresh_predictions":"NOT_RUN_UNTIL_SELECTION","configuration_subset_sha256":sha256_bytes(&serde_json::to_vec(&json!({"scope":a.data_scope,"bounds":[a.bank.maximum_context_tokens,a.bank.maximum_generation_tokens],"frozen":f.receipt}))?),"runtime_packet_schema":"uor-r4.native-source-bank-probe-input/1","membership_labels_runtime":false}),
+            &json!({"schema":a.schema,"host":std::env::consts::OS,"architecture":std::env::consts::ARCH,"executable_sha256":sha256_file(&executable()?.0)?,"executable_lookup":executable()?.1,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"mode":a.bank.mode,"input_sha256":inputs,"frozen_sidecars":f.receipt,"data_scope":a.data_scope,"validated_cue_records":raw_cues,"active_families":ROOT_FAMILIES,"learning_seed":a.learning_seed,"learning_schedule":schedule,"learning_schedule_sha256":schedule_sha,"initialization":"same unchanged learned parent;no random root perturbation","updates":if a.bank.mode=="observation-fit"{64}else{0},"fresh_predictions":"NOT_RUN_UNTIL_SELECTION","configuration_subset_sha256":sha256_bytes(&serde_json::to_vec(&json!({"scope":a.data_scope,"bounds":[a.bank.maximum_context_tokens,a.bank.maximum_generation_tokens],"frozen":f.receipt}))?),"panel_layout_policy":NATURAL_PANEL_LAYOUT,"development_allbank_rows":128,"development_adjacent_query_pairs":64,"runtime_packet_schema":"uor-r4.native-source-bank-probe-input/1","membership_labels_runtime":false}),
         )?;
         let fit = a.bank.mode == "observation-fit";
         let initial_evaluation_start = Instant::now();
@@ -1155,7 +1212,7 @@ mod reuse {
         )?;
         // No new draw here. Existing independently prepared fresh32 is opened ONLY after selector freeze.
         if fit {
-            let fresh = load_panel(&a.bank.fresh_panel, 32, &native, &tok, true)?;
+            let fresh = load_natural_panel(&a.bank.fresh_panel, 32, &native, &tok)?;
             validate_raw_cues(&a.bank.fresh_panel, &fresh, &tok, &sha256_bytes(&tokenizer))?;
             for (name, step) in [
                 ("parent", 0u64),
@@ -1191,12 +1248,23 @@ mod reuse {
             }
         }
         Ok(
-            json!({"schema":"uor-r4.native-bank-observation-report/1","status":"COMPLETED","mode":a.bank.mode,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"development_manifest_sha256":a.bank.development_manifest_sha256,"fresh_manifest_sha256":a.bank.fresh_manifest_sha256,"trusted_binding_sha256":trusted,"frozen_sidecars":f.receipt,"active_families":ROOT_FAMILIES,"frozen_parameter_bits_equal":frozen_receipts(&s)?==frozen,"updates":if fit{64}else{0},"broad_gradient_report":"broadbatch.json","zero_fulltrace_parity_executed":true,"selected_step":stages[selected]["step"],"selected_native_ce":best,"peak_rss_kib":peak_rss_kib(),"elapsed_seconds":start.elapsed().as_secs_f64(),"support_floor":false,"supplied_selected_record":false,"fresh_predictions":if fit{"PARENT_AND_SELECTED_ONLY"}else{"NOT_RUN"},"learning_seed":a.learning_seed,"learning_schedule_sha256":schedule_sha,"replication_scope":if fit{"same learned root initialization and frozen encoder;seed changes episode order only;not independent initialization or chat lineages"}else{"zero-update gradient admission is not a fitted seed verdict"},"optimizer_exposure":if fit{"64 seeded block-balanced B8;4rows fromeach64half;two intact querypairs perbank block;4visits/episode"}else{"zero updates;full128 admission only"},"runtime":"unchanged integer full-bank cue/prefix/SourceEnd/globalalias;no sourceF32 generation","claim":"bounded native attention observation learner;general chat and transfer unqualified"}),
+            json!({"schema":"uor-r4.native-bank-observation-report/1","status":"COMPLETED","mode":a.bank.mode,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"development_manifest_sha256":a.bank.development_manifest_sha256,"fresh_manifest_sha256":a.bank.fresh_manifest_sha256,"trusted_binding_sha256":trusted,"frozen_sidecars":f.receipt,"active_families":ROOT_FAMILIES,"frozen_parameter_bits_equal":frozen_receipts(&s)?==frozen,"updates":if fit{64}else{0},"broad_gradient_report":"broadbatch.json","zero_fulltrace_parity_executed":true,"selected_step":stages[selected]["step"],"selected_native_ce":best,"peak_rss_kib":peak_rss_kib(),"elapsed_seconds":start.elapsed().as_secs_f64(),"support_floor":false,"supplied_selected_record":false,"fresh_predictions":if fit{"PARENT_AND_SELECTED_ONLY"}else{"NOT_RUN"},"learning_seed":a.learning_seed,"learning_schedule_sha256":schedule_sha,"replication_scope":if fit{"same learned root initialization and frozen encoder;seed changes episode order only;not independent initialization or chat lineages"}else{"zero-update gradient admission is not a fitted seed verdict"},"panel_layout_policy":NATURAL_PANEL_LAYOUT,"development_allbank_rows":128,"development_adjacent_query_pairs":64,"fresh_allbank_rows":32,"fresh_adjacent_query_pairs":16,"optimizer_exposure":if fit{"64 seeded block-balanced B8;4rows fromeach64-bank-row half;two intact querypairs perhalf;4visits/episode"}else{"zero updates;full128 admission only"},"runtime":"unchanged integer full-bank cue/prefix/SourceEnd/globalalias;no sourceF32 generation","claim":"bounded native attention observation learner;general chat and transfer unqualified"}),
         )
     }
     #[cfg(test)]
     mod observation_tests {
         use super::*;
+        #[test]
+        fn generation_budget_reserves_only_actual_prefix_reads() -> Result<()> {
+            assert_eq!(generation_read_budget(98, 32)?, 31);
+            assert_eq!(generation_read_budget(97, 32)?, 32);
+            assert_eq!(generation_read_budget(0, 32)?, 32);
+            assert_eq!(generation_read_budget(128, 32)?, 1);
+            assert_eq!(generation_read_budget(98, 4)?, 4);
+            assert!(generation_read_budget(129, 32).is_err());
+            assert!(generation_read_budget(usize::MAX, 32).is_err());
+            Ok(())
+        }
         #[test]
         fn root_selector_does_not_admit_transition_category_or_heads() {
             for n in [

@@ -547,12 +547,50 @@ fn validate_answers(answers: &FrozenAnswers, single_source: bool) -> Result<()> 
     }
     Ok(())
 }
+#[derive(Clone, Copy)]
+enum PanelLayout {
+    Legacy,
+    NaturalAllBank,
+}
+pub(super) const NATURAL_PANEL_LAYOUT: &str = "raw-natural-allbank-pairs/1";
+pub(super) fn load_natural_panel(
+    root: &Path,
+    expected_count: usize,
+    native: &IntegerRealizer,
+    tok: &ByteBpeTokenizer,
+) -> Result<Vec<Episode>> {
+    load_panel_with_layout(
+        root,
+        expected_count,
+        native,
+        tok,
+        true,
+        PanelLayout::NaturalAllBank,
+    )
+}
 pub(super) fn load_panel(
     root: &Path,
     expected_count: usize,
     native: &IntegerRealizer,
     tok: &ByteBpeTokenizer,
     receipt: bool,
+) -> Result<Vec<Episode>> {
+    load_panel_with_layout(
+        root,
+        expected_count,
+        native,
+        tok,
+        receipt,
+        PanelLayout::Legacy,
+    )
+}
+fn load_panel_with_layout(
+    root: &Path,
+    expected_count: usize,
+    native: &IntegerRealizer,
+    tok: &ByteBpeTokenizer,
+    receipt: bool,
+    layout: PanelLayout,
 ) -> Result<Vec<Episode>> {
     report_output::verify(root)?;
     let inputs: Inputs = serde_json::from_slice(&read_capped(&root.join("inputs.json"))?)?;
@@ -644,40 +682,109 @@ pub(super) fn load_panel(
         if rows.len() != expected_count {
             return Err(invalid("context count differs").into());
         }
-        let mut pairs = BTreeMap::<String, Vec<usize>>::new();
-        for (i, r) in rows.iter().enumerate() {
-            if let Some(pair) = r["pair_id"].as_str() {
-                pairs.entry(pair.into()).or_default().push(i);
+        match layout {
+            PanelLayout::Legacy => {
+                let packets = result.iter().map(|e| &e.packet).collect::<Vec<_>>();
+                validate_legacy_layout(rows, expected_count, &packets)?;
             }
-        }
-        if (expected_count == 128
-            && (pairs.len() != 32 || rows[..64].iter().any(|r| r["kind"] != "single-source")))
-            || (expected_count == 32 && pairs.len() != 16)
-        {
-            return Err(invalid("declared preservation/pair counts differ").into());
-        }
-        for indices in pairs.values() {
-            if indices.len() != 2
-                || !matches!(
-                    (
-                        rows[indices[0]]["query_role"].as_str(),
-                        rows[indices[1]]["query_role"].as_str()
-                    ),
-                    (Some("job"), Some("where")) | (Some("where"), Some("job"))
-                )
-                || (expected_count == 128
-                    && (indices[0] < 64
-                        || indices[1] != indices[0] + 1
-                        || (indices[0] - 64) % 2 != 0))
-                || serde_json::to_value(&result[indices[0]].packet.segments)?
-                    != serde_json::to_value(&result[indices[1]].packet.segments)?
-            {
-                return Err(invalid("same-bank different-query pair differs").into());
+            PanelLayout::NaturalAllBank => {
+                let packets = result.iter().map(|e| &e.packet).collect::<Vec<_>>();
+                validate_natural_layout(&c, expected_count, &packets)?;
             }
         }
     }
     Ok(result)
 }
+fn validate_legacy_layout(
+    rows: &[Value],
+    expected_count: usize,
+    packets: &[&Packet],
+) -> Result<()> {
+    let mut pairs = BTreeMap::<String, Vec<usize>>::new();
+    for (i, r) in rows.iter().enumerate() {
+        if let Some(pair) = r["pair_id"].as_str() {
+            pairs.entry(pair.into()).or_default().push(i);
+        }
+    }
+    if (expected_count == 128
+        && (pairs.len() != 32 || rows[..64].iter().any(|r| r["kind"] != "single-source")))
+        || (expected_count == 32 && pairs.len() != 16)
+    {
+        return Err(invalid("declared preservation/pair counts differ").into());
+    }
+    for indices in pairs.values() {
+        if indices.len() != 2
+            || !matches!(
+                (
+                    rows[indices[0]]["query_role"].as_str(),
+                    rows[indices[1]]["query_role"].as_str()
+                ),
+                (Some("job"), Some("where")) | (Some("where"), Some("job"))
+            )
+            || (expected_count == 128
+                && (indices[0] < 64 || indices[1] != indices[0] + 1 || (indices[0] - 64) % 2 != 0))
+            || serde_json::to_value(&packets[indices[0]].segments)?
+                != serde_json::to_value(&packets[indices[1]].segments)?
+        {
+            return Err(invalid("same-bank different-query pair differs").into());
+        }
+    }
+    Ok(())
+}
+
+fn validate_natural_layout(
+    context: &Value,
+    expected_count: usize,
+    packets: &[&Packet],
+) -> Result<()> {
+    let rows = context["cases"]
+        .as_array()
+        .ok_or_else(|| invalid("natural context cases absent"))?;
+    if context["layout_policy"] != NATURAL_PANEL_LAYOUT
+        || !matches!(expected_count, 128 | 32)
+        || rows.len() != expected_count
+        || packets.len() != expected_count
+        || rows.iter().any(|r| r["kind"] != "bank")
+        || packets.iter().any(|p| {
+            p.segments
+                .iter()
+                .filter(|s| matches!(s, Segment::Source { .. }))
+                .count()
+                != 2
+        })
+    {
+        return Err(invalid("natural all-bank layout/count/two-source policy differs").into());
+    }
+    let mut seen = BTreeSet::new();
+    for i in (0..expected_count).step_by(2) {
+        let pair = rows[i]["pair_id"]
+            .as_str()
+            .filter(|x| !x.is_empty())
+            .ok_or_else(|| invalid("natural pair identity absent"))?;
+        if !seen.insert(pair)
+            || rows[i + 1]["pair_id"].as_str() != Some(pair)
+            || !matches!(
+                (
+                    rows[i]["query_role"].as_str(),
+                    rows[i + 1]["query_role"].as_str()
+                ),
+                (Some("job"), Some("where")) | (Some("where"), Some("job"))
+            )
+            || packets[i].query_ids.is_empty()
+            || packets[i + 1].query_ids.is_empty()
+            || packets[i].query_ids == packets[i + 1].query_ids
+            || serde_json::to_value(&packets[i].segments)?
+                != serde_json::to_value(&packets[i + 1].segments)?
+        {
+            return Err(invalid(
+                "natural adjacent same-bank opposite-role distinct-query pair differs",
+            )
+            .into());
+        }
+    }
+    Ok(())
+}
+
 fn active(name: &str) -> bool {
     name.starts_with("consumer.context.")
         || name.starts_with("consumer.no_read.")
@@ -4647,5 +4754,81 @@ mod tests {
     fn target_fields_rejected_from_runtime_packets() {
         let s = r#"{"schema":"uor-r4.native-source-bank-probe-input/1","cases":[{"id":"x","segments":[],"query_ids":[1],"actual_prefix_ids":[],"target_ids":[3]}]}"#;
         assert!(serde_json::from_str::<Inputs>(s).is_err());
+    }
+}
+
+#[cfg(test)]
+mod natural_panel_layout_tests {
+    use super::*;
+    fn fixture(count: usize, natural: bool) -> Result<(Value, Vec<Packet>)> {
+        let mut rows = Vec::new();
+        let mut packets = Vec::new();
+        for i in 0..count {
+            let single = !natural && count == 128 && i < 64;
+            rows.push(json!({"kind":if single {"single-source"} else {"bank"},
+                "pair_id":if single {Value::Null} else {json!(format!("pair-{}",i/2))},
+                "query_role":if i%2==0 {"job"} else {"where"}}));
+            packets.push(serde_json::from_value(json!({"id":format!("row-{i}"),
+                "segments":[{"kind":"Source","event":1,"record":1,"commit":1,"scope":"local","entity":[1],"relation":1,"view":0,"original_source_ids":[4]},
+                    {"kind":"Source","event":2,"record":2,"commit":2,"scope":"local","entity":[1],"relation":2,"view":0,"original_source_ids":[5]}],
+                "query_ids":[10+(i%2)],"actual_prefix_ids":[]}))?);
+        }
+        Ok((
+            json!({"layout_policy":NATURAL_PANEL_LAYOUT,"cases":rows}),
+            packets,
+        ))
+    }
+    #[test]
+    fn natural_layout_requires_explicit_policy_and_complete_counts() -> Result<()> {
+        for count in [128, 32] {
+            let (mut c, p) = fixture(count, true)?;
+            let refs = p.iter().collect::<Vec<_>>();
+            validate_natural_layout(&c, count, &refs)?;
+            c["layout_policy"] = json!("legacy");
+            assert!(validate_natural_layout(&c, count, &refs).is_err());
+            c["layout_policy"] = json!(NATURAL_PANEL_LAYOUT);
+            assert!(validate_natural_layout(&c, count - 2, &refs).is_err());
+            c["cases"][0]["kind"] = json!("single-source");
+            assert!(validate_natural_layout(&c, count, &refs).is_err());
+        }
+        Ok(())
+    }
+    #[test]
+    fn natural_pairs_reject_role_query_bank_and_adjacency_changes() -> Result<()> {
+        let (c, mut p) = fixture(32, true)?;
+        p[1].query_ids = p[0].query_ids.clone();
+        assert!(validate_natural_layout(&c, 32, &p.iter().collect::<Vec<_>>()).is_err());
+        p[1].query_ids = vec![11];
+        p[1].segments.reverse();
+        assert!(validate_natural_layout(&c, 32, &p.iter().collect::<Vec<_>>()).is_err());
+        p[1].segments.reverse();
+        for field in ["pair_id", "query_role"] {
+            let mut changed = c.clone();
+            changed["cases"][1][field] = changed["cases"][2][field].clone();
+            assert!(validate_natural_layout(&changed, 32, &p.iter().collect::<Vec<_>>()).is_err());
+        }
+        p[1].segments.pop();
+        assert!(validate_natural_layout(&c, 32, &p.iter().collect::<Vec<_>>()).is_err());
+        Ok(())
+    }
+    #[test]
+    fn legacy_preservation_partition_remains_accepted_and_distinct() -> Result<()> {
+        let (c, p) = fixture(128, false)?;
+        let refs = p.iter().collect::<Vec<_>>();
+        let rows = c["cases"]
+            .as_array()
+            .ok_or_else(|| invalid("test rows absent"))?;
+        validate_legacy_layout(rows, 128, &refs)?;
+        assert!(validate_natural_layout(&c, 128, &refs).is_err());
+        let (n, np) = fixture(128, true)?;
+        assert!(validate_legacy_layout(
+            n["cases"]
+                .as_array()
+                .ok_or_else(|| invalid("test rows absent"))?,
+            128,
+            &np.iter().collect::<Vec<_>>()
+        )
+        .is_err());
+        Ok(())
     }
 }
