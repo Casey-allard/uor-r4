@@ -92,7 +92,13 @@ warn() { echo "uor-pod: warning: $*" >&2; }
 info() { echo "uor-pod: $*" >&2; }
 now_iso() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 now_epoch() { date -u +%s; }
-iso_epoch() { jq -rn --arg t "$1" '$t | fromdateiso8601'; }
+# Timestamps are read from lease files that sessions may have hand-written while
+# the tool was unmerged, so accept fractional seconds and an explicit +00:00
+# offset as well as the canonical ...Z form. An unparseable timestamp counts as
+# LIVE (far future): a malformed lease must never look expired and hand a GPU
+# that another session is using to someone else.
+JQ_TS='def ts: try (sub("\\.[0-9]+$";"") | sub("\\+00:00$";"Z") | fromdateiso8601) catch 9999999999;'
+iso_epoch() { jq -rn --arg t "$1" "$JQ_TS"'$t | ts'; }
 plus_hours() { jq -rn --argjson h "$1" 'now + ($h * 3600) | floor | todate'; }
 is_dry() { [ "$DRY" = 1 ]; }
 mut() { if is_dry; then echo "DRY-RUN: $*" >&2; else "$@"; fi; }
@@ -173,12 +179,12 @@ cache_del() { jq --arg p "$1" 'del(.[$p])' "$STATE/pods.json" | atomic_write "$S
 # ---------------------------------------------------------------- leases
 lease_file() { echo "$STATE/leases/$1/$2.json"; }
 lease_live() {  # lease_live FILE -> 0 if unexpired
-  [ -f "$1" ] && jq -e '(.expires | fromdateiso8601) > now' "$1" >/dev/null 2>&1
+  [ -f "$1" ] && jq -e "$JQ_TS"'(.expires | ts) > now' "$1" >/dev/null 2>&1
 }
 live_leases_json() {  # POD -> JSON array of live leases
   local d="$STATE/leases/$1"
   if [ -d "$d" ] && ls "$d"/*.json >/dev/null 2>&1; then
-    jq -s '[.[] | select((.expires | fromdateiso8601) > now)]' "$d"/*.json
+    jq -s "$JQ_TS"'[.[] | select((.expires | ts) > now)]' "$d"/*.json
   else
     echo '[]'
   fi
@@ -186,7 +192,7 @@ live_leases_json() {  # POD -> JSON array of live leases
 all_leases_json() {  # POD -> JSON array of all lease files with a live flag
   local d="$STATE/leases/$1"
   if [ -d "$d" ] && ls "$d"/*.json >/dev/null 2>&1; then
-    jq -s '[.[] | . + {live: ((.expires | fromdateiso8601) > now)}]' "$d"/*.json
+    jq -s "$JQ_TS"'[.[] | . + {live: ((.expires | ts) > now)}]' "$d"/*.json
   else
     echo '[]'
   fi

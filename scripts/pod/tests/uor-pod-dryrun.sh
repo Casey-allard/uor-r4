@@ -144,6 +144,16 @@ expect "release codex on C" 0 "Released codex/x1" -- release podc "${X1[@]}"
 expect "reap: deletes idle unleased B, keeps busy C" 0 "podb: no live lease, idle 30 min — deleting" -- reap
 has "reap keeps busy C" "podc: no live lease, GPUs busy — kept"
 has "reap starts A's idle clock" "poda: no live lease, idle 0 min"
+# A lease hand-written with Python's datetime.isoformat() (fractional seconds
+# and an explicit +00:00 offset) must not abort the tool, and must be read as
+# LIVE: a timestamp the tool cannot parse must never look expired and hand
+# another session's working GPU away. Labs still write leases this way.
+FRAC=$(jq -rn 'now + 7200 | floor | todate | sub("Z$"; ".245421+00:00")')
+printf '{"lab":"codex","session":"hand","id":"codex-hand","pod":"poda","gpus":[0],"purpose":"hand-written","card":"","started":"%s","expires":"%s","renewed":"%s","hours":2}' "$FRAC" "$FRAC" "$FRAC" > "$UOR_POD_STATE/leases/poda/codex-hand.json"
+expect "hand-written fractional timestamp does not abort the tool" 0 "Pods \\(caps" -- status
+has "hand-written lease is listed" "codex/hand"
+expect "hand-written live lease still holds its GPU" 1 "another session's live lease" -- lease poda "${D2[@]}" --gpus 0 --purpose x --hours 1
+rm -f "$UOR_POD_STATE/leases/poda/codex-hand.json"
 expect "prune-stopped lists stopped pods" 0 "pode .*stopped .*\\(72 h\\)" -- prune-stopped
 has "prune-stopped without --yes deletes nothing" "Listed only"
 expect "prune-stopped --yes deletes old unprotected pods (dry)" 0 "DRY-RUN: runpodctl pod delete pode" -- prune-stopped --older-than 24h --yes
