@@ -418,20 +418,29 @@ fn generate_fact(
                 .ok_or_else(|| invalid("no key with fresh pieces"))?;
             key_pieces.extend(key.iter().copied());
             used_pieces.extend(key.iter().copied());
-            let kind = *pick(
-                rng,
-                &[ValueKind::Word1, ValueKind::Word2, ValueKind::Numeral],
-            );
-            let value = (0..PLACEMENT_ATTEMPTS)
-                .map(|_| match kind {
-                    ValueKind::Word1 => pick(rng, &vocab.word_values[0]),
-                    ValueKind::Word2 => pick(rng, &vocab.word_values[1]),
-                    ValueKind::Numeral => pick(rng, &vocab.numerals),
+            let kinds = [ValueKind::Word1, ValueKind::Word2, ValueKind::Numeral];
+            let first = *pick(rng, &kinds);
+            // The drawn kind first; if its pool has no fresh value left in this
+            // sequence (the numeral pool holds only ten values), fall back to
+            // the other kinds in a fixed order rather than failing the draw.
+            let order = std::iter::once(first).chain(kinds.into_iter().filter(|k| *k != first));
+            let fresh = |value: &&Vec<u32>| {
+                !values_seen.contains(*value) && value.iter().all(|id| !key_pieces.contains(id))
+            };
+            let (kind, value) = order
+                .filter_map(|kind| {
+                    let pool = match kind {
+                        ValueKind::Word1 => &vocab.word_values[0],
+                        ValueKind::Word2 => &vocab.word_values[1],
+                        ValueKind::Numeral => &vocab.numerals,
+                    };
+                    (0..PLACEMENT_ATTEMPTS)
+                        .map(|_| pick(rng, pool))
+                        .find(fresh)
+                        .or_else(|| pool.iter().find(fresh))
+                        .map(|value| (kind, value.clone()))
                 })
-                .find(|value| {
-                    !values_seen.contains(*value) && value.iter().all(|id| !key_pieces.contains(id))
-                })
-                .cloned()
+                .next()
                 .ok_or_else(|| invalid("no fresh value"))?;
             values_seen.insert(value.clone());
             used_pieces.extend(value.iter().copied());
