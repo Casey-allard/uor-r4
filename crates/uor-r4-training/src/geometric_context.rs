@@ -26,6 +26,10 @@
 //! latent adjoints and connected readout logits for declared downstream finite
 //! observation credit. The float tail remains a separate boundary.
 
+#[cfg(feature = "cuda")]
+#[path = "geometric_context_cuda.rs"]
+mod cuda_ops;
+
 use crate::geometric_address::{geometry_digest, AddressCode, GeometricAddressConfig};
 use crate::geometric_event::CompiledEvents;
 use crate::geometric_potential_native::{
@@ -66,7 +70,13 @@ const SURROGATE:&str="latent-new-root-tangent;hard-hamilton;120-softmax-expected
 /// Full ambient latent-state credit is a declared biased discrete-choice
 /// surrogate, not a derivative of the exact argmax or a native runtime change.
 pub const FINITE_CHOICE_SURROGATE:&str="latent-new-root-full-adjoint;hard-hamilton-direct-full;120-softmax-expected-action-root-T1-full;all-old-state-score-credit;emitted-root-tangent-softmax120;physical-radius-local-neighbor-softmax;absence-answer-stop/1";
-const PACKED_WIDTH: usize = 157;
+const STATE_LOGITS_OFFSET: usize = 157;
+const STATE_CHOICE_OFFSET: usize = STATE_LOGITS_OFFSET + 120;
+const PACKED_WIDTH: usize = STATE_CHOICE_OFFSET + 120;
+/// Offline local conditional STE: preserve120 utility channels through exact
+/// hard group permutations, one action-choice pullback and factual other lanes.
+/// This is not a derivative of argmax or a global recurrent state posterior.
+pub const STATE_CHOICE_SURROGATE: &str = "hard-retained-poststate-onehot120;full120-temporal-utility;factual-action-old-state-permutation-carry;one-action-softmax-pullback;old-score-dependency-root120;other-lanes-factual;separate-legacy-ambient4;reset-cut/1";
 const LATENT_OFFSET: usize = 153;
 const INITIALIZATION:&str="xorshift64-seed;uniform[-.02,.02];transition-identity+.05;category17+1;nonzero-readout-bases/1";
 const CATEGORY_RULE:&str="0=absent(root1,bin0);1..32=present(bin=category-1,radius=2^(bin-16));physical-nearest-midpoint-lower-clipped[-16,15]/1";
@@ -203,6 +213,46 @@ impl GeometricContextConfig {
         out
     }
 }
+/// Offline shared quarter-grid STE. CUDA uses the validated device kernel;
+/// source/export admission is still separate from the learning graph.
+pub(crate) fn q4_shadow_ste(value: &Tensor) -> Result<Tensor> {
+    #[cfg(feature = "cuda")]
+    if value.device().is_cuda() {
+        let hard = cuda_ops::round_q4(value)?;
+        return Ok((&hard + (value - value.detach())?)?);
+    }
+    let raw = value.flatten_all()?.to_vec1::<f32>()?;
+    if raw.iter().any(|x| !x.is_finite() || x.abs() > 1.75) {
+        return Err(invalid("quarter-grid shadow outside finite strict range"));
+    }
+    let hard = Tensor::from_vec(
+        raw.into_iter()
+            .map(|x| (x * 4.).round() * 0.25)
+            .collect::<Vec<_>>(),
+        value.shape(),
+        value.device(),
+    )?;
+    Ok((&hard + (value - value.detach())?)?)
+}
+/// Offline projection of a master tensor. It never downloads live CUDA values.
+pub(crate) fn q4_project_tensor(value: &Tensor) -> Result<Tensor> {
+    #[cfg(feature = "cuda")]
+    if value.device().is_cuda() {
+        return Ok(cuda_ops::clip_q4(value)?);
+    }
+    let raw = value.flatten_all()?.to_vec1::<f32>()?;
+    if raw.iter().any(|x| !x.is_finite()) {
+        return Err(invalid("nonfinite quarter-grid master"));
+    }
+    Ok(Tensor::from_vec(
+        raw.into_iter()
+            .map(|x| x.clamp(-1.75, 1.75))
+            .collect::<Vec<_>>(),
+        value.shape(),
+        value.device(),
+    )?)
+}
+
 fn roots() -> &'static [[f64; 4]; 120] {
     static R: OnceLock<[[f64; 4]; 120]> = OnceLock::new();
     R.get_or_init(|| std::array::from_fn(|i| canonical_h4_roots()[i].to_array()))
@@ -318,6 +368,13 @@ pub struct ContextWeights {
 /// Native choices are authoritative. The logits are differentiable q4 factor
 /// scores for the declared backward probabilities, not alternate hard selectors.
 pub struct ContextQ4Output {
+    /// Actual hard retained post-state onehot [B,T,H,L,120]. Its upstream
+    /// values are utilities, with a full120 temporal local-conditional STE.
+    pub state_choices: Tensor,
+    /// Offline transition logits mapped by the factual old-state/action group
+    /// product into120 retained POST-state choices. Not observed-root logits.
+    /// This exposes local full-choice credit; old-state input credit remains4D.
+    pub state_logits: Tensor,
     pub latent_roots: Tensor,
     pub root_logits: Tensor,
     pub category_logits: Tensor,
@@ -325,6 +382,10 @@ pub struct ContextQ4Output {
 }
 
 pub struct ContextOutput {
+    /// Actual hard retained post-state onehot, shaped [B,T,H,L,120].
+    pub state_choices: Tensor,
+    /// Offline post-state-choice transition logits, shaped [B,T,H,L,120].
+    pub state_logits: Tensor,
     pub root_logits: Tensor,
     pub category_logits: Tensor,
     pub context: Tensor,
@@ -406,6 +467,18 @@ impl ContextWeights {
             .map_err(|e| invalid(e.to_string()))
     }
     pub fn project_shadow_range(&self) -> Result<()> {
+        #[cfg(feature = "cuda")]
+        if self.device().is_cuda() {
+            let pending = self
+                .parameters
+                .values()
+                .map(|v| Ok((v, cuda_ops::clip_q4(v.as_tensor())?)))
+                .collect::<Result<Vec<_>>>()?;
+            for (parameter, value) in pending {
+                parameter.set(&value)?;
+            }
+            return Ok(());
+        }
         let mut pending = Vec::new();
         for parameter in self.parameters.values() {
             let values = parameter.flatten_all()?.to_vec1::<f32>()?;
@@ -420,7 +493,7 @@ impl ContextWeights {
                         .map(|x| x.clamp(-1.75, 1.75))
                         .collect::<Vec<_>>(),
                     parameter.shape(),
-                    &Device::Cpu,
+                    parameter.device(),
                 )?,
             ));
         }
@@ -438,6 +511,11 @@ impl ContextWeights {
         if !self.is_q4() {
             return Ok(value.clone());
         }
+        #[cfg(feature = "cuda")]
+        if value.device().is_cuda() {
+            let hard = cuda_ops::round_q4(value)?;
+            return Ok((&hard + (value - value.detach())?)?);
+        }
         let hard = Tensor::from_vec(
             value
                 .flatten_all()?
@@ -446,7 +524,7 @@ impl ContextWeights {
                 .map(|x| (x * 4.).round() * 0.25)
                 .collect::<Vec<_>>(),
             value.shape(),
-            &Device::Cpu,
+            value.device(),
         )?;
         Ok((&hard + (value - value.detach())?)?)
     }
@@ -484,6 +562,31 @@ impl ContextWeights {
         }
         Ok(Self { config, parameters })
     }
+    /// Clone trainable source variables onto a CPU or CUDA device. Native
+    /// artifact admission/export remains a separately charged host boundary.
+    pub fn to_device(&self, device: &Device) -> Result<Self> {
+        self.validate()?;
+        if !device.is_cpu() && !device.is_cuda() {
+            return Err(invalid("context training supports CPU or CUDA only"));
+        }
+        let parameters = self
+            .parameters
+            .iter()
+            .map(|(name, value)| {
+                Ok((
+                    name.clone(),
+                    Var::from_tensor(&value.as_tensor().to_device(device)?.detach())?,
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        Ok(Self {
+            config: self.config.clone(),
+            parameters,
+        })
+    }
+    pub fn device(&self) -> &Device {
+        self.parameters[TT].device()
+    }
     pub fn config(&self) -> &GeometricContextConfig {
         &self.config
     }
@@ -501,7 +604,8 @@ impl ContextWeights {
             let v = &self.parameters[&name];
             if v.dims() != shape
                 || v.dtype() != DType::F32
-                || !v.device().is_cpu()
+                || (!v.device().is_cpu() && !v.device().is_cuda())
+                || !v.device().same_device(self.device())
                 || v.flatten_all()?
                     .to_vec1::<f32>()?
                     .iter()
@@ -547,7 +651,10 @@ impl ContextWeights {
         validate_ids(&self.config, ids, batch, time)?;
         let (tokens, basis) = self.graph_inputs(detach_token_readouts)?;
         let rows = tokens
-            .index_select(&Tensor::from_vec(ids.to_vec(), ids.len(), &Device::Cpu)?, 0)?
+            .index_select(
+                &Tensor::from_vec(ids.to_vec(), ids.len(), tokens.device())?,
+                0,
+            )?
             .reshape((batch, time, self.config.lanes() * 273))?;
         Ok((rows.contiguous()?, basis))
     }
@@ -625,6 +732,26 @@ impl ContextWeights {
             },
         )?;
         Ok(ContextOutput {
+            state_choices: packed
+                .narrow(3, STATE_CHOICE_OFFSET, 120)?
+                .contiguous()?
+                .reshape((
+                    batch,
+                    time,
+                    self.config.heads,
+                    self.config.lanes_per_head,
+                    120,
+                ))?,
+            state_logits: packed
+                .narrow(3, STATE_LOGITS_OFFSET, 120)?
+                .contiguous()?
+                .reshape((
+                    batch,
+                    time,
+                    self.config.heads,
+                    self.config.lanes_per_head,
+                    120,
+                ))?,
             root_logits: roots.reshape(vec![
                 batch,
                 time,
@@ -718,6 +845,26 @@ impl ContextWeights {
             },
         )?;
         Ok(ContextQ4Output {
+            state_choices: output
+                .narrow(3, STATE_CHOICE_OFFSET, 120)?
+                .contiguous()?
+                .reshape((
+                    batch,
+                    time,
+                    self.config.heads,
+                    self.config.lanes_per_head,
+                    120,
+                ))?,
+            state_logits: output
+                .narrow(3, STATE_LOGITS_OFFSET, 120)?
+                .contiguous()?
+                .reshape((
+                    batch,
+                    time,
+                    self.config.heads,
+                    self.config.lanes_per_head,
+                    120,
+                ))?,
             root_logits: output.narrow(3, 0, 120)?.contiguous()?.reshape((
                 batch,
                 time,
@@ -849,7 +996,10 @@ impl PreparedContextQ4<'_> {
         }
         let rows = self
             .tokens
-            .index_select(&Tensor::from_vec(ids.to_vec(), ids.len(), &Device::Cpu)?, 0)?
+            .index_select(
+                &Tensor::from_vec(ids.to_vec(), ids.len(), self.tokens.device())?,
+                0,
+            )?
             .reshape((batch, time, self.config.lanes() * 273))?
             .contiguous()?;
         let output = rows.apply_op2(
@@ -865,6 +1015,26 @@ impl PreparedContextQ4<'_> {
             },
         )?;
         Ok(ContextQ4Output {
+            state_choices: output
+                .narrow(3, STATE_CHOICE_OFFSET, 120)?
+                .contiguous()?
+                .reshape((
+                    batch,
+                    time,
+                    self.config.heads,
+                    self.config.lanes_per_head,
+                    120,
+                ))?,
+            state_logits: output
+                .narrow(3, STATE_LOGITS_OFFSET, 120)?
+                .contiguous()?
+                .reshape((
+                    batch,
+                    time,
+                    self.config.heads,
+                    self.config.lanes_per_head,
+                    120,
+                ))?,
             root_logits: output.narrow(3, 0, 120)?.contiguous()?.reshape((
                 batch,
                 time,
@@ -1022,6 +1192,19 @@ impl ContextOp {
                     output.extend(self.scores::<120>(row, basis, &state, lane, 1));
                     output.extend(self.scores::<33>(row, basis, &state, lane, 2));
                     output.extend(self.root(state[lane]));
+                    // Each factual old root induces a permutation of all120
+                    // action choices into retained post-state codes.
+                    let action_scores = self.scores::<120>(row, basis, &old, lane, 0);
+                    let mut state_scores = [0.; 120];
+                    for (action, score) in action_scores.iter().enumerate() {
+                        let post =
+                            group_table().product[usize::from(old[lane]) * ROW_STRIDE + action];
+                        state_scores[usize::from(post)] = *score;
+                    }
+                    output.extend(state_scores);
+                    let mut choices = [0.; 120];
+                    choices[usize::from(state[lane])] = 1.;
+                    output.extend(choices);
                 }
                 trace.push(Step {
                     old,
@@ -1078,13 +1261,22 @@ impl ContextOp {
         let mut db = vec![0.; basis.len()];
         for b in 0..self.batch {
             let mut future = [[0.; 4]; 8];
+            let mut future_utility = [[0.; 120]; 8];
             for t in (0..self.time).rev() {
                 if self.reset {
                     future = [[0.; 4]; 8];
+                    future_utility = [[0.; 120]; 8];
                 }
                 let at = b * self.time + t;
                 let step = &trace[at];
                 let row = &rows[at * n * 273..(at + 1) * n * 273];
+                for lane in 0..n {
+                    for state in 0..120 {
+                        future_utility[lane][state] += f64::from(
+                            upstream[(at * n + lane) * PACKED_WIDTH + STATE_CHOICE_OFFSET + state],
+                        );
+                    }
+                }
                 for lane in 0..n {
                     add(
                         &mut future[lane],
@@ -1117,6 +1309,34 @@ impl ContextOp {
                     }
                 }
                 let mut old_gradient = [[0.; 4]; 8];
+                // The downstream consumer already differentiates its declared
+                // expectation over state logits. Inject those score adjoints
+                // directly; applying another softmax here would double it.
+                for lane in 0..n {
+                    for action in 0..120 {
+                        let post = group_table().product
+                            [usize::from(step.old[lane]) * ROW_STRIDE + action];
+                        let g = f64::from(
+                            upstream[(at * n + lane) * PACKED_WIDTH
+                                + STATE_LOGITS_OFFSET
+                                + usize::from(post)],
+                        );
+                        if g != 0. {
+                            self.score_pullback(
+                                at,
+                                0,
+                                lane,
+                                action,
+                                g,
+                                &step.old,
+                                basis,
+                                &mut dr,
+                                &mut db,
+                                &mut old_gradient,
+                            );
+                        }
+                    }
+                }
                 for lane in 0..n {
                     let g = if self.finite_choice {
                         future[lane]
@@ -1148,6 +1368,60 @@ impl ContextOp {
                         );
                     }
                 }
+                // Separate full-choice channel. A score adjoint is not a state
+                // utility: old state_logits and legacy latent paths above keep
+                // their exact existing backward. Only hard-onehot utilities
+                // enter this local conditional transport.
+                let mut old_utility = [[0.; 120]; 8];
+                let mut utility_score_dependency = [[0.; 4]; 8];
+                for lane in 0..n {
+                    if future_utility[lane].iter().all(|&u| u == 0.) {
+                        continue;
+                    }
+                    let old = usize::from(step.old[lane]);
+                    let action = usize::from(step.actions[lane]);
+                    let p = probabilities(&self.scores::<120>(row, basis, &step.old, lane, 0));
+                    let credit: [f64; 120] = std::array::from_fn(|a| {
+                        let post = group_table().product[old * ROW_STRIDE + a];
+                        future_utility[lane][usize::from(post)]
+                    });
+                    let mean = (0..120).map(|a| p[a] * credit[a]).sum::<f64>();
+                    for a in 0..120 {
+                        let g = p[a] * (credit[a] - mean);
+                        if g != 0. {
+                            self.score_pullback(
+                                at,
+                                0,
+                                lane,
+                                a,
+                                g,
+                                &step.old,
+                                basis,
+                                &mut dr,
+                                &mut db,
+                                &mut utility_score_dependency,
+                            );
+                        }
+                    }
+                    // Direct old-state role of the hard group product holds
+                    // the factual action fixed; it retains every harmonic.
+                    for old in 0..120 {
+                        let post = group_table().product[old * ROW_STRIDE + action];
+                        old_utility[lane][old] += future_utility[lane][usize::from(post)];
+                    }
+                }
+                // The score factors themselves are linear in each old root.
+                // Convert their separate input adjoints to all120 conditional
+                // old-state utilities once; do not feed them into legacy4D too.
+                for lane in 0..n {
+                    if utility_score_dependency[lane].iter().any(|&g| g != 0.) {
+                        for old in 0..120 {
+                            old_utility[lane][old] +=
+                                dot(utility_score_dependency[lane], self.root(old as u8));
+                        }
+                    }
+                }
+                future_utility = old_utility;
                 future = old_gradient;
             }
         }
@@ -1177,6 +1451,16 @@ impl CustomOp2 for ContextOp {
             Shape::from((self.batch, self.time, self.lanes(), PACKED_WIDTH)),
         ))
     }
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        a: &candle_core::CudaStorage,
+        la: &Layout,
+        b: &candle_core::CudaStorage,
+        lb: &Layout,
+    ) -> candle_core::Result<(candle_core::CudaStorage, Shape)> {
+        cuda_ops::context_forward(self, a, la, b, lb)
+    }
     fn bwd(
         &self,
         a: &Tensor,
@@ -1184,6 +1468,10 @@ impl CustomOp2 for ContextOp {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if a.device().is_cuda() {
+            return cuda_ops::context_backward(self, a, b, grad);
+        }
         let (da, db) = self.backward(
             &a.flatten_all()?.to_vec1::<f32>()?,
             &b.flatten_all()?.to_vec1::<f32>()?,
@@ -1287,6 +1575,16 @@ impl CustomOp2 for EmitOp {
             Shape::from((self.batch, self.time, self.lanes * 4)),
         ))
     }
+    #[cfg(feature = "cuda")]
+    fn cuda_fwd(
+        &self,
+        a: &candle_core::CudaStorage,
+        la: &Layout,
+        b: &candle_core::CudaStorage,
+        lb: &Layout,
+    ) -> candle_core::Result<(candle_core::CudaStorage, Shape)> {
+        cuda_ops::emit_forward(self, a, la, b, lb)
+    }
     fn bwd(
         &self,
         a: &Tensor,
@@ -1294,6 +1592,10 @@ impl CustomOp2 for EmitOp {
         _out: &Tensor,
         grad: &Tensor,
     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
+        #[cfg(feature = "cuda")]
+        if a.device().is_cuda() {
+            return cuda_ops::emit_backward(self, a, b, grad);
+        }
         let (da, db) = self.backward(
             &a.flatten_all()?.to_vec1::<f32>()?,
             &b.flatten_all()?.to_vec1::<f32>()?,
@@ -3072,6 +3374,302 @@ mod tests {
                 );
             }
         }
+        Ok(())
+    }
+    #[test]
+    fn context_post_state_logits_permute_actions_and_pull_back_scores_once() -> Result<()> {
+        let old = 3u8;
+        let action = 7u8;
+        let post = group_table().product[usize::from(old) * ROW_STRIDE + usize::from(action)];
+        let mut old_second = [1; 8];
+        old_second[0] = old;
+        let mut new_second = [1; 8];
+        new_second[0] = post;
+        let mut actions_second = [1; 8];
+        actions_second[0] = action;
+        let op = ContextOp {
+            batch: 1,
+            time: 2,
+            heads: 1,
+            lanes_per_head: 1,
+            reset: false,
+            finite_choice: true,
+            native_steps: Some(Arc::new(vec![
+                Step {
+                    old: [1; 8],
+                    new: old_second,
+                    actions: old_second,
+                },
+                Step {
+                    old: old_second,
+                    new: new_second,
+                    actions: actions_second,
+                },
+            ])),
+        };
+        let mut rows = vec![0f32; 2 * 273];
+        for a in 0..120 {
+            rows[273 + a] = a as f32;
+        }
+        let basis = vec![0f32; 273 * 4];
+        let (_, output) = op.forward(&rows, &basis)?;
+        assert_eq!(output.len(), 2 * PACKED_WIDTH);
+        for a in 0..120 {
+            let z = group_table().product[usize::from(old) * ROW_STRIDE + a];
+            assert_eq!(
+                output[PACKED_WIDTH + STATE_LOGITS_OFFSET + usize::from(z)],
+                a as f32
+            );
+        }
+        // Native selected post-state remains authoritative despite arbitrary
+        // offline action logits: the new exposed choices never reselect it.
+        assert_eq!(
+            &output[PACKED_WIDTH + LATENT_OFFSET..PACKED_WIDTH + LATENT_OFFSET + 4],
+            &op.root(post).map(|x| x as f32)
+        );
+        let mut upstream = vec![0f32; 2 * PACKED_WIDTH];
+        upstream[PACKED_WIDTH + STATE_LOGITS_OFFSET + usize::from(post)] = 2.;
+        let (dr, db) = op.backward(&rows, &basis, &upstream)?;
+        assert_eq!(dr[273 + usize::from(action)], 2.);
+        assert_eq!(dr.iter().sum::<f32>(), 2.);
+        assert!(dr[..273].iter().all(|&x| x == 0.));
+        let at = op.basis_offset(0, false) + usize::from(action) * 4;
+        assert_eq!(&db[at..at + 4], &op.root(old).map(|x| (2. * x) as f32));
+        let weights = ContextWeights::new_finite_choice(2, 4, 1, 73)?;
+        assert_eq!(
+            weights.forward(&[0, 1], 1, 2, false)?.state_logits.dims(),
+            [1, 2, 1, 1, 120]
+        );
+        Ok(())
+    }
+    #[test]
+    fn expected_limitation_delayed_poststate_utility_loses_permutation_carry() -> Result<()> {
+        use uor_r4_integer::h4_tables::H4Code;
+        // Diagnostic of the CURRENT surrogate, not a correctness/learning gate.
+        // A final fixed action still transports old state into post-state. With
+        // zero transition bases, direct state-logit adjoints currently stop at
+        // the final token's scores and omit this temporal permutation credit.
+        let weights = strict_zero(2, 4, 1)?;
+        let mut transitions = vec![0f32; 240];
+        transitions[3] = 1.; // First token chooses +i in the historical frame.
+        transitions[120 + 1] = 1.; // Second token chooses identity.
+        set(&weights, TT, transitions.clone())?;
+        for name in [ST, SR, SC] {
+            assert!(weights.parameters[name]
+                .flatten_all()?
+                .to_vec1::<f32>()?
+                .iter()
+                .all(|&x| x == 0.));
+        }
+        let output = weights.forward_q4(&[0, 1], 1, 2, false)?;
+        assert_eq!(output.trace.actions, vec![vec![3], vec![1]]);
+        assert_eq!(output.trace.states, vec![vec![3], vec![3]]);
+
+        // Use the actual native codec to intervene on the retained state just
+        // before token 1. Neither labels nor a surrogate select its action.
+        let expanded = ExpandedContext::compile(&weights)?;
+        let native = expanded.native(weights.config())?;
+        let geometry = admit_geometry(PINNED)?;
+        let mut utilities = [0f64; 120];
+        for (old, utility) in utilities.iter_mut().enumerate() {
+            let retained = [H4Code::try_from(old as u8).map_err(|e| invalid(e.to_string()))?];
+            let mut replay = NativeContextState::from_states(1, 1, &retained)
+                .map_err(|e| invalid(e.to_string()))?;
+            let step = replay
+                .step(1, &native, &geometry)
+                .map_err(|e| invalid(e.to_string()))?;
+            assert_eq!(step.actions[0].index(), 1);
+            assert_eq!(replay.states()[0].index(), old as u8);
+            *utility = if replay.states()[0].index() == 3 {
+                1.
+            } else {
+                0.
+            };
+        }
+        assert_eq!(utilities[3], 1.);
+        assert_eq!(utilities[5], 0.);
+
+        // This is the same full120 local expectation used by the Generate
+        // state-input surrogate, without a four-coordinate projection. The
+        // selected hard score can be anchored separately without changing it.
+        let logits = output.state_logits.narrow(1, 1, 1)?.reshape(120)?;
+        let table = Tensor::from_vec(
+            utilities.iter().map(|&x| x as f32).collect::<Vec<_>>(),
+            120,
+            &Device::Cpu,
+        )?;
+        let expected = (candle_nn::ops::softmax(&logits, 0)? * table)?.sum_all()?;
+        let gradients = expected.backward()?;
+        let gradient = gradients
+            .get(weights.parameters[TT].as_tensor())
+            .ok_or_else(|| invalid("diagnostic transition gradient absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(gradient[120..].iter().any(|x| x.abs() > 1e-6));
+        assert!(gradient[..120].iter().all(|&x| x == 0.));
+
+        // A full120 factual-action carry would give earlier choices the native
+        // conditional utility U(old * identity), which is nonconstant. Show
+        // its expected local choice credit explicitly; do NOT inject it into
+        // the current operator or apply a second softmax to its score adjoints.
+        let action_logits: [f64; 120] = std::array::from_fn(|a| f64::from(transitions[a]));
+        let p = probabilities(&action_logits);
+        let mean = (0..120).map(|a| p[a] * utilities[a]).sum::<f64>();
+        let missing_credit = p[3] * (utilities[3] - mean);
+        assert!(missing_credit > 1e-3);
+        Ok(())
+    }
+    #[test]
+    fn context_hard_state_choices_carry_even_utility_to_earlier_transition_and_reset() -> Result<()>
+    {
+        let weights = strict_zero(2, 4, 1)?;
+        let mut transitions = vec![0f32; 240];
+        // Uniform first choices expose the even utility's exact nullspace in
+        // four ambient coordinates. The last token has factual identity action.
+        transitions[120 + 1] = 1.;
+        set(&weights, TT, transitions)?;
+        let utilities: Vec<f32> = q4_roots()
+            .iter()
+            .map(|q| if q[1].abs() > 0.75 { 1. } else { 0. })
+            .collect();
+        let mean = utilities.iter().map(|&u| f64::from(u)).sum::<f64>() / 120.;
+        assert!(mean > 0. && mean < 1.);
+        for reset in [false, true] {
+            let output = weights.forward_q4(&[0, 1], 1, 2, reset)?;
+            assert_eq!(output.trace.actions[1], vec![1]);
+            assert_eq!(output.state_choices.dims(), [1, 2, 1, 1, 120]);
+            let hard = output.state_choices.flatten_all()?.to_vec1::<f32>()?;
+            for time in 0..2 {
+                for state in 0..120 {
+                    let expected = if state == usize::from(output.trace.states[time][0]) {
+                        1.
+                    } else {
+                        0.
+                    };
+                    assert_eq!(hard[time * 120 + state], expected);
+                }
+            }
+            let choices = output.state_choices.narrow(1, 1, 1)?.reshape(120)?;
+            let utility = Tensor::from_vec(utilities.clone(), 120, &Device::Cpu)?;
+            let loss = (choices * utility)?.sum_all()?;
+            assert_eq!(
+                loss.to_scalar::<f32>()?,
+                utilities[usize::from(output.trace.states[1][0])],
+            );
+            let gradients = loss.backward()?;
+            let values = gradients
+                .get(weights.parameters[TT].as_tensor())
+                .ok_or_else(|| invalid("hard choice delayed transition gradient absent"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            assert!(values[120..].iter().any(|x| x.abs() > 1e-6));
+            if reset {
+                assert!(values[..120].iter().all(|&x| x == 0.));
+            } else {
+                assert!(values[..120].iter().any(|x| x.abs() > 1e-4));
+                // Initial old state is identity and last factual action is
+                // identity, so one pullback gives (U(a)-mean)/120 exactly.
+                for a in 0..120 {
+                    let expected = (f64::from(utilities[a]) - mean) / 120.;
+                    assert!((f64::from(values[a]) - expected).abs() < 1e-8);
+                }
+                for axis in 0..4 {
+                    let moment = (0..120)
+                        .map(|a| f64::from(values[a]) * q4_roots()[a][axis])
+                        .sum::<f64>();
+                    assert!(moment.abs() < 1e-8, "axis {axis}: {moment}");
+                }
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn context_hard_state_choice_neighbor_score_dependency_is_lifted_once() -> Result<()> {
+        let weights = strict_zero(2, 8, 1)?;
+        let mut transitions = vec![0f32; 480];
+        transitions[240 + 1] = 1.;
+        transitions[240 + 120 + 1] = 1.;
+        set(&weights, TT, transitions)?;
+        let mut neighbor = vec![0f32; 2 * 120 * 4];
+        neighbor[4] = 0.25; // Lane0 identity score reads old lane1's real axis.
+        set(&weights, NT, neighbor)?;
+        let output = weights.forward_q4(&[0, 1], 1, 2, false)?;
+        assert_eq!(output.trace.states[0], vec![1, 0]);
+        assert_eq!(output.trace.actions[1], vec![1, 1]);
+        let choices = output.state_choices.narrow(1, 1, 1)?.reshape((2, 120))?;
+        let loss = choices
+            .narrow(0, 0, 1)?
+            .reshape(120)?
+            .narrow(0, 3, 1)?
+            .sum_all()?;
+        let gradients = loss.backward()?;
+        let values = gradients
+            .get(weights.parameters[TT].as_tensor())
+            .ok_or_else(|| invalid("choice neighbor transition gradient absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let logits = output
+            .state_logits
+            .narrow(1, 1, 1)?
+            .reshape((2, 120))?
+            .narrow(0, 0, 1)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let scores: [f64; 120] = std::array::from_fn(|a| f64::from(logits[a]));
+        let p = probabilities(&scores);
+        // Only lane0/action1 has a neighbor coefficient. U(action3)=1,
+        // U(action1)=0, so its input dependency is K = .25*p1*(-p3).
+        let k = -0.25 * p[1] * p[3];
+        assert!(k.abs() > 1e-5);
+        for a in 0..120 {
+            let expected = k * q4_roots()[a][0] / 120.;
+            assert!((f64::from(values[120 + a]) - expected).abs() < 1e-9);
+        }
+        assert!(values[120..240].iter().any(|x| x.abs() > 1e-8));
+        Ok(())
+    }
+    #[test]
+    fn context_post_state_even_table_credit_survives_four_coordinate_nullspace() -> Result<()> {
+        let op = ContextOp {
+            batch: 1,
+            time: 1,
+            heads: 1,
+            lanes_per_head: 1,
+            reset: false,
+            finite_choice: true,
+            native_steps: Some(Arc::new(vec![Step {
+                old: [1; 8],
+                new: [1; 8],
+                actions: [1; 8],
+            }])),
+        };
+        let values = (0..120)
+            .map(|r| {
+                let x = op.root(r as u8);
+                (7. * x[0] * x[1]).round()
+            })
+            .collect::<Vec<_>>();
+        assert!(values.iter().any(|&x| x != 0.));
+        assert_eq!(values[1], 0.);
+        let mean = values.iter().sum::<f64>() / 120.;
+        let score_credit = values.iter().map(|v| (v - mean) / 120.).collect::<Vec<_>>();
+        let mut ambient = [0f64; 4];
+        for (r, &g) in score_credit.iter().enumerate() {
+            for (a, x) in op.root(r as u8).iter().enumerate() {
+                ambient[a] += g * x;
+            }
+        }
+        assert!(ambient.iter().all(|x| x.abs() < 1e-12));
+        let mut upstream = vec![0f32; PACKED_WIDTH];
+        for (z, &g) in score_credit.iter().enumerate() {
+            upstream[STATE_LOGITS_OFFSET + z] = g as f32;
+        }
+        let (dr, _) = op.backward(&vec![0f32; 273], &vec![0f32; 273 * 4], &upstream)?;
+        assert!(dr[..120].iter().any(|x| x.abs() > 1e-6));
+        for z in 0..120 {
+            assert_eq!(dr[z], score_credit[z] as f32);
+        }
+        assert!(dr[120..].iter().all(|&x| x == 0.));
         Ok(())
     }
     #[test]

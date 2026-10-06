@@ -6,7 +6,8 @@
 //! through attention before building and measuring a discrete bridge.
 
 // Without the `cuda` feature the crate forbids unsafe code. With it, only the
-// CUDA kernel launcher (`cuda_stack_kernels::cuda`) opts in.
+// CUDA kernel launchers (`cuda_stack_kernels::cuda` and
+// `native_geometric_cuda_kernels`) opt in.
 #![cfg_attr(not(feature = "cuda"), forbid(unsafe_code))]
 #![cfg_attr(feature = "cuda", deny(unsafe_code))]
 
@@ -20,6 +21,9 @@ pub mod clause_probe;
 pub mod copy_identity;
 pub mod cuda_stack_kernels;
 pub mod d4_codecs;
+#[cfg(feature = "cuda")]
+#[allow(unsafe_code)]
+pub(crate) mod native_geometric_cuda_kernels;
 pub use d4_codecs::{codec_by_name, HeadCompensatedMapCodec, RecurrenceOutMinMseMapCodec};
 pub mod dialogue_artifact;
 pub mod dialogue_child_artifact;

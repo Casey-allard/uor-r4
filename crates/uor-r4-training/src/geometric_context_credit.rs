@@ -109,18 +109,48 @@ fn admit(context: &ContextQ4Output) -> Result<(Dimensions, Vec<H4Code>)> {
     {
         return Err(invalid("context credit trace shape differs"));
     }
-    let latent = tensor_values(
-        &context.latent_roots,
-        &[d.batch, d.time, d.heads, d.lanes, 4],
-    )?;
-    tensor_values(
-        &context.root_logits,
-        &[d.batch, d.time, d.heads, d.lanes, 120],
-    )?;
-    tensor_values(
-        &context.category_logits,
-        &[d.batch, d.time, d.heads, d.lanes, 33],
-    )?;
+    let on_cpu = context.latent_roots.device().is_cpu();
+    let device = context.latent_roots.device();
+    for (tensor, shape) in [
+        (
+            &context.latent_roots,
+            vec![d.batch, d.time, d.heads, d.lanes, 4],
+        ),
+        (
+            &context.root_logits,
+            vec![d.batch, d.time, d.heads, d.lanes, 120],
+        ),
+        (
+            &context.category_logits,
+            vec![d.batch, d.time, d.heads, d.lanes, 33],
+        ),
+    ] {
+        if tensor.dims() != shape
+            || tensor.dtype() != DType::F32
+            || !tensor.device().same_device(device)
+            || (!device.is_cpu() && !device.is_cuda())
+        {
+            return Err(invalid("context credit graph device/shape differs"));
+        }
+    }
+    let latent = if on_cpu {
+        tensor_values(
+            &context.latent_roots,
+            &[d.batch, d.time, d.heads, d.lanes, 4],
+        )?
+    } else {
+        vec![]
+    };
+    if on_cpu {
+        tensor_values(
+            &context.root_logits,
+            &[d.batch, d.time, d.heads, d.lanes, 120],
+        )?;
+        tensor_values(
+            &context.category_logits,
+            &[d.batch, d.time, d.heads, d.lanes, 33],
+        )?;
+    }
     let mut states = Vec::with_capacity(d.count());
     for (row, (s, a)) in t.states.iter().zip(&t.actions).enumerate() {
         if s.len() != d.width() || a.len() != d.width() {
@@ -131,7 +161,7 @@ fn admit(context: &ContextQ4Output) -> Result<(Dimensions, Vec<H4Code>)> {
             code(a)?;
             let at = row * d.width() + lane;
             for (axis, expected) in root(s).iter().enumerate() {
-                if latent[at * 4 + axis].to_bits() != (*expected as f32).to_bits() {
+                if on_cpu && latent[at * 4 + axis].to_bits() != (*expected as f32).to_bits() {
                     return Err(invalid(
                         "context credit graph latent differs from native trace",
                     ));
@@ -177,7 +207,7 @@ fn probabilities(values: &[f32]) -> Vec<f64> {
     }
     p
 }
-fn choice_pullback(logits: &[f32], credit: &[f64], out: &mut [f64]) {
+pub(crate) fn choice_pullback(logits: &[f32], credit: &[f64], out: &mut [f64]) {
     let p = probabilities(logits);
     let mean: f64 = p.iter().zip(credit).map(|(p, g)| p * g).sum();
     for ((out, p), g) in out.iter_mut().zip(p).zip(credit) {
@@ -421,9 +451,13 @@ fn no_read_credit_forward(
         coefficients,
         hard: hard.clone(),
     };
-    let scores = latent_roots
-        .contiguous()?
-        .apply_op2(&category_logits.contiguous()?, op)?;
+    let scores = if latent_roots.device().is_cuda() {
+        op.device_graph(latent_roots, category_logits)?
+    } else {
+        latent_roots
+            .contiguous()?
+            .apply_op2(&category_logits.contiguous()?, op)?
+    };
     Ok(NoReadCreditOutput {
         scores,
         scores_q24: hard,
@@ -558,9 +592,13 @@ fn potential_credit_forward(
         &packed,
     )?;
     let scores_q24 = op.hard.clone();
-    let scores = root_logits
-        .contiguous()?
-        .apply_op2(&category_logits.contiguous()?, op)?;
+    let scores = if root_logits.device().is_cuda() {
+        op.device_graph(root_logits, category_logits)?
+    } else {
+        root_logits
+            .contiguous()?
+            .apply_op2(&category_logits.contiguous()?, op)?
+    };
     Ok(PotentialQ4Output {
         scores,
         scores_q24,
@@ -866,7 +904,19 @@ mod tests {
         };
         Ok((
             ContextQ4Output {
+                // These legacy observed-input fixtures do not consume hidden-state scores.
+                state_logits: Tensor::zeros(
+                    (d.batch, d.time, d.heads, d.lanes, 120),
+                    DType::F32,
+                    &Device::Cpu,
+                )?,
                 latent_roots: latent.as_tensor().clone(),
+                // Legacy observation fixture does not consume retained choices.
+                state_choices: Tensor::zeros(
+                    (d.batch, d.time, d.heads, d.lanes, 120),
+                    DType::F32,
+                    &Device::Cpu,
+                )?,
                 root_logits: r.as_tensor().clone(),
                 category_logits: c.as_tensor().clone(),
                 trace,
@@ -1526,14 +1576,18 @@ pub fn frozen_cue_root_forward(
         Tensor::zeros(
             (0, config.heads * config.lanes_per_head, 120),
             DType::F32,
-            &Device::Cpu,
+            q.device(),
         )?
     } else {
         Tensor::stack(&local, 0)?.contiguous()?
     };
     let op = CueRootCredit::new(config, packed, carrier)?;
     let scores_q24 = op.hard.clone();
-    let scores = q.apply_op2(&k, op)?;
+    let scores = if q.device().is_cuda() {
+        op.device_graph(&q, &k)?
+    } else {
+        q.apply_op2(&k, op)?
+    };
     Ok(CueRootCreditOutput { scores, scores_q24 })
 }
 
@@ -1873,6 +1927,439 @@ mod cue_root_credit_draft_tests {
             q.apply_op2(&k, tied)?.to_vec2::<f32>()?,
             vec![vec![0.75, 0.75, 0.]]
         );
+        Ok(())
+    }
+}
+
+// Device graphs retain the existing CPU CustomOps as numerical references.
+fn gathered_device_utility(
+    logits: &Tensor,
+    classes: usize,
+    indices: &[u32],
+    utility: Vec<f32>,
+    edges: usize,
+    lanes: usize,
+    normalized: bool,
+) -> Result<Tensor> {
+    if indices.len() != edges * lanes || utility.len() != edges * lanes * classes {
+        return Err(invalid("device credit static utility shape differs"));
+    }
+    let device = logits.device();
+    if edges == 0 {
+        return Ok(Tensor::zeros(0, DType::F32, device)?);
+    }
+    let choices = logits.reshape((logits.elem_count() / classes, classes))?;
+    let choices = if normalized {
+        candle_nn::ops::softmax(&choices, 1)?
+    } else {
+        choices
+    };
+    let index = Tensor::from_vec(indices.to_vec(), indices.len(), device)?;
+    let selected = choices.index_select(&index, 0)?;
+    let table = Tensor::from_vec(utility, (edges * lanes, classes), device)?;
+    Ok((selected * table)?
+        .sum(1)?
+        .reshape((edges, lanes))?
+        .sum(1)?)
+}
+fn device_hard_anchor(hard: &[i64], credit: Tensor) -> Result<Tensor> {
+    let authoritative = Tensor::from_vec(
+        hard.iter()
+            .map(|&x| (x as f64 / Q24) as f32)
+            .collect::<Vec<_>>(),
+        hard.len(),
+        credit.device(),
+    )?;
+    Ok((authoritative + (&credit - credit.detach())?)?)
+}
+impl NoReadCredit {
+    fn device_graph(&self, latent: &Tensor, categories: &Tensor) -> Result<Tensor> {
+        if !latent.device().same_device(categories.device()) {
+            return Err(invalid("NoRead graph devices differ"));
+        }
+        let d = self.d;
+        let edges = d.rows() * d.heads;
+        let lanes = d.width();
+        let coefficient_width = 1 + self.vocabulary + lanes * 42;
+        let mut index = Vec::with_capacity(edges * lanes);
+        let mut ambient = Vec::with_capacity(edges * lanes * 4);
+        let mut categorical = Vec::with_capacity(edges * lanes * 33);
+        // Output order is B,H,T, matching exact native hard vectors.
+        for b in 0..d.batch {
+            for h in 0..d.heads {
+                for t in 0..d.time {
+                    let start = h * coefficient_width + 1 + self.vocabulary;
+                    for lane in 0..lanes {
+                        index.push(((b * d.time + t) * lanes + lane) as u32);
+                        ambient.extend(
+                            self.coefficients[start + lane * 4..start + (lane + 1) * 4]
+                                .iter()
+                                .map(|&x| x as f32),
+                        );
+                        let row = &self.coefficients
+                            [start + lanes * 4 + lane * 33..start + lanes * 4 + (lane + 1) * 33];
+                        let anchor = row[0];
+                        categorical.extend(row.iter().map(|&x| (x - anchor) as f32));
+                    }
+                }
+            }
+        }
+        let credit = (gathered_device_utility(latent, 4, &index, ambient, edges, lanes, false)?
+            + gathered_device_utility(categories, 33, &index, categorical, edges, lanes, true)?)?;
+        Ok(device_hard_anchor(&self.hard, credit)?.reshape((d.batch, d.heads, d.time))?)
+    }
+}
+impl PotentialCredit {
+    fn device_graph(&self, roots: &Tensor, categories: &Tensor) -> Result<Tensor> {
+        if !roots.device().same_device(categories.device()) {
+            return Err(invalid("potential graph devices differ"));
+        }
+        let d = self.d;
+        let edges = d.batch * d.heads * d.time * (d.time + 1) / 2;
+        let lanes = d.lanes;
+        let mut qi_indices = Vec::with_capacity(edges * lanes);
+        let mut ki_indices = Vec::with_capacity(edges * lanes);
+        let mut qr = Vec::with_capacity(edges * lanes * 120);
+        let mut kr = Vec::with_capacity(edges * lanes * 120);
+        let mut qc = Vec::with_capacity(edges * lanes * 33);
+        let mut kc = Vec::with_capacity(edges * lanes * 33);
+        let mut output = Vec::with_capacity(edges);
+        for b in 0..d.batch {
+            for h in 0..d.heads {
+                for q in 0..d.time {
+                    for k in 0..=q {
+                        output.push((((b * d.heads + h) * d.time + q) * d.time + k) as u32);
+                        for l in 0..lanes {
+                            let lane = h * lanes + l;
+                            let qi = d.index(b, q, h, l);
+                            let ki = d.index(b, k, h, l);
+                            qi_indices.push(qi as u32);
+                            ki_indices.push(ki as u32);
+                            let rq = self.context[qi];
+                            let rk = self.context[ki];
+                            let mut aq = [0f64; 4];
+                            let mut ak = [0f64; 4];
+                            if q != k && rq.present() && rk.present() {
+                                let mut v = std::array::from_fn(|i| self.coefficient(1, lane, i));
+                                if self.content[qi].present() && self.content[ki].present() {
+                                    let dc = root(
+                                        self.algebra
+                                            .relative(
+                                                code(self.content[qi].root())?,
+                                                code(self.content[ki].root())?,
+                                            )
+                                            .index(),
+                                    );
+                                    for j in 0..4 {
+                                        for (i, &x) in dc.iter().enumerate() {
+                                            v[j] += x * self.coefficient(2, lane, i * 4 + j);
+                                        }
+                                    }
+                                }
+                                let a = root(rq.root());
+                                let z = root(rk.root());
+                                for axis in 0..4 {
+                                    let mut unit = [0.; 4];
+                                    unit[axis] = 1.;
+                                    aq[axis] = dot(v, hamilton(conjugate(unit), z));
+                                    ak[axis] = dot(v, hamilton(conjugate(a), unit));
+                                }
+                            }
+                            let qanchor = dot(aq, root(0));
+                            let kanchor = dot(ak, root(0));
+                            for r in 0..120 {
+                                qr.push((dot(aq, root(r)) - qanchor) as f32);
+                                kr.push((dot(ak, root(r)) - kanchor) as f32);
+                            }
+                            let qanchor = self.lane_score(
+                                lane,
+                                qi,
+                                ki,
+                                observation(self.raw_roots[qi], 0)?,
+                                if q == k {
+                                    observation(self.raw_roots[qi], 0)?
+                                } else {
+                                    rk
+                                },
+                            )?;
+                            let kanchor = if q == k {
+                                0.
+                            } else {
+                                self.lane_score(
+                                    lane,
+                                    qi,
+                                    ki,
+                                    rq,
+                                    observation(self.raw_roots[ki], 0)?,
+                                )?
+                            };
+                            for category in 0..33 {
+                                let qalt = observation(self.raw_roots[qi], category)?;
+                                qc.push(
+                                    (self.lane_score(
+                                        lane,
+                                        qi,
+                                        ki,
+                                        qalt,
+                                        if q == k { qalt } else { rk },
+                                    )? - qanchor) as f32,
+                                );
+                                kc.push(if q == k {
+                                    0.
+                                } else {
+                                    (self.lane_score(
+                                        lane,
+                                        qi,
+                                        ki,
+                                        rq,
+                                        observation(self.raw_roots[ki], category)?,
+                                    )? - kanchor) as f32
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        let credit =
+            (((gathered_device_utility(roots, 120, &qi_indices, qr, edges, lanes, true)?
+                + gathered_device_utility(roots, 120, &ki_indices, kr, edges, lanes, true)?)?
+                + gathered_device_utility(categories, 33, &qi_indices, qc, edges, lanes, true)?)?
+                + gathered_device_utility(categories, 33, &ki_indices, kc, edges, lanes, true)?)?;
+        let indices = Tensor::from_vec(output, edges, roots.device())?;
+        let full = Tensor::zeros(self.hard.len(), DType::F32, roots.device())?
+            .index_add(&indices, &credit, 0)?;
+        Ok(device_hard_anchor(&self.hard, full)?.reshape((d.batch, d.heads, d.time, d.time))?)
+    }
+}
+impl CueRootCredit {
+    fn device_graph(&self, q: &Tensor, k: &Tensor) -> Result<Tensor> {
+        if !q.device().same_device(k.device()) {
+            return Err(invalid("cue root graph devices differ"));
+        }
+        let heads = self.config.heads;
+        let lanes = self.config.lanes_per_head;
+        let sources = self.cues.len();
+        let edges = heads * sources;
+        let width = self.query.len();
+        let mut qi = Vec::with_capacity(edges * lanes);
+        let mut ki = Vec::with_capacity(edges * lanes);
+        let mut qr = Vec::with_capacity(edges * lanes * 120);
+        let mut kr = Vec::with_capacity(edges * lanes * 120);
+        for h in 0..heads {
+            for s in 0..sources {
+                for l in 0..lanes {
+                    let lane = h * lanes + l;
+                    qi.push(lane as u32);
+                    ki.push((s * width + lane) as u32);
+                    let rq = self.query[lane];
+                    let rk = self.cues[s][lane];
+                    let mut qrow = vec![0f64; 120];
+                    let mut krow = vec![0f64; 120];
+                    if rq.present() && rk.present() {
+                        for a in 0..120 {
+                            qrow[a] = self.score(
+                                lane,
+                                AddressLane::new(a as u8, rq.radius_bin(), true)
+                                    .map_err(|e| invalid(e.to_string()))?,
+                                rk,
+                            )? as f64
+                                / Q24;
+                            krow[a] = self.score(
+                                lane,
+                                rq,
+                                AddressLane::new(a as u8, rk.radius_bin(), true)
+                                    .map_err(|e| invalid(e.to_string()))?,
+                            )? as f64
+                                / Q24;
+                        }
+                    }
+                    let qa = qrow[0];
+                    let ka = krow[0];
+                    qr.extend(qrow.into_iter().map(|x| (x - qa) as f32));
+                    kr.extend(krow.into_iter().map(|x| (x - ka) as f32));
+                }
+            }
+        }
+        let credit = (gathered_device_utility(q, 120, &qi, qr, edges, lanes, true)?
+            + gathered_device_utility(k, 120, &ki, kr, edges, lanes, true)?)?
+        .reshape((heads, sources))?;
+        let credit = Tensor::cat(
+            &[&credit, &Tensor::zeros((heads, 1), DType::F32, q.device())?],
+            1,
+        )?;
+        let aliases = self
+            .candidate_cues
+            .iter()
+            .map(|s| s.unwrap_or(sources) as u32)
+            .collect::<Vec<_>>();
+        let n = aliases.len();
+        let chosen = credit
+            .index_select(&Tensor::from_vec(aliases, n, q.device())?, 1)?
+            .flatten_all()?;
+        let hard = self.hard.iter().flatten().copied().collect::<Vec<_>>();
+        Ok(device_hard_anchor(&hard, chosen)?.reshape((heads, n))?)
+    }
+}
+
+#[cfg(all(test, feature = "cuda"))]
+mod cuda_credit_parity_tests {
+    use super::*;
+    use candle_core::Var;
+    fn close(actual: &[f32], expected: &[f32]) -> Result<()> {
+        if actual.len() != expected.len() {
+            return Err(invalid("CUDA credit parity lengths differ"));
+        }
+        for (&a, &e) in actual.iter().zip(expected) {
+            if !a.is_finite() || (a - e).abs() > 2e-5 + 2e-5 * e.abs() {
+                return Err(invalid(format!("CUDA credit adjoint mismatch {a} vs {e}")));
+            }
+        }
+        Ok(())
+    }
+    fn check<F>(
+        device: &Device,
+        a: Vec<f32>,
+        b: Vec<f32>,
+        ashape: &[usize],
+        bshape: &[usize],
+        hard: &[i64],
+        da: Vec<f32>,
+        db: Vec<f32>,
+        graph: F,
+    ) -> Result<()>
+    where
+        F: FnOnce(&Tensor, &Tensor) -> Result<Tensor>,
+    {
+        let av = Var::from_vec(a, ashape, device)?;
+        let bv = Var::from_vec(b, bshape, device)?;
+        let output = graph(av.as_tensor(), bv.as_tensor())?;
+        assert!(output.device().same_device(device));
+        assert_eq!(
+            output.flatten_all()?.to_vec1::<f32>()?,
+            hard.iter()
+                .map(|&v| (v as f64 / Q24) as f32)
+                .collect::<Vec<_>>()
+        );
+        let grad = output.sum_all()?.backward()?;
+        close(
+            &grad
+                .get(av.as_tensor())
+                .ok_or_else(|| invalid("CUDA first credit graph disconnected"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            &da,
+        )?;
+        close(
+            &grad
+                .get(bv.as_tensor())
+                .ok_or_else(|| invalid("CUDA second credit graph disconnected"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?,
+            &db,
+        )?;
+        Ok(())
+    }
+    #[test]
+    fn cuda_frozen_no_read_potential_and_cue_root_credit_match_cpu_reference() -> Result<()> {
+        // Explicit CUDA request: absence is an error, never a passing skip.
+        let device = Device::new_cuda(0)?;
+        let d = Dimensions {
+            batch: 1,
+            time: 2,
+            heads: 1,
+            lanes: 1,
+        };
+        let logits = |count: usize| {
+            (0..count)
+                .map(|i| ((i % 17) as f32 - 8.) * 0.07)
+                .collect::<Vec<_>>()
+        };
+        let nr = NoReadCredit {
+            d,
+            vocabulary: 2,
+            coefficients: (0..45).map(|i| ((i % 7) as f64 - 3.) * 0.25).collect(),
+            hard: vec![1 << 22, -2 << 22],
+        };
+        let a = logits(8);
+        let b = logits(66);
+        let (da, db) = nr.backward(&b, &[1., 1.])?;
+        check(
+            &device,
+            a,
+            b,
+            &[1, 2, 1, 1, 4],
+            &[1, 2, 1, 1, 33],
+            &nr.hard,
+            da,
+            db,
+            |a, b| nr.device_graph(a, b),
+        )?;
+        let config = PotentialQ4Config {
+            heads: 1,
+            lanes_per_head: 1,
+        };
+        let q = (0..config
+            .coefficient_count()
+            .map_err(|e| invalid(e.to_string()))?)
+            .map(|i| (i % 15) as i8 - 7)
+            .collect::<Vec<_>>();
+        let packed =
+            geometric_potential_q4::pack_coefficients(&q).map_err(|e| invalid(e.to_string()))?;
+        let present = AddressLane::new(10, 4, true).map_err(|e| invalid(e.to_string()))?;
+        let absent = AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?;
+        let pot = PotentialCredit::new(
+            d,
+            vec![absent; 2],
+            vec![
+                present,
+                AddressLane::new(20, 6, true).map_err(|e| invalid(e.to_string()))?,
+            ],
+            vec![10, 20],
+            &packed,
+        )?;
+        let a = logits(240);
+        let b = logits(66);
+        let (da, db) = pot.backward(&a, &b, &[1.; 4])?;
+        check(
+            &device,
+            a,
+            b,
+            &[1, 2, 1, 1, 120],
+            &[1, 2, 1, 1, 33],
+            &pot.hard,
+            da,
+            db,
+            |a, b| pot.device_graph(a, b),
+        )?;
+        let base = CueRootCredit {
+            config: CueAngularConfig {
+                heads: 1,
+                lanes_per_head: 1,
+                mode: CueScoreMode::DirectedRelative,
+            },
+            coefficients: (0..120).map(|i| (i % 15) as i8 - 7).collect(),
+            algebra: HistoricalH4Tables::from_bytes(ALGEBRA).map_err(|e| invalid(e.to_string()))?,
+            query: vec![present],
+            cues: vec![vec![present], vec![absent]],
+            candidate_cues: vec![Some(0), Some(0), Some(1), None],
+            hard: vec![vec![0; 4]],
+        };
+        let a = logits(120);
+        let b = logits(240);
+        let (da, db) = base.backward(&a, &b, &[1.; 4])?;
+        let hard = base.hard.iter().flatten().copied().collect::<Vec<_>>();
+        check(
+            &device,
+            a,
+            b,
+            &[1, 120],
+            &[2, 1, 120],
+            &hard,
+            da,
+            db,
+            |a, b| base.device_graph(a, b),
+        )?;
         Ok(())
     }
 }
