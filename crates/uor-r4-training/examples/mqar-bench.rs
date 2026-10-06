@@ -385,6 +385,12 @@ trait ContextArm {
     ) -> Result<(Vec<(usize, Tensor)>, Tensor)> {
         Err(invalid("this arm has no read weight rows"))
     }
+    /// Stage 0: the concrete stack, so the offline readout swap can hold every
+    /// learned vector fixed and change only the score function. `None` for an
+    /// arm whose readout cannot be swapped.
+    fn stack_mut(&mut self) -> Option<&mut StackModel> {
+        None
+    }
 }
 
 /// Initial values of the reads' learned per-distance age bias.
@@ -787,6 +793,10 @@ impl ContextArm for StackArm {
     ) -> Result<(Vec<(usize, Tensor)>, Tensor)> {
         self.model.read_weight_rows(ids, batch, time, rows)
     }
+
+    fn stack_mut(&mut self) -> Option<&mut StackModel> {
+        Some(&mut self.model)
+    }
 }
 
 /// The deciding probe: each read head's softmax weight on the true key
@@ -1025,6 +1035,461 @@ fn evaluate(
     }))
 }
 
+// ---------------------------------------------------------------------------
+// Stage 0 (offline, no training): hold the frozen q/k vectors and vary only
+// the readout.
+//
+// A1 is the arm's own fused score, whatever `ReadScore` it trained with. A2
+// re-runs the *same* forward with `ReadScore::Dot` over the same learned q/k
+// projections (no geometry, no learned per-head scale/offset), with the
+// learned per-distance age bias kept (A2a) and zeroed (A2b). A3 is the exact
+// token-identity sieve over the same rows and the same candidate set. Every
+// arm is ranked over the same causal sources, so the comparison is
+// like-for-like; nothing here is a serving path and no logit is changed
+// outside this function.
+// ---------------------------------------------------------------------------
+
+/// Sequences the stage-0 readout observes (the first of the final in-class
+/// set). Kept small on purpose: the read's weight dump materializes a
+/// `batch x heads x time x (value_width + time)` tensor per read layer, so the
+/// diagnostic's peak memory scales with this number, not with the row count.
+const STAGE0_SEQUENCES: usize = 6;
+
+/// One query row's identity on the panel.
+struct Stage0Row {
+    sequence: usize,
+    position: usize,
+    distance: usize,
+    value: u32,
+    bucket: usize,
+    /// Pairs whose key was written strictly before this query: the MQAR
+    /// candidate count `N` whose `1/N` is this row's chance level.
+    pairs_before: usize,
+}
+
+/// The rank of `gold` among the causal sources `0..=limit` by weight,
+/// descending; rank 1 is a strictly highest weight (ties count against it).
+fn stage0_rank(row: &[f32], gold: usize, limit: usize) -> usize {
+    let g = row[gold];
+    1 + (0..=limit.min(row.len() - 1))
+        .filter(|&j| j != gold && row[j] > g)
+        .count()
+}
+
+#[derive(Default, Clone)]
+struct Stage0Tally {
+    rows: usize,
+    head_rows: usize,
+    top1_key: usize,
+    top1_value: usize,
+    r4_key: usize,
+    r16_key: usize,
+    r4_value: usize,
+    r16_value: usize,
+    rows_any_head_top1_key: usize,
+    noread_mass_sum: f64,
+    pairs_before_sum: usize,
+    positions_sum: usize,
+}
+
+impl Stage0Tally {
+    fn add(&mut self, other: &Stage0Tally) {
+        self.rows += other.rows;
+        self.head_rows += other.head_rows;
+        self.top1_key += other.top1_key;
+        self.top1_value += other.top1_value;
+        self.r4_key += other.r4_key;
+        self.r16_key += other.r16_key;
+        self.r4_value += other.r4_value;
+        self.r16_value += other.r16_value;
+        self.rows_any_head_top1_key += other.rows_any_head_top1_key;
+        self.noread_mass_sum += other.noread_mass_sum;
+        self.pairs_before_sum += other.pairs_before_sum;
+        self.positions_sum += other.positions_sum;
+    }
+
+    fn json(&self, note: &str) -> Value {
+        let hr = self.head_rows.max(1) as f64;
+        json!({
+            "note": note,
+            "sequences": STAGE0_SEQUENCES,
+            "rows": self.rows,
+            "head_rows": self.head_rows,
+            "gold_key_top1": self.top1_key as f64 / hr,
+            "gold_key_recall4": self.r4_key as f64 / hr,
+            "gold_key_recall16": self.r16_key as f64 / hr,
+            "gold_value_top1": self.top1_value as f64 / hr,
+            "gold_value_recall4": self.r4_value as f64 / hr,
+            "gold_value_recall16": self.r16_value as f64 / hr,
+            "rows_any_head_gold_key_top1": self.rows_any_head_top1_key as f64
+                / self.rows.max(1) as f64,
+            "mean_noread_mass": self.noread_mass_sum / hr,
+            "mean_source_mass": 1.0 - self.noread_mass_sum / hr,
+            "mean_pairs_before_query": self.pairs_before_sum as f64 / self.rows.max(1) as f64,
+            "chance_gold_key_top1": 1.0 / (self.pairs_before_sum as f64 / self.rows.max(1) as f64),
+            "mean_causal_positions_ranked": self.positions_sum as f64 / self.rows.max(1) as f64,
+        })
+    }
+}
+
+/// One row's outcome under one arm: the bootstrap unit is the query row.
+#[derive(Clone)]
+struct Stage0RowOutcome {
+    bucket: usize,
+    pairs_before: usize,
+    /// Fraction of read heads that rank the gold key 1st.
+    top1_head_mean: f64,
+    /// Fraction of read heads that rank the gold key in the top 16.
+    r16_head_mean: f64,
+    /// Any head ranks the gold key 1st.
+    top1_any_head: bool,
+    /// NoRead's share of the read's own softmax.
+    noread_mass: f64,
+}
+
+/// Tally one weight dump (rows in `meta` order) over every read layer and head.
+fn stage0_tally_dump(
+    dump: &[(usize, Tensor)],
+    meta: &[Stage0Row],
+    buckets: usize,
+) -> Result<(Stage0Tally, Vec<Stage0Tally>, Vec<Stage0RowOutcome>)> {
+    let mut all = Stage0Tally::default();
+    let mut per_bucket = vec![Stage0Tally::default(); buckets];
+    let mut outcomes = Vec::with_capacity(meta.len());
+    for (_layer, tensor) in dump {
+        let weights = tensor.to_device(&Device::Cpu)?.to_vec3::<f32>()?;
+        for (r, row_meta) in meta.iter().enumerate() {
+            let heads = &weights[r];
+            let limit = row_meta.position;
+            let gold_key = row_meta.position - row_meta.distance;
+            let gold_value = gold_key + 1;
+            let mut any_top1 = false;
+            let mut top1_heads = 0usize;
+            let mut r16_heads = 0usize;
+            let mut row_noread = 0f64;
+            for head in heads {
+                let rank_key = stage0_rank(head, gold_key, limit);
+                let rank_value = stage0_rank(head, gold_value, limit);
+                let mass: f32 = head[..=limit.min(head.len() - 1)].iter().sum();
+                for tally in [&mut all, &mut per_bucket[row_meta.bucket]] {
+                    tally.head_rows += 1;
+                    tally.top1_key += usize::from(rank_key == 1);
+                    tally.top1_value += usize::from(rank_value == 1);
+                    tally.r4_key += usize::from(rank_key <= 4);
+                    tally.r16_key += usize::from(rank_key <= 16);
+                    tally.r4_value += usize::from(rank_value <= 4);
+                    tally.r16_value += usize::from(rank_value <= 16);
+                    tally.noread_mass_sum += 1.0 - f64::from(mass);
+                }
+                any_top1 |= rank_key == 1;
+                top1_heads += usize::from(rank_key == 1);
+                r16_heads += usize::from(rank_key <= 16);
+                row_noread += 1.0 - f64::from(mass);
+            }
+            let head_count = heads.len().max(1) as f64;
+            if *_layer == 0 {
+                // The per-row bootstrap unit: one entry per query row, taken
+                // from the first read layer (later layers add to the tallies).
+                outcomes.push(Stage0RowOutcome {
+                    bucket: row_meta.bucket,
+                    pairs_before: row_meta.pairs_before,
+                    top1_head_mean: top1_heads as f64 / head_count,
+                    r16_head_mean: r16_heads as f64 / head_count,
+                    top1_any_head: any_top1,
+                    noread_mass: row_noread / head_count,
+                });
+            }
+            for tally in [&mut all, &mut per_bucket[row_meta.bucket]] {
+                tally.rows += 1;
+                tally.rows_any_head_top1_key += usize::from(any_top1);
+                tally.pairs_before_sum += row_meta.pairs_before;
+                tally.positions_sum += limit + 1;
+            }
+        }
+    }
+    Ok((all, per_bucket, outcomes))
+}
+
+/// A3: the exact token-identity sieve over the same rows and candidates.
+/// Admit every causal position whose token is the query's own key token,
+/// rank the admitted set by recency (latest first), and read the value after
+/// the winner. Keys are distinct inside a sequence, so the gold key position
+/// is the unique admission.
+fn stage0_sieve(
+    ids: &[u32],
+    set: &[Sequence],
+    meta: &[Stage0Row],
+    context: usize,
+    buckets: usize,
+) -> Result<(Value, Stage0Tally, Vec<Stage0Tally>, Vec<Stage0RowOutcome>)> {
+    let _ = set;
+    let mut all = Stage0Tally::default();
+    let mut per_bucket = vec![Stage0Tally::default(); buckets];
+    let mut outcomes = Vec::with_capacity(meta.len());
+    let mut admitted_histogram = BTreeMap::new();
+    let mut value_after_winner = 0usize;
+    let mut winners = 0usize;
+    for row_meta in meta {
+        let base = row_meta.sequence * context;
+        let query_token = ids[base + row_meta.position];
+        let gold_key = row_meta.position - row_meta.distance;
+        let mut admitted: Vec<usize> = (0..row_meta.position)
+            .filter(|&j| ids[base + j] == query_token)
+            .collect();
+        admitted.sort_unstable();
+        *admitted_histogram.entry(admitted.len()).or_insert(0usize) += 1;
+        let winner = admitted.last().copied();
+        let top1 = winner == Some(gold_key);
+        let value_ok = winner.is_some_and(|w| {
+            w + 1 < row_meta.position && ids[base + w + 1] == row_meta.value
+        });
+        winners += usize::from(winner.is_some());
+        value_after_winner += usize::from(value_ok);
+        outcomes.push(Stage0RowOutcome {
+            bucket: row_meta.bucket,
+            pairs_before: row_meta.pairs_before,
+            top1_head_mean: f64::from(u8::from(top1)),
+            r16_head_mean: f64::from(u8::from(top1)),
+            top1_any_head: top1,
+            // A3 is an exact sieve: it has no softmax and no NoRead slot.
+            noread_mass: 0.0,
+        });
+        for tally in [&mut all, &mut per_bucket[row_meta.bucket]] {
+            tally.rows += 1;
+            tally.head_rows += 1;
+            tally.top1_key += usize::from(top1);
+            tally.top1_value += usize::from(value_ok);
+            tally.r4_key += usize::from(top1);
+            tally.r16_key += usize::from(top1);
+            tally.r4_value += usize::from(value_ok);
+            tally.r16_value += usize::from(value_ok);
+            tally.rows_any_head_top1_key += usize::from(top1);
+            tally.pairs_before_sum += row_meta.pairs_before;
+            tally.positions_sum += row_meta.position + 1;
+        }
+    }
+    Ok((
+        json!({
+            "rows": meta.len(),
+            "rows_with_a_winner": winners,
+            "admitted_matches_per_row_histogram": admitted_histogram,
+            "unique_admission_rows": admitted_histogram.get(&1).copied().unwrap_or(0),
+            "value_after_winner_rows": value_after_winner,
+        }),
+        all,
+        per_bucket,
+        outcomes,
+    ))
+}
+
+fn stage0_readout(
+    arm: &mut dyn ContextArm,
+    sequences: &[Sequence],
+    context: usize,
+    buckets: &[Bucket],
+) -> Result<Value> {
+    if arm.read_heads().is_empty() {
+        return Ok(json!({"status": "UNAVAILABLE: the arm has no read heads"}));
+    }
+    if arm.stack_mut().is_none() {
+        return Ok(json!({
+            "status": "UNAVAILABLE: the arm's readout cannot be swapped on frozen vectors"
+        }));
+    }
+    let take = sequences.len().min(STAGE0_SEQUENCES);
+    let set = &sequences[..take];
+    let (ids, _, _) = batch_arrays(set, context);
+    let mut rows: Vec<(usize, usize)> = Vec::new();
+    let mut meta: Vec<Stage0Row> = Vec::new();
+    for (b, sequence) in set.iter().enumerate() {
+        for query in &sequence.queries {
+            let pairs_before = sequence
+                .queries
+                .iter()
+                .filter(|other| other.position - other.distance < query.position)
+                .count();
+            rows.push((b, query.position));
+            meta.push(Stage0Row {
+                sequence: b,
+                position: query.position,
+                distance: query.distance,
+                value: query.value,
+                bucket: query.bucket,
+                pairs_before,
+            });
+        }
+    }
+    let nb = buckets.len();
+    let batch = set.len();
+
+    // A1: the arm's own fused score.
+    let a1_dump = arm.read_weight_rows(&ids, batch, context, &rows)?;
+    let layers = a1_dump.0.len();
+    let (a1, a1_buckets, a1_rows) = stage0_tally_dump(&a1_dump.0, &meta, nb)?;
+
+    // A2a: the same forward, plain dot over the same frozen q/k.
+    let saved_read = {
+        let model = arm
+            .stack_mut()
+            .ok_or_else(|| invalid("stage0 needs the stack arm"))?;
+        let saved = model.config.read;
+        model.config.read = ReadScore::Dot;
+        saved
+    };
+    let a2a_dump = arm.read_weight_rows(&ids, batch, context, &rows)?;
+    let (a2a, a2a_buckets, a2a_rows) = stage0_tally_dump(&a2a_dump.0, &meta, nb)?;
+
+    // A2b: plain dot with the learned per-distance age bias zeroed.
+    let saved_age = {
+        let model = arm
+            .stack_mut()
+            .ok_or_else(|| invalid("stage0 needs the stack arm"))?;
+        let mut saved: Vec<(String, Tensor)> = Vec::new();
+        for (name, var) in model.variables() {
+            if !name.ends_with(".read.age") {
+                continue;
+            }
+            let tensor = var.as_tensor();
+            let data = tensor.flatten_all()?.to_vec1::<f32>()?;
+            saved.push((
+                name.clone(),
+                Tensor::from_vec(data, tensor.shape().clone(), tensor.device())?,
+            ));
+            var.set(&Tensor::zeros_like(tensor)?)?;
+        }
+        saved
+    };
+    let a2b_dump = arm.read_weight_rows(&ids, batch, context, &rows)?;
+    let (a2b, a2b_buckets, a2b_rows) = stage0_tally_dump(&a2b_dump.0, &meta, nb)?;
+    // Release both dot dumps before the restore dump: only A1's is needed for
+    // the bitwise swap check, and the peak memory here is under pressure.
+    drop(a2a_dump);
+    drop(a2b_dump);
+
+    // Restore the arm's own score and age exactly, then prove the swap was
+    // reversible: A1 must reproduce bit for bit.
+    let restored = {
+        let model = arm
+            .stack_mut()
+            .ok_or_else(|| invalid("stage0 needs the stack arm"))?;
+        for (name, tensor) in &saved_age {
+            if let Some(var) = model.variables().get(name) {
+                var.set(tensor)?;
+            }
+        }
+        model.config.read = saved_read;
+        true
+    };
+    let a1_again = arm.read_weight_rows(&ids, batch, context, &rows)?;
+    let mut swap_exact = restored && a1_again.0.len() == a1_dump.0.len();
+    if swap_exact {
+        for ((la, ta), (lb, tb)) in a1_dump.0.iter().zip(a1_again.0.iter()) {
+            if la != lb {
+                swap_exact = false;
+                break;
+            }
+            let va = ta.flatten_all()?.to_vec1::<f32>()?;
+            let vb = tb.flatten_all()?.to_vec1::<f32>()?;
+            if va != vb {
+                swap_exact = false;
+                break;
+            }
+        }
+    }
+
+    // A3: the exact-identity sieve over the same rows and candidate sets.
+    let (a3_sieve, a3, a3_buckets, a3_rows) = stage0_sieve(&ids, set, &meta, context, nb)?;
+
+    // The per-row bootstrap unit: one entry per query row, so a CI over rows
+    // can be computed without re-running anything.
+    let row_outcomes: Vec<Value> = meta
+        .iter()
+        .enumerate()
+        .map(|(r, row_meta)| {
+            json!({
+                "row": r,
+                "bucket": buckets[row_meta.bucket].name,
+                "pairs_before": row_meta.pairs_before,
+                "distance": row_meta.distance,
+                "a1_top1": a1_rows[r].top1_head_mean,
+                "a1_r16": a1_rows[r].r16_head_mean,
+                "a1_any_head_top1": a1_rows[r].top1_any_head,
+                "a1_noread_mass": a1_rows[r].noread_mass,
+                "a2a_top1": a2a_rows[r].top1_head_mean,
+                "a2a_r16": a2a_rows[r].r16_head_mean,
+                "a2a_any_head_top1": a2a_rows[r].top1_any_head,
+                "a2a_noread_mass": a2a_rows[r].noread_mass,
+                "a2b_top1": a2b_rows[r].top1_head_mean,
+                "a2b_r16": a2b_rows[r].r16_head_mean,
+                "a2b_any_head_top1": a2b_rows[r].top1_any_head,
+                "a2b_noread_mass": a2b_rows[r].noread_mass,
+                "a3_top1": a3_rows[r].top1_head_mean,
+                "a3_r16": a3_rows[r].r16_head_mean,
+                "a3_any_head_top1": a3_rows[r].top1_any_head,
+            })
+        })
+        .collect();
+
+    let mut by_bucket = serde_json::Map::new();
+    for (b, bucket) in buckets.iter().enumerate() {
+        by_bucket.insert(
+            bucket.name.into(),
+            json!({
+                "distance_low": bucket.low, "distance_high": bucket.high,
+                "a1_fused": a1_buckets[b].json("the arm's own score"),
+                "a2a_dot_with_age": a2a_buckets[b].json("plain dot, frozen q/k, learned age kept"),
+                "a2b_dot_no_age": a2b_buckets[b].json("plain dot, frozen q/k, age zeroed"),
+                "a3_exact_identity_sieve": a3_buckets[b].json("exact token-identity sieve"),
+            }),
+        );
+    }
+    let mut overall = serde_json::Map::new();
+    overall.insert("a1_fused".into(), a1.json("the arm's own score"));
+    overall.insert(
+        "a2a_dot_with_age".into(),
+        a2a.json("plain dot, frozen q/k, learned age kept"),
+    );
+    overall.insert(
+        "a2b_dot_no_age".into(),
+        a2b.json("plain dot, frozen q/k, age zeroed"),
+    );
+    overall.insert(
+        "a3_exact_identity_sieve".into(),
+        a3.json("exact token-identity sieve"),
+    );
+    Ok(json!({
+        "status": "complete",
+        "scope": "offline readout swap on frozen vectors; not a serving path",
+        "panel": {
+            "layout": "synthetic MQAR",
+            "sequences": batch,
+            "rows": meta.len(),
+            "context": context,
+            "read_layers": layers,
+            "heads": arm.read_heads().len() / layers.max(1),
+            "buckets": buckets.iter().map(|b| b.name).collect::<Vec<_>>(),
+            "sequences_available": sequences.len(),
+            "stage0_sequences_cap": STAGE0_SEQUENCES,
+        },
+        "arms": {
+            "A1": "the model's own fused read score",
+            "A2a": "plain dot product on the SAME frozen q/k, learned age kept",
+            "A2b": "plain dot product on the SAME frozen q/k, age zeroed",
+            "A3": "exact token-identity sieve over the same rows and candidates",
+        },
+        "frozen_vectors": {
+            "saved_score": format!("{saved_read:?}"),
+            "swapped_score": "Dot",
+            "age_variables_saved_and_restored": saved_age.len(),
+            "a1_reproduces_after_restore_bitwise": swap_exact,
+        },
+        "overall": Value::Object(overall),
+        "by_bucket": Value::Object(by_bucket),
+        "row_outcomes": row_outcomes,
+        "a3_sieve_detail": a3_sieve,
+    }))
+}
+
 fn cosine_rate(lr: f64, warmup: usize, min_lr: f64, steps: usize, step: usize) -> f64 {
     if step < warmup {
         return lr * (step + 1) as f64 / warmup as f64;
@@ -1106,6 +1571,12 @@ struct Common {
     probe_sequences: usize,
     /// TEMPORARY (T2): dump the read's weight rows on the held-out set.
     dump_scores: bool,
+    /// Stage 0 (offline, no training): after the final evaluation, rank the
+    /// gold source with the model's own fused score (A1), with a plain dot
+    /// product over the *same frozen q/k* (A2), and with the exact
+    /// token-identity sieve (A3). Observation only: it changes no logit and
+    /// moves no tally, and the model's own score is restored before it returns.
+    stage0: bool,
 }
 
 impl Common {
@@ -1131,6 +1602,7 @@ impl Common {
             "max_seconds": self.max_seconds,
             "probe_steps": self.probe_steps, "probe_sequences": self.probe_sequences,
             "dump_scores": self.dump_scores,
+            "stage0": self.stage0,
         })
     }
 }
@@ -1195,6 +1667,7 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
             Some("1") | Some("true") => true,
             Some(other) => return Err(invalid(format!("invalid dump_scores={other}"))),
         },
+        stage0: args.parsed("stage0", false)?,
     };
     let mut common = common;
     let probe_text = args
@@ -1449,6 +1922,37 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     );
     eprintln!("{line}");
     writeln!(log, "{line}")?;
+    // Save the trained weights BEFORE the stage-0 readout swap: the diagnostic
+    // is the memory-heaviest phase here, and a failure in it must not lose the
+    // trained model (which `main` otherwise saves only after `run` returns).
+    let model_pre_save = if s.save_model {
+        match arm.save(&s.out.join("model")) {
+            Ok(()) => json!({"requested": true, "saved": true, "path": "model", "when": "before_stage0"}),
+            Err(error) => json!({"requested": true, "saved": false, "refusal": error.to_string(), "when": "before_stage0"}),
+        }
+    } else {
+        json!({"requested": false})
+    };
+    // Stage 0 (offline): hold the frozen q/k vectors, vary only the readout.
+    // Observation only: it runs after every tally is final and restores the
+    // arm's own score before it returns.
+    let stage0 = if s.stage0 {
+        let value = stage0_readout(arm, &in_class_set, s.context, &buckets)?;
+        write_json(&s.out.join("stage0_readout.json"), &value)?;
+        let line = format!(
+            "stage0 frozen-vector readout: A1 top1 {:.4} | A2a(dot+age) {:.4} | A2b(dot,no age) {:.4} | A3(sieve) {:.4} | A1 restored bitwise {}",
+            value["overall"]["a1_fused"]["gold_key_top1"].as_f64().unwrap_or(f64::NAN),
+            value["overall"]["a2a_dot_with_age"]["gold_key_top1"].as_f64().unwrap_or(f64::NAN),
+            value["overall"]["a2b_dot_no_age"]["gold_key_top1"].as_f64().unwrap_or(f64::NAN),
+            value["overall"]["a3_exact_identity_sieve"]["gold_key_top1"].as_f64().unwrap_or(f64::NAN),
+            value["frozen_vectors"]["a1_reproduces_after_restore_bitwise"],
+        );
+        eprintln!("{line}");
+        writeln!(log, "{line}")?;
+        value
+    } else {
+        json!({"status": "not requested"})
+    };
     let mut sorted = step_seconds.clone();
     sorted.sort_by(f64::total_cmp);
     let mean_positions = (0..s.context)
@@ -1466,6 +1970,8 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         "stopped_early_at_max_seconds": stopped_early,
         "read_probe": prober.probes,
         "probe_seconds": prober.seconds,
+        "stage0": stage0,
+        "model_save_before_stage0": model_pre_save,
         "final_in_class_fresh_pairings": in_class,
         "final_held_out_class_pairings": held_out,
         "curve": curve,
@@ -1721,6 +2227,7 @@ mod tests {
             probe_steps: vec![0],
             probe_sequences: 2,
             dump_scores: false,
+            stage0: false,
         };
         let spec = ArmSpec::Stack {
             pattern: "rar".into(),
