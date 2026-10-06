@@ -294,6 +294,40 @@ def main() -> int:
                 ok(f"{sid}: {int(remaining / 60)}m remaining")
     out()
 
+    # ------------------------------------------- unreconciled DONE evidence
+    # A job writes durable evidence under done/<id>/exit.json and the coordinator
+    # is supposed to learn about it. Nothing guarantees that. DONE dirs that were
+    # never finalized are INVISIBLE: only *tracked* non-finalized attempts block
+    # anything, so an evidence-complete job the coordinator never heard about
+    # fails silently. Measured 2026-10-06: 3 of 13 DONE dirs, two of them absent
+    # from coord entirely and one belonging to another lab.
+    out("[7] unreconciled DONE evidence (silent, does not block)")
+    status = status if "status" in dir() else coord_status()
+    if not status:
+        note("(coord status unavailable; skipped)")
+    else:
+        attempts = status.get("attempts") or {}
+        done_root = RUNNER / "done"
+        orphans = []
+        if done_root.is_dir():
+            for d in sorted(done_root.iterdir()):
+                if not d.is_dir() or not (d / "exit.json").is_file():
+                    continue
+                rec = attempts.get(d.name)
+                phase = rec.get("phase") if rec else None
+                if phase != "finalized":
+                    orphans.append((d.name, phase or "ABSENT from coord"))
+        if not orphans:
+            ok("every DONE dir with exit evidence is finalized in coord")
+        else:
+            for name, phase in orphans:
+                note(f"{name}: exit evidence present, coord phase={phase}")
+            bad(
+                f"{len(orphans)} DONE dir(s) with exit evidence are NOT finalized in "
+                "coord \u2014 silent; nothing will reconcile them and no one is told"
+            )
+    out()
+
     if issues:
         out(f"RESULT: {len(issues)} drift/blocking condition(s) found.")
         return 1
