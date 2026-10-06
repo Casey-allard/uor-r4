@@ -12,6 +12,8 @@
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
 //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
+//! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
+//!   [match_pattern=rrarra] [match_read=l2|dot|lorentz] [match_rotation=true|false]
 //! layout=fact: tokenizer=TOKENIZER_JSON [gaps=0,1,2,3] [forms=rehearse,bare]
 //!   (context <= 384; defaults pairs_per_bucket=4, final_sequences=256)
 //! mqar-bench mode=decide runs=DIR_OF_SEALED_FACT_ROOTS out=NEW_REPORT_ROOT
@@ -51,12 +53,22 @@
 //!
 //! The arm (the context-access mechanism under test) is defined separately
 //! from the task, training loop and scoring: see `ContextArm` and `ArmSpec`.
-//! Each report records the arm in a fixed schema (`REPORT_SCHEMA`), including
-//! its context-access cost in positions scored per query token.
+//! `arm=stack` is the geometric stack; `arm=transformer` is the ordinary
+//! causal-softmax attention control whose total parameter count is matched to
+//! a named geometric arm (D20 section 2 condition 1). Each report records the
+//! arm in a fixed schema (`REPORT_SCHEMA`), including its context-access cost
+//! in positions scored per query token and the parameter-match residual.
+//!
+//! Two reachability counters run once on the final in-class panel (D20
+//! section 2 condition 3): `read_firing` evaluates the geometric read's own
+//! binding mass at every scored query position (the `Work::selected_operations`
+//! analogue), and `context_reachability` replaces each query's source key with
+//! a filler token and counts the scored rows whose logits move, for every arm.
+//! Both are observation only.
 //!
 //! The report root is claimed exclusively before any model work and sealed
 //! with its manifest at the end. Offline floating-point training only; nothing
-//! here is a serving path, and there is no transformer control.
+//! here is a serving path.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -497,6 +509,87 @@ enum ArmSpec {
         /// separates the geometric read from the recurrent stack.
         attn_reads: bool,
     },
+    /// `arm=transformer`: the ordinary matched control -- `layers` plain
+    /// causal-softmax attention blocks (`StackArch::Transformer`, RoPE plus a
+    /// strict causal mask, SwiGLU MLP, pre-norm), exchanging the geometric
+    /// read for the library's own ordinary attention path
+    /// (`StackModel::attention` -> `fused_read_selected(ReadScore::Dot)`,
+    /// `geometric_stack.rs:2021-2052`).
+    ///
+    /// This is D20 section 2 condition 1's ordinary control. It is a NEW arm:
+    /// no geometric code path is touched (see `MIGRATION` in the report).
+    ///
+    /// Matching. `match_pattern`, `match_read` and `match_rotation` name the
+    /// geometric arm whose total parameter count is matched; `width`, `heads`
+    /// and `context` are shared. `layers` defaults to that pattern's length.
+    /// `mlp=matched` (the default) solves the MLP width whose
+    /// `StackConfig::parameter_count` is closest to the reference arm's, the
+    /// mirror of the library's `geometric_matched_to`; `mlp=<n>` sets it
+    /// directly. The report records both counts and the residual
+    /// (`parameter_match`), so the match is a number, not an assertion.
+    Transformer {
+        layers: usize,
+        width: usize,
+        heads: usize,
+        /// `None` = solve for the reference arm's parameter count.
+        mlp_hidden: Option<usize>,
+        reference_pattern: String,
+        reference_read: ReadScore,
+        reference_rotation: bool,
+    },
+}
+
+/// The frozen Step 2 recipe's MLP width (barrier assessment
+/// `proposals-and-reviews.md:637`: `rrarra`, width 128, 4 heads, MLP 384,
+/// context 512, 1800 steps, batch 8, lr 1e-3, `l2` read). The reference arm
+/// that `arm=transformer` matches in parameters uses it.
+const REFERENCE_MLP: usize = 384;
+
+/// The geometric arm `arm=transformer` matches: the same width, heads,
+/// context, vocab and seed as the control, at the recipe's MLP width. Only its
+/// total parameter count is used; it is never trained here.
+fn reference_config(
+    common: &Common,
+    width: usize,
+    heads: usize,
+    pattern: &str,
+    read: ReadScore,
+    rotation: bool,
+) -> Result<StackConfig> {
+    let config = StackConfig {
+        arch: StackArch::Geometric,
+        vocab_size: common.vocab,
+        width,
+        heads,
+        mlp_hidden: REFERENCE_MLP,
+        context: common.context,
+        pattern: pattern.to_owned(),
+        read,
+        rotation,
+        rotation_group: RotationGroup::Quaternion,
+        seed: common.seed,
+        memory: None,
+        select: None,
+        pointer: None,
+    };
+    config.validate()?;
+    Ok(config)
+}
+
+/// The MLP width of an ordinary attention control whose total parameter count
+/// is closest to `target`. The exact mirror of the library's private
+/// `matched_mlp_hidden` (`geometric_stack.rs:1339-1352`), applied to the
+/// control's config: every layer carries `3 * width * mlp_hidden` MLP
+/// parameters, so the solve is the same arithmetic.
+fn matched_control_mlp(config: &StackConfig, target: usize) -> Result<usize> {
+    let mut probe = config.clone();
+    probe.mlp_hidden = 1;
+    let base = probe.parameter_count()?;
+    let per_unit = 3 * config.width * config.layers();
+    if target <= base {
+        return Err(invalid("the matched control has no room for an MLP"));
+    }
+    Ok((((target - base) as f64 / per_unit as f64).round() as usize + 1).max(1))
 }
 
 impl ArmSpec {
@@ -542,6 +635,41 @@ impl ArmSpec {
                 lineage,
                 attn_reads: hybrid,
             }),
+            Some("transformer") => {
+                // The control has no read lineage: reject rather than silently ignore.
+                if lineage != LineageArm::None {
+                    return Err(invalid(
+                        "arm=transformer is the ordinary control and takes no key/query lineage",
+                    ));
+                }
+                let reference_pattern = args
+                    .take("match_pattern")
+                    .unwrap_or_else(|| "rrarra".into());
+                let reference_read = match args.take("match_read").as_deref() {
+                    None | Some("l2") => ReadScore::L2,
+                    Some("dot") => ReadScore::Dot,
+                    Some("lorentz") => ReadScore::Lorentz,
+                    Some(other) => return Err(invalid(format!("invalid match_read={other}"))),
+                };
+                let reference_rotation = args.parsed("match_rotation", true)?;
+                let layers = args.parsed("layers", reference_pattern.chars().count())?;
+                let mlp_hidden = match args.take("mlp").as_deref() {
+                    None | Some("matched") => None,
+                    Some(text) => Some(
+                        text.parse()
+                            .map_err(|_| invalid(format!("invalid mlp={text}")))?,
+                    ),
+                };
+                Ok(ArmSpec::Transformer {
+                    layers,
+                    width: args.parsed("width", 128usize)?,
+                    heads: args.parsed("heads", 4usize)?,
+                    mlp_hidden,
+                    reference_pattern,
+                    reference_read,
+                    reference_rotation,
+                })
+            }
             Some(other) => Err(invalid(format!("unknown arm={other}"))),
         }
     }
@@ -570,6 +698,19 @@ impl ArmSpec {
                 if *rotation { "" } else { "-no-rotation" },
             )
             .to_lowercase(),
+            ArmSpec::Transformer {
+                layers,
+                mlp_hidden,
+                reference_pattern,
+                ..
+            } => format!(
+                "control-transformer-{layers}x-{reference_pattern}{}",
+                match mlp_hidden {
+                    None => "-mlp-matched".to_string(),
+                    Some(mlp) => format!("-mlp{mlp}"),
+                }
+            )
+            .to_lowercase(),
         }
     }
 
@@ -589,6 +730,57 @@ impl ArmSpec {
                     return Err(invalid("a key/query lineage needs four-channel lanes"));
                 }
                 self.stack_config(common)?.validate()
+            }
+            ArmSpec::Transformer { .. } => {
+                self.stack_config(common)?.validate()?;
+                self.parameter_match(common)?;
+                Ok(())
+            }
+        }
+    }
+
+    /// The parameter-match evidence: the reference geometric arm's count, the
+    /// control's count and the residual. `null` for a geometric arm.
+    fn parameter_match(&self, common: &Common) -> Result<Value> {
+        match self {
+            ArmSpec::Stack { .. } => Ok(Value::Null),
+            ArmSpec::Transformer {
+                width,
+                heads,
+                reference_pattern,
+                reference_read,
+                reference_rotation,
+                ..
+            } => {
+                let reference = reference_config(
+                    common,
+                    *width,
+                    *heads,
+                    reference_pattern,
+                    *reference_read,
+                    *reference_rotation,
+                )?;
+                let target = reference.parameter_count()?;
+                let control = self.stack_config(common)?;
+                let got = control.parameter_count()?;
+                Ok(json!({
+                    "reference_geometric": {
+                        "pattern": reference.pattern,
+                        "read": reference.read,
+                        "rotation": reference.rotation,
+                        "mlp_hidden": reference.mlp_hidden,
+                        "parameters": target,
+                    },
+                    "control": {
+                        "arch": control.arch,
+                        "pattern": control.pattern,
+                        "layers": control.layers(),
+                        "mlp_hidden": control.mlp_hidden,
+                        "parameters": got,
+                    },
+                    "residual_parameters": got as i64 - target as i64,
+                    "residual_fraction": (got as f64 - target as f64) / target as f64,
+                }))
             }
         }
     }
@@ -623,6 +815,47 @@ impl ArmSpec {
                 };
                 config.validate()?;
                 Ok(config)
+            }
+            ArmSpec::Transformer {
+                layers,
+                width,
+                heads,
+                mlp_hidden,
+                reference_pattern,
+                reference_read,
+                reference_rotation,
+            } => {
+                let reference = reference_config(
+                    common,
+                    *width,
+                    *heads,
+                    reference_pattern,
+                    *reference_read,
+                    *reference_rotation,
+                )?;
+                let target = reference.parameter_count()?;
+                let mut control = StackConfig {
+                    arch: StackArch::Transformer,
+                    vocab_size: common.vocab,
+                    width: *width,
+                    heads: *heads,
+                    mlp_hidden: 1,
+                    context: common.context,
+                    pattern: "a".repeat(*layers),
+                    read: ReadScore::Dot,
+                    rotation: false,
+                    rotation_group: RotationGroup::Quaternion,
+                    seed: common.seed,
+                    memory: None,
+                    select: None,
+                    pointer: None,
+                };
+                control.mlp_hidden = match mlp_hidden {
+                    Some(explicit) => *explicit,
+                    None => matched_control_mlp(&control, target)?,
+                };
+                control.validate()?;
+                Ok(control)
             }
         }
     }
@@ -674,6 +907,19 @@ impl ArmSpec {
                     lineage: *lineage,
                 }))
             }
+            ArmSpec::Transformer { .. } => {
+                // The control has no recurrence, no read layer, no age bias and
+                // no lineage: the model is the library's ordinary attention stack.
+                let config = self.stack_config(common)?;
+                let model = StackModel::new(config, device)?;
+                let optimizer = StackAdamW::new(&model, common.weight_decay, common.clip)?;
+                Ok(Box::new(StackArm {
+                    model,
+                    optimizer,
+                    age: AgeInit::Default,
+                    lineage: LineageArm::None,
+                }))
+            }
         }
     }
 }
@@ -698,7 +944,11 @@ impl StackArm {
 
 impl ContextArm for StackArm {
     fn kind(&self) -> &'static str {
-        "geometric_stack"
+        match self.model.config.arch {
+            StackArch::Geometric => "geometric_stack",
+            StackArch::Transformer => "ordinary_attention",
+            StackArch::Hybrid => "hybrid_attention_reads",
+        }
     }
 
     fn record(&self) -> Value {
@@ -752,7 +1002,11 @@ impl ContextArm for StackArm {
     }
 
     fn access_note(&self) -> String {
-        "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into()
+        match self.model.config.arch {
+            StackArch::Geometric => "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into(),
+            StackArch::Hybrid => "recurrence layers score no positions; 'a' layers run ordinary causal-softmax attention (every causal position scored by each head, no NoRead slot) -- the read-attribution control".into(),
+            StackArch::Transformer => "attention layers x heads x (position + 1): every causal position is scored by each head of the ordinary causal-softmax control; no NoRead slot".into(),
+        }
     }
 
     fn save(&self, directory: &Path) -> Result<()> {
@@ -761,6 +1015,14 @@ impl ContextArm for StackArm {
 
     fn read_heads(&self) -> Vec<(usize, usize)> {
         let config = &self.model.config;
+        // The binding-mass probe reads the geometric read
+        // (`StackModel::read_binding_masses`); the control's attention path does
+        // not populate that capture (`geometric_stack.rs:6332-6334`), so it
+        // reports no read heads rather than an error. The geometric arm's
+        // answer is unchanged.
+        if config.arch != StackArch::Geometric {
+            return Vec::new();
+        }
         (0..config.layers())
             .filter(|&layer| config.pattern.as_bytes()[layer] == b'a')
             .flat_map(|layer| (0..config.heads).map(move |head| (layer, head)))
@@ -908,6 +1170,234 @@ fn probe_line(probe: &Value, buckets: &[Bucket]) -> String {
         })
         .collect::<Vec<_>>()
         .join("; ")
+}
+
+/// D20 section 2 condition 3, for the geometric read: a firing counter in the
+/// spirit of `Work::selected_operations` (the `addressed_attention` precedent).
+///
+/// It evaluates the arm's real read at **every** scored query position of
+/// `sequences` through `ContextArm::source_mass` (`StackModel::read_binding_masses`,
+/// "the actual read, including age and NoRead") and counts the read rows that
+/// executed and the rows that put nonzero weight on the gold key `q - d`. A
+/// read that was never reached cannot produce a nonzero row; an arm with no
+/// read heads reports UNAVAILABLE, which is a finding, not a zero.
+/// Observation only: a separate forward pass, no parameter and no logit change.
+fn read_firing(
+    arm: &dyn ContextArm,
+    sequences: &[Sequence],
+    context: usize,
+    buckets: &[Bucket],
+) -> Result<Value> {
+    let heads = arm.read_heads();
+    if heads.is_empty() {
+        return Ok(json!({
+            "status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass \
+                       (the ordinary control's attention path does not populate the \
+                       binding capture, geometric_stack.rs:6332-6334)"
+        }));
+    }
+    // The binding probe admits at most one labelled query per batch item
+    // (`validate_binding`, geometric_stack.rs:6502), so each selected query is
+    // presented as its own batch item: its sequence's tokens, repeated. One
+    // query per (sequence, bucket), for every sequence of the panel.
+    let mut picks: Vec<(usize, usize)> = Vec::new(); // (sequence, query index)
+    for (s, sequence) in sequences.iter().enumerate() {
+        for (b, _) in buckets.iter().enumerate() {
+            if let Some(index) = sequence.queries.iter().position(|query| query.bucket == b) {
+                picks.push((s, index));
+            }
+        }
+    }
+    let batch = picks.len();
+    let mut ids = Vec::with_capacity(batch * context);
+    for (s, _) in &picks {
+        ids.extend_from_slice(&sequences[*s].tokens);
+    }
+    let rows: Vec<(usize, usize, Vec<usize>)> = picks
+        .iter()
+        .enumerate()
+        .map(|(item, (s, index))| {
+            let query = &sequences[*s].queries[*index];
+            (item, query.position, vec![query.position - query.distance])
+        })
+        .collect();
+    let mut rows_evaluated = 0usize;
+    let mut rows_nonzero = 0usize;
+    let mut rows_over_half = 0usize;
+    let mut mass_sum = 0f64;
+    let mut uniform_sum = 0f64;
+    let mut per_head = Vec::new();
+    let mut per_bucket_rows = vec![0usize; buckets.len()];
+    let mut per_bucket_nonzero = vec![0usize; buckets.len()];
+    let mut per_bucket_mass = vec![0f64; buckets.len()];
+    let mut per_bucket_uniform = vec![0f64; buckets.len()];
+    for &(layer, head) in &heads {
+        let masses = arm.source_mass(&ids, batch, context, layer, head, &rows)?;
+        if masses.len() != rows.len() {
+            return Err(invalid("the read firing counter got the wrong row count"));
+        }
+        let (mut head_nonzero, mut head_over_half, mut head_mass) = (0usize, 0usize, 0f64);
+        for (i, &mass) in masses.iter().enumerate() {
+            let (s, index) = picks[i];
+            let query = &sequences[s].queries[index];
+            let bucket = query.bucket;
+            let uniform = 1.0 / (query.position + 1) as f64;
+            rows_evaluated += 1;
+            mass_sum += f64::from(mass);
+            uniform_sum += uniform;
+            per_bucket_rows[bucket] += 1;
+            per_bucket_mass[bucket] += f64::from(mass);
+            per_bucket_uniform[bucket] += uniform;
+            if mass > 0.0 {
+                rows_nonzero += 1;
+                head_nonzero += 1;
+                per_bucket_nonzero[bucket] += 1;
+            }
+            if mass > 0.5 {
+                rows_over_half += 1;
+                head_over_half += 1;
+            }
+            head_mass += f64::from(mass);
+        }
+        per_head.push(json!({
+            "layer": layer, "head": head,
+            "rows_evaluated": masses.len(),
+            "rows_nonzero_mass_on_key": head_nonzero,
+            "rows_over_half_on_key": head_over_half,
+            "summed_mass_on_key": head_mass,
+        }));
+    }
+    let by_bucket = buckets
+        .iter()
+        .enumerate()
+        .map(|(b, bucket)| {
+            (
+                bucket.name.to_owned(),
+                json!({
+                    "rows": per_bucket_rows[b],
+                    "rows_nonzero_mass_on_key": per_bucket_nonzero[b],
+                    "mean_mass_on_key": per_bucket_mass[b] / per_bucket_rows[b].max(1) as f64,
+                    "mean_uniform_reference": per_bucket_uniform[b] / per_bucket_rows[b].max(1) as f64,
+                }),
+            )
+        })
+        .collect::<serde_json::Map<_, _>>();
+    Ok(json!({
+        "status": "MEASURED",
+        "counter": "read rows evaluated through StackModel::read_binding_masses at the scored query positions",
+        "selection": "one held-out query per (sequence, bucket), every sequence of the panel, one batch item each",
+        "read_heads": heads.len(),
+        "sequences": sequences.len(),
+        "queries": rows.len(),
+        "batch_items": batch,
+        "rows_evaluated": rows_evaluated,
+        "rows_nonzero_mass_on_key": rows_nonzero,
+        "rows_over_half_on_key": rows_over_half,
+        "mean_mass_on_key": mass_sum / rows_evaluated.max(1) as f64,
+        "mean_uniform_reference": uniform_sum / rows_evaluated.max(1) as f64,
+        "by_bucket": by_bucket,
+        "by_head": per_head,
+    }))
+}
+
+/// D20 section 2 condition 3, arch-symmetric: the mechanism is reached on a
+/// scored position iff that position's logits depend on the source key token.
+/// Each query's key occurrence (`q - d`) is replaced by a filler token and the
+/// logits at `q` are compared with the unmodified forward. A mechanism that
+/// never read the context leaves them bit-identical, whatever its parameter
+/// count. Observation only: a separate forward pass, no parameter or training
+/// change.
+fn context_reachability(
+    arm: &dyn ContextArm,
+    sequences: &[Sequence],
+    context: usize,
+) -> Result<Value> {
+    let (ids, _, _) = batch_arrays(sequences, context);
+    let before = arm.logits(&ids, sequences.len(), context)?;
+    let mut ablated = sequences.to_vec();
+    let mut replaced = 0usize;
+    for sequence in ablated.iter_mut() {
+        for query in sequence.queries.iter() {
+            let at = query.position - query.distance;
+            let original = sequence.tokens[at];
+            // A filler token, never equal to the key that was there.
+            let mut replacement = FILLER.0 + (original % (FILLER.1 - FILLER.0));
+            if replacement == original {
+                replacement = FILLER.0 + (original + 1) % (FILLER.1 - FILLER.0);
+            }
+            sequence.tokens[at] = replacement;
+            replaced += 1;
+        }
+    }
+    let (ablated_ids, _, _) = batch_arrays(&ablated, context);
+    let after = arm.logits(&ablated_ids, sequences.len(), context)?;
+    // The scored rows, in panel order.
+    let mut rows = Vec::new();
+    for (s, sequence) in sequences.iter().enumerate() {
+        for query in sequence.queries.iter() {
+            rows.push((
+                (s * context + query.position) as u32,
+                query.value as usize,
+            ));
+        }
+    }
+    let index = Tensor::from_vec(
+        rows.iter().map(|row| row.0).collect::<Vec<u32>>(),
+        rows.len(),
+        arm.device(),
+    )?;
+    let b = before
+        .index_select(&index, 0)?
+        .to_device(&Device::Cpu)?
+        .to_vec2::<f32>()?;
+    let a = after
+        .index_select(&index, 0)?
+        .to_device(&Device::Cpu)?
+        .to_vec2::<f32>()?;
+    let (mut changed, mut argmax_changed, mut gold_logit_changed) = (0usize, 0usize, 0usize);
+    let (mut max_delta, mut sum_delta) = (0f64, 0f64);
+    for (row, (_, gold)) in rows.iter().enumerate() {
+        let (mut best_b, mut best_a) = (0usize, 0usize);
+        let (mut mb, mut ma) = (f32::NEG_INFINITY, f32::NEG_INFINITY);
+        let mut delta = 0f64;
+        for (i, (&x, &y)) in b[row].iter().zip(a[row].iter()).enumerate() {
+            delta = delta.max(f64::from((x - y).abs()));
+            if x > mb {
+                mb = x;
+                best_b = i;
+            }
+            if y > ma {
+                ma = y;
+                best_a = i;
+            }
+        }
+        let any = b[row]
+            .iter()
+            .zip(a[row].iter())
+            .any(|(x, y)| x.to_bits() != y.to_bits());
+        if any {
+            changed += 1;
+        }
+        if b[row][*gold].to_bits() != a[row][*gold].to_bits() {
+            gold_logit_changed += 1;
+        }
+        if best_b != best_a {
+            argmax_changed += 1;
+        }
+        max_delta = max_delta.max(delta);
+        sum_delta += delta;
+    }
+    let total = rows.len().max(1);
+    Ok(json!({
+        "method": "replace the query's source key at q - d with a filler token; compare logits at q",
+        "rows": rows.len(),
+        "key_tokens_replaced": replaced,
+        "rows_with_any_logit_change": changed,
+        "rows_with_gold_logit_change": gold_logit_changed,
+        "rows_whose_argmax_changed": argmax_changed,
+        "max_abs_logit_delta": max_delta,
+        "mean_max_abs_logit_delta": sum_delta / total as f64,
+    }))
 }
 
 /// The value written most recently before `query` (by any pair): what a pure
@@ -2122,6 +2612,27 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     } else {
         json!({"status": "not requested"})
     };
+    // D20 section 2 condition 3: two reachability counters on the scored
+    // positions of the final in-class panel. Both are observation only.
+    let reach_clock = Instant::now();
+    let firing = read_firing(&*arm, &in_class_set, s.context, &buckets)?;
+    let reachability = context_reachability(&*arm, &in_class_set, s.context)?;
+    let reachability_seconds = reach_clock.elapsed().as_secs_f64();
+    let reach_line = format!(
+        "reachability: read rows {} nonzero {}; key-ablation changed rows {}/{} (argmax {}), max |dlogit| {:.6}",
+        firing["rows_evaluated"].as_u64().unwrap_or(0),
+        firing["rows_nonzero_mass_on_key"].as_u64().unwrap_or(0),
+        reachability["rows_with_any_logit_change"]
+            .as_u64()
+            .unwrap_or(0),
+        reachability["rows"].as_u64().unwrap_or(0),
+        reachability["rows_whose_argmax_changed"]
+            .as_u64()
+            .unwrap_or(0),
+        reachability["max_abs_logit_delta"].as_f64().unwrap_or(f64::NAN),
+    );
+    eprintln!("{reach_line}");
+    writeln!(log, "{reach_line}")?;
     let mut sorted = step_seconds.clone();
     sorted.sort_by(f64::total_cmp);
     let mean_positions = (0..s.context)
@@ -2143,6 +2654,9 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
         "model_save_before_stage0": model_pre_save,
         "final_in_class_fresh_pairings": in_class,
         "final_held_out_class_pairings": held_out,
+        "read_firing": firing,
+        "context_reachability": reachability,
+        "reachability_seconds": reachability_seconds,
         "curve": curve,
         "train_seconds": train_seconds,
         "median_step_seconds": sorted.get(sorted.len() / 2).copied(),
@@ -2254,6 +2768,7 @@ fn main() -> Result<()> {
             "parameters": arm.parameters(),
             "config": arm.record(),
             "init": init,
+            "parameter_match": spec.parameter_match(&common)?,
         });
         let mut results = run(&common, arm.as_mut(), &mut log)?;
         results["model_save"] = save_model(&common, arm.as_ref());
@@ -2565,5 +3080,147 @@ mod tests {
         assert_eq!(last_logits(&a, &ids), last_logits(&b, &ids));
         // ...while a recurrence layer does take rotation rows.
         assert_ne!(small("ra", true).shapes(), small("ra", false).shapes());
+    }
+
+    fn common_for(out: &str, context: usize) -> Common {
+        Common {
+            out: PathBuf::from(out),
+            device_name: "cpu".into(),
+            vocab: VOCAB,
+            save_model: false,
+            context,
+            pairs_per_bucket: 8,
+            batch: 8,
+            steps: 1,
+            lr: 1e-3,
+            warmup: 1,
+            min_lr: 0.1,
+            weight_decay: 0.1,
+            clip: 1.0,
+            eval_every: 1,
+            curve_sequences: 1,
+            final_sequences: 1,
+            seed: 5,
+            pointer: None,
+            max_seconds: 1.0,
+            probe_steps: Vec::new(),
+            probe_sequences: 1,
+            dump_scores: false,
+        }
+    }
+
+    /// The matched control's construction: the ordinary attention stack
+    /// (`StackArch::Transformer`, attention layers only) whose parameter count
+    /// is the geometric reference arm's, to within one MLP column.
+    #[test]
+    fn the_transformer_control_is_parameter_matched_to_the_geometric_arm() {
+        let common = common_for("/tmp/unused-d20-control-match", 512);
+        let spec = ArmSpec::Transformer {
+            layers: 6,
+            width: 128,
+            heads: 4,
+            mlp_hidden: None,
+            reference_pattern: "rrarra".into(),
+            reference_read: ReadScore::L2,
+            reference_rotation: true,
+        };
+        spec.validate(&common).expect("valid control");
+        let control = spec.stack_config(&common).expect("control config");
+        assert_eq!(control.arch, StackArch::Transformer);
+        assert_eq!(control.pattern, "aaaaaa");
+        let reference =
+            reference_config(&common, 128, 4, "rrarra", ReadScore::L2, true).expect("reference");
+        let target = reference.parameter_count().expect("reference count");
+        let got = control.parameter_count().expect("control count");
+        assert_eq!(target, 1_370_008, "the frozen recipe's geometric arm");
+        // The closest MLP width lands within one column of the target.
+        assert!(
+            (got as i64 - target as i64).unsigned_abs() <= (3 * control.width) as u64,
+            "control {got} vs reference {target}"
+        );
+        let match_record = spec.parameter_match(&common).expect("match record");
+        assert_eq!(match_record["reference_geometric"]["parameters"], target);
+        assert_eq!(match_record["control"]["parameters"], got);
+        // A geometric arm reports no match block: nothing about it changed.
+        let stack = ArmSpec::Stack {
+            pattern: "rrarra".into(),
+            read: ReadScore::L2,
+            rotation: true,
+            width: 128,
+            heads: 4,
+            mlp_hidden: 384,
+            age: AgeInit::Default,
+            lineage: LineageArm::None,
+        };
+        assert!(stack.parameter_match(&common).expect("null").is_null());
+        assert_eq!(
+            stack
+                .stack_config(&common)
+                .expect("stack config")
+                .parameter_count()
+                .expect("count"),
+            1_370_008
+        );
+    }
+
+    /// The control runs, is causal, and reads the context: the reachability
+    /// counter must fire for it as well as for the geometric arm.
+    #[test]
+    fn both_arms_read_the_context_at_the_scored_positions() {
+        let common = common_for("/tmp/unused-d20-control-reach", 64);
+        let buckets = buckets_for(64);
+        let sequences =
+            sequences(&common, &buckets, IN_CLASS_DOMAIN, 3, Pairing::Train).expect("panel");
+        for (arch, pattern) in [
+            (StackArch::Geometric, "rarra"),
+            (StackArch::Transformer, "aaaaa"),
+        ] {
+            let mut config = small(pattern, arch == StackArch::Geometric);
+            config.arch = arch;
+            config.mlp_hidden = 32;
+            config.context = 64;
+            config.read = if arch == StackArch::Geometric {
+                ReadScore::L2
+            } else {
+                ReadScore::Dot
+            };
+            let model = StackModel::new(config, &Device::Cpu).expect("model");
+            let optimizer = StackAdamW::new(&model, 0.1, 1.0).expect("optimizer");
+            let arm = StackArm {
+                model,
+                optimizer,
+                age: AgeInit::Default,
+                lineage: LineageArm::None,
+            };
+            let reach = context_reachability(&arm, &sequences, 64).expect("reachability");
+            let queries = sequences
+                .iter()
+                .map(|sequence| sequence.queries.len())
+                .sum::<usize>();
+            assert_eq!(queries, 3 * buckets.len() * 8);
+            assert_eq!(reach["rows"], queries);
+            assert_eq!(
+                reach["rows_with_any_logit_change"], queries,
+                "{arch:?}: every scored position must depend on its source key"
+            );
+            assert!(
+                reach["max_abs_logit_delta"].as_f64().unwrap_or(0.0) > 0.0,
+                "{arch:?}: an unwired arm would leave the logits identical"
+            );
+            // Only the geometric arm exposes the read-binding counter.
+            let firing = read_firing(&arm, &sequences, 64, &buckets).expect("firing");
+            if arch == StackArch::Geometric {
+                assert_eq!(firing["status"], "MEASURED");
+                // One held-out query per (sequence, bucket), one batch item each.
+                assert_eq!(firing["batch_items"], 3 * buckets.len());
+                assert_eq!(
+                    firing["rows_evaluated"],
+                    arm.read_heads().len() * 3 * buckets.len()
+                );
+            } else {
+                assert!(arm.read_heads().is_empty());
+                assert!(firing["rows_evaluated"].is_null());
+            }
+        }
     }
 }
