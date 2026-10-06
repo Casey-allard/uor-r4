@@ -2407,3 +2407,127 @@ fn test_bf16_training_1000_steps_is_finite() -> uor_r4_training::Result<()> {
     );
     Ok(())
 }
+
+/// Step 7d read-binding supervision: the same model (saved on the CPU, loaded
+/// on CUDA) gives the same language, binding and total losses, the same
+/// selected heads and masses, and the same gradient of the total, for the L2,
+/// Lorentz and Dot reads with and without a pointer head. The CUDA language
+/// part equals the unsupervised CUDA loss bit for bit.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_read_supervision_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::{
+        PointerConfig, ReadScore, ReadSupervisionGroup, ReadSupervisionRow, ReadSupervisionTarget,
+        StackModel,
+    };
+    let cuda = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let (batch, time) = (2usize, 16usize);
+    let mut rng = Bf16Rng(707);
+    let (ids, targets) = rng.batch(batch, time, 64);
+    let weights: Vec<f32> = (0..batch * time)
+        .map(|n| if n % time >= 9 { 1.0 } else { 0.0 })
+        .collect();
+    let target = ReadSupervisionTarget {
+        layer: 1,
+        groups: vec![
+            ReadSupervisionGroup {
+                batch: 0,
+                bound: vec![2, 3],
+                competing: vec![5, 6],
+            },
+            ReadSupervisionGroup {
+                batch: 0,
+                bound: vec![7],
+                competing: vec![],
+            },
+            ReadSupervisionGroup {
+                batch: 1,
+                bound: vec![1, 8],
+                competing: vec![4],
+            },
+        ],
+        rows: vec![
+            ReadSupervisionRow { group: 0, query: 9 },
+            ReadSupervisionRow {
+                group: 0,
+                query: 10,
+            },
+            ReadSupervisionRow {
+                group: 1,
+                query: 12,
+            },
+            ReadSupervisionRow {
+                group: 2,
+                query: 11,
+            },
+            ReadSupervisionRow {
+                group: 2,
+                query: 15,
+            },
+        ],
+    };
+    let dir = std::env::temp_dir().join(format!("read-supervision-parity-{}", std::process::id()));
+    for read in [ReadScore::L2, ReadScore::Lorentz, ReadScore::Dot] {
+        for pointer in [false, true] {
+            let label = format!("ReadSupervision {read:?} pointer={pointer}");
+            let mut config = bf16_model_config(21);
+            config.read = read;
+            if pointer {
+                config.pointer = Some(PointerConfig::new(8));
+            }
+            let _ = std::fs::remove_dir_all(&dir);
+            StackModel::new(config, &candle_core::Device::Cpu)?.save(&dir)?;
+            type Run = (Vec<f32>, Vec<f32>, Vec<f32>, Vec<usize>, Vec<f32>, f32);
+            let run = |device: &candle_core::Device| -> uor_r4_training::Result<Run> {
+                let model = StackModel::load(&dir, device)?;
+                let parts = model
+                    .read_supervised_loss(&ids, &targets, &weights, batch, time, &target, 0.7)?;
+                let scalars = vec![
+                    parts.language.to_scalar::<f32>()?,
+                    parts.binding.to_scalar::<f32>()?,
+                    parts.total.to_scalar::<f32>()?,
+                ];
+                let grads = parts.total.backward()?;
+                let mut gradient = Vec::new();
+                for var in model.variables().values() {
+                    if let Some(g) = grads.get(var) {
+                        gradient.extend(values(g)?);
+                    }
+                }
+                let plain = model
+                    .weighted_loss(&ids, &targets, &weights, batch, time)?
+                    .to_scalar::<f32>()?;
+                Ok((
+                    scalars,
+                    parts.bound,
+                    parts.competing,
+                    parts.heads,
+                    gradient,
+                    plain,
+                ))
+            };
+            let cpu = run(&candle_core::Device::Cpu)?;
+            let gpu = run(&cuda)?;
+            compare(
+                &cpu.0,
+                &gpu.0,
+                1e-5,
+                &format!("{label} language/binding/total"),
+            );
+            compare(&cpu.1, &gpu.1, 1e-4, &format!("{label} bound masses"));
+            compare(&cpu.2, &gpu.2, 1e-4, &format!("{label} competing masses"));
+            assert_eq!(cpu.3, gpu.3, "{label}: selected heads differ");
+            compare(&cpu.4, &gpu.4, 1e-3, &format!("{label} total gradient"));
+            assert_eq!(
+                gpu.0[0].to_bits(),
+                gpu.5.to_bits(),
+                "{label}: CUDA language part differs from the unsupervised loss"
+            );
+        }
+    }
+    let _ = std::fs::remove_dir_all(&dir);
+    Ok(())
+}

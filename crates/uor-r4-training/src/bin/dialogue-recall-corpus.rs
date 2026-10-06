@@ -4,7 +4,8 @@
 //! dialogue-recall-corpus generate out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \
 //!   [panels=data/panels[,DIR...]] [seed=1] (dialogues=N | token_budget=N) \
 //!   [dev_seed=1000003] [dev_dialogues=300] [protocol=2] [context=384] \
-//!   [samples=200] [train_on=answers|all] [generator=v2|v1] [source_commit=SHA]
+//!   [samples=200] [train_on=answers|all] [generator=v2|v1] [source_commit=SHA] \
+//!   [binding_labels=0|1]
 //! dialogue-recall-corpus leak out=NEW_REPORT_ROOT store=STORE_DIR tokenizer=TOKENIZER.json \
 //!   panels=DIR[,DIR...]
 //! ```
@@ -46,6 +47,13 @@
 //! with this generator); an older `dialogue-train` refuses them.
 //! `train_on=all` masks every assistant turn. `generator.json` reports reply
 //! and reply-token counts per kind, trained and context-only.
+//! `binding_labels=1` (Step 7d, default 0) also writes, beside each split's
+//! store, `binding_labels.jsonl` (per answer with an expected value stated
+//! earlier: the history positions of that value, of the question's forbidden
+//! values, and the answer positions that predict the value's tokens) and
+//! `binding_labels.json` (counts and the SHA-256 of the token payload the
+//! positions refer to). The stores are byte-identical either way;
+//! `dialogue-train read_binding_supervision=` reads the sidecar.
 //! `panels=` takes a comma-separated list of directories; all of them feed the
 //! filters and the leak report.
 //!
@@ -109,6 +117,7 @@ use uor_r4_training::stack_tracking::Rng;
 type Result<T> = std::result::Result<T, String>;
 
 const SCHEMA: &str = "uor-r4.dialogue-recall-corpus/1";
+const BINDING_LABELS_SCHEMA: &str = "uor-r4.read-binding-labels/1";
 const LEAK_SCHEMA: &str = "uor-r4.dialogue-recall-leak/1";
 /// Word n-gram length of the panel overlap check.
 const NGRAM: usize = 6;
@@ -5023,6 +5032,76 @@ struct Encoding<'t> {
     answers_only: bool,
     /// Draw with the six v2 families (`generator=v2`) or v1 alone.
     generator_v2: bool,
+    /// Write the read-binding supervision sidecar (`binding_labels=1`).
+    binding_labels: bool,
+}
+
+/// One question's read-binding label: `(answer start, bound, competing,
+/// queries)`, positions local to the dialogue's tokens.
+type BindingLabel = (usize, Vec<usize>, Vec<usize>, Vec<usize>);
+
+/// Step 7d's read-binding labels of one dialogue: for each question with an
+/// expected value that occurs before its answer and inside the answer, its
+/// [`BindingLabel`]. `bound` holds the history positions (before the answer)
+/// of the expected value's word phrase, `competing` those of the question's
+/// forbidden values (minus `bound`), and `queries` the input positions whose
+/// next token is a token of the expected value inside the scored answer.
+/// Words follow `binding_probe`'s rule, the matching the binding probe uses.
+fn dialogue_binding_labels(
+    tokenizer: &ByteBpeTokenizer,
+    tokens: &[u32],
+    dialogue: &Dialogue,
+    runs: &[(usize, usize, usize)],
+    counts: &mut BTreeMap<String, usize>,
+) -> Result<Vec<BindingLabel>> {
+    use uor_r4_training::binding_probe::{phrase_positions, token_byte_ranges, words};
+    let pieces: Vec<Vec<u8>> = tokens
+        .iter()
+        .map(|&t| tokenizer.decode_bytes(&[t]))
+        .collect();
+    let ranges = token_byte_ranges(&pieces);
+    let text = String::from_utf8_lossy(&pieces.concat()).into_owned();
+    let mut out = Vec::new();
+    for q in &dialogue.questions {
+        let Some(expect) = &q.expect else {
+            *counts.entry("abstain_no_value".into()).or_default() += 1;
+            continue;
+        };
+        let &(_, start, end) = runs
+            .iter()
+            .find(|(turn, _, _)| *turn == q.turn)
+            .ok_or("a question answer is not an assistant turn")?;
+        let phrase = words(expect);
+        let bound: BTreeSet<usize> = phrase_positions(&text, &ranges, 0..start, &phrase);
+        let answer = phrase_positions(&text, &ranges, start..end, &phrase);
+        if bound.is_empty() {
+            *counts.entry("no_history_occurrence".into()).or_default() += 1;
+            continue;
+        }
+        if answer.is_empty() {
+            *counts.entry("no_answer_occurrence".into()).or_default() += 1;
+            continue;
+        }
+        let mut competing = BTreeSet::new();
+        for value in &q.forbid {
+            competing.extend(phrase_positions(&text, &ranges, 0..start, &words(value)));
+        }
+        let competing: Vec<usize> = competing.difference(&bound).copied().collect();
+        if competing.is_empty() {
+            *counts
+                .entry("labelled_without_competing".into())
+                .or_default() += 1;
+        }
+        *counts.entry("labelled".into()).or_default() += 1;
+        *counts.entry("rows".into()).or_default() += answer.len();
+        out.push((
+            start,
+            bound.into_iter().collect(),
+            competing,
+            answer.into_iter().map(|a| a - 1).collect(),
+        ));
+    }
+    Ok(out)
 }
 
 /// Apply `train_on` to an encoded document's response mask: under
@@ -5078,6 +5157,17 @@ fn write_split(world: &World, enc: &Encoding, spec: &SplitSpec) -> Result<Tally>
         BufWriter::new(fs::File::create(&samples_path).map_err(|e| e.to_string())?);
     let mut rng = Rng::new(spec.seed);
     let mut tally = Tally::default();
+    // Step 7d: the read-binding sidecar, its counts and the SHA-256 of the
+    // split's token payload (little-endian u16, no header) it is bound to.
+    let mut labels_out = if enc.binding_labels {
+        Some(BufWriter::new(
+            fs::File::create(spec.dir.join("binding_labels.jsonl")).map_err(|e| e.to_string())?,
+        ))
+    } else {
+        None
+    };
+    let mut label_counts: BTreeMap<String, usize> = BTreeMap::new();
+    let mut payload = <sha2::Sha256 as sha2::Digest>::new();
     let mut redraws_total = 0usize;
     loop {
         if spec.dialogues > 0 && tally.dialogues >= spec.dialogues {
@@ -5178,6 +5268,27 @@ fn write_split(world: &World, enc: &Encoding, spec: &SplitSpec) -> Result<Tally>
                 }
             }
         }
+        if let Some(out) = labels_out.as_mut() {
+            let offset = tally.tokens;
+            for (start, bound, competing, queries) in dialogue_binding_labels(
+                enc.tokenizer,
+                &encoded.tokens,
+                &dialogue,
+                &runs,
+                &mut label_counts,
+            )? {
+                let shift = |v: Vec<usize>| v.into_iter().map(|p| p + offset).collect::<Vec<_>>();
+                serde_json::to_writer(
+                    &mut *out,
+                    &json!({"r": start + offset, "b": shift(bound), "c": shift(competing), "q": shift(queries)}),
+                )
+                .map_err(|e| e.to_string())?;
+                out.write_all(b"\n").map_err(|e| e.to_string())?;
+            }
+            for id in &ids {
+                sha2::Digest::update(&mut payload, id.to_le_bytes());
+            }
+        }
         writer.write_tokens(&ids).map_err(|e| e.to_string())?;
         mask_out.write_all(&mask).map_err(|e| e.to_string())?;
         tally.tokens += ids.len();
@@ -5200,6 +5311,25 @@ fn write_split(world: &World, enc: &Encoding, spec: &SplitSpec) -> Result<Tally>
     }
     mask_out.flush().map_err(|e| e.to_string())?;
     samples_out.flush().map_err(|e| e.to_string())?;
+    if let Some(mut out) = labels_out.take() {
+        out.flush().map_err(|e| e.to_string())?;
+        let digest = sha2::Digest::finalize(payload);
+        let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+        let summary = json!({
+            "schema": BINDING_LABELS_SCHEMA,
+            "split": spec.name,
+            "tokens": tally.tokens,
+            "tokens_payload_sha256": hex,
+            "counts": label_counts,
+            "positions": "absolute token positions of this split's tokens.u16 payload; r = the answer's first response token, b = bound (expected value) history positions, c = competing (forbidden values) history positions, q = input positions whose next token is a token of the expected value inside the answer",
+            "rule": "per question with an expected value: the expected value's word phrase (binding_probe word rule) in the tokens before the answer (bound) and inside the answer (queries = those positions - 1); forbidden values' phrases before the answer, minus bound (competing); questions without a history or an answer occurrence get no label",
+        });
+        fs::write(
+            spec.dir.join("binding_labels.json"),
+            serde_json::to_vec_pretty(&summary).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+    }
     drop(mask_out);
     drop(samples_out);
 
@@ -5463,6 +5593,11 @@ fn generate(args: &[String]) -> Result<()> {
         "all" => false,
         other => return Err(format!("unknown train_on={other}: answers or all")),
     };
+    let binding_labels = match arg(args, "binding_labels").unwrap_or("0") {
+        "1" | "true" => true,
+        "0" | "false" => false,
+        other => return Err(format!("binding_labels={other}: 0 or 1")),
+    };
     let dirs = panel_dirs(args);
     // Validate the inputs before claiming the root.
     let tokenizer = load_tokenizer(&tokenizer_path)?;
@@ -5482,6 +5617,7 @@ fn generate(args: &[String]) -> Result<()> {
         vocab,
         answers_only,
         generator_v2,
+        binding_labels,
     };
     let train = write_split(
         &world,
@@ -5601,7 +5737,14 @@ fn generate(args: &[String]) -> Result<()> {
         "dev/manifest.json",
         "dev/dialogues.jsonl",
         "leak.json",
+        "train/binding_labels.jsonl",
+        "train/binding_labels.json",
+        "dev/binding_labels.jsonl",
+        "dev/binding_labels.json",
     ] {
+        if rel.contains("binding_labels") && !binding_labels {
+            continue;
+        }
         let path = out.join(rel);
         files.insert(
             rel.into(),
@@ -6010,6 +6153,7 @@ mod tests {
             vocab,
             answers_only,
             generator_v2: false,
+            binding_labels: false,
         };
         let dir = std::env::temp_dir().join(format!(
             "dialogue-recall-test-{}-{answers_only}-{seed}",
@@ -6056,6 +6200,126 @@ mod tests {
         assert!(sampled.iter().all(|&id| id < replies.len()));
         let _ = fs::remove_dir_all(&dir);
         replies
+    }
+
+    /// Step 7d: the binding sidecar leaves the store byte-identical, binds the
+    /// token payload, and every label points at the expected value: bound
+    /// positions before the answer decode to the value's words, queries are
+    /// scored answer positions whose next token belongs to the value.
+    #[test]
+    fn binding_labels_point_at_the_expected_value_and_leave_the_store_unchanged() {
+        use uor_r4_training::binding_probe::words;
+        let w = world();
+        let tokenizer = byte_tokenizer();
+        let vocab = u32::try_from(tokenizer.vocab_size()).expect("vocab");
+        let base =
+            std::env::temp_dir().join(format!("dialogue-recall-labels-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&base);
+        let mut stores = Vec::new();
+        for (generator_v2, labels) in [(true, false), (true, true), (false, true)] {
+            let enc = Encoding {
+                tokenizer: &tokenizer,
+                protocol: DialogueProtocol::literal_roles_v2(&tokenizer).expect("protocol"),
+                version: 2,
+                context: 4096,
+                vocab,
+                answers_only: true,
+                generator_v2,
+                binding_labels: labels,
+            };
+            let dir = base.join(format!("{generator_v2}-{labels}"));
+            write_split(
+                &w,
+                &enc,
+                &SplitSpec {
+                    name: "train",
+                    label: "dialogue-recall",
+                    seed: 41,
+                    dialogues: 120,
+                    token_budget: 0,
+                    samples: 0,
+                    dir: &dir,
+                },
+            )
+            .expect("the split is written");
+            stores.push(fs::read(dir.join("tokens.u16")).expect("tokens"));
+            if !labels {
+                assert!(!dir.join("binding_labels.jsonl").exists());
+                continue;
+            }
+            let summary: Value = serde_json::from_slice(
+                &fs::read(dir.join("binding_labels.json")).expect("summary"),
+            )
+            .expect("json");
+            let reader = MmapCorpusReader::open(dir.join("tokens.u16")).expect("tokens");
+            let ids: Vec<u32> = reader.as_slice().iter().map(|&t| u32::from(t)).collect();
+            let mask = fs::read(dir.join("response_mask.u8")).expect("mask");
+            let mut payload = <sha2::Sha256 as sha2::Digest>::new();
+            for &t in reader.as_slice() {
+                sha2::Digest::update(&mut payload, t.to_le_bytes());
+            }
+            let hex: String = sha2::Digest::finalize(payload)
+                .iter()
+                .map(|b| format!("{b:02x}"))
+                .collect();
+            assert_eq!(summary["tokens_payload_sha256"], hex.as_str());
+            assert_eq!(summary["tokens"], ids.len());
+            let lines = fs::read_to_string(dir.join("binding_labels.jsonl")).expect("labels");
+            let mut labelled = 0usize;
+            for line in lines.lines() {
+                let label: Value = serde_json::from_str(line).expect("label");
+                let list = |k: &str| -> Vec<usize> {
+                    label[k]
+                        .as_array()
+                        .expect("list")
+                        .iter()
+                        .map(|v| v.as_u64().expect("position") as usize)
+                        .collect()
+                };
+                let r = label["r"].as_u64().expect("r") as usize;
+                let (b, c, q) = (list("b"), list("c"), list("q"));
+                assert!(
+                    mask[r] == 1 && mask[r - 1] == 0,
+                    "r starts a scored response"
+                );
+                assert!(!b.is_empty() && !q.is_empty());
+                assert!(b.iter().chain(&c).all(|&p| p < r));
+                assert!(c.iter().all(|p| !b.contains(p)));
+                assert!(q.iter().all(|&p| p + 1 >= r && mask[p + 1] == 1));
+                // The bound tokens decode to text holding a word of each
+                // answered value token.
+                let runs_text = |positions: &[usize]| -> String {
+                    let mut parts: Vec<Vec<u32>> = Vec::new();
+                    for (i, &p) in positions.iter().enumerate() {
+                        if i == 0 || positions[i - 1] + 1 != p {
+                            parts.push(Vec::new());
+                        }
+                        if let Some(part) = parts.last_mut() {
+                            part.push(ids[p]);
+                        }
+                    }
+                    parts
+                        .iter()
+                        .map(|part| tokenizer.decode(part))
+                        .collect::<Vec<_>>()
+                        .join(" ")
+                };
+                let bound_text = runs_text(&b);
+                let next: Vec<usize> = q.iter().map(|&p| p + 1).collect();
+                let answer_text = runs_text(&next);
+                assert!(
+                    words(&answer_text)
+                        .iter()
+                        .all(|w| words(&bound_text).contains(w)),
+                    "{answer_text:?} not in {bound_text:?}"
+                );
+                labelled += 1;
+            }
+            assert_eq!(summary["counts"]["labelled"], labelled);
+            assert!(labelled > 60, "only {labelled} labelled answers");
+        }
+        assert_eq!(stores[0], stores[1], "the sidecar changed the store");
+        let _ = fs::remove_dir_all(&base);
     }
 
     #[test]

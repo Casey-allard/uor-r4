@@ -47,6 +47,7 @@
 //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
 //!   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \
 //!   [pointer_gate_supervision=0] \
+//!   [read_binding_supervision=0 read_binding_labels=DIR read_binding_source=LABEL [read_binding_layer=L]] \
 //!   [context=256] \
 //!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
@@ -254,6 +255,18 @@
 //! (`StackModel::gate_supervised_loss`): on a scored target whose id an input
 //! position `0..=t` holds, `W (BCE(g, 1) - log p_copy(target))`; elsewhere
 //! `W BCE(g, 0)`. It needs a pointer over every source and f32 precision.
+//! `read_binding_supervision=W` (`dialogue-train`, default 0 = off; Step 7d)
+//! adds `W * binding` on steps whose batch holds an answer labelled by
+//! `dialogue-recall-corpus binding_labels=1` (`read_binding_labels=DIR`, the
+//! split directory holding `binding_labels.json[l]`, for the training store's
+//! source `read_binding_source=LABEL`, checked by token count and payload
+//! SHA-256): at each input position whose next token is a token of the
+//! answer's expected value, `-log(m + 1e-6)` with `m` the attention mass of the
+//! binding head of read layer `read_binding_layer=` (default the last read
+//! layer) on the expected value's history positions; the binding head is the
+//! head with the most mass on the expected and the forbidden values together
+//! (`StackModel::read_supervised_loss`). Needs `policy=full_prefix`, full
+//! read admission and f32 precision.
 //! Each evaluation reports the pointer's mean gate and hit rate on the scored
 //! targets (`dev_pointer_*` in the curve, `pointer` in the developments). The
 //! pointer has no served representation for training (`qat=true` refuses
@@ -4117,6 +4130,16 @@ struct DialogueSettings {
     /// `pointer_gate_supervision=W` (default 0, off): copy-gate supervision
     /// of strength W ([`StackModel::gate_supervised_loss`]).
     pointer_gate_supervision: f64,
+    /// `read_binding_supervision=W` (default 0, off): read-binding
+    /// supervision of strength W ([`StackModel::read_supervised_loss`]).
+    read_binding_supervision: f64,
+    /// `read_binding_labels=DIR`: the `binding_labels.json[l]` sidecar.
+    read_binding_labels: Option<PathBuf>,
+    /// `read_binding_source=LABEL`: the training store source the labels
+    /// belong to.
+    read_binding_source: Option<String>,
+    /// `read_binding_layer=L` (default: the last read layer).
+    read_binding_layer: Option<usize>,
 }
 
 impl DialogueSettings {
@@ -4157,6 +4180,12 @@ impl DialogueSettings {
         }
         if self.pointer_gate_supervision > 0.0 {
             record["pointer_gate_supervision"] = json!(self.pointer_gate_supervision);
+        }
+        if self.read_binding_supervision > 0.0 {
+            record["read_binding_supervision"] = json!(self.read_binding_supervision);
+            record["read_binding_labels"] = json!(self.read_binding_labels);
+            record["read_binding_source"] = json!(self.read_binding_source);
+            record["read_binding_layer"] = json!(self.read_binding_layer);
         }
         record
     }
@@ -4201,8 +4230,61 @@ impl DialogueSettings {
         if self.pointer_gate_supervision > 0.0 {
             lineage["pointer_gate_supervision"] = json!(self.pointer_gate_supervision);
         }
+        if self.read_binding_supervision > 0.0 {
+            lineage["read_binding_supervision"] = json!({
+                "weight": self.read_binding_supervision,
+                "source": self.read_binding_source,
+                "layer": self.read_binding_layer,
+            });
+        }
         Ok(lineage)
     }
+}
+
+/// `read_binding_supervision=W`: finite and nonnegative; above 0 it needs
+/// `read_binding_labels=` and `read_binding_source=`, `policy=full_prefix`,
+/// no `select=` and f32 precision, and excludes copy-gate supervision.
+/// Checked before anything is claimed.
+fn check_read_binding_supervision(s: &DialogueSettings) -> Result<()> {
+    let weight = s.read_binding_supervision;
+    if !(weight.is_finite() && weight >= 0.0) {
+        return Err(invalid(
+            "read_binding_supervision must be finite and nonnegative",
+        ));
+    }
+    if weight == 0.0 {
+        if s.read_binding_labels.is_some()
+            || s.read_binding_source.is_some()
+            || s.read_binding_layer.is_some()
+        {
+            return Err(invalid(
+                "read_binding_labels/source/layer need read_binding_supervision > 0",
+            ));
+        }
+        return Ok(());
+    }
+    if s.read_binding_labels.is_none() || s.read_binding_source.is_none() {
+        return Err(invalid(
+            "read_binding_supervision needs read_binding_labels=DIR and read_binding_source=LABEL",
+        ));
+    }
+    if s.policy != PrefixPolicy::FullPrefix {
+        return Err(invalid("read_binding_supervision needs policy=full_prefix"));
+    }
+    if s.precision.is_bf16() {
+        return Err(invalid("read_binding_supervision needs precision=f32"));
+    }
+    if s.select.as_deref().is_some_and(|v| v != "none") {
+        return Err(invalid(
+            "read_binding_supervision needs full read admission (no select=)",
+        ));
+    }
+    if s.pointer_gate_supervision > 0.0 {
+        return Err(invalid(
+            "read_binding_supervision and pointer_gate_supervision are separate arms",
+        ));
+    }
+    Ok(())
 }
 
 /// `pointer_gate_supervision=W`: finite and nonnegative; above 0 it needs a
@@ -4341,6 +4423,10 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "tf32",
             "precision",
             "pointer_gate_supervision",
+            "read_binding_supervision",
+            "read_binding_labels",
+            "read_binding_source",
+            "read_binding_layer",
         ],
     )?;
     // Validate the A1 options before anything is claimed or loaded.
@@ -4393,6 +4479,16 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         },
         device: device_arg(&args)?,
         pointer_gate_supervision: args.number("pointer_gate_supervision", 0.0)?,
+        read_binding_supervision: args.number("read_binding_supervision", 0.0)?,
+        read_binding_labels: args.optional("read_binding_labels").map(PathBuf::from),
+        read_binding_source: args.optional("read_binding_source"),
+        read_binding_layer: args
+            .optional("read_binding_layer")
+            .map(|v| {
+                v.parse::<usize>()
+                    .map_err(|_| invalid(format!("invalid read_binding_layer={v}")))
+            })
+            .transpose()?,
     };
     settings.precision = precision_arg(&args, &settings.device)?;
     check_bf16_options(
@@ -4404,6 +4500,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         false,
     )?;
     check_gate_supervision(&settings)?;
+    check_read_binding_supervision(&settings)?;
     if settings.steps == 0
         || !(1..=64).contains(&settings.batch)
         || settings.eval_every == 0
@@ -4638,6 +4735,38 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     // the retained study's 256-ID panel, so its scores stay comparable.
     let (protocol, contract) = episode_contract_for(&tokenizer, vocab, config.context, s.protocol)?;
     let train = train_split.index_for(contract, s.policy)?;
+    // Step 7d: read-binding labels and the supervised read layer (by
+    // default the last read layer).
+    let read_binding = if s.read_binding_supervision > 0.0 {
+        let (Some(directory), Some(source)) = (&s.read_binding_labels, &s.read_binding_source)
+        else {
+            return Err(invalid(
+                "read-binding supervision needs its labels and source",
+            ));
+        };
+        let layer = match s.read_binding_layer {
+            Some(layer) => layer,
+            None => (0..config.layers())
+                .rev()
+                .find(|&l| config.pattern.as_bytes()[l] == b'a')
+                .ok_or_else(|| invalid("read_binding_supervision needs a read layer"))?,
+        };
+        if layer >= config.layers() || config.pattern.as_bytes()[layer] != b'a' {
+            return Err(invalid(format!(
+                "read_binding_layer={layer} is not a read layer of the model"
+            )));
+        }
+        Some((
+            uor_r4_training::stack_dialogue::ReadBindingLabels::load(
+                directory,
+                &train_split,
+                source,
+            )?,
+            layer,
+        ))
+    } else {
+        None
+    };
     let (_, dev_contract) = episode_contract_for(&tokenizer, vocab, EPISODE_CONTEXT, s.protocol)?;
     let dev = dev_split.index(dev_contract)?;
     let panel = dialogue_development::select(&dev, s.dev_seed, s.dev_per_source)?;
@@ -4783,6 +4912,11 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
     // pointer NLL and the objective (the mixture's NLL is `window_loss`).
     let supervision = s.pointer_gate_supervision;
     let mut window_supervision = [0f64; 3];
+    // Under read-binding supervision: the window's supervised steps, rows,
+    // sums of the binding term, the selected head's bound and competing
+    // masses, and the objective.
+    let mut window_binding = (0usize, 0usize, [0f64; 4]);
+    let mut binding_totals = (0usize, 0usize);
     // The served representation's work inside this process's updates.
     let mut served_in_steps = ServedStatistics::default();
     // This process's updates' seconds.
@@ -4795,7 +4929,45 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         let batch = train.materialize(&ids, s.policy)?;
         let trimmed = trim(&batch);
         let served_before = model.served_statistics()?;
-        let (loss, value) = if supervision > 0.0 {
+        let binding_target = match &read_binding {
+            Some((labels, layer)) => labels.target(&batch, trimmed.time, *layer)?,
+            None => None,
+        };
+        let (loss, value) = if let Some(target) = &binding_target {
+            let parts = model.read_supervised_loss(
+                &trimmed.inputs,
+                &trimmed.targets,
+                &trimmed.weights,
+                batch.batch,
+                trimmed.time,
+                target,
+                s.read_binding_supervision,
+            )?;
+            let read =
+                |t: &candle_core::Tensor| -> Result<f64> { Ok(f64::from(t.to_scalar::<f32>()?)) };
+            let rows = parts.bound.len();
+            let terms = [
+                read(&parts.binding)?,
+                parts.bound.iter().map(|&m| f64::from(m)).sum::<f64>() / rows as f64,
+                parts.competing.iter().map(|&m| f64::from(m)).sum::<f64>() / rows as f64,
+                read(&parts.total)?,
+            ];
+            if !terms.iter().all(|t| t.is_finite()) {
+                return Err(invalid(format!(
+                    "nonfinite read-binding loss at step {}",
+                    progress.step
+                )));
+            }
+            window_binding.0 += 1;
+            window_binding.1 += rows;
+            binding_totals.0 += 1;
+            binding_totals.1 += rows;
+            for (sum, term) in window_binding.2.iter_mut().zip(terms) {
+                *sum += term;
+            }
+            let value = read(&parts.language)?;
+            (parts.total, value)
+        } else if supervision > 0.0 {
             let parts = model.gate_supervised_loss(
                 &trimmed.inputs,
                 &trimmed.targets,
@@ -4885,6 +5057,18 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 point["train_pointer_nll"] = json!(window_supervision[1] / n);
                 point["train_objective"] = json!(window_supervision[2] / n);
                 window_supervision = [0.0; 3];
+            }
+            // Read-binding supervision: means over the window's supervised
+            // steps (train_response_nll stays the language NLL).
+            if read_binding.is_some() {
+                let n = window_binding.0.max(1) as f64;
+                point["train_binding_steps"] = json!(window_binding.0);
+                point["train_binding_rows"] = json!(window_binding.1);
+                point["train_binding_nll"] = json!(window_binding.2[0] / n);
+                point["train_binding_bound_mass"] = json!(window_binding.2[1] / n);
+                point["train_binding_competing_mass"] = json!(window_binding.2[2] / n);
+                point["train_binding_objective"] = json!(window_binding.2[3] / n);
+                window_binding = (0, 0, [0.0; 4]);
             }
             if let Some((unsnapped, usage)) = &transport {
                 point["dev_unsnapped_response_nll"] = unsnapped["response_mean_nll"].clone();
@@ -5033,6 +5217,14 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             "pointer_init_seed_source": pointer_added.then_some(seed_source),
             "pointer_parameters": pointer_parameters,
             "final_pointer_diagnostics": final_pointer,
+            "read_binding_supervision": read_binding.as_ref().map(|(labels, layer)| json!({
+                "weight": s.read_binding_supervision,
+                "layer": layer,
+                "labels": labels.record,
+                "supervised_steps_this_process": binding_totals.0,
+                "supervised_rows_this_process": binding_totals.1,
+                "objective": "language NLL (the mixture's) + weight * binding on steps whose batch holds a labelled answer (other steps are the plain objective). binding = mean over the labelled queries of -log(m + 1e-6), m = the attention mass of the binding head of the supervised read layer on the bound value's history positions; the binding head is, per query, the head with the most mass on the bound and competing values together (no gradient through the choice). Queries are the input positions whose next token is a token of the expected value inside a scored answer (dialogue-recall-corpus binding_labels=1). Masses are the read's softmax weights through auxiliary value channels removed before read.out. train_binding_* in the curve are means over the window's supervised steps.",
+            })),
             "pointer_gate_supervision": (supervision > 0.0).then(|| json!({
                 "weight": supervision,
                 "objective": "mixture NLL + weight * (gate_bce + pointer_nll) over the scored response targets: on a target whose id an input position 0..=t of its window holds, gate_bce = -log g and pointer_nll = -log p_copy(target) (the pointer's mass summed over every position holding the id); on any other target gate_bce = -log(1 - g) and pointer_nll = 0; both are weighted means like the mixture's NLL. train_response_nll in the curve stays the mixture's NLL; train_gate_bce, train_pointer_nll and train_objective are window means.",
@@ -5625,6 +5817,8 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   [pointer_select=none|flock:WINDOW:K|top:K] \\
   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \\
   [pointer_gate_supervision=0] \\
+  [read_binding_supervision=0 read_binding_labels=DIR read_binding_source=LABEL \\
+   read_binding_layer=L] \\
   [seed=] [context=] [policy=] \\
   [data_seed=] \\
   [steps=] \\
@@ -5675,6 +5869,16 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          pointer over every source (no pointer_select/route) and precision=f32.
                          The curve adds train_gate_bce / train_pointer_nll / train_objective and
                          dev_gate_bce / dev_pointer_nll; train_response_nll stays the mixture's.
+  read_binding_supervision=W
+                         read-binding supervision (default 0: off, the run is unchanged; Step 7d).
+                         On steps whose batch holds a labelled answer adds W times the mean over
+                         its value-token queries of -log(m + 1e-6), m the binding head's mass on
+                         the expected value's history positions in read layer read_binding_layer=
+                         (default the last read layer). read_binding_labels=DIR is the split
+                         directory of dialogue-recall-corpus binding_labels=1 and
+                         read_binding_source=LABEL its source label in the training store.
+                         Needs policy=full_prefix, no select= and precision=f32. The curve adds
+                         train_binding_{steps,rows,nll,bound_mass,competing_mass,objective}.
   protocol=1|2           the literal-role dialogue version of both corpora (default 1); 2 puts
                          the space after a role marker into the message (m-world corpus
                          protocol=2), so a reply's first word can be copied from context.

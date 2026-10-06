@@ -32,7 +32,10 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
 use crate::dialogue_episodes::{
     EpisodeBatch, EpisodeContract, EpisodeIndex, PrefixPolicy, SourceSpan, EPISODE_CONTEXT,
 };
-use crate::geometric_stack::{PointerRowStats, StackModel, TargetScores};
+use crate::geometric_stack::{
+    PointerRowStats, ReadSupervisionGroup, ReadSupervisionRow, ReadSupervisionTarget, StackModel,
+    TargetScores,
+};
 use crate::reference_eval::short_cycle_period;
 use crate::{invalid, Result};
 
@@ -119,6 +122,187 @@ impl DialogueSplit {
             &self.sources,
             policy,
         )
+    }
+
+    /// The store range of the source labelled `label`, if exactly one has it.
+    pub fn source_range(&self, label: &str) -> Option<std::ops::Range<usize>> {
+        let mut found = self.sources.iter().filter(|s| s.label == label);
+        let first = found.next()?;
+        found.next().is_none().then(|| first.start..first.end)
+    }
+}
+
+/// Step 7d: read-binding supervision labels of one source of a training split
+/// (the `binding_labels.jsonl` sidecar `dialogue-recall-corpus
+/// binding_labels=1` writes beside a split), shifted to the training store's
+/// positions and keyed by each answer's first response token.
+pub struct ReadBindingLabels {
+    by_response: std::collections::HashMap<usize, BindingLabel>,
+    /// What was loaded: the sidecar summary, source label and range, counts.
+    pub record: Value,
+}
+
+struct BindingLabel {
+    bound: Vec<usize>,
+    competing: Vec<usize>,
+    queries: Vec<usize>,
+}
+
+impl ReadBindingLabels {
+    /// Load `DIR/binding_labels.json` and `DIR/binding_labels.jsonl` for the
+    /// source `source` of `split`. The source's token count and the SHA-256 of
+    /// its token payload (little-endian u16) must equal the sidecar's, and
+    /// every label must start a scored response and point before it.
+    pub fn load(directory: &Path, split: &DialogueSplit, source: &str) -> Result<Self> {
+        use sha2::Digest;
+        let summary: Value =
+            serde_json::from_slice(&fs::read(directory.join("binding_labels.json"))?)?;
+        if summary["schema"] != "uor-r4.read-binding-labels/1" {
+            return Err(crate::invalid("not a read-binding labels summary"));
+        }
+        let range = split.source_range(source).ok_or_else(|| {
+            crate::invalid(format!(
+                "the training split has no single source labelled {source}"
+            ))
+        })?;
+        let tokens = &split.reader.as_slice()[range.clone()];
+        if summary["tokens"].as_u64() != Some(tokens.len() as u64) {
+            return Err(crate::invalid(
+                "the labels' token count differs from the source's",
+            ));
+        }
+        let mut digest = sha2::Sha256::new();
+        for token in tokens {
+            digest.update(token.to_le_bytes());
+        }
+        let hex: String = digest
+            .finalize()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        if summary["tokens_payload_sha256"].as_str() != Some(hex.as_str()) {
+            return Err(crate::invalid(
+                "the labels were written for a different token payload",
+            ));
+        }
+        let shift = range.start;
+        let mut by_response = std::collections::HashMap::new();
+        let (mut rows, mut competing_labels) = (0usize, 0usize);
+        for line in fs::read_to_string(directory.join("binding_labels.jsonl"))?.lines() {
+            let value: Value = serde_json::from_str(line)?;
+            let list = |key: &str| -> Result<Vec<usize>> {
+                value[key]
+                    .as_array()
+                    .ok_or_else(|| crate::invalid("a label without its position list"))?
+                    .iter()
+                    .map(|p| {
+                        p.as_u64()
+                            .map(|p| p as usize + shift)
+                            .ok_or_else(|| crate::invalid("a label position is not a number"))
+                    })
+                    .collect()
+            };
+            let r = value["r"]
+                .as_u64()
+                .map(|r| r as usize + shift)
+                .ok_or_else(|| crate::invalid("a label without its response start"))?;
+            let label = BindingLabel {
+                bound: list("b")?,
+                competing: list("c")?,
+                queries: list("q")?,
+            };
+            let sorted = |v: &[usize]| v.windows(2).all(|w| w[0] < w[1]);
+            if r <= shift
+                || r >= range.end
+                || split.mask[r] != 1
+                || split.mask[r - 1] != 0
+                || label.bound.is_empty()
+                || label.queries.is_empty()
+                || !sorted(&label.bound)
+                || !sorted(&label.competing)
+                || !sorted(&label.queries)
+                || label.bound.iter().chain(&label.competing).any(|&p| p >= r)
+                || label
+                    .queries
+                    .iter()
+                    .any(|&q| q + 1 < r || q + 1 >= range.end)
+            {
+                return Err(crate::invalid(format!("an invalid binding label at {r}")));
+            }
+            rows += label.queries.len();
+            competing_labels += usize::from(!label.competing.is_empty());
+            if by_response.insert(r, label).is_some() {
+                return Err(crate::invalid("two binding labels for one response"));
+            }
+        }
+        let record = json!({
+            "directory": directory.display().to_string(),
+            "source": source,
+            "source_range": [range.start, range.end],
+            "tokens_payload_sha256": hex,
+            "labelled_responses": by_response.len(),
+            "labelled_with_competing": competing_labels,
+            "query_rows": rows,
+            "sidecar_counts": summary["counts"].clone(),
+        });
+        Ok(Self {
+            by_response,
+            record,
+        })
+    }
+
+    /// The supervision target of a FullPrefix batch at `layer` (window time
+    /// `time`), or `None` when no row of the batch is labelled. A window's
+    /// position is the store position minus its document start.
+    pub fn target(
+        &self,
+        batch: &EpisodeBatch,
+        time: usize,
+        layer: usize,
+    ) -> Result<Option<ReadSupervisionTarget>> {
+        if batch.policy != PrefixPolicy::FullPrefix {
+            return Err(crate::invalid(
+                "read-binding supervision maps FullPrefix windows only",
+            ));
+        }
+        let mut groups = Vec::new();
+        let mut rows = Vec::new();
+        for (b, row) in batch.rows.iter().enumerate() {
+            let Some(label) = self.by_response.get(&row.response_start) else {
+                continue;
+            };
+            let local = |p: &usize| p - row.document_start;
+            if label.bound.iter().any(|&p| p < row.document_start)
+                || label.competing.iter().any(|&p| p < row.document_start)
+            {
+                return Err(crate::invalid("a binding label points before its document"));
+            }
+            let queries: Vec<usize> = label
+                .queries
+                .iter()
+                .map(local)
+                .filter(|&q| q < row.counts.real_input_positions && q < time)
+                .collect();
+            if queries.is_empty() {
+                continue;
+            }
+            let group = groups.len();
+            groups.push(ReadSupervisionGroup {
+                batch: b,
+                bound: label.bound.iter().map(local).collect(),
+                competing: label.competing.iter().map(local).collect(),
+            });
+            rows.extend(
+                queries
+                    .into_iter()
+                    .map(|query| ReadSupervisionRow { group, query }),
+            );
+        }
+        Ok((!rows.is_empty()).then_some(ReadSupervisionTarget {
+            layer,
+            groups,
+            rows,
+        }))
     }
 }
 

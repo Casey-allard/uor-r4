@@ -556,9 +556,77 @@ pub struct GateSupervisedLoss {
     pub pointer_nll: Tensor,
 }
 
+/// One bound value's source sets in one batch item of a read-binding
+/// supervision label ([`ReadSupervisionTarget`]). `bound` holds the window
+/// positions of the value the answer must name; `competing` the positions of
+/// the other stated values that answer must not name (may be empty). Both are
+/// sorted, unique and disjoint.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReadSupervisionGroup {
+    pub batch: usize,
+    pub bound: Vec<usize>,
+    pub competing: Vec<usize>,
+}
+
+/// One supervised query: the input position `query` of a batch item whose
+/// next token is a token of the group's bound value. Every source of the
+/// group is strictly earlier than `query`.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReadSupervisionRow {
+    pub group: usize,
+    pub query: usize,
+}
+
+/// Read-binding supervision labels for one geometric read layer (Step 7d,
+/// #820): many queries per batch item, every head observed. Like
+/// [`ReadBindingTarget`] the source sets are auxiliary value channels sharing
+/// the read's exact scores, admission, age and NoRead normalization and are
+/// removed before `read.out`; the labels never alter a hidden state or logit.
+/// Teacher-only; never a model or checkpoint field.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReadSupervisionTarget {
+    pub layer: usize,
+    pub groups: Vec<ReadSupervisionGroup>,
+    pub rows: Vec<ReadSupervisionRow>,
+}
+
+/// The floor inside `-log(mass + floor)` of read-binding supervision: a mass
+/// that underflows to 0 costs `-log(1e-6)` instead of an infinite loss.
+pub const READ_SUPERVISION_FLOOR: f64 = 1e-6;
+
+/// [`StackModel::read_supervised_loss`]'s parts, one forward graph:
+/// `total = language + weight * binding`.
+pub struct ReadSupervisedLoss {
+    /// The objective the update descends.
+    pub total: Tensor,
+    /// The response NLL exactly as [`StackModel::weighted_loss`] gives it.
+    pub language: Tensor,
+    /// Mean over the rows of `-log(m + READ_SUPERVISION_FLOOR)`, `m` the
+    /// selected head's mass on the bound value.
+    pub binding: Tensor,
+    /// Per row: the selected (binding) head's mass on the bound value.
+    pub bound: Vec<f32>,
+    /// Per row: the selected head's mass on the competing values.
+    pub competing: Vec<f32>,
+    /// Per row: the selected head (most mass on bound + competing, lowest
+    /// index on a tie; chosen without gradient).
+    pub heads: Vec<usize>,
+}
+
+/// The read-binding supervision capture: the label and, per row and head,
+/// the masses on the bound and on the competing sets.
+struct SupervisionCapture<'a> {
+    target: &'a ReadSupervisionTarget,
+    /// `(bound [rows, heads], competing [rows, heads])`.
+    masses: Option<(Tensor, Tensor)>,
+}
+
 struct BindingCapture<'a> {
     /// The exact-source label of one layer/head, if any.
     target: Option<&'a ReadBindingTarget>,
+    /// Read-binding supervision labels of one layer, if any. Exclusive with
+    /// `target`, `probe` and `weights`.
+    supervision: Option<SupervisionCapture<'a>>,
     masses: Option<Tensor>,
     /// The diagnostic span probe ([`StackModel::read_span_probe`]), if any.
     probe: Option<SpanProbeCapture<'a>>,
@@ -628,6 +696,23 @@ struct SpanProbeCapture<'a> {
     query: usize,
     /// `(layer, [heads, spans] masses)` in layer order.
     layers: Vec<(usize, Tensor)>,
+}
+
+/// Each supervision group's channel slot within its batch item (groups of one
+/// item take slots 0, 1, ... in label order) and the largest slot count.
+fn supervision_slots(target: &ReadSupervisionTarget) -> (Vec<usize>, usize) {
+    let mut used: BTreeMap<usize, usize> = BTreeMap::new();
+    let slots: Vec<usize> = target
+        .groups
+        .iter()
+        .map(|group| {
+            let next = used.entry(group.batch).or_insert(0);
+            *next += 1;
+            *next - 1
+        })
+        .collect();
+    let width = used.values().copied().max().unwrap_or(0);
+    (slots, width)
 }
 
 /// Refuse a flock the reads cannot evaluate. The selection itself is the shared
@@ -2267,6 +2352,42 @@ impl StackModel {
                 Tensor::cat(&[&value, &mask], 3)?
             }
         };
+        // Read-binding supervision: two channels per group slot of a batch
+        // item (bound, competing), the same sets in every head. Exclusive with
+        // the other auxiliary blocks, so they start at the ordinary width.
+        let value = match binding
+            .as_ref()
+            .and_then(|binding| binding.supervision.as_ref())
+            .filter(|supervision| supervision.target.layer == layer)
+        {
+            None => value,
+            Some(supervision) => {
+                if binding.as_ref().is_some_and(|binding| {
+                    binding.target.is_some() || binding.probe.is_some() || binding.weights.is_some()
+                }) {
+                    return Err(invalid(
+                        "read-binding supervision is exclusive with the other read labels and probes",
+                    ));
+                }
+                let (slots, width) = supervision_slots(supervision.target);
+                let channels = 2 * width;
+                let mut mask = vec![0.0f32; batch * heads * time * channels];
+                for (group, &slot) in supervision.target.groups.iter().zip(&slots) {
+                    for (offset, set) in [(0, &group.bound), (1, &group.competing)] {
+                        for &source in set {
+                            for h in 0..heads {
+                                mask[((group.batch * heads + h) * time + source) * channels
+                                    + 2 * slot
+                                    + offset] = 1.0;
+                            }
+                        }
+                    }
+                }
+                let mask = Tensor::from_vec(mask, (batch, heads, time, channels), &self.device)?
+                    .to_dtype(value.dtype())?;
+                Tensor::cat(&[&value, &mask], 3)?
+            }
+        };
         // The span probe's channels: one per source set, the same set in every
         // head. Like the label mask they never enter the scores.
         let value = match binding.as_ref().and_then(|binding| binding.probe.as_ref()) {
@@ -2294,12 +2415,16 @@ impl StackModel {
         // span probe they never enter the scores and are removed before
         // `read.out`. Exclusive with the other two blocks (the extraction below
         // relies on that), which is checked here rather than silently mixed.
-        let value = match binding.as_ref().and_then(|binding| binding.weights.as_ref()) {
+        let value = match binding
+            .as_ref()
+            .and_then(|binding| binding.weights.as_ref())
+        {
             None => value,
             Some(dump) => {
-                if binding.as_ref().is_some_and(|binding| {
-                    binding.target.is_some() || binding.probe.is_some()
-                }) {
+                if binding
+                    .as_ref()
+                    .is_some_and(|binding| binding.target.is_some() || binding.probe.is_some())
+                {
                     return Err(invalid(
                         "the read weight dump is exclusive with the binding label and span probe",
                     ));
@@ -2348,7 +2473,10 @@ impl StackModel {
                 .to_dtype(DType::F32)?;
             probe.layers.push((layer, masses));
         }
-        if let Some(dump) = binding.as_mut().and_then(|binding| binding.weights.as_mut()) {
+        if let Some(dump) = binding
+            .as_mut()
+            .and_then(|binding| binding.weights.as_mut())
+        {
             // The identity block is the only auxiliary value block (checked in
             // `read_binding_values`), so it starts at the ordinary width.
             let weights = read.narrow(3, value_width, time)?;
@@ -2364,6 +2492,38 @@ impl StackModel {
             }
             let rows = Tensor::stack(&kept, 0)?;
             dump.layers.push((layer, rows));
+        }
+        if let Some(supervision) = binding
+            .as_mut()
+            .and_then(|binding| binding.supervision.as_mut())
+            .filter(|supervision| supervision.target.layer == layer)
+        {
+            let (slots, slot_width) = supervision_slots(supervision.target);
+            let channels = 2 * slot_width;
+            let total = value_width + channels;
+            let rows = &supervision.target.rows;
+            let mut bound = Vec::with_capacity(rows.len() * heads);
+            let mut competing = Vec::with_capacity(rows.len() * heads);
+            for row in rows {
+                let group = &supervision.target.groups[row.group];
+                for h in 0..heads {
+                    let base = ((group.batch * heads + h) * time + row.query) * total
+                        + value_width
+                        + 2 * slots[row.group];
+                    bound.push(base as u32);
+                    competing.push((base + 1) as u32);
+                }
+            }
+            let flat = read.flatten_all()?;
+            let gather = |indices: Vec<u32>| -> Result<Tensor> {
+                let n = indices.len();
+                let indices = Tensor::from_vec(indices, n, &self.device)?;
+                Ok(flat
+                    .index_select(&indices, 0)?
+                    .to_dtype(DType::F32)?
+                    .reshape((rows.len(), heads))?)
+            };
+            supervision.masses = Some((gather(bound)?, gather(competing)?));
         }
         let read = if let Some(target) = target {
             let indices: Vec<u32> = target
@@ -3031,6 +3191,7 @@ impl StackModel {
         }
         let tokens = self.embed_with(&p, ids, batch, time)?;
         let mut binding = target.map(|target| BindingCapture {
+            supervision: None,
             target: Some(target),
             masses: None,
             probe: None,
@@ -4994,6 +5155,7 @@ impl StackModel {
         }
         let tokens = self.embed_with(&p, ids, batch, time)?;
         let mut binding = target.map(|target| BindingCapture {
+            supervision: None,
             target: Some(target),
             masses: None,
             probe: None,
@@ -6646,6 +6808,7 @@ impl StackModel {
         self.validate_binding(batch, time, target)?;
         let x = self.embed_with(p, ids, batch, time)?;
         let mut binding = Some(BindingCapture {
+            supervision: None,
             target: Some(target),
             masses: None,
             probe: None,
@@ -6737,11 +6900,14 @@ impl StackModel {
             return Err(invalid("read weight rows needs at least one row"));
         }
         if time == 0 || time > self.config.context {
-            return Err(invalid("read weight rows needs one window within the context"));
+            return Err(invalid(
+                "read weight rows needs one window within the context",
+            ));
         }
         let p = self.params()?;
         let x = self.embed_with(&p, ids, batch, time)?;
         let mut binding = Some(BindingCapture {
+            supervision: None,
             target: None,
             masses: None,
             probe: None,
@@ -6817,6 +6983,7 @@ impl StackModel {
             probe: None,
             weights: None,
             qk: Some(ReadQkCapture { layers: Vec::new() }),
+            supervision: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -6875,6 +7042,7 @@ impl StackModel {
         let p = self.params()?;
         let x = self.embed_with(&p, ids, 1, time)?;
         let mut binding = Some(BindingCapture {
+            supervision: None,
             target: None,
             masses: None,
             probe: Some(SpanProbeCapture {
@@ -7189,6 +7357,203 @@ impl StackModel {
         let parts =
             self.pointer_loss_from_hidden(&p, &hidden, ids, targets, Some(weights), time, true)?;
         gate_supervised_parts(&parts, weight)
+    }
+
+    /// [`Self::weighted_loss`] plus read-binding supervision of strength
+    /// `weight > 0` (Step 7d, #820): at each labelled query of `target`'s read
+    /// layer, the binding head is the head with the most attention mass on the
+    /// row's bound and competing values together (chosen without gradient,
+    /// lowest index on a tie; the probe's binding-head rule), and the row
+    /// costs `-log(m + READ_SUPERVISION_FLOOR)`, `m` that head's mass on the
+    /// bound value's positions. `binding` is the mean over rows and `total =
+    /// language + weight * binding`. Masses are the read's own softmax
+    /// weights (age, admission and NoRead included) through auxiliary value
+    /// channels removed before `read.out`, so `language` equals
+    /// [`Self::weighted_loss`] and no hidden state changes. Needs the plain
+    /// fused read with full admission (no flock, geometric address or span)
+    /// and f32 precision.
+    pub fn read_supervised_loss(
+        &self,
+        ids: &[u32],
+        targets: &[u32],
+        weights: &[f32],
+        batch: usize,
+        time: usize,
+        target: &ReadSupervisionTarget,
+        weight: f64,
+    ) -> Result<ReadSupervisedLoss> {
+        if !(weight.is_finite() && weight > 0.0) {
+            return Err(invalid(
+                "read-binding supervision needs a finite positive weight",
+            ));
+        }
+        if self.precision.is_bf16() {
+            return Err(invalid(
+                "read-binding supervision is f32 only; use precision=f32",
+            ));
+        }
+        if targets.len() != ids.len() || weights.len() != ids.len() {
+            return Err(invalid("one target and one weight per input id"));
+        }
+        if targets
+            .iter()
+            .any(|&id| id as usize >= self.config.vocab_size)
+        {
+            return Err(invalid("target id outside the vocabulary"));
+        }
+        if weights.iter().any(|w| !w.is_finite() || *w < 0.0)
+            || weights.iter().map(|&w| f64::from(w)).sum::<f64>() <= 0.0
+        {
+            return Err(invalid(
+                "loss weights must be finite, nonnegative and not all zero",
+            ));
+        }
+        self.validate_supervision(batch, time, target)?;
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let mut binding = Some(BindingCapture {
+            supervision: Some(SupervisionCapture {
+                target,
+                masses: None,
+            }),
+            qk: None,
+            target: None,
+            masses: None,
+            probe: None,
+            weights: None,
+        });
+        let x = self.layer_range_bound(
+            &p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut binding,
+            LatchGates::Soft,
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        let (bound, competing) = binding
+            .and_then(|binding| binding.supervision)
+            .and_then(|supervision| supervision.masses)
+            .ok_or_else(|| invalid("the supervised read layer was not evaluated"))?;
+        let language = if self.config.pointer.is_some() {
+            self.pointer_loss_from_hidden(&p, &hidden, ids, targets, Some(weights), time, false)?
+        } else {
+            self.linear(&hidden, p.head()?)?.apply_op1(CrossEntropy {
+                targets: targets.to_vec(),
+                weights: Some(weights.to_vec()),
+            })?
+        };
+        let heads = self.config.heads;
+        let bound_rows = bound.detach().to_vec2::<f32>()?;
+        let competing_rows = competing.detach().to_vec2::<f32>()?;
+        let mut chosen = Vec::with_capacity(bound_rows.len());
+        for (b, c) in bound_rows.iter().zip(&competing_rows) {
+            let mut best = 0;
+            for h in 1..heads {
+                if b[h] + c[h] > b[best] + c[best] {
+                    best = h;
+                }
+            }
+            chosen.push(best);
+        }
+        let indices: Vec<u32> = chosen
+            .iter()
+            .enumerate()
+            .map(|(r, &h)| (r * heads + h) as u32)
+            .collect();
+        let n = indices.len();
+        let indices = Tensor::from_vec(indices, n, &self.device)?;
+        let selected = bound.flatten_all()?.index_select(&indices, 0)?;
+        let binding = selected
+            .affine(1.0, READ_SUPERVISION_FLOOR)?
+            .log()?
+            .mean_all()?
+            .neg()?;
+        let total = language.add(&binding.affine(weight, 0.0)?)?;
+        Ok(ReadSupervisedLoss {
+            total,
+            language,
+            binding,
+            bound: chosen
+                .iter()
+                .zip(&bound_rows)
+                .map(|(&h, row)| row[h])
+                .collect(),
+            competing: chosen
+                .iter()
+                .zip(&competing_rows)
+                .map(|(&h, row)| row[h])
+                .collect(),
+            heads: chosen,
+        })
+    }
+
+    /// Check a read-binding supervision label against the model and window.
+    fn validate_supervision(
+        &self,
+        batch: usize,
+        time: usize,
+        target: &ReadSupervisionTarget,
+    ) -> Result<()> {
+        if batch == 0 || time == 0 || time > self.config.context {
+            return Err(invalid(
+                "read-binding supervision needs a nonempty window within the context",
+            ));
+        }
+        if self.config.arch != StackArch::Geometric
+            || target.layer >= self.config.layers()
+            || self.config.layer_kind(target.layer) != 'a'
+        {
+            return Err(invalid(
+                "read-binding supervision needs a declared geometric read layer",
+            ));
+        }
+        if self.config.select.is_some()
+            || self.geometric_address.is_some()
+            || self.geometric_span.is_some()
+        {
+            return Err(invalid(
+                "read-binding supervision needs the plain fused read with full admission",
+            ));
+        }
+        if target.rows.is_empty() {
+            return Err(invalid("read-binding supervision needs at least one row"));
+        }
+        for group in &target.groups {
+            let sorted = |set: &[usize]| set.windows(2).all(|w| w[0] < w[1]);
+            if group.batch >= batch
+                || group.bound.is_empty()
+                || !sorted(&group.bound)
+                || !sorted(&group.competing)
+                || group
+                    .competing
+                    .iter()
+                    .any(|s| group.bound.binary_search(s).is_ok())
+            {
+                return Err(invalid(
+                    "a read-binding group needs a batch item, a nonempty bound set and sorted disjoint sets",
+                ));
+            }
+        }
+        for row in &target.rows {
+            let group = target
+                .groups
+                .get(row.group)
+                .ok_or_else(|| invalid("a read-binding row names no group"))?;
+            let last = group
+                .bound
+                .iter()
+                .chain(&group.competing)
+                .max()
+                .copied()
+                .unwrap_or(0);
+            if row.query >= time || last >= row.query {
+                return Err(invalid(
+                    "a read-binding row's query must be in the window and after every source",
+                ));
+            }
+        }
+        Ok(())
     }
 
     /// Per-target negative log-likelihoods (nats), without a backward graph.
@@ -19041,6 +19406,221 @@ mod tests {
             }
             let after = objective()?.to_scalar::<f32>()?;
             assert!(after < before, "{read:?}: binding step {before} -> {after}");
+        }
+        Ok(())
+    }
+
+    /// Step 7d labels: two groups in batch item 0 (one with no competing
+    /// value), one in item 1, several queries each.
+    fn supervision_target(layer: usize) -> ReadSupervisionTarget {
+        ReadSupervisionTarget {
+            layer,
+            groups: vec![
+                ReadSupervisionGroup {
+                    batch: 0,
+                    bound: vec![1, 2],
+                    competing: vec![4],
+                },
+                ReadSupervisionGroup {
+                    batch: 0,
+                    bound: vec![3],
+                    competing: vec![],
+                },
+                ReadSupervisionGroup {
+                    batch: 1,
+                    bound: vec![0, 5],
+                    competing: vec![2, 3],
+                },
+            ],
+            rows: vec![
+                ReadSupervisionRow { group: 0, query: 5 },
+                ReadSupervisionRow { group: 0, query: 6 },
+                ReadSupervisionRow { group: 1, query: 7 },
+                ReadSupervisionRow { group: 2, query: 6 },
+                ReadSupervisionRow { group: 2, query: 7 },
+            ],
+        }
+    }
+
+    #[test]
+    fn read_supervision_leaves_language_unchanged_and_reads_the_probe_masses() -> Result<()> {
+        let ids: Vec<u32> = (0..16).map(|i| (i * 7 + 3) % 37).collect();
+        let targets: Vec<u32> = ids.iter().map(|&id| (id + 1) % 37).collect();
+        let weights: Vec<f32> = (0..16)
+            .map(|i| if i % 3 == 0 { 0.0 } else { 1.0 })
+            .collect();
+        let labels = supervision_target(2);
+        for read in [ReadScore::Dot, ReadScore::Lorentz, ReadScore::L2] {
+            for pointer in [false, true] {
+                let mut config = tiny(StackArch::Geometric, "rra", read, true);
+                if pointer {
+                    config.pointer = Some(PointerConfig::new(4));
+                }
+                let model = StackModel::new(config, &cpu())?;
+                let ordinary = model.weighted_loss(&ids, &targets, &weights, 2, 8)?;
+                let joint =
+                    model.read_supervised_loss(&ids, &targets, &weights, 2, 8, &labels, 0.5)?;
+                let label = format!("{read:?} pointer={pointer}");
+                assert_eq!(
+                    ordinary.to_scalar::<f32>()?.to_bits(),
+                    joint.language.to_scalar::<f32>()?.to_bits(),
+                    "{label}"
+                );
+                let expected_total =
+                    joint.language.to_scalar::<f32>()? + 0.5 * joint.binding.to_scalar::<f32>()?;
+                assert!((joint.total.to_scalar::<f32>()? - expected_total).abs() < 1e-5);
+                let expected = ordinary.backward()?;
+                let got = joint.language.backward()?;
+                for (name, var) in model.variables() {
+                    match (expected.get(var), got.get(var)) {
+                        (Some(a), Some(b)) => {
+                            assert!(max_abs_gap(a, b)? < 1e-6, "{label} {name}")
+                        }
+                        (None, None) => (),
+                        _ => {
+                            return Err(invalid(format!(
+                                "supervision changed language gradient reachability: {name}"
+                            )))
+                        }
+                    }
+                }
+                // Each row's masses are the span probe's on the row's prefix
+                // window (the stack is causal), and the selected head is the
+                // argmax of bound + competing.
+                let mut binding = 0.0f64;
+                for (r, row) in labels.rows.iter().enumerate() {
+                    let group = &labels.groups[row.group];
+                    let window = &ids[group.batch * 8..group.batch * 8 + row.query + 1];
+                    let probe = model
+                        .read_span_probe(window, &[group.bound.clone(), group.competing.clone()])?;
+                    let heads = &probe
+                        .reads
+                        .iter()
+                        .find(|m| m.layer == 2)
+                        .ok_or_else(|| invalid("no layer 2 probe"))?
+                        .heads;
+                    let mut best = 0;
+                    for h in 1..heads.len() {
+                        if heads[h][0] + heads[h][1] > heads[best][0] + heads[best][1] {
+                            best = h;
+                        }
+                    }
+                    assert_eq!(joint.heads[r], best, "{label} row {r}");
+                    assert!(
+                        (f64::from(joint.bound[r]) - heads[best][0]).abs() < 1e-5,
+                        "{label} row {r}: {} vs {}",
+                        joint.bound[r],
+                        heads[best][0]
+                    );
+                    assert!((f64::from(joint.competing[r]) - heads[best][1]).abs() < 1e-5);
+                    binding -= (heads[best][0] + READ_SUPERVISION_FLOOR).ln();
+                }
+                binding /= labels.rows.len() as f64;
+                assert!(
+                    (f64::from(joint.binding.to_scalar::<f32>()?) - binding).abs() < 1e-4,
+                    "{label}"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn read_supervision_gradient_matches_finite_differences_and_raises_the_bound_mass() -> Result<()>
+    {
+        let ids: Vec<u32> = (0..16).map(|i| (i * 5 + 1) % 37).collect();
+        let weights = vec![1.0f32; 16];
+        let labels = supervision_target(2);
+        for read in [ReadScore::Dot, ReadScore::Lorentz, ReadScore::L2] {
+            let model = StackModel::new(tiny(StackArch::Geometric, "rra", read, true), &cpu())?;
+            let objective = || -> Result<Tensor> {
+                Ok(model
+                    .read_supervised_loss(&ids, &ids, &weights, 2, 8, &labels, 1.0)?
+                    .binding)
+            };
+            let loss = objective()?;
+            let before = loss.to_scalar::<f32>()?;
+            let grads = loss.backward()?;
+            let mut names = vec![
+                "embedding.weight",
+                "layers.01.rec.in.weight",
+                "layers.02.read.query.weight",
+                "layers.02.read.key.weight",
+                "layers.02.read.age",
+                "layers.02.read.null.weight",
+            ];
+            if read.scaled() {
+                names.extend(["layers.02.read.log_beta", "layers.02.read.offset"]);
+            }
+            for name in &names {
+                let grad = grads
+                    .get(&model.variables()[*name])
+                    .ok_or_else(|| invalid(format!("missing supervision gradient {name}")))?;
+                let size = grad.abs()?.max_all()?.to_scalar::<f32>()?;
+                assert!(size.is_finite() && size > 0.0, "{read:?} {name}: {size}");
+            }
+            // The teacher mask never trains the value or output projection.
+            for name in ["layers.02.read.value.weight", "layers.02.read.out.weight"] {
+                if let Some(grad) = grads.get(&model.variables()[name]) {
+                    assert_eq!(grad.abs()?.max_all()?.to_scalar::<f32>()?, 0.0, "{name}");
+                }
+            }
+            let vars: Vec<Var> = names
+                .iter()
+                .map(|name| model.variables()[*name].clone())
+                .collect();
+            check_gradient(&vars, objective, 2e-2)?;
+            for var in model.variables().values() {
+                if let Some(grad) = grads.get(var) {
+                    var.set(&var.as_tensor().sub(&grad.affine(0.05, 0.0)?)?)?;
+                }
+            }
+            let after = objective()?.to_scalar::<f32>()?;
+            assert!(
+                after < before,
+                "{read:?}: supervision step {before} -> {after}"
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn read_supervision_refuses_bad_labels_and_weights() -> Result<()> {
+        let ids: Vec<u32> = (0..16).map(|i| (i * 5 + 1) % 37).collect();
+        let weights = vec![1.0f32; 16];
+        let model = StackModel::new(
+            tiny(StackArch::Geometric, "rra", ReadScore::Dot, true),
+            &cpu(),
+        )?;
+        let good = supervision_target(2);
+        let run = |target: &ReadSupervisionTarget, weight: f64| {
+            model.read_supervised_loss(&ids, &ids, &weights, 2, 8, target, weight)
+        };
+        assert!(run(&good, 0.3).is_ok());
+        for weight in [0.0, -1.0, f64::NAN] {
+            assert!(run(&good, weight).is_err(), "weight {weight}");
+        }
+        let mut wrong_layer = good.clone();
+        wrong_layer.layer = 1;
+        let mut noncausal = good.clone();
+        noncausal.rows[0].query = 4;
+        let mut empty = good.clone();
+        empty.groups[1].bound.clear();
+        let mut overlap = good.clone();
+        overlap.groups[0].competing = vec![2];
+        let mut outside = good.clone();
+        outside.groups[2].batch = 2;
+        let mut no_rows = good.clone();
+        no_rows.rows.clear();
+        for (name, target) in [
+            ("layer", wrong_layer),
+            ("noncausal", noncausal),
+            ("empty", empty),
+            ("overlap", overlap),
+            ("outside", outside),
+            ("no rows", no_rows),
+        ] {
+            assert!(run(&target, 0.3).is_err(), "{name}");
         }
         Ok(())
     }
