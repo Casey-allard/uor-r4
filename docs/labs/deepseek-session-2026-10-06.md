@@ -240,3 +240,36 @@ overlap a live claim — Codex held `.../examples/geometric-generate-update.rs`,
 - **The runner test suite has pre-existing flakes**: 3 of 6 unmodified-baseline runs failed identically in
   `unknown_monitor_preserves_paths_child_and_charge_until_stopped_reconciliation` and
   `cancel_finalizes_a_running_job`.
+- **Hold the training schedule fixed when comparing two mechanisms.** Six interpretive claims made in this
+  session moved the same direction once the schedule was controlled — every one of them had attributed to a
+  mechanism something the annealing schedule was doing:
+
+  | claim | as filed | schedule-controlled |
+  |---|---|---|
+  | attribution of the effect to the geometric read | "definitive" | retracted (n=1) |
+  | the working rate band | "narrow window" | an octave (2e-4 → 3e-4) |
+  | lr=1e-4 behaviour | "below threshold at any schedule" | constant 1e-4 solves at 0.9605 |
+  | the geometric read's distinctive property | "reliability" (var ratio ~2.4e5) | mostly the anneal |
+  | the recurrence layers | "carry nothing" | retracted |
+  | the hybrid's bimodality | a property of attention reads | mostly the anneal (var 0.2530 → 2.51e-3) |
+
+  The final schedule-controlled head-to-head — same `pattern=rrarra`, same lr=3e-4, same `min_lr=1.0`
+  constant schedule, three sealed seeds each — puts the geometric read at **0.9862** against the
+  attention-read hybrid's **0.9149**: a **+0.071** capability edge and **22.6×** greater stability, both
+  roughly an order of magnitude smaller than the annealed comparison implied. **Six for six in one
+  direction is a bias, not six coincidences.** The remedy is procedural rather than attitudinal: vary only
+  the mechanism, and fix the schedule — a rule that would have caught all six at the point of the claim
+  instead of five rounds later.
+- **An instrument's absence from `main` does not mean the experiment cannot run.** The D20 §2
+  parameter-matched control is not on `main` (`mlp=matched` and `parameter_match` return zero hits), and a
+  conclusion was drawn from that — "the 2e-4 control test is still unrun" — when a prebuilt binary at
+  `~/.cache/uor-r4-d20control/release/examples/mqar-bench` had been able to run it the whole time. Two
+  rounds were lost to reasoning about runnability instead of checking it. The same failure produced a
+  symbol-level "audit" that reported a present instrument (`read_firing`; on `main` it is
+  `best_head_mean_weight_on_key`/`_on_value`) as missing, and an ancestry check that labelled all 23
+  `deepseek/*` branches unmerged because squash-merging rewrites the commit so a merged tip is never an
+  ancestor. **They fail in both directions.** Check the actual path; it costs one command.
+- **A cross-rate comparison is a silent error with unpredictable size.** The D20 §2 verdict paired the
+  geometric arm at lr=3e-4 with the control at lr=1e-3; running the control at 3e-4 moved the margin from
+  +0.7458 to +0.7455 — a 0.04% error. The same mistake on the lr=1e-4 claim moved a gap from −0.078 to
+  −0.056 — **40%**. Nothing distinguished them in advance. Measure the comparator at the rate in question.
