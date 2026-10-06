@@ -33,6 +33,13 @@ pub enum RunnerError {
     Io(std::io::Error),
     Json(serde_json::Error),
     Invalid(String),
+    /// A declared volume currently holds fewer free bytes than its policy
+    /// reserve requires. This carries its own variant instead of a formatted
+    /// string so admission classifies the failure *causally*: free space is a
+    /// pure function of live machine state, so a hold recorded for it
+    /// re-evaluates (`host::HoldKind::Recheckable`) rather than latching
+    /// admission off permanently. No reason string is ever inspected.
+    VolumeReserve(crate::host::VolumeShortfall),
 }
 
 impl fmt::Display for RunnerError {
@@ -41,6 +48,11 @@ impl fmt::Display for RunnerError {
             Self::Io(error) => write!(f, "lab-runner I/O: {error}"),
             Self::Json(error) => write!(f, "lab-runner JSON: {error}"),
             Self::Invalid(message) => write!(f, "invalid lab-runner input: {message}"),
+            // Byte-identical to the `Invalid` form this replaces, so operator
+            // logs and existing receipts keep their exact wording.
+            Self::VolumeReserve(shortfall) => {
+                write!(f, "invalid lab-runner input: {shortfall}")
+            }
         }
     }
 }

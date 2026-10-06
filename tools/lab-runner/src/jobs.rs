@@ -726,7 +726,14 @@ pub fn finalize(root: &Path, spec: &JobSpec, fin: &Finalization, ledger_dir: &Pa
     if stopped {
         durable_rename(&dir, &done_dir(root).join(&spec.id))?;
     } else {
-        crate::host::hold(root, "job receipt awaits positive stopped reconciliation")?;
+        // An UNKNOWN receipt is immutable while the payload may still hold its
+        // absolute paths. Terminal: only positive stopped reconciliation clears
+        // it, and no re-observation of the host substitutes for that proof.
+        crate::host::hold(
+            root,
+            crate::host::HoldKind::Terminal,
+            "job receipt awaits positive stopped reconciliation",
+        )?;
     }
     Ok(())
 }

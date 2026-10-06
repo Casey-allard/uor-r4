@@ -1,8 +1,9 @@
 //! Host policy is separate from scientific acceptance. Missing observations
 //! block admission; neither a path nor a declared RSS proves capacity.
 use crate::spec::JobSpec;
-use crate::{invalid, Result};
+use crate::{invalid, Result, RunnerError};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -169,6 +170,26 @@ fn sum_storage(specs: &[JobSpec], id: &str, admission: bool) -> Result<u64> {
         })
 }
 
+/// Live volume free-space shortfall: the declared reserve cannot be honoured
+/// right now. Free bytes are a pure function of current machine state, so this
+/// is the one storage failure that re-evaluates instead of latching.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VolumeShortfall {
+    pub volume: String,
+    pub free: u64,
+    pub required: u64,
+}
+
+impl fmt::Display for VolumeShortfall {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "volume {} free bytes {} below required {}",
+            self.volume, self.free, self.required
+        )
+    }
+}
+
 pub fn check_storage(policy: &HostPolicy, specs: &[JobSpec], admission: bool) -> Result<()> {
     for spec in specs {
         if spec.storage.is_empty() {
@@ -182,6 +203,20 @@ pub fn check_storage(policy: &HostPolicy, specs: &[JobSpec], admission: bool) ->
             }
         }
     }
+    check_volume_reserve(policy, specs, admission)
+}
+
+/// The live volume free-space predicate: every declared volume must currently
+/// hold `reserve_bytes` plus `stop_margin_bytes` plus the storage reserved by
+/// `specs`.
+///
+/// `check_storage` is built from this same function, so the daemon re-evaluates
+/// exactly the check that produced a hold rather than a second implementation of
+/// it. A shortfall is returned as `RunnerError::VolumeReserve` because it is
+/// re-evaluable; the remaining failures (absent volume, mounted-identity or
+/// sentinel mismatch, arithmetic overflow) are not observable-as-recovered from
+/// machine state alone and stay unclassified so a hold for them stays terminal.
+pub fn check_volume_reserve(policy: &HostPolicy, specs: &[JobSpec], admission: bool) -> Result<()> {
     for volume in &policy.volumes {
         let free = verify_volume(volume)?;
         let required = volume
@@ -190,10 +225,11 @@ pub fn check_storage(policy: &HostPolicy, specs: &[JobSpec], admission: bool) ->
             .and_then(|v| v.checked_add(sum_storage(specs, &volume.id, admission).ok()?))
             .ok_or_else(|| invalid("storage requirement overflow"))?;
         if free < required {
-            return Err(invalid(format!(
-                "volume {} free bytes {free} below required {required}",
-                volume.id
-            )));
+            return Err(RunnerError::VolumeReserve(VolumeShortfall {
+                volume: volume.id.clone(),
+                free,
+                required,
+            }));
         }
     }
     Ok(())
@@ -429,11 +465,145 @@ pub fn validate_test_job(root: &Path, spec: &JobSpec) -> Result<()> {
     Ok(())
 }
 
-pub fn hold(root: &Path, reason: &str) -> Result<()> {
+/// Whether an admission hold re-evaluates or latches.
+///
+/// `admissions-held.json` is gated on **existence**. A hold recorded for a
+/// transient machine condition therefore latched admission off permanently:
+/// free space was measured fresh on every call, but nothing re-read the file
+/// once the volume recovered. The kind is decided where the condition is
+/// observed, never by inspecting the reason string.
+///
+/// * `Terminal` — the hold records an unreconciled outcome (lost process
+///   identity, unknown exit status, unreadable receipt, restart that needs
+///   checkpoint reconciliation). Re-observing machine state cannot resolve it,
+///   so the recheck path must never clear it; only an operator may.
+/// * `Recheckable` — the hold records a pure function of current machine state.
+///   It names the predicate that produced it, and the daemon re-runs that exact
+///   predicate and releases the hold as soon as it passes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HoldKind {
+    Terminal,
+    Recheckable(HoldCheck),
+}
+
+/// The live predicate a `Recheckable` hold names, so re-evaluation runs the same
+/// check that produced the hold.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum HoldCheck {
+    /// `check_volume_reserve` with the current policy and running set.
+    VolumeReserve,
+    /// `memory_pressure` below the critical level that refused admission.
+    MemoryPressure,
+    /// Aggregate observed RSS of the running jobs against the host ceiling.
+    ObservedRss,
+}
+
+/// Wire form of the kind. Kept separate from `HoldKind` because the predicate is
+/// a sibling JSON field rather than a nested object.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+enum RecordedHoldKind {
+    Terminal,
+    Recheckable,
+}
+
+impl Default for RecordedHoldKind {
+    fn default() -> Self {
+        Self::Terminal
+    }
+}
+
+/// The admission hold record written to `admissions-held.json`.
+pub const HOLD_FILE: &str = "admissions-held.json";
+
+/// Persisted hold. `kind`/`check` were added after the first holds were written,
+/// so both default when absent: a legacy record stays `Terminal` and keeps its
+/// exact previous latching behaviour rather than being released by a guess.
+///
+/// Deliberately *not* `deny_unknown_fields` (used for the other versioned
+/// records in this crate): a hold this build cannot fully parse must still
+/// register as a hold, and the safe reading of an unclassified record is the
+/// latching one.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HoldRecord {
+    pub schema: String,
+    pub at: String,
+    pub reason: String,
+    #[serde(default)]
+    kind: RecordedHoldKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    check: Option<HoldCheck>,
+}
+
+impl HoldRecord {
+    fn of(kind: HoldKind, reason: &str) -> Self {
+        let (kind, check) = match kind {
+            HoldKind::Terminal => (RecordedHoldKind::Terminal, None),
+            HoldKind::Recheckable(check) => (RecordedHoldKind::Recheckable, Some(check)),
+        };
+        Self {
+            schema: "uor-r4.admission-hold/1".into(),
+            at: crate::utc_now_iso(),
+            reason: reason.into(),
+            kind,
+            check,
+        }
+    }
+
+    /// The classification as recorded. A record marked recheckable that names no
+    /// predicate cannot be re-run, so it reads back as terminal.
+    pub fn kind(&self) -> HoldKind {
+        match (self.kind, self.check) {
+            (RecordedHoldKind::Recheckable, Some(check)) => HoldKind::Recheckable(check),
+            _ => HoldKind::Terminal,
+        }
+    }
+
+    pub fn reason(&self) -> &str {
+        &self.reason
+    }
+
+    /// `Ok(None)` when no hold is recorded. A record that exists but cannot be
+    /// parsed is reported as a terminal hold: the safe direction.
+    pub fn load(root: &Path) -> Result<Option<Self>> {
+        let bytes = match fs::read(root.join(HOLD_FILE)) {
+            Ok(bytes) => bytes,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+            Err(error) => return Err(error.into()),
+        };
+        Ok(Some(serde_json::from_slice(&bytes).unwrap_or_else(|_| {
+            Self::of(HoldKind::Terminal, "unreadable admission hold record")
+        })))
+    }
+}
+
+/// Record an admission hold. `kind` is decided at the call site where the
+/// condition is observed; never derive it from `reason`.
+pub fn hold(root: &Path, kind: HoldKind, reason: &str) -> Result<()> {
     crate::write_json_atomic(
-        &root.join("admissions-held.json"),
-        &serde_json::json!({"schema":"uor-r4.admission-hold/1","at":crate::utc_now_iso(),"reason":reason}),
+        &root.join(HOLD_FILE),
+        &serde_json::to_value(HoldRecord::of(kind, reason))?,
     )
+}
+
+/// The live predicate a failed admission check implies, if any. Typed and
+/// causal: the reason string is never inspected, so a terminal failure cannot
+/// be reclassified as recheckable by wording.
+pub fn recheck(error: &RunnerError) -> Option<HoldCheck> {
+    match error {
+        RunnerError::VolumeReserve(_) => Some(HoldCheck::VolumeReserve),
+        _ => None,
+    }
+}
+
+/// Classify a failed check for hold recording: a live shortfall re-evaluates,
+/// every other failure stays terminal.
+pub fn hold_kind_for(error: &RunnerError) -> HoldKind {
+    match recheck(error) {
+        Some(check) => HoldKind::Recheckable(check),
+        None => HoldKind::Terminal,
+    }
 }
 
 #[cfg(test)]
@@ -619,5 +789,123 @@ mod tests {
         };
         assert!(verify_volume(&policy).is_err());
         assert!(!path.exists());
+    }
+
+    /// A volume on a real directory with a matching sentinel, so the live
+    /// free-space predicate can actually be evaluated.
+    fn live_volume(root: &Path, reserve_bytes: u64) -> VolumePolicy {
+        let sentinel = root.join("identity");
+        fs::write(&sentinel, "uor-r4-fixture\n").unwrap();
+        VolumePolicy {
+            id: "internal".into(),
+            path: root.to_path_buf(),
+            volume_uuid: None,
+            sentinel,
+            sentinel_value: "uor-r4-fixture".into(),
+            reserve_bytes,
+            stop_margin_bytes: 0,
+        }
+    }
+
+    #[test]
+    fn volume_shortfall_keeps_its_message_and_is_the_only_recheckable_failure() {
+        let root = std::env::temp_dir().join(format!("uor-reserve-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        let policy = HostPolicy {
+            schema: "uor-r4.host-policy/1".into(),
+            admission_enabled: true,
+            max_threads: 8,
+            max_rss_gib: 11.0,
+            max_jobs: 1,
+            admission_pressure_max: 1,
+            warning_validation_specs: vec![],
+            coordination_repo: None,
+            volumes: vec![live_volume(&root, u64::MAX / 2)],
+        };
+        let error = check_volume_reserve(&policy, &[], false).unwrap_err();
+        // Operator-visible wording is a contract: it must not drift when the
+        // failure gains a type, so the exact historical message is pinned.
+        // Asserting through the carried values (rather than a second live `df`
+        // read) keeps this deterministic while other work writes to the volume.
+        let RunnerError::VolumeReserve(shortfall) = &error else {
+            panic!("expected a live volume shortfall, got {error}");
+        };
+        assert_eq!(shortfall.volume, "internal");
+        assert_eq!(shortfall.required, u64::MAX / 2);
+        assert!(
+            shortfall.free > 0,
+            "the recorded free reading must be a real observation"
+        );
+        assert_eq!(
+            error.to_string(),
+            format!(
+                "invalid lab-runner input: volume internal free bytes {} below required {}",
+                shortfall.free, shortfall.required
+            )
+        );
+        assert_eq!(recheck(&error), Some(HoldCheck::VolumeReserve));
+        assert_eq!(
+            hold_kind_for(&error),
+            HoldKind::Recheckable(HoldCheck::VolumeReserve)
+        );
+
+        // A volume that cannot be observed is *not* a shortfall: a missing
+        // sentinel must stay terminal rather than be released by re-evaluation.
+        let mut unobservable = policy.clone();
+        unobservable.volumes = vec![live_volume(&root, 0)];
+        fs::remove_file(root.join("identity")).unwrap();
+        let error = check_volume_reserve(&unobservable, &[], false).unwrap_err();
+        assert_eq!(recheck(&error), None);
+        assert_eq!(hold_kind_for(&error), HoldKind::Terminal);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn hold_records_classify_by_call_site_and_default_to_terminal() {
+        let root = std::env::temp_dir().join(format!("uor-hold-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        hold(
+            &root,
+            HoldKind::Recheckable(HoldCheck::VolumeReserve),
+            "volume internal free bytes 1 below required 2",
+        )
+        .unwrap();
+        let written: serde_json::Value =
+            serde_json::from_slice(&fs::read(root.join(HOLD_FILE)).unwrap()).unwrap();
+        assert_eq!(written["schema"], "uor-r4.admission-hold/1");
+        assert_eq!(written["kind"], "recheckable");
+        assert_eq!(written["check"], "volume-reserve");
+        let record = HoldRecord::load(&root).unwrap().unwrap();
+        assert_eq!(
+            record.kind(),
+            HoldKind::Recheckable(HoldCheck::VolumeReserve)
+        );
+
+        hold(&root, HoldKind::Terminal, "running process lost identity").unwrap();
+        let written: serde_json::Value =
+            serde_json::from_slice(&fs::read(root.join(HOLD_FILE)).unwrap()).unwrap();
+        assert_eq!(written["kind"], "terminal");
+        assert!(written.get("check").is_none());
+
+        // The hold that latched this host off predates the `kind` field. It must
+        // read back as terminal (latching) rather than be released by a guess.
+        let legacy = br#"{"at":"2026-10-06T03:59:13Z","reason":"invalid lab-runner input: volume internal free bytes 27382095872 below required 43083890688","schema":"uor-r4.admission-hold/1"}"#;
+        fs::write(root.join(HOLD_FILE), legacy).unwrap();
+        let record = HoldRecord::load(&root).unwrap().unwrap();
+        assert_eq!(record.kind(), HoldKind::Terminal);
+        assert!(record.reason().contains("27382095872"));
+
+        // A record this build cannot parse must still register as a hold.
+        fs::write(root.join(HOLD_FILE), b"{ not json").unwrap();
+        let record = HoldRecord::load(&root).unwrap().unwrap();
+        assert_eq!(record.kind(), HoldKind::Terminal);
+        assert!(record.reason().contains("unreadable"));
+
+        assert!(
+            HoldRecord::load(&std::env::temp_dir().join("uor-no-such-hold-root"))
+                .unwrap()
+                .is_none()
+        );
+        fs::remove_dir_all(root).unwrap();
     }
 }

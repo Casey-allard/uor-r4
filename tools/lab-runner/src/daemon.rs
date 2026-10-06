@@ -1,7 +1,7 @@
 //! Singleton host daemon. Launch is gated until durable process identity
 //! exists; restart never treats a bare PID or absent exit code as success.
 use crate::admission::{admit, Load};
-use crate::host::{self, HostPolicy};
+use crate::host::{self, HoldCheck, HoldKind, HostPolicy};
 use crate::jobs::{self, Attempt, Finalization};
 use crate::process::{self, Identity};
 use crate::spec::{JobSpec, KillKind};
@@ -326,8 +326,11 @@ fn stop_job(
         jobs::record_stop_request(&job.dir(root), job.spec.stop_grace_ms, &reason)?;
         process::terminate(&job.identity, Duration::from_millis(job.spec.stop_grace_ms))?;
     } else if !process::owned_members(&job.identity).is_ok_and(|members| members.is_empty()) {
+        // An owned member survived, or its identity can no longer be observed.
+        // No signal was sent and the outcome is unreconciled: terminal.
         host::hold(
             root,
+            HoldKind::Terminal,
             "process identity mismatch during stop; manual reconciliation required",
         )?;
         return finalize_job(
@@ -364,7 +367,10 @@ fn recovery_required(root: &Path, dir: &Path, reason: &str) -> Result<()> {
         &dir.join("recovery-required.json"),
         &json!({"schema":"uor-r4.job-recovery/1","outcome":"unknown","reason":reason,"at":crate::utc_now_iso()}),
     )?;
-    host::hold(root, reason)
+    // Every caller records durable on-disk evidence that no re-observation can
+    // resolve: an unreadable spec, a missing launch receipt, an absent durable
+    // identity, or an unresolved receipt. Terminal.
+    host::hold(root, HoldKind::Terminal, reason)
 }
 fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJob>> {
     let mut running = vec![];
@@ -433,8 +439,11 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
                 jobs::record_stop_request(&job.dir(root), job.spec.stop_grace_ms, "recovery stop")?;
                 process::terminate(&job.identity, Duration::from_millis(job.spec.stop_grace_ms))?;
             }
+            // The recorded identity no longer matches a live process, so no exit
+            // status is recoverable. Terminal: unknown outcome.
             host::hold(
                 root,
+                HoldKind::Terminal,
                 "recovered job lost process identity; review unknown outcome",
             )?;
             finalize_job(
@@ -446,7 +455,10 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
                 "process absent or identity changed; no exit status available".into(),
             )?;
         } else if production {
-            host::hold(root, "supervisor restart requires checkpoint/process reconciliation; no wall-clock adoption")?;
+            // Restart reconciliation: a live process survived a supervisor
+            // restart without a checkpoint. No re-observation resolves the
+            // missing reconciliation evidence. Terminal.
+            host::hold(root, HoldKind::Terminal, "supervisor restart requires checkpoint/process reconciliation; no wall-clock adoption")?;
             stop_job(
                 root,
                 ledger,
@@ -456,8 +468,10 @@ fn recover(root: &Path, ledger: &Path, production: bool) -> Result<Vec<RunningJo
                     .into(),
             )?;
         } else if host::validate_test_job(root, &job.spec).is_err() {
+            // A policy refusal, not a machine measurement. Terminal.
             host::hold(
                 root,
+                HoldKind::Terminal,
                 "non-fixture running job cannot be adopted in test mode",
             )?;
             stop_job(
@@ -595,8 +609,15 @@ fn advance_preflight(config: &DaemonConfig, running: &mut [RunningJob]) -> Resul
         if dir.join("exit.json").exists() || dir.join("recovery-required.json").exists() {
             return Err(invalid("verification has an unresolved execution receipt"));
         }
-        if config.stop_file.as_ref().is_some_and(|path| path.exists())
-            || config.root.join("admissions-held.json").exists()
+        if config.stop_file.as_ref().is_some_and(|path| path.exists()) {
+            return Err(invalid("admission held during input verification"));
+        }
+        // A terminal hold latches verification exactly as before. A recheckable
+        // hold is released by the admission pass as soon as its live condition
+        // passes, and the late-admission re-check below still re-validates every
+        // host condition before the payload gate opens.
+        if host::HoldRecord::load(&config.root)?
+            .is_some_and(|record| matches!(record.kind(), HoldKind::Terminal))
         {
             return Err(invalid("admission held during input verification"));
         }
@@ -651,8 +672,13 @@ fn advance_preflight(config: &DaemonConfig, running: &mut [RunningJob]) -> Resul
         Ok(true) => job.preflight_pending = false,
         Ok(false) => {}
         Err(error) => {
+            // The late-admission re-check surfaces a live volume shortfall here
+            // (it is the only re-evaluable failure that reaches this hold);
+            // everything else is an unresolved receipt, unobservable identity,
+            // wall-budget or integrity failure that must stay latched.
             host::hold(
                 &config.root,
+                host::hold_kind_for(&error),
                 &format!("input verification admission failed: {error}"),
             )?;
             stop_job(
@@ -691,6 +717,82 @@ fn new_log_bytes(job: &mut RunningJob, root: &Path) -> String {
     }
     fresh
 }
+/// A live host-monitor failure, classified where it is measured.
+///
+/// `host_failure` used to be a bare reason string, so every monitored condition
+/// reached `host::hold` as an unclassified latch. Carrying the kind from the
+/// predicate that produced it is what makes the recheckable ones releasable
+/// without inspecting the wording.
+struct HostFailure {
+    kind: HoldKind,
+    reason: String,
+}
+
+impl HostFailure {
+    fn terminal(reason: impl Into<String>) -> Self {
+        Self {
+            kind: HoldKind::Terminal,
+            reason: reason.into(),
+        }
+    }
+
+    fn recheckable(check: HoldCheck, reason: impl Into<String>) -> Self {
+        Self {
+            kind: HoldKind::Recheckable(check),
+            reason: reason.into(),
+        }
+    }
+
+    /// A live volume shortfall re-evaluates; every other storage failure
+    /// (absent volume, sentinel or mounted-identity mismatch, overflow) is not
+    /// observable-as-recovered and stays terminal.
+    fn from_check(error: crate::RunnerError) -> Self {
+        Self {
+            kind: host::hold_kind_for(&error),
+            reason: error.to_string(),
+        }
+    }
+
+    fn terminal_error(error: crate::RunnerError) -> Self {
+        Self::terminal(error.to_string())
+    }
+}
+
+/// Re-observe the live host conditions the monitor enforces, in the order it
+/// has always applied them.
+///
+/// Each failure is classified where it is measured: storage, memory pressure and
+/// observed RSS are pure functions of current machine state, so a hold for them
+/// must not latch admission off. The cumulative model-time ledger does not
+/// recover by waiting, so an exhausted budget stays terminal.
+fn sample_host(
+    config: &DaemonConfig,
+    policy: &HostPolicy,
+    running: &[RunningJob],
+) -> std::result::Result<(), HostFailure> {
+    let specs: Vec<_> = running.iter().map(|j| j.spec.clone()).collect();
+    host::check_storage(policy, &specs, false).map_err(HostFailure::from_check)?;
+    if host::memory_pressure().map_err(HostFailure::terminal_error)? >= 4 {
+        return Err(HostFailure::recheckable(
+            HoldCheck::MemoryPressure,
+            "critical host memory pressure",
+        ));
+    }
+    let actual: u64 = running
+        .iter()
+        .map(|j| jobs::tree_rss_kib(j.identity.pid).unwrap_or(0))
+        .sum();
+    if actual as f64 > policy.max_rss_gib * 1024.0 * 1024.0 {
+        return Err(HostFailure::recheckable(
+            HoldCheck::ObservedRss,
+            "aggregate observed RSS exceeds host ceiling",
+        ));
+    }
+    crate::ledger::check_budget(&config.ledger_dir, 0)
+        .map(|_| ())
+        .map_err(HostFailure::terminal_error)
+}
+
 fn monitor(
     root: &Path,
     ledger: &Path,
@@ -807,8 +909,11 @@ fn monitor(
             )?;
             process::terminate(&job.identity, Duration::from_millis(job.spec.stop_grace_ms))?;
         }
+        // The adopted process ended or changed identity, so success is
+        // unverifiable and no exit status is recoverable. Terminal.
         host::hold(
             root,
+            HoldKind::Terminal,
             "adopted process ended without recoverable exit status",
         )?;
         finalize_job(
@@ -839,7 +944,9 @@ fn monitor(
         return retain_tracking(root, job);
     }
     if !process::matches(&job.identity) {
-        host::hold(root, "running process lost identity")?;
+        // Identity is lost while the job should still be running: no exit
+        // status is recoverable and no signal can be attributed. Terminal.
+        host::hold(root, HoldKind::Terminal, "running process lost identity")?;
         finalize_job(
             root,
             ledger,
@@ -945,14 +1052,67 @@ fn blocked(root: &Path, reason: &str) -> Result<()> {
     }
     crate::write_json_atomic(&path, &json!({"reason":reason,"at":crate::utc_now_iso()}))
 }
+/// Re-run the predicate a recheckable hold named. `Ok(true)` only when the
+/// condition that produced the hold has demonstrably passed.
+///
+/// `VolumeReserve` and `ObservedRss` measure against a declared policy. With no
+/// policy there is no declared reserve or ceiling, so the predicate holds
+/// vacuously — and admission still refuses for the missing policy independently.
+fn hold_released(
+    policy: Option<&HostPolicy>,
+    running: &[RunningJob],
+    check: HoldCheck,
+) -> Result<bool> {
+    match check {
+        HoldCheck::VolumeReserve => {
+            let Some(policy) = policy else {
+                return Ok(true);
+            };
+            let specs: Vec<_> = running.iter().map(|j| j.spec.clone()).collect();
+            // The same function `check_storage` is built from, evaluated against
+            // live free space: not a re-implementation of the check.
+            Ok(host::check_volume_reserve(policy, &specs, false).is_ok())
+        }
+        HoldCheck::MemoryPressure => Ok(host::memory_pressure().is_ok_and(|level| level < 4)),
+        HoldCheck::ObservedRss => {
+            let Some(policy) = policy else {
+                return Ok(true);
+            };
+            let actual: u64 = running
+                .iter()
+                .map(|j| jobs::tree_rss_kib(j.identity.pid).unwrap_or(0))
+                .sum();
+            Ok(actual as f64 <= policy.max_rss_gib * 1024.0 * 1024.0)
+        }
+    }
+}
+
 fn admit_pending(
     config: &DaemonConfig,
     policy: Option<&HostPolicy>,
     running: &mut Vec<RunningJob>,
 ) -> Result<()> {
     let root = &config.root;
-    if root.join("admissions-held.json").exists() || running.iter().any(|job| job.preflight_pending)
-    {
+    if let Some(record) = host::HoldRecord::load(root)? {
+        match record.kind() {
+            // A terminal hold records an unreconciled outcome. Re-observation
+            // must never release one; only an operator may clear it.
+            HoldKind::Terminal => return Ok(()),
+            HoldKind::Recheckable(check) => {
+                if !hold_released(policy, running, check)? {
+                    return Ok(());
+                }
+                // The recorded condition now passes, so release the latch and
+                // fall through into the ordinary admission path below. Nothing
+                // is skipped by doing so: every candidate is still re-validated
+                // from scratch by `check_admission`, which re-records the hold
+                // (recheckable) if the condition fails again. A failed removal
+                // only defers the release to the next tick.
+                let _ = fs::remove_file(root.join(host::HOLD_FILE));
+            }
+        }
+    }
+    if running.iter().any(|job| job.preflight_pending) {
         return Ok(());
     }
     if config.require_host_policy && policy.is_none() {
@@ -1052,8 +1212,13 @@ fn admit_pending(
                         },
                         &config.ledger_dir,
                     )?;
+                    // A charged shared attempt already exists and was finalized
+                    // UNKNOWN; the hold records that unreconciled charge, not the
+                    // launch error, so re-observing machine state cannot release
+                    // it. Terminal.
                     host::hold(
                         root,
+                        HoldKind::Terminal,
                         &format!(
                             "launch interrupted; shared attempt requires reconciliation: {error}"
                         ),
@@ -1140,38 +1305,18 @@ pub fn run(config: &DaemonConfig) -> Result<()> {
         if sample {
             last_monitor = Instant::now();
         }
-        let specs: Vec<_> = running.iter().map(|j| j.spec.clone()).collect();
         let host_failure = if sample && config.require_host_policy {
             match &policy {
-                Some(p) => host::check_storage(p, &specs, false)
-                    .and_then(|()| {
-                        if host::memory_pressure()? >= 4 {
-                            Err(invalid("critical host memory pressure"))
-                        } else {
-                            Ok(())
-                        }
-                    })
-                    .and_then(|()| {
-                        let actual: u64 = running
-                            .iter()
-                            .map(|j| jobs::tree_rss_kib(j.identity.pid).unwrap_or(0))
-                            .sum();
-                        if actual as f64 > p.max_rss_gib * 1024.0 * 1024.0 {
-                            Err(invalid("aggregate observed RSS exceeds host ceiling"))
-                        } else {
-                            Ok(())
-                        }
-                    })
-                    .and_then(|()| crate::ledger::check_budget(&config.ledger_dir, 0).map(|_| ()))
-                    .err()
-                    .map(|e| e.to_string()),
-                None => Some("host policy unavailable during run".into()),
+                Some(p) => sample_host(config, p, &running).err(),
+                // The policy file could not be read this tick. Terminal: an
+                // absent policy is not restored by re-observing the host.
+                None => Some(HostFailure::terminal("host policy unavailable during run")),
             }
         } else {
             None
         };
-        if let Some(reason) = &host_failure {
-            host::hold(&config.root, reason)?;
+        if let Some(failure) = &host_failure {
+            host::hold(&config.root, failure.kind, &failure.reason)?;
         }
         let mut still = vec![];
         for mut job in running {
@@ -1180,13 +1325,16 @@ pub fn run(config: &DaemonConfig) -> Result<()> {
                 &config.ledger_dir,
                 &mut job,
                 sample,
-                host_failure.as_deref(),
+                host_failure.as_ref().map(|failure| failure.reason.as_str()),
             ) {
                 Ok(true) => still.push(job),
                 Ok(false) => {}
                 Err(error) => {
+                    // Finalization/monitor reconciliation. Terminal: the job's
+                    // durable state is unreconciled, whatever the error wording.
                     host::hold(
                         &config.root,
+                        HoldKind::Terminal,
                         &format!("job finalization/monitor needs reconciliation: {error}"),
                     )?;
                     still.push(job);
@@ -1195,8 +1343,11 @@ pub fn run(config: &DaemonConfig) -> Result<()> {
         }
         running = still;
         if let Err(error) = advance_preflight(config, &mut running) {
+            // Verification reconciliation. Terminal: the attempt needs a
+            // positive receipt reconciliation, not a fresh host measurement.
             host::hold(
                 &config.root,
+                HoldKind::Terminal,
                 &format!("input verification needs reconciliation: {error}"),
             )?;
         }
@@ -1350,6 +1501,328 @@ mod tests {
             .is_empty());
         drop(pending);
         drop(peer);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// A host policy whose single volume is the fixture root itself, so the
+    /// reserve predicate runs against a real directory, sentinel and `df`.
+    fn volume_policy(root: &Path, reserve_bytes: u64) -> HostPolicy {
+        let sentinel = root.join("volume-sentinel");
+        fs::write(&sentinel, "uor-r4-fixture\n").unwrap();
+        HostPolicy {
+            schema: "uor-r4.host-policy/1".into(),
+            admission_enabled: true,
+            max_threads: 8,
+            max_rss_gib: 11.0,
+            max_jobs: 1,
+            admission_pressure_max: 1,
+            warning_validation_specs: vec![],
+            coordination_repo: None,
+            volumes: vec![crate::host::VolumePolicy {
+                id: "internal".into(),
+                path: root.to_path_buf(),
+                volume_uuid: None,
+                sentinel,
+                sentinel_value: "uor-r4-fixture".into(),
+                reserve_bytes,
+                stop_margin_bytes: 0,
+            }],
+        }
+    }
+
+    /// A spec whose live storage reservation no real volume can satisfy.
+    fn over_reserved(spec: &JobSpec) -> JobSpec {
+        let mut spec = spec.clone();
+        spec.storage = vec![crate::spec::StorageReservation {
+            volume: "internal".into(),
+            additional_bytes: 0,
+            checkpoint_bytes: u64::MAX / 4,
+        }];
+        spec
+    }
+
+    /// A `RunningJob` shell carrying only the spec the host predicates read. No
+    /// child is attached and no signal is ever sent to its identity.
+    fn running_shell(spec: JobSpec, token: String) -> RunningJob {
+        RunningJob {
+            spec,
+            child: None,
+            identity: Identity {
+                pid: u32::MAX,
+                pgid: u32::MAX,
+                started: "fixture".into(),
+                boot: "fixture".into(),
+                host: process::host_id().unwrap_or_default(),
+                token,
+                supervisor_started: "fixture".into(),
+            },
+            attempt: Attempt {
+                attempt_id: "fixture".into(),
+                process_token: "fixture".into(),
+                started_ms: 0,
+                started_utc: String::new(),
+            },
+            started: Instant::now(),
+            elapsed_before_ms: 0,
+            measurement: Measurement::Estimated,
+            peak_rss_kib: 0,
+            log_offsets: [0, 0],
+            log_carry: String::new(),
+            preflight_pending: false,
+            preflight_peers: vec![],
+        }
+    }
+
+    /// Record the hold exactly as the monitor does: evaluate the real predicate,
+    /// then classify the typed failure it returned.
+    fn record_volume_hold(root: &Path, policy: &HostPolicy, specs: &[JobSpec]) -> String {
+        let error = host::check_volume_reserve(policy, specs, false)
+            .expect_err("fixture reservation must exceed live free space");
+        let reason = error.to_string();
+        host::hold(root, host::hold_kind_for(&error), &reason).unwrap();
+        reason
+    }
+
+    fn queued_fixture(root: &Path, label: &str) -> (String, JobSpec) {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let input = root.join(format!("queue-input-{label}.json"));
+        fs::write(&input, serde_json::to_vec(&json!({"id":format!("latch-{unique}-{label}"),"lab":"test",
+            "cwd":root,"argv":["/usr/bin/true"],"threads":1,"rss_gib":0.1,"wall_s":5,"kill_criterion":{"kind":"wall"}})).unwrap()).unwrap();
+        let id = jobs::submit(root, &input).unwrap();
+        let spec = jobs::read_spec(&jobs::queue_dir(root).join(&id)).unwrap();
+        (id, spec)
+    }
+
+    /// Stop and reap anything the fixture admitted, so a failing assertion
+    /// cannot strand a live supervisor.
+    fn reap(running: &mut Vec<RunningJob>) {
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while Instant::now() < deadline
+            && running.iter_mut().any(|job| {
+                job.child
+                    .as_mut()
+                    .is_some_and(|child| child.try_wait().ok().flatten().is_none())
+            })
+        {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        for job in running.iter_mut() {
+            if process::matches(&job.identity) {
+                let _ = process::terminate(&job.identity, Duration::from_millis(20));
+            }
+            if let Some(child) = job.child.as_mut() {
+                let _ = child.try_wait();
+            }
+        }
+    }
+
+    #[test]
+    fn recheckable_volume_hold_clears_once_the_live_condition_passes_and_admission_resumes() {
+        let (root, ledger, spec, attempt) = fixture("latch-release");
+        let policy = volume_policy(&root, 0);
+        let (id, _) = queued_fixture(&root, "release");
+        // The live condition: an over-reserved running peer. Free space is real.
+        let held = record_volume_hold(&root, &policy, &[over_reserved(&spec)]);
+        assert!(held.contains("free bytes"), "{held}");
+        let held_record = host::HoldRecord::load(&root).unwrap().unwrap();
+        assert_eq!(
+            held_record.kind(),
+            HoldKind::Recheckable(HoldCheck::VolumeReserve)
+        );
+
+        // While the condition still fails the hold latches, and the queue is
+        // never even read: the fixture job stays queued and nothing is blocked.
+        let mut running = vec![running_shell(
+            over_reserved(&spec),
+            attempt.process_token.clone(),
+        )];
+        admit_pending(&test_config(&root, &ledger), Some(&policy), &mut running).unwrap();
+        assert!(root.join(host::HOLD_FILE).exists());
+        assert!(jobs::queue_dir(&root).join(&id).is_dir());
+        assert!(!root.join("admission-blocked.json").exists());
+
+        // The reservation is gone, so the same predicate now passes. Admission
+        // must release the latch by itself, with no operator action.
+        running.clear();
+        admit_pending(&test_config(&root, &ledger), Some(&policy), &mut running).unwrap();
+        assert!(
+            !root.join(host::HOLD_FILE).exists(),
+            "a recheckable hold must clear once its recorded predicate passes"
+        );
+
+        // Released, the ordinary admission path runs and admits the queued job.
+        admit_pending(&test_config(&root, &ledger), None, &mut running).unwrap();
+        assert!(running.iter().any(|job| job.spec.id == id));
+        assert!(!jobs::queue_dir(&root).join(&id).is_dir());
+        reap(&mut running);
+        drop(running);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn recheckable_hold_is_retained_while_the_live_condition_still_fails() {
+        let (root, ledger, spec, attempt) = fixture("latch-retain");
+        let policy = volume_policy(&root, u64::MAX / 2);
+        let (id, _) = queued_fixture(&root, "retain");
+        // The policy reserve alone exceeds any real volume, so no recovery is
+        // possible and the hold must survive every admission pass.
+        let spec = over_reserved(&spec);
+        let reason = record_volume_hold(&root, &policy, std::slice::from_ref(&spec));
+        let mut running = vec![running_shell(spec, attempt.process_token.clone())];
+        for _ in 0..3 {
+            admit_pending(&test_config(&root, &ledger), Some(&policy), &mut running).unwrap();
+            assert!(root.join(host::HOLD_FILE).exists());
+        }
+        let record = host::HoldRecord::load(&root).unwrap().unwrap();
+        assert_eq!(record.reason(), reason);
+        assert_eq!(
+            record.kind(),
+            HoldKind::Recheckable(HoldCheck::VolumeReserve)
+        );
+        assert!(jobs::queue_dir(&root).join(&id).is_dir());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn terminal_hold_is_never_cleared_by_the_recheck_path() {
+        let (root, ledger, spec, _) = fixture("latch-terminal");
+        let policy = volume_policy(&root, 0);
+        let (id, _) = queued_fixture(&root, "terminal");
+        // Same wording as a shortfall, but recorded terminal. A terminal hold
+        // must keep latching even when the machine state it mentions recovers.
+        let error =
+            host::check_volume_reserve(&policy, &[over_reserved(&spec)], false).unwrap_err();
+        host::hold(&root, HoldKind::Terminal, &error.to_string()).unwrap();
+        assert!(host::check_volume_reserve(&policy, &[], false).is_ok());
+        let mut running = vec![];
+        for _ in 0..3 {
+            admit_pending(&test_config(&root, &ledger), Some(&policy), &mut running).unwrap();
+            assert!(
+                root.join(host::HOLD_FILE).exists(),
+                "a terminal hold must never be released by re-evaluation"
+            );
+        }
+        assert!(jobs::queue_dir(&root).join(&id).is_dir());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn legacy_unclassified_hold_is_never_released_by_the_recheck_path() {
+        let (root, ledger, spec, _) = fixture("latch-legacy");
+        let policy = volume_policy(&root, 0);
+        let (id, _) = queued_fixture(&root, "legacy");
+        // The exact record that latched this host off, byte for byte: it has no
+        // `kind` field. It must keep latching, because an unclassified record
+        // cannot be re-evaluated without guessing.
+        fs::write(
+            root.join(host::HOLD_FILE),
+            br#"{"at":"2026-10-06T03:59:13Z","reason":"invalid lab-runner input: volume internal free bytes 27382095872 below required 43083890688","schema":"uor-r4.admission-hold/1"}"#,
+        )
+        .unwrap();
+        // The live condition this reason names has recovered.
+        assert!(host::check_volume_reserve(&policy, &[], false).is_ok());
+        let mut running = vec![running_shell(spec, "legacy".into())];
+        for _ in 0..3 {
+            admit_pending(&test_config(&root, &ledger), Some(&policy), &mut running).unwrap();
+            assert!(root.join(host::HOLD_FILE).exists());
+        }
+        assert!(jobs::queue_dir(&root).join(&id).is_dir());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    /// Block until the fixture verifier has recorded success.
+    ///
+    /// The supervisor creates the receipt before writing it, so waiting on the
+    /// path alone can read an empty file and misjudge the gate.
+    fn await_verifier(dir: &Path) {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            if fs::read(dir.join("verification.exit")).is_ok_and(|bytes| bytes == b"0\n") {
+                return;
+            }
+            assert!(
+                Instant::now() < deadline,
+                "the fixture verifier never recorded success"
+            );
+            std::thread::sleep(Duration::from_millis(20));
+        }
+    }
+
+    /// The exit receipt of a finished fixture job, wherever reconciliation left it.
+    fn exit_receipt(root: &Path, id: &str) -> serde_json::Value {
+        for dir in [jobs::done_dir(root), jobs::running_dir(root)] {
+            if let Ok(bytes) = fs::read(dir.join(id).join("exit.json")) {
+                return serde_json::from_slice(&bytes).unwrap();
+            }
+        }
+        panic!("no exit receipt for {id}");
+    }
+
+    #[test]
+    fn terminal_hold_preserves_admission_and_verification_gates() {
+        let (root, ledger, mut pending, _) =
+            verification_fixture("latch-gate-terminal", "exit 0", 8);
+        let policy = volume_policy(&root, 0);
+        let (id, _) = queued_fixture(&root, "gates");
+        let config = test_config(&root, &ledger);
+        // `:954`: a terminal hold returns early, so the queue is never read and
+        // nothing is even recorded as blocked.
+        host::hold(&root, HoldKind::Terminal, "running process lost identity").unwrap();
+        let mut running = vec![];
+        admit_pending(&config, Some(&policy), &mut running).unwrap();
+        assert!(jobs::queue_dir(&root).join(&id).is_dir());
+        assert!(!root.join("admission-blocked.json").exists());
+
+        // `:599`: the same hold still fails input verification, unchanged. The
+        // gate refuses the payload and records the refusal as its reason.
+        let dir = pending.job.dir(&root);
+        await_verifier(&dir);
+        advance_preflight(&config, std::slice::from_mut(&mut pending.job)).unwrap();
+        assert!(!dir.join("payload.go").exists());
+        let record = host::HoldRecord::load(&root).unwrap().unwrap();
+        assert_eq!(record.kind(), HoldKind::Terminal);
+        assert!(
+            record
+                .reason()
+                .contains("admission held during input verification"),
+            "{}",
+            record.reason()
+        );
+        let receipt = exit_receipt(&root, &pending.job.spec.id);
+        assert!(
+            receipt["reason"]
+                .as_str()
+                .unwrap()
+                .contains("admission held during input verification"),
+            "{}",
+            receipt["reason"]
+        );
+        drop(pending);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn recheckable_hold_does_not_latch_the_verification_gate() {
+        let (root, ledger, mut pending, _) =
+            verification_fixture("latch-gate-recheck", "exit 0", 8);
+        let config = test_config(&root, &ledger);
+        host::hold(
+            &root,
+            HoldKind::Recheckable(HoldCheck::VolumeReserve),
+            "volume internal free bytes 1 below required 2",
+        )
+        .unwrap();
+        // A recheckable hold records a live condition that the late-admission
+        // re-check still enforces, so it must not refuse the payload gate.
+        let dir = pending.job.dir(&root);
+        await_verifier(&dir);
+        advance_preflight(&config, std::slice::from_mut(&mut pending.job)).unwrap();
+        assert!(dir.join("payload.go").exists());
+        assert!(!pending.job.preflight_pending);
+        drop(pending);
         fs::remove_dir_all(root).unwrap();
     }
 
