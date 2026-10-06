@@ -83,8 +83,9 @@ case "$1 $2" in
   # out-of-stock error) or $FAKE/create-error exists (any other error).
   "pod create")
     [ "${FAKE_ALLOW_CREATE:-0}" = 1 ] || { echo "REAL MUTATION CALLED IN DRY RUN" >&2; exit 9; }
-    dc='' prev=''; for a in "$@"; do [ "$prev" = --data-center-ids ] && dc=$a; prev=$a; done
-    if grep -qx "$dc" "$FAKE/nostock" 2>/dev/null; then
+    dc='' n='' prev=''; for a in "$@"; do [ "$prev" = --data-center-ids ] && dc=$a; [ "$prev" = --gpu-count ] && n=$a; prev=$a; done
+    # $FAKE/max-count: no host has more than that many free GPUs
+    if grep -qx "$dc" "$FAKE/nostock" 2>/dev/null || { [ -f "$FAKE/max-count" ] && [ "$n" -gt "$(cat "$FAKE/max-count")" ]; }; then
       echo "Error: There are no longer any instances available with the requested specifications. Please refresh and try again." >&2; exit 1
     fi
     [ ! -f "$FAKE/create-error" ] || { echo "Error: template h15vb984sw not found" >&2; exit 1; }
@@ -194,7 +195,7 @@ expect "up: creates uor-shared-EU-RO-1 lazily" 0 "network-volume create --name u
 expect "up --gpu 4090 explicit -> EUR-NO-1 canonical" 0 "Creating 2 x 4090 .* in EUR-NO-1 for codex/x1" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
 UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up: no 5090 in volume DCs refuses (no silent fallback)" 1 "no 5090 stock in EUR-NO-1 EUR-IS-1.*--wait" -- up "${X1[@]}" --purpose x --hours 1 --count 2
 has "refusal prints the stock table" "4090 \\\$0.74: EUR-NO-1\\*=Low"
-UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --wait retries every 5 min" 0 "would retry every 5 min" -- up "${X1[@]}" --purpose x --hours 1 --count 2 --wait --wait-hours 1
+UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --wait retries every minute" 0 "would retry every 1 min" -- up "${X1[@]}" --purpose x --hours 1 --count 2 --wait --wait-hours 1
 UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --allow-off-volume places 5090 in EU-RO-1 without volume" 0 "Creating 2 x 5090 .* in EU-RO-1 OFF-VOLUME" -- up "${X1[@]}" --purpose x --hours 1 --count 2 --allow-off-volume
 UOR_POD_MAX_RATE=4 expect "up over rate cap refused" 1 "exceeds \\\$4/h" -- up "${X1[@]}" --purpose x --hours 1 --count 3
 expect "up (dry) names the next datacenter to try on a stock error" 0 "if EU-RO-1 reports no instances available, try next" -- up "${X1[@]}" --purpose x --hours 1 --count 2
@@ -424,6 +425,17 @@ rm -f "$FAKE/nostock"; touch "$FAKE/create-error"; : > "$FAKE/calls"
 expect "a non-stock create error stops at once" 1 "pod create failed in EUR-NO-1: Error: template" -- "${UP[@]}"
 if [ "$(creates EU-RO-1)" = 0 ]; then ok "no fallback on a non-stock error"; else bad "no fallback on a non-stock error"; fi
 rm -f "$FAKE/create-error"
+# ---- "Low" stock is usually one free card per host: without --count, up falls
+# back from 2 GPUs to 1; an explicit --count 2 insists
+rm -rf "$UOR_POD_STATE"; echo '[]' > "$FAKE/pods.json"; echo 1 > "$FAKE/max-count"; : > "$FAKE/calls"
+UP1=(up "${X1[@]}" --purpose fallback --hours 1 --no-bootstrap --ref "$SHA40")
+expect "no host with 2 free and no --count -> falls back to 1 GPU" 0 "Pod podnew created" -- "${UP1[@]}"
+has "the fallback is announced" "no 2 x 5090 on one host; falling back to 1 x 5090"
+if grep -q -- "--gpu-count 1 " "$FAKE/calls"; then ok "the second attempt asks for one GPU"; else bad "the second attempt asks for one GPU"; fi
+rm -rf "$UOR_POD_STATE"; echo '[]' > "$FAKE/pods.json"; : > "$FAKE/calls"
+expect "an explicit --count 2 never falls back" 1 "no 5090 stock in EUR-NO-1 EU-RO-1 EUR-IS-1" -- "${UP[@]}"
+if ! grep -q -- "--gpu-count 1 " "$FAKE/calls"; then ok "no 1-GPU create with an explicit --count"; else bad "no 1-GPU create with an explicit --count"; fi
+rm -f "$FAKE/max-count"
 # ---- a failed bootstrap (non-dry, fake pod): the last 30 lines are printed, the
 # full log is kept locally and teed onto the pod volume, the ledger names both;
 # then the circuit breaker stops the third attempt. A failed Ollama is not fatal.

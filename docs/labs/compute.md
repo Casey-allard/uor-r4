@@ -111,6 +111,11 @@ bf16/tensor-core rewrite is in progress). Owner decision, 5 October 2026.
 Default shape: **2 GPUs per pod** (`data_parallel=2`, or two seeds in
 parallel); 1 GPU for evaluation-only or grading jobs (`--count 1`).
 
+"Low" stock usually means one free card per host. When `--count` is not given
+and no host has 2 free, `up` falls back to 1 GPU (on 10-06, 2-GPU creates failed
+15 of 15 times while 1-GPU creates succeeded first try). Run a second arm as its
+own pod. Pass `--count 2` to insist on two GPUs on one host.
+
 ## Placement
 
 `up` tries the requested type (5090 unless `--gpu` says otherwise) on secure

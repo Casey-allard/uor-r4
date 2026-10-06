@@ -807,6 +807,12 @@ cmd_up() {
       [ "$rc" = 0 ] && break
     fi
     lock_release
+    # "Low" stock usually means one free card per host: without an explicit
+    # --count, settle for one GPU rather than wait for a 2-GPU host
+    if [ -z "$COUNT" ] && [ "$count" -gt 1 ]; then
+      warn "no $count x $req on one host; falling back to 1 x $req (start another pod for a second job)"
+      count=1; continue
+    fi
     echo "$UP_STOCK"
     if [ "$WAIT" != 1 ]; then
       die "no $req stock in $VOLUME_DCS. Re-run with --wait (retries every minute for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
