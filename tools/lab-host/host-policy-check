@@ -36,6 +36,16 @@ WATERMARK_VOLUME = {
     "outer_ssd": "backing",
 }
 
+# The repo policy's WARNING level per local volume id (GiB). A soft goal to
+# maintain, deliberately NOT a gate: the hard gate is the local `reserve_bytes`
+# (the policy's STOP level). Promoting a warning to a hard gate blocks the very
+# cleanup a lab needs to run to get back above the goal.
+REPO_WARNING_GIB = {
+    "internal": 40,
+    "workspace": 60,
+    "backing": 120,
+}
+
 GiB = 1024**3
 TTL_SECONDS = 1200  # coord.rs:14
 TIMEOUT = 20
@@ -162,10 +172,20 @@ def main() -> int:
         checked += 1
         free = st.f_bavail * st.f_frsize
         reserve = int(v.get("reserve_bytes", 0))
+        # `reserve` is the hard gate (the repo policy's STOP level). The repo
+        # also declares a WARNING level above it -- a soft goal to maintain that
+        # must NOT block work, because a lab below the goal still has to be able
+        # to run the cleanup that gets it back above. Warn, do not gate.
+        warn_gib = REPO_WARNING_GIB.get(v.get("id"))
         if free < reserve:
             bad(
                 f"{v.get('id')}: {gib(free)} free < {gib(reserve)} reserve "
                 "\u2014 ADMISSION SHOULD BE HELD"
+            )
+        elif warn_gib is not None and free < warn_gib * GiB:
+            note(
+                f"{v.get('id')}: {gib(free)} free \u2265 {gib(reserve)} reserve, but below the "
+                f"{warn_gib} GiB soft goal \u2014 WARN ONLY, must not block"
             )
         else:
             ok(f"{v.get('id')}: {gib(free)} free \u2265 {gib(reserve)} reserve")
@@ -199,16 +219,26 @@ def main() -> int:
                 continue
             local = local_by_id.get(vid)
             if local is None:
-                bad(
-                    f"{key}: repo declares a watermark but no local volume '{vid}' "
-                    "\u2014 declared hardware and policy disagree"
+                # Informational, NOT drift. The repo policy is host-agnostic: a
+                # watermark is a policy statement about a class of storage, and
+                # other hosts may still have that volume. A missing LOCAL volume
+                # is a fact about this machine, not a policy disagreement. Only a
+                # volume the local policy *does* declare but cannot find is drift
+                # (checked in section [2]).
+                note(
+                    f"{key}: no local volume '{vid}' on this host "
+                    "\u2014 repo watermark not enforced here (informational)"
                 )
                 continue
             local_gib = int(local.get("reserve_bytes", 0)) // GiB
-            if warn is not None and local_gib != warn:
+            # `reserve_bytes` is the hard gate, so it must equal the repo's STOP
+            # level -- NOT its warning. Comparing it to `warning` was the original
+            # defect: it made the warning act as the gate.
+            if stop is not None and local_gib != stop:
                 bad(
-                    f"{key}: local reserve={local_gib} GiB but repo warning={warn} GiB "
-                    "\u2014 DRIFT"
+                    f"{key}: local reserve={local_gib} GiB but repo stop={stop} GiB "
+                    "\u2014 DRIFT (the hard gate must be the STOP level; the "
+                    "warning above it is a soft goal and must not block)"
                 )
     out()
 
