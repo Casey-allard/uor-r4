@@ -2309,6 +2309,12 @@ impl StackModel {
                 },
             ));
         }
+        let bound = match self.read_lineage {
+            Some(ReadLineage::PhaseBinding { snap }) => {
+                Some(self.phase_binding_read(p, layer, &u, &identity, &value, snap)?)
+            }
+            _ => None,
+        };
         let (value, value_width) = self.read_binding_values(value, layer, binding)?;
         let read = fused_read_selected(
             &query,
@@ -2321,7 +2327,86 @@ impl StackModel {
             false,
             self.config.select,
         )?;
-        self.finish_geometric_read(p, layer, &read, value_width, capture, binding)
+        self.finish_geometric_read(p, layer, &read, value_width, capture, binding, bound)
+    }
+
+    /// One phase of [`ReadLineage::PhaseBinding`] (`map` and `bias` the key's
+    /// or the query's): `[batch, time, heads, blocks, 4]` unit quaternions of
+    /// the read identity input, in f32.
+    fn phase_binding_phase(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        identity: &Tensor,
+        (map, bias): (&str, &str),
+        snap: bool,
+    ) -> Result<Tensor> {
+        let (batch, time, _) = identity.dims3()?;
+        let heads = self.config.heads;
+        let head_width = self.config.head_width();
+        if !head_width.is_multiple_of(4) {
+            return Err(invalid(
+                "phase binding needs whole heads of four-channel blocks",
+            ));
+        }
+        let raw = self
+            .linear(identity, p.layer(layer, map)?)?
+            .to_dtype(DType::F32)?
+            .broadcast_add(&p.layer(layer, bias)?.to_dtype(DType::F32)?)?
+            .reshape((batch, time, heads, head_width / 4, 4))?;
+        unit_phase(&raw, snap)
+    }
+
+    /// [`ReadLineage::PhaseBinding`]'s term `mix (.) r` of one read layer,
+    /// `[batch, time, width]` in f32, from the read input `u`, its identity
+    /// input and the value heads `[batch, heads, time, head_width]`.
+    fn phase_binding_read(
+        &self,
+        p: &Params<'_>,
+        layer: usize,
+        u: &Tensor,
+        identity: &Tensor,
+        value: &Tensor,
+        snap: bool,
+    ) -> Result<Tensor> {
+        let (batch, heads, time, head_width) = value.dims4()?;
+        let key_phase = self.phase_binding_phase(
+            p,
+            layer,
+            identity,
+            (READ_LINEAGE_BIND_KEY, READ_LINEAGE_BIND_KEY_BIAS),
+            snap,
+        )?;
+        let query_phase = self.phase_binding_phase(
+            p,
+            layer,
+            identity,
+            (READ_LINEAGE_BIND_QUERY, READ_LINEAGE_BIND_QUERY_BIAS),
+            snap,
+        )?;
+        // g_j = sigmoid(G u_j + b), one per head: [batch, time, heads].
+        let logit = self
+            .linear(u, p.layer(layer, READ_LINEAGE_BIND_GATE)?)?
+            .to_dtype(DType::F32)?
+            .broadcast_add(
+                &p.layer(layer, READ_LINEAGE_BIND_GATE_BIAS)?
+                    .to_dtype(DType::F32)?,
+            )?;
+        let gate = (logit.neg()?.exp()? + 1.0)?.recip()?;
+        let value = value.to_dtype(DType::F32)?.transpose(1, 2)?.reshape((
+            batch,
+            time,
+            heads,
+            head_width / 4,
+            4,
+        ))?;
+        let unbound = phase_bind_unbind(&key_phase, &query_phase, &value, &gate)?;
+        let mix = p
+            .layer(layer, READ_LINEAGE_BIND_MIX)?
+            .to_dtype(DType::F32)?;
+        Ok(unbound
+            .reshape((batch, time, heads * head_width))?
+            .broadcast_mul(&mix)?)
     }
 
     /// The label mask is an auxiliary value channel, never a score input.
@@ -2458,6 +2543,7 @@ impl StackModel {
         value_width: usize,
         capture: &mut Capture<'_>,
         binding: &mut Option<BindingCapture<'_>>,
+        bound: Option<Tensor>,
     ) -> Result<Tensor> {
         let (batch, heads, time, _) = read.dims4()?;
         let target = binding
@@ -2544,7 +2630,11 @@ impl StackModel {
         } else {
             read.narrow(3, 0, value_width)?
         };
-        let merged = self.merge_heads(&read, batch, time)?;
+        let mut merged = self.merge_heads(&read, batch, time)?;
+        if let Some(bound) = bound {
+            // ReadLineage::PhaseBinding's `mix (.) r` (f32).
+            merged = merged.add(&bound.to_dtype(merged.dtype())?)?;
+        }
         tap(capture, StackSite::ReadOut(layer), || Ok(merged.clone()))?;
         self.linear(&merged, p.layer(layer, "read.out.weight")?)
     }
@@ -2668,6 +2758,11 @@ impl StackModel {
     /// This first implementation is an offline CPU float-training prototype.
     pub fn set_geometric_address(&mut self, config: GeometricAddressConfig) -> Result<()> {
         self.validate_geometric_address(&config)?;
+        if matches!(self.read_lineage, Some(ReadLineage::PhaseBinding { .. })) {
+            return Err(invalid(
+                "phase binding lives in the ordinary read and has no geometric-address form",
+            ));
+        }
         if let Some(existing) = &self.geometric_address {
             return if existing == &config {
                 Ok(())
@@ -2876,6 +2971,43 @@ impl StackModel {
                         Var::zeros(shape, DType::F32, &self.device)?
                     };
                     self.variables.insert(name, var);
+                }
+            }
+            Some(lineage @ ReadLineage::PhaseBinding { .. }) => {
+                let head_width = self.config.head_width();
+                if !width.is_multiple_of(self.config.heads) || !head_width.is_multiple_of(4) {
+                    return Err(invalid(
+                        "phase binding needs whole heads of four-channel blocks",
+                    ));
+                }
+                let std = 1.0 / (width as f64).sqrt();
+                let mut streams: BTreeMap<usize, Initializer> = BTreeMap::new();
+                for (name, shape) in read_lineage_shapes(&self.config, lineage) {
+                    let layer = name
+                        .split('.')
+                        .nth(1)
+                        .and_then(|index| index.parse::<usize>().ok())
+                        .ok_or_else(|| invalid("a phase binding variable has no layer"))?;
+                    let rng = streams.entry(layer).or_insert_with(|| {
+                        Initializer(
+                            self.config.seed
+                                ^ PHASE_BIND_SEED_MIX
+                                ^ (layer as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15),
+                        )
+                    });
+                    let count: usize = shape.iter().product();
+                    let values: Vec<f32> = if name.ends_with("_map") {
+                        (0..count).map(|_| (rng.normal() * std) as f32).collect()
+                    } else if name.ends_with(".key_bias") || name.ends_with(".query_bias") {
+                        // (1, 0, 0, 0) per block: the identity phase.
+                        (0..count)
+                            .map(|i| if i % 4 == 0 { 1.0 } else { 0.0 })
+                            .collect()
+                    } else {
+                        vec![0.0; count]
+                    };
+                    self.variables
+                        .insert(name, Var::from_vec(values, shape, &self.device)?);
                 }
             }
             Some(ReadLineage::RandomSo4 { seed }) => {
@@ -5632,7 +5764,7 @@ impl StackModel {
             2,
         )?;
         let read = candle_nn::ops::softmax(&scores, 3)?.matmul(&value)?;
-        self.finish_geometric_read(p, layer, &read, value_width, capture, binding)
+        self.finish_geometric_read(p, layer, &read, value_width, capture, binding, None)
     }
 
     /// Offline saved-model bridge: only the weighted geometric reduction is
@@ -5943,7 +6075,15 @@ impl StackModel {
             let zero = Tensor::zeros((batch, heads, 1, values.dim(3)?), DType::F32, &self.device)?;
             let values = Tensor::cat(&[&zero, &values], 2)?;
             let read = candle_nn::ops::softmax(&joined, 3)?.matmul(&values)?;
-            return self.finish_geometric_read(p, layer, &read, value_width, capture, binding);
+            return self.finish_geometric_read(
+                p,
+                layer,
+                &read,
+                value_width,
+                capture,
+                binding,
+                None,
+            );
         }
         let null = match source.no_read {
             NoReadSource::LegacyFloat => {
@@ -6091,7 +6231,7 @@ impl StackModel {
             }
             *sink = Some(output.trace);
         }
-        self.finish_geometric_read(p, layer, &read, value_width, capture, binding)
+        self.finish_geometric_read(p, layer, &read, value_width, capture, binding, None)
     }
 
     fn read_latch_gate_logits(&self, p: &Params<'_>, layer: usize, u: &Tensor) -> Result<Tensor> {
@@ -10606,6 +10746,22 @@ pub enum ReadLineage {
     /// at 0 with bias `(1, 0, 0, 0)`: the identity phase, so a model with it
     /// added computes the plain read until it trains. Saveable.
     KeyPhase { snap: bool },
+    /// Holographic phase binding (#820): a strictly causal bound trace beside
+    /// the ordinary read. Every position `j`, head `h` and four-channel block
+    /// writes `w_j = g_j (P_j v_j)`, its value block `v_j` left-multiplied by
+    /// a unit quaternion key phase `P_j` (a learned map of the read identity
+    /// input) and scaled by a learned per-head gate `g_j = sigmoid(G u_j + b)`
+    /// on the read input. The trace `S_t` is the row-normalised decay average
+    /// of `w_j` over `j < t` with `a_h = 1 - 2^-s_h`,
+    /// `s_h = `[`Self::phase_bind_shift`]`(h)` (time constants 4 to 512
+    /// tokens), and the read unbinds it with its query phase:
+    /// `r_t = conj(Q_t) S_t`, added to the merged heads as `mix (.) r_t`
+    /// before `read.out`. For unit `Q_t = P_j` the term of `j` is returned
+    /// exactly. With `snap` the phases are straight-through snapped to the
+    /// nearest of the 120 unit icosians. `mix` starts at 0, so a model with
+    /// it added computes the plain read, bit for bit, until it trains.
+    /// Saveable.
+    PhaseBinding { snap: bool },
 }
 
 /// The largest `taps` of [`ReadLineage::LearnedConvWide`].
@@ -10626,6 +10782,8 @@ impl ReadLineage {
             ReadLineage::KeyCarrier => "carrier",
             ReadLineage::KeyPhase { snap: true } => "rot",
             ReadLineage::KeyPhase { snap: false } => "rot_free",
+            ReadLineage::PhaseBinding { snap: true } => "phase_bind",
+            ReadLineage::PhaseBinding { snap: false } => "phase_bind_free",
         }
     }
 
@@ -10638,6 +10796,7 @@ impl ReadLineage {
             ReadLineage::LearnedConvWide { .. }
                 | ReadLineage::KeyCarrier
                 | ReadLineage::KeyPhase { .. }
+                | ReadLineage::PhaseBinding { .. }
         )
     }
 
@@ -10645,6 +10804,12 @@ impl ReadLineage {
     /// `a_h = 1 - 2^-s_h`.
     pub fn carrier_shift(head: usize) -> u32 {
         1 + (head % 4) as u32
+    }
+
+    /// The decay exponent `s_h` of [`ReadLineage::PhaseBinding`]'s head `h`:
+    /// `a_h = 1 - 2^-s_h`, `s_h = 2 + h mod 8`.
+    pub fn phase_bind_shift(head: usize) -> u32 {
+        2 + (head % 8) as u32
     }
 }
 
@@ -10688,6 +10853,25 @@ fn read_lineage_shapes(config: &StackConfig, lineage: ReadLineage) -> Vec<(Strin
                 for name in [READ_LINEAGE_PHASE_KEY_BIAS, READ_LINEAGE_PHASE_QUERY_BIAS] {
                     out.push((layer_name(layer, name), vec![4 * config.heads]));
                 }
+            }
+            ReadLineage::PhaseBinding { .. } => {
+                // One phase per head and four-channel block.
+                let phases = 4 * config.heads * (config.head_width() / 4);
+                for name in [READ_LINEAGE_BIND_KEY, READ_LINEAGE_BIND_QUERY] {
+                    out.push((layer_name(layer, name), vec![phases, width]));
+                }
+                for name in [READ_LINEAGE_BIND_KEY_BIAS, READ_LINEAGE_BIND_QUERY_BIAS] {
+                    out.push((layer_name(layer, name), vec![phases]));
+                }
+                out.push((
+                    layer_name(layer, READ_LINEAGE_BIND_GATE),
+                    vec![config.heads, width],
+                ));
+                out.push((
+                    layer_name(layer, READ_LINEAGE_BIND_GATE_BIAS),
+                    vec![config.heads],
+                ));
+                out.push((layer_name(layer, READ_LINEAGE_BIND_MIX), vec![width]));
             }
             _ => {}
         }
@@ -10755,6 +10939,64 @@ fn carrier_decay(heads: usize, time: usize, dtype: DType, device: &Device) -> Re
     Ok(Tensor::from_vec(values, (heads, time, time), device)?.to_dtype(dtype)?)
 }
 
+/// Quaternion conjugate `(w, -x, -y, -z)` of every four-channel block (last
+/// dimension 4).
+fn quaternion_conj(q: &Tensor) -> Result<Tensor> {
+    let axis = q.rank() - 1;
+    let part = |i: usize| q.narrow(axis, i, 1);
+    Ok(Tensor::cat(
+        &[
+            &part(0)?,
+            &part(1)?.neg()?,
+            &part(2)?.neg()?,
+            &part(3)?.neg()?,
+        ],
+        axis,
+    )?)
+}
+
+/// [`ReadLineage::PhaseBinding`]'s row-normalised decay matrices
+/// `[heads, time, time]`: `a_h^(t-1-j) / sum_{i<t} a_h^(t-1-i)` for `j < t`,
+/// else 0 (row 0 is all zero).
+fn phase_bind_decay(heads: usize, time: usize, device: &Device) -> Result<Tensor> {
+    let mut values = vec![0f32; heads * time * time];
+    for h in 0..heads {
+        let a = 1.0 - (-f64::from(ReadLineage::phase_bind_shift(h))).exp2();
+        for t in 1..time {
+            let total: f64 = (0..t).map(|age| a.powi(age as i32)).sum();
+            for j in 0..t {
+                values[(h * time + t) * time + j] = (a.powi((t - 1 - j) as i32) / total) as f32;
+            }
+        }
+    }
+    Ok(Tensor::from_vec(values, (heads, time, time), device)?)
+}
+
+/// [`ReadLineage::PhaseBinding`]'s bind, trace and unbind, in f32. The key
+/// and query phases (unit quaternions) and the value are
+/// `[batch, time, heads, blocks, 4]`, the gate `[batch, time, heads]`; the
+/// result `r_t = conj(Q_t) S_t` has the value's shape, with
+/// `S_t = sum_{j<t} a_h^(t-1-j) g_j (P_j v_j) / sum_{j<t} a_h^(t-1-j)`.
+fn phase_bind_unbind(
+    key_phase: &Tensor,
+    query_phase: &Tensor,
+    value: &Tensor,
+    gate: &Tensor,
+) -> Result<Tensor> {
+    let (batch, time, heads, blocks, _) = value.dims5()?;
+    let written = left_multiply_blocks(key_phase, value)?
+        .broadcast_mul(&gate.unsqueeze(3)?.unsqueeze(4)?)?
+        .reshape((batch, time, heads, 4 * blocks))?
+        .transpose(1, 2)?
+        .contiguous()?;
+    let trace = phase_bind_decay(heads, time, value.device())?
+        .unsqueeze(0)?
+        .broadcast_matmul(&written)?
+        .transpose(1, 2)?
+        .reshape((batch, time, heads, blocks, 4))?;
+    left_multiply_blocks(&quaternion_conj(query_phase)?, &trace)
+}
+
 /// Variable names of the learned read lineages ([`ReadLineage`]).
 const READ_LINEAGE_PREFIX: &str = ".read.lineage_";
 const READ_LINEAGE_CONV: &str = "read.lineage_conv.weight";
@@ -10767,6 +11009,15 @@ const READ_LINEAGE_PHASE_KEY: &str = "read.lineage_phase.key_map";
 const READ_LINEAGE_PHASE_KEY_BIAS: &str = "read.lineage_phase.key_bias";
 const READ_LINEAGE_PHASE_QUERY: &str = "read.lineage_phase.query_map";
 const READ_LINEAGE_PHASE_QUERY_BIAS: &str = "read.lineage_phase.query_bias";
+const READ_LINEAGE_BIND_KEY: &str = "read.lineage_bind.key_map";
+const READ_LINEAGE_BIND_KEY_BIAS: &str = "read.lineage_bind.key_bias";
+const READ_LINEAGE_BIND_QUERY: &str = "read.lineage_bind.query_map";
+const READ_LINEAGE_BIND_QUERY_BIAS: &str = "read.lineage_bind.query_bias";
+const READ_LINEAGE_BIND_GATE: &str = "read.lineage_bind.gate";
+const READ_LINEAGE_BIND_GATE_BIAS: &str = "read.lineage_bind.gate_bias";
+const READ_LINEAGE_BIND_MIX: &str = "read.lineage_bind.mix";
+/// Mixed into the seed of [`ReadLineage::PhaseBinding`]'s map initializer.
+const PHASE_BIND_SEED_MIX: u64 = 0x5048_4153_4542_4E44;
 
 /// Left multiplication by `j^{-1} = -j`: `(a, b, c, d) -> (c, -d, -a, b)`
 /// per four-channel lane, the inverse (and transpose) of
@@ -19730,6 +19981,244 @@ mod tests {
         assert!(recurrent
             .set_read_lineage(Some(ReadLineage::QueryKeyJ))
             .is_err());
+        Ok(())
+    }
+
+    fn phase_binding_config() -> StackConfig {
+        let mut config = tiny(StackArch::Geometric, "rara", ReadScore::L2, true);
+        config.vocab_size = 97;
+        config.width = 64;
+        config.heads = 4;
+        config.context = 48;
+        config
+    }
+
+    fn phase_binding_ids(time: usize) -> Vec<u32> {
+        (0..time).map(|i| ((i * 31 + 7) % 97) as u32).collect()
+    }
+
+    /// Move every phase binding variable (mix included) off its start.
+    fn perturb_phase_binding(model: &StackModel) -> Result<()> {
+        let mut rng = Initializer(23);
+        for (name, var) in model.variables() {
+            if name.contains(".read.lineage_bind.") {
+                var.set(&var.as_tensor().add(&random(&mut rng, var.dims(), 0.3))?)?;
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn phase_binding_starts_as_the_plain_read() -> Result<()> {
+        let config = phase_binding_config();
+        let ids = phase_binding_ids(24);
+        let time = ids.len();
+        let plain = StackModel::new(config.clone(), &cpu())?.forward(&ids, 1, time)?;
+        for snap in [true, false] {
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            model.set_read_lineage(Some(ReadLineage::PhaseBinding { snap }))?;
+            let logits = model.forward(&ids, 1, time)?;
+            let diff = logits.sub(&plain)?.abs()?.max_all()?.to_scalar::<f32>()?;
+            assert_eq!(diff, 0.0, "snap {snap}");
+            assert_eq!(logits.to_vec2::<f32>()?, plain.to_vec2::<f32>()?);
+        }
+        // Refused: a head width that is not whole four-channel blocks. (The
+        // geometric-address refusals in both orders are not covered here.)
+        let mut odd = phase_binding_config();
+        odd.width = 24;
+        let mut model = StackModel::new(odd, &cpu())?;
+        assert!(model
+            .set_read_lineage(Some(ReadLineage::PhaseBinding { snap: true }))
+            .is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn phase_binding_retrieves_the_bound_value_exactly() -> Result<()> {
+        let dev = cpu();
+        // batch 1, time 2, heads 1, blocks 2.
+        let p = [0.5f32, 0.5, -0.5, 0.5];
+        let v0 = [0.3f32, -1.2, 0.7, 2.0, 1.5, 0.1, -0.4, 0.9];
+        let v1 = [9.0f32, -7.0, 5.0, 3.0, -2.0, 4.0, 6.0, -8.0];
+        let other = [0.6f32, 0.0, 0.8, 0.0];
+        let blocks = |rows: Vec<f32>| Tensor::from_vec(rows, (1, 2, 1, 2, 4), &dev);
+        let key_phase = blocks([p, p, other, other].concat())?;
+        let value = blocks([v0.as_slice(), v1.as_slice()].concat())?;
+        let gate = Tensor::from_vec(vec![0.75f32, 0.2], (1, 2, 1), &dev)?;
+        let row = |r: &Tensor, t: usize| -> Result<Vec<f32>> {
+            Ok(r.narrow(1, t, 1)?.flatten_all()?.to_vec1::<f32>()?)
+        };
+        // Q_1 = P: r_1 = g_0 v_0; r_0 = 0 (nothing before position 0).
+        let query_phase = blocks([other, other, p, p].concat())?;
+        let r = phase_bind_unbind(&key_phase, &query_phase, &value, &gate)?;
+        assert!(row(&r, 0)?.iter().all(|&x| x == 0.0));
+        let read = row(&r, 1)?;
+        for (got, want) in read.iter().zip(v0.iter().map(|x| 0.75 * x)) {
+            assert!((got - want).abs() < 1e-5, "{got} vs {want}");
+        }
+        // Q_1 = i P (90 degrees from P): a rotation of g_0 v_0, same norms.
+        let i = Tensor::from_vec(vec![0f32, 1.0, 0.0, 0.0], (1, 1, 1, 1, 4), &dev)?;
+        let turned = left_multiply_blocks(&i, &blocks([p, p, p, p].concat())?)?;
+        let r = phase_bind_unbind(&key_phase, &turned, &value, &gate)?;
+        let rotated = row(&r, 1)?;
+        let mut moved = 0f32;
+        for b in 0..2 {
+            let norm = |x: &[f32]| x.iter().map(|x| x * x).sum::<f32>().sqrt();
+            let want = norm(&v0[4 * b..4 * b + 4]) * 0.75;
+            assert!((norm(&rotated[4 * b..4 * b + 4]) - want).abs() < 1e-5);
+            for c in 4 * b..4 * b + 4 {
+                moved = moved.max((rotated[c] - read[c]).abs());
+            }
+        }
+        assert!(moved > 0.1, "{moved}");
+        Ok(())
+    }
+
+    #[test]
+    fn phase_binding_trace_is_the_decay_weighted_average_of_the_past() -> Result<()> {
+        // Identity phases and unit gates over time 5, two heads: r_t is
+        // sum_{j<t} a_h^(t-1-j) v_j / sum_{j<t} a_h^(t-1-j), a_h = 1 - 2^-(2+h).
+        let dev = cpu();
+        let (time, heads) = (5usize, 2usize);
+        let one = [1f32, 0.0, 0.0, 0.0];
+        let phases: Vec<f32> = (0..time * heads).flat_map(|_| one).collect();
+        let phase = Tensor::from_vec(phases, (1, time, heads, 1, 4), &dev)?;
+        let values: Vec<f32> = (0..time * heads)
+            .flat_map(|i| [(i / heads) as f32 + 1.0, 0.0, 0.0, 0.0])
+            .collect();
+        let value = Tensor::from_vec(values, (1, time, heads, 1, 4), &dev)?;
+        let gate = Tensor::ones((1, time, heads), DType::F32, &dev)?;
+        let r = phase_bind_unbind(&phase, &phase, &value, &gate)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        for h in 0..heads {
+            let a = 1.0 - (-(2.0 + h as f64)).exp2();
+            for t in 1..time {
+                let weights: Vec<f64> = (0..t).map(|j| a.powi((t - 1 - j) as i32)).collect();
+                let want = (0..t).map(|j| weights[j] * (j as f64 + 1.0)).sum::<f64>()
+                    / weights.iter().sum::<f64>();
+                let got = f64::from(r[(t * heads + h) * 4]);
+                assert!((got - want).abs() < 1e-5, "head {h} t {t}: {got} vs {want}");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn phase_binding_is_causal() -> Result<()> {
+        let config = phase_binding_config();
+        let ids = phase_binding_ids(24);
+        let time = ids.len();
+        let plain = StackModel::new(config.clone(), &cpu())?
+            .forward(&ids, 1, time)?
+            .to_vec2::<f32>()?;
+        for snap in [true, false] {
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            model.set_read_lineage(Some(ReadLineage::PhaseBinding { snap }))?;
+            perturb_phase_binding(&model)?;
+            let rows = model.forward(&ids, 1, time)?.to_vec2::<f32>()?;
+            assert_ne!(
+                rows[time - 1],
+                plain[time - 1],
+                "snap {snap}: the branch is live"
+            );
+            let at = 12;
+            let mut changed = ids.clone();
+            changed[at] = (changed[at] + 40) % 97;
+            let after = model.forward(&changed, 1, time)?.to_vec2::<f32>()?;
+            for t in 0..at {
+                assert_eq!(after[t], rows[t], "snap {snap} row {t}");
+            }
+            assert_ne!(after[time - 1], rows[time - 1]);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn phase_binding_saves_loads_and_trains() -> Result<()> {
+        let config = phase_binding_config();
+        let ids = phase_binding_ids(24);
+        let targets: Vec<u32> = ids.iter().map(|&id| (id * 17 + 3) % 97).collect();
+        let time = ids.len();
+        for snap in [true, false] {
+            let lineage = ReadLineage::PhaseBinding { snap };
+            assert!(lineage.saveable());
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            let plain_count = model.parameter_count();
+            model.set_read_lineage(Some(lineage))?;
+            perturb_phase_binding(&model)?;
+            let rows = model.forward(&ids, 1, time)?.to_vec2::<f32>()?;
+            let dir = std::env::temp_dir().join(format!(
+                "stack-phase-bind-{}-{}",
+                lineage.name(),
+                std::process::id()
+            ));
+            model.save(&dir)?;
+            assert_eq!(StackModel::saved_read_lineage(&dir)?, Some(lineage));
+            let loaded = StackModel::load(&dir, &cpu())?;
+            fs::remove_dir_all(&dir)?;
+            assert_eq!(loaded.read_lineage(), Some(lineage));
+            assert_eq!(loaded.forward(&ids, 1, time)?.to_vec2::<f32>()?, rows);
+            let grads = model.loss(&ids, &targets, 1, time)?.backward()?;
+            let bound: Vec<(&String, &Var)> = model
+                .variables()
+                .iter()
+                .filter(|(name, _)| name.contains(".read.lineage_bind."))
+                .collect();
+            assert_eq!(bound.len(), 14, "seven per read layer");
+            for suffix in [".key_map", ".query_map", ".gate", ".mix"] {
+                for (name, var) in bound.iter().filter(|(name, _)| name.ends_with(suffix)) {
+                    let grad = grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid(format!("{name} has no gradient")))?;
+                    assert!(
+                        grad.sqr()?.sum_all()?.to_scalar::<f32>()? > 0.0,
+                        "snap {snap} {name}"
+                    );
+                }
+            }
+            model.set_read_lineage(None)?;
+            assert_eq!(model.parameter_count(), plain_count);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn phase_binding_snaps_phases_to_unit_icosians() -> Result<()> {
+        let config = phase_binding_config();
+        let mut rng = Initializer(5);
+        let input = random(&mut rng, &[1, 6, config.width], 1.0);
+        let roots = icosian_roots();
+        for snap in [true, false] {
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            model.set_read_lineage(Some(ReadLineage::PhaseBinding { snap }))?;
+            perturb_phase_binding(&model)?;
+            let p = model.params()?;
+            let mut off_root = 0usize;
+            for layer in [1, 3] {
+                for part in [
+                    (READ_LINEAGE_BIND_KEY, READ_LINEAGE_BIND_KEY_BIAS),
+                    (READ_LINEAGE_BIND_QUERY, READ_LINEAGE_BIND_QUERY_BIAS),
+                ] {
+                    let phase = model.phase_binding_phase(&p, layer, &input, part, snap)?;
+                    assert_eq!(phase.dims(), &[1, 6, 4, 4, 4]);
+                    for q in phase.flatten_all()?.to_vec1::<f32>()?.chunks_exact(4) {
+                        let norm = q.iter().map(|x| x * x).sum::<f32>().sqrt();
+                        assert!((norm - 1.0).abs() < 1e-6, "{norm}");
+                        let distance = roots
+                            .iter()
+                            .map(|root| (0..4).map(|c| (root[c] - q[c]).abs()).fold(0f32, f32::max))
+                            .fold(f32::INFINITY, f32::min);
+                        if snap {
+                            assert!(distance < 1e-6, "{q:?}");
+                        } else if distance > 1e-3 {
+                            off_root += 1;
+                        }
+                    }
+                }
+            }
+            assert_eq!(off_root > 0, !snap);
+        }
         Ok(())
     }
 

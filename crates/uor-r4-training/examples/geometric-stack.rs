@@ -4264,8 +4264,10 @@ fn read_lineage_arg(args: &Args) -> Result<Option<ReadLineage>> {
         Some("conv8") => Ok(Some(ReadLineage::LearnedConvWide { taps: 8 })),
         Some("carrier") => Ok(Some(ReadLineage::KeyCarrier)),
         Some("rot") => Ok(Some(ReadLineage::KeyPhase { snap: true })),
+        Some("phase_bind") => Ok(Some(ReadLineage::PhaseBinding { snap: true })),
+        Some("phase_bind_free") => Ok(Some(ReadLineage::PhaseBinding { snap: false })),
         Some(other) => Err(invalid(format!(
-            "invalid read_lineage={other} (none, conv8, carrier or rot)"
+            "invalid read_lineage={other} (none, conv8, carrier, rot, phase_bind or phase_bind_free)"
         ))),
     }
 }

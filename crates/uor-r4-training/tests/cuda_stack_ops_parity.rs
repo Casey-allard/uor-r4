@@ -2450,6 +2450,8 @@ fn test_step7a_read_lineage_parity() -> uor_r4_training::Result<()> {
         ReadLineage::KeyCarrier,
         ReadLineage::KeyPhase { snap: false },
         ReadLineage::KeyPhase { snap: true },
+        ReadLineage::PhaseBinding { snap: false },
+        ReadLineage::PhaseBinding { snap: true },
     ]
     .into_iter()
     .enumerate()
