@@ -562,6 +562,45 @@ struct BindingCapture<'a> {
     /// any. Exclusive with `target` and `probe`: it is the only auxiliary value
     /// block then, so its channels start at the ordinary value width.
     weights: Option<WeightDumpCapture>,
+    /// The diagnostic query/key dump ([`StackModel::read_qk_rows`]), if any.
+    /// Unlike `weights` this adds no value channel at all: it only clones
+    /// tensors the forward has already computed, so it cannot change a score,
+    /// a weight, a hidden state or a logit.
+    qk: Option<ReadQkCapture>,
+}
+
+/// Every read layer's exact per-position query/key inputs to the fused read
+/// ([`StackModel::read_qk_rows`]): the projections the score function is
+/// applied to, together with the read's fused auxiliary vector.
+///
+/// This is the accessor the Stage-0 qualification named as missing. Without
+/// the query/key vectors no score outside the three the config enum can
+/// already name (`dot`, `lorentz`, `l2`) can be evaluated on the frozen
+/// vectors, and in particular cosine cannot: for every one of those three the
+/// score is a function of `q.k`, `|q|^2` and `|k|^2` alone, so a single dump of
+/// `(q, k, aux)` is exactly enough to evaluate any score of that family, or a
+/// normalised one such as `q.k / (|q| |k|)` that is not in it.
+struct ReadQkCapture {
+    /// `(layer, the layer's frozen read inputs)` in layer order.
+    layers: Vec<(usize, ReadQkLayer)>,
+}
+
+/// One read layer's frozen score inputs, exactly as the fused read receives
+/// them (no copy is re-derived from the parameters, so the dump cannot drift
+/// from the forward by a re-implementation).
+pub struct ReadQkLayer {
+    /// `[batch, heads, time, head_width]`: the read's query projection.
+    pub query: Tensor,
+    /// `[batch, heads, time, head_width]`: the read's key projection.
+    pub key: Tensor,
+    /// The fused read's auxiliary vector, the same tensor
+    /// [`fused_read_selected`] is called with. [`fused_aux_len`] is its only
+    /// authority; with both optional blocks present its layout is
+    /// `batch*heads*time` NoRead logits in `(batch, head, time)` order, then
+    /// `heads*time` age biases in `(head, time)` order, then, only when the
+    /// score is scaled, the heads' `read.log_beta` exponentials and the heads'
+    /// `read.offset` offsets (`2 * heads` more).
+    pub aux: Tensor,
 }
 
 /// Every read layer's full softmax weight row at declared `(batch, query)`
@@ -2141,6 +2180,21 @@ impl StackModel {
         if aux.dim(0)? != fused_aux_len(batch, heads, time, self.config.read, true, true) {
             return Err(invalid("fused read auxiliary layout differs"));
         }
+        // The query/key dump ([`StackModel::read_qk_rows`]) clones the exact
+        // tensors the fused read is about to score with, after the layout check
+        // above, so its `aux` is the one `fused_read_selected` receives. It adds
+        // no value channel, no parameter and no arithmetic: nothing downstream
+        // of this point can observe it.
+        if let Some(dump) = binding.as_mut().and_then(|binding| binding.qk.as_mut()) {
+            dump.layers.push((
+                layer,
+                ReadQkLayer {
+                    query: query.clone(),
+                    key: key.clone(),
+                    aux: aux.clone(),
+                },
+            ));
+        }
         let (value, value_width) = self.read_binding_values(value, layer, binding)?;
         let read = fused_read_selected(
             &query,
@@ -2953,6 +3007,7 @@ impl StackModel {
             masses: None,
             probe: None,
             weights: None,
+            qk: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -4915,6 +4970,7 @@ impl StackModel {
             masses: None,
             probe: None,
             weights: None,
+            qk: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -6564,6 +6620,7 @@ impl StackModel {
             masses: None,
             probe: None,
             weights: None,
+            qk: None,
         });
         let x = self.layer_range_with_source(
             p,
@@ -6662,6 +6719,7 @@ impl StackModel {
                 rows: rows.to_vec(),
                 layers: Vec::new(),
             }),
+            qk: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -6679,6 +6737,75 @@ impl StackModel {
             .unwrap_or_default();
         if layers.is_empty() {
             return Err(invalid("the stack has no read layer to dump weights from"));
+        }
+        let logits = self.linear(&hidden, p.head()?)?;
+        Ok((layers, logits))
+    }
+
+    /// DIAGNOSTIC (Stage-0 follow-up): every geometric read layer's frozen
+    /// query/key projections and fused auxiliary vector, so an offline readout
+    /// can evaluate a score function the model does not itself implement on the
+    /// same vectors the model scored with.
+    ///
+    /// The returned [`ReadQkLayer`]s are the *inputs* of the same
+    /// [`fused_read_selected`] call the ordinary forward makes: they are cloned
+    /// after the auxiliary layout is validated and before any score is
+    /// computed, so the dump cannot diverge from the forward by a
+    /// re-implementation of the projections. The second returned value is the
+    /// ordinary logits `[batch * time, vocabulary]` of that same forward, so a
+    /// caller can check that attaching the dump changed nothing.
+    ///
+    /// No score, weight, hidden state, logit or parameter is modified: the
+    /// capture adds no value channel and no arithmetic. This is observation
+    /// only and is not a serving path. Like [`Self::read_weight_rows`] it
+    /// observes the plain fused read and refuses a model whose read is produced
+    /// by geometric addressing or span production.
+    pub fn read_qk_rows(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+    ) -> Result<(Vec<(usize, ReadQkLayer)>, Tensor)> {
+        if self.config.arch != StackArch::Geometric {
+            return Err(invalid("read query/key rows need the geometric stack"));
+        }
+        if self.geometric_address.is_some() || self.geometric_span.is_some() {
+            return Err(invalid(
+                "read query/key rows observe the plain fused read only (no geometric address or span)",
+            ));
+        }
+        if time == 0 || time > self.config.context {
+            return Err(invalid(
+                "read query/key rows needs one window within the context",
+            ));
+        }
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let mut binding = Some(BindingCapture {
+            target: None,
+            masses: None,
+            probe: None,
+            weights: None,
+            qk: Some(ReadQkCapture { layers: Vec::new() }),
+        });
+        let x = self.layer_range_with_source(
+            &p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut binding,
+            LatchGates::Soft,
+            ReadSource::default(),
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        let layers = binding
+            .and_then(|binding| binding.qk)
+            .map(|dump| dump.layers)
+            .unwrap_or_default();
+        if layers.is_empty() {
+            return Err(invalid(
+                "the stack has no read layer to dump query/key rows from",
+            ));
         }
         let logits = self.linear(&hidden, p.head()?)?;
         Ok((layers, logits))
@@ -6726,6 +6853,7 @@ impl StackModel {
                 layers: Vec::new(),
             }),
             weights: None,
+            qk: None,
         });
         let x = self.layer_range_bound(
             &p,

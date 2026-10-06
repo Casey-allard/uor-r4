@@ -63,7 +63,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
-use candle_core::{Device, Tensor};
+use candle_core::{DType, Device, Tensor};
 use serde_json::{json, Value};
 use uor_r4_core::report_output;
 #[cfg(test)]
@@ -1282,11 +1282,46 @@ fn stage0_sieve(
     ))
 }
 
+/// Write a tensor's f32 payload to `path` as raw little-endian f32 and return a
+/// manifest record for it. Deliberately dumb: the offline reader is Python and
+/// re-derives nothing from the model, so every shape, count and range the
+/// reader needs is recorded next to the bytes rather than assumed.
+fn dump_f32(path: &Path, tensor: &Tensor) -> Result<Value> {
+    let shape = tensor.dims().to_vec();
+    let data = tensor
+        .flatten_all()?
+        .to_dtype(DType::F32)?
+        .to_vec1::<f32>()?;
+    let mut bytes = Vec::with_capacity(data.len() * 4);
+    for value in &data {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    fs::write(path, &bytes)?;
+    Ok(json!({
+        "file": path.file_name().map(|n| n.to_string_lossy().to_string()),
+        "shape": shape,
+        "count": data.len(),
+        "bytes": bytes.len(),
+        "min": data.iter().copied().fold(f32::INFINITY, f32::min),
+        "max": data.iter().copied().fold(f32::NEG_INFINITY, f32::max),
+    }))
+}
+
+/// Stack a per-layer weight dump (`[(layer, [rows, heads, time])]`) into one
+/// `[layers, rows, heads, time]` tensor, and return the layer order with it: the
+/// offline reader is given the order rather than trusting the dump's.
+fn stack_layers(dump: &[(usize, Tensor)]) -> Result<(Tensor, Vec<usize>)> {
+    let order: Vec<usize> = dump.iter().map(|(layer, _)| *layer).collect();
+    let tensors: Vec<Tensor> = dump.iter().map(|(_, t)| t.clone()).collect();
+    Ok((Tensor::stack(&tensors, 0)?, order))
+}
+
 fn stage0_readout(
     arm: &mut dyn ContextArm,
     sequences: &[Sequence],
     context: usize,
     buckets: &[Bucket],
+    dump_dir: Option<&Path>,
 ) -> Result<Value> {
     if arm.read_heads().is_empty() {
         return Ok(json!({"status": "UNAVAILABLE: the arm has no read heads"}));
@@ -1327,6 +1362,76 @@ fn stage0_readout(
     let layers = a1_dump.0.len();
     let (a1, a1_buckets, a1_rows) = stage0_tally_dump(&a1_dump.0, &meta, nb)?;
 
+    // The frozen-vector dump (Stage-0 follow-up): the exact per-position query
+    // and key projections the fused read scores with, plus its auxiliary
+    // vector, so an offline readout can evaluate a score the model does not
+    // itself implement -- cosine, and the norm/direction split -- on precisely
+    // these vectors. Taken while the arm's *own* score is active: the
+    // projections do not depend on the score function, only the score does, so
+    // one dump serves every arm.
+    let mut vector_dump = json!({"requested": false});
+    if let Some(dir) = dump_dir {
+        fs::create_dir_all(dir)?;
+        let (read_score, qk, qk_logits) = {
+            let model = arm
+                .stack_mut()
+                .ok_or_else(|| invalid("stage0 needs the stack arm"))?;
+            let (qk, logits) = model.read_qk_rows(&ids, batch, context)?;
+            (serde_json::to_value(model.config.read)?, qk, logits)
+        };
+        // Inertness, measured rather than asserted: `read_weight_rows` returns
+        // the logits of its own (different capture, same forward) run. The qk
+        // capture adds no value channel and no arithmetic, so the two must
+        // agree exactly. If they do not, the dump is not observation only and
+        // no number derived from it is interpretable.
+        let inert_exact = {
+            let a = qk_logits.flatten_all()?.to_vec1::<f32>()?;
+            let b = a1_dump.1.flatten_all()?.to_vec1::<f32>()?;
+            a.len() == b.len() && a == b
+        };
+        let mut per_layer = Vec::new();
+        for (layer, row) in &qk {
+            per_layer.push(json!({
+                "layer": layer,
+                "query": dump_f32(&dir.join(format!("layer{layer}.query.f32")), &row.query)?,
+                "key": dump_f32(&dir.join(format!("layer{layer}.key.f32")), &row.key)?,
+                "aux": dump_f32(&dir.join(format!("layer{layer}.aux.f32")), &row.aux)?,
+            }));
+        }
+        let (l2_weights, weight_order) = stack_layers(&a1_dump.0)?;
+        let l2_weights = dump_f32(&dir.join("weights_l2.f32"), &l2_weights)?;
+        write_json(
+            &dir.join("vectors.json"),
+            &json!({
+                "schema": "uor-r4.mqar-bench.stage0-vectors/1",
+                "note": "raw frozen read inputs; the offline readout swaps only the score function",
+                "arm_read_score": read_score,
+                "sequences": take,
+                "batch": batch,
+                "time": context,
+                "heads": qk.first().map(|(_, row)| row.query.dims4().map(|d| d.1)).transpose()?,
+                "qk_layers": per_layer,
+                "qk_logits_equal_to_weight_dump_logits": inert_exact,
+                "weights_l2": {"dump": l2_weights, "layer_order": weight_order},
+                "rows": meta.iter().map(|row| json!({
+                    "sequence": row.sequence,
+                    "position": row.position,
+                    "distance": row.distance,
+                    "value": row.value,
+                    "bucket": buckets[row.bucket].name,
+                    "pairs_before": row.pairs_before,
+                })).collect::<Vec<_>>(),
+            }),
+        )?;
+        vector_dump = json!({
+            "requested": true,
+            "dir": dir.display().to_string(),
+            "layers": qk.len(),
+            "rows": meta.len(),
+            "inert_logits_exact": inert_exact,
+        });
+    }
+
     // A2a: the same forward, plain dot over the same frozen q/k.
     let saved_read = {
         let model = arm
@@ -1361,6 +1466,25 @@ fn stage0_readout(
     };
     let a2b_dump = arm.read_weight_rows(&ids, batch, context, &rows)?;
     let (a2b, a2b_buckets, a2b_rows) = stage0_tally_dump(&a2b_dump.0, &meta, nb)?;
+    // The plain-dot, age-zeroed weight dump: the library's own A2b, written from
+    // the identical code path. It is both the instrument-gate control against
+    // the sealed A2b numbers and the reference the offline dot recomputed from
+    // the frozen vectors has to reproduce bit for bit.
+    if let Some(dir) = dump_dir {
+        let (dot_weights, dot_order) = stack_layers(&a2b_dump.0)?;
+        let dot_weights = dump_f32(&dir.join("weights_dot_age0.f32"), &dot_weights)?;
+        write_json(
+            &dir.join("weights_dot_age0.json"),
+            &json!({
+                "schema": "uor-r4.mqar-bench.stage0-weights/1",
+                "note": "the library's own plain-dot, age-zeroed read weights (Stage-0 A2b)",
+                "score": "dot",
+                "age_zeroed": true,
+                "weights": dot_weights,
+                "layer_order": dot_order,
+            }),
+        )?;
+    }
     // Release both dot dumps before the restore dump: only A1's is needed for
     // the bitwise swap check, and the peak memory here is under pressure.
     drop(a2a_dump);
@@ -1483,6 +1607,7 @@ fn stage0_readout(
             "age_variables_saved_and_restored": saved_age.len(),
             "a1_reproduces_after_restore_bitwise": swap_exact,
         },
+        "raw_vector_dump": vector_dump,
         "overall": Value::Object(overall),
         "by_bucket": Value::Object(by_bucket),
         "row_outcomes": row_outcomes,
@@ -1577,6 +1702,21 @@ struct Common {
     /// token-identity sieve (A3). Observation only: it changes no logit and
     /// moves no tally, and the model's own score is restored before it returns.
     stage0: bool,
+    /// `init=DIR`: load a saved stack (`StackModel::save`'s directory) instead
+    /// of training one. This exists so a *frozen* checkpoint can be re-measured
+    /// without repeating the training run that produced it: it is the whole
+    /// point of the follow-up, since re-training would make the "frozen
+    /// vectors" claim a different object. Pair it with `steps=0` to skip the
+    /// loop entirely; the load is not silently a no-op, `main` records whether
+    /// it happened.
+    init: Option<PathBuf>,
+    /// `stage0_dump=DIR`: with `stage0=true`, additionally write the raw frozen
+    /// score inputs (per read layer: the query and key projections and the
+    /// fused auxiliary vector) and the two library weight dumps to `DIR`, so an
+    /// offline readout can evaluate a score the model does not itself implement
+    /// (cosine, and the norm/direction split) on exactly the vectors the model
+    /// scored with. Observation only: it writes files and changes no logit.
+    stage0_dump: Option<PathBuf>,
 }
 
 impl Common {
@@ -1603,6 +1743,8 @@ impl Common {
             "probe_steps": self.probe_steps, "probe_sequences": self.probe_sequences,
             "dump_scores": self.dump_scores,
             "stage0": self.stage0,
+            "init": self.init.as_ref().map(|p| p.display().to_string()),
+            "stage0_dump": self.stage0_dump.as_ref().map(|p| p.display().to_string()),
         })
     }
 }
@@ -1668,6 +1810,8 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
             Some(other) => return Err(invalid(format!("invalid dump_scores={other}"))),
         },
         stage0: args.parsed("stage0", false)?,
+        init: args.take("init").map(PathBuf::from),
+        stage0_dump: args.take("stage0_dump").map(PathBuf::from),
     };
     let mut common = common;
     let probe_text = args
@@ -1702,8 +1846,15 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
     };
     let arm = ArmSpec::parse(&mut args, common.seed)?;
     args.finish()?;
+    // `steps=0` is refused on the ordinary path because a zero-step run would
+    // silently report an untrained model. It is allowed exactly when a
+    // checkpoint is loaded (`init=`), where the measurement is defined to run
+    // on frozen weights and repeating the training loop would defeat the whole
+    // point of the frozen-vector claim. This is the only exemption; every other
+    // positivity requirement is unchanged.
+    let zero_steps_ok = common.steps == 0 && common.init.is_some();
     if common.batch == 0
-        || common.steps == 0
+        || (common.steps == 0 && !zero_steps_ok)
         || common.eval_every == 0
         || common.curve_sequences == 0
         || common.final_sequences < 2
@@ -1937,7 +2088,13 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
     // Observation only: it runs after every tally is final and restores the
     // arm's own score before it returns.
     let stage0 = if s.stage0 {
-        let value = stage0_readout(arm, &in_class_set, s.context, &buckets)?;
+        let value = stage0_readout(
+            arm,
+            &in_class_set,
+            s.context,
+            &buckets,
+            s.stage0_dump.as_deref(),
+        )?;
         write_json(&s.out.join("stage0_readout.json"), &value)?;
         let line = format!(
             "stage0 frozen-vector readout: A1 top1 {:.4} | A2a(dot+age) {:.4} | A2b(dot,no age) {:.4} | A3(sieve) {:.4} | A1 restored bitwise {}",
@@ -2059,11 +2216,32 @@ fn main() -> Result<()> {
     let result = (|| -> Result<(Value, Value)> {
         let device = uor_r4_training::baseline_protocol::device(&common.device_name)?;
         let mut arm = spec.build(&common, &device)?;
+        // `init=DIR` replaces the freshly built parameters with the saved
+        // ones, so the measurement runs on the frozen checkpoint instead of a
+        // new training run. The saved `config.json` is loaded with them, and
+        // the loaded config is what the arm then reports, so a mismatched
+        // config cannot be mistaken for a match.
+        let init = match &common.init {
+            None => json!({"requested": false}),
+            Some(dir) => {
+                let model = arm
+                    .stack_mut()
+                    .ok_or_else(|| invalid("init= needs the stack arm"))?;
+                *model = StackModel::load(dir, &device)?;
+                json!({
+                    "requested": true,
+                    "loaded": true,
+                    "path": dir.display().to_string(),
+                    "loaded_config": model.config.clone(),
+                })
+            }
+        };
         let arm_record = json!({
             "label": spec.label(),
             "kind": arm.kind(),
             "parameters": arm.parameters(),
             "config": arm.record(),
+            "init": init,
         });
         let mut results = run(&common, arm.as_mut(), &mut log)?;
         results["model_save"] = save_model(&common, arm.as_ref());
@@ -2228,6 +2406,10 @@ mod tests {
             probe_sequences: 2,
             dump_scores: false,
             stage0: false,
+            // `init` and `stage0_dump` complete the literal: the follow-up
+            // added them, and the test target must compile.
+            init: None,
+            stage0_dump: None,
         };
         let spec = ArmSpec::Stack {
             pattern: "rar".into(),
