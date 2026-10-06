@@ -81,8 +81,9 @@ use uor_r4_core::report_output;
 #[cfg(test)]
 use uor_r4_training::geometric_stack::quaternion_j_left;
 use uor_r4_training::geometric_stack::{
-    parse_pointer_route, PointerConfig, PrimeRoute, ReadBinding, ReadBindingTarget, ReadLineage,
-    ReadScore, RotationGroup, StackAdamW, StackArch, StackConfig, StackModel,
+    parse_pointer_route, parse_pointer_select, PointerConfig, PointerSelect, PrimeRoute,
+    ReadBinding, ReadBindingTarget, ReadLineage, ReadScore, RotationGroup, StackAdamW, StackArch,
+    StackConfig, StackModel,
 };
 use uor_r4_training::{Result, TrainingError};
 
@@ -870,9 +871,11 @@ impl ArmSpec {
                 // unless `pointer=` is given, which is what every prior run did -- so the
                 // geometric `ngram` successor route (longest ordered n-let match) has never
                 // been exercised here. This is D20 section 2 condition 3 in its exact form.
-                if let Some(route) = common.pointer.clone() {
-                    model.add_pointer(PointerConfig::new(config.width), common.seed)?;
-                    model.set_pointer_route(Some(route))?;
+                if common.select.is_some() || common.pointer.is_some() {
+                    let mut head = PointerConfig::new(config.width);
+                    head.select = common.select.clone();
+                    model.add_pointer(head, common.seed)?;
+                    model.set_pointer_route(common.pointer.clone())?;
                 }
                 if *age != AgeInit::Default {
                     for (name, var) in model.variables() {
@@ -2192,6 +2195,12 @@ struct Common {
     /// the longest ordered n-let match) has therefore NEVER been exercised on this bench.
     /// That is D20 section 2 condition 3 ("wiring verified reached") in its exact form.
     pointer: Option<PrimeRoute>,
+    /// The pointer head's own selection, from `select=<spec>` (`none`, `top:<k>`,
+    /// `flock:<window>:<k>`). Setting it ENABLES the pointer head. The design doc calls
+    /// `TopK(1)` "the single-source pointer"; with `select: None` the copy distribution is a
+    /// soft average over EVERY source, which is diffuse rather than pointed. The bench
+    /// hardcoded `None`, so the single-source configuration had never been run here.
+    select: Option<PointerSelect>,
     max_seconds: f64,
     /// Steps at which the read probe runs (0 = before training).
     probe_steps: Vec<usize>,
@@ -2300,6 +2309,10 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
         pointer: match args.take("pointer") {
             None => None,
             Some(text) => parse_pointer_route(&text)?,
+        },
+        select: match args.take("select") {
+            None => None,
+            Some(text) => parse_pointer_select(&text)?,
         },
         max_seconds: args.parsed("max_seconds", 1200f64)?,
         probe_steps: Vec::new(),
