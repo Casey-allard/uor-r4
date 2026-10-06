@@ -1,0 +1,71 @@
+#!/bin/zsh
+# lab-heartbeat: keep a lab's coordination heartbeat fresh.
+#
+# Why this exists: tools/lab-runner/src/coord.rs:14 sets TTL = 1200 (20 minutes),
+# and coord.rs:492 expires a lab whose heartbeat is stale. A MANUAL client cannot
+# renew inside a 20-minute window, so its lab silently expires — which is exactly
+# what happened to the DeepSeek lab (heartbeat ~Oct 1 against sequence 896) and why
+# its adapter records "no heartbeat automation". This closes that structural gap.
+#
+# Usage: lab-heartbeat <session> [coord.git path]
+# Exits 0 on success, non-zero otherwise. Safe to run repeatedly.
+
+set -u
+
+SESSION="${1:-}"
+COORD="${2:-$HOME/.local/share/uor-r4/coord.git}"
+BIN_DIR="$HOME/.local/share/uor-r4/bin"
+LOG="$HOME/.local/share/uor-r4/runner/heartbeat-${SESSION:-unknown}.log"
+
+if [[ -z "$SESSION" ]]; then
+  print -u2 "usage: lab-heartbeat <session> [coord.git path]"
+  exit 2
+fi
+
+# Prefer the newest release binary; the runner ships many versioned builds.
+LR=""
+for candidate in $(ls -t "$BIN_DIR"/lab-runner-* 2>/dev/null | grep -v -- '-debug$'); do
+  LR="$candidate"; break
+done
+[[ -z "$LR" ]] && LR=$(ls -t "$BIN_DIR"/lab-runner-* 2>/dev/null | head -1)
+if [[ -z "$LR" || ! -x "$LR" ]]; then
+  print -u2 "lab-heartbeat: no lab-runner binary in $BIN_DIR"; exit 3
+fi
+
+if [[ ! -d "$COORD" ]]; then
+  print -u2 "lab-heartbeat: coordination store not found: $COORD"; exit 4
+fi
+
+# Unique per beat so the event is not deduplicated away.
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+EVENT=$(mktemp "${TMPDIR:-/tmp}/lab-heartbeat-${SESSION}-XXXXXX.json")
+trap 'rm -f "$EVENT"' EXIT
+
+cat > "$EVENT" <<JSON
+{
+  "event_id": "${SESSION}-hb-${STAMP}",
+  "op": "heartbeat",
+  "session": "${SESSION}",
+  "available": true
+}
+JSON
+
+OUT=$("$LR" coord apply "$COORD" "$EVENT" 2>&1)
+RC=$?
+
+{
+  print "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] session=$SESSION rc=$RC out=$OUT"
+} >> "$LOG"
+
+if [[ $RC -ne 0 ]]; then
+  print -u2 "lab-heartbeat: apply failed (rc=$RC): $OUT"
+  exit 1
+fi
+
+# Keep the log bounded; it is diagnostic, not an audit trail (the coord store is).
+if [[ -f "$LOG" ]] && [[ $(wc -l < "$LOG") -gt 500 ]]; then
+  tail -200 "$LOG" > "$LOG.tmp" && mv "$LOG.tmp" "$LOG"
+fi
+
+print "heartbeat ok: $SESSION (${OUT[1,12]})"
+exit 0

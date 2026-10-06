@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>org.uor.__LAB__-heartbeat</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>__HOME__/.local/share/uor-r4/bin/lab-heartbeat</string>
+		<string>__SESSION__</string>
+		<string>__HOME__/.local/share/uor-r4/coord.git</string>
+	</array>
+	<!-- coord.rs TTL is 1200s (20 min). 600s gives a 2x margin and survives
+	     one missed run (sleep, network blip) without the lab expiring. -->
+	<key>StartInterval</key>
+	<integer>600</integer>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+	</dict>
+	<key>StandardOutPath</key>
+	<string>__HOME__/.local/share/uor-r4/runner/heartbeat-agent.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>__HOME__/.local/share/uor-r4/runner/heartbeat-agent.err.log</string>
+	<key>ThrottleInterval</key>
+	<integer>60</integer>
+</dict>
+</plist>

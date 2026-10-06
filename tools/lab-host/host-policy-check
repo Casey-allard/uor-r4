@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""host-policy-check: detect drift between the machine, the local host policy, the
+repo's declared storage watermarks, and the live runner admission state.
+
+Why this exists. On 2026-10-06 the local runner host-policy.json (mtime 2026-09-30)
+still declared two volumes destroyed when a drive failed and the workflow moved to
+iCloud, and the runner's admission was held on a stale free-space measurement that
+nothing re-evaluated. Both were discoverable only by reading three files that nothing
+compared. This compares them.
+
+Read-only. Exit 0 = clean, 1 = drift or blocking condition found.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+HOME = Path.home()
+RUNNER = Path(os.environ.get("RUNNER", HOME / ".local/share/uor-r4/runner"))
+REPO = Path(os.environ.get("REPO", HOME / "uor-r4-worktrees/post1678"))
+STORE = Path(os.environ.get("COORD_STORE", HOME / ".local/share/uor-r4/coord.git"))
+
+POLICY = RUNNER / "host-policy.json"
+ADMISSION = RUNNER / "admissions-held.json"
+REPO_POLICY = "docs/integration/agent-execution-policy.json"
+
+# repo watermark key -> local host-policy volume id
+WATERMARK_VOLUME = {
+    "internal": "internal",
+    "inner_workspace": "workspace",
+    "outer_ssd": "backing",
+}
+
+GiB = 1024**3
+TTL_SECONDS = 1200  # coord.rs:14
+TIMEOUT = 20
+
+issues: list[str] = []
+
+
+def out(line: str = "") -> None:
+    print(line)
+
+
+def ok(msg: str) -> None:
+    out(f"  \u2713 {msg}")
+
+
+def bad(msg: str) -> None:
+    out(f"  \u2717 {msg}")
+    issues.append(msg)
+
+
+def note(msg: str) -> None:
+    out(f"  {msg}")
+
+
+def gib(n: float) -> str:
+    return f"{n / GiB:.1f} GiB"
+
+
+def read_json(path: Path):
+    try:
+        return json.loads(path.read_text())
+    except Exception as exc:  # noqa: BLE001 - report, never raise
+        return {"__error__": str(exc)}
+
+
+def repo_file(rel: str) -> str | None:
+    try:
+        r = subprocess.run(
+            ["git", "-C", str(REPO), "show", f"origin/main:{rel}"],
+            capture_output=True, text=True, timeout=TIMEOUT, check=False,
+        )
+        return r.stdout if r.returncode == 0 and r.stdout.strip() else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def coord_status():
+    """Best-effort live lab state. None when unavailable."""
+    bindir = HOME / ".local/share/uor-r4/bin"
+    bins = sorted(
+        (p for p in bindir.glob("lab-runner-*") if not p.name.endswith("-debug")),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not bins:
+        return None
+    try:
+        r = subprocess.run(
+            [str(bins[0]), "coord", "status", str(STORE)],
+            capture_output=True, text=True, timeout=TIMEOUT, check=False,
+        )
+        return json.loads(r.stdout) if r.returncode == 0 else None
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def main() -> int:
+    out(f"host-policy-check \u2014 {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}")
+    out()
+
+    # ------------------------------------------------------------ local policy
+    out(f"[1] local host policy: {POLICY}")
+    policy = None
+    if not POLICY.exists():
+        bad("local host-policy.json is missing")
+    else:
+        policy = read_json(POLICY)
+        if "__error__" in policy:
+            bad(f"local host-policy.json unreadable: {policy['__error__']}")
+            policy = None
+        else:
+            mtime = POLICY.stat().st_mtime
+            age_days = int((time.time() - mtime) / 86400)
+            note(
+                f"mtime {time.strftime('%Y-%m-%d %H:%M', time.localtime(mtime))} "
+                f"({age_days}d old)"
+            )
+            if age_days >= 7:
+                bad(f"local policy is {age_days} days old \u2014 verify against current practice")
+    out()
+
+    volumes = (policy or {}).get("volumes", [])
+
+    # -------------------------------------------------- declared volumes exist
+    out("[2] declared volumes actually present")
+    if not volumes:
+        note("(no volumes declared)")
+    for v in volumes:
+        path = Path(v.get("path", ""))
+        sentinel = v.get("sentinel", "")
+        if not path.is_dir():
+            bad(
+                f"volume '{v.get('id')}' declared at {path} \u2014 PATH DOES NOT EXIST "
+                "(dead hardware still in policy?)"
+            )
+        elif sentinel and not Path(sentinel).exists():
+            bad(f"volume '{v.get('id')}' present but sentinel missing: {sentinel}")
+        else:
+            ok(f"volume '{v.get('id')}' at {path} (reserve {gib(v.get('reserve_bytes', 0))})")
+    out()
+
+    # ------------------------------------------- free space vs declared reserve
+    out("[3] free space vs declared reserve")
+    checked = 0
+    for v in volumes:
+        path = Path(v.get("path", ""))
+        if not path.is_dir():
+            continue
+        try:
+            st = os.statvfs(path)
+        except OSError as exc:
+            bad(f"{v.get('id')}: statvfs failed: {exc}")
+            continue
+        checked += 1
+        free = st.f_bavail * st.f_frsize
+        reserve = int(v.get("reserve_bytes", 0))
+        if free < reserve:
+            bad(
+                f"{v.get('id')}: {gib(free)} free < {gib(reserve)} reserve "
+                "\u2014 ADMISSION SHOULD BE HELD"
+            )
+        else:
+            ok(f"{v.get('id')}: {gib(free)} free \u2265 {gib(reserve)} reserve")
+    if checked == 0:
+        note("(no present volumes to measure)")
+    out()
+
+    # ------------------------------------ repo watermarks vs local host policy
+    out("[4] repo storage watermarks vs local reserve")
+    raw = repo_file(REPO_POLICY)
+    if not raw:
+        note(f"(could not read origin/main:{REPO_POLICY}; skipped)")
+    else:
+        try:
+            wm = (
+                json.loads(raw)
+                .get("execution", {})
+                .get("machine_budget", {})
+                .get("storage_watermarks_gib", {})
+            )
+        except Exception as exc:  # noqa: BLE001
+            wm = {}
+            note(f"(repo watermarks unparseable: {exc})")
+
+        local_by_id = {v.get("id"): v for v in volumes}
+        for key, w in wm.items():
+            t, warn, stop = w.get("target"), w.get("warning"), w.get("stop")
+            note(f"repo {key}: target={t} warning={warn} stop={stop} GiB")
+            vid = WATERMARK_VOLUME.get(key)
+            if vid is None:
+                continue
+            local = local_by_id.get(vid)
+            if local is None:
+                bad(
+                    f"{key}: repo declares a watermark but no local volume '{vid}' "
+                    "\u2014 declared hardware and policy disagree"
+                )
+                continue
+            local_gib = int(local.get("reserve_bytes", 0)) // GiB
+            if warn is not None and local_gib != warn:
+                bad(
+                    f"{key}: local reserve={local_gib} GiB but repo warning={warn} GiB "
+                    "\u2014 DRIFT"
+                )
+    out()
+
+    # ------------------------------------------------- admission hold freshness
+    out("[5] admission hold freshness")
+    if not ADMISSION.exists():
+        ok("no admission hold present")
+    else:
+        held = read_json(ADMISSION)
+        at = held.get("at", "")
+        reason = held.get("reason", "")
+        note(f"held at: {at or '(unknown)'}")
+        note(f"reason : {reason or '(unknown)'}")
+        if "free bytes" in reason and "below required" in reason:
+            try:
+                need = int(reason.split("required")[-1].strip().split()[0])
+            except Exception:  # noqa: BLE001
+                need = None
+            try:
+                st = os.statvfs("/System/Volumes/Data")
+                have = st.f_bavail * st.f_frsize
+            except OSError:
+                have = None
+            if need and have is not None:
+                if have >= need:
+                    bad(
+                        f"hold is STALE: claims below-required, but current free "
+                        f"({gib(have)}) \u2265 required ({gib(need)}) \u2014 "
+                        "nothing re-evaluated it"
+                    )
+                else:
+                    ok(f"hold consistent with current free space ({gib(have)} < {gib(need)})")
+    out()
+
+    # --------------------------------------------------------------- lab state
+    out(f"[6] lab heartbeat freshness (TTL {TTL_SECONDS}s per coord.rs:14)")
+    status = coord_status()
+    if not status:
+        note("(coord status unavailable; skipped)")
+    else:
+        now = int(time.time())
+        for sid, lab in (status.get("labs") or {}).items():
+            hb = int(lab.get("heartbeat", 0))
+            remaining = hb + TTL_SECONDS - now
+            if not lab.get("available", False):
+                note(f"{sid}: unavailable")
+            elif remaining <= 0:
+                bad(
+                    f"{sid}: heartbeat EXPIRED {int(-remaining / 60)}m ago "
+                    "\u2014 no heartbeat automation?"
+                )
+            else:
+                ok(f"{sid}: {int(remaining / 60)}m remaining")
+    out()
+
+    if issues:
+        out(f"RESULT: {len(issues)} drift/blocking condition(s) found.")
+        return 1
+    out("RESULT: no drift or blocking condition found.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
