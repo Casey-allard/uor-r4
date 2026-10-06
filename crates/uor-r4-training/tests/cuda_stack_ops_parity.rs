@@ -2408,6 +2408,98 @@ fn test_bf16_training_1000_steps_is_finite() -> uor_r4_training::Result<()> {
     Ok(())
 }
 
+/// Step 7a key-content lineages (`conv8`, the key carrier): a model with the
+/// lineage moved off its initialisation gives the same loss, logits and
+/// lineage-parameter gradients on CPU and CUDA (saved on CPU, loaded on each).
+#[cfg(feature = "cuda")]
+#[test]
+fn test_step7a_read_lineage_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::{
+        ReadLineage, ReadScore, StackArch, StackConfig, StackModel,
+    };
+    let cuda = match candle_core::Device::new_cuda(0) {
+        Ok(device) => device,
+        Err(e) => return no_device(e),
+    };
+    let cpu = candle_core::Device::Cpu;
+    let config = StackConfig {
+        arch: StackArch::Geometric,
+        vocab_size: 97,
+        width: 64,
+        heads: 4,
+        mlp_hidden: 96,
+        context: 48,
+        pattern: "rara".into(),
+        read: ReadScore::L2,
+        rotation: true,
+        rotation_group: Default::default(),
+        seed: 3,
+        memory: None,
+        select: None,
+        pointer: None,
+    };
+    let (batch, time) = (2usize, 48usize);
+    let ids: Vec<u32> = (0..batch * time)
+        .map(|i| ((i * 31 + 7) % 97) as u32)
+        .collect();
+    let targets: Vec<u32> = (0..batch * time)
+        .map(|i| ((i * 17 + 3) % 97) as u32)
+        .collect();
+    for (index, lineage) in [
+        ReadLineage::LearnedConvWide { taps: 8 },
+        ReadLineage::KeyCarrier,
+        ReadLineage::KeyPhase { snap: false },
+        ReadLineage::KeyPhase { snap: true },
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let mut model = StackModel::new(config.clone(), &cpu)?;
+        model.set_read_lineage(Some(lineage))?;
+        for (n, (name, var)) in model.variables().iter().enumerate() {
+            if name.contains(".read.lineage_") {
+                let moved = var.as_tensor().add(&candle_core::Tensor::from_vec(
+                    noise(var.elem_count(), 100 + n as u64, 0.3),
+                    var.shape(),
+                    &cpu,
+                )?)?;
+                var.set(&moved)?;
+            }
+        }
+        let dir = std::env::temp_dir().join(format!(
+            "cuda-step7a-lineage-{index}-{}",
+            std::process::id()
+        ));
+        model.save(&dir)?;
+        let mut runs = Vec::new();
+        for device in [&cpu, &cuda] {
+            let model = StackModel::load(&dir, device)?;
+            assert_eq!(model.read_lineage(), Some(lineage));
+            let loss = model.loss(&ids, &targets, batch, time)?;
+            let grads = loss.backward()?;
+            let mut lineage_grads = Vec::new();
+            for (name, var) in model.variables() {
+                if name.contains(".read.lineage_") {
+                    let grad = grads.get(var.as_tensor()).expect("lineage gradient");
+                    lineage_grads.push((name.clone(), values(grad)?));
+                }
+            }
+            let logits = values(&model.forward(&ids, batch, time)?)?;
+            runs.push((values(&loss)?, logits, lineage_grads));
+        }
+        std::fs::remove_dir_all(&dir)?;
+        let name = lineage.name();
+        compare(&runs[0].0, &runs[1].0, 1e-4, &format!("{name} loss"));
+        compare(&runs[0].1, &runs[1].1, 1e-3, &format!("{name} logits"));
+        assert_eq!(runs[0].2.len(), runs[1].2.len());
+        for ((n0, g0), (n1, g1)) in runs[0].2.iter().zip(&runs[1].2) {
+            assert_eq!(n0, n1);
+            compare(g0, g1, 1e-3, &format!("{name} grad {n0}"));
+        }
+    }
+    Ok(())
+}
+
 /// Step 7d read-binding supervision: the same model (saved on the CPU, loaded
 /// on CUDA) gives the same language, binding and total losses, the same
 /// selected heads and masses, and the same gradient of the total, for the L2,

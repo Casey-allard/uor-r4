@@ -261,6 +261,84 @@ pub fn disjoint(sets: [BTreeSet<usize>; 5]) -> [Vec<usize>; 5] {
     })
 }
 
+/// The maximal runs of consecutive positions of a sorted position set.
+pub fn runs(positions: &[usize]) -> Vec<Range<usize>> {
+    let mut out: Vec<Range<usize>> = Vec::new();
+    for &j in positions {
+        match out.last_mut() {
+            Some(run) if run.end == j => run.end = j + 1,
+            _ => out.push(j..j + 1),
+        }
+    }
+    out
+}
+
+/// The signed token gap from a value occurrence to its nearest key-word
+/// occurrence, minimised in magnitude over every pair of `values` and `keys`
+/// runs: `value.start - (key.end - 1)` when the key precedes the value (1 =
+/// the key's last token is immediately before the value's first token, the
+/// only case a one-token previous-key channel reaches), `-(key.start -
+/// (value.end - 1))` when the key follows it, 0 when they overlap. A tie in
+/// magnitude goes to the preceding key. `None` when either side is empty.
+pub fn nearest_key_gap(values: &[Range<usize>], keys: &[Range<usize>]) -> Option<i64> {
+    let mut best: Option<i64> = None;
+    for value in values {
+        for key in keys {
+            let gap = if key.end <= value.start {
+                (value.start - (key.end - 1)) as i64
+            } else if key.start >= value.end {
+                -((key.start - (value.end - 1)) as i64)
+            } else {
+                0
+            };
+            if best.is_none_or(|b| gap.abs() < b.abs() || (gap.abs() == b.abs() && gap > b)) {
+                best = Some(gap);
+            }
+        }
+    }
+    best
+}
+
+/// The counterfactual window that exchanges two key words: every run of `a`
+/// is replaced by the tokens of `b`'s first run and every run of `b` by the
+/// tokens of `a`'s first run. Returns the new window and, for each old
+/// position `0..=len`, its new position (a position inside a replaced run
+/// maps to the replacement's start). `None` when either side has no run, a
+/// run leaves the window or two runs overlap.
+pub fn swap_runs(
+    window: &[u32],
+    a: &[Range<usize>],
+    b: &[Range<usize>],
+) -> Option<(Vec<u32>, Vec<usize>)> {
+    let (first_a, first_b) = (a.first()?, b.first()?);
+    if first_a.end > window.len() || first_b.end > window.len() {
+        return None;
+    }
+    let mut marks: Vec<Option<&[u32]>> = vec![None; window.len()];
+    let mut inside = vec![false; window.len()];
+    for (group, with) in [(a, &window[first_b.clone()]), (b, &window[first_a.clone()])] {
+        for run in group {
+            if run.is_empty() || run.end > window.len() || inside[run.clone()].iter().any(|&x| x) {
+                return None;
+            }
+            inside[run.clone()].iter_mut().for_each(|x| *x = true);
+            marks[run.start] = Some(with);
+        }
+    }
+    let mut out = Vec::with_capacity(window.len());
+    let mut map = Vec::with_capacity(window.len() + 1);
+    for (j, &id) in window.iter().enumerate() {
+        map.push(out.len());
+        match marks[j] {
+            Some(with) => out.extend_from_slice(with),
+            None if inside[j] => {}
+            None => out.push(id),
+        }
+    }
+    map.push(out.len());
+    Some((out, map))
+}
+
 /// What the probe saw at the decision query, reduced for classification.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Evidence {
@@ -515,5 +593,28 @@ mod tests {
             e(TAU, TAU, None, None, 0.0, 0.0).pattern(TAU),
             MassPattern::Expected
         );
+    }
+
+    #[test]
+    fn key_runs_gaps_and_swaps() {
+        assert_eq!(runs(&[1, 2, 3, 7, 9, 10]), vec![1..4, 7..8, 9..11]);
+        assert!(runs(&[]).is_empty());
+        // "The turtle is Shelby": key 1..2, value 3..4 -> gap 2; adjacent -> 1.
+        assert_eq!(nearest_key_gap(&[3..4], &[1..2]), Some(2));
+        assert_eq!(nearest_key_gap(&[2..3], &[1..2]), Some(1));
+        // "Shelby, the turtle": the key follows the value.
+        assert_eq!(nearest_key_gap(&[0..1], &[3..5]), Some(-3));
+        assert_eq!(nearest_key_gap(&[3..5], &[4..6]), Some(0));
+        assert_eq!(nearest_key_gap(&[10..11], &[1..2, 8..9]), Some(2));
+        assert_eq!(nearest_key_gap(&[5..6], &[3..4, 7..8]), Some(2));
+        assert_eq!(nearest_key_gap(&[], &[1..2]), None);
+        // Exchange a one-token and a two-token key word.
+        let window = [10u32, 11, 12, 13, 20, 21, 14, 15];
+        let (swapped, map) = swap_runs(&window, &[1..2], &[4..6]).expect("swap");
+        assert_eq!(swapped, vec![10, 20, 21, 12, 13, 11, 14, 15]);
+        assert_eq!(map, vec![0, 1, 3, 4, 5, 6, 6, 7, 8]);
+        assert_eq!(swap_runs(&window, &[1..3], &[2..4]), None);
+        assert_eq!(swap_runs(&window, &[], &[2..4]), None);
+        assert_eq!(swap_runs(&window, &[1..2], &[7..9]), None);
     }
 }

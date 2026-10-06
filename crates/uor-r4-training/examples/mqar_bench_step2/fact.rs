@@ -58,6 +58,12 @@ const GAP_WORDS: [&str; 16] = [
 /// Random key/value word pieces added to the gap pool (the overlap).
 const GAP_OVERLAP: usize = 16;
 const BARE_PREFIX: &str = "? It's";
+/// Step 7a `pair=1`: the pieces joining the two facts of a sentence.
+const CONJ_WORDS: [&str; 4] = [" and", ",", " while", "."];
+/// The longest copula gap `gaps=` accepts (Step 7a extends Step 2's 3).
+const MAX_GAP: usize = 16;
+/// `pair=1`: whole-window placement draws before a window is refused.
+const PAIR_WINDOW_ATTEMPTS: usize = 64;
 /// The longest n-let of the reference rule's backoff.
 pub(super) const RULE_MAX_N: usize = 4;
 const FACT_TRAIN_DOMAIN: u64 = 0x6661_6374_74;
@@ -119,6 +125,9 @@ pub(super) struct FactVocab {
     bare_prefix: Vec<u32>,
     filler: Vec<u32>,
     pools_sha256: String,
+    /// `pair=1` conjunction pieces (outside `pools_sha256`, which stays the
+    /// Step 2 pools' identity).
+    conj_pool: Vec<u32>,
 }
 
 fn hex_sha256(bytes: &[u8]) -> String {
@@ -226,7 +235,17 @@ impl FactVocab {
             "keys": keys, "word_values": [&singles, &pairs], "numerals": numerals,
             "gap_pool": gap_pool, "bare_prefix": bare_prefix, "filler": filler,
         });
+        let conj_pool: Vec<u32> = CONJ_WORDS
+            .iter()
+            .map(|word| tokenizer.encode(word))
+            .filter(|ids| ids.len() == 1)
+            .map(|ids| ids[0])
+            .collect();
+        if conj_pool.is_empty() {
+            return Err(invalid("the tokenizer writes no one-piece conjunction"));
+        }
         Ok(Self {
+            conj_pool,
             vocab,
             tokenizer_sha256: sha256,
             tokenizer_address: tokenizer.address(),
@@ -264,6 +283,8 @@ impl FactVocab {
             "bare_prefix": {"text": BARE_PREFIX, "ids": self.bare_prefix,
                 "pieces": self.decoded(&self.bare_prefix)},
             "filler_pool_size": self.filler.len(),
+            "conj_pool": self.conj_pool.iter()
+                .map(|&id| json!({"id": id, "piece": self.texts[id as usize]})).collect::<Vec<_>>(),
         })
     }
 
@@ -282,6 +303,10 @@ pub(super) struct FactTask {
     tokenizer_path: PathBuf,
     gaps: Vec<usize>,
     forms: Vec<Form>,
+    /// Step 7a `pair=1`: every fact shares its sentence with a sibling fact
+    /// (`k1 gap1 v1 conj k2 gap2 v2`), whose value is the in-sentence
+    /// distractor; queries follow the whole sentence.
+    pair: bool,
 }
 
 impl FactTask {
@@ -297,8 +322,8 @@ impl FactTask {
             .map(|part| {
                 part.parse::<usize>()
                     .ok()
-                    .filter(|&g| g <= 3)
-                    .ok_or_else(|| invalid(format!("invalid gap {part} (0..=3)")))
+                    .filter(|&g| g <= MAX_GAP)
+                    .ok_or_else(|| invalid(format!("invalid gap {part} (0..={MAX_GAP})")))
             })
             .collect::<Result<BTreeSet<_>>>()?
             .into_iter()
@@ -320,15 +345,36 @@ impl FactTask {
                 "layout=fact needs context <= {SERVED_CONTEXT} (the served context)"
             )));
         }
+        let pair = match args.take("pair").as_deref() {
+            None | Some("0") | Some("false") => false,
+            Some("1") | Some("true") => true,
+            Some(other) => return Err(invalid(format!("invalid pair={other} (0 or 1)"))),
+        };
+        if pair && common.pairs_per_bucket % 2 != 0 {
+            return Err(invalid("pair=1 needs an even pairs_per_bucket"));
+        }
         Ok(Self {
             vocab: FactVocab::load(&tokenizer_path)?,
             tokenizer_path,
             gaps,
             forms,
+            pair,
         })
     }
 
     fn record(&self) -> Value {
+        let mut record = self.record_step2();
+        if self.pair {
+            record["pair"] = json!({
+                "sentence": "k1 gap1 v1 conj k2 gap2 v2 (one conj piece of conj_pool); the sibling value is the in-sentence distractor",
+                "query_distance": "bucket distance from the end of the sentence (recorded distance: query start - own fact start)",
+                "sibling_swap": "first predicted piece = the sibling's first piece (at the first content piece when both values share their whitespace prefix)",
+            });
+        }
+        record
+    }
+
+    fn record_step2(&self) -> Value {
         json!({
             "layout": "fact",
             "tokenizer_path": self.tokenizer_path,
@@ -361,6 +407,8 @@ pub(super) struct FactItem {
     query_start: usize,
     /// Positions whose next-token targets are `value[i]`.
     predict: Vec<usize>,
+    /// `pair=1`: the value of the other fact of the sentence.
+    sibling: Option<Vec<u32>>,
 }
 
 impl FactItem {
@@ -457,6 +505,7 @@ fn generate_fact(
                 fact_start: 0,
                 query_start: 0,
                 predict: Vec::new(),
+                sibling: None,
             });
         }
     }
@@ -479,6 +528,29 @@ fn generate_fact(
         }
     }
     let mut used = vec![false; context];
+    if task.pair {
+        // A crowded window can leave no room for a late sentence; the whole
+        // placement is then drawn again (the rng moves on). A window placed
+        // at the first try is unchanged by this retry.
+        for _ in 0..PAIR_WINDOW_ATTEMPTS {
+            let (mut tokens, mut items, mut used) = (tokens.clone(), items.clone(), used.clone());
+            let placed = place_pairs(
+                rng,
+                task,
+                context,
+                buckets,
+                &key_pieces,
+                &mut items,
+                &mut tokens,
+                &mut used,
+            );
+            if placed.is_ok() {
+                items.sort_by_key(|item| item.query_start);
+                return Ok(FactSequence { tokens, items });
+            }
+        }
+        return Err(invalid("could not place the fact pairs of a window"));
+    }
     for item in &mut items {
         let middle: Vec<u32> = match item.form {
             Form::Rehearse => item.gap_tokens.clone(),
@@ -519,6 +591,124 @@ fn generate_fact(
     }
     items.sort_by_key(|item| item.query_start);
     Ok(FactSequence { tokens, items })
+}
+
+/// `pair=1` placement: consecutive items (same bucket, as drawn) share one
+/// sentence `k1 gap1 v1 conj k2 gap2 v2`; each query follows the whole
+/// sentence at its own bucket distance from the sentence's end. Each item's
+/// sibling is the other value.
+#[allow(clippy::too_many_arguments)]
+fn place_pairs(
+    rng: &mut Rng,
+    task: &FactTask,
+    context: usize,
+    buckets: &[Bucket],
+    key_pieces: &BTreeSet<u32>,
+    items: &mut Vec<FactItem>,
+    tokens: &mut [u32],
+    used: &mut [bool],
+) -> Result<()> {
+    let vocab = &task.vocab;
+    if items.len() % 2 != 0 {
+        return Err(invalid("pair=1 needs an even number of facts per window"));
+    }
+    // Items come grouped by bucket, longest first; sentence `i` joins items
+    // `i` and `i + n/2`, so its two queries fall in different distance
+    // buckets whenever there are at least two (two long queries cannot both
+    // fit one short bucket's range).
+    let second = items.split_off(items.len() / 2);
+    let first = std::mem::take(items);
+    for (a, b) in first.into_iter().zip(second) {
+        items.push(a);
+        items.push(b);
+    }
+    for chunk in items.chunks_mut(2) {
+        let conj = (0..PLACEMENT_ATTEMPTS)
+            .map(|_| *pick(rng, &vocab.conj_pool))
+            .find(|id| !key_pieces.contains(id))
+            .ok_or_else(|| invalid("no conjunction piece outside the keys"))?;
+        let fact = |item: &FactItem| -> Vec<u32> {
+            [item.key.as_slice(), &item.gap_tokens, &item.value].concat()
+        };
+        let query = |item: &FactItem| -> Vec<u32> {
+            let middle: &[u32] = match item.form {
+                Form::Rehearse => &item.gap_tokens,
+                Form::Bare => &vocab.bare_prefix,
+            };
+            [item.key.as_slice(), middle, &item.value].concat()
+        };
+        let (fact_a, fact_b) = (fact(&chunk[0]), fact(&chunk[1]));
+        let (query_a, query_b) = (query(&chunk[0]), query(&chunk[1]));
+        let sentence: Vec<u32> = [fact_a.as_slice(), &[conj], &fact_b].concat();
+        let (bucket_a, bucket_b) = (buckets[chunk[0].bucket], buckets[chunk[1].bucket]);
+        let mut placed = None;
+        for _ in 0..PLACEMENT_ATTEMPTS {
+            if sentence.len() >= context {
+                break;
+            }
+            let start = rng.range(0, context - sentence.len());
+            let end = start + sentence.len();
+            let qa = end + rng.range(bucket_a.low, bucket_a.high);
+            let qb = end + rng.range(bucket_b.low, bucket_b.high);
+            if qa + query_a.len() > context || qb + query_b.len() > context {
+                continue;
+            }
+            let disjoint = qa + query_a.len() <= qb || qb + query_b.len() <= qa;
+            let free = |from: usize, len: usize| (from..from + len).all(|p| !used[p]);
+            if disjoint
+                && free(start, sentence.len())
+                && free(qa, query_a.len())
+                && free(qb, query_b.len())
+            {
+                placed = Some((start, qa, qb));
+                break;
+            }
+        }
+        let (start, qa, qb) =
+            placed.ok_or_else(|| invalid("could not place a fact pair in the window"))?;
+        for (from, span) in [(start, &sentence), (qa, &query_a), (qb, &query_b)] {
+            for (offset, &id) in span.iter().enumerate() {
+                tokens[from + offset] = id;
+                used[from + offset] = true;
+            }
+        }
+        let starts = [start, start + fact_a.len() + 1];
+        let queries = [qa, qb];
+        let values = [chunk[0].value.clone(), chunk[1].value.clone()];
+        for (i, item) in chunk.iter_mut().enumerate() {
+            let middle = match item.form {
+                Form::Rehearse => item.gap_tokens.len(),
+                Form::Bare => vocab.bare_prefix.len(),
+            };
+            let value_start = queries[i] + item.key.len() + middle;
+            item.fact_start = starts[i];
+            item.query_start = queries[i];
+            item.distance = queries[i] - starts[i];
+            item.predict = (0..item.value.len()).map(|p| value_start - 1 + p).collect();
+            item.sibling = Some(values[1 - i].clone());
+        }
+    }
+    Ok(())
+}
+
+/// Whether the prediction at `item`'s value names its sibling instead:
+/// `predicted[i]` is the argmax at `item.predict[i]` (teacher forced). The
+/// first pieces are compared, or the first content pieces when both values
+/// share their whitespace-only prefix (two numerals " " + digit).
+fn sibling_swap(vocab: &FactVocab, item: &FactItem, predicted: &[usize]) -> Option<bool> {
+    let sibling = item.sibling.as_ref()?;
+    let (c, cs) = (
+        vocab.first_content(&item.value),
+        vocab.first_content(sibling),
+    );
+    if item.value[..c] == sibling[..cs] {
+        Some(
+            predicted.get(c).is_some_and(|&p| p == sibling[cs] as usize)
+                && sibling[cs] != item.value[c],
+        )
+    } else {
+        Some(predicted[0] == sibling[0] as usize && sibling[0] != item.value[0])
+    }
 }
 
 fn fact_arrays(sequences: &[FactSequence], context: usize) -> (Vec<u32>, Vec<u32>, Vec<f32>) {
@@ -605,12 +795,15 @@ struct FactTally {
     nll_first_content: f64,
     rule: usize,
     rule_n: [usize; RULE_MAX_N],
+    /// `pair=1`: items with a sibling, and those whose prediction named it.
+    sibling_total: usize,
+    sibling_swap: usize,
 }
 
 impl FactTally {
     fn record(&self) -> Value {
         let rate = |n: usize| n as f64 / self.total.max(1) as f64;
-        json!({
+        let mut record = json!({
             "total": self.total,
             "first_piece_accuracy": rate(self.first),
             "first_content_piece_accuracy": rate(self.first_content),
@@ -620,7 +813,13 @@ impl FactTally {
             "mean_nll_first_content_piece": self.nll_first_content / self.total.max(1) as f64,
             "rule_full_accuracy": rate(self.rule),
             "rule_n_full_accuracy": self.rule_n.iter().map(|&n| rate(n)).collect::<Vec<_>>(),
-        })
+        });
+        if self.sibling_total > 0 {
+            record["sibling_total"] = json!(self.sibling_total);
+            record["sibling_swap_rate"] =
+                json!(self.sibling_swap as f64 / self.sibling_total as f64);
+        }
+        record
     }
 }
 
@@ -632,6 +831,8 @@ struct Outcome {
     nll_first_content: f64,
     rule: bool,
     rule_n: [bool; RULE_MAX_N],
+    /// `pair=1`: whether the prediction named the sibling value.
+    sibling: Option<bool>,
 }
 
 fn tally(map: &mut BTreeMap<String, FactTally>, key: String, outcome: &Outcome) {
@@ -644,6 +845,10 @@ fn tally(map: &mut BTreeMap<String, FactTally>, key: String, outcome: &Outcome) 
     entry.rule += usize::from(outcome.rule);
     for (n, hit) in outcome.rule_n.iter().enumerate() {
         entry.rule_n[n] += usize::from(*hit);
+    }
+    if let Some(swap) = outcome.sibling {
+        entry.sibling_total += 1;
+        entry.sibling_swap += usize::from(swap);
     }
 }
 
@@ -680,6 +885,7 @@ fn rule_only(task: &FactTask, sequences: &[FactSequence]) -> Value {
                 nll_first_content: 0.0,
                 rule,
                 rule_n: rule_n(&sequence.tokens, item),
+                sibling: None,
             };
             tally(
                 &mut cells,
@@ -756,7 +962,9 @@ fn dump_fact_scores(
             .to_device(&Device::Cpu)?
             .to_vec2::<f32>()?;
         if observed.len() != reference.len() {
-            return Err(invalid("the read weight dump forward changed the logits' shape"));
+            return Err(invalid(
+                "the read weight dump forward changed the logits' shape",
+            ));
         }
         for (a, b) in observed.iter().flatten().zip(reference.iter().flatten()) {
             max_logit_gap = max_logit_gap.max((f64::from(*a) - f64::from(*b)).abs());
@@ -776,7 +984,10 @@ fn dump_fact_scores(
                 return Err(invalid("a read weight dump row has the wrong shape"));
             }
             heads_seen = heads;
-            let values = weights.to_device(&Device::Cpu)?.flatten_all()?.to_vec1::<f32>()?;
+            let values = weights
+                .to_device(&Device::Cpu)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
             for r in 0..rows {
                 offsets[layer_index].push(blob.len());
                 blob.extend_from_slice(&values[r * heads * width..(r + 1) * heads * width]);
@@ -787,7 +998,11 @@ fn dump_fact_scores(
             let tokens = &group[s].tokens;
             let source = rule_source(tokens, item, bare_len);
             let rule_first_content = source
-                .and_then(|end| tokens.get(end + content).map(|piece| *piece == item.value[content]))
+                .and_then(|end| {
+                    tokens
+                        .get(end + content)
+                        .map(|piece| *piece == item.value[content])
+                })
                 .unwrap_or(false);
             let rule_full = reference_rule(tokens, item, bare_len);
             let logit_row = &observed[s * context + query];
@@ -908,10 +1123,12 @@ fn evaluate_fact(
             for item in &sequence.items {
                 let content = task.vocab.first_content(&item.value);
                 let mut hits = Vec::with_capacity(item.value.len());
+                let mut predicted = Vec::with_capacity(item.value.len());
                 let mut nll = 0.0;
                 for (i, &piece) in item.value.iter().enumerate() {
                     let scores = &selected[row];
                     row += 1;
+                    predicted.push(argmax(scores));
                     hits.push(argmax(scores) == piece as usize);
                     if i == content {
                         let maximum = scores.iter().copied().fold(f32::NEG_INFINITY, f32::max);
@@ -926,6 +1143,7 @@ fn evaluate_fact(
                     nll_first_content: nll,
                     rule: reference_rule(&sequence.tokens, item, bare_len),
                     rule_n: rule_n(&sequence.tokens, item),
+                    sibling: sibling_swap(&task.vocab, item, &predicted),
                 };
                 tally(
                     &mut cells,
@@ -1415,7 +1633,109 @@ pub(super) mod tests {
             tokenizer_path: path,
             gaps: vec![0, 1, 2, 3],
             forms: vec![Form::Rehearse, Form::Bare],
+            pair: false,
         })
+    }
+
+    #[test]
+    fn pair_windows_share_sentences_and_name_their_siblings() {
+        let Some(mut task) = task() else {
+            eprintln!("SKIPPED: the #1017 tokenizer is absent");
+            return;
+        };
+        task.pair = true;
+        task.gaps = vec![1, 2, 3, 4, 6, 8, 12, 16];
+        let buckets = buckets_for(SERVED_CONTEXT);
+        let vocab = &task.vocab;
+        let mut gaps = BTreeSet::new();
+        for (pairing, domain) in [
+            (Pairing::Train, FACT_TRAIN_DOMAIN),
+            (Pairing::HeldOut, FACT_HELD_OUT_DOMAIN),
+        ] {
+            for index in 0..64 {
+                let mut rng = Rng::new(7, domain, index);
+                let sequence = generate_fact(&mut rng, &task, SERVED_CONTEXT, &buckets, 2, pairing)
+                    .expect("pair window");
+                let t = &sequence.tokens;
+                assert_eq!(t.len(), SERVED_CONTEXT);
+                assert_eq!(sequence.items.len(), 6);
+                let by_start: BTreeMap<usize, &FactItem> =
+                    sequence.items.iter().map(|i| (i.fact_start, i)).collect();
+                for item in &sequence.items {
+                    gaps.insert(item.gap);
+                    let sibling = item.sibling.as_ref().expect("every item has a sibling");
+                    assert_ne!(sibling, &item.value);
+                    let f = item.fact_start;
+                    assert_eq!(&t[f..f + item.key_len], item.key.as_slice());
+                    assert_eq!(
+                        &t[item.value_first()..item.value_first() + item.value.len()],
+                        item.value.as_slice()
+                    );
+                    // The sibling fact is joined to this one by one conj piece.
+                    let partner = sequence
+                        .items
+                        .iter()
+                        .find(|other| &other.value == sibling)
+                        .expect("a sentence partner");
+                    let (left, right) = if partner.fact_start > f {
+                        (item, partner)
+                    } else {
+                        (partner, item)
+                    };
+                    let joint = left.value_first() + left.value.len();
+                    assert_eq!(right.fact_start, joint + 1);
+                    assert!(vocab.conj_pool.contains(&t[joint]));
+                    assert!(by_start.contains_key(&right.fact_start));
+                    assert_eq!(partner.sibling.as_ref(), Some(&item.value));
+                    // The query follows the whole sentence, at its bucket distance.
+                    let sentence_end = item.fact_start.max(partner.fact_start)
+                        + if item.fact_start > partner.fact_start {
+                            item.fact_len()
+                        } else {
+                            partner.fact_len()
+                        };
+                    let bucket = buckets[item.bucket];
+                    assert!((bucket.low..=bucket.high).contains(&(item.query_start - sentence_end)));
+                    assert_eq!(item.query_start - f, item.distance);
+                    for (i, &piece) in item.value.iter().enumerate() {
+                        assert_eq!(t[item.predict[i] + 1], piece);
+                    }
+                    let occurrences = (0..=t.len() - item.key_len)
+                        .filter(|&p| t[p..p + item.key_len] == item.key[..])
+                        .count();
+                    assert_eq!(occurrences, 2);
+                    // A prediction of the sibling counts as a swap, of the value not.
+                    let own: Vec<usize> = item.value.iter().map(|&v| v as usize).collect();
+                    assert_eq!(sibling_swap(vocab, item, &own), Some(false));
+                    let c = vocab.first_content(&item.value);
+                    let cs = vocab.first_content(sibling);
+                    let mut swapped = own.clone();
+                    if item.value[..c] == sibling[..cs] {
+                        swapped[c] = sibling[cs] as usize;
+                        assert_eq!(
+                            sibling_swap(vocab, item, &swapped),
+                            Some(sibling[cs] != item.value[c])
+                        );
+                    } else {
+                        swapped[0] = sibling[0] as usize;
+                        assert_eq!(
+                            sibling_swap(vocab, item, &swapped),
+                            Some(sibling[0] != item.value[0])
+                        );
+                    }
+                }
+            }
+        }
+        assert_eq!(gaps.len(), 8, "every gap occurs");
+        // A pilot's worth of training windows places without a refusal (the
+        // first pilot attempt hit a crowded window at about step 2,500).
+        for seed in 1..=3 {
+            for index in 0..20_000 {
+                let mut rng = Rng::new(seed, FACT_TRAIN_DOMAIN, index);
+                generate_fact(&mut rng, &task, SERVED_CONTEXT, &buckets, 2, Pairing::Train)
+                    .expect("every pair window places");
+            }
+        }
     }
 
     #[test]

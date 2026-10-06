@@ -11,7 +11,7 @@
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
-//!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev] [learned_init=lag1|zero]
+//!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev|conv8|carrier|rot] [learned_init=lag1|zero]
 //! layout=fact: tokenizer=TOKENIZER_JSON [gaps=0,1,2,3] [forms=rehearse,bare]
 //!   (context <= 384; defaults pairs_per_bucket=4, final_sequences=256)
 //! mqar-bench mode=decide runs=DIR_OF_SEALED_FACT_ROOTS out=NEW_REPORT_ROOT
@@ -459,6 +459,10 @@ impl LineageArm {
             "wprev" => LineageArm::Research(ReadLineage::LearnedPrev {
                 init_identity: lag1,
             }),
+            // Step 7a key-content arms (#820): start as the plain read.
+            "conv8" => LineageArm::Research(ReadLineage::LearnedConvWide { taps: 8 }),
+            "carrier" => LineageArm::Research(ReadLineage::KeyCarrier),
+            "rot" => LineageArm::Research(ReadLineage::KeyPhase { snap: true }),
             other => return Err(invalid(format!("invalid lineage={other}"))),
         })
     }

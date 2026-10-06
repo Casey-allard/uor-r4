@@ -2259,7 +2259,8 @@ impl StackModel {
                 projected = previous_key_channel(&projected)?;
             }
             if let Some(lineage) = self.read_lineage {
-                projected = self.read_lineage_projection(p, layer, lineage, part, projected)?;
+                projected =
+                    self.read_lineage_projection(p, layer, lineage, part, input, projected)?;
             }
             if part != "value" {
                 if let Some(identity) = &latched {
@@ -2832,6 +2833,51 @@ impl StackModel {
                     );
                 }
             }
+            Some(ReadLineage::LearnedConvWide { taps }) => {
+                if !(2..=MAX_CONV_TAPS).contains(&taps) {
+                    return Err(invalid(format!(
+                        "a wide read conv needs 2..={MAX_CONV_TAPS} taps"
+                    )));
+                }
+                for &layer in &read_layers {
+                    let values: Vec<f32> = (0..width * taps)
+                        .map(|index| if index % taps == 0 { 1.0 } else { 0.0 })
+                        .collect();
+                    self.variables.insert(
+                        layer_name(layer, READ_LINEAGE_CONV_WIDE),
+                        Var::from_vec(values, (width, taps), &self.device)?,
+                    );
+                }
+            }
+            Some(ReadLineage::KeyCarrier) => {
+                if !width.is_multiple_of(self.config.heads) {
+                    return Err(invalid("the key carrier needs whole heads"));
+                }
+                for (name, shape) in read_lineage_shapes(&self.config, ReadLineage::KeyCarrier) {
+                    self.variables
+                        .insert(name, Var::zeros(shape, DType::F32, &self.device)?);
+                }
+            }
+            Some(lineage @ ReadLineage::KeyPhase { .. }) => {
+                let head_width = self.config.head_width();
+                if !width.is_multiple_of(self.config.heads) || !head_width.is_multiple_of(4) {
+                    return Err(invalid(
+                        "the key phase needs whole heads of four-channel blocks",
+                    ));
+                }
+                for (name, shape) in read_lineage_shapes(&self.config, lineage) {
+                    let var = if shape.len() == 1 {
+                        // Bias (1, 0, 0, 0) per head: the identity phase.
+                        let values: Vec<f32> = (0..shape[0])
+                            .map(|i| if i % 4 == 0 { 1.0 } else { 0.0 })
+                            .collect();
+                        Var::from_vec(values, shape, &self.device)?
+                    } else {
+                        Var::zeros(shape, DType::F32, &self.device)?
+                    };
+                    self.variables.insert(name, var);
+                }
+            }
             Some(ReadLineage::RandomSo4 { seed }) => {
                 let blocks = random_so4_blocks(width / 4, seed);
                 let mut matrix = vec![0f32; width * width];
@@ -2864,9 +2910,62 @@ impl StackModel {
         layer: usize,
         lineage: ReadLineage,
         part: &str,
+        input: &Tensor,
         projected: Tensor,
     ) -> Result<Tensor> {
         match (part, lineage) {
+            ("key", ReadLineage::LearnedConvWide { taps }) => {
+                let weight = p
+                    .layer(layer, READ_LINEAGE_CONV_WIDE)?
+                    .to_dtype(projected.dtype())?;
+                let mut mixed = projected.broadcast_mul(&weight.narrow(1, 0, 1)?.squeeze(1)?)?;
+                for lag in 1..taps {
+                    let tap = weight.narrow(1, lag, 1)?.squeeze(1)?;
+                    mixed = mixed.add(&causal_shift(&projected, lag)?.broadcast_mul(&tap)?)?;
+                }
+                Ok(mixed)
+            }
+            (part @ ("query" | "key"), ReadLineage::KeyPhase { snap }) => {
+                let (map, bias) = if part == "key" {
+                    (READ_LINEAGE_PHASE_KEY, READ_LINEAGE_PHASE_KEY_BIAS)
+                } else {
+                    (READ_LINEAGE_PHASE_QUERY, READ_LINEAGE_PHASE_QUERY_BIAS)
+                };
+                let (batch, time, width) = projected.dims3()?;
+                let heads = self.config.heads;
+                let raw = self
+                    .linear(input, p.layer(layer, map)?)?
+                    .to_dtype(DType::F32)?
+                    .broadcast_add(p.layer(layer, bias)?)?
+                    .reshape((batch, time, heads, 1, 4))?;
+                let phase = unit_phase(&raw, snap)?.to_dtype(projected.dtype())?;
+                let blocks = projected.reshape((batch, time, heads, width / heads / 4, 4))?;
+                Ok(left_multiply_blocks(&phase, &blocks)?.reshape((batch, time, width))?)
+            }
+            ("key", ReadLineage::KeyCarrier) => {
+                let (batch, time, width) = projected.dims3()?;
+                let heads = self.config.heads;
+                let dtype = projected.dtype();
+                // g_j = sigmoid(G u_j + b), one per head: [batch, time, heads].
+                let logit = self
+                    .linear(input, p.layer(layer, READ_LINEAGE_CARRIER_GATE)?)?
+                    .to_dtype(DType::F32)?
+                    .broadcast_add(p.layer(layer, READ_LINEAGE_CARRIER_BIAS)?)?;
+                let gate = (logit.neg()?.exp()? + 1.0)?.recip()?.to_dtype(dtype)?;
+                let written = projected
+                    .reshape((batch, time, heads, width / heads))?
+                    .broadcast_mul(&gate.unsqueeze(3)?)?
+                    .transpose(1, 2)?
+                    .contiguous()?;
+                let decay = carrier_decay(heads, time, dtype, projected.device())?;
+                let carried = decay
+                    .unsqueeze(0)?
+                    .broadcast_matmul(&written)?
+                    .transpose(1, 2)?
+                    .reshape((batch, time, width))?;
+                let mix = p.layer(layer, READ_LINEAGE_CARRIER_MIX)?.to_dtype(dtype)?;
+                Ok(projected.add(&carried.broadcast_mul(&mix)?)?)
+            }
             ("query", ReadLineage::QueryKeyJ) => {
                 let previous = causal_shift(&projected, 1)?;
                 Ok(projected.add(&quaternion_j_inv_left(&previous)?)?)
@@ -7131,6 +7230,96 @@ impl StackModel {
         })
     }
 
+    /// Diagnostic of one geometric read layer's score inputs over one window
+    /// (batch 1): the per-head queries and keys after every projection the
+    /// ordinary read applies (identity carry and the F2 previous-key channel
+    /// included), the NoRead logits, the age table over the window's distances
+    /// and, for the scaled scores, `beta = exp(log_beta)` and `offset`.
+    /// [`ReadQueryKey::row`] recomputes a row's scores and softmax weights from
+    /// them exactly as the fused read does. Nothing is changed: the forward is
+    /// the ordinary one up to `layer`. Refused where the read has another
+    /// score path (geometric address or span, identity latch, lineage, a flock
+    /// selection) or `layer` is not a read layer.
+    pub fn read_query_key(&self, ids: &[u32], layer: usize) -> Result<ReadQueryKey> {
+        let time = ids.len();
+        if time == 0 || time > self.config.context {
+            return Err(invalid(
+                "read query/key probe needs one window within the context",
+            ));
+        }
+        if self.config.arch != StackArch::Geometric
+            || layer >= self.config.layers()
+            || self.config.layer_kind(layer) == 'r'
+        {
+            return Err(invalid("read query/key probe needs a geometric read layer"));
+        }
+        if self.geometric_address.is_some()
+            || self.geometric_span.is_some()
+            || self.read_identity_latch.is_some()
+            || self.config.select.is_some()
+        {
+            return Err(invalid(
+                "read query/key probe observes the plain fused read only (no address, span, latch or flock)",
+            ));
+        }
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, 1, time)?;
+        let x = self.layer_range_bound(&p, x, 0..layer, &mut None, &mut None, LatchGates::Soft)?;
+        let u = self.norm(&p, &x, &layer_name(layer, "read_norm.weight"))?;
+        let identity = self.read_identity_input(&u)?;
+        let mut query = self.linear(&identity, p.layer(layer, "read.query.weight")?)?;
+        let mut key = self.linear(&identity, p.layer(layer, "read.key.weight")?)?;
+        if self.read_key_shift {
+            key = previous_key_channel(&key)?;
+        }
+        if let Some(lineage) = self.read_lineage {
+            query = self.read_lineage_projection(&p, layer, lineage, "query", &identity, query)?;
+            key = self.read_lineage_projection(&p, layer, lineage, "key", &identity, key)?;
+        }
+        let rows = |t: Tensor| -> Result<Vec<Vec<Vec<f32>>>> {
+            Ok(self
+                .heads(&t, 1, time)?
+                .get(0)?
+                .to_dtype(DType::F32)?
+                .to_vec3::<f32>()?)
+        };
+        let null = self
+            .linear(&u, p.layer(layer, "read.null.weight")?)?
+            .to_dtype(DType::F32)?
+            .broadcast_add(p.layer(layer, "read.null.bias")?)?
+            .get(0)?
+            .t()?
+            .contiguous()?
+            .to_vec2::<f32>()?;
+        let age = p
+            .layer(layer, "read.age")?
+            .narrow(1, 0, time)?
+            .to_vec2::<f32>()?;
+        let (beta, offset) = if self.config.read.scaled() {
+            (
+                p.layer(layer, "read.log_beta")?
+                    .exp()?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?,
+                p.layer(layer, "read.offset")?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?,
+            )
+        } else {
+            (Vec::new(), Vec::new())
+        };
+        Ok(ReadQueryKey {
+            layer,
+            score: self.config.read,
+            query: rows(query)?,
+            key: rows(key)?,
+            null,
+            age,
+            beta,
+            offset,
+        })
+    }
+
     /// The existing exact-source observer under the explicit last-token span
     /// control. Labels only select observed probabilities, never token actions
     /// or predicted controller transitions.
@@ -7758,7 +7947,7 @@ impl StackModel {
     /// and pins its digest in config.json; a default save removes stale carry
     /// metadata and retains the legacy config byte format.
     pub fn save(&self, directory: &Path) -> Result<()> {
-        if let Some(lineage) = self.read_lineage {
+        if let Some(lineage) = self.read_lineage.filter(|lineage| !lineage.saveable()) {
             return Err(invalid(format!(
                 "the research-only read lineage {} has no saved form",
                 lineage.name()
@@ -7920,6 +8109,13 @@ impl StackModel {
             // Only when set, so every model without it keeps its exact bytes.
             let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
             with_field[READ_KEY_SHIFT_FIELD] = serde_json::Value::Bool(true);
+            config = serde_json::to_vec_pretty(&with_field)?;
+        }
+        if let Some(lineage) = self.read_lineage {
+            // Only the saveable Step 7a arms reach here; only when set, so
+            // every other model keeps its exact bytes.
+            let mut with_field: serde_json::Value = serde_json::from_slice(&config)?;
+            with_field[READ_LINEAGE_FIELD] = serde_json::to_value(lineage)?;
             config = serde_json::to_vec_pretty(&with_field)?;
         }
         fs::write(directory.join("config.json"), config)?;
@@ -8250,6 +8446,10 @@ impl StackModel {
             }
             shapes.extend(geometric_span_shapes(&config));
         }
+        let read_lineage = Self::saved_read_lineage(directory)?;
+        if let Some(lineage) = read_lineage {
+            shapes.extend(read_lineage_shapes(&config, lineage));
+        }
         if tensors.len() != shapes.len() {
             return Err(invalid("saved stack tensors differ from the configuration"));
         }
@@ -8282,7 +8482,43 @@ impl StackModel {
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
         model.set_read_key_shift(Self::saved_read_key_shift(directory)?)?;
+        if let Some(lineage) = read_lineage {
+            // Its variables were loaded above; set_read_lineage would
+            // re-initialise them, so the checks it makes are repeated here.
+            if model.read_key_shift
+                || model.read_identity_latch.is_some()
+                || model.geometric_address.is_some()
+                || !model.config.pattern.contains('a')
+            {
+                return Err(invalid(
+                    "a saved read lineage needs a plain geometric read without the key shift",
+                ));
+            }
+            model.read_lineage = Some(lineage);
+        }
         Ok(model)
+    }
+
+    /// The saved Step 7a read lineage of `directory` (`config.json` field
+    /// [`READ_LINEAGE_FIELD`]), if any. Absent means none; a lineage that is
+    /// not [`ReadLineage::saveable`] or a conv outside its tap range is refused.
+    pub fn saved_read_lineage(directory: &Path) -> Result<Option<ReadLineage>> {
+        let config: serde_json::Value =
+            serde_json::from_slice(&fs::read(directory.join("config.json"))?)?;
+        let Some(field) = config.get(READ_LINEAGE_FIELD) else {
+            return Ok(None);
+        };
+        let lineage: ReadLineage = serde_json::from_value(field.clone())?;
+        let taps_ok = match lineage {
+            ReadLineage::LearnedConvWide { taps } => (2..=MAX_CONV_TAPS).contains(&taps),
+            _ => true,
+        };
+        if !lineage.saveable() || !taps_ok {
+            return Err(invalid(format!(
+                "config.json's {READ_LINEAGE_FIELD} is not a saveable read lineage"
+            )));
+        }
+        Ok(Some(lineage))
     }
 }
 
@@ -10347,7 +10583,33 @@ pub enum ReadLineage {
     LearnedConv { init_lag1: bool },
     /// Keys `k_t + W k_{t-1}`, learned; `W` starts at the identity or zero.
     LearnedPrev { init_identity: bool },
+    /// Step 7a `conv8` (#820): keys `sum_{i<taps} w_i (.) k_{t-i}`, a learned
+    /// depthwise causal convolution over `taps` lags (2..=[`MAX_CONV_TAPS`]);
+    /// `w_0 = 1` and the other taps 0 at the start, so a model with it added
+    /// computes the plain read, bit for bit, until it trains. Saveable.
+    LearnedConvWide { taps: usize },
+    /// Step 7a binding carrier (#820): keys `k_t + v (.) c_t` with the
+    /// strictly causal per-head carrier `c_t = sum_{j<t} a_h^(t-1-j) g_j k_j`,
+    /// a learned per-head salience gate `g_j = sigmoid(G u_j + b)` on the read
+    /// input and the fixed decay `a_h = 1 - 2^-(1 + h mod 4)` (time constants
+    /// 2 to 16 tokens). `v`, `G` and `b` start at 0, so a model with it added
+    /// computes the plain read, bit for bit, until it trains. Saveable.
+    KeyCarrier,
+    /// Step 7a `rot` (#820, owner amendment): multiplicative quaternion phase
+    /// binding. A learned map of the read input gives each position and head
+    /// a unit quaternion phase, one map for keys (`P_t`) and one for queries
+    /// (`P_q`); every four-channel block of the head's key is left-multiplied
+    /// by `P_t` and of its query by `P_q`, so a query matches a key only as
+    /// far as their phases agree (`<P_q q, P_t k> = <q, conj(P_q) P_t k>`).
+    /// With `snap` the phases are straight-through snapped to the nearest of
+    /// the 120 unit icosians (2I) for an exact D11 group action. Maps start
+    /// at 0 with bias `(1, 0, 0, 0)`: the identity phase, so a model with it
+    /// added computes the plain read until it trains. Saveable.
+    KeyPhase { snap: bool },
 }
+
+/// The largest `taps` of [`ReadLineage::LearnedConvWide`].
+pub const MAX_CONV_TAPS: usize = 32;
 
 impl ReadLineage {
     /// A short stable name for reports.
@@ -10359,14 +10621,152 @@ impl ReadLineage {
             ReadLineage::RandomSo4 { .. } => "so4",
             ReadLineage::LearnedConv { .. } => "conv",
             ReadLineage::LearnedPrev { .. } => "wprev",
+            ReadLineage::LearnedConvWide { taps: 8 } => "conv8",
+            ReadLineage::LearnedConvWide { .. } => "conv_wide",
+            ReadLineage::KeyCarrier => "carrier",
+            ReadLineage::KeyPhase { snap: true } => "rot",
+            ReadLineage::KeyPhase { snap: false } => "rot_free",
         }
     }
+
+    /// Whether [`StackModel::save`] records it (`config.json` field
+    /// [`READ_LINEAGE_FIELD`]) and [`StackModel::load`] restores it: only the
+    /// Step 7a key-content arms.
+    pub fn saveable(self) -> bool {
+        matches!(
+            self,
+            ReadLineage::LearnedConvWide { .. }
+                | ReadLineage::KeyCarrier
+                | ReadLineage::KeyPhase { .. }
+        )
+    }
+
+    /// The decay exponent `s_h` of [`ReadLineage::KeyCarrier`]'s head `h`:
+    /// `a_h = 1 - 2^-s_h`.
+    pub fn carrier_shift(head: usize) -> u32 {
+        1 + (head % 4) as u32
+    }
+}
+
+/// `config.json` field of a saved Step 7a read lineage ([`ReadLineage::saveable`]);
+/// written only when one is set.
+pub const READ_LINEAGE_FIELD: &str = "read_lineage";
+
+/// The variables of a lineage on `config`'s read layers, with their shapes.
+fn read_lineage_shapes(config: &StackConfig, lineage: ReadLineage) -> Vec<(String, Vec<usize>)> {
+    let read_layers: Vec<usize> = (0..config.layers())
+        .filter(|&layer| config.pattern.as_bytes()[layer] == b'a')
+        .collect();
+    let width = config.width;
+    let mut out = Vec::new();
+    for layer in read_layers {
+        match lineage {
+            ReadLineage::LearnedConv { .. } => {
+                out.push((layer_name(layer, READ_LINEAGE_CONV), vec![width, 4]))
+            }
+            ReadLineage::LearnedPrev { .. } => {
+                out.push((layer_name(layer, READ_LINEAGE_PREV), vec![width, width]))
+            }
+            ReadLineage::LearnedConvWide { taps } => {
+                out.push((layer_name(layer, READ_LINEAGE_CONV_WIDE), vec![width, taps]))
+            }
+            ReadLineage::KeyCarrier => {
+                out.push((
+                    layer_name(layer, READ_LINEAGE_CARRIER_GATE),
+                    vec![config.heads, width],
+                ));
+                out.push((
+                    layer_name(layer, READ_LINEAGE_CARRIER_BIAS),
+                    vec![config.heads],
+                ));
+                out.push((layer_name(layer, READ_LINEAGE_CARRIER_MIX), vec![width]));
+            }
+            ReadLineage::KeyPhase { .. } => {
+                for name in [READ_LINEAGE_PHASE_KEY, READ_LINEAGE_PHASE_QUERY] {
+                    out.push((layer_name(layer, name), vec![4 * config.heads, width]));
+                }
+                for name in [READ_LINEAGE_PHASE_KEY_BIAS, READ_LINEAGE_PHASE_QUERY_BIAS] {
+                    out.push((layer_name(layer, name), vec![4 * config.heads]));
+                }
+            }
+            _ => {}
+        }
+    }
+    out
+}
+
+/// [`ReadLineage::KeyPhase`]'s unit phases from their raw 4-vectors (last
+/// dimension 4): `raw / |raw|`, and with `snap` the nearest unit icosian of
+/// 2I in the forward pass with the normalised vector's gradient
+/// (straight-through).
+fn unit_phase(raw: &Tensor, snap: bool) -> Result<Tensor> {
+    let norm = raw
+        .sqr()?
+        .sum_keepdim(raw.rank() - 1)?
+        .affine(1.0, 1e-12)?
+        .sqrt()?;
+    let unit = raw.broadcast_div(&norm)?;
+    if !snap {
+        return Ok(unit);
+    }
+    let shape = unit.shape().clone();
+    let values = unit.flatten_all()?.to_vec1::<f32>()?;
+    let roots = icosian_roots();
+    let mut snapped = Vec::with_capacity(values.len());
+    for q in values.chunks_exact(4) {
+        snapped.extend_from_slice(&roots[nearest_root([q[0], q[1], q[2], q[3]], roots)]);
+    }
+    let snapped = Tensor::from_vec(snapped, shape, unit.device())?;
+    straight_through(&unit, &snapped)
+}
+
+/// Left Hamilton product `p x` of every four-channel block `x` (last
+/// dimension 4) with the broadcast phase `p` (last dimension 4).
+fn left_multiply_blocks(p: &Tensor, x: &Tensor) -> Result<Tensor> {
+    let axis = x.rank() - 1;
+    let pc: Vec<Tensor> = (0..4)
+        .map(|i| p.narrow(axis, i, 1))
+        .collect::<candle_core::Result<_>>()?;
+    let xc: Vec<Tensor> = (0..4)
+        .map(|i| x.narrow(axis, i, 1))
+        .collect::<candle_core::Result<_>>()?;
+    let m = |a: usize, b: usize| pc[a].broadcast_mul(&xc[b]);
+    let w = m(0, 0)?.sub(&m(1, 1)?)?.sub(&m(2, 2)?)?.sub(&m(3, 3)?)?;
+    let i = m(0, 1)?.add(&m(1, 0)?)?.add(&m(2, 3)?)?.sub(&m(3, 2)?)?;
+    let j = m(0, 2)?.sub(&m(1, 3)?)?.add(&m(2, 0)?)?.add(&m(3, 1)?)?;
+    let k = m(0, 3)?.add(&m(1, 2)?)?.sub(&m(2, 1)?)?.add(&m(3, 0)?)?;
+    Ok(Tensor::cat(&[&w, &i, &j, &k], axis)?)
+}
+
+/// [`ReadLineage::KeyCarrier`]'s decay matrices `[heads, time, time]`:
+/// `a_h^(t-1-j)` for `j < t`, else 0.
+fn carrier_decay(heads: usize, time: usize, dtype: DType, device: &Device) -> Result<Tensor> {
+    let mut values = vec![0f32; heads * time * time];
+    for h in 0..heads {
+        let a = 1.0 - (-f64::from(ReadLineage::carrier_shift(h))).exp2();
+        for t in 0..time {
+            let mut power = 1.0f64;
+            for j in (0..t).rev() {
+                values[(h * time + t) * time + j] = power as f32;
+                power *= a;
+            }
+        }
+    }
+    Ok(Tensor::from_vec(values, (heads, time, time), device)?.to_dtype(dtype)?)
 }
 
 /// Variable names of the learned read lineages ([`ReadLineage`]).
 const READ_LINEAGE_PREFIX: &str = ".read.lineage_";
 const READ_LINEAGE_CONV: &str = "read.lineage_conv.weight";
 const READ_LINEAGE_PREV: &str = "read.lineage_prev";
+const READ_LINEAGE_CONV_WIDE: &str = "read.lineage_wide.conv.weight";
+const READ_LINEAGE_CARRIER_GATE: &str = "read.lineage_carrier.gate";
+const READ_LINEAGE_CARRIER_BIAS: &str = "read.lineage_carrier.gate_bias";
+const READ_LINEAGE_CARRIER_MIX: &str = "read.lineage_carrier.mix";
+const READ_LINEAGE_PHASE_KEY: &str = "read.lineage_phase.key_map";
+const READ_LINEAGE_PHASE_KEY_BIAS: &str = "read.lineage_phase.key_bias";
+const READ_LINEAGE_PHASE_QUERY: &str = "read.lineage_phase.query_map";
+const READ_LINEAGE_PHASE_QUERY_BIAS: &str = "read.lineage_phase.query_bias";
 
 /// Left multiplication by `j^{-1} = -j`: `(a, b, c, d) -> (c, -d, -a, b)`
 /// per four-channel lane, the inverse (and transpose) of
@@ -14019,6 +14419,88 @@ impl CustomOp3 for PointerMixture {
 pub struct ReadSpanMasses {
     pub layer: usize,
     pub heads: Vec<Vec<f64>>,
+}
+
+/// One geometric read layer's score inputs over a window
+/// ([`StackModel::read_query_key`]): `query[h][t]` and `key[h][j]` per head
+/// and position, `null[h][t]` the NoRead logit, `age[h][d]` the age bias at
+/// distance `d`, and per head `beta`/`offset` for the scaled scores (empty for
+/// Dot).
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReadQueryKey {
+    pub layer: usize,
+    pub score: ReadScore,
+    pub query: Vec<Vec<Vec<f32>>>,
+    pub key: Vec<Vec<Vec<f32>>>,
+    pub null: Vec<Vec<f32>>,
+    pub age: Vec<Vec<f32>>,
+    pub beta: Vec<f32>,
+    pub offset: Vec<f32>,
+}
+
+/// One read row's scores, recomputed by [`ReadQueryKey::row`]: for each source
+/// `j <= t` the content term, the age term and their sum (the fused read's
+/// score, rounded to f32 as it is), the softmax weight with NoRead in the
+/// denominator, and the NoRead weight.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ReadRowScores {
+    pub content: Vec<f64>,
+    pub age: Vec<f64>,
+    pub total: Vec<f64>,
+    pub weight: Vec<f64>,
+    pub no_read: f64,
+}
+
+impl ReadQueryKey {
+    /// Head `head`'s row at query position `t`, by the fused read's own rule:
+    /// `q.k / sqrt(width)` (Dot), `-beta (|q - k| - offset)` (L2, squared
+    /// distance clamped below), `-beta (arcosh(z) - offset)` (Lorentz), each
+    /// plus `age[t - j]`, softmax over `0..=t` and the NoRead logit.
+    pub fn row(&self, head: usize, t: usize) -> Result<ReadRowScores> {
+        let query = self
+            .query
+            .get(head)
+            .and_then(|rows| rows.get(t))
+            .ok_or_else(|| invalid("read row outside the probed window"))?;
+        let width = query.len();
+        let square = |row: &[f32]| f64::from(dot(row, row));
+        let mut content = Vec::with_capacity(t + 1);
+        let mut age = Vec::with_capacity(t + 1);
+        let mut total = Vec::with_capacity(t + 1);
+        for j in 0..=t {
+            let key = &self.key[head][j];
+            let inner = dot(query, key);
+            let c = match self.score {
+                ReadScore::Dot => f64::from(inner * (1.0 / (width as f32).sqrt())),
+                ReadScore::L2 => {
+                    let s = square(query) + square(key) - 2.0 * f64::from(inner);
+                    -f64::from(self.beta[head]) * (l2_distance(s) - f64::from(self.offset[head]))
+                }
+                ReadScore::Lorentz => {
+                    let lift = |row: &[f32]| (1.0 + square(row)).sqrt();
+                    let e = lift(query) * lift(key) - f64::from(inner) - 1.0;
+                    -f64::from(self.beta[head])
+                        * (lorentz_distance(e) - f64::from(self.offset[head]))
+                }
+            };
+            let a = f64::from(self.age[head][t - j]);
+            content.push(c);
+            age.push(a);
+            total.push(f64::from((c as f32) + self.age[head][t - j]));
+        }
+        let null = f64::from(self.null[head][t]);
+        let maximum = total.iter().copied().fold(null, f64::max);
+        let null_weight = (null - maximum).exp();
+        let exps: Vec<f64> = total.iter().map(|&s| (s - maximum).exp()).collect();
+        let sum = null_weight + exps.iter().sum::<f64>();
+        Ok(ReadRowScores {
+            content,
+            age,
+            total,
+            weight: exps.iter().map(|&e| e / sum).collect(),
+            no_read: null_weight / sum,
+        })
+    }
 }
 
 /// The pointer head at the probed query: its gate `g` and its attention over
@@ -19252,6 +19734,212 @@ mod tests {
     }
 
     #[test]
+    fn step7a_key_arms_start_plain_learn_save_and_stay_causal() -> Result<()> {
+        let config = tiny(StackArch::Geometric, "rara", ReadScore::L2, true);
+        let ids = [1u32, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let time = ids.len();
+        let plain_model = StackModel::new(config.clone(), &cpu())?;
+        let plain = plain_model.forward(&ids, 1, time)?.to_vec2::<f32>()?;
+        let targets = [2u32, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+        for lineage in [
+            ReadLineage::LearnedConvWide { taps: 8 },
+            ReadLineage::KeyCarrier,
+            ReadLineage::KeyPhase { snap: true },
+            ReadLineage::KeyPhase { snap: false },
+        ] {
+            assert!(lineage.saveable());
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            model.set_read_lineage(Some(lineage))?;
+            // Added, it computes the plain read bit for bit.
+            assert_eq!(model.forward(&ids, 1, time)?.to_vec2::<f32>()?, plain);
+            // Moved off its initialisation, it changes the read.
+            let mut rng = Initializer(17);
+            for (name, var) in model.variables() {
+                if name.contains(READ_LINEAGE_PREFIX) {
+                    var.set(&var.as_tensor().add(&random(&mut rng, var.dims(), 0.3))?)?;
+                }
+            }
+            let rows = model.forward(&ids, 1, time)?.to_vec2::<f32>()?;
+            assert_ne!(rows[time - 1], plain[time - 1], "{lineage:?}");
+            // Causal: a later token changes no earlier row.
+            let mut changed = ids;
+            changed[time - 1] = 30;
+            let after = model.forward(&changed, 1, time)?.to_vec2::<f32>()?;
+            for t in 0..time - 1 {
+                assert_eq!(after[t], rows[t], "{lineage:?} row {t}");
+            }
+            // Every lineage variable is learned, and its gradient is right.
+            let grads = model.loss(&ids, &targets, 1, time)?.backward()?;
+            let vars: Vec<Var> = model
+                .variables()
+                .iter()
+                .filter(|(name, _)| name.contains(READ_LINEAGE_PREFIX))
+                .map(|(_, var)| var.clone())
+                .collect();
+            assert_eq!(
+                vars.len(),
+                match lineage {
+                    ReadLineage::KeyCarrier => 6,
+                    ReadLineage::KeyPhase { .. } => 8,
+                    _ => 2,
+                }
+            );
+            for var in &vars {
+                let grad = grads.get(var.as_tensor()).expect("lineage gradient");
+                assert!(grad.sqr()?.sum_all()?.to_scalar::<f32>()? > 0.0);
+            }
+            // A snapped phase is piecewise constant: its straight-through
+            // gradient is not the finite difference, by design. The free
+            // phase's model-level directional derivative is below the f32
+            // finite difference's resolution here; its parts are checked in
+            // `step7a_phase_binding_preserves_norms_and_shared_phase_scores`.
+            if !matches!(lineage, ReadLineage::KeyPhase { .. }) {
+                check_gradient(&vars, || model.loss(&ids, &targets, 1, time), 2e-2)?;
+            }
+            // Saved and loaded, bit for bit; the field names it.
+            let dir = std::env::temp_dir().join(format!(
+                "stack-step7a-{}-{}",
+                lineage.name(),
+                std::process::id()
+            ));
+            model.save(&dir)?;
+            assert_eq!(StackModel::saved_read_lineage(&dir)?, Some(lineage));
+            let loaded = StackModel::load(&dir, &cpu())?;
+            assert_eq!(loaded.read_lineage(), Some(lineage));
+            assert_eq!(loaded.forward(&ids, 1, time)?.to_vec2::<f32>()?, rows);
+            fs::remove_dir_all(&dir)?;
+            // Exclusive with the key shift; no served form.
+            assert!(model.set_read_key_shift(true).is_err());
+            model.set_read_lineage(None)?;
+            assert_eq!(model.parameter_count(), plain_model.parameter_count());
+        }
+        let mut model = StackModel::new(config.clone(), &cpu())?;
+        for taps in [0, 1, MAX_CONV_TAPS + 1] {
+            assert!(model
+                .set_read_lineage(Some(ReadLineage::LearnedConvWide { taps }))
+                .is_err());
+        }
+        // A plain save keeps its exact config bytes (no lineage field).
+        let dir = std::env::temp_dir().join(format!("stack-step7a-plain-{}", std::process::id()));
+        model.save(&dir)?;
+        assert_eq!(StackModel::saved_read_lineage(&dir)?, None);
+        let text = fs::read_to_string(dir.join("config.json"))?;
+        assert!(!text.contains(READ_LINEAGE_FIELD));
+        fs::remove_dir_all(&dir)?;
+        // A research-only lineage is still refused by save.
+        model.set_read_lineage(Some(ReadLineage::LearnedConv { init_lag1: true }))?;
+        assert!(model.save(&dir).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn step7a_phase_binding_preserves_norms_and_shared_phase_scores() -> Result<()> {
+        let mut rng = Initializer(31);
+        let x = random(&mut rng, &[3, 5, 4], 1.0);
+        let y = random(&mut rng, &[3, 5, 4], 1.0);
+        let raw = random(&mut rng, &[3, 1, 4], 1.0);
+        for snap in [false, true] {
+            let p = unit_phase(&raw, snap)?;
+            let norms = p.sqr()?.sum(2)?.flatten_all()?.to_vec1::<f32>()?;
+            assert!(norms.iter().all(|n| (n - 1.0).abs() < 1e-5));
+            let px = left_multiply_blocks(&p, &x)?;
+            let py = left_multiply_blocks(&p, &y)?;
+            // Norm-preserving block by block.
+            let n0 = x.sqr()?.sum(2)?.flatten_all()?.to_vec1::<f32>()?;
+            let n1 = px.sqr()?.sum(2)?.flatten_all()?.to_vec1::<f32>()?;
+            for (a, b) in n0.iter().zip(&n1) {
+                assert!((a - b).abs() < 1e-4 * a.max(1.0));
+            }
+            // A shared phase leaves every inner product unchanged.
+            let d0 = (&x * &y)?.sum(2)?.flatten_all()?.to_vec1::<f32>()?;
+            let d1 = (&px * &py)?.sum(2)?.flatten_all()?.to_vec1::<f32>()?;
+            for (a, b) in d0.iter().zip(&d1) {
+                assert!((a - b).abs() < 1e-4, "{a} vs {b}");
+            }
+            // The Hamilton product agrees with the scalar reference.
+            let pv = p.flatten_all()?.to_vec1::<f32>()?;
+            let xv = x.flatten_all()?.to_vec1::<f32>()?;
+            let pxv = px.flatten_all()?.to_vec1::<f32>()?;
+            for r in 0..3 {
+                for b in 0..5 {
+                    let o = (r * 5 + b) * 4;
+                    let want = quaternion_product(
+                        [pv[r * 4], pv[r * 4 + 1], pv[r * 4 + 2], pv[r * 4 + 3]],
+                        [xv[o], xv[o + 1], xv[o + 2], xv[o + 3]],
+                    );
+                    for c in 0..4 {
+                        assert!((want[c] - pxv[o + c]).abs() < 1e-5);
+                    }
+                }
+            }
+        }
+        // A snapped phase is a unit icosian.
+        let p = unit_phase(&raw, true)?.flatten_all()?.to_vec1::<f32>()?;
+        for q in p.chunks_exact(4) {
+            assert!(icosian_roots()
+                .iter()
+                .any(|r| r == &[q[0], q[1], q[2], q[3]]));
+        }
+        // A different phase changes the match.
+        let other = unit_phase(&random(&mut rng, &[3, 1, 4], 1.0), false)?;
+        let p = unit_phase(&raw, false)?;
+        let d0 = (&x * &y)?.sum(2)?.flatten_all()?.to_vec1::<f32>()?;
+        let d2 = (&left_multiply_blocks(&p, &x)? * &left_multiply_blocks(&other, &y)?)?
+            .sum(2)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(d0.iter().zip(&d2).any(|(a, b)| (a - b).abs() > 1e-3));
+        // The free phase's gradient (normalisation and Hamilton product).
+        let raw_var = Var::from_tensor(&raw)?;
+        let weight = random(&mut rng, &[3, 5, 4], 1.0);
+        let loss = || -> Result<Tensor> {
+            Ok(
+                left_multiply_blocks(&unit_phase(raw_var.as_tensor(), false)?, &x)?
+                    .mul(&weight)?
+                    .sum_all()?,
+            )
+        };
+        check_gradient(std::slice::from_ref(&raw_var), loss, 1e-2)?;
+        Ok(())
+    }
+
+    #[test]
+    fn step7a_key_arms_reach_their_declared_window() -> Result<()> {
+        // A first-layer read sees per-position keys, so the lineage alone
+        // decides which earlier tokens a key depends on.
+        let config = tiny(StackArch::Geometric, "aa", ReadScore::L2, true);
+        let ids = [1u32, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let time = ids.len();
+        for (lineage, reach) in [
+            (ReadLineage::LearnedConvWide { taps: 3 }, Some(3usize)),
+            (ReadLineage::KeyCarrier, None),
+            (ReadLineage::KeyPhase { snap: false }, Some(1)),
+        ] {
+            let mut model = StackModel::new(config.clone(), &cpu())?;
+            model.set_read_lineage(Some(lineage))?;
+            let mut rng = Initializer(23);
+            for (name, var) in model.variables() {
+                if name.contains(READ_LINEAGE_PREFIX) {
+                    var.set(&var.as_tensor().add(&random(&mut rng, var.dims(), 0.5))?)?;
+                }
+            }
+            let base = model.read_query_key(&ids, 0)?;
+            let mut changed = ids;
+            changed[2] = 30;
+            let after = model.read_query_key(&changed, 0)?;
+            for t in 0..time {
+                let moved = (0..config.heads).any(|h| base.key[h][t] != after.key[h][t]);
+                let expect = match reach {
+                    Some(taps) => (2..2 + taps).contains(&t),
+                    None => t >= 2,
+                };
+                assert_eq!(moved, expect, "{lineage:?} key {t}");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
     fn the_qk_lineage_turns_the_query_and_the_key_shift_alone_does_not() -> Result<()> {
         // QK differs from F2 only through the query channel.
         let config = tiny(StackArch::Geometric, "aa", ReadScore::L2, true);
@@ -19695,6 +20383,44 @@ mod tests {
         }
         assert!(model.read_span_probe(&ids, &[vec![time]]).is_err());
         assert!(model.read_span_probe(&ids, &[]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn read_query_key_recomputes_the_fused_read_weights() -> Result<()> {
+        let ids = [3u32, 7, 9, 7, 5, 6, 2, 7];
+        let time = ids.len();
+        let spans: Vec<Vec<usize>> = (0..time).map(|j| vec![j]).collect();
+        for score in [ReadScore::L2, ReadScore::Lorentz, ReadScore::Dot] {
+            for shift in [false, true] {
+                let mut model =
+                    StackModel::new(tiny(StackArch::Geometric, "rara", score, true), &cpu())?;
+                if shift {
+                    model.set_read_key_shift(true)?;
+                }
+                let probe = model.read_span_probe(&ids, &spans)?;
+                for read in &probe.reads {
+                    let qk = model.read_query_key(&ids, read.layer)?;
+                    assert_eq!(qk.layer, read.layer);
+                    for (head, masses) in read.heads.iter().enumerate() {
+                        let row = qk.row(head, time - 1)?;
+                        let total: f64 = row.weight.iter().sum::<f64>() + row.no_read;
+                        assert!((total - 1.0).abs() < 1e-9);
+                        for j in 0..time {
+                            assert!(
+                                (row.weight[j] - masses[j]).abs() < 1e-5,
+                                "{score:?} shift={shift} layer {} head {head} source {j}: {} vs {}",
+                                read.layer,
+                                row.weight[j],
+                                masses[j]
+                            );
+                        }
+                    }
+                }
+                assert!(model.read_query_key(&ids, 0).is_err());
+                assert!(model.read_query_key(&[], 1).is_err());
+            }
+        }
         Ok(())
     }
 

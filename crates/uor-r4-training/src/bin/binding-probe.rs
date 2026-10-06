@@ -42,10 +42,11 @@ use uor_r4_core::report_output;
 use uor_r4_tokenizer::dialogue::DialogueProtocol;
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::binding_probe::{
-    asked_key_words, disjoint, parse_exact_checks, phrase_positions, token_byte_ranges, words,
-    words_at, Evidence, ExactCheck, MassPattern, MissClass, SENSITIVITY, SPAN_KINDS, TAU,
+    asked_key_words, disjoint, nearest_key_gap, parse_exact_checks, phrase_positions, runs,
+    swap_runs, token_byte_ranges, words, words_at, Evidence, ExactCheck, MassPattern, MissClass,
+    SENSITIVITY, SPAN_KINDS, TAU,
 };
-use uor_r4_training::geometric_stack::{SpanProbe, StackModel};
+use uor_r4_training::geometric_stack::{ReadRowScores, SpanProbe, StackModel};
 use uor_r4_training::sha256_file;
 use uor_r4_training::stack_dialogue::{greedy_reply, load_requests, reply_panel, Request};
 
@@ -130,8 +131,16 @@ fn run() -> Result<(), Error> {
             "max_new_tokens",
             "category",
             "replies",
+            "key_probe",
         ],
     )?;
+    let key_layers: Vec<usize> = match args.0.get("key_probe") {
+        None => Vec::new(),
+        Some(list) => list
+            .split(',')
+            .map(|v| v.parse().map_err(|_| format!("invalid key_probe={list}")))
+            .collect::<Result<_, _>>()?,
+    };
     let out = PathBuf::from(args.required("out")?);
     let model_dir = PathBuf::from(args.required("model")?);
     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
@@ -161,6 +170,7 @@ fn run() -> Result<(), Error> {
         max_new_tokens,
         &category,
         replies_path.as_deref(),
+        &key_layers,
         (device_label, &device),
         started,
     );
@@ -186,6 +196,7 @@ fn probe_into(
     max_new_tokens: usize,
     category: &str,
     replies_path: Option<&Path>,
+    key_layers: &[usize],
     (device_label, device): (&str, &Device),
     started: Instant,
 ) -> Result<(), Error> {
@@ -265,10 +276,12 @@ fn probe_into(
             check,
             done,
             reference.as_ref(),
+            key_layers,
         )?);
     }
     let probe_seconds = probing.elapsed().as_secs_f64();
     let summary = summarize(&rows);
+    let key_summary = key_probe_summary(&rows, key_layers);
     let report = json!({
         "schema": "uor-r4.binding-probe/1",
         "model": model_dir.display().to_string(),
@@ -296,6 +309,8 @@ fn probe_into(
         },
         "span_kinds": SPAN_KINDS,
         "summary": summary,
+        "key_probe_layers": key_layers,
+        "key_probe": key_summary,
         "rows": rows,
         "panel_cost": panel.get("cost"),
         "generation_seconds": generation_seconds,
@@ -571,6 +586,7 @@ fn probe_row(
     check: &ExactCheck,
     done: &Answered,
     reference: Option<&BTreeMap<String, String>>,
+    key_layers: &[usize],
 ) -> Result<Value, Error> {
     let text_ids: Vec<u32> = done.reply.iter().copied().filter(|&id| id != eos).collect();
     let reply = tokenizer.decode(&text_ids);
@@ -596,6 +612,15 @@ fn probe_row(
         None => (None, false),
     };
     let evidence = at_decision.as_ref().map_or(marker.evidence, |o| o.evidence);
+    // The Step 7a key probe at the window the row is classified at.
+    let mut classified = done.history.clone();
+    if let Some((k, _, _)) = &decision {
+        classified.extend(&done.reply[..*k]);
+    }
+    let key_records = key_layers
+        .iter()
+        .map(|&layer| key_probe(model, tokenizer, &classified, check, &asked, done, layer))
+        .collect::<Result<Vec<_>, _>>()?;
     let pattern = evidence.pattern(TAU);
     let class = (!passed).then(|| evidence.miss_class(TAU));
     let sensitivity: Vec<Value> = SENSITIVITY
@@ -630,7 +655,363 @@ fn probe_row(
         "sensitivity": sensitivity,
         "marker": marker.record,
         "at_decision": at_decision.map(|o| o.record),
+        "key_probe": key_records,
     }))
+}
+
+fn cosine(a: &[f32], b: &[f32]) -> f64 {
+    let dot: f64 = a
+        .iter()
+        .zip(b)
+        .map(|(&x, &y)| f64::from(x) * f64::from(y))
+        .sum();
+    let na: f64 = a.iter().map(|&x| f64::from(x).powi(2)).sum::<f64>().sqrt();
+    let nb: f64 = b.iter().map(|&x| f64::from(x).powi(2)).sum::<f64>().sqrt();
+    if na == 0.0 || nb == 0.0 {
+        0.0
+    } else {
+        dot / (na * nb)
+    }
+}
+
+fn distance(a: &[f32], b: &[f32]) -> f64 {
+    a.iter()
+        .zip(b)
+        .map(|(&x, &y)| (f64::from(x) - f64::from(y)).powi(2))
+        .sum::<f64>()
+        .sqrt()
+}
+
+/// The argmax-weight position of `set` in `row` (lowest on a tie).
+fn best_in(row: &ReadRowScores, set: &[usize]) -> Option<usize> {
+    set.iter()
+        .copied()
+        .filter(|&j| j < row.weight.len())
+        .fold(None, |best: Option<usize>, j| match best {
+            Some(b) if row.weight[b] >= row.weight[j] => Some(b),
+            _ => Some(j),
+        })
+}
+
+fn mass_in(row: &ReadRowScores, set: &[usize]) -> f64 {
+    set.iter()
+        .filter(|&&j| j < row.weight.len())
+        .map(|&j| row.weight[j])
+        .sum()
+}
+
+/// Positions of `set` inside the earlier user turns (`regions[..last]`).
+fn in_earlier(set: &[usize], regions: &[std::ops::Range<usize>]) -> Vec<usize> {
+    let last = regions.len().saturating_sub(1);
+    set.iter()
+        .copied()
+        .filter(|j| regions[..last].iter().any(|r| r.contains(j)))
+        .collect()
+}
+
+/// Step 7a Phase 1: why does read `layer` at the classified query prefer one
+/// value? For the binding head (the head with the most mass on the two
+/// values) it reports, at the best position of each of the expected value,
+/// the distractor value, the asked key word and the distractor key word, the
+/// read's weight, total score, content and age terms and the query/key
+/// cosine; the cosine of the two value positions' keys; the signed token gap
+/// from each value to its key word in the earlier user turns; and the
+/// counterfactual that exchanges the asked and distractor key words in the
+/// earlier user turns (`expected` and `distractor` keep their original
+/// labels, so a binding-following read moves its preference to the
+/// distractor's value there).
+fn key_probe(
+    model: &StackModel,
+    tokenizer: &ByteBpeTokenizer,
+    window: &[u32],
+    check: &ExactCheck,
+    asked: &[String],
+    done: &Answered,
+    layer: usize,
+) -> Result<Value, Error> {
+    let (spans, _) = window_spans(tokenizer, window, check, asked, done);
+    let e_runs = runs(&in_earlier(&spans[0], &done.regions));
+    let d_runs = runs(&in_earlier(&spans[1], &done.regions));
+    let kd_runs = runs(&in_earlier(&spans[2], &done.regions));
+    let ka_runs = runs(&spans[3]);
+    let qk = model.read_query_key(window, layer)?;
+    let t = window.len() - 1;
+    let heads = qk.query.len();
+    let rows: Vec<ReadRowScores> = (0..heads).map(|h| qk.row(h, t)).collect::<Result<_, _>>()?;
+    let pair = |row: &ReadRowScores| mass_in(row, &spans[0]) + mass_in(row, &spans[1]);
+    let head = (0..heads).fold(0, |b, h| {
+        if pair(&rows[h]) > pair(&rows[b]) {
+            h
+        } else {
+            b
+        }
+    });
+    let row = &rows[head];
+    let query = &qk.query[head][t];
+    let site = |set: &[usize]| -> Value {
+        match best_in(row, set) {
+            None => Value::Null,
+            Some(j) => json!({
+                "position": j, "distance": t - j, "token": tokenizer.decode(&window[j..=j]),
+                "mass": mass_in(row, set), "weight": row.weight[j], "score": row.total[j],
+                "content": row.content[j], "age": row.age[j],
+                "cos_qk": cosine(query, &qk.key[head][j]),
+            }),
+        }
+    };
+    let named: BTreeSet<usize> = spans.iter().flatten().copied().collect();
+    let other = (0..t)
+        .filter(|j| !named.contains(j))
+        .fold(None, |b: Option<usize>, j| match b {
+            Some(b) if row.total[b] >= row.total[j] => Some(b),
+            _ => Some(j),
+        });
+    let pe = best_in(row, &spans[0]);
+    let pd = best_in(row, &spans[1]);
+    let value_keys = match (pe, pd) {
+        (Some(pe), Some(pd)) => {
+            let per_head: Vec<f64> = (0..heads)
+                .map(|h| cosine(&qk.key[h][pe], &qk.key[h][pd]))
+                .collect();
+            json!({
+                "cos_binding_head": cosine(&qk.key[head][pe], &qk.key[head][pd]),
+                "cos_head_mean": mean(&per_head),
+                "distance_binding_head": distance(&qk.key[head][pe], &qk.key[head][pd]),
+                "norm_expected": distance(&qk.key[head][pe], &vec![0.0; query.len()]),
+                "norm_distractor": distance(&qk.key[head][pd], &vec![0.0; query.len()]),
+                "expected_is_later": pe > pd,
+            })
+        }
+        _ => Value::Null,
+    };
+    // Counterfactual: exchange the asked and distractor key words.
+    let ka_earlier: Vec<std::ops::Range<usize>> = ka_runs.clone();
+    let counterfactual = match (swap_runs(window, &ka_earlier, &kd_runs), pe, pd) {
+        (Some((swapped, map)), Some(pe), Some(pd)) if swapped.len() <= model.config.context => {
+            let mut moved = done.clone();
+            moved.regions = done
+                .regions
+                .iter()
+                .map(|r| map[r.start]..map[r.end.min(window.len())])
+                .collect();
+            let (cf_spans, _) = window_spans(tokenizer, &swapped, check, asked, &moved);
+            let cf = model.read_query_key(&swapped, layer)?;
+            let tc = swapped.len() - 1;
+            let cf_row = cf.row(head, tc)?;
+            let cf_rows: Vec<ReadRowScores> = (0..heads)
+                .map(|h| cf.row(h, tc))
+                .collect::<Result<_, _>>()?;
+            let max_head =
+                |set: &[usize]| cf_rows.iter().map(|r| mass_in(r, set)).fold(0.0, f64::max);
+            let (npe, npd) = (map[pe], map[pd]);
+            let mut mixed = cf.clone();
+            mixed.query[head][tc] = query.clone();
+            let mixed_row = mixed.row(head, tc)?;
+            let gap = (distance(&qk.key[head][pe], &qk.key[head][pd])).max(1e-12);
+            json!({
+                "swapped_tokens": swapped.len(),
+                "binding_head": {
+                    "mass_expected": mass_in(&cf_row, &cf_spans[0]),
+                    "mass_distractor": mass_in(&cf_row, &cf_spans[1]),
+                    "score_expected": cf_row.total[npe], "score_distractor": cf_row.total[npd],
+                    "content_expected": cf_row.content[npe], "content_distractor": cf_row.content[npd],
+                },
+                "max_head_mass_expected": max_head(&cf_spans[0]),
+                "max_head_mass_distractor": max_head(&cf_spans[1]),
+                "original_query_on_swapped_keys": {
+                    "content_expected": mixed_row.content[npe], "content_distractor": mixed_row.content[npd],
+                },
+                "key_shift_over_value_gap": {
+                    "expected": distance(&cf.key[head][npe], &qk.key[head][pe]) / gap,
+                    "distractor": distance(&cf.key[head][npd], &qk.key[head][pd]) / gap,
+                },
+            })
+        }
+        _ => Value::Null,
+    };
+    let max_head = |set: &[usize]| rows.iter().map(|r| mass_in(r, set)).fold(0.0, f64::max);
+    Ok(json!({
+        "layer": layer,
+        "binding_head": head,
+        "max_head_mass_expected": max_head(&spans[0]),
+        "max_head_mass_distractor": max_head(&spans[1]),
+        "no_read": row.no_read,
+        "expected": site(&spans[0]),
+        "distractor": site(&spans[1]),
+        "asked_key": site(&spans[3]),
+        "distractor_key": site(&spans[2]),
+        "best_other": other.map(|j| json!({"position": j, "token": tokenizer.decode(&window[j..=j]), "weight": row.weight[j], "score": row.total[j], "content": row.content[j], "age": row.age[j]})),
+        "value_keys": value_keys,
+        "gap": {
+            "expected_to_asked_key": nearest_key_gap(&e_runs, &ka_runs),
+            "distractor_to_its_key": nearest_key_gap(&d_runs, &kd_runs),
+            "runs": {"expected": e_runs.len(), "distractor": d_runs.len(), "asked_key": ka_runs.len(), "distractor_key": kd_runs.len()},
+        },
+        "counterfactual_key_swap": counterfactual,
+    }))
+}
+
+fn median(mut values: Vec<f64>) -> Option<f64> {
+    if values.is_empty() {
+        return None;
+    }
+    values.sort_by(f64::total_cmp);
+    let n = values.len();
+    Some(if n % 2 == 1 {
+        values[n / 2]
+    } else {
+        (values[n / 2 - 1] + values[n / 2]) / 2.0
+    })
+}
+
+/// The key probe aggregated per layer over three row groups: binding-swap
+/// misses, other misses, passes.
+fn key_probe_summary(rows: &[Value], key_layers: &[usize]) -> Value {
+    let mut out = serde_json::Map::new();
+    for (index, layer) in key_layers.iter().enumerate() {
+        let mut groups = serde_json::Map::new();
+        for (name, keep) in [
+            (
+                "a_binding_swap",
+                &(|r: &Value| r["miss_class"] == json!("a_binding_swap"))
+                    as &dyn Fn(&Value) -> bool,
+            ),
+            ("other_misses", &|r: &Value| {
+                r["pass"] == json!(false) && r["miss_class"] != json!("a_binding_swap")
+            }),
+            ("passes", &|r: &Value| r["pass"] == json!(true)),
+            ("all", &|_: &Value| true),
+        ] {
+            let probes: Vec<&Value> = rows
+                .iter()
+                .filter(|r| keep(r))
+                .map(|r| &r["key_probe"][index])
+                .collect();
+            let field = |f: &dyn Fn(&Value) -> Option<f64>| -> Vec<f64> {
+                probes.iter().filter_map(|p| f(p)).collect()
+            };
+            let diff = |a: &str, b: &str, k: &str| -> Vec<f64> {
+                field(&|p: &Value| Some(p[a][k].as_f64()? - p[b][k].as_f64()?))
+            };
+            let frac = |v: &[f64], pred: &dyn Fn(f64) -> bool| -> Value {
+                if v.is_empty() {
+                    Value::Null
+                } else {
+                    json!(v.iter().filter(|&&x| pred(x)).count() as f64 / v.len() as f64)
+                }
+            };
+            let score_margin = diff("expected", "distractor", "score");
+            let content_margin = diff("expected", "distractor", "content");
+            let age_margin = diff("expected", "distractor", "age");
+            let cos_margin = diff("expected", "distractor", "cos_qk");
+            let mut gaps_e: BTreeMap<i64, usize> = BTreeMap::new();
+            let mut gaps_d: BTreeMap<i64, usize> = BTreeMap::new();
+            for p in &probes {
+                if let Some(g) = p["gap"]["expected_to_asked_key"].as_i64() {
+                    *gaps_e.entry(g).or_default() += 1;
+                }
+                if let Some(g) = p["gap"]["distractor_to_its_key"].as_i64() {
+                    *gaps_d.entry(g).or_default() += 1;
+                }
+            }
+            let all_gaps: Vec<f64> = gaps_e
+                .iter()
+                .chain(&gaps_d)
+                .flat_map(|(&g, &n)| std::iter::repeat_n(g as f64, n))
+                .collect();
+            let cf: Vec<&Value> = probes
+                .iter()
+                .map(|p| &p["counterfactual_key_swap"])
+                .filter(|c| !c.is_null())
+                .collect();
+            let cf_margin: Vec<f64> = cf
+                .iter()
+                .filter_map(|c| {
+                    Some(
+                        c["binding_head"]["score_expected"].as_f64()?
+                            - c["binding_head"]["score_distractor"].as_f64()?,
+                    )
+                })
+                .collect();
+            let cf_pairs: Vec<(f64, f64)> = probes
+                .iter()
+                .filter_map(|p| {
+                    let c = &p["counterfactual_key_swap"]["binding_head"];
+                    Some((
+                        p["expected"]["score"].as_f64()? - p["distractor"]["score"].as_f64()?,
+                        c["score_expected"].as_f64()? - c["score_distractor"].as_f64()?,
+                    ))
+                })
+                .collect();
+            let flips = cf_pairs
+                .iter()
+                .filter(|(a, b)| a.signum() != b.signum())
+                .count();
+            let fixed_query: Vec<f64> = cf
+                .iter()
+                .filter_map(|c| {
+                    let o = &c["original_query_on_swapped_keys"];
+                    Some(o["content_expected"].as_f64()? - o["content_distractor"].as_f64()?)
+                })
+                .collect();
+            let shift = |k: &str| -> Vec<f64> {
+                cf.iter()
+                    .filter_map(|c| c["key_shift_over_value_gap"][k].as_f64())
+                    .collect()
+            };
+            groups.insert(
+                name.into(),
+                json!({
+                    "rows": probes.len(),
+                    "binding_head_mass": {
+                        "expected_mean": mean(&field(&|p: &Value| p["expected"]["mass"].as_f64())),
+                        "distractor_mean": mean(&field(&|p: &Value| p["distractor"]["mass"].as_f64())),
+                    },
+                    "margin_expected_minus_distractor": {
+                        "score_mean": mean(&score_margin), "score_median": median(score_margin.clone()),
+                        "content_mean": mean(&content_margin), "age_mean": mean(&age_margin),
+                        "share_content_prefers_distractor": frac(&content_margin, &|x| x < 0.0),
+                        "share_age_prefers_distractor": frac(&age_margin, &|x| x < 0.0),
+                        "cos_qk_mean": mean(&cos_margin),
+                    },
+                    "cos_qk_mean": {
+                        "expected": mean(&field(&|p: &Value| p["expected"]["cos_qk"].as_f64())),
+                        "distractor": mean(&field(&|p: &Value| p["distractor"]["cos_qk"].as_f64())),
+                        "asked_key": mean(&field(&|p: &Value| p["asked_key"]["cos_qk"].as_f64())),
+                        "distractor_key": mean(&field(&|p: &Value| p["distractor_key"]["cos_qk"].as_f64())),
+                    },
+                    "key_word_weight_mean": {
+                        "asked_key": mean(&field(&|p: &Value| p["asked_key"]["mass"].as_f64())),
+                        "distractor_key": mean(&field(&|p: &Value| p["distractor_key"]["mass"].as_f64())),
+                    },
+                    "value_keys": {
+                        "cos_binding_head_mean": mean(&field(&|p: &Value| p["value_keys"]["cos_binding_head"].as_f64())),
+                        "cos_head_mean_mean": mean(&field(&|p: &Value| p["value_keys"]["cos_head_mean"].as_f64())),
+                        "share_expected_later": frac(&field(&|p: &Value| p["value_keys"]["expected_is_later"].as_bool().map(|b| if b { 1.0 } else { 0.0 })), &|x| x > 0.5),
+                    },
+                    "gap": {
+                        "expected_to_asked_key": gaps_e,
+                        "distractor_to_its_key": gaps_d,
+                        "median_abs": median(all_gaps.iter().map(|g| g.abs()).collect()),
+                        "share_adjacent_key_before_value": frac(&all_gaps, &|g| g == 1.0),
+                        "share_key_after_value": frac(&all_gaps, &|g| g < 0.0),
+                        "share_within_8": frac(&all_gaps, &|g| g.abs() <= 8.0),
+                        "share_within_16": frac(&all_gaps, &|g| g.abs() <= 16.0),
+                    },
+                    "counterfactual_key_swap": {
+                        "rows": cf.len(),
+                        "binding_head_preference_flips": flips,
+                        "compared": cf_pairs.len(),
+                        "swapped_margin_mean": mean(&cf_margin),
+                        "original_query_swapped_keys_content_margin_mean": mean(&fixed_query),
+                        "key_shift_over_value_gap_median": {"expected": median(shift("expected")), "distractor": median(shift("distractor"))},
+                    },
+                }),
+            );
+        }
+        out.insert(layer.to_string(), Value::Object(groups));
+    }
+    Value::Object(out)
 }
 
 fn mean(values: &[f64]) -> Option<f64> {
@@ -878,5 +1259,14 @@ fn summary_markdown(report: &Value) -> String {
         "\npointer misses {}\npointer passes {}\n",
         s["pointer"]["misses"], s["pointer"]["passes"]
     ));
+    if report["key_probe"]
+        .as_object()
+        .is_some_and(|k| !k.is_empty())
+    {
+        text.push_str(&format!(
+            "\nkey probe (Step 7a) {}\n",
+            serde_json::to_string_pretty(&report["key_probe"]).unwrap_or_default()
+        ));
+    }
     text
 }
