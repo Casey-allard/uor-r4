@@ -141,6 +141,38 @@ impl FiniteAlgebra {
         Ok(table)
     }
 
+    /// Reuse the admitted exact historical frame without invoking the floating
+    /// root/table builder. The integer type can only be constructed after its
+    /// canonical mathematical identity has been independently authenticated.
+    pub fn from_historical_h4(
+        source: &uor_r4_integer::h4_tables::HistoricalH4Tables,
+    ) -> Result<Self, GeometryError> {
+        use uor_r4_integer::h4_tables::H4Code;
+        let mut product = vec![0; GROUP_ORDER << 7];
+        let mut inverse = vec![0; GROUP_ORDER];
+        for a in 0..GROUP_ORDER {
+            let left =
+                H4Code::try_from(a as u8).map_err(|_| GeometryError::InvalidElement(a as u8))?;
+            inverse[a] = source.inverse(left).index();
+            for b in 0..GROUP_ORDER {
+                let right = H4Code::try_from(b as u8)
+                    .map_err(|_| GeometryError::InvalidElement(b as u8))?;
+                product[(a << 7) | b] = source.compose(left, right).index();
+            }
+        }
+        let mut table = Self {
+            format_version: FORMAT_VERSION,
+            kind: AlgebraKind::BinaryIcosahedral,
+            identity: source.identity().index(),
+            product,
+            inverse,
+            digest: [0; 32],
+        };
+        table.digest = table.compute_digest();
+        table.validate()?;
+        Ok(table)
+    }
+
     /// Construct the ordinary cyclic order-120 comparator for offline export.
     pub fn new_c120() -> Result<Self, GeometryError> {
         let mut product = vec![0u8; GROUP_ORDER << 7];

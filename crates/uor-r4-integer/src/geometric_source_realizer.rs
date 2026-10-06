@@ -1167,7 +1167,7 @@ fn check_file(files: &BTreeMap<String, String>, name: &str, bytes: &[u8]) -> Res
     }
     Ok(())
 }
-fn canonical_exp(bytes: &[u8]) -> Result<Vec<u32>> {
+pub(crate) fn canonical_exp(bytes: &[u8]) -> Result<Vec<u32>> {
     if bytes.len() != CANONICAL_EXP_BYTES || sha256_bytes(bytes) != CANONICAL_EXP_SHA256 {
         return Err(invalid(
             "native artifact canonical exponential bytes differ",

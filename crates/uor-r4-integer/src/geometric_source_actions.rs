@@ -91,7 +91,8 @@ impl SourceActionBinding {
         }
         Ok(())
     }
-    fn admits_token(&self, id: u32) -> bool {
+    /// Admission predicate retaining sparse-hole and tokenizer identity checks.
+    pub fn admits_token(&self, id: u32) -> bool {
         usize::try_from(id)
             .ok()
             .and_then(|index| self.token_byte_lengths.get(index))
