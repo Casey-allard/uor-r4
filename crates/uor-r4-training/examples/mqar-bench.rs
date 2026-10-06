@@ -7,6 +7,7 @@
 //!   [batch=8] [steps=1800] [lr=0.001] [warmup=100] [min_lr=0.1] [weight_decay=0.1] [clip=1.0] \
 //!   [eval_every=100] [curve_sequences=8] [final_sequences=64] [seed=1] [max_seconds=1200] \
 //!   [probe_steps=0,600,final|none] [probe_sequences=16] [save_model=false|true] \
+//!   [dump_scores=false|true] \
 //!   [mode=train|task-baselines] [layout=synthetic|fact] FACT OPTIONS [arm=stack] ARM OPTIONS
 //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
 //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
@@ -21,6 +22,14 @@
 //! `mqar_bench_step2/decide.rs`. `lineage` selects the key/query lineage arm
 //! (`StackModel::set_read_key_shift` for `f2`, `StackModel::set_read_lineage`
 //! for the research-only controls); `key_shift=true` is kept as `lineage=f2`.
+//!
+//! `dump_scores=1` is a TEMPORARY T2 diagnostic: after the final evaluation it
+//! writes the read's own softmax weight rows on the held-out set (every read
+//! layer and head, at each item's first-content predicting position) into
+//! `dump_scores/` under the report root, plus the gold source index, the
+//! item's landmarks and the model's argmax there. It trains nothing, changes
+//! no parameter and moves no tally; the default (`dump_scores=0`) path writes
+//! no such file.
 //!
 //! Each sequence is a fixed-length window of filler tokens holding
 //! `pairs_per_bucket` key-value pairs per distance bucket. A pair writes its
@@ -363,6 +372,18 @@ trait ContextArm {
         _rows: &[(usize, usize, Vec<usize>)],
     ) -> Result<Vec<f32>> {
         Err(invalid("this arm has no read heads to probe"))
+    }
+    /// TEMPORARY (T2 `dump_scores=1`): the read's full softmax weight rows at
+    /// declared `(batch, query)` positions, per read layer, and the logits of
+    /// the same forward (see `StackModel::read_weight_rows`). Observation only.
+    fn read_weight_rows(
+        &self,
+        _ids: &[u32],
+        _batch: usize,
+        _time: usize,
+        _rows: &[(usize, usize)],
+    ) -> Result<(Vec<(usize, Tensor)>, Tensor)> {
+        Err(invalid("this arm has no read weight rows"))
     }
 }
 
@@ -756,6 +777,16 @@ impl ContextArm for StackArm {
             .to_device(&Device::Cpu)?
             .to_vec1::<f32>()?)
     }
+
+    fn read_weight_rows(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        rows: &[(usize, usize)],
+    ) -> Result<(Vec<(usize, Tensor)>, Tensor)> {
+        self.model.read_weight_rows(ids, batch, time, rows)
+    }
 }
 
 /// The deciding probe: each read head's softmax weight on the true key
@@ -1073,6 +1104,8 @@ struct Common {
     /// Steps at which the read probe runs (0 = before training).
     probe_steps: Vec<usize>,
     probe_sequences: usize,
+    /// TEMPORARY (T2): dump the read's weight rows on the held-out set.
+    dump_scores: bool,
 }
 
 impl Common {
@@ -1097,6 +1130,7 @@ impl Common {
             "final_sequences": self.final_sequences, "seed": self.seed,
             "max_seconds": self.max_seconds,
             "probe_steps": self.probe_steps, "probe_sequences": self.probe_sequences,
+            "dump_scores": self.dump_scores,
         })
     }
 }
@@ -1154,6 +1188,13 @@ fn settings(mut args: Args) -> Result<(Common, ArmSpec, Mode, Option<fact::FactT
         max_seconds: args.parsed("max_seconds", 1200f64)?,
         probe_steps: Vec::new(),
         probe_sequences: args.parsed("probe_sequences", 16usize)?,
+        // TEMPORARY (T2): `dump_scores=1` writes the read's own weight rows on
+        // the held-out set into the report root; the default path is unchanged.
+        dump_scores: match args.take("dump_scores").as_deref() {
+            None | Some("0") | Some("false") => false,
+            Some("1") | Some("true") => true,
+            Some(other) => return Err(invalid(format!("invalid dump_scores={other}"))),
+        },
     };
     let mut common = common;
     let probe_text = args
@@ -1672,9 +1713,14 @@ mod tests {
             curve_sequences: 1,
             final_sequences: 2,
             seed: 3,
+            // `pointer` and `dump_scores` complete the literal; the test target
+            // did not compile without them (test-only; `pointer` was already
+            // missing on origin/main).
+            pointer: None,
             max_seconds: 60.0,
             probe_steps: vec![0],
             probe_sequences: 2,
+            dump_scores: false,
         };
         let spec = ArmSpec::Stack {
             pattern: "rar".into(),

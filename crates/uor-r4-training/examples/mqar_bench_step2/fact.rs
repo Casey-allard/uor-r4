@@ -543,6 +543,13 @@ fn fact_arrays(sequences: &[FactSequence], context: usize) -> (Vec<u32>, Vec<u32
 /// The R-nlet rule: the latest occurrence, ending before `predict`, of the
 /// `n` pieces ending at `predict`; returns the `len` pieces after it.
 pub(super) fn nlet_rule(tokens: &[u32], predict: usize, n: usize, len: usize) -> Option<Vec<u32>> {
+    nlet_match_end(tokens, predict, n)
+        .map(|end| tokens[end + 1..(end + 1 + len).min(tokens.len())].to_vec())
+}
+
+/// The end of the latest occurrence, strictly before `predict`, of the `n`
+/// pieces ending at `predict` (`None` when the n-let never recurred).
+fn nlet_match_end(tokens: &[u32], predict: usize, n: usize) -> Option<usize> {
     if n == 0 || n > predict + 1 {
         return None;
     }
@@ -550,7 +557,22 @@ pub(super) fn nlet_rule(tokens: &[u32], predict: usize, n: usize, len: usize) ->
     (n - 1..predict)
         .rev()
         .find(|&end| &tokens[end + 1 - n..=end] == pattern)
-        .map(|end| tokens[end + 1..(end + 1 + len).min(tokens.len())].to_vec())
+}
+
+/// TEMPORARY (T2 `dump_scores=1`): the source position the reference rule
+/// copies its first piece from — the position after the latest earlier
+/// occurrence of the longest n-let that recurs, exactly the occurrence
+/// [`reference_rule`] copies from.
+pub(super) fn rule_source(tokens: &[u32], item: &FactItem, bare_len: usize) -> Option<usize> {
+    let predict = item.predict[0];
+    let end = match item.form {
+        Form::Rehearse => predict,
+        Form::Bare => predict - bare_len,
+    };
+    (1..=RULE_MAX_N)
+        .rev()
+        .find_map(|n| nlet_match_end(tokens, end, n))
+        .map(|end| end + 1)
 }
 
 /// Backoff over `n = RULE_MAX_N..=1`: the longest n-let that recurs.
@@ -682,6 +704,176 @@ fn rule_n(tokens: &[u32], item: &FactItem) -> [bool; RULE_MAX_N] {
             == Some(item.value.as_slice());
     }
     hits
+}
+
+/// TEMPORARY DIAGNOSTIC (T2, `dump_scores=1`): write, for every item of
+/// `sequences`, the read's full softmax weight row at the position that
+/// predicts the value's first content piece — every read layer and head — with
+/// the gold source index, the item's structural landmarks and the model's own
+/// argmax at that position. The raw f32 rows go to `dump_scores/<label>.weights.f32`
+/// under the report root and their layout to `dump_scores/<label>.index.json`.
+///
+/// The read weight row of `(layer, head, query)` over sources `0..context` is
+/// the ordinary read's own: `sum_j w_j = 1 - NoRead(query)`, and the argmax
+/// over the sources (with the NoRead slot) is the argmax of the read's score
+/// vector, since the softmax is strictly monotone in the score. Nothing here
+/// trains, changes a parameter or alters the tallies: it is one extra
+/// observation-only forward per chunk of sequences.
+fn dump_fact_scores(
+    arm: &dyn ContextArm,
+    task: &FactTask,
+    sequences: &[FactSequence],
+    buckets: &[Bucket],
+    context: usize,
+    chunk: usize,
+    label: &str,
+    root: &Path,
+) -> Result<Value> {
+    let bare_len = task.vocab.bare_prefix.len();
+    let mut rows_json = Vec::new();
+    let mut blob: Vec<f32> = Vec::new();
+    let mut layers_seen: Vec<usize> = Vec::new();
+    let mut heads_seen = 0usize;
+    let mut bit_identical = true;
+    let mut max_logit_gap = 0f64;
+    for (chunk_index, group) in sequences.chunks(chunk.max(1)).enumerate() {
+        let (ids, _, _) = fact_arrays(group, context);
+        // The dumped rows, in order: one per item, at the position that
+        // predicts the value's first content piece.
+        let mut plan: Vec<(usize, usize, usize, usize)> = Vec::new();
+        for (s, sequence) in group.iter().enumerate() {
+            for (i, item) in sequence.items.iter().enumerate() {
+                let content = task.vocab.first_content(&item.value);
+                plan.push((s, i, content, item.predict[content]));
+            }
+        }
+        let queries: Vec<(usize, usize)> = plan.iter().map(|&(s, _, _, q)| (s, q)).collect();
+        let (layers, logits) = arm.read_weight_rows(&ids, group.len(), context, &queries)?;
+        // Instrument check: the observed forward's logits are the arm's own.
+        let observed = logits.to_device(&Device::Cpu)?.to_vec2::<f32>()?;
+        let reference = arm
+            .logits(&ids, group.len(), context)?
+            .to_device(&Device::Cpu)?
+            .to_vec2::<f32>()?;
+        if observed.len() != reference.len() {
+            return Err(invalid("the read weight dump forward changed the logits' shape"));
+        }
+        for (a, b) in observed.iter().flatten().zip(reference.iter().flatten()) {
+            max_logit_gap = max_logit_gap.max((f64::from(*a) - f64::from(*b)).abs());
+            if a != b {
+                bit_identical = false;
+            }
+        }
+        if layers_seen.is_empty() {
+            layers_seen = layers.iter().map(|(layer, _)| *layer).collect();
+        }
+        // Layer-major within the chunk: every row's `heads * context` weights,
+        // head by head, source 0..context (0 beyond the row's query).
+        let mut offsets: Vec<Vec<usize>> = vec![Vec::with_capacity(plan.len()); layers.len()];
+        for (layer_index, (_, weights)) in layers.iter().enumerate() {
+            let (rows, heads, width) = weights.dims3()?;
+            if rows != plan.len() || width != context {
+                return Err(invalid("a read weight dump row has the wrong shape"));
+            }
+            heads_seen = heads;
+            let values = weights.to_device(&Device::Cpu)?.flatten_all()?.to_vec1::<f32>()?;
+            for r in 0..rows {
+                offsets[layer_index].push(blob.len());
+                blob.extend_from_slice(&values[r * heads * width..(r + 1) * heads * width]);
+            }
+        }
+        for (r, &(s, i, content, query)) in plan.iter().enumerate() {
+            let item = &group[s].items[i];
+            let tokens = &group[s].tokens;
+            let source = rule_source(tokens, item, bare_len);
+            let rule_first_content = source
+                .and_then(|end| tokens.get(end + content).map(|piece| *piece == item.value[content]))
+                .unwrap_or(false);
+            let rule_full = reference_rule(tokens, item, bare_len);
+            let logit_row = &observed[s * context + query];
+            let (argmax_token, logit_top) = logit_row.iter().enumerate().fold(
+                (0usize, f32::NEG_INFINITY),
+                |best, (token, &value)| if value > best.1 { (token, value) } else { best },
+            );
+            let first = item.predict[0];
+            let mut offsets_json = Vec::with_capacity(offsets.len());
+            for layer in &offsets {
+                offsets_json.push(layer[r]);
+            }
+            rows_json.push(json!({
+                "chunk": chunk_index,
+                "sequence": s,
+                "item": i,
+                "form": item.form.name(),
+                "gap": item.gap,
+                "key_len": item.key_len,
+                "kind": item.kind.name(),
+                "bucket": buckets[item.bucket].name,
+                "distance": item.distance,
+                "content": content,
+                "query": query,
+                "first_predict": first,
+                "predict": item.predict,
+                "n_candidates": query + 1,
+                "gold": item.value_first() + content,
+                "value_first": item.value_first(),
+                "fact_start": item.fact_start,
+                "key_last": item.key_last(),
+                "query_start": item.query_start,
+                "query_key_last": item.query_start + item.key_len - 1,
+                "value": item.value,
+                "target_token": item.value[content],
+                "argmax_token": argmax_token,
+                "logit_top": logit_top,
+                "logit_target": logit_row[item.value[content] as usize],
+                "rule_source": source,
+                "rule_first_content_hit": rule_first_content,
+                "rule_full_hit": rule_full,
+                "weights_offsets": offsets_json,
+            }));
+        }
+    }
+    let dump_dir = root.join("dump_scores");
+    fs::create_dir_all(&dump_dir)?;
+    let mut bytes = Vec::with_capacity(blob.len() * 4);
+    for value in &blob {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    let blob_name = format!("{label}.weights.f32");
+    fs::write(dump_dir.join(&blob_name), &bytes)?;
+    let index_name = format!("{label}.index.json");
+    let index = json!({
+        "schema": "uor-r4/mqar-bench/read-weight-dump/v1",
+        "label": label,
+        "temporary": "T2 diagnostic (dump_scores=1); not part of the frozen bench",
+        "context": context,
+        "sequences": sequences.len(),
+        "items": rows_json.len(),
+        "chunk": chunk,
+        "layers": layers_seen,
+        "heads": heads_seen,
+        "weight_blob": blob_name,
+        "weight_blob_floats": blob.len(),
+        "weight_blob_layout": "chunk -> layer -> row -> head: `context` little-endian f32 weights over sources 0..context; every row is found by `weights_offsets[layer_index]`",
+        "weights_semantics": "the read's own softmax weight per source; sources beyond the row's query are 0; the row's normalizer includes the learned NoRead slot, so sum_j w_j = 1 - NoRead; argmax over sources (with NoRead) = argmax of the score vector",
+        "gold_definition": "the position in the window holding the value's first content piece (value_first + first_content); the query row is the position whose next-token target is that piece",
+        "logits_bit_identical": bit_identical,
+        "max_abs_logit_gap": max_logit_gap,
+        "rows": rows_json,
+    });
+    write_json(&dump_dir.join(&index_name), &index)?;
+    Ok(json!({
+        "status": "complete",
+        "index": format!("dump_scores/{index_name}"),
+        "weights": format!("dump_scores/{blob_name}"),
+        "items": index["items"],
+        "sequences": sequences.len(),
+        "layers": index["layers"],
+        "heads": heads_seen,
+        "weight_blob_floats": blob.len(),
+        "logits_bit_identical": bit_identical,
+        "max_abs_logit_gap": max_logit_gap,
+    }))
 }
 
 /// Recall per cell and marginal: argmax over the whole vocabulary at every
@@ -1037,6 +1229,33 @@ first-content {:.3} {}/{held_out_total} ({:.0}s)",
     );
     eprintln!("{line}");
     writeln!(log, "{line}")?;
+    // TEMPORARY (T2 `dump_scores=1`): the read's own weight rows on the same
+    // held-out set, after (never during) the scoring, so no tally moves.
+    let score_dump = if s.dump_scores {
+        let dump = dump_fact_scores(
+            &*arm,
+            task,
+            &held_out_set,
+            &buckets,
+            s.context,
+            s.batch,
+            "held_out",
+            &s.out,
+        )?;
+        let line = format!(
+            "dump_scores: {} items, {} rows/layer, {} floats, logits bit-identical {} (max |gap| {:.3e})",
+            dump["items"],
+            dump["sequences"],
+            dump["weight_blob_floats"],
+            dump["logits_bit_identical"],
+            dump["max_abs_logit_gap"].as_f64().unwrap_or(f64::NAN),
+        );
+        eprintln!("{line}");
+        writeln!(log, "{line}")?;
+        dump
+    } else {
+        json!({"status": "not requested (dump_scores=0)"})
+    };
     let final_eval_seconds = eval_clock.elapsed().as_secs_f64();
     let probe = if s.probe_steps.is_empty() {
         json!({"status": "not requested (probe_steps=none)"})
@@ -1082,6 +1301,7 @@ first-content {:.3} {}/{held_out_total} ({:.0}s)",
         "stopped_early_at_max_seconds": stopped_early,
         "final_in_class_fresh_pairings": in_class,
         "final_held_out_class_pairings": held_out,
+        "read_score_dump": score_dump,
         "final_read_probe": probe,
         "curve": curve,
         "train_seconds": train_seconds,

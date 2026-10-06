@@ -542,6 +542,22 @@ struct BindingCapture<'a> {
     masses: Option<Tensor>,
     /// The diagnostic span probe ([`StackModel::read_span_probe`]), if any.
     probe: Option<SpanProbeCapture<'a>>,
+    /// The diagnostic read weight dump ([`StackModel::read_weight_rows`]), if
+    /// any. Exclusive with `target` and `probe`: it is the only auxiliary value
+    /// block then, so its channels start at the ordinary value width.
+    weights: Option<WeightDumpCapture>,
+}
+
+/// Every read layer's full softmax weight row at declared `(batch, query)`
+/// rows ([`StackModel::read_weight_rows`]). Like the binding label and the span
+/// probe each source position is an auxiliary value channel (here the identity
+/// over sources) sharing the read's exact scores, admission and NoRead
+/// normalization; the channels are removed before `read.out`.
+struct WeightDumpCapture {
+    /// The `(batch, query)` rows to keep, in the given order.
+    rows: Vec<(usize, usize)>,
+    /// `(layer, weights [rows, heads, time])` in layer order.
+    layers: Vec<(usize, Tensor)>,
 }
 
 /// Every geometric read layer's per-head attention mass on declared source
@@ -2174,6 +2190,39 @@ impl StackModel {
                 Tensor::cat(&[&value, &mask], 3)?
             }
         };
+        // The read weight dump's channels: the identity over source positions,
+        // the same in every head. Output channel `j` of row `t` is then exactly
+        // the read's softmax weight on source `j`. Like the label mask and the
+        // span probe they never enter the scores and are removed before
+        // `read.out`. Exclusive with the other two blocks (the extraction below
+        // relies on that), which is checked here rather than silently mixed.
+        let value = match binding.as_ref().and_then(|binding| binding.weights.as_ref()) {
+            None => value,
+            Some(dump) => {
+                if binding.as_ref().is_some_and(|binding| {
+                    binding.target.is_some() || binding.probe.is_some()
+                }) {
+                    return Err(invalid(
+                        "the read weight dump is exclusive with the binding label and span probe",
+                    ));
+                }
+                if dump.rows.iter().any(|&(b, q)| b >= batch || q >= time) {
+                    return Err(invalid("a read weight dump row is outside the window"));
+                }
+                let sets = time;
+                let mut mask = vec![0.0f32; batch * heads * time * sets];
+                for b in 0..batch {
+                    for h in 0..heads {
+                        for source in 0..time {
+                            mask[((b * heads + h) * time + source) * sets + source] = 1.0;
+                        }
+                    }
+                }
+                let mask = Tensor::from_vec(mask, (batch, heads, time, sets), &self.device)?
+                    .to_dtype(value.dtype())?;
+                Tensor::cat(&[&value, &mask], 3)?
+            }
+        };
         Ok((value, value_width))
     }
 
@@ -2200,6 +2249,23 @@ impl StackModel {
                 .squeeze(1)?
                 .to_dtype(DType::F32)?;
             probe.layers.push((layer, masses));
+        }
+        if let Some(dump) = binding.as_mut().and_then(|binding| binding.weights.as_mut()) {
+            // The identity block is the only auxiliary value block (checked in
+            // `read_binding_values`), so it starts at the ordinary width.
+            let weights = read.narrow(3, value_width, time)?;
+            let mut kept = Vec::with_capacity(dump.rows.len());
+            for &(b, query) in &dump.rows {
+                kept.push(
+                    weights
+                        .get(b)?
+                        .narrow(1, query, 1)?
+                        .squeeze(1)?
+                        .to_dtype(DType::F32)?,
+                );
+            }
+            let rows = Tensor::stack(&kept, 0)?;
+            dump.layers.push((layer, rows));
         }
         let read = if let Some(target) = target {
             let indices: Vec<u32> = target
@@ -2870,6 +2936,7 @@ impl StackModel {
             target: Some(target),
             masses: None,
             probe: None,
+            weights: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -4831,6 +4898,7 @@ impl StackModel {
             target: Some(target),
             masses: None,
             probe: None,
+            weights: None,
         });
         let x = self.layer_range_with_source(
             &p,
@@ -6474,6 +6542,7 @@ impl StackModel {
             target: Some(target),
             masses: None,
             probe: None,
+            weights: None,
         });
         let x = self.layer_range_with_source(
             p,
@@ -6521,6 +6590,79 @@ impl StackModel {
         Ok(self.hidden_with_binding(&p, ids, batch, time, binding)?.1)
     }
 
+    /// TEMPORARY DIAGNOSTIC (T2, `mqar-bench` `dump_scores=1`): every geometric
+    /// read layer's full softmax weight row at declared `(batch, query)`
+    /// positions.
+    ///
+    /// The second returned value is the ordinary logits `[batch * time,
+    /// vocabulary]` of the same forward, so a caller can check that observing
+    /// the weights changed nothing. Each `(layer, [rows, heads, time])` entry
+    /// holds, at `[r, h, j]`, the read weight of head `h` on source `j <=
+    /// query_r` (`0` for `j > query_r`), normalized exactly as the ordinary
+    /// read normalizes it: over the admitted sources and the learned NoRead
+    /// slot, so `sum_j weights[r, h, j] = 1 - NoRead(t)` and the argmax over
+    /// `j` (with the NoRead slot) is the argmax of the read's score vector
+    /// (the softmax is strictly monotone). The weights come from an auxiliary
+    /// identity value block sharing the read's exact scores, admission, age
+    /// and normalization; it is removed before `read.out`, so no hidden state,
+    /// logit or parameter changes.
+    ///
+    /// The forward is [`Self::forward`]'s exact path (the plain fused read, no
+    /// geometric address, span, event or integer reducer); it refuses a model
+    /// that has one, and a model with no read layer at all.
+    pub fn read_weight_rows(
+        &self,
+        ids: &[u32],
+        batch: usize,
+        time: usize,
+        rows: &[(usize, usize)],
+    ) -> Result<(Vec<(usize, Tensor)>, Tensor)> {
+        if self.config.arch != StackArch::Geometric {
+            return Err(invalid("read weight rows need the geometric stack"));
+        }
+        if self.geometric_address.is_some() || self.geometric_span.is_some() {
+            return Err(invalid(
+                "read weight rows observe the plain fused read only (no geometric address or span)",
+            ));
+        }
+        if rows.is_empty() {
+            return Err(invalid("read weight rows needs at least one row"));
+        }
+        if time == 0 || time > self.config.context {
+            return Err(invalid("read weight rows needs one window within the context"));
+        }
+        let p = self.params()?;
+        let x = self.embed_with(&p, ids, batch, time)?;
+        let mut binding = Some(BindingCapture {
+            target: None,
+            masses: None,
+            probe: None,
+            weights: Some(WeightDumpCapture {
+                rows: rows.to_vec(),
+                layers: Vec::new(),
+            }),
+        });
+        let x = self.layer_range_with_source(
+            &p,
+            x,
+            0..self.config.layers(),
+            &mut None,
+            &mut binding,
+            LatchGates::Soft,
+            ReadSource::default(),
+        )?;
+        let hidden = self.finish_hooked(&p, x, &mut None)?;
+        let layers = binding
+            .and_then(|binding| binding.weights)
+            .map(|dump| dump.layers)
+            .unwrap_or_default();
+        if layers.is_empty() {
+            return Err(invalid("the stack has no read layer to dump weights from"));
+        }
+        let logits = self.linear(&hidden, p.head()?)?;
+        Ok((layers, logits))
+    }
+
     /// Diagnostic of the next token after `ids` (one window, batch 1): every
     /// geometric read layer's per-head attention mass, at the last position,
     /// on each of `spans` (sets of window positions), and the output
@@ -6562,6 +6704,7 @@ impl StackModel {
                 query: time - 1,
                 layers: Vec::new(),
             }),
+            weights: None,
         });
         let x = self.layer_range_bound(
             &p,
