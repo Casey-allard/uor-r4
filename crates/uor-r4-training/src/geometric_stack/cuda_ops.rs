@@ -1176,8 +1176,48 @@ impl FusedRead {
             return via_host3(self, [(s1, l1), (s2, l2), (s3, l3)]);
         };
         let device = &s1.device;
-        let pass = self.cuda_pass(device, query, kv.slice(..), aux, false)?;
         let total = rows * value;
+        if cuda_read_kernels() == CudaReadKernels::Flash {
+            let dims = self.cuda_dims()?;
+            let lift_len = if self.score.scaled() { rows } else { 1 };
+            let query_lift = uninit::<f64>(device, lift_len)?;
+            let key_lift = uninit::<f64>(device, lift_len)?;
+            if self.score.scaled() {
+                launch(
+                    device,
+                    "read_lift",
+                    rows,
+                    &[
+                        Arg::F(query.slice(..)),
+                        Arg::F(kv.slice(..)),
+                        Arg::d(&query_lift),
+                        Arg::d(&key_lift),
+                        Arg::Dims(dims),
+                    ],
+                )?;
+            }
+            let out = uninit::<f32>(device, total)?;
+            launch_groups(
+                device,
+                "read_flash_fwd",
+                (time.div_ceil(16), 1, self.batch * self.heads),
+                (16, 16, 1),
+                &[
+                    Arg::F(query),
+                    Arg::F(kv),
+                    Arg::F(aux),
+                    Arg::d(&query_lift),
+                    Arg::d(&key_lift),
+                    Arg::f(&out),
+                    Arg::Dims(dims),
+                ],
+            )?;
+            return Ok((
+                storage(out, device),
+                Shape::from((self.batch, self.heads, time, value)),
+            ));
+        }
+        let pass = self.cuda_pass(device, query, kv.slice(..), aux, false)?;
         let out = uninit::<f32>(device, total)?;
         launch(
             device,
@@ -1228,6 +1268,99 @@ impl FusedRead {
             view(&ds, dl)?,
         );
         let scaled = self.score.scaled();
+        if cuda_read_kernels() == CudaReadKernels::Flash {
+            let dims = self.cuda_dims()?;
+            let lift_len = if scaled { rows } else { 1 };
+            let query_lift = uninit::<f64>(device, lift_len)?;
+            let key_lift = uninit::<f64>(device, lift_len)?;
+            if scaled {
+                launch(
+                    device,
+                    "read_lift",
+                    rows,
+                    &[
+                        Arg::F(qv.slice(..)),
+                        Arg::F(kvv.slice(..)),
+                        Arg::d(&query_lift),
+                        Arg::d(&key_lift),
+                        Arg::Dims(dims),
+                    ],
+                )?;
+            }
+            let tiles = self.time.div_ceil(16);
+            let row_len = if scaled { rows } else { 1 };
+            let age_len = if self.age { rows * tiles } else { 1 };
+            let rowstat = uninit::<f64>(device, 3 * rows)?;
+            let row_beta = uninit::<f64>(device, row_len)?;
+            let row_offset = uninit::<f64>(device, row_len)?;
+            let age_part = uninit::<f64>(device, age_len)?;
+            let dq = uninit::<f32>(device, q.elem_count())?;
+            let dkv = uninit::<f32>(device, kvt.elem_count())?;
+            let d_aux = zeros::<f32>(device, a.elem_count())?;
+            let grid = (tiles, 1, self.batch * self.heads);
+            launch_groups(
+                device,
+                "read_flash_bwd_query",
+                grid,
+                (16, 16, 1),
+                &[
+                    Arg::F(qv.slice(..)),
+                    Arg::F(kvv.slice(..)),
+                    Arg::F(dyv.slice(..)),
+                    Arg::F(av.slice(..)),
+                    Arg::d(&query_lift),
+                    Arg::d(&key_lift),
+                    Arg::d(&rowstat),
+                    Arg::f(&dq),
+                    Arg::f(&d_aux),
+                    Arg::d(&row_beta),
+                    Arg::d(&row_offset),
+                    Arg::d(&age_part),
+                    Arg::Dims(dims),
+                ],
+            )?;
+            launch_groups(
+                device,
+                "read_flash_bwd_key",
+                grid,
+                (16, 16, 1),
+                &[
+                    Arg::F(qv.slice(..)),
+                    Arg::F(kvv.slice(..)),
+                    Arg::F(dyv.slice(..)),
+                    Arg::F(av.slice(..)),
+                    Arg::d(&query_lift),
+                    Arg::d(&key_lift),
+                    Arg::d(&rowstat),
+                    Arg::f(&dkv),
+                    Arg::Dims(dims),
+                ],
+            )?;
+            if self.age || scaled {
+                launch(
+                    device,
+                    "read_flash_bwd_reduce",
+                    self.heads * self.time + 2 * self.heads,
+                    &[
+                        Arg::d(&age_part),
+                        Arg::d(&row_beta),
+                        Arg::d(&row_offset),
+                        Arg::f(&d_aux),
+                        Arg::Dims(dims),
+                    ],
+                )?;
+            }
+            let d_aux = if self.null || self.age || scaled {
+                tensor(d_aux, device, aux.shape())
+            } else {
+                Tensor::zeros(aux.shape(), DType::F32, aux.device())?
+            };
+            return Ok((
+                tensor(dq, device, query.shape()),
+                tensor(dkv, device, kv.shape()),
+                d_aux,
+            ));
+        }
         let pass = self.cuda_pass(device, qv.slice(..), kvv.slice(..), av.slice(..), true)?;
         let dims = self.cuda_dims()?;
         let square = rows * self.time;

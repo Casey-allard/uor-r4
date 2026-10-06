@@ -309,6 +309,54 @@ pub fn set_cuda_recurrence_kernels(kernels: CudaRecurrenceKernels) {
     CUDA_RECURRENCE_KERNELS.store(code, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// The CUDA kernels of the fused read's forward (a training-speed choice;
+/// the backward is the same either way and recomputes its own pass).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CudaReadKernels {
+    /// Scores into a T x T buffer, a softmax per row, then the value mix.
+    /// The default.
+    Fused,
+    /// One flash-style kernel per (query tile, window, head) with an online
+    /// softmax and no T x T buffer. Selected for a whole process with
+    /// `UOR_R4_CUDA_READ=flash`.
+    Flash,
+}
+
+/// 0: not yet read from the environment, 1: fused, 2: flash.
+static CUDA_READ_KERNELS: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
+
+/// The CUDA read forward kernels in use: the last [`set_cuda_read_kernels`]
+/// choice, else `UOR_R4_CUDA_READ` (`flash` or `fused`), else
+/// [`CudaReadKernels::Fused`].
+pub fn cuda_read_kernels() -> CudaReadKernels {
+    use std::sync::atomic::Ordering;
+    let mut code = CUDA_READ_KERNELS.load(Ordering::Relaxed);
+    if code == 0 {
+        code = match std::env::var("UOR_R4_CUDA_READ").as_deref() {
+            Ok("flash") => 2,
+            _ => 1,
+        };
+        // Keep an explicit choice made concurrently.
+        let _ = CUDA_READ_KERNELS.compare_exchange(0, code, Ordering::Relaxed, Ordering::Relaxed);
+        code = CUDA_READ_KERNELS.load(Ordering::Relaxed);
+    }
+    if code == 2 {
+        CudaReadKernels::Flash
+    } else {
+        CudaReadKernels::Fused
+    }
+}
+
+/// Selects the CUDA read forward kernels for the whole process (tests
+/// compare the two paths with it).
+pub fn set_cuda_read_kernels(kernels: CudaReadKernels) {
+    let code = match kernels {
+        CudaReadKernels::Fused => 1,
+        CudaReadKernels::Flash => 2,
+    };
+    CUDA_READ_KERNELS.store(code, std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Matched identity-input mechanisms for geometric reads. Both use the same
 /// learned gate and current-role plus identity projections. Only Held retains
 /// identity across multiple intervening positions.
