@@ -867,6 +867,100 @@ extern "C" __global__ void recurrence_scan_fwd(
     }
 }
 
+// ---------------------------------------------------------------------------
+// 6c. Recurrence core, chunked path: the same arithmetic as the serial scan
+// (`recurrence_scan_fwd`), with the carry split so the time axis is parallel.
+//
+// The serial scan's critical path is `time` dependent steps with one thread per
+// (window, lane). Here a first pass has one thread per (window, tile, lane) and
+// walks only its tile, folding the tile's affine map `h_out = P (x) h_in + D`
+// (P the composed transition, D the tile's response to a zero entry state,
+// accumulated with `recurrence_step`'s own operations); a second, short pass has
+// one thread per (window, lane) and composes `ntiles` tiles, storing each tile's
+// entry state; a third pass has one thread per (window, tile, lane) and re-walks
+// its tile from its entry state with `recurrence_step`, writing the states. The
+// parallel passes have `time / tile` times the threads of the serial scan and
+// the serial depth is `2 tile + time / tile` instead of `time`; the price is one
+// extra read of q, drive and keep.
+//
+// The composition reorders f32 additions relative to the serial scan, so the
+// chunked states agree with it to a stated tolerance, not bit for bit; with
+// `tile = 1` the fold carries one step and the expansion applies that step to
+// the entry state, which is the serial scan's own step.
+// ---------------------------------------------------------------------------
+
+// One thread per (window, tile, lane): the tile's (P, D).
+extern "C" __global__ void recurrence_tile_fold(
+    const float* __restrict__ q, const float* __restrict__ drive,
+    const float* __restrict__ keep, float* __restrict__ tile_q,
+    float* __restrict__ tile_d, uint time, uint width, uint lanes, uint ntiles,
+    uint tile, uint total
+) {
+    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= (u64)total) return;
+    uint lane = (uint)(id % lanes);
+    uint tile_id = (uint)((id / lanes) % ntiles);
+    uint b = (uint)(id / ((u64)lanes * ntiles));
+    uint ch = 4 * lane;
+    uint t0 = tile_id * tile;
+    uint t1 = min(t0 + tile, time);
+    float4 p = make_float4(1.0f, 0.0f, 0.0f, 0.0f);
+    float4 d = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    for (uint t = t0; t < t1; ++t) {
+        u64 row = (u64)b * time + t;
+        u64 base = row * width + ch;
+        float4 qi = ld4(q + base);
+        d = recurrence_step(qi, d, ld4(drive + base), keep[row * lanes + lane]);
+        p = quat_mul(qi, p);
+    }
+    st4(tile_q + id * 4, p);
+    st4(tile_d + id * 4, d);
+}
+
+// One thread per (window, lane): each tile's entry state, in tile order.
+extern "C" __global__ void recurrence_tile_carry(
+    const float* __restrict__ tile_q, const float* __restrict__ tile_d,
+    float* __restrict__ entry, uint lanes, uint ntiles, uint total_lanes
+) {
+    uint id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= total_lanes) return;
+    uint lane = id % lanes;
+    uint b = id / lanes;
+    float4 held = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+    for (uint tile_id = 0; tile_id < ntiles; ++tile_id) {
+        u64 slot = (((u64)b * ntiles + tile_id) * lanes + lane) * 4;
+        float4 p = ld4(tile_q + slot);
+        float4 d = ld4(tile_d + slot);
+        st4(entry + slot, held);
+        held = add4(quat_mul(p, held), d);
+    }
+}
+
+// One thread per (window, tile, lane): the tile's states from its entry state.
+extern "C" __global__ void recurrence_tile_expand(
+    const float* __restrict__ q, const float* __restrict__ drive,
+    const float* __restrict__ keep, const float* __restrict__ entry,
+    float* __restrict__ state_out, uint time, uint width, uint lanes, uint ntiles,
+    uint tile, uint total
+) {
+    u64 id = (u64)blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= (u64)total) return;
+    uint lane = (uint)(id % lanes);
+    uint tile_id = (uint)((id / lanes) % ntiles);
+    uint b = (uint)(id / ((u64)lanes * ntiles));
+    uint ch = 4 * lane;
+    uint t0 = tile_id * tile;
+    uint t1 = min(t0 + tile, time);
+    float4 held = ld4(entry + id * 4);
+    for (uint t = t0; t < t1; ++t) {
+        u64 row = (u64)b * time + t;
+        u64 base = row * width + ch;
+        held = recurrence_step(ld4(q + base), held, ld4(drive + base),
+                               keep[row * lanes + lane]);
+        st4(state_out + base, held);
+    }
+}
+
 // Per element: out = held * gelu(output branch).
 extern "C" __global__ void recurrence_out(
     const float* __restrict__ state, const act_t* __restrict__ branches,

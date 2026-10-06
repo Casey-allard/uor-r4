@@ -3008,3 +3008,111 @@ fn flash_read_bench(time: usize, dtype: candle_core::DType) -> uor_r4_training::
     set_cuda_read_kernels(CudaReadKernels::Fused);
     Ok(())
 }
+
+/// The chunked recurrence path against the serial split path.
+///
+/// The chunked path computes the same affine maps as the serial scan, but it
+/// composes each tile's transition and drive before applying them to the tile's
+/// entry state, which reorders f32 additions. The states and the three
+/// gradients therefore agree to a stated tolerance, not bit for bit: the tile
+/// sizes swept here are 1, 8 and 32 rows, and the bound is
+/// `abs + rel * |serial|` on every element with the measured maxima printed.
+/// The chunked path must also be deterministic: the same run twice gives
+/// identical bits.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_chunked_recurrence_parity() -> uor_r4_training::Result<()> {
+    use std::time::Instant;
+    use uor_r4_training::geometric_stack::{
+        cuda_recurrence_kernels, recurrence_tile, set_cuda_recurrence_kernels, set_recurrence_tile,
+        CudaRecurrenceKernels, RotationGroup,
+    };
+    let cuda_dev = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    // (batch, time, width, rotation, group)
+    for (case, &(batch, time, width, rotation, group)) in [
+        (2usize, 7usize, 16usize, true, RotationGroup::Quaternion),
+        (3, 13, 32, false, RotationGroup::Quaternion),
+        (2, 37, 64, true, RotationGroup::Quaternion),
+        (2, 8, 16, true, RotationGroup::U1),
+        (2, 37, 64, true, RotationGroup::U1),
+        (8, 132, 128, true, RotationGroup::Quaternion),
+    ]
+    .iter()
+    .enumerate()
+    {
+        let lanes = width / 4;
+        let gate_width = lanes + if rotation { width } else { 0 };
+        let seed = 900 + case as u64 * 10;
+        let b_data = noise(batch * time * 2 * width, seed, 1.0);
+        let mut g_data = noise(batch * time * gate_width, seed + 1, 1.5);
+        if rotation {
+            for row in g_data.chunks_mut(gate_width) {
+                for lane in 0..lanes {
+                    row[lanes + 4 * lane] += 1.0;
+                }
+            }
+        }
+        let mut p_data = noise(5 * width + lanes, seed + 2, 0.5);
+        for (i, value) in p_data.iter_mut().enumerate().skip(5 * width) {
+            *value = -1.0 + 2.0 * (i % 5) as f32;
+        }
+        let w_data = noise(batch * time * width, seed + 3, 1.0);
+        let data = [&b_data, &g_data, &p_data, &w_data];
+        set_cuda_recurrence_kernels(CudaRecurrenceKernels::Split);
+        let started = Instant::now();
+        let reference = recurrence_run(
+            &cuda_dev, data, batch, time, width, rotation, group, gate_width,
+        )?;
+        let serial = started.elapsed();
+        println!("b{batch} t{time} w{width} rot{rotation} {group:?} serial split: {serial:?}");
+        for tile in [1usize, 8, 32] {
+            set_recurrence_tile(tile);
+            set_cuda_recurrence_kernels(CudaRecurrenceKernels::Chunked);
+            assert_eq!(recurrence_tile(), tile);
+            let started = Instant::now();
+            let chunked = recurrence_run(
+                &cuda_dev, data, batch, time, width, rotation, group, gate_width,
+            )?;
+            let elapsed = started.elapsed();
+            // Determinism: the same run again, bit for bit.
+            let again = recurrence_run(
+                &cuda_dev, data, batch, time, width, rotation, group, gate_width,
+            )?;
+            for (k, name) in ["out", "d_branches", "d_gates", "d_parameters"]
+                .iter()
+                .enumerate()
+            {
+                assert_eq!(
+                    chunked[k], again[k],
+                    "b{batch} t{time} w{width} tile{tile} {name}: the chunked path is not deterministic"
+                );
+                let (want, got) = (&reference[k], &chunked[k]);
+                assert_eq!(want.len(), got.len(), "{name}: length mismatch");
+                let mut worst = 0.0f32;
+                for (i, (&a, &b)) in want.iter().zip(got.iter()).enumerate() {
+                    assert!(
+                        a.is_finite() && b.is_finite(),
+                        "b{batch} t{time} w{width} tile{tile} {name} at {i}: not finite"
+                    );
+                    let diff = (a - b).abs();
+                    let bound = 1e-4f32 + 1e-3 * a.abs();
+                    assert!(
+                        diff <= bound,
+                        "b{batch} t{time} w{width} tile{tile} {name} at {i}: |chunked - serial| = {diff} > {bound} ({a} vs {b})"
+                    );
+                    worst = worst.max(diff);
+                }
+                println!(
+                    "b{batch} t{time} w{width} rot{rotation} {group:?} tile{tile} {name}: max |chunked - serial| {worst:e} (bound 1e-4 + 1e-3 rel); run {elapsed:?}"
+                );
+            }
+        }
+    }
+    set_cuda_recurrence_kernels(CudaRecurrenceKernels::Split);
+    set_recurrence_tile(uor_r4_training::geometric_stack::RECURRENCE_TILE);
+    assert_eq!(cuda_recurrence_kernels(), CudaRecurrenceKernels::Split);
+    Ok(())
+}

@@ -638,7 +638,6 @@ impl RecurrenceCore {
         let (time, width, lanes) = (self.time, self.width, self.lanes());
         let total = self.batch * time * width;
         let positions = self.batch * time * lanes;
-        let windows = self.batch * lanes;
         let drive = zeros::<f32>(device, total)?;
         let q = zeros::<f32>(device, total)?;
         let keep = zeros::<f32>(device, positions)?;
@@ -663,20 +662,10 @@ impl RecurrenceCore {
                 Arg::U32(u32_of(positions, "positions")?),
             ],
         )?;
-        launch_scan(
-            device,
-            "recurrence_scan_fwd",
-            windows,
-            &[
-                Arg::f(&q),
-                Arg::f(&drive),
-                Arg::f(&keep),
-                Arg::f(&state),
-                Arg::U32(u32_of(time, "time")?),
-                Arg::U32(u32_of(width, "width")?),
-                Arg::U32(u32_of(lanes, "lanes")?),
-                Arg::U32(u32_of(windows, "lanes")?),
-            ],
+        // The same time-parallel carry as the f32 path: its buffers are f32 in
+        // both modules (recurrence_prep did the storage conversion).
+        super::cuda_ops::time_parallel_states(
+            device, self.batch, time, width, lanes, &q, &drive, &keep, &state,
         )?;
         Ok(SplitStates {
             drive,
@@ -722,7 +711,7 @@ impl RecurrenceCore {
                 self.cuda_forward_bf(device, branches, gates, parameters, &log_a)?
                     .2
             }
-            CudaRecurrenceKernels::Split => {
+            CudaRecurrenceKernels::Split | CudaRecurrenceKernels::Chunked => {
                 let states =
                     self.cuda_split_states_bf(device, &branches, &gates, &parameters, &log_a)?;
                 let total = self.batch * time * width;
@@ -924,7 +913,7 @@ impl RecurrenceCore {
         let d_gates = zeros::<bf16>(device, g.elem_count())?;
         let partials = zeros::<f64>(device, self.batch * param_len)?;
         let d_parameters = zeros::<f32>(device, param_len)?;
-        if cuda_recurrence_kernels() == CudaRecurrenceKernels::Split {
+        if cuda_recurrence_kernels() != CudaRecurrenceKernels::Single {
             self.cuda_split_bwd_bf(
                 device,
                 &bv,

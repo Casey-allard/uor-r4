@@ -126,14 +126,30 @@ the cost.
 
 ## 4. Order of work and gates
 
-1. **Phase 2a first.** The recurrence is the largest single kernel and its
-   serial chain caps the step; a chunked scan is the only change that removes
-   the dependency rather than shrinking its bytes.
-2. **Phase 2b second**, on top of the Phase 2a kernels (both touch the read's
-   and recurrence's shared buffers).
-3. Each phase carries its own parity gate on the 29M recipe under the Phase 1
+> **Revision, 5 October 2026 (measured).** Phase 2a was implemented, tested and
+> measured before Phase 2b started: it is parity-clean but **speed-neutral**
+> (+0.2% at 29M, −1.2% at ~96M on an RTX 5090). The `nsys` kernel-family
+> profile in [`bf16-step-profile-2026-10-05.md`](bf16-step-profile-2026-10-05.md)
+> shows why: the recurrence is **8.3%** of a 29M bf16 step (the serial carry
+> ~2%), while the **fused read is 34.5%** (its backward alone 25.6%) and
+> RMSNorm is 16.6%. The order below is therefore reversed, and Phase 2a is
+> recorded as a negative result rather than a shipped path.
+
+1. **Phase 2b first (the read).** One third of the step is the read and three
+   quarters of that is its backward; the flash-style dataflow (tiles, online
+   softmax, recomputed scores, no `ds`/`dp`/`inner_grad`/`excess`/`key_self`
+   matrices) is where the remaining step time is.
+2. **RMSNorm second** (16.6%; `rms_norm_bwd_dx` alone 9.2%): one pass for the
+   row statistics shared by `dx` and `dw` instead of a `row_r` buffer read back
+   by a second kernel.
+3. **Phase 2a (chunked recurrence) last, and only on evidence**: the kernel is
+   8.3% of the step, so a rewrite can win at most a few percent; revisit it if
+   the profile at a longer context or larger batch shows the carry growing.
+4. Each phase carries its own parity gate on the 29M recipe under the Phase 1
    rule, its own speed measurement, and its own PR. `precision=f32` and the
-   existing kernels stay the default until each gate passes.
+   existing kernels stay the default until each gate passes. A phase that
+   measures neutral or negative is recorded as such and does not ship as a
+   default (Phase 2a's record is above).
 4. The 96M-rung speed measurement (where the matmul share is larger) is part of
    Phase 2's report; Phase 1 reported the 29M rung only.
 

@@ -271,20 +271,29 @@ pub enum CudaRecurrenceKernels {
     /// lane) computes every position serially. Selected for a whole process
     /// with `UOR_R4_CUDA_RECURRENCE=single`.
     Single,
+    /// The serial carry is split into tiles: a parallel fold per
+    /// (window, tile, lane), a `time / tile`-step carry per (window, lane) and
+    /// a parallel expansion per (window, tile, lane). Selected for a whole
+    /// process with `UOR_R4_CUDA_RECURRENCE=chunked` (the tile length is
+    /// `UOR_R4_RECURRENCE_TILE`, default 32). The arithmetic is the split
+    /// path's, with the tile composition's reordering; the parity tests state
+    /// its tolerance against the serial scan.
+    Chunked,
 }
 
-/// 0: not yet read from the environment, 1: split, 2: single.
+/// 0: not yet read from the environment, 1: split, 2: single, 3: chunked.
 static CUDA_RECURRENCE_KERNELS: std::sync::atomic::AtomicU8 = std::sync::atomic::AtomicU8::new(0);
 
 /// The CUDA recurrence kernels in use: the last
 /// [`set_cuda_recurrence_kernels`] choice, else `UOR_R4_CUDA_RECURRENCE`
-/// (`single` or `split`), else [`CudaRecurrenceKernels::Split`].
+/// (`single`, `split` or `chunked`), else [`CudaRecurrenceKernels::Split`].
 pub fn cuda_recurrence_kernels() -> CudaRecurrenceKernels {
     use std::sync::atomic::Ordering;
     let mut code = CUDA_RECURRENCE_KERNELS.load(Ordering::Relaxed);
     if code == 0 {
         code = match std::env::var("UOR_R4_CUDA_RECURRENCE").as_deref() {
             Ok("single") => 2,
+            Ok("chunked") => 3,
             _ => 1,
         };
         // Keep an explicit choice made concurrently.
@@ -292,19 +301,50 @@ pub fn cuda_recurrence_kernels() -> CudaRecurrenceKernels {
             CUDA_RECURRENCE_KERNELS.compare_exchange(0, code, Ordering::Relaxed, Ordering::Relaxed);
         code = CUDA_RECURRENCE_KERNELS.load(Ordering::Relaxed);
     }
-    if code == 2 {
-        CudaRecurrenceKernels::Single
-    } else {
-        CudaRecurrenceKernels::Split
+    match code {
+        2 => CudaRecurrenceKernels::Single,
+        3 => CudaRecurrenceKernels::Chunked,
+        _ => CudaRecurrenceKernels::Split,
     }
 }
 
+/// Rows per tile of [`CudaRecurrenceKernels::Chunked`]'s fold and expansion.
+pub const RECURRENCE_TILE: usize = 32;
+
+/// 0: not yet read from the environment, else the tile length in rows.
+static RECURRENCE_TILE_LEN: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+/// The chunked recurrence's tile length: the last [`set_recurrence_tile`]
+/// choice, else `UOR_R4_RECURRENCE_TILE`, else [`RECURRENCE_TILE`].
+pub fn recurrence_tile() -> usize {
+    use std::sync::atomic::Ordering;
+    let mut tile = RECURRENCE_TILE_LEN.load(Ordering::Relaxed);
+    if tile == 0 {
+        tile = std::env::var("UOR_R4_RECURRENCE_TILE")
+            .ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .filter(|&tile| (1..=4096).contains(&tile))
+            .unwrap_or(RECURRENCE_TILE);
+        // Keep an explicit choice made concurrently.
+        let _ = RECURRENCE_TILE_LEN.compare_exchange(0, tile, Ordering::Relaxed, Ordering::Relaxed);
+        tile = RECURRENCE_TILE_LEN.load(Ordering::Relaxed);
+    }
+    tile
+}
+
+/// Selects the chunked recurrence's tile length for the whole process (the
+/// parity tests sweep it; a run records the value it used).
+pub fn set_recurrence_tile(tile: usize) {
+    RECURRENCE_TILE_LEN.store(tile.max(1), std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Selects the CUDA recurrence kernels for the whole process (tests compare
-/// the two paths with it).
+/// the paths with it).
 pub fn set_cuda_recurrence_kernels(kernels: CudaRecurrenceKernels) {
     let code = match kernels {
         CudaRecurrenceKernels::Split => 1,
         CudaRecurrenceKernels::Single => 2,
+        CudaRecurrenceKernels::Chunked => 3,
     };
     CUDA_RECURRENCE_KERNELS.store(code, std::sync::atomic::Ordering::Relaxed);
 }

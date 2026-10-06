@@ -672,7 +672,7 @@ impl RecurrenceCore {
                 self.cuda_forward(device, branches, gates, parameters, &log_a)?
                     .2
             }
-            CudaRecurrenceKernels::Split => {
+            CudaRecurrenceKernels::Split | CudaRecurrenceKernels::Chunked => {
                 let states =
                     self.cuda_split_states(device, &branches, &gates, &parameters, &log_a)?;
                 let total = self.batch * time * width;
@@ -695,10 +695,9 @@ impl RecurrenceCore {
         Ok((storage(out, device), Shape::from((self.batch, time, width))))
     }
 
-    /// The split forward's per-position buffers and states: drive c,
-    /// transition q and weight keep from `recurrence_prep`, then the carried
-    /// states from the serial `recurrence_scan_fwd`.
-    fn cuda_split_states(
+    /// The per-position buffers every time-parallel path starts from: the
+    /// drive c, the transition q and the weight keep from `recurrence_prep`.
+    fn cuda_prep_states(
         &self,
         device: &CudaDevice,
         branches: &CudaView<'_, f32>,
@@ -709,7 +708,6 @@ impl RecurrenceCore {
         let (time, width, lanes) = (self.time, self.width, self.lanes());
         let total = self.batch * time * width;
         let positions = self.batch * time * lanes;
-        let windows = self.batch * lanes;
         let drive = zeros::<f32>(device, total)?;
         let q = zeros::<f32>(device, total)?;
         let keep = zeros::<f32>(device, positions)?;
@@ -734,27 +732,37 @@ impl RecurrenceCore {
                 Arg::U32(u32_of(positions, "positions")?),
             ],
         )?;
-        launch_scan(
-            device,
-            "recurrence_scan_fwd",
-            windows,
-            &[
-                Arg::f(&q),
-                Arg::f(&drive),
-                Arg::f(&keep),
-                Arg::f(&state),
-                Arg::U32(u32_of(time, "time")?),
-                Arg::U32(u32_of(width, "width")?),
-                Arg::U32(u32_of(lanes, "lanes")?),
-                Arg::U32(u32_of(windows, "lanes")?),
-            ],
-        )?;
         Ok(SplitStates {
             drive,
             q,
             keep,
             state,
         })
+    }
+
+    /// The split forward's per-position buffers and carried states, through
+    /// [`cuda_recurrence_kernels`]'s selected path.
+    fn cuda_split_states(
+        &self,
+        device: &CudaDevice,
+        branches: &CudaView<'_, f32>,
+        gates: &CudaView<'_, f32>,
+        parameters: &CudaView<'_, f32>,
+        log_a: &CudaSlice<f32>,
+    ) -> CResult<SplitStates> {
+        let states = self.cuda_prep_states(device, branches, gates, parameters, log_a)?;
+        time_parallel_states(
+            device,
+            self.batch,
+            self.time,
+            self.width,
+            self.lanes(),
+            &states.q,
+            &states.drive,
+            &states.keep,
+            &states.state,
+        )?;
+        Ok(states)
     }
 
     /// The split backward: recomputes the split forward, then the direct
@@ -900,7 +908,7 @@ impl RecurrenceCore {
         let d_gates = zeros::<f32>(device, g.elem_count())?;
         let partials = zeros::<f64>(device, self.batch * param_len)?;
         let d_parameters = zeros::<f32>(device, param_len)?;
-        if cuda_recurrence_kernels() == CudaRecurrenceKernels::Split {
+        if cuda_recurrence_kernels() != CudaRecurrenceKernels::Single {
             self.cuda_split_bwd(
                 device,
                 &bv,
@@ -991,6 +999,98 @@ struct SplitStates {
     q: CudaSlice<f32>,
     keep: CudaSlice<f32>,
     state: CudaSlice<f32>,
+}
+
+/// The carried states of the time-parallel paths, from the prep buffers:
+/// the serial carry ([`launch_scan`] over whole windows) or, with
+/// [`CudaRecurrenceKernels::Chunked`], the tiled fold/carry/expand. Both
+/// modules of the kernel source share these launches; the buffers are f32 in
+/// both (the activations they come from are storage-converted by `recurrence_prep`).
+#[allow(clippy::too_many_arguments)]
+pub(super) fn time_parallel_states(
+    device: &CudaDevice,
+    batch: usize,
+    time: usize,
+    width: usize,
+    lanes: usize,
+    q: &CudaSlice<f32>,
+    drive: &CudaSlice<f32>,
+    keep: &CudaSlice<f32>,
+    state: &CudaSlice<f32>,
+) -> CResult<()> {
+    let windows = batch * lanes;
+    if cuda_recurrence_kernels() != CudaRecurrenceKernels::Chunked {
+        return launch_scan(
+            device,
+            "recurrence_scan_fwd",
+            windows,
+            &[
+                Arg::f(q),
+                Arg::f(drive),
+                Arg::f(keep),
+                Arg::f(state),
+                Arg::U32(u32_of(time, "time")?),
+                Arg::U32(u32_of(width, "width")?),
+                Arg::U32(u32_of(lanes, "lanes")?),
+                Arg::U32(u32_of(windows, "lanes")?),
+            ],
+        );
+    }
+    let tile = recurrence_tile();
+    let ntiles = time.div_ceil(tile);
+    let tiles = batch * ntiles * lanes;
+    let tile_q = uninit::<f32>(device, tiles * 4)?;
+    let tile_d = uninit::<f32>(device, tiles * 4)?;
+    let entry = uninit::<f32>(device, tiles * 4)?;
+    launch(
+        device,
+        "recurrence_tile_fold",
+        tiles,
+        &[
+            Arg::f(q),
+            Arg::f(drive),
+            Arg::f(keep),
+            Arg::f(&tile_q),
+            Arg::f(&tile_d),
+            Arg::U32(u32_of(time, "time")?),
+            Arg::U32(u32_of(width, "width")?),
+            Arg::U32(u32_of(lanes, "lanes")?),
+            Arg::U32(u32_of(ntiles, "tiles")?),
+            Arg::U32(u32_of(tile, "tile")?),
+            Arg::U32(u32_of(tiles, "tile lanes")?),
+        ],
+    )?;
+    launch_scan(
+        device,
+        "recurrence_tile_carry",
+        windows,
+        &[
+            Arg::f(&tile_q),
+            Arg::f(&tile_d),
+            Arg::f(&entry),
+            Arg::U32(u32_of(lanes, "lanes")?),
+            Arg::U32(u32_of(ntiles, "tiles")?),
+            Arg::U32(u32_of(windows, "lanes")?),
+        ],
+    )?;
+    launch(
+        device,
+        "recurrence_tile_expand",
+        tiles,
+        &[
+            Arg::f(q),
+            Arg::f(drive),
+            Arg::f(keep),
+            Arg::f(&entry),
+            Arg::f(state),
+            Arg::U32(u32_of(time, "time")?),
+            Arg::U32(u32_of(width, "width")?),
+            Arg::U32(u32_of(lanes, "lanes")?),
+            Arg::U32(u32_of(ntiles, "tiles")?),
+            Arg::U32(u32_of(tile, "tile")?),
+            Arg::U32(u32_of(tiles, "tile lanes")?),
+        ],
+    )
 }
 
 /// Threads per block of the serial recurrence scans: small blocks spread the
