@@ -158,6 +158,10 @@ const INITIAL_LORENTZ_OFFSET: f64 = 2.5;
 pub enum StackArch {
     Geometric,
     Transformer,
+    /// Recurrence layers from `pattern=` with **ordinary attention** reads: the
+    /// attribution control that separates the geometric read from the recurrent
+    /// stack (`pattern` letters `r` and `a` are honoured; `a` layers run attention).
+    Hybrid,
 }
 
 /// The storage of a model's activations, chosen per run by `precision=`.
@@ -1240,6 +1244,13 @@ impl StackConfig {
                     ));
                 }
             }
+            StackArch::Hybrid => {
+                if self.pattern.chars().any(|c| c != 'a' && c != 'r') {
+                    return Err(invalid(
+                        "hybrid pattern letters are r (recurrence) or a (attention read)",
+                    ));
+                }
+            }
         }
         if let Some(memory) = &self.memory {
             memory.validate(self.layers())?;
@@ -1312,6 +1323,23 @@ impl StackConfig {
             }
             match (self.arch, self.layer_kind(layer)) {
                 (StackArch::Transformer, _) => {
+                    shapes.insert(name("attn_norm.weight"), vec![d]);
+                    for part in ["q", "k", "v", "o"] {
+                        shapes.insert(name(&format!("attn.{part}.weight")), vec![d, d]);
+                    }
+                }
+                (StackArch::Hybrid, 'r') => {
+                    let gates = lanes + self.rotation_rows();
+                    shapes.insert(name("rec_norm.weight"), vec![d]);
+                    shapes.insert(name("rec.in.weight"), vec![2 * d, d]);
+                    shapes.insert(name("rec.conv.weight"), vec![CONVOLUTION_WIDTH, d]);
+                    shapes.insert(name("rec.conv.bias"), vec![d]);
+                    shapes.insert(name("rec.gate.weight"), vec![gates, d]);
+                    shapes.insert(name("rec.gate.bias"), vec![gates]);
+                    shapes.insert(name("rec.decay"), vec![lanes]);
+                    shapes.insert(name("rec.out.weight"), vec![d, d]);
+                }
+                (StackArch::Hybrid, _) => {
                     shapes.insert(name("attn_norm.weight"), vec![d]);
                     for part in ["q", "k", "v", "o"] {
                         shapes.insert(name(&format!("attn.{part}.weight")), vec![d, d]);
@@ -6387,6 +6415,8 @@ impl StackModel {
         for layer in layers {
             let mixed = match (self.config.arch, self.config.layer_kind(layer)) {
                 (StackArch::Transformer, _) => self.attention(p, layer, &x, capture)?,
+                (StackArch::Hybrid, 'r') => self.recurrence(p, layer, &x, capture)?,
+                (StackArch::Hybrid, _) => self.attention(p, layer, &x, capture)?,
                 (StackArch::Geometric, 'r') => self.recurrence(p, layer, &x, capture)?,
                 (StackArch::Geometric, _) => {
                     if let Some((site, residual)) = source.integer_residual {

@@ -488,6 +488,10 @@ enum ArmSpec {
         /// every read key also carries the previous position's key, turned by
         /// the unit quaternion `j` (`StackModel::set_read_key_shift`).
         lineage: LineageArm,
+        /// `arm=hybrid`: keep `pattern`'s `r` recurrence layers but run every `a`
+        /// read layer as ordinary causal attention. The attribution control that
+        /// separates the geometric read from the recurrent stack.
+        attn_reads: bool,
     },
 }
 
@@ -510,8 +514,10 @@ impl ArmSpec {
                 lineage
             }
         };
-        match args.take("arm").as_deref() {
-            None | Some("stack") => Ok(ArmSpec::Stack {
+        let requested_arm = args.take("arm");
+        let hybrid = requested_arm.as_deref() == Some("hybrid");
+        match requested_arm.as_deref() {
+            None | Some("stack") | Some("hybrid") => Ok(ArmSpec::Stack {
                 pattern: args.take("pattern").unwrap_or_else(|| "aaaaaa".into()),
                 read: match args.take("read").as_deref() {
                     None | Some("l2") => ReadScore::L2,
@@ -530,6 +536,7 @@ impl ArmSpec {
                     Some(other) => return Err(invalid(format!("invalid age={other}"))),
                 },
                 lineage,
+                attn_reads: hybrid,
             }),
             Some(other) => Err(invalid(format!("unknown arm={other}"))),
         }
@@ -591,10 +598,11 @@ impl ArmSpec {
                 width,
                 heads,
                 mlp_hidden,
+                attn_reads,
                 ..
             } => {
                 let config = StackConfig {
-                    arch: StackArch::Geometric,
+                    arch: if *attn_reads { StackArch::Hybrid } else { StackArch::Geometric },
                     vocab_size: common.vocab,
                     width: *width,
                     heads: *heads,
