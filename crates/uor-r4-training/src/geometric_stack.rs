@@ -536,6 +536,22 @@ pub struct StackBindingLoss {
     pub masses: Tensor,
 }
 
+/// A pointer model's response loss with copy-gate supervision
+/// ([`StackModel::gate_supervised_loss`]): `total = mixture + weight *
+/// (gate_bce + pointer_nll)`, each part a scalar weighted mean over the scored
+/// targets (the response weights), the parts sharing one op so the backward
+/// runs once.
+pub struct GateSupervisedLoss {
+    /// The objective the update descends.
+    pub total: Tensor,
+    /// The mixture's response NLL, as [`StackModel::weighted_loss`] gives it.
+    pub mixture: Tensor,
+    /// `BCE(g_t, [target held by a source 0..=t])`.
+    pub gate_bce: Tensor,
+    /// `-log p_copy(target)` on rows whose target a source holds, 0 elsewhere.
+    pub pointer_nll: Tensor,
+}
+
 struct BindingCapture<'a> {
     /// The exact-source label of one layer/head, if any.
     target: Option<&'a ReadBindingTarget>,
@@ -6404,9 +6420,12 @@ impl StackModel {
     ) -> Result<Tensor> {
         let p = self.params()?;
         let hidden = self.hidden_hooked(&p, ids, batch, time, &mut None)?;
-        self.pointer_loss_from_hidden(&p, &hidden, ids, targets, weights, time)
+        self.pointer_loss_from_hidden(&p, &hidden, ids, targets, weights, time, false)
     }
 
+    /// The mixture op of a pointer model; with `supervise`, its three-part
+    /// output ([`PointerMixture::supervise`]).
+    #[allow(clippy::too_many_arguments)]
     fn pointer_loss_from_hidden(
         &self,
         p: &Params<'_>,
@@ -6415,6 +6434,7 @@ impl StackModel {
         targets: &[u32],
         weights: Option<&[f32]>,
         time: usize,
+        supervise: bool,
     ) -> Result<Tensor> {
         let pointer = self
             .config
@@ -6436,6 +6456,7 @@ impl StackModel {
                 keys: self.pointer_route_keys(ids),
                 targets: targets.to_vec(),
                 weights: weights.map(<[f32]>::to_vec),
+                supervise,
             },
         )?)
     }
@@ -6876,7 +6897,7 @@ impl StackModel {
             ));
         }
         let language = if self.config.pointer.is_some() {
-            self.pointer_loss_from_hidden(&p, &hidden, ids, targets, weights, time)?
+            self.pointer_loss_from_hidden(&p, &hidden, ids, targets, weights, time, false)?
         } else {
             self.linear(&hidden, p.head()?)?.apply_op1(CrossEntropy {
                 targets: targets.to_vec(),
@@ -6951,6 +6972,67 @@ impl StackModel {
         })?)
     }
 
+    /// [`Self::weighted_loss`] of a pointer model with copy-gate supervision
+    /// of strength `weight > 0`: on each scored target whose id a source
+    /// `0..=t` of its window holds (the soft pointer's whole reachable range;
+    /// causal, since a position's sources are its own and earlier inputs),
+    /// `weight * (BCE(g_t, 1) - log p_copy(target))`, the pointer's NLL summed
+    /// over every position holding that id; on a scored target no source
+    /// holds, `weight * BCE(g_t, 0)`. Both are weighted means over the scored
+    /// targets, as the mixture's NLL is. Refused without a pointer head, with
+    /// a pointer selection or route, and under `precision=bf16` (no bf16
+    /// kernel). [`Self::weighted_loss`] is unchanged by its existence.
+    pub fn gate_supervised_loss(
+        &self,
+        ids: &[u32],
+        targets: &[u32],
+        weights: &[f32],
+        batch: usize,
+        time: usize,
+        weight: f64,
+    ) -> Result<GateSupervisedLoss> {
+        if !(weight.is_finite() && weight > 0.0) {
+            return Err(invalid(
+                "pointer gate supervision needs a finite positive weight",
+            ));
+        }
+        let pointer = self
+            .config
+            .pointer
+            .ok_or_else(|| invalid("pointer gate supervision needs a pointer head"))?;
+        if pointer.select.is_some() || pointer.route.is_some() {
+            return Err(invalid(
+                "pointer gate supervision needs a pointer over every source (no selection or route)",
+            ));
+        }
+        if self.precision.is_bf16() {
+            return Err(invalid(
+                "precision=bf16 has no bf16 pointer gate supervision kernel; use precision=f32",
+            ));
+        }
+        if targets.len() != ids.len() || weights.len() != ids.len() {
+            return Err(invalid("one target and one weight per input id"));
+        }
+        if targets
+            .iter()
+            .any(|&id| id as usize >= self.config.vocab_size)
+        {
+            return Err(invalid("target id outside the vocabulary"));
+        }
+        if weights.iter().any(|w| !w.is_finite() || *w < 0.0)
+            || weights.iter().map(|&w| f64::from(w)).sum::<f64>() <= 0.0
+        {
+            return Err(invalid(
+                "loss weights must be finite, nonnegative and not all zero",
+            ));
+        }
+        let p = self.params()?;
+        let hidden = self.hidden_hooked(&p, ids, batch, time, &mut None)?;
+        let parts =
+            self.pointer_loss_from_hidden(&p, &hidden, ids, targets, Some(weights), time, true)?;
+        gate_supervised_parts(&parts, weight)
+    }
+
     /// Per-target negative log-likelihoods (nats), without a backward graph.
     /// For a pointer model, the mixture's.
     pub fn target_nll(
@@ -7012,6 +7094,7 @@ impl StackModel {
             keys: self.pointer_route_keys(ids),
             targets: targets.to_vec(),
             weights: weights.map(<[f32]>::to_vec),
+            supervise: false,
         };
         let rows: Vec<(f64, Option<PointerRowStats>)> = (0..ids.len())
             .into_par_iter()
@@ -12671,8 +12754,88 @@ pub fn pointer_mixture_loss(
             keys: None,
             targets: targets.to_vec(),
             weights: weights.map(<[f32]>::to_vec),
+            supervise: false,
         },
     )?)
+}
+
+/// [`pointer_mixture_loss`] with copy-gate supervision of strength `weight`
+/// ([`StackModel::gate_supervised_loss`]), for device parity checks: f32
+/// logits and side only (there is no bf16 supervision kernel).
+#[allow(clippy::too_many_arguments)]
+pub fn pointer_mixture_loss_supervised(
+    logits: &Tensor,
+    side: &Tensor,
+    beta: &Tensor,
+    time: usize,
+    score: ReadScore,
+    ids: &[u32],
+    targets: &[u32],
+    weights: Option<&[f32]>,
+    weight: f64,
+) -> Result<GateSupervisedLoss> {
+    if logits.dtype() != DType::F32 || side.dtype() != DType::F32 || beta.dtype() != DType::F32 {
+        return Err(invalid(
+            "pointer gate supervision runs on f32 logits and side",
+        ));
+    }
+    if !(weight.is_finite() && weight > 0.0) {
+        return Err(invalid(
+            "pointer gate supervision needs a finite positive weight",
+        ));
+    }
+    if score == ReadScore::L2 {
+        return Err(invalid("a pointer cannot use the L2 score"));
+    }
+    let (rows, vocabulary) = logits.dims2()?;
+    let (side_rows, width) = side.dims2()?;
+    if side_rows != rows || width < 3 || width % 2 == 0 {
+        return Err(invalid("pointer side rows must be [rows, 2 dim + 1]"));
+    }
+    if targets.iter().any(|&t| t as usize >= vocabulary) {
+        return Err(invalid("target outside the logit classes"));
+    }
+    if let Some(weights) = weights {
+        if weights.iter().any(|w| !w.is_finite() || *w < 0.0)
+            || weights.iter().map(|&w| f64::from(w)).sum::<f64>() <= 0.0
+        {
+            return Err(invalid(
+                "loss weights must be finite, nonnegative and not all zero",
+            ));
+        }
+    }
+    let parts = logits.contiguous()?.apply_op3(
+        &side.contiguous()?,
+        &beta.contiguous()?,
+        PointerMixture {
+            time,
+            dim: (width - 1) / 2,
+            score,
+            select: None,
+            route: None,
+            ids: ids.to_vec(),
+            keys: None,
+            targets: targets.to_vec(),
+            weights: weights.map(<[f32]>::to_vec),
+            supervise: true,
+        },
+    )?;
+    gate_supervised_parts(&parts, weight)
+}
+
+/// Split the supervised op's `[mixture, gate_bce, pointer_nll]` and form
+/// `total = mixture + weight * (gate_bce + pointer_nll)`.
+fn gate_supervised_parts(parts: &Tensor, weight: f64) -> Result<GateSupervisedLoss> {
+    let mixture = parts.get(0)?;
+    let gate_bce = parts.get(1)?;
+    let pointer_nll = parts.get(2)?;
+    let total = (&mixture + ((&gate_bce + &pointer_nll)? * weight)?)?;
+    Ok(GateSupervisedLoss {
+        total,
+        mixture,
+        gate_bce,
+        pointer_nll,
+    })
 }
 
 /// Fused CrossEntropy loss: mean cross entropy of logits vs target class indices.
@@ -12884,6 +13047,28 @@ struct MixtureRow {
     copy_share: f64,
     /// Log-sum-exp of the logits row.
     lse: f64,
+    /// The gate logit `w_g . h_t + b_g`.
+    logit: f64,
+    /// Whether any source `0..=t` holds the target id (its attention aside).
+    present: bool,
+}
+
+impl MixtureRow {
+    /// The copy-gate supervision terms of the row ([`PointerMixture::supervise`]):
+    /// `(BCE(g, present), -log p_copy(target) if present else 0)`. A present
+    /// target whose copy mass underflowed to 0 gets no pointer term.
+    fn supervision(&self) -> (f64, f64) {
+        if self.present {
+            let pointer = if self.copy > 0.0 {
+                -self.copy.ln()
+            } else {
+                0.0
+            };
+            (softplus(-self.logit), pointer)
+        } else {
+            (softplus(self.logit), 0.0)
+        }
+    }
 }
 
 /// The mixture loss of a batch of windows: for a scored target `y_t`,
@@ -12907,9 +13092,29 @@ struct PointerMixture {
     keys: Option<Vec<u32>>,
     targets: Vec<u32>,
     weights: Option<Vec<f32>>,
+    /// Copy-gate supervision ([`StackModel::gate_supervised_loss`]): the op
+    /// then outputs `[mixture, gate_bce, pointer_nll]` (each a weighted mean
+    /// over the scored rows) instead of the mixture's scalar. On a row whose
+    /// target id is held by a source `0..=t` (the soft pointer's whole
+    /// reachable range), `gate_bce = -log g` and `pointer_nll = -log
+    /// p_copy(target)`; on a row whose target no source holds, `gate_bce =
+    /// -log(1 - g)` and `pointer_nll = 0`. The caller weights the two terms.
+    /// Refused with a selection or a route. `false` is the unsupervised op,
+    /// bit for bit.
+    supervise: bool,
 }
 
 impl PointerMixture {
+    /// One output for the mixture's scalar, three under supervision.
+    #[cfg_attr(not(feature = "cuda"), allow(dead_code))]
+    fn output_len(&self) -> usize {
+        if self.supervise {
+            3
+        } else {
+            1
+        }
+    }
+
     fn weight(&self, row: usize) -> f64 {
         self.weights.as_ref().map_or(1.0, |w| f64::from(w[row]))
     }
@@ -12963,6 +13168,7 @@ impl PointerMixture {
         };
         let high = generate.max(copied);
         let log_mixture = high + ((generate - high).exp() + (copied - high).exp()).ln();
+        let present = self.ids[first..=first + t].contains(&target);
         Ok(MixtureRow {
             attention,
             copy,
@@ -12971,6 +13177,8 @@ impl PointerMixture {
             generate_share: (generate - log_mixture).exp(),
             copy_share: (copied - log_mixture).exp(),
             lse,
+            logit,
+            present,
         })
     }
 
@@ -12990,6 +13198,9 @@ impl PointerMixture {
             || !rows.is_multiple_of(self.time)
         {
             candle_core::bail!("pointer mixture inputs disagree in shape");
+        }
+        if self.supervise && (self.select.is_some() || self.route.is_some()) {
+            candle_core::bail!("pointer gate supervision needs a pointer over every source");
         }
         Ok((rows, vocabulary))
     }
@@ -13019,6 +13230,31 @@ impl CustomOp3 for PointerMixture {
             .first()
             .map(|&value| f64::from(value))
             .ok_or_else(|| candle_core::Error::msg("pointer mixture needs its scale"))?;
+        if self.supervise {
+            let terms: Vec<[f64; 3]> = (0..rows)
+                .into_par_iter()
+                .map(|n| -> candle_core::Result<[f64; 3]> {
+                    if self.weight(n) == 0.0 {
+                        return Ok([0.0; 3]);
+                    }
+                    let row = self.evaluate(
+                        &logits[n * vocabulary..(n + 1) * vocabulary],
+                        side,
+                        beta,
+                        n,
+                    )?;
+                    let (gate, pointer) = row.supervision();
+                    let w = self.weight(n);
+                    Ok([-w * row.log_mixture, w * gate, w * pointer])
+                })
+                .collect::<candle_core::Result<_>>()?;
+            let total = self.total();
+            let mean = |k: usize| (terms.iter().map(|row| row[k]).sum::<f64>() / total) as f32;
+            return Ok((
+                CpuStorage::F32(vec![mean(0), mean(1), mean(2)]),
+                Shape::from(3),
+            ));
+        }
         // Each row's loss in row order, summed in that order: the mean does
         // not depend on how the threads split the rows.
         let losses: Vec<f64> = (0..rows)
@@ -13091,7 +13327,18 @@ impl CustomOp3 for PointerMixture {
             .first()
             .map(|&value| f64::from(value))
             .ok_or_else(|| candle_core::Error::msg("pointer mixture needs its scale"))?;
-        let grad = f64::from(grad.to_scalar::<f32>()?);
+        // The upstream gradient of each output: the mixture's alone, or under
+        // supervision also the gate-BCE and pointer-NLL terms'.
+        let (grad, grad_gate, grad_pointer) = if self.supervise {
+            match grad.flatten_all()?.to_vec1::<f32>()?.as_slice() {
+                &[mixture, gate, pointer] => {
+                    (f64::from(mixture), f64::from(gate), f64::from(pointer))
+                }
+                _ => candle_core::bail!("supervised pointer mixture expects three gradients"),
+            }
+        } else {
+            (f64::from(grad.to_scalar::<f32>()?), 0.0, 0.0)
+        };
         let total = self.total();
         let mut d_logits = vec![0f32; rows * vocabulary];
         let mut d_side = vec![0f32; rows * stride];
@@ -13123,9 +13370,21 @@ impl CustomOp3 for PointerMixture {
                     d_z[target as usize] -= k as f32;
                     // d NLL / d gate logit = share_generate g - share_copy (1 - g),
                     // which is `g` when no source holds the target.
-                    d_row[2 * dim] = (c
-                        * (row.generate_share * row.gate - row.copy_share * (1.0 - row.gate)))
-                        as f32;
+                    let mut d_gate =
+                        c * (row.generate_share * row.gate - row.copy_share * (1.0 - row.gate));
+                    // Supervision: d BCE(g, present) / d logit = g - present.
+                    if self.supervise {
+                        let c_gate = grad_gate * self.weight(n) / total;
+                        d_gate += c_gate * (row.gate - if row.present { 1.0 } else { 0.0 });
+                    }
+                    d_row[2 * dim] = d_gate as f32;
+                    // The per-source coefficient: the mixture's c share_copy,
+                    // plus on a supervised present row the pointer NLL's (its
+                    // d / d score_j has the same form with share 1).
+                    let mut k_source = c * row.copy_share;
+                    if self.supervise && row.present {
+                        k_source += grad_pointer * self.weight(n) / total;
+                    }
                     // d loss / d score_j = -(g / mixture) a_j (m_j - p_copy).
                     // g / mixture overflows once the mixture is below about
                     // exp(-709.78), so the product is taken through the copy
@@ -13151,9 +13410,9 @@ impl CustomOp3 for PointerMixture {
                             continue;
                         }
                         let d_source = if self.ids[first + j] == target {
-                            -c * row.copy_share * (a / row.copy) * (1.0 - row.copy)
+                            -k_source * (a / row.copy) * (1.0 - row.copy)
                         } else {
-                            c * row.copy_share * a
+                            k_source * a
                         };
                         let key = pointer_key(&s, dim, first + j);
                         if lorentz {
@@ -22437,6 +22696,341 @@ mod tests {
         Ok(())
     }
 
+    /// A supervision test case: one window pair over a small alphabet so some
+    /// targets recur in context and others (token `vocabulary - 1`) never do,
+    /// with a zero-weight row.
+    fn supervision_case(
+        score: ReadScore,
+        seed: u64,
+    ) -> (
+        usize,
+        usize,
+        usize,
+        Vec<u32>,
+        Vec<u32>,
+        Vec<f32>,
+        Vec<f32>,
+        Vec<f32>,
+        f32,
+    ) {
+        let (time, dim, vocabulary) = (6usize, 3usize, 7usize);
+        let rows = 2 * time;
+        let ids: Vec<u32> = (0..rows as u32).map(|i| (i * 5 + 1) % 4).collect();
+        let mut targets: Vec<u32> = (0..rows as u32).map(|i| (i * 3 + 2) % 4).collect();
+        targets[1] = (vocabulary - 1) as u32;
+        targets[time + 2] = (vocabulary - 1) as u32;
+        let mut weights: Vec<f32> = (0..rows).map(|i| 1.0 + (i % 3) as f32).collect();
+        weights[4] = 0.0;
+        let mut rng = Initializer(900 + seed);
+        let logits: Vec<f32> = (0..rows * vocabulary)
+            .map(|_| (rng.normal() * 1.5) as f32)
+            .collect();
+        let side: Vec<f32> = (0..rows * (2 * dim + 1))
+            .map(|_| (rng.normal() * 0.8) as f32)
+            .collect();
+        let beta = if score == ReadScore::Lorentz {
+            0.7
+        } else {
+            0.0
+        };
+        (
+            time, dim, vocabulary, ids, targets, weights, logits, side, beta,
+        )
+    }
+
+    /// The supervised objective `mixture + weight (gate_bce + pointer_nll)`
+    /// by plain f64 formulas, independent of the op: the softmax attention
+    /// over sources `0..=t`, `p = (1 - g) softmax(z)[y] + g p_copy(y)`, and on
+    /// a row whose target a source holds `-log g - log p_copy`, elsewhere
+    /// `-log(1 - g)`; weighted means over the rows.
+    #[allow(clippy::too_many_arguments)]
+    fn reference_supervised(
+        (time, dim, vocabulary): (usize, usize, usize),
+        score: ReadScore,
+        ids: &[u32],
+        targets: &[u32],
+        weights: &[f32],
+        logits: &[f64],
+        side: &[f64],
+        beta: f64,
+        weight: f64,
+    ) -> [f64; 4] {
+        let stride = 2 * dim + 1;
+        let rows = ids.len();
+        let total: f64 = weights.iter().map(|&w| f64::from(w)).sum();
+        let mut sums = [0.0f64; 3];
+        for n in 0..rows {
+            let w = f64::from(weights[n]);
+            if w == 0.0 {
+                continue;
+            }
+            let (first, t) = (n - n % time, n % time);
+            let q = &side[n * stride..n * stride + dim];
+            let scores: Vec<f64> = (0..=t)
+                .map(|j| {
+                    let k = &side[(first + j) * stride + dim..(first + j) * stride + 2 * dim];
+                    let inner: f64 = q.iter().zip(k).map(|(a, b)| a * b).sum();
+                    match score {
+                        ReadScore::Lorentz => {
+                            let lift =
+                                |x: &[f64]| (1.0 + x.iter().map(|v| v * v).sum::<f64>()).sqrt();
+                            let e = lift(q) * lift(k) - inner - 1.0;
+                            -beta * (1.0 + e).acosh()
+                        }
+                        _ => inner / (dim as f64).sqrt(),
+                    }
+                })
+                .collect();
+            let high = scores.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            let exps: Vec<f64> = scores.iter().map(|s| (s - high).exp()).collect();
+            let sum: f64 = exps.iter().sum();
+            let y = targets[n];
+            let copy: f64 = (0..=t)
+                .filter(|&j| ids[first + j] == y)
+                .map(|j| exps[j] / sum)
+                .sum();
+            let present = (0..=t).any(|j| ids[first + j] == y);
+            let z = &logits[n * vocabulary..(n + 1) * vocabulary];
+            let zmax = z.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            let zsum: f64 = z.iter().map(|v| (v - zmax).exp()).sum();
+            let soft = (z[y as usize] - zmax).exp() / zsum;
+            let g = 1.0 / (1.0 + (-side[n * stride + 2 * dim]).exp());
+            sums[0] -= w * ((1.0 - g) * soft + g * copy).ln();
+            if present {
+                sums[1] -= w * g.ln();
+                sums[2] -= w * copy.ln();
+            } else {
+                sums[1] -= w * (1.0 - g).ln();
+            }
+        }
+        let [m, gb, pn] = sums.map(|v| v / total);
+        [m, gb, pn, m + weight * (gb + pn)]
+    }
+
+    #[test]
+    fn gate_supervision_matches_the_reference_and_its_finite_differences() -> Result<()> {
+        let weight = 0.7;
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let (time, dim, vocabulary, ids, targets, weights, logits, side, beta) =
+                supervision_case(score, 1);
+            let rows = ids.len();
+            let stride = 2 * dim + 1;
+            // The case has both kinds of scored row.
+            let present = |n: usize| ids[n - n % time..=n].contains(&targets[n]);
+            assert!((0..rows).any(|n| weights[n] > 0.0 && present(n)));
+            assert!((0..rows).any(|n| weights[n] > 0.0 && !present(n)));
+            let z = Var::from_vec(logits.clone(), (rows, vocabulary), &cpu())?;
+            let s = Var::from_vec(side.clone(), (rows, stride), &cpu())?;
+            let b = Var::from_vec(vec![beta], 1, &cpu())?;
+            let parts = pointer_mixture_loss_supervised(
+                z.as_tensor(),
+                s.as_tensor(),
+                b.as_tensor(),
+                time,
+                score,
+                &ids,
+                &targets,
+                Some(&weights),
+                weight,
+            )?;
+            let to64 = |v: &[f32]| v.iter().map(|&x| f64::from(x)).collect::<Vec<f64>>();
+            let reference = |l: &[f64], sd: &[f64], bt: f64| {
+                reference_supervised(
+                    (time, dim, vocabulary),
+                    score,
+                    &ids,
+                    &targets,
+                    &weights,
+                    l,
+                    sd,
+                    bt,
+                    weight,
+                )
+            };
+            let want = reference(&to64(&logits), &to64(&side), f64::from(beta));
+            for (name, got, want) in [
+                ("mixture", &parts.mixture, want[0]),
+                ("gate_bce", &parts.gate_bce, want[1]),
+                ("pointer_nll", &parts.pointer_nll, want[2]),
+                ("total", &parts.total, want[3]),
+            ] {
+                let got = f64::from(got.to_scalar::<f32>()?);
+                assert!(
+                    (got - want).abs() < 1e-5 * want.abs().max(1.0),
+                    "{score:?} {name}: {got} against {want}"
+                );
+            }
+            // The mixture part is the unsupervised op's loss bit for bit.
+            let plain = pointer_mixture_loss(
+                z.as_tensor(),
+                s.as_tensor(),
+                b.as_tensor(),
+                time,
+                score,
+                &ids,
+                &targets,
+                Some(&weights),
+            )?;
+            assert_eq!(
+                plain.to_scalar::<f32>()?.to_bits(),
+                parts.mixture.to_scalar::<f32>()?.to_bits()
+            );
+            // Every logit, side and scale gradient of the total against central
+            // differences of the f64 reference.
+            let grads = parts.total.backward()?;
+            let h = 1e-4;
+            let check =
+                |analytic: Vec<f32>, base: Vec<f64>, at: &dyn Fn(&[f64]) -> f64, what: &str| {
+                    let mut numeric = Vec::with_capacity(base.len());
+                    for i in 0..base.len() {
+                        let (mut plus, mut minus) = (base.clone(), base.clone());
+                        plus[i] += h;
+                        minus[i] -= h;
+                        numeric.push((at(&plus) - at(&minus)) / (2.0 * h));
+                    }
+                    let scale = numeric.iter().fold(0.0f64, |m, v| m.max(v.abs()));
+                    assert!(scale > 0.0, "{score:?} {what}: no effect");
+                    for (i, (&a, &n)) in analytic.iter().zip(&numeric).enumerate() {
+                        assert!(
+                            (f64::from(a) - n).abs() < 2e-4 * scale + 2e-6,
+                            "{score:?} {what}[{i}]: analytic {a} against numeric {n}"
+                        );
+                    }
+                };
+            let grad = |var: &Var| -> Result<Vec<f32>> {
+                Ok(grads
+                    .get(var.as_tensor())
+                    .ok_or_else(|| invalid("missing gradient"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?)
+            };
+            let (l64, s64, b64) = (to64(&logits), to64(&side), f64::from(beta));
+            check(
+                grad(&z)?,
+                l64.clone(),
+                &|l| reference(l, &s64, b64)[3],
+                "d_logits",
+            );
+            check(
+                grad(&s)?,
+                s64.clone(),
+                &|sd| reference(&l64, sd, b64)[3],
+                "d_side",
+            );
+            if score == ReadScore::Lorentz {
+                check(
+                    grad(&b)?,
+                    vec![b64],
+                    &|bt| reference(&l64, &s64, bt[0])[3],
+                    "d_beta",
+                );
+            }
+            // The zero-weight row's query and gate get no gradient (its key
+            // still does, from the later rows that read it).
+            let d_side = grad(&s)?;
+            assert!(d_side[4 * stride..4 * stride + dim]
+                .iter()
+                .all(|&v| v == 0.0));
+            assert_eq!(d_side[4 * stride + 2 * dim], 0.0);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn gate_supervision_without_its_terms_is_the_unsupervised_gradient() -> Result<()> {
+        // Backpropagating only the mixture part (upstream gradients 1, 0, 0)
+        // gives the unsupervised op's gradients exactly.
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            let (time, dim, vocabulary, ids, targets, weights, logits, side, beta) =
+                supervision_case(score, 2);
+            let rows = ids.len();
+            let make = || -> Result<(Var, Var, Var)> {
+                Ok((
+                    Var::from_vec(logits.clone(), (rows, vocabulary), &cpu())?,
+                    Var::from_vec(side.clone(), (rows, 2 * dim + 1), &cpu())?,
+                    Var::from_vec(vec![beta], 1, &cpu())?,
+                ))
+            };
+            let (z1, s1, b1) = make()?;
+            let plain = pointer_mixture_loss(
+                z1.as_tensor(),
+                s1.as_tensor(),
+                b1.as_tensor(),
+                time,
+                score,
+                &ids,
+                &targets,
+                Some(&weights),
+            )?;
+            let g1 = plain.backward()?;
+            let (z2, s2, b2) = make()?;
+            let parts = pointer_mixture_loss_supervised(
+                z2.as_tensor(),
+                s2.as_tensor(),
+                b2.as_tensor(),
+                time,
+                score,
+                &ids,
+                &targets,
+                Some(&weights),
+                1.0,
+            )?;
+            let g2 = parts.mixture.backward()?;
+            for (a, b) in [(&z1, &z2), (&s1, &s2), (&b1, &b2)] {
+                let x = g1
+                    .get(a.as_tensor())
+                    .ok_or_else(|| invalid("missing gradient"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                let y = g2
+                    .get(b.as_tensor())
+                    .ok_or_else(|| invalid("missing gradient"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?;
+                assert_eq!(x, y, "{score:?}");
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn gate_supervision_is_refused_where_it_is_not_defined() -> Result<()> {
+        let (ids, targets, weights) = pointer_batch();
+        // No pointer head.
+        let plain = StackModel::new(
+            tiny(StackArch::Geometric, "ar", ReadScore::Lorentz, true),
+            &cpu(),
+        )?;
+        assert!(plain
+            .gate_supervised_loss(&ids, &targets, &weights, 2, 12, 0.5)
+            .is_err());
+        // A selection, a nonpositive or nonfinite weight.
+        let selected = pointer_model(ReadScore::Dot, Some(PointerSelect::TopK(2)), 0)?;
+        assert!(selected
+            .gate_supervised_loss(&ids, &targets, &weights, 2, 12, 0.5)
+            .is_err());
+        let mut model = pointer_model(ReadScore::Dot, None, 0)?;
+        for bad in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+            assert!(model
+                .gate_supervised_loss(&ids, &targets, &weights, 2, 12, bad)
+                .is_err());
+        }
+        // bf16 has no supervision kernel.
+        model.set_precision(Precision::Bf16);
+        assert!(model
+            .gate_supervised_loss(&ids, &targets, &weights, 2, 12, 0.5)
+            .is_err());
+        model.set_precision(Precision::F32);
+        // The model method's mixture part is weighted_loss bit for bit.
+        let parts = model.gate_supervised_loss(&ids, &targets, &weights, 2, 12, 2.0)?;
+        let mixture = model.weighted_loss(&ids, &targets, &weights, 2, 12)?;
+        assert_eq!(
+            parts.mixture.to_scalar::<f32>()?.to_bits(),
+            mixture.to_scalar::<f32>()?.to_bits()
+        );
+        Ok(())
+    }
+
     #[test]
     fn a_row_without_copy_mass_is_exactly_the_generated_probability() -> Result<()> {
         // A vocabulary of 4, one window of 3 positions and a pointer of width 2.
@@ -22462,6 +23056,7 @@ mod tests {
             keys: None,
             targets: targets.clone(),
             weights: None,
+            supervise: false,
         };
         let g = 1.0 / (1.0 + (-f64::from(gate_logit)).exp());
         let lse = 3.0f64.ln();
@@ -22539,6 +23134,7 @@ mod tests {
                 keys: None,
                 targets: targets.clone(),
                 weights: None,
+                supervise: false,
             };
             let logits = Var::from_vec(logit_rows.clone(), (time, vocabulary), &cpu())?;
             let side = Var::from_vec(side_values.clone(), (time, stride), &cpu())?;
@@ -22595,6 +23191,7 @@ mod tests {
             keys: None,
             targets: targets.clone(),
             weights: None,
+            supervise: false,
         };
         let row = op().evaluate(&[0.0; 4], &side_values, 1.0, 1)?;
         assert!(

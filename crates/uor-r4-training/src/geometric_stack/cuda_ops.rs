@@ -1415,7 +1415,7 @@ impl PointerMixture {
             u32_of(vocabulary, "vocabulary")?,
             u32::from(self.score == ReadScore::Lorentz),
             u32::from(backward),
-            0,
+            u32::from(self.supervise),
             0,
         ])
     }
@@ -1521,6 +1521,9 @@ impl PointerMixture {
         l3: &Layout,
     ) -> Forward {
         if s1.dtype() == DType::BF16 {
+            if self.supervise {
+                candle_core::bail!("precision=bf16 has no bf16 pointer gate supervision kernel");
+            }
             if !self.cuda_covered() {
                 candle_core::bail!(
                     "precision=bf16 has no bf16 pointer kernel for a selection or a prime route"
@@ -1548,6 +1551,24 @@ impl PointerMixture {
             vocabulary,
             false,
         )?;
+        if self.supervise {
+            // The mixture, gate-BCE and pointer-NLL means (the row pass wrote
+            // the two supervision terms into scale_z and row_beta), each the
+            // ordered f64 sum over the rows divided by the weight total, as
+            // `pointer_sum` and the CPU op compute them.
+            let total = self.total();
+            let mean = |values: &CudaSlice<f64>| -> CResult<f32> {
+                let rows = device.clone_dtoh(values)?;
+                Ok((rows.iter().sum::<f64>() / total) as f32)
+            };
+            let parts = [
+                mean(&pass.row_value)?,
+                mean(&pass.scale_z)?,
+                mean(&pass.row_beta)?,
+            ];
+            let out = device.clone_htod(&parts)?;
+            return Ok((storage(out, device), Shape::from(3)));
+        }
         let total = device.clone_htod(&[self.total()])?;
         let out = zeros::<f32>(device, 1)?;
         launch(
@@ -1578,8 +1599,8 @@ impl PointerMixture {
         }
         let (rows, vocabulary) = self.check(logits.layout(), side.layout(), beta.layout())?;
         self.cuda_check(vocabulary)?;
-        if grad.elem_count() != 1 {
-            candle_core::bail!("pointer mixture backward expects a scalar gradient");
+        if grad.elem_count() != self.output_len() {
+            candle_core::bail!("pointer mixture backward expects one gradient per output");
         }
         let (lt, st, bt, gt) = (ready(logits)?, ready(side)?, ready(beta)?, ready(grad)?);
         let (ls, ll) = lt.storage_and_layout();

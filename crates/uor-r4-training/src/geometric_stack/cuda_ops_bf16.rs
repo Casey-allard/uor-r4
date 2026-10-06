@@ -1487,6 +1487,9 @@ impl PointerMixture {
     ) -> CResult<(Tensor, Tensor, Tensor)> {
         let (rows, vocabulary) = self.check(logits.layout(), side.layout(), beta.layout())?;
         self.cuda_check_bf(vocabulary)?;
+        if self.supervise {
+            candle_core::bail!("precision=bf16 has no bf16 pointer gate supervision kernel");
+        }
         if grad.elem_count() != 1 {
             candle_core::bail!("pointer mixture backward expects a scalar gradient");
         }

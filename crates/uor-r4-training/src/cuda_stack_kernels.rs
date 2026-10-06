@@ -1472,7 +1472,11 @@ struct PointerDims {
     uint vocab;
     uint score;
     uint backward;
-    uint unused0;
+    // Copy-gate supervision (`PointerMixture::supervise`): with it, the
+    // forward also writes each row's gate BCE into scale_z and its pointer
+    // NLL into row_beta (both otherwise backward-only), and the backward reads
+    // the upstream gradients of those two terms from grad_in[1] and grad_in[2].
+    uint supervise;
     uint unused1;
 };
 
@@ -1586,12 +1590,18 @@ extern "C" __global__ void pointer_rows(
     }
     sum = warp_sum_d(sum);
     double copy = 0.0;
+    uint held = 0;
     for (uint j = lane; j <= t; j += 32) {
         double a = s[j] / sum;
         s[j] = a;
-        if (ids[first + j] == target) copy += a;
+        if (ids[first + j] == target) {
+            copy += a;
+            held = 1;
+        }
     }
     copy = warp_sum_d(copy);
+    // Whether any source 0..=t holds the target id (the supervised "present").
+    bool present = __any_sync(0xffffffffu, held != 0);
 
     double logit = (double)act_to_f(q[2 * dim]);
     double generate =
@@ -1604,17 +1614,34 @@ extern "C" __global__ void pointer_rows(
     double log_mixture = high + log(exp(generate - high) + exp(copied - high));
 
     if (d.backward == 0) {
-        if (lane == 0) row_value[row] = -weight * log_mixture;
+        if (lane == 0) {
+            row_value[row] = -weight * log_mixture;
+            if (d.supervise != 0) {
+                // BCE(gate, present) and -log p_copy(target) when present.
+                scale_z[row] = weight * (present ? softplus_d(-logit) : softplus_d(logit));
+                row_beta[row] = present && copy > 0.0 ? -weight * log(copy) : 0.0;
+            }
+        }
         return;
     }
     double generate_share = exp(generate - log_mixture);
     double copy_share = exp(copied - log_mixture);
     double gate = 1.0 / (1.0 + exp(-logit));
     double c = (double)act_to_f(grad_in[0]) * weight / total_in[0];
+    // The per-source coefficient: the mixture's c copy_share, plus the
+    // pointer-NLL term's upstream coefficient on a supervised present row.
+    double k_src = c * copy_share;
+    if (d.supervise != 0 && present) {
+        k_src += (double)act_to_f(grad_in[2]) * weight / total_in[0];
+    }
     if (lane == 0) {
         scale_z[row] = c * generate_share;
-        d_side[(u64)row * stride + 2 * dim] =
-            act_from_f((float)(c * (generate_share * gate - copy_share * (1.0 - gate))));
+        double d_gate = c * (generate_share * gate - copy_share * (1.0 - gate));
+        if (d.supervise != 0) {
+            double c_gate = (double)act_to_f(grad_in[1]) * weight / total_in[0];
+            d_gate += c_gate * (gate - (present ? 1.0 : 0.0));
+        }
+        d_side[(u64)row * stride + 2 * dim] = act_from_f((float)d_gate);
     }
     double d_beta = 0.0;
     double self_q = 0.0;
@@ -1623,8 +1650,8 @@ extern "C" __global__ void pointer_rows(
         double out = 0.0;
         if (copy > 0.0 && a != 0.0) {
             double d_source = ids[first + j] == target
-                ? -c * copy_share * (a / copy) * (1.0 - copy)
-                : c * copy_share * a;
+                ? -k_src * (a / copy) * (1.0 - copy)
+                : k_src * a;
             if (d.score == 0) {
                 out = d_source;
             } else {

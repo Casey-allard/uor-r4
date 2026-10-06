@@ -46,6 +46,7 @@
 //!   [pointer=none|DIM] \
 //!   [pointer_score=dot|lorentz] [pointer_select=none|flock:WINDOW:K|top:K] \
 //!   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \
+//!   [pointer_gate_supervision=0] \
 //!   [context=256] \
 //!   [policy=full_prefix|role_only|truncated_prefix[:KEEP]] [data_seed=1] [steps=1024] [batch=16] [lr=0.001] [warmup=50] \
 //!   [min_lr=0.1] [weight_decay=0.1] [clip=1.0] [eval_every=128] [dev_seed=1] [dev_per_source=32] \
@@ -248,6 +249,11 @@
 //! (the n tokens before a source equal the query's last n, for the longest
 //! n up to WINDOW with a match; ADR-0003's transition indexes). Each
 //! `pointer_select=`, and `none` clears a saved route.
+//! `pointer_gate_supervision=W` (`dialogue-train`, default 0 = off) adds
+//! copy-gate supervision to the response loss
+//! (`StackModel::gate_supervised_loss`): on a scored target whose id an input
+//! position `0..=t` holds, `W (BCE(g, 1) - log p_copy(target))`; elsewhere
+//! `W BCE(g, 0)`. It needs a pointer over every source and f32 precision.
 //! Each evaluation reports the pointer's mean gate and hit rate on the scored
 //! targets (`dev_pointer_*` in the curve, `pointer` in the developments). The
 //! pointer has no served representation for training (`qat=true` refuses
@@ -3668,6 +3674,9 @@ struct DialogueSettings {
     device: Device,
     /// `precision=f32|bf16` (default f32): the trunk's activation storage.
     precision: Precision,
+    /// `pointer_gate_supervision=W` (default 0, off): copy-gate supervision
+    /// of strength W ([`StackModel::gate_supervised_loss`]).
+    pointer_gate_supervision: f64,
 }
 
 impl DialogueSettings {
@@ -3705,6 +3714,9 @@ impl DialogueSettings {
         }
         if let Some(route) = &self.pointer_route {
             record["pointer_route"] = json!(route);
+        }
+        if self.pointer_gate_supervision > 0.0 {
+            record["pointer_gate_supervision"] = json!(self.pointer_gate_supervision);
         }
         record
     }
@@ -3746,8 +3758,56 @@ impl DialogueSettings {
         if self.key_shift.enabled() {
             lineage["key_shift"] = json!(self.key_shift.name());
         }
+        if self.pointer_gate_supervision > 0.0 {
+            lineage["pointer_gate_supervision"] = json!(self.pointer_gate_supervision);
+        }
         Ok(lineage)
     }
+}
+
+/// `pointer_gate_supervision=W`: finite and nonnegative; above 0 it needs a
+/// pointer head over every source (the run's `pointer=`, or `init=`'s saved
+/// head), no `pointer_select=`/`pointer_route=` and f32 precision. Checked
+/// before anything is claimed.
+fn check_gate_supervision(s: &DialogueSettings) -> Result<()> {
+    let weight = s.pointer_gate_supervision;
+    if !(weight.is_finite() && weight >= 0.0) {
+        return Err(invalid(
+            "pointer_gate_supervision must be finite and nonnegative",
+        ));
+    }
+    if weight == 0.0 {
+        return Ok(());
+    }
+    if s.precision.is_bf16() {
+        return Err(invalid(
+            "precision=bf16 has no bf16 pointer gate supervision kernel; use precision=f32",
+        ));
+    }
+    if s.pointer_select.as_deref().is_some_and(|v| v != "none")
+        || s.pointer_route.as_deref().is_some_and(|v| v != "none")
+    {
+        return Err(invalid(
+            "pointer_gate_supervision needs a pointer over every source (no pointer_select or pointer_route)",
+        ));
+    }
+    let saved = match &s.init {
+        Some(directory) => {
+            serde_json::from_slice::<StackConfig>(&fs::read(directory.join("config.json"))?)?
+                .pointer
+        }
+        None => None,
+    };
+    if saved.is_none() && s.pointer.as_deref().is_none_or(|v| v == "none" || v == "0") {
+        return Err(invalid("pointer_gate_supervision needs a pointer head"));
+    }
+    if saved.is_some_and(|p| p.select.is_some() || p.route.is_some()) && s.pointer_select.is_none()
+    {
+        return Err(invalid(
+            "pointer_gate_supervision needs a pointer over every source; init='s head has a selection or route",
+        ));
+    }
+    Ok(())
 }
 
 /// A model to continue must have learned the same token ids. The run that
@@ -3840,6 +3900,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             "protocol",
             "tf32",
             "precision",
+            "pointer_gate_supervision",
         ],
     )?;
     // Validate the A1 options before anything is claimed or loaded.
@@ -3891,6 +3952,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
             Some(other) => return Err(invalid(format!("invalid protocol={other} (1 or 2)"))),
         },
         device: device_arg(&args)?,
+        pointer_gate_supervision: args.number("pointer_gate_supervision", 0.0)?,
     };
     settings.precision = precision_arg(&args, &settings.device)?;
     check_bf16_options(
@@ -3901,6 +3963,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
         settings.select.is_some(),
         false,
     )?;
+    check_gate_supervision(&settings)?;
     if settings.steps == 0
         || !(1..=64).contains(&settings.batch)
         || settings.eval_every == 0
@@ -4276,6 +4339,10 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         }
     }
     let (mut window_loss, mut stopped_early) = ((0f64, 0usize), false);
+    // Under copy-gate supervision: the window's sums of the gate BCE, the
+    // pointer NLL and the objective (the mixture's NLL is `window_loss`).
+    let supervision = s.pointer_gate_supervision;
+    let mut window_supervision = [0f64; 3];
     // The served representation's work inside this process's updates.
     let mut served_in_steps = ServedStatistics::default();
     // This process's updates' seconds.
@@ -4288,14 +4355,44 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
         let batch = train.materialize(&ids, s.policy)?;
         let trimmed = trim(&batch);
         let served_before = model.served_statistics()?;
-        let loss = model.weighted_loss(
-            &trimmed.inputs,
-            &trimmed.targets,
-            &trimmed.weights,
-            batch.batch,
-            trimmed.time,
-        )?;
-        let value = f64::from(loss.to_scalar::<f32>()?);
+        let (loss, value) = if supervision > 0.0 {
+            let parts = model.gate_supervised_loss(
+                &trimmed.inputs,
+                &trimmed.targets,
+                &trimmed.weights,
+                batch.batch,
+                trimmed.time,
+                supervision,
+            )?;
+            let read =
+                |t: &candle_core::Tensor| -> Result<f64> { Ok(f64::from(t.to_scalar::<f32>()?)) };
+            let terms = [
+                read(&parts.gate_bce)?,
+                read(&parts.pointer_nll)?,
+                read(&parts.total)?,
+            ];
+            if !terms.iter().all(|t| t.is_finite()) {
+                return Err(invalid(format!(
+                    "nonfinite supervision loss at step {}",
+                    progress.step
+                )));
+            }
+            for (sum, term) in window_supervision.iter_mut().zip(terms) {
+                *sum += term;
+            }
+            let value = read(&parts.mixture)?;
+            (parts.total, value)
+        } else {
+            let loss = model.weighted_loss(
+                &trimmed.inputs,
+                &trimmed.targets,
+                &trimmed.weights,
+                batch.batch,
+                trimmed.time,
+            )?;
+            let value = f64::from(loss.to_scalar::<f32>()?);
+            (loss, value)
+        };
         if !value.is_finite() {
             return Err(invalid(format!("nonfinite loss at step {}", progress.step)));
         }
@@ -4335,6 +4432,19 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
                 point["dev_pointer_mean_gate"] = pointer["mean_gate"].clone();
                 point["dev_pointer_hit_rate"] = pointer["pointer_hit_rate"].clone();
                 point["dev_pointer_reachable_rate"] = pointer["target_reachable_rate"].clone();
+                if supervision > 0.0 {
+                    point["dev_gate_bce"] = pointer["gate_bce"].clone();
+                    point["dev_pointer_nll"] = pointer["pointer_nll"].clone();
+                }
+            }
+            // `train_response_nll` stays the mixture's NLL; the objective
+            // adds the weighted supervision terms.
+            if supervision > 0.0 {
+                let n = window_loss.1.max(1) as f64;
+                point["train_gate_bce"] = json!(window_supervision[0] / n);
+                point["train_pointer_nll"] = json!(window_supervision[1] / n);
+                point["train_objective"] = json!(window_supervision[2] / n);
+                window_supervision = [0.0; 3];
             }
             if let Some((unsnapped, usage)) = &transport {
                 point["dev_unsnapped_response_nll"] = unsnapped["response_mean_nll"].clone();
@@ -4483,6 +4593,10 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
             "pointer_init_seed_source": pointer_added.then_some(seed_source),
             "pointer_parameters": pointer_parameters,
             "final_pointer_diagnostics": final_pointer,
+            "pointer_gate_supervision": (supervision > 0.0).then(|| json!({
+                "weight": supervision,
+                "objective": "mixture NLL + weight * (gate_bce + pointer_nll) over the scored response targets: on a target whose id an input position 0..=t of its window holds, gate_bce = -log g and pointer_nll = -log p_copy(target) (the pointer's mass summed over every position holding the id); on any other target gate_bce = -log(1 - g) and pointer_nll = 0; both are weighted means like the mixture's NLL. train_response_nll in the curve stays the mixture's NLL; train_gate_bce, train_pointer_nll and train_objective are window means.",
+            })),
             "scope": "Flock selection of the reads (sink at position 0, last WINDOW positions and the K best-scoring other sources per read row, by the shared crate::flock selector; unkept sources weigh and receive exactly 0; the NoRead slot stays outside the selection) applies to every read of the model and never to the pointer. The pointer head scores each source of the window with its own score (`pointer_score`: dot, or the fused read's Lorentz form with a learned scale) and softmaxes over the sources its own selection keeps (`pointer_select`: none keeps all, top:1 is the single-source pointer), copies the input tokens at the attended positions, and a gate g = sigmoid(w.h + b) (b starts at -2) mixes that with the ordinary distribution; when no kept source holds a target the mixture is (1 - g) softmax alone, with no floor. `response_mean_nll`, the losses and the greedy replies are the mixture's. `pointer` diagnostics are over the scored dev targets. Neither a flock nor a pointer selection or route has a D11 port; `export` writes a pointer that keeps every source (both integer engines serve its mixture), and `qat=true` refuses a pointer. Offline float training only; not a served or quality result.",
         });
     }
@@ -5070,6 +5184,7 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
   [select=none|flock:WINDOW:K] [pointer=none|DIM] [pointer_score=dot|lorentz] \\
   [pointer_select=none|flock:WINDOW:K|top:K] \\
   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \\
+  [pointer_gate_supervision=0] \\
   [seed=] [context=] [policy=] \\
   [data_seed=] \\
   [steps=] \\
@@ -5113,6 +5228,13 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
                          and ngram-ranked:WINDOW admit by the longest ordered n-let match
                          (n up to WINDOW) instead of any shared atom. Excludes
                          pointer_select=. With init=, replaces the saved head's route.
+  pointer_gate_supervision=W
+                         copy-gate supervision (default 0: off, the run is unchanged). On each
+                         scored target whose id an input position 0..=t holds, adds W (BCE(g, 1)
+                         - log p_copy(target)); on any other scored target W BCE(g, 0). Needs a
+                         pointer over every source (no pointer_select/route) and precision=f32.
+                         The curve adds train_gate_bce / train_pointer_nll / train_objective and
+                         dev_gate_bce / dev_pointer_nll; train_response_nll stays the mixture's.
   protocol=1|2           the literal-role dialogue version of both corpora (default 1); 2 puts
                          the space after a role marker into the message (m-world corpus
                          protocol=2), so a reply's first word can be copied from context.

@@ -218,6 +218,10 @@ struct PointerTotals {
     copy_mass: f64,
     hits: usize,
     reachable: usize,
+    /// Sum of `BCE(g, reachable)`: the copy-gate supervision's gate term.
+    gate_bce: f64,
+    /// Sum of `-log p_copy(target)` over the reachable targets.
+    pointer_nll: f64,
 }
 
 impl PointerTotals {
@@ -227,6 +231,14 @@ impl PointerTotals {
         self.copy_mass += row.copy_mass;
         self.hits += usize::from(row.hit);
         self.reachable += usize::from(row.reachable);
+        if row.reachable {
+            self.gate_bce -= row.gate.ln();
+            if row.copy_mass > 0.0 {
+                self.pointer_nll -= row.copy_mass.ln();
+            }
+        } else {
+            self.gate_bce -= (1.0 - row.gate).ln();
+        }
     }
 
     fn merge(&mut self, other: &Self) {
@@ -235,6 +247,8 @@ impl PointerTotals {
         self.copy_mass += other.copy_mass;
         self.hits += other.hits;
         self.reachable += other.reachable;
+        self.gate_bce += other.gate_bce;
+        self.pointer_nll += other.pointer_nll;
     }
 
     fn report(&self) -> Option<Value> {
@@ -246,11 +260,17 @@ impl PointerTotals {
                 "pointer_hit_rate": self.hits as f64 / n,
                 "target_reachable_rate": self.reachable as f64 / n,
                 "mean_copy_mass": self.copy_mass / n,
+                "gate_bce": self.gate_bce / n,
+                "pointer_nll": self.pointer_nll / n,
                 "definitions": "over the scored targets: mean_gate is the mean gate g_t; \
                     pointer_hit_rate is the fraction whose most attended source (lowest position \
                     on a tie) holds the target token; target_reachable_rate is the fraction \
                     whose target token is held by any source with attention (the hit rate's \
-                    ceiling); mean_copy_mass is the mean p_copy(target) before the gate",
+                    ceiling); mean_copy_mass is the mean p_copy(target) before the gate; \
+                    gate_bce is the mean of -log g_t on reachable targets and -log(1 - g_t) on \
+                    the others, and pointer_nll the sum of -log p_copy(target) over reachable \
+                    targets divided by all scored targets (the two copy-gate supervision terms, \
+                    reported whether or not a run trains them)",
             })
         })
     }

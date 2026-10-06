@@ -1462,6 +1462,149 @@ fn test_pointer_mixture_parity() -> uor_r4_training::Result<()> {
     Ok(())
 }
 
+/// The copy-gate-supervised pointer mixture (`pointer_gate_supervision`):
+/// its three parts and the gradients of `upstream * total` on one device.
+#[cfg(feature = "cuda")]
+#[allow(clippy::too_many_arguments)]
+fn supervised_pointer_run(
+    device: &candle_core::Device,
+    logits: &[f32],
+    side: &[f32],
+    beta: f32,
+    shape: (usize, usize, usize),
+    score: uor_r4_training::geometric_stack::ReadScore,
+    ids: &[u32],
+    targets: &[u32],
+    weights: Option<&[f32]>,
+    weight: f64,
+) -> uor_r4_training::Result<Vec<Vec<f32>>> {
+    let (rows, vocab, stride) = shape;
+    let z = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        logits.to_vec(),
+        (rows, vocab),
+        device,
+    )?)?;
+    let s = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
+        side.to_vec(),
+        (rows, stride),
+        device,
+    )?)?;
+    let b =
+        candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(vec![beta], (1,), device)?)?;
+    let time = rows / 2;
+    let parts = uor_r4_training::geometric_stack::pointer_mixture_loss_supervised(
+        z.as_tensor(),
+        s.as_tensor(),
+        b.as_tensor(),
+        time,
+        score,
+        ids,
+        targets,
+        weights,
+        weight,
+    )?;
+    let grads = (&parts.total * 1.3)?.backward()?;
+    let mut results = vec![
+        values(&parts.mixture)?,
+        values(&parts.gate_bce)?,
+        values(&parts.pointer_nll)?,
+        values(&parts.total)?,
+    ];
+    for var in [&z, &s, &b] {
+        results.push(values(grads.get(var.as_tensor()).expect("gradient"))?);
+    }
+    Ok(results)
+}
+
+/// Copy-gate supervision on CUDA against the CPU op: the mixture, gate-BCE,
+/// pointer-NLL and total values and the logit, side and scale gradients of
+/// the total, Dot and Lorentz, unweighted and weighted (with a zero-weight
+/// row), with rows whose target no source holds. The mixture part also
+/// equals the unsupervised CUDA loss bit for bit.
+#[cfg(feature = "cuda")]
+#[test]
+fn test_supervised_pointer_mixture_parity() -> uor_r4_training::Result<()> {
+    use uor_r4_training::geometric_stack::ReadScore;
+    let cuda_dev = match candle_core::Device::new_cuda(0) {
+        Ok(dev) => dev,
+        Err(e) => return no_device(e),
+    };
+    let cpu_dev = candle_core::Device::Cpu;
+    let shapes = [(7usize, 4usize, 37usize), (40, 19, 300), (1, 3, 6)];
+    let mut case = 0u64;
+    for &(time, dim, vocab) in &shapes {
+        let rows = 2 * time;
+        let stride = 2 * dim + 1;
+        let ids: Vec<u32> = (0..rows).map(|n| ((n * 7 + n / 3) % 5) as u32).collect();
+        let mut targets: Vec<u32> = (0..rows).map(|n| ids[(n + 1).min(rows - 1)]).collect();
+        targets[0] = (vocab - 1) as u32;
+        if rows > 3 {
+            targets[3] = (vocab - 1) as u32;
+        }
+        let mut weights = noise(rows, 91 + time as u64, 1.0)
+            .iter()
+            .map(|v| v.abs() + 0.1)
+            .collect::<Vec<f32>>();
+        weights[rows - 1] = 0.0;
+        for score in [ReadScore::Dot, ReadScore::Lorentz] {
+            for weighted in [false, true] {
+                case += 1;
+                let seed = 7000 + 31 * case;
+                let logits = noise(rows * vocab, seed, 3.0);
+                let side = noise(rows * stride, seed + 1, 1.2);
+                let beta = 0.8f32;
+                let w = weighted.then_some(weights.as_slice());
+                let shape = (rows, vocab, stride);
+                let run = |device| {
+                    supervised_pointer_run(
+                        device, &logits, &side, beta, shape, score, &ids, &targets, w, 0.6,
+                    )
+                };
+                let (cpu, cuda) = (run(&cpu_dev)?, run(&cuda_dev)?);
+                let label =
+                    format!("Supervised {score:?} weighted{weighted} t{time} d{dim} v{vocab}");
+                for (k, name) in ["mixture", "gate_bce", "pointer_nll", "total"]
+                    .iter()
+                    .enumerate()
+                {
+                    compare(&cpu[k], &cuda[k], 1e-5, &format!("{label} {name}"));
+                }
+                compare(&cpu[4], &cuda[4], 1e-4, &format!("{label} d_logits"));
+                let column = |all: &[f32], range: std::ops::Range<usize>| -> Vec<f32> {
+                    all.chunks(stride)
+                        .flat_map(|row| row[range.clone()].to_vec())
+                        .collect()
+                };
+                for (name, range) in [
+                    ("d_query", 0..dim),
+                    ("d_key", dim..2 * dim),
+                    ("d_gate", 2 * dim..stride),
+                ] {
+                    compare(
+                        &column(&cpu[5], range.clone()),
+                        &column(&cuda[5], range),
+                        1e-4,
+                        &format!("{label} {name}"),
+                    );
+                }
+                if score == ReadScore::Lorentz {
+                    compare(&cpu[6], &cuda[6], 1e-4, &format!("{label} d_beta"));
+                }
+                // The CUDA mixture part is the unsupervised CUDA loss bit for bit.
+                let plain = pointer_run(
+                    &cuda_dev, &logits, &side, beta, shape, score, &ids, &targets, w,
+                )?;
+                assert_eq!(
+                    plain[0][0].to_bits(),
+                    cuda[0][0].to_bits(),
+                    "{label}: mixture part differs from the unsupervised loss"
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // Global gradient squared norm: the multi-block CUDA kernels against Candle's
 // single-block `sqr().sum_all()` + `cat().sum_all()` (must be bit-identical)
@@ -1735,7 +1878,10 @@ fn test_bf16_exact_inputs_round_once() -> uor_r4_training::Result<()> {
     let (keys, values) = (4usize, 3usize);
     let query = exact(bf16_exact(rows * key, 1), vec![batch, heads, time, key])?;
     let key_tensor = exact(bf16_exact(rows * keys, 2), vec![batch, heads, time, keys])?;
-    let value_tensor = exact(bf16_exact(rows * values, 9), vec![batch, heads, time, values])?;
+    let value_tensor = exact(
+        bf16_exact(rows * values, 9),
+        vec![batch, heads, time, values],
+    )?;
     let aux_len = fused_aux_len(batch, heads, time, ReadScore::L2, true, true).max(1);
     let aux = exact(bf16_exact(aux_len, 4), vec![aux_len])?;
     let f32_read = fused_read(
@@ -1899,16 +2045,10 @@ fn test_bf16_fused_read_parity() -> uor_r4_training::Result<()> {
     };
     let query =
         candle_core::Tensor::from_vec(gen(rows * key, 0.0), (batch, heads, time, key), &cuda)?;
-    let keys = candle_core::Tensor::from_vec(
-        gen(rows * key, 1.7),
-        (batch, heads, time, key),
-        &cuda,
-    )?;
-    let values = candle_core::Tensor::from_vec(
-        gen(rows * value, 2.4),
-        (batch, heads, time, value),
-        &cuda,
-    )?;
+    let keys =
+        candle_core::Tensor::from_vec(gen(rows * key, 1.7), (batch, heads, time, key), &cuda)?;
+    let values =
+        candle_core::Tensor::from_vec(gen(rows * value, 2.4), (batch, heads, time, value), &cuda)?;
     for score in [ReadScore::Dot, ReadScore::Lorentz, ReadScore::L2] {
         let aux_len = fused_aux_len(batch, heads, time, score, true, true).max(1);
         let aux = candle_core::Tensor::from_vec(gen(aux_len, 3.1), aux_len, &cuda)?;
