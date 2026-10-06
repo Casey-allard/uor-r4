@@ -1206,6 +1206,7 @@ fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
     let name = |arch: StackArch| match arch {
         StackArch::Geometric => "geometric",
         StackArch::Transformer => "transformer",
+        StackArch::Hybrid => "hybrid",
     };
     let mut saved: Vec<(&str, String)> = vec![
         ("arch", name(config.arch).to_owned()),
@@ -1223,7 +1224,7 @@ fn init_config(args: &Args, directory: &Path) -> Result<StackConfig> {
         (
             match config.arch {
                 StackArch::Transformer => "mlp",
-                StackArch::Geometric => "stack_mlp",
+                StackArch::Geometric | StackArch::Hybrid => "stack_mlp",
             },
             config.mlp_hidden.to_string(),
         ),
@@ -2504,9 +2505,9 @@ fn head_probe_mode(arguments: &[String]) -> Result<()> {
     report_output::claim(&out)?;
     let result = (|| -> Result<()> {
         let started = Instant::now();
-        let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(
-            &fs::read(&tokenizer_path)?,
-        )
+        let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(
+            &tokenizer_path,
+        )?)
         .ok_or_else(|| invalid("unreadable tokenizer.json"))?;
         let dev_split = DialogueSplit::load(&dev_tokens, &dev_mask, &dev_manifest)?;
         let vocab = dev_split.vocab_size();
@@ -2599,10 +2600,8 @@ fn head_probe_mode(arguments: &[String]) -> Result<()> {
                             // `row_log_sum_exp`, the library's own convention:
                             // max-subtracted, f32 differences accumulated in f64.
                             let maximum = line.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-                            let total: f64 = line
-                                .iter()
-                                .map(|&v| f64::from(v - maximum).exp())
-                                .sum();
+                            let total: f64 =
+                                line.iter().map(|&v| f64::from(v - maximum).exp()).sum();
                             panel_raw_nll
                                 .push(f64::from(maximum) + total.ln() - f64::from(line[target]));
                             let mut best = 0usize;
@@ -2785,8 +2784,7 @@ fn hidden_blocks_mode(arguments: &[String]) -> Result<()> {
                     block_of.push(block as u32);
                     let line = &logits[at * vocab..(at + 1) * vocab];
                     let maximum = line.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-                    let total: f64 =
-                        line.iter().map(|&v| f64::from(v - maximum).exp()).sum();
+                    let total: f64 = line.iter().map(|&v| f64::from(v - maximum).exp()).sum();
                     raw_nll.push(f64::from(maximum) + total.ln() - f64::from(line[target]));
                     let mut best = 0usize;
                     let mut best_value = f32::NEG_INFINITY;
@@ -2960,6 +2958,11 @@ fn export_mode(arguments: &[String]) -> Result<()> {
             });
         }
         let (bytes, report) = match model.config.arch {
+            StackArch::Hybrid => {
+                return Err(invalid(
+                    "the hybrid read-attribution control has no lookup-table export",
+                ))
+            }
             StackArch::Geometric => export_stack(
                 &model,
                 source.clone(),
