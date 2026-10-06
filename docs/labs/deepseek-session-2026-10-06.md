@@ -261,7 +261,7 @@ overlap a live claim — Codex held `.../examples/geometric-generate-update.rs`,
   the mechanism, and fix the schedule — a rule that would have caught all six at the point of the claim
   instead of five rounds later.
 - **An instrument's absence from `main` does not mean the experiment cannot run.** The D20 §2
-  parameter-matched control is not on `main` (`mlp=matched` and `parameter_match` return zero hits), and a
+  parameter-matched control was not on `main` (`mlp=matched` and `parameter_match` returned zero hits), and a
   conclusion was drawn from that — "the 2e-4 control test is still unrun" — when a prebuilt binary at
   `~/.cache/uor-r4-d20control/release/examples/mqar-bench` had been able to run it the whole time. Two
   rounds were lost to reasoning about runnability instead of checking it. The same failure produced a
@@ -337,10 +337,14 @@ head`, which is **correct** — the binding requires a geometric read and a hybr
 
 ## 15. Reproduction notes
 
-- **The parameter-matched control is not on `main`** (`mlp=matched`, `parameter_match` → 0 hits). It is
-  preserved on `deepseek/d20-control`, and a prebuilt binary at
-  `~/.cache/uor-r4-d20control/release/examples/mqar-bench` runs it. Bringing it to trunk needs a decision
-  about the bench's `reachability` subsystem, which `main` relocated to `repo-model` / `uor-r4-api`;
-  three cherry-pick attempts were aborted rather than resolved blind.
+- **The parameter-matched control is now on `main`** (PR **#1806**). Carried from `5a37b981` by
+  `cherry-pick -x` with authorship preserved; all three conflicts resolved as **union**, plus two
+  `StackArch::Hybrid` label arms because the branch predates #1798. Verified after relocation: **0.2529**
+  sealed against the original's 0.2529 (3-seed mean 0.2534) — so D20 §2 condition 1 is runnable from trunk.
+  **Three cherry-pick attempts were aborted before this one**, on a diagnosis that was wrong twice: the
+  hunk-2 conflict is *not* semantic. `main` defines `stage0_tally_dump`/`stage0_sieve`; the branch defines
+  `read_firing`/`context_reachability` — different functions added at the same line. One `grep -nE '^fn '`
+  on both files would have shown it. That is the third time this session a symbol mismatch was read as an
+  architectural question.
 - **The firing counter IS on `main`** — as `best_head_mean_weight_on_key` / `_on_value` with
   `uniform_weight_reference`, not as `read_firing`.

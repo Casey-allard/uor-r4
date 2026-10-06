@@ -31,11 +31,13 @@ annealed comparison implied; see the schedule-bias entry in the session record's
 layer runs ordinary causal attention — the read-attribution control whose absence had left the effect
 unattributable.
 
-**Next:** the parameter-matched control is **not on `main`** (`mlp=matched`, `parameter_match` → 0 hits);
-it is preserved on `deepseek/d20-control` and a prebuilt binary at
-`~/.cache/uor-r4-d20control/release/examples/mqar-bench` runs it. Landing it needs a decision on the
-bench's `reachability` subsystem, which `main` relocated to `repo-model` / `uor-r4-api`. The firing counter
-**is** on `main`, as `best_head_mean_weight_on_key`/`_on_value`.
+**The parameter-matched control is now on `main`** (PR **#1806**, cherry-pick of `5a37b981` with
+authorship preserved): `arm=transformer`, `layers=`, `mlp=matched`, `match_pattern=` all exist on trunk, so
+**D20 §2 condition 1 is runnable from `main`** rather than only from `deepseek/d20-control`. Verified after
+relocation: the arm seals at **0.2529** against the original's 0.2529 (3-seed mean 0.2534). The hunk-2
+conflict was mechanical, not semantic — `main` defines `stage0_tally_dump`/`stage0_sieve` where the branch
+defines `read_firing`/`context_reachability`, i.e. different code added at the same line, resolved as union.
+The firing counter is reported as `best_head_mean_weight_on_key`/`_on_value`.
 
 
 ## Reader data answerability correction supersedes old fit schedule — October 5
