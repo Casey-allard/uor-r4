@@ -12,6 +12,7 @@ use std::process::{Command, Stdio};
 pub const BRANCH: &str = "codex/lab-state";
 const REMOTE_REF: &str = "refs/remotes/origin/codex/lab-state";
 const TTL: u64 = 1200;
+const REASON_MAX: usize = 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -79,6 +80,19 @@ struct ConfirmedExit {
     outcome: String,
     exit_status: Option<i64>,
     elapsed_ms: u64,
+}
+
+/// How a durable DONE receipt is bound to a reservation.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EvidenceMode {
+    /// Existing finalization: a live claim owns the task generation, and the
+    /// receipt must bind the exact reserved spec digest.
+    Finalize,
+    /// Orphan close-out (`Action::Abandon`): no live claim exists and the
+    /// durable spec's digest has drifted away from the reserved digest, so the
+    /// durable job is bound by identity instead. The reservation must also
+    /// prove that no process ever started.
+    Abandon,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -202,6 +216,19 @@ pub enum Action {
         attempt: String,
         receipt: ExitEvidence,
     },
+    /// Close a reservation that provably never produced compute. This is the
+    /// only finalization path that does not require a live claim, so an orphaned
+    /// reservation (for example a job cancelled in the queue after its
+    /// workspace volume was lost) cannot deadlock policy adoption. It is
+    /// deliberately narrower than `FinishAttempt`: the reserving session must
+    /// still own the reservation, and the receipt must positively prove that no
+    /// process ever started.
+    Abandon {
+        attempt: String,
+        session: String,
+        reason: String,
+        receipt: ExitEvidence,
+    },
     Complete {
         issue: u64,
         session: String,
@@ -213,6 +240,14 @@ pub enum Action {
 fn nonempty(value: &str) -> Result<()> {
     if value.trim().is_empty() || value.contains('\0') {
         return Err(invalid("empty or NUL identity"));
+    }
+    Ok(())
+}
+
+fn bounded_reason(value: &str) -> Result<()> {
+    nonempty(value)?;
+    if value.len() > REASON_MAX {
+        return Err(invalid("reason must be non-empty and bounded"));
     }
     Ok(())
 }
@@ -683,6 +718,37 @@ impl State {
                 a.phase = "finalized".into();
                 a.receipt = Some(receipt.clone());
             }
+            Action::Abandon {
+                attempt,
+                session,
+                reason,
+                receipt,
+            } => {
+                safe_id(attempt)?;
+                bounded_reason(reason)?;
+                let a = self
+                    .attempts
+                    .get_mut(attempt)
+                    .ok_or_else(|| invalid("unknown attempt"))?;
+                if a.phase != "reserved" {
+                    return Err(invalid("attempt is not an open reservation"));
+                }
+                if a.session != *session {
+                    return Err(invalid(
+                        "only the reserving session may abandon its own reservation",
+                    ));
+                }
+                receipt_binding(attempt, a, receipt)?;
+                // Deliberately no owned() call: the task generation is released
+                // or expired, and requiring a live claim here would recreate the
+                // cycle this action exists to break (a claim needs the current
+                // policy, policy adoption needs every attempt finalized). The
+                // apply-path preflight verifies local never-started evidence
+                // before this transition is ever committed; the reason stays
+                // auditable in the durable event log.
+                a.phase = "finalized".into();
+                a.receipt = Some(receipt.clone());
+            }
             Action::Complete {
                 issue,
                 session,
@@ -981,40 +1047,86 @@ fn require_unblocked(repository: &str, issue: u64) -> Result<()> {
     validate_native_blockers(&serde_json::from_slice(&response.stdout)?)
 }
 
-fn validate_exit_identity(exit: &ConfirmedExit, attempt_id: &str, attempt: &Attempt) -> Result<()> {
-    let spec = attempt
-        .spec
-        .as_ref()
-        .ok_or_else(|| invalid("unbound historical attempt cannot be finalized automatically"))?;
-    let expected = attempt
-        .spec_sha256
-        .as_deref()
-        .ok_or_else(|| invalid("attempt lacks spec digest"))?;
-    let claim = spec
-        .coordination
-        .as_ref()
-        .ok_or_else(|| invalid("reserved spec lacks claim"))?;
-    if exit.schema != jobs::EXIT_SCHEMA
-        || exit.id != spec.id
-        || exit.attempt_id != attempt_id
-        || exit.host != attempt.host
-        || exit.spec_sha256 != expected
-        || spec_digest(spec)? != expected
-        || exit.coordination.issue != attempt.issue
-        || exit.coordination.session != attempt.session
-        || exit.coordination.epoch != attempt.task_epoch
-        || exit.coordination.work_card != claim.work_card
-        || exit.coordination.attempt_id != attempt_id
-    {
-        return Err(invalid(
-            "exit receipt differs from reserved execution identity",
-        ));
+fn validate_exit_identity(
+    exit: &ConfirmedExit,
+    attempt_id: &str,
+    attempt: &Attempt,
+    mode: EvidenceMode,
+    durable: Option<&JobSpec>,
+) -> Result<()> {
+    match mode {
+        EvidenceMode::Finalize => {
+            let spec = attempt.spec.as_ref().ok_or_else(|| {
+                invalid("unbound historical attempt cannot be finalized automatically")
+            })?;
+            let expected = attempt
+                .spec_sha256
+                .as_deref()
+                .ok_or_else(|| invalid("attempt lacks spec digest"))?;
+            let claim = spec
+                .coordination
+                .as_ref()
+                .ok_or_else(|| invalid("reserved spec lacks claim"))?;
+            if exit.schema != jobs::EXIT_SCHEMA
+                || exit.id != spec.id
+                || exit.attempt_id != attempt_id
+                || exit.host != attempt.host
+                || exit.spec_sha256 != expected
+                || spec_digest(spec)? != expected
+                || exit.coordination.issue != attempt.issue
+                || exit.coordination.session != attempt.session
+                || exit.coordination.epoch != attempt.task_epoch
+                || exit.coordination.work_card != claim.work_card
+                || exit.coordination.attempt_id != attempt_id
+            {
+                return Err(invalid(
+                    "exit receipt differs from reserved execution identity",
+                ));
+            }
+        }
+        EvidenceMode::Abandon => {
+            // The reserved digest is deliberately not re-bound here. Digest and
+            // work-card drift between the reservation and the durable queued
+            // spec is exactly the orphan condition `Abandon` exists to close, so
+            // the durable file is bound by job identity instead: it is this
+            // attempt, and the receipt must bind its exact durable bytes (its
+            // spec digest and its full coordination claim). This admits no
+            // compute: the caller separately requires never-started evidence.
+            let durable = durable.ok_or_else(|| invalid("abandon lacks durable job identity"))?;
+            let claim = durable
+                .coordination
+                .as_ref()
+                .ok_or_else(|| invalid("durable spec lacks coordination identity"))?;
+            if exit.schema != jobs::EXIT_SCHEMA
+                || exit.id != durable.id
+                || durable.id != attempt_id
+                || exit.attempt_id != attempt_id
+                || exit.host != attempt.host
+                || exit.spec_sha256 != spec_digest(durable)?
+                || claim.attempt_id != attempt_id
+                || exit.coordination.issue != attempt.issue
+                || exit.coordination.session != attempt.session
+                || exit.coordination.epoch != attempt.task_epoch
+                || exit.coordination.attempt_id != attempt_id
+                || serde_json::to_value(&exit.coordination)? != serde_json::to_value(claim)?
+            {
+                return Err(invalid(
+                    "abandon receipt does not bind the durable job identity",
+                ));
+            }
+        }
     }
     Ok(())
 }
 
-fn validate_exit_contents(exit: &ConfirmedExit, attempt_id: &str, attempt: &Attempt) -> Result<()> {
-    validate_exit_identity(exit, attempt_id, attempt)?;
+fn validate_exit_contents(
+    exit: &ConfirmedExit,
+    attempt_id: &str,
+    attempt: &Attempt,
+    mode: EvidenceMode,
+    durable: Option<&JobSpec>,
+) -> Result<()> {
+    validate_exit_identity(exit, attempt_id, attempt, mode, durable)?;
     let never_started = exit.process_state == "never_started"
         && exit.outcome == "cancelled"
         && exit.exit_status.is_none()
@@ -1041,10 +1153,23 @@ fn validate_exit_contents(exit: &ConfirmedExit, attempt_id: &str, attempt: &Atte
     Ok(())
 }
 
+/// An abandon may never close a reservation that may have produced compute. The
+/// stopped-reconciliation mechanisms exist for those cases and stay available to
+/// `FinishAttempt`; here the receipt must positively say `never_started`.
+fn require_never_started(mode: EvidenceMode, exit: &ConfirmedExit) -> Result<()> {
+    if mode == EvidenceMode::Abandon && exit.process_state != "never_started" {
+        return Err(invalid(
+            "abandon requires never-started evidence; a reservation that may have produced compute needs reviewed reconciliation",
+        ));
+    }
+    Ok(())
+}
+
 fn verify_exit_evidence(
     attempt_id: &str,
     attempt: &Attempt,
     evidence: &ExitEvidence,
+    mode: EvidenceMode,
 ) -> Result<()> {
     receipt_binding(attempt_id, attempt, evidence)?;
     if evidence.host != process::host_id()? {
@@ -1089,9 +1214,33 @@ fn verify_exit_evidence(
         .parent()
         .ok_or_else(|| invalid("exit path has no directory"))?;
     let saved = jobs::read_spec(dir)?;
-    if Some(spec_digest(&saved)?) != attempt.spec_sha256 {
-        return Err(invalid("durable job spec differs from reserved spec"));
-    }
+    let durable = match mode {
+        EvidenceMode::Finalize => {
+            if Some(spec_digest(&saved)?) != attempt.spec_sha256 {
+                return Err(invalid("durable job spec differs from reserved spec"));
+            }
+            None
+        }
+        EvidenceMode::Abandon => {
+            // A digest mismatch between the reservation and the durable queued
+            // spec is precisely the orphan condition this mode closes, so bind
+            // the durable job identity (its id and coordinated attempt) instead
+            // of the reserved digest. The receipt must still bind these exact
+            // durable bytes; validate_exit_identity checks that below.
+            if saved.id != attempt_id
+                || saved
+                    .coordination
+                    .as_ref()
+                    .map(|claim| claim.attempt_id.as_str())
+                    != Some(attempt_id)
+            {
+                return Err(invalid(
+                    "durable job spec identity differs from the abandoned attempt",
+                ));
+            }
+            Some(&saved)
+        }
+    };
     let exit: ConfirmedExit;
     if name == "reconciliation.json" {
         let proof: serde_json::Value = serde_json::from_slice(&bytes)?;
@@ -1107,7 +1256,8 @@ fn verify_exit_evidence(
         }
         let original = fs::read(original_path)?;
         exit = serde_json::from_slice(&original)?;
-        validate_exit_identity(&exit, attempt_id, attempt)?;
+        require_never_started(mode, &exit)?;
+        validate_exit_identity(&exit, attempt_id, attempt, mode, durable)?;
         if proof["schema"] != "uor-r4.stopped-reconciliation/1"
             || proof["id"] != attempt_id
             || proof["attempt_id"] != attempt_id
@@ -1169,7 +1319,8 @@ fn verify_exit_evidence(
         }
     } else {
         exit = serde_json::from_slice(&bytes)?;
-        validate_exit_contents(&exit, attempt_id, attempt)?;
+        require_never_started(mode, &exit)?;
+        validate_exit_contents(&exit, attempt_id, attempt, mode, durable)?;
     }
     if exit.process_state == "never_started" {
         // A queued cancellation can release its reservation only while the
@@ -1429,7 +1580,21 @@ fn preflight_event(state: &State, event: &Event) -> Result<()> {
                 .attempts
                 .get(attempt)
                 .ok_or_else(|| invalid("unknown attempt"))?;
-            verify_exit_evidence(attempt, reserved, receipt)
+            verify_exit_evidence(attempt, reserved, receipt, EvidenceMode::Finalize)
+        }
+        Action::Abandon {
+            attempt, receipt, ..
+        } => {
+            // No policy guard here: an orphaned reservation is what blocks
+            // policy adoption, and adoption is what repairs a failing policy
+            // comparison, so requiring the current policy would rebuild the
+            // deadlock. The verifier still requires this host's own
+            // never-started receipt for exactly this reservation.
+            let reserved = state
+                .attempts
+                .get(attempt)
+                .ok_or_else(|| invalid("unknown attempt"))?;
+            verify_exit_evidence(attempt, reserved, receipt, EvidenceMode::Abandon)
         }
         Action::Complete {
             issue,
@@ -2246,12 +2411,18 @@ mod tests {
             "spec_sha256":attempt.spec_sha256, "coordination":attempt.spec.as_ref().unwrap().coordination,
             "process_state":"never_started", "outcome":"cancelled", "exit_status":null,"elapsed_ms":0
         })).unwrap();
-        validate_exit_contents(&exit, "job-one", attempt).unwrap();
+        validate_exit_contents(&exit, "job-one", attempt, EvidenceMode::Finalize, None).unwrap();
         exit.elapsed_ms = 1;
-        assert!(validate_exit_contents(&exit, "job-one", attempt).is_err());
+        assert!(
+            validate_exit_contents(&exit, "job-one", attempt, EvidenceMode::Finalize, None)
+                .is_err()
+        );
         exit.elapsed_ms = 0;
         exit.process_state = "unknown".into();
-        assert!(validate_exit_contents(&exit, "job-one", attempt).is_err());
+        assert!(
+            validate_exit_contents(&exit, "job-one", attempt, EvidenceMode::Finalize, None)
+                .is_err()
+        );
     }
 
     #[test]
@@ -2289,10 +2460,328 @@ mod tests {
             sha256: digest(&fs::read(&path).unwrap()),
             path: path.clone(),
         };
-        verify_exit_evidence(&id, &attempt, &evidence).unwrap();
+        verify_exit_evidence(&id, &attempt, &evidence, EvidenceMode::Finalize).unwrap();
         fs::write(path.parent().unwrap().join("attempt.json"), b"{}").unwrap();
-        assert!(verify_exit_evidence(&id, &attempt, &evidence).is_err());
+        assert!(verify_exit_evidence(&id, &attempt, &evidence, EvidenceMode::Finalize).is_err());
         fs::remove_dir_all(root).unwrap();
+    }
+
+    /// A reservation whose task generation is already released and expired, and
+    /// whose durable queued spec drifted away from the reserved spec — the live
+    /// orphan shape that `Action::Abandon` exists to close.
+    struct OrphanFixture {
+        root: PathBuf,
+        id: String,
+        state: State,
+        attempt: Attempt,
+        evidence: ExitEvidence,
+    }
+
+    impl OrphanFixture {
+        fn new() -> Self {
+            Self::with_drift(true)
+        }
+
+        /// The same reservation with the reserved spec bound to the durable
+        /// queued spec exactly, as `FinishAttempt` requires.
+        fn bound() -> Self {
+            Self::with_drift(false)
+        }
+
+        fn with_drift(drift: bool) -> Self {
+            let id = format!(
+                "abandon-bound-{}-{}",
+                std::process::id(),
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos()
+            );
+            let root = std::env::temp_dir().join(&id);
+            fs::create_dir_all(&root).unwrap();
+            let root = fs::canonicalize(&root).unwrap();
+            // Release the claim so no live generation owns the reservation,
+            // exactly as for a queued job cancelled long ago.
+            let mut state = reserved_state();
+            state
+                .transition(
+                    &event(
+                        "release",
+                        Action::Release {
+                            issue: 1,
+                            session: "one".into(),
+                            epoch: 1,
+                        },
+                    ),
+                    4,
+                )
+                .unwrap();
+            let mut attempt = state.attempts.remove("job-one").unwrap();
+            let mut job = attempt.spec.clone().unwrap();
+            job.id = id.clone();
+            job.cwd = root.clone();
+            job.coordination.as_mut().unwrap().attempt_id = id.clone();
+            attempt.host = process::host_id().unwrap();
+            attempt.runner_root = Some(root.clone());
+            let input = root.join("input.json");
+            fs::write(&input, serde_json::to_vec(&job).unwrap()).unwrap();
+            jobs::submit(&root, &input).unwrap();
+            jobs::cancel(&root, &id, &root.join("ledger")).unwrap();
+            if drift {
+                // The reservation's work card no longer matches the durable
+                // queued spec, so their digests differ too; `FinishAttempt`
+                // refuses this orphan for exactly that reason.
+                job.coordination.as_mut().unwrap().work_card = format!("sha256:{}", "2".repeat(64));
+            }
+            attempt.spec = Some(job.clone());
+            attempt.spec_sha256 = Some(spec_digest(&job).unwrap());
+            state.attempts.insert(id.clone(), attempt.clone());
+            let path = jobs::done_dir(&root).join(&id).join("exit.json");
+            let evidence = ExitEvidence {
+                host: attempt.host.clone(),
+                job_id: id.clone(),
+                attempt_id: id.clone(),
+                sha256: digest(&fs::read(&path).unwrap()),
+                path,
+            };
+            Self {
+                root,
+                id,
+                state,
+                attempt,
+                evidence,
+            }
+        }
+
+        fn abandon_event(&self) -> Event {
+            event(
+                "abandon",
+                Action::Abandon {
+                    attempt: self.id.clone(),
+                    session: "one".into(),
+                    reason: "queued cancellation orphaned by workspace loss".into(),
+                    receipt: self.evidence.clone(),
+                },
+            )
+        }
+
+        fn finish_event(&self) -> Event {
+            event(
+                "finish",
+                Action::FinishAttempt {
+                    issue: 1,
+                    session: "one".into(),
+                    epoch: 1,
+                    attempt: self.id.clone(),
+                    receipt: self.evidence.clone(),
+                },
+            )
+        }
+    }
+
+    impl Drop for OrphanFixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.root);
+        }
+    }
+
+    #[test]
+    fn abandon_finalizes_a_reserved_orphan_without_a_live_claim() {
+        let mut f = OrphanFixture::new();
+        assert_eq!(f.state.tasks[&1].phase, "released");
+        // The existing path cannot close it: no live claim, and the durable
+        // spec digest drifted from the reserved digest.
+        let finish = f.finish_event();
+        assert!(f.state.transition(&finish, 10).is_err());
+        assert!(preflight_event(&f.state, &finish).is_err());
+        // Abandon verifies the never-started receipt locally and finalizes the
+        // reservation without any claim.
+        let abandon = f.abandon_event();
+        preflight_event(&f.state, &abandon).unwrap();
+        f.state.transition(&abandon, 10).unwrap();
+        assert_eq!(f.state.attempts[&f.id].phase, "finalized");
+        assert!(f.state.attempts[&f.id].receipt.is_some());
+        assert_eq!(f.state.tasks[&1].phase, "released");
+        // The deadlock is broken: the finalized attempt no longer blocks policy
+        // adoption, which is what restores claims.
+        f.state
+            .transition(
+                &event(
+                    "adopt",
+                    Action::AdoptPolicy {
+                        previous_policy_sha: "b".repeat(40),
+                        policy_sha: "c".repeat(40),
+                        decision_receipt: delivery::FileEvidence {
+                            path: PathBuf::from("/tmp/unused-decision-receipt.json"),
+                            sha256: "0".repeat(64),
+                        },
+                    },
+                ),
+                11,
+            )
+            .unwrap();
+        assert_eq!(f.state.policy_sha, "c".repeat(40));
+        // A finalized attempt cannot be abandoned twice.
+        assert!(f.state.transition(&f.abandon_event(), 12).is_err());
+    }
+
+    #[test]
+    fn abandon_rejects_stopped_or_unknown_process_evidence() {
+        let f = OrphanFixture::bound();
+        let original: serde_json::Value =
+            serde_json::from_slice(&fs::read(&f.evidence.path).unwrap()).unwrap();
+        for (state, outcome, status, elapsed) in [
+            ("confirmed_stopped", "completed", Some(0), 10),
+            ("unknown", "unknown", None, 0),
+        ] {
+            let mut exit = original.clone();
+            exit["process_state"] = serde_json::json!(state);
+            exit["outcome"] = serde_json::json!(outcome);
+            exit["exit_status"] = serde_json::json!(status);
+            exit["elapsed_ms"] = serde_json::json!(elapsed);
+            let bytes = serde_json::to_vec(&exit).unwrap();
+            fs::write(&f.evidence.path, &bytes).unwrap();
+            let evidence = ExitEvidence {
+                sha256: digest(&bytes),
+                ..f.evidence.clone()
+            };
+            let error = verify_exit_evidence(&f.id, &f.attempt, &evidence, EvidenceMode::Abandon)
+                .unwrap_err()
+                .to_string();
+            assert!(error.contains("never-started"), "{state}: {error}");
+        }
+        fs::write(&f.evidence.path, serde_json::to_vec(&original).unwrap()).unwrap();
+        // A rejected abandon leaves the reservation open for review: the apply
+        // path verifies before it transitions, so no state is consumed.
+        let mut exit = original;
+        exit["process_state"] = serde_json::json!("confirmed_stopped");
+        exit["exit_status"] = serde_json::json!(null);
+        let bytes = serde_json::to_vec(&exit).unwrap();
+        fs::write(&f.evidence.path, &bytes).unwrap();
+        let mut rejected = f.abandon_event();
+        if let Action::Abandon { receipt, .. } = &mut rejected.action {
+            receipt.sha256 = digest(&bytes);
+        }
+        let state = f.state.clone();
+        assert!(preflight_event(&state, &rejected).is_err());
+        assert_eq!(state.attempts[&f.id].phase, "reserved");
+    }
+
+    #[test]
+    fn abandon_requires_the_reserving_session_and_an_open_reservation() {
+        let mut f = OrphanFixture::new();
+        let mut impostor = f.abandon_event();
+        if let Action::Abandon { session, .. } = &mut impostor.action {
+            *session = "two".into();
+        }
+        // Local evidence is valid; only the reservation's owner may close it.
+        preflight_event(&f.state, &impostor).unwrap();
+        assert!(f.state.transition(&impostor, 10).is_err());
+        let mut unknown = f.abandon_event();
+        if let Action::Abandon { attempt, .. } = &mut unknown.action {
+            *attempt = "job-does-not-exist".into();
+        }
+        assert!(f.state.transition(&unknown, 10).is_err());
+        let mut empty_reason = f.abandon_event();
+        if let Action::Abandon { reason, .. } = &mut empty_reason.action {
+            *reason = "  ".into();
+        }
+        assert!(f.state.transition(&empty_reason, 10).is_err());
+        let mut huge_reason = f.abandon_event();
+        if let Action::Abandon { reason, .. } = &mut huge_reason.action {
+            *reason = "x".repeat(REASON_MAX + 1);
+        }
+        assert!(f.state.transition(&huge_reason, 10).is_err());
+        assert_eq!(f.state.attempts[&f.id].phase, "reserved");
+        f.state.transition(&f.abandon_event(), 10).unwrap();
+        assert_eq!(f.state.attempts[&f.id].phase, "finalized");
+    }
+
+    #[test]
+    fn abandon_rejects_any_launch_state_or_missing_cancel_marker() {
+        let f = OrphanFixture::new();
+        let dir = f.evidence.path.parent().unwrap().to_path_buf();
+        let queued = jobs::queue_dir(&f.root).join(&f.id);
+        fs::create_dir_all(&queued).unwrap();
+        assert!(
+            verify_exit_evidence(&f.id, &f.attempt, &f.evidence, EvidenceMode::Abandon).is_err()
+        );
+        fs::remove_dir(&queued).unwrap();
+        let running = jobs::running_dir(&f.root).join(&f.id);
+        fs::create_dir_all(&running).unwrap();
+        assert!(
+            verify_exit_evidence(&f.id, &f.attempt, &f.evidence, EvidenceMode::Abandon).is_err()
+        );
+        fs::remove_dir(&running).unwrap();
+        fs::write(dir.join("attempt.json"), b"{}").unwrap();
+        assert!(
+            verify_exit_evidence(&f.id, &f.attempt, &f.evidence, EvidenceMode::Abandon).is_err()
+        );
+        fs::remove_file(dir.join("attempt.json")).unwrap();
+        fs::write(dir.join("process.json"), b"{}").unwrap();
+        assert!(
+            verify_exit_evidence(&f.id, &f.attempt, &f.evidence, EvidenceMode::Abandon).is_err()
+        );
+        fs::remove_file(dir.join("process.json")).unwrap();
+        verify_exit_evidence(&f.id, &f.attempt, &f.evidence, EvidenceMode::Abandon).unwrap();
+        fs::remove_file(dir.join("cancel.json")).unwrap();
+        assert!(
+            verify_exit_evidence(&f.id, &f.attempt, &f.evidence, EvidenceMode::Abandon).is_err()
+        );
+        // The apply path refuses the whole action, so no transition is reached.
+        assert!(preflight_event(&f.state, &f.abandon_event()).is_err());
+        assert_eq!(f.state.attempts[&f.id].phase, "reserved");
+    }
+
+    #[test]
+    fn abandon_event_round_trips_through_the_operator_json_shape() {
+        // The operator submits `coord apply STORE EVENT_JSON`; this is the exact
+        // envelope shape, parsed by the same derived deserializer.
+        let value = serde_json::json!({
+            "event_id": "orphan-abandon-1512",
+            "op": "abandon",
+            "attempt": "opencode-b0-flock-g1a2-20260930-g2",
+            "session": "opencode-deepseek-20260930",
+            "reason": "queued cancellation orphaned by lost workspace volume",
+            "receipt": {
+                "host": "host-284b64fb2f70567aee465dc4941430076137e580d19d9568b15726d14b157cec",
+                "job_id": "opencode-b0-flock-g1a2-20260930-g2",
+                "attempt_id": "opencode-b0-flock-g1a2-20260930-g2",
+                "path": "/Users/casey.allard/.local/share/uor-r4/runner/done/opencode-b0-flock-g1a2-20260930-g2/exit.json",
+                "sha256": "a282d22bf0a52951cc024a776fb4599c2e59e42f868d13f774bb2386bc84bddf"
+            }
+        });
+        let decoded: Event = serde_json::from_value(value.clone()).unwrap();
+        assert!(matches!(decoded.action, Action::Abandon { .. }));
+        assert_eq!(value, serde_json::to_value(&decoded).unwrap());
+        let mut wrong_op = value;
+        wrong_op["op"] = serde_json::json!("finish_attempt");
+        assert!(serde_json::from_value::<Event>(wrong_op).is_err());
+    }
+
+    #[test]
+    fn finish_attempt_still_requires_a_live_unexpired_claim() {
+        // A receipt that the unchanged Finalize verifier accepts exactly, but
+        // whose task generation is released and expired: FinishAttempt must
+        // still refuse it. Abandon is not allowed to weaken this.
+        let mut f = OrphanFixture::bound();
+        let finish = f.finish_event();
+        preflight_event(&f.state, &finish).unwrap();
+        let error = f.state.transition(&finish, 10).unwrap_err().to_string();
+        assert!(
+            error.contains("stale or expired task generation"),
+            "{error}"
+        );
+        assert_eq!(f.state.attempts[&f.id].phase, "reserved");
+        // Control: with a live unexpired claim the same receipt finalizes.
+        let mut live = OrphanFixture::bound();
+        let claim = live.state.tasks.get_mut(&1).unwrap();
+        claim.phase = "claimed".into();
+        claim.expires = 1_000;
+        let finish = live.finish_event();
+        preflight_event(&live.state, &finish).unwrap();
+        live.state.transition(&finish, 10).unwrap();
+        assert_eq!(live.state.attempts[&live.id].phase, "finalized");
     }
 
     #[test]
@@ -2362,7 +2851,7 @@ mod tests {
             path: path.clone(),
             sha256: digest(&proof_bytes),
         };
-        verify_exit_evidence(&id, &attempt, &evidence).unwrap();
+        verify_exit_evidence(&id, &attempt, &evidence, EvidenceMode::Finalize).unwrap();
         let proof: serde_json::Value = serde_json::from_slice(&proof_bytes).unwrap();
         for (field, value) in [
             ("evidence_kind", serde_json::json!(null)),
@@ -2381,18 +2870,18 @@ mod tests {
             fs::write(&path, &bytes).unwrap();
             evidence.sha256 = digest(&bytes);
             assert!(
-                verify_exit_evidence(&id, &attempt, &evidence).is_err(),
+                verify_exit_evidence(&id, &attempt, &evidence, EvidenceMode::Finalize).is_err(),
                 "accepted changed {field}"
             );
         }
         fs::write(&path, &proof_bytes).unwrap();
         evidence.sha256 = digest(&proof_bytes);
         fs::write(dir.join("launch.go"), b"contradictory launch state").unwrap();
-        assert!(verify_exit_evidence(&id, &attempt, &evidence).is_err());
+        assert!(verify_exit_evidence(&id, &attempt, &evidence, EvidenceMode::Finalize).is_err());
         fs::remove_file(dir.join("launch.go")).unwrap();
-        verify_exit_evidence(&id, &attempt, &evidence).unwrap();
+        verify_exit_evidence(&id, &attempt, &evidence, EvidenceMode::Finalize).unwrap();
         fs::remove_file(dir.join("preflight-failure.json")).unwrap();
-        assert!(verify_exit_evidence(&id, &attempt, &evidence).is_err());
+        assert!(verify_exit_evidence(&id, &attempt, &evidence, EvidenceMode::Finalize).is_err());
         assert_eq!(fs::read(dir.join("exit.json")).unwrap(), original_exit);
         assert_eq!(crate::ledger::rebuild(&ledger).unwrap().cumulative_ms, 12);
         fs::remove_dir_all(root).unwrap();
@@ -2413,6 +2902,8 @@ mod tests {
             &serde_json::from_value(base.clone()).unwrap(),
             "job-one",
             attempt,
+            EvidenceMode::Finalize,
+            None,
         )
         .unwrap();
         for (field, value) in [
@@ -2428,16 +2919,22 @@ mod tests {
             assert!(validate_exit_contents(
                 &serde_json::from_value(bad).unwrap(),
                 "job-one",
-                attempt
+                attempt,
+                EvidenceMode::Finalize,
+                None
             )
             .is_err());
         }
         let mut bad = base;
         bad["coordination"]["epoch"] = serde_json::json!(2);
-        assert!(
-            validate_exit_contents(&serde_json::from_value(bad).unwrap(), "job-one", attempt)
-                .is_err()
-        );
+        assert!(validate_exit_contents(
+            &serde_json::from_value(bad).unwrap(),
+            "job-one",
+            attempt,
+            EvidenceMode::Finalize,
+            None
+        )
+        .is_err());
         assert_eq!(attempt.phase, "reserved");
     }
 
