@@ -1,5 +1,43 @@
 # Current UOR-R4 research state
 
+## D20 §2 verdict, on same-rate and replicated evidence — October 6
+
+The geometric read **beats the parameter-matched ordinary-attention control** at lr=3e-4 by **+0.7455**
+in-class (geometric **0.9992** vs C6 **0.2537**, three sealed seeds each, variance 1.03e-6), and the
+result **replicates at 2e-4** (+0.7360, geometric 0.9814 vs control 0.2454). Measured on the same panel:
+`pattern=rrarra`, reference **1,370,008** parameters, `context=512`, `batch=8`, 1800 steps, 460,800
+supervised queries, all `stopped_early_at_max_seconds FALSE`. Every root sealed; **90 sealed roots** under
+`~/uor-r4-local/mqar-bench/`. Full trail on [#820](https://github.com/UOR-Foundation/uor-r4/issues/820);
+narrative and reproduction notes in the [DeepSeek session record](../labs/deepseek-session-2026-10-06.md).
+
+**The verdict was originally stated across rates** (geometric@3e-4 against control@1e-3). Running the
+control at the verdict's own rate moves the margin by **0.0003**, so D20 §2 condition 1 now rests on a
+same-rate comparator rather than an inference that the control is rate-insensitive.
+
+**The rate governs the geometric read and barely touches attention.** The control holds **0.2310 → 0.2454
+→ 0.2537 → 0.2534** across two orders of magnitude — a 0.023 spread — while the geometric arm spans
+**0.175 → 0.981 → 0.999 → lottery**. Both edges have different causes: the floor is a **schedule** effect
+(at 1e-4 the annealed arm never acquires, 0.1753, while the **constant** 1e-4 arm solves at **0.9605**,
+because `min_lr=0.1` decays the rate across the acquisition threshold mid-run), and the ceiling is a
+**rate** effect (at 1e-3 the read acquires to 3.8× uniform by step 100 and decays to 1.3× by 200, and
+constancy does not save it).
+
+**The geometric read's edge, schedule-controlled:** same pattern, same lr=3e-4, same `min_lr=1.0` constant
+schedule, three sealed seeds each — geometric **0.9862** against the attention-read hybrid's **0.9149**,
+i.e. **+0.0713 capability and 22.6× stability**. Both roughly an order of magnitude below what the
+annealed comparison implied; see the schedule-bias entry in the session record's §10.
+
+**`arm=hybrid`** (PR **#1798**, in `main`): `pattern`'s `r` layers run the recurrence unchanged, every `a`
+layer runs ordinary causal attention — the read-attribution control whose absence had left the effect
+unattributable.
+
+**Next:** the parameter-matched control is **not on `main`** (`mlp=matched`, `parameter_match` → 0 hits);
+it is preserved on `deepseek/d20-control` and a prebuilt binary at
+`~/.cache/uor-r4-d20control/release/examples/mqar-bench` runs it. Landing it needs a decision on the
+bench's `reachability` subsystem, which `main` relocated to `repo-model` / `uor-r4-api`. The firing counter
+**is** on `main`, as `best_head_mean_weight_on_key`/`_on_value`.
+
+
 ## Reader data answerability correction supersedes old fit schedule — October 5
 
 The [semantic audit](geometric-natural-panel-admission-2026-10-05.md) finds origin20/4 and address26/6 development/fresh questions unsupported by residence-only assertions. Exact store/alphabet/context eligibility160/160 and a template-registry control do not prove English entailment. Two completed order fits remain synthetic literal-role pilots; the third was deliberately stopped at30updates and is excluded. No three-order or grounded-chat verdict. Fresh question wording was development-seen.
