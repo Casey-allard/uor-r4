@@ -155,7 +155,7 @@ billed and deleted in 2 hours for the same bootstrap failure).
 If none of the three has stock, or all of them refuse at create time, `up`
 **does not fall back silently**: it prints the stock table and stops. Then:
 
-* `--wait [--wait-hours H]` retries every 5 minutes for up to H hours
+* `--wait [--wait-hours H]` retries every minute for up to H hours (5090 stock often shows as "Low" for only a few minutes, so a 5-minute poll missed it)
   (default 2), posting "waiting" and "gave up" to the board;
 * `--gpu 4090` is the explicit alternative (same datacenter order);
 * `--allow-off-volume` places the pod in any stocked datacenter with a local

@@ -59,7 +59,7 @@ MAX_PODS=${UOR_POD_MAX_PODS:-4}
 MAX_RATE=${UOR_POD_MAX_RATE:-8.00}
 IDLE_MIN=${UOR_POD_IDLE_MIN:-20}
 TEST_PREFIX=uor-test-                        # validation/test pods: not counted toward the pod cap
-WAIT_INTERVAL=${UOR_POD_WAIT_INTERVAL:-300}
+WAIT_INTERVAL=${UOR_POD_WAIT_INTERVAL:-60}
 CONTAINER_DISK_GB=60
 OFF_VOLUME_DISK_GB=150
 SSH_WAIT_SECONDS=${UOR_POD_SSH_WAIT:-900}
@@ -809,7 +809,7 @@ cmd_up() {
     lock_release
     echo "$UP_STOCK"
     if [ "$WAIT" != 1 ]; then
-      die "no $req stock in $VOLUME_DCS. Re-run with --wait (retries every 5 min for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
+      die "no $req stock in $VOLUME_DCS. Re-run with --wait (retries every minute for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
     fi
     if is_dry; then echo "DRY-RUN: would retry every $((WAIT_INTERVAL / 60)) min until $(jq -rn --argjson t "$deadline" '$t | todate')"; return 0; fi
     if [ "$(now_epoch)" -ge "$deadline" ]; then
