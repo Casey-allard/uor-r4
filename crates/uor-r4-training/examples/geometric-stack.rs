@@ -273,7 +273,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
 
-use candle_core::Device;
+use candle_core::{DType, Device};
 use serde_json::{json, Value};
 use uor_r4_core::native_geometric::learner::embedding::canonical_h4_roots;
 use uor_r4_core::report_output;
@@ -2432,6 +2432,443 @@ fn evaluate_mode(arguments: &[String]) -> Result<()> {
                 "block_nll": block_nll,
             }))?,
         )?;
+        Ok(())
+    })();
+    finish(&out, result)
+}
+
+/// `seal-root`: seal an already-populated directory with the project's own
+/// `report_output` manifest (BLAKE3 over the complete file set) and verify it.
+/// For analysis roots whose contents were produced outside the Rust modes.
+fn seal_root_mode(arguments: &[String]) -> Result<()> {
+    let args = Args::parse(arguments, &["out"])?;
+    let out = PathBuf::from(args.required("out")?);
+    report_output::seal(&out)?;
+    let unlisted = report_output::verify(&out)?;
+    if !unlisted.is_empty() {
+        return Err(invalid("sealed root still has unlisted files"));
+    }
+    Ok(())
+}
+
+/// `head-probe`: reproduce a frozen dialogue artifact's own served-readout score
+/// on its own fixed development panel, and dump the hidden state at every
+/// scored position for offline head-versus-representation analysis.
+///
+/// The panel is the retained study's (`dialogue_development::select` with the
+/// run's `dev_seed`/`dev_per_source`), the metric is its token-mean response
+/// NLL, and the walk is `stack_dialogue`'s: `FullPrefix` episodes, the response
+/// mask, `trim` to the longest real input. The baseline is `development`, the
+/// artifact's own readout, mixture and all. `softmax_only` re-scores the same
+/// positions through the tied `embedding.weight` head alone, which is the
+/// comparison class an offline fitted head belongs to.
+///
+/// `extra=1` additionally dumps the eligible development responses the panel
+/// did not select, so an offline fit has held-in states that are disjoint from
+/// the panel by response identity and drawn from the same source.
+///
+/// `states.f16` is `rows x width` little-endian f16, row-major, in the dump
+/// order `states.json` records.
+fn head_probe_mode(arguments: &[String]) -> Result<()> {
+    let args = Args::parse(
+        arguments,
+        &[
+            "model",
+            "tokenizer",
+            "dev_tokens",
+            "dev_mask",
+            "dev_manifest",
+            "out",
+            "dev_seed",
+            "dev_per_source",
+            "protocol",
+            "batch",
+            "extra",
+            "extra_cap",
+            "f32",
+        ],
+    )?;
+    let model_dir = PathBuf::from(args.required("model")?);
+    let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+    let dev_tokens = PathBuf::from(args.required("dev_tokens")?);
+    let dev_mask = PathBuf::from(args.required("dev_mask")?);
+    let dev_manifest = PathBuf::from(args.required("dev_manifest")?);
+    let out = PathBuf::from(args.required("out")?);
+    let dev_seed: u64 = args.number("dev_seed", 20260930)?;
+    let dev_per_source: usize = args.number("dev_per_source", 32)?;
+    let protocol_number: u8 = args.number("protocol", 2)?;
+    let batch: usize = args.number("batch", 16)?;
+    let extra: u64 = args.number("extra", 1)?;
+    let extra_cap: usize = args.number("extra_cap", 0)?;
+    let f32_dump: u64 = args.number("f32", 0)?;
+    report_output::claim(&out)?;
+    let result = (|| -> Result<()> {
+        let started = Instant::now();
+        let tokenizer = uor_r4_tokenizer::ByteBpeTokenizer::from_tokenizer_json_bytes(
+            &fs::read(&tokenizer_path)?,
+        )
+        .ok_or_else(|| invalid("unreadable tokenizer.json"))?;
+        let dev_split = DialogueSplit::load(&dev_tokens, &dev_mask, &dev_manifest)?;
+        let vocab = dev_split.vocab_size();
+        let model = StackModel::load(&model_dir, &Device::Cpu)?;
+        if model.config.vocab_size != vocab {
+            return Err(invalid(
+                "the model and the development split declare different vocabularies",
+            ));
+        }
+        let (_, dev_contract) =
+            episode_contract_for(&tokenizer, vocab, EPISODE_CONTEXT, protocol_number)?;
+        let index = dev_split.index(dev_contract)?;
+        let panel = dialogue_development::select(&index, dev_seed, dev_per_source)?;
+        let panel_set: std::collections::BTreeSet<usize> = panel.iter().copied().collect();
+
+        // The artifact's own served readout on its own fixed panel.
+        let baseline = development(&model, &index, &panel, batch)?;
+
+        let width = model.config.width;
+        let head = model
+            .variables()
+            .get("embedding.weight")
+            .ok_or_else(|| invalid("the model has no tied embedding head to score with"))?
+            .as_tensor()
+            .clone()
+            .to_dtype(DType::F32)?;
+
+        let mut rows: Vec<f32> = Vec::new();
+        let mut targets: Vec<u32> = Vec::new();
+        let mut response_ids: Vec<u32> = Vec::new();
+        let mut offsets: Vec<u32> = Vec::new();
+        let mut panel_flag: Vec<u8> = Vec::new();
+        let mut panel_raw_nll: Vec<f64> = Vec::new();
+        let mut panel_correct: usize = 0;
+        let mut panel_seen: usize = 0;
+
+        let mut walk = panel.clone();
+        if extra != 0 {
+            let mut rest: Vec<usize> = (0..index.episodes().len())
+                .filter(|id| !panel_set.contains(id))
+                .collect();
+            if extra_cap != 0 && rest.len() > extra_cap {
+                rest.truncate(extra_cap);
+            }
+            walk.extend(rest);
+        }
+        for chunk in walk.chunks(batch) {
+            let episodes = index.materialize(chunk, PrefixPolicy::FullPrefix)?;
+            let trimmed = trim(&episodes);
+            let time = trimmed.time;
+            let hidden = model
+                .hidden(&trimmed.inputs, episodes.batch, time)?
+                .to_dtype(DType::F32)?;
+            let flat = hidden.reshape((episodes.batch * time, width))?;
+            let values = flat.flatten_all()?.to_vec1::<f32>()?;
+            // The panel is walked first, so a chunk is entirely panel or
+            // entirely not; only the panel needs the raw tied-head score.
+            let panel_chunk = episodes
+                .rows
+                .iter()
+                .all(|row| panel_set.contains(&row.response_id));
+            let logits = if panel_chunk {
+                Some(
+                    flat.matmul(&head.t()?)?
+                        .to_dtype(DType::F32)?
+                        .flatten_all()?
+                        .to_vec1::<f32>()?,
+                )
+            } else {
+                None
+            };
+            for (lane, row) in episodes.rows.iter().enumerate() {
+                let start = lane * time;
+                for offset in 0..time {
+                    let at = start + offset;
+                    if trimmed.weights[at] != 1.0 {
+                        continue;
+                    }
+                    rows.extend_from_slice(&values[at * width..(at + 1) * width]);
+                    targets.push(trimmed.targets[at]);
+                    response_ids.push(row.response_id as u32);
+                    offsets.push(offset as u32);
+                    let panel_row = u8::from(panel_set.contains(&row.response_id));
+                    panel_flag.push(panel_row);
+                    if let Some(logits) = &logits {
+                        if panel_row == 1 {
+                            let base = at * vocab;
+                            let line = &logits[base..base + vocab];
+                            let target = trimmed.targets[at] as usize;
+                            // `row_log_sum_exp`, the library's own convention:
+                            // max-subtracted, f32 differences accumulated in f64.
+                            let maximum = line.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+                            let total: f64 = line
+                                .iter()
+                                .map(|&v| f64::from(v - maximum).exp())
+                                .sum();
+                            panel_raw_nll
+                                .push(f64::from(maximum) + total.ln() - f64::from(line[target]));
+                            let mut best = 0usize;
+                            let mut best_value = f32::NEG_INFINITY;
+                            for (index, &value) in line.iter().enumerate() {
+                                if value > best_value {
+                                    best_value = value;
+                                    best = index;
+                                }
+                            }
+                            panel_correct += usize::from(best == target);
+                            panel_seen += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        let dump_file = if f32_dump != 0 {
+            let mut bytes = Vec::with_capacity(rows.len() * 4);
+            for value in &rows {
+                bytes.extend_from_slice(&value.to_le_bytes());
+            }
+            fs::write(out.join("states.f32"), &bytes)?;
+            "states.f32"
+        } else {
+            let mut bytes = Vec::with_capacity(rows.len() * 2);
+            for value in &rows {
+                bytes.extend_from_slice(&half::f16::from_f32(*value).to_bits().to_le_bytes());
+            }
+            fs::write(out.join("states.f16"), &bytes)?;
+            "states.f16"
+        };
+        let panel_raw_mean =
+            (panel_seen != 0).then(|| panel_raw_nll.iter().sum::<f64>() / panel_seen as f64);
+        let report = json!({
+            "schema": "uor-r4.geometric-stack-head-probe/1",
+            "model": identity(&model_dir.join("model.safetensors"))?,
+            "config": model.config,
+            "tokenizer": identity(&tokenizer_path)?,
+            "development": {
+                "tokens": identity(&dev_tokens)?,
+                "mask": identity(&dev_mask)?,
+                "manifest": identity(&dev_manifest)?,
+                "dev_seed": dev_seed,
+                "dev_per_source": dev_per_source,
+                "protocol": protocol_number,
+                "selection": dialogue_development::SELECTION_ID,
+                "episode_context": EPISODE_CONTEXT,
+            },
+            "panel": panel,
+            "baseline_served_readout": baseline,
+            "softmax_only": {
+                "head": "tied embedding.weight",
+                "positions": panel_seen,
+                "mean_nll": panel_raw_mean,
+                "top1_accuracy": (panel_seen != 0)
+                    .then(|| panel_correct as f64 / panel_seen as f64),
+            },
+            "dump": {
+                "rows": rows.len() / width,
+                "width": width,
+                "panel_rows": panel_flag.iter().filter(|&&flag| flag == 1).count(),
+                "extra_rows": panel_flag.iter().filter(|&&flag| flag == 0).count(),
+                "panel_responses": panel.len(),
+                "extra_responses": walk.len() - panel.len(),
+                "file": dump_file,
+                "encoding": if f32_dump != 0 {
+                    "row-major little-endian f32, one row per scored position"
+                } else {
+                    "row-major little-endian f16, one row per scored position"
+                },
+                "order": "panel responses in panel order, then the remaining eligible responses in episode-ID order; within a response, ascending target offset",
+            },
+            "elapsed_seconds": started.elapsed().as_secs_f64(),
+        });
+        fs::write(
+            out.join("states.json"),
+            serde_json::to_vec_pretty(&json!({
+                "schema": "uor-r4.geometric-stack-head-probe-states/1",
+                "rows": rows.len() / width,
+                "width": width,
+                "targets": targets,
+                "response_ids": response_ids,
+                "offsets": offsets,
+                "panel": panel_flag,
+                "panel_raw_nll": panel_raw_nll,
+            }))?,
+        )?;
+        fs::write(out.join("probe.json"), serde_json::to_vec_pretty(&report)?)?;
+        Ok(())
+    })();
+    finish(&out, result)
+}
+
+/// `hidden-blocks`: score a token file by the retained evaluator's protocol
+/// (consecutive `context`-length blocks, fresh state per block) on an evenly
+/// spaced subset of its blocks, and dump the hidden state at every position.
+///
+/// This is the probe's corpus panel: a panel with real headroom, unlike a
+/// dialogue development panel whose responses are near-ceiling. Blocks are
+/// `floor(blocks / count)` apart, block `i` at `i * blocks / count`, the
+/// project's evenly-spaced rule. Even block ordinals are the held-in half and
+/// odd ordinals the held-out half, so the two halves interleave across the
+/// whole file and are disjoint by block.
+///
+/// `states.f16` is `rows x width` little-endian f16 in dump order, which
+/// `states.json` records as blocks in block-index order and, within a block,
+/// ascending offset.
+fn hidden_blocks_mode(arguments: &[String]) -> Result<()> {
+    let args = Args::parse(
+        arguments,
+        &["model", "tokens", "out", "blocks", "batch", "tag", "f32"],
+    )?;
+    let model_dir = PathBuf::from(args.required("model")?);
+    let tokens_path = PathBuf::from(args.required("tokens")?);
+    let out = PathBuf::from(args.required("out")?);
+    let wanted: usize = args.number("blocks", 64)?;
+    let batch: usize = args.number("batch", 16)?;
+    let f32_dump: u64 = args.number("f32", 0)?;
+    if wanted == 0 || !(1..=64).contains(&batch) {
+        return Err(invalid("blocks must be positive and batch 1..64"));
+    }
+    report_output::claim(&out)?;
+    let result = (|| -> Result<()> {
+        let started = Instant::now();
+        let model = StackModel::load(&model_dir, &Device::Cpu)?;
+        let width = model.config.width;
+        let vocab = model.config.vocab_size;
+        let time = model.config.context;
+        let tokens = read_tokens(&tokens_path, vocab)?;
+        let total = (tokens.len() - 1) / time;
+        if total < wanted {
+            return Err(invalid("fewer blocks in the file than blocks="));
+        }
+        let chosen: Vec<usize> = (0..wanted).map(|i| i * total / wanted).collect();
+        let head = model
+            .variables()
+            .get("embedding.weight")
+            .ok_or_else(|| invalid("the model has no tied embedding head to score with"))?
+            .as_tensor()
+            .clone()
+            .to_dtype(DType::F32)?;
+
+        let mut rows: Vec<f32> = Vec::new();
+        let mut targets: Vec<u32> = Vec::new();
+        let mut block_of: Vec<u32> = Vec::new();
+        let mut raw_nll: Vec<f64> = Vec::new();
+        let mut correct: usize = 0;
+        let mut served_nll_sum: f64 = 0.0;
+        let mut served_targets: usize = 0;
+        for group in chosen.chunks(batch) {
+            let mut ids = Vec::with_capacity(group.len() * time);
+            let mut tgts = Vec::with_capacity(group.len() * time);
+            for &block in group {
+                ids.extend_from_slice(&tokens[block * time..(block + 1) * time]);
+                tgts.extend_from_slice(&tokens[block * time + 1..(block + 1) * time + 1]);
+            }
+            // The artifact's own readout on exactly these positions.
+            for value in model.target_nll(&ids, &tgts, group.len(), time)? {
+                served_nll_sum += value;
+                served_targets += 1;
+            }
+            let hidden = model
+                .hidden(&ids, group.len(), time)?
+                .to_dtype(DType::F32)?;
+            let flat = hidden.reshape((group.len() * time, width))?;
+            let values = flat.flatten_all()?.to_vec1::<f32>()?;
+            let logits = flat
+                .matmul(&head.t()?)?
+                .to_dtype(DType::F32)?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            for (lane, &block) in group.iter().enumerate() {
+                for offset in 0..time {
+                    let at = lane * time + offset;
+                    rows.extend_from_slice(&values[at * width..(at + 1) * width]);
+                    let target = tgts[at] as usize;
+                    targets.push(tgts[at]);
+                    block_of.push(block as u32);
+                    let line = &logits[at * vocab..(at + 1) * vocab];
+                    let maximum = line.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+                    let total: f64 =
+                        line.iter().map(|&v| f64::from(v - maximum).exp()).sum();
+                    raw_nll.push(f64::from(maximum) + total.ln() - f64::from(line[target]));
+                    let mut best = 0usize;
+                    let mut best_value = f32::NEG_INFINITY;
+                    for (index, &value) in line.iter().enumerate() {
+                        if value > best_value {
+                            best_value = value;
+                            best = index;
+                        }
+                    }
+                    correct += usize::from(best == target);
+                }
+            }
+        }
+        let dump_file = if f32_dump != 0 {
+            let mut bytes = Vec::with_capacity(rows.len() * 4);
+            for value in &rows {
+                bytes.extend_from_slice(&value.to_le_bytes());
+            }
+            fs::write(out.join("states.f32"), &bytes)?;
+            "states.f32"
+        } else {
+            let mut bytes = Vec::with_capacity(rows.len() * 2);
+            for value in &rows {
+                bytes.extend_from_slice(&half::f16::from_f32(*value).to_bits().to_le_bytes());
+            }
+            fs::write(out.join("states.f16"), &bytes)?;
+            "states.f16"
+        };
+        let positions = targets.len();
+        let held_in: usize = block_of.iter().filter(|&&b| b % 2 == 0).count();
+        let report = json!({
+            "schema": "uor-r4.geometric-stack-hidden-blocks/1",
+            "model": identity(&model_dir.join("model.safetensors"))?,
+            "config": model.config,
+            "tokens": identity(&tokens_path)?,
+            "tag": args.optional("tag"),
+            "panel": {
+                "protocol": "consecutive context-length blocks, fresh state per block, evenly spaced over the file",
+                "blocks_total": total,
+                "blocks_scored": wanted,
+                "block_indices": chosen,
+                "time": time,
+                "positions": positions,
+                "held_in_blocks": "even block ordinals",
+                "held_out_blocks": "odd block ordinals",
+                "held_in_positions": held_in,
+                "held_out_positions": positions - held_in,
+            },
+            "served_readout": {
+                "positions": served_targets,
+                "mean_nll": served_nll_sum / served_targets as f64,
+            },
+            "softmax_only": {
+                "head": "tied embedding.weight",
+                "positions": positions,
+                "mean_nll": raw_nll.iter().sum::<f64>() / positions as f64,
+                "top1_accuracy": correct as f64 / positions as f64,
+            },
+            "dump": {
+                "rows": rows.len() / width,
+                "width": width,
+                "file": dump_file,
+                "encoding": if f32_dump != 0 {
+                    "row-major little-endian f32, one row per scored position"
+                } else {
+                    "row-major little-endian f16, one row per scored position"
+                },
+            },
+            "elapsed_seconds": started.elapsed().as_secs_f64(),
+        });
+        fs::write(
+            out.join("states.json"),
+            serde_json::to_vec_pretty(&json!({
+                "schema": "uor-r4.geometric-stack-hidden-blocks-states/1",
+                "rows": rows.len() / width,
+                "width": width,
+                "targets": targets,
+                "blocks": block_of,
+                "raw_nll": raw_nll,
+            }))?,
+        )?;
+        fs::write(out.join("blocks.json"), serde_json::to_vec_pretty(&report)?)?;
         Ok(())
     })();
     finish(&out, result)
@@ -5329,6 +5766,9 @@ fn main() -> Result<()> {
         "rounding-attribution" => rounding_attribution_mode(rest),
         "lut-sample" => lut_sample_mode(rest),
         "dialogue-train" => dialogue_train_mode(rest),
+        "head-probe" => head_probe_mode(rest),
+        "hidden-blocks" => hidden_blocks_mode(rest),
+        "seal-root" => seal_root_mode(rest),
         "lut-chat" => lut_chat_mode(rest),
         other => Err(invalid(format!("unknown mode {other}"))),
     }
