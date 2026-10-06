@@ -15,17 +15,26 @@
 # and starts /root/uor-reaper.sh. Prints one `BOOTSTRAP_RESULT {json}` line.
 set -euo pipefail
 
-SHA='' POD='' OLLAMA=0 OFF=0
+# `--check-args` validates the arguments exactly as a real run would and exits 0
+# without touching anything: `uor-pod up` runs it on the laptop before creating
+# (and paying for) a pod, so a bad argument never reaches a billed pod.
+SHA='' POD='' OLLAMA=0 OFF=0 CHECK_ARGS=0
 while [ $# -gt 0 ]; do
   case $1 in
-    --sha) SHA=$2; shift 2;;
-    --pod) POD=$2; shift 2;;
+    --sha|--pod) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }
+      if [ "$1" = --sha ]; then SHA=$2; else POD=$2; fi; shift 2;;
     --with-ollama) OLLAMA=1; shift;;
     --off-volume) OFF=1; shift;;
+    --check-args) CHECK_ARGS=1; shift;;
     *) echo "unknown argument $1" >&2; exit 2;;
   esac
 done
-[ ${#SHA} = 40 ] || { echo "--sha must be a full 40-character commit" >&2; exit 2; }
+case $SHA in
+  *[!0-9a-f]*|'') echo "--sha must be a full 40-character commit (lower-case hex; got '$SHA')" >&2; exit 2;;
+esac
+[ ${#SHA} = 40 ] || { echo "--sha must be a full 40-character commit (got ${#SHA} characters)" >&2; exit 2; }
+case $POD in *[!a-zA-Z0-9-]*) echo "--pod must be alphanumeric (got '$POD')" >&2; exit 2;; esac
+if [ "$CHECK_ARGS" = 1 ]; then echo "bootstrap arguments OK"; exit 0; fi
 
 RUST_VERSION=1.97.1
 REPO_URL=https://github.com/UOR-Foundation/uor-r4.git
@@ -161,6 +170,73 @@ obtain_bin() {  # -> BIN holds release binaries + BUILD.json for SHA/CAP (built 
   heartbeat_stop
   exec 8>&-
 }
+# ---- optional Ollama judge (functions; run below). Never fatal: a failed
+# Ollama install or pull leaves the pod usable for training, reports
+# "ollama": "FAILED"/"pull-failed" in BOOTSTRAP_RESULT and `uor-pod` records it.
+# ollama.com moved its Linux build from .tgz to .tar.zst (the .tgz URL returned
+# 404 on 2026-10-05 and failed 12 bootstraps), so the current asset is tried
+# first, the legacy one next, then the official install.sh, whose files are
+# copied onto the volume so the next pod reuses them.
+OLLAMA_ASSETS=${UOR_OLLAMA_ASSETS:-https://ollama.com/download/ollama-linux-amd64.tar.zst https://ollama.com/download/ollama-linux-amd64.tgz}
+OLLAMA_INSTALL_SH=${UOR_OLLAMA_INSTALL_SH:-https://ollama.com/install.sh}
+OLLAMA_STATUS=off T_OLLAMA=0 OLOG=${UOR_OLLAMA_LOGDIR:-/root}
+ollama_extract() {  # ARCHIVE DIR -> unpack .tar.zst or .tgz
+  case $1 in
+    *.zst)  # tar --zstd also needs the zstd binary, which the base image may lack
+      if ! command -v zstd >/dev/null 2>&1; then
+        log "installing zstd (apt) to unpack the Ollama archive"
+        { apt-get install -y -qq zstd || { apt-get update -qq && apt-get install -y -qq zstd; }; } > "$OLOG/ollama-zstd.log" 2>&1 ||
+          { log "WARNING: could not install zstd (see $OLOG/ollama-zstd.log)"; return 1; }
+      fi
+      zstd -dc "$1" | tar -xf - -C "$2";;
+    *) tar -xzf "$1" -C "$2";;
+  esac
+}
+ollama_install() {  # DEST -> 0 when DEST/bin/ollama is executable (each step checked: set -e is off here)
+  local dest=$1 url tmp f
+  [ -x "$dest/bin/ollama" ] && return 0
+  tmp=$dest.tmp.$$
+  for url in $OLLAMA_ASSETS; do
+    rm -rf "$tmp"; mkdir -p "$tmp" || return 1
+    f=$tmp/$(basename "$url")
+    log "installing Ollama into $dest from $url"
+    if curl -fsSL --retry 2 -o "$f" "$url" && ollama_extract "$f" "$tmp" && rm -f "$f" && [ -x "$tmp/bin/ollama" ]; then
+      rm -rf "$dest" && mv "$tmp" "$dest" && return 0
+    fi
+    log "WARNING: Ollama asset $url failed"
+  done
+  rm -rf "$tmp"
+  log "trying the official installer $OLLAMA_INSTALL_SH"
+  if ! { curl -fsSL "$OLLAMA_INSTALL_SH" -o "$OLOG/ollama-install.sh" && sh "$OLOG/ollama-install.sh" > "$OLOG/ollama-install.log" 2>&1 &&
+          command -v ollama >/dev/null 2>&1; }; then
+    log "WARNING: Ollama installer failed (see $OLOG/ollama-install.log)"; return 1
+  fi
+  mkdir -p "$tmp/bin" && cp "$(command -v ollama)" "$tmp/bin/ollama" || return 1
+  if [ -d /usr/local/lib/ollama ]; then mkdir -p "$tmp/lib" && cp -R /usr/local/lib/ollama "$tmp/lib/" || return 1; fi
+  rm -rf "$dest" && mv "$tmp" "$dest"
+}
+ollama_step() {  # never fails; sets OLLAMA_STATUS ready|pull-failed|FAILED
+  local t O=${UOR_OLLAMA_DIR:-/workspace/toolchain/ollama} models=${UOR_OLLAMA_MODELS:-/workspace/ollama}
+  t=$(date +%s)
+  if ! ollama_install "$O"; then
+    OLLAMA_STATUS=FAILED T_OLLAMA=$(( $(date +%s) - t ))
+    log "WARNING: Ollama install FAILED; continuing without it (the pod stays usable for training)"
+    return 0
+  fi
+  mkdir -p "$models" || { OLLAMA_STATUS=FAILED; log "WARNING: cannot create $models"; return 0; }
+  if ! pgrep -x ollama >/dev/null; then
+    OLLAMA_MODELS=$models nohup setsid "$O/bin/ollama" serve > "$OLOG/ollama.log" 2>&1 < /dev/null &
+    sleep 3
+  fi
+  if OLLAMA_MODELS=$models "$O/bin/ollama" pull qwen2.5:7b > "$OLOG/ollama-pull.log" 2>&1; then
+    OLLAMA_STATUS=ready
+  else
+    OLLAMA_STATUS=pull-failed
+    log "WARNING: ollama pull failed (see $OLOG/ollama-pull.log)"
+  fi
+  T_OLLAMA=$(( $(date +%s) - t ))
+  log "Ollama: $OLLAMA_STATUS (${T_OLLAMA}s)"
+}
 [ "${UOR_BOOTSTRAP_LIB:-0}" != 1 ] || return 0  # the dry-run tests source the functions above and stop here
 
 mkdir -p /root/leases /workspace/uor-r4/jobs /workspace/uor-r4/pods /workspace/bin /workspace/toolchain
@@ -286,26 +362,8 @@ PY
 obtain_bin
 PARITY=$(python3 -c "import json; print(json.load(open('$BIN/BUILD.json'))['parity'])")
 
-# ---- optional: Ollama judge (binary and models on the volume)
-T_OLLAMA=0
-if [ "$OLLAMA" = 1 ]; then
-  t=$(date +%s)
-  O=/workspace/toolchain/ollama
-  if [ ! -x "$O/bin/ollama" ]; then
-    log "installing Ollama into $O"
-    mkdir -p "$O.tmp.$$"
-    curl -fsSL https://ollama.com/download/ollama-linux-amd64.tgz | tar -xzf - -C "$O.tmp.$$"
-    rm -rf "$O"; mv "$O.tmp.$$" "$O"
-  fi
-  mkdir -p /workspace/ollama
-  if ! pgrep -x ollama >/dev/null; then
-    OLLAMA_MODELS=/workspace/ollama nohup setsid "$O/bin/ollama" serve > /root/ollama.log 2>&1 < /dev/null &
-    sleep 3
-  fi
-  OLLAMA_MODELS=/workspace/ollama "$O/bin/ollama" pull qwen2.5:7b > /root/ollama-pull.log 2>&1 || log "WARNING: ollama pull failed (see /root/ollama-pull.log)"
-  T_OLLAMA=$(( $(date +%s) - t ))
-  log "Ollama ready (${T_OLLAMA}s)"
-fi
+# ---- optional: Ollama judge (binary and models on the volume; never fatal)
+if [ "$OLLAMA" = 1 ]; then ollama_step; fi
 
 # ---- environment for shells and jobs
 cat > /root/.uor-pod-env <<ENV
@@ -328,5 +386,5 @@ if [ -x /root/uor-reaper.sh ]; then
 fi
 
 TOTAL=$(( $(date +%s) - T0 ))
-echo "BOOTSTRAP_RESULT {\"pod\":\"$POD\",\"sha\":\"$SHA\",\"cap\":$CAP,\"gpu\":\"$GPU_NAME\",\"gpus\":$GPU_COUNT,\"nvcc\":\"$NVCC_VERSION\",\"off_volume\":$OFF,\"cache_hit\":$([ $BUILT = 0 ] && echo true || echo false),\"parity\":\"$PARITY\",\"reaper\":\"$REAPER\",\"seconds\":{\"total\":$TOTAL,\"cuda_install\":$T_CUDA,\"rust_install\":$T_RUST,\"build\":$T_BUILD,\"parity\":$T_PARITY,\"ollama\":$T_OLLAMA}}"
+echo "BOOTSTRAP_RESULT {\"pod\":\"$POD\",\"sha\":\"$SHA\",\"cap\":$CAP,\"gpu\":\"$GPU_NAME\",\"gpus\":$GPU_COUNT,\"nvcc\":\"$NVCC_VERSION\",\"off_volume\":$OFF,\"cache_hit\":$([ $BUILT = 0 ] && echo true || echo false),\"parity\":\"$PARITY\",\"reaper\":\"$REAPER\",\"ollama\":\"$OLLAMA_STATUS\",\"seconds\":{\"total\":$TOTAL,\"cuda_install\":$T_CUDA,\"rust_install\":$T_RUST,\"build\":$T_BUILD,\"parity\":$T_PARITY,\"ollama\":$T_OLLAMA}}"
 [ "$PARITY" = PASS ] || { echo "parity did not pass: see $BIN/parity.log" >&2; exit 3; }

@@ -133,7 +133,24 @@ any instances available"), `up` moves on to the next listed datacenter in this
 order; any other create error stops at once. Before anything is listed or
 created, `up` checks every helper file it will upload (`uor-pod-bootstrap.sh`,
 `uor-reaper.sh`, `hot-set.txt`: present, readable, non-empty, `bash -n` clean),
-so a broken checkout costs nothing.
+so a broken checkout costs nothing. It also checks every argument first: an
+option `up` does not take or a stray word is refused; `--ref` (branch, tag or a
+7-40 character SHA) is resolved to the full commit, which must be on a branch of
+the public repository (the pod fetches from GitHub); and the exact bootstrap
+argument vector is run through the bootstrap's own parser
+(`uor-pod-bootstrap.sh --check-args`). A bad argument never creates a pod.
+
+**Failed `up` and the circuit breaker.** The bootstrap output is saved in full
+on the laptop (`$STATE/logs/bootstrap-<pod>-<UTC>.log`) and teed onto the pod
+volume (`/workspace/uor-r4/pods/bootstrap-<pod>-<UTC>.log`; lost with an
+off-volume pod). When the bootstrap fails, `up` prints its last 30 lines,
+records both log paths and the last output line in the `up-failed` ledger
+event, and deletes the pod. After two `up-failed` events of one lab+session
+within 60 minutes, `up` refuses (exit 5, `up-refused` in the ledger) and shows
+those reasons and logs until the cause is fixed; `--force-retry` overrides it
+(`up-force-retry`). Test a fix with `uor-pod bootstrap POD` on a running pod
+rather than creating new ones (the incident of 5 October: 14 pods were created,
+billed and deleted in 2 hours for the same bootstrap failure).
 
 If none of the three has stock, or all of them refuse at create time, `up`
 **does not fall back silently**: it prints the stock table and stops. Then:
@@ -216,7 +233,12 @@ Never delete another lab's material on the volume; it is the shared archive.
   (`--ref`, default `main`), built on the container disk; the binaries,
   `parity.log` and `BUILD.json` (commit, cap, rustc, nvcc, timings, parity
   result) are moved into the cache atomically. `--with-ollama` adds the
-  judge. Shells and `uor-pod run` jobs source `/root/.uor-pod-env`
+  judge: the current `ollama-linux-amd64.tar.zst` asset (then the legacy
+  `.tgz`, then the official `install.sh`) unpacked onto the volume, models in
+  `/workspace/ollama`. A failed Ollama install or model pull is **not fatal**:
+  the pod is kept for training, `BOOTSTRAP_RESULT` reports `"ollama":
+  "FAILED"`/`"pull-failed"`, and `up` warns and records it in the `bootstrap`
+  ledger event. Only build/parity failures fail the bootstrap. Shells and `uor-pod run` jobs source `/root/.uor-pod-env`
   (`UOR_BIN`, `CUDA_COMPUTE_CAP`, PATH, LD_LIBRARY_PATH, cargo, Ollama).
 * **Pod-side reaper** (`/root/uor-reaper.sh`, started by bootstrap only on
   pods made by `up`): every minute, if no `/root/leases/*.json` is unexpired

@@ -13,7 +13,10 @@
 # unparseable ones, in uor-pod and the pod-side reaper), the helper preflight of
 # `up`, datacenter fallback on create-time stock errors (non-dry, against the
 # fake runpodctl only), and the bootstrap's bounded build-lock wait and atomic
-# cache publish (its cache functions sourced with a stub build and fake flock).
+# cache publish (its cache functions sourced with a stub build and fake flock),
+# the argument preflight of `up` (--ref against a local stand-in origin, option
+# checks, the bootstrap's --check-args), the circuit breaker, the saved bootstrap
+# log of a failed `up` (non-dry, fake pod), and the non-fatal Ollama install.
 set -euo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -23,6 +26,25 @@ trap 'rm -rf "$W"' EXIT
 mkdir -p "$W/bin" "$W/fake"
 export UOR_POD_STATE=$W/state UOR_POD_DRY_RUN=1 FAKE=$W/fake PATH="$W/bin:$PATH"
 unset UOR_POD_SESSION UOR_POD_MAX_PODS UOR_POD_MAX_RATE
+# A local stand-in for the GitHub repository `--ref` is checked against (no
+# network): main (2 commits), branch feature (2 commits), and a clone holding
+# one commit that was never pushed.
+G() { git -c user.name=t -c user.email=t@example.invalid -c init.defaultBranch=main -c advice.detachedHead=false "$@"; }
+G init -q --bare "$W/origin.git"
+G clone -q "$W/origin.git" "$W/clone" 2>/dev/null
+G -C "$W/clone" commit -q --allow-empty -m one
+G -C "$W/clone" commit -q --allow-empty -m two
+G -C "$W/clone" push -q origin HEAD:refs/heads/main
+MAIN_SHA=$(G -C "$W/clone" rev-parse HEAD)
+G -C "$W/clone" checkout -q -b feature
+G -C "$W/clone" commit -q --allow-empty -m f1
+FEAT1_SHA=$(G -C "$W/clone" rev-parse HEAD)
+G -C "$W/clone" commit -q --allow-empty -m f2
+G -C "$W/clone" push -q origin feature
+FEAT_TIP=$(G -C "$W/clone" rev-parse HEAD)
+G -C "$W/clone" commit -q --allow-empty -m local-only
+LOCAL_SHA=$(G -C "$W/clone" rev-parse HEAD)
+export UOR_POD_REPO_URL=$W/origin.git UOR_POD_GIT_DIR=$W/clone
 NOW=$(date -u +%s)
 OLD=$(date -u -r $((NOW - 3 * 86400)) '+%a %b %d %Y %H:%M:%S' 2>/dev/null || date -u -d "@$((NOW - 3 * 86400))" '+%a %b %d %Y %H:%M:%S')
 
@@ -83,6 +105,19 @@ cat > "$W/bin/ssh" <<'S'
 port=''; while [ $# -gt 0 ]; do case $1 in -p) port=$2; shift 2;; -i|-o) shift 2;; root@*) shift; break;; *) shift;; esac; done
 echo "ssh $port $*" >> "$FAKE/calls"
 case "$*" in *probe_ok*) cat "$FAKE/probe-$port" 2>/dev/null;; esac
+# the bootstrap run (non-dry tests): 40 lines of output, then either the failure
+# of 2026-10-05 (Ollama's .tgz 404 -> tar, rc 2) or a BOOTSTRAP_RESULT with
+# "ollama": $FAKE_OLLAMA; the exit status line the real pod-side wrapper appends
+case "$*" in *"uor-pod-bootstrap.sh --sha"*)
+  echo "$*" > "$FAKE/bootcmd"
+  i=1; while [ $i -le 40 ]; do echo "bootstrap line $i"; i=$((i + 1)); done
+  if [ "${FAKE_BOOT_RC:-0}" != 0 ]; then
+    echo "curl: (22) The requested URL returned error: 404"; echo "tar: Error is not recoverable: exiting now"
+  else
+    echo "BOOTSTRAP_RESULT {\"pod\":\"podnew\",\"parity\":\"PASS\",\"ollama\":\"${FAKE_OLLAMA:-off}\"}"
+  fi
+  echo "UOR_POD_BOOTSTRAP_RC=${FAKE_BOOT_RC:-0}";;
+esac
 exit 0
 S
 cat > "$W/bin/gh" <<'S'
@@ -184,6 +219,81 @@ if "$PF/uor-pod" up "${X1[@]}" --purpose x --hours 1 --count 2 --no-bootstrap > 
 else bad "--no-bootstrap needs only the seed helpers"; fi
 cp "$HERE/../uor-pod-bootstrap.sh" "$PF/"
 expect "up with every helper present proceeds (dry)" 0 "Creating 2 x 5090" -- up "${X1[@]}" --purpose x --hours 1 --count 2
+# ---- preflight of every bootstrap argument (incident 2026-10-05: 14 pods were
+# created, billed and deleted because the bootstrap failed): a bad argument must
+# stop `up` before any Runpod API call. noapi also proves no API call happened.
+noapi() {  # NAME RC PATTERN [ENV=VALUE...] -- uor-pod args...
+  local name=$1 want=$2 pat=$3 rc=0 n0 envs=(); shift 3
+  while [ "$1" != -- ]; do envs+=("$1"); shift; done; shift
+  n0=$(wc -l < "$FAKE/calls")
+  env ${envs[@]+"${envs[@]}"} "$TOOL" "$@" > "$W/out" 2>&1 || rc=$?
+  if [ "$rc" = "$want" ] && grep -qE -e "$pat" "$W/out" &&
+     ! tail -n "+$((n0 + 1))" "$FAKE/calls" | grep -qE 'runpodctl'; then ok "$name"
+  else echo "     rc=$rc want=$want pattern=$pat"; tail -n "+$((n0 + 1))" "$FAKE/calls" | sed 's/^/     calls: /'; bad "$name"; fi
+}
+UPX=(up "${X1[@]}" --purpose x --hours 1 --count 2)
+noapi "unknown short SHA refused before any API call" 1 "--ref deadbee: unknown or ambiguous commit" -- "${UPX[@]}" --ref deadbee
+noapi "40-char SHA absent from origin refused" 1 "unknown or ambiguous commit" -- "${UPX[@]}" --ref 0123456789abcdef0123456789abcdef01234567
+noapi "commit only in the local checkout (never pushed) refused" 1 "is on no branch of .*push it first" -- "${UPX[@]}" --ref "${LOCAL_SHA:0:10}"
+noapi "unknown branch refused" 1 "--ref 'no-such-branch' is not a branch or tag" -- "${UPX[@]}" --ref no-such-branch
+noapi "shell metacharacters in --ref refused" 1 "is not a branch, tag or commit" -- "${UPX[@]}" --ref 'main;rm'
+noapi "too-short SHA refused" 1 "7 to 40 hex characters" -- "${UPX[@]}" --ref abc12
+expect "short SHA of a pushed (non-tip) commit expands to the full commit" 0 "--ref ${FEAT1_SHA:0:9} -> $FEAT1_SHA" -- "${UPX[@]}" --ref "${FEAT1_SHA:0:9}"
+has "the expanded SHA proceeds to placement (dry)" "Creating 2 x 5090"
+expect "upper-case short SHA is accepted" 0 "-> $FEAT1_SHA" -- "${UPX[@]}" --ref "$(printf '%s' "${FEAT1_SHA:0:12}" | tr 'a-f' 'A-F')"
+expect "branch name resolves to its tip" 0 "--ref feature -> $FEAT_TIP" -- "${UPX[@]}" --ref feature
+expect "default ref main resolves" 0 "--ref main -> $MAIN_SHA" -- "${UPX[@]}"
+noapi "option of another subcommand refused" 1 "up does not take --gpus" -- "${UPX[@]}" --gpus 0
+noapi "stray positional argument refused" 1 "up takes no positional arguments \\(got 'extra'" -- "${UPX[@]}" extra
+noapi "--count 0 refused" 1 "--count must be 1..8" -- up "${X1[@]}" --purpose x --hours 1 --count 0
+noapi "--count two refused" 1 "--count must be 1..8" -- up "${X1[@]}" --purpose x --hours 1 --count two
+noapi "--hours 48 refused" 1 "--hours must be a number in \\(0, 24\\]" -- up "${X1[@]}" --purpose x --hours 48
+noapi "unknown --gpu refused" 1 "unknown --gpu 'rtx9000'" -- "${UPX[@]}" --gpu rtx9000
+noapi "--wait-hours out of range refused" 1 "--wait-hours must be in" -- "${UPX[@]}" --wait --wait-hours 99
+# the bootstrap's own parser judges the exact vector: a bootstrap that no longer
+# knows --with-ollama stops `up` on the laptop
+sed 's/--with-ollama) OLLAMA=1; shift;;//' "$HERE/../uor-pod-bootstrap.sh" > "$PF/uor-pod-bootstrap.sh"
+n0=$(wc -l < "$FAKE/calls"); rc=0
+"$PF/uor-pod" "${UPX[@]}" --with-ollama > "$W/out" 2>&1 || rc=$?
+if [ "$rc" = 1 ] && grep -q "the bootstrap rejects the arguments up would pass (--sha $MAIN_SHA --pod preflightpod --with-ollama): unknown argument --with-ollama" "$W/out" &&
+   ! tail -n "+$((n0 + 1))" "$FAKE/calls" | grep -q runpodctl; then ok "bootstrap rejecting an argument stops up before any API call"
+else bad "bootstrap rejecting an argument stops up before any API call"; fi
+cp "$HERE/../uor-pod-bootstrap.sh" "$PF/"
+BS=$HERE/../uor-pod-bootstrap.sh
+chk() {  # NAME RC PATTERN bootstrap-args...
+  local name=$1 want=$2 pat=$3 rc=0; shift 3
+  bash "$BS" --check-args "$@" > "$W/out" 2>&1 || rc=$?
+  if [ "$rc" = "$want" ] && grep -qE -e "$pat" "$W/out"; then ok "$name"; else echo "     rc=$rc"; bad "$name"; fi
+}
+chk "bootstrap --check-args accepts a full SHA" 0 "bootstrap arguments OK" --sha "$MAIN_SHA" --pod podx --with-ollama --off-volume
+chk "bootstrap --check-args rejects a short SHA" 2 "--sha must be a full 40-character commit \\(got 7" --sha "${MAIN_SHA:0:7}" --pod podx
+chk "bootstrap --check-args rejects upper-case hex" 2 "lower-case hex" --sha "$(printf '%s' "$MAIN_SHA" | tr 'a-f' 'A-F')"
+chk "bootstrap --check-args rejects an unknown argument" 2 "unknown argument --bogus" --sha "$MAIN_SHA" --bogus
+chk "bootstrap --check-args rejects --sha without a value" 2 "--sha needs a value" --sha
+# ---- circuit breaker: 2 up-failed of one lab+session within 60 min refuse the next up
+fail_event() {  # SESSION AGE-SECONDS
+  jq -cn --arg s "$1" --arg ts "$(jq -rn --argjson a "$2" 'now - $a | floor | todate')" \
+    '{ts: $ts, event: "up-failed", lab: "codex", session: $s, pod: "podold", by: "t", reason: "bootstrap failed",
+      log: "/workspace/uor-r4/pods/bootstrap-podold-x.log", local_log: "/state/logs/bootstrap-podold-x.log",
+      last: "tar: Error is not recoverable: exiting now"}' >> "$UOR_POD_STATE/ledger.jsonl"
+}
+BRK=(up --lab codex --session brk --purpose x --hours 1 --count 2)
+fail_event brk 600
+expect "one recent failure does not trip the breaker" 0 "Creating 2 x 5090" -- "${BRK[@]}"
+fail_event brk 300
+noapi "two failures within 60 min trip the breaker (no API call)" 5 "up refused \\(circuit breaker\\): codex/brk had 2 failed 'up' attempts in the last 60 min" -- "${BRK[@]}"
+has "breaker shows the failure reasons" "pod podold: bootstrap failed"
+has "breaker shows the last bootstrap output" "last output: tar: Error is not recoverable"
+has "breaker shows the log paths" "log: /state/logs/bootstrap-podold-x.log"
+has "breaker names --force-retry" "retry with --force-retry"
+if tail -1 "$UOR_POD_STATE/ledger.jsonl" | jq -e '.event == "up-refused" and .reason == "circuit-breaker" and .failures == 2 and .session == "brk"' >/dev/null; then
+  ok "breaker refusal recorded in the ledger"; else bad "breaker refusal recorded in the ledger"; fi
+expect "--force-retry overrides the breaker" 0 "Creating 2 x 5090" -- "${BRK[@]}" --force-retry
+has "--force-retry warns" "retrying because of --force-retry"
+if grep -q '"event":"up-force-retry".*"session":"brk"' "$UOR_POD_STATE/ledger.jsonl"; then ok "--force-retry recorded in the ledger"; else bad "--force-retry recorded in the ledger"; fi
+expect "another session of the same lab is not blocked" 0 "Creating 2 x 5090" -- up --lab codex --session brk2 --purpose x --hours 1 --count 2
+fail_event old1 7200; fail_event old1 5400
+expect "failures older than 60 min do not count" 0 "Creating 2 x 5090" -- up --lab codex --session old1 --purpose x --hours 1 --count 2
 unset UOR_POD_MAX_PODS UOR_POD_MAX_RATE
 expect "register: idle pod gets no lease" 0 "podb: no busy GPU; nothing leased" -- register podb "${X1[@]}" --purpose backfill
 expect "register: busy GPU leased for 1 h" 0 "Leased podc gpus 0 to codex/x1" -- register podc "${X1[@]}" --purpose backfill
@@ -313,7 +423,46 @@ if [ "$(creates EUR-NO-1)" -ge 2 ] && [ "$(creates EUR-IS-1)" -ge 2 ]; then ok "
 rm -f "$FAKE/nostock"; touch "$FAKE/create-error"; : > "$FAKE/calls"
 expect "a non-stock create error stops at once" 1 "pod create failed in EUR-NO-1: Error: template" -- "${UP[@]}"
 if [ "$(creates EU-RO-1)" = 0 ]; then ok "no fallback on a non-stock error"; else bad "no fallback on a non-stock error"; fi
-rm -f "$FAKE/create-error"; cp "$FAKE/pods.orig.json" "$FAKE/pods.json"
+rm -f "$FAKE/create-error"
+# ---- a failed bootstrap (non-dry, fake pod): the last 30 lines are printed, the
+# full log is kept locally and teed onto the pod volume, the ledger names both;
+# then the circuit breaker stops the third attempt. A failed Ollama is not fatal.
+BOOT=(up --lab claude --session boot --purpose boot --hours 1 --count 2 --ref "$MAIN_SHA")
+fresh_pods() { echo '[]' > "$FAKE/pods.json"; : > "$FAKE/calls"; }
+fresh_pods
+FAKE_BOOT_RC=2 expect "bootstrap failure: up fails and deletes the pod" 1 "bootstrap failed: deleting pod podnew" -- "${BOOT[@]}"
+has "the last 30 lines are printed with the log path" "---- last 30 lines of the bootstrap output \\(full log: $UOR_POD_STATE/logs/bootstrap-podnew-[0-9TZ]+\\.log; on the pod volume: /workspace/uor-r4/pods/bootstrap-podnew-[0-9TZ]+\\.log\\)"
+has "the tail shows the failing line" "^  \\| tar: Error is not recoverable"
+has "the tail shows line 40" "^  \\| bootstrap line 40$"
+hasnt "the tail stops at 30 lines (line 11 is outside it)" "^  \\| bootstrap line 11$"
+hasnt "the tail hides the exit-status marker" "^  \\| UOR_POD_BOOTSTRAP_RC"
+EV=$(grep '"event":"up-failed"' "$UOR_POD_STATE/ledger.jsonl" | tail -1)
+LLOG=$(printf '%s' "$EV" | jq -r '.local_log // empty')
+if [ -n "$LLOG" ] && [ -f "$LLOG" ] && grep -q '^bootstrap line 1$' "$LLOG" && grep -q '^tar: Error is not recoverable' "$LLOG"; then
+  ok "the full bootstrap log is kept on the laptop"; else bad "the full bootstrap log is kept on the laptop"; fi
+if printf '%s' "$EV" | jq -e '(.log | test("^/workspace/uor-r4/pods/bootstrap-podnew-[0-9]{8}T[0-9]{6}Z\\.log$")) and .log_on_volume == true
+     and .last == "tar: Error is not recoverable: exiting now" and .reason == "bootstrap failed"' >/dev/null; then
+  ok "up-failed ledger event names the logs and the last output line"; else echo "     $EV"; bad "up-failed ledger event names the logs and the last output line"; fi
+if grep -q "uor-pod-bootstrap.sh --sha $MAIN_SHA --pod podnew 2>&1; echo \"UOR_POD_BOOTSTRAP_RC=\$?\"; } | tee /workspace/uor-r4/pods/bootstrap-podnew-" "$FAKE/bootcmd"; then
+  ok "the pod tees the bootstrap output onto its volume"; else sed 's/^/     /' "$FAKE/bootcmd"; bad "the pod tees the bootstrap output onto its volume"; fi
+if grep -q 'runpodctl pod delete podnew' "$FAKE/calls"; then ok "the failed pod is deleted"; else bad "the failed pod is deleted"; fi
+if grep '"event":"bootstrap"' "$UOR_POD_STATE/ledger.jsonl" | tail -1 | jq -e '.rc == 2 and (.local_log | length > 0)' >/dev/null; then
+  ok "bootstrap ledger event carries rc and log"; else bad "bootstrap ledger event carries rc and log"; fi
+fresh_pods
+FAKE_BOOT_RC=2 expect "second bootstrap failure" 1 "bootstrap failed: deleting pod podnew" -- "${BOOT[@]}"
+fresh_pods
+FAKE_BOOT_RC=2 expect "third up of the session is refused by the breaker" 5 "circuit breaker.*claude/boot had 2 failed" -- "${BOOT[@]}"
+has "the refusal shows the saved log" "log: $UOR_POD_STATE/logs/bootstrap-podnew-"
+has "the refusal shows the 404/tar line" "last output: tar: Error is not recoverable"
+if ! grep -q 'runpodctl' "$FAKE/calls"; then ok "the breaker made no API call and created no pod"; else bad "the breaker made no API call and created no pod"; fi
+fresh_pods
+FAKE_OLLAMA=FAILED expect "--force-retry with a failed Ollama: pod is kept and ready" 0 "Ready: ssh" -- "${BOOT[@]}" --with-ollama --force-retry
+has "a failed Ollama is a warning, not a failure" "Ollama on podnew: FAILED — the pod is kept"
+if ! grep -q 'runpodctl pod delete' "$FAKE/calls"; then ok "a failed Ollama does not delete the pod"; else bad "a failed Ollama does not delete the pod"; fi
+if grep '"event":"bootstrap"' "$UOR_POD_STATE/ledger.jsonl" | tail -1 | jq -e '.rc == 0 and .ollama == "FAILED"' >/dev/null; then
+  ok "the Ollama failure is recorded in the bootstrap ledger event"; else bad "the Ollama failure is recorded in the bootstrap ledger event"; fi
+if grep -q -- "--with-ollama | tee" "$FAKE/bootcmd" || grep -q -- "--with-ollama 2>&1" "$FAKE/bootcmd"; then ok "--with-ollama reaches the bootstrap"; else bad "--with-ollama reaches the bootstrap"; fi
+cp "$FAKE/pods.orig.json" "$FAKE/pods.json"
 unset FAKE_ALLOW_CREATE UOR_POD_MAX_PODS UOR_POD_MAX_RATE UOR_POD_SSH_WAIT
 export UOR_POD_DRY_RUN=1
 
@@ -381,6 +530,52 @@ fresh_binroot; mkdir -p "$CB"; printf '{"parity": "FAIL"}\n' > "$CB/BUILD.json";
 boot "publish lock unavailable and cache occupied: keep the build private" "this pod uses $CB.private-podx-" \
   FAKE_FLOCK_HELD="7 8" UOR_BUILD_WAIT_S=60 UOR_BUILD_HEARTBEAT_STALE_S=30
 if grep -q FAIL "$CB/BUILD.json" && grep -q "RESULT BIN=$CB.private-podx-" "$W/out"; then ok "occupied cache not overwritten without the publish lock"; else bad "occupied cache not overwritten without the publish lock"; fi
+
+# ---- Ollama on the pod is optional and never fatal (the bootstrap's Ollama
+# functions, sourced with a fake curl that serves files from $W/serve by name and
+# answers 404 otherwise, like ollama.com's retired .tgz on 2026-10-05).
+mkdir -p "$W/cbin" "$W/serve" "$W/opkg/bin"
+cat > "$W/cbin/curl" <<'S'
+#!/usr/bin/env bash
+out='' url=''; while [ $# -gt 0 ]; do case $1 in -o) out=$2; shift 2;; --retry) shift 2;; -*) shift;; *) url=$1; shift;; esac; done
+echo "$url" >> "$FAKE/curl-calls"
+f=$FAKE_SERVE/$(basename "$url")
+[ -f "$f" ] || { echo "curl: (22) The requested URL returned error: 404" >&2; exit 22; }
+if [ -n "$out" ]; then cp "$f" "$out"; else cat "$f"; fi
+S
+printf '#!/bin/sh\nexit 0\n' > "$W/cbin/setsid"
+# shellcheck disable=SC2016  # the fake ollama's own variables
+printf '#!/bin/sh\n[ "$1" = pull ] && exit "${FAKE_PULL_RC:-0}"\nexit 0\n' > "$W/opkg/bin/ollama"
+chmod +x "$W/cbin/"* "$W/opkg/bin/ollama"
+olla() {  # NAME PATTERN [ENV=VALUE...] -> runs ollama_step under set -e, then a later step
+  local name=$1 pat=$2 rc=0; shift 2
+  rm -rf "$W/odir" "$W/omodels"; : > "$FAKE/curl-calls"; mkdir -p "$W/ologs"
+  # shellcheck disable=SC2016  # the script runs in the child bash
+  env PATH="$W/cbin:$PATH" FAKE_SERVE="$W/serve" UOR_BOOTSTRAP_LIB=1 UOR_OLLAMA_LOGDIR="$W/ologs" UOR_OLLAMA_DIR="$W/odir" UOR_OLLAMA_MODELS="$W/omodels" \
+    UOR_OLLAMA_INSTALL_SH=https://ollama.invalid/install.sh "$@" bash -c '
+    set -euo pipefail
+    # shellcheck disable=SC1090
+    . "$1" --sha "$2" --pod podx
+    ollama_step
+    echo "AFTER OLLAMA: status=$OLLAMA_STATUS (the bootstrap continues)"
+  ' _ "$HERE/../uor-pod-bootstrap.sh" "$SHA40" > "$W/out" 2>&1 || rc=$?
+  if [ "$rc" = 0 ] && grep -qE -e "$pat" "$W/out"; then ok "$name"; else echo "     rc=$rc pattern=$pat"; bad "$name"; fi
+}
+olla "every Ollama source 404: status FAILED, bootstrap continues" "AFTER OLLAMA: status=FAILED"
+has "the failure is logged as a warning" "WARNING: Ollama install FAILED; continuing without it"
+if head -1 "$FAKE/curl-calls" | grep -q 'ollama-linux-amd64.tar.zst$' && sed -n 2p "$FAKE/curl-calls" | grep -q 'ollama-linux-amd64.tgz$' &&
+   grep -q 'install.sh$' "$FAKE/curl-calls"; then ok "tries .tar.zst, then the legacy .tgz, then install.sh"; else sed 's/^/     /' "$FAKE/curl-calls"; bad "tries .tar.zst, then the legacy .tgz, then install.sh"; fi
+if command -v zstd >/dev/null 2>&1; then
+  tar -cf - -C "$W/opkg" bin | zstd -q -o "$W/serve/ollama-linux-amd64.tar.zst"
+  olla "current .tar.zst asset installs Ollama" "AFTER OLLAMA: status=ready"
+  if [ -x "$W/odir/bin/ollama" ] && ! grep -q '\.tgz$' "$FAKE/curl-calls"; then ok "installed onto the volume dir from .tar.zst"; else bad "installed onto the volume dir from .tar.zst"; fi
+  olla "failed model pull is a warning (pull-failed), not fatal" "AFTER OLLAMA: status=pull-failed" FAKE_PULL_RC=1
+  rm -f "$W/serve/ollama-linux-amd64.tar.zst"
+else
+  echo "skip .tar.zst install tests (no zstd on this machine)"
+fi
+tar -czf "$W/serve/ollama-linux-amd64.tgz" -C "$W/opkg" bin
+olla "legacy .tgz still works when the .tar.zst is missing" "AFTER OLLAMA: status=ready"
 
 echo "passed $pass, failed $fail"
 [ "$fail" = 0 ]

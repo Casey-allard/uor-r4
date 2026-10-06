@@ -9,6 +9,8 @@
 #   uor-pod up --lab L --session S --purpose "..." --hours H [--gpu 5090] [--count 2]
 #              [--card URL] [--wait [--wait-hours 2]] [--ref SHA|main] [--with-ollama]
 #              [--test] [--allow-off-volume] [--no-bootstrap] [--keep-on-failure] [--owner-approved]
+#              [--force-retry]   every argument is checked before the Runpod API is called;
+#              2 failed `up` of one lab+session within 60 min block a third without --force-retry
 #   uor-pod lease   POD --lab L --session S --gpus 0,1 --purpose "..." --hours H [--card URL] [--gpu KEY]
 #   uor-pod renew   POD --lab L --session S [--hours H]
 #   uor-pod release POD --lab L --session S
@@ -30,12 +32,15 @@
 #   ledger.jsonl (append-only), pods.json (cache of what the API does not say).
 # Environment: UOR_POD_DRY_RUN=1 prints every mutation (pod/volume create, delete,
 # remote writes, GitHub comments) instead of doing it; UOR_POD_SSH_KEY, UOR_POD_BOARD,
-# UOR_POD_TEMPLATE and (for tests) UOR_POD_MAX_PODS/UOR_POD_MAX_RATE override defaults.
+# UOR_POD_TEMPLATE and (for tests) UOR_POD_MAX_PODS/UOR_POD_MAX_RATE, UOR_POD_REPO_URL
+# (the repository `--ref` must exist on) and UOR_POD_GIT_DIR (the checkout used to
+# expand a short SHA) override defaults. Bootstrap logs: $STATE/logs/ and, on the
+# pod's volume, /workspace/uor-r4/pods/bootstrap-<pod>-<UTC>.log.
 # Secrets: this tool never reads ~/.runpod/config.toml and never prints pod env.
 set -euo pipefail
 
 REPO_SLUG=UOR-Foundation/uor-r4
-REPO_URL=https://github.com/$REPO_SLUG.git
+REPO_URL=${UOR_POD_REPO_URL:-https://github.com/$REPO_SLUG.git}
 STATE=${UOR_POD_STATE:-$HOME/.local/share/uor-r4/compute}
 DRY=${UOR_POD_DRY_RUN:-0}
 BOARD=${UOR_POD_BOARD:-1750}
@@ -359,11 +364,12 @@ unmirror_lease() {
 
 # ---------------------------------------------------------------- argument parsing
 LAB='' SESSION='' ID='' WHO='' PURPOSE='' HOURS='' CARD='' GPUS='' GPU='' COUNT='' REF=main
-OWNER_OK=0 OFF_VOLUME=0 WAIT=0 WAIT_HOURS=2 NO_BOOT=0 KEEP_FAIL=0 OLLAMA=0 FORCE=0
+OWNER_OK=0 OFF_VOLUME=0 WAIT=0 WAIT_HOURS=2 NO_BOOT=0 KEEP_FAIL=0 OLLAMA=0 FORCE=0 FORCE_RETRY=0 OPTS_SEEN=''
 NO_MIRROR=0 DISCARD_LOCAL=0 CONFIRM_ARCHIVED=0 DU=0 NLINES=20 VIA='' UP_TEST=0 KEEP_REASON='' OLDER=24h YES=0
 POS=()
 parse() {
   while [ $# -gt 0 ]; do
+    case $1 in -?*) [ "$1" = -- ] || OPTS_SEEN="$OPTS_SEEN $1";; esac
     case $1 in
       --lab) LAB=${2:?--lab needs a value}; shift 2;;
       --session) SESSION=${2:?--session needs a value}; shift 2;;
@@ -380,6 +386,7 @@ parse() {
       --via) VIA=${2:?}; shift 2;;
       -n) NLINES=${2:?}; shift 2;;
       --owner-approved) OWNER_OK=1; shift;;
+      --force-retry) FORCE_RETRY=1; shift;;
       --allow-off-volume) OFF_VOLUME=1; shift;;
       --wait) WAIT=1; shift;;
       --wait-hours) WAIT_HOURS=${2:?}; shift 2
@@ -716,7 +723,55 @@ pod create found no instances in:$tried (stock changed after the listing)"
   return 2
 }
 
+# Options `up` accepts. Anything else (a typo, an option of another subcommand,
+# a stray positional word) is refused before the Runpod API is called: it would
+# otherwise be ignored silently or surface only on the billed pod.
+UP_OPTS=' --lab --session --purpose --hours --card --gpu --count --wait --wait-hours --ref --with-ollama --test --allow-off-volume --no-bootstrap --keep-on-failure --owner-approved --force-retry '
+check_up_args() {
+  local o
+  for o in $OPTS_SEEN; do
+    case $UP_OPTS in *" $o "*) ;; *) die "up does not take $o (nothing was created; uor-pod help)";; esac
+  done
+  [ ${#POS[@]} = 0 ] || die "up takes no positional arguments (got '${POS[*]}'; nothing was created)"
+}
+
+# Circuit breaker (incident 2026-10-05: one session ran `up` 14 times in 2 h; every
+# bootstrap failed the same way and each pod was created, billed and deleted).
+# BREAKER_MAX `up-failed` events of this lab+session within BREAKER_WINDOW_MIN
+# refuse the next `up` until the cause is fixed, unless --force-retry.
+BREAKER_MAX=2 BREAKER_WINDOW_MIN=60
+breaker_check() {
+  local since fails n
+  since=$(( $(now_epoch) - BREAKER_WINDOW_MIN * 60 ))
+  fails=$(jq -cR --arg lab "$LAB" --arg s "$SESSION" --argjson since "$since" '
+    fromjson? | select(type == "object" and .event == "up-failed" and .lab == $lab and .session == $s)
+    | select(((.ts // "") | try fromdateiso8601 catch 0) >= $since)' "$STATE/ledger.jsonl")
+  n=$(printf '%s' "$fails" | grep -c . || true)
+  [ "$n" -ge "$BREAKER_MAX" ] || return 0
+  if [ "$FORCE_RETRY" = 1 ]; then
+    warn "$WHO had $n failed 'up' attempts in the last $BREAKER_WINDOW_MIN min; retrying because of --force-retry"
+    lock_acquire; ledger up-force-retry "$LAB" '' "$(jq -cn --argjson n "$n" --argjson w "$BREAKER_WINDOW_MIN" '{failures: $n, window_min: $w}')"; lock_release
+    return 0
+  fi
+  {
+    echo "uor-pod: up refused (circuit breaker): $WHO had $n failed 'up' attempts in the last $BREAKER_WINDOW_MIN min;"
+    echo "  each one created, billed and deleted a pod. Failures:"
+    printf '%s\n' "$fails" | jq -r '"  \(.ts) pod \(.pod): \(.reason)"
+      + (if (.last // "") != "" then "\n    last output: \(.last)" else "" end)
+      + (if (.local_log // "") != "" then "\n    log: \(.local_log)" else "" end)
+      + (if (.log // "") != "" then "\n    on the pod volume: \(.log)" else "" end)'
+    echo "  Read the log and fix the cause first (or test it with 'uor-pod bootstrap POD' on a running pod),"
+    echo "  then retry with --force-retry."
+  } >&2
+  lock_acquire
+  ledger up-refused "$LAB" '' "$(jq -cn --argjson n "$n" --argjson w "$BREAKER_WINDOW_MIN" --arg p "$PURPOSE" \
+    '{reason: "circuit-breaker", failures: $n, window_min: $w, purpose: $p}')"
+  lock_release
+  exit 5
+}
+
 cmd_up() {
+  check_up_args
   [ -n "$LAB" ] && [ -n "$PURPOSE" ] && [ -n "$HOURS" ] || die "up needs --lab, --session, --purpose and --hours"
   check_who; check_hours "$HOURS"
   local req=${GPU:-5090} count=${COUNT:-2} tier rc deadline waited=0
@@ -728,8 +783,16 @@ cmd_up() {
   case $count in 1|2|3|4|5|6|7|8) ;; *) die "--count must be 1..8";; esac
   # every helper `up` will upload is checked before anything is created or paid for
   preflight_helpers
-  # resolve the commit before anything is created, so a bad ref costs nothing
-  if [ "$NO_BOOT" != 1 ] && ! is_dry; then REF=$(resolve_ref "$REF"); fi
+  breaker_check
+  # resolve the commit and check the exact bootstrap arguments before anything is
+  # created, so a bad ref or argument costs nothing (dry runs check them too)
+  if [ "$NO_BOOT" != 1 ]; then
+    local ref_in=$REF
+    REF=$(resolve_ref "$REF")
+    RESOLVED_REF=$REF RESOLVED_SHA=$REF
+    [ "$ref_in" = "$REF" ] || info "--ref $ref_in -> $REF"
+    preflight_bootstrap_args "$REF"
+  fi
   deadline=$(jq -rn --argjson h "$WAIT_HOURS" 'now + $h * 3600 | floor')
   local name canon=false t_create
   name="uor-$LAB-$(date -u +%m%d-%H%M)"
@@ -804,6 +867,7 @@ cmd_up() {
   if [ "$NO_BOOT" = 1 ]; then return 0; fi
   if ! do_bootstrap "$pod"; then
     if [ "$KEEP_FAIL" = 1 ]; then
+      print_boot_tail
       warn "bootstrap failed; pod $pod kept under $WHO's lease (until $(jq -r .expires "$(lease_file "$pod" "$ID")")) — fix or 'uor-pod down $pod --lab $LAB --session $SESSION'"
       return 1
     fi
@@ -814,14 +878,28 @@ cmd_up() {
 }
 addr_line() { local a; a=$(pod_addr "$1"); echo "ssh -i $SSH_KEY -p ${a#* } root@${a% *}"; }
 
-up_failed() {  # POD REASON -> delete the new pod so nothing idles
+print_boot_tail() {  # the end of the last bootstrap's output, so the reason survives the pod
+  [ -n "$BOOT_LOG_LOCAL" ] && [ -s "$BOOT_LOG_LOCAL" ] || return 0
+  {
+    echo "---- last 30 lines of the bootstrap output (full log: $BOOT_LOG_LOCAL$([ -n "$BOOT_LOG_REMOTE" ] && echo "; on the pod volume: $BOOT_LOG_REMOTE")) ----"
+    grep -v '^UOR_POD_BOOTSTRAP_RC=' "$BOOT_LOG_LOCAL" | tail -n 30 | sed 's/^/  | /'
+    echo "----"
+  } >&2
+}
+boot_last_line() { [ -s "$BOOT_LOG_LOCAL" ] && grep -v -e '^UOR_POD_BOOTSTRAP_RC=' -e '^[[:space:]]*$' "$BOOT_LOG_LOCAL" | tail -1 | cut -c1-300; }
+up_failed() {  # POD REASON -> show why, keep the log, delete the new pod so nothing idles
+  local last=''
+  print_boot_tail
+  if [ -n "$BOOT_LOG_LOCAL" ]; then last=$(boot_last_line || true); fi
   warn "$2: deleting pod $1"
   runpodctl pod delete "$1" >/dev/null 2>&1 || warn "DELETE FAILED for $1 — delete it by hand now: runpodctl pod delete $1"
   lock_acquire
   rm -rf "${STATE:?}/leases/$1"; cache_put "$1" '{"deleted": true}'
-  ledger up-failed "$LAB" "$1" "$(jq -cn --arg r "$2" '{reason: $r}')"
+  ledger up-failed "$LAB" "$1" "$(jq -cn --arg r "$2" --arg l "$BOOT_LOG_REMOTE" --arg ll "$BOOT_LOG_LOCAL" --arg last "$last" \
+    --argjson vol "$( [ "$BOOT_LOG_ON_VOLUME" = 1 ] && echo true || echo false)" \
+    '{reason: $r} + (if $ll != "" then {log: $l, log_on_volume: $vol, local_log: $ll, last: $last} else {} end)')"
   lock_release
-  board "up-failed $1 by=$WHO: $2 (pod deleted)"
+  board "up-failed $1 by=$WHO: $2${last:+ — $last} (pod deleted)"
 }
 
 write_lease() {  # POD ID GPUS-JSON  (caller holds the lock; LAB/SESSION from the identity)
@@ -1109,11 +1187,55 @@ cmd_ssh() {
   exec ssh -t -i "$SSH_KEY" -p "${addr#* }" "${SSH_OPTS[@]}" "root@${addr% *}"
 }
 
-resolve_ref() {  # main|branch|sha -> full commit SHA of the public repository
-  case $1 in
-    [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]*) [ ${#1} = 40 ] && { echo "$1"; return; };;
-  esac
-  git ls-remote "$REPO_URL" "refs/heads/$1" | cut -f1 | grep . || die "cannot resolve ref '$1' on $REPO_URL (give a full 40-char SHA)"
+# --ref -> the full 40-character commit the pod will fetch. Branch and tag names
+# are looked up on $REPO_URL; a SHA (7-40 hex) is accepted when it is a branch tip
+# there, or else expanded and checked in this checkout after fetching the remote's
+# branches into refs/uor-pod/origin/* (it must be on one of them: the pod fetches
+# from GitHub, so a commit that exists only here would fail on the billed pod).
+RESOLVED_REF='' RESOLVED_SHA=''
+resolve_ref() {  # REF -> full SHA on stdout; dies with the reason otherwise
+  local ref=$1 lc refs sha='' gd
+  if [ -n "$RESOLVED_SHA" ] && { [ "$ref" = "$RESOLVED_REF" ] || [ "$ref" = "$RESOLVED_SHA" ]; }; then echo "$RESOLVED_SHA"; return 0; fi
+  case $ref in ''|-*|*[!A-Za-z0-9._/-]*) die "--ref '$ref' is not a branch, tag or commit (nothing was created)";; esac
+  refs=$(git ls-remote --heads --tags "$REPO_URL" 2>&1) || die "cannot list $REPO_URL to check --ref $ref: $(printf '%s' "$refs" | tail -1) (nothing was created)"
+  sha=$(printf '%s\n' "$refs" | awk -v h="refs/heads/$ref" -v t="refs/tags/$ref^{}" '$2 == h || $2 == t {print $1; exit}')
+  [ -n "$sha" ] || sha=$(printf '%s\n' "$refs" | awk -v t="refs/tags/$ref" '$2 == t {print $1; exit}')
+  if [ -z "$sha" ]; then
+    lc=$(printf '%s' "$ref" | tr 'A-F' 'a-f')
+    case $lc in *[!0-9a-f]*) die "--ref '$ref' is not a branch or tag of $REPO_URL, nor a commit SHA (nothing was created)";; esac
+    [ ${#lc} -ge 7 ] && [ ${#lc} -le 40 ] || die "--ref '$ref': a commit SHA needs 7 to 40 hex characters (nothing was created)"
+    sha=$(printf '%s\n' "$refs" | awk -v s="$lc" '$1 == s {print $1; exit}')
+    if [ -z "$sha" ]; then
+      gd=${UOR_POD_GIT_DIR:-$(git -C "$HERE" rev-parse --show-toplevel 2>/dev/null || true)}
+      [ -n "$gd" ] || die "--ref $ref is not a branch tip of $REPO_URL and no git checkout is available to expand it; give a branch name (nothing was created)"
+      git -C "$gd" fetch -q --prune --no-tags "$REPO_URL" '+refs/heads/*:refs/uor-pod/origin/*' >/dev/null 2>&1 ||
+        die "cannot fetch $REPO_URL into $gd to check --ref $ref (nothing was created)"
+      sha=$(git -C "$gd" rev-parse -q --verify "$lc^{commit}" 2>/dev/null) ||
+        die "--ref $ref: unknown or ambiguous commit (not found after fetching $REPO_URL); push it, or give a longer SHA or a branch (nothing was created)"
+      [ -n "$(git -C "$gd" for-each-ref --contains "$sha" --count=1 refs/uor-pod/origin/)" ] ||
+        die "--ref $ref ($sha) is on no branch of $REPO_URL: push it first — the pod fetches from GitHub (nothing was created)"
+    fi
+  fi
+  case $sha in *[!0-9a-f]*|'') die "--ref $ref resolved to '$sha', not a commit SHA (nothing was created)";; esac
+  [ ${#sha} = 40 ] || die "--ref $ref resolved to '$sha', not a full 40-character commit (nothing was created)"
+  echo "$sha"
+}
+
+# The pod-side bootstrap's argument vector, built in one place for the preflight
+# and the real run, and checked by the bootstrap's own parser (--check-args).
+BOOT_ARGS=()
+bootstrap_args() {  # SHA POD OFF-VOLUME(true|false) -> BOOT_ARGS
+  BOOT_ARGS=(--sha "$1" --pod "$2")
+  if [ "$OLLAMA" = 1 ]; then BOOT_ARGS+=(--with-ollama); fi
+  if [ "$3" = true ]; then BOOT_ARGS+=(--off-volume); fi
+}
+preflight_bootstrap_args() {  # SHA -> dies unless the bootstrap accepts every argument vector `up` may pass
+  local off out
+  for off in false $( [ "$OFF_VOLUME" = 1 ] && echo true ); do
+    bootstrap_args "$1" preflightpod "$off"
+    out=$(bash "$HERE/uor-pod-bootstrap.sh" --check-args "${BOOT_ARGS[@]}" 2>&1) ||
+      die "the bootstrap rejects the arguments up would pass (${BOOT_ARGS[*]}): $out (nothing was created)"
+  done
 }
 
 # Helper files `up`/`bootstrap`/`seed` upload from next to this script. A missing
@@ -1140,8 +1262,9 @@ preflight_helpers() {  # [FILES...] (default: what `up` needs) -> dies listing e
   [ -z "$problems" ] || die "helper file check failed before creating anything:$problems restore them (git checkout scripts/pod) and retry"
 }
 
-do_bootstrap() {  # POD -> copy reaper + bootstrap, mirror leases, run bootstrap
-  local pod=$1 sha l cache
+BOOT_LOG_LOCAL='' BOOT_LOG_REMOTE='' BOOT_LOG_ON_VOLUME=0
+do_bootstrap() {  # POD -> copy reaper + bootstrap, mirror leases, run bootstrap (output logged)
+  local pod=$1 sha l cache off ts result ollama out
   # (a subshell: after `up` created the pod, a failure must reach up_failed, not exit)
   # shellcheck disable=SC2086
   ( preflight_helpers $HELPERS_BOOT ) || return 1
@@ -1149,9 +1272,17 @@ do_bootstrap() {  # POD -> copy reaper + bootstrap, mirror leases, run bootstrap
   if [ "$(echo "$cache" | jq -r '.tool // false')" != true ] && [ "$FORCE" != 1 ]; then
     die "$pod was not created by 'uor-pod up' (no reaper/bootstrap on hand-made pods); --force overrides"
   fi
-  sha=$(resolve_ref "$REF")
-  echo "Bootstrapping $pod at $sha"
-  if is_dry; then echo "DRY-RUN: copy uor-pod-bootstrap.sh + uor-reaper.sh to $pod and run bootstrap" >&2; return 0; fi
+  sha=$(resolve_ref "$REF") || return 1
+  off=$(echo "$cache" | jq -r '.off_volume // false')
+  bootstrap_args "$sha" "$pod" "$off"
+  out=$(bash "$HERE/uor-pod-bootstrap.sh" --check-args "${BOOT_ARGS[@]}" 2>&1) ||
+    { warn "the bootstrap rejects its arguments (${BOOT_ARGS[*]}): $out"; return 1; }
+  ts=$(date -u +%Y%m%dT%H%M%SZ)
+  BOOT_LOG_REMOTE=/workspace/uor-r4/pods/bootstrap-$pod-$ts.log
+  BOOT_LOG_LOCAL=$STATE/logs/bootstrap-$pod-$ts.log
+  BOOT_LOG_ON_VOLUME=1; [ "$off" != true ] || BOOT_LOG_ON_VOLUME=0
+  echo "Bootstrapping $pod at $sha (log: $BOOT_LOG_LOCAL; pod volume: $BOOT_LOG_REMOTE)"
+  if is_dry; then echo "DRY-RUN: copy uor-pod-bootstrap.sh + uor-reaper.sh to $pod and run: bash /root/uor-pod-bootstrap.sh ${BOOT_ARGS[*]} | tee $BOOT_LOG_REMOTE" >&2; return 0; fi
   wait_ssh "$pod" 300 || { warn "SSH to $pod still refused after 300 s"; return 1; }
   pod_ssh "$pod" 'mkdir -p /root/leases && cat > /root/uor-reaper.sh && chmod 755 /root/uor-reaper.sh' < "$HERE/uor-reaper.sh" || return 1
   pod_ssh "$pod" 'cat > /root/uor-pod-bootstrap.sh && chmod 755 /root/uor-pod-bootstrap.sh' < "$HERE/uor-pod-bootstrap.sh" || return 1
@@ -1159,11 +1290,24 @@ do_bootstrap() {  # POD -> copy reaper + bootstrap, mirror leases, run bootstrap
     [ -f "$l" ] || continue
     mirror_lease "$pod" "$(basename "$l" .json)"
   done
-  local t0 rc=0
+  local t0 rc
   t0=$(now_epoch)
-  pod_ssh "$pod" "bash /root/uor-pod-bootstrap.sh --sha $sha --pod $pod $( [ "$OLLAMA" = 1 ] && echo --with-ollama ) $( [ "$(echo "$cache" | jq -r '.off_volume // false')" = true ] && echo --off-volume )" </dev/null || rc=$?
+  mkdir -p "$STATE/logs"
+  # The pod tees the output onto its volume and appends its exit status; this
+  # side keeps a full copy, so the reason survives the pod's deletion.
+  pod_ssh "$pod" "mkdir -p /workspace/uor-r4/pods; { bash /root/uor-pod-bootstrap.sh ${BOOT_ARGS[*]} 2>&1; echo \"UOR_POD_BOOTSTRAP_RC=\$?\"; } | tee $BOOT_LOG_REMOTE" \
+    </dev/null 2>&1 | tee "$BOOT_LOG_LOCAL" || true
+  rc=$(sed -n 's/^UOR_POD_BOOTSTRAP_RC=\([0-9][0-9]*\)$/\1/p' "$BOOT_LOG_LOCAL" | tail -1)
+  [ -n "$rc" ] || { rc=255; warn "the bootstrap on $pod reported no exit status (SSH dropped?)"; }
+  result=$(sed -n 's/^BOOTSTRAP_RESULT //p' "$BOOT_LOG_LOCAL" | tail -1)
+  ollama=$(printf '%s' "$result" | jq -r '.ollama // empty' 2>/dev/null || true)
+  if [ "$OLLAMA" = 1 ] && [ "$rc" = 0 ] && [ "$ollama" != ready ]; then
+    warn "Ollama on $pod: ${ollama:-status unknown} — the pod is kept (training is unaffected); see /root/ollama*.log on the pod and $BOOT_LOG_LOCAL"
+  fi
   lock_acquire
-  ledger bootstrap "${LAB:-?}" "$pod" "$(jq -cn --arg s "$sha" --argjson rc "$rc" --argjson t "$(( $(now_epoch) - t0 ))" '{sha: $s, rc: $rc, seconds: $t}')"
+  ledger bootstrap "${LAB:-?}" "$pod" "$(jq -cn --arg s "$sha" --argjson rc "$rc" --argjson t "$(( $(now_epoch) - t0 ))" \
+    --arg l "$BOOT_LOG_REMOTE" --arg ll "$BOOT_LOG_LOCAL" --arg o "$ollama" \
+    '{sha: $s, rc: $rc, seconds: $t, log: $l, local_log: $ll} + (if $o != "" then {ollama: $o} else {} end)')"
   cache_put "$pod" '{"reaper": true}'
   lock_release
   [ "$rc" = 0 ]
@@ -1256,6 +1400,6 @@ case $sub in
   log) cmd_log;;
   gpus) cmd_gpus;;
   rules) print_rules; echo; echo "Commands: uor-pod help";;
-  help|-h|--help) sed -n '2,33p' "$0";;
+  help|-h|--help) sed -n '2,/^set -euo/{/^set -euo/d;p;}' "$0";;
   *) die "unknown subcommand '$sub' (uor-pod help)";;
 esac
