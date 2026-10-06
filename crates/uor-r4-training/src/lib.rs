@@ -16,6 +16,7 @@ pub mod baseline_counts;
 pub mod baseline_protocol;
 pub mod binding_probe;
 pub mod cache_memory;
+pub mod clause_probe;
 pub mod copy_identity;
 pub mod cuda_stack_kernels;
 pub mod d4_codecs;
