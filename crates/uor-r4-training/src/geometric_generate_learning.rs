@@ -1009,16 +1009,13 @@ fn gather(table: &Tensor, ids: Vec<u32>, device: &Device, bytes: &mut usize) -> 
     Ok(table.index_select(&Tensor::from_vec(ids, n, device)?, 0)?)
 }
 
-/// Flat action marginal with labels used only after a target-free native pool.
-/// Native token mass is aggregated before the sole float probability boundary.
-/// Copy scores may be frozen or carry separately implemented input credit.
-/// No separate branch gate or independent Generate normalization is introduced.
-pub fn vocabulary_marginal_loss(
+/// Shared trace ordering, shape, mass and raw-score graph admission.
+fn admitted_vocabulary_scores(
     trace: &VocabularyActionTrace,
     generate_raw: &Tensor,
     copy_raw: Option<&Tensor>,
     target: u32,
-) -> Result<Tensor> {
+) -> Result<(Tensor, u64)> {
     device_admit(generate_raw.device())?;
     if generate_raw.rank() != 1
         || generate_raw.dtype() != DType::F32
@@ -1118,6 +1115,21 @@ pub fn vocabulary_marginal_loss(
             "Generate loss raw score graph differs from native pool",
         ));
     }
+    Ok((combined, target_action_mass))
+}
+
+/// Flat action marginal with labels used only after a target-free native pool.
+/// Native token mass is aggregated before the sole float probability boundary.
+/// Copy scores may be frozen or carry separately implemented input credit.
+/// No separate branch gate or independent Generate normalization is introduced.
+pub fn vocabulary_marginal_loss(
+    trace: &VocabularyActionTrace,
+    generate_raw: &Tensor,
+    copy_raw: Option<&Tensor>,
+    target: u32,
+) -> Result<Tensor> {
+    let (combined, target_action_mass) =
+        admitted_vocabulary_scores(trace, generate_raw, copy_raw, target)?;
     let bounded = combined.clamp(-8f32, 8f32)?;
     // A single reduced status scalar is permitted and counted; never download
     // the live CUDA score vector or its adjoints for validation.
@@ -1164,6 +1176,79 @@ pub fn vocabulary_marginal_loss(
     Ok(anchored.log()?.neg()?)
 }
 
+/// Prospective offline diagnostic only: no automatic weight, optimizer update,
+/// runtime gate or serving effect.
+pub const PRECLIP_ENTRY_MARGIN_SCOPE: &str =
+    "authentic-native-raw-Q24-at-f32-boundary;Generate-only-target;highest-wrong-Copy-first-occurrence-tie;zero-margin-unclipped-score-adjoint;offline-diagnostic/1";
+
+pub struct PreclipEntryMarginDiagnostic {
+    pub loss: Tensor,
+    pub wrong_copy_source_offset: usize,
+    pub wrong_copy_action_offset: usize,
+    pub target_generate_action_offset: usize,
+    pub raw_gap_q24: i64,
+    pub wrong_copy_above_clip: bool,
+    pub target_generate_outside_clip: bool,
+    pub score_scope: &'static str,
+}
+
+/// Diagnostic on an already completed target-free forward. Reject Copy-covered
+/// labels; selection uses the authentic integer trace, never a CUDA download.
+/// Equal wrong Copy scores retain the first source occurrence. The trace does
+/// not encode prefix length: the caller must establish empty-prefix entry scope.
+/// At zero gap Candle's ReLU uses unit derivative (a valid hinge subgradient).
+pub fn preclip_entry_margin_diagnostic(
+    trace: &VocabularyActionTrace,
+    generate_raw: &Tensor,
+    copy_raw: Option<&Tensor>,
+    target: u32,
+) -> Result<PreclipEntryMarginDiagnostic> {
+    let (combined, _) = admitted_vocabulary_scores(trace, generate_raw, copy_raw, target)?;
+    if !combined.sqr()?.sum_all()?.to_scalar::<f32>()?.is_finite() {
+        return Err(invalid("entry margin score status is nonfinite"));
+    }
+    let mut target_offset = None;
+    let mut wrong_copy = None;
+    for action in &trace.actions {
+        match action.action {
+            VocabularyAction::Generate { token_id } if token_id == target => {
+                if target_offset.replace(action.action_offset).is_some() {
+                    return Err(invalid("entry margin multiple Generate targets"));
+                }
+            }
+            VocabularyAction::Copy { source_offset } => {
+                if action.token_id == target {
+                    return Err(invalid("entry margin target is Copy-covered"));
+                }
+                if wrong_copy.is_none_or(|(_, _, best)| action.raw_score_q24 > best) {
+                    wrong_copy = Some((source_offset, action.action_offset, action.raw_score_q24));
+                }
+            }
+            _ => {}
+        }
+    }
+    let target_offset =
+        target_offset.ok_or_else(|| invalid("entry margin Generate target absent"))?;
+    let (source_offset, copy_offset, copy_score) =
+        wrong_copy.ok_or_else(|| invalid("entry margin requires a wrong Copy occurrence"))?;
+    let target_score = trace.actions[target_offset].raw_score_q24;
+    let gap = copy_score
+        .checked_sub(target_score)
+        .ok_or_else(|| invalid("entry margin raw gap overflow"))?;
+    let copy = combined.narrow(0, copy_offset, 1)?.sum_all()?;
+    let generate = combined.narrow(0, target_offset, 1)?.sum_all()?;
+    Ok(PreclipEntryMarginDiagnostic {
+        loss: (&copy - &generate)?.relu()?,
+        wrong_copy_source_offset: source_offset,
+        wrong_copy_action_offset: copy_offset,
+        target_generate_action_offset: target_offset,
+        raw_gap_q24: gap,
+        wrong_copy_above_clip: copy_score > (8 << 24),
+        target_generate_outside_clip: !(-(8 << 24)..=(8 << 24)).contains(&target_score),
+        score_scope: PRECLIP_ENTRY_MARGIN_SCOPE,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1181,6 +1266,98 @@ mod tests {
             .flatten_all()?
             .to_vec1::<f32>()?)
     }
+    fn margin_fixture(copy_tokens: &[u32], copy_scores: &[i64]) -> Result<VocabularyActionTrace> {
+        use uor_r4_integer::geometric_vocabulary_actions::NativeVocabularyActions;
+        let exp = (0..uor_r4_integer::geometric_read::EXP_TABLE_LEN)
+            .flat_map(|i| {
+                (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
+            })
+            .collect::<Vec<_>>();
+        let mut pool =
+            NativeVocabularyActions::new(binding()?, &exp).map_err(|e| invalid(e.to_string()))?;
+        pool.reduce_trace(&vec![0; binding()?.vocab_size()], copy_tokens, copy_scores)
+            .map_err(|e| invalid(e.to_string()))
+    }
+
+    #[test]
+    fn preclip_entry_margin_restores_saturated_score_credit_without_forward_mutation() -> Result<()>
+    {
+        let trace = margin_fixture(&[5, 5, 7], &[9 << 24, 9 << 24, -(9 << 24)])?;
+        let before = serde_json::to_vec(&trace).map_err(|e| invalid(e.to_string()))?;
+        let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Var::from_vec(vec![9f32, 9., -9.], 3, &Device::Cpu)?;
+        let raw_before = copy.to_vec1::<f32>()?;
+        let old =
+            vocabulary_marginal_loss(&trace, generate.as_tensor(), Some(copy.as_tensor()), 4)?;
+        assert_eq!(grad(&old.backward()?, copy.as_tensor())?, vec![0., 0., 0.]);
+        let diagnostic = preclip_entry_margin_diagnostic(
+            &trace,
+            generate.as_tensor(),
+            Some(copy.as_tensor()),
+            4,
+        )?;
+        assert_eq!(diagnostic.wrong_copy_source_offset, 0);
+        assert_eq!(diagnostic.raw_gap_q24, 9 << 24);
+        assert!(diagnostic.wrong_copy_above_clip);
+        assert_eq!(diagnostic.loss.to_scalar::<f32>()?, 9.);
+        let gradient = diagnostic.loss.backward()?;
+        assert_eq!(grad(&gradient, copy.as_tensor())?, vec![1., 0., 0.]);
+        let dg = grad(&gradient, generate.as_tensor())?;
+        assert_eq!(dg[4], -1.);
+        assert!(dg.iter().enumerate().all(|(i, x)| i == 4 || *x == 0.));
+        assert_eq!(copy.to_vec1::<f32>()?, raw_before);
+        assert_eq!(
+            generate.to_vec1::<f32>()?,
+            vec![0.; binding()?.vocab_size()]
+        );
+        assert_eq!(
+            serde_json::to_vec(&trace).map_err(|e| invalid(e.to_string()))?,
+            before
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn preclip_entry_margin_rejects_nonmatching_or_copy_covered_pools() -> Result<()> {
+        let trace = margin_fixture(&[5], &[9 << 24])?;
+        let generate = Tensor::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Tensor::from_vec(vec![9f32], 1, &Device::Cpu)?;
+        assert!(preclip_entry_margin_diagnostic(&trace, &generate, Some(&copy), 5).is_err());
+        assert!(preclip_entry_margin_diagnostic(&trace, &generate, Some(&copy), 99).is_err());
+        let wrong = Tensor::from_vec(vec![8f32], 1, &Device::Cpu)?;
+        assert!(preclip_entry_margin_diagnostic(&trace, &generate, Some(&wrong), 4).is_err());
+        let nan = Tensor::from_vec(vec![f32::NAN], 1, &Device::Cpu)?;
+        assert!(preclip_entry_margin_diagnostic(&trace, &generate, Some(&nan), 4).is_err());
+        let empty = margin_fixture(&[], &[])?;
+        assert!(preclip_entry_margin_diagnostic(&empty, &generate, None, 4).is_err());
+        let mut corrupted = trace.clone();
+        corrupted.actions[0].action_offset += 1;
+        assert!(preclip_entry_margin_diagnostic(&corrupted, &generate, Some(&copy), 4).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn preclip_entry_margin_gap_boundary_follows_relu_credit() -> Result<()> {
+        for (score, expected_credit) in [(-1f32, 0f32), (0., 1.)] {
+            let trace = margin_fixture(&[5], &[(score as i64) << 24])?;
+            let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+            let copy = Var::from_vec(vec![score], 1, &Device::Cpu)?;
+            let diagnostic = preclip_entry_margin_diagnostic(
+                &trace,
+                generate.as_tensor(),
+                Some(copy.as_tensor()),
+                4,
+            )?;
+            assert_eq!(diagnostic.loss.to_scalar::<f32>()?, 0.);
+            let gradient = diagnostic.loss.backward()?;
+            assert_eq!(grad(&gradient, copy.as_tensor())?, vec![expected_credit]);
+            let dg = grad(&gradient, generate.as_tensor())?;
+            assert_eq!(dg[4], -expected_credit);
+            assert!(dg.iter().enumerate().all(|(i, x)| i == 4 || *x == 0.));
+        }
+        Ok(())
+    }
+
     #[test]
     fn legacy_seed_route_and_balanced_energy_gap_remain_identical() -> Result<()> {
         for lanes in [1, 3, 8] {

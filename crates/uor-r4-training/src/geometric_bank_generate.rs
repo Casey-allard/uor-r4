@@ -25,8 +25,8 @@ use uor_r4_integer::{
 use crate::{
     geometric_context::ContextQ4Output,
     geometric_generate_learning::{
-        vocabulary_marginal_loss, GenerateLearningOutput, GenerateLearningWeights,
-        PreparedGenerateLearning,
+        preclip_entry_margin_diagnostic, vocabulary_marginal_loss, GenerateLearningOutput,
+        GenerateLearningWeights, PreclipEntryMarginDiagnostic, PreparedGenerateLearning,
     },
     geometric_occurrence_consumer::source_realizer::{
         ComposedCopyBankOutput, PreparedSourceRealizer,
@@ -371,6 +371,19 @@ impl BankGenerateOutput {
             (None, Some(context)) => Ok(context),
             _ => Err(invalid("bank Generate context ownership differs")),
         }
+    }
+    /// Separate opt-in offline diagnostic; default loss/native forward are unchanged.
+    /// Caller must establish that this output is an entry (empty actual prefix).
+    pub fn preclip_entry_margin_diagnostic(
+        &self,
+        target: u32,
+    ) -> Result<PreclipEntryMarginDiagnostic> {
+        preclip_entry_margin_diagnostic(
+            &self.actions,
+            &self.generate.raw_scores,
+            self.copy.as_ref().map(|c| &c.copy_raw),
+            target,
+        )
     }
     /// Target enters only after the native score vectors and all legal actions
     /// have been produced. Generate and Copy aliases share the same marginal.
