@@ -60,15 +60,44 @@ target/release/prepare-text-corpus \
 
 Prepared directly from Hugging Face Parquet exports using the `parquet-input` feature (merged in [PR #1660](https://github.com/UOR-Foundation/uor-r4/pull/1660)):
 
+**Download the nine source files first** — the `source=` argument takes local paths, so
+`prepare-chat-parquet` does not fetch anything. The exports live on each dataset's
+auto-converted `refs/convert/parquet` revision:
+
+```sh
+base=https://huggingface.co/datasets
+for n in 0 1 2 3 4 5; do
+  curl -fL -o smoltalk-$n.parquet \
+    "$base/HuggingFaceTB/smoltalk/resolve/refs%2Fconvert%2Fparquet/smol-magpie-ultra/train/000$n.parquet"
+done
+for n in 0 1 2; do
+  curl -fL -o ultrachat-$n.parquet \
+    "$base/HuggingFaceH4/ultrachat_200k/resolve/refs%2Fconvert%2Fparquet/default/train_sft/000$n.parquet"
+done
+```
+
+Then prepare, naming each file explicitly in row order:
+
 ```sh
 RAYON_NUM_THREADS=48 prepare-chat-parquet \
   out=/root/data/chat-v1-p2-train \
   tokenizer=/root/data/tokenizer.json \
   protocol=2 \
   max_tokens=8192 \
-  source='smoltalk_smol-magpie-ultra.train:Apache-2.0:13900:<6 parquet files joined by |>' \
-  source='ultrachat_200k.default.train_sft:MIT:10200:<3 parquet files joined by |>'
+  source='smoltalk_smol-magpie-ultra.train:Apache-2.0:13900:smoltalk-0.parquet|smoltalk-1.parquet|smoltalk-2.parquet|smoltalk-3.parquet|smoltalk-4.parquet|smoltalk-5.parquet' \
+  source='ultrachat_200k.default.train_sft:MIT:10200:ultrachat-0.parquet|ultrachat-1.parquet|ultrachat-2.parquet'
 ```
+
+- **The nine filenames are `0000.parquet`–`0005.parquet` (SmolTalk `smol-magpie-ultra`,
+  train) and `0000.parquet`–`0002.parquet` (UltraChat 200k, `default`/`train_sft).**
+  They were recoverable from the Hugging Face datasets-server parquet index
+  (`https://datasets-server.huggingface.co/parquet?dataset=<repo>`), which is what
+  the counts above were checked against: **6 and 3 files, ~2.1 GB total.** An
+  earlier revision of this section wrote them as `<6 parquet files>` and
+  `<3 parquet files>`, which made chat-v1 unreproducible from the repository —
+  record the names, not the count.
+- **The order matters**: a `source` reads its files as one row sequence, so the
+  sequence and the `SKIP` together determine which rows are kept.
 
 - **Output:** 589,939 rows, 1,388,814,239 tokens.
 - **Skip offsets (13900 and 10200) and held-out panel integrity:**
