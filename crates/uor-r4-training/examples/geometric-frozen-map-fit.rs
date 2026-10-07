@@ -2780,6 +2780,9 @@ fn entry_ceiling_panel(
             "full_correct":full_chosen==gold,"generate_only_correct":only_chosen==gold,
             "gold_in_copy_candidates":ids.contains(&gold),"copy_candidates":ids.len(),
             "gold_generate_rank":gold_rank,
+            // The boundary state itself, so a readout can be fitted against it
+            // offline without any model: does the read encode what was asked?
+            "retained_state_codes":native["retained_state_codes"].clone(),
             "full_summary":full.summary,"generate_only_summary":generate_only.summary}),
         );
     }
