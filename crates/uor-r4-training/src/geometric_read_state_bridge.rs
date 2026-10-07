@@ -391,6 +391,11 @@ impl PreparedCategoricalBridge {
         &self.native_sha256
     }
 
+    /// Device of the immutable conditional-map pullback carrier.
+    pub fn device(&self) -> &Device {
+        &self.device
+    }
+
     fn conditional_maps(
         &self,
         query: &[H4Code],

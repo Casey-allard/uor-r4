@@ -34,6 +34,7 @@ use crate::{
     },
     geometric_read_state_bridge::{
         BridgeLearningOutput, BridgeLearningWeights, PreparedBridgeLearning,
+        PreparedCategoricalBridge,
     },
     invalid, Result,
 };
@@ -48,8 +49,77 @@ pub struct PreparedBankGenerate<'a, 'source> {
     prepared_generate: &'a PreparedGenerateLearning,
     pool: NativeVocabularyActions,
     prefix_temporal_utility: bool,
-    read_state_bridge: Option<(&'a BridgeLearningWeights, &'a PreparedBridgeLearning)>,
+    read_state_bridge: Option<ReadStateBridge<'a>>,
     read_selector_credit: bool,
+}
+
+/// One explicitly selected offline pullback for the same native bridge operation.
+#[derive(Clone, Copy)]
+enum ReadStateBridge<'a> {
+    Legacy(&'a BridgeLearningWeights, &'a PreparedBridgeLearning),
+    Categorical(&'a PreparedCategoricalBridge),
+}
+impl ReadStateBridge<'_> {
+    fn categorical(&self) -> bool {
+        matches!(self, Self::Categorical(_))
+    }
+    fn native(
+        &self,
+    ) -> &uor_r4_core::native_geometric::learner::geometric_read_state_bridge::NativeGeometricReadStateBridge{
+        match self {
+            Self::Legacy(_, prepared) => &prepared.native,
+            Self::Categorical(prepared) => prepared.native(),
+        }
+    }
+    fn forward(
+        &self,
+        query: &[H4Code],
+        source: &[H4Code],
+        query_choices: &Tensor,
+        source_choices: &Tensor,
+    ) -> Result<BridgeLearningOutput> {
+        match self {
+            Self::Legacy(weights, prepared) => {
+                weights.forward_prepared(prepared, query, source, query_choices, source_choices)
+            }
+            Self::Categorical(prepared) => {
+                prepared.forward(query, source, query_choices, source_choices)
+            }
+        }
+    }
+}
+fn configure_bridge<'a>(
+    slot: &mut Option<ReadStateBridge<'a>>,
+    bridge: ReadStateBridge<'a>,
+) -> Result<()> {
+    if slot
+        .as_ref()
+        .is_some_and(|old| old.categorical() != bridge.categorical())
+    {
+        return Err(invalid(
+            "legacy and categorical bank read-state bridges are mutually exclusive",
+        ));
+    }
+    *slot = Some(bridge);
+    Ok(())
+}
+fn admit_categorical_bridge(
+    bridge: &PreparedCategoricalBridge,
+    binding: &SourceActionBinding,
+    lanes: usize,
+    device: &candle_core::Device,
+) -> Result<()> {
+    let metadata = bridge.native().metadata();
+    if metadata.tokenizer_sha256 != binding.tokenizer_sha256()
+        || metadata.dialogue_protocol != *binding.protocol()
+        || bridge.native().lanes() != lanes
+        || !bridge.device().same_device(device)
+    {
+        return Err(invalid(
+            "categorical bank read-state bridge binding/lanes/device differs",
+        ));
+    }
+    Ok(())
 }
 
 /// Target-free result. All native scores and the complete legal action pool
@@ -132,7 +202,32 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
                 "bank read-state bridge binding/lanes/device differs",
             ));
         }
-        self.read_state_bridge = Some((weights, prepared));
+        configure_bridge(
+            &mut self.read_state_bridge,
+            ReadStateBridge::Legacy(weights, prepared),
+        )?;
+        Ok(self)
+    }
+
+    /// Opt into the authenticated frozen categorical map's conditional query
+    /// and source full120 pullback. No bridge variables are learned. Hard route,
+    /// native transport, alternatives and the complete alias pool are unchanged.
+    /// This is an offline conditional surrogate, not a derivative of argmax.
+    /// It cannot be combined with `with_read_state_bridge` in either call order.
+    pub fn with_categorical_read_state_bridge(
+        mut self,
+        prepared: &'a PreparedCategoricalBridge,
+    ) -> Result<Self> {
+        admit_categorical_bridge(
+            prepared,
+            self.generate.binding(),
+            self.generate.lanes(),
+            self.generate.device(),
+        )?;
+        configure_bridge(
+            &mut self.read_state_bridge,
+            ReadStateBridge::Categorical(prepared),
+        )?;
         Ok(self)
     }
 
@@ -246,7 +341,7 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         }
         let causal_token_ids = bank.context.tokens.clone();
         let (mut states, mut logits) = final_retained_state(&copy.context, self.generate.lanes())?;
-        let read_state_bridge = if let Some((weights, prepared)) = self.read_state_bridge {
+        let read_state_bridge = if let Some(prepared) = self.read_state_bridge {
             let selected = hard_read_index(&scores)?;
             let candidate = &bank.candidates[selected];
             let (source, source_choices) = retained_state_at(
@@ -254,8 +349,7 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
                 candidate.context_position,
                 self.generate.lanes(),
             )?;
-            let bridge =
-                weights.forward_prepared(prepared, &states, &source, &logits, &source_choices)?;
+            let bridge = prepared.forward(&states, &source, &logits, &source_choices)?;
             let mut alternatives = Vec::with_capacity(bank.candidates.len());
             for candidate in &bank.candidates {
                 let (source, _) = retained_state_at(
@@ -268,7 +362,7 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
                 let mut action_scores = vec![0i64; states.len() * ROOT_COUNT];
                 let mut counts = Default::default();
                 prepared
-                    .native
+                    .native()
                     .apply_into(
                         &states,
                         &source,
@@ -314,7 +408,16 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             copy_token_ids: ids,
             copy_scores_q24: scores,
             read_state_bridge,
-            credit_scope: if self.read_state_bridge.is_some() && !self.read_selector_credit {
+            credit_scope: if self
+                .read_state_bridge
+                .is_some_and(|bridge| bridge.categorical())
+            {
+                if self.read_selector_credit {
+                    "hard-native-allbank-occurrence-read;fixed-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;no-action-softmax-coefficient-credit-or-extra-query-carry;detached-contrast-poststate-selector-credit;local-decoder-state-sensitivity-not-candidate-loss;complete-token-alias-pool/1"
+                } else {
+                    "hard-native-allbank-occurrence-read;fixed-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;no-action-softmax-coefficient-credit-or-extra-query-carry;selector-adjoint-disabled;complete-token-alias-pool/1"
+                }
+            } else if self.read_state_bridge.is_some() && !self.read_selector_credit {
                 "hard-native-allbank-occurrence-read;signed-H4-selected-source-state-transport;selector-adjoint-disabled;factual-bridge-and-emission-pool-credit/1"
             } else if self.read_state_bridge.is_some() {
                 "hard-native-allbank-occurrence-read;signed-H4-selected-source-state-transport;detached-contrast-poststate-selector-credit;local-decoder-state-sensitivity-not-candidate-loss/1"
@@ -527,6 +630,152 @@ mod tests {
     use uor_r4_integer::{
         geometric_no_read::CANONICAL_BASIS_Q25, geometric_potential::AddressLane,
     };
+    const BRIDGE_TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4},"merges":[]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
+    fn source_copy_bridge() -> Result<(
+        SourceActionBinding,
+        PreparedCategoricalBridge,
+        BridgeLearningWeights,
+        PreparedBridgeLearning,
+    )> {
+        let binding =
+            SourceActionBinding::new(BRIDGE_TOK.as_bytes()).map_err(|e| invalid(e.to_string()))?;
+        let masters = BridgeLearningWeights::zeroed(&binding, 1, &Device::Cpu)?;
+        // T(d)=d: native q * (q^-1 * k) equals k in every query frame.
+        let mut relative = vec![0f32; ROOT_COUNT * ROOT_COUNT];
+        for d in 0..ROOT_COUNT {
+            relative[d * ROOT_COUNT + d] = 0.25;
+        }
+        masters.relative.set(&Tensor::from_vec(
+            relative,
+            (1, ROOT_COUNT, ROOT_COUNT),
+            &Device::Cpu,
+        )?)?;
+        let artifact = masters.export_categorical_actions()?;
+        let bytes = artifact
+            .native
+            .to_bytes()
+            .map_err(|e| invalid(e.to_string()))?;
+        let categorical = PreparedCategoricalBridge::from_bytes(
+            &bytes,
+            &binding,
+            &artifact.receipt.native_sha256,
+            &Device::Cpu,
+        )?;
+        let legacy = BridgeLearningWeights::from_native(&artifact.native, &binding, &Device::Cpu)?;
+        let prepared = legacy.prepare_native()?;
+        Ok((binding, categorical, legacy, prepared))
+    }
+    #[test]
+    fn bank_categorical_configuration_rejects_conflicts_in_both_orders_and_binding() -> Result<()> {
+        let (binding, categorical, weights, native) = source_copy_bridge()?;
+        admit_categorical_bridge(&categorical, &binding, 1, &Device::Cpu)?;
+        assert!(admit_categorical_bridge(&categorical, &binding, 2, &Device::Cpu).is_err());
+        let other = SourceActionBinding::new(BRIDGE_TOK.replace("\"a\"", "\"b\"").as_bytes())
+            .map_err(|e| invalid(e.to_string()))?;
+        assert!(admit_categorical_bridge(&categorical, &other, 1, &Device::Cpu).is_err());
+        for (first, second) in [
+            (
+                ReadStateBridge::Legacy(&weights, &native),
+                ReadStateBridge::Categorical(&categorical),
+            ),
+            (
+                ReadStateBridge::Categorical(&categorical),
+                ReadStateBridge::Legacy(&weights, &native),
+            ),
+        ] {
+            let mut slot = None;
+            configure_bridge(&mut slot, first)?;
+            assert!(configure_bridge(&mut slot, second).is_err());
+            assert_eq!(
+                slot.ok_or_else(|| invalid("configured bridge absent"))?
+                    .categorical(),
+                first.categorical()
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn bank_categorical_dispatch_preserves_native_transport_and_selector_forward() -> Result<()> {
+        let (_, categorical, weights, prepared) = source_copy_bridge()?;
+        let q = [H4Code::try_from(17).map_err(|e| invalid(e.to_string()))?];
+        let k = [H4Code::try_from(83).map_err(|e| invalid(e.to_string()))?];
+        let onehot = |code: H4Code| -> Result<Tensor> {
+            let mut v = vec![0f32; ROOT_COUNT];
+            v[usize::from(code.index())] = 1.;
+            Ok(Tensor::from_vec(v, (1, ROOT_COUNT), &Device::Cpu)?)
+        };
+        let qc = Var::from_tensor(&onehot(q[0])?)?;
+        let kc = Var::from_tensor(&onehot(k[0])?)?;
+        let legacy = ReadStateBridge::Legacy(&weights, &prepared).forward(
+            &q,
+            &k,
+            qc.as_tensor(),
+            kc.as_tensor(),
+        )?;
+        let configured = ReadStateBridge::Categorical(&categorical);
+        let out = configured.forward(&q, &k, qc.as_tensor(), kc.as_tensor())?;
+        assert_eq!(out.post_state_codes, k);
+        assert_eq!(out.post_state_codes, legacy.post_state_codes);
+        assert_eq!(out.action_codes, legacy.action_codes);
+        assert_eq!(out.action_scores_q24, legacy.action_scores_q24);
+        assert_eq!(
+            out.state_choices.to_vec2::<f32>()?,
+            legacy.state_choices.to_vec2::<f32>()?
+        );
+        let mut posts = Vec::new();
+        for source in [k, q, k] {
+            let mut post = [H4Code::IDENTITY];
+            let mut actions = post;
+            configured
+                .native()
+                .apply_into(
+                    &q,
+                    &source,
+                    &mut post,
+                    &mut actions,
+                    &mut vec![0; ROOT_COUNT],
+                    &mut Default::default(),
+                )
+                .map_err(|e| invalid(e.to_string()))?;
+            posts.push(post.to_vec());
+        }
+        let selector = Var::from_vec(vec![2f32, -1., 2.], 3, &Device::Cpu)?;
+        let selected = hard_read_index(&[2, -1, 2])?;
+        assert_eq!(selected, 0);
+        let with_selector =
+            add_selector_credit(&out.state_choices, selector.as_tensor(), &posts, selected)?;
+        assert_eq!(
+            with_selector.to_vec2::<f32>()?,
+            out.state_choices.to_vec2::<f32>()?
+        );
+        // Source-copy conditional pullback: the normalized query tangent is
+        // zero while source utility is preserved. Selector does not detach it.
+        let utility = Tensor::from_vec(
+            (0..ROOT_COUNT)
+                .map(|i| (i % 13) as f32 - 6.)
+                .collect::<Vec<_>>(),
+            (1, ROOT_COUNT),
+            &Device::Cpu,
+        )?;
+        for carrier in [&out.state_choices, &with_selector] {
+            let grads = carrier.mul(&utility)?.sum_all()?.backward()?;
+            let qg = grads
+                .get(qc.as_tensor())
+                .ok_or_else(|| invalid("query gradient absent"))?
+                .to_vec2::<f32>()?;
+            assert!(qg[0].iter().all(|v| *v == qg[0][0]));
+            assert_eq!(
+                grads
+                    .get(kc.as_tensor())
+                    .ok_or_else(|| invalid("source gradient absent"))?
+                    .to_vec2::<f32>()?,
+                utility.to_vec2::<f32>()?
+            );
+            assert!(grads.get(weights.relative.as_tensor()).is_none());
+        }
+        Ok(())
+    }
+
     #[test]
     fn hard_read_preserves_ordinal_ties_and_full_i64_order() -> Result<()> {
         assert_eq!(hard_read_index(&[i64::MAX - 1, i64::MAX, i64::MAX])?, 1);
