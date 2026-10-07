@@ -2,7 +2,7 @@
 # Pod-side bootstrap for the shared UOR-R4 GPU pods (#820; docs/labs/compute.md).
 # `uor-pod up`/`uor-pod bootstrap` copies this file to /root and runs it as root:
 #
-#   bash /root/uor-pod-bootstrap.sh --sha FULL_SHA [--pod ID] [--with-ollama] [--off-volume]
+#   bash /root/uor-pod-bootstrap.sh --sha FULL_SHA [--pod ID] [--with-ollama] [--off-volume] [--non-canonical]
 #
 # Everything slow is cached on the shared network volume (/workspace) so the
 # second pod of a kind starts in seconds:
@@ -18,13 +18,14 @@ set -euo pipefail
 # `--check-args` validates the arguments exactly as a real run would and exits 0
 # without touching anything: `uor-pod up` runs it on the laptop before creating
 # (and paying for) a pod, so a bad argument never reaches a billed pod.
-SHA='' POD='' OLLAMA=0 OFF=0 CHECK_ARGS=0
+SHA='' POD='' OLLAMA=0 OFF=0 NONCANON=0 CHECK_ARGS=0
 while [ $# -gt 0 ]; do
   case $1 in
     --sha|--pod) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }
       if [ "$1" = --sha ]; then SHA=$2; else POD=$2; fi; shift 2;;
     --with-ollama) OLLAMA=1; shift;;
     --off-volume) OFF=1; shift;;
+    --non-canonical) NONCANON=1; shift;;
     --check-args) CHECK_ARGS=1; shift;;
     *) echo "unknown argument $1" >&2; exit 2;;
   esac
@@ -240,6 +241,35 @@ ollama_step() {  # never fails; sets OLLAMA_STATUS ready|pull-failed|FAILED
 [ "${UOR_BOOTSTRAP_LIB:-0}" != 1 ] || return 0  # the dry-run tests source the functions above and stop here
 
 mkdir -p /root/leases /workspace/uor-r4/jobs /workspace/uor-r4/pods /workspace/bin /workspace/toolchain
+
+# ---- non-canonical volume: fetch the small data set from the private Hugging
+# Face dataset store (token copied by `uor-pod up`). Download only, never
+# upload; any failure is a warning and the bootstrap continues.
+if [ "$NONCANON" = 1 ]; then
+  DATA=/workspace/uor-r4/data missing=''
+  for f in tokenizer.json.tar ft-balp.tar ft-dev.tar step5-inputs.tar MD5SUMS hot/sieve-panel.tar; do
+    if [ ! -e "$DATA/$f" ]; then missing="$missing $f"; fi
+  done
+  if [ -n "$missing" ]; then
+    store=${UOR_HF_STORE:-caseyallard/uor-r4-store}
+    log "non-canonical volume: fetching$missing from HF dataset $store"
+    if pip install -q --break-system-packages "huggingface_hub[cli]" &&
+       hf download "$store" --repo-type dataset $(for f in $missing; do printf -- "--include data/%s " "$f"; done) --local-dir /workspace/uor-r4/; then
+      fetched=''
+      for f in $missing; do if [ -e "$DATA/$f" ]; then fetched="$fetched $f"; fi; done
+      log "HF store fetched:${fetched:- nothing}"
+      if [ -f "$DATA/MD5SUMS" ] && [ -n "$fetched" ]; then
+        # check only the files fetched now; files that were already there are not re-checked
+        sums=$(grep -E "^[0-9a-f]+  \*?($(echo $fetched | sed 's/ /|/g; s/\./\\./g'))\$" "$DATA/MD5SUMS" || true)
+        if [ -n "$sums" ]; then
+          (cd "$DATA" && echo "$sums" | md5sum -c --quiet -) || log "WARNING: HF store files fail MD5SUMS (see above); continuing"
+        fi
+      fi
+    else
+      log "WARNING: HF store fetch failed; continuing without it"
+    fi
+  fi
+fi
 
 # ---- CUDA 12.8 toolkit (the standard image ships it; apt is the slow fallback)
 CUDA=''

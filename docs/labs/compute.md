@@ -188,6 +188,30 @@ volume through the laptop) or fetched to the laptop and recorded in the task
 issue. `down` refuses a non-canonical or volume-less pod until you pass
 `--confirm-archived`. `uor-pod pull POD PATH…` copies extra inputs in.
 
+## Any region
+
+Owner-approved 7 October 2026 (#1750).
+
+- **GPU ladder.** Without `--gpu`, `up` tries 2 × RTX 5090, then 2 × RTX 4090,
+  then 2 × RTX PRO 6000, then 1 × each in the same order. `--gpu KEY` asks for
+  that type only.
+- **Placement.** The three volume datacenters come first: EUR-NO-1, EU-RO-1,
+  EUR-IS-1. When `UOR_POD_VOLUME_DCS` is unset, the allowlisted extra
+  datacenters (`EXTRA_VOLUME_DCS`) follow, ordered by stock. Every pod outside
+  EUR-NO-1 is non-canonical: it starts with an empty `/workspace`, and its
+  results must be archived before `down` (see Placement above).
+- **HF store.** A private Hugging Face dataset, `caseyallard/uor-r4-store`,
+  holds `data/*` and the base `bases/geo-214m-e448de86/{model/,report.json}`.
+  On a non-canonical pod the bootstrap (`--non-canonical`) downloads the
+  missing `data/*` files and checks them against `MD5SUMS`. This step only
+  downloads, and a failure in it is a warning. To fetch a base:
+  `hf download caseyallard/uor-r4-store --repo-type dataset --include 'bases/geo-214m-e448de86/*' --local-dir DIR`.
+- **Token.** `up` copies `~/.cache/huggingface/token` from the laptop to the
+  pod (`/root/.cache/huggingface/token`, mode 600) over stdin and logs only
+  "hf token copied", never the value.
+- **One-off pod-to-pod copies.** `runpodctl send FILE` on the source pod
+  prints a code; run `runpodctl receive CODE` on the destination.
+
 ## Layout of `/workspace` (canonical volume)
 
 | Path | Contents | Owner |

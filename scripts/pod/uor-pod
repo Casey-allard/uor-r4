@@ -6,7 +6,7 @@
 #   uor-pod                                    the rules (one screen)
 #   uor-pod status [--du] [--all]              rules, pods (running and stopped), leases,
 #                                              per-GPU use, free GPUs, 5090 stock, volume use
-#   uor-pod up --lab L --session S --purpose "..." --hours H [--gpu 5090] [--count 2]
+#   uor-pod up --lab L --session S --purpose "..." --hours H [--gpu KEY: default ladder 5090 -> 4090 -> pro6000] [--count 2]
 #              [--card URL] [--wait [--wait-hours 2]] [--ref SHA|main] [--with-ollama]
 #              [--test] [--allow-off-volume] [--no-bootstrap] [--keep-on-failure] [--owner-approved]
 #              [--force-retry]   every argument is checked before the Runpod API is called;
@@ -49,6 +49,14 @@ TEMPLATE_ID=${UOR_POD_TEMPLATE:-h15vb984sw}
 # Placement order: the network-volume datacenters that list RTX 5090 stock.
 # EUR-NO-1's volume is the canonical store; the others get uor-shared-<DC> lazily.
 VOLUME_DCS=${UOR_POD_VOLUME_DCS:-EUR-NO-1 EU-RO-1 EUR-IS-1}
+# Any-region placement (owner-approved 2026-10-07): when UOR_POD_VOLUME_DCS is
+# not set, `up` also tries these Secure datacenters after VOLUME_DCS, the ones
+# with more stock first. `runpodctl datacenter list` reports no network-volume
+# support (only id, name, location, gpuAvailability), so this is a maintained
+# allowlist of datacenters known to be volume-capable on 2026-10-07. A pod here
+# gets its own uor-shared-<DC> volume and is non-canonical, as in EU-RO-1.
+EXTRA_VOLUME_DCS="US-CO-1 US-NC-2 US-IL-1 US-KS-2 US-TX-3 CA-MTL-1"
+[ -z "${UOR_POD_VOLUME_DCS+set}" ] || EXTRA_VOLUME_DCS=''
 CANONICAL_DC=EUR-NO-1
 VOLUME_ID=lmd1pfah3y
 NEW_VOLUME_GB=100
@@ -75,12 +83,17 @@ GPU_POLICY='5090|NVIDIA GeForce RTX 5090|120|default
 4090|NVIDIA GeForce RTX 4090|89|explicit
 l40s|NVIDIA L40S|89|explicit
 6000ada|NVIDIA RTX 6000 Ada Generation|89|explicit
+pro6000|NVIDIA RTX PRO 6000 Blackwell Server Edition|120|explicit
 a100|NVIDIA A100 80GB PCIe|80|forbidden
 a100sxm|NVIDIA A100-SXM4-80GB|80|forbidden
 h100|NVIDIA H100 80GB HBM3|90|forbidden
 h100pcie|NVIDIA H100 PCIe|90|forbidden
 h200|NVIDIA H200|90|forbidden
 b200|NVIDIA B200|100|forbidden'
+
+# `up` without --gpu walks this ladder (owner decision 2026-10-07: 5090, then
+# 4090, then RTX PRO 6000); an explicit --gpu KEY tries that GPU only.
+GPU_LADDER='5090 4090 pro6000'
 
 gpu_field() {  # gpu_field KEY N -> field N (2 id, 3 cap, 4 tier)
   printf '%s\n' "$GPU_POLICY" | awk -F'|' -v k="$1" -v n="$2" '$1==k {print $n}'
@@ -365,7 +378,7 @@ unmirror_lease() {
 # ---------------------------------------------------------------- argument parsing
 LAB='' SESSION='' ID='' WHO='' PURPOSE='' HOURS='' CARD='' GPUS='' GPU='' COUNT='' REF=main
 OWNER_OK=0 OFF_VOLUME=0 WAIT=0 WAIT_HOURS=2 NO_BOOT=0 KEEP_FAIL=0 OLLAMA=0 FORCE=0 FORCE_RETRY=0 OPTS_SEEN=''
-NO_MIRROR=0 DISCARD_LOCAL=0 CONFIRM_ARCHIVED=0 DU=0 NLINES=20 VIA='' UP_TEST=0 KEEP_REASON='' OLDER=24h YES=0
+LADDER=0 NO_MIRROR=0 DISCARD_LOCAL=0 CONFIRM_ARCHIVED=0 DU=0 NLINES=20 VIA='' UP_TEST=0 KEEP_REASON='' OLDER=24h YES=0
 POS=()
 parse() {
   while [ $# -gt 0 ]; do
@@ -582,11 +595,19 @@ stock_in() {  # STOCK-JSON GPU-ID DC -> stock status ('' when none)
     '.[] | select(.gpuId == $g) | .dataCenterAvailability[]? | select(.dataCenterId == $dc) | .stockStatus // ""
      | select(. != "none" and . != "")' | head -1
 }
+extra_dcs_by_stock() {  # STOCK-JSON GPU-ID -> the EXTRA_VOLUME_DCS with stock, High before Medium before Low
+  [ -n "$EXTRA_VOLUME_DCS" ] || return 0
+  echo "$1" | jq -r --arg g "$2" --arg x " $EXTRA_VOLUME_DCS " \
+    '[.[] | select(.gpuId == $g) | .dataCenterAvailability[]?
+      | .dataCenterId as $d | select((.stockStatus // "") != "none" and (.stockStatus // "") != "" and ($x | contains(" " + $d + " ")))
+      | {d: .dataCenterId, r: ({"High": 0, "Medium": 1, "Low": 2}[.stockStatus] // 3)}]
+     | sort_by(.r) | .[].d'
+}
 price_of() { echo "$1" | jq -r --arg g "$2" '.[] | select(.gpuId == $g) | .securePricePerHr // empty' | head -1; }
 print_stock_table() {  # STOCK-JSON [KEYS]
   local stock=$1 k
   echo "Stock by datacenter (secure \$/GPU/h; * = volume datacenter, placement order $VOLUME_DCS):"
-  for k in ${2:-5090 4090 l40s 6000ada}; do
+  for k in ${2:-5090 4090 pro6000 l40s 6000ada}; do
     echo "$stock" | jq -r --arg g "$(gpu_field "$k" 2)" --arg k "$k" --arg vdcs " $VOLUME_DCS " \
       '.[] | select(.gpuId == $g) | "  \($k) $\(.securePricePerHr // "?"): \([.dataCenterAvailability[]? | select(.stockStatus != "none" and .stockStatus != "")
         | .dataCenterId as $d | "\($d)\(if ($vdcs | contains(" " + $d + " ")) then "*" else "" end)=\(.stockStatus)"] | join(" ") | if . == "" then "no stock" else . end)"'
@@ -616,6 +637,7 @@ ensure_volume() {  # DC -> volume id; creates uor-shared-<DC> (100 GB, owner-app
 # One placement attempt (caller holds the lock). Sets UP_* or returns 2 when no stock.
 up_attempt() {
   local req=$1 count=$2 pods stock id free gtype probe states n_run rate gid price dc='' off=0 add
+  UP_CAPMSG=''
   pods=$(pods_all); stock=$(gpu_stock)
 
   # 1. a free leased-compatible GPU already exists? (same GPU type, or type not yet known)
@@ -653,10 +675,15 @@ up_attempt() {
     die "cap reached ($n_run of $MAX_PODS pods) and no GPU is free: wait for a lease to expire (uor-pod status) or ask the owner. Do not fall back to the laptop CPU because of the cap."
   fi
   gid=$(gpu_field "$req" 2); price=$(price_of "$stock" "$gid")
+  if [ -z "$price" ] && [ "$LADDER" = 1 ]; then info "no secure-cloud listing for $gid"; UP_STOCK=$(print_stock_table "$stock"); return 2; fi
   [ -n "$price" ] || { lock_release; die "no secure-cloud price listed for $gid"; }
   add=$(jq -n --argjson p "$price" --argjson c "$count" '$p * $c')
   if jq -en --argjson r "$rate" --argjson a "$add" --argjson m "$MAX_RATE" '$r + $a > $m' >/dev/null && [ "$OWNER_OK" != 1 ]; then
-    lock_release; die "cap: running \$$rate/h + new \$$add/h exceeds \$$MAX_RATE/h; needs --owner-approved"
+    # ladder: a rung that busts the rate cap is a miss like a rung without stock,
+    # so the next (cheaper) rung or the 1x fallback still gets its chance
+    UP_CAPMSG="cap: running \$$rate/h + new \$$add/h exceeds \$$MAX_RATE/h; needs --owner-approved"
+    if [ "$LADDER" = 1 ]; then info "$count x $req: $UP_CAPMSG"; return 2; fi
+    lock_release; die "$UP_CAPMSG"
   fi
 
   # 3. placement candidates: the volume datacenters that list stock, in policy
@@ -666,6 +693,7 @@ up_attempt() {
   for dc in $VOLUME_DCS; do
     if [ -n "$(stock_in "$stock" "$gid" "$dc")" ]; then cands="$cands $dc:0"; else info "no $req stock in $dc"; fi
   done
+  for dc in $(extra_dcs_by_stock "$stock" "$gid"); do cands="$cands $dc:0"; done
   if [ -z "$cands" ] && [ "$OFF_VOLUME" = 1 ]; then
     for dc in $(echo "$stock" | jq -r --arg g "$gid" '.[] | select(.gpuId == $g) | .dataCenterAvailability[]?
       | select(.stockStatus != "none" and .stockStatus != "") | .dataCenterId'); do
@@ -687,10 +715,11 @@ NO_STOCK_RE='no longer any instances available|no instances (are )?(currently )?
 # the lock). Sets POD_JSON, UP_DC, UP_OFF, UP_VOL. Returns 0 when created, 2 when
 # every candidate reported no stock; any other create error is fatal.
 up_create() {  # COUNT NAME REQ
-  local count=$1 name=$2 req=$3 cand dc off vol args created tried='' where
+  local count=$1 name=$2 req=$3 cand dc off vol args created tried='' where new_vol
   for cand in $UP_CANDS; do
-    dc=${cand%:*} off=${cand#*:} vol=''
+    dc=${cand%:*} off=${cand#*:} vol='' new_vol=0
     if [ "$off" = 0 ]; then
+      is_dry || [ -n "$(volume_for_dc "$dc")" ] || new_vol=1  # created by this call, not pre-existing
       vol=$(ensure_volume "$dc") || { lock_release; die "could not find or create volume uor-shared-$dc"; }
     fi
     args=(pod create --template-id "$TEMPLATE_ID" --name "$name" --gpu-id "$UP_GID" --gpu-count "$count"
@@ -699,7 +728,7 @@ up_create() {  # COUNT NAME REQ
     if [ "$off" = 1 ]; then args+=(--volume-in-gb "$OFF_VOLUME_DISK_GB"); else args+=(--network-volume-id "$vol"); fi
     UP_DC=$dc UP_OFF=$off UP_VOL=$vol where=$dc
     if [ "$off" = 1 ]; then where="$dc OFF-VOLUME"; elif [ "$dc" != "$CANONICAL_DC" ]; then where="$dc volume $vol (non-canonical)"; fi
-    echo "Creating $count x $req (\$$UP_ADD/h) in $where for $WHO: $PURPOSE"
+    echo "Creating $count x $req$( [ "${LADDER:-0}" = 1 ] && echo ' (ladder)') (\$$UP_ADD/h) in $where for $WHO: $PURPOSE"
     if is_dry; then
       echo "DRY-RUN: runpodctl ${args[*]}" >&2
       echo "DRY-RUN: if $dc reports no instances available, try next:${UP_CANDS#*"$cand"}" >&2
@@ -717,6 +746,16 @@ up_create() {  # COUNT NAME REQ
     if printf '%s' "$created" | grep -qiE "$NO_STOCK_RE"; then
       warn "pod create in $dc: no instances available any more ($(printf '%s' "$created" | tail -1)); trying the next datacenter"
       tried="$tried $dc"
+      # a volume this call just created for a datacenter that then had no stock
+      # would bill for nothing: remove it (never a pre-existing volume)
+      if [ "$new_vol" = 1 ]; then
+        if runpodctl network-volume delete "$vol" >/dev/null 2>&1; then
+          info "deleted the volume $vol created for $dc (no stock there)"
+          ledger volume-delete "$LAB" '' "$(jq -cn --arg v "$vol" --arg dc "$dc" '{volume: $v, dc: $dc, reason: "no stock after create"}')"
+        else
+          warn "DELETE FAILED for the new volume $vol (uor-shared-$dc) — delete it by hand: runpodctl network-volume delete $vol"
+        fi
+      fi
       continue
     fi
     lock_release; die "pod create failed in $dc: $(printf '%s' "$created" | tail -3)"
@@ -777,7 +816,9 @@ cmd_up() {
   check_up_args
   [ -n "$LAB" ] && [ -n "$PURPOSE" ] && [ -n "$HOURS" ] || die "up needs --lab, --session, --purpose and --hours"
   check_who; check_hours "$HOURS"
-  local req=${GPU:-5090} count=${COUNT:-2} tier rc deadline waited=0
+  local req=${GPU:-5090} count=${COUNT:-2} tier rc deadline waited=0 rungs=${GPU:-$GPU_LADDER} want
+  LADDER=0; [ -n "$GPU" ] || LADDER=1
+  want=$req; [ "$LADDER" = 0 ] || want="ladder ${GPU_LADDER// / -> }"
   tier=$(gpu_field "$req" 4)
   [ -n "$tier" ] || die "unknown --gpu '$req' (policy keys: $(printf '%s\n' "$GPU_POLICY" | cut -d'|' -f1 | tr '\n' ' '))"
   if [ "$tier" = forbidden ] && [ "$OWNER_OK" != 1 ]; then
@@ -801,34 +842,44 @@ cmd_up() {
   name="uor-$LAB-$(date -u +%m%d-%H%M)"
   if [ "$UP_TEST" = 1 ]; then name="$TEST_PREFIX$LAB-$(date -u +%m%d-%H%M)"; fi
 
+  local cap_only
   while :; do
-    lock_acquire
-    rc=0; up_attempt "$req" "$count" || rc=$?
-    if [ "$rc" = 0 ]; then
-      t_create=$(now_epoch)
-      up_create "$count" "$name" "$req" || rc=$?
-      [ "$rc" = 0 ] && break
-    fi
-    lock_release
+    cap_only=1
+    # ladder: the first rung with stock wins; a rung without stock (rc 2) passes
+    # to the next. Caps, free-GPU and create errors stop `up` as before.
+    for req in $rungs; do
+      lock_acquire
+      rc=0; up_attempt "$req" "$count" || rc=$?
+      if [ "$rc" = 2 ] && [ -n "$UP_CAPMSG" ]; then :; else cap_only=0; fi
+      if [ "$rc" = 0 ]; then
+        t_create=$(now_epoch)
+        up_create "$count" "$name" "$req" || rc=$?
+        [ "$rc" = 0 ] && break 2
+      fi
+      lock_release
+      [ "$LADDER" = 0 ] || info "ladder: no $count x $req placed; trying the next rung"
+    done
     # "Low" stock usually means one free card per host: without an explicit
     # --count, settle for one GPU rather than wait for a 2-GPU host
     if [ -z "$COUNT" ] && [ "$count" -gt 1 ]; then
-      warn "no $count x $req on one host; falling back to 1 x $req (start another pod for a second job)"
+      warn "no $count x $want on one host; falling back to 1 x $want (start another pod for a second job)"
       count=1; continue
     fi
+    # every rung (and the 1x fallback) failed only on the rate cap
+    [ "$cap_only" = 0 ] || die "$UP_CAPMSG"
     echo "$UP_STOCK"
     if [ "$WAIT" != 1 ]; then
-      die "no $req stock in $VOLUME_DCS. Re-run with --wait (retries every minute for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
+      die "no $want stock in $VOLUME_DCS${EXTRA_VOLUME_DCS:+ $EXTRA_VOLUME_DCS}. Re-run with --wait (retries every minute for --wait-hours, default 2)$([ "$req" = 5090 ] && echo ', or choose --gpu 4090 explicitly'); --allow-off-volume places it without a volume"
     fi
     if is_dry; then echo "DRY-RUN: would retry every $((WAIT_INTERVAL / 60)) min until $(jq -rn --argjson t "$deadline" '$t | todate')"; return 0; fi
     if [ "$(now_epoch)" -ge "$deadline" ]; then
-      lock_acquire; ledger up-gave-up "$LAB" '' "{\"gpu\": \"$req\", \"count\": $count, \"waited_s\": $waited}"; lock_release
-      board "up gave up: no $count x $req in $VOLUME_DCS after $((waited / 60)) min (by=$WHO — $PURPOSE)"
-      die "no $req stock after waiting $((waited / 60)) min"
+      lock_acquire; ledger up-gave-up "$LAB" '' "{\"gpu\": \"$want\", \"count\": $count, \"waited_s\": $waited}"; lock_release
+      board "up gave up: no $count x $want in $VOLUME_DCS after $((waited / 60)) min (by=$WHO — $PURPOSE)"
+      die "no $want stock after waiting $((waited / 60)) min"
     fi
     if [ "$waited" = 0 ]; then
-      lock_acquire; ledger up-waiting "$LAB" '' "{\"gpu\": \"$req\", \"count\": $count, \"wait_hours\": $WAIT_HOURS}"; lock_release
-      board "up waiting: no $count x $req in $VOLUME_DCS; by=$WHO retries every $((WAIT_INTERVAL / 60)) min for up to ${WAIT_HOURS} h — $PURPOSE"
+      lock_acquire; ledger up-waiting "$LAB" '' "{\"gpu\": \"$want\", \"count\": $count, \"wait_hours\": $WAIT_HOURS}"; lock_release
+      board "up waiting: no $count x $want in $VOLUME_DCS; by=$WHO retries every $((WAIT_INTERVAL / 60)) min for up to ${WAIT_HOURS} h — $PURPOSE"
     fi
     info "retrying in $((WAIT_INTERVAL / 60)) min (until $(jq -rn --argjson t "$deadline" '$t | todate'))"
     sleep "$WAIT_INTERVAL"; waited=$((waited + WAIT_INTERVAL))
@@ -847,10 +898,10 @@ cmd_up() {
   mkdir -p "$STATE/leases/$pod"
   write_lease "$pod" "$ID" "$(jq -cn --argjson c "$count" '[range(0; $c)]')"
   ledger up "$LAB" "$pod" "$(jq -cn --arg g "$req" --argjson c "$count" --arg dc "$UP_DC" --argjson usd "$UP_ADD" \
-    --arg purpose "$PURPOSE" --arg card "$CARD" --arg v "$UP_VOL" --argjson canon "$canon" \
-    '{gpu: $g, count: $c, dc: $dc, volume: $v, canonical: $canon, usd_per_h: $usd, purpose: $purpose, card: $card}')"
+    --arg purpose "$PURPOSE" --arg card "$CARD" --arg v "$UP_VOL" --argjson canon "$canon" --arg sel "$( [ "$LADDER" = 1 ] && echo ladder || echo explicit)" \
+    '{gpu: $g, count: $c, dc: $dc, volume: $v, canonical: $canon, usd_per_h: $usd, purpose: $purpose, card: $card, gpu_choice: $sel}')"
   lock_release
-  board "up $pod ($count x $req, $where, \$$UP_ADD/h) by=$WHO hours=$HOURS — $PURPOSE${CARD:+ [$CARD]}"
+  board "up $pod ($count x $req$( [ "$LADDER" = 1 ] && echo ' via ladder'), $where, \$$UP_ADD/h) by=$WHO hours=$HOURS — $PURPOSE${CARD:+ [$CARD]}"
   echo "Pod $pod created; waiting for SSH (up to $SSH_WAIT_SECONDS s)"
 
   local deadline addr t_ssh
@@ -884,6 +935,15 @@ cmd_up() {
   echo "SSH ready after ${t_ssh}s: $(addr_line "$pod")"
   lock_acquire; ledger ssh-ready "$LAB" "$pod" "{\"create_to_ssh_s\": $t_ssh}"; lock_release
   mirror_lease "$pod" "$ID"
+  # the Hugging Face token (private store caseyallard/uor-r4-store) goes over
+  # stdin, never on a command line or in a log
+  if ! is_dry && [ -f "$HOME/.cache/huggingface/token" ]; then
+    if pod_ssh "$pod" 'mkdir -p /root/.cache/huggingface && umask 077 && cat > /root/.cache/huggingface/token' < "$HOME/.cache/huggingface/token"; then
+      info "hf token copied"
+    else
+      warn "hf token copy to $pod failed (the bootstrap's store fetch will be skipped)"
+    fi
+  fi
   if [ "$canon" = false ]; then
     # a non-canonical /workspace starts empty: copy the hot set before bootstrap
     # (toolchain and cached binaries make the bootstrap warm). Best effort.
@@ -1249,17 +1309,21 @@ resolve_ref() {  # REF -> full SHA on stdout; dies with the reason otherwise
 # The pod-side bootstrap's argument vector, built in one place for the preflight
 # and the real run, and checked by the bootstrap's own parser (--check-args).
 BOOT_ARGS=()
-bootstrap_args() {  # SHA POD OFF-VOLUME(true|false) -> BOOT_ARGS
+bootstrap_args() {  # SHA POD OFF-VOLUME(true|false) [CANONICAL(true|false)] -> BOOT_ARGS
   BOOT_ARGS=(--sha "$1" --pod "$2")
   if [ "$OLLAMA" = 1 ]; then BOOT_ARGS+=(--with-ollama); fi
   if [ "$3" = true ]; then BOOT_ARGS+=(--off-volume); fi
+  if [ "${4:-true}" = false ]; then BOOT_ARGS+=(--non-canonical); fi
 }
 preflight_bootstrap_args() {  # SHA -> dies unless the bootstrap accepts every argument vector `up` may pass
   local off out
+  local canon
   for off in false $( [ "$OFF_VOLUME" = 1 ] && echo true ); do
-    bootstrap_args "$1" preflightpod "$off"
-    out=$(bash "$HERE/uor-pod-bootstrap.sh" --check-args "${BOOT_ARGS[@]}" 2>&1) ||
-      die "the bootstrap rejects the arguments up would pass (${BOOT_ARGS[*]}): $out (nothing was created)"
+    for canon in true false; do  # placement decides canonical only after create
+      bootstrap_args "$1" preflightpod "$off" "$canon"
+      out=$(bash "$HERE/uor-pod-bootstrap.sh" --check-args "${BOOT_ARGS[@]}" 2>&1) ||
+        die "the bootstrap rejects the arguments up would pass (${BOOT_ARGS[*]}): $out (nothing was created)"
+    done
   done
 }
 
@@ -1299,7 +1363,7 @@ do_bootstrap() {  # POD -> copy reaper + bootstrap, mirror leases, run bootstrap
   fi
   sha=$(resolve_ref "$REF") || return 1
   off=$(echo "$cache" | jq -r '.off_volume // false')
-  bootstrap_args "$sha" "$pod" "$off"
+  bootstrap_args "$sha" "$pod" "$off" "$(echo "$cache" | jq -r 'if .canonical == false then "false" else "true" end')"
   out=$(bash "$HERE/uor-pod-bootstrap.sh" --check-args "${BOOT_ARGS[@]}" 2>&1) ||
     { warn "the bootstrap rejects its arguments (${BOOT_ARGS[*]}): $out"; return 1; }
   ts=$(date -u +%Y%m%dT%H%M%SZ)

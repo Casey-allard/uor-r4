@@ -95,6 +95,9 @@ case "$1 $2" in
   "network-volume create")
     [ "${FAKE_ALLOW_CREATE:-0}" = 1 ] || { echo "REAL MUTATION CALLED IN DRY RUN" >&2; exit 9; }
     echo '{"id":"volnew"}';;
+  "network-volume delete")
+    [ "${FAKE_ALLOW_CREATE:-0}" = 1 ] || { echo "REAL MUTATION CALLED IN DRY RUN" >&2; exit 9; }
+    echo '{}';;
   "pod delete")
     [ "${FAKE_ALLOW_CREATE:-0}" = 1 ] || { echo "REAL MUTATION CALLED IN DRY RUN" >&2; exit 9; }
     echo '{}';;
@@ -209,12 +212,28 @@ export UOR_POD_MAX_PODS=9 UOR_POD_MAX_RATE=99
 expect "up: no 5090 in EUR-NO-1 -> EU-RO-1, never 4090" 0 "Creating 2 x 5090 .* in EU-RO-1 volume dryrunvolume \\(non-canonical\\) for codex/x1" -- up "${X1[@]}" --purpose x --hours 1 --count 2
 expect "up: creates uor-shared-EU-RO-1 lazily" 0 "network-volume create --name uor-shared-EU-RO-1 --size 100 --data-center-id EU-RO-1" -- up "${X1[@]}" --purpose x --hours 1 --count 2
 expect "up --gpu 4090 explicit -> EUR-NO-1 canonical" 0 "Creating 2 x 4090 .* in EUR-NO-1 for codex/x1" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 2
-UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up: no 5090 in volume DCs refuses (no silent fallback)" 1 "no 5090 stock in EUR-NO-1 EUR-IS-1.*--wait" -- up "${X1[@]}" --purpose x --hours 1 --count 2
+UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --gpu 5090: no 5090 in volume DCs refuses (no silent fallback)" 1 "no 5090 stock in EUR-NO-1 EUR-IS-1.*--wait" -- up "${X1[@]}" --gpu 5090 --purpose x --hours 1 --count 2
 has "refusal prints the stock table" "4090 \\\$0.74: EUR-NO-1\\*=Low"
-UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --wait retries every minute" 0 "would retry every 1 min" -- up "${X1[@]}" --purpose x --hours 1 --count 2 --wait --wait-hours 1
+UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --wait retries every minute" 0 "would retry every 1 min" -- up "${X1[@]}" --gpu 5090 --purpose x --hours 1 --count 2 --wait --wait-hours 1
 UOR_POD_VOLUME_DCS="EUR-NO-1 EUR-IS-1" expect "up --allow-off-volume places 5090 in EU-RO-1 without volume" 0 "Creating 2 x 5090 .* in EU-RO-1 OFF-VOLUME" -- up "${X1[@]}" --purpose x --hours 1 --count 2 --allow-off-volume
 UOR_POD_MAX_RATE=4 expect "up over rate cap refused" 1 "exceeds \\\$4/h" -- up "${X1[@]}" --purpose x --hours 1 --count 3
 expect "up (dry) names the next datacenter to try on a stock error" 0 "if EU-RO-1 reports no instances available, try next" -- up "${X1[@]}" --purpose x --hours 1 --count 2
+# GPU ladder (owner 2026-10-07): without --gpu, 5090 -> 4090 -> RTX PRO 6000.
+cp "$FAKE/gpus.json" "$FAKE/gpus.json.orig"
+cat > "$FAKE/gpus.json" <<'J'
+[
+ {"gpuId":"NVIDIA GeForce RTX 5090","securePricePerHr":0.99,"dataCenterAvailability":[{"dataCenterId":"EUR-NO-1","stockStatus":"none"},{"dataCenterId":"EU-RO-1","stockStatus":"none"}]},
+ {"gpuId":"NVIDIA GeForce RTX 4090","securePricePerHr":0.74,"dataCenterAvailability":[{"dataCenterId":"EUR-NO-1","stockStatus":"Low"}]},
+ {"gpuId":"NVIDIA RTX PRO 6000 Blackwell Server Edition","securePricePerHr":2.09,"dataCenterAvailability":[{"dataCenterId":"EU-RO-1","stockStatus":"Low"}]}
+]
+J
+expect "ladder: no 5090 anywhere -> 4090" 0 "Creating 2 x 4090 \\(ladder\\) .* in EUR-NO-1 for codex/x1" -- up "${X1[@]}" --purpose x --hours 1 --count 2
+expect "explicit --gpu 5090 with no stock still refuses" 1 "no 5090 stock in .*--wait" -- up "${X1[@]}" --gpu 5090 --purpose x --hours 1 --count 2
+jq 'map(if .gpuId == "NVIDIA GeForce RTX 4090" then .dataCenterAvailability = [{"dataCenterId":"EUR-NO-1","stockStatus":"none"}] else . end)' "$FAKE/gpus.json" > "$FAKE/gpus.json.new" && mv "$FAKE/gpus.json.new" "$FAKE/gpus.json"
+expect "ladder: no 5090 or 4090 -> RTX PRO 6000" 0 "Creating 2 x pro6000 \\(ladder\\) .* in EU-RO-1 volume" -- up "${X1[@]}" --purpose x --hours 1 --count 2
+jq 'map(.dataCenterAvailability |= map(.stockStatus = "none"))' "$FAKE/gpus.json" > "$FAKE/gpus.json.new" && mv "$FAKE/gpus.json.new" "$FAKE/gpus.json"
+expect "ladder: no stock on any rung refuses, naming the ladder" 1 "no ladder 5090 -> 4090 -> pro6000 stock" -- up "${X1[@]}" --purpose x --hours 1 --count 2
+mv "$FAKE/gpus.json.orig" "$FAKE/gpus.json"
 # helper files are checked before anything is created: a copy of the tool with
 # one helper missing, empty or broken must stop before any create/volume call
 PF=$W/pf; mkdir -p "$PF"; cp "$HERE/../uor-pod" "$HERE/../uor-pod-bootstrap.sh" "$HERE/../hot-set.txt" "$PF/"
@@ -283,6 +302,7 @@ chk() {  # NAME RC PATTERN bootstrap-args...
   if [ "$rc" = "$want" ] && grep -qE -e "$pat" "$W/out"; then ok "$name"; else echo "     rc=$rc"; bad "$name"; fi
 }
 chk "bootstrap --check-args accepts a full SHA" 0 "bootstrap arguments OK" --sha "$MAIN_SHA" --pod podx --with-ollama --off-volume
+chk "bootstrap --check-args accepts --non-canonical" 0 "bootstrap arguments OK" --sha "$MAIN_SHA" --pod podx --non-canonical
 chk "bootstrap --check-args rejects a short SHA" 2 "--sha must be a full 40-character commit \\(got 7" --sha "${MAIN_SHA:0:7}" --pod podx
 chk "bootstrap --check-args rejects upper-case hex" 2 "lower-case hex" --sha "$(printf '%s' "$MAIN_SHA" | tr 'a-f' 'A-F')"
 chk "bootstrap --check-args rejects an unknown argument" 2 "unknown argument --bogus" --sha "$MAIN_SHA" --bogus
@@ -419,7 +439,7 @@ echo '[]' > "$FAKE/pods.json"
 cat > "$FAKE/gpus.json" <<'J'
 [{"gpuId":"NVIDIA GeForce RTX 5090","securePricePerHr":0.99,"dataCenterAvailability":[{"dataCenterId":"EUR-NO-1","stockStatus":"Low"},{"dataCenterId":"EU-RO-1","stockStatus":"Low"},{"dataCenterId":"EUR-IS-1","stockStatus":"Low"}]}]
 J
-UP=(up "${X1[@]}" --purpose fallback --hours 1 --count 2 --no-bootstrap --ref "$SHA40")
+UP=(up "${X1[@]}" --gpu 5090 --purpose fallback --hours 1 --count 2 --no-bootstrap --ref "$SHA40")
 creates() { grep -c "pod create .*--data-center-ids $1" "$FAKE/calls" || true; }
 echo EUR-NO-1 > "$FAKE/nostock"; : > "$FAKE/calls"
 expect "create out of stock in EUR-NO-1 -> next datacenter EU-RO-1" 0 "Pod podnew created" -- "${UP[@]}"
@@ -444,7 +464,7 @@ rm -f "$FAKE/create-error"
 # ---- "Low" stock is usually one free card per host: without --count, up falls
 # back from 2 GPUs to 1; an explicit --count 2 insists
 rm -rf "$UOR_POD_STATE"; echo '[]' > "$FAKE/pods.json"; echo 1 > "$FAKE/max-count"; : > "$FAKE/calls"
-UP1=(up "${X1[@]}" --purpose fallback --hours 1 --no-bootstrap --ref "$SHA40")
+UP1=(up "${X1[@]}" --gpu 5090 --purpose fallback --hours 1 --no-bootstrap --ref "$SHA40")
 expect "no host with 2 free and no --count -> falls back to 1 GPU" 0 "Pod podnew created" -- "${UP1[@]}"
 has "the fallback is announced" "no 2 x 5090 on one host; falling back to 1 x 5090"
 if grep -q -- "--gpu-count 1 " "$FAKE/calls"; then ok "the second attempt asks for one GPU"; else bad "the second attempt asks for one GPU"; fi
@@ -490,6 +510,54 @@ if ! grep -q 'runpodctl pod delete' "$FAKE/calls"; then ok "a failed Ollama does
 if grep '"event":"bootstrap"' "$UOR_POD_STATE/ledger.jsonl" | tail -1 | jq -e '.rc == 0 and .ollama == "FAILED"' >/dev/null; then
   ok "the Ollama failure is recorded in the bootstrap ledger event"; else bad "the Ollama failure is recorded in the bootstrap ledger event"; fi
 if grep -q -- "--with-ollama | tee" "$FAKE/bootcmd" || grep -q -- "--with-ollama 2>&1" "$FAKE/bootcmd"; then ok "--with-ollama reaches the bootstrap"; else bad "--with-ollama reaches the bootstrap"; fi
+# ---- the Hugging Face token: `up` copies ~/.cache/huggingface/token to the pod
+# over stdin; the value never appears in the output or on a command line
+HH=$W/hfhome; mkdir -p "$HH/.cache/huggingface"; printf 'hf_FAKETOKEN123' > "$HH/.cache/huggingface/token"
+rm -rf "$UOR_POD_STATE"; fresh_pods
+HOME=$HH expect "up with an HF token on the laptop" 0 "hf token copied" -- up --lab claude --session hftok --purpose hf --hours 1 --count 2 --no-bootstrap --ref "$SHA40"
+if grep -q 'cat > /root/.cache/huggingface/token' "$FAKE/calls"; then ok "the token is copied to the pod over ssh"; else bad "the token is copied to the pod over ssh"; fi
+if ! grep -q 'hf_FAKETOKEN123' "$W/out" "$FAKE/calls"; then ok "the token value is in neither the output nor any command line"; else bad "the token value is in neither the output nor any command line"; fi
+# ---- any-region placement: no ladder GPU in the volume datacenters, stock in
+# two allowlisted extra datacenters -> the one with more stock, non-canonical;
+# an explicit UOR_POD_VOLUME_DCS keeps placement to that list only
+cat > "$FAKE/gpus.json" <<'J'
+[{"gpuId":"NVIDIA GeForce RTX 5090","securePricePerHr":0.99,"dataCenterAvailability":[{"dataCenterId":"EUR-NO-1","stockStatus":"none"},{"dataCenterId":"US-TX-3","stockStatus":"Low"},{"dataCenterId":"CA-MTL-1","stockStatus":"High"},{"dataCenterId":"AP-JP-1","stockStatus":"High"}]},
+ {"gpuId":"NVIDIA GeForce RTX 4090","securePricePerHr":0.74,"dataCenterAvailability":[{"dataCenterId":"EU-RO-1","stockStatus":"none"}]}]
+J
+ANY=(up "${X1[@]}" --purpose anyregion --hours 1 --count 2 --no-bootstrap --ref "$SHA40")
+rm -rf "$UOR_POD_STATE"; fresh_pods
+expect "no ladder stock in the volume datacenters -> placed in an extra datacenter" 0 "Pod podnew created" -- "${ANY[@]}"
+has "the extra datacenter with more stock is tried first, labelled non-canonical" "Creating 2 x 5090 \(ladder\) .* in CA-MTL-1 volume volnew \(non-canonical\)"
+if [ "$(creates CA-MTL-1)" = 1 ] && [ "$(creates US-TX-3)" = 0 ] && [ "$(creates AP-JP-1)" = 0 ]; then
+  ok "one create, in CA-MTL-1; a datacenter outside the allowlist is never used"; else bad "one create, in CA-MTL-1; a datacenter outside the allowlist is never used"; fi
+if jq -e '.podnew.dc == "CA-MTL-1" and .podnew.canonical == false' "$UOR_POD_STATE/pods.json" >/dev/null; then
+  ok "the extra-datacenter pod is cached as non-canonical"; else bad "the extra-datacenter pod is cached as non-canonical"; fi
+rm -rf "$UOR_POD_STATE"; fresh_pods
+UOR_POD_VOLUME_DCS="EUR-NO-1 EU-RO-1 EUR-IS-1" expect "UOR_POD_VOLUME_DCS set -> extra datacenters are not used" 1 "no ladder 5090 -> 4090 -> pro6000 stock in EUR-NO-1 EU-RO-1 EUR-IS-1" -- "${ANY[@]}"
+if ! grep -q 'pod create' "$FAKE/calls"; then ok "no create anywhere with an explicit datacenter list"; else bad "no create anywhere with an explicit datacenter list"; fi
+# ladder + rate cap: 2 x 5090 busts the cap but 2 x 4090 fits -> the ladder goes on
+# to the cheaper rung instead of ending `up` on the first rung's cap miss
+cat > "$FAKE/gpus.json" <<'J'
+[{"gpuId":"NVIDIA GeForce RTX 5090","securePricePerHr":0.99,"dataCenterAvailability":[{"dataCenterId":"EUR-NO-1","stockStatus":"Low"}]},
+ {"gpuId":"NVIDIA GeForce RTX 4090","securePricePerHr":0.74,"dataCenterAvailability":[{"dataCenterId":"EUR-NO-1","stockStatus":"Low"}]}]
+J
+rm -rf "$UOR_POD_STATE"; rm -f "$FAKE/nostock"
+echo '[{"id":"podx","name":"x","desiredStatus":"RUNNING","gpuCount":4,"costPerHr":3.5,"uptimeSeconds":10}]' > "$FAKE/pods.json"
+: > "$FAKE/calls"
+UOR_POD_MAX_RATE=5 expect "ladder: a rate-cap miss on 5090 continues to the cheaper 4090 rung" 0 "Pod podnew created" -- "${ANY[@]}"
+has "the cheaper rung is the one created" "Creating 2 x 4090 \(ladder\)"
+rm -rf "$UOR_POD_STATE"; echo '[{"id":"podx","name":"x","desiredStatus":"RUNNING","gpuCount":4,"costPerHr":4.9,"uptimeSeconds":10}]' > "$FAKE/pods.json"
+UOR_POD_MAX_RATE=5 expect "ladder: every rung over the cap ends with the cap message" 1 "cap: running .* exceeds .*5/h; needs --owner-approved" -- "${ANY[@]}"
+# a new volume made for a datacenter whose create then has no stock is deleted;
+# a pre-existing volume (the canonical one) never is
+cat > "$FAKE/gpus.json" <<'J'
+[{"gpuId":"NVIDIA GeForce RTX 5090","securePricePerHr":0.99,"dataCenterAvailability":[{"dataCenterId":"EUR-NO-1","stockStatus":"Low"},{"dataCenterId":"CA-MTL-1","stockStatus":"Low"}]}]
+J
+rm -rf "$UOR_POD_STATE"; echo '[]' > "$FAKE/pods.json"; printf 'EUR-NO-1\nCA-MTL-1\n' > "$FAKE/nostock"; : > "$FAKE/calls"
+expect "stock error in a new extra datacenter" 1 "no instances" -- "${UP[@]}"
+if grep -q 'network-volume create --name uor-shared-CA-MTL-1' "$FAKE/calls" && [ "$(grep -c 'network-volume delete' "$FAKE/calls")" = 1 ] && grep -q 'network-volume delete volnew' "$FAKE/calls"; then
+  ok "the volume created for CA-MTL-1 is deleted; the canonical volume is not"; else bad "the volume created for CA-MTL-1 is deleted; the canonical volume is not"; fi
+rm -f "$FAKE/nostock"
 cp "$FAKE/pods.orig.json" "$FAKE/pods.json"
 unset FAKE_ALLOW_CREATE UOR_POD_MAX_PODS UOR_POD_MAX_RATE UOR_POD_SSH_WAIT
 export UOR_POD_DRY_RUN=1
