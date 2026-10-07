@@ -309,3 +309,9 @@ Conclusion: the instrument is validated and the run reproduces the known baselin
 
 Neither root existed before this task; neither is reused; both were claimed exclusively by the
 bench before any model work and sealed by it. No other worktree or report root was touched.
+
+
+The full numeric run1/run2 outputs referenced above are retained in the canonical
+archive `/workspace/uor-r4/codex/reconciliation/main-run-outputs-f4940919-20261006.tar.gz`
+(SHA256 `72982f9a84f8ac410c043d57b9e7c9466508114499493a8d1ff19f537f33f61d`).
+The script and this summary remain in Git; generated run outputs are no longer tracked.

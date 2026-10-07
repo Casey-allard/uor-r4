@@ -1,5 +1,17 @@
 # Current UOR-R4 research state
 
+## Native prediction integration and research-stack reconciliation — October 6
+
+The owner-directed reconciliation preserves active implementation in three main-based PRs rather than merging the old experiment stack. Runtime #1810 landed with signed-H4 Generate, selected-key state transport and a common legal Generate/physical-Copy vocabulary pool. Its exact-head core/integer check and 13 focused tests pass. Constructors/diagnostics allocate; component integer scoring is not a complete D11 opcode/energy qualification. CUDA prerequisite #1812 moves full120 context utility and frozen-consumer credit onto device graphs, retaining CPU references and authentic native trace admission. Offline floating/CUDA learning is distinct from integer served operators; the main stack's bf16/flash work is preserved.
+
+The larger integration retains target-free full-bank Copy/Generate assembly, context/potential learning and export rebinding, signed cue/prefix credit, selected-source state transport and optional categorical action compilation. Historical experiment drivers and unused fit additions remain on their original branches. No GroundedSession seam or default serving path is changed. The five RECORD PRs are closed with retained results; remaining KEEP PRs are superseded only after their replacements land. The triage and checks are linked on #820.
+
+The completed 128-update matched fit is retained as a bounded negative: all 512 construction replies fail complete/entry correctness despite falling loss. Its quarter export erases the small learned relative bridge coefficients; its surviving bias produces a key-independent action. The categorical compiler preserves the retained master-space action map exactly (960 lane/key actions and 115,200 query-frame checks in the completed export discriminator), but discards learned energy magnitudes. Its explicit receipt binds the original F32 master hashes, policy and compiled artifact. It cannot be treated as an unchanged-energy quarter-STE training checkpoint. Component compilation fidelity establishes neither unaided retrieval nor language usefulness; the wrong-Copy versus Generate competition remains a separate measured blocker.
+
+Next after closeout: test the retained categorical mechanism in the actual target-free bank-to-emission path before another fit, using causal selected-source/distractor controls, unsupported-answer checks and construction versus untouched transfer separation. Adapt learning to the compiled finite actions only after establishing the precise forward/credit contract. Retain the failed parent and all regressions; do not repeat the unchanged dose or substitute supplied-record consumption for full-history recall. General prose, reasoning, chat, actual-store integration and laptop cost remain unqualified.
+
+Durable run outputs removed from Git are preserved in `/workspace/uor-r4/codex/reconciliation/main-run-outputs-f4940919-20261006.tar.gz`, compressed SHA256 `72982f9a84f8ac410c043d57b9e7c9466508114499493a8d1ff19f537f33f61d`, original tar-stream MD5 `168c379838cbb728c06a26929880d3a9`. Existing T2 and MiniLM summaries remain research records; the archive contains their full numeric outputs. The fitted checkpoint, categorical result, exact executables and unrun successor source remain on the canonical volume.
+
 ## D20 §2 verdict, on same-rate and replicated evidence — October 6
 
 The geometric read **beats the parameter-matched ordinary-attention control** at lr=3e-4 by **+0.7455**

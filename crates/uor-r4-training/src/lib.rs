@@ -834,3 +834,11 @@ pub fn run_integrity(request: &IntegrityRequest) -> Result<IntegrityReport> {
         status: if success { "INTEGRITY_PASS" } else { "INTEGRITY_FAILED" },
     })
 }
+
+pub mod geometric_bank_generate;
+
+pub mod geometric_generate_learning;
+
+pub mod geometric_read_state_bridge;
+
+pub mod geometric_transport_state_credit;

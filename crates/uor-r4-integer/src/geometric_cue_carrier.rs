@@ -7,7 +7,7 @@ use crate::{
     geometric_context_q4::{ContextQ4Config, NativeContextQ4},
     geometric_occurrence_read::{OccurrenceBankSegment, MAX_SEQUENCE},
     geometric_potential::AddressLane,
-    geometric_potential_q4::unpack_coefficients,
+    geometric_potential_q4::{compile_ordered_pair_q4, unpack_coefficients},
     geometric_source_realizer::{
         NativeArtifactBinding, ObservedCode, SourceRuntimeError, SourceRuntimeResult as Result,
     },
@@ -43,12 +43,86 @@ impl CueAngularConfig {
         Ok(self.heads * self.lanes_per_head * ROOT_COUNT)
     }
 }
+/// Ordered local lanes within one head. Reversing them changes the operator.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CueJointConfig {
+    pub head: usize,
+    pub left_lane: usize,
+    pub right_lane: usize,
+}
+#[derive(Clone)]
+pub struct CueJointQ4 {
+    config: CueJointConfig,
+    packed: Vec<u8>,
+    table: Vec<i32>,
+}
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CueJointMetadata {
+    pub schema: String,
+    pub policy: String,
+    pub config: CueJointConfig,
+    pub packed_sha256: String,
+    pub table_sha256: String,
+    pub basis_sha256: String,
+}
+impl CueJointQ4 {
+    pub fn new(config: CueJointConfig, packed: Vec<u8>) -> Result<Self> {
+        if config.head >= 2
+            || config.left_lane >= 4
+            || config.right_lane >= 4
+            || config.left_lane == config.right_lane
+        {
+            return Err(error("joint cue ordered lanes out of bounds"));
+        }
+        let table = compile_ordered_pair_q4(&packed).map_err(|e| error(e.to_string()))?;
+        Ok(Self {
+            config,
+            packed,
+            table,
+        })
+    }
+    pub fn config(&self) -> CueJointConfig {
+        self.config
+    }
+    pub fn packed_coefficients(&self) -> &[u8] {
+        &self.packed
+    }
+    pub fn metadata(&self) -> CueJointMetadata {
+        let table: Vec<_> = self.table.iter().flat_map(|v| v.to_le_bytes()).collect();
+        let basis: Vec<_> = crate::geometric_no_read::CANONICAL_BASIS_Q25
+            .iter()
+            .flatten()
+            .flat_map(|v| v.to_le_bytes())
+            .collect();
+        CueJointMetadata {
+            schema: "uor-r4.geometric-cue-joint-q4/1".into(),
+            policy: "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1".into(),
+            config: self.config, packed_sha256: sha(&self.packed),
+            table_sha256: sha(&table), basis_sha256: sha(&basis),
+        }
+    }
+    fn contribution(&self, left: Option<u8>, right: Option<u8>) -> Result<Option<i64>> {
+        match (left, right) {
+            (Some(a), Some(b)) if usize::from(a) < ROOT_COUNT && usize::from(b) < ROOT_COUNT => {
+                Ok(Some(i64::from(
+                    self.table[(usize::from(a) << 7) + usize::from(b)],
+                )))
+            }
+            (Some(_), Some(_)) => Err(error("joint cue root out of bounds")),
+            _ => Ok(None),
+        }
+    }
+}
+#[derive(Clone)]
 /// Same120 signed roots perhead/lane in both arms. Admission partitions tables
 /// so numerical contribution lookup does not need a runtime coefficient product.
 pub struct CueAngularQ4 {
     config: CueAngularConfig,
     packed: Vec<u8>,
     tables: Vec<Vec<[i32; ROOT_COUNT]>>,
+    joint: Option<CueJointQ4>,
 }
 impl CueAngularQ4 {
     pub fn new(config: CueAngularConfig, packed: &[u8]) -> Result<Self> {
@@ -74,6 +148,7 @@ impl CueAngularQ4 {
             config,
             packed: packed.to_vec(),
             tables,
+            joint: None,
         })
     }
     pub fn config(&self) -> CueAngularConfig {
@@ -81,6 +156,21 @@ impl CueAngularQ4 {
     }
     pub fn packed_coefficients(&self) -> &[u8] {
         &self.packed
+    }
+    pub fn with_joint(mut self, joint: CueJointQ4) -> Result<Self> {
+        let c = joint.config();
+        if self.config.mode != CueScoreMode::DirectedRelative
+            || c.head >= self.config.heads
+            || c.left_lane >= self.config.lanes_per_head
+            || c.right_lane >= self.config.lanes_per_head
+        {
+            return Err(error("joint cue requires valid directed-relative lanes"));
+        }
+        self.joint = Some(joint);
+        Ok(self)
+    }
+    pub fn joint(&self) -> Option<&CueJointQ4> {
+        self.joint.as_ref()
     }
     fn contribution(
         &self,
@@ -123,6 +213,8 @@ pub struct CueCarrierMetadata {
     pub potential: CueAngularConfig,
     pub potential_packed_sha256: String,
     pub algebra_sha256: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub joint: Option<CueJointMetadata>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct CarrierState {
@@ -218,8 +310,12 @@ impl<'a> NativeCueCarrier<'a> {
             algebra_sha256: TRUSTED_MATHEMATICAL_SHA256
                 .ok_or_else(|| error("cue algebra trust anchor absent"))?
                 .into(),
+            joint: potential.joint().map(CueJointQ4::metadata),
         };
-        let table_bytes = p.coefficient_count()? * std::mem::size_of::<i32>();
+        let table_bytes = p.coefficient_count()? * std::mem::size_of::<i32>()
+            + potential
+                .joint()
+                .map_or(0, |j| j.table.len() * std::mem::size_of::<i32>());
         Ok(Self {
             context,
             geometry,
@@ -234,6 +330,12 @@ impl<'a> NativeCueCarrier<'a> {
     }
     pub fn packed_coefficients(&self) -> &[u8] {
         &self.packed
+    }
+    pub fn joint(&self) -> Option<&CueJointQ4> {
+        self.potential.joint()
+    }
+    pub fn angular_source(&self) -> CueAngularQ4 {
+        self.potential.clone()
     }
     pub(crate) fn validate_execution(
         &self,
@@ -282,6 +384,76 @@ impl<'a> NativeCueCarrier<'a> {
                 .collect(),
         })
     }
+    /// Target-free source score, including sources without Copy occurrences.
+    /// The legacy per-occurrence preparation remains unchanged.
+    pub(crate) fn score_source_cue(
+        &self,
+        trace: &CueCarrierTrace,
+        source_segment_index: usize,
+    ) -> Result<(Vec<i64>, CueCarrierCosts)> {
+        if trace.metadata != self.metadata {
+            return Err(error("source cue trace metadata differs"));
+        }
+        let c = self.context.config();
+        let mut scores = vec![0i64; c.heads];
+        let mut costs = CueCarrierCosts {
+            logical_sidecar_payload_bytes: c.heads * 8,
+            ..Default::default()
+        };
+        let matches = trace
+            .cues
+            .iter()
+            .filter(|s| s.source_segment_index == source_segment_index)
+            .collect::<Vec<_>>();
+        if matches.len() > 1 {
+            return Err(error("source cue segment appears more than once"));
+        }
+        let Some(cue) = matches.first() else {
+            return Ok((scores, costs));
+        };
+        let query = trace.query.addresses()?;
+        let source = cue.state.addresses()?;
+        let width = c.heads * c.lanes_per_head;
+        if query.len() != width || source.len() != width {
+            return Err(error("source cue code shape differs"));
+        }
+        let mut relative = vec![None; width];
+        for (h, score) in scores.iter_mut().enumerate() {
+            for lane in 0..c.lanes_per_head {
+                let global = h * c.lanes_per_head + lane;
+                let (value, bin, root) = self.potential.contribution(
+                    h,
+                    lane,
+                    query[global],
+                    source[global],
+                    self.geometry,
+                )?;
+                *score = score
+                    .checked_add(value)
+                    .ok_or_else(|| error("source cue angular sum overflow"))?;
+                relative[global] = root;
+                if bin.is_some() {
+                    costs.extra_potential_table_reads += 1;
+                    costs.extra_geometry_relative_reads += 1;
+                }
+            }
+        }
+        if let Some(joint) = self.joint() {
+            let jc = joint.config();
+            let left = jc.head * c.lanes_per_head + jc.left_lane;
+            let right = jc.head * c.lanes_per_head + jc.right_lane;
+            if let Some(value) = joint.contribution(relative[left], relative[right])? {
+                scores[jc.head] = scores[jc.head]
+                    .checked_add(value)
+                    .ok_or_else(|| error("source cue joint sum overflow"))?;
+                costs.extra_potential_table_reads += 1;
+            }
+        }
+        costs.logical_sidecar_payload_bytes =
+            scores.len() * 8 + relative.len() * std::mem::size_of::<Option<u8>>();
+        Ok((scores, costs))
+    }
+
     pub(crate) fn prepare(
         &self,
         segments: &[OccurrenceBankSegment<'_>],
@@ -293,7 +465,8 @@ impl<'a> NativeCueCarrier<'a> {
         }
         let mut costs = CueCarrierCosts {
             compiled_table_payload_bytes: self.table_bytes,
-            packed_source_bytes: self.packed.len(),
+            packed_source_bytes: self.packed.len()
+                + self.joint().map_or(0, |j| j.packed_coefficients().len()),
             ..Default::default()
         };
         let query = self.encode(query, &mut costs)?;
@@ -361,6 +534,21 @@ impl<'a> NativeCueCarrier<'a> {
                 }
             }
         }
+        if let Some(joint) = self.joint() {
+            let jc = joint.config();
+            let left = jc.head * c.lanes_per_head + jc.left_lane;
+            let right = jc.head * c.lanes_per_head + jc.right_lane;
+            for j in 0..candidate_segments.len() {
+                if let Some(score) =
+                    joint.contribution(relative_roots[left][j], relative_roots[right][j])?
+                {
+                    copy_q24[jc.head][j] = copy_q24[jc.head][j]
+                        .checked_add(score)
+                        .ok_or_else(|| error("joint cue sum overflow"))?;
+                    costs.extra_potential_table_reads += 1;
+                }
+            }
+        }
         let payload =
             |s: &CarrierState| s.token_ids.len() * 4 + s.states.len() * 3 + s.codes.len() * 3;
         costs.logical_sidecar_payload_bytes = payload(&query)
@@ -390,6 +578,60 @@ impl<'a> NativeCueCarrier<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn joint_order_mask_and_signed_roots_are_preserved() -> Result<()> {
+        use crate::geometric_no_read::CANONICAL_BASIS_Q25;
+        use crate::geometric_potential_q4::pack_coefficients;
+        let config = CueJointConfig {
+            head: 1,
+            left_lane: 1,
+            right_lane: 3,
+        };
+        let zero = CueJointQ4::new(config, vec![0; 8])?;
+        assert!(zero.table.iter().all(|v| *v == 0));
+        let mut q = vec![0; 16];
+        q[1] = 1;
+        let joint = CueJointQ4::new(
+            config,
+            pack_coefficients(&q).map_err(|e| error(e.to_string()))?,
+        )?;
+        let unit = |axis| CANONICAL_BASIS_Q25.iter().position(|r| r[axis] == 1 << 25);
+        let left = unit(0).ok_or_else(|| error("basis unit0 absent"))? as u8;
+        let right = unit(1).ok_or_else(|| error("basis unit1 absent"))? as u8;
+        let negative = CANONICAL_BASIS_Q25
+            .iter()
+            .position(|r| r[0] == -(1 << 25))
+            .ok_or_else(|| error("basis negative unit0 absent"))? as u8;
+        assert_eq!(joint.contribution(Some(left), Some(right))?, Some(1 << 22));
+        assert_eq!(joint.contribution(Some(right), Some(left))?, Some(0));
+        assert_eq!(
+            joint.contribution(Some(negative), Some(right))?,
+            Some(-(1 << 22))
+        );
+        assert_eq!(joint.contribution(None, Some(right))?, None);
+        assert_eq!(joint.contribution(Some(left), None)?, None);
+        assert!(joint.contribution(Some(120), Some(right)).is_err());
+        assert!(CueJointQ4::new(config, vec![0; 7]).is_err());
+        assert!(CueJointQ4::new(config, vec![0x88; 8]).is_err());
+        let directed = CueAngularConfig {
+            heads: 2,
+            lanes_per_head: 4,
+            mode: CueScoreMode::DirectedRelative,
+        };
+        let potential = CueAngularQ4::new(directed, &vec![0; 480])?.with_joint(joint)?;
+        assert_eq!(potential.joint().map(|j| j.table.len()), Some(16384));
+        assert!(CueAngularQ4::new(
+            CueAngularConfig {
+                mode: CueScoreMode::CueUnary,
+                ..directed
+            },
+            &vec![0; 480]
+        )?
+        .with_joint(zero)
+        .is_err());
+        Ok(())
+    }
+
     #[test]
     fn angular_lookup_preserves_signed_bins_and_masks_observed_absence() -> Result<()> {
         let geometry = HistoricalH4Tables::from_bytes(include_bytes!(

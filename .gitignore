@@ -34,3 +34,7 @@ native_geometric_prose_model.json
 .serena/
 Claude outputs/
 .zed/
+
+# Finished numeric run output lives on canonical /workspace or cloud-store.
+/t2/run*/
+/docs/research/minilm-phase0/run*/

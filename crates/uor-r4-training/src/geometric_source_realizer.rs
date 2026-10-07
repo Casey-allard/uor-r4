@@ -45,11 +45,14 @@ use super::{
 use crate::{
     geometric_context::NativeContextTrace,
     geometric_context_credit::{
-        frozen_cue_root_forward, frozen_no_read_forward, frozen_potential_forward,
+        frozen_cue_root_forward, frozen_cue_state_forward, frozen_no_read_forward,
+        frozen_potential_forward,
     },
     geometric_no_read::{NoReadBatch, NoReadWeights},
+    geometric_potential_q4::PotentialQ4Pair,
     geometric_source_actions::{SourceActionBinding, POLICY as ACTION_POLICY},
     geometric_source_emission_view::SourceEmissionView,
+    geometric_transport_state_credit::frozen_prefix_state_forward,
     invalid, sha256_bytes, Result,
 };
 
@@ -452,6 +455,7 @@ impl SourceRealizerWeights {
             source: self,
             native,
             consumer: self.consumer.prepare(&native.consumer)?,
+            potential_coefficient_credit: false,
         })
     }
 
@@ -1815,6 +1819,7 @@ pub struct PreparedSourceRealizer<'a> {
     source: &'a SourceRealizerWeights,
     native: &'a NativeSourceRealizer,
     consumer: PreparedConsumerStep<'a>,
+    potential_coefficient_credit: bool,
 }
 
 impl PreparedSourceRealizer<'_> {
@@ -3027,6 +3032,7 @@ mod tests {
     use super::*;
     use crate::geometric_source_emission_view::SourceEmissionCompiler;
     use std::sync::atomic::{AtomicU64, Ordering};
+    use uor_r4_integer::geometric_cue_carrier::{CueJointConfig, CueJointQ4};
     use uor_r4_integer::geometric_occurrence_read::{FrameMetadata, FrameStatus, SourceIdentity};
     const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"Ġ":6,"Ġa":7},"merges":["Ġ a"]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
     static NEXT: AtomicU64 = AtomicU64::new(0);
@@ -3037,6 +3043,9 @@ mod tests {
     }
     impl Fixture {
         fn new() -> Result<Self> {
+            Self::new_with_lanes(1)
+        }
+        fn new_with_lanes(lanes: usize) -> Result<Self> {
             let path = std::env::temp_dir().join(format!(
                 "uor-source-realizer-{}-{}",
                 std::process::id(),
@@ -3044,7 +3053,7 @@ mod tests {
             ));
             fs::create_dir(&path)?;
             let consumer =
-                ConsumerWeights::initialize(&path.join("base"), TOK.as_bytes(), 8, 1, 1, 41)?;
+                ConsumerWeights::initialize(&path.join("base"), TOK.as_bytes(), 8, 1, lanes, 41)?;
             let weights = SourceRealizerWeights::new(consumer, TOK.as_bytes(), 43)?;
             // Uniform hard scores give exact, independently known alias loss
             // and coefficient adjoint signs, without a model training dose.
@@ -4599,5 +4608,1388 @@ mod tests {
             .read_bank_with_cue_carrier(&segments, &[5], &[4], &stale)
             .is_err());
         Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    fn composed_cuda_reloaded_source_full_bank_native_and_adjoint_parity() -> Result<()> {
+        // An explicitly requested CUDA instrument fails when no GPU is present.
+        let device = Device::new_cuda(0)?;
+        let fixture = Fixture::new_with_lanes(2)?;
+        for (name, var) in fixture.weights.parameters() {
+            let mut values = vec![0.; var.elem_count()];
+            if context_state_parameter(&name) {
+                for (i, x) in values.iter_mut().enumerate() {
+                    *x = (i % 3) as f32 * 0.25 - 0.25;
+                }
+                if name == "consumer.context.token_category" {
+                    for row in values.chunks_exact_mut(33) {
+                        row.fill(0.);
+                        row[17] = 1.5;
+                    }
+                }
+            }
+            var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        }
+        let source_root = fixture.path.join("cuda-bank-source");
+        let native_root = fixture.path.join("cuda-bank-native");
+        fixture.weights.save_source(&source_root)?;
+        fixture
+            .weights
+            .compile(fixture.identity.clone())?
+            .save(&native_root)?;
+        let staged =
+            SourceRealizerWeights::load_source_on_device(&source_root, TOK.as_bytes(), &device)?;
+        assert_eq!(
+            parameter_identities(&fixture.weights)?,
+            parameter_identities(&staged)?
+        );
+        assert!(staged
+            .context_state_parameters()
+            .values()
+            .all(|v| v.device().same_device(&device)));
+        assert!(staged
+            .potential_parameters()
+            .values()
+            .all(|v| v.device().is_cpu()));
+        let native = NativeSourceRealizer::load(&native_root, &fixture.weights, &fixture.identity)?;
+        let gpu_native = NativeSourceRealizer::load(&native_root, &staged, &fixture.identity)?;
+        assert_eq!(native.artifact_binding()?, gpu_native.artifact_binding()?);
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let prefix = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        // Sidecars retain references to their exact execution parent, so the
+        // independently reloaded CUDA parent needs its own equivalent sidecars.
+        let gpu_cue = gpu_native.compile_cue_carrier(cue.angular_source())?;
+        let gpu_prefix = gpu_native.compile_prefix_transport(
+            &gpu_cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        assert_eq!(cue.metadata(), gpu_cue.metadata());
+        assert_eq!(prefix.metadata(), gpu_prefix.metadata());
+        let cpu_prepared = fixture.weights.prepare_on_device(&native, &Device::Cpu)?;
+        let gpu_prepared = staged.prepare_on_device(&gpu_native, &device)?;
+        let cpu_generate = crate::geometric_generate_learning::GenerateLearningWeights::seeded(
+            fixture.weights.binding().clone(),
+            2,
+            1001,
+            &Device::Cpu,
+        )?;
+        let gpu_generate = crate::geometric_generate_learning::GenerateLearningWeights::seeded(
+            staged.binding().clone(),
+            2,
+            1001,
+            &device,
+        )?;
+        let cpu_snapshot = cpu_generate.prepare_native()?;
+        let gpu_snapshot = gpu_generate.prepare_native()?;
+        assert_eq!(
+            cpu_snapshot
+                .native
+                .to_bytes()
+                .map_err(|e| invalid(e.to_string()))?,
+            gpu_snapshot
+                .native
+                .to_bytes()
+                .map_err(|e| invalid(e.to_string()))?
+        );
+        let exp = fs::read(native_root.join("consumer/exp-q31.bin"))?;
+        let mut cpu_pool = crate::geometric_bank_generate::PreparedBankGenerate::new(
+            &cpu_prepared,
+            &cpu_generate,
+            &cpu_snapshot,
+            &exp,
+        )?;
+        let mut gpu_pool = crate::geometric_bank_generate::PreparedBankGenerate::new(
+            &gpu_prepared,
+            &gpu_generate,
+            &gpu_snapshot,
+            &exp,
+        )?;
+        let ids = [4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: frame(&ids),
+                view: &view,
+                event: 7,
+            },
+        ];
+        let compare = |cpu: &Tensor, gpu: &Tensor| -> Result<bool> {
+            assert_eq!(cpu.dims(), gpu.dims());
+            assert!(cpu.device().is_cpu());
+            assert!(gpu.device().same_device(&device));
+            let left = cpu.flatten_all()?.to_vec1::<f32>()?;
+            let right = gpu.flatten_all()?.to_vec1::<f32>()?;
+            let mut nonzero = false;
+            for (&a, &b) in left.iter().zip(&right) {
+                if !a.is_finite() || !b.is_finite() || (a - b).abs() > 2e-4 + 2e-5 * a.abs() {
+                    return Err(invalid(format!(
+                        "composed CUDA adjoint differs: CPU {a}, GPU {b}"
+                    )));
+                }
+                nonzero |= a.abs() > 1e-8;
+            }
+            Ok(nonzero)
+        };
+        for own in [&[][..], &[4][..]] {
+            let cpu = cpu_pool.forward_bank(&segments, &[5], own, &cue, &prefix)?;
+            let gpu = gpu_pool.forward_bank(&segments, &[5], own, &gpu_cue, &gpu_prefix)?;
+            assert_eq!(cpu.actions, gpu.actions);
+            assert_eq!(cpu.copy_scores_q24, gpu.copy_scores_q24);
+            assert_eq!(cpu.generate.scores_q24, gpu.generate.scores_q24);
+            assert_eq!(cpu.final_state_codes, gpu.final_state_codes);
+            assert_eq!(cpu.copy_token_ids, gpu.copy_token_ids);
+            assert_eq!(cpu.context()?.trace.states, gpu.context()?.trace.states);
+            assert!(gpu.context()?.state_choices.device().same_device(&device));
+            for target in [5, 4] {
+                // absent-Copy Generate and source-covered alias.
+                let cpu_loss = cpu.loss(target)?;
+                let gpu_loss = gpu.loss(target)?;
+                // Offline floating reductions may differ by rounding; native
+                // scores, actions and state codes remain exact checks above.
+                let cl = cpu_loss.to_scalar::<f32>()?;
+                let gl = gpu_loss.to_scalar::<f32>()?;
+                assert!(cl.is_finite() && gl.is_finite());
+                assert!((cl - gl).abs() <= 1e-6 + 1e-6 * cl.abs());
+                let cpu_grads = cpu_loss.backward()?;
+                let gpu_grads = gpu_loss.backward()?;
+                let mut context_nonzero = false;
+                for (name, cv) in fixture.weights.context_state_parameters() {
+                    let gv = &staged.context_state_parameters()[&name];
+                    let cg = cpu_grads
+                        .get(cv.as_tensor())
+                        .ok_or_else(|| invalid(format!("CPU context adjoint absent: {name}")))?;
+                    let gg = gpu_grads
+                        .get(gv.as_tensor())
+                        .ok_or_else(|| invalid(format!("CUDA context adjoint absent: {name}")))?;
+                    context_nonzero |= compare(cg, gg)?;
+                }
+                assert!(
+                    context_nonzero,
+                    "full-bank context path must have nonzero credit"
+                );
+                for source in [&fixture.weights, &staged] {
+                    let grads = if source.consumer.context.device().is_cpu() {
+                        &cpu_grads
+                    } else {
+                        &gpu_grads
+                    };
+                    for (name, var) in source.parameters() {
+                        if !context_state_parameter(&name) {
+                            assert!(
+                                grads.get(var.as_tensor()).is_none(),
+                                "frozen source family gained credit: {name}"
+                            );
+                        }
+                    }
+                }
+                let mut generate_nonzero = false;
+                for (name, cv) in cpu_generate.parameters() {
+                    if cv.elem_count() == 0 {
+                        continue;
+                    }
+                    let gv = &gpu_generate.parameters()[&name];
+                    let cg = cpu_grads
+                        .get(cv.as_tensor())
+                        .ok_or_else(|| invalid(format!("CPU Generate adjoint absent: {name}")))?;
+                    let gg = gpu_grads
+                        .get(gv.as_tensor())
+                        .ok_or_else(|| invalid(format!("CUDA Generate adjoint absent: {name}")))?;
+                    generate_nonzero |= compare(cg, gg)?;
+                }
+                assert!(
+                    generate_nonzero,
+                    "full-bank Generate path must have nonzero credit"
+                );
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn composed_device_source_cpu_staging_preserves_exact_bits_and_preparation() -> Result<()> {
+        let fixture = Fixture::new_with_lanes(2)?;
+        let saved = fixture.path.join("device-source");
+        fixture.weights.save_source(&saved)?;
+        let staged = SourceRealizerWeights::load_source_on_device(
+            &saved,
+            &fixture.weights.tokenizer_bytes,
+            &Device::Cpu,
+        )?;
+        assert_eq!(
+            parameter_identities(&fixture.weights)?,
+            parameter_identities(&staged)?
+        );
+        let native = fixture.weights.compile(fixture.identity.clone())?;
+        let _prepared = staged.prepare_on_device(&native, &Device::Cpu)?;
+        assert!(staged
+            .context_state_parameters()
+            .values()
+            .all(|v| v.device().same_device(&Device::Cpu)));
+        Ok(())
+    }
+
+    #[test]
+    fn composed_state_native_alias_parity_and_context_only_credit() -> Result<()> {
+        let fixture = Fixture::new_with_lanes(2)?;
+        for (name, var) in fixture.weights.parameters() {
+            let mut values = vec![0.; var.elem_count()];
+            if context_state_parameter(&name) {
+                for (i, x) in values.iter_mut().enumerate() {
+                    *x = (i % 3) as f32 * 0.25 - 0.25;
+                }
+                if name == "consumer.context.token_category" {
+                    for row in values.chunks_exact_mut(33) {
+                        row.fill(0.);
+                        row[17] = 1.5;
+                    }
+                }
+            } else if terminal_parameter(&name) {
+                for (i, x) in values.iter_mut().enumerate() {
+                    *x = (i % 3) as f32 * 0.25 - 0.25;
+                }
+            }
+            var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        }
+        let root = fixture.path.join("composed-parent");
+        fixture
+            .weights
+            .compile(fixture.identity.clone())?
+            .save(&root)?;
+        let native = NativeSourceRealizer::load(&root, &fixture.weights, &fixture.identity)?;
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?
+            .with_joint(
+                CueJointQ4::new(
+                    CueJointConfig {
+                        head: 0,
+                        left_lane: 0,
+                        right_lane: 1,
+                    },
+                    vec![0x12; 8],
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let prefix = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let end = native.compile_source_end_transport(
+            &cue,
+            &prefix,
+            SourceEndAngularQ4::new(
+                SourceEndAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: SourceEndScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+                &vec![0x21; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let ids = [4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: frame(&ids),
+                view: &view,
+                event: 7,
+            },
+        ];
+        let prepared = fixture.weights.prepare(&native)?;
+        for own in [&[][..], &[4][..]] {
+            let factual = native.read_bank_with_source_end_transport(
+                &segments,
+                &[5],
+                own,
+                &cue,
+                &prefix,
+                &end,
+            )?;
+            let copy_only =
+                prepared.forward_bank_composed_copy(&segments, &[5], own, &cue, &prefix)?;
+            assert_eq!(copy_only.trace, factual.prefix_bank);
+            assert!(context_replay_matches(
+                &factual.prefix_bank.cue_bank.bank.context,
+                &copy_only.context.trace
+            ));
+            let count = factual.prefix_bank.cue_bank.bank.candidates.len();
+            assert_eq!(copy_only.copy_raw.dims(), [count]);
+            let raw = copy_only.copy_raw.to_vec1::<f32>()?;
+            for (j, &score) in raw.iter().enumerate() {
+                let expected = factual
+                    .prefix_bank
+                    .cue_bank
+                    .bank
+                    .heads
+                    .iter()
+                    .map(|h| h.scores_q24[j])
+                    .sum::<i64>();
+                assert_eq!(score, (expected as f64 / 16_777_216.) as f32);
+            }
+            assert_eq!(copy_only.state_credit_components.len(), 3);
+            let generate = crate::geometric_generate_learning::GenerateLearningWeights::seeded(
+                fixture.weights.binding().clone(),
+                2,
+                1001,
+                &Device::Cpu,
+            )?;
+            let snapshot = generate.prepare_native()?;
+            let exp = fs::read(root.join("consumer/exp-q31.bin"))?;
+            let mut unified = crate::geometric_bank_generate::PreparedBankGenerate::new(
+                &prepared, &generate, &snapshot, &exp,
+            )?;
+            let joint = unified.forward_bank(&segments, &[5], own, &cue, &prefix)?;
+            // The emission compiler preserves the leading-space token identity:
+            // the original [a,a] becomes [space-a,a], not two raw a aliases.
+            assert_eq!(joint.copy_token_ids, view.emitted_token_ids());
+            assert_eq!(joint.copy_token_ids, vec![7, 4]);
+            assert_eq!(
+                joint.context()?.trace.states,
+                copy_only.context.trace.states
+            );
+            assert_eq!(
+                joint
+                    .final_state_codes
+                    .iter()
+                    .map(|c| c.index())
+                    .collect::<Vec<_>>(),
+                *copy_only
+                    .context
+                    .trace
+                    .states
+                    .last()
+                    .ok_or_else(|| invalid("missing final state"))?
+            );
+            let alias_mass = joint
+                .actions
+                .actions
+                .iter()
+                .filter(|a| a.token_id == 4)
+                .map(|a| a.weight_q31)
+                .sum::<u64>();
+            assert_eq!(
+                joint
+                    .actions
+                    .token_masses
+                    .iter()
+                    .find(|m| m.token_id == 4)
+                    .ok_or_else(|| invalid("missing unified target mass"))?
+                    .weight_q31,
+                alias_mass
+            );
+            // Ordinary token 5 is absent from the source. It is still admitted
+            // by Generate before its label enters the common loss.
+            assert!(joint.loss(5)?.to_scalar::<f32>()?.is_finite());
+            let coadapted = fixture
+                .weights
+                .prepare_context_potential_on_device(&native, &Device::Cpu)?;
+            let mut coadapted_pool = crate::geometric_bank_generate::PreparedBankGenerate::new(
+                &coadapted, &generate, &snapshot, &exp,
+            )?;
+            let coadapted_out = coadapted_pool.forward_bank(&segments, &[5], own, &cue, &prefix)?;
+            assert_eq!(coadapted_out.actions, joint.actions);
+            for target in [5, 4] {
+                // absent-Copy Generate and source-covered alias
+                let default_loss = joint.loss(target)?;
+                let learned_loss = coadapted_out.loss(target)?;
+                assert_eq!(
+                    default_loss.to_scalar::<f32>()?.to_bits(),
+                    learned_loss.to_scalar::<f32>()?.to_bits()
+                );
+                let frozen_grads = default_loss.backward()?;
+                let learned_grads = learned_loss.backward()?;
+                for (name, var) in fixture.weights.parameters() {
+                    if !context_state_parameter(&name) {
+                        assert!(
+                            frozen_grads.get(var.as_tensor()).is_none(),
+                            "frozen source coefficient graph {name}"
+                        );
+                    }
+                }
+                let mut nonzero = false;
+                for (name, var) in fixture.weights.potential_parameters() {
+                    assert!(frozen_grads.get(var.as_tensor()).is_none());
+                    let gradient = learned_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid("potential credit disconnected"))?;
+                    let values = gradient.flatten_all()?.to_vec1::<f32>()?;
+                    assert!(values.iter().all(|v| v.is_finite()));
+                    if matches!(
+                        name.as_str(),
+                        "consumer.potential.content_unary"
+                            | "consumer.potential.content_radius"
+                            | "consumer.potential.pair"
+                    ) {
+                        assert!(values.iter().all(|v| *v == 0.));
+                    }
+                    nonzero |= values.iter().any(|v| v.abs() > 1e-8);
+                }
+                assert!(
+                    nonzero,
+                    "actual full-vocabulary loss must reach potential coefficients"
+                );
+                for (name, var) in fixture.weights.context_state_parameters() {
+                    let left = frozen_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid("frozen context gradient missing"))?
+                        .flatten_all()?
+                        .to_vec1::<f32>()?;
+                    let right = learned_grads
+                        .get(var.as_tensor())
+                        .ok_or_else(|| invalid("coadapted context gradient missing"))?
+                        .flatten_all()?
+                        .to_vec1::<f32>()?;
+                    assert_eq!(
+                        left, right,
+                        "coefficient credit altered existing context credit {name}"
+                    );
+                }
+            }
+            let no_source = unified.forward_no_source(&[5, 4])?;
+            assert!(no_source.copy.is_none());
+            assert!(no_source.copy_token_ids.is_empty());
+            assert!(no_source.loss(5)?.to_scalar::<f32>()?.is_finite());
+            assert!(unified.forward_no_source(&[]).is_err());
+            let loaded = uor_r4_core::native_geometric::learner::geometric_generate::NativeGeometricGenerate::from_bytes(
+                &snapshot.native.to_bytes().map_err(|e| invalid(e.to_string()))?, fixture.weights.binding(),
+            ).map_err(|e| invalid(e.to_string()))?;
+            let mut reloaded_scores = vec![0; fixture.weights.binding().vocab_size()];
+            loaded.score_into(&joint.final_state_codes, &mut reloaded_scores,
+                &mut uor_r4_core::native_geometric::learner::geometric_generate::GenerateReadCounts::default())
+                .map_err(|e| invalid(e.to_string()))?;
+            assert_eq!(reloaded_scores, joint.generate.scores_q24);
+            assert!(prepared
+                .forward_bank_composed_copy(&segments, &[], own, &cue, &prefix)
+                .is_err());
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn composed_state_export_rebind_and_frozen_inventory_rejection() -> Result<()> {
+        let (fixture, native, _) = dependent_fixture()?;
+        let root = fixture.path.join("dependent-native");
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 1,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &[0x12; 60],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let prefix = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 1,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &[0x12; 60],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let end = native.compile_source_end_transport(
+            &cue,
+            &prefix,
+            SourceEndAngularQ4::new(
+                SourceEndAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 1,
+                    mode: SourceEndScoreMode::DirectedRelative,
+                },
+                &[0x12; 60],
+                &[0x21; 60],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        assert_eq!(
+            fixture
+                .weights
+                .compile_context_state_rebound(&native)?
+                .execution_binding()?,
+            native.artifact_binding()?
+        );
+        let params = fixture.weights.context_state_parameters();
+        assert_eq!(params.len(), 6); // single lane has no neighbor family.
+        let var = &params["consumer.context.token_transition"];
+        let mut values = var.flatten_all()?.to_vec1::<f32>()?;
+        values[0] += 0.25;
+        var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        let current = fixture.weights.compile_context_state_rebound(&native)?;
+        assert_ne!(current.execution_binding()?, native.artifact_binding()?);
+        let dest = fixture.path.join("composed-rebound");
+        let receipt = fixture
+            .weights
+            .save_context_state_rebound(&dest, &native, &root, &cue, &prefix, &end)?;
+        assert_eq!(
+            receipt["new_parent"],
+            serde_json::to_value(current.execution_binding()?)?
+        );
+        let source = SourceRealizerWeights::load_source(&dest.join("source"), TOK.as_bytes())?;
+        let loaded = NativeSourceRealizer::load(&dest.join("native"), &source, &fixture.identity)?;
+        assert_eq!(current.execution_binding()?, loaded.artifact_binding()?);
+        assert!(loaded
+            .read_bank_with_source_end_transport(
+                &[SourceBankSegment::Source {
+                    frame: frame(&[4]),
+                    view: &SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&[4])?,
+                    event: 7
+                }],
+                &[5],
+                &[],
+                &cue,
+                &prefix,
+                &end
+            )
+            .is_err());
+        for file in [
+            "cue/cue-q4.bin",
+            "prefix/prefix-q4.bin",
+            "source-end/source-end-period-q4.bin",
+            "source-end/source-end-stop-q4.bin",
+        ] {
+            assert!(dest.join(file).is_file());
+        }
+        let potential =
+            &fixture.weights.potential_parameters()["consumer.potential.context_presence"];
+        let mut values = potential.flatten_all()?.to_vec1::<f32>()?;
+        values[0] += 0.25;
+        potential.set(&Tensor::from_vec(values, potential.shape(), &Device::Cpu)?)?;
+        assert!(fixture
+            .weights
+            .compile_context_state_rebound(&native)
+            .is_err());
+        let learned = fixture.weights.compile_context_potential_rebound(&native)?;
+        assert_ne!(learned.execution_binding()?, current.execution_binding()?);
+        let potential_dest = fixture.path.join("context-potential-rebound");
+        let potential_receipt = fixture.weights.save_context_potential_rebound(
+            &potential_dest,
+            &native,
+            &root,
+            &cue,
+            &prefix,
+            &end,
+        )?;
+        assert_eq!(potential_receipt["learned_potential"], true);
+        let restored_source =
+            SourceRealizerWeights::load_source(&potential_dest.join("source"), TOK.as_bytes())?;
+        let restored = NativeSourceRealizer::load(
+            &potential_dest.join("native"),
+            &restored_source,
+            &fixture.identity,
+        )?;
+        assert_eq!(restored.artifact_binding()?, learned.execution_binding()?);
+        assert_ne!(
+            fs::read(potential_dest.join("native/consumer/potential-q4.bin"))?,
+            fs::read(root.join("consumer/potential-q4.bin"))?
+        );
+        assert_eq!(
+            fs::read(potential_dest.join("cue/cue-q4.bin"))?,
+            fs::read(dest.join("cue/cue-q4.bin"))?
+        );
+        assert_eq!(
+            fs::read(potential_dest.join("prefix/prefix-q4.bin"))?,
+            fs::read(dest.join("prefix/prefix-q4.bin"))?
+        );
+        let terminal = &fixture.weights.terminal_parameters()["period.coefficients"];
+        let mut values = terminal.flatten_all()?.to_vec1::<f32>()?;
+        values[0] += 0.25;
+        terminal.set(&Tensor::from_vec(values, terminal.shape(), &Device::Cpu)?)?;
+        assert!(fixture
+            .weights
+            .compile_context_state_rebound(&native)
+            .is_err());
+        assert!(fixture
+            .weights
+            .compile_context_potential_rebound(&native)
+            .is_err());
+        Ok(())
+    }
+}
+
+// Active full-bank geometric Generate integration; exact retained source bodies.
+impl SourceRealizerWeights {
+    pub fn context_state_parameters(&self) -> BTreeMap<String, Var> {
+        self.parameters()
+            .into_iter()
+            .filter(|(name, _)| context_state_parameter(name))
+            .collect()
+    }
+
+    pub fn compile_context_state_rebound(
+        &self,
+        frozen_parent: &NativeSourceRealizer,
+    ) -> Result<NativeSourceRealizer> {
+        frozen_parent.artifact_binding()?;
+        verify_context_state_inventory(
+            &parameter_identities(self)?,
+            &frozen_parent.metadata.source_parameters,
+        )?;
+        let mut native = self.compile(frozen_parent.metadata.identity.clone())?;
+        if native.consumer.context.config() != frozen_parent.consumer.context.config() {
+            return Err(invalid("composed context configuration changed"));
+        }
+        let (_, metadata) = native.export_payloads()?;
+        native.compiled_metadata_sha256 = Some(sha256_bytes(&metadata));
+        Ok(native)
+    }
+
+    pub fn potential_parameters(&self) -> BTreeMap<String, Var> {
+        self.consumer
+            .potential
+            .parameters()
+            .into_iter()
+            .map(|(name, var)| (format!("consumer.potential.{name}"), var.clone()))
+            .collect()
+    }
+
+    pub fn compile_context_potential_rebound(
+        &self,
+        frozen_parent: &NativeSourceRealizer,
+    ) -> Result<NativeSourceRealizer> {
+        frozen_parent.artifact_binding()?;
+        verify_context_potential_inventory(
+            &parameter_identities(self)?,
+            &frozen_parent.metadata.source_parameters,
+        )?;
+        let mut native = self.compile(frozen_parent.metadata.identity.clone())?;
+        if native.consumer.context.config() != frozen_parent.consumer.context.config()
+            || native.consumer.potential.config() != frozen_parent.consumer.potential.config()
+        {
+            return Err(invalid("composed context/potential configuration changed"));
+        }
+        let (_, metadata) = native.export_payloads()?;
+        native.compiled_metadata_sha256 = Some(sha256_bytes(&metadata));
+        Ok(native)
+    }
+
+    pub fn project_potential_range(&self) -> Result<()> {
+        self.consumer.potential.project_shadow_range()
+    }
+
+    pub fn save_context_state_rebound(
+        &self,
+        path: &Path,
+        frozen_parent: &NativeSourceRealizer,
+        frozen_native_root: &Path,
+        frozen_cue: &NativeCueCarrier<'_>,
+        frozen_prefix: &NativePrefixTransport<'_>,
+        frozen_end: &NativeSourceEndTransport<'_>,
+    ) -> Result<serde_json::Value> {
+        self.save_context_learning_rebound(
+            path,
+            frozen_parent,
+            frozen_native_root,
+            frozen_cue,
+            frozen_prefix,
+            frozen_end,
+            false,
+        )
+    }
+
+    pub fn save_context_potential_rebound(
+        &self,
+        path: &Path,
+        frozen_parent: &NativeSourceRealizer,
+        frozen_native_root: &Path,
+        frozen_cue: &NativeCueCarrier<'_>,
+        frozen_prefix: &NativePrefixTransport<'_>,
+        frozen_end: &NativeSourceEndTransport<'_>,
+    ) -> Result<serde_json::Value> {
+        self.save_context_learning_rebound(
+            path,
+            frozen_parent,
+            frozen_native_root,
+            frozen_cue,
+            frozen_prefix,
+            frozen_end,
+            true,
+        )
+    }
+
+    fn save_context_learning_rebound(
+        &self,
+        path: &Path,
+        frozen_parent: &NativeSourceRealizer,
+        frozen_native_root: &Path,
+        frozen_cue: &NativeCueCarrier<'_>,
+        frozen_prefix: &NativePrefixTransport<'_>,
+        frozen_end: &NativeSourceEndTransport<'_>,
+        allow_potential: bool,
+    ) -> Result<serde_json::Value> {
+        let old_binding = frozen_parent.artifact_binding()?;
+        if crate::sha256_file(&frozen_native_root.join("metadata.json"))?
+            != old_binding.metadata_sha256
+            || frozen_cue.metadata().parent_artifact != old_binding
+            || frozen_prefix.metadata().parent_artifact != old_binding
+            || frozen_prefix.metadata().frozen_cue != *frozen_cue.metadata()
+            || frozen_end.metadata().parent_artifact != old_binding
+            || frozen_end.metadata().frozen_cue != *frozen_cue.metadata()
+            || frozen_end.metadata().frozen_prefix != *frozen_prefix.metadata()
+        {
+            return Err(invalid("composed frozen parent/sidecar binding differs"));
+        }
+        let current = if allow_potential {
+            self.compile_context_potential_rebound(frozen_parent)?
+        } else {
+            self.compile_context_state_rebound(frozen_parent)?
+        };
+        let (old_files, _) = frozen_parent.export_payloads()?;
+        let (new_files, _) = current.export_payloads()?;
+        let mut frozen_files = BTreeMap::new();
+        for (name, bytes) in &old_files {
+            if fs::read(frozen_native_root.join(name))? != *bytes {
+                return Err(invalid(
+                    "composed frozen native file differs from loaded parent",
+                ));
+            }
+            if matches!(
+                name.as_str(),
+                "consumer/context-q4.bin" | "consumer/metadata.json"
+            ) || (allow_potential && name == "consumer/potential-q4.bin")
+            {
+                continue;
+            }
+            if new_files.get(name) != Some(bytes) {
+                return Err(invalid(format!(
+                    "composed export changed frozen payload {name}"
+                )));
+            }
+            frozen_files.insert(name.clone(), sha256_bytes(bytes));
+        }
+        fs::create_dir(path)?;
+        self.save_source(&path.join("source"))?;
+        current.save(&path.join("native"))?;
+        let source = Self::load_source(&path.join("source"), &self.tokenizer_bytes)?;
+        let loaded = NativeSourceRealizer::load(
+            &path.join("native"),
+            &source,
+            &frozen_parent.metadata.identity,
+        )?;
+        let new_binding = loaded.artifact_binding()?;
+        if current.execution_binding()? != new_binding {
+            return Err(invalid(
+                "composed exported identity differs from current execution",
+            ));
+        }
+        let integer = uor_r4_integer::geometric_source_realizer::NativeSourceRealizer::load_native(
+            &path.join("native"),
+            &new_binding,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let cue = integer
+            .compile_cue_carrier(frozen_cue.angular_source())
+            .map_err(|e| invalid(e.to_string()))?;
+        let prefix = integer
+            .compile_prefix_transport(
+                &cue,
+                PrefixAngularQ4::new(
+                    frozen_prefix.metadata().potential,
+                    frozen_prefix.packed_coefficients(),
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        let end = integer
+            .compile_source_end_transport(
+                &cue,
+                &prefix,
+                SourceEndAngularQ4::new(
+                    frozen_end.metadata().potential,
+                    frozen_end.period_packed_coefficients(),
+                    frozen_end.stop_packed_coefficients(),
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        if cue.packed_coefficients() != frozen_cue.packed_coefficients()
+            || prefix.packed_coefficients() != frozen_prefix.packed_coefficients()
+            || end.period_packed_coefficients() != frozen_end.period_packed_coefficients()
+            || end.stop_packed_coefficients() != frozen_end.stop_packed_coefficients()
+            || cue.joint().map(|j| j.packed_coefficients())
+                != frozen_cue.joint().map(|j| j.packed_coefficients())
+            || cue.metadata().algebra_sha256 != frozen_cue.metadata().algebra_sha256
+        {
+            return Err(invalid("composed rebind changed numeric sidecar/algebra"));
+        }
+        for (name, metadata, files) in [
+            (
+                "cue",
+                serde_json::to_value(cue.metadata())?,
+                vec![("cue-q4.bin", cue.packed_coefficients())],
+            ),
+            (
+                "prefix",
+                serde_json::to_value(prefix.metadata())?,
+                vec![("prefix-q4.bin", prefix.packed_coefficients())],
+            ),
+            (
+                "source-end",
+                serde_json::to_value(end.metadata())?,
+                vec![
+                    ("source-end-period-q4.bin", end.period_packed_coefficients()),
+                    ("source-end-stop-q4.bin", end.stop_packed_coefficients()),
+                ],
+            ),
+        ] {
+            let root = path.join(name);
+            fs::create_dir(&root)?;
+            fs::write(
+                root.join("native-metadata.json"),
+                serde_json::to_vec_pretty(&metadata)?,
+            )?;
+            for (file, bytes) in files {
+                fs::write(root.join(file), bytes)?;
+            }
+        }
+        if let Some(joint) = cue.joint() {
+            fs::write(
+                path.join("cue/cue-joint-q4.bin"),
+                joint.packed_coefficients(),
+            )?;
+        }
+        Ok(
+            serde_json::json!({"schema":if allow_potential {"uor-r4.composed-context-potential-rebind/1"} else {"uor-r4.composed-context-state-rebind/1"},"learned_potential":allow_potential,"old_parent":old_binding,"new_parent":new_binding,"frozen_numeric_payloads_sha256":frozen_files,
+            "cue_packed_sha256":sha256_bytes(cue.packed_coefficients()),"cue_joint_packed_sha256":cue.joint().map(|j|sha256_bytes(j.packed_coefficients())),
+            "prefix_packed_sha256":sha256_bytes(prefix.packed_coefficients()),"end_period_packed_sha256":sha256_bytes(end.period_packed_coefficients()),"end_stop_packed_sha256":sha256_bytes(end.stop_packed_coefficients()),
+            "new_potential_packed_sha256":sha256_bytes(&source.consumer.potential.packed_coefficients()?),"new_context_packed_sha256":cue.metadata().context_packed_sha256,"context_state_source_receipts":parameter_identities(&source)?.into_iter().filter(|(name,_)|context_state_parameter(name)).collect::<BTreeMap<_,_>>(),
+            "independent_integer_reload":true,"source_file_copy_or_metadata_transplant":false}),
+        )
+    }
+
+    pub fn prepare_on_device<'a>(
+        &'a self,
+        native: &'a NativeSourceRealizer,
+        device: &Device,
+    ) -> Result<PreparedSourceRealizer<'a>> {
+        if self
+            .context_state_parameters()
+            .values()
+            .any(|v| !v.device().same_device(device))
+        {
+            return Err(invalid("realizer prepared parameter device differs"));
+        }
+        self.prepare(native)
+    }
+
+    pub fn load_source_on_device(
+        path: &Path,
+        tokenizer_bytes: &[u8],
+        device: &Device,
+    ) -> Result<Self> {
+        let source = Self::load_source(path, tokenizer_bytes)?;
+        let result = Self {
+            consumer: ConsumerWeights {
+                context: source.consumer.context.to_device(device)?,
+                potential: source.consumer.potential,
+                no_read: source.consumer.no_read,
+            },
+            period: source.period,
+            binding: source.binding,
+            tokenizer_bytes: source.tokenizer_bytes,
+            period_seed: source.period_seed,
+        };
+        result.validate()?;
+        Ok(result)
+    }
+
+    pub fn load_context_potential_on_device(
+        path: &Path,
+        tokenizer_bytes: &[u8],
+        device: &Device,
+    ) -> Result<Self> {
+        let mut source = Self::load_source_on_device(path, tokenizer_bytes, device)?;
+        source.consumer.potential = source.consumer.potential.to_device(device)?;
+        source.validate()?;
+        Ok(source)
+    }
+
+    pub fn prepare_context_potential_on_device<'a>(
+        &'a self,
+        native: &'a NativeSourceRealizer,
+        device: &Device,
+    ) -> Result<PreparedSourceRealizer<'a>> {
+        if !self.consumer.potential.device()?.same_device(device) {
+            return Err(invalid("composed potential parameter device differs"));
+        }
+        let mut prepared = self.prepare_on_device(native, device)?;
+        prepared.potential_coefficient_credit = true;
+        Ok(prepared)
+    }
+}
+
+pub struct ComposedCopyBankOutput {
+    pub trace: uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace,
+    pub copy_raw: Tensor,
+    pub context: crate::geometric_context::ContextQ4Output,
+    pub state_credit_components: BTreeMap<&'static str, Tensor>,
+}
+
+struct ComposedCopyAssembly {
+    context: crate::geometric_context::ContextQ4Output,
+    sources: Vec<crate::geometric_context::ContextQ4Output>,
+    response: Option<crate::geometric_context::ContextQ4Output>,
+    contextual_copy: Tensor,
+    cue_copy: Tensor,
+    prefix_copy: Tensor,
+    copy_raw: Tensor,
+}
+
+pub fn context_state_parameter(name: &str) -> bool {
+    matches!(
+        name,
+        "consumer.context.token_transition"
+            | "consumer.context.self_transition"
+            | "consumer.context.neighbor_transition"
+            | "consumer.context.token_root"
+            | "consumer.context.self_root"
+            | "consumer.context.neighbor_root"
+            | "consumer.context.token_category"
+            | "consumer.context.self_category"
+            | "consumer.context.neighbor_category"
+    )
+}
+
+fn verify_context_state_inventory(
+    current: &BTreeMap<String, ParameterIdentity>,
+    frozen: &BTreeMap<String, ParameterIdentity>,
+) -> Result<()> {
+    if current.keys().ne(frozen.keys()) {
+        return Err(invalid("composed context source inventory differs"));
+    }
+    for (name, receipt) in frozen {
+        let now = current
+            .get(name)
+            .ok_or_else(|| invalid("composed source family absent"))?;
+        if now.shape != receipt.shape || (!context_state_parameter(name) && now != receipt) {
+            return Err(invalid("composed changed frozen family or shape"));
+        }
+    }
+    Ok(())
+}
+
+fn potential_parameter(name: &str) -> bool {
+    matches!(
+        name,
+        "consumer.potential.content_unary"
+            | "consumer.potential.context_unary"
+            | "consumer.potential.pair"
+            | "consumer.potential.content_radius"
+            | "consumer.potential.context_radius"
+            | "consumer.potential.content_presence"
+            | "consumer.potential.context_presence"
+    )
+}
+
+fn verify_context_potential_inventory(
+    current: &BTreeMap<String, ParameterIdentity>,
+    frozen: &BTreeMap<String, ParameterIdentity>,
+) -> Result<()> {
+    if current.keys().ne(frozen.keys()) {
+        return Err(invalid(
+            "composed context/potential source inventory differs",
+        ));
+    }
+    for (name, receipt) in frozen {
+        let now = current
+            .get(name)
+            .ok_or_else(|| invalid("composed source family absent"))?;
+        if now.shape != receipt.shape
+            || (!context_state_parameter(name) && !potential_parameter(name) && now != receipt)
+        {
+            return Err(invalid(
+                "composed context/potential changed frozen family or shape",
+            ));
+        }
+    }
+    Ok(())
+}
+
+impl PreparedSourceRealizer<'_> {
+    pub fn binding(&self) -> &SourceActionBinding {
+        &self.source.binding
+    }
+
+    pub fn context_output(
+        &self,
+        ids: &[u32],
+        reset_each_token: bool,
+    ) -> Result<crate::geometric_context::ContextQ4Output> {
+        if ids.is_empty() {
+            return Err(invalid("context diagnostic input is empty"));
+        }
+        self.consumer
+            .context
+            .forward(ids, 1, ids.len(), reset_each_token)
+    }
+
+    fn assemble_bank_composed_copy(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        trace: &uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace,
+        prefix_temporal_utility: bool,
+    ) -> Result<ComposedCopyAssembly> {
+        let device = self.source.consumer.context.device();
+        let bank = &trace.cue_bank.bank;
+        let carrier = &trace.cue_bank.carrier;
+        let transport = &trace.prefix;
+        let ids = &bank.context.tokens;
+        let time = ids.len();
+        let c = self.source.consumer.config();
+        let width = c.heads * c.lanes_per_head;
+        let count = bank.candidates.len();
+        if time == 0
+            || query.is_empty()
+            || count == 0
+            || bank.heads.len() != c.heads
+            || carrier.query.token_ids != query
+            || transport.response.token_ids != actual_prefix
+        {
+            return Err(invalid("composed native bank/query/prefix shape differs"));
+        }
+        let context = self.consumer.context.forward(ids, 1, time, false)?;
+        if !context_replay_matches(&bank.context, &context.trace) {
+            return Err(invalid("composed full context replay differs"));
+        }
+        let positions = bank
+            .candidates
+            .iter()
+            .enumerate()
+            .map(|(j, v)| {
+                if v.bank_index != j || v.context_position >= time - 1 {
+                    return Err(invalid("composed candidate replay position differs"));
+                }
+                u32::try_from(v.context_position)
+                    .map_err(|_| invalid("composed context position exceeds u32"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let index = Tensor::from_vec(positions.clone(), count, device)?;
+        let absent = AddressLane::new(H4Code::IDENTITY.index(), 0, false)
+            .map_err(|e| invalid(e.to_string()))?;
+        let copy = frozen_potential_forward(
+            &self.source.consumer.potential,
+            &vec![absent; time * width],
+            &context,
+        )?;
+        let coefficient_credit = if self.potential_coefficient_credit {
+            let mut pairs = Vec::with_capacity(c.heads * count);
+            for h in 0..c.heads {
+                let q = ((time - 1) * c.heads + h) * c.lanes_per_head;
+                for &position in &positions {
+                    let k = (position as usize * c.heads + h) * c.lanes_per_head;
+                    pairs.push(PotentialQ4Pair {
+                        head: h,
+                        query_content: &copy.content_codes[q..q + c.lanes_per_head],
+                        candidate_content: &copy.content_codes[k..k + c.lanes_per_head],
+                        query_context: &copy.context_codes[q..q + c.lanes_per_head],
+                        candidate_context: &copy.context_codes[k..k + c.lanes_per_head],
+                    });
+                }
+            }
+            let mut chunks = Vec::new();
+            for (chunk_index, selected) in pairs.chunks(4096).enumerate() {
+                let out = self
+                    .source
+                    .consumer
+                    .potential
+                    .forward_selected_codes(selected)?;
+                for (j, &score) in out.scores_q24.iter().enumerate() {
+                    let flat = chunk_index * 4096 + j;
+                    let h = flat / count;
+                    let candidate = flat % count;
+                    let at = h * time + time - 1;
+                    if score != copy.scores_q24[at * time + positions[candidate] as usize] {
+                        return Err(invalid("composed coefficient/context hard scores differ"));
+                    }
+                }
+                // Subtraction first preserves the exact native forward anchor.
+                chunks.push((&out.scores - out.scores.detach())?);
+            }
+            Some(Tensor::cat(&chunks, 0)?.reshape((c.heads, count))?)
+        } else {
+            None
+        };
+        let query_output = self
+            .consumer
+            .context
+            .forward(query, 1, query.len(), false)?;
+        let mut cues = Vec::with_capacity(carrier.cues.len());
+        for local in &carrier.cues {
+            let previous = local
+                .source_segment_index
+                .checked_sub(1)
+                .ok_or_else(|| invalid("composed cue predecessor absent"))?;
+            let Some(SourceBankSegment::Context { token_ids, .. }) = segments.get(previous) else {
+                return Err(invalid("composed cue input not Context"));
+            };
+            if previous != local.context_segment_index
+                || *token_ids != local.state.token_ids.as_slice()
+                || token_ids.is_empty()
+                || !matches!(
+                    segments.get(local.source_segment_index),
+                    Some(SourceBankSegment::Source { .. })
+                )
+            {
+                return Err(invalid("composed cue tokens/reset mapping differs"));
+            }
+            cues.push(
+                self.consumer
+                    .context
+                    .forward(token_ids, 1, token_ids.len(), false)?,
+            );
+        }
+        let cue_credit = frozen_cue_state_forward(
+            carrier.metadata.potential,
+            cue.packed_coefficients(),
+            cue.joint(),
+            carrier,
+            &query_output,
+            &cues,
+        )?;
+        if cue_credit.scores_q24 != carrier.copy_q24 {
+            return Err(invalid("composed cue hard scores differ"));
+        }
+        let mut sources = Vec::with_capacity(transport.sources.len());
+        for source in &transport.sources {
+            let Some(SourceBankSegment::Source { view, .. }) =
+                segments.get(source.source_segment_index)
+            else {
+                return Err(invalid("composed local source input not Source"));
+            };
+            if source.token_ids.as_slice() != view.emitted_token_ids()
+                || source.token_ids.is_empty()
+            {
+                return Err(invalid("composed local emitted source tokens differ"));
+            }
+            sources.push(self.consumer.context.forward(
+                &source.token_ids,
+                1,
+                source.token_ids.len(),
+                false,
+            )?);
+        }
+        let response = if actual_prefix.is_empty() {
+            None
+        } else {
+            Some(
+                self.consumer
+                    .context
+                    .forward(actual_prefix, 1, actual_prefix.len(), false)?,
+            )
+        };
+        let prefix_credit = if prefix_temporal_utility {
+            crate::geometric_transport_state_credit::frozen_prefix_state_forward_temporal_utility(
+                prefix,
+                transport,
+                &sources,
+                response.as_ref(),
+            )?
+        } else {
+            frozen_prefix_state_forward(prefix, transport, &sources, response.as_ref())?
+        };
+        if prefix_credit.scores_q24 != transport.copy_q24 {
+            return Err(invalid("composed prefix hard scores differ"));
+        }
+        let mut contextual_heads = Vec::with_capacity(c.heads);
+        let mut copy_heads = Vec::with_capacity(c.heads);
+        for h in 0..c.heads {
+            let at = h * time + time - 1;
+            if bank.heads[h].scores_q24.len() != count {
+                return Err(invalid("composed Copy head shape differs"));
+            }
+            for (j, &position) in positions.iter().enumerate() {
+                let score = copy.scores_q24[at * time + position as usize]
+                    .checked_add(cue_credit.scores_q24[h][j])
+                    .and_then(|x| x.checked_add(prefix_credit.scores_q24[h][j]))
+                    .ok_or_else(|| invalid("composed Copy score overflow"))?;
+                if score != bank.heads[h].scores_q24[j] {
+                    return Err(invalid("composed complete native Copy scores differ"));
+                }
+            }
+            let contextual = copy.scores.i((0, h, time - 1))?.index_select(&index, 0)?;
+            let contextual = if let Some(credit) = &coefficient_credit {
+                (&contextual + credit.i(h)?)?
+            } else {
+                contextual
+            };
+            let raw = (&contextual + cue_credit.scores.i(h)?)?;
+            copy_heads.push((&raw + prefix_credit.scores.i(h)?)?);
+            contextual_heads.push(contextual);
+        }
+        Ok(ComposedCopyAssembly {
+            context,
+            sources,
+            response,
+            contextual_copy: Tensor::stack(&contextual_heads, 0)?,
+            cue_copy: cue_credit.scores,
+            prefix_copy: prefix_credit.scores,
+            copy_raw: Tensor::stack(&copy_heads, 0)?.sum(0)?,
+        })
+    }
+
+    pub fn forward_bank_composed_copy(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+    ) -> Result<ComposedCopyBankOutput> {
+        self.forward_bank_composed_copy_with_credit(
+            segments,
+            query,
+            actual_prefix,
+            cue,
+            prefix,
+            false,
+        )
+    }
+
+    pub fn forward_bank_composed_copy_with_prefix_utility(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+    ) -> Result<ComposedCopyBankOutput> {
+        self.forward_bank_composed_copy_with_credit(
+            segments,
+            query,
+            actual_prefix,
+            cue,
+            prefix,
+            true,
+        )
+    }
+
+    fn forward_bank_composed_copy_with_credit(
+        &self,
+        segments: &[SourceBankSegment<'_>],
+        query: &[u32],
+        actual_prefix: &[u32],
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        prefix_temporal_utility: bool,
+    ) -> Result<ComposedCopyBankOutput> {
+        let trace = self.native.read_bank_with_prefix_transport(
+            segments,
+            query,
+            actual_prefix,
+            cue,
+            prefix,
+        )?;
+        let assembled = self.assemble_bank_composed_copy(
+            segments,
+            query,
+            actual_prefix,
+            cue,
+            prefix,
+            &trace,
+            prefix_temporal_utility,
+        )?;
+        // Bind the factual forward to the native integer sum once. Summing
+        // separately converted components can round differently, while the
+        // vocabulary loss requires exact raw-score parity.
+        let hard_copy: Vec<f32> = (0..trace.cue_bank.bank.candidates.len())
+            .map(|j| {
+                let sum = trace
+                    .cue_bank
+                    .bank
+                    .heads
+                    .iter()
+                    .try_fold(0i64, |sum, head| {
+                        sum.checked_add(head.scores_q24[j])
+                            .ok_or_else(|| invalid("composed summed Copy score overflow"))
+                    })?;
+                Ok((sum as f64 / (1u64 << 24) as f64) as f32)
+            })
+            .collect::<Result<_>>()?;
+        let hard_copy = Tensor::from_vec(
+            hard_copy,
+            assembled.copy_raw.shape(),
+            assembled.copy_raw.device(),
+        )?;
+        let copy_raw = (&hard_copy + (&assembled.copy_raw - assembled.copy_raw.detach())?)?;
+        let state_credit_components = [
+            ("contextual_copy", assembled.contextual_copy.sum(0)?),
+            ("cue_copy", assembled.cue_copy.sum(0)?),
+            ("prefix_copy", assembled.prefix_copy.sum(0)?),
+        ]
+        .into_iter()
+        .collect();
+        Ok(ComposedCopyBankOutput {
+            trace,
+            copy_raw,
+            context: assembled.context,
+            state_credit_components,
+        })
     }
 }

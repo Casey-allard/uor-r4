@@ -59,6 +59,23 @@ pub struct PotentialQ4Output {
     pub content_codes: Vec<AddressLane>,
     pub context_codes: Vec<AddressLane>,
 }
+/// A selected query/candidate pair; typed endpoints are constants, not learned
+/// states. The caller owns causal admission and occurrence selection. Endpoint
+/// slices contain exactly `lanes_per_head` lanes for the declared head.
+pub struct PotentialQ4Pair<'a> {
+    pub head: usize,
+    pub query_content: &'a [AddressLane],
+    pub candidate_content: &'a [AddressLane],
+    pub query_context: &'a [AddressLane],
+    pub candidate_context: &'a [AddressLane],
+}
+
+pub struct PotentialQ4SelectedOutput {
+    /// [selected pairs], in caller order; no normalization or new score scale.
+    pub scores: Tensor,
+    pub scores_q24: Vec<i64>,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Metadata {
@@ -244,6 +261,37 @@ impl PotentialQ4Weights {
     pub fn parameters(&self) -> &BTreeMap<String, Var> {
         &self.parameters
     }
+    /// Independent optimizer variables on the requested device. Source identity,
+    /// quarter packing and parent lineage do not change with device placement.
+    pub fn to_device(&self, device: &Device) -> Result<Self> {
+        self.values()?;
+        let parameters = self
+            .parameters
+            .iter()
+            .map(|(name, value)| {
+                Ok((
+                    name.clone(),
+                    Var::from_tensor(&value.as_tensor().detach().to_device(device)?)?,
+                ))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
+        Ok(Self {
+            config: self.config,
+            parent: self.parent.clone(),
+            parameters,
+            algebra: self.algebra.clone(),
+        })
+    }
+    pub fn device(&self) -> Result<&Device> {
+        Ok(self
+            .parameters
+            .get(FAMILY_NAMES[0])
+            .ok_or_else(|| invalid("potential family absent"))?
+            .device())
+    }
+    pub fn load_on_device(directory: &Path, device: &Device) -> Result<Self> {
+        Self::load(directory)?.to_device(device)
+    }
     pub fn validate_parent(&self, base: &Path, tokenizer: &[u8]) -> Result<()> {
         if self.parent != PotentialParentIdentity::from_base(base, tokenizer)? {
             return Err(invalid("q4 potential immutable parent differs"));
@@ -264,10 +312,13 @@ impl PotentialQ4Weights {
                 .parameters
                 .get(&name)
                 .ok_or_else(|| invalid("potential family missing"))?;
-            if v.dtype() != DType::F32 || !v.device().is_cpu() || v.dims() != shape {
+            if v.dtype() != DType::F32
+                || !v.device().same_device(self.device()?)
+                || v.dims() != shape
+            {
                 return Err(invalid("potential source tensor shape/device differs"));
             }
-            out.extend(v.flatten_all()?.to_vec1::<f32>()?);
+            out.extend(v.flatten_all()?.to_device(&Device::Cpu)?.to_vec1::<f32>()?);
         }
         if out.iter().any(|v| !v.is_finite() || v.abs() > 1.75) {
             return Err(invalid(
@@ -302,7 +353,7 @@ impl PotentialQ4Weights {
     pub fn project_shadow_range(&self) -> Result<()> {
         let mut pending = Vec::new();
         for v in self.parameters.values() {
-            let values = v.flatten_all()?.to_vec1::<f32>()?;
+            let values = v.flatten_all()?.to_device(&Device::Cpu)?.to_vec1::<f32>()?;
             if values.iter().any(|x| !x.is_finite()) {
                 return Err(invalid("nonfinite potential optimizer shadow"));
             }
@@ -314,7 +365,7 @@ impl PotentialQ4Weights {
                         .map(|x| x.clamp(-1.75, 1.75))
                         .collect::<Vec<_>>(),
                     v.shape(),
-                    &Device::Cpu,
+                    v.device(),
                 )?,
             ));
         }
@@ -330,6 +381,11 @@ impl PotentialQ4Weights {
         content: &[AddressLane],
         context: &[AddressLane],
     ) -> Result<PotentialQ4Output> {
+        if !self.device()?.is_cpu() {
+            return Err(invalid(
+                "forward_codes is the CPU default; use the selected CUDA coefficient bridge",
+            ));
+        }
         let count = batch
             .checked_mul(time)
             .and_then(|x| x.checked_mul(self.config.heads))
@@ -390,6 +446,140 @@ impl PotentialQ4Weights {
             context_codes: context.to_vec(),
         })
     }
+    /// Explicit accelerator admission: never silently falls back to the CPU.
+    pub fn forward_selected_codes_cuda(
+        &self,
+        pairs: &[PotentialQ4Pair<'_>],
+    ) -> Result<PotentialQ4SelectedOutput> {
+        if !self.device()?.is_cuda() {
+            return Err(invalid("selected CUDA potential requires CUDA variables"));
+        }
+        self.forward_selected_codes(pairs)
+    }
+
+    /// Fixed-code coefficient adjoint using gathers and reductions on the
+    /// variables' device. Only requested pairs are materialized (no T-squared
+    /// panel): at most 4096 pairs, 2 heads and 4 lanes, 28 features per lane.
+    /// All seven families use the same signed Q25 relative observations and
+    /// presence/radius cells as PotentialOp. This does not train typed codes.
+    ///
+    /// Native score construction downloads the bounded coefficient shadows,
+    /// not upstream gradients. The hard + (smooth - stop_gradient(smooth))
+    /// anchor is bit-exact F32(native Q24) while its adjoint stays on device.
+    pub fn forward_selected_codes(
+        &self,
+        pairs: &[PotentialQ4Pair<'_>],
+    ) -> Result<PotentialQ4SelectedOutput> {
+        let (h, l) = (self.config.heads, self.config.lanes_per_head);
+        if pairs.is_empty() || pairs.len() > 4096 || h > 2 || l > 4 {
+            return Err(invalid("selected potential requires N1..4096/H1..2/L1..4"));
+        }
+        if pairs.iter().any(|p| {
+            p.head >= h
+                || p.query_content.len() != l
+                || p.candidate_content.len() != l
+                || p.query_context.len() != l
+                || p.candidate_context.len() != l
+        }) {
+            return Err(invalid("selected potential typed head/lane shape differs"));
+        }
+        let native = NativePotentialQ4::new(self.config, &self.packed_coefficients()?)
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut offsets = [0usize; 7];
+        for i in 1..7 {
+            offsets[i] = offsets[i - 1] + h * l * FAMILY_COUNTS[i - 1];
+        }
+        let basis = canonical_basis_q25();
+        let width = l * 28;
+        let mut indices = Vec::with_capacity(pairs.len() * width);
+        let mut features = Vec::with_capacity(pairs.len() * width);
+        let mut scores_q24 = Vec::with_capacity(pairs.len());
+        for pair in pairs {
+            scores_q24.push(
+                native
+                    .score(
+                        pair.head,
+                        pair.query_content,
+                        pair.candidate_content,
+                        pair.query_context,
+                        pair.candidate_context,
+                        &self.algebra,
+                    )
+                    .map_err(|e| invalid(e.to_string()))?,
+            );
+            for lane in 0..l {
+                let (cq, ck, rq, rk) = (
+                    pair.query_content[lane],
+                    pair.candidate_content[lane],
+                    pair.query_context[lane],
+                    pair.candidate_context[lane],
+                );
+                let mut push = |family: usize, index: usize, feature: f64| {
+                    indices.push(
+                        (offsets[family] + (pair.head * l + lane) * FAMILY_COUNTS[family] + index)
+                            as u32,
+                    );
+                    features.push(feature as f32);
+                };
+                let relative = |q: AddressLane, k: AddressLane| -> Result<[f64; 4]> {
+                    if !q.present() || !k.present() {
+                        return Ok([0.; 4]);
+                    }
+                    let q = H4Code::try_from(q.root()).map_err(|e| invalid(e.to_string()))?;
+                    let k = H4Code::try_from(k.root()).map_err(|e| invalid(e.to_string()))?;
+                    let code = self.algebra.compose(self.algebra.inverse(q), k);
+                    Ok(basis[usize::from(code.index())].map(|v| f64::from(v) / 33554432.))
+                };
+                let dc = relative(cq, ck)?;
+                let dr = relative(rq, rk)?;
+                for i in 0..4 {
+                    push(0, i, dc[i]);
+                    push(1, i, dr[i]);
+                }
+                for i in 0..4 {
+                    for j in 0..4 {
+                        push(2, i * 4 + j, dc[i] * dr[j]);
+                    }
+                }
+                push(
+                    3,
+                    usize::from(cq.radius_bin()) * 32 + usize::from(ck.radius_bin()),
+                    if cq.present() && ck.present() { 1. } else { 0. },
+                );
+                push(
+                    4,
+                    usize::from(rq.radius_bin()) * 32 + usize::from(rk.radius_bin()),
+                    if rq.present() && rk.present() { 1. } else { 0. },
+                );
+                push(
+                    5,
+                    2 * usize::from(cq.present()) + usize::from(ck.present()),
+                    1.,
+                );
+                push(
+                    6,
+                    2 * usize::from(rq.present()) + usize::from(rk.present()),
+                    1.,
+                );
+            }
+        }
+        let device = self.device()?;
+        let n = pairs.len();
+        let ids = Tensor::from_vec(indices, n * width, device)?;
+        let feature = Tensor::from_vec(features, (n, width), device)?;
+        let selected = self.tensor()?.index_select(&ids, 0)?.reshape((n, width))?;
+        let smooth = selected.mul(&feature)?.sum(1)?;
+        let hard = Tensor::from_vec(
+            scores_q24
+                .iter()
+                .map(|&v| (v as f64 / 16777216.) as f32)
+                .collect::<Vec<_>>(),
+            n,
+            device,
+        )?;
+        let scores = hard.add(&smooth.sub(&smooth.detach())?)?;
+        Ok(PotentialQ4SelectedOutput { scores, scores_q24 })
+    }
     pub(crate) fn source_bytes(&self) -> Result<(Vec<u8>, Vec<u8>)> {
         self.values()?;
         let mut buffers = BTreeMap::new();
@@ -397,6 +587,7 @@ impl PotentialQ4Weights {
             buffers.insert(
                 name.clone(),
                 var.flatten_all()?
+                    .to_device(&Device::Cpu)?
                     .to_vec1::<f32>()?
                     .into_iter()
                     .flat_map(f32::to_le_bytes)
@@ -680,6 +871,209 @@ mod tests {
     fn set(weights: &PotentialQ4Weights, name: &str, values: Vec<f32>) -> Result<()> {
         let v = &weights.parameters[name];
         v.set(&Tensor::from_vec(values, v.shape(), &Device::Cpu)?)?;
+        Ok(())
+    }
+    fn selected_adjoint_parity(device: &Device) -> Result<()> {
+        let cpu = fixture(2, 2)?;
+        for (name, var) in cpu.parameters() {
+            let values = (0..var.elem_count())
+                .map(|i| ((i % 13) as f32 - 6.) * 0.13)
+                .collect();
+            set(&cpu, name, values)?;
+        }
+        let weights = cpu.to_device(device)?;
+        assert_eq!(cpu.source_bytes()?, weights.source_bytes()?);
+        assert_eq!(cpu.packed_coefficients()?, weights.packed_coefficients()?);
+        let lanes = |offset: usize| -> Result<Vec<AddressLane>> {
+            (0..16)
+                .map(|i| {
+                    let present = (i + offset) % 5 != 0;
+                    AddressLane::new(
+                        if present {
+                            ((i * 7 + offset) % 120) as u8
+                        } else {
+                            1
+                        },
+                        if present {
+                            ((i * 3 + offset) % 32) as u8
+                        } else {
+                            0
+                        },
+                        present,
+                    )
+                    .map_err(|e| invalid(e.to_string()))
+                })
+                .collect()
+        };
+        let content = lanes(0)?;
+        let context = lanes(3)?;
+        let mut pairs = Vec::new();
+        let mut upstream = Vec::new();
+        let mut full_upstream = vec![0f32; 2 * 4 * 4];
+        for head in 0..2 {
+            for q in 0..4 {
+                for k in 0..=q {
+                    let qi = (q * 2 + head) * 2;
+                    let ki = (k * 2 + head) * 2;
+                    pairs.push(PotentialQ4Pair {
+                        head,
+                        query_content: &content[qi..qi + 2],
+                        candidate_content: &content[ki..ki + 2],
+                        query_context: &context[qi..qi + 2],
+                        candidate_context: &context[ki..ki + 2],
+                    });
+                    // Dyadic weights include opposite signs and repeated cells.
+                    let g = ((pairs.len() % 7) as f32 - 3.) * 0.25;
+                    upstream.push(g);
+                    full_upstream[(head * 4 + q) * 4 + k] = g;
+                }
+            }
+        }
+        let full = cpu.forward_codes(1, 4, &content, &context)?;
+        let selected = if device.is_cuda() {
+            weights.forward_selected_codes_cuda(&pairs)?
+        } else {
+            weights.forward_selected_codes(&pairs)?
+        };
+        assert!(selected.scores.device().same_device(device));
+        let factual = selected.scores.to_device(&Device::Cpu)?.to_vec1::<f32>()?;
+        let full_values = full.scores.flatten_all()?.to_vec1::<f32>()?;
+        let mut at = 0;
+        for head in 0..2 {
+            for q in 0..4 {
+                for k in 0..=q {
+                    let full_at = (head * 4 + q) * 4 + k;
+                    assert_eq!(selected.scores_q24[at], full.scores_q24[full_at]);
+                    assert_eq!(factual[at].to_bits(), full_values[full_at].to_bits());
+                    at += 1;
+                }
+            }
+        }
+        let reference = full
+            .scores
+            .mul(&Tensor::from_vec(
+                full_upstream,
+                (1, 2, 4, 4),
+                &Device::Cpu,
+            )?)?
+            .sum_all()?
+            .backward()?;
+        let selected_grad = selected
+            .scores
+            .mul(&Tensor::from_vec(upstream, pairs.len(), device)?)?
+            .sum_all()?
+            .backward()?;
+        for (name, var) in weights.parameters() {
+            let actual = selected_grad
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("selected coefficient gradient missing"))?;
+            assert!(actual.device().same_device(device));
+            let actual = actual
+                .flatten_all()?
+                .to_device(&Device::Cpu)?
+                .to_vec1::<f32>()?;
+            let expected = reference
+                .get(cpu.parameters()[name].as_tensor())
+                .ok_or_else(|| invalid("reference coefficient gradient missing"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            for (i, (&a, &b)) in actual.iter().zip(&expected).enumerate() {
+                assert!(
+                    (a - b).abs() <= 2e-6 * (1. + b.abs()),
+                    "{name}[{i}]: selected={a} reference={b}"
+                );
+            }
+        }
+        // Device copies must not share optimizer-variable identity or storage.
+        let old = cpu.source_bytes()?;
+        let var = &weights.parameters()["pair"];
+        var.set(&Tensor::zeros(var.shape(), DType::F32, device)?)?;
+        assert_eq!(old, cpu.source_bytes()?);
+        assert_ne!(old, weights.source_bytes()?);
+        var.set(&Tensor::from_vec(
+            vec![2f32; var.elem_count()],
+            var.shape(),
+            device,
+        )?)?;
+        assert!(weights.packed_coefficients().is_err());
+        weights.project_shadow_range()?;
+        assert!(var
+            .flatten_all()?
+            .to_device(&Device::Cpu)?
+            .to_vec1::<f32>()?
+            .iter()
+            .all(|v| *v == 1.75));
+        assert!(weights.packed_coefficients().is_ok());
+        if device.is_cuda() {
+            assert!(weights.forward_codes(1, 4, &content, &context).is_err());
+        }
+        Ok(())
+    }
+    #[test]
+    fn potential_q4_selected_tensor_adjoint_matches_cpu_all_families() -> Result<()> {
+        selected_adjoint_parity(&Device::Cpu)
+    }
+    /// Deliberately opt-in: an unavailable CUDA device is a failure, not a pass.
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires explicitly leased CUDA GPU"]
+    fn potential_q4_selected_cuda_adjoint_matches_cpu_all_families() -> Result<()> {
+        selected_adjoint_parity(&Device::new_cuda(0)?)
+    }
+    #[test]
+    fn potential_q4_selected_rejects_device_and_shape_and_keeps_quarter_grid() -> Result<()> {
+        let w = fixture(1, 1)?;
+        let absent = [AddressLane::new(1, 0, false).map_err(|e| invalid(e.to_string()))?];
+        let pair = PotentialQ4Pair {
+            head: 0,
+            query_content: &absent,
+            candidate_content: &absent,
+            query_context: &absent,
+            candidate_context: &absent,
+        };
+        assert!(w.forward_selected_codes_cuda(&[pair]).is_err());
+        assert!(w.forward_selected_codes(&[]).is_err());
+        let bad = PotentialQ4Pair {
+            head: 1,
+            query_content: &absent,
+            candidate_content: &absent,
+            query_context: &absent,
+            candidate_context: &absent,
+        };
+        assert!(w.forward_selected_codes(&[bad]).is_err());
+        assert!(w
+            .forward_selected_codes(&[PotentialQ4Pair {
+                head: 0,
+                query_content: &[],
+                candidate_content: &absent,
+                query_context: &absent,
+                candidate_context: &absent,
+            }])
+            .is_err());
+        let too_many = (0..4097)
+            .map(|_| PotentialQ4Pair {
+                head: 0,
+                query_content: &absent,
+                candidate_content: &absent,
+                query_context: &absent,
+                candidate_context: &absent,
+            })
+            .collect::<Vec<_>>();
+        assert!(w.forward_selected_codes(&too_many).is_err());
+        set(&w, "content_presence", vec![0.13, 0., 0., 0.])?;
+        let before = w.packed_coefficients()?;
+        let cloned = w.to_device(&Device::Cpu)?;
+        assert_eq!(before, cloned.packed_coefficients()?);
+        let selected = cloned.forward_selected_codes(&[PotentialQ4Pair {
+            head: 0,
+            query_content: &absent,
+            candidate_content: &absent,
+            query_context: &absent,
+            candidate_context: &absent,
+        }])?;
+        assert_eq!(selected.scores_q24, vec![1 << 22]);
+        assert_eq!(selected.scores.to_vec1::<f32>()?, vec![0.25]);
+        assert_eq!(before, cloned.packed_coefficients()?);
         Ok(())
     }
     #[test]

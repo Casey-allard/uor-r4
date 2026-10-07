@@ -2,7 +2,7 @@
 
 References #820. Rules: [PREREG.md](PREREG.md), committed and pushed at
 `c840d259` before any arm was scored. Sealed report:
-[`run3/`](run3/) (`report.json`, `rows.jsonl`, `manifest.json`). MiniLM is an
+the archived `run3/` (`report.json`, `rows.jsonl`, `manifest.json`). MiniLM is an
 offline teacher/comparator only; nothing here is served.
 
 ## Frozen decision: **DROP**
@@ -126,3 +126,9 @@ is not a result of this one.
   - static table: `e600b99b…c589`
   - E8 codes: `a77d1058…f9f1`
 - `data/panels/conversational-v4*` was neither read nor evaluated.
+
+
+The full run3 output is retained in canonical archive
+`/workspace/uor-r4/codex/reconciliation/main-run-outputs-f4940919-20261006.tar.gz`
+(SHA256 `72982f9a84f8ac410c043d57b9e7c9466508114499493a8d1ff19f537f33f61d`),
+under `docs/research/minilm-phase0/run3/`. It is removed from Git after archive verification.

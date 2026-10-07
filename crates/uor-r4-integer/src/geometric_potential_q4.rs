@@ -255,6 +255,22 @@ fn cross_q24(columns: &[i64; 4], root: &[i32; 4]) -> PotentialQ4Result<i32> {
     rounded_q24(sum, 28)
 }
 
+/// Admission-only ordered bilinear table for sixteen row-major Q4 coefficients.
+/// Uses the same pinned Q25 basis, one Q24 rounding and zero padding as pair.
+/// Scoring consumes the compiled table; it does not evaluate a runtime product.
+pub fn compile_ordered_pair_q4(packed: &[u8]) -> PotentialQ4Result<Vec<i32>> {
+    let q = unpack_coefficients(16, packed)?;
+    validate_basis()?;
+    let mut table = vec![0; PAIR_STRIDE * PAIR_STRIDE];
+    for (left, root) in CANONICAL_BASIS_Q25.iter().enumerate() {
+        let columns = weighted_columns(&q, root)?;
+        for (right, root) in CANONICAL_BASIS_Q25.iter().enumerate() {
+            table[(left << 7) + right] = cross_q24(&columns, root)?;
+        }
+    }
+    Ok(table)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PotentialQ4Stats {
     pub learned_coefficients: usize,
