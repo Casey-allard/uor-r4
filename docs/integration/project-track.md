@@ -41,6 +41,10 @@ teacher text or a larger model needs a new causal case under the
 
 ### Current geometric attention experiment — October 4
 
+The October 7 native-prediction successor is **joint geometric state/readout/energy learning with authenticated categorical H4 credit**. All six retained 128-update fits have no correct own-prefix entry or complete reply. The full trained-export discriminator finds some Generate-only Source/query capacity, but zero entries win with factual full Copy/Generate energies and most frozen Source states are certified excluded. This rules out repeating a frozen route/selector or query-only remedy for those artifacts; it does not retire geometric attention. Runtime clipping is inactive in all enumerated trained-export routes. Current state owns the exact six-arm table, artifacts, scope and costs.
+
+The small full-bank categorical-pullback integration [#1837](https://github.com/UOR-Foundation/uor-r4/pull/1837) preserves native hard behavior and passes zero-update actual Context credit reachability. Next use a small shared-legal-parameter native-loss direction packet, then a matched joint Context/Potential/Generate comparison with the categorical map frozen. Legacy versus categorical credit is the causal difference; parent, data, legal parameter family, score-credit policy and optimizer stay matched. Export/reload the complete native path and report entry target mass, later Copy retention and route changes separately. This is conditional offline geometric credit, not a hard-argmax derivative. A fixture, finite gradient or Generate-only witness is not attention/chat qualification. Preserve negative candidates and query access for an explicitly justified future comparison; no supplied-record shortcut, semantic phase gate or unchanged fit is adopted.
+
 The [native compiler audit](geometric-native-compiler-2026-10-05.md) and
 [six-run local H4 successor](geometric-local-compiler-2026-10-05.md) now execute.
 Local current/predecessor transport and source-frame span observations fit all
