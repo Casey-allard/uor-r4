@@ -15,7 +15,6 @@
 set -euo pipefail
 
 STAGE=${1:?usage: bf16-phase2b-gate.sh build|base|ab|tabulate|all}
-REPO=${REPO:-/root/ds-uor-r4}
 D=${D:-/root/data}
 R=${R:-/root/runs/phase2b-gate}
 THREADS=${THREADS:-8}
@@ -24,6 +23,42 @@ CUDA_DIR=${CUDA_DIR:-/usr/local/cuda-12.8}
 export CUDA_COMPUTE_CAP
 export LD_LIBRARY_PATH=$CUDA_DIR/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/root/target-deepseek}
+
+# REPO: a bootstrapped pod checks out to /root/build/src-<sha>/, NOT /root/ds-uor-r4.
+# Resolve it instead of making every caller pass it.
+if [ -z "${REPO:-}" ]; then
+  if [ -d /root/ds-uor-r4 ]; then
+    REPO=/root/ds-uor-r4
+  else
+    REPO=$(ls -d /root/build/src-* 2>/dev/null | head -1)
+  fi
+fi
+[ -n "${REPO:-}" ] && [ -d "$REPO" ] || {
+  echo "REPO not found: set REPO=<checkout> (looked for /root/ds-uor-r4 and /root/build/src-*)" >&2; exit 2; }
+
+# cargo/rustup are not on PATH for a non-interactive ssh shell.
+if [ -d /root/.cargo/bin ]; then
+  export RUSTUP_HOME=${RUSTUP_HOME:-/root/.rustup} CARGO_HOME=${CARGO_HOME:-/root/.cargo}
+  case ":$PATH:" in *":/root/.cargo/bin:"*) ;; *) export PATH=/root/.cargo/bin:$PATH ;; esac
+fi
+case ":$PATH:" in *":$CUDA_DIR/bin:"*) ;; *) export PATH=$CUDA_DIR/bin:$PATH ;; esac
+
+# Corpora: the shared inputs live as tars on the canonical volume under
+# /workspace/uor-r4/data and are NOT staged into $D by bootstrap. Extract them
+# on first use rather than requiring every caller to do it by hand.
+VOL_DATA=${VOL_DATA:-/workspace/uor-r4/data}
+if [ ! -e "$D/corpora/ts-train/tokens.u16" ] && [ -d "$VOL_DATA" ]; then
+  echo "[setup] staging corpora from $VOL_DATA into $D" >&2
+  mkdir -p "$D"
+  for t in step5-inputs.tar tokenizer.json.tar; do
+    [ -f "$VOL_DATA/$t" ] && tar -xf "$VOL_DATA/$t" -C "$D"
+  done
+fi
+for need in tokenizer.json corpora/ts-train/tokens.u16 corpora/td-train/tokens.u16 \
+            corpora/ts-valid/tokens.u16 chat-v0-p2/train/tokens.u16; do
+  [ -e "$D/$need" ] || { echo "missing gate input: $D/$need" >&2
+    echo "  expected the tars step5-inputs.tar and tokenizer.json.tar under $VOL_DATA" >&2; exit 2; }
+done
 
 # One binary for all four runs; the arms differ only in the read switch.
 GS=$CARGO_TARGET_DIR/release/examples/geometric-stack

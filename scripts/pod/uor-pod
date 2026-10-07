@@ -855,9 +855,25 @@ cmd_up() {
 
   local deadline addr t_ssh
   deadline=$(( $(now_epoch) + SSH_WAIT_SECONDS ))
+  # A healthy draw is SSH-ready in ~20-40 s. A stalled one sits at
+  # runtimeStatus=initializing / awaiting_container forever: the host rented but
+  # never started the container, which no amount of waiting fixes. Detect that
+  # early and redraw, instead of burning the full SSH_WAIT_SECONDS per draw
+  # (four stalls cost an hour that way on 2026-10-07).
+  local stall_after stall_until runtime retries attempt
+  stall_after=${UOR_POD_STALL_SECONDS:-180}
+  stall_until=$(( $(now_epoch) + stall_after ))
   while :; do
     addr=$(pod_addr "$pod" || true)
     if [ -n "$addr" ] && pod_ssh "$pod" true </dev/null 2>/dev/null; then break; fi
+    if [ "$(now_epoch)" -ge "$stall_until" ] && [ -z "$addr" ]; then
+      runtime=$(pod_get "$pod" 2>/dev/null | jq -r '.runtimeStatus // "unknown"' 2>/dev/null || echo unknown)
+      if [ "$runtime" = "initializing" ] || [ "$runtime" = "unknown" ]; then
+        warn "pod $pod stalled: runtimeStatus=$runtime, no SSH after ${stall_after}s (host never started the container)"
+        up_failed "$pod" "stalled in $runtime with no SSH after ${stall_after}s"
+        return 1
+      fi
+    fi
     if [ "$(now_epoch)" -ge "$deadline" ]; then
       up_failed "$pod" "SSH not reachable after $SSH_WAIT_SECONDS s"
       return 1
