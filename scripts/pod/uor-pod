@@ -615,16 +615,19 @@ ensure_volume() {  # DC -> volume id; creates uor-shared-<DC> (100 GB, owner-app
 
 # One placement attempt (caller holds the lock). Sets UP_* or returns 2 when no stock.
 up_attempt() {
-  local req=$1 count=$2 pods stock id free gtype n taken n_run rate gid price dc='' off=0 add
+  local req=$1 count=$2 pods stock id free gtype probe states n_run rate gid price dc='' off=0 add
   pods=$(pods_all); stock=$(gpu_stock)
 
   # 1. a free leased-compatible GPU already exists? (same GPU type, or type not yet known)
   for id in $(echo "$pods" | jq -r '.[] | select(.desiredStatus == "RUNNING") | .id'); do
     gtype=$(cache_get "$id" | jq -r '.gpu // "?"')
     [ "$gtype" = "$req" ] || [ "$gtype" = '?' ] || continue
-    n=$(echo "$pods" | jq -r --arg i "$id" '[.[] | select(.id == $i) | .gpuCount // 0 | numbers] | first // 0')
-    taken=$(taken_gpus "$id")
-    free=$(jq -cn --argjson n "$n" --argjson t "${taken:-[]}" '[range(0; $n)] - $t')
+    # A missing/expired lease alone is not evidence that a GPU is idle.
+    # Use the same live process/utilisation/lock admission as status.
+    probe=$(probe_pod "$id")
+    [ -n "$(probe_val "$probe" probe_ok)" ] || continue
+    states=$(gpu_states "$id" "$probe") || continue
+    free=$(echo "$states" | jq -c '[.[] | select(.lab == null and .busy == false) | .gpu] | unique') || continue
     # (a --test pod validates pod creation itself, so free GPUs elsewhere do not stop it)
     if [ "$(echo "$free" | jq length)" -ge "$count" ] 2>/dev/null && [ "$OWNER_OK" != 1 ] && [ "$UP_TEST" != 1 ]; then
       lock_release

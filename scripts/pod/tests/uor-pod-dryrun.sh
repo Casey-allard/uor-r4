@@ -185,6 +185,22 @@ rm -f "$UOR_POD_STATE/leases/podc/codex-old.json"
 expect "forbidden A100 refused" 1 "not used for this trainer" -- up "${X1[@]}" --gpu a100 --purpose x --hours 1
 expect "up without session refused" 1 "--session NAME is required" -- up --lab codex --purpose x --hours 1
 expect "up refuses when a free GPU of that type exists" 3 "Free GPUs already exist: pod podb" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 1
+# up must distinguish unleased from proven idle, just as status does.
+cp "$FAKE/probe-1002" "$FAKE/probe-1002.idle"
+for condition in util app lock unreachable empty unknown; do
+  case $condition in
+    util) printf 'gpu=0, NVIDIA GeForce RTX 4090, 99, 16039, GPU-B\nprobe_ok=1\n' > "$FAKE/probe-1002";;
+    app) printf 'gpu=0, NVIDIA GeForce RTX 4090, 0, 16039, GPU-B\napp=GPU-B\nprobe_ok=1\n' > "$FAKE/probe-1002";;
+    lock) printf 'gpu=0, NVIDIA GeForce RTX 4090, 0, 1, GPU-B\nbusy_lock=/root/gpu0.lock\nprobe_ok=1\n' > "$FAKE/probe-1002";;
+    unreachable) rm "$FAKE/probe-1002";;
+    unknown) printf 'gpu=0, NVIDIA GeForce RTX 4090, N/A, 1, GPU-B\nprobe_ok=1\n' > "$FAKE/probe-1002";;
+    empty) printf 'probe_ok=1\n' > "$FAKE/probe-1002";;
+  esac
+  expect "up does not offer $condition GPU as free" 0 "Creating 1 x 4090" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 1
+  hasnt "up $condition has no false free claim" "Free GPUs already exist"
+done
+mv "$FAKE/probe-1002.idle" "$FAKE/probe-1002"
+expect "up still offers a probed idle GPU" 3 "Free GPUs already exist: pod podb" -- up "${X1[@]}" --gpu 4090 --purpose x --hours 1 --count 1
 expect "default caps are 4 pods / \$8/h" 0 "caps: <= 4 running pods, <= \\\$8.00/h" -- status
 UOR_POD_MAX_PODS=3 expect "cap reached names the free GPUs to lease" 4 "cap reached \\(3 of 3 pods\\) — free GPUs exist" -- up "${X1[@]}" --purpose x --hours 1 --count 2
 has "cap message lists podb gpu 0" "podb gpus 0: free"
