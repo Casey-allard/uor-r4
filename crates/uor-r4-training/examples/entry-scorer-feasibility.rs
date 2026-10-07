@@ -78,6 +78,11 @@ struct Labels {
 struct Label {
     id: String,
     answers: FrozenAnswers,
+    /// Transfer-panel pair linkage, declared so the strict schema still accepts
+    /// panels that carry it. This read does not use it.
+    #[serde(default)]
+    #[allow(dead_code)]
+    pair_id: Option<String>,
 }
 
 /// One row: the boundary features that the native read exposes, and the first
@@ -342,7 +347,11 @@ fn pair_leave_one_query_out(rows: &[Row], kind: PairKind) -> serde_json::Value {
                 continue;
             }
             for pair in pairs(row, kind) {
-                *table.entry(pair).or_default().entry(row.answer).or_default() += 1;
+                *table
+                    .entry(pair)
+                    .or_default()
+                    .entry(row.answer)
+                    .or_default() += 1;
             }
         }
         for row in rows {

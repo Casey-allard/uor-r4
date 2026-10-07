@@ -206,6 +206,13 @@ struct Args {
     /// read states, isolating the export from the learned emission.
     #[serde(default)]
     ceiling_float: bool,
+    /// Declared replacement panel for a zero-update entry read. When set, the
+    /// pinned 512-row panel is not asserted and the declared file hashes are
+    /// recorded in the report instead. Diagnostic only: nothing fits on it.
+    #[serde(default)]
+    panel_inputs: Option<PathBuf>,
+    #[serde(default)]
+    panel_labels: Option<PathBuf>,
     #[serde(default)]
     baseline: Option<PathBuf>,
     #[serde(default)]
@@ -309,6 +316,10 @@ struct Labels {
 struct Label {
     id: String,
     answers: FrozenAnswers,
+    /// Transfer-panel pair linkage, declared so the strict schema still accepts
+    /// panels that carry it. The entry read does not use it.
+    #[serde(default)]
+    pair_id: Option<String>,
 }
 struct Episode {
     packet: Packet,
@@ -452,6 +463,9 @@ fn args() -> Result<Args> {
         || a.maximum_report_bytes < (64 << 20)
         || a.maximum_report_bytes > (2 << 30)
         || (a.baseline.is_some() && a.mode != Mode::Fit)
+        // A declared panel is a zero-update diagnostic read, never a fit input.
+        || ((a.panel_inputs.is_some() || a.panel_labels.is_some())
+            && a.mode != Mode::EntryCeiling)
         // Declared doses stay schedule-comparable with the retained campaign
         // and land on a written checkpoint, because recovery checkpoints are
         // written every 32 updates and the final reload reads the last one.
@@ -1045,13 +1059,18 @@ struct Loaded {
 fn authenticate(a: &Args) -> Result<()> {
     report_output::verify(&a.saved_fit)?;
     report_output::verify(&a.categorical)?;
-    for p in [
-        &a.training_inputs,
-        &a.training_labels,
-        &a.development_inputs,
-        &a.development_labels,
-    ] {
-        report_output::verify(&seal_for(p)?)?;
+    // A declared panel replaces the pinned one for a zero-update read; its own
+    // hashes are recorded in the report rather than asserted against constants.
+    let declared_panel = a.panel_inputs.is_some() || a.panel_labels.is_some();
+    if !declared_panel {
+        for p in [
+            &a.training_inputs,
+            &a.training_labels,
+            &a.development_inputs,
+            &a.development_labels,
+        ] {
+            report_output::verify(&seal_for(p)?)?;
+        }
     }
     let fit = read(&a.saved_fit.join("report.json"))?;
     let receipt = read(&a.checkpoint.join("receipt.json"))?;
@@ -1071,14 +1090,16 @@ fn authenticate(a: &Args) -> Result<()> {
     {
         return Err(bad("exact retained final checkpoint admission"));
     }
-    for (p, expected) in [
-        (&a.training_inputs, INPUT_SHA),
-        (&a.development_inputs, INPUT_SHA),
-        (&a.training_labels, LABEL_SHA),
-        (&a.development_labels, LABEL_SHA),
-    ] {
-        if sha256_file(p)? != expected {
-            return Err(bad("fixed 512-row panel hash differs"));
+    if !declared_panel {
+        for (p, expected) in [
+            (&a.training_inputs, INPUT_SHA),
+            (&a.development_inputs, INPUT_SHA),
+            (&a.training_labels, LABEL_SHA),
+            (&a.development_labels, LABEL_SHA),
+        ] {
+            if sha256_file(p)? != expected {
+                return Err(bad("fixed 512-row panel hash differs"));
+            }
         }
     }
     let parent = read(&a.parent_config)?;
@@ -3230,27 +3251,53 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         .iter()
         .copied()
         .collect::<BTreeSet<_>>();
+    let declared_panel = a.panel_inputs.is_some() || a.panel_labels.is_some();
+    let (train_inputs, train_labels, dev_inputs, dev_labels) =
+        match (&a.panel_inputs, &a.panel_labels) {
+            (Some(inputs), Some(labels)) => (
+                inputs.clone(),
+                labels.clone(),
+                inputs.clone(),
+                labels.clone(),
+            ),
+            (None, None) => (
+                a.training_inputs.clone(),
+                a.training_labels.clone(),
+                a.development_inputs.clone(),
+                a.development_labels.clone(),
+            ),
+            _ => return Err(bad("a declared panel needs both inputs and labels")),
+        };
+    let panel_cap = if declared_panel { 4096 } else { 512 };
     let train = load_panel(
-        &a.training_inputs,
-        &a.training_labels,
+        &train_inputs,
+        &train_labels,
         &l.integer,
         &l.tokenizer,
         &legal,
-        512,
+        panel_cap,
     )?;
     let dev = load_panel(
-        &a.development_inputs,
-        &a.development_labels,
+        &dev_inputs,
+        &dev_labels,
         &l.integer,
         &l.tokenizer,
         &legal,
-        512,
+        panel_cap,
     )?;
-    if train.len() != 512 || dev.len() != 512 {
+    if declared_panel {
+        if train.is_empty() || dev.is_empty() {
+            return Err(bad("declared panel is empty"));
+        }
+    } else if train.len() != 512 || dev.len() != 512 {
         return Err(bad("full fixed panel required"));
     }
-    pairs(&train)?;
-    pairs(&dev)?;
+    // A declared panel is not the paired construction panel, so the swap-pair
+    // audit and the retained-panel baseline evaluation do not apply to it.
+    if !declared_panel {
+        pairs(&train)?;
+        pairs(&dev)?;
+    }
     if a.mode == Mode::PredictionControl {
         return run_prediction_control(a, start, &d, &l, &train, dev);
     }
@@ -3290,31 +3337,40 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     let indices = schedule[..BATCH].to_vec();
     let (_, admission) = batch(a, &l, &train, &indices, &d, start, Some(&initial_native))?;
     write(a, "zero-update-admission.json", &admission)?;
-    let (baseline, baseline_provenance) = if let Some(root) = &a.baseline {
-        reuse_baseline(a, root, &dev, &initial_receipt)?
-    } else {
-        let evaluation = evaluate(
-            a,
-            "development-0000",
-            &initial_native,
-            &initial_generate,
-            Some(&initial_bridge),
-            &l.exp,
-            &dev,
-            &l.tokenizer,
-            &l.cue,
-            &l.prefix,
-            start,
-            None,
-        )?;
+    let (initial_metrics, baseline_provenance) = if declared_panel {
         (
-            evaluation,
-            json!({"execution":"new native CPU integer evaluation on this pod",
-            "reused":false,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT")}),
+            json!(null),
+            json!({"execution":"NOT_RUN: a declared diagnostic panel has no paired construction audit",
+                "reused":false,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT")}),
         )
+    } else {
+        let (baseline, provenance) = if let Some(root) = &a.baseline {
+            reuse_baseline(a, root, &dev, &initial_receipt)?
+        } else {
+            let evaluation = evaluate(
+                a,
+                "development-0000",
+                &initial_native,
+                &initial_generate,
+                Some(&initial_bridge),
+                &l.exp,
+                &dev,
+                &l.tokenizer,
+                &l.cue,
+                &l.prefix,
+                start,
+                None,
+            )?;
+            (
+                evaluation,
+                json!({"execution":"new native CPU integer evaluation on this pod",
+            "reused":false,"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT")}),
+            )
+        };
+        let metrics = metrics(a, &baseline, &dev)?;
+        write(a, "metrics-0000.json", &metrics)?;
+        (metrics, provenance)
     };
-    let initial_metrics = metrics(a, &baseline, &dev)?;
-    write(a, "metrics-0000.json", &initial_metrics)?;
     if a.mode == Mode::Admission {
         return Ok(
             json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"admission",
@@ -3349,8 +3405,10 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
             json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"entry_ceiling",
             "updates":0,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"order_seed":a.seed,
             "checkpoint_receipt_sha256":CP_RECEIPT_SHA,"ceiling":ceiling,"entry_scorer":scorer,"initial_metrics":initial_metrics,
+            "declared_panel":declared_panel,"panel_rows":dev.len(),
+            "panel_inputs_sha256":sha256_file(&dev_inputs)?,"panel_labels_sha256":sha256_file(&dev_labels)?,
             "elapsed_seconds":start.elapsed().as_secs_f64(),
-            "scope":"zero-update entry-position ceiling with the physical Copy channel removed; labels read only after the target-free forward; no fit and no serving change"}),
+            "scope":"zero-update entry-position ceiling with the physical Copy channel removed; labels read only after the target-free forward; no fit and no serving change; a declared panel replaces the pinned one and its hashes are recorded here rather than asserted"}),
         );
     }
     let gp = l.generate.parameters();
