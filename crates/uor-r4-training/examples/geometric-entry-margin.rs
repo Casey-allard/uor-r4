@@ -29,7 +29,7 @@ mod output_support;
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::{
     geometric_bank_generate::PreparedBankGenerate,
-    geometric_generate_learning::GenerateLearningWeights,
+    geometric_generate_learning::{GenerateLearningWeights, VocabularyScoreAdjoint},
     geometric_occurrence_consumer::{
         source_realizer::{NativeSourceRealizer, SourceRealizerWeights},
         ConsumerIdentity,
@@ -198,36 +198,197 @@ fn identities(vars: &BTreeMap<String, Var>) -> Result<BTreeMap<String, String>> 
         })
         .collect()
 }
+fn scalar_max_abs(t: &Tensor) -> Result<f64> {
+    if t.elem_count() == 0 {
+        return Ok(0.);
+    }
+    let maximum = t.flatten_all()?.abs()?.max(0)?.to_scalar::<f32>()? as f64;
+    if !maximum.is_finite() {
+        return Err(bad("nonfinite gradient maximum"));
+    }
+    Ok(maximum)
+}
+fn projected_direction(name: &str, var: &Var, g: &Tensor) -> Result<Tensor> {
+    if name.ends_with("prototype_choices") {
+        return Ok(g.neg()?);
+    }
+    let upper = var.ge(1.75f64)?.to_dtype(g.dtype())?;
+    let lower = var.le(-1.75f64)?.to_dtype(g.dtype())?;
+    let outward_upper = g.lt(0f64)?.to_dtype(g.dtype())?;
+    let outward_lower = g.gt(0f64)?.to_dtype(g.dtype())?;
+    let blocked = ((&upper * &outward_upper)? + (&lower * &outward_lower)?)?;
+    Ok((g.neg()? * (blocked.neg()? + 1f64)?)?)
+}
+fn normalized(t: &Tensor, maximum: f64) -> Result<Tensor> {
+    // Division by a representable observed f32 maximum avoids casting a huge
+    // reciprocal into f32 for tiny gradients. Only reduced scalars cross device.
+    Ok(t.broadcast_div(&Tensor::new(maximum as f32, t.device())?)?)
+}
+fn direction_comparison(
+    grad: &candle_core::backprop::GradStore,
+    margin: &candle_core::backprop::GradStore,
+    vars: &BTreeMap<String, Var>,
+) -> Result<Value> {
+    let mut tensors = Vec::new();
+    let (mut gmax, mut dmax, mut mmax) = (0f64, 0f64, 0f64);
+    let mut connected = 0usize;
+    for (name, var) in vars {
+        let g = match grad.get(var.as_tensor()) {
+            Some(g) => {
+                connected += 1;
+                g.clone()
+            }
+            None => var.zeros_like()?,
+        };
+        let m = margin
+            .get(var.as_tensor())
+            .cloned()
+            .unwrap_or(var.zeros_like()?);
+        let direction = projected_direction(name, var, &g)?;
+        gmax = gmax.max(scalar_max_abs(&g)?);
+        dmax = dmax.max(scalar_max_abs(&direction)?);
+        mmax = mmax.max(scalar_max_abs(&m)?);
+        tensors.push((g, direction, m));
+    }
+    let (mut gn, mut dn, mut mn, mut cross) = (0f64, 0f64, 0f64, 0f64);
+    for (g, direction, m) in &tensors {
+        if gmax > 0. {
+            gn += normalized(g, gmax)?.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
+        }
+        if dmax > 0. {
+            let nd = normalized(direction, dmax)?;
+            dn += nd.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
+            if mmax > 0. {
+                cross += (normalized(m, mmax)? * &nd)?
+                    .sum_all()?
+                    .to_scalar::<f32>()? as f64;
+            }
+        }
+        if mmax > 0. {
+            mn += normalized(m, mmax)?.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
+        }
+    }
+    if ![gn, dn, mn, cross].iter().all(|x| x.is_finite()) {
+        return Err(bad("nonfinite normalized gradient comparison"));
+    }
+    let mut out = json!({
+        "connected_parameter_tensors": connected,
+        "parameter_tensors": vars.len(),
+        "gradient_max_abs": gmax,
+        "squared_norm": gmax * gmax * gn,
+        "projected_direction_max_abs": dmax,
+        "projected_squared_norm": dmax * dmax * dn,
+        "margin_gradient_max_abs": mmax,
+        "margin_squared_norm": mmax * mmax * mn,
+        "scope": "local surrogate projected descent; normalized scalar reductions; no update/native improvement"
+    });
+    if dmax == 0. || dn == 0. {
+        out["status"] = json!("INACTIVE_DIRECTION");
+    } else if mmax == 0. || mn == 0. {
+        out["status"] = json!("INACTIVE_MARGIN_REFERENCE");
+    } else {
+        out["status"] = json!("ACTIVE");
+        out["margin_directional_derivative"] = json!(mmax * dmax * cross);
+        out["margin_unit_direction_derivative"] = json!(mmax * cross / dn.sqrt());
+        out["signed_cosine_against_margin_gradient"] = json!(cross / (mn * dn).sqrt());
+    }
+    Ok(out)
+}
 fn gradient_receipt(
     grad: &candle_core::backprop::GradStore,
     vars: &BTreeMap<String, Var>,
 ) -> Result<Value> {
     let mut out = BTreeMap::new();
     for (name, var) in vars {
-        let Some(g) = grad.get(var.as_tensor()) else {
-            out.insert(name.clone(), json!({"connected":false}));
-            continue;
-        };
-        let norm = g.sqr()?.sum_all()?.to_scalar::<f32>()?;
-        if !norm.is_finite() {
-            return Err(bad("nonfinite parameter gradient"));
-        }
-        // Tangent of projected descent at the coefficient bounds. No parameter set.
-        let direction = if name.ends_with("prototype_choices") {
-            g.neg()?
-        } else {
-            let upper = var.ge(1.75f64)?.to_dtype(g.dtype())?;
-            let lower = var.le(-1.75f64)?.to_dtype(g.dtype())?;
-            let outward_upper = g.lt(0f64)?.to_dtype(g.dtype())?;
-            let outward_lower = g.gt(0f64)?.to_dtype(g.dtype())?;
-            let blocked = ((&upper * &outward_upper)? + (&lower * &outward_lower)?)?;
-            (g.neg()? * (blocked.neg()? + 1f64)?)?
-        };
-        let derivative = (g * &direction)?.sum_all()?.to_scalar::<f32>()?;
-        if !derivative.is_finite() || derivative > 0. {
-            return Err(bad("invalid projected descent derivative"));
-        }
-        out.insert(name.clone(),json!({"connected":true,"squared_norm":norm,"projected_tangent_derivative":derivative,"scope":"local surrogate tangent; no optimizer/native improvement measured"}));
+        out.insert(
+            name.clone(),
+            direction_comparison(grad, grad, &BTreeMap::from([(name.clone(), var.clone())]))?,
+        );
+    }
+    Ok(serde_json::to_value(out)?)
+}
+fn projected_alignment(
+    left: &candle_core::backprop::GradStore,
+    right: &candle_core::backprop::GradStore,
+    vars: &BTreeMap<String, Var>,
+) -> Result<Value> {
+    let mut pairs = Vec::new();
+    let (mut lmax, mut rmax) = (0f64, 0f64);
+    for (name, var) in vars {
+        let l = left
+            .get(var.as_tensor())
+            .cloned()
+            .unwrap_or(var.zeros_like()?);
+        let r = right
+            .get(var.as_tensor())
+            .cloned()
+            .unwrap_or(var.zeros_like()?);
+        let l = projected_direction(name, var, &l)?;
+        let r = projected_direction(name, var, &r)?;
+        lmax = lmax.max(scalar_max_abs(&l)?);
+        rmax = rmax.max(scalar_max_abs(&r)?);
+        pairs.push((l, r));
+    }
+    if lmax == 0. || rmax == 0. {
+        return Ok(json!({"status":"INACTIVE_DIRECTION"}));
+    }
+    let (mut ln, mut rn, mut cross) = (0f64, 0f64, 0f64);
+    for (l, r) in pairs {
+        let l = normalized(&l, lmax)?;
+        let r = normalized(&r, rmax)?;
+        ln += l.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
+        rn += r.sqr()?.sum_all()?.to_scalar::<f32>()? as f64;
+        cross += (l * r)?.sum_all()?.to_scalar::<f32>()? as f64;
+    }
+    if ![ln, rn, cross].iter().all(|x| x.is_finite()) {
+        return Err(bad("nonfinite projected direction alignment"));
+    }
+    if ln == 0. || rn == 0. {
+        return Ok(json!({"status":"INACTIVE_DIRECTION"}));
+    }
+    Ok(json!({
+        "status":"ACTIVE",
+        "projected_old_raw_signed_cosine":cross/(ln*rn).sqrt(),
+        "scope":"global group Euclidean projected-direction alignment; near-equality is not a quality gate"
+    }))
+}
+fn credit_comparisons(
+    old: &candle_core::backprop::GradStore,
+    raw: &candle_core::backprop::GradStore,
+    margin: &candle_core::backprop::GradStore,
+    vars: &BTreeMap<String, Var>,
+) -> Result<Value> {
+    let mut groups = BTreeMap::new();
+    groups.insert("joint.Generate_and_potential".to_string(), vars.clone());
+    for (prefix, group) in [
+        ("generate.", "family.Generate"),
+        ("consumer.potential.", "family.potential"),
+    ] {
+        groups.insert(
+            group.to_string(),
+            vars.iter()
+                .filter(|(name, _)| name.starts_with(prefix))
+                .map(|(name, var)| (name.clone(), var.clone()))
+                .collect(),
+        );
+    }
+    for (name, var) in vars {
+        groups.insert(
+            format!("parameter.{name}"),
+            BTreeMap::from([(name.clone(), var.clone())]),
+        );
+    }
+    let mut out = BTreeMap::new();
+    for (name, group) in groups {
+        out.insert(
+            name,
+            json!({
+                "clipped": direction_comparison(old, margin, &group)?,
+                "raw_identity": direction_comparison(raw, margin, &group)?,
+                "preclip_margin": direction_comparison(margin, margin, &group)?,
+                "clipped_raw_projected_alignment": projected_alignment(old, raw, &group)?,
+            }),
+        );
     }
     Ok(serde_json::to_value(out)?)
 }
@@ -523,10 +684,16 @@ fn run(a: &Config, d: &Device) -> Result<Value> {
         }
         let target = *ids.first().ok_or_else(|| bad("empty answer target"))?;
         let old = out.loss(target)?;
+        let raw = out.loss_with_credit(target, VocabularyScoreAdjoint::RawIdentity)?;
         let diagnostic = out.preclip_entry_margin_diagnostic(target)?;
         let old_value = old.to_scalar::<f32>()?;
+        let raw_value = raw.to_scalar::<f32>()?;
+        if old_value != raw_value {
+            return Err(bad("score-adjoint policies changed native scalar loss"));
+        }
         let margin = diagnostic.loss.to_scalar::<f32>()?;
         let old_g = old.backward()?;
+        let raw_g = raw.backward()?;
         let new_g = diagnostic.loss.backward()?;
         let after_packet = sha256_bytes(&serde_json::to_vec(&(
             out.actions.clone(),
@@ -539,14 +706,14 @@ fn run(a: &Config, d: &Device) -> Result<Value> {
         if before_packet != after_packet {
             return Err(bad("native packet mutated by backward"));
         }
-        rows.push(json!({"index":i,"id":p.id,"actual_prefix_empty":true,"causal_tokens":base,"independent_integer_parity":true,"target":target,"old_native_marginal_loss":old_value,"preclip_atom_margin":margin,"raw_gap_q24":diagnostic.raw_gap_q24,"wrong_copy_source_offset":diagnostic.wrong_copy_source_offset,"wrong_copy_above_clip":diagnostic.wrong_copy_above_clip,"native_packet_sha256":before_packet,"old_gradients":gradient_receipt(&old_g,&families)?,"margin_gradients":gradient_receipt(&new_g,&families)?,"scope":diagnostic.score_scope}));
+        rows.push(json!({"index":i,"id":p.id,"actual_prefix_empty":true,"causal_tokens":base,"independent_integer_parity":true,"target":target,"old_native_marginal_loss":old_value,"raw_identity_native_marginal_loss":raw_value,"preclip_atom_margin":margin,"raw_gap_q24":diagnostic.raw_gap_q24,"wrong_copy_source_offset":diagnostic.wrong_copy_source_offset,"wrong_copy_above_clip":diagnostic.wrong_copy_above_clip,"native_packet_sha256":before_packet,"old_gradients":gradient_receipt(&old_g,&families)?,"raw_identity_gradients":gradient_receipt(&raw_g,&families)?,"margin_gradients":gradient_receipt(&new_g,&families)?,"projected_credit_comparisons":credit_comparisons(&old_g,&raw_g,&new_g,&families)?,"scope":diagnostic.score_scope}));
     }
     let after = identities(&all)?;
     if before != after {
         return Err(bad("parameter masters mutated"));
     }
     Ok(
-        json!({"schema":"uor-r4.actual-entry-margin-adjoint/1","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND"),"device":"cuda:0","cuda_visible_devices":std::env::var("CUDA_VISIBLE_DEVICES").ok(),"ld_library_path":std::env::var("LD_LIBRARY_PATH").ok(),"cuda_compute_cap":std::env::var("CUDA_COMPUTE_CAP").ok(),"updates":0,"inputs_sha256":sha256_bytes(&inputbytes),"labels_sha256":sha256_bytes(&labelbytes),"generate_sha256":sha256_bytes(&generate_bytes),"original_quarter_bridge_sha256":sha256_bytes(&bridge_bytes),"parameters_before":before,"parameters_after":after,"frozen_cue_prefix_parameter_credit":"excluded: no sidecar variables in trainable inventory; context-state credit can remain","rows":rows,"scope":"source-index-fixed construction diagnostic; no fit, prediction improvement, transfer or clipping-causation verdict"}),
+        json!({"schema":"uor-r4.actual-entry-alias-credit/2","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND"),"device":"cuda:0","cuda_visible_devices":std::env::var("CUDA_VISIBLE_DEVICES").ok(),"ld_library_path":std::env::var("LD_LIBRARY_PATH").ok(),"cuda_compute_cap":std::env::var("CUDA_COMPUTE_CAP").ok(),"updates":0,"inputs_sha256":sha256_bytes(&inputbytes),"labels_sha256":sha256_bytes(&labelbytes),"generate_sha256":sha256_bytes(&generate_bytes),"original_quarter_bridge_sha256":sha256_bytes(&bridge_bytes),"parameters_before":before,"parameters_after":after,"frozen_cue_prefix_parameter_credit":"excluded: no sidecar variables in trainable inventory; context-state credit can remain","rows":rows,"scope":"source-index-fixed construction diagnostic; no fit, prediction improvement, transfer or clipping-causation verdict"}),
     )
 }
 fn main() -> Result<()> {
@@ -603,5 +770,44 @@ fn main() -> Result<()> {
             report_output::seal(&a.out)?;
             Err(e)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn scaled_group_comparison_retains_tiny_gradients_and_metric_weights() -> Result<()> {
+        let d = Device::Cpu;
+        let a = Var::from_vec(vec![0f32], 1, &d)?;
+        let b = Var::from_vec(vec![0f32], 1, &d)?;
+        let vars = BTreeMap::from([
+            ("generate.a".to_string(), a.clone()),
+            ("consumer.potential.b".to_string(), b.clone()),
+        ]);
+        let direction = ((a.as_tensor() * 1e-25f64)? + (b.as_tensor() * 2e-25f64)?)?
+            .sum_all()?
+            .backward()?;
+        let margin = ((a.as_tensor() * 2e-25f64)? + (b.as_tensor() * 1e-25f64)?)?
+            .sum_all()?
+            .backward()?;
+        let result = direction_comparison(&direction, &margin, &vars)?;
+        assert_eq!(result["status"], "ACTIVE");
+        let cosine = result["signed_cosine_against_margin_gradient"]
+            .as_f64()
+            .ok_or_else(|| bad("missing cosine"))?;
+        assert!((cosine + 0.8).abs() < 1e-6);
+        assert!(
+            result["squared_norm"]
+                .as_f64()
+                .ok_or_else(|| bad("missing norm"))?
+                > 0.
+        );
+        let zero = (a.as_tensor() * 0f64)?.sum_all()?.backward()?;
+        assert_eq!(
+            direction_comparison(&zero, &margin, &vars)?["status"],
+            "INACTIVE_DIRECTION"
+        );
+        Ok(())
     }
 }

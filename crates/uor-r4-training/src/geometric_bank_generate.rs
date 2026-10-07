@@ -25,8 +25,9 @@ use uor_r4_integer::{
 use crate::{
     geometric_context::ContextQ4Output,
     geometric_generate_learning::{
-        preclip_entry_margin_diagnostic, vocabulary_marginal_loss, GenerateLearningOutput,
-        GenerateLearningWeights, PreclipEntryMarginDiagnostic, PreparedGenerateLearning,
+        preclip_entry_margin_diagnostic, vocabulary_marginal_loss,
+        vocabulary_marginal_loss_with_credit, GenerateLearningOutput, GenerateLearningWeights,
+        PreclipEntryMarginDiagnostic, PreparedGenerateLearning, VocabularyScoreAdjoint,
     },
     geometric_occurrence_consumer::source_realizer::{
         ComposedCopyBankOutput, PreparedSourceRealizer,
@@ -383,6 +384,16 @@ impl BankGenerateOutput {
             &self.generate.raw_scores,
             self.copy.as_ref().map(|c| &c.copy_raw),
             target,
+        )
+    }
+    /// Explicit offline score-adjoint comparison; default loss is unchanged.
+    pub fn loss_with_credit(&self, target: u32, credit: VocabularyScoreAdjoint) -> Result<Tensor> {
+        vocabulary_marginal_loss_with_credit(
+            &self.actions,
+            &self.generate.raw_scores,
+            self.copy.as_ref().map(|c| &c.copy_raw),
+            target,
+            credit,
         )
     }
     /// Target enters only after the native score vectors and all legal actions

@@ -1118,6 +1118,15 @@ fn admitted_vocabulary_scores(
     Ok((combined, target_action_mass))
 }
 
+/// Offline score Jacobian only; both policies retain the same native clipped
+/// forward and alias probability. This policy never changes serving.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum VocabularyScoreAdjoint {
+    #[default]
+    Clipped,
+    RawIdentity,
+}
+
 /// Flat action marginal with labels used only after a target-free native pool.
 /// Native token mass is aggregated before the sole float probability boundary.
 /// Copy scores may be frozen or carry separately implemented input credit.
@@ -1127,6 +1136,23 @@ pub fn vocabulary_marginal_loss(
     generate_raw: &Tensor,
     copy_raw: Option<&Tensor>,
     target: u32,
+) -> Result<Tensor> {
+    vocabulary_marginal_loss_with_credit(
+        trace,
+        generate_raw,
+        copy_raw,
+        target,
+        VocabularyScoreAdjoint::Clipped,
+    )
+}
+
+/// Explicit opt-in backward comparison; no automatic training-policy adoption.
+pub fn vocabulary_marginal_loss_with_credit(
+    trace: &VocabularyActionTrace,
+    generate_raw: &Tensor,
+    copy_raw: Option<&Tensor>,
+    target: u32,
+    credit: VocabularyScoreAdjoint,
 ) -> Result<Tensor> {
     let (combined, target_action_mass) =
         admitted_vocabulary_scores(trace, generate_raw, copy_raw, target)?;
@@ -1159,7 +1185,11 @@ pub fn vocabulary_marginal_loss(
         trace.actions.len(),
         generate_raw.device(),
     )?;
-    let scores = (&hard_scores + (&bounded - bounded.detach())?)?;
+    let credit_scores = match credit {
+        VocabularyScoreAdjoint::Clipped => &bounded,
+        VocabularyScoreAdjoint::RawIdentity => &combined,
+    };
+    let scores = (&hard_scores + (credit_scores - credit_scores.detach())?)?;
     let probability = candle_nn::ops::softmax(&scores, 0)?;
     let mask = Tensor::from_vec(
         trace
@@ -1277,6 +1307,54 @@ mod tests {
             NativeVocabularyActions::new(binding()?, &exp).map_err(|e| invalid(e.to_string()))?;
         pool.reduce_trace(&vec![0; binding()?.vocab_size()], copy_tokens, copy_scores)
             .map_err(|e| invalid(e.to_string()))
+    }
+
+    #[test]
+    fn raw_alias_credit_unblocks_saturation_without_changing_forward() -> Result<()> {
+        let trace = margin_fixture(&[5], &[9 << 24])?;
+        let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Var::from_vec(vec![9f32], 1, &Device::Cpu)?;
+        let old =
+            vocabulary_marginal_loss(&trace, generate.as_tensor(), Some(copy.as_tensor()), 4)?;
+        let raw = vocabulary_marginal_loss_with_credit(
+            &trace,
+            generate.as_tensor(),
+            Some(copy.as_tensor()),
+            4,
+            VocabularyScoreAdjoint::RawIdentity,
+        )?;
+        assert_eq!(old.to_scalar::<f32>()?, raw.to_scalar::<f32>()?);
+        assert_eq!(grad(&old.backward()?, copy.as_tensor())?, vec![0.]);
+        assert!(grad(&raw.backward()?, copy.as_tensor())?[0] > 0.);
+        Ok(())
+    }
+
+    #[test]
+    fn raw_alias_credit_matches_unsaturated_and_conserves_target_aliases() -> Result<()> {
+        let trace = margin_fixture(&[4, 4, 5], &[0, 0, 0])?;
+        let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Var::zeros(3, DType::F32, &Device::Cpu)?;
+        let old =
+            vocabulary_marginal_loss(&trace, generate.as_tensor(), Some(copy.as_tensor()), 4)?;
+        let raw = vocabulary_marginal_loss_with_credit(
+            &trace,
+            generate.as_tensor(),
+            Some(copy.as_tensor()),
+            4,
+            VocabularyScoreAdjoint::RawIdentity,
+        )?;
+        assert_eq!(old.to_scalar::<f32>()?, raw.to_scalar::<f32>()?);
+        let old_g = old.backward()?;
+        let raw_g = raw.backward()?;
+        let dg = grad(&raw_g, generate.as_tensor())?;
+        let dc = grad(&raw_g, copy.as_tensor())?;
+        assert_eq!(dg, grad(&old_g, generate.as_tensor())?);
+        assert_eq!(dc, grad(&old_g, copy.as_tensor())?);
+        assert!((dg[4] - dc[0]).abs() < 1e-6);
+        assert!((dc[0] - dc[1]).abs() < 1e-6);
+        assert!(dc[0] < 0. && dc[2] > 0.);
+        assert!((dg.iter().sum::<f32>() + dc.iter().sum::<f32>()).abs() < 1e-6);
+        Ok(())
     }
 
     #[test]
