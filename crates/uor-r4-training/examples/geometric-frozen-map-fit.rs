@@ -38,7 +38,7 @@ use uor_r4_training::{
         source_realizer::{NativeSourceRealizer, SourceRealizerWeights},
         ConsumerIdentity,
     },
-    geometric_read_state_bridge::BridgeLearningWeights,
+    geometric_read_state_bridge::{BridgeLearningWeights, PreparedCategoricalBridge},
     sha256_bytes, sha256_file,
 };
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
@@ -71,11 +71,30 @@ impl Credit {
         }
     }
 }
+/// Offline Context transport pullback only. Both variants use the same hard
+/// frozen categorical marker artifact and target-free physical Source route.
+#[derive(Clone, Copy, Debug, Default, Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum ReadStatePullback {
+    #[default]
+    Legacy,
+    Categorical,
+}
+impl ReadStatePullback {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Legacy => "legacy",
+            Self::Categorical => "categorical",
+        }
+    }
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Args {
     mode: Mode,
     credit: Credit,
+    #[serde(default)]
+    read_state_pullback: ReadStatePullback,
     seed: u64,
     checkpoint: PathBuf,
     saved_fit: PathBuf,
@@ -1083,10 +1102,29 @@ fn batch(
     if sha256_bytes(&bs.native.to_bytes()?) != CAT_SHA {
         return Err(bad("frozen categorical map changed"));
     }
-    let mut learner = PreparedBankGenerate::new(&prepared, &l.generate, &gs, &l.exp)?
-        .with_prefix_temporal_utility(false)
-        .with_read_state_bridge(&l.marker, &bs)?
-        .with_read_selector_credit(true);
+    // Re-authenticate the same marker snapshot at every batch preparation.
+    // Context/Potential/Generate may have changed; the frozen map may not.
+    let categorical = if a.read_state_pullback == ReadStatePullback::Categorical {
+        Some(PreparedCategoricalBridge::from_bytes(
+            &bs.native.to_bytes()?,
+            l.generate.binding(),
+            CAT_SHA,
+            d,
+        )?)
+    } else {
+        None
+    };
+    let learner = PreparedBankGenerate::new(&prepared, &l.generate, &gs, &l.exp)?
+        .with_prefix_temporal_utility(false);
+    let mut learner = match a.read_state_pullback {
+        ReadStatePullback::Legacy => learner.with_read_state_bridge(&l.marker, &bs)?,
+        ReadStatePullback::Categorical => learner.with_categorical_read_state_bridge(
+            categorical
+                .as_ref()
+                .ok_or_else(|| bad("categorical pullback snapshot absent"))?,
+        )?,
+    }
+    .with_read_selector_credit(true);
     let params = active(&l.source, &l.generate)?;
     let mut sums = BTreeMap::<String, Tensor>::new();
     let mut rows = Vec::new();
@@ -1256,7 +1294,7 @@ fn batch(
         "phase_positions":phase_positions,"phase_losses":phase_losses,
         "independent_native_parity":independent.is_some(),
         "matched_forward_loss_bit_equal":independent.is_some(),
-        "credit":a.credit.name(),"token_backward_chunk":1,"frozen_bridge_excluded_from_gradient_accumulation":true}),
+        "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"token_backward_chunk":1,"frozen_bridge_excluded_from_gradient_accumulation":true}),
     ))
 }
 fn save_masters(root: &Path, vars: &BTreeMap<String, Var>) -> Result<Value> {
@@ -1439,7 +1477,7 @@ fn checkpoint(
         "source_metadata_rebound":serde_json::to_value(&binding)?!=*old_binding,
         "binding_scope":"source context/potential metadata honestly rebound; typed action bindings checked against current artifact; unchanged bridge coefficients, original masters and map bytes independently verified",
         "generate_sha256":sha256_bytes(&genbytes),"original_quarter_sha256":QUARTER_SHA,"categorical_sha256":CAT_SHA,
-        "categorical_receipt":l.categorical_receipt,"credit":a.credit.name(),"order_seed":a.seed,
+        "categorical_receipt":l.categorical_receipt,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"order_seed":a.seed,
         "native_independently_reloaded":true,"masters_independently_reloaded":true,
         "fresh_adam":"moments zero-initialized; not historical optimizer continuation",
         "frozen_bridge_training":"marker parameters excluded from Adam and clip; original masters unchanged"});
@@ -1635,8 +1673,10 @@ fn baseline_identity(base: &Value, current: &Value, before: &Value, now: &Value)
     {
         return Err(bad("baseline initialization/reload admission"));
     }
-    // Credit, data-order seed, host and CUDA device are not initialized integer
-    // evaluation inputs. Each fit still executes fresh seed-specific graph parity.
+    // Credit, read-state pullback, data-order seed, host and CUDA device are
+    // not initialized integer evaluation inputs. Do not require the new
+    // non-forward pullback field from an older authenticated baseline.
+    // Each fit still executes fresh seed/arm-specific graph/native parity.
     Ok(())
 }
 fn tree_identity(root: &Path) -> Result<String> {
@@ -1903,7 +1943,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         "categorical":l.categorical_receipt,"initial_active_masters":initial_masters,
         "active_parameter_names":active(&l.source,&l.generate)?.keys().collect::<Vec<_>>(),
         "fresh_adam":true,"rates":{"generate":0.003,"prototype":0.01,"context":0.002,"potential":0.003},
-        "phase_policy":loss_weight_policy(true),"credit":a.credit.name(),"CUDA_VISIBLE_DEVICES":std::env::var("CUDA_VISIBLE_DEVICES").ok()}),
+        "phase_policy":loss_weight_policy(true),"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"CUDA_VISIBLE_DEVICES":std::env::var("CUDA_VISIBLE_DEVICES").ok()}),
     )?;
     let (initial_native, initial_generate, initial_bridge, initial_receipt) = checkpoint(a, 0, &l)?;
     if initial_native.binding().tokenizer_sha256() != l.integer.binding().tokenizer_sha256()
@@ -1942,7 +1982,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     if a.mode == Mode::Admission {
         return Ok(
             json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"admission",
-            "updates":0,"credit":a.credit.name(),"order_seed":a.seed,"admission":admission,
+            "updates":0,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"order_seed":a.seed,"admission":admission,
             "initial_metrics":initial_metrics,"initial_evaluation_provenance":baseline_provenance,
             "elapsed_seconds":start.elapsed().as_secs_f64(),
             "scope":"zero-update authenticated categorical restart admission; no learning verdict"}),
@@ -1983,7 +2023,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         }
         d.synchronize()?;
         updates.push(
-            json!({"step":update+1,"before_update":receipt,"global_active_gradient_norm":norm}),
+            json!({"step":update+1,"read_state_pullback":a.read_state_pullback.name(),"before_update":receipt,"global_active_gradient_norm":norm}),
         );
         write(a, "updates.json", &json!(updates))?;
         // Recoverable exact checkpoints, not acceptance/reselection gates.
@@ -2026,7 +2066,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     write(a, "metrics-0128.json", &final_metrics)?;
     Ok(
         json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"fit",
-        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","credit":a.credit.name(),
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
         "order_seed":a.seed,"updates":UPDATES,"batch":BATCH,"token_backward_chunk":1,
         "initial_receipt":initial_receipt,"final_receipt":final_receipt,
         "initial_metrics":initial_metrics,"final_metrics":final_metrics,
@@ -2045,7 +2085,7 @@ fn main() -> Result<()> {
     let report = match &result {
         Ok(value) => value.clone(),
         Err(e) => {
-            json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"FAILED","error":e.to_string(),
+            json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"FAILED","error":e.to_string(),"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
             "elapsed_seconds":start.elapsed().as_secs_f64(),
             "model_verdict":"UNQUALIFIED; preserve partial checkpoints and completed rows; execution failure is not model failure"})
         }
@@ -2062,6 +2102,31 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn read_state_pullback_config_defaults_serializes_and_rejects_unknown() -> Result<()> {
+        let original = json!({"mode":"fit","credit":"raw_identity","seed":1001,
+            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
+            "training_inputs":"input","training_labels":"labels","development_inputs":"input",
+            "development_labels":"labels","maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":"new"});
+        let legacy: Args = serde_json::from_value(original.clone())?;
+        assert_eq!(legacy.read_state_pullback, ReadStatePullback::Legacy);
+        assert_eq!(
+            serde_json::to_value(legacy.read_state_pullback)?,
+            json!("legacy")
+        );
+        let mut categorical = original.clone();
+        categorical["read_state_pullback"] = json!("categorical");
+        let parsed: Args = serde_json::from_value(categorical.clone())?;
+        assert_eq!(parsed.read_state_pullback, ReadStatePullback::Categorical);
+        assert_eq!(
+            serde_json::to_value(parsed.read_state_pullback)?,
+            json!("categorical")
+        );
+        assert!(parsed.credit == Credit::RawIdentity);
+        categorical["read_state_pullback"] = json!("query_keep");
+        assert!(serde_json::from_value::<Args>(categorical).is_err());
+        Ok(())
+    }
     #[test]
     fn phase_weights_conserve_equal_nonempty_phase_mass() -> Result<()> {
         let target = [10, 20, 20, 30, 31];
@@ -2144,6 +2209,7 @@ mod tests {
         let mut current = base.clone();
         current["credit"] = json!("raw_identity");
         current["order_seed"] = json!(1003);
+        current["read_state_pullback"] = json!("categorical");
         baseline_identity(&base, &current, &checkpoint, &checkpoint)?;
         current["initial_active_masters"] = json!({"different_context_master":true});
         assert!(baseline_identity(&base, &current, &checkpoint, &checkpoint).is_err());
