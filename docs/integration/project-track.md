@@ -19,6 +19,12 @@ target. No transformer backbone, hidden teacher answers or new Python model
 dependency is adopted. Geometry remains the preferred representation and
 operator family throughout the programme.
 
+### Immediate native prediction discriminator — October 7
+
+The [merged native prediction control](https://github.com/UOR-Foundation/uor-r4/pull/1844) now produces eight complete job/home development replies with its own emitted-token feedback, a full Copy/Generate pool and normal EOS. Its zero-update recomposition uses Source/Potential48 with Generate64; this label-informed choice is one learned lineage on exposed cases. The [current state](current-state.md#native-complete-prediction-control-succeeds-frozen-transfer-is-next--october-7) binds the artifact, execution and independent review. Preserve this bounded success alongside the six earlier full-panel negatives; neither result retires the geometric family or qualifies general chat.
+
+The next decision is whether that frozen native path transfers to new presented facts. First require production-wrapper parity on the original eight cases. Then evaluate prospectively frozen fact recombinations with both source records present, role/record-order contrasts, ordinary Context statements updated consistently, full legal vocabulary, and evaluator-only answers. Rust data preparation audits donor exposure and passes an independent typed reference on the same instrument. Report complete replies/EOS, entry correctness, paired source dependence and first errors; separate familiar-token recombination from new vocabulary, grammar and length. Do not select another checkpoint, tune a gate or repeat a fit before this result. Source/compiler/store integration, broader learned context access, conversation/reasoning and complete laptop cost remain successive responsibilities.
+
 ### What changes and why
 
 The [October 1 evidence review](grounded-memory-evidence-2026-10-01.md) separates
