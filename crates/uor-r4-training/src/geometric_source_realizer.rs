@@ -46,7 +46,7 @@ use crate::{
     geometric_context::NativeContextTrace,
     geometric_context_credit::{
         frozen_cue_root_forward, frozen_cue_state_forward, frozen_no_read_forward,
-        frozen_potential_forward,
+        frozen_potential_forward, frozen_potential_selected_forward, ContextPotentialPair,
     },
     geometric_no_read::{NoReadBatch, NoReadWeights},
     geometric_potential_q4::PotentialQ4Pair,
@@ -4610,6 +4610,114 @@ mod tests {
         Ok(())
     }
 
+    // Replaces only the contextual state-credit term. The independent potential
+    // coefficient graph, cue/prefix graphs, Generate graph and native pool stay
+    // exactly as constructed by the actual bank path.
+    #[cfg(feature = "cuda")]
+    fn dense_bank_context_copy_reference(
+        source: &SourceRealizerWeights,
+        output: &crate::geometric_bank_generate::BankGenerateOutput,
+    ) -> Result<Tensor> {
+        let copy = output
+            .copy
+            .as_ref()
+            .ok_or_else(|| invalid("Copy bank absent"))?;
+        let bank = &copy.trace.cue_bank.bank;
+        let c = source.consumer.config();
+        let time = bank.context.tokens.len();
+        let positions = bank
+            .candidates
+            .iter()
+            .map(|v| v.context_position)
+            .collect::<Vec<_>>();
+        let pairs = positions
+            .iter()
+            .map(|&key| ContextPotentialPair {
+                batch: 0,
+                query: time - 1,
+                key,
+            })
+            .collect::<Vec<_>>();
+        let absent = AddressLane::new(H4Code::IDENTITY.index(), 0, false)
+            .map_err(|e| invalid(e.to_string()))?;
+        let content = vec![absent; time * c.heads * c.lanes_per_head];
+        let device = copy.context.root_logits.device();
+        device.synchronize()?;
+        let start = std::time::Instant::now();
+        let selected = frozen_potential_selected_forward(
+            &source.consumer.potential,
+            &content,
+            &copy.context,
+            &pairs,
+        )?;
+        device.synchronize()?;
+        let selected_seconds = start.elapsed().as_secs_f64();
+        let start = std::time::Instant::now();
+        let dense = frozen_potential_forward(&source.consumer.potential, &content, &copy.context)?;
+        device.synchronize()?;
+        let dense_seconds = start.elapsed().as_secs_f64();
+        let indices = Tensor::from_vec(
+            positions
+                .iter()
+                .map(|&p| u32::try_from(p).map_err(|_| invalid("position exceeds u32")))
+                .collect::<Result<Vec<_>>>()?,
+            positions.len(),
+            device,
+        )?;
+        let mut heads = Vec::new();
+        for h in 0..c.heads {
+            for (j, &position) in positions.iter().enumerate() {
+                assert_eq!(
+                    selected.scores_q24[j * c.heads + h],
+                    dense.scores_q24[(h * time + time - 1) * time + position]
+                );
+            }
+            heads.push(
+                dense
+                    .scores
+                    .i((0, h, time - 1))?
+                    .index_select(&indices, 0)?,
+            );
+        }
+        let dense_sum = Tensor::stack(&heads, 0)?.sum(0)?;
+        let selected_sum = selected.scores.sum(1)?;
+        assert_eq!(dense_sum.to_vec1::<f32>()?, selected_sum.to_vec1::<f32>()?);
+        let replacement =
+            ((&dense_sum - dense_sum.detach())? - (&selected_sum - selected_sum.detach())?)?;
+        let result = (&copy.copy_raw + replacement)?;
+        assert_eq!(result.to_vec1::<f32>()?, copy.copy_raw.to_vec1::<f32>()?);
+        println!(
+            "selected_context_profile {}",
+            serde_json::json!({
+                "time":time,"heads":c.heads,"lanes_per_head":c.lanes_per_head,
+                "source_occurrences":positions.len(),"dense_pairs_per_head":time*(time+1)/2,
+                "selected_pairs_per_head":pairs.len(),"dense_forward_prepare_sync_seconds":dense_seconds,
+                "selected_forward_prepare_sync_seconds":selected_seconds,
+                "scope":"same factual bank/context snapshot; native hard scoring and host staging included; no optimizer update; not whole-fit timing"
+            })
+        );
+        Ok(result)
+    }
+
+    #[cfg(feature = "cuda")]
+    fn assert_same_device_adjoint(a: &Tensor, b: &Tensor) -> Result<()> {
+        assert_eq!(a.dims(), b.dims());
+        assert!(a.device().same_device(b.device()));
+        for (a, b) in a
+            .flatten_all()?
+            .to_vec1::<f32>()?
+            .into_iter()
+            .zip(b.flatten_all()?.to_vec1::<f32>()?)
+        {
+            assert!(a.is_finite() && b.is_finite());
+            assert!(
+                (a - b).abs() <= 2e-4 + 2e-5 * a.abs(),
+                "selected/dense adjoint differs: {a} vs {b}"
+            );
+        }
+        Ok(())
+    }
+
     #[cfg(feature = "cuda")]
     #[test]
     fn composed_cuda_reloaded_source_full_bank_native_and_adjoint_parity() -> Result<()> {
@@ -4629,6 +4737,16 @@ mod tests {
                     }
                 }
             }
+            if matches!(
+                name.as_str(),
+                "consumer.potential.context_unary"
+                    | "consumer.potential.context_radius"
+                    | "consumer.potential.context_presence"
+            ) {
+                for (i, x) in values.iter_mut().enumerate() {
+                    *x = (i % 5) as f32 * 0.25 - 0.5;
+                }
+            }
             var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
         }
         let source_root = fixture.path.join("cuda-bank-source");
@@ -4638,205 +4756,539 @@ mod tests {
             .weights
             .compile(fixture.identity.clone())?
             .save(&native_root)?;
-        let staged =
-            SourceRealizerWeights::load_source_on_device(&source_root, TOK.as_bytes(), &device)?;
-        assert_eq!(
-            parameter_identities(&fixture.weights)?,
-            parameter_identities(&staged)?
-        );
-        assert!(staged
-            .context_state_parameters()
-            .values()
-            .all(|v| v.device().same_device(&device)));
-        assert!(staged
-            .potential_parameters()
-            .values()
-            .all(|v| v.device().is_cpu()));
-        let native = NativeSourceRealizer::load(&native_root, &fixture.weights, &fixture.identity)?;
-        let gpu_native = NativeSourceRealizer::load(&native_root, &staged, &fixture.identity)?;
-        assert_eq!(native.artifact_binding()?, gpu_native.artifact_binding()?);
-        let cue = native.compile_cue_carrier(
-            CueAngularQ4::new(
-                CueAngularConfig {
-                    heads: 1,
-                    lanes_per_head: 2,
-                    mode: CueScoreMode::DirectedRelative,
-                },
-                &vec![0x12; 120],
-            )
-            .map_err(|e| invalid(e.to_string()))?,
-        )?;
-        let prefix = native.compile_prefix_transport(
-            &cue,
-            PrefixAngularQ4::new(
-                PrefixAngularConfig {
-                    heads: 1,
-                    lanes_per_head: 2,
-                    mode: PrefixScoreMode::DirectedRelative,
-                },
-                &vec![0x12; 120],
-            )
-            .map_err(|e| invalid(e.to_string()))?,
-        )?;
-        // Sidecars retain references to their exact execution parent, so the
-        // independently reloaded CUDA parent needs its own equivalent sidecars.
-        let gpu_cue = gpu_native.compile_cue_carrier(cue.angular_source())?;
-        let gpu_prefix = gpu_native.compile_prefix_transport(
-            &gpu_cue,
-            PrefixAngularQ4::new(
-                PrefixAngularConfig {
-                    heads: 1,
-                    lanes_per_head: 2,
-                    mode: PrefixScoreMode::DirectedRelative,
-                },
-                &vec![0x12; 120],
-            )
-            .map_err(|e| invalid(e.to_string()))?,
-        )?;
-        assert_eq!(cue.metadata(), gpu_cue.metadata());
-        assert_eq!(prefix.metadata(), gpu_prefix.metadata());
-        let cpu_prepared = fixture.weights.prepare_on_device(&native, &Device::Cpu)?;
-        let gpu_prepared = staged.prepare_on_device(&gpu_native, &device)?;
-        let cpu_generate = crate::geometric_generate_learning::GenerateLearningWeights::seeded(
-            fixture.weights.binding().clone(),
-            2,
-            1001,
-            &Device::Cpu,
-        )?;
-        let gpu_generate = crate::geometric_generate_learning::GenerateLearningWeights::seeded(
-            staged.binding().clone(),
-            2,
-            1001,
-            &device,
-        )?;
-        let cpu_snapshot = cpu_generate.prepare_native()?;
-        let gpu_snapshot = gpu_generate.prepare_native()?;
-        assert_eq!(
-            cpu_snapshot
-                .native
-                .to_bytes()
+        for learn_potential in [false, true] {
+            let staged = if learn_potential {
+                SourceRealizerWeights::load_context_potential_on_device(
+                    &source_root,
+                    TOK.as_bytes(),
+                    &device,
+                )?
+            } else {
+                SourceRealizerWeights::load_source_on_device(&source_root, TOK.as_bytes(), &device)?
+            };
+            assert_eq!(
+                parameter_identities(&fixture.weights)?,
+                parameter_identities(&staged)?
+            );
+            assert!(staged
+                .context_state_parameters()
+                .values()
+                .all(|v| v.device().same_device(&device)));
+            assert!(staged
+                .potential_parameters()
+                .values()
+                .all(|v| if learn_potential {
+                    v.device().same_device(&device)
+                } else {
+                    v.device().is_cpu()
+                }));
+            let native =
+                NativeSourceRealizer::load(&native_root, &fixture.weights, &fixture.identity)?;
+            let gpu_native = NativeSourceRealizer::load(&native_root, &staged, &fixture.identity)?;
+            assert_eq!(native.artifact_binding()?, gpu_native.artifact_binding()?);
+            let cue = native.compile_cue_carrier(
+                CueAngularQ4::new(
+                    CueAngularConfig {
+                        heads: 1,
+                        lanes_per_head: 2,
+                        mode: CueScoreMode::DirectedRelative,
+                    },
+                    &vec![0x12; 120],
+                )
                 .map_err(|e| invalid(e.to_string()))?,
-            gpu_snapshot
-                .native
-                .to_bytes()
-                .map_err(|e| invalid(e.to_string()))?
-        );
-        let exp = fs::read(native_root.join("consumer/exp-q31.bin"))?;
-        let mut cpu_pool = crate::geometric_bank_generate::PreparedBankGenerate::new(
-            &cpu_prepared,
-            &cpu_generate,
-            &cpu_snapshot,
-            &exp,
-        )?;
-        let mut gpu_pool = crate::geometric_bank_generate::PreparedBankGenerate::new(
-            &gpu_prepared,
-            &gpu_generate,
-            &gpu_snapshot,
-            &exp,
-        )?;
-        let ids = [4, 4];
-        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
-        let segments = [
-            SourceBankSegment::Context {
-                token_ids: &[5],
-                role: 1,
-                event: 7,
-            },
-            SourceBankSegment::Source {
-                frame: frame(&ids),
-                view: &view,
-                event: 7,
-            },
-        ];
-        let compare = |cpu: &Tensor, gpu: &Tensor| -> Result<bool> {
-            assert_eq!(cpu.dims(), gpu.dims());
-            assert!(cpu.device().is_cpu());
-            assert!(gpu.device().same_device(&device));
-            let left = cpu.flatten_all()?.to_vec1::<f32>()?;
-            let right = gpu.flatten_all()?.to_vec1::<f32>()?;
-            let mut nonzero = false;
-            for (&a, &b) in left.iter().zip(&right) {
-                if !a.is_finite() || !b.is_finite() || (a - b).abs() > 2e-4 + 2e-5 * a.abs() {
-                    return Err(invalid(format!(
-                        "composed CUDA adjoint differs: CPU {a}, GPU {b}"
-                    )));
+            )?;
+            let prefix = native.compile_prefix_transport(
+                &cue,
+                PrefixAngularQ4::new(
+                    PrefixAngularConfig {
+                        heads: 1,
+                        lanes_per_head: 2,
+                        mode: PrefixScoreMode::DirectedRelative,
+                    },
+                    &vec![0x12; 120],
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )?;
+            // Sidecars retain references to their exact execution parent, so the
+            // independently reloaded CUDA parent needs its own equivalent sidecars.
+            let gpu_cue = gpu_native.compile_cue_carrier(cue.angular_source())?;
+            let gpu_prefix = gpu_native.compile_prefix_transport(
+                &gpu_cue,
+                PrefixAngularQ4::new(
+                    PrefixAngularConfig {
+                        heads: 1,
+                        lanes_per_head: 2,
+                        mode: PrefixScoreMode::DirectedRelative,
+                    },
+                    &vec![0x12; 120],
+                )
+                .map_err(|e| invalid(e.to_string()))?,
+            )?;
+            assert_eq!(cue.metadata(), gpu_cue.metadata());
+            assert_eq!(prefix.metadata(), gpu_prefix.metadata());
+            let cpu_prepared = if learn_potential {
+                fixture
+                    .weights
+                    .prepare_context_potential_on_device(&native, &Device::Cpu)?
+            } else {
+                fixture.weights.prepare_on_device(&native, &Device::Cpu)?
+            };
+            let gpu_prepared = if learn_potential {
+                staged.prepare_context_potential_on_device(&gpu_native, &device)?
+            } else {
+                staged.prepare_on_device(&gpu_native, &device)?
+            };
+            let cpu_generate = crate::geometric_generate_learning::GenerateLearningWeights::seeded(
+                fixture.weights.binding().clone(),
+                2,
+                1001,
+                &Device::Cpu,
+            )?;
+            let gpu_generate = crate::geometric_generate_learning::GenerateLearningWeights::seeded(
+                staged.binding().clone(),
+                2,
+                1001,
+                &device,
+            )?;
+            let cpu_snapshot = cpu_generate.prepare_native()?;
+            let gpu_snapshot = gpu_generate.prepare_native()?;
+            assert_eq!(
+                cpu_snapshot
+                    .native
+                    .to_bytes()
+                    .map_err(|e| invalid(e.to_string()))?,
+                gpu_snapshot
+                    .native
+                    .to_bytes()
+                    .map_err(|e| invalid(e.to_string()))?
+            );
+            let exp = fs::read(native_root.join("consumer/exp-q31.bin"))?;
+            let mut cpu_pool = crate::geometric_bank_generate::PreparedBankGenerate::new(
+                &cpu_prepared,
+                &cpu_generate,
+                &cpu_snapshot,
+                &exp,
+            )?;
+            let mut gpu_pool = crate::geometric_bank_generate::PreparedBankGenerate::new(
+                &gpu_prepared,
+                &gpu_generate,
+                &gpu_snapshot,
+                &exp,
+            )?;
+            let ids = [4, 4];
+            let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+            let segments = [
+                SourceBankSegment::Context {
+                    token_ids: &[5],
+                    role: 1,
+                    event: 7,
+                },
+                SourceBankSegment::Source {
+                    frame: frame(&ids),
+                    view: &view,
+                    event: 7,
+                },
+            ];
+            let compare = |cpu: &Tensor, gpu: &Tensor| -> Result<bool> {
+                assert_eq!(cpu.dims(), gpu.dims());
+                assert!(cpu.device().is_cpu());
+                assert!(gpu.device().same_device(&device));
+                let left = cpu.flatten_all()?.to_vec1::<f32>()?;
+                let right = gpu.flatten_all()?.to_vec1::<f32>()?;
+                let mut nonzero = false;
+                for (&a, &b) in left.iter().zip(&right) {
+                    if !a.is_finite() || !b.is_finite() || (a - b).abs() > 2e-4 + 2e-5 * a.abs() {
+                        return Err(invalid(format!(
+                            "composed CUDA adjoint differs: CPU {a}, GPU {b}"
+                        )));
+                    }
+                    nonzero |= a.abs() > 1e-8;
                 }
-                nonzero |= a.abs() > 1e-8;
-            }
-            Ok(nonzero)
-        };
-        for own in [&[][..], &[4][..]] {
-            let cpu = cpu_pool.forward_bank(&segments, &[5], own, &cue, &prefix)?;
-            let gpu = gpu_pool.forward_bank(&segments, &[5], own, &gpu_cue, &gpu_prefix)?;
-            assert_eq!(cpu.actions, gpu.actions);
-            assert_eq!(cpu.copy_scores_q24, gpu.copy_scores_q24);
-            assert_eq!(cpu.generate.scores_q24, gpu.generate.scores_q24);
-            assert_eq!(cpu.final_state_codes, gpu.final_state_codes);
-            assert_eq!(cpu.copy_token_ids, gpu.copy_token_ids);
-            assert_eq!(cpu.context()?.trace.states, gpu.context()?.trace.states);
-            assert!(gpu.context()?.state_choices.device().same_device(&device));
-            for target in [5, 4] {
-                // absent-Copy Generate and source-covered alias.
-                let cpu_loss = cpu.loss(target)?;
-                let gpu_loss = gpu.loss(target)?;
-                // Offline floating reductions may differ by rounding; native
-                // scores, actions and state codes remain exact checks above.
-                let cl = cpu_loss.to_scalar::<f32>()?;
-                let gl = gpu_loss.to_scalar::<f32>()?;
-                assert!(cl.is_finite() && gl.is_finite());
-                assert!((cl - gl).abs() <= 1e-6 + 1e-6 * cl.abs());
-                let cpu_grads = cpu_loss.backward()?;
-                let gpu_grads = gpu_loss.backward()?;
-                let mut context_nonzero = false;
-                for (name, cv) in fixture.weights.context_state_parameters() {
-                    let gv = &staged.context_state_parameters()[&name];
-                    let cg = cpu_grads
-                        .get(cv.as_tensor())
-                        .ok_or_else(|| invalid(format!("CPU context adjoint absent: {name}")))?;
-                    let gg = gpu_grads
-                        .get(gv.as_tensor())
-                        .ok_or_else(|| invalid(format!("CUDA context adjoint absent: {name}")))?;
-                    context_nonzero |= compare(cg, gg)?;
-                }
-                assert!(
-                    context_nonzero,
-                    "full-bank context path must have nonzero credit"
-                );
-                for source in [&fixture.weights, &staged] {
-                    let grads = if source.consumer.context.device().is_cpu() {
-                        &cpu_grads
-                    } else {
-                        &gpu_grads
-                    };
-                    for (name, var) in source.parameters() {
-                        if !context_state_parameter(&name) {
+                Ok(nonzero)
+            };
+            for own in [&[][..], &[4][..]] {
+                let cpu = cpu_pool.forward_bank(&segments, &[5], own, &cue, &prefix)?;
+                let gpu = gpu_pool.forward_bank(&segments, &[5], own, &gpu_cue, &gpu_prefix)?;
+                assert_eq!(cpu.actions, gpu.actions);
+                assert_eq!(cpu.copy_scores_q24, gpu.copy_scores_q24);
+                assert_eq!(cpu.generate.scores_q24, gpu.generate.scores_q24);
+                assert_eq!(cpu.final_state_codes, gpu.final_state_codes);
+                assert_eq!(cpu.copy_token_ids, gpu.copy_token_ids);
+                assert_eq!(cpu.context()?.trace.states, gpu.context()?.trace.states);
+                assert!(gpu.context()?.state_choices.device().same_device(&device));
+                let dense_copy = dense_bank_context_copy_reference(&staged, &gpu)?;
+                for target in [5, 4] {
+                    for credit in [
+                        crate::geometric_generate_learning::VocabularyScoreAdjoint::Clipped,
+                        crate::geometric_generate_learning::VocabularyScoreAdjoint::RawIdentity,
+                    ] {
+                        // absent-Copy Generate and source-covered alias, same native pool.
+                        let cpu_loss = cpu.loss_with_credit(target, credit)?;
+                        let gpu_loss = gpu.loss_with_credit(target, credit)?;
+                        let dense_loss =
+                        crate::geometric_generate_learning::vocabulary_marginal_loss_with_credit(
+                            &gpu.actions,
+                            &gpu.generate.raw_scores,
+                            Some(&dense_copy),
+                            target,
+                            credit,
+                        )?;
+                        assert_eq!(gpu_loss.to_scalar::<f32>()?, dense_loss.to_scalar::<f32>()?);
+                        // Offline floating reductions may differ by rounding; native
+                        // scores, actions and state codes remain exact checks above.
+                        let cl = cpu_loss.to_scalar::<f32>()?;
+                        let gl = gpu_loss.to_scalar::<f32>()?;
+                        assert!(cl.is_finite() && gl.is_finite());
+                        assert!((cl - gl).abs() <= 1e-6 + 1e-6 * cl.abs());
+                        let cpu_grads = cpu_loss.backward()?;
+                        let gpu_grads = gpu_loss.backward()?;
+                        let dense_grads = dense_loss.backward()?;
+                        let mut context_nonzero = false;
+                        for (name, cv) in fixture.weights.context_state_parameters() {
+                            let gv = &staged.context_state_parameters()[&name];
+                            let cg = cpu_grads.get(cv.as_tensor()).ok_or_else(|| {
+                                invalid(format!("CPU context adjoint absent: {name}"))
+                            })?;
+                            let gg = gpu_grads.get(gv.as_tensor()).ok_or_else(|| {
+                                invalid(format!("CUDA context adjoint absent: {name}"))
+                            })?;
+                            context_nonzero |= compare(cg, gg)?;
+                            let dg = dense_grads.get(gv.as_tensor()).ok_or_else(|| {
+                                invalid(format!("dense context adjoint absent: {name}"))
+                            })?;
+                            assert_same_device_adjoint(gg, dg)?;
+                        }
+                        assert!(
+                            context_nonzero,
+                            "full-bank context path must have nonzero credit"
+                        );
+                        for source in [&fixture.weights, &staged] {
+                            let grads = if source.consumer.context.device().is_cpu() {
+                                &cpu_grads
+                            } else {
+                                &gpu_grads
+                            };
+                            for (name, var) in source.parameters() {
+                                if !context_state_parameter(&name)
+                                    && !(learn_potential && potential_parameter(&name))
+                                {
+                                    assert!(
+                                        grads.get(var.as_tensor()).is_none(),
+                                        "frozen source family gained credit: {name}"
+                                    );
+                                }
+                            }
+                        }
+                        if learn_potential {
+                            let mut potential_nonzero = false;
+                            for (name, cv) in fixture.weights.potential_parameters() {
+                                let gv = &staged.potential_parameters()[&name];
+                                match (
+                                    cpu_grads.get(cv.as_tensor()),
+                                    gpu_grads.get(gv.as_tensor()),
+                                    dense_grads.get(gv.as_tensor()),
+                                ) {
+                                    (Some(cg), Some(gg), Some(dg)) => {
+                                        potential_nonzero |= compare(cg, gg)?;
+                                        assert_same_device_adjoint(gg, dg)?;
+                                    }
+                                    (None, None, None) => {}
+                                    _ => {
+                                        return Err(invalid(format!(
+                                            "potential credit support differs: {name}"
+                                        )))
+                                    }
+                                }
+                            }
                             assert!(
-                                grads.get(var.as_tensor()).is_none(),
-                                "frozen source family gained credit: {name}"
+                                potential_nonzero,
+                                "learned potential path must retain nonzero coefficient credit"
                             );
                         }
+                        let mut generate_nonzero = false;
+                        for (name, cv) in cpu_generate.parameters() {
+                            if cv.elem_count() == 0 {
+                                continue;
+                            }
+                            let gv = &gpu_generate.parameters()[&name];
+                            let cg = cpu_grads.get(cv.as_tensor()).ok_or_else(|| {
+                                invalid(format!("CPU Generate adjoint absent: {name}"))
+                            })?;
+                            let gg = gpu_grads.get(gv.as_tensor()).ok_or_else(|| {
+                                invalid(format!("CUDA Generate adjoint absent: {name}"))
+                            })?;
+                            generate_nonzero |= compare(cg, gg)?;
+                        }
+                        assert!(
+                            generate_nonzero,
+                            "full-bank Generate path must have nonzero credit"
+                        );
                     }
                 }
-                let mut generate_nonzero = false;
-                for (name, cv) in cpu_generate.parameters() {
-                    if cv.elem_count() == 0 {
-                        continue;
-                    }
-                    let gv = &gpu_generate.parameters()[&name];
-                    let cg = cpu_grads
-                        .get(cv.as_tensor())
-                        .ok_or_else(|| invalid(format!("CPU Generate adjoint absent: {name}")))?;
-                    let gg = gpu_grads
-                        .get(gv.as_tensor())
-                        .ok_or_else(|| invalid(format!("CUDA Generate adjoint absent: {name}")))?;
-                    generate_nonzero |= compare(cg, gg)?;
-                }
-                assert!(
-                    generate_nonzero,
-                    "full-bank Generate path must have nonzero credit"
-                );
             }
         }
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires CUDA and UOR_SELECTED_CREDIT_ROOT authenticated retained fit"]
+    fn selected_context_retained_bank_cuda_zero_update() -> Result<()> {
+        use crate::geometric_generate_learning::{
+            vocabulary_marginal_loss_with_credit, VocabularyScoreAdjoint,
+        };
+        use uor_r4_core::native_geometric::learner::geometric_generate::NativeGeometricGenerate;
+        use uor_r4_integer::geometric_vocabulary_actions::NativeVocabularyActions;
+        let root = std::path::PathBuf::from(
+            std::env::var("UOR_SELECTED_CREDIT_ROOT")
+                .map_err(|_| invalid("UOR_SELECTED_CREDIT_ROOT is required"))?,
+        );
+        uor_r4_core::report_output::verify(&root).map_err(|e| invalid(e.to_string()))?;
+        let read =
+            |p: &Path| -> Result<serde_json::Value> { Ok(serde_json::from_slice(&fs::read(p)?)?) };
+        let cp = root.join("checkpoint-0000");
+        let receipt = read(&cp.join("receipt.json"))?;
+        println!(
+            "retained_selected_identity {}",
+            serde_json::json!({
+                "root":root,"report_sha256":sha256_bytes(&fs::read(root.join("report.json"))?),
+                "manifest_sha256":sha256_bytes(&fs::read(root.join("manifest.json"))?),
+                "checkpoint_receipt_sha256":sha256_bytes(&fs::read(cp.join("receipt.json"))?),
+                "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT").unwrap_or("UNBOUND"),
+                "device":"cuda","optimizer_updates":0
+            })
+        );
+        let meta = read(&cp.join("native/metadata.json"))?;
+        let identity: ConsumerIdentity = serde_json::from_value(meta["identity"].clone())?;
+        let tok = fs::read(cp.join("native/tokenizer.json"))?;
+        let device = Device::new_cuda(0)?;
+        let source =
+            SourceRealizerWeights::load_source_on_device(&cp.join("source"), &tok, &device)?;
+        let native = NativeSourceRealizer::load(&cp.join("native"), &source, &identity)?;
+        let prepared = source.prepare_on_device(&native, &device)?;
+        assert_eq!(
+            serde_json::to_value(native.artifact_binding()?)?,
+            receipt["parent"]
+        );
+        let bytes = fs::read(cp.join("generate.bin"))?;
+        assert_eq!(
+            sha256_bytes(&bytes),
+            "41c7beae25e98fdc658ff667959a7c02a6b916b04298a425f7f7f48285d21511"
+        );
+        let generate = NativeGeometricGenerate::from_bytes(&bytes, source.binding())
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut pool = NativeVocabularyActions::new(
+            source.binding().clone(),
+            &fs::read(cp.join("native/consumer/exp-q31.bin"))?,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let c = source.consumer.config();
+        let initial_parameter_identities = parameter_identities(&source)?;
+        let absent = AddressLane::new(H4Code::IDENTITY.index(), 0, false)
+            .map_err(|e| invalid(e.to_string()))?;
+        let mut positions_checked = 0;
+        // These saved steps retain the complete causal bank, every occurrence,
+        // and its native source provenance. No source is selected using a label.
+        for row_index in [0, 8] {
+            let row_bytes =
+                fs::read(root.join(format!("development-0000-row-{row_index:04}.json")))?;
+            let row: serde_json::Value = serde_json::from_slice(&row_bytes)?;
+            let row_sha256 = sha256_bytes(&row_bytes);
+            for step_index in [0, 3] {
+                let step = &row["canonical"][step_index]["native"];
+                let provenance = &step["source_provenance"];
+                let ids: Vec<u32> = serde_json::from_value(provenance["causal_tokens"].clone())?;
+                if ids.is_empty() {
+                    return Err(invalid("retained context is empty"));
+                }
+                let context = prepared.context_output(&ids, false)?;
+                let candidates = provenance["candidates"]
+                    .as_array()
+                    .ok_or_else(|| invalid("retained physical candidates absent"))?;
+                let pairs = candidates
+                    .iter()
+                    .enumerate()
+                    .map(|(j, v)| {
+                        if v["bank_index"].as_u64() != Some(j as u64) {
+                            return Err(invalid("retained occurrence order differs"));
+                        }
+                        let key = v["context_position"]
+                            .as_u64()
+                            .and_then(|v| usize::try_from(v).ok())
+                            .ok_or_else(|| invalid("retained context position absent"))?;
+                        Ok(ContextPotentialPair {
+                            batch: 0,
+                            query: ids.len() - 1,
+                            key,
+                        })
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                let content = vec![absent; ids.len() * c.heads * c.lanes_per_head];
+                device.synchronize()?;
+                let start = std::time::Instant::now();
+                let selected = frozen_potential_selected_forward(
+                    &source.consumer.potential,
+                    &content,
+                    &context,
+                    &pairs,
+                )?;
+                device.synchronize()?;
+                let selected_seconds = start.elapsed().as_secs_f64();
+                let start = std::time::Instant::now();
+                let dense =
+                    frozen_potential_forward(&source.consumer.potential, &content, &context)?;
+                device.synchronize()?;
+                let dense_seconds = start.elapsed().as_secs_f64();
+                let index = Tensor::from_vec(
+                    pairs
+                        .iter()
+                        .map(|p| {
+                            u32::try_from(p.key)
+                                .map_err(|_| invalid("retained context index exceeds u32"))
+                        })
+                        .collect::<Result<Vec<_>>>()?,
+                    pairs.len(),
+                    &device,
+                )?;
+                let mut heads = Vec::new();
+                let contextual: Vec<i64> = serde_json::from_value(
+                    provenance["copy_components_q24"]["contextual"].clone(),
+                )?;
+                for h in 0..c.heads {
+                    for (j, p) in pairs.iter().enumerate() {
+                        assert_eq!(
+                            selected.scores_q24[j * c.heads + h],
+                            dense.scores_q24[(h * ids.len() + ids.len() - 1) * ids.len() + p.key]
+                        );
+                    }
+                    heads.push(
+                        dense
+                            .scores
+                            .i((0, h, ids.len() - 1))?
+                            .index_select(&index, 0)?,
+                    );
+                }
+                assert_eq!(contextual.len(), pairs.len());
+                for (j, &score) in contextual.iter().enumerate() {
+                    let sum = (0..c.heads).try_fold(0i64, |sum, h| {
+                        sum.checked_add(selected.scores_q24[j * c.heads + h])
+                            .ok_or_else(|| invalid("selected native sum overflow"))
+                    })?;
+                    assert_eq!(sum, score);
+                }
+                let selected_sum = selected.scores.sum(1)?;
+                let dense_sum = Tensor::stack(&heads, 0)?.sum(0)?;
+                let scores: Vec<i64> = serde_json::from_value(step["copy_raw_scores_q24"].clone())?;
+                let copy_ids: Vec<u32> = serde_json::from_value(step["copy_token_ids"].clone())?;
+                let states: Vec<u8> = serde_json::from_value(step["retained_state_codes"].clone())?;
+                let states = states
+                    .into_iter()
+                    .map(H4Code::try_from)
+                    .collect::<std::result::Result<Vec<_>, _>>()
+                    .map_err(|e| invalid(e.to_string()))?;
+                let mut generated = vec![0i64; generate.vocab_size()];
+                generate
+                    .score_into(&states, &mut generated, &mut Default::default())
+                    .map_err(|e| invalid(e.to_string()))?;
+                assert_eq!(
+                    sha256_bytes(&serde_json::to_vec(&generated)?),
+                    step["generate_raw_scores_sha256"]
+                        .as_str()
+                        .ok_or_else(|| invalid("Generate digest absent"))?
+                );
+                let actions = pool
+                    .reduce_trace(&generated, &copy_ids, &scores)
+                    .map_err(|e| invalid(e.to_string()))?;
+                assert_eq!(
+                    serde_json::to_value(&actions.summary)?,
+                    step["pool"]["summary"]
+                );
+                let anchor = Tensor::from_vec(
+                    scores
+                        .iter()
+                        .map(|&v| (v as f64 / (1u64 << 24) as f64) as f32)
+                        .collect::<Vec<_>>(),
+                    scores.len(),
+                    &device,
+                )?;
+                let selected_copy = (&anchor + (&selected_sum - selected_sum.detach())?)?;
+                let dense_copy = (&anchor + (&dense_sum - dense_sum.detach())?)?;
+                let gen = Tensor::from_vec(
+                    generated
+                        .iter()
+                        .map(|&v| (v as f64 / (1u64 << 24) as f64) as f32)
+                        .collect::<Vec<_>>(),
+                    generated.len(),
+                    &device,
+                )?;
+                // The label enters only after the complete native action pool.
+                let targets: Vec<u32> =
+                    serde_json::from_value(row["canonical_target_ids_labels_only"].clone())?;
+                for credit in [
+                    VocabularyScoreAdjoint::Clipped,
+                    VocabularyScoreAdjoint::RawIdentity,
+                ] {
+                    let selected_loss = vocabulary_marginal_loss_with_credit(
+                        &actions,
+                        &gen,
+                        Some(&selected_copy),
+                        targets[step_index],
+                        credit,
+                    )?;
+                    let dense_loss = vocabulary_marginal_loss_with_credit(
+                        &actions,
+                        &gen,
+                        Some(&dense_copy),
+                        targets[step_index],
+                        credit,
+                    )?;
+                    assert_eq!(
+                        selected_loss.to_scalar::<f32>()?,
+                        dense_loss.to_scalar::<f32>()?
+                    );
+                    device.synchronize()?;
+                    let start = std::time::Instant::now();
+                    let sg = selected_loss.backward()?;
+                    device.synchronize()?;
+                    let selected_backward_seconds = start.elapsed().as_secs_f64();
+                    let start = std::time::Instant::now();
+                    let dg = dense_loss.backward()?;
+                    device.synchronize()?;
+                    let dense_backward_seconds = start.elapsed().as_secs_f64();
+                    let mut nonzero = false;
+                    for (name, var) in source.context_state_parameters() {
+                        let a = sg.get(var.as_tensor()).ok_or_else(|| {
+                            invalid(format!("selected actual context credit absent: {name}"))
+                        })?;
+                        let b = dg.get(var.as_tensor()).ok_or_else(|| {
+                            invalid(format!("dense actual context credit absent: {name}"))
+                        })?;
+                        assert_same_device_adjoint(a, b)?;
+                        nonzero |= a
+                            .flatten_all()?
+                            .to_vec1::<f32>()?
+                            .iter()
+                            .any(|v| v.abs() > 1e-8);
+                    }
+                    assert!(nonzero, "retained actual context credit must be nonzero");
+                    println!(
+                        "retained_selected_credit {}",
+                        serde_json::json!({
+                            "row_index":row_index,"row_id":row["id"],"row_sha256":row_sha256,
+                            "teacher_step":step_index,"credit":format!("{credit:?}"),
+                            "time":ids.len(),"heads":c.heads,"lanes_per_head":c.lanes_per_head,
+                            "selected_pairs_per_head":pairs.len(),"dense_pairs_per_head":ids.len()*(ids.len()+1)/2,
+                            "selected_forward_prepare_sync_seconds":selected_seconds,"dense_forward_prepare_sync_seconds":dense_seconds,
+                            "selected_backward_sync_seconds":selected_backward_seconds,"dense_backward_sync_seconds":dense_backward_seconds,
+                            "optimizer_updates":0,"scope":"contextual state-credit only; complete native alias loss; retained teacher-prefix conditions; no whole-fit or language claim"
+                        })
+                    );
+                    positions_checked += 1;
+                }
+            }
+        }
+        assert_eq!(positions_checked, 8);
+        assert_eq!(parameter_identities(&source)?, initial_parameter_identities);
         Ok(())
     }
 
@@ -5696,7 +6148,6 @@ impl PreparedSourceRealizer<'_> {
         trace: &uor_r4_integer::geometric_source_realizer::PrefixBankRealizerTrace,
         prefix_temporal_utility: bool,
     ) -> Result<ComposedCopyAssembly> {
-        let device = self.source.consumer.context.device();
         let bank = &trace.cue_bank.bank;
         let carrier = &trace.cue_bank.carrier;
         let transport = &trace.prefix;
@@ -5730,13 +6181,24 @@ impl PreparedSourceRealizer<'_> {
                     .map_err(|_| invalid("composed context position exceeds u32"))
             })
             .collect::<Result<Vec<_>>>()?;
-        let index = Tensor::from_vec(positions.clone(), count, device)?;
         let absent = AddressLane::new(H4Code::IDENTITY.index(), 0, false)
             .map_err(|e| invalid(e.to_string()))?;
-        let copy = frozen_potential_forward(
+        // Every factual Source occurrence is retained in physical bank order.
+        // The loss consumes no other context-pair output; the full chronological
+        // context graph above remains connected to these query/source reads.
+        let selected_pairs = positions
+            .iter()
+            .map(|&position| ContextPotentialPair {
+                batch: 0,
+                query: time - 1,
+                key: position as usize,
+            })
+            .collect::<Vec<_>>();
+        let copy = frozen_potential_selected_forward(
             &self.source.consumer.potential,
             &vec![absent; time * width],
             &context,
+            &selected_pairs,
         )?;
         let coefficient_credit = if self.potential_coefficient_credit {
             let mut pairs = Vec::with_capacity(c.heads * count);
@@ -5764,8 +6226,7 @@ impl PreparedSourceRealizer<'_> {
                     let flat = chunk_index * 4096 + j;
                     let h = flat / count;
                     let candidate = flat % count;
-                    let at = h * time + time - 1;
-                    if score != copy.scores_q24[at * time + positions[candidate] as usize] {
+                    if score != copy.scores_q24[candidate * c.heads + h] {
                         return Err(invalid("composed coefficient/context hard scores differ"));
                     }
                 }
@@ -5860,12 +6321,11 @@ impl PreparedSourceRealizer<'_> {
         let mut contextual_heads = Vec::with_capacity(c.heads);
         let mut copy_heads = Vec::with_capacity(c.heads);
         for h in 0..c.heads {
-            let at = h * time + time - 1;
             if bank.heads[h].scores_q24.len() != count {
                 return Err(invalid("composed Copy head shape differs"));
             }
-            for (j, &position) in positions.iter().enumerate() {
-                let score = copy.scores_q24[at * time + position as usize]
+            for j in 0..count {
+                let score = copy.scores_q24[j * c.heads + h]
                     .checked_add(cue_credit.scores_q24[h][j])
                     .and_then(|x| x.checked_add(prefix_credit.scores_q24[h][j]))
                     .ok_or_else(|| invalid("composed Copy score overflow"))?;
@@ -5873,7 +6333,7 @@ impl PreparedSourceRealizer<'_> {
                     return Err(invalid("composed complete native Copy scores differ"));
                 }
             }
-            let contextual = copy.scores.i((0, h, time - 1))?.index_select(&index, 0)?;
+            let contextual = copy.scores.i((.., h))?;
             let contextual = if let Some(credit) = &coefficient_credit {
                 (&contextual + credit.i(h)?)?
             } else {

@@ -550,6 +550,243 @@ impl CustomOp2 for NoReadCredit {
     }
 }
 
+/// A physical causal pair. Equal codes at different positions are distinct;
+/// duplicate pairs remain distinct outputs and accumulate gradient multiplicity.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ContextPotentialPair {
+    pub batch: usize,
+    pub query: usize,
+    pub key: usize,
+}
+
+#[cfg(feature = "cuda")]
+#[path = "geometric_selected_potential_cuda.rs"]
+mod selected_potential_cuda;
+
+/// Fresh frozen snapshot, selected only. This does not allocate triangular
+/// scores/utilities. Hard anchors are independently scored on the host; CUDA
+/// constructs counterfactual utilities from authenticated tables on device.
+/// Scores are [pairs, heads]; Q24 order is pair-major/head-minor. Endpoint
+/// arrays retain the full admitted [batch,time,heads,lanes] trace. No gradients
+/// reach content or potential coefficients; only observed context carriers do.
+pub fn frozen_potential_selected_forward(
+    weights: &PotentialQ4Weights,
+    content: &[AddressLane],
+    context: &ContextQ4Output,
+    pairs: &[ContextPotentialPair],
+) -> Result<PotentialQ4Output> {
+    let (d, _) = admit(context)?;
+    if content.len() != d.count()
+        || weights.config().heads != d.heads
+        || weights.config().lanes_per_head != d.lanes
+        || pairs
+            .iter()
+            .any(|p| p.batch >= d.batch || p.query >= d.time || p.key > p.query)
+        || pairs
+            .len()
+            .checked_mul(d.width())
+            .and_then(|n| n.checked_mul(306))
+            .map_or(true, |n| n > u32::MAX as usize)
+    {
+        return Err(invalid("selected potential dimensions/causal pairs differ"));
+    }
+    // Never reuse a packed snapshot implicitly after a caller's optimizer step.
+    let packed = weights.packed_coefficients()?;
+    let config = PotentialQ4Config {
+        heads: d.heads,
+        lanes_per_head: d.lanes,
+    };
+    let codec = NativePotentialQ4::new(config, &packed).map_err(|e| invalid(e.to_string()))?;
+    let expanded = codec.expanded_q24();
+    let base = PotentialCredit {
+        d,
+        content: content.to_vec(),
+        context: context.trace.codes.clone(),
+        raw_roots: context.trace.emitted_roots.clone(),
+        algebra: Arc::new(
+            HistoricalH4Tables::from_bytes(ALGEBRA).map_err(|e| invalid(e.to_string()))?,
+        ),
+        lanes: expanded
+            .chunks_exact(ENTRIES_PER_LANE)
+            .map(|v| NativePotentialTables::new(1, 1, v).map_err(|e| invalid(e.to_string())))
+            .collect::<Result<_>>()?,
+        coefficients: geometric_potential_q4::unpack_coefficients(
+            config
+                .coefficient_count()
+                .map_err(|e| invalid(e.to_string()))?,
+            &packed,
+        )
+        .map_err(|e| invalid(e.to_string()))?,
+        hard: Vec::new(),
+    };
+    let edges = pairs.len() * d.heads;
+    let mut hard = Vec::with_capacity(edges);
+    let mut qi = Vec::with_capacity(edges * d.lanes);
+    let mut ki = Vec::with_capacity(edges * d.lanes);
+    let mut slots = Vec::with_capacity(edges * d.lanes * 4);
+    for pair in pairs {
+        for h in 0..d.heads {
+            let startq = d.index(pair.batch, pair.query, h, 0);
+            let startk = d.index(pair.batch, pair.key, h, 0);
+            hard.push(
+                codec
+                    .score(
+                        h,
+                        &content[startq..startq + d.lanes],
+                        &content[startk..startk + d.lanes],
+                        &base.context[startq..startq + d.lanes],
+                        &base.context[startk..startk + d.lanes],
+                        &base.algebra,
+                    )
+                    .map_err(|e| invalid(e.to_string()))?,
+            );
+            for l in 0..d.lanes {
+                let q = startq + l;
+                let k = startk + l;
+                qi.push(u32::try_from(q).map_err(|_| invalid("selected index overflow"))?);
+                ki.push(u32::try_from(k).map_err(|_| invalid("selected index overflow"))?);
+                slots.extend([
+                    qi[qi.len() - 1],
+                    ki[ki.len() - 1],
+                    (h * d.lanes + l) as u32,
+                    u32::from(pair.query == pair.key),
+                ]);
+            }
+        }
+    }
+    selected_potential_graph(
+        &base,
+        &slots,
+        &qi,
+        &ki,
+        &hard,
+        pairs.len(),
+        expanded,
+        &context.root_logits,
+        &context.category_logits,
+    )
+}
+#[allow(clippy::too_many_arguments)]
+fn selected_potential_graph(
+    base: &PotentialCredit,
+    slots: &[u32],
+    qi: &[u32],
+    ki: &[u32],
+    hard: &[i64],
+    pair_count: usize,
+    expanded: &[i32],
+    roots: &Tensor,
+    categories: &Tensor,
+) -> Result<PotentialQ4Output> {
+    #[cfg(not(feature = "cuda"))]
+    let _ = expanded;
+    let device = roots.device();
+    let d = base.d;
+    let edges = pair_count * d.heads;
+    let count = qi.len();
+    if count == 0 {
+        return Ok(PotentialQ4Output {
+            scores: Tensor::zeros((0, d.heads), DType::F32, device)?,
+            scores_q24: Vec::new(),
+            content_codes: base.content.clone(),
+            context_codes: base.context.clone(),
+        });
+    }
+    let utility = if device.is_cpu() {
+        let mut values = Vec::with_capacity(count * 306);
+        for slot in slots.chunks_exact(4) {
+            let q = slot[0] as usize;
+            let k = slot[1] as usize;
+            let lane = slot[2] as usize;
+            let same = slot[3] != 0;
+            let rq = base.context[q];
+            let rk = base.context[k];
+            let mut aq = [0.; 4];
+            let mut ak = [0.; 4];
+            if !same && rq.present() && rk.present() {
+                let mut v = std::array::from_fn(|i| base.coefficient(1, lane, i));
+                if base.content[q].present() && base.content[k].present() {
+                    let dc = root(
+                        base.algebra
+                            .relative(code(base.content[q].root())?, code(base.content[k].root())?)
+                            .index(),
+                    );
+                    for j in 0..4 {
+                        for i in 0..4 {
+                            v[j] += dc[i] * base.coefficient(2, lane, i * 4 + j);
+                        }
+                    }
+                }
+                for axis in 0..4 {
+                    let mut unit = [0.; 4];
+                    unit[axis] = 1.;
+                    aq[axis] = dot(v, hamilton(conjugate(unit), root(rk.root())));
+                    ak[axis] = dot(v, hamilton(conjugate(root(rq.root())), unit));
+                }
+            }
+            for a in [aq, ak] {
+                let anchor = dot(a, root(0));
+                values.extend((0..120).map(|r| (dot(a, root(r)) - anchor) as f32));
+            }
+            let absentq = observation(base.raw_roots[q], 0)?;
+            let qanchor = base.lane_score(lane, q, k, absentq, if same { absentq } else { rk })?;
+            let kanchor = if same {
+                0.
+            } else {
+                base.lane_score(lane, q, k, rq, observation(base.raw_roots[k], 0)?)?
+            };
+            for category in 0..33 {
+                let alt = observation(base.raw_roots[q], category)?;
+                values.push(
+                    (base.lane_score(lane, q, k, alt, if same { alt } else { rk })? - qanchor)
+                        as f32,
+                );
+            }
+            for category in 0..33 {
+                values.push(if same {
+                    0.
+                } else {
+                    (base.lane_score(lane, q, k, rq, observation(base.raw_roots[k], category)?)?
+                        - kanchor) as f32
+                });
+            }
+        }
+        Tensor::from_vec(values, (count, 306), device)?
+    } else {
+        #[cfg(feature = "cuda")]
+        {
+            selected_potential_cuda::utilities(base, slots, expanded, device)?
+        }
+        #[cfg(not(feature = "cuda"))]
+        {
+            return Err(invalid("selected potential requires CPU or CUDA"));
+        }
+    };
+    let root_probabilities = candle_nn::ops::softmax(&roots.reshape((d.count(), 120))?, 1)?;
+    let category_probabilities = candle_nn::ops::softmax(&categories.reshape((d.count(), 33))?, 1)?;
+    let mut credit = Tensor::zeros(edges, DType::F32, device)?;
+    for (probabilities, classes, index, offset) in [
+        (&root_probabilities, 120, qi, 0),
+        (&root_probabilities, 120, ki, 120),
+        (&category_probabilities, 33, qi, 240),
+        (&category_probabilities, 33, ki, 273),
+    ] {
+        let index = Tensor::from_vec(index.to_vec(), count, device)?;
+        let contribution = (probabilities.index_select(&index, 0)?
+            * utility.narrow(1, offset, classes)?)?
+        .sum(1)?
+        .reshape((edges, d.lanes))?
+        .sum(1)?;
+        credit = (credit + contribution)?;
+    }
+    Ok(PotentialQ4Output {
+        scores: device_hard_anchor(&hard, credit)?.reshape((pair_count, d.heads))?,
+        scores_q24: hard.to_vec(),
+        content_codes: base.content.clone(),
+        context_codes: base.context.clone(),
+    })
+}
+
 /// Potential hard output is the unchanged integer scorer. Only its context
 /// observations are differentiable here; content and all coefficients freeze.
 pub fn frozen_potential_forward(
@@ -941,6 +1178,188 @@ mod tests {
             q[start + within] = value;
         }
         geometric_potential_q4::pack_coefficients(&q).map_err(|e| invalid(e.to_string()))
+    }
+
+    fn selected_dense_control(device: &Device) -> Result<()> {
+        let d = Dimensions {
+            batch: 2,
+            time: 3,
+            heads: 2,
+            lanes: 2,
+        };
+        let coefficients = packed(
+            d,
+            &[
+                (1, 0, 4),
+                (1, 5, -3),
+                (2, 7, 2),
+                (4, 0, 3),
+                (4, 33, -2),
+                (6, 0, -1),
+                (6, 5, 3),
+                (6, 10, -2),
+                (6, 15, 4),
+            ],
+        )?;
+        let config = PotentialQ4Config {
+            heads: d.heads,
+            lanes_per_head: d.lanes,
+        };
+        let codec =
+            NativePotentialQ4::new(config, &coefficients).map_err(|e| invalid(e.to_string()))?;
+        let content = (0..d.count())
+            .map(|i| observation((i % 7) as u8, if i % 5 == 0 { 0 } else { 1 + i % 32 }))
+            .collect::<Result<Vec<_>>>()?;
+        let observed = (0..d.count())
+            .map(|i| observation(3, if i % 4 == 0 { 0 } else { 17 }))
+            .collect::<Result<Vec<_>>>()?;
+        let base = PotentialCredit::new(d, content, observed, vec![3; d.count()], &coefficients)?;
+        let requests = [(0, 2, 0), (1, 2, 1), (0, 2, 0), (0, 2, 2), (1, 1, 0)];
+        let mut qi = Vec::new();
+        let mut ki = Vec::new();
+        let mut slots = Vec::new();
+        let mut hard = Vec::new();
+        let mut dense_up = vec![0f32; base.hard.len()];
+        let upstream = (0..requests.len() * d.heads)
+            .map(|i| {
+                if i % 2 == 0 {
+                    0.375 * (i + 1) as f32
+                } else {
+                    -0.25 * (i + 1) as f32
+                }
+            })
+            .collect::<Vec<_>>();
+        for (p, &(b, q, k)) in requests.iter().enumerate() {
+            for h in 0..d.heads {
+                let dense = ((b * d.heads + h) * d.time + q) * d.time + k;
+                hard.push(base.hard[dense]);
+                dense_up[dense] += upstream[p * d.heads + h];
+                for l in 0..d.lanes {
+                    let x = d.index(b, q, h, l) as u32;
+                    let y = d.index(b, k, h, l) as u32;
+                    qi.push(x);
+                    ki.push(y);
+                    slots.extend([x, y, (h * d.lanes + l) as u32, u32::from(q == k)]);
+                }
+            }
+        }
+        let rvalues = (0..d.count() * 120)
+            .map(|i| ((i % 19) as f32 - 9.) * 0.03125)
+            .collect::<Vec<_>>();
+        let cvalues = (0..d.count() * 33)
+            .map(|i| ((i % 11) as f32 - 5.) * 0.0625)
+            .collect::<Vec<_>>();
+        let r = Var::from_vec(rvalues.clone(), (d.count(), 120), device)?;
+        let c = Var::from_vec(cvalues.clone(), (d.count(), 33), device)?;
+        let selected = selected_potential_graph(
+            &base,
+            &slots,
+            &qi,
+            &ki,
+            &hard,
+            requests.len(),
+            codec.expanded_q24(),
+            r.as_tensor(),
+            c.as_tensor(),
+        )?;
+        assert_eq!(selected.scores_q24, hard);
+        let actual = selected.scores.flatten_all()?.to_vec1::<f32>()?;
+        let expected = hard
+            .iter()
+            .map(|&x| (x as f64 / Q24) as f32)
+            .collect::<Vec<_>>();
+        assert!(
+            actual
+                .iter()
+                .zip(expected)
+                .all(|(a, b)| a.to_bits() == b.to_bits()),
+            "native forward bits differ"
+        );
+        let loss = (selected.scores.flatten_all()?
+            * Tensor::from_vec(upstream, requests.len() * d.heads, device)?)?
+        .sum_all()?;
+        let grads = loss.backward()?;
+        let (dr, dc) = base.backward(&rvalues, &cvalues, &dense_up)?;
+        for (var, expected) in [(&r, dr), (&c, dc)] {
+            let actual = grads
+                .get(var)
+                .ok_or_else(|| invalid("selected gradient missing"))?
+                .flatten_all()?
+                .to_vec1::<f32>()?;
+            let tol = if device.is_cpu() { 2e-6 } else { 2e-5 };
+            assert!(
+                actual
+                    .iter()
+                    .zip(&expected)
+                    .all(|(a, b)| (a - b).abs() < tol),
+                "selected/dense adjoint differs"
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn selected_potential_matches_dense_signed_duplicate_shared_query() -> Result<()> {
+        selected_dense_control(&Device::Cpu)
+    }
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires an explicitly leased CUDA GPU; never falls back to CPU"]
+    fn selected_potential_cuda_matches_independent_dense_cpu() -> Result<()> {
+        selected_dense_control(&Device::new_cuda(0)?)
+    }
+    #[test]
+    fn selected_potential_self_root_zero_and_category_joint() -> Result<()> {
+        let d = Dimensions {
+            batch: 1,
+            time: 1,
+            heads: 1,
+            lanes: 1,
+        };
+        let coefficients = packed(d, &[(4, 0, 3), (4, 33, -2), (6, 0, 1), (6, 3, -3)])?;
+        let codec = NativePotentialQ4::new(
+            PotentialQ4Config {
+                heads: 1,
+                lanes_per_head: 1,
+            },
+            &coefficients,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let base = PotentialCredit::new(
+            d,
+            vec![observation(3, 17)?],
+            vec![observation(3, 0)?],
+            vec![3],
+            &coefficients,
+        )?;
+        let r = Var::zeros((1, 120), DType::F32, &Device::Cpu)?;
+        let c = Var::zeros((1, 33), DType::F32, &Device::Cpu)?;
+        let out = selected_potential_graph(
+            &base,
+            &[0, 0, 0, 1],
+            &[0],
+            &[0],
+            &base.hard,
+            1,
+            codec.expanded_q24(),
+            r.as_tensor(),
+            c.as_tensor(),
+        )?;
+        let grads = out.scores.sum_all()?.backward()?;
+        let dr = grads
+            .get(&r)
+            .ok_or_else(|| invalid("self roots missing"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(dr.iter().all(|v| *v == 0.));
+        let (_, expected) = base.backward(&vec![0.; 120], &vec![0.; 33], &[1.])?;
+        let dc = grads
+            .get(&c)
+            .ok_or_else(|| invalid("self category missing"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(dc.iter().zip(&expected).all(|(a, b)| (a - b).abs() < 1e-6));
+        assert!(dc.iter().any(|x| x.abs() > 1e-5));
+        Ok(())
     }
     #[test]
     fn context_credit_potential_self_alias_and_absence_use_actual_category_scores() -> Result<()> {
