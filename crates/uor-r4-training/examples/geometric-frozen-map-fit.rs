@@ -52,6 +52,7 @@ enum Mode {
     Fit,
     PredictionControl,
     EntryCeiling,
+    EntryScorerFit,
 }
 #[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -693,6 +694,7 @@ fn native_step(
     actual: &[u32],
     cueq: &CueAngularQ4,
     prefixq: &PrefixAngularQ4,
+    scorer: Option<&EntryScorer>,
 ) -> Result<Value> {
     use uor_r4_integer::h4_tables::H4Code;
     let (codes, copy_ids, copy_scores, provenance) = if e.has_source() {
@@ -821,8 +823,24 @@ fn native_step(
     let mut counts = GenerateReadCounts::default();
     g.score_into(&codes, &mut gs, &mut counts)?;
     let actions = pool.reduce_trace(&gs, &copy_ids, &copy_scores)?;
+    let mut summary = serde_json::to_value(&actions.summary)?;
+    // The boundary decision is owned by the entry scorer when it has seen this
+    // feature. At an empty prefix the answer is never a Copy candidate, so the
+    // mixed pool cannot decide it; the override is recorded next to the pool's
+    // own choice rather than applied silently.
+    let mut entry_decision = json!({"applied":false});
+    if actual.is_empty() {
+        if let Some(scorer) = scorer {
+            let feature = EntryScorer::feature_of(e);
+            if let Some(chosen) = scorer.choose(&feature) {
+                summary["chosen_token_id"] = json!(chosen);
+                entry_decision = json!({"applied":true,"feature":feature,"token":chosen,
+                    "pool_choice":actions.summary.chosen_token_id});
+            }
+        }
+    }
     Ok(
-        json!({"actual_prefix_ids":actual,"retained_state_codes":codes.iter().map(|s|s.index()).collect::<Vec<_>>(),"copy_token_ids":copy_ids,"copy_raw_scores_q24":copy_scores,"generate_raw_scores_sha256":sha256_bytes(&serde_json::to_vec(&gs)?),"pool":{"summary":actions.summary,"token_masses":actions.token_masses.iter().map(|m|[m.token_id as u64,m.weight_q31,m.generate_weight_q31,m.copy_weight_q31]).collect::<Vec<_>>()},"source_provenance":provenance,"generate_costs":counts}),
+        json!({"actual_prefix_ids":actual,"retained_state_codes":codes.iter().map(|s|s.index()).collect::<Vec<_>>(),"copy_token_ids":copy_ids,"copy_raw_scores_q24":copy_scores,"generate_raw_scores_sha256":sha256_bytes(&serde_json::to_vec(&gs)?),"pool":{"summary":summary,"token_masses":actions.token_masses.iter().map(|m|[m.token_id as u64,m.weight_q31,m.generate_weight_q31,m.copy_weight_q31]).collect::<Vec<_>>()},"entry_scorer":entry_decision,"source_provenance":provenance,"generate_costs":counts}),
     )
 }
 fn evaluate(
@@ -837,6 +855,7 @@ fn evaluate(
     cue: &CueAngularQ4,
     prefix: &PrefixAngularQ4,
     start: Instant,
+    scorer: Option<&EntryScorer>,
 ) -> Result<Value> {
     let mut pool = NativeVocabularyActions::new(model.binding().clone(), exp)?;
     let mut rows = Vec::new();
@@ -848,8 +867,17 @@ fn evaluate(
         let mut canonical = Vec::new();
         let mut rowce = 0.;
         for (t, &target) in e.target.iter().enumerate() {
-            let mut step =
-                native_step(model, g, bridge, &mut pool, e, &e.target[..t], cue, prefix)?;
+            let mut step = native_step(
+                model,
+                g,
+                bridge,
+                &mut pool,
+                e,
+                &e.target[..t],
+                cue,
+                prefix,
+                scorer,
+            )?;
             let total = step["pool"]["summary"]["total_weight_q31"]
                 .as_u64()
                 .ok_or_else(|| bad("native denominator missing"))?;
@@ -879,7 +907,7 @@ fn evaluate(
         let generation_allowance = 32usize.min(128usize.saturating_sub(e.base_len()));
         for _ in 0..generation_allowance {
             deadline(a, start)?;
-            let mut step = native_step(model, g, bridge, &mut pool, e, &ids, cue, prefix)?;
+            let mut step = native_step(model, g, bridge, &mut pool, e, &ids, cue, prefix, scorer)?;
             let id = step["pool"]["summary"]["chosen_token_id"]
                 .as_u64()
                 .ok_or_else(|| bad("native chosen ID"))? as u32;
@@ -1296,6 +1324,7 @@ fn batch(
                     &e.target[..t],
                     &l.cue,
                     &l.prefix,
+                    None,
                 )?;
                 let masses = out
                     .actions
@@ -2105,7 +2134,17 @@ fn control_entry_diagnostics(
     for (local, e) in eps.iter().enumerate() {
         // Complete target-free native bank selection first. Labels cannot choose
         // a source occurrence, frame, route, state or vocabulary candidate.
-        let native = native_step(model, g, Some(bridge), &mut pool, e, &[], &l.cue, &l.prefix)?;
+        let native = native_step(
+            model,
+            g,
+            Some(bridge),
+            &mut pool,
+            e,
+            &[],
+            &l.cue,
+            &l.prefix,
+            None,
+        )?;
         let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
         let state = state
             .into_iter()
@@ -2191,6 +2230,188 @@ fn control_entry_diagnostics(
     Ok(v)
 }
 
+/// Learned entry scorer: the boundary decision owned by its own scorer instead of
+/// by the mixed Copy+Generate pool, where the answer is never a Copy candidate
+/// and its Generate atom is a bounded-range score. The artifact is data, not
+/// floats: per feature, the training counts of the first answer token, exported
+/// whole and read back before use.
+#[derive(Clone, Debug, serde::Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EntryScorer {
+    schema: String,
+    feature_law: String,
+    rows: Vec<EntryScorerRow>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EntryScorerRow {
+    feature: String,
+    /// (token, count), ordered by token.
+    scores: Vec<(u32, u64)>,
+}
+
+const ENTRY_SCORER_SCHEMA: &str = "uor-r4.native-entry-scorer/1";
+
+impl EntryScorer {
+    fn feature_of(e: &Episode) -> String {
+        format!("q{:?}", e.packet.query_ids)
+    }
+
+    fn fit(eps: &[Episode]) -> Self {
+        let mut counts = BTreeMap::<String, BTreeMap<u32, u64>>::new();
+        for e in eps {
+            if panel_split(&e.packet.id) != 0 {
+                continue;
+            }
+            *counts
+                .entry(Self::feature_of(e))
+                .or_default()
+                .entry(e.target[0])
+                .or_default() += 1;
+        }
+        let rows = counts
+            .into_iter()
+            .map(|(feature, scores)| EntryScorerRow {
+                feature,
+                scores: scores.into_iter().collect(),
+            })
+            .collect();
+        Self {
+            schema: ENTRY_SCORER_SCHEMA.into(),
+            feature_law: "packet query_ids verbatim; an unseen query falls back to the pool".into(),
+            rows,
+        }
+    }
+
+    fn choose(&self, feature: &str) -> Option<u32> {
+        self.rows
+            .iter()
+            .find(|row| row.feature == feature)
+            .and_then(|row| {
+                row.scores
+                    .iter()
+                    .max_by(|x, y| x.1.cmp(&y.1).then_with(|| y.0.cmp(&x.0)))
+                    .map(|(token, _)| *token)
+            })
+    }
+
+    fn sha256(&self) -> Result<String> {
+        Ok(sha256_bytes(&serde_json::to_vec(self)?))
+    }
+}
+
+/// Entry correctness on the live evaluation, split by the label-independent
+/// halves, so in-sample and held-out are never merged into one number.
+fn entry_correct_by_split(
+    a: &Args,
+    eval: &Value,
+    eps: &[Episode],
+) -> Result<(usize, usize, usize, usize)> {
+    let refs = eval["rows"]
+        .as_array()
+        .ok_or_else(|| bad("evaluation rows missing"))?;
+    if refs.len() != eps.len() {
+        return Err(bad("row coverage differs"));
+    }
+    let (mut fit_ok, mut fit_n, mut held_ok, mut held_n) = (0usize, 0usize, 0usize, 0usize);
+    for (row_ref, e) in refs.iter().zip(eps) {
+        let name = row_ref["row_file"]
+            .as_str()
+            .ok_or_else(|| bad("row file absent"))?;
+        let path = a.out.join(name);
+        if sha256_file(&path)? != row_ref["row_sha256"] {
+            return Err(bad("row hash differs"));
+        }
+        let row = read(&path)?;
+        let chosen = row["canonical"][0]["native"]["pool"]["summary"]["chosen_token_id"]
+            .as_u64()
+            .ok_or_else(|| bad("entry chosen token absent"))? as u32;
+        let correct = usize::from(chosen == e.target[0]);
+        if panel_split(&e.packet.id) == 0 {
+            fit_n += 1;
+            fit_ok += correct;
+        } else {
+            held_n += 1;
+            held_ok += correct;
+        }
+    }
+    Ok((fit_ok, fit_n, held_ok, held_n))
+}
+
+/// Fit the entry scorer on one panel half, export it, read it back, and evaluate
+/// the whole panel twice -- once with the pool owning the entry decision and once
+/// with the scorer owning it -- reporting the halves separately.
+fn run_entry_scorer_fit(a: &Args, start: Instant, l: &Loaded, dev: &[Episode]) -> Result<Value> {
+    let scorer = EntryScorer::fit(dev);
+    let fit_rows = dev
+        .iter()
+        .filter(|e| panel_split(&e.packet.id) == 0)
+        .count();
+    let held_rows = dev.len() - fit_rows;
+    if scorer.rows.is_empty() || fit_rows == 0 || held_rows == 0 {
+        return Err(bad("entry scorer fit needs both panel halves"));
+    }
+    // Export, then use only the copy read back from disk.
+    let artifact = a.out.join("entry-scorer.json");
+    fs::write(&artifact, serde_json::to_vec_pretty(&scorer)?)?;
+    let reloaded_bytes = fs::read(&artifact)?;
+    let reloaded: EntryScorer = serde_json::from_slice(&reloaded_bytes)?;
+    // Compare like with like: the file is pretty-printed, so hash the canonical
+    // serialization of the reloaded copy rather than the file bytes.
+    let expected = scorer.sha256()?;
+    let reloaded_sha = sha256_bytes(&serde_json::to_vec(&reloaded)?);
+    if reloaded.schema != ENTRY_SCORER_SCHEMA
+        || reloaded_sha != expected
+        || reloaded.rows.len() != scorer.rows.len()
+    {
+        return Err(bad("entry scorer export/reload identity differs"));
+    }
+    let (initial_native, initial_generate, initial_bridge, _) = checkpoint(a, 0, l)?;
+    let base_eval = evaluate(
+        a,
+        "entry-scorer-base",
+        &initial_native,
+        &initial_generate,
+        Some(&initial_bridge),
+        &l.exp,
+        dev,
+        &l.tokenizer,
+        &l.cue,
+        &l.prefix,
+        start,
+        None,
+    )?;
+    let scored_eval = evaluate(
+        a,
+        "entry-scorer-applied",
+        &initial_native,
+        &initial_generate,
+        Some(&initial_bridge),
+        &l.exp,
+        dev,
+        &l.tokenizer,
+        &l.cue,
+        &l.prefix,
+        start,
+        Some(&reloaded),
+    )?;
+    let (base_fit, base_fit_n, base_held, base_held_n) =
+        entry_correct_by_split(a, &base_eval, dev)?;
+    let (fit_ok, fit_n, held_ok, held_n) = entry_correct_by_split(a, &scored_eval, dev)?;
+    let v = json!({"schema":"uor-r4.entry-scorer-fit/1","status":"COMPLETED","mode":"entry_scorer_fit",
+        "artifact":"entry-scorer.json","artifact_sha256":reloaded_sha.clone(),
+        "feature_law":reloaded.feature_law,"distinct_features":reloaded.rows.len(),
+        "fit_rows":fit_rows,"held_out_rows":held_rows,
+        "pool_entry_correct":{"in_sample":base_fit,"in_sample_rows":base_fit_n,"held_out":base_held,"held_out_rows":base_held_n},
+        "scorer_entry_correct":{"in_sample":fit_ok,"in_sample_rows":fit_n,"held_out":held_ok,"held_out_rows":held_n},
+        "update_state":"no optimizer step; the scorer is fitted from the training half and owns the entry decision only",
+        "elapsed_seconds":start.elapsed().as_secs_f64(),
+        "scope":"plumbing proof through the live evaluation path: the entry decision is owned by a fitted, exported and reloaded table applied at the empty prefix; the feature is the prompt, so the held-out number is memorisation of the panel query signatures and is not generalisation evidence"});
+    write(a, "entry-scorer-fit.json", &v)?;
+    Ok(v)
+}
+
 /// Zero-update entry-position ceiling over every development row.
 ///
 /// The same target-free native forward as the control diagnostic, run over the
@@ -2252,7 +2473,17 @@ fn entry_scorer_read(
             continue;
         }
         test_rows += 1;
-        let native = native_step(model, g, Some(bridge), &mut pool, e, &[], &l.cue, &l.prefix)?;
+        let native = native_step(
+            model,
+            g,
+            Some(bridge),
+            &mut pool,
+            e,
+            &[],
+            &l.cue,
+            &l.prefix,
+            None,
+        )?;
         let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
         let state = state
             .into_iter()
@@ -2326,7 +2557,17 @@ fn entry_ceiling_panel(
     for (index, e) in eps.iter().enumerate() {
         // Complete target-free native bank selection first. Labels cannot choose
         // a source occurrence, frame, route, state or vocabulary candidate.
-        let native = native_step(model, g, Some(bridge), &mut pool, e, &[], &l.cue, &l.prefix)?;
+        let native = native_step(
+            model,
+            g,
+            Some(bridge),
+            &mut pool,
+            e,
+            &[],
+            &l.cue,
+            &l.prefix,
+            None,
+        )?;
         let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
         let state = state
             .into_iter()
@@ -2368,6 +2609,7 @@ fn entry_ceiling_panel(
                 &[gold],
                 &l.cue,
                 &l.prefix,
+                None,
             )?;
             let state_next: Vec<u8> =
                 serde_json::from_value(native_next["retained_state_codes"].clone())?;
@@ -2793,6 +3035,7 @@ fn run_prediction_control(
         &l.cue,
         &l.prefix,
         start,
+        None,
     )?;
     let initial_metrics = metrics(a, &initial_eval, &eps)?;
     write(a, "prediction-metrics-0000.json", &initial_metrics)?;
@@ -2877,6 +3120,7 @@ fn run_prediction_control(
                 &l.cue,
                 &l.prefix,
                 start,
+                None,
             )?;
             let m = metrics(a, &eval, &eps)?;
             write(a, &format!("prediction-metrics-{step:04}.json"), &m)?;
@@ -2936,6 +3180,9 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     if a.mode == Mode::PredictionControl {
         return run_prediction_control(a, start, &d, &l, &train, dev);
     }
+    if a.mode == Mode::EntryScorerFit {
+        return run_entry_scorer_fit(a, start, &l, &dev);
+    }
     let frozen_original = identities(&l.original_bridge.parameters())?;
     let frozen_marker = identities(&l.marker.parameters())?;
     let initial_masters = identities(&active(&l.source, &l.generate)?)?;
@@ -2984,6 +3231,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
             &l.cue,
             &l.prefix,
             start,
+            None,
         )?;
         (
             evaluation,
@@ -3105,6 +3353,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         &l.cue,
         &l.prefix,
         start,
+        None,
     )?;
     let final_metrics = metrics(a, &final_eval, &dev)?;
     write(a, &format!("metrics-{:04}.json", a.updates), &final_metrics)?;
@@ -3287,6 +3536,36 @@ mod tests {
         // The legacy position-mean policy is untouched by the scope.
         let legacy = episode_loss_weights(&target, &copy, 8, false, LossScope::EntryOnly)?;
         assert!(legacy.weights.iter().all(|w| *w > 0.));
+        Ok(())
+    }
+    /// The scorer is exported data, not floats, and its choice is the strongest
+    /// training count; an unseen feature must fall back to the pool.
+    #[test]
+    fn entry_scorer_is_data_and_chooses_the_strongest_count() -> Result<()> {
+        let scorer = EntryScorer {
+            schema: ENTRY_SCORER_SCHEMA.into(),
+            feature_law: "test".into(),
+            rows: vec![EntryScorerRow {
+                feature: "seen".into(),
+                scores: vec![(5, 2), (7, 3)],
+            }],
+        };
+        assert_eq!(scorer.choose("seen"), Some(7));
+        assert_eq!(scorer.choose("unseen"), None);
+        let bytes = serde_json::to_vec(&scorer)?;
+        let back: EntryScorer = serde_json::from_slice(&bytes)?;
+        assert_eq!(back.choose("seen"), Some(7));
+        assert_eq!(sha256_bytes(&bytes), back.sha256()?);
+        // Ties break to the lower token id so the choice is deterministic.
+        let tie = EntryScorer {
+            schema: ENTRY_SCORER_SCHEMA.into(),
+            feature_law: "test".into(),
+            rows: vec![EntryScorerRow {
+                feature: "f".into(),
+                scores: vec![(9, 4), (3, 4)],
+            }],
+        };
+        assert_eq!(tie.choose("f"), Some(3));
         Ok(())
     }
     #[test]
