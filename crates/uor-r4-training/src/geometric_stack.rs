@@ -354,11 +354,11 @@ pub fn set_cuda_recurrence_kernels(kernels: CudaRecurrenceKernels) {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CudaReadKernels {
     /// Scores into a T x T buffer, a softmax per row, then the value mix.
-    /// The default.
+    /// The reference path; selected with `UOR_R4_CUDA_READ=fused`.
     Fused,
     /// One flash-style kernel per (query tile, window, head) with an online
-    /// softmax and no T x T buffer. Selected for a whole process with
-    /// `UOR_R4_CUDA_READ=flash`.
+    /// softmax and no T x T buffer. **The default**: it is faster end to end
+    /// and does not score worse (bf16 Phase 2b gate, `docs/compute/bf16-phase2b-gate-2.md`).
     Flash,
 }
 
@@ -367,14 +367,14 @@ static CUDA_READ_KERNELS: std::sync::atomic::AtomicU8 = std::sync::atomic::Atomi
 
 /// The CUDA read forward kernels in use: the last [`set_cuda_read_kernels`]
 /// choice, else `UOR_R4_CUDA_READ` (`flash` or `fused`), else
-/// [`CudaReadKernels::Fused`].
+/// [`CudaReadKernels::Flash`].
 pub fn cuda_read_kernels() -> CudaReadKernels {
     use std::sync::atomic::Ordering;
     let mut code = CUDA_READ_KERNELS.load(Ordering::Relaxed);
     if code == 0 {
         code = match std::env::var("UOR_R4_CUDA_READ").as_deref() {
-            Ok("flash") => 2,
-            _ => 1,
+            Ok("fused") => 1,
+            _ => 2,
         };
         // Keep an explicit choice made concurrently.
         let _ = CUDA_READ_KERNELS.compare_exchange(0, code, Ordering::Relaxed, Ordering::Relaxed);
