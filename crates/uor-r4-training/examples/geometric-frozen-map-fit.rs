@@ -144,6 +144,27 @@ impl ReadStatePullback {
         }
     }
 }
+/// Which supervised phases may carry credit. `all` is the declared
+/// phase-balanced objective and stays byte-identical to the retained fits.
+/// `entry_only` zeroes every later-position weight and leaves the entry
+/// position's own balanced weight untouched, so the entry decision is learned
+/// with no later-position credit in the four shared parameter groups. It
+/// isolates one variable: the later-phase gradient, not the entry weight.
+#[derive(Clone, Copy, Debug, Default, Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum LossScope {
+    #[default]
+    All,
+    EntryOnly,
+}
+impl LossScope {
+    fn name(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::EntryOnly => "entry_only",
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, Default, Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 enum ControlTrainable {
@@ -171,6 +192,10 @@ struct Args {
     maximum_seconds: u64,
     maximum_report_bytes: u64,
     out: PathBuf,
+    #[serde(default = "default_updates")]
+    updates: usize,
+    #[serde(default)]
+    loss_scope: LossScope,
     #[serde(default)]
     baseline: Option<PathBuf>,
     #[serde(default)]
@@ -187,6 +212,9 @@ struct Args {
     prediction_control_trainable: ControlTrainable,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
+fn default_updates() -> usize {
+    UPDATES
+}
 const INPUT_SHA: &str = "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a";
 const LABEL_SHA: &str = "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155";
 const CP_RECEIPT_SHA: &str = "9196520209cb8ed172fea65a60be0a1f2fa788e40d5857c65bf93eccb658b816";
@@ -414,6 +442,12 @@ fn args() -> Result<Args> {
         || a.maximum_report_bytes < (64 << 20)
         || a.maximum_report_bytes > (2 << 30)
         || (a.baseline.is_some() && a.mode != Mode::Fit)
+        // Declared doses stay schedule-comparable with the retained campaign
+        // and land on a written checkpoint, because recovery checkpoints are
+        // written every 32 updates and the final reload reads the last one.
+        || a.updates == 0
+        || a.updates > UPDATES
+        || a.updates % 32 != 0
     {
         return Err(bad("fixed order seeds/resource admission"));
     }
@@ -868,11 +902,13 @@ fn evaluate(
     Ok(result)
 }
 const LOSS_PHASE_NAMES: [&str; 3] = ["entry", "later_copy_covered", "later_generate_only"];
-fn loss_weight_policy(enabled: bool) -> &'static str {
-    if enabled {
-        "equal-nonempty-phases-per-episode/1;entry-position0;later-exact-allsource-token-membership;empty-phase-zero;remaining-phases-equal;no-runtime-gate"
-    } else {
+fn loss_weight_policy(enabled: bool, scope: LossScope) -> &'static str {
+    if !enabled {
         "legacy-equal-episode-token-mean/1"
+    } else if scope == LossScope::EntryOnly {
+        "entry-phase-only/1;entry-position0;later-phases-zero-weight;entry-weight-unchanged;empty-phase-zero;no-runtime-gate"
+    } else {
+        "equal-nonempty-phases-per-episode/1;entry-position0;later-exact-allsource-token-membership;empty-phase-zero;remaining-phases-equal;no-runtime-gate"
     }
 }
 struct EpisodeLossWeights {
@@ -882,11 +918,15 @@ struct EpisodeLossWeights {
 }
 /// Offline label weighting only, called after actual target-free action admission.
 /// Candidate membership does not imply correct-source identity or force Copy.
+/// Under `balanced` each nonempty phase receives the same total weight per
+/// episode; `LossScope::EntryOnly` then zeroes every non-entry phase, leaving
+/// the entry position's own balanced weight untouched.
 fn episode_loss_weights(
     target: &[u32],
     admitted_copy_ids: &BTreeSet<u32>,
     batch_episodes: usize,
     balanced: bool,
+    scope: LossScope,
 ) -> Result<EpisodeLossWeights> {
     if target.is_empty() || batch_episodes == 0 {
         return Err(bad("loss weighting requires nonempty episode and batch"));
@@ -912,11 +952,13 @@ fn episode_loss_weights(
     let weights = phases
         .iter()
         .map(|&phase| {
-            if balanced {
-                1. / nonempty as f64 / counts[phase] as f64 / batch_episodes as f64
-            } else {
+            if !balanced {
                 // Keep exact prior floating arithmetic and operation order.
                 1. / target.len() as f64 / batch_episodes as f64
+            } else if scope == LossScope::EntryOnly && phase != 0 {
+                0.
+            } else {
+                1. / nonempty as f64 / counts[phase] as f64 / batch_episodes as f64
             }
         })
         .collect();
@@ -1315,6 +1357,7 @@ fn batch(
                     &union,
                     indices.len(),
                     true,
+                    a.loss_scope,
                 )?);
             }
             let plan = plan.as_ref().ok_or_else(|| bad("loss phases absent"))?;
@@ -2012,7 +2055,16 @@ fn control_panel_admit(eps: &[Episode]) -> Result<Value> {
                 "control full eleven occurrences/Generate-only entry differ",
             ));
         }
-        let plan = episode_loss_weights(&e.target, &ids.iter().copied().collect(), 8, true)?;
+        // Only the phase classification is consumed here, and the loss scope
+        // changes weights rather than counts, so this admission receipt is
+        // scope-independent by construction.
+        let plan = episode_loss_weights(
+            &e.target,
+            &ids.iter().copied().collect(),
+            8,
+            true,
+            LossScope::All,
+        )?;
         for k in 0..3 {
             phases[k] += plan.counts[k];
         }
@@ -2383,7 +2435,7 @@ fn run_prediction_control(
         "checkpoint_receipt_sha256":CP_RECEIPT_SHA,"input_sha256":INPUT_SHA,"labels_sha256":LABEL_SHA,
         "panel":panel,"updates":limit,"rates":rates,"resume":resume,"trainable":a.prediction_control_trainable,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
         "native_pool_backend":"host","fresh_adam":true,"initial_active_masters":identities(&active(&l.source,&l.generate)?)?,
-        "original_bridge_masters":original,"marker_masters":marker,"phase_policy":loss_weight_policy(true)}),
+        "original_bridge_masters":original,"marker_masters":marker,"loss_scope":a.loss_scope.name(),"phase_policy":loss_weight_policy(true, a.loss_scope)}),
     )?;
     write(
         a,
@@ -2594,7 +2646,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         a,
         "order.json",
         &json!({"seed":a.seed,"order":schedule,
-        "policy":"SplitMix64/Fisher-Yates full512 once; fixed cyclic batches of8, 128updates; order only, no model reinitialization"}),
+        "policy":format!("SplitMix64/Fisher-Yates full512 once; fixed cyclic batches of8, {}updates; order only, no model reinitialization", a.updates)}),
     )?;
     write(
         a,
@@ -2607,7 +2659,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         "categorical":l.categorical_receipt,"initial_active_masters":initial_masters,
         "active_parameter_names":active(&l.source,&l.generate)?.keys().collect::<Vec<_>>(),
         "fresh_adam":true,"rates":{"generate":0.003,"prototype":0.01,"context":0.002,"potential":0.003},
-        "phase_policy":loss_weight_policy(true),"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"CUDA_VISIBLE_DEVICES":std::env::var("CUDA_VISIBLE_DEVICES").ok()}),
+        "phase_policy":loss_weight_policy(true, a.loss_scope),"loss_scope":a.loss_scope.name(),"declared_updates":a.updates,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"CUDA_VISIBLE_DEVICES":std::env::var("CUDA_VISIBLE_DEVICES").ok()}),
     )?;
     let (initial_native, initial_generate, initial_bridge, initial_receipt) = checkpoint(a, 0, &l)?;
     if initial_native.binding().tokenizer_sha256() != l.integer.binding().tokenizer_sha256()
@@ -2663,7 +2715,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     let mut co = optimizer(&context, 0.002)?;
     let mut vo = optimizer(&potential, 0.003)?;
     let mut updates = Vec::new();
-    for update in 0..UPDATES {
+    for update in 0..a.updates {
         disk_floor(a)?;
         deadline(a, start)?;
         let indices = (0..BATCH)
@@ -2696,8 +2748,9 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         }
     }
     let (native, generate, bridge, final_receipt) = {
-        // Final checkpoint was already written at step128; reload all native paths.
-        let cp = a.out.join("checkpoint-0128");
+        // Final checkpoint was already written at the declared dose; reload all
+        // native paths.
+        let cp = a.out.join(format!("checkpoint-{:04}", a.updates));
         let rec = read(&cp.join("receipt.json"))?;
         let binding: NativeArtifactBinding = serde_json::from_value(rec["parent"].clone())?;
         (
@@ -2715,7 +2768,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     };
     let final_eval = evaluate(
         a,
-        "development-0128",
+        &format!("development-{:04}", a.updates),
         &native,
         &generate,
         Some(&bridge),
@@ -2727,11 +2780,11 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
         start,
     )?;
     let final_metrics = metrics(a, &final_eval, &dev)?;
-    write(a, "metrics-0128.json", &final_metrics)?;
+    write(a, &format!("metrics-{:04}.json", a.updates), &final_metrics)?;
     Ok(
         json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"fit",
         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
-        "order_seed":a.seed,"updates":UPDATES,"batch":BATCH,"token_backward_chunk":1,
+        "order_seed":a.seed,"updates":a.updates,"batch":BATCH,"token_backward_chunk":1,"loss_scope":a.loss_scope.name(),
         "initial_receipt":initial_receipt,"final_receipt":final_receipt,
         "initial_metrics":initial_metrics,"final_metrics":final_metrics,
         "initial_evaluation_provenance":baseline_provenance,
@@ -2875,7 +2928,7 @@ mod tests {
     fn phase_weights_conserve_equal_nonempty_phase_mass() -> Result<()> {
         let target = [10, 20, 20, 30, 31];
         let copy = BTreeSet::from([20]);
-        let p = episode_loss_weights(&target, &copy, 8, true)?;
+        let p = episode_loss_weights(&target, &copy, 8, true, LossScope::All)?;
         assert_eq!(p.counts, [1, 2, 2]);
         for phase in 0..3 {
             let sum = p
@@ -2888,6 +2941,48 @@ mod tests {
             assert!((sum - 1. / 24.).abs() < 1e-14);
         }
         assert!((p.weights.iter().sum::<f64>() - 1. / 8.).abs() < 1e-14);
+        Ok(())
+    }
+    /// The isolation arm removes exactly one thing: later-position credit. The
+    /// entry position keeps its own balanced weight, so any difference between
+    /// the arms is the later-phase gradient and not an entry reweighting.
+    #[test]
+    fn entry_only_scope_zeroes_later_credit_and_preserves_entry_weight() -> Result<()> {
+        let target = [10, 20, 20, 30, 31];
+        let copy = BTreeSet::from([20]);
+        let all = episode_loss_weights(&target, &copy, 8, true, LossScope::All)?;
+        let only = episode_loss_weights(&target, &copy, 8, true, LossScope::EntryOnly)?;
+        assert_eq!(only.phases, all.phases);
+        assert_eq!(only.counts, all.counts);
+        assert_eq!(only.weights[0], all.weights[0]);
+        assert!(only.weights[1..].iter().all(|w| *w == 0.));
+        assert!((only.weights.iter().sum::<f64>() - 1. / 24.).abs() < 1e-14);
+        // The legacy position-mean policy is untouched by the scope.
+        let legacy = episode_loss_weights(&target, &copy, 8, false, LossScope::EntryOnly)?;
+        assert!(legacy.weights.iter().all(|w| *w > 0.));
+        Ok(())
+    }
+    #[test]
+    fn loss_scope_and_dose_default_to_the_retained_campaign() -> Result<()> {
+        let config = json!({"mode":"fit","credit":"clipped","seed":1001,
+            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
+            "training_inputs":"input","training_labels":"labels","development_inputs":"input",
+            "development_labels":"labels","maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":"new"});
+        let a: Args = serde_json::from_value(config.clone())?;
+        assert_eq!(a.updates, UPDATES);
+        assert_eq!(a.loss_scope, LossScope::All);
+        assert_eq!(a.loss_scope.name(), "all");
+        assert_eq!(
+            serde_json::to_value(a.loss_scope)?,
+            json!("all"),
+            "the default scope must serialize as the declared phase-balanced policy"
+        );
+        let mut isolated = config;
+        isolated["loss_scope"] = json!("entry_only");
+        isolated["updates"] = json!(64);
+        let a: Args = serde_json::from_value(isolated)?;
+        assert_eq!(a.loss_scope, LossScope::EntryOnly);
+        assert_eq!(a.updates, 64);
         Ok(())
     }
     #[test]

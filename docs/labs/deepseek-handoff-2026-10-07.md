@@ -100,6 +100,27 @@ loss weight:                   1/(nonempty phases × episode-phase count × B)
 weighted 1/24, sharing all four parameter groups with the 12,304 later positions that
 dominate the gradient.** The loss falls on the 92% nobody scores.
 
+> **RETRACTED — 2026-10-07, later DeepSeek session. Do not cite the paragraph above.**
+> The inference from `1/24` to "drowned" is wrong, and the experiment this section
+> proposes was run and returned zero. `episode_loss_weights` divides by the phase's own
+> position count, so every *nonempty* phase receives the same total weight per episode:
+> the entry phase's `1/24` **is** phase parity (1/(3·1·8)), equal to all later-Copy
+> positions combined and all later-Generate positions combined. `balanced = true` is
+> unconditional at the single call site, the fitter refuses to run unless the parent
+> config records `phase_balanced_token_loss`, and the harness's own
+> `phase_weights_conserve_equal_nonempty_phase_mass` asserts the parity.
+> Measured, on the retained parent and evaluation: giving the entry position **100%** of
+> each episode's credit for 128 updates (later phases zeroed, entry weight unchanged)
+> leaves `entry_teacher_correct` at **0/512** — identical to the matched `loss_scope=all`
+> control, which reproduces the sealed order1001 clipped arm exactly (entry 0/512, later
+> Copy-covered 502/4128). At that same entry position the target token is absent from the
+> Copy candidates in **512/512** rows, the winner is Copy-dominated in **512/512** rows,
+> and the target carries **0.03%** of the winner's mass. The entry is not out-weighted;
+> it is not in the race. Method, both sealed report roots and the per-row tables are on
+> [#820](https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-6042672398);
+> §2.3 step 2 (reweighting / loss decomposition) is measurably pointless, and the next
+> decision is the Copy-free entry ceiling, not another weighting.
+
 **Falling loss with zero correctness is never "the model cannot predict."** It means
 the optimised quantity and the measured quantity are not the same thing. This exact
 failure shape appeared four other times this session.
