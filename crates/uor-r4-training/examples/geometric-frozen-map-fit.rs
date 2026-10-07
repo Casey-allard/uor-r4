@@ -50,6 +50,62 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 enum Mode {
     Admission,
     Fit,
+    PredictionControl,
+}
+#[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct ControlRates {
+    generate: f64,
+    prototype: f64,
+    context: f64,
+    potential: f64,
+}
+impl Default for ControlRates {
+    fn default() -> Self {
+        Self {
+            generate: 0.003,
+            prototype: 0.01,
+            context: 0.002,
+            potential: 0.003,
+        }
+    }
+}
+fn control_settings(a: &Args) -> Result<(usize, ControlRates)> {
+    if a.mode != Mode::PredictionControl
+        && (a.prediction_control_updates.is_some()
+            || a.prediction_control_rates.is_some()
+            || a.prediction_control_resume.is_some()
+            || a.prediction_control_resume_source_step.is_some()
+            || a.prediction_control_resume_generate_step.is_some()
+            || a.prediction_control_trainable != ControlTrainable::Joint)
+    {
+        return Err(bad(
+            "prediction control settings cannot change fixed fit/admission",
+        ));
+    }
+    if (a.prediction_control_trainable != ControlTrainable::Joint)
+        != a.prediction_control_resume.is_some()
+    {
+        return Err(bad("Generate-field control requires explicit resume; resume requires Generate-field control"));
+    }
+    if a.prediction_control_resume.is_none()
+        && (a.prediction_control_resume_source_step.is_some()
+            || a.prediction_control_resume_generate_step.is_some())
+    {
+        return Err(bad("component steps require authenticated resume"));
+    }
+    let n = a.prediction_control_updates.unwrap_or(32);
+    let r = a.prediction_control_rates.unwrap_or_default();
+    if ![0, 16, 32, 64].contains(&n)
+        || [r.generate, r.prototype, r.context, r.potential]
+            .iter()
+            .any(|x| !x.is_finite() || *x <= 0.)
+    {
+        return Err(bad(
+            "control requires explicit0/16/32/64 updates and finite positive rates",
+        ));
+    }
+    Ok((n, r))
 }
 #[derive(Clone, Copy, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -88,6 +144,14 @@ impl ReadStatePullback {
         }
     }
 }
+#[derive(Clone, Copy, Debug, Default, Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum ControlTrainable {
+    #[default]
+    Joint,
+    GenerateField,
+    PotentialGenerateField,
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Args {
@@ -109,7 +173,20 @@ struct Args {
     out: PathBuf,
     #[serde(default)]
     baseline: Option<PathBuf>,
+    #[serde(default)]
+    prediction_control_updates: Option<usize>,
+    #[serde(default)]
+    prediction_control_rates: Option<ControlRates>,
+    #[serde(default)]
+    prediction_control_resume: Option<PathBuf>,
+    #[serde(default)]
+    prediction_control_resume_source_step: Option<usize>,
+    #[serde(default)]
+    prediction_control_resume_generate_step: Option<usize>,
+    #[serde(default)]
+    prediction_control_trainable: ControlTrainable,
 }
+const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 const INPUT_SHA: &str = "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a";
 const LABEL_SHA: &str = "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155";
 const CP_RECEIPT_SHA: &str = "9196520209cb8ed172fea65a60be0a1f2fa788e40d5857c65bf93eccb658b816";
@@ -331,6 +408,7 @@ fn args() -> Result<Args> {
         return Err(bad("one JSON config only"));
     }
     let a: Args = serde_json::from_slice(&fs::read(path)?)?;
+    control_settings(&a)?;
     if ![1001, 1002, 1003].contains(&a.seed)
         || a.maximum_seconds == 0
         || a.maximum_report_bytes < (64 << 20)
@@ -352,6 +430,7 @@ fn args() -> Result<Args> {
     ]
     .into_iter()
     .chain(a.baseline.iter())
+    .chain(a.prediction_control_resume.iter())
     {
         let input = fs::canonicalize(path)?;
         if output.starts_with(&input) || input.starts_with(&output) {
@@ -1488,7 +1567,7 @@ fn checkpoint(
     Ok((integer, generate, bridge, receipt))
 }
 
-fn pairs(eps: &[Episode]) -> Result<Vec<(usize, usize, usize)>> {
+fn scoped_pairs(eps: &[Episode]) -> Result<Vec<(usize, usize, usize)>> {
     let ids = eps
         .iter()
         .enumerate()
@@ -1519,10 +1598,17 @@ fn pairs(eps: &[Episode]) -> Result<Vec<(usize, usize, usize)>> {
             pairs.push((i, j, pos));
         }
     }
-    if pairs.len() != 256 || covered.len() != eps.len() {
-        return Err(bad("complete 256 source-swap pairs required"));
+    if pairs.len() * 2 != eps.len() || covered.len() != eps.len() {
+        return Err(bad("complete source-swap pair coverage required"));
     }
     Ok(pairs)
+}
+fn pairs(eps: &[Episode]) -> Result<Vec<(usize, usize, usize)>> {
+    let p = scoped_pairs(eps)?;
+    if p.len() != 256 {
+        return Err(bad("complete256 source-swap pairs required"));
+    }
+    Ok(p)
 }
 fn metrics(a: &Args, eval: &Value, eps: &[Episode]) -> Result<Value> {
     let refs = eval["rows"]
@@ -1578,7 +1664,12 @@ fn metrics(a: &Args, eval: &Value, eps: &[Episode]) -> Result<Value> {
     let mut teacher_both = 0;
     let mut own_both = 0;
     let mut receipts = Vec::new();
-    for (i, j, pos) in pairs(eps)? {
+    let paired = if a.mode == Mode::PredictionControl {
+        scoped_pairs(eps)?
+    } else {
+        pairs(eps)?
+    };
+    for (i, j, pos) in paired {
         let mut arms = Vec::new();
         for k in [i, j] {
             let target = eps[k].target[pos];
@@ -1892,6 +1983,576 @@ fn disk_floor(a: &Args) -> Result<()> {
     }
     Ok(())
 }
+fn control_panel_admit(eps: &[Episode]) -> Result<Value> {
+    if eps.len() != 8 {
+        return Err(bad("prediction control requires predetermined eight cases"));
+    }
+    let p = scoped_pairs(eps)?;
+    if p != vec![(0, 4, 3), (1, 5, 3), (2, 6, 3), (3, 7, 3)] {
+        return Err(bad("control source-swap pairs/common prefix differ"));
+    }
+    let mut entries = BTreeSet::new();
+    let mut phases = [0usize; 3];
+    let mut rows = Vec::new();
+    for (local, e) in eps.iter().enumerate() {
+        if !e.has_source() || !e.packet.actual_prefix_ids.is_empty() {
+            return Err(bad(
+                "control requires authentic full Source bank and empty entry prefix",
+            ));
+        }
+        entries.insert(e.target[0]);
+        let ids = e
+            .views
+            .iter()
+            .flatten()
+            .flat_map(|v| v.emitted_token_ids().iter().copied())
+            .collect::<Vec<_>>();
+        if ids.len() != 11 || ids.contains(&e.target[0]) {
+            return Err(bad(
+                "control full eleven occurrences/Generate-only entry differ",
+            ));
+        }
+        let plan = episode_loss_weights(&e.target, &ids.iter().copied().collect(), 8, true)?;
+        for k in 0..3 {
+            phases[k] += plan.counts[k];
+        }
+        rows.push(json!({"local_index":local,"original_index":CONTROL_INDICES[local],"id":e.packet.id,
+            "target_ids_labels_only":e.target,"physical_copy_occurrences":ids.len(),"phase_counts":plan.counts}));
+    }
+    if entries != BTreeSet::from([617, 2997]) || phases != [8, 44, 32] {
+        return Err(bad("control entry roles/phase coverage differ"));
+    }
+    Ok(
+        json!({"original_indices":CONTROL_INDICES,"local_pairs":p,"phase_counts":phases,"rows":rows,
+        "scope":"eight construction cases; four swapped-source pairs, two entry roles; no held-out or temporal-update claim"}),
+    )
+}
+
+fn control_entry_diagnostics(
+    a: &Args,
+    l: &Loaded,
+    model: &IntegerRealizer,
+    g: &NativeGeometricGenerate,
+    bridge: &NativeGeometricReadStateBridge,
+    eps: &[Episode],
+    step: usize,
+) -> Result<Value> {
+    use uor_r4_integer::h4_tables::H4Code;
+    let mut pool = NativeVocabularyActions::new(model.binding().clone(), &l.exp)?;
+    let mut only = NativeVocabularyActions::new(model.binding().clone(), &l.exp)?;
+    let params = l.generate.parameters();
+    let biases = params
+        .get("generate.bias")
+        .ok_or_else(|| bad("control bias masters absent"))?;
+    let mut rows = Vec::new();
+    for (local, e) in eps.iter().enumerate() {
+        // Complete target-free native bank selection first. Labels cannot choose
+        // a source occurrence, frame, route, state or vocabulary candidate.
+        let native = native_step(model, g, Some(bridge), &mut pool, e, &[], &l.cue, &l.prefix)?;
+        let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
+        let state = state
+            .into_iter()
+            .map(H4Code::try_from)
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let mut scores = vec![0i64; g.vocab_size()];
+        g.score_into(&state, &mut scores, &mut GenerateReadCounts::default())?;
+        if native["generate_raw_scores_sha256"] != sha256_bytes(&serde_json::to_vec(&scores)?) {
+            return Err(bad("entry diagnostic native score digest differs"));
+        }
+        let ids: Vec<u32> = serde_json::from_value(native["copy_token_ids"].clone())?;
+        let copies: Vec<i64> = serde_json::from_value(native["copy_raw_scores_q24"].clone())?;
+        let full = pool.reduce_trace(&scores, &ids, &copies)?;
+        if native["pool"]["summary"] != serde_json::to_value(&full.summary)? {
+            return Err(bad("entry diagnostic full pool differs"));
+        }
+        let generate_only = only.reduce_trace(&scores, &[], &[])?;
+        let gold = e.target[0];
+        let gold_score = *scores
+            .get(gold as usize)
+            .ok_or_else(|| bad("entry gold outside vocabulary"))?;
+        let gm = full
+            .token_masses
+            .iter()
+            .find(|m| m.token_id == gold)
+            .ok_or_else(|| bad("entry native gold mass absent"))?;
+        let wrong = full
+            .actions
+            .iter()
+            .filter(|x| {
+                matches!(
+                    x.action,
+                    uor_r4_integer::geometric_vocabulary_actions::VocabularyAction::Copy { .. }
+                ) && x.token_id != gold
+            })
+            .max_by(|x, y| {
+                x.raw_score_q24
+                    .cmp(&y.raw_score_q24)
+                    .then_with(|| y.action_offset.cmp(&x.action_offset))
+            })
+            .ok_or_else(|| bad("entry wrong Copy absent"))?;
+        let wrong_alias = full
+            .token_masses
+            .iter()
+            .filter(|m| m.token_id != gold && m.copy_weight_q31 > 0)
+            .max_by(|x, y| {
+                x.copy_weight_q31
+                    .cmp(&y.copy_weight_q31)
+                    .then_with(|| y.token_id.cmp(&x.token_id))
+            })
+            .ok_or_else(|| bad("entry wrong Copy alias absent"))?;
+        let bias = biases
+            .as_tensor()
+            .narrow(0, gold as usize, 1)?
+            .reshape(())?
+            .to_scalar::<f32>()?;
+        let code = g.token_bias(gold as usize)?;
+        let next_up = if code < 7 {
+            Some((f64::from(code) + 0.5) / 4.)
+        } else {
+            None
+        };
+        let next_down = if code > -7 {
+            Some((f64::from(code) - 0.5) / 4.)
+        } else {
+            None
+        };
+        rows.push(json!({"local_index":local,"original_index":CONTROL_INDICES[local],"id":e.packet.id,
+            "gold_entry_label_only":gold,"generate_only_summary":generate_only.summary,"full_summary":full.summary,
+            "gold_generate_raw_q24":gold_score,"gold_generate_clipped_q24":gold_score.clamp(-(8<<24),8<<24),
+            "gold_generate_weight_q31":gm.generate_weight_q31,"gold_copy_weight_q31":gm.copy_weight_q31,"gold_total_weight_q31":gm.weight_q31,
+            "highest_raw_wrong_copy_action":wrong,"highest_copy_component_wrong_token_alias":wrong_alias,
+            "raw_gold_minus_wrong_copy_q24":gold_score.checked_sub(wrong.raw_score_q24),
+            "clipped_gold_minus_wrong_copy_q24":gold_score.clamp(-(8<<24),8<<24)-wrong.score_q24,
+            "score_clip_q24":8i64<<24,"gold_bias_master":bias,"gold_bias_native_code":code,
+            "bias_positive_cell_boundary":next_up,"bias_positive_boundary_distance":next_up.map(|x|x-f64::from(bias)),
+            "bias_negative_cell_boundary":next_down,"bias_negative_boundary_distance":next_down.map(|x|f64::from(bias)-x),
+            "native":native}));
+    }
+    let v = json!({"step":step,"rows":rows,"generate_sha256":sha256_bytes(&g.to_bytes()?),
+        "categorical_sha256":sha256_bytes(&bridge.to_bytes()?),"scope":"native entry replay; all4096 Generate and all physical Copy; labels read only after forward; Generate-only pool is a diagnostic, not serving"});
+    write(a, &format!("prediction-entry-{step:04}.json"), &v)?;
+    Ok(v)
+}
+
+fn control_crossings(
+    a: &Args,
+    initial: &NativeGeometricGenerate,
+    g: &NativeGeometricGenerate,
+    step: usize,
+) -> Result<Value> {
+    let prototypes = initial
+        .prototypes()
+        .iter()
+        .zip(g.prototypes())
+        .filter(|(x, y)| x != y)
+        .count();
+    let mut bias = 0;
+    let mut unary = 0;
+    let mut pair = 0;
+    for id in 0..g.vocab_size() {
+        bias += usize::from(initial.token_bias(id)? != g.token_bias(id)?);
+    }
+    for lane in 0..g.lanes() {
+        for r in 0..120 {
+            unary += usize::from(
+                initial.energy().get_unary(lane as u8, r)?
+                    != g.energy().get_unary(lane as u8, r)?,
+            );
+        }
+    }
+    for e in 0..g.energy().edges().len() {
+        for x in 0..120 {
+            for y in 0..120 {
+                pair += usize::from(
+                    initial.energy().get_pair(e, x, y)? != g.energy().get_pair(e, x, y)?,
+                );
+            }
+        }
+    }
+    let old = tree_identity(&a.out.join("checkpoint-0000/native/consumer"))?;
+    let current = tree_identity(&a.out.join(format!("checkpoint-{step:04}/native/consumer")))?;
+    Ok(
+        json!({"step":step,"generate_prototype_lane_code_crossings":prototypes,"generate_bias_code_crossings":bias,
+        "generate_unary_code_crossings":unary,"generate_pair_code_crossings":pair,
+        "native_consumer_tree_changed":old!=current,"initial_native_consumer_tree_sha256":old,"current_native_consumer_tree_sha256":current,
+        "consumer_identity_scope":"tree identity changes include native Context/Potential metadata; not a count of categorical state crossings"}),
+    )
+}
+
+const CONTROL_RESUME_PRODUCER: &str = "3fc63bec66e03a3148c83c48c795667582d258c2";
+fn restore_control_resume(a: &Args, l: &Loaded, d: &Device) -> Result<Option<Value>> {
+    let Some(root) = &a.prediction_control_resume else {
+        return Ok(None);
+    };
+    report_output::verify(root)?;
+    let r = read(&root.join("report.json"))?;
+    let admission = read(&root.join("admission.json"))?;
+    let source_step = a.prediction_control_resume_source_step.unwrap_or(32);
+    let generate_step = a.prediction_control_resume_generate_step.unwrap_or(32);
+    let cross = source_step == 48
+        && generate_step == 64
+        && r["source_commit"] == "b451571aa638d1f93e3ccf25f718f27ed2ea731f";
+    let original =
+        source_step == 32 && generate_step == 32 && r["source_commit"] == CONTROL_RESUME_PRODUCER;
+    if !original && !cross {
+        return Err(bad("unreviewed component-resume producer/step combination"));
+    }
+    if cross && control_settings(a)?.0 != 0 {
+        return Err(bad("component recomposition is zero-update only"));
+    }
+    let final_step = if cross { 64 } else { 32 };
+    let cp = root.join(format!("checkpoint-{source_step:04}"));
+    let gp = root.join(format!("checkpoint-{generate_step:04}"));
+    let final_receipt = read(&root.join(format!("checkpoint-{final_step:04}/receipt.json")))?;
+    let generate_receipt = read(&gp.join("receipt.json"))?;
+    let receipt = read(&cp.join("receipt.json"))?;
+    if r["schema"] != "uor-r4.geometric-prediction-control/1"
+        || r["status"] != "COMPLETED"
+        || r["mode"] != "prediction_control"
+        || r["updates"] != final_step
+        || r["original_indices"] != json!(CONTROL_INDICES)
+        || r["final_receipt"] != final_receipt
+        || final_receipt["step"] != final_step
+        || receipt["step"] != source_step
+        || generate_receipt["step"] != generate_step
+        || generate_receipt["generate_sha256"] != sha256_file(&gp.join("generate.bin"))?
+        || generate_receipt["credit"] != a.credit.name()
+        || generate_receipt["read_state_pullback"] != a.read_state_pullback.name()
+        || !r["blocks"]
+            .as_array()
+            .is_some_and(|rows| rows.iter().any(|v| v["step"] == source_step))
+        || receipt["credit"] != a.credit.name()
+        || receipt["read_state_pullback"] != a.read_state_pullback.name()
+        || admission["input_sha256"] != INPUT_SHA
+        || admission["labels_sha256"] != LABEL_SHA
+        || admission["checkpoint_receipt_sha256"] != CP_RECEIPT_SHA
+        || admission["credit"] != a.credit.name()
+        || admission["read_state_pullback"] != a.read_state_pullback.name()
+        || admission["panel"]["original_indices"] != json!(CONTROL_INDICES)
+    {
+        return Err(bad("resume must be an authenticated completed supported control with matching components/data/geometry/credit"));
+    }
+    if tree_identity(&cp.join("read-state-bridge-source"))?
+        != tree_identity(&a.checkpoint.join("read-state-bridge-source"))?
+    {
+        return Err(bad("resume changed original frozen bridge masters"));
+    }
+    let cue = cue_payload(&cp.join("cue"))?;
+    let prefix = prefix_payload(&cp.join("prefix"))?;
+    if cue.config() != l.cue.config()
+        || cue.packed_coefficients() != l.cue.packed_coefficients()
+        || cue.joint().map(|v| v.packed_coefficients())
+            != l.cue.joint().map(|v| v.packed_coefficients())
+        || prefix.config() != l.prefix.config()
+        || prefix.packed_coefficients() != l.prefix.packed_coefficients()
+    {
+        return Err(bad(
+            "resume changed fixed cue/prefix coefficient/configuration payloads",
+        ));
+    }
+    if sha256_file(&cp.join("read-state-bridge.bin"))? != QUARTER_SHA
+        || sha256_file(&cp.join("read-state-bridge-categorical.bin"))? != CAT_SHA
+    {
+        return Err(bad("resume changed frozen bridge"));
+    }
+    let tokbytes = fs::read(cp.join("native/tokenizer.json"))?;
+    let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
+    let resumed_native = IntegerRealizer::load_native(&cp.join("native"), &binding)?;
+    if resumed_native.binding() != l.integer.binding() {
+        return Err(bad("resume tokenizer/protocol binding differs"));
+    }
+    let restored =
+        SourceRealizerWeights::load_context_potential_on_device(&cp.join("source"), &tokbytes, d)?;
+    let mut source = l.source.context_state_parameters();
+    source.extend(l.source.potential_parameters());
+    let mut donor = restored.context_state_parameters();
+    donor.extend(restored.potential_parameters());
+    if source.keys().collect::<Vec<_>>() != donor.keys().collect::<Vec<_>>() {
+        return Err(bad("resume source master families differ"));
+    }
+    for (name, var) in &source {
+        var.set(donor[name].as_tensor())?;
+    }
+    let gm = read(&gp.join("generate-source/metadata.json"))?;
+    if gm["tokenizer_sha256"] != sha256_bytes(&tokbytes)
+        || gm["protocol"] != serde_json::to_value(l.integer.binding().protocol())?
+        || gm["lanes"] != json!(l.generate.lanes())
+    {
+        return Err(bad("resume Generate metadata binding differs"));
+    }
+    restore(
+        &gp.join("generate-source"),
+        &gm["parameters"],
+        &l.generate.parameters(),
+        d,
+    )?;
+    if l.generate.export_native()?.to_bytes()? != fs::read(gp.join("generate.bin"))? {
+        return Err(bad("resumed Generate masters do not export saved artifact"));
+    }
+    if cross {
+        let other_binding: NativeArtifactBinding =
+            serde_json::from_value(generate_receipt["parent"].clone())?;
+        let other_native = IntegerRealizer::load_native(&gp.join("native"), &other_binding)?;
+        if other_native.binding() != resumed_native.binding() {
+            return Err(bad("component tokenizer/protocol binding differs"));
+        }
+        let other_source = SourceRealizerWeights::load_context_potential_on_device(
+            &gp.join("source"),
+            &tokbytes,
+            &Device::Cpu,
+        )?;
+        if identities(&other_source.context_state_parameters())?
+            != identities(&restored.context_state_parameters())?
+        {
+            return Err(bad("component Context masters differ"));
+        }
+        let source_gm = read(&cp.join("generate-source/metadata.json"))?;
+        if source_gm["parameters"]["generate.prototype_choices"]
+            != gm["parameters"]["generate.prototype_choices"]
+        {
+            return Err(bad("component prototype masters differ"));
+        }
+        for name in ["read-state-bridge-source"] {
+            if tree_identity(&cp.join(name))? != tree_identity(&gp.join(name))? {
+                return Err(bad("component frozen bridge masters differ"));
+            }
+        }
+        let gc = cue_payload(&gp.join("cue"))?;
+        let pc = prefix_payload(&gp.join("prefix"))?;
+        if gc.config() != l.cue.config()
+            || gc.packed_coefficients() != l.cue.packed_coefficients()
+            || gc.joint().map(|v| v.packed_coefficients())
+                != l.cue.joint().map(|v| v.packed_coefficients())
+            || pc.config() != l.prefix.config()
+            || pc.packed_coefficients() != l.prefix.packed_coefficients()
+            || sha256_file(&gp.join("read-state-bridge.bin"))? != QUARTER_SHA
+            || sha256_file(&gp.join("read-state-bridge-categorical.bin"))? != CAT_SHA
+        {
+            return Err(bad("component frozen sidecars differ"));
+        }
+    }
+    let n = l.source.compile_context_potential_rebound(&l.frozen)?;
+    // Provenance belongs to the independently saved/reloaded parent; the
+    // freshly compiled object supplies only a would-export execution identity.
+    let identity: ConsumerIdentity =
+        serde_json::from_value(read(&cp.join("native/metadata.json"))?["identity"].clone())?;
+    let reloaded = NativeSourceRealizer::load(&cp.join("native"), &l.source, &identity)?;
+    let loaded_binding = reloaded.artifact_binding()?;
+    if serde_json::to_value(&loaded_binding)? != receipt["parent"]
+        || n.execution_binding()? != loaded_binding
+    {
+        return Err(bad(
+            "resumed source masters do not export saved native identity",
+        ));
+    }
+    Ok(Some(
+        json!({"root":fs::canonicalize(root)?,"producer_source_commit":r["source_commit"],"source_step":source_step,"generate_step":generate_step,"component_recomposition":cross,
+        "report_sha256":sha256_file(&root.join("report.json"))?,"manifest_sha256":sha256_file(&root.join("manifest.json"))?,
+        "checkpoint_receipt_sha256":sha256_file(&cp.join("receipt.json"))?,"generate_checkpoint_receipt_sha256":sha256_file(&gp.join("receipt.json"))?,"final_checkpoint_receipt_sha256":sha256_file(&root.join(format!("checkpoint-{final_step:04}/receipt.json")))?,"producer_completed_block_updates":final_step,"continued_parent_steps":if cross {None} else {Some(32)},"optimizer":if cross {"zero-update component recomposition; no optimizer steps"} else {"fresh field Adam, prior moments not resumed"}}),
+    ))
+}
+fn run_prediction_control(
+    a: &Args,
+    start: Instant,
+    d: &Device,
+    l: &Loaded,
+    train: &[Episode],
+    dev: Vec<Episode>,
+) -> Result<Value> {
+    let (limit, rates) = control_settings(a)?;
+    let resume = restore_control_resume(a, l, d)?;
+    let eps = dev
+        .into_iter()
+        .enumerate()
+        .filter_map(|(i, e)| CONTROL_INDICES.contains(&i).then_some(e))
+        .collect::<Vec<_>>();
+    let panel = control_panel_admit(&eps)?;
+    for (local, e) in eps.iter().enumerate() {
+        if train[CONTROL_INDICES[local]].packet.id != e.packet.id
+            || train[CONTROL_INDICES[local]].target != e.target
+        {
+            return Err(bad("control train/development cases differ"));
+        }
+    }
+    let original = identities(&l.original_bridge.parameters())?;
+    let marker = identities(&l.marker.parameters())?;
+    write(
+        a,
+        "admission.json",
+        &json!({"mode":"prediction_control","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),
+        "checkpoint_receipt_sha256":CP_RECEIPT_SHA,"input_sha256":INPUT_SHA,"labels_sha256":LABEL_SHA,
+        "panel":panel,"updates":limit,"rates":rates,"resume":resume,"trainable":a.prediction_control_trainable,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),
+        "native_pool_backend":"host","fresh_adam":true,"initial_active_masters":identities(&active(&l.source,&l.generate)?)?,
+        "original_bridge_masters":original,"marker_masters":marker,"phase_policy":loss_weight_policy(true)}),
+    )?;
+    write(
+        a,
+        "order.json",
+        &json!({"order":CONTROL_INDICES,"policy":"same predetermined eight cases every update; no resampling or model reseeding"}),
+    )?;
+    let (model, g, b, initial_receipt) = checkpoint(a, 0, l)?;
+    if g.vocab_size() != 4096 {
+        return Err(bad("control requires the full pinned 4096 vocabulary"));
+    }
+    let initial_parent = if let Some(root) = &a.prediction_control_resume {
+        root.join(format!(
+            "checkpoint-{:04}",
+            a.prediction_control_resume_source_step.unwrap_or(32)
+        ))
+    } else {
+        a.checkpoint.clone()
+    };
+    let expected_receipt = read(&initial_parent.join("receipt.json"))?;
+    let initial_generate = if let Some(root) = &a.prediction_control_resume {
+        root.join(format!(
+            "checkpoint-{:04}",
+            a.prediction_control_resume_generate_step.unwrap_or(32)
+        ))
+    } else {
+        a.checkpoint.clone()
+    };
+    if g.to_bytes()? != fs::read(initial_generate.join("generate.bin"))?
+        || initial_receipt["parent"] != expected_receipt["parent"]
+    {
+        return Err(bad("control zero-update donor/resume identity differs"));
+    }
+    if a.prediction_control_resume.is_some() {
+        for name in ["source", "native", "cue", "prefix"] {
+            if tree_identity(&a.out.join("checkpoint-0000").join(name))?
+                != tree_identity(&initial_parent.join(name))?
+            {
+                return Err(bad(
+                    "initial resumed checkpoint is not exact saved native/master input",
+                ));
+            }
+        }
+    }
+    let (_, admission) = batch(a, l, train, &CONTROL_INDICES, d, start, Some(&model))?;
+    write(a, "zero-update-admission.json", &admission)?;
+    // Initial entry replay precedes any optimizer construction or update.
+    control_entry_diagnostics(a, l, &model, &g, &b, &eps, 0)?;
+    let initial_eval = evaluate(
+        a,
+        "prediction-0000",
+        &model,
+        &g,
+        Some(&b),
+        &l.exp,
+        &eps,
+        &l.tokenizer,
+        &l.cue,
+        &l.prefix,
+        start,
+    )?;
+    let initial_metrics = metrics(a, &initial_eval, &eps)?;
+    write(a, "prediction-metrics-0000.json", &initial_metrics)?;
+    let mut blocks = vec![
+        json!({"step":0,"evaluation":initial_eval,"metrics":initial_metrics,"native_crossings":control_crossings(a,&g,&g,0)?}),
+    ];
+    let gp = l.generate.parameters();
+    let (prototype, coefficients): (BTreeMap<_, _>, BTreeMap<_, _>) = gp
+        .into_iter()
+        .partition(|(name, _)| name == "generate.prototype_choices");
+    let context = l.source.context_state_parameters();
+    let potential = l.source.potential_parameters();
+    let field_only = a.prediction_control_trainable != ControlTrainable::Joint;
+    let potential_active = a.prediction_control_trainable != ControlTrainable::GenerateField;
+    let mut frozen_groups = prototype.clone();
+    frozen_groups.extend(context.clone());
+    if !potential_active {
+        frozen_groups.extend(potential.clone());
+    }
+    let frozen_groups_identity = identities(&frozen_groups)?;
+    let mut go = optimizer(&coefficients, rates.generate)?;
+    let mut po = optimizer(&prototype, rates.prototype)?;
+    let mut co = optimizer(&context, rates.context)?;
+    let mut vo = optimizer(&potential, rates.potential)?;
+    let mut updates = Vec::new();
+    let mut final_receipt = initial_receipt.clone();
+    for update in 0..limit {
+        disk_floor(a)?;
+        deadline(a, start)?;
+        let (grads, receipt) = batch(a, l, train, &CONTROL_INDICES, d, start, None)?;
+        let grads = if field_only {
+            grads
+                .into_iter()
+                .filter(|(name, _)| {
+                    coefficients.contains_key(name)
+                        || (potential_active && potential.contains_key(name))
+                })
+                .collect()
+        } else {
+            grads
+        };
+        let (denominator, norm) = clip_denominator(&grads, d)?;
+        apply(&mut go, &coefficients, &grads, &denominator)?;
+        if !field_only {
+            apply(&mut po, &prototype, &grads, &denominator)?;
+            apply(&mut co, &context, &grads, &denominator)?;
+            for var in context.values() {
+                var.set(&var.as_tensor().clamp(-1.75, 1.75)?)?;
+            }
+        }
+        if potential_active {
+            apply(&mut vo, &potential, &grads, &denominator)?;
+            l.source.project_potential_range()?;
+        }
+        l.generate.project_shadow_range()?;
+        if field_only && identities(&frozen_groups)? != frozen_groups_identity {
+            return Err(bad(
+                "field control changed frozen Context/prototype or inactive Potential masters",
+            ));
+        }
+        if identities(&l.original_bridge.parameters())? != original
+            || identities(&l.marker.parameters())? != marker
+        {
+            return Err(bad("control mutated frozen bridge masters"));
+        }
+        d.synchronize()?;
+        updates.push(json!({"step":update+1,"before_update":receipt,"rates":rates,"global_active_gradient_norm":norm}));
+        write(a, "updates.json", &json!(updates))?;
+        if (update + 1) % 8 == 0 {
+            let step = update + 1;
+            let (model, current, bridge, rec) = checkpoint(a, step, l)?;
+            control_entry_diagnostics(a, l, &model, &current, &bridge, &eps, step)?;
+            let eval = evaluate(
+                a,
+                &format!("prediction-{step:04}"),
+                &model,
+                &current,
+                Some(&bridge),
+                &l.exp,
+                &eps,
+                &l.tokenizer,
+                &l.cue,
+                &l.prefix,
+                start,
+            )?;
+            let m = metrics(a, &eval, &eps)?;
+            write(a, &format!("prediction-metrics-{step:04}.json"), &m)?;
+            blocks.push(json!({"step":step,"evaluation":eval,"metrics":m,"native_crossings":control_crossings(a,&g,&current,step)?}));
+            final_receipt = rec;
+        }
+        write(a, "prediction-blocks.json", &json!(blocks))?;
+    }
+    let last = blocks
+        .last()
+        .ok_or_else(|| bad("control final evaluation absent"))?;
+    let win = last["evaluation"]["complete"] == 8
+        && last["metrics"]["entry_own_correct"] == 8
+        && last["metrics"]["paired_own_position_both_correct"] == 4
+        && last["metrics"]["first_divergent_own_prefix_reached"] == 8;
+    write(a, "prediction-blocks.json", &json!(blocks))?;
+    Ok(
+        json!({"schema":"uor-r4.geometric-prediction-control/1","status":"COMPLETED","mode":"prediction_control",
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"updates":limit,"rates":rates,"native_pool_backend":"host",
+        "resume":resume,"trainable":a.prediction_control_trainable,"source_routing_scope":"Potential updates may change selected physical Source and transported state; no fixed-coordinate claim","original_indices":CONTROL_INDICES,"training_row_draws":limit*8,"target_position_draws":limit*84,
+        "initial_receipt":initial_receipt,"final_receipt":final_receipt,"blocks":blocks,
+        "native_prediction_control_win":win,"elapsed_seconds":start.elapsed().as_secs_f64(),
+        "scope":"construction learning control on8 retained cases; complete accepted own-prefix replies+EOS and four source-swap pairs required; no generalization/chat/attention qualification; initial diagnostic0 can be run before choosing prospective control rates"}),
+    )
+}
+
 fn run(a: &Args, start: Instant) -> Result<Value> {
     let d = cuda()?;
     let l = load(a, &d)?;
@@ -1922,6 +2583,9 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     }
     pairs(&train)?;
     pairs(&dev)?;
+    if a.mode == Mode::PredictionControl {
+        return run_prediction_control(a, start, &d, &l, &train, dev);
+    }
     let frozen_original = identities(&l.original_bridge.parameters())?;
     let frozen_marker = identities(&l.marker.parameters())?;
     let initial_masters = identities(&active(&l.source, &l.generate)?)?;
@@ -2125,6 +2789,86 @@ mod tests {
         assert!(parsed.credit == Credit::RawIdentity);
         categorical["read_state_pullback"] = json!("query_keep");
         assert!(serde_json::from_value::<Args>(categorical).is_err());
+        Ok(())
+    }
+    #[test]
+    fn prediction_control_config_is_explicit_and_cannot_change_fixed_fit() -> Result<()> {
+        let base = json!({"mode":"fit","credit":"raw_identity","seed":1001,
+            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
+            "training_inputs":"input","training_labels":"labels","development_inputs":"input",
+            "development_labels":"labels","maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":"new"});
+        let fixed: Args = serde_json::from_value(base.clone())?;
+        let (_, defaults) = control_settings(&fixed)?;
+        assert_eq!(defaults.generate, 0.003);
+        let mut config = base.clone();
+        config["prediction_control_updates"] = json!(16);
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_err());
+        config["mode"] = json!("prediction_control");
+        assert_eq!(
+            control_settings(&serde_json::from_value::<Args>(config.clone())?)?.0,
+            16
+        );
+        config["prediction_control_updates"] = json!(0);
+        assert_eq!(
+            control_settings(&serde_json::from_value::<Args>(config.clone())?)?.0,
+            0
+        );
+        config
+            .as_object_mut()
+            .ok_or_else(|| bad("test config object"))?
+            .remove("prediction_control_updates");
+        assert_eq!(
+            control_settings(&serde_json::from_value::<Args>(config.clone())?)?.0,
+            32
+        );
+        config["prediction_control_updates"] = json!(64);
+        assert_eq!(
+            control_settings(&serde_json::from_value::<Args>(config.clone())?)?.0,
+            64
+        );
+        config["prediction_control_updates"] = json!(65);
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_err());
+        config["prediction_control_updates"] = json!(8);
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_err());
+        config["prediction_control_updates"] = json!(32);
+        config["prediction_control_rates"] =
+            json!({"generate":0.04,"prototype":0.01,"context":0.002,"potential":0.003});
+        let mut parsed: Args = serde_json::from_value(config.clone())?;
+        assert_eq!(control_settings(&parsed)?.1.generate, 0.04);
+        parsed
+            .prediction_control_rates
+            .as_mut()
+            .ok_or_else(|| bad("test rates absent"))?
+            .generate = f64::NAN;
+        assert!(control_settings(&parsed).is_err());
+        config["mode"] = json!("admission");
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_err());
+        config["mode"] = json!("prediction_control");
+        config["prediction_control_trainable"] = json!("generate_field");
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_err());
+        config["prediction_control_resume"] = json!("sealed-control32");
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_ok());
+        config["prediction_control_trainable"] = json!("potential_generate_field");
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_ok());
+        config["prediction_control_updates"] = json!(0);
+        config["prediction_control_resume_source_step"] = json!(48);
+        config["prediction_control_resume_generate_step"] = json!(64);
+        let mixed: Args = serde_json::from_value(config.clone())?;
+        assert_eq!(mixed.prediction_control_resume_source_step, Some(48));
+        assert_eq!(mixed.prediction_control_resume_generate_step, Some(64));
+        assert_eq!(control_settings(&mixed)?.0, 0);
+        config
+            .as_object_mut()
+            .ok_or_else(|| bad("test object"))?
+            .remove("prediction_control_resume");
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_err());
+        config["prediction_control_resume"] = json!("sealed-control32");
+        config["prediction_control_trainable"] = json!("joint");
+        assert!(control_settings(&serde_json::from_value::<Args>(config.clone())?).is_err());
+        config["prediction_control_trainable"] = json!("unknown");
+        assert!(serde_json::from_value::<Args>(config.clone()).is_err());
+        config["mode"] = json!("unknown_control");
+        assert!(serde_json::from_value::<Args>(config).is_err());
         Ok(())
     }
     #[test]
