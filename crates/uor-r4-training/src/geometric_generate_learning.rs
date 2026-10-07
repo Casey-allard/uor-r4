@@ -61,6 +61,8 @@ pub struct PreparedGenerateLearning {
 
 struct GenerateDeviceIndexCache {
     payload_sha256: String,
+    #[cfg(feature = "cuda")]
+    native_cuda: Option<crate::geometric_generate_cuda::NativeGenerateCuda>,
     // Rows are factual state IDs, columns are prototype IDs, values inv(s)*p.
     relative: Tensor,
     index_multiplier: Tensor,
@@ -81,6 +83,11 @@ pub struct GenerateLearningCosts {
     /// Static CPU geometry indices staged to the live device, not adjoints.
     pub staged_index_bytes: usize,
     pub staged_hard_score_bytes: usize,
+    pub hard_score_backend: &'static str,
+    pub hard_score_download_bytes: usize,
+    pub hard_score_state_staged_bytes: usize,
+    pub hard_score_device_launches: usize,
+    pub snapshot_native_factor_bytes: usize,
     pub export_master_download_bytes: usize,
     pub max_conditional_utility_elements: usize,
     /// Zero CUDA dynamic-vector downloads; one scalar finite-status read in
@@ -98,6 +105,8 @@ pub struct GenerateLearningOutput {
     pub raw_scores: Tensor,
     pub clipped_scores: Tensor,
     pub scores_q24: Vec<i64>,
+    /// Actual CPU native counters. Zero for the CUDA hard scorer; device work
+    /// and compatibility downloads are recorded separately in costs.
     pub native_counts: GenerateReadCounts,
     pub costs: GenerateLearningCosts,
 }
@@ -440,6 +449,14 @@ impl GenerateLearningWeights {
             prototypes.push(ids);
         }
         let payload_sha256 = native.metadata().payload_sha256.clone();
+        #[cfg(feature = "cuda")]
+        let native_cuda = if self.device().is_cuda() {
+            Some(crate::geometric_generate_cuda::NativeGenerateCuda::new(
+                &native, &relative,
+            )?)
+        } else {
+            None
+        };
         Ok(PreparedGenerateLearning {
             native,
             prototype_choice_sha256,
@@ -450,6 +467,8 @@ impl GenerateLearningWeights {
                     + self.bias.elem_count()),
             cache: GenerateDeviceIndexCache {
                 payload_sha256,
+                #[cfg(feature = "cuda")]
+                native_cuda,
                 relative,
                 index_multiplier: Tensor::new(ROOT_COUNT as u32, self.device())?,
                 prototypes,
@@ -460,6 +479,50 @@ impl GenerateLearningWeights {
                     * (ROOT_COUNT * ROOT_COUNT + v * self.lanes + v * self.lanes * ROOT_COUNT + 1),
             },
         })
+    }
+    fn hard_scores(
+        &self,
+        prepared: &PreparedGenerateLearning,
+        state: &[H4Code],
+    ) -> Result<(Vec<i64>, Tensor, GenerateReadCounts)> {
+        #[cfg(feature = "cuda")]
+        if self.device().is_cuda() {
+            let scorer = prepared
+                .cache
+                .native_cuda
+                .as_ref()
+                .ok_or_else(|| invalid("Generate CUDA integer snapshot absent"))?;
+            let (scores, anchor) = scorer.score(&prepared.native, state)?;
+            // Existing bank/loss callers request a host trace. This download
+            // is explicit; device-native pool integration will remove it.
+            return Ok((
+                scores.to_vec1::<i64>()?,
+                anchor,
+                GenerateReadCounts::default(),
+            ));
+        }
+        let mut counts = GenerateReadCounts::default();
+        let mut hard = vec![0i64; self.vocab_size()];
+        prepared
+            .native
+            .score_into(state, &mut hard, &mut counts)
+            .map_err(|e| invalid(e.to_string()))?;
+        let anchor = Tensor::from_vec(
+            hard.iter()
+                .map(|&x| (x as f64 / Q24) as f32)
+                .collect::<Vec<_>>(),
+            self.vocab_size(),
+            self.device(),
+        )?;
+        Ok((hard, anchor, counts))
+    }
+    fn native_factor_device_bytes(&self, prepared: &PreparedGenerateLearning) -> usize {
+        #[cfg(feature = "cuda")]
+        if let Some(scorer) = &prepared.cache.native_cuda {
+            return scorer.staged_bytes;
+        }
+        let _ = prepared;
+        0
     }
     fn validate_shapes(&self) -> Result<()> {
         device_admit(self.device())?;
@@ -536,11 +599,7 @@ impl GenerateLearningWeights {
             return Err(invalid("Generate coefficient-only payload is stale"));
         }
         let v = self.vocab_size();
-        let mut counts = GenerateReadCounts::default();
-        let mut hard = vec![0i64; v];
-        native
-            .score_into(state, &mut hard, &mut counts)
-            .map_err(|e| invalid(e.to_string()))?;
+        let (hard, anchor, counts) = self.hard_scores(prepared, state)?;
         let unary = (q4_shadow_ste(self.unary.as_tensor())? * QUARTER_TO_NATS)?;
         let pair = if self.edges.is_empty() {
             self.pair.as_tensor().clone()
@@ -574,13 +633,7 @@ impl GenerateLearningWeights {
                     .reshape(ROOT_COUNT * ROOT_COUNT)?
                     .index_select(&ids, 0)?)?;
         }
-        let anchor = Tensor::from_vec(
-            hard.iter()
-                .map(|&x| (x as f64 / Q24) as f32)
-                .collect::<Vec<_>>(),
-            v,
-            self.device(),
-        )?;
+
         let raw_scores = (&anchor + (&coefficient - coefficient.detach())?)?;
         let clipped_scores = raw_scores.clamp(-8f32, 8f32)?;
         Ok(GenerateLearningOutput {
@@ -594,7 +647,20 @@ impl GenerateLearningWeights {
                 ordered_pairs: self.edges.len(),
                 conditional_choice_rows: 0,
                 staged_index_bytes: 0,
-                staged_hard_score_bytes: 4 * v,
+                staged_hard_score_bytes: if self.device().is_cuda() { 0 } else { 4 * v },
+                hard_score_backend: if self.device().is_cuda() {
+                    "cuda-authenticated-i64-factors"
+                } else {
+                    "cpu-native"
+                },
+                hard_score_download_bytes: if self.device().is_cuda() { 8 * v } else { 0 },
+                hard_score_state_staged_bytes: if self.device().is_cuda() {
+                    4 * self.lanes
+                } else {
+                    0
+                },
+                hard_score_device_launches: usize::from(self.device().is_cuda()),
+                snapshot_native_factor_bytes: self.native_factor_device_bytes(prepared),
                 export_master_download_bytes: prepared.downloaded_master_bytes,
                 max_conditional_utility_elements: 0,
                 loss_status_scalars: 2,
@@ -657,11 +723,7 @@ impl GenerateLearningWeights {
             }
         }
         let v = self.vocab_size();
-        let mut counts = GenerateReadCounts::default();
-        let mut hard = vec![0i64; v];
-        native
-            .score_into(state, &mut hard, &mut counts)
-            .map_err(|e| invalid(e.to_string()))?;
+        let (hard, anchor, counts) = self.hard_scores(prepared, state)?;
         let u = (q4_shadow_ste(self.unary.as_tensor())? * QUARTER_TO_NATS)?;
         let p = if self.edges.is_empty() {
             self.pair.as_tensor().clone()
@@ -760,13 +822,7 @@ impl GenerateLearningWeights {
             input = (&input + su.broadcast_mul(&sp)?.sum(1)?)?;
             input = (&input + cu.broadcast_mul(&cp)?.sum(1)?)?;
         }
-        let anchor = Tensor::from_vec(
-            hard.iter()
-                .map(|&x| (x as f64 / Q24) as f32)
-                .collect::<Vec<_>>(),
-            v,
-            self.device(),
-        )?;
+
         let raw_scores =
             ((&anchor + (&coefficient - coefficient.detach())?)? + (&input - input.detach())?)?;
         let clipped_scores = raw_scores.clamp(-8f32, 8f32)?;
@@ -781,7 +837,20 @@ impl GenerateLearningWeights {
                 ordered_pairs: self.edges.len(),
                 conditional_choice_rows: 2 * v * self.lanes,
                 staged_index_bytes: 0,
-                staged_hard_score_bytes: 4 * v,
+                staged_hard_score_bytes: if self.device().is_cuda() { 0 } else { 4 * v },
+                hard_score_backend: if self.device().is_cuda() {
+                    "cuda-authenticated-i64-factors"
+                } else {
+                    "cpu-native"
+                },
+                hard_score_download_bytes: if self.device().is_cuda() { 8 * v } else { 0 },
+                hard_score_state_staged_bytes: if self.device().is_cuda() {
+                    4 * self.lanes
+                } else {
+                    0
+                },
+                hard_score_device_launches: usize::from(self.device().is_cuda()),
+                snapshot_native_factor_bytes: self.native_factor_device_bytes(prepared),
                 export_master_download_bytes: prepared.downloaded_master_bytes,
                 max_conditional_utility_elements: v * ROOT_COUNT,
                 loss_status_scalars: 2,
@@ -837,11 +906,7 @@ impl GenerateLearningWeights {
             }
         }
         let v = self.vocab_size();
-        let mut counts = GenerateReadCounts::default();
-        let mut hard = vec![0i64; v];
-        native
-            .score_into(state, &mut hard, &mut counts)
-            .map_err(|e| invalid(e.to_string()))?;
+        let (hard, anchor, counts) = self.hard_scores(prepared, state)?;
         let u = (q4_shadow_ste(self.unary.as_tensor())? * QUARTER_TO_NATS)?.flatten_all()?;
         let p = if self.edges.is_empty() {
             self.pair.as_tensor().flatten_all()?
@@ -958,13 +1023,7 @@ impl GenerateLearningWeights {
             input = (&input + su.broadcast_mul(&sp)?.sum(1)?)?;
             input = (&input + (cu * cp)?.sum(1)?)?;
         }
-        let anchor = Tensor::from_vec(
-            hard.iter()
-                .map(|&x| (x as f64 / Q24) as f32)
-                .collect::<Vec<_>>(),
-            v,
-            self.device(),
-        )?;
+
         let coefficient_delta = (&coefficient - coefficient.detach())?;
         let input_delta = (&input - input.detach())?;
         let raw_scores = ((&anchor + coefficient_delta)? + input_delta)?;
@@ -980,7 +1039,20 @@ impl GenerateLearningWeights {
                 ordered_pairs: self.edges.len(),
                 conditional_choice_rows: v * self.lanes * 2,
                 staged_index_bytes: indices_bytes,
-                staged_hard_score_bytes: v * 4,
+                staged_hard_score_bytes: if self.device().is_cuda() { 0 } else { 4 * v },
+                hard_score_backend: if self.device().is_cuda() {
+                    "cuda-authenticated-i64-factors"
+                } else {
+                    "cpu-native"
+                },
+                hard_score_download_bytes: if self.device().is_cuda() { 8 * v } else { 0 },
+                hard_score_state_staged_bytes: if self.device().is_cuda() {
+                    4 * self.lanes
+                } else {
+                    0
+                },
+                hard_score_device_launches: usize::from(self.device().is_cuda()),
+                snapshot_native_factor_bytes: self.native_factor_device_bytes(prepared),
                 export_master_download_bytes: prepared.downloaded_master_bytes,
                 max_conditional_utility_elements: v * ROOT_COUNT,
                 loss_status_scalars: 2,
@@ -2323,6 +2395,275 @@ mod tests {
             {
                 assert!((x - y).abs() <= 2e-4 + 2e-4 * x.abs(), "{name}: {x} {y}");
             }
+        }
+        Ok(())
+    }
+    fn generate_sparse_fixture_binding() -> Result<SourceActionBinding> {
+        let mut tokenizer: serde_json::Value = serde_json::from_str(TOK)?;
+        let vocab = tokenizer["model"]["vocab"]
+            .as_object_mut()
+            .ok_or_else(|| invalid("Generate CUDA test vocab absent"))?;
+        // Model IDs must be dense. An added token above that dense range
+        // creates genuine sparse holes without violating tokenizer admission.
+        for token in 8..4093 {
+            vocab.insert(format!("token{token:04}"), serde_json::json!(token));
+        }
+        tokenizer["added_tokens"]
+            .as_array_mut()
+            .ok_or_else(|| invalid("Generate CUDA test added tokens absent"))?
+            .push(serde_json::json!({"id":4095,"content":"extra_4095"}));
+        let binding = SourceActionBinding::new(&serde_json::to_vec(&tokenizer)?)
+            .map_err(|e| invalid(e.to_string()))?;
+        Ok(binding)
+    }
+    #[test]
+    fn generate_sparse_fixture_admits_added_token_holes() -> Result<()> {
+        let binding = generate_sparse_fixture_binding()?;
+        assert_eq!(binding.vocab_size(), 4096);
+        assert!(binding.admits_token(4092));
+        assert!(!binding.admits_token(4093));
+        assert!(!binding.admits_token(4094));
+        assert!(binding.admits_token(4095));
+        Ok(())
+    }
+    fn generate_signed_pair_fixture(
+        binding: &SourceActionBinding,
+        lanes: usize,
+    ) -> Result<NativeGeometricGenerate> {
+        let edges = if lanes == 1 {
+            vec![]
+        } else {
+            vec![
+                LanePair { left: 0, right: 1 },
+                LanePair { left: 2, right: 7 },
+                LanePair { left: 3, right: 5 },
+                LanePair { left: 4, right: 6 },
+            ]
+        };
+        let mut energy =
+            EnergyTables::zeroed(lanes as u8, edges).map_err(|e| invalid(e.to_string()))?;
+        for lane in 0..lanes {
+            for root in 0..ROOT_COUNT {
+                energy
+                    .set_unary(
+                        lane as u8,
+                        root as u8,
+                        if (lane + root) % 2 == 0 { -7 } else { 7 },
+                    )
+                    .map_err(|e| invalid(e.to_string()))?;
+            }
+        }
+        for edge in 0..energy.edges().len() {
+            for left in 0..ROOT_COUNT {
+                for right in 0..ROOT_COUNT {
+                    energy
+                        .set_pair(
+                            edge,
+                            left as u8,
+                            right as u8,
+                            ((left * 7 + right * 11 + edge) % 15) as i8 - 7,
+                        )
+                        .map_err(|e| invalid(e.to_string()))?;
+                }
+            }
+        }
+        assert!(energy.set_unary(0, 0, -9).is_err());
+        assert!(energy.set_unary(0, 0, 8).is_err());
+        let prototypes = (0..4096)
+            .flat_map(|token| (0..lanes).map(move |lane| ((token + 19 * lane) % ROOT_COUNT) as u8))
+            .collect::<Vec<_>>();
+        // Generic q4 permits -8, but Generate artifacts require symmetric
+        // -7..7. Check both levels before asking for a CUDA device.
+        let mut inadmissible = energy.clone();
+        inadmissible
+            .set_unary(0, 0, -8)
+            .map_err(|e| invalid(e.to_string()))?;
+        assert!(NativeGeometricGenerate::compile(
+            binding,
+            lanes,
+            &prototypes,
+            &vec![0x97; 4096 / 2],
+            inadmissible
+        )
+        .is_err());
+        let native = NativeGeometricGenerate::compile(
+            binding,
+            lanes,
+            &prototypes,
+            &vec![0x97; 4096 / 2],
+            energy,
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        Ok(native)
+    }
+    #[test]
+    fn generate_signed_pair_fixture_cpu_admission() -> Result<()> {
+        let binding = generate_sparse_fixture_binding()?;
+        for lanes in [1, 8] {
+            let native = generate_signed_pair_fixture(&binding, lanes)?;
+            let mut scores = vec![0i64; 4096];
+            native
+                .score_into(
+                    &vec![H4Code::IDENTITY; lanes],
+                    &mut scores,
+                    &mut GenerateReadCounts::default(),
+                )
+                .map_err(|e| invalid(e.to_string()))?;
+        }
+        Ok(())
+    }
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "explicit CUDA geometry parity and timing; a missing device is an error"]
+    fn native_generate_cuda_all_roots_signed_pairs_and_sparse_vocab() -> Result<()> {
+        let gpu = Device::new_cuda(0)?;
+        let binding = generate_sparse_fixture_binding()?;
+        for lanes in [1, 8] {
+            let native = generate_signed_pair_fixture(&binding, lanes)?;
+            let learner = GenerateLearningWeights::from_native(binding.clone(), &native, &gpu)?;
+            let prepared = learner.prepare_native()?;
+            let scorer = prepared
+                .cache
+                .native_cuda
+                .as_ref()
+                .ok_or_else(|| invalid("Generate CUDA integer scorer absent"))?;
+            let mut expected = vec![0i64; 4096];
+            for root in 0..ROOT_COUNT {
+                let states = (0..lanes)
+                    .map(|lane| code(((root + 31 * lane) % ROOT_COUNT) as u8))
+                    .collect::<Result<Vec<_>>>()?;
+                native
+                    .score_into(&states, &mut expected, &mut GenerateReadCounts::default())
+                    .map_err(|e| invalid(e.to_string()))?;
+                let (hard, anchor) = scorer.score(&native, &states)?;
+                assert_eq!(
+                    hard.to_vec1::<i64>()?,
+                    expected,
+                    "lanes={lanes} root={root}"
+                );
+                assert_eq!(
+                    anchor.to_vec1::<f32>()?,
+                    expected
+                        .iter()
+                        .map(|&score| (score as f64 / Q24) as f32)
+                        .collect::<Vec<_>>()
+                );
+            }
+            assert!(scorer.score(&native, &[]).is_err());
+            let states = vec![H4Code::IDENTITY; lanes];
+            let different =
+                GenerateLearningWeights::seeded(binding.clone(), lanes, 7, &Device::Cpu)?
+                    .export_native()?;
+            assert!(scorer.score(&different, &states).is_err());
+            let output = learner.forward_prepared_coefficients_only(&prepared, &states)?;
+            assert_eq!(
+                output.costs.hard_score_backend,
+                "cuda-authenticated-i64-factors"
+            );
+            assert_eq!(output.costs.staged_hard_score_bytes, 0);
+            assert_eq!(output.costs.hard_score_download_bytes, 8 * 4096);
+            assert_eq!(output.costs.hard_score_device_launches, 1);
+            assert_eq!(output.native_counts.scores, 0);
+            // Matched ordered CPU / CUDA timings include the compatibility
+            // score-vector download. Preparation and gradient graph are excluded.
+            let _ = scorer.score(&native, &states)?.0.to_vec1::<i64>()?;
+            for round in 0..3 {
+                let start = std::time::Instant::now();
+                for _ in 0..64 {
+                    native
+                        .score_into(&states, &mut expected, &mut GenerateReadCounts::default())
+                        .map_err(|e| invalid(e.to_string()))?;
+                }
+                let cpu = start.elapsed().as_secs_f64();
+                let start = std::time::Instant::now();
+                for _ in 0..64 {
+                    let (hard, _) = scorer.score(&native, &states)?;
+                    assert_eq!(hard.to_vec1::<i64>()?, expected);
+                }
+                let cuda = start.elapsed().as_secs_f64();
+                println!("NATIVE_GENERATE_TIMING lanes={lanes} vocab=4096 round={round} iterations=64 cpu_seconds={cpu:.9} cuda_with_download_seconds={cuda:.9} ratio={:.4}", cpu / cuda);
+            }
+        }
+        Ok(())
+    }
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires explicit retained checkpoint and CUDA; absence is an error"]
+    fn native_generate_cuda_retained_checkpoint_scores_and_timing() -> Result<()> {
+        let root = std::env::var("UOR_GENERATE_CHECKPOINT")
+            .map_err(|_| invalid("set UOR_GENERATE_CHECKPOINT for actual artifact test"))?;
+        let root = std::path::Path::new(&root);
+        let binding = SourceActionBinding::new(&std::fs::read(root.join("native/tokenizer.json"))?)
+            .map_err(|e| invalid(e.to_string()))?;
+        let bytes = std::fs::read(root.join("generate.bin"))?;
+        let native = NativeGeometricGenerate::from_bytes(&bytes, &binding)
+            .map_err(|e| invalid(e.to_string()))?;
+        let gpu = Device::new_cuda(0)?;
+        let learner = GenerateLearningWeights::from_native(binding, &native, &gpu)?;
+        let prepared = learner.prepare_native()?;
+        assert_eq!(
+            prepared
+                .native
+                .to_bytes()
+                .map_err(|e| invalid(e.to_string()))?,
+            bytes
+        );
+        let scorer = prepared
+            .cache
+            .native_cuda
+            .as_ref()
+            .ok_or_else(|| invalid("actual Generate CUDA scorer absent"))?;
+        let mut expected = vec![0i64; native.vocab_size()];
+        let states = (0..32)
+            .map(|row| {
+                (0..native.lanes())
+                    .map(|lane| code(((row * 17 + lane * 31 + 1) % ROOT_COUNT) as u8))
+                    .collect::<Result<Vec<_>>>()
+            })
+            .collect::<Result<Vec<_>>>()?;
+        for state in &states {
+            native
+                .score_into(state, &mut expected, &mut GenerateReadCounts::default())
+                .map_err(|e| invalid(e.to_string()))?;
+            let (scores, anchor) = scorer.score(&native, state)?;
+            assert_eq!(scores.to_vec1::<i64>()?, expected);
+            assert_eq!(
+                anchor.to_vec1::<f32>()?,
+                expected
+                    .iter()
+                    .map(|&score| (score as f64 / Q24) as f32)
+                    .collect::<Vec<_>>()
+            );
+        }
+        println!(
+            "RETAINED_GENERATE_NATIVE_PARITY payload={} file_sha256={} vocab={} lanes={} states=32",
+            native.metadata().payload_sha256,
+            hex::encode(Sha256::digest(&bytes)),
+            native.vocab_size(),
+            native.lanes()
+        );
+        let _ = scorer.score(&native, &states[0])?.0.to_vec1::<i64>()?;
+        for round in 0..3 {
+            // Alternate measurement order to avoid a fixed warm/thermal bias.
+            let mut seconds = [0.; 2];
+            let order = if round % 2 == 0 { [0, 1] } else { [1, 0] };
+            for backend in order {
+                let start = std::time::Instant::now();
+                for state in states.iter().cycle().take(64) {
+                    if backend == 0 {
+                        native
+                            .score_into(state, &mut expected, &mut GenerateReadCounts::default())
+                            .map_err(|e| invalid(e.to_string()))?;
+                        std::hint::black_box(&expected);
+                    } else {
+                        let values = scorer.score(&native, state)?.0.to_vec1::<i64>()?;
+                        std::hint::black_box(values);
+                    }
+                }
+                seconds[backend] = start.elapsed().as_secs_f64();
+            }
+            println!("RETAINED_GENERATE_TIMING round={round} iterations=64 cpu_seconds={:.9} cuda_with_download_seconds={:.9} ratio={:.4}",
+                seconds[0], seconds[1], seconds[0]/seconds[1]);
         }
         Ok(())
     }

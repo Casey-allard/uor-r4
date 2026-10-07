@@ -7,6 +7,7 @@ use cudarc::driver::{CudaView, LaunchConfig, PushKernelArg};
 use std::sync::OnceLock;
 pub(crate) enum Arg<'a> {
     F(CudaView<'a, f32>),
+    I(CudaView<'a, i64>),
     D(CudaView<'a, f64>),
     U(CudaView<'a, u32>),
     N(u32),
@@ -27,6 +28,9 @@ pub(crate) fn launch(
     for arg in args {
         match arg {
             Arg::F(v) => {
+                builder.arg(v);
+            }
+            Arg::I(v) => {
                 builder.arg(v);
             }
             Arg::D(v) => {
@@ -74,6 +78,24 @@ fn ptx() -> Result<&'static str> {
     }
 }
 const SOURCE: &str = r#"
+// Exact native Generate Q24 factors are immutable admitted snapshot data.
+// Relative rows encode inv(state)*prototype; identity is table-defined (1).
+extern "C" __global__ void native_generate_q24(const unsigned*rel,const unsigned*proto,
+ const unsigned*edges,const long long*factors,const unsigned*state,long long*out,float*anchor,
+ unsigned vocab,unsigned lanes,unsigned pairs){
+ unsigned token=blockIdx.x*blockDim.x+threadIdx.x;if(token>=vocab)return;
+ unsigned r[8];long long z=factors[token];
+ for(unsigned l=0;l<lanes;l++){
+  r[l]=rel[state[l]*120+proto[token*lanes+l]];
+  z+=factors[vocab+l*120+r[l]];
+ }
+ for(unsigned e=0;e<pairs;e++){
+  unsigned a=edges[2*e],b=edges[2*e+1];
+  z+=factors[vocab+lanes*120+e*14400+r[a]*120+r[b]];
+ }
+ out[token]=z;anchor[token]=(float)z*(1.0f/16777216.0f);
+}
+
 // NVRTC supplies device math builtins without host system headers.
 // Explicit rounding prevents a CUDA fused multiply-add changing score ties.
 __device__ double plus(double a,double b){return __dadd_rn(a,b);}
