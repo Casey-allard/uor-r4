@@ -202,6 +202,10 @@ struct Args {
     /// position through the native forward, reporting the held-out half.
     #[serde(default)]
     ceiling_scorer: bool,
+    /// Compare the integer entry decision against the float masters on the same
+    /// read states, isolating the export from the learned emission.
+    #[serde(default)]
+    ceiling_float: bool,
     #[serde(default)]
     baseline: Option<PathBuf>,
     #[serde(default)]
@@ -2554,6 +2558,20 @@ fn entry_ceiling_panel(
     let mut gold_ranks: Vec<u64> = Vec::new();
     let mut next_gold_ranks: Vec<u64> = Vec::new();
     let mut gold_mass_fraction: Vec<f64> = Vec::new();
+    // Export control: score the same read state with the float masters as well as
+    // with the exported integer table, so "the learned emission is uninformative"
+    // is separated from "the export destroyed what the masters carried".
+    let float_prepared = if a.ceiling_float {
+        Some(l.generate.prepare_native()?)
+    } else {
+        None
+    };
+    let mut float_gold_ranks: Vec<u64> = Vec::new();
+    let mut float_rank_delta: Vec<i64> = Vec::new();
+    let mut float_top1_agree = 0usize;
+    let mut tie_groups: Vec<u64> = Vec::new();
+    let mut top1_shares: Vec<f64> = Vec::new();
+    let mut target_counts = BTreeMap::<u32, u64>::new();
     for (index, e) in eps.iter().enumerate() {
         // Complete target-free native bank selection first. Labels cannot choose
         // a source occurrence, frame, route, state or vocabulary candidate.
@@ -2595,6 +2613,40 @@ fn entry_ceiling_panel(
             .position(|m| m.0 == gold)
             .map(|position| position as u64 + 1);
         gold_ranks.push(gold_rank.unwrap_or(ordered.len() as u64 + 1));
+        *target_counts.entry(gold).or_default() += 1;
+        // Tie group at the gold's mass: the pool quantizes at 256 steps/octave, so
+        // a rank is only interpretable next to how many tokens share the mass.
+        if let Some(gold_mass) = ordered.iter().find(|m| m.0 == gold).map(|m| m.1) {
+            tie_groups.push(ordered.iter().filter(|m| m.1 == gold_mass).count() as u64);
+        }
+        top1_shares.push(
+            ordered
+                .first()
+                .map(|m| m.1 as f64 / generate_only.summary.total_weight_q31.max(1) as f64)
+                .unwrap_or(0.),
+        );
+        if let Some(prepared) = &float_prepared {
+            let out = l
+                .generate
+                .forward_prepared_coefficients_only(prepared, &state)?;
+            let mut float_order = out
+                .scores_q24
+                .iter()
+                .enumerate()
+                .map(|(token, &score)| (token as u32, score))
+                .collect::<Vec<_>>();
+            float_order.sort_by(|x, y| y.1.cmp(&x.1).then_with(|| x.0.cmp(&y.0)));
+            let float_rank = float_order
+                .iter()
+                .position(|m| m.0 == gold)
+                .map(|position| position as u64 + 1)
+                .unwrap_or(float_order.len() as u64 + 1);
+            float_gold_ranks.push(float_rank);
+            float_rank_delta.push(gold_rank.unwrap_or(0) as i64 - float_rank as i64);
+            if float_order.first().map(|m| m.0) == ordered.first().map(|m| m.0) {
+                float_top1_agree += 1;
+            }
+        }
         // The same read one token later, after observing the correct first
         // token. This separates "the boundary state carries nothing" from "the
         // emission cannot rank at all": the continuation is given its prefix,
@@ -2664,9 +2716,17 @@ fn entry_ceiling_panel(
     let mut ranks = gold_ranks.clone();
     let mut next_ranks = next_gold_ranks.clone();
     let mut fractions = gold_mass_fraction.clone();
+    let mut ties = tie_groups.clone();
+    let mut shares = top1_shares.clone();
+    let mut float_ranks = float_gold_ranks.clone();
+    let mut deltas = float_rank_delta.clone();
     ranks.sort_unstable();
     next_ranks.sort_unstable();
+    ties.sort_unstable();
+    float_ranks.sort_unstable();
+    deltas.sort_unstable();
     fractions.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
+    shares.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
     let pick = |v: &[u64], q: f64| -> u64 {
         if v.is_empty() {
             0
@@ -2698,8 +2758,22 @@ fn entry_ceiling_panel(
         "generate_actions":eps
             .first()
             .map_or(0, |_| only.legal_token_ids().len()),
+        // Baselines every rank and share has to be read against, and the export
+        // control: the same read state scored by the float masters.
+        "majority_baseline":target_counts.values().copied().max().unwrap_or(0) as f64
+            / eps.len().max(1) as f64,
+        "uniform_baseline":1.0 / only.legal_token_ids().len().max(1) as f64,
+        "integer_tie_group_at_gold_median":pick(&ties, 0.5),
+        "integer_tie_group_at_gold_max":ties.last().copied().unwrap_or(0),
+        "integer_top1_mass_share_median":pick_fraction(&shares, 0.5),
+        "float_compare":float_prepared.is_some(),
+        "float_gold_rank_median":pick(&float_ranks, 0.5),
+        "float_gold_rank_p90":pick(&float_ranks, 0.9),
+        "float_gold_rank_max":float_ranks.last().copied().unwrap_or(0),
+        "float_minus_integer_rank_median":deltas.get(deltas.len() / 2).copied().unwrap_or(0),
+        "float_top1_agrees_with_integer":float_top1_agree,
         "row_records":rows,
-        "scope":"zero-update entry ceiling: target-free native forward, mixed pool versus Generate-only pool, labels read after forward; gold rank is its position in the fully ordered emission; a capability bound on one artifact, not a fit and not held-out language evidence"});
+        "scope":"zero-update entry ceiling: target-free native forward, mixed pool versus Generate-only pool, labels read after forward; gold rank is its position in the fully ordered emission; float_compare scores the same read state with the float masters so the export is separated from the learned emission; a capability bound on one artifact, not a fit and not held-out language evidence"});
     write(a, "entry-ceiling.json", &v)?;
     Ok(v)
 }
