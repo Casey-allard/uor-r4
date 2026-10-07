@@ -42,7 +42,8 @@ struct Config {
     baseline_parity: bool,
 }
 fn default_report_bytes() -> u64 {
-    256 << 20
+    // Full traces for 32 cases at the 32-token limit can exceed 2 GiB.
+    3 << 30
 }
 fn write_row(c: &Config, name: &str, row: &Value) -> Result<()> {
     let used = fs::read_dir(&c.output)?.try_fold(0u64, |sum, e| -> Result<u64> {
@@ -517,8 +518,8 @@ fn run(c: &Config) -> Result<Value> {
     )
 }
 fn admit_paths(c: &mut Config) -> Result<()> {
-    if c.maximum_report_bytes < 8 << 20 || c.maximum_report_bytes > 1 << 30 {
-        return Err(bad("report storage limit must be8MiB..1GiB"));
+    if c.maximum_report_bytes < 8 << 20 || c.maximum_report_bytes > 4 << 30 {
+        return Err(bad("report storage limit must be8MiB..4GiB"));
     }
     for p in [&c.model_root, &c.inputs, &c.labels, &c.output] {
         if !p.is_absolute()
