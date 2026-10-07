@@ -10,6 +10,7 @@ pub mod cold_prior;
 pub mod contextual_emission;
 pub mod embedding;
 pub mod geometric_attention;
+pub mod geometric_continuation_field;
 pub mod geometric_generate;
 pub mod geometric_read_state_bridge;
 pub mod grounded_session;

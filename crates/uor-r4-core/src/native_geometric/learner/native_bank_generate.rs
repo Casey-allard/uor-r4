@@ -5,6 +5,7 @@
 //! Bank admission and replay allocate; this is not an allocation-free kernel or
 //! a qualification of general chat, store completeness or complete-path D11 cost.
 #![forbid(unsafe_code)]
+use super::geometric_continuation_field::{ContinuationReadCounts, NativeContinuationField};
 use super::geometric_generate::{GenerateReadCounts, NativeGeometricGenerate};
 use super::geometric_read_state_bridge::{BridgeReadCounts, NativeGeometricReadStateBridge};
 use sha2::{Digest, Sha256};
@@ -207,6 +208,18 @@ pub struct NativeBankGenerator {
     pool: NativeVocabularyActions,
     generate_sha256: String,
     bridge_sha256: Option<String>,
+    continuation: Option<NativeContinuationField>,
+    continuation_sha256: Option<String>,
+}
+/// Independently encoded query followed by actual emitted tokens. Fact text
+/// never enters this register; factual transport and Copy remain available.
+pub struct NativeContinuationWitness {
+    pub query_tokens: usize,
+    pub actual_prefix_tokens: usize,
+    pub state_codes: Vec<H4Code>,
+    pub delta_scores_q24: Vec<i64>,
+    pub encoding_coefficient_reads: u64,
+    pub counts: ContinuationReadCounts,
 }
 pub struct NativeBridgeWitness {
     pub selected_ordinal: usize,
@@ -227,6 +240,7 @@ pub struct NativeBankGenerateStep {
     pub bank_trace: Option<PrefixBankRealizerTrace>,
     pub bridge: Option<NativeBridgeWitness>,
     pub generate_counts: GenerateReadCounts,
+    pub continuation: Option<NativeContinuationWitness>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum GenerationStop {
@@ -380,6 +394,8 @@ impl NativeBankGenerator {
             pool,
             generate_sha256: a.generate.sha256.into(),
             bridge_sha256,
+            continuation: None,
+            continuation_sha256: None,
         })
     }
     pub fn source_binding(&self) -> &NativeArtifactBinding {
@@ -390,6 +406,27 @@ impl NativeBankGenerator {
     }
     pub fn bridge_sha256(&self) -> Option<&str> {
         self.bridge_sha256.as_deref()
+    }
+    pub fn generate_model(&self) -> &NativeGeometricGenerate {
+        &self.generate
+    }
+    /// Install a separately authenticated factor bound to this exact Generate
+    /// snapshot and native source identity. No output phase selects this field.
+    pub fn with_continuation_field(mut self, field: BoundNativeBytes<'_>) -> Result<Self> {
+        verify_bytes(field.bytes, field.sha256)?;
+        self.continuation = Some(
+            NativeContinuationField::from_bytes(
+                field.bytes,
+                self.model.artifact_binding(),
+                &self.generate,
+            )
+            .map_err(artifact)?,
+        );
+        self.continuation_sha256 = Some(field.sha256.to_owned());
+        Ok(self)
+    }
+    pub fn continuation_sha256(&self) -> Option<&str> {
+        self.continuation_sha256.as_deref()
     }
     pub fn admit_bank(&self, s: PinnedBankSnapshot) -> Result<AdmittedBank> {
         if s.pin.scope.is_empty() || s.query_ids.is_empty() || s.segments.len() > MAX_SEQUENCE {
@@ -558,6 +595,43 @@ impl NativeBankGenerator {
         self.generate
             .score_into(&codes, &mut gen_scores, &mut counts)
             .map_err(execution)?;
+        let continuation = if let Some(field) = &self.continuation {
+            let cfg = self.model.context_config();
+            let (tables, geometry) = self.model.context_encoder_parts();
+            let mut local =
+                NativeContextState::new(cfg.heads, cfg.lanes_per_head).map_err(execution)?;
+            let mut encoding_coefficient_reads = 0u64;
+            for &id in bank.query_ids.iter().chain(actual_prefix) {
+                let encoded = local
+                    .step(id as usize, tables, geometry)
+                    .map_err(execution)?;
+                encoding_coefficient_reads = encoding_coefficient_reads
+                    .checked_add(u64::try_from(encoded.coefficient_reads).map_err(execution)?)
+                    .ok_or(NativeBankGenerateError::Arithmetic)?;
+            }
+            let state_codes = local.states().to_vec();
+            let mut delta_scores_q24 = vec![0i64; self.generate.vocab_size()];
+            let mut field_counts = ContinuationReadCounts::default();
+            field
+                .score_delta_into(
+                    &state_codes,
+                    &self.generate,
+                    &mut delta_scores_q24,
+                    &mut field_counts,
+                )
+                .map_err(execution)?;
+            add_continuation_scores(&mut gen_scores, &delta_scores_q24)?;
+            Some(NativeContinuationWitness {
+                query_tokens: bank.query_ids.len(),
+                actual_prefix_tokens: actual_prefix.len(),
+                state_codes,
+                delta_scores_q24,
+                encoding_coefficient_reads,
+                counts: field_counts,
+            })
+        } else {
+            None
+        };
         let actions = self
             .pool
             .reduce_trace(&gen_scores, &copy_ids, &scores)
@@ -572,6 +646,7 @@ impl NativeBankGenerator {
             bank_trace,
             bridge: bridge_witness,
             generate_counts: counts,
+            continuation,
         })
     }
     pub fn generate(
@@ -600,6 +675,17 @@ impl NativeBankGenerator {
             steps,
         })
     }
+}
+fn add_continuation_scores(scores: &mut [i64], delta: &[i64]) -> Result<()> {
+    if scores.len() != delta.len() {
+        return Err(execution("continuation score dimensions differ"));
+    }
+    for (score, &change) in scores.iter_mut().zip(delta) {
+        *score = score
+            .checked_add(change)
+            .ok_or(NativeBankGenerateError::Arithmetic)?;
+    }
+    Ok(())
 }
 fn own_prefix_loop(
     mut_base: usize,
@@ -631,6 +717,17 @@ fn own_prefix_loop(
 mod tests {
     use super::*;
     const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"Ġ":5},"merges":[]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"},{"id":7,"content":"z"}]}"#;
+    #[test]
+    fn continuation_scores_add_before_pool_without_wrapping() -> Result<()> {
+        let mut original = [5, -7, 11];
+        add_continuation_scores(&mut original, &[0, 0, 0])?;
+        assert_eq!(original, [5, -7, 11]);
+        add_continuation_scores(&mut original, &[-2, 9, 1])?;
+        assert_eq!(original, [3, 2, 12]);
+        assert!(add_continuation_scores(&mut original, &[0]).is_err());
+        assert!(add_continuation_scores(&mut [i64::MAX], &[1]).is_err());
+        Ok(())
+    }
     #[test]
     fn bank_generation_actual_feedback_eos_and_distinct_caps() -> Result<()> {
         let (ids, stop) = own_prefix_loop(10, 8, 1, |actual| match actual {

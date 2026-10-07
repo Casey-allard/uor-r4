@@ -6121,6 +6121,14 @@ fn verify_context_potential_inventory(
 }
 
 impl PreparedSourceRealizer<'_> {
+    /// Current in-memory execution receipt, including rebound parameter metadata.
+    /// This is not a claim that the snapshot was independently saved and reloaded.
+    pub fn execution_binding(
+        &self,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::NativeArtifactBinding> {
+        self.native.execution_binding()
+    }
+
     pub fn binding(&self) -> &SourceActionBinding {
         &self.source.binding
     }

@@ -836,6 +836,7 @@ pub fn run_integrity(request: &IntegrityRequest) -> Result<IntegrityReport> {
 }
 
 pub mod geometric_bank_generate;
+pub mod geometric_continuation_learning;
 
 #[cfg(feature = "cuda")]
 mod geometric_generate_cuda;

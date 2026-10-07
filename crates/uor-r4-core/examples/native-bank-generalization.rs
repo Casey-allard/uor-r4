@@ -10,10 +10,13 @@ use std::{
 };
 use uor_r4_core::{
     answer_oracle::FrozenAnswers,
-    native_geometric::learner::native_bank_generate::{
-        BankPin, BoundNativeBytes, GenerationLimits, GenerationStop, NativeBankArtifacts,
-        NativeBankGenerateStep, NativeBankGenerator, OwnedBankSegment, OwnedBankSource,
-        PinnedBankSnapshot, SnapshotSourceStatus,
+    native_geometric::learner::{
+        geometric_continuation_field::NativeContinuationField,
+        native_bank_generate::{
+            BankPin, BoundNativeBytes, GenerationLimits, GenerationStop, NativeBankArtifacts,
+            NativeBankGenerateStep, NativeBankGenerator, OwnedBankSegment, OwnedBankSource,
+            PinnedBankSnapshot, SnapshotSourceStatus,
+        },
     },
     report_output,
 };
@@ -40,6 +43,29 @@ struct Config {
     maximum_report_bytes: u64,
     #[serde(default)]
     baseline_parity: bool,
+    #[serde(default)]
+    continuation_field: Option<PathBuf>,
+    #[serde(default)]
+    expected_continuation_field_sha256: Option<String>,
+}
+
+/// Artifact construction has no panel, labels, target or generation settings.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ZeroContinuationConfig {
+    model_root: PathBuf,
+    expected_model_report_sha256: String,
+    expected_model_manifest_sha256: String,
+    output: PathBuf,
+}
+
+struct FrozenModel {
+    generator: NativeBankGenerator,
+    report: Value,
+    admission: Value,
+    checkpoint: PathBuf,
+    native_directory: PathBuf,
+    exp_sha256: String,
 }
 fn default_report_bytes() -> u64 {
     // Full traces for 32 cases at the 32-token limit can exceed 2 GiB.
@@ -301,15 +327,63 @@ fn compare_step(actual: &NativeBankGenerateStep, expected: &Value) -> Result<()>
     }
     Ok(())
 }
-fn run(c: &Config) -> Result<Value> {
-    report_output::verify(&c.model_root)?;
-    if file_hash(&c.model_root.join("report.json"))? != c.expected_model_report_sha256
-        || file_hash(&c.model_root.join("manifest.json"))? != c.expected_model_manifest_sha256
+
+fn step_row(
+    step: &NativeBankGenerateStep,
+    query_ids: Option<&[u32]>,
+    field_sha256: Option<&str>,
+) -> Result<Value> {
+    let mut row = json!({"actual_prefix_ids":step.actual_prefix_ids,"post_state_codes":step.post_state.iter().map(|v|v.index()).collect::<Vec<_>>(),
+        "copy_token_ids":step.copy_token_ids,"copy_raw_scores_q24":step.copy_raw_scores_q24,"generate_raw_scores_q24":step.generate_raw_scores_q24,
+        "actions":step.actions,"bridge":step.bridge.as_ref().map(|b|json!({"selected_ordinal":b.selected_ordinal,"selected_candidate":b.selected_candidate,
+            "query_state_codes":b.query_state.iter().map(|v|v.index()).collect::<Vec<_>>(),"source_state_codes":b.source_state.iter().map(|v|v.index()).collect::<Vec<_>>(),
+            "action_codes":b.action_codes.iter().map(|v|v.index()).collect::<Vec<_>>()}))});
+    match (&step.continuation, query_ids, field_sha256) {
+        (Some(witness), Some(query), Some(digest)) => {
+            if witness.query_tokens != query.len()
+                || witness.actual_prefix_tokens != step.actual_prefix_ids.len()
+                || witness.delta_scores_q24.len() != step.generate_raw_scores_q24.len()
+            {
+                return Err(bad("continuation witness input/score dimensions differ"));
+            }
+            let local_ids = query
+                .iter()
+                .chain(&step.actual_prefix_ids)
+                .copied()
+                .collect::<Vec<_>>();
+            row["continuation"] = json!({
+                "continuation_sha256":digest,
+                "local_input_ids":local_ids,
+                "query_ids":query,
+                "actual_prefix_ids":step.actual_prefix_ids,
+                "query_tokens":witness.query_tokens,
+                "actual_prefix_tokens":witness.actual_prefix_tokens,
+                "state_codes":witness.state_codes.iter().map(|v|v.index()).collect::<Vec<_>>(),
+                "delta_scores_q24":witness.delta_scores_q24,
+                "encoding_coefficient_reads":witness.encoding_coefficient_reads,
+                "field_counts":witness.counts,
+                "carrier_policy":"from-identity;query-then-actual-emitted-prefix;no-fact-tokens",
+            });
+        }
+        (None, None, None) => {}
+        _ => return Err(bad("continuation field/witness presence differs")),
+    }
+    Ok(row)
+}
+
+fn load_frozen_model(
+    model_root: &Path,
+    expected_report_sha256: &str,
+    expected_manifest_sha256: &str,
+) -> Result<FrozenModel> {
+    report_output::verify(model_root)?;
+    if file_hash(&model_root.join("report.json"))? != expected_report_sha256
+        || file_hash(&model_root.join("manifest.json"))? != expected_manifest_sha256
     {
         return Err(bad("frozen model report/seal identity differs"));
     }
-    let r = read(&c.model_root.join("report.json"))?;
-    let admission = read(&c.model_root.join("admission.json"))?;
+    let r = read(&model_root.join("report.json"))?;
+    let admission = read(&model_root.join("admission.json"))?;
     if r["schema"] != "uor-r4.geometric-prediction-control/1"
         || r["status"] != "COMPLETED"
         || r["updates"] != 0
@@ -323,7 +397,7 @@ fn run(c: &Config) -> Result<Value> {
             "model is not the completed successful zero-update48/64 recomposition",
         ));
     }
-    let cp = c.model_root.join("checkpoint-0000");
+    let cp = model_root.join("checkpoint-0000");
     let receipt = read(&cp.join("receipt.json"))?;
     if receipt != r["final_receipt"]
         || receipt != r["initial_receipt"]
@@ -333,6 +407,66 @@ fn run(c: &Config) -> Result<Value> {
     {
         return Err(bad("coherent frozen native checkpoint receipt differs"));
     }
+    let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
+    let gen = bytes(&cp.join("generate.bin"))?;
+    let bridge = bytes(&cp.join("read-state-bridge-categorical.bin"))?;
+    let exp = bytes(&cp.join("native/consumer/exp-q31.bin"))?;
+    let exp_hash = hash(&exp);
+    let cue_metadata: CueCarrierMetadata =
+        serde_json::from_value(read(&cp.join("cue/native-metadata.json"))?)?;
+    let prefix_metadata: PrefixTransportMetadata =
+        serde_json::from_value(read(&cp.join("prefix/native-metadata.json"))?)?;
+    let cue = bytes(&cp.join("cue/cue-q4.bin"))?;
+    let prefix = bytes(&cp.join("prefix/prefix-q4.bin"))?;
+    let joint = if cp.join("cue/cue-joint-q4.bin").is_file() {
+        Some(bytes(&cp.join("cue/cue-joint-q4.bin"))?)
+    } else {
+        None
+    };
+    let native_dir = cp.join("native");
+    let g = NativeBankGenerator::load(NativeBankArtifacts {
+        native_directory: &native_dir,
+        source_binding: &binding,
+        generate: BoundNativeBytes {
+            bytes: &gen,
+            sha256: expected_string(&receipt["generate_sha256"])?,
+        },
+        bridge: Some(BoundNativeBytes {
+            bytes: &bridge,
+            sha256: expected_string(&receipt["categorical_sha256"])?,
+        }),
+        cue_packed: &cue,
+        cue_joint_packed: joint.as_deref(),
+        cue_metadata: &cue_metadata,
+        prefix_packed: &prefix,
+        prefix_metadata: &prefix_metadata,
+        exp: BoundNativeBytes {
+            bytes: &exp,
+            sha256: &exp_hash,
+        },
+    })?;
+    Ok(FrozenModel {
+        generator: g,
+        report: r,
+        admission,
+        checkpoint: cp,
+        native_directory: native_dir,
+        exp_sha256: exp_hash,
+    })
+}
+fn run(c: &Config) -> Result<Value> {
+    let FrozenModel {
+        generator: mut g,
+        report: r,
+        admission,
+        checkpoint: cp,
+        native_directory: native_dir,
+        exp_sha256: exp_hash,
+    } = load_frozen_model(
+        &c.model_root,
+        &c.expected_model_report_sha256,
+        &c.expected_model_manifest_sha256,
+    )?;
     // This is an external authored panel, not a store enumeration or lineage proof.
     let input_root = seal_for(&c.inputs)?;
     let label_root = seal_for(&c.labels)?;
@@ -355,44 +489,16 @@ fn run(c: &Config) -> Result<Value> {
     {
         return Err(bad("bounded complete input/label schema coverage differs"));
     }
-    let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
-    let gen = bytes(&cp.join("generate.bin"))?;
-    let bridge = bytes(&cp.join("read-state-bridge-categorical.bin"))?;
-    let exp = bytes(&cp.join("native/consumer/exp-q31.bin"))?;
-    let exp_hash = hash(&exp);
-    let cue_metadata: CueCarrierMetadata =
-        serde_json::from_value(read(&cp.join("cue/native-metadata.json"))?)?;
-    let prefix_metadata: PrefixTransportMetadata =
-        serde_json::from_value(read(&cp.join("prefix/native-metadata.json"))?)?;
-    let cue = bytes(&cp.join("cue/cue-q4.bin"))?;
-    let prefix = bytes(&cp.join("prefix/prefix-q4.bin"))?;
-    let joint = if cp.join("cue/cue-joint-q4.bin").is_file() {
-        Some(bytes(&cp.join("cue/cue-joint-q4.bin"))?)
-    } else {
-        None
-    };
-    let native_dir = cp.join("native");
-    let mut g = NativeBankGenerator::load(NativeBankArtifacts {
-        native_directory: &native_dir,
-        source_binding: &binding,
-        generate: BoundNativeBytes {
-            bytes: &gen,
-            sha256: expected_string(&receipt["generate_sha256"])?,
-        },
-        bridge: Some(BoundNativeBytes {
-            bytes: &bridge,
-            sha256: expected_string(&receipt["categorical_sha256"])?,
-        }),
-        cue_packed: &cue,
-        cue_joint_packed: joint.as_deref(),
-        cue_metadata: &cue_metadata,
-        prefix_packed: &prefix,
-        prefix_metadata: &prefix_metadata,
-        exp: BoundNativeBytes {
-            bytes: &exp,
-            sha256: &exp_hash,
-        },
-    })?;
+    if let (Some(path), Some(digest)) =
+        (&c.continuation_field, &c.expected_continuation_field_sha256)
+    {
+        report_output::verify(&seal_for(path)?)?;
+        let field = bytes(path)?;
+        g = g.with_continuation_field(BoundNativeBytes {
+            bytes: &field,
+            sha256: digest,
+        })?;
+    }
     let tok =
         ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes(&native_dir.join("tokenizer.json"))?)
             .ok_or_else(|| bad("ByteBPE unavailable"))?;
@@ -414,6 +520,7 @@ fn run(c: &Config) -> Result<Value> {
         }
         l.answers.validate()?;
         let id = p.id.clone();
+        let local_query_ids = g.continuation_sha256().map(|_| p.query_ids.clone());
         let generated = serve(&mut g, p)?; // No label, target or answer reaches this call.
         if generated
             .steps
@@ -485,13 +592,16 @@ fn run(c: &Config) -> Result<Value> {
                 generated.generated_ids.clone(),
             ));
         }
-        let traces=generated.steps.iter().map(|s|Ok(json!({"actual_prefix_ids":s.actual_prefix_ids,"post_state_codes":s.post_state.iter().map(|v|v.index()).collect::<Vec<_>>(),
-            "copy_token_ids":s.copy_token_ids,"copy_raw_scores_q24":s.copy_raw_scores_q24,"generate_raw_scores_q24":s.generate_raw_scores_q24,
-            "actions":s.actions,"bridge":s.bridge.as_ref().map(|b|json!({"selected_ordinal":b.selected_ordinal,"selected_candidate":b.selected_candidate,
-                "query_state_codes":b.query_state.iter().map(|v|v.index()).collect::<Vec<_>>(),"source_state_codes":b.source_state.iter().map(|v|v.index()).collect::<Vec<_>>(),
-                "action_codes":b.action_codes.iter().map(|v|v.index()).collect::<Vec<_>>()}))}))).collect::<Result<Vec<Value>>>()?;
-        let row = json!({"id":id,"generated_ids":generated.generated_ids,"decoded":decoded,"decoded_utf8_valid":valid_text.is_some(),"decoded_bytes_sha256":hash(&decoded_bytes),"eos":eos,"complete":accepted,"entry_correct":entry_correct,
+        let traces = generated
+            .steps
+            .iter()
+            .map(|step| step_row(step, local_query_ids.as_deref(), g.continuation_sha256()))
+            .collect::<Result<Vec<Value>>>()?;
+        let mut row = json!({"id":id,"generated_ids":generated.generated_ids,"decoded":decoded,"decoded_utf8_valid":valid_text.is_some(),"decoded_bytes_sha256":hash(&decoded_bytes),"eos":eos,"complete":accepted,"entry_correct":entry_correct,
             "stop":format!("{:?}",generated.stop),"executed_steps":generated.executed_steps,"pin": {"lineage":generated.pin.lineage,"commit":generated.pin.commit,"scope":String::from_utf8(generated.pin.scope)?},"steps":traces,"baseline_parity":parity});
+        if let Some(digest) = g.continuation_sha256() {
+            row["continuation_sha256"] = json!(digest);
+        }
         let filename = format!("row-{index:04}.json");
         write_row(c, &filename, &row)?;
         rows.push(json!({"id":l.id,"row_file":filename,"row_bytes":fs::metadata(c.output.join(&filename))?.len(),"row_sha256":file_hash(&c.output.join(&filename))?,"complete":accepted,"entry_correct":entry_correct}));
@@ -507,15 +617,25 @@ fn run(c: &Config) -> Result<Value> {
         pair_complete += usize::from(both && distinct);
         pairs.push(json!({"pair_id":id,"case_ids":arms.iter().map(|v|&v.0).collect::<Vec<_>>(),"both_complete":both,"outputs_distinct":distinct}));
     }
-    Ok(
-        json!({"schema":"uor-r4.native-bank-generalization/1","status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":file_hash(&std::env::current_exe()?)?,
+    let mut report = json!({"schema":"uor-r4.native-bank-generalization/1","status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":file_hash(&std::env::current_exe()?)?,
         "model_report_sha256":c.expected_model_report_sha256,"model_manifest_sha256":c.expected_model_manifest_sha256,"model_source_commit":r["source_commit"],"component_provenance":r["resume"],
         "checkpoint_receipt_sha256":file_hash(&cp.join("receipt.json"))?,"source_binding":g.source_binding(),"generate_sha256":g.generate_sha256(),"bridge_sha256":g.bridge_sha256(),"exp_sha256":exp_hash,
         "inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"input_seal_sha256":file_hash(&input_root.join("manifest.json"))?,"label_seal_sha256":file_hash(&label_root.join("manifest.json"))?,
         "config_sha256":file_hash(&c.output.join("config.json"))?,"cases":rows.len(),"complete":complete,"entry_correct":entry,"pairs":pairs,"pairs_both_complete_distinct":pair_complete,"rows":rows,
         "baseline_parity":c.baseline_parity,"runtime":"CPU bounded integer/table native generator; no training/CUDA/optimizer","pin_scope":"Source-metadata-derived authored panel pin, lineage0; no store enumeration/lineage authenticity claim",
-        "scope":"frozen source-value substitution evaluation in declared grammar; labels after actual-feedback generation; no general chat/held-out whole-program claim","model_admission":admission["resume"]}),
-    )
+        "scope":"frozen source-value substitution evaluation in declared grammar; labels after actual-feedback generation; no general chat/held-out whole-program claim","model_admission":admission["resume"]});
+    if let Some(digest) = g.continuation_sha256() {
+        report["continuation_sha256"] = json!(digest);
+        report["continuation_seal_sha256"] = json!(file_hash(
+            &seal_for(
+                c.continuation_field
+                    .as_ref()
+                    .ok_or_else(|| bad("continuation path absent"))?
+            )?
+            .join("manifest.json")
+        )?);
+    }
+    Ok(report)
 }
 fn admit_paths(c: &mut Config) -> Result<()> {
     if c.maximum_report_bytes < 8 << 20 || c.maximum_report_bytes > 4 << 30 {
@@ -539,16 +659,120 @@ fn admit_paths(c: &mut Config) -> Result<()> {
             return Err(bad("output/input or sealed ancestry overlap"));
         }
     }
+    match (
+        &mut c.continuation_field,
+        &c.expected_continuation_field_sha256,
+    ) {
+        (Some(path), Some(_)) => {
+            if !path.is_absolute()
+                || path
+                    .components()
+                    .any(|v| matches!(v, std::path::Component::ParentDir))
+            {
+                return Err(bad("absolute nontraversing continuation path required"));
+            }
+            *path = fs::canonicalize(&*path)?;
+            let seal = seal_for(path)?;
+            if c.output.starts_with(&*path)
+                || path.starts_with(&c.output)
+                || c.output.starts_with(seal)
+            {
+                return Err(bad("output/continuation or sealed ancestry overlap"));
+            }
+        }
+        (None, None) => {}
+        _ => {
+            return Err(bad(
+                "continuation artifact path and expected SHA must be supplied together",
+            ))
+        }
+    }
     Ok(())
 }
+
+fn prepare_zero_continuation(raw: &[u8]) -> Result<()> {
+    let mut c: ZeroContinuationConfig = serde_json::from_slice(raw)?;
+    for path in [&c.model_root, &c.output] {
+        if !path.is_absolute()
+            || path
+                .components()
+                .any(|v| matches!(v, std::path::Component::ParentDir))
+        {
+            return Err(bad(
+                "absolute nontraversing zero-preparation paths required",
+            ));
+        }
+    }
+    c.model_root = fs::canonicalize(&c.model_root)?;
+    c.output = output_support::prospective_output(&c.output)?;
+    let model_seal = seal_for(&c.model_root)?;
+    if c.output.starts_with(&c.model_root)
+        || c.model_root.starts_with(&c.output)
+        || c.output.starts_with(model_seal)
+    {
+        return Err(bad(
+            "zero-preparation output/model or sealed ancestry overlap",
+        ));
+    }
+    report_output::claim(&c.output)?;
+    write(&c.output.join("config.json"), &serde_json::from_slice(raw)?)?;
+    let result = (|| -> Result<Value> {
+        let model = load_frozen_model(
+            &c.model_root,
+            &c.expected_model_report_sha256,
+            &c.expected_model_manifest_sha256,
+        )?;
+        let generator = model.generator;
+        let field = NativeContinuationField::zeroed(
+            generator.source_binding(),
+            generator.generate_model(),
+        )?;
+        let field_bytes = field.to_bytes()?;
+        let reloaded = NativeContinuationField::from_bytes(
+            &field_bytes,
+            generator.source_binding(),
+            generator.generate_model(),
+        )?;
+        if reloaded.to_bytes()? != field_bytes || reloaded.packed_unary().iter().any(|&v| v != 0) {
+            return Err(bad(
+                "zero-continuation independent reload or zero payload differs",
+            ));
+        }
+        fs::write(c.output.join("continuation-field.bin"), &field_bytes)?;
+        Ok(
+            json!({"schema":"uor-r4.native-continuation-zero/1","status":"COMPLETED",
+            "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":file_hash(&std::env::current_exe()?)?,
+            "model_report_sha256":c.expected_model_report_sha256,"model_manifest_sha256":c.expected_model_manifest_sha256,
+            "checkpoint_receipt_sha256":file_hash(&model.checkpoint.join("receipt.json"))?,
+            "source_binding":generator.source_binding(),"generate_sha256":generator.generate_sha256(),
+            "continuation_sha256":hash(&field_bytes),"continuation_file":"continuation-field.bin",
+            "continuation_metadata":reloaded.metadata(),"packed_unary_bytes":reloaded.packed_unary().len(),
+            "shared_coefficients":reloaded.lanes()*120,"all_coefficients_zero":true,"native_independently_reloaded":true,
+            "config_sha256":file_hash(&c.output.join("config.json"))?,
+            "scope":"zero-field artifact construction only; no panel, labels, training or model-quality measurement"}),
+        )
+    })();
+    let report = match &result {
+        Ok(value) => value.clone(),
+        Err(error) => json!({"schema":"uor-r4.native-continuation-zero/1","status":"FAILED",
+            "error":error.to_string(),"scope":"artifact preparation failure; no model-quality verdict"}),
+    };
+    write(&c.output.join("report.json"), &report)?;
+    report_output::seal(&c.output)?;
+    result.map(|_| ())
+}
+
 fn main() -> Result<()> {
     let args = std::env::args().collect::<Vec<_>>();
     if args.len() == 3 && args[1] == "verify-report" {
         report_output::verify(Path::new(&args[2]))?;
         return Ok(());
     }
+    if args.len() == 3 && args[1] == "prepare-zero-continuation" {
+        return prepare_zero_continuation(&bytes(Path::new(&args[2]))?);
+    }
     if args.len() != 2 {
-        return Err(bad("usage: native-bank-generalization CONFIG.json"));
+        return Err(bad("usage: native-bank-generalization CONFIG.json | prepare-zero-continuation ZERO_CONFIG.json | verify-report OUTPUT"));
     }
     let raw = bytes(Path::new(&args[1]))?;
     let mut c: Config = serde_json::from_slice(&raw)?;
@@ -573,6 +797,19 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn zero_continuation_config_rejects_labels_and_targets() -> Result<()> {
+        let config = json!({"model_root":"/fixture/model","expected_model_report_sha256":"a".repeat(64),
+            "expected_model_manifest_sha256":"b".repeat(64),"output":"/fixture/new-attempt"});
+        let _: ZeroContinuationConfig = serde_json::from_value(config.clone())?;
+        let mut with_labels = config.clone();
+        with_labels["labels"] = json!("/fixture/labels.json");
+        assert!(serde_json::from_value::<ZeroContinuationConfig>(with_labels).is_err());
+        let mut with_target = config;
+        with_target["target_token_id"] = json!(4);
+        assert!(serde_json::from_value::<ZeroContinuationConfig>(with_target).is_err());
+        Ok(())
+    }
     fn packet() -> Value {
         json!({"id":"fixture","actual_prefix_ids":[],"query_ids":[7],"segments":[
         {"kind":"Context","event":1,"role":1,"token_ids":[4]},

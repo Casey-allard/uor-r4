@@ -1,6 +1,9 @@
 //! Target-free composition of actual full-bank Copy and native Generate.
 //!
-//! Both branches consume the same authentic causal ContextQ4Output. Generate
+//! The factual branches consume the same authentic causal ContextQ4Output. An
+//! optional continuation factor separately replays query || actual prefix from
+//! identity and adds signed-H4 scores for every Generate ID before the common
+//! pool. The default field is absent; there is no first-token or phase gate. Generate
 //! reads its final retained H4 state and explicit full120 state-utility channel, never observed
 //! address roots. All source candidates retain occurrence order/provenance.
 //! Only the new Copy+Generate pool supplies emission mass; old Period/Stop
@@ -24,6 +27,9 @@ use uor_r4_integer::{
 
 use crate::{
     geometric_context::ContextQ4Output,
+    geometric_continuation_learning::{
+        ContinuationLearningOutput, ContinuationLearningWeights, PreparedContinuationLearning,
+    },
     geometric_generate_learning::{
         preclip_entry_margin_diagnostic, vocabulary_marginal_loss,
         vocabulary_marginal_loss_with_credit, GenerateLearningOutput, GenerateLearningWeights,
@@ -51,6 +57,22 @@ pub struct PreparedBankGenerate<'a, 'source> {
     prefix_temporal_utility: bool,
     read_state_bridge: Option<ReadStateBridge<'a>>,
     read_selector_credit: bool,
+    continuation: Option<ContinuationBranch<'a>>,
+}
+
+#[derive(Clone, Copy)]
+struct ContinuationBranch<'a> {
+    weights: &'a ContinuationLearningWeights,
+    prepared: &'a PreparedContinuationLearning,
+    context_credit: bool,
+}
+
+/// Separate local replay and its cost/credit witness, never a supplied answer record.
+pub struct BankContinuationOutput {
+    pub token_ids: Vec<u32>,
+    pub local_context: ContextQ4Output,
+    pub final_state_codes: Vec<H4Code>,
+    pub field: ContinuationLearningOutput,
 }
 
 /// One explicitly selected offline pullback for the same native bridge operation.
@@ -137,6 +159,7 @@ pub struct BankGenerateOutput {
     pub credit_scope: &'static str,
     /// Hard occurrence ordinal and selected-source transport, absent on the legacy/no-source path.
     pub read_state_bridge: Option<(usize, BridgeLearningOutput)>,
+    pub continuation: Option<BankContinuationOutput>,
 }
 
 fn same_binding(a: &SourceActionBinding, b: &SourceActionBinding) -> bool {
@@ -176,7 +199,86 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             prefix_temporal_utility: false,
             read_state_bridge: None,
             read_selector_credit: true,
+            continuation: None,
         })
+    }
+
+    /// Install a separately bound factor. The first rung credits only its shared
+    /// coefficients with frozen context/prototypes; callers may explicitly enable
+    /// the retained-state utility below. Prepare again after each optimizer update.
+    pub fn with_continuation_field(
+        mut self,
+        weights: &'a ContinuationLearningWeights,
+        prepared: &'a PreparedContinuationLearning,
+    ) -> Result<Self> {
+        if !same_binding(weights.binding(), self.generate.binding())
+            || weights.lanes() != self.generate.lanes()
+            || !weights.device().same_device(self.generate.device())
+            || !prepared.device().same_device(self.generate.device())
+        {
+            return Err(invalid("bank continuation binding/lanes/device differs"));
+        }
+        prepared.validate_binding(&self.realizer.execution_binding()?)?;
+        prepared.validate_generate(&self.prepared_generate.native)?;
+        self.continuation = Some(ContinuationBranch {
+            weights,
+            prepared,
+            context_credit: false,
+        });
+        Ok(self)
+    }
+
+    /// Optional local full120 conditional pullback; it is not prototype credit
+    /// or a derivative of the global recurrent posterior.
+    pub fn with_continuation_context_credit(mut self, enabled: bool) -> Result<Self> {
+        let branch = self
+            .continuation
+            .as_mut()
+            .ok_or_else(|| invalid("bank continuation field must be installed first"))?;
+        branch.context_credit = enabled;
+        Ok(self)
+    }
+
+    fn apply_continuation(
+        &self,
+        generated: &mut GenerateLearningOutput,
+        query: &[u32],
+        actual_prefix: &[u32],
+    ) -> Result<Option<BankContinuationOutput>> {
+        let Some(branch) = self.continuation else {
+            return Ok(None);
+        };
+        let token_ids: Vec<u32> = query.iter().chain(actual_prefix).copied().collect();
+        if query.is_empty()
+            || token_ids
+                .iter()
+                .any(|id| !self.generate.binding().admits_token(*id))
+        {
+            return Err(invalid(
+                "bank continuation query/prefix token IDs empty/invalid",
+            ));
+        }
+        let local_context = self.realizer.context_output(&token_ids, false)?;
+        let (states, choices) = final_retained_state(&local_context, self.generate.lanes())?;
+        let field = if branch.context_credit {
+            branch
+                .weights
+                .forward_prepared_state_choices(branch.prepared, &states, &choices)?
+        } else {
+            branch
+                .weights
+                .forward_prepared_coefficients_only(branch.prepared, &states)?
+        };
+        add_continuation_q24(&mut generated.scores_q24, &field.delta_scores_q24)?;
+        generated.raw_scores = (&generated.raw_scores + &field.delta_raw_scores)?;
+        // One final clip of the combined raw score; each branch is not clipped separately.
+        generated.clipped_scores = generated.raw_scores.clamp(-8f32, 8f32)?;
+        Ok(Some(BankContinuationOutput {
+            token_ids,
+            local_context,
+            final_state_codes: states,
+            field,
+        }))
     }
 
     /// Opt into exact prefix table utility on the full retained-state carrier.
@@ -389,11 +491,12 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         } else {
             None
         };
-        let generated = self.generate.forward_prepared_state_choices(
+        let mut generated = self.generate.forward_prepared_state_choices(
             self.prepared_generate,
             &states,
             &logits,
         )?;
+        let continuation = self.apply_continuation(&mut generated, query, actual_prefix)?;
         let actions = self
             .pool
             .reduce_trace(&generated.scores_q24, &ids, &scores)
@@ -408,6 +511,7 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             copy_token_ids: ids,
             copy_scores_q24: scores,
             read_state_bridge,
+            continuation,
             credit_scope: if self
                 .read_state_bridge
                 .is_some_and(|bridge| bridge.categorical())
@@ -433,6 +537,32 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
     /// must already contain the actual history/query/prefix in caller order.
     /// Empty input is rejected; there is no fabricated identity/source token.
     pub fn forward_no_source(&mut self, causal_ids: &[u32]) -> Result<BankGenerateOutput> {
+        if self.continuation.is_some() {
+            return Err(invalid(
+                "configured continuation requires explicit query/prefix boundary",
+            ));
+        }
+        self.forward_no_source_inner(causal_ids, &[], &[])
+    }
+
+    /// No-source continuation with a declared causal query/prefix suffix. The
+    /// boundary is supplied by the caller, not inferred from semantic tokens.
+    pub fn forward_no_source_with_query(
+        &mut self,
+        causal_ids: &[u32],
+        query: &[u32],
+        actual_prefix: &[u32],
+    ) -> Result<BankGenerateOutput> {
+        validate_query_suffix(causal_ids, query, actual_prefix)?;
+        self.forward_no_source_inner(causal_ids, query, actual_prefix)
+    }
+
+    fn forward_no_source_inner(
+        &mut self,
+        causal_ids: &[u32],
+        query: &[u32],
+        actual_prefix: &[u32],
+    ) -> Result<BankGenerateOutput> {
         if causal_ids.is_empty()
             || causal_ids
                 .iter()
@@ -444,11 +574,12 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         }
         let context = self.realizer.context_output(causal_ids, false)?;
         let (states, logits) = final_retained_state(&context, self.generate.lanes())?;
-        let generated = self.generate.forward_prepared_state_choices(
+        let mut generated = self.generate.forward_prepared_state_choices(
             self.prepared_generate,
             &states,
             &logits,
         )?;
+        let continuation = self.apply_continuation(&mut generated, query, actual_prefix)?;
         let actions = self
             .pool
             .reduce_trace(&generated.scores_q24, &[], &[])
@@ -464,6 +595,7 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             copy_scores_q24: vec![],
             credit_scope: NO_SOURCE_CREDIT_SCOPE,
             read_state_bridge: None,
+            continuation,
         })
     }
 }
@@ -509,6 +641,28 @@ impl BankGenerateOutput {
             target,
         )
     }
+}
+
+fn validate_query_suffix(causal: &[u32], query: &[u32], actual: &[u32]) -> Result<()> {
+    let suffix: Vec<u32> = query.iter().chain(actual).copied().collect();
+    if query.is_empty() || !causal.ends_with(&suffix) {
+        return Err(invalid(
+            "no-source continuation query/prefix is not a causal suffix",
+        ));
+    }
+    Ok(())
+}
+
+fn add_continuation_q24(scores: &mut [i64], delta: &[i64]) -> Result<()> {
+    if scores.len() != delta.len() {
+        return Err(invalid("bank continuation score shape differs"));
+    }
+    for (score, add) in scores.iter_mut().zip(delta) {
+        *score = score
+            .checked_add(*add)
+            .ok_or_else(|| invalid("bank continuation score overflow"))?;
+    }
+    Ok(())
 }
 
 fn hard_read_index(scores: &[i64]) -> Result<usize> {
@@ -773,6 +927,30 @@ mod tests {
             );
             assert!(grads.get(weights.relative.as_tensor()).is_none());
         }
+        Ok(())
+    }
+
+    #[test]
+    fn continuation_no_source_boundary_rejects_noncausal_or_empty_query() -> Result<()> {
+        validate_query_suffix(&[9, 10, 4, 5, 7], &[4, 5], &[7])?;
+        validate_query_suffix(&[9, 10, 4, 5], &[4, 5], &[])?;
+        assert!(validate_query_suffix(&[4, 5, 7], &[], &[4, 5, 7]).is_err());
+        assert!(validate_query_suffix(&[9, 10, 4, 5, 7], &[4, 5], &[8]).is_err());
+        assert!(validate_query_suffix(&[9, 10, 4, 5, 7], &[5, 4], &[7]).is_err());
+        assert!(validate_query_suffix(&[4, 5], &[4, 5], &[7]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn continuation_combined_q24_preserves_zero_and_rejects_overflow_shape() -> Result<()> {
+        let mut scores = [1 << 24, -(3 << 24), 7 << 20];
+        let before = scores;
+        add_continuation_q24(&mut scores, &[0, 0, 0])?;
+        assert_eq!(scores, before);
+        add_continuation_q24(&mut scores, &[-(1 << 24), 2 << 24, -(7 << 20)])?;
+        assert_eq!(scores, [0, -(1 << 24), 0]);
+        assert!(add_continuation_q24(&mut scores, &[0]).is_err());
+        assert!(add_continuation_q24(&mut [i64::MAX], &[1]).is_err());
         Ok(())
     }
 
