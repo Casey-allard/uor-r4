@@ -14,16 +14,24 @@ use std::{
 use uor_r4_core::{
     answer_oracle::FrozenAnswers,
     native_geometric::learner::{
+        geometric_continuation_field::NativeContinuationField,
         geometric_generate::{GenerateReadCounts, NativeGeometricGenerate},
         geometric_read_state_bridge::{BridgeReadCounts, NativeGeometricReadStateBridge},
+        native_bank_generate::{
+            BankPin, BoundNativeBytes, GenerationLimits, GenerationStop, NativeBankArtifacts,
+            NativeBankGenerateStep, NativeBankGenerator, OwnedBankSegment, OwnedBankSource,
+            PinnedBankSnapshot, SnapshotSourceStatus,
+        },
     },
     report_output,
 };
 use uor_r4_integer::{
     geometric_context::NativeContextState,
-    geometric_cue_carrier::{CueAngularConfig, CueAngularQ4, CueJointMetadata, CueJointQ4},
+    geometric_cue_carrier::{
+        CueAngularConfig, CueAngularQ4, CueCarrierMetadata, CueJointMetadata, CueJointQ4,
+    },
     geometric_occurrence_read::{FrameMetadata, FrameStatus, SelectedRecordFrame, SourceIdentity},
-    geometric_prefix_transport::{PrefixAngularConfig, PrefixAngularQ4},
+    geometric_prefix_transport::{PrefixAngularConfig, PrefixAngularQ4, PrefixTransportMetadata},
     geometric_source_emission_view::SourceEmissionView,
     geometric_source_realizer::{
         NativeArtifactBinding, NativeSourceRealizer as IntegerRealizer, SourceBankSegment,
@@ -32,7 +40,10 @@ use uor_r4_integer::{
 };
 use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::{
-    geometric_bank_generate::PreparedBankGenerate,
+    geometric_bank_generate::{
+        FixedContinuationPosition, PreparedBankGenerate, PreparedFixedContinuationBank,
+    },
+    geometric_continuation_learning::ContinuationLearningWeights,
     geometric_generate_learning::{GenerateLearningWeights, VocabularyScoreAdjoint},
     geometric_occurrence_consumer::{
         source_realizer::{NativeSourceRealizer, SourceRealizerWeights},
@@ -53,6 +64,41 @@ enum Mode {
     PredictionControl,
     EntryCeiling,
     EntryScorerFit,
+    ContinuationOnly,
+}
+
+/// Only this new mode may learn a continuation field on the sealed48/64 parent.
+/// All legacy loaders and component-resume guards retain their existing scope.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ContinuationConfig {
+    expected_model_report_sha256: String,
+    expected_model_manifest_sha256: String,
+    learning_rate: f64,
+    maximum_cache_tensor_bytes: u64,
+}
+const CONTINUATION_PARENT_REPORT_SHA: &str =
+    "a1277d2be4ff962100f857d0da553257ad5596ac8bc72d9257299e74d2f2e278";
+const CONTINUATION_PARENT_MANIFEST_SHA: &str =
+    "b37e2ca588bf1cc4dc5971fa5da97b9e83c90a94f4ea0bfdb0655b8f92bf94ca";
+fn continuation_settings(a: &Args) -> Result<Option<&ContinuationConfig>> {
+    match (a.mode, a.continuation.as_ref()) {
+        (Mode::ContinuationOnly, Some(c))
+            if a.loss_scope == LossScope::All
+                && !a.ceiling_scorer
+                && a.baseline.is_none()
+                && a.read_state_pullback == ReadStatePullback::Legacy
+                && c.expected_model_report_sha256 == CONTINUATION_PARENT_REPORT_SHA
+                && c.expected_model_manifest_sha256 == CONTINUATION_PARENT_MANIFEST_SHA
+                && c.learning_rate.is_finite()
+                && c.learning_rate > 0.
+                && c.maximum_cache_tensor_bytes > 0 => Ok(Some(c)),
+        (Mode::ContinuationOnly, _) => Err(bad(
+            "continuation-only requires exact48/64 parent, all-answer loss, positive U rate/cache cap and no old diagnostic/pullback options",
+        )),
+        (_, None) => Ok(None),
+        (_, Some(_)) => Err(bad("continuation settings require continuation_only mode")),
+    }
 }
 #[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -227,6 +273,8 @@ struct Args {
     prediction_control_resume_generate_step: Option<usize>,
     #[serde(default)]
     prediction_control_trainable: ControlTrainable,
+    #[serde(default)]
+    continuation: Option<ContinuationConfig>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -246,7 +294,7 @@ struct Inputs {
     schema: String,
     cases: Vec<Packet>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct Packet {
     id: String,
@@ -254,7 +302,7 @@ struct Packet {
     query_ids: Vec<u32>,
     actual_prefix_ids: Vec<u32>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, serde::Serialize)]
 #[serde(tag = "kind", deny_unknown_fields)]
 enum Segment {
     Source {
@@ -458,6 +506,7 @@ fn args() -> Result<Args> {
     }
     let a: Args = serde_json::from_slice(&fs::read(path)?)?;
     control_settings(&a)?;
+    continuation_settings(&a)?;
     if ![1001, 1002, 1003].contains(&a.seed)
         || a.maximum_seconds == 0
         || a.maximum_report_bytes < (64 << 20)
@@ -3242,8 +3291,680 @@ fn run_prediction_control(
     )
 }
 
+/// Frozen native bytes only; no old Source/Context/Generate Vars are loaded.
+struct ContinuationParent {
+    binding: NativeArtifactBinding,
+    integer: IntegerRealizer,
+    tokenizer: ByteBpeTokenizer,
+    native_directory: PathBuf,
+    generate: Vec<u8>,
+    generate_sha256: String,
+    bridge: Vec<u8>,
+    bridge_sha256: String,
+    cue: Vec<u8>,
+    joint: Option<Vec<u8>>,
+    cue_metadata: CueCarrierMetadata,
+    prefix: Vec<u8>,
+    prefix_metadata: PrefixTransportMetadata,
+    exp: Vec<u8>,
+    exp_sha256: String,
+    receipt: Value,
+}
+impl ContinuationParent {
+    fn load(a: &Args) -> Result<Self> {
+        let c = continuation_settings(a)?.ok_or_else(|| bad("continuation config absent"))?;
+        report_output::verify(&a.saved_fit)?;
+        if sha256_file(&a.saved_fit.join("report.json"))? != c.expected_model_report_sha256
+            || sha256_file(&a.saved_fit.join("manifest.json"))? != c.expected_model_manifest_sha256
+            || fs::canonicalize(&a.checkpoint)?
+                != fs::canonicalize(a.saved_fit.join("checkpoint-0000"))?
+        {
+            return Err(bad(
+                "exact selected continuation parent report/seal/checkpoint differs",
+            ));
+        }
+        let r = read(&a.saved_fit.join("report.json"))?;
+        let receipt = read(&a.checkpoint.join("receipt.json"))?;
+        if r["schema"] != "uor-r4.geometric-prediction-control/1"
+            || r["status"] != "COMPLETED"
+            || r["updates"] != 0
+            || r["native_prediction_control_win"] != true
+            || r["resume"]["component_recomposition"] != true
+            || r["resume"]["source_step"] != 48
+            || r["resume"]["generate_step"] != 64
+            || r["resume"]["producer_source_commit"] != "b451571aa638d1f93e3ccf25f718f27ed2ea731f"
+            || receipt != r["initial_receipt"]
+            || receipt != r["final_receipt"]
+            || receipt["step"] != 0
+            || receipt["native_independently_reloaded"] != true
+            || receipt["masters_independently_reloaded"] != true
+        {
+            return Err(bad(
+                "continuation parent is not the authenticated successful48/64 recomposition",
+            ));
+        }
+        for (p, expected) in [
+            (&a.training_inputs, INPUT_SHA),
+            (&a.development_inputs, INPUT_SHA),
+            (&a.training_labels, LABEL_SHA),
+            (&a.development_labels, LABEL_SHA),
+        ] {
+            report_output::verify(&seal_for(p)?)?;
+            if sha256_file(p)? != expected {
+                return Err(bad("fixed512 continuation panel identity differs"));
+            }
+        }
+        let cp = &a.checkpoint;
+        let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
+        let native_directory = cp.join("native");
+        let integer = IntegerRealizer::load_native(&native_directory, &binding)?;
+        let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(
+            native_directory.join("tokenizer.json"),
+        )?)
+        .ok_or_else(|| bad("continuation ByteBPE unavailable"))?;
+        let exp = fs::read(native_directory.join("consumer/exp-q31.bin"))?;
+        let loaded = Self {
+            binding,
+            integer,
+            tokenizer,
+            native_directory,
+            generate: fs::read(cp.join("generate.bin"))?,
+            generate_sha256: receipt["generate_sha256"]
+                .as_str()
+                .ok_or_else(|| bad("parent Generate hash absent"))?
+                .into(),
+            bridge: fs::read(cp.join("read-state-bridge-categorical.bin"))?,
+            bridge_sha256: receipt["categorical_sha256"]
+                .as_str()
+                .ok_or_else(|| bad("parent bridge hash absent"))?
+                .into(),
+            cue: fs::read(cp.join("cue/cue-q4.bin"))?,
+            joint: if cp.join("cue/cue-joint-q4.bin").is_file() {
+                Some(fs::read(cp.join("cue/cue-joint-q4.bin"))?)
+            } else {
+                None
+            },
+            cue_metadata: serde_json::from_value(read(&cp.join("cue/native-metadata.json"))?)?,
+            prefix: fs::read(cp.join("prefix/prefix-q4.bin"))?,
+            prefix_metadata: serde_json::from_value(read(
+                &cp.join("prefix/native-metadata.json"),
+            )?)?,
+            exp_sha256: sha256_bytes(&exp),
+            exp,
+            receipt,
+        };
+        // The public native loader verifies the full binding and every sidecar;
+        // no private generalizer loader or caller-selected endpoint is needed.
+        loaded.generator()?;
+        Ok(loaded)
+    }
+    fn generator(&self) -> Result<NativeBankGenerator> {
+        Ok(NativeBankGenerator::load(NativeBankArtifacts {
+            native_directory: &self.native_directory,
+            source_binding: &self.binding,
+            generate: BoundNativeBytes {
+                bytes: &self.generate,
+                sha256: &self.generate_sha256,
+            },
+            bridge: Some(BoundNativeBytes {
+                bytes: &self.bridge,
+                sha256: &self.bridge_sha256,
+            }),
+            cue_packed: &self.cue,
+            cue_joint_packed: self.joint.as_deref(),
+            cue_metadata: &self.cue_metadata,
+            prefix_packed: &self.prefix,
+            prefix_metadata: &self.prefix_metadata,
+            exp: BoundNativeBytes {
+                bytes: &self.exp,
+                sha256: &self.exp_sha256,
+            },
+        })?)
+    }
+}
+
+/// Input-only conversion. The complete packet is retained, not a gold Source.
+fn continuation_snapshot(p: &Packet) -> Result<PinnedBankSnapshot> {
+    if !p.actual_prefix_ids.is_empty() {
+        return Err(bad("continuation packet has supplied prefix"));
+    }
+    let mut scope: Option<&String> = None;
+    let mut commit = 0;
+    for s in &p.segments {
+        if let Segment::Source {
+            scope: q,
+            commit: c,
+            ..
+        } = s
+        {
+            if q.is_empty() || scope.is_some_and(|old| old != q) {
+                return Err(bad("continuation bank mixed/empty scope"));
+            }
+            scope = Some(q);
+            commit = commit.max(*c);
+        }
+    }
+    let scope = scope.ok_or_else(|| bad("fixed continuation panel requires actual Source bank"))?;
+    Ok(PinnedBankSnapshot {
+        pin: BankPin {
+            lineage: 0,
+            commit,
+            scope: scope.as_bytes().to_vec(),
+        },
+        query_ids: p.query_ids.clone(),
+        segments: p
+            .segments
+            .iter()
+            .map(|s| match s {
+                Segment::Source {
+                    event,
+                    record,
+                    commit,
+                    scope,
+                    entity,
+                    relation,
+                    view,
+                    original_source_ids,
+                } => OwnedBankSegment::Source(OwnedBankSource {
+                    event: *event,
+                    record: *record,
+                    commit: *commit,
+                    scope: scope.as_bytes().to_vec(),
+                    entity: entity.clone(),
+                    relation: *relation,
+                    view: *view,
+                    status: SnapshotSourceStatus::Found,
+                    original_token_ids: original_source_ids.clone(),
+                }),
+                Segment::Context {
+                    event,
+                    role,
+                    token_ids,
+                } => OwnedBankSegment::Context {
+                    event: *event,
+                    role: *role,
+                    token_ids: token_ids.clone(),
+                },
+            })
+            .collect(),
+    })
+}
+
+fn continuation_checkpoint(
+    a: &Args,
+    step: usize,
+    p: &ContinuationParent,
+    weights: &ContinuationLearningWeights,
+) -> Result<(NativeContinuationField, Value)> {
+    disk_floor(a)?;
+    if size(&a.out)?.saturating_add(1 << 20) > a.maximum_report_bytes - (1 << 20) {
+        return Err(bad("continuation checkpoint storage admission"));
+    }
+    // Check the source seal again before independently loading the native parent.
+    report_output::verify(&a.saved_fit)?;
+    if sha256_file(&a.saved_fit.join("report.json"))? != CONTINUATION_PARENT_REPORT_SHA
+        || sha256_file(&a.saved_fit.join("manifest.json"))? != CONTINUATION_PARENT_MANIFEST_SHA
+    {
+        return Err(bad("frozen continuation upstream changed"));
+    }
+    let reloaded = p.generator()?;
+    let field = weights.export_native(reloaded.source_binding(), reloaded.generate_model())?;
+    let bytes = field.to_bytes()?;
+    let root = a.out.join(format!("checkpoint-{step:04}"));
+    fs::create_dir(&root)?;
+    let masters = save_masters(&root.join("continuation-source"), &weights.parameters())?;
+    fs::write(root.join("continuation-field.bin"), &bytes)?;
+    let disk = NativeContinuationField::from_bytes(
+        &fs::read(root.join("continuation-field.bin"))?,
+        reloaded.source_binding(),
+        reloaded.generate_model(),
+    )?;
+    let cpu = ContinuationLearningWeights::from_native(
+        &disk,
+        reloaded.generate_model(),
+        p.integer.binding(),
+        &Device::Cpu,
+    )?;
+    restore(
+        &root.join("continuation-source"),
+        &masters,
+        &cpu.parameters(),
+        &Device::Cpu,
+    )?;
+    if disk.to_bytes()? != bytes
+        || cpu
+            .export_native(reloaded.source_binding(), reloaded.generate_model())?
+            .to_bytes()?
+            != bytes
+    {
+        return Err(bad(
+            "continuation independent masters/native reload differs",
+        ));
+    }
+    let receipt = json!({"step":step,"parent":reloaded.source_binding(),"generate_sha256":p.generate_sha256,
+        "frozen_model_root":fs::canonicalize(&a.saved_fit)?,"frozen_model_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
+        "frozen_model_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,"frozen_parent_receipt":p.receipt,
+        "continuation_sha256":sha256_bytes(&bytes),"parameters":masters,"active_parameter_names":["continuation.unary"],
+        "shared_coefficients":960,"loss_scope":"all","credit":a.credit.name(),"order_seed":a.seed,
+        "native_independently_reloaded":true,"masters_independently_reloaded":true,
+        "upstream_training":"all Context/Source/Potential/Generate/prototype/bridge/cue/prefix frozen; no old Vars loaded",
+        "fresh_adam":"zero moments; not optimizer-state continuation"});
+    fs::write(
+        root.join("continuation-source/metadata.json"),
+        serde_json::to_vec_pretty(&receipt)?,
+    )?;
+    fs::write(
+        root.join("receipt.json"),
+        serde_json::to_vec_pretty(&receipt)?,
+    )?;
+    Ok((disk, receipt))
+}
+
+/// Uses the production generator independently of the training cache. Labels
+/// supply only previous teacher tokens and evaluator membership after emission.
+fn continuation_witness(step: &NativeBankGenerateStep) -> Result<Value> {
+    let witness = step
+        .continuation
+        .as_ref()
+        .ok_or_else(|| bad("native continuation witness absent"))?;
+    Ok(
+        json!({"query_tokens":witness.query_tokens,"actual_prefix_tokens":witness.actual_prefix_tokens,
+        "state_codes":witness.state_codes.iter().map(|v|v.index()).collect::<Vec<_>>(),
+        "delta_scores_q24_sha256":sha256_bytes(&serde_json::to_vec(&witness.delta_scores_q24)?),
+        "delta_scores":witness.delta_scores_q24.len(),"minimum_delta_q24":witness.delta_scores_q24.iter().min(),
+        "maximum_delta_q24":witness.delta_scores_q24.iter().max(),"encoding_coefficient_reads":witness.encoding_coefficient_reads,
+        "field_counts":witness.counts,"full_delta_trace":"existing native-bank-generalization evaluator; fitter stores digest and bound"}),
+    )
+}
+
+fn continuation_evaluate(
+    a: &Args,
+    name: &str,
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[Episode],
+    start: Instant,
+) -> Result<Value> {
+    let bytes = field.to_bytes()?;
+    let field_sha = sha256_bytes(&bytes);
+    let mut generator = p.generator()?.with_continuation_field(BoundNativeBytes {
+        bytes: &bytes,
+        sha256: &field_sha,
+    })?;
+    let mut rows = Vec::new();
+    let mut complete = 0;
+    let mut ce = 0.;
+    let mut tokens = 0;
+    for e in eps {
+        deadline(a, start)?;
+        let bank = generator.admit_bank(continuation_snapshot(&e.packet)?)?;
+        let mut canonical = Vec::new();
+        let mut rowce = 0.;
+        for (t, &target) in e.target.iter().enumerate() {
+            deadline(a, start)?;
+            let step = generator.step(&bank, &e.target[..t])?;
+            let total = step.actions.summary.total_weight_q31;
+            let mass = step
+                .actions
+                .token_masses
+                .iter()
+                .find(|m| m.token_id == target)
+                .ok_or_else(|| bad("continuation full-pool target support missing"))?
+                .weight_q31;
+            if total == 0 || mass == 0 {
+                return Err(bad("continuation positive native support violated"));
+            }
+            let loss = -(mass as f64 / total as f64).ln();
+            rowce += loss;
+            tokens += 1;
+            canonical.push(json!({"target_label_only":target,"native_ce":loss,"native_target_mass":mass,
+                "native_denominator":total,"native":{"pool":{"summary":step.actions.summary},
+                    "copy_token_ids":step.copy_token_ids,"post_state_codes":step.post_state.iter().map(|v|v.index()).collect::<Vec<_>>(),
+                    "generate_raw_scores_sha256":sha256_bytes(&serde_json::to_vec(&step.generate_raw_scores_q24)?),
+                    "continuation":continuation_witness(&step)?}}));
+        }
+        // No target, accepted answer or cache is passed to own-feedback serving.
+        let generated = generator.generate(
+            &bank,
+            GenerationLimits {
+                maximum_tokens: 32,
+                maximum_retained_steps: 32,
+            },
+        )?;
+        let eos = generated.stop == GenerationStop::Eos;
+        let text = p
+            .tokenizer
+            .decode(&generated.generated_ids[..generated.generated_ids.len() - usize::from(eos)]);
+        let accepted = eos && e.answers.accepts(&text);
+        complete += usize::from(accepted);
+        ce += rowce / e.target.len() as f64;
+        let filename = format!("{name}-row-{:04}.json", rows.len());
+        let generation = generated.steps.iter().map(|s| -> Result<Value> {
+            Ok(json!({"actual_prefix_ids":s.actual_prefix_ids,"pool":{"summary":s.actions.summary},
+                "continuation":continuation_witness(s)?}))
+        }).collect::<Result<Vec<_>>>()?;
+        write(
+            a,
+            &filename,
+            &json!({"id":e.packet.id,"canonical_target_ids_labels_only":e.target,"canonical":canonical,
+            "generation":generation,"generated_ids":generated.generated_ids,"decoded":text,"eos":eos,"complete":accepted,
+            "native_equal_episode_ce":rowce/e.target.len()as f64,"continuation_sha256":field_sha}),
+        )?;
+        rows.push(json!({"id":e.packet.id,"native_equal_episode_ce":rowce/e.target.len()as f64,"complete":accepted,
+            "eos":eos,"generated_ids":generated.generated_ids,"row_file":filename,"row_sha256":sha256_file(&a.out.join(&filename))?}));
+    }
+    let result = json!({"cases":eps.len(),"target_positions":tokens,"complete":complete,"native_equal_episode_ce":ce/eps.len()as f64,
+        "rows":rows,"continuation_sha256":field_sha,"runtime":"production native integer generator; full Copy/Generate common pool; own emitted feedback",
+        "scope":"retained exposed512 construction panel; teacher-prefix metrics separate from complete own-prefix answers; no transfer/chat qualification"});
+    write(a, &format!("{name}.json"), &result)?;
+    Ok(result)
+}
+
+fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    let c = continuation_settings(a)?.ok_or_else(|| bad("continuation settings absent"))?;
+    let p = ContinuationParent::load(a)?;
+    let public = NativeVocabularyActions::new(p.integer.binding().clone(), &p.exp)?;
+    let legal = public
+        .legal_token_ids()
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let train = load_panel(
+        &a.training_inputs,
+        &a.training_labels,
+        &p.integer,
+        &p.tokenizer,
+        &legal,
+        512,
+    )?;
+    let dev = load_panel(
+        &a.development_inputs,
+        &a.development_labels,
+        &p.integer,
+        &p.tokenizer,
+        &legal,
+        512,
+    )?;
+    if train.len() != 512 || dev.len() != 512 {
+        return Err(bad("complete512 continuation panel required"));
+    }
+    pairs(&train)?;
+    pairs(&dev)?;
+    let native = p.generator()?;
+    if native.generate_model().lanes() != 8 || native.generate_model().vocab_size() != 4096 {
+        return Err(bad("continuation parent8-lane/full4096 mismatch"));
+    }
+    let weights = ContinuationLearningWeights::zeroed_shared_action(
+        p.integer.binding(),
+        native.source_binding(),
+        8,
+        d,
+    )?;
+    let zero = weights.export_native(native.source_binding(), native.generate_model())?;
+    let zero_bytes = zero.to_bytes()?;
+    let zero_sha = sha256_bytes(&zero_bytes);
+    let native = native.with_continuation_field(BoundNativeBytes {
+        bytes: &zero_bytes,
+        sha256: &zero_sha,
+    })?;
+    let owner = PreparedFixedContinuationBank::new(native, &weights, &p.exp)?;
+    let params = weights.parameters();
+    if params.len() != 1 || params.values().map(|v| v.elem_count()).sum::<usize>() != 960 {
+        return Err(bad("continuation-only960 parameter admission"));
+    }
+    let schedule = order(a.seed, train.len());
+    write(
+        a,
+        "order.json",
+        &json!({"seed":a.seed,"order":schedule,"batch":BATCH,"updates":a.updates,
+        "policy":"existing full512 SplitMix64/Fisher-Yates cyclic batches; previous supervised tokens only; all answer positions including EOS"}),
+    )?;
+    let projected_tensor_bytes = train.iter().try_fold(0u64, |sum, e| -> Result<u64> {
+        let copy = e
+            .views
+            .iter()
+            .flatten()
+            .map(|v| v.emitted_token_ids().len())
+            .sum::<usize>() as u64;
+        sum.checked_add(
+            (4096 * 8 + copy * 4)
+                .checked_mul(e.target.len() as u64)
+                .ok_or_else(|| bad("cache projection overflow"))?,
+        )
+        .ok_or_else(|| bad("cache projection overflow"))
+    })?;
+    if projected_tensor_bytes > c.maximum_cache_tensor_bytes {
+        return Err(bad("continuation device cache tensor cap"));
+    }
+    write(
+        a,
+        "admission.json",
+        &json!({"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"mode":"continuation_only",
+        "parent":p.receipt,"parent_report_sha256":CONTINUATION_PARENT_REPORT_SHA,"parent_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,
+        "training_input_sha256":INPUT_SHA,"training_labels_sha256":LABEL_SHA,"construction_panel_overlap":"train=open-development512; no new held-out claim",
+        "active_parameter_names":params.keys().collect::<Vec<_>>(),"shared_coefficients":960,"learning_rate":c.learning_rate,
+        "continuation_policy":zero.metadata().policy,"continuation_score_shift":zero.metadata().score_shift,
+        "continuation_action_support":"same token energy on Generate and every physical Copy before the sole common clip",
+        "phase_policy":loss_weight_policy(true,LossScope::All),"loss_scope":"all","credit":a.credit.name(),"fresh_adam":true,
+        "teacher_forcing":"native cache receives complete input packet and target[..t] only; current/future target used after common pool",
+        "local_carrier":"ContextQ4 from identity over query || prior supervised prefix; independent of facts",
+        "projected_device_cache_tensor_bytes":projected_tensor_bytes,"maximum_cache_tensor_bytes":c.maximum_cache_tensor_bytes,
+        "cache_cap_scope":"I64 base Generate and F32 Copy tensors; host packet/provenance, model and scratch additionally charged",
+        "common_pool_backend":"cpu-authenticated-native-alias-reducer; U gathers/credit/backward on CUDA; full score download and anchor/loss staging retained",
+        "legacy_loader_fields":"categorical and parent_config are unused in this mode; native sidecars come only from exact sealed selected parent",
+        "CUDA_VISIBLE_DEVICES":std::env::var("CUDA_VISIBLE_DEVICES").ok()}),
+    )?;
+    let cache_start = Instant::now();
+    let mut cache = Vec::<Vec<FixedContinuationPosition>>::new();
+    let mut cache_rows = Vec::new();
+    let mut positions = 0usize;
+    let mut copy_occurrences = 0usize;
+    let mut encoding_reads = 0u64;
+    for e in &train {
+        deadline(a, start)?;
+        disk_floor(a)?;
+        let bank = owner.admit_bank(continuation_snapshot(&e.packet)?)?;
+        let mut row = Vec::new();
+        let mut provenance = Vec::new();
+        for t in 0..e.target.len() {
+            deadline(a, start)?;
+            let position = owner.prepare_position(bank.clone(), &e.target[..t])?;
+            let union = position
+                .copy_token_ids()
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>();
+            let expected = e
+                .views
+                .iter()
+                .flatten()
+                .flat_map(|v| v.emitted_token_ids().iter().copied())
+                .collect::<BTreeSet<_>>();
+            if union != expected {
+                return Err(bad("continuation fixed complete Copy union differs"));
+            }
+            positions += 1;
+            copy_occurrences += position.copy_token_ids().len();
+            encoding_reads = encoding_reads
+                .checked_add(position.encoding_coefficient_reads())
+                .ok_or_else(|| bad("cache read-count overflow"))?;
+            provenance.push(json!({"prior_prefix_ids":position.actual_prefix_ids(),"local_state_codes":position.local_state().iter().map(|v|v.index()).collect::<Vec<_>>(),
+                "post_state_codes":position.post_state().iter().map(|v|v.index()).collect::<Vec<_>>(),"copy_occurrences":position.copy_token_ids().len(),
+                "native_generate_counts":position.native_generate_counts(),"encoding_coefficient_reads":position.encoding_coefficient_reads(),
+                "factual_bank_trace_sha256":position.factual_bank_trace_sha256(),"factual_bank_binding_sha256":position.factual_bank_binding_sha256()}));
+            row.push(position);
+        }
+        cache_rows.push(json!({"id":e.packet.id,"packet_sha256":sha256_bytes(&serde_json::to_vec(&e.packet)?),"positions":provenance}));
+        cache.push(row);
+    }
+    d.synchronize()?;
+    let cache_seconds = cache_start.elapsed().as_secs_f64();
+    write(
+        a,
+        "fixed-position-cache.json",
+        &json!({"rows":cache_rows,"cases":train.len(),"positions":positions,
+        "device_cache_tensor_bytes":projected_tensor_bytes,"copy_occurrences_across_positions":copy_occurrences,
+        "local_encoding_coefficient_reads":encoding_reads,"preparation_seconds":cache_seconds,
+        "preparation":"actual production native step, full bank and prior teacher prefix; upstream CPU integer work and uploads",
+        "labels":"prefix/schedule are supervised; no current/future target or selected reference passed to cache API"}),
+    )?;
+    let mut checkpoint_seconds = 0.;
+    let mut evaluation_seconds = 0.;
+    let clock = Instant::now();
+    let (initial_field, initial_receipt) = continuation_checkpoint(a, 0, &p, &weights)?;
+    checkpoint_seconds += clock.elapsed().as_secs_f64();
+    let clock = Instant::now();
+    let initial = continuation_evaluate(a, "development-0000", &p, &initial_field, &dev, start)?;
+    let initial_metrics = metrics(a, &initial, &dev)?;
+    write(a, "metrics-0000.json", &initial_metrics)?;
+    evaluation_seconds += clock.elapsed().as_secs_f64();
+    let mut opt = optimizer(&params, c.learning_rate)?;
+    let mut updates = Vec::new();
+    let fit_start = Instant::now();
+    let initial_checkpoint_seconds = checkpoint_seconds;
+    let mut final_receipt = initial_receipt.clone();
+    for update in 0..a.updates {
+        deadline(a, start)?;
+        disk_floor(a)?;
+        let prepared = owner.prepare_field(&weights)?;
+        let indices = (0..BATCH)
+            .map(|i| schedule[(update * BATCH + i) % schedule.len()])
+            .collect::<Vec<_>>();
+        let mut sums = BTreeMap::<String, Tensor>::new();
+        let mut loss_sum = 0.;
+        let mut count = 0usize;
+        let mut downloads = 0usize;
+        let mut uploads = 0usize;
+        let mut copy_index_uploads = 0usize;
+        let mut loss_staging = 0usize;
+        let mut field_costs = None;
+        for &index in &indices {
+            let e = &train[index];
+            let fixed = &cache[index];
+            let union = fixed
+                .first()
+                .ok_or_else(|| bad("empty continuation cache row"))?
+                .copy_token_ids()
+                .iter()
+                .copied()
+                .collect::<BTreeSet<_>>();
+            let mut plan = None;
+            for (t, (&target, position)) in e.target.iter().zip(fixed).enumerate() {
+                deadline(a, start)?;
+                let out = position.forward_coefficients_only(&weights, &prepared)?;
+                // The whole target-free pool is constructed before this label.
+                if plan.is_none() {
+                    plan = Some(episode_loss_weights(
+                        &e.target,
+                        &union,
+                        indices.len(),
+                        true,
+                        LossScope::All,
+                    )?);
+                }
+                let weight = plan
+                    .as_ref()
+                    .ok_or_else(|| bad("continuation loss phases absent"))?
+                    .weights[t];
+                let loss = (out.loss_with_credit(target, a.credit.policy())? * weight)?;
+                if field_costs.is_none() {
+                    field_costs = Some(serde_json::to_value(&out.continuation.costs)?);
+                }
+                let value = loss.to_scalar::<f32>()? as f64;
+                if !value.is_finite() {
+                    return Err(bad("nonfinite continuation loss"));
+                }
+                loss_sum += value;
+                count += 1;
+                downloads += out.common_pool_score_download_bytes;
+                uploads += out.common_pool_anchor_upload_bytes;
+                copy_index_uploads += out.common_pool_copy_index_upload_bytes;
+                // Host alias loss uploads one F32 hard-score vector, one F32
+                // target mask and one scalar probability per position.
+                loss_staging += if d.is_cuda() {
+                    8 * out.actions.actions.len() + 4
+                } else {
+                    0
+                };
+                let grads = loss.backward()?;
+                for (name, var) in &params {
+                    if let Some(g) = grads.get(var.as_tensor()) {
+                        let next = if let Some(old) = sums.remove(name) {
+                            (&old + g)?
+                        } else {
+                            g.clone()
+                        };
+                        sums.insert(name.clone(), next.detach());
+                    }
+                }
+            }
+        }
+        let (denominator, norm) = clip_denominator(&sums, d)?;
+        apply(&mut opt, &params, &sums, &denominator)?;
+        weights.project_shadow_range()?;
+        d.synchronize()?;
+        updates.push(json!({"step":update+1,"indices":indices,"answer_positions_including_eos":count,"phase_balanced_loss":loss_sum,
+            "global_active_gradient_norm":norm,"active_gradient_names":sums.keys().collect::<Vec<_>>(),
+            "native_field_master_download_bytes":prepared.downloaded_master_bytes,
+            "field_snapshot_and_per_position_costs":field_costs,
+            "common_pool_score_download_bytes":downloads,"common_pool_anchor_upload_bytes":uploads,
+            "common_pool_copy_index_upload_bytes":copy_index_uploads,
+            "host_alias_loss_explicit_upload_bytes":loss_staging,
+            "scalar_transfers":"per-position finite-score validation and reported loss; clip norm status scalars; CUDA synchronization",
+            "common_pool_backend":"cpu-authenticated-native-alias-reducer","credit_scope":"960 shared U coefficient STE only; frozen native states/prototypes"}));
+        write(a, "updates.json", &json!(updates))?;
+        if (update + 1) % 32 == 0 {
+            let clock = Instant::now();
+            final_receipt = continuation_checkpoint(a, update + 1, &p, &weights)?.1;
+            checkpoint_seconds += clock.elapsed().as_secs_f64();
+        }
+    }
+    let fit_seconds =
+        fit_start.elapsed().as_secs_f64() - (checkpoint_seconds - initial_checkpoint_seconds);
+    let root = a.out.join(format!("checkpoint-{:04}", a.updates));
+    let final_field_bytes = fs::read(root.join("continuation-field.bin"))?;
+    if read(&root.join("receipt.json"))? != final_receipt
+        || final_receipt["continuation_sha256"].as_str()
+            != Some(sha256_bytes(&final_field_bytes).as_str())
+    {
+        return Err(bad("final continuation sidecar/receipt identity differs"));
+    }
+    let final_field = NativeContinuationField::from_bytes(
+        &final_field_bytes,
+        &p.binding,
+        p.generator()?.generate_model(),
+    )?;
+    let clock = Instant::now();
+    let final_eval = continuation_evaluate(
+        a,
+        &format!("development-{:04}", a.updates),
+        &p,
+        &final_field,
+        &dev,
+        start,
+    )?;
+    let final_metrics = metrics(a, &final_eval, &dev)?;
+    write(a, &format!("metrics-{:04}", a.updates), &final_metrics)?;
+    evaluation_seconds += clock.elapsed().as_secs_f64();
+    Ok(
+        json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"continuation_only",
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"device":"cuda:0","updates":a.updates,"batch":BATCH,
+        "loss_scope":"all","phase_policy":loss_weight_policy(true,LossScope::All),"credit":a.credit.name(),"order_seed":a.seed,
+        "initial_receipt":initial_receipt,"final_receipt":final_receipt,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
+        "final_active_masters":identities(&params)?,"shared_coefficients":960,"cache_positions":positions,
+        "cache_preparation_seconds":cache_seconds,"fit_loop_seconds_excluding_checkpoints":fit_seconds,
+        "checkpoint_seconds":checkpoint_seconds,"evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
+        "control":"checkpoint0000 is the same native parent with a null U field; constant-carrier control remains a prospective matched full-output evaluation",
+        "common_pool_backend":"cpu-authenticated-native-alias-reducer; full score/anchor/loss transfers retained; not fully resident CUDA alias reduction",
+        "scope":"frozen48/64 parent; only960 continuation coefficients learned on exposed512 all-answer positions; independently loaded own-feedback outputs; no held-out transfer/chat/geometry/energy qualification"}),
+    )
+}
+
 fn run(a: &Args, start: Instant) -> Result<Value> {
     let d = cuda()?;
+    if a.mode == Mode::ContinuationOnly {
+        return run_continuation(a, start, &d);
+    }
     let l = load(a, &d)?;
     let public = NativeVocabularyActions::new(l.integer.binding().clone(), &l.exp)?;
     let legal = public
@@ -3527,6 +4248,106 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn continuation_mode_requires_exact_parent_all_answer_credit_and_no_entry_gate() -> Result<()> {
+        let base = json!({"mode":"continuation_only","credit":"raw_identity","seed":1001,
+            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
+            "training_inputs":"input","training_labels":"labels","development_inputs":"input",
+            "development_labels":"labels","maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":"new",
+            "continuation":{"expected_model_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
+                "expected_model_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,"learning_rate":0.003,
+                "maximum_cache_tensor_bytes":536870912}});
+        let parsed: Args = serde_json::from_value(base.clone())?;
+        control_settings(&parsed)?;
+        assert!(continuation_settings(&parsed)?.is_some());
+        for (key, value) in [
+            ("loss_scope", json!("entry_only")),
+            ("ceiling_scorer", json!(true)),
+            ("read_state_pullback", json!("categorical")),
+            ("mode", json!("fit")),
+        ] {
+            let mut changed = base.clone();
+            changed[key] = value;
+            assert!(continuation_settings(&serde_json::from_value::<Args>(changed)?).is_err());
+        }
+        for (key, value) in [
+            ("learning_rate", json!(0.)),
+            ("maximum_cache_tensor_bytes", json!(0)),
+            ("expected_model_report_sha256", json!("wrong")),
+        ] {
+            let mut changed = base.clone();
+            changed["continuation"][key] = value;
+            assert!(continuation_settings(&serde_json::from_value::<Args>(changed)?).is_err());
+        }
+        let mut changed = base.clone();
+        changed["prediction_control_updates"] = json!(32);
+        assert!(control_settings(&serde_json::from_value::<Args>(changed)?).is_err());
+        let mut changed = base;
+        changed["continuation"]["selected_record"] = json!(1);
+        assert!(serde_json::from_value::<Args>(changed).is_err());
+        let plan =
+            episode_loss_weights(&[7, 11, 1], &BTreeSet::from([11]), 8, true, LossScope::All)?;
+        assert_eq!(plan.weights.len(), 3);
+        assert!(plan.weights.iter().all(|w| *w > 0.));
+        Ok(())
+    }
+
+    #[test]
+    fn continuation_snapshot_retains_both_sources_and_rejects_supplied_prefix() -> Result<()> {
+        let mut p = Packet {
+            id: "query-job".into(),
+            query_ids: vec![7],
+            actual_prefix_ids: Vec::new(),
+            segments: vec![
+                Segment::Context {
+                    event: 1,
+                    role: 1,
+                    token_ids: vec![8],
+                },
+                Segment::Source {
+                    event: 1,
+                    record: 101,
+                    commit: 1,
+                    scope: "scope".into(),
+                    entity: vec![1],
+                    relation: 1,
+                    view: 0,
+                    original_source_ids: vec![9],
+                },
+                Segment::Context {
+                    event: 2,
+                    role: 1,
+                    token_ids: vec![10],
+                },
+                Segment::Source {
+                    event: 2,
+                    record: 102,
+                    commit: 2,
+                    scope: "scope".into(),
+                    entity: vec![1],
+                    relation: 2,
+                    view: 0,
+                    original_source_ids: vec![11],
+                },
+            ],
+        };
+        let snapshot = continuation_snapshot(&p)?;
+        assert_eq!(snapshot.segments.len(), 4);
+        assert_eq!(snapshot.query_ids, p.query_ids);
+        let sources = snapshot
+            .segments
+            .iter()
+            .filter_map(|s| match s {
+                OwnedBankSegment::Source(s) => Some((s.record, s.original_token_ids.clone())),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(sources, vec![(101, vec![9]), (102, vec![11])]);
+        assert_eq!(snapshot.pin.commit, 2);
+        p.actual_prefix_ids.push(7);
+        assert!(continuation_snapshot(&p).is_err());
+        Ok(())
+    }
     #[test]
     fn read_state_pullback_config_defaults_serializes_and_rejects_unknown() -> Result<()> {
         let original = json!({"mode":"fit","credit":"raw_identity","seed":1001,

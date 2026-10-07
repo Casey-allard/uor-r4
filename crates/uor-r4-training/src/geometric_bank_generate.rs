@@ -15,7 +15,12 @@
 //! full120 temporal utility. This API establishes integration, not learned language,
 //! geometric advantage, energy savings or durable memory consumption.
 
-use candle_core::{DType, Tensor};
+use candle_core::{DType, Device, Tensor};
+use sha2::Digest;
+use uor_r4_core::native_geometric::learner::{
+    geometric_continuation_field::NativeContinuationField,
+    native_bank_generate::{AdmittedBank, BankPin, NativeBankGenerator, PinnedBankSnapshot},
+};
 use uor_r4_integer::{
     geometric_cue_carrier::NativeCueCarrier,
     geometric_prefix_transport::NativePrefixTransport,
@@ -28,7 +33,8 @@ use uor_r4_integer::{
 use crate::{
     geometric_context::ContextQ4Output,
     geometric_continuation_learning::{
-        ContinuationLearningOutput, ContinuationLearningWeights, PreparedContinuationLearning,
+        ContinuationDeviceLearningOutput, ContinuationLearningOutput, ContinuationLearningWeights,
+        PreparedContinuationLearning,
     },
     geometric_generate_learning::{
         preclip_entry_margin_diagnostic, vocabulary_marginal_loss,
@@ -48,6 +54,504 @@ use crate::{
 pub const CREDIT_SCOPE:&str="same-actual-fullbank-context;retained-H4-onehot120-Generate;full120-temporal-utility-factual-action-carry-and-one-choice-pullback;frozen-native-allsource-Copy-context/cue/prefix-credit-legacy-ambient4;one-common-clipped-fullvocab-token-alias-marginal;no-old-terminals-or-bonus;all-Copy-occurrences-scored-without-selected-winner;local-finite-choice-surrogate-not-global-posterior/3";
 pub const NO_SOURCE_CREDIT_SCOPE:&str="actual-causal-history-context;retained-H4-onehot120-Generate;full120-temporal-utility-factual-action-carry-and-one-choice-pullback;full-legal-vocabulary;zero-Copy-occurrences;no-fabricated-source-or-initial-token;local-finite-choice-surrogate-not-global-posterior/2";
 pub const PREFIX_TEMPORAL_CREDIT_SCOPE: &str = "same-actual-fullbank-context;Generate-and-exact-prefix-Copy-table-full120-temporal-utility;one-context-choice-pullback;contextual-readout/cue-Copy-credit-legacy-ambient4;all-source-occurrences-no-selected-winner;local-conditional-surrogate-not-global-posterior/4";
+
+/// Shared frozen upstream operators for fixed teacher-prefix continuation fits.
+/// Ownership prevents replacing Context/Potential/Generate/bridge/cue/prefix
+/// after positions are prepared. This is not an own-prefix sampling cache.
+pub struct PreparedFixedContinuationBank {
+    native: std::cell::RefCell<NativeBankGenerator>,
+    pool: std::cell::RefCell<NativeVocabularyActions>,
+    binding: SourceActionBinding,
+    device: Device,
+    shared_action: bool,
+}
+
+/// A privately admitted packet tied to the exact shared upstream owner.
+/// Equal Source metadata does not authorize reuse under different sidecars.
+pub struct AdmittedFixedContinuationBank {
+    owner: std::rc::Rc<PreparedFixedContinuationBank>,
+    bank: AdmittedBank,
+}
+
+/// A target-free physical bank position prepared by the production native step.
+/// The admitted packet remains privately owned and immutable; prefixes are
+/// copied, not borrowed from a mutable teacher buffer. No labels enter here.
+pub struct FixedContinuationPosition {
+    owner: std::rc::Rc<PreparedFixedContinuationBank>,
+    bank: std::rc::Rc<AdmittedFixedContinuationBank>,
+    actual_prefix_ids: Vec<u32>,
+    post_state: Vec<H4Code>,
+    local_state: Vec<H4Code>,
+    base_generate_q24: Tensor,
+    copy_token_ids: Vec<u32>,
+    copy_scores_q24: Vec<i64>,
+    copy_raw: Option<Tensor>,
+    factual_bank_trace_sha256: Option<String>,
+    factual_bank_binding_sha256: Option<String>,
+    physical_candidates: Vec<uor_r4_integer::geometric_source_realizer::BankCandidateTrace>,
+    native_generate_counts:
+        uor_r4_core::native_geometric::learner::geometric_generate::GenerateReadCounts,
+    encoding_coefficient_reads: u64,
+}
+
+pub struct FixedContinuationOutput {
+    pub actions: VocabularyActionTrace,
+    pub generate_scores_q24: Vec<i64>,
+    pub generate_raw_scores: Tensor,
+    pub copy_raw_scores: Option<Tensor>,
+    pub copy_scores_q24: Vec<i64>,
+    pub continuation: ContinuationDeviceLearningOutput,
+    /// Compatibility CPU reducer: CUDA downloads the full combined I64 scores.
+    /// This is separate from U scorer's zero-download device-output cost.
+    pub common_pool_score_download_bytes: usize,
+    pub common_pool_anchor_upload_bytes: usize,
+    pub common_pool_copy_index_upload_bytes: usize,
+    pub common_pool_backend: &'static str,
+}
+
+impl PreparedFixedContinuationBank {
+    /// The generator must have the authentic all-zero continuation artifact
+    /// installed. canonical_exp_bytes are independently authenticated against
+    /// the same pinned full table by NativeVocabularyActions::new; arbitrary
+    /// caller score vectors or precomputed probability pools are never admitted.
+    pub fn new(
+        generator: NativeBankGenerator,
+        weights: &ContinuationLearningWeights,
+        canonical_exp_bytes: &[u8],
+    ) -> Result<std::rc::Rc<Self>> {
+        if !weights.device().is_cpu() && !weights.device().is_cuda() {
+            return Err(invalid("fixed continuation cache supports CPU/CUDA only"));
+        }
+        let generate = generator.generate_model();
+        if weights.native_binding() != generator.source_binding()
+            || generate.metadata().tokenizer_sha256 != weights.binding().tokenizer_sha256()
+            || generate.metadata().dialogue_protocol != *weights.binding().protocol()
+            || generate.vocab_size() != weights.vocab_size()
+            || generate.lanes() != weights.lanes()
+        {
+            return Err(invalid(
+                "fixed continuation upstream parent/token binding differs",
+            ));
+        }
+        let zero = if weights.applies_to_copy() {
+            NativeContinuationField::compile_shared_action(
+                generator.source_binding(),
+                generate,
+                &vec![0; generate.lanes() * 60],
+            )
+        } else {
+            NativeContinuationField::zeroed(generator.source_binding(), generate)
+        }
+        .map_err(|e| invalid(e.to_string()))?;
+        let zero_bytes = zero.to_bytes().map_err(|e| invalid(e.to_string()))?;
+        let zero_sha = format!("{:x}", sha2::Sha256::digest(&zero_bytes));
+        if generator.continuation_sha256() != Some(zero_sha.as_str()) {
+            return Err(invalid(
+                "fixed continuation cache requires authentic zero field",
+            ));
+        }
+        let pool = NativeVocabularyActions::new(weights.binding().clone(), canonical_exp_bytes)
+            .map_err(|e| invalid(e.to_string()))?;
+        Ok(std::rc::Rc::new(Self {
+            native: std::cell::RefCell::new(generator),
+            pool: std::cell::RefCell::new(pool),
+            binding: weights.binding().clone(),
+            device: weights.device().clone(),
+            shared_action: weights.applies_to_copy(),
+        }))
+    }
+
+    /// Admit a packet against the same privately owned frozen parent.
+    pub fn admit_bank(
+        self: &std::rc::Rc<Self>,
+        snapshot: PinnedBankSnapshot,
+    ) -> Result<std::rc::Rc<AdmittedFixedContinuationBank>> {
+        let native = self
+            .native
+            .try_borrow()
+            .map_err(|_| invalid("fixed continuation upstream already borrowed"))?;
+        let bank = native
+            .admit_bank(snapshot)
+            .map_err(|e| invalid(e.to_string()))?;
+        Ok(std::rc::Rc::new(AdmittedFixedContinuationBank {
+            owner: self.clone(),
+            bank,
+        }))
+    }
+
+    /// Refresh the960 field snapshot after each optimizer update, using the
+    /// actual frozen Generate and parent rather than a caller replacement.
+    pub fn prepare_field(
+        &self,
+        weights: &ContinuationLearningWeights,
+    ) -> Result<PreparedContinuationLearning> {
+        let native = self
+            .native
+            .try_borrow()
+            .map_err(|_| invalid("fixed continuation upstream already borrowed"))?;
+        if !same_binding(weights.binding(), &self.binding)
+            || weights.applies_to_copy() != self.shared_action
+            || !weights.device().same_device(&self.device)
+        {
+            return Err(invalid("fixed continuation field binding/device differs"));
+        }
+        weights.prepare_native(native.source_binding(), native.generate_model())
+    }
+
+    /// Prepare all raw scores and local state via the real target-free native
+    /// step. The bank was independently admitted by the same native parent.
+    pub fn prepare_position(
+        self: &std::rc::Rc<Self>,
+        bank: std::rc::Rc<AdmittedFixedContinuationBank>,
+        actual_prefix_ids: &[u32],
+    ) -> Result<FixedContinuationPosition> {
+        admit_fixed_owner(self, &bank.owner)?;
+        let mut generator = self
+            .native
+            .try_borrow_mut()
+            .map_err(|_| invalid("fixed continuation preparation already borrowed"))?;
+        let step = generator
+            .step(&bank.bank, actual_prefix_ids)
+            .map_err(|e| invalid(e.to_string()))?;
+        let witness = step
+            .continuation
+            .ok_or_else(|| invalid("fixed continuation local witness absent"))?;
+        if witness.actual_prefix_tokens != actual_prefix_ids.len()
+            || witness.query_tokens == 0
+            || witness.state_codes.len() != generator.generate_model().lanes()
+            || witness.delta_scores_q24.len() != self.binding.vocab_size()
+            || witness.delta_scores_q24.iter().any(|&score| score != 0)
+            || step.actual_prefix_ids != actual_prefix_ids
+        {
+            return Err(invalid(
+                "fixed continuation zero/prefix/local witness differs",
+            ));
+        }
+        let mut pool = self
+            .pool
+            .try_borrow_mut()
+            .map_err(|_| invalid("fixed continuation pool already borrowed"))?;
+        let replay = pool
+            .reduce_trace(
+                &step.generate_raw_scores_q24,
+                &step.copy_token_ids,
+                &step.copy_raw_scores_q24,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        if replay != step.actions {
+            return Err(invalid(
+                "fixed continuation complete zero pool parity differs",
+            ));
+        }
+        let vocab = self.binding.vocab_size();
+        let base_generate_q24 =
+            Tensor::from_vec(step.generate_raw_scores_q24, vocab, &self.device)?;
+        let copy_raw = if step.copy_token_ids.is_empty() {
+            None
+        } else {
+            Some(
+                Tensor::from_vec(
+                    step.copy_raw_scores_q24
+                        .iter()
+                        .map(|&v| (v as f64 / 16_777_216.) as f32)
+                        .collect::<Vec<_>>(),
+                    step.copy_token_ids.len(),
+                    &self.device,
+                )?
+                .detach(),
+            )
+        };
+        // Hash and discard the verbose native replay. Keep only physical
+        // occurrence identities and compact provenance/counts in every cache.
+        let (factual_bank_trace_sha256, factual_bank_binding_sha256, physical_candidates) =
+            if let Some(trace) = step.bank_trace {
+                let bytes = serde_json::to_vec(&trace).map_err(|e| invalid(e.to_string()))?;
+                let digest = format!("{:x}", sha2::Sha256::digest(&bytes));
+                let bank = trace.cue_bank.bank;
+                (
+                    Some(digest),
+                    Some(bank.bank_binding_sha256),
+                    bank.candidates,
+                )
+            } else {
+                (None, None, Vec::new())
+            };
+        Ok(FixedContinuationPosition {
+            owner: self.clone(),
+            bank,
+            actual_prefix_ids: actual_prefix_ids.to_vec(),
+            post_state: step.post_state,
+            local_state: witness.state_codes,
+            base_generate_q24,
+            copy_token_ids: step.copy_token_ids,
+            copy_scores_q24: step.copy_raw_scores_q24,
+            copy_raw,
+            factual_bank_trace_sha256,
+            factual_bank_binding_sha256,
+            physical_candidates,
+            native_generate_counts: step.generate_counts,
+            encoding_coefficient_reads: witness.encoding_coefficient_reads,
+        })
+    }
+}
+
+impl FixedContinuationPosition {
+    pub fn bank_pin(&self) -> &BankPin {
+        self.bank.bank.pin()
+    }
+    pub fn actual_prefix_ids(&self) -> &[u32] {
+        &self.actual_prefix_ids
+    }
+    pub fn post_state(&self) -> &[H4Code] {
+        &self.post_state
+    }
+    pub fn local_state(&self) -> &[H4Code] {
+        &self.local_state
+    }
+    pub fn base_generate_q24(&self) -> &Tensor {
+        &self.base_generate_q24
+    }
+    pub fn copy_token_ids(&self) -> &[u32] {
+        &self.copy_token_ids
+    }
+    pub fn copy_scores_q24(&self) -> &[i64] {
+        &self.copy_scores_q24
+    }
+    pub fn factual_bank_trace_sha256(&self) -> Option<&str> {
+        self.factual_bank_trace_sha256.as_deref()
+    }
+    pub fn factual_bank_binding_sha256(&self) -> Option<&str> {
+        self.factual_bank_binding_sha256.as_deref()
+    }
+    pub fn physical_candidates(
+        &self,
+    ) -> &[uor_r4_integer::geometric_source_realizer::BankCandidateTrace] {
+        &self.physical_candidates
+    }
+    pub fn native_generate_counts(
+        &self,
+    ) -> &uor_r4_core::native_geometric::learner::geometric_generate::GenerateReadCounts {
+        &self.native_generate_counts
+    }
+    pub fn encoding_coefficient_reads(&self) -> u64 {
+        self.encoding_coefficient_reads
+    }
+    pub fn source_binding(
+        &self,
+    ) -> Result<uor_r4_integer::geometric_source_realizer::NativeArtifactBinding> {
+        let generator = self
+            .owner
+            .native
+            .try_borrow()
+            .map_err(|_| invalid("fixed upstream already borrowed"))?;
+        Ok(generator.source_binding().clone())
+    }
+
+    /// Recompute U and the complete single pool; cached probabilities, target
+    /// masks and winner gates are deliberately absent. Only U masters vary.
+    pub fn forward_coefficients_only(
+        &self,
+        weights: &ContinuationLearningWeights,
+        prepared: &PreparedContinuationLearning,
+    ) -> Result<FixedContinuationOutput> {
+        let generator = self
+            .owner
+            .native
+            .try_borrow()
+            .map_err(|_| invalid("fixed continuation upstream already borrowed"))?;
+        if weights.applies_to_copy() != self.owner.shared_action {
+            return Err(invalid("fixed continuation action policy changed"));
+        }
+        admit_fixed_continuation_refresh(
+            weights,
+            prepared,
+            &self.owner.binding,
+            generator.source_binding(),
+            generator.generate_sha256(),
+            generator.generate_model().metadata(),
+            &self.owner.device,
+        )?;
+        let delta =
+            weights.forward_prepared_coefficients_only_on_device(prepared, &self.local_state)?;
+        let (scores, raw) = join_fixed_continuation_scores(&self.base_generate_q24, &delta)?;
+        let (copy_scores, copy_raw) = if prepared.native.applies_to_copy() {
+            join_shared_continuation_copy(
+                &self.copy_scores_q24,
+                &self.copy_token_ids,
+                self.copy_raw.as_ref(),
+                &delta.delta_scores_q24,
+                &delta.delta_raw_scores,
+            )?
+        } else {
+            (self.copy_scores_q24.clone(), self.copy_raw.clone())
+        };
+        let actions = self
+            .owner
+            .pool
+            .try_borrow_mut()
+            .map_err(|_| invalid("fixed continuation pool already borrowed"))?
+            .reduce_trace(&scores, &self.copy_token_ids, &copy_scores)
+            .map_err(|e| invalid(e.to_string()))?;
+        Ok(FixedContinuationOutput {
+            actions,
+            generate_scores_q24: scores,
+            generate_raw_scores: raw,
+            copy_raw_scores: copy_raw,
+            copy_scores_q24: copy_scores,
+            continuation: delta,
+            common_pool_score_download_bytes: if self.owner.device.is_cuda() {
+                8 * (self.owner.binding.vocab_size()
+                    + usize::from(prepared.native.applies_to_copy()) * self.copy_token_ids.len())
+            } else {
+                0
+            },
+            common_pool_anchor_upload_bytes: if self.owner.device.is_cuda() {
+                4 * (self.owner.binding.vocab_size()
+                    + usize::from(prepared.native.applies_to_copy()) * self.copy_token_ids.len())
+            } else {
+                0
+            },
+            common_pool_copy_index_upload_bytes: if self.owner.device.is_cuda()
+                && prepared.native.applies_to_copy()
+            {
+                4 * self.copy_token_ids.len()
+            } else {
+                0
+            },
+            common_pool_backend: "cpu-authenticated-native-alias-reducer",
+        })
+    }
+}
+impl FixedContinuationOutput {
+    /// Labels enter only after all native actions and their common denominator.
+    pub fn loss_with_credit(&self, target: u32, credit: VocabularyScoreAdjoint) -> Result<Tensor> {
+        vocabulary_marginal_loss_with_credit(
+            &self.actions,
+            &self.generate_raw_scores,
+            self.copy_raw_scores.as_ref(),
+            target,
+            credit,
+        )
+    }
+}
+
+fn admit_fixed_owner<T>(expected: &std::rc::Rc<T>, actual: &std::rc::Rc<T>) -> Result<()> {
+    if !std::rc::Rc::ptr_eq(expected, actual) {
+        return Err(invalid(
+            "fixed continuation bank belongs to different upstream owner",
+        ));
+    }
+    Ok(())
+}
+
+fn admit_fixed_continuation_refresh(
+    weights: &ContinuationLearningWeights,
+    prepared: &PreparedContinuationLearning,
+    binding: &SourceActionBinding,
+    parent: &uor_r4_integer::geometric_source_realizer::NativeArtifactBinding,
+    generate_sha: &str,
+    generate_metadata: &uor_r4_core::native_geometric::learner::geometric_generate::GenerateMetadata,
+    device: &Device,
+) -> Result<()> {
+    prepared.validate_binding(parent)?;
+    if !same_binding(weights.binding(), binding)
+        || !weights.device().same_device(device)
+        || prepared.field_generate_sha() != generate_sha
+        || prepared.generate.metadata() != generate_metadata
+    {
+        return Err(invalid(
+            "fixed continuation refreshed field/upstream identity differs",
+        ));
+    }
+    Ok(())
+}
+
+fn join_fixed_continuation_scores(
+    base: &Tensor,
+    delta: &ContinuationDeviceLearningOutput,
+) -> Result<(Vec<i64>, Tensor)> {
+    if base.dtype() != DType::I64
+        || base.dims() != delta.delta_scores_q24.dims()
+        || !base.device().same_device(delta.delta_scores_q24.device())
+    {
+        return Err(invalid(
+            "fixed continuation score join dimensions/device differ",
+        ));
+    }
+    let combined = (base + &delta.delta_scores_q24)?;
+    let scores = combined.to_vec1::<i64>()?;
+    // Exact legacy F64->F32 native anchor; only the U zero-valued correction
+    // supplies derivatives. This adapter still stages4V bytes on CUDA.
+    let anchor = Tensor::from_vec(
+        scores
+            .iter()
+            .map(|&v| (v as f64 / 16_777_216.) as f32)
+            .collect::<Vec<_>>(),
+        scores.len(),
+        base.device(),
+    )?
+    .detach();
+    let raw = (&anchor + (&delta.delta_raw_scores - delta.delta_raw_scores.detach())?)?;
+    Ok((scores, raw))
+}
+
+/// Shared token field is gathered once for EACH physical Copy occurrence.
+/// Preserve old upstream Copy credit plus U credit under the exact combined
+/// native anchor, rather than rounding an independently added F32 delta.
+fn join_shared_continuation_copy(
+    base: &[i64],
+    ids: &[u32],
+    base_raw: Option<&Tensor>,
+    delta_q24: &Tensor,
+    delta_raw: &Tensor,
+) -> Result<(Vec<i64>, Option<Tensor>)> {
+    if base.len() != ids.len()
+        || delta_q24.dtype() != DType::I64
+        || delta_q24.rank() != 1
+        || delta_raw.dims() != delta_q24.dims()
+        || !delta_raw.device().same_device(delta_q24.device())
+    {
+        return Err(invalid(
+            "shared continuation Copy delta shape/device differs",
+        ));
+    }
+    if ids.is_empty() {
+        if base_raw.is_some() {
+            return Err(invalid("empty Copy unexpectedly has graph"));
+        }
+        return Ok((Vec::new(), None));
+    }
+    let old = base_raw.ok_or_else(|| invalid("shared continuation Copy graph absent"))?;
+    if old.dims() != [ids.len()]
+        || old.dtype() != DType::F32
+        || !old.device().same_device(delta_raw.device())
+        || ids.iter().any(|&id| id as usize >= delta_q24.elem_count())
+    {
+        return Err(invalid("shared continuation Copy IDs/graph differ"));
+    }
+    let indices = Tensor::from_vec(ids.to_vec(), ids.len(), delta_raw.device())?;
+    let correction = delta_q24.index_select(&indices, 0)?.to_vec1::<i64>()?;
+    let scores = base
+        .iter()
+        .zip(correction)
+        .map(|(&a, b)| {
+            a.checked_add(b)
+                .ok_or_else(|| invalid("shared continuation Copy score overflow"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let anchor = Tensor::from_vec(
+        scores
+            .iter()
+            .map(|&v| (v as f64 / 16_777_216.) as f32)
+            .collect::<Vec<_>>(),
+        scores.len(),
+        old.device(),
+    )?
+    .detach();
+    let gathered = delta_raw.index_select(&indices, 0)?;
+    let graph = ((&anchor + (old - old.detach())?)? + (&gathered - gathered.detach())?)?;
+    Ok((scores, Some(graph)))
+}
 
 pub struct PreparedBankGenerate<'a, 'source> {
     realizer: &'a PreparedSourceRealizer<'source>,
@@ -352,7 +856,7 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         cue: &NativeCueCarrier<'_>,
         prefix: &NativePrefixTransport<'_>,
     ) -> Result<BankGenerateOutput> {
-        let copy = if self.prefix_temporal_utility {
+        let mut copy = if self.prefix_temporal_utility {
             self.realizer
                 .forward_bank_composed_copy_with_prefix_utility(
                     segments,
@@ -497,6 +1001,31 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             &logits,
         )?;
         let continuation = self.apply_continuation(&mut generated, query, actual_prefix)?;
+        if !ids.is_empty()
+            && self
+                .continuation
+                .is_some_and(|b| b.prepared.native.applies_to_copy())
+        {
+            let field = &continuation
+                .as_ref()
+                .ok_or_else(|| invalid("shared continuation witness absent"))?
+                .field;
+            let hard = Tensor::from_vec(
+                field.delta_scores_q24.clone(),
+                field.delta_scores_q24.len(),
+                field.delta_raw_scores.device(),
+            )?;
+            let (adjusted, graph) = join_shared_continuation_copy(
+                &scores,
+                &ids,
+                Some(&copy.copy_raw),
+                &hard,
+                &field.delta_raw_scores,
+            )?;
+            scores = adjusted;
+            copy.copy_raw =
+                graph.ok_or_else(|| invalid("shared continuation Copy graph absent"))?;
+        }
         let actions = self
             .pool
             .reduce_trace(&generated.scores_q24, &ids, &scores)
@@ -784,6 +1313,255 @@ mod tests {
     use uor_r4_integer::{
         geometric_no_read::CANONICAL_BASIS_Q25, geometric_potential::AddressLane,
     };
+    #[test]
+    fn fixed_continuation_admission_rejects_equal_payload_different_owner() -> Result<()> {
+        // Same metadata/payload value is not the same sidecar-owning admission.
+        let first = std::rc::Rc::new("identical source metadata");
+        let second = std::rc::Rc::new("identical source metadata");
+        admit_fixed_owner(&first, &first.clone())?;
+        assert!(admit_fixed_owner(&first, &second).is_err());
+        Ok(())
+    }
+
+    fn shared_copy_join_parity(
+        device: &Device,
+    ) -> Result<(
+        VocabularyActionTrace,
+        Vec<i64>,
+        Vec<f32>,
+        Vec<f32>,
+        Vec<f32>,
+    )> {
+        let binding =
+            SourceActionBinding::new(BRIDGE_TOK.as_bytes()).map_err(|e| invalid(e.to_string()))?;
+        // Four q=+/-7 lanes at shift22 admit +/-7 score units. Target4 has noCopy.
+        let delta = Var::from_vec(vec![0f32, 0., 0., -7., 7.], 5, device)?;
+        let hard = Tensor::from_vec(vec![0i64, 0, 0, -(7 << 24), 7 << 24], 5, device)?;
+        let old = Var::from_vec(vec![9f32, 9.], 2, device)?;
+        let (copy, graph) = join_shared_continuation_copy(
+            &[9 << 24, 9 << 24],
+            &[3, 3],
+            Some(old.as_tensor()),
+            &hard,
+            delta.as_tensor(),
+        )?;
+        assert_eq!(copy, vec![2 << 24, 2 << 24]);
+        let graph = graph.ok_or_else(|| invalid("testCopygraphabsent"))?;
+        let grads = graph.sum_all()?.backward()?;
+        assert_eq!(
+            grads
+                .get(delta.as_tensor())
+                .ok_or_else(|| invalid("testUgradientabsent"))?
+                .to_vec1::<f32>()?,
+            vec![0., 0., 0., 2., 0.]
+        );
+        assert_eq!(
+            grads
+                .get(old.as_tensor())
+                .ok_or_else(|| invalid("testupstreamgradientabsent"))?
+                .to_vec1::<f32>()?,
+            vec![1., 1.]
+        );
+        let gg = [0, 0, 0, -(7 << 24), 7 << 24];
+        let mut pool = NativeVocabularyActions::new(binding, &fixed_exp_bytes())
+            .map_err(|e| invalid(e.to_string()))?;
+        let legacy = pool
+            .reduce_trace(&gg, &[3, 3], &[9 << 24, 9 << 24])
+            .map_err(|e| invalid(e.to_string()))?;
+        let shared = pool
+            .reduce_trace(&gg, &[3, 3], &copy)
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_ne!(legacy.summary.chosen_token_id, 4);
+        assert_eq!(shared.summary.chosen_token_id, 4);
+        let u_gradient = grads
+            .get(delta.as_tensor())
+            .ok_or_else(|| invalid("testUgradientabsent"))?
+            .to_vec1::<f32>()?;
+        let upstream_gradient = grads
+            .get(old.as_tensor())
+            .ok_or_else(|| invalid("testupstreamgradientabsent"))?
+            .to_vec1::<f32>()?;
+        Ok((
+            shared,
+            copy,
+            graph.to_vec1::<f32>()?,
+            u_gradient,
+            upstream_gradient,
+        ))
+    }
+
+    #[test]
+    fn shared_continuation_copy_clip_ceiling_and_copy_adjoint() -> Result<()> {
+        shared_copy_join_parity(&Device::Cpu)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires an explicitly leased CUDA device; unavailability is an error"]
+    fn continuation_cuda_shared_copy_native_anchor_and_duplicate_adjoint_match_cpu() -> Result<()> {
+        let cuda = Device::new_cuda(0)?;
+        assert_eq!(
+            shared_copy_join_parity(&Device::Cpu)?,
+            shared_copy_join_parity(&cuda)?
+        );
+        Ok(())
+    }
+
+    fn fixed_exp_bytes() -> Vec<u8> {
+        (0..uor_r4_integer::geometric_read::EXP_TABLE_LEN)
+            .flat_map(|i| {
+                (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn fixed_continuation_join_matches_native_zero_nonzero_full_alias_mass() -> Result<()> {
+        use uor_r4_integer::geometric_source_realizer::{ArtifactIdentity, NativeArtifactBinding};
+        let binding =
+            SourceActionBinding::new(BRIDGE_TOK.as_bytes()).map_err(|e| invalid(e.to_string()))?;
+        let device = Device::Cpu;
+        let generate =
+            GenerateLearningWeights::seeded(binding.clone(), 2, 73, &device)?.export_native()?;
+        let native_binding = NativeArtifactBinding {
+            metadata_sha256: "a".repeat(64),
+            identity: ArtifactIdentity {
+                tokenizer_sha256: binding.tokenizer_sha256().to_owned(),
+                parent_checkpoint_manifest_sha256: "b".repeat(64),
+                parent_model_sha256: "c".repeat(64),
+                parent_config_sha256: "d".repeat(64),
+            },
+        };
+        let weights = ContinuationLearningWeights::zeroed(&binding, &native_binding, 2, &device)?;
+        let state = [
+            H4Code::try_from(31).map_err(|e| invalid(e.to_string()))?,
+            H4Code::try_from(57).map_err(|e| invalid(e.to_string()))?,
+        ];
+        let mut base = vec![0; binding.vocab_size()];
+        generate
+            .score_into(&state, &mut base, &mut Default::default())
+            .map_err(|e| invalid(e.to_string()))?;
+        let base_tensor = Tensor::from_vec(base.clone(), base.len(), &device)?;
+        // Copy duplicate aliases remain in the same denominator, not deduped.
+        let copy_ids = [4, 4, 3];
+        let copy_scores = [1 << 24, -(1 << 24), 0];
+        for nonzero in [false, true] {
+            if nonzero {
+                weights.unary.set(&Tensor::from_vec(
+                    (0..240)
+                        .map(|i| ((i * 7) % 15) as f32 * 0.25 - 1.75)
+                        .collect::<Vec<_>>(),
+                    (2, 120),
+                    &device,
+                )?)?;
+            }
+            let prepared = weights.prepare_native(&native_binding, &generate)?;
+            let delta = weights.forward_prepared_coefficients_only_on_device(&prepared, &state)?;
+            let (actual_scores, raw) = join_fixed_continuation_scores(&base_tensor, &delta)?;
+            let mut expected_delta = vec![0; base.len()];
+            prepared
+                .native
+                .score_delta_into(
+                    &state,
+                    &generate,
+                    &mut expected_delta,
+                    &mut Default::default(),
+                )
+                .map_err(|e| invalid(e.to_string()))?;
+            let expected = base
+                .iter()
+                .zip(expected_delta)
+                .map(|(&a, b)| a + b)
+                .collect::<Vec<_>>();
+            assert_eq!(actual_scores, expected);
+            assert_eq!(
+                raw.to_vec1::<f32>()?,
+                expected
+                    .iter()
+                    .map(|&v| (v as f64 / 16_777_216.) as f32)
+                    .collect::<Vec<_>>()
+            );
+            let mut actual_pool = NativeVocabularyActions::new(binding.clone(), &fixed_exp_bytes())
+                .map_err(|e| invalid(e.to_string()))?;
+            let mut expected_pool =
+                NativeVocabularyActions::new(binding.clone(), &fixed_exp_bytes())
+                    .map_err(|e| invalid(e.to_string()))?;
+            assert_eq!(
+                actual_pool
+                    .reduce_trace(&actual_scores, &copy_ids, &copy_scores)
+                    .map_err(|e| invalid(e.to_string()))?,
+                expected_pool
+                    .reduce_trace(&expected, &copy_ids, &copy_scores)
+                    .map_err(|e| invalid(e.to_string()))?
+            );
+            // Genuine U coefficient credit survives the independent hard anchor.
+            let gradients = raw.sum_all()?.backward()?;
+            assert!(
+                gradients
+                    .get(weights.unary.as_tensor())
+                    .ok_or_else(|| invalid("fixed continuation U gradient absent"))?
+                    .abs()?
+                    .sum_all()?
+                    .to_scalar::<f32>()?
+                    > 0.
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn fixed_continuation_refresh_rejects_changed_parent_and_generate_identity() -> Result<()> {
+        use uor_r4_integer::geometric_source_realizer::{ArtifactIdentity, NativeArtifactBinding};
+        let binding =
+            SourceActionBinding::new(BRIDGE_TOK.as_bytes()).map_err(|e| invalid(e.to_string()))?;
+        let generate = GenerateLearningWeights::seeded(binding.clone(), 2, 73, &Device::Cpu)?
+            .export_native()?;
+        let parent = NativeArtifactBinding {
+            metadata_sha256: "a".repeat(64),
+            identity: ArtifactIdentity {
+                tokenizer_sha256: binding.tokenizer_sha256().to_owned(),
+                parent_checkpoint_manifest_sha256: "b".repeat(64),
+                parent_model_sha256: "c".repeat(64),
+                parent_config_sha256: "d".repeat(64),
+            },
+        };
+        let weights = ContinuationLearningWeights::zeroed(&binding, &parent, 2, &Device::Cpu)?;
+        let prepared = weights.prepare_native(&parent, &generate)?;
+        let sha = prepared.field_generate_sha();
+        admit_fixed_continuation_refresh(
+            &weights,
+            &prepared,
+            &binding,
+            &parent,
+            sha,
+            generate.metadata(),
+            &Device::Cpu,
+        )?;
+        let mut wrong = parent.clone();
+        wrong.metadata_sha256 = "e".repeat(64);
+        assert!(admit_fixed_continuation_refresh(
+            &weights,
+            &prepared,
+            &binding,
+            &wrong,
+            sha,
+            generate.metadata(),
+            &Device::Cpu
+        )
+        .is_err());
+        assert!(admit_fixed_continuation_refresh(
+            &weights,
+            &prepared,
+            &binding,
+            &parent,
+            &"f".repeat(64),
+            generate.metadata(),
+            &Device::Cpu
+        )
+        .is_err());
+        Ok(())
+    }
     const BRIDGE_TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4},"merges":[]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
     fn source_copy_bridge() -> Result<(
         SourceActionBinding,

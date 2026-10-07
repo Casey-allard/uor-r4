@@ -11,6 +11,9 @@ use uor_r4_integer::{geometric_source_realizer::NativeArtifactBinding, h4_tables
 
 const SCHEMA: &str = "uor-r4.native-continuation-field/1";
 const POLICY: &str = "bound-Generate-prototypes;directed-inverse-continuation-times-prototype;shared-lane-full120-unary;strict-q4[-7,7];score-code-shift20-Q24;all-steps/1";
+const SHARED_SCHEMA: &str = "uor-r4.native-continuation-field/2";
+const SHARED_POLICY: &str = "bound-Generate-prototypes;directed-inverse-continuation-times-prototype;shared-lane-full120-unary;strict-q4[-7,7];score-code-shift22-Q24;each-physical-Copy-and-Generate-alias;one-common-clip;all-steps/2";
+const SHARED_SCORE_SHIFT: u32 = 22;
 const MAX_LANES: usize = 8;
 const BYTES_PER_LANE: usize = 60;
 const SCORE_SHIFT: u32 = 20;
@@ -97,9 +100,25 @@ impl NativeContinuationField {
         generate: &NativeGeometricGenerate,
         packed_unary: &[u8],
     ) -> Result<Self> {
+        Self::compile_policy(binding, generate, packed_unary, false)
+    }
+    /// Explicit v2 shared-action field; v1 Generate-only bytes stay unchanged.
+    pub fn compile_shared_action(
+        binding: &NativeArtifactBinding,
+        generate: &NativeGeometricGenerate,
+        packed_unary: &[u8],
+    ) -> Result<Self> {
+        Self::compile_policy(binding, generate, packed_unary, true)
+    }
+    fn compile_policy(
+        binding: &NativeArtifactBinding,
+        generate: &NativeGeometricGenerate,
+        packed_unary: &[u8],
+        shared: bool,
+    ) -> Result<Self> {
         let metadata = ContinuationFieldMetadata {
-            schema: SCHEMA.into(),
-            policy: POLICY.into(),
+            schema: if shared { SHARED_SCHEMA } else { SCHEMA }.into(),
+            policy: if shared { SHARED_POLICY } else { POLICY }.into(),
             source_binding: binding.clone(),
             generate_sha256: hash(
                 &generate
@@ -110,7 +129,11 @@ impl NativeContinuationField {
             prototype_sha256: hash(generate.prototypes()),
             lanes: generate.lanes(),
             vocab_size: generate.vocab_size(),
-            score_shift: SCORE_SHIFT,
+            score_shift: if shared {
+                SHARED_SCORE_SHIFT
+            } else {
+                SCORE_SHIFT
+            },
             payload_sha256: hash(packed_unary),
         };
         Self::admit(
@@ -165,7 +188,11 @@ impl NativeContinuationField {
                 ));
             }
         }
-        if m.schema != SCHEMA || m.policy != POLICY || m.score_shift != SCORE_SHIFT {
+        if !((m.schema == SCHEMA && m.policy == POLICY && m.score_shift == SCORE_SHIFT)
+            || (m.schema == SHARED_SCHEMA
+                && m.policy == SHARED_POLICY
+                && m.score_shift == SHARED_SCORE_SHIFT))
+        {
             return Err(ContinuationFieldError::Binding(
                 "continuation schema/policy/units",
             ));
@@ -236,6 +263,12 @@ impl NativeContinuationField {
     pub fn metadata(&self) -> &ContinuationFieldMetadata {
         &self.artifact.metadata
     }
+    pub fn applies_to_copy(&self) -> bool {
+        self.metadata().schema == SHARED_SCHEMA
+    }
+    pub fn score_shift(&self) -> u32 {
+        self.metadata().score_shift
+    }
     pub fn lanes(&self) -> usize {
         self.metadata().lanes
     }
@@ -293,7 +326,7 @@ impl NativeContinuationField {
                 sum += i32::from(self.coefficient_unary(lane, relative)?);
                 bump(&mut counts.coefficient_reads)?;
             }
-            *output = i64::from(sum) << SCORE_SHIFT;
+            *output = i64::from(sum) << self.score_shift();
             bump(&mut counts.scores)?;
         }
         Ok(())
@@ -444,6 +477,53 @@ mod tests {
             .is_err());
         Ok(())
     }
+    #[test]
+    fn continuation_shared_action_policy_scale_roundtrip_and_legacy_bytes() -> Result<()> {
+        let (binding, generate) = fixture()?;
+        let legacy = NativeContinuationField::compile(&binding, &generate, &[0x77; 120])?;
+        let legacy_bytes = legacy.to_bytes()?;
+        let shared =
+            NativeContinuationField::compile_shared_action(&binding, &generate, &[0x77; 120])?;
+        assert!(!legacy.applies_to_copy());
+        assert_eq!(legacy.score_shift(), 20);
+        assert!(shared.applies_to_copy());
+        assert_eq!(shared.score_shift(), 22);
+        let restored =
+            NativeContinuationField::from_bytes(&shared.to_bytes()?, &binding, &generate)?;
+        assert_eq!(restored.to_bytes()?, shared.to_bytes()?);
+        let mut old = [0; 6];
+        let mut new = [0; 6];
+        legacy.score_delta_into(
+            &codes(119, 0)?,
+            &generate,
+            &mut old,
+            &mut ContinuationReadCounts::default(),
+        )?;
+        restored.score_delta_into(
+            &codes(119, 0)?,
+            &generate,
+            &mut new,
+            &mut ContinuationReadCounts::default(),
+        )?;
+        assert_eq!(new, [14 << 22; 6]);
+        assert_eq!(old, [14 << 20; 6]);
+        assert_eq!(
+            NativeContinuationField::from_bytes(&legacy_bytes, &binding, &generate)?.to_bytes()?,
+            legacy_bytes
+        );
+        let mut corrupt: serde_json::Value = serde_json::from_slice(&shared.to_bytes()?)
+            .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?;
+        corrupt["metadata"]["score_shift"] = serde_json::json!(20);
+        assert!(NativeContinuationField::from_bytes(
+            &serde_json::to_vec(&corrupt)
+                .map_err(|e| ContinuationFieldError::Artifact(e.to_string()))?,
+            &binding,
+            &generate
+        )
+        .is_err());
+        Ok(())
+    }
+
     #[test]
     fn continuation_score_bound_and_negative_codes() -> Result<()> {
         let (binding, generate) = fixture()?;

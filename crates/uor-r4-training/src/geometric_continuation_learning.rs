@@ -37,13 +37,14 @@ use crate::{
 pub const COEFFICIENT_CREDIT_SCOPE: &str = "authenticated-native-Q24-continuation-delta;shared-full120-unary-selected-quarter-grid-STE;frozen-causal-local-state-and-existing-token-prototypes;all-Generate-IDs-every-step;one-final-common-clip-and-token-alias-loss/1";
 pub const STATE_CREDIT_SCOPE: &str = "authenticated-native-Q24-continuation-delta;selected-quarter-grid-STE-once;hard-retained-onehot120-local-state-utility;detached-unary-full120-conditional-utilities;frozen-existing-token-prototypes;no-input-renormalization;local-conditional-surrogate-not-global-posterior/1";
 const Q24: f64 = 16_777_216.;
-// A quarter-valued shadow multiplied by 1/4 is nibble<<20 in Q24 nats.
+// V1 quarter shadow times1/4 is nibble<<20; v2 times1 is nibble<<22.
 const QUARTER_TO_NATS: f64 = 0.25;
 
 pub struct ContinuationLearningWeights {
     binding: SourceActionBinding,
     native_binding: NativeArtifactBinding,
     lanes: usize,
+    shared_action: bool,
     /// Shared [lane, inv(local_state) * existing_token_prototype] masters.
     /// There are exactly 960 coefficients at eight lanes, with no token bias.
     pub unary: Var,
@@ -145,6 +146,24 @@ impl ContinuationLearningWeights {
         lanes: usize,
         device: &Device,
     ) -> Result<Self> {
+        Self::zeroed_policy(binding, native_binding, lanes, device, false)
+    }
+    /// Explicit shared-action v2; default zeroed remains legacy v1.
+    pub fn zeroed_shared_action(
+        binding: &SourceActionBinding,
+        native_binding: &NativeArtifactBinding,
+        lanes: usize,
+        device: &Device,
+    ) -> Result<Self> {
+        Self::zeroed_policy(binding, native_binding, lanes, device, true)
+    }
+    fn zeroed_policy(
+        binding: &SourceActionBinding,
+        native_binding: &NativeArtifactBinding,
+        lanes: usize,
+        device: &Device,
+        shared_action: bool,
+    ) -> Result<Self> {
         device_admit(device)?;
         if !(1..=MAX_LANES).contains(&lanes)
             || !(1..=4096).contains(&binding.vocab_size())
@@ -158,6 +177,7 @@ impl ContinuationLearningWeights {
             binding: binding.clone(),
             native_binding: native_binding.clone(),
             lanes,
+            shared_action,
             unary: Var::zeros((lanes, ROOT_COUNT), DType::F32, device)?,
         })
     }
@@ -200,6 +220,7 @@ impl ContinuationLearningWeights {
             binding: binding.clone(),
             native_binding: native.metadata().source_binding.clone(),
             lanes,
+            shared_action: native.applies_to_copy(),
             unary: Var::from_vec(values, (lanes, ROOT_COUNT), device)?,
         })
     }
@@ -209,6 +230,23 @@ impl ContinuationLearningWeights {
     }
     pub fn native_binding(&self) -> &NativeArtifactBinding {
         &self.native_binding
+    }
+    pub fn applies_to_copy(&self) -> bool {
+        self.shared_action
+    }
+    pub fn score_shift(&self) -> u32 {
+        if self.shared_action {
+            22
+        } else {
+            20
+        }
+    }
+    fn quarter_to_score_units(&self) -> f64 {
+        if self.shared_action {
+            1.
+        } else {
+            QUARTER_TO_NATS
+        }
     }
     pub fn lanes(&self) -> usize {
         self.lanes
@@ -246,8 +284,13 @@ impl ContinuationLearningWeights {
                 "continuation current native parent base identity differs",
             ));
         }
-        NativeContinuationField::compile(current_binding, generate, &self.packed_coefficients()?)
-            .map_err(|e| invalid(e.to_string()))
+        let packed = self.packed_coefficients()?;
+        if self.shared_action {
+            NativeContinuationField::compile_shared_action(current_binding, generate, &packed)
+        } else {
+            NativeContinuationField::compile(current_binding, generate, &packed)
+        }
+        .map_err(|e| invalid(e.to_string()))
     }
 
     pub fn prepare_native(
@@ -282,7 +325,7 @@ impl ContinuationLearningWeights {
                         native
                             .coefficient_unary(lane, r as u8)
                             .map_err(|e| invalid(e.to_string()))?,
-                    ) << SCORE_SHIFT,
+                    ) << native.score_shift(),
                 );
             }
         }
@@ -333,6 +376,8 @@ impl ContinuationLearningWeights {
     ) -> Result<()> {
         self.validate_generate(&prepared.generate)?;
         if state.len() != self.lanes
+            || prepared.native.applies_to_copy() != self.shared_action
+            || prepared.native.score_shift() != self.score_shift()
             || prepared.native.lanes() != self.lanes
             || prepared.native.vocab_size() != self.vocab_size()
             || prepared.native.metadata().source_binding.identity != self.native_binding.identity
@@ -425,7 +470,7 @@ impl ContinuationLearningWeights {
         }
         let vocab = self.vocab_size();
         let cache = &prepared.cache;
-        let unary = (q4_shadow_ste(self.unary.as_tensor())? * QUARTER_TO_NATS)?;
+        let unary = (q4_shadow_ste(self.unary.as_tensor())? * self.quarter_to_score_units())?;
         let mut hard = Tensor::zeros(vocab, DType::I64, self.device())?;
         let mut coefficients = Tensor::zeros(vocab, DType::F32, self.device())?;
         let mut utility = Tensor::zeros(vocab, DType::F32, self.device())?;
@@ -497,7 +542,7 @@ impl ContinuationLearningWeights {
             .native
             .score_delta_into(state, generate, &mut hard, &mut counts)
             .map_err(|e| invalid(e.to_string()))?;
-        let unary = (q4_shadow_ste(self.unary.as_tensor())? * QUARTER_TO_NATS)?;
+        let unary = (q4_shadow_ste(self.unary.as_tensor())? * self.quarter_to_score_units())?;
         let mut coefficients = Tensor::zeros(vocab, DType::F32, self.device())?;
         let mut utility = Tensor::zeros(vocab, DType::F32, self.device())?;
         for lane in 0..self.lanes {
@@ -596,7 +641,9 @@ impl ContinuationLearningWeights {
             } else {
                 0
             },
-            credit_scope: if choices {
+            credit_scope: if self.shared_action {
+                "authenticated-v2-shared-action-U;quarter-shadow-times1-score-units;every-physical-Copy-and-Generate-alias;one-common-clip;coefficient-only-unless-state-choices-explicit/2"
+            } else if choices {
                 STATE_CREDIT_SCOPE
             } else {
                 COEFFICIENT_CREDIT_SCOPE
@@ -730,6 +777,82 @@ mod tests {
                 (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
             })
             .collect()
+    }
+
+    fn shared_action_copy_parity(device: &Device) -> Result<(Vec<i64>, Vec<f32>, Vec<f32>)> {
+        let (legacy, generate) = fixture(device)?;
+        let weights = ContinuationLearningWeights::zeroed_shared_action(
+            legacy.binding(),
+            legacy.native_binding(),
+            2,
+            device,
+        )?;
+        weights
+            .unary
+            .set(&Tensor::full(0.25f32, (2, ROOT_COUNT), device)?)?;
+        let prepared = weights.prepare_native(weights.native_binding(), &generate)?;
+        assert!(prepared.native.applies_to_copy());
+        assert_eq!(prepared.native.score_shift(), 22);
+        let restored = ContinuationLearningWeights::from_native(
+            &prepared.native,
+            &generate,
+            weights.binding(),
+            device,
+        )?;
+        assert!(restored.applies_to_copy());
+        assert_eq!(restored.score_shift(), 22);
+        assert_eq!(
+            restored
+                .export_native(restored.native_binding(), &generate)?
+                .to_bytes()
+                .map_err(|e| invalid(e.to_string()))?,
+            prepared
+                .native
+                .to_bytes()
+                .map_err(|e| invalid(e.to_string()))?
+        );
+        let delta =
+            weights.forward_prepared_coefficients_only_on_device(&prepared, &state(31, 57)?)?;
+        assert_eq!(
+            delta.delta_scores_q24.to_vec1::<i64>()?,
+            vec![2 << 22; weights.vocab_size()]
+        );
+        assert_eq!(
+            delta.delta_raw_scores.to_vec1::<f32>()?,
+            vec![0.5; weights.vocab_size()]
+        );
+        // A Copy-only upstream objective proves gathered U credit without GG.
+        let copies = delta
+            .delta_raw_scores
+            .index_select(&Tensor::from_vec(vec![4u32, 4], 2, device)?, 0)?;
+        let gradient = gradient(&copies.sum_all()?.backward()?, weights.unary.as_tensor())?;
+        assert_eq!(gradient.iter().sum::<f32>(), 4.);
+        assert!(legacy
+            .forward_prepared_coefficients_only_on_device(&prepared, &state(31, 57)?)
+            .is_err());
+        Ok((
+            delta.delta_scores_q24.to_vec1::<i64>()?,
+            delta.delta_raw_scores.to_vec1::<f32>()?,
+            gradient,
+        ))
+    }
+
+    #[test]
+    fn continuation_shared_action_restores_scale_and_copy_gather_credit() -> Result<()> {
+        shared_action_copy_parity(&Device::Cpu)?;
+        Ok(())
+    }
+
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires an explicitly leased CUDA device; unavailability is an error"]
+    fn continuation_cuda_shared_action_units_and_copy_adjoint_match_cpu() -> Result<()> {
+        let cuda = Device::new_cuda(0)?;
+        assert_eq!(
+            shared_action_copy_parity(&Device::Cpu)?,
+            shared_action_copy_parity(&cuda)?
+        );
+        Ok(())
     }
 
     #[test]

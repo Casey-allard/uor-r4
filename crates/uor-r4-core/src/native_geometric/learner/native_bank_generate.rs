@@ -494,7 +494,7 @@ impl NativeBankGenerator {
         }
         projected(bank.base_tokens, actual_prefix.len())?;
         valid_ids(self.model.binding(), actual_prefix)?;
-        let (mut codes, copy_ids, scores, bank_trace) = if bank.has_source() {
+        let (mut codes, copy_ids, mut scores, bank_trace) = if bank.has_source() {
             let cue = self
                 .model
                 .compile_cue_carrier(self.cue.clone())
@@ -621,6 +621,9 @@ impl NativeBankGenerator {
                 )
                 .map_err(execution)?;
             add_continuation_scores(&mut gen_scores, &delta_scores_q24)?;
+            if field.applies_to_copy() {
+                add_continuation_copy_scores(&mut scores, &copy_ids, &delta_scores_q24)?;
+            }
             Some(NativeContinuationWitness {
                 query_tokens: bank.query_ids.len(),
                 actual_prefix_tokens: actual_prefix.len(),
@@ -676,6 +679,20 @@ impl NativeBankGenerator {
         })
     }
 }
+fn add_continuation_copy_scores(scores: &mut [i64], ids: &[u32], delta: &[i64]) -> Result<()> {
+    if scores.len() != ids.len() {
+        return Err(execution("continuation Copy shape differs"));
+    }
+    for (score, &id) in scores.iter_mut().zip(ids) {
+        let correction = delta
+            .get(id as usize)
+            .ok_or_else(|| execution("continuation Copy token outside vocabulary"))?;
+        *score = score
+            .checked_add(*correction)
+            .ok_or(NativeBankGenerateError::Arithmetic)?;
+    }
+    Ok(())
+}
 fn add_continuation_scores(scores: &mut [i64], delta: &[i64]) -> Result<()> {
     if scores.len() != delta.len() {
         return Err(execution("continuation score dimensions differ"));
@@ -715,6 +732,23 @@ fn own_prefix_loop(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn continuation_shared_copy_join_preserves_duplicate_occurrences() -> super::Result<()> {
+        let mut scores = [9 << 24, -(2 << 24), 9 << 24];
+        super::add_continuation_copy_scores(&mut scores, &[1, 0, 1], &[1 << 22, -(7 << 22)])?;
+        assert_eq!(
+            scores,
+            [
+                (9 << 24) - (7 << 22),
+                -(2 << 24) + (1 << 22),
+                (9 << 24) - (7 << 22)
+            ]
+        );
+        assert!(super::add_continuation_copy_scores(&mut [0], &[2], &[0, 0]).is_err());
+        assert!(super::add_continuation_copy_scores(&mut [i64::MAX], &[0], &[1]).is_err());
+        Ok(())
+    }
+
     use super::*;
     const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"Ġ":5},"merges":[]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"},{"id":7,"content":"z"}]}"#;
     #[test]
