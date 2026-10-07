@@ -5,7 +5,7 @@
 //!   [panels=data/panels[,DIR...]] [seed=1] (dialogues=N | token_budget=N) \
 //!   [dev_seed=1000003] [dev_dialogues=300] [protocol=2] [context=384] \
 //!   [samples=200] [train_on=answers|all] [generator=v2|v1] [source_commit=SHA] \
-//!   [binding_labels=0|1]
+//!   [binding_labels=0|1] [abstain_scale=F]
 //! dialogue-recall-corpus leak out=NEW_REPORT_ROOT store=STORE_DIR tokenizer=TOKENIZER.json \
 //!   panels=DIR[,DIR...]
 //! ```
@@ -1615,6 +1615,8 @@ struct World {
     v2: V2Pools,
     /// Acknowledgement and acceptance turns that are not panel strings.
     acks: Acks,
+    /// Multiplier on every abstention probability (`abstain_scale=`, default 1).
+    abstain_scale: f64,
 }
 
 /// The fixed short turns, minus any that equal a panel string or share a
@@ -1872,6 +1874,7 @@ impl World {
         let colors = values.get(&Vc::Color).cloned().unwrap_or_default();
         let v2 = V2Pools::new(&panel, &colors)?;
         Ok(Self {
+            abstain_scale: 1.0,
             panel,
             values,
             keys,
@@ -2200,10 +2203,35 @@ enum Drawn {
     Redraw(&'static str),
 }
 
-fn pick_category(rng: &mut Rng) -> Category {
+/// The primary shares with the abstention share multiplied by `scale` and the
+/// rest renormalised so the shares keep their original total.
+fn scaled_primary_shares(scale: f64) -> [(Category, f64); 6] {
     let total: f64 = PRIMARY_SHARES.iter().map(|(_, s)| s).sum();
+    let mut shares = PRIMARY_SHARES;
+    for (category, share) in &mut shares {
+        if *category == Category::Abstain {
+            *share *= scale;
+        }
+    }
+    let scaled: f64 = shares.iter().map(|(_, s)| s).sum();
+    if scale != 1.0 && scaled > 0.0 {
+        for (_, share) in &mut shares {
+            *share *= total / scaled;
+        }
+    }
+    shares
+}
+
+/// The follow-up abstention probability under `scale`, at most 0.9.
+fn followup_abstain(scale: f64) -> f64 {
+    (FOLLOWUP_ABSTAIN * scale).min(0.9)
+}
+
+fn pick_category(rng: &mut Rng, scale: f64) -> Category {
+    let shares = scaled_primary_shares(scale);
+    let total: f64 = shares.iter().map(|(_, s)| s).sum();
     let mut x = ((rng.next_u64() >> 11) as f64) / ((1u64 << 53) as f64) * total;
-    for (category, share) in PRIMARY_SHARES {
+    for (category, share) in shares {
         if x < share {
             return category;
         }
@@ -2515,7 +2543,7 @@ fn state_secondary(b: &mut Builder<'_>, rng: &mut Rng, secondary: Option<usize>)
 }
 
 fn draw_dialogue(world: &World, rng: &mut Rng) -> Result<Drawn> {
-    let category = pick_category(rng);
+    let category = pick_category(rng, world.abstain_scale);
     let strict = chance(rng, STRICT_KEY_SHARE);
     let mut b = Builder {
         draw: Draw {
@@ -2715,7 +2743,7 @@ fn draw_dialogue(world: &World, rng: &mut Rng) -> Result<Drawn> {
         if open.is_empty() && !chance(rng, 0.3) {
             break;
         }
-        if open.is_empty() || chance(rng, FOLLOWUP_ABSTAIN) {
+        if open.is_empty() || chance(rng, followup_abstain(b.draw.world.abstain_scale)) {
             let frame = b.facts.first().map(|f| f.frame).unwrap_or(primary);
             if !b.ask_unknown(rng, frame, true, "same_relation")? {
                 return Ok(Drawn::Redraw("key_or_value_pool"));
@@ -3897,7 +3925,7 @@ fn fam_rule(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
             .collect();
         specs.push(QSpec {
             slot: 90,
-            weight: 0.13,
+            weight: 0.13 * b.draw.world.abstain_scale,
             question: fill(pick(rng, RULE_ASK_ALLOWED)?, &slots)?,
             answer: fill(pick(rng, RULE_ABSTAIN)?, &slots)?,
             category: Category::Abstain,
@@ -4052,7 +4080,7 @@ fn fam_implicit(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>
         let slots = slots! {"k" => &k3, "K" => &cap(&k3), "ka" => &ka3};
         specs.push(QSpec {
             slot: 90,
-            weight: 0.1,
+            weight: 0.1 * b.draw.world.abstain_scale,
             question: fill(pick(rng, kind.ask_latest)?, &slots)?,
             answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &slots)?,
             category: Category::Abstain,
@@ -4207,7 +4235,7 @@ fn fam_self(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
     let s = self_slots(&SELF_RELS[r3], None, "x");
     specs.push(QSpec {
         slot: 3,
-        weight: 0.04,
+        weight: 0.04 * b.draw.world.abstain_scale,
         question: fill(pick(rng, SELF_RELS[r3].ask_me)?, &s)?,
         answer: pick(rng, SELF_ABSTAIN)?.to_string(),
         category: Category::Abstain,
@@ -4221,7 +4249,7 @@ fn fam_self(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
         let s = self_slots(rel, Some(&third), "x");
         specs.push(QSpec {
             slot: 4,
-            weight: 0.09,
+            weight: 0.09 * b.draw.world.abstain_scale,
             question: fill(pick(rng, rel.ask_other)?, &s)?,
             answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &s)?,
             category: Category::Abstain,
@@ -4363,7 +4391,7 @@ fn fam_attribute(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>
     };
     specs.push(QSpec {
         slot: 90,
-        weight: 0.1,
+        weight: 0.1 * b.draw.world.abstain_scale,
         question: fill(pick(rng, asks)?, &slots)?,
         answer: fill(pick(rng, answers)?, &slots)?,
         category: Category::Abstain,
@@ -4444,7 +4472,7 @@ fn fam_count(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
         key_slots(&mut slots, "", &unstated);
         specs.push(QSpec {
             slot: 90,
-            weight: 0.1,
+            weight: 0.1 * b.draw.world.abstain_scale,
             question: fill(pick(rng, COUNT_PERSON_ASK)?, &slots)?,
             answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &slots)?,
             category: Category::Abstain,
@@ -4547,7 +4575,7 @@ fn fam_count(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
     let slots = slots! {"it" => &items, "c" => &unstated, "ka" => &unstated, "p" => &unstated_prep};
     specs.push(QSpec {
         slot: 90,
-        weight: 0.1,
+        weight: 0.1 * b.draw.world.abstain_scale,
         question: fill(pick(rng, COUNT_ASK)?, &slots)?,
         answer: fill(pick(rng, ABSTAIN_ANSWERS)?, &slots)?,
         category: Category::Abstain,
@@ -4705,7 +4733,7 @@ fn fam_order(b: &mut Builder<'_>, rng: &mut Rng) -> Result<Option<Vec<QSpec>>> {
         let s = slots! {"t" => t};
         specs.push(QSpec {
             slot: 90,
-            weight: 0.12,
+            weight: 0.12 * b.draw.world.abstain_scale,
             question: fill(pick(rng, ORDER_ASK_TIME)?, &s)?,
             answer: fill(pick(rng, ORDER_ABSTAIN)?, &s)?,
             category: Category::Abstain,
@@ -5526,6 +5554,18 @@ fn panel_dirs(args: &[String]) -> Vec<PathBuf> {
         .collect()
 }
 
+/// `abstain_scale=F`: finite and in [0, 4]; default 1.
+fn abstain_scale_arg(args: &[String]) -> Result<f64> {
+    match arg(args, "abstain_scale") {
+        None => Ok(1.0),
+        Some(v) => v
+            .parse::<f64>()
+            .ok()
+            .filter(|f| f.is_finite() && (0.0..=4.0).contains(f))
+            .ok_or_else(|| format!("abstain_scale={v}: a finite number in [0, 4]")),
+    }
+}
+
 fn load_tokenizer(path: &str) -> Result<ByteBpeTokenizer> {
     let bytes = fs::read(path).map_err(|e| format!("{path}: {e}"))?;
     ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes)
@@ -5598,11 +5638,13 @@ fn generate(args: &[String]) -> Result<()> {
         "0" | "false" => false,
         other => return Err(format!("binding_labels={other}: 0 or 1")),
     };
+    let abstain_scale = abstain_scale_arg(args)?;
     let dirs = panel_dirs(args);
     // Validate the inputs before claiming the root.
     let tokenizer = load_tokenizer(&tokenizer_path)?;
     let panel = Panel::load(&dirs)?;
-    let world = World::new(panel)?;
+    let mut world = World::new(panel)?;
+    world.abstain_scale = abstain_scale;
     let protocol =
         DialogueProtocol::literal_roles_version(&tokenizer, version).map_err(|e| e.to_string())?;
     let vocab = u32::try_from(tokenizer.vocab_size()).map_err(|_| "vocabulary above u32")?;
@@ -5755,7 +5797,7 @@ fn generate(args: &[String]) -> Result<()> {
         );
     }
     let executable = std::env::current_exe().map_err(|e| e.to_string())?;
-    let generator = json!({
+    let mut generator = json!({
         "schema": SCHEMA,
         "argv": args,
         "source": source_commit(args),
@@ -5800,6 +5842,9 @@ fn generate(args: &[String]) -> Result<()> {
         "seconds": started.elapsed().as_secs_f64(),
         "scope": "training data for in-context recall in natural dialogue; not an evaluation. The dev split shares pools and templates with train and is for monitoring only.",
     });
+    if abstain_scale != 1.0 {
+        generator["abstain_scale"] = json!(abstain_scale);
+    }
     fs::write(
         out.join("generator.json"),
         serde_json::to_vec_pretty(&generator).map_err(|e| e.to_string())?,
@@ -5849,7 +5894,7 @@ fn run(args: &[String]) -> Result<()> {
         Some("generate") => generate(&args[1..]),
         Some("leak") => leak_mode(&args[1..]),
         _ => Err(
-            "usage: dialogue-recall-corpus generate|leak key=value ... (see the module docs)"
+            "usage: dialogue-recall-corpus generate|leak key=value ... [abstain_scale=F in 0..=4, default 1: multiplies every abstention probability] (see the module docs)"
                 .into(),
         ),
     }
@@ -5891,6 +5936,106 @@ mod tests {
             .enumerate()
             .map(|(i, d)| d.record(&i.to_string()).to_string() + "\n")
             .collect()
+    }
+
+    /// Write a small split with the byte tokenizer; return tokens and manifest.
+    fn split_bytes(world: &World, tag: &str) -> (Vec<u8>, Vec<u8>) {
+        let tokenizer = byte_tokenizer();
+        let enc = Encoding {
+            tokenizer: &tokenizer,
+            protocol: DialogueProtocol::literal_roles_v2(&tokenizer).expect("protocol"),
+            version: 2,
+            context: 4096,
+            vocab: u32::try_from(tokenizer.vocab_size()).expect("vocab"),
+            answers_only: true,
+            generator_v2: true,
+            binding_labels: false,
+        };
+        let dir = std::env::temp_dir().join(format!(
+            "dialogue-recall-abstain-{}-{tag}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&dir);
+        let spec = SplitSpec {
+            name: "train",
+            label: "dialogue-recall",
+            seed: 5,
+            dialogues: 12,
+            token_budget: 0,
+            samples: 0,
+            dir: &dir,
+        };
+        write_split(world, &enc, &spec).expect("the split is written");
+        let out = (
+            fs::read(dir.join("tokens.u16")).expect("tokens"),
+            fs::read(dir.join("manifest.json")).expect("manifest"),
+        );
+        let _ = fs::remove_dir_all(&dir);
+        out
+    }
+
+    fn args_of(items: &[&str]) -> Vec<String> {
+        items.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn abstain_scale_default_is_byte_identical() {
+        let default = world();
+        assert_eq!(abstain_scale_arg(&args_of(&[])).expect("default"), 1.0);
+        let scale = abstain_scale_arg(&args_of(&["abstain_scale=1"])).expect("one");
+        let mut explicit = world();
+        explicit.abstain_scale = scale;
+        let a = split_bytes(&default, "default");
+        let b = split_bytes(&explicit, "one");
+        assert!(!a.0.is_empty());
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn abstain_scale_raises_the_abstention_share() {
+        let count = |scale: f64, v2: bool| {
+            let mut w = world();
+            w.abstain_scale = scale;
+            let mut rng = Rng::new(31);
+            let (mut abstain, mut memory, mut n) = (0usize, 0usize, 0usize);
+            while n < 400 {
+                let drawn = if v2 {
+                    draw_v2(&w, &mut rng)
+                } else {
+                    draw_dialogue(&w, &mut rng)
+                }
+                .expect("no generator error");
+                if let Drawn::Ok(d) = drawn {
+                    n += 1;
+                    for q in &d.questions {
+                        if q.expect.is_none() {
+                            abstain += 1;
+                        } else {
+                            memory += 1;
+                        }
+                    }
+                }
+            }
+            (abstain, memory)
+        };
+        for v2 in [false, true] {
+            let (a1, m1) = count(1.0, v2);
+            let (a2, m2) = count(2.0, v2);
+            eprintln!("abstain_scale v2={v2}: scale1 abstain={a1} memory={m1}; scale2 abstain={a2} memory={m2}");
+            assert!(a2 as f64 >= 1.5 * a1 as f64, "v2={v2}: {a1} -> {a2}");
+            assert!(m1 > 0 && m2 > 0, "v2={v2}: memory categories remain");
+        }
+    }
+
+    #[test]
+    fn abstain_scale_out_of_range_is_refused() {
+        for bad in ["5.0", "NaN", "-1", "inf", "x"] {
+            let args = args_of(&[&format!("abstain_scale={bad}")]);
+            let error = abstain_scale_arg(&args).expect_err(bad);
+            assert!(error.contains("abstain_scale"), "{error}");
+        }
+        assert_eq!(abstain_scale_arg(&args_of(&["abstain_scale=4"])), Ok(4.0));
+        assert_eq!(abstain_scale_arg(&args_of(&["abstain_scale=0"])), Ok(0.0));
     }
 
     #[test]
