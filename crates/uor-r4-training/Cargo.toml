@@ -6,7 +6,7 @@ license = "MIT"
 description = "Offline Rust autodiff and reference evaluation tools for UOR-R4 research"
 
 [features]
-# The parquet reader for `prepare-chat-parquet` only; no model or training path uses it.
+# The parquet reader for `prepare-chat-parquet` and `prepare-text-parquet` only; no model or training path uses it.
 parquet-input = ["dep:parquet"]
 default = []
 metal = [
@@ -41,4 +41,8 @@ half = "2.7.1"
 
 [[bin]]
 name = "prepare-chat-parquet"
+required-features = ["parquet-input"]
+
+[[bin]]
+name = "prepare-text-parquet"
 required-features = ["parquet-input"]
