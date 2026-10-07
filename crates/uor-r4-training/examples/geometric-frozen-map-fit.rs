@@ -197,6 +197,10 @@ struct Args {
     updates: usize,
     #[serde(default)]
     loss_scope: LossScope,
+    /// Fit a query-keyed entry scorer on one panel half and apply it at the entry
+    /// position through the native forward, reporting the held-out half.
+    #[serde(default)]
+    ceiling_scorer: bool,
     #[serde(default)]
     baseline: Option<PathBuf>,
     #[serde(default)]
@@ -2194,6 +2198,114 @@ fn control_entry_diagnostics(
 /// (the live mixed pool) and once with it removed (the Generate-only pool).
 /// Labels are read only after each forward, so this is a capability bound on
 /// the frozen artifact: not a fit, not a selection, not a serving change.
+/// Stable, label-independent half of the panel. Any positional split on this
+/// panel is a split on the answer -- the two answers alternate with row parity --
+/// so the split hashes the case id.
+fn panel_split(id: &str) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in id.as_bytes() {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash % 2
+}
+
+/// The boundary feature a dedicated entry scorer keys on: the query the model
+/// was given. This is the plumbing proof -- it asks whether a learned table,
+/// fitted on one half of the panel and applied at the entry position through the
+/// same native forward and the same pool, moves the entry decision, and whether
+/// it survives export to integer scores. The feature is deliberately the weakest
+/// interesting one: it cannot generalise to an unseen wording, which the
+/// feasibility read on the same panel already established, and that limit is
+/// reported with the number rather than hidden behind it.
+fn entry_scorer_read(
+    a: &Args,
+    l: &Loaded,
+    model: &IntegerRealizer,
+    g: &NativeGeometricGenerate,
+    bridge: &NativeGeometricReadStateBridge,
+    eps: &[Episode],
+) -> Result<Value> {
+    use uor_r4_integer::h4_tables::H4Code;
+    let mut pool = NativeVocabularyActions::new(model.binding().clone(), &l.exp)?;
+    let mut only = NativeVocabularyActions::new(model.binding().clone(), &l.exp)?;
+    let feature = |e: &Episode| format!("q{:?}", e.packet.query_ids);
+    let mut table = BTreeMap::<String, BTreeMap<u32, u64>>::new();
+    let mut fit_rows = 0usize;
+    for e in eps {
+        if panel_split(&e.packet.id) != 0 {
+            continue;
+        }
+        fit_rows += 1;
+        *table
+            .entry(feature(e))
+            .or_default()
+            .entry(e.target[0])
+            .or_default() += 1;
+    }
+    let (mut test_rows, mut covered) = (0usize, 0usize);
+    let (mut base_correct, mut full_correct, mut scored_correct, mut scored_full_correct) =
+        (0usize, 0usize, 0usize, 0usize);
+    let mut records = Vec::new();
+    for e in eps {
+        if panel_split(&e.packet.id) != 1 {
+            continue;
+        }
+        test_rows += 1;
+        let native = native_step(model, g, Some(bridge), &mut pool, e, &[], &l.cue, &l.prefix)?;
+        let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
+        let state = state
+            .into_iter()
+            .map(H4Code::try_from)
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let mut scores = vec![0i64; g.vocab_size()];
+        g.score_into(&state, &mut scores, &mut GenerateReadCounts::default())?;
+        let ids: Vec<u32> = serde_json::from_value(native["copy_token_ids"].clone())?;
+        let copies: Vec<i64> = serde_json::from_value(native["copy_raw_scores_q24"].clone())?;
+        let gold = e.target[0];
+        let base = only.reduce_trace(&scores, &[], &[])?;
+        let base_full = pool.reduce_trace(&scores, &ids, &copies)?;
+        base_correct += usize::from(base.summary.chosen_token_id == gold);
+        full_correct += usize::from(base_full.summary.chosen_token_id == gold);
+        // Apply the fitted table the way an exported scorer would: a bounded
+        // integer bonus on the learned token, inside the same score clip the
+        // native pool already enforces.
+        let mut scored = scores.clone();
+        let mut bonus = None;
+        if let Some(counts) = table.get(&feature(e)) {
+            covered += 1;
+            let total = counts.values().sum::<u64>().max(1);
+            if let Some((token, count)) = counts
+                .iter()
+                .max_by(|x, y| x.1.cmp(y.1).then_with(|| y.0.cmp(x.0)))
+            {
+                let scaled = (*count as f64 / total as f64) * (6.0 * f64::from(1 << 24));
+                scored[*token as usize] =
+                    scored[*token as usize].saturating_add(scaled.round() as i64);
+                bonus = Some((*token, scaled.round() as i64));
+            }
+        }
+        let with = pool.reduce_trace(&scored, &ids, &copies)?;
+        let with_only = only.reduce_trace(&scored, &[], &[])?;
+        scored_correct += usize::from(with_only.summary.chosen_token_id == gold);
+        scored_full_correct += usize::from(with.summary.chosen_token_id == gold);
+        records.push(json!({"id":e.packet.id,"gold_entry_label_only":gold,
+            "base_generate_only":base.summary.chosen_token_id,
+            "base_mixed":base_full.summary.chosen_token_id,
+            "scored_generate_only":with_only.summary.chosen_token_id,
+            "scored_mixed":with.summary.chosen_token_id,
+            "scorer_bonus":bonus}));
+    }
+    let v = json!({"fit_rows":fit_rows,"test_rows":test_rows,"test_rows_covered_by_table":covered,
+        "distinct_features":table.len(),
+        "base_generate_only_correct":base_correct,"base_mixed_correct":full_correct,
+        "scored_generate_only_correct":scored_correct,"scored_mixed_correct":scored_full_correct,
+        "row_records":records,
+        "scope":"plumbing proof on the native path: query-keyed table fitted on one panel half and applied as a bounded integer bonus at the entry position before the pool reduction; the feature cannot generalise to an unseen wording and the covered-row count says how much of the number is memorisation; no checkpoint export yet"});
+    write(a, "entry-scorer-read.json", &v)?;
+    Ok(v)
+}
+
 fn entry_ceiling_panel(
     a: &Args,
     l: &Loaded,
@@ -2899,10 +3011,22 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
             &initial_bridge,
             &dev,
         )?;
+        let scorer = if a.ceiling_scorer {
+            Some(entry_scorer_read(
+                a,
+                &l,
+                &initial_native,
+                &initial_generate,
+                &initial_bridge,
+                &dev,
+            )?)
+        } else {
+            None
+        };
         return Ok(
             json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"entry_ceiling",
             "updates":0,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"order_seed":a.seed,
-            "checkpoint_receipt_sha256":CP_RECEIPT_SHA,"ceiling":ceiling,"initial_metrics":initial_metrics,
+            "checkpoint_receipt_sha256":CP_RECEIPT_SHA,"ceiling":ceiling,"entry_scorer":scorer,"initial_metrics":initial_metrics,
             "elapsed_seconds":start.elapsed().as_secs_f64(),
             "scope":"zero-update entry-position ceiling with the physical Copy channel removed; labels read only after the target-free forward; no fit and no serving change"}),
         );

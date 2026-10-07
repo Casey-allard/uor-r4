@@ -92,6 +92,8 @@ struct Row {
     source_tokens: Vec<Vec<u32>>,
     /// Context roles and their token counts, in order.
     context: Vec<(u32, usize)>,
+    /// Every context token, flattened, for pair features.
+    context_tokens: Vec<u32>,
 }
 
 fn signature(parts: &[String]) -> String {
@@ -275,6 +277,107 @@ fn leave_one_query_out(
         "unseen_query_accuracy_of_seen":if seen==0 {0.0} else {correct as f64/seen as f64}})
 }
 
+/// A comparison feature is not a single key: it is the set of pairs between the
+/// query's tokens and the record's tokens or fields, and a row is scored by
+/// summing the learned table over its pairs. This is the shape that could carry
+/// the entry decision to a wording the scorer has never seen, because a pair
+/// (word, record field) recurs even when the whole prompt does not.
+#[derive(Clone, Copy, Debug)]
+enum PairKind {
+    QueryRelation,
+    QueryView,
+    QuerySourceToken,
+    QueryContextToken,
+}
+
+fn pairs(row: &Row, kind: PairKind) -> Vec<(u32, u32)> {
+    let mut out: Vec<(u32, u32)> = Vec::new();
+    for &query in &row.query {
+        let mut push = |a: u32, b: u32| {
+            if !out.contains(&(a, b)) && out.len() < 4096 {
+                out.push((a, b));
+            }
+        };
+        match kind {
+            PairKind::QueryRelation | PairKind::QueryView => {
+                for (_, _, relation, view, _) in &row.source_identity {
+                    let field = if matches!(kind, PairKind::QueryRelation) {
+                        *relation
+                    } else {
+                        *view
+                    };
+                    push(query, field);
+                }
+            }
+            PairKind::QuerySourceToken => {
+                for tokens in &row.source_tokens {
+                    for &token in tokens {
+                        push(query, token);
+                    }
+                }
+            }
+            PairKind::QueryContextToken => {
+                for &token in &row.context_tokens {
+                    push(query, token);
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Leave-one-query-out with a summed pair table: fit on every query but one,
+/// predict the held-out query's rows, and report how many test rows had at least
+/// one pair the table had already seen.
+fn pair_leave_one_query_out(rows: &[Row], kind: PairKind) -> serde_json::Value {
+    let queries = rows
+        .iter()
+        .map(|row| row.sig_query())
+        .collect::<BTreeSet<_>>();
+    let (mut test, mut covered, mut correct) = (0usize, 0usize, 0usize);
+    for held_out_query in &queries {
+        let mut table = BTreeMap::<(u32, u32), BTreeMap<u32, usize>>::new();
+        for row in rows {
+            if &row.sig_query() == held_out_query {
+                continue;
+            }
+            for pair in pairs(row, kind) {
+                *table.entry(pair).or_default().entry(row.answer).or_default() += 1;
+            }
+        }
+        for row in rows {
+            if &row.sig_query() != held_out_query {
+                continue;
+            }
+            test += 1;
+            let mut scores = BTreeMap::<u32, usize>::new();
+            let mut known = 0usize;
+            for pair in pairs(row, kind) {
+                if let Some(counts) = table.get(&pair) {
+                    known += 1;
+                    for (token, count) in counts {
+                        *scores.entry(*token).or_default() += count;
+                    }
+                }
+            }
+            if known == 0 {
+                continue;
+            }
+            covered += 1;
+            let best = scores
+                .iter()
+                .max_by(|x, y| x.1.cmp(y.1).then_with(|| y.0.cmp(x.0)))
+                .map(|(token, _)| *token);
+            if best == Some(row.answer) {
+                correct += 1;
+            }
+        }
+    }
+    json!({"feature":format!("{kind:?}"),"test_rows":test,"rows_with_a_known_pair":covered,
+        "correct":correct,
+        "accuracy_of_covered":if covered==0 {0.0} else {correct as f64/covered as f64}})
+}
+
 fn report(
     rows: &[Row],
     name: &str,
@@ -315,6 +418,7 @@ fn main() -> Result<()> {
         let answer = *target.first().ok_or("empty canonical target")?;
         let (mut source_identity, mut source_tokens, mut context) =
             (Vec::new(), Vec::new(), Vec::new());
+        let mut context_tokens: Vec<u32> = Vec::new();
         for segment in &packet.segments {
             match segment {
                 Segment::Source {
@@ -331,7 +435,10 @@ fn main() -> Result<()> {
                 }
                 Segment::Context {
                     role, token_ids, ..
-                } => context.push((*role, token_ids.len())),
+                } => {
+                    context.push((*role, token_ids.len()));
+                    context_tokens.extend(token_ids.iter().copied());
+                }
             }
         }
         rows.push(Row {
@@ -341,6 +448,7 @@ fn main() -> Result<()> {
             source_identity,
             source_tokens,
             context,
+            context_tokens,
         });
     }
 
@@ -378,6 +486,12 @@ fn main() -> Result<()> {
             leave_one_query_out(&rows, "record_metadata_only", |row| Some(row.sig_record_metadata())),
             leave_one_query_out(&rows, "record_metadata_and_context", |row| Some(row.sig_metadata_and_context())),
             leave_one_query_out(&rows, "context_only", |row| Some(row.sig_context_only())),
+        ],
+        "unseen_query_pairs": [
+            pair_leave_one_query_out(&rows, PairKind::QueryRelation),
+            pair_leave_one_query_out(&rows, PairKind::QueryView),
+            pair_leave_one_query_out(&rows, PairKind::QuerySourceToken),
+            pair_leave_one_query_out(&rows, PairKind::QueryContextToken),
         ],
         "scope": "offline panel feasibility read for an entry scorer; no model, no fit, no serving claim; train and development are the identical exposed 512-row panel",
     });
