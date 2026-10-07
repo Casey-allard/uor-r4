@@ -99,6 +99,10 @@
 //! the `reply_panel` record with each reply's generated ids, seconds and ids
 //! per second), so a served integer artifact's replies (`geometric-stack
 //! lut-chat`) can be compared with the float model's id for id.
+//! `cycle_repeats=N` (`reply`; integer 2..=64, default 3) is how many times a
+//! terminal cycle of 1..4 ids repeats before the reply stops; 3 is the
+//! historical rule, and a larger N lets a code fence (the backtick id three
+//! times) through. It is recorded in `replies.json` only when not 3.
 //!
 //! `device=` (`grade` and `reply`; default `cpu`, so a command without it is
 //! unchanged) is where the stack model generates its replies; the grader and
@@ -125,7 +129,8 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::geometric_stack::StackModel;
 use uor_r4_training::sha256_file;
 use uor_r4_training::stack_dialogue::{
-    annotate_turn_costs, check_panel, greedy_reply, load_requests, reply_panel, Request, TurnCost,
+    annotate_turn_costs, check_panel, greedy_reply_with, load_requests, reply_panel, Request,
+    TurnCost,
 };
 use uor_r4_training::stack_tracking::Rng;
 
@@ -1459,6 +1464,7 @@ fn answer(
     max_new_tokens: usize,
     exclude: Option<&IdList>,
     device: &Device,
+    cycle_repeats: usize,
 ) -> Result<Answered, Error> {
     let tokenizer = load_tokenizer(tokenizer_path)?;
     let protocol = DialogueProtocol::literal_roles_version(&tokenizer, version)?;
@@ -1476,7 +1482,7 @@ fn answer(
         &|ids| tokenizer.decode(ids),
         &mut |history, cap| {
             let started = Instant::now();
-            let reply = greedy_reply(&model, history, cap, protocol.eos_id)?;
+            let reply = greedy_reply_with(&model, history, cap, protocol.eos_id, cycle_repeats)?;
             costs.push(TurnCost {
                 ids: reply.ids.len(),
                 seconds: started.elapsed().as_secs_f64(),
@@ -1509,9 +1515,14 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             "max_new_tokens",
             "exclude",
             "device",
+            "cycle_repeats",
         ],
     )?;
     let out = PathBuf::from(args.required("out")?);
+    let cycle_repeats: usize = args.number("cycle_repeats", 3)?;
+    if !(2..=64).contains(&cycle_repeats) {
+        return Err("cycle_repeats must be an integer in 2..=64".into());
+    }
     let exclude = optional_id_list(&args, "exclude")?;
     let model_dir = PathBuf::from(args.required("model")?);
     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
@@ -1529,8 +1540,9 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             max_new_tokens,
             exclude.as_ref(),
             &device,
+            cycle_repeats,
         )?;
-        let report = json!({
+        let mut report = json!({
             "schema": "uor-r4.chat-grade-reply/1",
             "model": model_dir.display().to_string(),
             "model_sha256": sha256_file(&model_dir.join("model.safetensors")).ok(),
@@ -1547,6 +1559,9 @@ fn reply(arguments: &[String]) -> Result<(), Error> {
             "executable_sha256": sha256_file(&std::env::current_exe()?)?,
             "wall_seconds": started.elapsed().as_secs_f64(),
         });
+        if cycle_repeats != 3 {
+            report["cycle_repeats"] = json!(cycle_repeats);
+        }
         fs::write(
             out.join("replies.json"),
             serde_json::to_vec_pretty(&report)?,
@@ -1596,6 +1611,7 @@ fn grade_into(
         max_new_tokens,
         exclude,
         device,
+        3,
     )?;
     let judged = judging.judge(&panel)?;
     let mut report = json!({

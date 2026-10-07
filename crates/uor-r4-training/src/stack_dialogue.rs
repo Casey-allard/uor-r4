@@ -36,7 +36,7 @@ use crate::geometric_stack::{
     PointerRowStats, ReadSupervisionGroup, ReadSupervisionRow, ReadSupervisionTarget, StackModel,
     TargetScores,
 };
-use crate::reference_eval::short_cycle_period;
+use crate::reference_eval::short_cycle_period_with;
 use crate::{invalid, Result};
 
 /// One prepared split of the dialogue corpus.
@@ -751,6 +751,11 @@ impl Reply {
     /// The retained study's stop rules after each generated id: EOS, then a
     /// short terminal cycle. `None` means the reply continues.
     pub fn stop(ids: &[u32], eos: u32) -> Option<Self> {
+        Self::stop_with(ids, eos, 3)
+    }
+
+    /// [`Reply::stop`] with the terminal cycle repeated `cycle_repeats` times.
+    pub fn stop_with(ids: &[u32], eos: u32, cycle_repeats: usize) -> Option<Self> {
         let last = *ids.last()?;
         if last == eos {
             return Some(Self {
@@ -759,7 +764,7 @@ impl Reply {
                 cycle: None,
             });
         }
-        short_cycle_period(ids).map(|period| Self {
+        short_cycle_period_with(ids, cycle_repeats).map(|period| Self {
             ids: ids.to_vec(),
             eos: false,
             cycle: Some(period),
@@ -896,6 +901,18 @@ pub fn annotate_turn_costs(record: &mut Value, costs: &[TurnCost]) -> Result<()>
 /// lower id) until EOS, a short terminal cycle or `cap` ids. Each step
 /// recomputes the whole window.
 pub fn greedy_reply(model: &StackModel, history: &[u32], cap: usize, eos: u32) -> Result<Reply> {
+    greedy_reply_with(model, history, cap, eos, 3)
+}
+
+/// [`greedy_reply`] stopping at a short terminal cycle repeated
+/// `cycle_repeats` times (3 is the historical rule).
+pub fn greedy_reply_with(
+    model: &StackModel,
+    history: &[u32],
+    cap: usize,
+    eos: u32,
+    cycle_repeats: usize,
+) -> Result<Reply> {
     let mut window = history.to_vec();
     let mut ids = Vec::with_capacity(cap);
     for _ in 0..cap {
@@ -913,7 +930,7 @@ pub fn greedy_reply(model: &StackModel, history: &[u32], cap: usize, eos: u32) -
         let next = best as u32;
         ids.push(next);
         window.push(next);
-        if let Some(reply) = Reply::stop(&ids, eos) {
+        if let Some(reply) = Reply::stop_with(&ids, eos, cycle_repeats) {
             return Ok(reply);
         }
     }

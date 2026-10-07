@@ -533,13 +533,26 @@ fn greedy_token(logits: &[f32]) -> Result<u32> {
 
 /// The historical stop rule: a terminal cycle of length 1..4 repeated 3 times.
 pub fn short_cycle_period(tokens: &[u32]) -> Option<usize> {
+    short_cycle_period_with(tokens, 3)
+}
+
+/// [`short_cycle_period`] with the number of terminal copies configurable
+/// (`repeats >= 2`): a terminal cycle of length 1..4 repeated `repeats` times.
+pub fn short_cycle_period_with(tokens: &[u32], repeats: usize) -> Option<usize> {
+    if repeats < 2 {
+        return None;
+    }
     for period in 1..=4 {
-        let span = period * 3;
+        let span = period * repeats;
         if tokens.len() < span {
             continue;
         }
         let tail = &tokens[tokens.len() - span..];
-        if tail[..period] == tail[period..period * 2] && tail[..period] == tail[period * 2..] {
+        if tail
+            .chunks_exact(period)
+            .skip(1)
+            .all(|copy| copy == &tail[..period])
+        {
             return Some(period);
         }
     }
@@ -600,6 +613,12 @@ mod tests {
         assert!(sample_top_k_q32(&[f32::INFINITY], &mut rng).is_err());
         assert_eq!(short_cycle_period(&[1, 2, 1, 2]), None);
         assert_eq!(short_cycle_period(&[1, 2, 1, 2, 1, 2]), Some(2));
+        assert_eq!(short_cycle_period_with(&[7, 7, 7], 3), Some(1));
+        assert_eq!(short_cycle_period_with(&[7, 7, 7], 6), None);
+        assert_eq!(
+            short_cycle_period_with(&[1, 2, 1, 2, 1, 2, 1, 2, 1, 2, 1, 2], 6),
+            Some(2)
+        );
         Ok(())
     }
 }
