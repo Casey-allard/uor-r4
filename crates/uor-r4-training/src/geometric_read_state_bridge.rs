@@ -314,6 +314,165 @@ impl BridgeLearningWeights {
         self.lanes * (BIAS_BYTES_PER_LANE + RELATIVE_BYTES_PER_LANE)
     }
 }
+/// Fixed categorical transport credit, separate from the energy-based surrogate.
+/// Incoming hard full120 carriers have conditional push-forwards through the
+/// authenticated action map. No action probabilities, coefficient credit or
+/// additional factual-query carry is introduced. Selection remains external.
+pub const CATEGORICAL_CREDIT_SCOPE: &str = "fixed-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;hard-native-anchor;no-action-softmax-coefficient-credit-or-extra-query-carry;no-occurrence-selection-credit/1";
+
+/// Immutable adapter with no trainable variables. The expected artifact digest
+/// and typed native binding are authenticated here. The caller separately binds
+/// the export receipt to its retained-master provenance.
+pub struct PreparedCategoricalBridge {
+    native: NativeGeometricReadStateBridge,
+    map: Vec<u8>,
+    native_sha256: String,
+    device: Device,
+}
+impl PreparedCategoricalBridge {
+    pub fn from_bytes(
+        bytes: &[u8],
+        binding: &SourceActionBinding,
+        expected_native_sha256: &str,
+        device: &Device,
+    ) -> Result<Self> {
+        device_admit(device)?;
+        let digest = sha256_bytes(bytes);
+        if digest != expected_native_sha256 {
+            return Err(invalid(
+                "categorical bridge expected artifact digest differs",
+            ));
+        }
+        let native =
+            NativeGeometricReadStateBridge::from_bytes(bytes, binding).map_err(native_error)?;
+        let mut map = Vec::with_capacity(native.lanes() * ROOTS);
+        for lane in 0..native.lanes() {
+            for action in 0..ROOTS {
+                if native
+                    .coefficient_bias(lane, action)
+                    .map_err(native_error)?
+                    != 0
+                {
+                    return Err(invalid("categorical bridge requires zero bias"));
+                }
+            }
+            for relative in 0..ROOTS {
+                let mut winner = None;
+                for action in 0..ROOTS {
+                    match native
+                        .coefficient_relative(lane, action, relative)
+                        .map_err(native_error)?
+                    {
+                        0 => {}
+                        1 if winner.is_none() => winner = Some(action as u8),
+                        _ => {
+                            return Err(invalid(
+                                "categorical bridge requires exactly one unit marker per key",
+                            ))
+                        }
+                    }
+                }
+                map.push(
+                    winner.ok_or_else(|| invalid("categorical bridge key has no unit marker"))?,
+                );
+            }
+        }
+        Ok(Self {
+            native,
+            map,
+            native_sha256: digest,
+            device: device.clone(),
+        })
+    }
+    pub fn native(&self) -> &NativeGeometricReadStateBridge {
+        &self.native
+    }
+    pub fn native_sha256(&self) -> &str {
+        &self.native_sha256
+    }
+
+    fn conditional_maps(
+        &self,
+        query: &[H4Code],
+        source: &[H4Code],
+    ) -> Result<(Vec<u32>, Vec<u32>)> {
+        if query.len() != self.native.lanes() || source.len() != self.native.lanes() {
+            return Err(invalid(
+                "categorical bridge query/source lane count differs",
+            ));
+        }
+        let algebra = self.native.algebra().map_err(native_error)?;
+        let mut qi = Vec::with_capacity(query.len() * ROOTS);
+        let mut ki = Vec::with_capacity(qi.capacity());
+        for lane in 0..query.len() {
+            let q = query[lane].index();
+            let k = source[lane].index();
+            let qinv = algebra.inverse(q).map_err(native_error)?;
+            for code in 0..ROOTS as u8 {
+                let qd = algebra
+                    .compose(algebra.inverse(code).map_err(native_error)?, k)
+                    .map_err(native_error)?;
+                let kd = algebra.compose(qinv, code).map_err(native_error)?;
+                let qp = algebra
+                    .compose(code, self.map[lane * ROOTS + usize::from(qd)])
+                    .map_err(native_error)?;
+                let kp = algebra
+                    .compose(q, self.map[lane * ROOTS + usize::from(kd)])
+                    .map_err(native_error)?;
+                qi.push((lane * ROOTS + usize::from(qp)) as u32);
+                ki.push((lane * ROOTS + usize::from(kp)) as u32);
+            }
+        }
+        Ok((qi, ki))
+    }
+
+    pub fn forward(
+        &self,
+        query: &[H4Code],
+        selected_source: &[H4Code],
+        query_choices: &Tensor,
+        source_choices: &Tensor,
+    ) -> Result<BridgeLearningOutput> {
+        let (qi, ki) = self.conditional_maps(query, selected_source)?;
+        carrier_admit(query_choices, query, &self.device)?;
+        carrier_admit(source_choices, selected_source, &self.device)?;
+        let lanes = self.native.lanes();
+        let mut post = vec![H4Code::IDENTITY; lanes];
+        let mut actions = post.clone();
+        let mut scores = vec![0i64; lanes * ROOTS];
+        let mut counts = BridgeReadCounts::default();
+        self.native
+            .apply_into(
+                query,
+                selected_source,
+                &mut post,
+                &mut actions,
+                &mut scores,
+                &mut counts,
+            )
+            .map_err(native_error)?;
+        let push = |indices: Vec<u32>, carrier: &Tensor| -> Result<Tensor> {
+            let indices = Tensor::from_vec(indices, lanes * ROOTS, &self.device)?;
+            Ok(Tensor::zeros(lanes * ROOTS, DType::F32, &self.device)?
+                .index_add(&indices, &carrier.flatten_all()?.contiguous()?, 0)?
+                .reshape((lanes, ROOTS))?)
+        };
+        let qpush = push(qi, query_choices)?;
+        let kpush = push(ki, source_choices)?;
+        let state_choices = ((hard_choices(&post, &self.device)? + (&qpush - qpush.detach())?)?
+            + (&kpush - kpush.detach())?)?;
+        Ok(BridgeLearningOutput {
+            post_state_codes: post,
+            action_codes: actions,
+            state_choices,
+            action_scores_q24: scores,
+            counts,
+            validation_scalar_reads: 2,
+            credit_scope: CATEGORICAL_CREDIT_SCOPE,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -686,5 +845,262 @@ impl BridgeLearningWeights {
             downloaded_master_bytes: 4 * (b.len() + t.len()),
         };
         Ok(CategoricalBridgeExport { native, receipt })
+    }
+}
+
+#[cfg(test)]
+mod categorical_pullback_tests {
+    use super::*;
+    const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4},"merges":[]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
+    fn fixture(
+        map: &[u8],
+        device: &Device,
+    ) -> Result<(SourceActionBinding, PreparedCategoricalBridge)> {
+        let binding = SourceActionBinding::new(TOK.as_bytes()).map_err(native_error)?;
+        let lanes = map.len() / ROOTS;
+        let mut markers = vec![0f32; lanes * ROOTS * ROOTS];
+        for (i, &action) in map.iter().enumerate() {
+            markers[((i / ROOTS) * ROOTS + usize::from(action)) * ROOTS + i % ROOTS] = 0.25;
+        }
+        let native = NativeGeometricReadStateBridge::compile(
+            &binding,
+            lanes,
+            &vec![0; lanes * BIAS_BYTES_PER_LANE],
+            &pack(&markers, true)?,
+        )
+        .map_err(native_error)?;
+        let bytes = native.to_bytes().map_err(native_error)?;
+        let prepared =
+            PreparedCategoricalBridge::from_bytes(&bytes, &binding, &sha256_bytes(&bytes), device)?;
+        Ok((binding, prepared))
+    }
+    fn code(v: u8) -> Result<H4Code> {
+        H4Code::try_from(v).map_err(native_error)
+    }
+    fn utility(n: usize, d: &Device) -> Result<Tensor> {
+        Ok(Tensor::from_vec(
+            (0..n).map(|i| (i % 17) as f32 - 8.).collect::<Vec<_>>(),
+            (n / ROOTS, ROOTS),
+            d,
+        )?)
+    }
+    fn gradients(
+        p: &PreparedCategoricalBridge,
+        q: &[H4Code],
+        k: &[H4Code],
+    ) -> Result<(Vec<f32>, Vec<f32>)> {
+        let qc = Var::from_tensor(&hard_choices(q, &p.device)?)?;
+        let kc = Var::from_tensor(&hard_choices(k, &p.device)?)?;
+        let out = p.forward(q, k, qc.as_tensor(), kc.as_tensor())?;
+        assert_eq!(
+            out.state_choices.flatten_all()?.to_vec1::<f32>()?,
+            hard_choices(&out.post_state_codes, &p.device)?
+                .flatten_all()?
+                .to_vec1::<f32>()?
+        );
+        let u = utility(q.len() * ROOTS, &p.device)?;
+        let grads = out.state_choices.mul(&u)?.sum_all()?.backward()?;
+        let qg = grads
+            .get(qc.as_tensor())
+            .ok_or_else(|| invalid("query gradient missing"))?;
+        let kg = grads
+            .get(kc.as_tensor())
+            .ok_or_else(|| invalid("source gradient missing"))?;
+        Ok((
+            qg.flatten_all()?.to_vec1::<f32>()?,
+            kg.flatten_all()?.to_vec1::<f32>()?,
+        ))
+    }
+    #[test]
+    fn categorical_pullback_authentication_and_marker_rejection() -> Result<()> {
+        let (b, p) = fixture(&vec![1; ROOTS], &Device::Cpu)?;
+        let bytes = p.native.to_bytes().map_err(native_error)?;
+        assert_eq!(p.native_sha256(), sha256_bytes(&bytes));
+        assert!(PreparedCategoricalBridge::from_bytes(&bytes, &b, "wrong", &Device::Cpu).is_err());
+        let other = SourceActionBinding::new(TOK.replace(r#""a":4"#, r#""b":4"#).as_bytes())
+            .map_err(native_error)?;
+        assert!(PreparedCategoricalBridge::from_bytes(
+            &bytes,
+            &other,
+            &sha256_bytes(&bytes),
+            &Device::Cpu
+        )
+        .is_err());
+        let zero = NativeGeometricReadStateBridge::zeroed(&b, 1)
+            .map_err(native_error)?
+            .to_bytes()
+            .map_err(native_error)?;
+        assert!(PreparedCategoricalBridge::from_bytes(
+            &zero,
+            &b,
+            &sha256_bytes(&zero),
+            &Device::Cpu
+        )
+        .is_err());
+        for (bias, relative) in [
+            (
+                vec![1; BIAS_BYTES_PER_LANE],
+                p.native.packed_relative().to_vec(),
+            ),
+            (
+                vec![0; BIAS_BYTES_PER_LANE],
+                pack(&vec![0.25; ROOTS * ROOTS], true)?,
+            ),
+            (
+                vec![0; BIAS_BYTES_PER_LANE],
+                pack(&vec![0.5; ROOTS * ROOTS], true)?,
+            ),
+        ] {
+            let bytes = NativeGeometricReadStateBridge::compile(&b, 1, &bias, &relative)
+                .map_err(native_error)?
+                .to_bytes()
+                .map_err(native_error)?;
+            assert!(PreparedCategoricalBridge::from_bytes(
+                &bytes,
+                &b,
+                &sha256_bytes(&bytes),
+                &Device::Cpu
+            )
+            .is_err());
+        }
+        let q = [code(7)?];
+        let k = [code(11)?];
+        assert!(p
+            .forward(
+                &q,
+                &k,
+                &hard_choices(&k, &Device::Cpu)?,
+                &hard_choices(&k, &Device::Cpu)?
+            )
+            .is_err());
+        assert!(p
+            .forward(
+                &[],
+                &k,
+                &hard_choices(&q, &Device::Cpu)?,
+                &hard_choices(&k, &Device::Cpu)?
+            )
+            .is_err());
+        Ok(())
+    }
+    #[test]
+    fn categorical_pullback_many_to_one_analytic_and_lane_isolation() -> Result<()> {
+        let map = (0..ROOTS * 2)
+            .map(|i| if i % 3 == 0 { 0 } else { 1 })
+            .collect::<Vec<_>>();
+        let (_, p) = fixture(&map, &Device::Cpu)?;
+        let q = [code(7)?, code(31)?];
+        let k = [code(11)?, code(119)?];
+        let (qi, ki) = p.conditional_maps(&q, &k)?;
+        assert!(
+            ki[..ROOTS]
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                < ROOTS
+        );
+        let u = utility(ROOTS * 2, &Device::Cpu)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let (qg, kg) = gradients(&p, &q, &k)?;
+        assert_eq!(qg, qi.iter().map(|&i| u[i as usize]).collect::<Vec<_>>());
+        assert_eq!(kg, ki.iter().map(|&i| u[i as usize]).collect::<Vec<_>>());
+        Ok(())
+    }
+    #[test]
+    fn categorical_pullback_controls_preserve_ambient_and_tangent_distinction() -> Result<()> {
+        let q = [code(7)?];
+        let k = [code(11)?];
+        let (_, source_copy) = fixture(&(0..ROOTS as u8).collect::<Vec<_>>(), &Device::Cpu)?;
+        let (qg, kg) = gradients(&source_copy, &q, &k)?;
+        let u = utility(ROOTS, &Device::Cpu)?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert!(qg.iter().all(|&v| v == u[11]));
+        assert_eq!(qg[0] - qg[119], 0.); // zero-sum normalized tangent, not zero ambient gradient
+        assert_eq!(kg, u);
+        let (_, constant) = fixture(&vec![31; ROOTS], &Device::Cpu)?;
+        let (qg, kg) = gradients(&constant, &q, &k)?;
+        assert!(kg.iter().all(|&v| v == kg[0]));
+        assert_eq!(kg[0] - kg[119], 0.);
+        let algebra = constant.native.algebra().map_err(native_error)?;
+        for i in 0..ROOTS {
+            assert_eq!(
+                qg[i],
+                u[usize::from(algebra.compose(i as u8, 31).map_err(native_error)?)]
+            );
+        }
+        let post = source_copy.forward(
+            &q,
+            &k,
+            &hard_choices(&q, &Device::Cpu)?,
+            &hard_choices(&k, &Device::Cpu)?,
+        )?;
+        assert_eq!(post.post_state_codes, k);
+        Ok(())
+    }
+    #[test]
+    fn categorical_pullback_all_frames_match_native_factual_post() -> Result<()> {
+        let (_, p) = fixture(
+            &(0..ROOTS)
+                .map(|i| ((i * 7) % ROOTS) as u8)
+                .collect::<Vec<_>>(),
+            &Device::Cpu,
+        )?;
+        for q in 0..ROOTS as u8 {
+            for k in 0..ROOTS as u8 {
+                let query = [code(q)?];
+                let source = [code(k)?];
+                let (qi, ki) = p.conditional_maps(&query, &source)?;
+                let mut post = [H4Code::IDENTITY];
+                let mut action = post;
+                let mut scores = vec![0; ROOTS];
+                let mut counts = BridgeReadCounts::default();
+                p.native
+                    .apply_into(
+                        &query,
+                        &source,
+                        &mut post,
+                        &mut action,
+                        &mut scores,
+                        &mut counts,
+                    )
+                    .map_err(native_error)?;
+                assert_eq!(qi[usize::from(q)], u32::from(post[0].index()));
+                assert_eq!(ki[usize::from(k)], u32::from(post[0].index()));
+            }
+        }
+        Ok(())
+    }
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires an explicitly leased CUDA GPU; no skipped parity claim"]
+    fn categorical_pullback_cuda_native_and_analytic_adjoints_match_cpu() -> Result<()> {
+        let device = Device::new_cuda(0)?;
+        let map = (0..ROOTS * 2)
+            .map(|i| if i % 3 == 0 { 0 } else { 1 })
+            .collect::<Vec<_>>();
+        let (_, cpu) = fixture(&map, &Device::Cpu)?;
+        let (_, gpu) = fixture(&map, &device)?;
+        let q = [code(7)?, code(31)?];
+        let k = [code(11)?, code(119)?];
+        assert_eq!(gradients(&cpu, &q, &k)?, gradients(&gpu, &q, &k)?);
+        let c = cpu.forward(
+            &q,
+            &k,
+            &hard_choices(&q, &Device::Cpu)?,
+            &hard_choices(&k, &Device::Cpu)?,
+        )?;
+        let g = gpu.forward(
+            &q,
+            &k,
+            &hard_choices(&q, &device)?,
+            &hard_choices(&k, &device)?,
+        )?;
+        assert_eq!(c.post_state_codes, g.post_state_codes);
+        assert_eq!(c.action_codes, g.action_codes);
+        assert_eq!(c.action_scores_q24, g.action_scores_q24);
+        Ok(())
     }
 }
