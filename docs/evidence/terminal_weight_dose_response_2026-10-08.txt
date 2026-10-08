@@ -1,0 +1,43 @@
+UOR-R4 — Terminal weighting is non-monotone: 20x moves yes/no compliance, 200x destroys it
+Date: 2026-10-08 (overnight rounds 99-101). DeepSeek session. References #820.
+
+THE DOSES
+  Same shape (7.16 M, rrarra), same corpus, mask, policy=full_prefix, steps and seed. The only
+  difference is UOR_TERMINAL_WEIGHT, which weights the response's terminating <|eos|> - the position
+  the verified mask identifies - against ordinary response tokens.
+
+    weight   dev response nll (step 2,000)   first-two-content-token observations
+    20       2.1969                          yes/no compiles ("Yes, the"), retention responds
+                                             ("My name"), one-word/number do not comply
+    200      3.0944                          yes/no REVERTS ("The sky"), retention BREAKS
+                                             ("The main"), list artifacts return
+    60       2.3508                          running
+
+WHAT THE REVERSAL SHOWS
+  1. THE INTERVENTION IS REAL AND TUNABLE. At 20x, two of three yes/no turns open with "Yes" - the
+     first compliance movement any arm in this session produced - and at 200x the same class reverts
+     to its pre-intervention behaviour. A quantity that can be moved up and then back down by one
+     parameter is a working knob, not noise.
+  2. IT IS NON-MONOTONE. More terminal weight is not better: at 200x the loss is dominated by stop
+     tokens, yes/no compliance disappears, retention conditioning disappears ("The main" where the
+     20x arm answered "My name"), and list artifacts reappear in the text ("1. Apple Music Chef's a
+     saucepan..."). The optimum is interior, and the useful range lies between these two doses.
+  3. THE GUARDS DID THEIR JOB. Fluency and the retention pairs were named in advance as the guard for
+     exactly this failure mode - a weight high enough to make the model stop everywhere - and both
+     fired at 200x. That is a pre-registered guard working rather than a post-hoc rationalisation.
+  4. DEVELOPMENT NLL TRACKED THE DOSE here (2.20, 2.35, 3.09 rising with the weight) without tracking
+     quality: the arm with the BEST compliance (20x) does not have the lowest loss. It remains a
+     dose indicator and not a metric, consistent with the four earlier arms where it failed to track
+     behaviour.
+
+WHAT THIS MEANS FOR THE SEARCH
+  The question has narrowed from "can anything move instruction compliance" - answered yes, by this
+  change - to "which terminal weight maximises compliance without losing what the model already
+  does". That is a one-parameter search with a fixed instrument (panel v2, first two content tokens,
+  echo item removed), a stated guard (fluency and the retention pairs) and a known bad region
+  (200x). It is cheap: each dose is one arm of the same recipe.
+
+SCOPE
+  Three doses, one shape, one corpus, one mask, single seed each, greedy decoding, one panel. Doses
+  are single measurements rather than a fitted curve, and the 60x arm is still training; no claim is
+  made about the optimum beyond its being interior to [20, 200].
