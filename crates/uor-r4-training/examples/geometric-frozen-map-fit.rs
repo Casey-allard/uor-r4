@@ -62,6 +62,8 @@ mod constrained_context;
 mod constrained_emission;
 #[path = "geometric_frozen_map_fit/context_constraints.rs"]
 mod context_constraints;
+#[path = "geometric_frozen_map_fit/context_cue_coadapt.rs"]
+mod context_cue_coadapt;
 #[path = "geometric_frozen_map_fit/context_path_credit.rs"]
 mod context_path_credit;
 #[path = "geometric_frozen_map_fit/emission_constraints.rs"]
@@ -156,6 +158,10 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    context_cue_coadapt::validate_settings(a)?;
+    if a.context_cue_coadapt.is_some() {
+        return Ok(());
+    }
     context_path_credit::validate_settings(a)?;
     if a.context_path_credit.is_some() {
         return Ok(());
@@ -510,6 +516,8 @@ struct Args {
     prefix_context_credit: Option<prefix_context_credit::Config>,
     #[serde(default)]
     context_path_credit: Option<context_path_credit::Config>,
+    #[serde(default)]
+    context_cue_coadapt: Option<context_cue_coadapt::Config>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -787,6 +795,13 @@ fn args() -> Result<(Args, Vec<u8>)> {
             .filter_map(|c| c.recorded_finite_contrast.as_ref())
             .flat_map(|c| [&c.retained_path_root, &c.retained_probe_root]),
     )
+    .chain(a.context_cue_coadapt.iter().flat_map(|c| {
+        [
+            &c.retained_intermediate_root,
+            &c.retained_probe_root,
+            &c.retained_finite_root,
+        ]
+    }))
     .chain(a.context_path_credit.iter().flat_map(|c| {
         [
             &c.retained_decomposition_root,
@@ -5231,6 +5246,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.context_cue_coadapt.is_some() {
+        return context_cue_coadapt::run(a, start, d);
+    }
     if a.prefix_context_credit.is_some() {
         return prefix_context_credit::run(a, start, d);
     }
@@ -6480,6 +6498,7 @@ fn main() -> Result<()> {
     let start = Instant::now();
     let result = (|| -> Result<Value> {
         if a.context_path_credit.is_some()
+            || a.context_cue_coadapt.is_some()
             || a.prefix_context_credit.is_some()
             || a.readout_coadaptation
                 .as_ref()

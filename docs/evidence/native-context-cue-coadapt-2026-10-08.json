@@ -1,0 +1,249 @@
+{
+  "schema": "uor-r4.context-cue-coadapt-evidence/1",
+  "status": "MEASURED_FINITE_NEGATIVE_AUDITED_PRESERVED_PROTECTED_DELIVERY_PENDING",
+  "card": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-6069406538",
+  "source_commit": "f763d02b8018425476fcebb094cb5041190ea805",
+  "binary_sha256": "733c24dfe96a1094208913605accd3e0e88142894b045f97c3b6de0f0307056e",
+  "configuration_sha256": "33fd890a9a81e6bfcfafba5911e205542b62efd5e93960973cf8d0534c69a076",
+  "runtime_private_revision": "187f27d924e3c30d74898d1ba8c3888cbaa87020",
+  "runtime_all_fresh_download_verified": true,
+  "report_root": "/workspace/uor-r4/codex/sol-context-cue-coadapt/runs/coadapt-0001-attempt1",
+  "report_sha256": "4e28aed7dd768fed737d97530086902aad47bd38c7a9275680bb14236e588a12",
+  "report_manifest_sha256": "18647ee8b6873fffdfa1c63482ffed806da0daa01fd078e2b375b0dccac593a6",
+  "original": {
+    "combined": 4.391651926613631,
+    "correct_reference_frames": 17,
+    "original_reference_violations": [],
+    "reference": 0.40908709114276476,
+    "task": 3.9825648354708663,
+    "task_target_mass": 298710449,
+    "task_total_mass": 16027151659
+  },
+  "initial_unselected_context3610": {
+    "combined": 4.8622219108984925,
+    "correct_reference_frames": 15,
+    "original_reference_violations": [
+      {
+        "chosen": 683,
+        "id": "development-diverse-length2-00-swap0-q0-forward-job",
+        "input_index": 0,
+        "position": 3,
+        "target": 261
+      },
+      {
+        "chosen": 1202,
+        "id": "development-diverse-length2-00-swap0-q3-forward-job",
+        "input_index": 4,
+        "position": 4,
+        "target": 92
+      }
+    ],
+    "reference": 0.879657075427626,
+    "task": 3.9825648354708663,
+    "task_target_mass": 298710449,
+    "task_total_mass": 16027151659
+  },
+  "candidate": {
+    "combined": 3.4856878825004602,
+    "correct_reference_frames": 16,
+    "original_reference_violations": [
+      {
+        "chosen": 471,
+        "id": "development-diverse-length2-00-swap0-q3-forward-job",
+        "input_index": 4,
+        "position": 4,
+        "target": 92
+      }
+    ],
+    "reference": 0.4277974957082041,
+    "task": 3.057890386792256,
+    "task_target_mass": 298196418,
+    "task_total_mass": 6346398572
+  },
+  "final_gate": {
+    "all17_original_winners_retained": false,
+    "baseline_combined": 4.391651926613631,
+    "candidate_combined": 3.4856878825004602,
+    "exact_original_task_probability_improved": true,
+    "finite_joint_positive": false,
+    "strict_original_ce_descent": true
+  },
+  "policy": {
+    "active_family": "cue.coefficients",
+    "autoregressive_rollout": "NOT_RUN",
+    "construction": "one frozen gradient/actual adjacent displacement/index order; native current-intermediate18 CE descent; no revisit/refill",
+    "context": "recorded self_transition3610 only; no gradient or search",
+    "coordinates": 960,
+    "final_gate": "strict original18 combined CE descent, exact original task probability increase, all17 original winners",
+    "gradient": "one saved-state native-anchored Cue gradient; detached physical-selector state contrast",
+    "intermediate_admission": "none; initial15of17 is unselected; every original violation retained",
+    "optimizer_updates": 0,
+    "schema": "uor-r4.context-cue-coadapt/1",
+    "serving_changes": false
+  },
+  "execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T21:57:54.873415+00:00",
+    "ended_utc": "2026-10-08T21:58:34.997616+00:00",
+    "elapsed_seconds": 40.12422724440694,
+    "children_max_rss_kib": 1751064,
+    "binary_sha256": "733c24dfe96a1094208913605accd3e0e88142894b045f97c3b6de0f0307056e",
+    "config_sha256": "33fd890a9a81e6bfcfafba5911e205542b62efd5e93960973cf8d0534c69a076"
+  },
+  "checks": {
+    "formatting": "PASS",
+    "example_tests": {
+      "passed": 79,
+      "failed": 0
+    },
+    "cuda_release_build": "PASS",
+    "exact_math_source_review": {
+      "status": "PASS",
+      "sha256": "059f147cbd6a072b5e78384b6bdc23c920b4a8278f69d9b408a951f83be50ec7"
+    },
+    "exact_adversarial_source_review": {
+      "status": "PASS",
+      "sha256": "cbd0642c420f582a467463376fb99790033dfbb5f225efbed8f181ebd3584ab7"
+    },
+    "rust_complete_file_verification": "PASS",
+    "independent_result_reader": "PASS"
+  },
+  "construction": {
+    "accepted": 95,
+    "coordinates": 960,
+    "context_backward_calls": 0,
+    "cue_backward_calls": 18,
+    "cue_aggregate_gradients": 1,
+    "candidate_native_steps": 18,
+    "baseline_encoder_calls": 0,
+    "optimizer_updates": 0,
+    "parent_master_bits_restored": true,
+    "retained_each_term_raw_gradient": true,
+    "cue_gradient_sha256": "b1877b033b5d4678930ddc05406d372473c2e0812f7aef354c37fe795c13791f"
+  },
+  "claims": {
+    "selected_model": false,
+    "useful_candidate": false,
+    "autoregressive_rollout": "NOT_RUN",
+    "full512": "NOT_RUN",
+    "original8of512_scope": "unchanged retained result; not rerun",
+    "general_language": "NOT_ESTABLISHED",
+    "geometric_advantage": "NOT_ESTABLISHED",
+    "local_gradient": "native-anchored direct Cue gathers and detached physical-donor contrast; surrogate is not derivative of hard argmax"
+  },
+  "resources": {
+    "continuous_from": "2026-10-08T21:26:31Z",
+    "task_projection_seconds": 7200,
+    "existing_cumulative_projection_seconds": 558870,
+    "increment_seconds": 0,
+    "cpu_threads": 2,
+    "ram_bound_bytes": 4294967296,
+    "numeric_bound_bytes": 536870912,
+    "sealed_report_bound_bytes": 268435456,
+    "temporary_bound_bytes": 536870912,
+    "actual_report_bytes": 96115025,
+    "local_storage": "below30GiB floor; allnewworkpodonly",
+    "pod_gpu0": "codex/sol-prototype-20261008",
+    "pod_gpu1": "DeepSeek ownership untouched"
+  },
+  "next": {
+    "task": "Saved Prefix/U margin and shared-incidence discriminator across original18 frames, joined with newly retained per-term Cue gradients",
+    "condition": "after actual protected delivery",
+    "prefix_learning_compute": "NOT_ADMITTED pending saved bounds and prospective card",
+    "fixed_scope": "No encoder/backward/native model steps, new gradient, Cue rerank, dose search or negative adoption",
+    "representation": "Seven of eight Prefix keys distinguish desired/rival in both pos4 frames, but numerical Prefix states/bins/adjustments equal originalparent in those frames; do not attribute new bins to Context3610",
+    "tradeoff": "Shared key81 serves task desired occurrence and lostreference rival; two-pair distinction is not global feasibility"
+  },
+  "complete_private_preservation": {
+    "revision": "324e9b82f69bd457c73f214f0aa643e895833457",
+    "prefix": "codex/sol-context-cue-coadapt/finite-3610-0001-f763d02b80",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "e20c24a9eaad15c0c0a8aa1cbfc9e3a4820b1c1412baac7ea6c54b9be4723ecf",
+        "bytes": 1091
+      },
+      "finite-3610-0001-f763d02b80.tar.gz": {
+        "sha256": "704076ccd598c201787a0dae435dbc17e31069fad82921ee06b94809b5dab08a",
+        "bytes": 24138668
+      }
+    },
+    "manifest": {
+      "source_commit": "f763d02b8018425476fcebb094cb5041190ea805",
+      "runtime_hf_revision": "187f27d924e3c30d74898d1ba8c3888cbaa87020",
+      "runtime_manifest_sha256": "69ba852cc556172539d25c465462e29e91625ea57339ea8816e45854e7fc05ca",
+      "binary_sha256": "733c24dfe96a1094208913605accd3e0e88142894b045f97c3b6de0f0307056e",
+      "config_sha256": "33fd890a9a81e6bfcfafba5911e205542b62efd5e93960973cf8d0534c69a076",
+      "report_sha256": "4e28aed7dd768fed737d97530086902aad47bd38c7a9275680bb14236e588a12",
+      "report_manifest_sha256": "18647ee8b6873fffdfa1c63482ffed806da0daa01fd078e2b375b0dccac593a6",
+      "audit_sha256": "56a59d5a100b25999a82537b209f3bd7114a36caeac288fc47c9df2970337df8",
+      "files": {
+        "finite-3610-0001-f763d02b80.tar.gz": {
+          "sha256": "704076ccd598c201787a0dae435dbc17e31069fad82921ee06b94809b5dab08a",
+          "bytes": 24138668
+        }
+      },
+      "scope": "One fixedContext3610-conditioned Cue gradient/frozen960 coordinate pass; perterm18rawCue gradients retained, Contextbackward0; allnative18 pools/export/reload audited, originalall17gatefails; no autoregressive/modelpromotion."
+    },
+    "seconds": 10.528914641588926,
+    "completed_utc": "2026-10-08T22:04:51.477067+00:00"
+  },
+  "independent_result_audit": {
+    "schema": "uor-r4.context-cue-coadapt-independent-audit/1",
+    "status": "PASS",
+    "source": "f763d02b8018425476fcebb094cb5041190ea805",
+    "report_sha256": "4e28aed7dd768fed737d97530086902aad47bd38c7a9275680bb14236e588a12",
+    "reader_sha256": "da02ce7dbfbc4b5f963ae4a4d4ac558409cb47820f97600173c2f55efbe7a00d",
+    "import_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+    "raw_gradient_terms": 18,
+    "ranked_coordinates": 960,
+    "accepted": 95,
+    "scored_pool_evaluations": 300,
+    "additional_complete_snapshot_pool_validations": 54,
+    "final_gate": {
+      "strict_original_ce_descent": true,
+      "exact_original_task_probability_improved": true,
+      "all17_original_winners_retained": false,
+      "finite_joint_positive": false,
+      "baseline_combined": 4.391651926613631,
+      "candidate_combined": 3.4856878825004602
+    },
+    "elapsed_seconds": 11.206623990088701,
+    "scope": "Independent saved finite algebra/gradient inventory+sum/rank/native transaction/export/reload audit; no encoder/backward/gradient recomputation or autoregressive inference. In-RAM restoration is producer receipt, not independently observed memory. Full BLAKE3 seal checks remain separate Rust supervisor receipts."
+  },
+  "successor_reviews": {
+    "mathematical-successor-review.json": {
+      "sha256": "e672296259eea6eaf8d88509827527ae0077e28c955a8e7749581feab79a57b6",
+      "bytes": 4513
+    },
+    "engineering-successor-review.json": {
+      "sha256": "549d64da240a0305b95c3f24b4ec0441fbbfc8819ce218755575ccacb5920f91",
+      "bytes": 12295
+    }
+  },
+  "mechanism_boundary": {
+    "task245_position4": {
+      "desired": 267,
+      "rival": 307,
+      "desired_offset": 1,
+      "rival_offset": 2,
+      "donor_before": 2,
+      "donor_after": 8,
+      "same_source_direct_cue_gap": 0,
+      "base_copy_target_minus_rival_q24": -7965768,
+      "u_target_minus_rival_q24": -25165824,
+      "copy_target_minus_rival_q24": -33131592
+    },
+    "reference4_position4": {
+      "desired": 92,
+      "rival": 471,
+      "desired_offset": 1,
+      "rival_offset": 5,
+      "donor": 1,
+      "same_source_direct_cue_gap": 0,
+      "base_copy_target_minus_rival_q24": 5112214,
+      "u_target_minus_rival_q24": -16777216,
+      "copy_target_minus_rival_q24": -11665002
+    }
+  }
+}
