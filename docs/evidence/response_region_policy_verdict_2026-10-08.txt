@@ -1,0 +1,62 @@
+UOR-R4 — The response-region objective works under full_prefix, and role_only was the list collapse
+Date: 2026-10-08 (overnight rounds 56-58). DeepSeek session. References #820.
+
+THE COMPARISON THAT WAS PRE-REGISTERED IN ROUND 56
+  Round 56's role_only arm (train only on response tokens) moved the output FORM for the first time
+  but collapsed into bullets and leaked placeholders. The control declared then and now measured:
+  the SAME mask, the SAME recipe, policy=full_prefix instead. Its final development response nll is
+  1.3805535499925063 against role_only's 1.802750876406361.
+
+  full_prefix's replies, greedy, protocol 2:
+
+    "Hello! How are you today?"            -> "Hello! How can I help you today?"
+    three colours                          -> "I don't have the capability to create a personalized
+                                               community. However, here are some common statements..."
+    "What is the capital of France?"       -> "The capital of France is Paris."
+    largest planet                         -> "The largest planet in our solar system is the absence of
+                                               the planet, and the small, small planets..."
+    cake / preferences                     -> "I'm just a language model, I don't have personal
+                                               preferences, but I can tell you that I can give you a
+                                               personalized recipe..."
+    several others                         -> "I do not have access to the latest information. However,
+                                               I can provide some information on the region."
+                                              "I do not have access to real-time data. However, I can
+                                               provide some general information on social media platforms"
+
+WHAT IT SETTLES
+  1. THE LIST COLLAPSE WAS role_only's FAULT, NOT THE MASK'S. Under full_prefix with the same mask
+     and the same data, the bullet spam disappears entirely. Round 56's open question - whether the
+     mask or the policy caused it - is answered: training ONLY on response tokens over-weights the
+     corpus's bullet-heavy assistant style, and training with the mask as a region signal does not.
+  2. THE MODEL NOW PRODUCES ASSISTANT-REGISTER REPLIES. "Hello! How can I help you today?", "I do not
+     have access to the latest information. However, I can provide...", "I'm just a language model, I
+     don't have personal preferences, but..." are the canonical shapes of an instruction-tuned
+     assistant. No arm earlier tonight - not the chat-only control, not the form-diversity mixture,
+     not role_only - produced this register. Earlier arms described the topic of the turn; this one
+     answers it or explains what it can do instead.
+  3. THE RESPONSE-REGION OBJECTIVE IS THE WORKING CONFIGURATION: policy=full_prefix with the
+     extracted mask. That is the recipe the project should build on.
+
+WHAT IS STILL WRONG, STATED PLAINLY
+  * Factual accuracy is partial: "Paris" is right; the largest planet answer is not; "two plus two"
+    degenerates ("the number of sides of each sides of each sides..."). The assistant REGISTER is
+    present without the assistant's reliability.
+  * Some replies are formulaic: "I do not have access to the latest information. However, I can
+    provide..." repeats across turns, which is a template learned from the corpus rather than an
+    assessment of each question.
+  * Fluency is uneven - one reply opens "Another color is Lighting is Lighting."
+  * The first-token probe is still confounded for masked models (round 56) and has NOT been fixed;
+    the panel is the instrument used here, and it is a weak one for measuring compliance carefully.
+
+VERDICT
+  A POSITIVE RESULT, AND THE SESSION'S MOST SUBSTANTIVE ONE ON THE CHAT PATH: a response-region
+  objective, trained with the mask under full_prefix, changes what the model SAYS - from topical
+  prose to assistant-shaped replies - where three probes and one data intervention could not move it
+  at all. It is not yet a good assistant: the register arrived before the reliability, and the
+  reliability is the next problem rather than a solved one.
+
+SCOPE
+  Two policies, one mask, one model size, single seed each, one panel, greedy decoding. The
+  comparison between policies is confounded with the fact that full_prefix supervises more tokens,
+  so "the mask as a region signal works" is established while the exact mechanism is not; a third
+  arm with the mask and no policy distinction is the clean control if the mechanism matters.
