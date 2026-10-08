@@ -1,0 +1,67 @@
+UOR-R4 — The response-form intervention fails on all three yardsticks: the deficit is the objective, not the data
+Date: 2026-10-08 (overnight round 48). DeepSeek session. References #820.
+
+THE PRE-REGISTERED TEST (recorded in form_diversity_intervention_2026-10-08.txt before the arm ran)
+  Same frozen 7.16 M chat recipe, 13,348 steps, one change: the training stream is 50/50
+  chat-v0-p2 and tinydialogues (42.8 M tokens of short turn-pair dialogue). Judged by the 22-turn
+  instruction panel and the max_new_tokens=1 first-token probe, both fixed in advance.
+  Stated falsifier: "neither yardstick moving means the deficit is not the form distribution of the
+  corpus - it would then be the objective (what the model is asked to predict) or the model's
+  capacity, and the next step becomes an objective change rather than a data change."
+
+RESULTS - ALL THREE MEASURES MOVED THE WRONG WAY OR NOT AT ALL
+
+  1. FIRST-TOKEN PROBE: no improvement.
+       turn                              chat-only     form-mixed
+       "Reply with exactly one word: yes"     " "          " I"
+       "is the sky blue?" (yes/no)          " The"        " The"
+       "do fish live in trees?" (yes/no)      " "          " "
+       "capital of France?"                 " The"        " The"
+       "how many days in a week?"           " To"         " The"
+       "largest planet in our system?"      " The"        " The"
+     Still articles and pronouns. NOT ONE of the eight opens with the answer in either model.
+
+  2. INSTRUCTION PANEL: worse, with new failure classes.
+       greeting          "Imagine a world where the world is a symbol of the human experience..."
+       "colour of grass" "The grass is a fundamental color in the grass, with a bright red and green green."
+       "three colours"   "The \`calculate_list\` function is a fundamental program that uses..."   (code artifact)
+       "two planets"     "The Earth is a fundamental concept in number theory..."
+       "is the sky blue" "The sky blue is blue, and the sky blue is blue. It's a beautiful color, and..."
+       "fish in trees"   "1. Create a detailed and detailed description of the fish..."           (echoes "detailed and detailed")
+       "capital of France" "The capital of France is Paris. It is the first point in the [city] of the [city]..."
+                                                                        (correct opener, then literal placeholders)
+       "two plus two"    "The three plus three plus three plus"
+     Backtick code artifacts and "[city]" placeholders are tinydialogues' low-register form leaking
+     into the chat register, and repetition loops are more frequent than in the chat-only model.
+
+  3. CHAT FIT: worse. Final development nll 2.017235420824099 against the chat-only control's
+     1.8900316432118416 - a cost of 0.127 nats, or about 0.065 BPB, on the corpus the model is
+     actually judged on.
+
+CONCLUSION, TAKEN FROM THE PRE-REGISTERED FALSIFIER
+  FORM DIVERSITY IN THE TRAINING CORPUS DOES NOT PRODUCE RESPONSE-FORM CONDITIONING. Adding 42.8 M
+  tokens of short question/answer dialogue to a chat corpus neither made the first token responsive
+  nor improved a single panel category, while measurably damaging the register and the chat fit.
+  The deficit therefore lies in the OBJECTIVE - what the model is asked to predict - or in capacity,
+  not in the form distribution of the data.
+
+  That is a decisive and cheaply obtained negative. It removes the data-shaped half of the remaining
+  option space and it is worth more than a marginal positive would have been: it says the next work
+  is a change to what training optimises, and it argues against spending on more corpus of any
+  register until that is done - including the 1.39 B-token chat-v1 rebuild, which the three
+  independent lines of evidence (rounds 36, 44-46, and now this) all point away from.
+
+WHAT THE OBJECTIVE CHANGE WOULD BE, STATED WITHOUT CLAIMING IT WORKS
+  The model is trained to predict the next token of a flattened stream. Nothing in that objective
+  distinguishes the tokens of a reply from the tokens of a prompt, so "answer the turn" is not a
+  thing it is asked to learn; the panel's failures are exactly that - fluent continuation of the
+  topic, with no notion of the requested form or of a response boundary. A loss that marks the
+  response region, or an objective that conditions generation on the turn rather than continuing
+  the transcript, is the class of change the evidence now calls for. The tools for response
+  regions exist in the repository (the corpus carries a response mask, and the dialogue trainer
+  takes one); this document does not claim a result for using them here.
+
+SCOPE
+  One model size, one mixture weight, one corpus pair, single seed, two mechanical probes fixed in
+  advance. The arm-2 training could not separate form from topic distribution by construction - but
+  the result is negative on BOTH, so the confound does not rescue it.
