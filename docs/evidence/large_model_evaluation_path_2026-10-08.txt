@@ -1,0 +1,44 @@
+UOR-R4 — Evaluating the store's large chat models: what works, what does not, and the blocked data lever
+Date: 2026-10-08 (overnight round 14-15). DeepSeek session. References #820.
+
+WHY
+  Round 12 measured the size term at 7.16 M -> 19.93 M parameters as worth 0.0837 BPB against
+  0.1592 for in-domain data. The next question is whether the size term grows with scale, and the
+  private store already holds chat-trained 214 M geometric stacks, so it can be asked without
+  training anything.
+
+WHAT THE STORE ACTUALLY HOLDS
+  Listing `caseyallard/uor-r4-store` for data and corpora paths returns no chat corpus at all:
+  `data/` holds ft-balp.tar (326.9 M), ft-dev.tar, hot/sieve-panel.tar, step5-inputs.tar (1.5 G),
+  tokenizer.json.tar and MD5SUMS; `corpora/*` matches nothing. The chat content of the store is
+  models: `models/chat-214m-smoltalk-b16` and `models/chat-214m-planA-af-b8`, 856.1 MB each,
+  pattern rrarrarrarrarrar, width 1536, heads 24, context 384, read L2, arch geometric.
+
+  CONSEQUENCE: the data-coverage lever, which round 12 measured as the larger one, has no corpus
+  to spend on. The canonical volume's chat-v1-p2-train directory is empty and the store publishes
+  none. That is a concrete blocker on the highest-value path, recorded rather than worked around.
+
+TWO METHOD FINDINGS
+  1. `snap-evaluate` refuses pointer models outright: "snap-evaluate reads the model's raw logits,
+     which are not a pointer model's distribution (its head mixes a copy distribution in); score a
+     pointer model with evaluate, dialogue-train's development or m-world evaluate, which use the
+     mixture". The chat-214 M checkpoints are pointer models, so every `snap-evaluate` number in
+     this session (0.8770, 0.9138, 0.9607) belongs to a different scoring path and is not directly
+     comparable to a pointer model's number. Comparisons across the two must use `evaluate`.
+  2. Neither `evaluate` nor `snap-evaluate` accepts `device=` in this build (a38bb57c8), although
+     `train` does and the name is a known option. The 214 M evaluation therefore runs on CPU:
+     measured 625 % CPU utilisation across six-plus cores, 57 minutes of CPU time in nine minutes
+     of wall time, with no progress output before completion. At that rate a 16,384-target scan is
+     hours, not minutes, and the run was left to finish rather than cancelled.
+
+WHAT WOULD MAKE THIS CHEAP
+  * A device selection for the evaluation modes, or an evaluation build that uses the GPU the
+    training path already uses. The 214 M model is the project's strongest chat artifact and it is
+    currently the most expensive thing to score.
+  * A smaller declared scan (`tune_blocks`) for coarse decisions: the question here is whether
+    214 M lands near the 19.9 M arm's 0.8770 or far below it, which a few thousand targets answer.
+  * Publishing a chat corpus in the store, which is what the data lever needs.
+
+SCOPE
+  No model-quality number is claimed in this document: the 214 M evaluation had not completed.
+  Everything above is either a listing, a tool's own error message, or measured process CPU.
