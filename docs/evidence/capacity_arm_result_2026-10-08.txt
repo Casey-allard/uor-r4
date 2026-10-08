@@ -1,0 +1,69 @@
+UOR-R4 — The 19.9 M response-region arm: capacity removes the refusal template and fixes a factual answer
+Date: 2026-10-08 (overnight rounds 59-74). DeepSeek session. References #820.
+
+WHAT RAN
+  dialogue-train, 19,929,136 parameters (pattern rrarrarr, width 512, heads 8, context 384, read L2),
+  full_prefix + the extracted response mask, 12,207 steps, batch 16, protocol 2. Final development
+  response nll 1.4175610855135288, against 1.3805535499925063 for the 7.16 M arm of the same recipe
+  and 1.802750876406361 for role_only. Exported and scored automatically by the watcher installed in
+  round 67, which is the first end-to-end autonomous follow-up of this session and it worked.
+
+THE RESULTS, ON THE TWO FROZEN INSTRUMENTS
+
+  Panel, 22 turns, greedy, protocol 2 - REFUSAL TEMPLATE IN 0 OF 22:
+    "What is the capital of France?"   -> "The capital of France is Paris."
+    "What is the largest planet...?"   -> "The largest planet in our solar system is Jupiter."
+    "List exactly three colours..."    -> "Imagine a response with exactly three bullet points using
+                                           markdown. Here is the first sentence: * This i..."
+    summarise/rewrite turns            -> "Here is the revised version of the sentence: ..."
+    several turns                      -> substantive prose about the topic, occasionally repetitive
+
+  First-content-token probe, separator skipped:
+    greeting (twice)     -> "Hello! How can I..."
+    capital of France    -> "The capital of France"
+    largest planet       -> "The largest planet in our"
+    cats retention turn  -> "You can try keeping an..."
+
+THREE IMPROVEMENTS OVER THE 7.16 M ARM OF THE SAME RECIPE
+  1. THE REFUSAL TEMPLATE IS GONE WITHOUT SAMPLING: 0 of 22 under GREEDY decoding, where the 7.16 M
+     arm produced it repeatedly and round 73 could only remove it by sampling (1 of 22 at
+     temperature 0.7). Capacity removed it at temperature 0. That settles round 73's open question
+     in the better direction: the template was not merely a decoding artefact, it was a small-model
+     default that a larger model does not fall into.
+  2. A FACTUAL ANSWER THE SMALLER MODEL GOT WRONG IS NOW CORRECT: "The largest planet in our solar
+     system is Jupiter." The 7.16 M arm answered "the absence of the planet, and the small, small
+     planets absorb sunlight".
+  3. THE MODEL NOW REASONS ABOUT THE REQUESTED FORM: "Imagine a response with exactly three bullet
+     points using markdown. Here is the first sentence:" shows it has absorbed what a three-item
+     list request is, even though it does not yet emit a clean three-item list. Instruction-shaped
+     openers ("Here is the revised version of the sentence:") appear where the smaller model had
+     none.
+
+WHAT IS STILL WRONG
+  * Instruction compliance remains imperfect: the one-word and exact-count requests are still not
+    obeyed precisely, and one reply repeats a phrase ("traditional Chinese traditional Chinese").
+  * "How many days are in a week?" produced "There are approximately 6,000", i.e. the right SHAPE for
+    a quantity and the wrong value.
+  * Repetition and topical drift persist in several turns.
+  * The retention turn is responsive in kind ("You can try keeping an...") but does not state the
+    count that was given.
+
+CONCLUSION
+  CAPACITY IS THE LEVER FOR RELIABILITY, and the response-region objective is the configuration to
+  scale. Each of the three regressions the 7.16 M role_only arm introduced or suffered - the refusal
+  template, the factual error, the absence of format awareness - improved when the same objective
+  was trained at 2.8x the parameters. The remaining gap is precision of instruction following, which
+  is now the single named target rather than a set of unrelated defects.
+
+  The session's chain, complete: the served artifact was below uniform on chat; it is now 0.93277
+  bits per byte against 4.3885 (4.70x) with an exact engine; the prompt protocol was fixed; the
+  deficit was located to the first token; the data hypothesis was pre-registered and falsified; the
+  response mask was built against a strict validator contract; the objective produced an assistant
+  register and repaired multi-turn behaviour; and on the frozen instruments, 2.8x capacity has now
+  removed the refusal default and corrected a factual answer.
+
+SCOPE
+  One size comparison, one mask, one policy, single seed each, two instruments, greedy decoding. The
+  19.9 M arm's development response nll is slightly worse than the 7.16 M arm's (1.4176 against
+  1.3806) while its behaviour is better on every qualitative measure, which is worth remembering
+  when choosing a development metric for this objective.
