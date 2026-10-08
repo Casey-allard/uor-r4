@@ -1,0 +1,51 @@
+UOR-R4 — Adding short-form content to the stopping signal does not move the one-word or numeric classes
+Date: 2026-10-08 (overnight rounds 104-108). DeepSeek session. References #820.
+
+WHAT RAN - THE FIRST RUN WITH BOTH HALVES PRESENT
+  policy=full_prefix, the hash-proven response mask, UOR_TERMINAL_WEIGHT=60 (the measured best dose),
+  and a training stream that is 82.2 M tokens of chat PLUS 20,000 synthetic documents whose assistant
+  turn is the correct answer (1,425,557 tokens, 14.9 % response fraction against the chat corpus's
+  68.9 %). The synthetic store required three format repairs before it would train at all, each caught
+  by a strict check: the generator is its own binary rather than a mode; its mask omitted the literal
+  Assistant marker that dialogue_episodes.rs:385-405 requires, so the five marker ids were inserted
+  with mask 0 before each of the 20,000 responses; and the rebuilt store kept the old UORT header
+  count, which the mixer reads.
+
+RESULT ON PANEL V2 (first two content tokens)
+
+  yes/no, sky blue            "Yes, there"    COMPLIES
+  yes/no, is ice hot?         "Yes, ice"      COMPLIES in form
+  yes/no, third               "(sitting a"    does not
+  retention, name             "My name"       RESPONDS (one of two retention turns)
+  follow-up                   "You can"       responds
+  France / largest planet     "The capital" / "The largest"   openers intact
+  one-word turns              "I do" / "To make"              do NOT comply
+  numeric turns               "The number" / "To find" / "A dog"  do NOT comply
+  list turn                   "The colneyway"                 does not comply
+
+COMPARISON WITH THE STOPPING SIGNAL ALONE (w=60)
+  The combination reproduces the yes/no compliance and the factual openers, and retention answers once
+  rather than twice. ADDING 20,000 SHORT-FORM DOCUMENTS DID NOT MOVE THE ONE-WORD OR NUMERIC CLASSES
+  AT ALL, which is the result that matters: the content half, even paired with the stop signal, does
+  not produce single-token answers.
+
+WHY, AND WHAT IT MEANS
+  A plausible and specific explanation, recorded as a hypothesis and not a finding: the synthetic
+  documents supply SHORT ANSWERS in their own question forms, but they do not carry the INSTRUCTION
+  "answer with exactly one word" - the short reply is the corpus's natural mode for those documents
+  rather than a demanded form. So the model received demonstration of brevity without demonstration of
+  FORM COMPLIANCE, and it therefore still fails turns that demand a form explicitly. That is testable
+  by regenerating with demand-bearing user turns (the generator exposes forms and panel options) and
+  re-running this exact configuration.
+
+  What is now excluded: data VOLUME of the right kind in the wrong shape (this arm), capacity (2.8x),
+  optimization (2x), decoding (sampling), the prompt protocol (fixed), and raw data support (14.75x
+  episodes of the corpus's own short replies). What remains is that the requested form must appear in
+  the training data AS A DEMAND, not merely as a habit - and if that too fails, the per-token
+  objective is the last explanation for exactly why it cannot.
+
+SCOPE
+  One configuration, one synthetic store (20,000 documents), one weight, single seed, greedy decoding,
+  one panel. The four format repairs consumed the round, so this is the first measurement of the
+  combination and the control comparison to w=60 alone is by panel reading rather than a paired
+  statistic.
