@@ -1,0 +1,1091 @@
+{
+  "schema": "uor-r4.cue-consumption-boundary-evidence/1",
+  "date": "2026-10-08",
+  "source_commit": "c65157b33ac1026ee7fc21b085193e8870bda15f",
+  "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-6069122675",
+  "predecessor_delivery": {
+    "pr": 1963,
+    "merge_commit_prefix": "ab5b116",
+    "fresh_main": "c65157b33ac1026ee7fc21b085193e8870bda15f",
+    "closure_prefix": "a481",
+    "merge_commit": "ab5b116f484324c08c5989baf2280590438ad2e1",
+    "closure_revision": "a481a847e2ad2219693417888345665038dc331c"
+  },
+  "execution_scope": "saved-only integer algebra and packed table reads; no encoder, gradient, ranking, model step or export",
+  "analysis": {
+    "root": "/workspace/uor-r4/codex/sol-cue-consumption/analysis-attempt1",
+    "result": {
+      "path": "/workspace/uor-r4/codex/sol-cue-consumption/analysis-attempt1/result.json",
+      "bytes": 49166,
+      "sha256": "e7261636d668d88d91538eb08d94815601be6a6c0be8b267bffd31d7789900d5"
+    },
+    "helper": {
+      "path": "/workspace/uor-r4/codex/sol-cue-consumption/analysis-attempt1/helper.py",
+      "bytes": 7463,
+      "sha256": "9f9295ee030b8e27ed5525219db723a3ed7dd5bfb057a4ae30577b4c7e881799"
+    },
+    "inventory": {
+      "path": "/workspace/uor-r4/codex/sol-cue-consumption/analysis-attempt1/inventory.json",
+      "bytes": 559,
+      "sha256": "9dcd18935212b1aa61ec9d48b35d10f5ca1eb00cc644e94f78fbc071a6d678be"
+    },
+    "rust_seal": "NOT_USED; explicit saved-analysis SHA inventory",
+    "elapsed_seconds": 0.43556587398052216,
+    "peak_rss_kib": 38092
+  },
+  "sources": [
+    {
+      "path": "/root/codex/uor-r4/crates/uor-r4-integer/src/geometric_cue_carrier.rs",
+      "bytes": 26830,
+      "sha256": "a16a2ae0b8602d6595d62b4f38de38eeec85f1f97492f8a3d4faaaa059d522a8"
+    },
+    {
+      "path": "/root/codex/uor-r4/crates/uor-r4-integer/src/geometric_source_realizer.rs",
+      "bytes": 121294,
+      "sha256": "b72f3e91ba825dfccd66015b52597a1e1a14ad5c1e1c0554cfd6f0eaa65f9b48"
+    }
+  ],
+  "ancestors": [
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/report.json",
+      "bytes": 56566,
+      "sha256": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/manifest.json",
+      "bytes": 22237,
+      "sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/report.json",
+      "bytes": 90570,
+      "sha256": "975cdaf9185f21ceb4c867d4cbb00eafbe6079ad05a36cc481b86621600bffea"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/manifest.json",
+      "bytes": 11978,
+      "sha256": "6d51345dbc5c4fc3307a2b79f113470b8f1434f1496a5dc2146c59f305557bfd"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/checkpoint-0001/cue/cue-q4.bin",
+      "bytes": 480,
+      "sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/checkpoint-0001/cue/cue-joint-q4.bin",
+      "bytes": 8,
+      "sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/checkpoint-0001/cue/native-metadata.json",
+      "bytes": 1940,
+      "sha256": "dbd845cf1c9ca9a52c07d80775be3775e453ab276a514430e39664755bbef9d6"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/checkpoint-0001/native/metadata.json",
+      "bytes": 5868,
+      "sha256": "cafa67126b7595541e4bc57e681d20f89e41de0886f393354703c31b9f16628e"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/checkpoint-0001/generate.bin",
+      "bytes": 282226,
+      "sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/checkpoint-0001/cue/cue-q4.bin",
+      "bytes": 480,
+      "sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/checkpoint-0001/cue/cue-joint-q4.bin",
+      "bytes": 8,
+      "sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/checkpoint-0001/cue/native-metadata.json",
+      "bytes": 1940,
+      "sha256": "09a4e4ae4f47cd4993f3f62016d779442b9d4b888d68f363d382edee91cbc776"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/checkpoint-0001/native/metadata.json",
+      "bytes": 5868,
+      "sha256": "2a79a8e75a8c9614d6802146af0c5d0b6ceed0e09668151b571ea3beb75efab8"
+    },
+    {
+      "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/checkpoint-0001/generate.bin",
+      "bytes": 282226,
+      "sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737"
+    }
+  ],
+  "source_binding_caution": "Baseline Source9f is authenticated by sealed saved baseline frames and prior audit. The probe checkpoint native metadata belongs to the historical unselected category413 negative export (cafa), not the operative baseline Source9f. Its identical Cue coefficient payload is used only as numerical table authority.",
+  "frames": [
+    {
+      "input_index": 245,
+      "position": 3,
+      "id": "development-diverse-length4-07-swap0-q0-forward-home",
+      "actual_prefix_ids": [
+        617,
+        2097,
+        315
+      ],
+      "baseline_file": {
+        "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0245-position-03.json",
+        "bytes": 1105346,
+        "sha256": "5a0ec8c1353d64560d546b8404f495004bd4325534782955b4e519e3868e2748"
+      },
+      "candidate_file": {
+        "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/candidate-row-0245-position-03.json",
+        "bytes": 1105331,
+        "sha256": "5fc3c1c471ca6a15534819fd6551fe3400ac4306a862c216b21a8dc6bc05d340"
+      },
+      "baseline_source_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b",
+      "candidate_source_sha256": "2a79a8e75a8c9614d6802146af0c5d0b6ceed0e09668151b571ea3beb75efab8",
+      "lanes": [
+        {
+          "flat_lane": 0,
+          "head": 0,
+          "lane": 0,
+          "query": {
+            "present": true,
+            "radius_bin": 7,
+            "root": 75
+          },
+          "baseline": {
+            "latent_state": 101,
+            "raw_root": 56,
+            "category": 26,
+            "observed": {
+              "present": true,
+              "radius_bin": 25,
+              "root": 56
+            },
+            "both_present": true,
+            "relative_root": 57,
+            "angular_index": 57,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 101,
+            "raw_root": 56,
+            "category": 26,
+            "observed": {
+              "present": true,
+              "radius_bin": 25,
+              "root": 56
+            },
+            "both_present": true,
+            "relative_root": 57,
+            "angular_index": 57,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 1,
+          "head": 0,
+          "lane": 1,
+          "query": {
+            "present": true,
+            "radius_bin": 4,
+            "root": 65
+          },
+          "baseline": {
+            "latent_state": 12,
+            "raw_root": 34,
+            "category": 16,
+            "observed": {
+              "present": true,
+              "radius_bin": 15,
+              "root": 34
+            },
+            "both_present": true,
+            "relative_root": 60,
+            "angular_index": 60,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 12,
+            "raw_root": 34,
+            "category": 16,
+            "observed": {
+              "present": true,
+              "radius_bin": 15,
+              "root": 34
+            },
+            "both_present": true,
+            "relative_root": 60,
+            "angular_index": 60,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 2,
+          "head": 0,
+          "lane": 2,
+          "query": {
+            "present": true,
+            "radius_bin": 6,
+            "root": 72
+          },
+          "baseline": {
+            "latent_state": 59,
+            "raw_root": 14,
+            "category": 1,
+            "observed": {
+              "present": true,
+              "radius_bin": 0,
+              "root": 14
+            },
+            "both_present": true,
+            "relative_root": 113,
+            "angular_index": 113,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 59,
+            "raw_root": 14,
+            "category": 1,
+            "observed": {
+              "present": true,
+              "radius_bin": 0,
+              "root": 14
+            },
+            "both_present": true,
+            "relative_root": 113,
+            "angular_index": 113,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 3,
+          "head": 0,
+          "lane": 3,
+          "query": {
+            "present": true,
+            "radius_bin": 26,
+            "root": 18
+          },
+          "baseline": {
+            "latent_state": 38,
+            "raw_root": 98,
+            "category": 15,
+            "observed": {
+              "present": true,
+              "radius_bin": 14,
+              "root": 98
+            },
+            "both_present": true,
+            "relative_root": 65,
+            "angular_index": 65,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 38,
+            "raw_root": 98,
+            "category": 15,
+            "observed": {
+              "present": true,
+              "radius_bin": 14,
+              "root": 98
+            },
+            "both_present": true,
+            "relative_root": 65,
+            "angular_index": 65,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 4,
+          "head": 1,
+          "lane": 0,
+          "query": {
+            "present": true,
+            "radius_bin": 20,
+            "root": 103
+          },
+          "baseline": {
+            "latent_state": 13,
+            "raw_root": 9,
+            "category": 15,
+            "observed": {
+              "present": true,
+              "radius_bin": 14,
+              "root": 9
+            },
+            "both_present": true,
+            "relative_root": 48,
+            "angular_index": 48,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 27,
+            "raw_root": 74,
+            "category": 25,
+            "observed": {
+              "present": true,
+              "radius_bin": 24,
+              "root": 74
+            },
+            "both_present": true,
+            "relative_root": 96,
+            "angular_index": 96,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": -4194304
+        },
+        {
+          "flat_lane": 5,
+          "head": 1,
+          "lane": 1,
+          "query": {
+            "present": false,
+            "radius_bin": 0,
+            "root": 1
+          },
+          "baseline": {
+            "latent_state": 14,
+            "raw_root": 100,
+            "category": 6,
+            "observed": {
+              "present": true,
+              "radius_bin": 5,
+              "root": 100
+            },
+            "both_present": false,
+            "relative_root": null,
+            "angular_index": null,
+            "coefficient_q4": null,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 62,
+            "raw_root": 100,
+            "category": 20,
+            "observed": {
+              "present": true,
+              "radius_bin": 19,
+              "root": 100
+            },
+            "both_present": false,
+            "relative_root": null,
+            "angular_index": null,
+            "coefficient_q4": null,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 6,
+          "head": 1,
+          "lane": 2,
+          "query": {
+            "present": true,
+            "radius_bin": 30,
+            "root": 24
+          },
+          "baseline": {
+            "latent_state": 61,
+            "raw_root": 76,
+            "category": 0,
+            "observed": {
+              "present": false,
+              "radius_bin": 0,
+              "root": 1
+            },
+            "both_present": false,
+            "relative_root": null,
+            "angular_index": null,
+            "coefficient_q4": null,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 82,
+            "raw_root": 88,
+            "category": 24,
+            "observed": {
+              "present": true,
+              "radius_bin": 23,
+              "root": 88
+            },
+            "both_present": true,
+            "relative_root": 113,
+            "angular_index": 113,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 7,
+          "head": 1,
+          "lane": 3,
+          "query": {
+            "present": true,
+            "radius_bin": 27,
+            "root": 86
+          },
+          "baseline": {
+            "latent_state": 102,
+            "raw_root": 5,
+            "category": 19,
+            "observed": {
+              "present": true,
+              "radius_bin": 18,
+              "root": 5
+            },
+            "both_present": true,
+            "relative_root": 98,
+            "angular_index": 98,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 59,
+            "raw_root": 74,
+            "category": 1,
+            "observed": {
+              "present": true,
+              "radius_bin": 0,
+              "root": 74
+            },
+            "both_present": true,
+            "relative_root": 82,
+            "angular_index": 82,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 4194304
+        }
+      ],
+      "joint": {
+        "config": {
+          "head": 1,
+          "left_lane": 1,
+          "right_lane": 3
+        },
+        "baseline_left_relative": null,
+        "candidate_left_relative": null,
+        "baseline_right_relative": 98,
+        "candidate_right_relative": 82,
+        "both_present": false,
+        "contribution_q24": 0
+      },
+      "head_sums": [
+        {
+          "head": 0,
+          "baseline_q24": 12582912,
+          "candidate_q24": 12582912,
+          "joint_q24": 0,
+          "delta_q24": 0
+        },
+        {
+          "head": 1,
+          "baseline_q24": 4194304,
+          "candidate_q24": 4194304,
+          "joint_q24": 0,
+          "delta_q24": 0
+        }
+      ],
+      "candidate_cue_indices": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "cue1_physical_ordinals": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "within_source_target_rival": {
+        "target_ordinal": 7,
+        "target_token": 267,
+        "target_offset": 1,
+        "rival_ordinal": 8,
+        "rival_token": 307,
+        "rival_offset": 2,
+        "source_segment_index": 3,
+        "event": 1,
+        "record": 2,
+        "commit": 2,
+        "cue_index": 1,
+        "baseline_cue_gap_q24": 0,
+        "candidate_cue_gap_q24": 0,
+        "scope": "same-source direct Cue gap invariant; no global pool or donor invariance implied generally"
+      },
+      "cue_copy_equal": true,
+      "prefix_copy_equal": true,
+      "final_physical_copy_equal": true
+    },
+    {
+      "input_index": 245,
+      "position": 4,
+      "id": "development-diverse-length4-07-swap0-q0-forward-home",
+      "actual_prefix_ids": [
+        617,
+        2097,
+        315,
+        1057
+      ],
+      "baseline_file": {
+        "path": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0245-position-04.json",
+        "bytes": 1102332,
+        "sha256": "2154e5d534f6b72556f9d0e6828b09df065ad90053b907638ef724879d23a706"
+      },
+      "candidate_file": {
+        "path": "/workspace/uor-r4/codex/sol-context-finite-3610/runs/finite-3610-0001-attempt1/candidate-row-0245-position-04.json",
+        "bytes": 1102317,
+        "sha256": "5e7f458535bf67263f0ade8e7b86b18b332b867bab34c2a73589329bc38c16b9"
+      },
+      "baseline_source_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b",
+      "candidate_source_sha256": "2a79a8e75a8c9614d6802146af0c5d0b6ceed0e09668151b571ea3beb75efab8",
+      "lanes": [
+        {
+          "flat_lane": 0,
+          "head": 0,
+          "lane": 0,
+          "query": {
+            "present": true,
+            "radius_bin": 7,
+            "root": 75
+          },
+          "baseline": {
+            "latent_state": 101,
+            "raw_root": 56,
+            "category": 26,
+            "observed": {
+              "present": true,
+              "radius_bin": 25,
+              "root": 56
+            },
+            "both_present": true,
+            "relative_root": 57,
+            "angular_index": 57,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 101,
+            "raw_root": 56,
+            "category": 26,
+            "observed": {
+              "present": true,
+              "radius_bin": 25,
+              "root": 56
+            },
+            "both_present": true,
+            "relative_root": 57,
+            "angular_index": 57,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 1,
+          "head": 0,
+          "lane": 1,
+          "query": {
+            "present": true,
+            "radius_bin": 4,
+            "root": 65
+          },
+          "baseline": {
+            "latent_state": 12,
+            "raw_root": 34,
+            "category": 16,
+            "observed": {
+              "present": true,
+              "radius_bin": 15,
+              "root": 34
+            },
+            "both_present": true,
+            "relative_root": 60,
+            "angular_index": 60,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 12,
+            "raw_root": 34,
+            "category": 16,
+            "observed": {
+              "present": true,
+              "radius_bin": 15,
+              "root": 34
+            },
+            "both_present": true,
+            "relative_root": 60,
+            "angular_index": 60,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 2,
+          "head": 0,
+          "lane": 2,
+          "query": {
+            "present": true,
+            "radius_bin": 6,
+            "root": 72
+          },
+          "baseline": {
+            "latent_state": 59,
+            "raw_root": 14,
+            "category": 1,
+            "observed": {
+              "present": true,
+              "radius_bin": 0,
+              "root": 14
+            },
+            "both_present": true,
+            "relative_root": 113,
+            "angular_index": 113,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 59,
+            "raw_root": 14,
+            "category": 1,
+            "observed": {
+              "present": true,
+              "radius_bin": 0,
+              "root": 14
+            },
+            "both_present": true,
+            "relative_root": 113,
+            "angular_index": 113,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 3,
+          "head": 0,
+          "lane": 3,
+          "query": {
+            "present": true,
+            "radius_bin": 26,
+            "root": 18
+          },
+          "baseline": {
+            "latent_state": 38,
+            "raw_root": 98,
+            "category": 15,
+            "observed": {
+              "present": true,
+              "radius_bin": 14,
+              "root": 98
+            },
+            "both_present": true,
+            "relative_root": 65,
+            "angular_index": 65,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 38,
+            "raw_root": 98,
+            "category": 15,
+            "observed": {
+              "present": true,
+              "radius_bin": 14,
+              "root": 98
+            },
+            "both_present": true,
+            "relative_root": 65,
+            "angular_index": 65,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 4,
+          "head": 1,
+          "lane": 0,
+          "query": {
+            "present": true,
+            "radius_bin": 20,
+            "root": 103
+          },
+          "baseline": {
+            "latent_state": 13,
+            "raw_root": 9,
+            "category": 15,
+            "observed": {
+              "present": true,
+              "radius_bin": 14,
+              "root": 9
+            },
+            "both_present": true,
+            "relative_root": 48,
+            "angular_index": 48,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "candidate": {
+            "latent_state": 27,
+            "raw_root": 74,
+            "category": 25,
+            "observed": {
+              "present": true,
+              "radius_bin": 24,
+              "root": 74
+            },
+            "both_present": true,
+            "relative_root": 96,
+            "angular_index": 96,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": -4194304
+        },
+        {
+          "flat_lane": 5,
+          "head": 1,
+          "lane": 1,
+          "query": {
+            "present": false,
+            "radius_bin": 0,
+            "root": 1
+          },
+          "baseline": {
+            "latent_state": 14,
+            "raw_root": 100,
+            "category": 6,
+            "observed": {
+              "present": true,
+              "radius_bin": 5,
+              "root": 100
+            },
+            "both_present": false,
+            "relative_root": null,
+            "angular_index": null,
+            "coefficient_q4": null,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 62,
+            "raw_root": 100,
+            "category": 20,
+            "observed": {
+              "present": true,
+              "radius_bin": 19,
+              "root": 100
+            },
+            "both_present": false,
+            "relative_root": null,
+            "angular_index": null,
+            "coefficient_q4": null,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 6,
+          "head": 1,
+          "lane": 2,
+          "query": {
+            "present": true,
+            "radius_bin": 30,
+            "root": 24
+          },
+          "baseline": {
+            "latent_state": 61,
+            "raw_root": 76,
+            "category": 0,
+            "observed": {
+              "present": false,
+              "radius_bin": 0,
+              "root": 1
+            },
+            "both_present": false,
+            "relative_root": null,
+            "angular_index": null,
+            "coefficient_q4": null,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 82,
+            "raw_root": 88,
+            "category": 24,
+            "observed": {
+              "present": true,
+              "radius_bin": 23,
+              "root": 88
+            },
+            "both_present": true,
+            "relative_root": 113,
+            "angular_index": 113,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "contribution_delta_q24": 0
+        },
+        {
+          "flat_lane": 7,
+          "head": 1,
+          "lane": 3,
+          "query": {
+            "present": true,
+            "radius_bin": 27,
+            "root": 86
+          },
+          "baseline": {
+            "latent_state": 102,
+            "raw_root": 5,
+            "category": 19,
+            "observed": {
+              "present": true,
+              "radius_bin": 18,
+              "root": 5
+            },
+            "both_present": true,
+            "relative_root": 98,
+            "angular_index": 98,
+            "coefficient_q4": 0,
+            "contribution_q24": 0
+          },
+          "candidate": {
+            "latent_state": 59,
+            "raw_root": 74,
+            "category": 1,
+            "observed": {
+              "present": true,
+              "radius_bin": 0,
+              "root": 74
+            },
+            "both_present": true,
+            "relative_root": 82,
+            "angular_index": 82,
+            "coefficient_q4": 1,
+            "contribution_q24": 4194304
+          },
+          "contribution_delta_q24": 4194304
+        }
+      ],
+      "joint": {
+        "config": {
+          "head": 1,
+          "left_lane": 1,
+          "right_lane": 3
+        },
+        "baseline_left_relative": null,
+        "candidate_left_relative": null,
+        "baseline_right_relative": 98,
+        "candidate_right_relative": 82,
+        "both_present": false,
+        "contribution_q24": 0
+      },
+      "head_sums": [
+        {
+          "head": 0,
+          "baseline_q24": 12582912,
+          "candidate_q24": 12582912,
+          "joint_q24": 0,
+          "delta_q24": 0
+        },
+        {
+          "head": 1,
+          "baseline_q24": 4194304,
+          "candidate_q24": 4194304,
+          "joint_q24": 0,
+          "delta_q24": 0
+        }
+      ],
+      "candidate_cue_indices": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "cue1_physical_ordinals": [
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "within_source_target_rival": {
+        "target_ordinal": 7,
+        "target_token": 267,
+        "target_offset": 1,
+        "rival_ordinal": 8,
+        "rival_token": 307,
+        "rival_offset": 2,
+        "source_segment_index": 3,
+        "event": 1,
+        "record": 2,
+        "commit": 2,
+        "cue_index": 1,
+        "baseline_cue_gap_q24": 0,
+        "candidate_cue_gap_q24": 0,
+        "scope": "same-source direct Cue gap invariant; no global pool or donor invariance implied generally"
+      },
+      "cue_copy_equal": true,
+      "prefix_copy_equal": true,
+      "final_physical_copy_equal": true
+    }
+  ],
+  "finding": "Changed observed indices reach the Cue lookup: flat4 q1 to0 decreases4194304Q24 and flat7 q0 to1 increases4194304Q24. The exact head1 cancellation leaves Cue adjustments unchanged. Flat6 becomes present at zero coefficient; absent query flat5 masks unary and ordered joint. No unused-channel or wiring-bug inference is supported.",
+  "source_boundary": {
+    "addresses": "crates/uor-r4-integer/src/geometric_cue_carrier.rs:229",
+    "masked_lookup": "crates/uor-r4-integer/src/geometric_cue_carrier.rs:175",
+    "candidate_mapping": "crates/uor-r4-integer/src/geometric_cue_carrier.rs:475",
+    "lane_and_joint_sum": "crates/uor-r4-integer/src/geometric_cue_carrier.rs:512",
+    "consumer": "crates/uor-r4-integer/src/geometric_source_realizer.rs:607",
+    "radius": "retained but unused under declared Cue policy",
+    "same_source_gap": "all Source3 physical offsets use Cue1; direct Cue gap between target267 offset1 and rival307 offset2 is zero; interSource competition and indirect donor/pool effects remain possible"
+  },
+  "prior_model_outcome": {
+    "finite_candidate": "retained negative and unselected; no adoption",
+    "baseline_combined_ce": 4.391651926613631,
+    "candidate_combined_ce": 4.8622219108984925,
+    "reference_winners": [
+      17,
+      15
+    ],
+    "task_target_mass_unchanged": 298710449,
+    "task_denominator_unchanged": 16027151659,
+    "selected_model": false,
+    "previous_complete_replies": "8/512; unchanged original scope; no new reply evaluation"
+  },
+  "unavailable": {
+    "per_term_raw_gradients": "UNAVAILABLE; PRESENT during backward did not preserve a term contribution",
+    "per_term_runtime_metadata": "UNAVAILABLE; saved frame/report artifact identities are retained"
+  },
+  "reviews": {
+    "math": {
+      "status": "PASS independent saved arithmetic/source/provenance review; no encoder/model computation",
+      "receipt": {
+        "path": "/workspace/uor-r4/codex/sol-cue-consumption/math-review.json",
+        "bytes": 1968,
+        "sha256": "73d785e8ad14d8ff1f7dd1f16b3645273ce337a240863acdb085b8d0bce4d529"
+      }
+    },
+    "adversarial": {
+      "status": "PASS independent saved numeric/source/provenance and prospective docs review",
+      "receipt": {
+        "path": "/workspace/uor-r4/codex/sol-cue-consumption/adversarial-review.json",
+        "bytes": 2955,
+        "sha256": "75eac4fab649a90e1ee40bdb14d8cfc86283440007dafda6e957b6c0bec36208"
+      }
+    }
+  },
+  "private_preservation": {
+    "revision": "b932ccb1f18964d8e0125330f7c55bc0e815fa15",
+    "prefix": "codex/sol-cue-consumption/saved-boundary-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "b7701aefdcc0a0207da33091950220e1b54ea5e2b95cd2cee2aa6fd50d14c0e3",
+        "bytes": 1349
+      },
+      "prior-private-authorities.json": {
+        "sha256": "bc01b116416dd8c702ffa0c60c9f9b26df81b76b93a5e6599f2ef6b77d5e3dac",
+        "bytes": 509
+      },
+      "geometric_source_realizer.rs": {
+        "sha256": "b72f3e91ba825dfccd66015b52597a1e1a14ad5c1e1c0554cfd6f0eaa65f9b48",
+        "bytes": 121294
+      },
+      "geometric_cue_carrier.rs": {
+        "sha256": "a16a2ae0b8602d6595d62b4f38de38eeec85f1f97492f8a3d4faaaa059d522a8",
+        "bytes": 26830
+      },
+      "resource-ledger.json": {
+        "sha256": "795da14897d706c75fa69d72ab4c3c0ac8d7ebcc476763418449d0403a33890b",
+        "bytes": 1007
+      },
+      "adversarial-review.json": {
+        "sha256": "75eac4fab649a90e1ee40bdb14d8cfc86283440007dafda6e957b6c0bec36208",
+        "bytes": 2955
+      },
+      "math-review.json": {
+        "sha256": "73d785e8ad14d8ff1f7dd1f16b3645273ce337a240863acdb085b8d0bce4d529",
+        "bytes": 1968
+      },
+      "helper.py": {
+        "sha256": "9f9295ee030b8e27ed5525219db723a3ed7dd5bfb057a4ae30577b4c7e881799",
+        "bytes": 7463
+      },
+      "result.json": {
+        "sha256": "e7261636d668d88d91538eb08d94815601be6a6c0be8b267bffd31d7789900d5",
+        "bytes": 49166
+      },
+      "inventory.json": {
+        "sha256": "9dcd18935212b1aa61ec9d48b35d10f5ca1eb00cc644e94f78fbc071a6d678be",
+        "bytes": 559
+      }
+    },
+    "seconds": 7.108001135289669,
+    "completed_utc": "2026-10-08T21:21:57.033651+00:00"
+  },
+  "protected_delivery": "PENDING; documentation is not merged",
+  "resources": {
+    "pod_cpu_threads": 2,
+    "ram_limit_bytes": 1073741824,
+    "retained_limit_bytes": 8388608,
+    "temporary_limit_bytes": 16777216,
+    "cumulative_projection_seconds": 558870,
+    "increment_seconds": 0,
+    "local_downloads": "NOT_RUN; disk below30GiB floor"
+  },
+  "next_prospective_question": "After protected delivery and prospective admission, joint Context/Cue coadaptation at the existing observed features using the original selected parent and the same task245pos4 plus17-reference gate. Do not adopt the negative candidate, repeat another transition coordinate/dose, or describe Cue-only changes as a within-Source offset fix."
+}
