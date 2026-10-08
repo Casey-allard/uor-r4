@@ -1,0 +1,47 @@
+UOR-R4 — Data versus architecture, settled: in-domain training data is worth 0.159 BPB, size 0.084
+Date: 2026-10-08 (overnight round 12). DeepSeek session. References #820.
+
+THE CONFOUND ROUND 10 LEFT
+  The 19.9 M chat-only stack reached 0.8770 BPB (fused float) against the sealed 8M mix-trained
+  model's 1.1199, but size, data and recipe all differed at once, so the gain could not be
+  attributed.
+
+THE CONTROL
+  Same parameter count as the sealed model - **7,155,396**, the exact figure in the sealed
+  geo-8m-l2 record - same architecture (pattern rrarra, width 288, heads 6, context 384, read L2,
+  float), same recipe (batch 32, lr 4e-4, warmup 500, 12,207 steps = 150 M tokens), same
+  evaluation (snap-evaluate, 512 windows, 196,608 targets), same held-out stream
+  sha256 e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef.
+  The only difference from the sealed record is the training data: chat-v0-p2 train only, instead
+  of the TinyStories / TinyDialogues / chat mix.
+
+RESULT
+
+  arm                        parameters   data                   fused float BPB
+  sealed geo-8m-l2            7,155,396    TS/TD/chat mix              1.1199
+  this control                7,155,396    chat-v0-p2 train only       0.9607
+  round 10 arm               19,929,136    chat-v0-p2 train only       0.8770
+
+  snapped references for the control: nll 1.962771862745285, top-1 agreement 0.8675.
+
+DECOMPOSITION OF THE 1.1199 -> 0.8770 IMPROVEMENT
+  in-domain training data (mix -> chat only, at matched size)    -0.1592 BPB
+  model size (7.16 M -> 19.93 M, at matched data)                -0.0837 BPB
+  Both are real; the data term is roughly twice the size term at this scale.
+
+WHAT IT SETTLES
+  1. The project's best sealed model was itself handicapped by data, not only the served artifact:
+     the same 7.16 M architecture trained on the evaluation distribution is 0.16 BPB better than
+     the mix-trained one that the board has been quoting.
+  2. The 19.9 M chat-only model at 0.8770 - and 0.9550 through the multiplier-free D11 engine -
+     is the best measured real-text result in this project, and both of its advantages are now
+     attributed: 0.16 from data, 0.08 from size.
+  3. For scale decisions this inverts the usual instinct: at this size, matching the training
+     distribution to the evaluation one buys twice what doubling the parameters buys. The next
+     spend should buy data coverage first, size second.
+
+SCOPE
+  Single seed per arm. One corpus (chat-v0-p2), one held-out stream, one byte basis (2.837427
+  bytes per token). 512 windows rather than a full-file scan, so a claim finer than about
+  0.01 BPB needs the document-clustered protocol from round 2. The two arms differ in the number
+  of steps to the same token budget and in nothing else that is recorded here.
