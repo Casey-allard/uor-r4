@@ -1,0 +1,67 @@
+UOR-R4 — With mass and answer length controlled, attribute extraction still fails: it is a capability gap, not a masking artifact
+Date: 2026-10-08 (overnight rounds 140-143). DeepSeek session. References #820.
+
+THE ARM THAT SEPARATES THE CONFOUND
+  The two previous attribute arms changed two things at once. This one holds the mixture variables
+  where the compliant configuration had them: 1,100 documents, 9,360 response tokens - 69.89 % BELOW
+  the 31,084 of the store that produced ten-of-ten compliance - with turn-1 answers at a mean of 3.77
+  tokens (max 5) rather than long authored sentences, and the dependency structure intact
+  (transformation fraction 1.000000, i.e. copying turn 1's answer passes 0 of 1,100 documents).
+  Verified: 16 clauses 0 offenders in two implementations, corruption rejected by the project's
+  EpisodeIndex, 2,200/2,200 responses admitted with 0 excluded. Same chat corpus, 19.9 M shape,
+  policy=full_prefix, UOR_TERMINAL_WEIGHT=60, panel v2.
+
+RESULT
+
+  form compliance - LARGELY RESTORED
+    one word, grass      "green."      COMPLIES, and correct
+    yes/no sky blue      "Yes."        COMPLIES, correct
+    yes/no fish/trees    "No."         COMPLIES, correct
+    yes/no ice hot       "No."         COMPLIES, correct
+    numeric x3           "3." "3." "3."  numeric FORM, facts wrong
+    further items        "Neon." "Nineteen."  short, in-form
+    one-word bees, list, capital, planet  do not comply ("Another case", "A simple", "The capital")
+
+  retention - STILL NOT ANSWERED, AND NOW WITH A VISIBLE CAUSE
+    the two retention turns both return "Noted." - which is a TURN-1 ACKNOWLEDGEMENT from this
+    store's own family, not a corpus behaviour and not an answer. The model has learned the
+    acknowledgement register of the mixture and applies it where a recalled attribute was asked for.
+
+  content - UNGROUNDED
+    the numeric items all return "3.", the count family's canonical answer, regardless of the
+    question. The model has learned the FAMILY PATTERN of the store rather than the grounding of a
+    particular question - which is exactly the failure mode the short-premise design was built to
+    avoid, now observed with mass and length controlled.
+
+WHAT THIS SETTLES
+  1. ATTRIBUTE EXTRACTION ACROSS A TURN IS A CAPABILITY GAP AT THIS SCALE, NOT A MASKING ARTIFACT.
+     Rounds 134 and 136 confounded attribute difficulty with long-answer dilution; this arm removes
+     that confound - the mixture teaches within the compliant envelope (9,360 response tokens, mean
+     answer 3.77) and still produces no cross-turn recall. So the earlier failures were not caused by
+     the store's length profile, and the remaining explanation is capability: a 19.9 M model in this
+     architecture learns the SURFACE FAMILIES of the mixture without binding a follow-up to the
+     attribute it asks about.
+  2. FORM COMPLIANCE, BY CONTRAST, SURVIVES ALL OF IT: four configurations, two shapes, two terminal
+     weights, and now a store 70 % smaller than the one that first produced it - still with correct
+     yes/no facts and a correct one-word colour ("green."). What the demand store teaches is robust;
+     what the attribute store was meant to add is not learned at this scale.
+  3. THE DEGENERATE "Noted." IS ITSELF EVIDENCE. It is the store's own acknowledgement token
+     reappearing where an attribute was requested, which localises the failure to BINDING rather than
+     to the absence of the training signal: the model reproduces the mixture's surface forms and does
+     not connect a question to the span its answer depends on.
+
+WHERE THIS LEAVES THE PROJECT
+  The measured recipe is unchanged and is the best configuration the session has: chat corpus + a
+  small short-answer demand store (700-2,860 documents, and now demonstrated as low as 1,100 with
+  9,360 response tokens) + the 19.9 M shape + UOR_TERMINAL_WEIGHT=60. It complies on form-demanded
+  turns with correct content for the factual classes, converses canonically, states a correct fact
+  ("Jupiter") and anchors a follow-up ("My cat,").
+  Cross-turn attribute BINDING is now a named, isolated capability gap with three failed routes
+  behind it (dependency-carrying documents, longer premises, shorter premises at 70 % less mass), and
+  it is the honest next target - not a mixture-tuning question any more, and not solvable by making
+  the store better.
+
+SCOPE
+  Six store/scale configurations across the night, one shape family, single seed each, greedy decoding,
+  one panel read as the first two content tokens. Exact for this panel; the capability conclusion is
+  about cross-turn binding at 19.9 M and does not claim a scaling law.
