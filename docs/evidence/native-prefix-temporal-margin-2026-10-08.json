@@ -1,0 +1,516 @@
+{
+  "schema": "uor-r4.saved-temporal-margin-evidence/1",
+  "recorded_utc": "2026-10-08T19:15:57.668973+00:00",
+  "executed_source": "f674da6ab382ad51bdb2a887b47f358ee4392b3c",
+  "producer_sha256": "e8828760db2e2b415bb996e9e729f1a9ab8d788fe396a5bd84344173e8b9dba9",
+  "shared_margins_sha256": "8ecd14d99a34f1745c6f7c24716e6c20431a77c77812e7c57e95115642490b13",
+  "binary_sha256": "b919461559e4da5b2d89f82cb35dcd027e9f84563e1ab382473730c920ffc195",
+  "candidate": {
+    "actual_delta": -0.3554798662662506,
+    "after": -2,
+    "before": -1,
+    "decoded": {
+      "basis_component": 2,
+      "class": 62,
+      "head": 1,
+      "lane": 3
+    },
+    "dot_off": -0.0004952498372175033,
+    "dot_on": -0.002501638380482049,
+    "g_difference_f64": 0.005644169286824763,
+    "g_off": 0.0013931867433711886,
+    "g_on": 0.0070373560301959515,
+    "index": 3610,
+    "master_after": -0.5,
+    "master_before": -0.1445201337337494,
+    "name": "consumer.context.self_transition",
+    "raw_difference_f32": 0.005644169170409441,
+    "temporal_dot": -0.0020063885432645458
+  },
+  "candidate_authority": "recorded first on_directed.top20_temporal_dot entry; no rerank",
+  "input_pins": {
+    "derived_report_sha256": "3a0c30dff9c8bd9b1f5c7a30251de432b90ef07b62f77ff79ab1d3b00bca0722",
+    "derived_manifest_sha256": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b",
+    "probe_report_sha256": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9",
+    "probe_manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332",
+    "parent_report_sha256": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+    "parent_manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5"
+  },
+  "task245": {
+    "local_action_changes": 0,
+    "local_rows": 29,
+    "scope": "both savedpos3/4 task carriers"
+  },
+  "references": {
+    "local_action_changes": 2,
+    "local_rows": 152,
+    "scope": "16 source-control frames"
+  },
+  "task_carriers": {
+    "actual_prefix_position3": [
+      617,
+      2097,
+      315
+    ],
+    "actual_prefix_position4": [
+      617,
+      2097,
+      315,
+      1057
+    ],
+    "annotation_scope": "attached after all181 held-input margins; preceding actual donor identity is distinct from independent expected-source-role authority; no claim that local crossing propagates to a fullpool fix",
+    "input_index": 245,
+    "preceding_actual_donor": {
+      "bank_index": 6,
+      "context_position": 39,
+      "event": 1,
+      "occurrence": {
+        "commit": 2,
+        "record": 2,
+        "token_id": 1057,
+        "token_offset": 0
+      },
+      "segment_index": 3
+    },
+    "response_old_state": [
+      99,
+      112,
+      81,
+      119,
+      97,
+      115,
+      19,
+      85
+    ],
+    "response_position4_rows": [
+      {
+        "class": 62,
+        "component": 2,
+        "factor_state": 85,
+        "frozen_input_action_changed": false,
+        "head": 1,
+        "hypothetical_winner": 74,
+        "index": 3610,
+        "input_index": 245,
+        "lane": 3,
+        "name": "consumer.context.self_transition",
+        "neighbor": 97,
+        "own": 85,
+        "position": 4,
+        "scope": "Response last token at position4; old state from saved position3",
+        "selected_class_effect_q24": -1296112,
+        "selected_class_gap_q24": 8388607,
+        "token_id": 1057,
+        "winner": 74,
+        "winner_margin_q24": 305970
+      }
+    ],
+    "source_offset0_rows": [
+      {
+        "class": 62,
+        "component": 2,
+        "factor_state": 1,
+        "frozen_input_action_changed": false,
+        "head": 1,
+        "hypothetical_winner": 15,
+        "index": 3610,
+        "input_index": 245,
+        "lane": 3,
+        "name": "consumer.context.self_transition",
+        "neighbor": 1,
+        "own": 1,
+        "position": 3,
+        "scope": "Source segment3 token0",
+        "selected_class_effect_q24": 0,
+        "selected_class_gap_q24": 12582912,
+        "token_id": 1057,
+        "winner": 15,
+        "winner_margin_q24": 0
+      },
+      {
+        "class": 62,
+        "component": 2,
+        "factor_state": 1,
+        "frozen_input_action_changed": false,
+        "head": 1,
+        "hypothetical_winner": 15,
+        "index": 3610,
+        "input_index": 245,
+        "lane": 3,
+        "name": "consumer.context.self_transition",
+        "neighbor": 1,
+        "own": 1,
+        "position": 4,
+        "scope": "Source segment3 token0",
+        "selected_class_effect_q24": 0,
+        "selected_class_gap_q24": 12582912,
+        "token_id": 1057,
+        "winner": 15,
+        "winner_margin_q24": 0
+      }
+    ],
+    "source_offset0_token": 1057,
+    "source_old_state_scope": "isolated Source-before token0; selected segment comes from preceding factual bridge witness, not target filtering",
+    "token_literal_posthoc": "\u0120warm"
+  },
+  "saved_input_margins": {
+    "cohort": [
+      {
+        "input_index": 245,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 14
+      },
+      {
+        "input_index": 245,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 14
+      },
+      {
+        "input_index": 0,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 0,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 1,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 1,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 4,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 4,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 5,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 5,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 8,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 8,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 9,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 9,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 12,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 12,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 13,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 13,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      }
+    ],
+    "compiled_table_bytes": 44564480,
+    "hypothetical_candidates": 1,
+    "limitations": [
+      "Hypothetical one-coefficient local score changes hold every visited input fixed; changed states would propagate differently in a real recurrence",
+      "These margins do not establish objective descent, autoregressive success, original-eight retention or complete512 improvement",
+      "No preceding response states before position3 retained; no earlier response transition margins fabricated"
+    ],
+    "local_action_changes": 2,
+    "local_input_rows": 181,
+    "packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+    "saved_rows": {
+      "bytes": 73526,
+      "file": "saved-input-action-margins.json",
+      "sha256": "aa8228999290e92a164246c3b73516c8bf85f4c7a83cb6be7a0347d47373b418"
+    },
+    "scope": "Exact regenerated native table scores at saved Source-before inputs and saved position3-to4 response input; no encoder advance, candidate artifact, model replay or new finite displacement"
+  },
+  "execution": {
+    "argv": [
+      "/root/codex/prototype-target/release/examples/native-prefix-temporal-margin",
+      "/workspace/uor-r4/codex/sol-transition-credit/runs/decomposition-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-temporal-margin-3610/runs/margin-3610-0001-attempt1"
+    ],
+    "exit_code": 0,
+    "source_commit": "f674da6ab382ad51bdb2a887b47f358ee4392b3c",
+    "binary_sha256": "b919461559e4da5b2d89f82cb35dcd027e9f84563e1ab382473730c920ffc195",
+    "started_utc": "2026-10-08T19:07:47.335678+00:00",
+    "ended_utc": "2026-10-08T19:08:04.682526+00:00",
+    "elapsed_seconds": 17.346880577504635,
+    "children_max_rss_kib": 217812,
+    "scope": "native local integer score arithmetic at held saved Prefix inputs; no encoder advance/backward/new finite candidate/model"
+  },
+  "checks": {
+    "job": "20261008T190541Z-sol-prototype-20261008-gpu0",
+    "actual_tests": 3,
+    "result": "focused tests/scoped fmt/release CUDA build PASS",
+    "reviews": "exact f674 producer/shared-module mathematical and adversarial source PASS"
+  },
+  "independent_audit": {
+    "arithmetic_module_sha256": "dac81df4ddc644c45d71bc6234064bbadb4ee7fe3d1a04978f96962b2e36ddc0",
+    "binary_sha256": "b919461559e4da5b2d89f82cb35dcd027e9f84563e1ab382473730c920ffc195",
+    "candidate": {
+      "actual_delta": -0.3554798662662506,
+      "after": -2,
+      "before": -1,
+      "decoded": {
+        "basis_component": 2,
+        "class": 62,
+        "head": 1,
+        "lane": 3
+      },
+      "dot_off": -0.0004952498372175033,
+      "dot_on": -0.002501638380482049,
+      "g_difference_f64": 0.005644169286824763,
+      "g_off": 0.0013931867433711886,
+      "g_on": 0.0070373560301959515,
+      "index": 3610,
+      "master_after": -0.5,
+      "master_before": -0.1445201337337494,
+      "name": "consumer.context.self_transition",
+      "raw_difference_f32": 0.005644169170409441,
+      "temporal_dot": -0.0020063885432645458
+    },
+    "carrier_local_changes": {
+      "response_position4": 0,
+      "source_offset0": 0
+    },
+    "executed_source": "f674da6ab382ad51bdb2a887b47f358ee4392b3c",
+    "inventories": {
+      "derived": {
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "bytes": 8850245,
+        "files": 6,
+        "manifest_sha256": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b"
+      },
+      "parent": {
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "bytes": 378554003,
+        "files": 1100,
+        "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5"
+      },
+      "probe": {
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "bytes": 204338578,
+        "files": 122,
+        "manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332"
+      },
+      "run": {
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "bytes": 84181,
+        "files": 4,
+        "manifest_sha256": "7641ad62431ff4250b38744631f018e2731ca64e3e36a9b38107c6ad4281f902"
+      }
+    },
+    "limits": [
+      "Rust complete BLAKE3 seals verified separately",
+      "No fresh gradient reads or reranking; one already authenticated saved candidate",
+      "Direct native held-input arithmetic only; no encoder advance, backward, recurrent/fullpool/objective/complete-reply test",
+      "Posthoc actual donor identity is distinct from independent expected-source-role authority"
+    ],
+    "margins": {
+      "cached_score_vectors": 28,
+      "local_action_changes": 2,
+      "rows": 181,
+      "scope": "fixed visited inputs only; no recurrent/finite model effect established"
+    },
+    "reader_sha256": "0c2600f0a99912938f43a8f5e1fd68b86a192358f55906e4272523ba8c5a8431",
+    "references": {
+      "local_action_changes": 2,
+      "local_rows": 152,
+      "scope": "16 source-control frames"
+    },
+    "status": "PASS",
+    "task245": {
+      "local_action_changes": 0,
+      "local_rows": 29,
+      "scope": "both savedpos3/4 task carriers"
+    }
+  },
+  "audit_execution": {
+    "status": "PASS",
+    "steps": [
+      {
+        "kind": "new_saved_analysis",
+        "exit_code": 0,
+        "seconds": 0.09996578842401505,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "kind": "prior_decomposition",
+        "exit_code": 0,
+        "seconds": 0.12954595685005188,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "kind": "prior_probe",
+        "exit_code": 0,
+        "seconds": 1.909140270203352,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "kind": "recovered_parent",
+        "exit_code": 0,
+        "seconds": 14.028170429170132,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "kind": "independent_reader",
+        "exit_code": 0,
+        "seconds": 18.135760109871626,
+        "max_rss_kib": 206484
+      }
+    ],
+    "elapsed_seconds": 34.302607130259275,
+    "completed_utc": "2026-10-08T19:09:51.465481+00:00",
+    "reader_sha256": "0c2600f0a99912938f43a8f5e1fd68b86a192358f55906e4272523ba8c5a8431",
+    "scope": "saved independent arithmetic; no encoder/backward/finite/model"
+  },
+  "preservation": {
+    "revision": "2a0d07771436ced1e3961d4d1b5fe42c1d3e3d3e",
+    "prefix": "codex/sol-temporal-margin-3610/complete-f674da6ab3",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "923f33461b7fef86b5edc425baf1a4110f23df274b422f6ecdecd8f622aec45d",
+        "bytes": 1354
+      },
+      "checks.log": {
+        "sha256": "a751287987b81bb5e399524234ad919f1c8f65af8689e0e70b020d2d23b59fe5",
+        "bytes": 7393
+      },
+      "native-prefix-temporal-margin": {
+        "sha256": "b919461559e4da5b2d89f82cb35dcd027e9f84563e1ab382473730c920ffc195",
+        "bytes": 1238536
+      },
+      "saved-evidence.tar.gz": {
+        "sha256": "add99320e46e356555a19905a854249caee9c7a944e1de87a52738ef547773ff",
+        "bytes": 20886
+      },
+      "source.tar.gz": {
+        "sha256": "8937d9455faa3efd0c001a1cbaf8177d7057e3e6ca4784eb6c884ccec0144bfa",
+        "bytes": 99451659
+      }
+    },
+    "manifest": {
+      "source_commit": "f674da6ab382ad51bdb2a887b47f358ee4392b3c",
+      "source_tree": "5a97704bd56bdaa28cacf606639d4fd414ae6e7c",
+      "binary_sha256": "b919461559e4da5b2d89f82cb35dcd027e9f84563e1ab382473730c920ffc195",
+      "report_sha256": "92d8ee5f688a37c5449418e74523b4e6c85431a6653f1c9d18fde2398422591e",
+      "manifest_sha256": "7641ad62431ff4250b38744631f018e2731ca64e3e36a9b38107c6ad4281f902",
+      "report_files": 4,
+      "report_bytes": 84181,
+      "audit_sha256": "532dcceb01a5cf52f011c840cfe13332c186d656f89bf8c0953cbd926d5ffbaf",
+      "reader_sha256": "0c2600f0a99912938f43a8f5e1fd68b86a192358f55906e4272523ba8c5a8431",
+      "scope": "saved gradient ranks and exact native local margins at authenticated fixed inputs; no new model/encoder/backward/finite artifact or prediction claim",
+      "files": {
+        "checks.log": {
+          "sha256": "a751287987b81bb5e399524234ad919f1c8f65af8689e0e70b020d2d23b59fe5",
+          "bytes": 7393
+        },
+        "native-prefix-temporal-margin": {
+          "sha256": "b919461559e4da5b2d89f82cb35dcd027e9f84563e1ab382473730c920ffc195",
+          "bytes": 1238536
+        },
+        "saved-evidence.tar.gz": {
+          "sha256": "add99320e46e356555a19905a854249caee9c7a944e1de87a52738ef547773ff",
+          "bytes": 20886
+        },
+        "source.tar.gz": {
+          "sha256": "8937d9455faa3efd0c001a1cbaf8177d7057e3e6ca4784eb6c884ccec0144bfa",
+          "bytes": 99451659
+        }
+      }
+    },
+    "seconds": 46.31061900779605,
+    "completed_utc": "2026-10-08T19:14:03.147605+00:00"
+  },
+  "cost": {
+    "cumulative_projection_seconds": 558870,
+    "new_increment": 0,
+    "remaining_projection_task_estimate_seconds": 2400,
+    "cpu_threads": 2,
+    "process_ram_bytes": 1073741824,
+    "report_cap_bytes": 2097152,
+    "local_Cargo_or_model": "NOT_RUN",
+    "large_local_download": "NOT_RUN",
+    "manual_runner_deployment": "UNVERIFIED"
+  },
+  "interpretation": "One temporal-ranked shared transition q-1\u2192-2 crosses no saved task245 Prefix/Source action boundary; two reference local crossings. Sourcewarm factorcomponent2=0 atidentity, responsewarm lowers already losingclass62. This is not recurrent finite evidence or a Context/seam/capacity rejection.",
+  "recoverable_U_carrier": {
+    "status": "AVAILABLE_OLD_STATE_NOT_MEASURED",
+    "source": "NativeBankGenerator::step encodes bank.query_ids.chain(actual_prefix); same-query pos3 continuation.state_codes is the old state before appending warm atpos4",
+    "distinction": "U query+prefix encoder differs from source-free Prefix response encoder",
+    "authority": "sealed baseline245pos3/4 native.continuation state/query_count/prefix_count and actual token prefix"
+  },
+  "next": "After actual protected merge, inspect exact saved U query+prefix3\u21924 warm local margin for the same declared displacement, without reranking/encoder/gradient repeat. Use that actual distinct carrier evidence to decide a prospective recurrent finite candidate versus native Context construction; do not blindly fit3610.",
+  "limits": [
+    "Native local operator arithmetic executed at held authenticated inputs; no encoder advance/new backward/gradient reads/reranking",
+    "No finite candidate artifact, optimizer, recurrent model evaluation or model selection",
+    "Preceding actual BASE donor annotations are posthoc and separate from expected-source-role authority",
+    "No new fullprefix/original-eight/AR/full512 qualification; prior8/512 retains its scope",
+    "Earlier response/bank/query/U trajectories outside this margin scope do not become global no-effect claims"
+  ]
+}
