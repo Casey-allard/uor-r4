@@ -1,0 +1,485 @@
+{
+  "schema": "uor-r4.prefix-transition-credit-evidence/1",
+  "recorded_utc": "2026-10-08T18:53:29.438895+00:00",
+  "executed_source": "a1b77d7c6a8f6c0a5f1bf875efca5a8f6c2c7998",
+  "binary_sha256": "e065356b7ea36ec098928b893a86fbc72a0587f8b07a86df26bd7d62bf1b2937",
+  "source_sha256": {
+    "ranker": "819e435797f9ff597b439e8adb37ce046c3b330d05228c051c3c8e1692aba334",
+    "margins": "8ecd14d99a34f1745c6f7c24716e6c20431a77c77812e7c57e95115642490b13"
+  },
+  "fixed_prior": {
+    "pr": 1947,
+    "report": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9",
+    "seal": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332",
+    "parent_source": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b",
+    "objective": "same saved task245position4 +mean17 reference frames; no new backward"
+  },
+  "authenticated_master_basis_scalars": 17472,
+  "analyzed_transition_scalars": 7680,
+  "rank_counts": {
+    "difference_directed": {
+      "eligible_scalars": 7680,
+      "legal_changed": 7680,
+      "missing_scalars": 0,
+      "negative_off_dot": 3803,
+      "negative_on_dot": 4405,
+      "negative_temporal_dot": 7680,
+      "prospective_scalars": 7680,
+      "saturated": 0,
+      "zero_direction_gradient": 0
+    },
+    "on_directed": {
+      "eligible_scalars": 7680,
+      "legal_changed": 7680,
+      "missing_scalars": 0,
+      "negative_off_dot": 7078,
+      "negative_on_dot": 7680,
+      "negative_temporal_dot": 4405,
+      "prospective_scalars": 7680,
+      "saturated": 0,
+      "zero_direction_gradient": 0
+    }
+  },
+  "top_total_on": {
+    "actual_delta": 0.3215477466583252,
+    "after": 2,
+    "before": 1,
+    "decoded": {
+      "basis_component": 0,
+      "class": 55,
+      "head": 0,
+      "lane": 3
+    },
+    "dot_off": -0.007062358688299408,
+    "dot_on": -0.006528818647446144,
+    "g_difference_f64": 0.0016592871397733688,
+    "g_off": -0.021963639184832573,
+    "g_on": -0.020304352045059204,
+    "index": 1660,
+    "master_after": 0.5,
+    "master_before": 0.1784522533416748,
+    "name": "consumer.context.self_transition",
+    "raw_difference_f32": 0.0016592871397733688,
+    "temporal_dot": 0.0005335400408532642
+  },
+  "top_temporal_on_directed": {
+    "actual_delta": -0.3554798662662506,
+    "after": -2,
+    "before": -1,
+    "decoded": {
+      "basis_component": 2,
+      "class": 62,
+      "head": 1,
+      "lane": 3
+    },
+    "dot_off": -0.0004952498372175033,
+    "dot_on": -0.002501638380482049,
+    "g_difference_f64": 0.005644169286824763,
+    "g_off": 0.0013931867433711886,
+    "g_on": 0.0070373560301959515,
+    "index": 3610,
+    "master_after": -0.5,
+    "master_before": -0.1445201337337494,
+    "name": "consumer.context.self_transition",
+    "raw_difference_f32": 0.005644169170409441,
+    "temporal_dot": -0.0020063885432645458
+  },
+  "top_temporal_difference_directed": {
+    "actual_delta": 0.34706342965364456,
+    "after": 1,
+    "before": 0,
+    "decoded": {
+      "basis_component": 0,
+      "class": 13,
+      "head": 0,
+      "lane": 0
+    },
+    "dot_off": 0.002417674542764623,
+    "dot_on": 0.00026225306354083107,
+    "g_difference_f64": -0.006210454041138291,
+    "g_off": 0.006966088432818651,
+    "g_on": 0.0007556343916803598,
+    "index": 52,
+    "master_after": 0.25,
+    "master_before": -0.09706342965364456,
+    "name": "consumer.context.neighbor_transition",
+    "raw_difference_f32": -0.006210453808307648,
+    "temporal_dot": -0.002155421479223792
+  },
+  "numerics": {
+    "actual_delta": "f64(q_after/4)-f64(original fractional master)",
+    "coordinate_shape": [
+      2,
+      4,
+      120,
+      4
+    ],
+    "quarter_round": "f32(master*4).round ties-away; exact parent native packing; adjacent code clamp[-7,7]",
+    "rank_ties": "utility ascending, family name, flattened index",
+    "temporal_dot": "(f64(g_ON)-f64(g_OFF))*same actual_delta; recorded f32 difference is separately authenticated"
+  },
+  "saved_input_margins": {
+    "cohort": [
+      {
+        "input_index": 245,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 14
+      },
+      {
+        "input_index": 245,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 14
+      },
+      {
+        "input_index": 0,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 0,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 1,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 1,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 4,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 4,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 5,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 5,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 8,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 8,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 9,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 9,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 12,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 12,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 13,
+        "position": 3,
+        "response_inputs_scope": "UNAVAILABLE preceding response state at position3; endpoint state only",
+        "source_inputs": 9
+      },
+      {
+        "input_index": 13,
+        "position": 4,
+        "response_inputs_scope": "PRESENT last response transition only; earlier response input states unavailable",
+        "source_inputs": 9
+      }
+    ],
+    "compiled_table_bytes": 44564480,
+    "hypothetical_candidates": 20,
+    "limitations": [
+      "Hypothetical one-coefficient local score changes hold every visited input fixed; changed states would propagate differently in a real recurrence",
+      "These margins do not establish objective descent, autoregressive success, original-eight retention or complete512 improvement",
+      "No preceding response states before position3 retained; no earlier response transition margins fabricated"
+    ],
+    "local_action_changes": 157,
+    "local_input_rows": 3620,
+    "packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+    "saved_rows": {
+      "bytes": 1410021,
+      "file": "saved-input-action-margins.json",
+      "sha256": "a943c74dcf05fc0ac7d5944787dbc089cc7849cacbd4d53b8915bc13a8e31a11"
+    },
+    "scope": "Exact regenerated native table scores at saved Source-before inputs and saved position3-to4 response input; no encoder advance, candidate artifact, model replay or new finite displacement"
+  },
+  "local_changes_by_coordinate": [
+    {
+      "name": "consumer.context.neighbor_transition",
+      "index": 1552,
+      "changes": 34
+    },
+    {
+      "name": "consumer.context.neighbor_transition",
+      "index": 1768,
+      "changes": 39
+    },
+    {
+      "name": "consumer.context.self_transition",
+      "index": 545,
+      "changes": 2
+    },
+    {
+      "name": "consumer.context.self_transition",
+      "index": 601,
+      "changes": 18
+    },
+    {
+      "name": "consumer.context.self_transition",
+      "index": 1516,
+      "changes": 16
+    },
+    {
+      "name": "consumer.context.self_transition",
+      "index": 1660,
+      "changes": 32
+    },
+    {
+      "name": "consumer.context.self_transition",
+      "index": 1820,
+      "changes": 16
+    }
+  ],
+  "top_total_on_task245_local_changes": 0,
+  "top_temporal3610_margin": "NOT_RUN, not among top20 totalON margin candidates",
+  "execution": {
+    "argv": [
+      "/root/codex/prototype-target/release/examples/native-prefix-transition-credit-audit",
+      "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-transition-credit/runs/decomposition-0001-attempt1"
+    ],
+    "exit_code": 0,
+    "source_commit": "a1b77d7c6a8f6c0a5f1bf875efca5a8f6c2c7998",
+    "binary_sha256": "e065356b7ea36ec098928b893a86fbc72a0587f8b07a86df26bd7d62bf1b2937",
+    "started_utc": "2026-10-08T18:47:11.583049+00:00",
+    "ended_utc": "2026-10-08T18:47:27.146861+00:00",
+    "elapsed_seconds": 15.563837334513664,
+    "children_max_rss_kib": 217676,
+    "scope": "saved arithmetic and exact regenerated tables at fixed saved inputs; no forward/encoder/backward/finite/model"
+  },
+  "checks": {
+    "job": "20261008T184532Z-sol-prototype-20261008-gpu0",
+    "count": 4,
+    "result": "actual focused tests/scoped fmt/release CUDA build PASS",
+    "reviews": "exact a1 mathematical and adversarial source PASS"
+  },
+  "independent_audit": {
+    "binary_sha256": "e065356b7ea36ec098928b893a86fbc72a0587f8b07a86df26bd7d62bf1b2937",
+    "executed_source": "a1b77d7c6a8f6c0a5f1bf875efca5a8f6c2c7998",
+    "inventories": {
+      "parent": {
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "bytes": 378554003,
+        "files": 1100,
+        "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5"
+      },
+      "probe": {
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "bytes": 204338578,
+        "files": 122,
+        "manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332"
+      },
+      "run": {
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "bytes": 8850245,
+        "files": 6,
+        "manifest_sha256": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b"
+      }
+    },
+    "limits": [
+      "Rust complete BLAKE3 seals verified separately",
+      "No encoder/backward/gradient replication or autoregressive rollout",
+      "Direct saved native local score arithmetic is executed; changed-input recurrent finite behavior is not tested"
+    ],
+    "margins": {
+      "cached_score_vectors": 196,
+      "local_action_changes": 157,
+      "rows": 3620,
+      "scope": "fixed visited inputs only; no recurrent/finite model effect established"
+    },
+    "rank_counts": {
+      "difference_directed": {
+        "eligible_scalars": 7680,
+        "legal_changed": 7680,
+        "missing_scalars": 0,
+        "negative_off_dot": 3803,
+        "negative_on_dot": 4405,
+        "negative_temporal_dot": 7680,
+        "prospective_scalars": 7680,
+        "saturated": 0,
+        "zero_direction_gradient": 0
+      },
+      "on_directed": {
+        "eligible_scalars": 7680,
+        "legal_changed": 7680,
+        "missing_scalars": 0,
+        "negative_off_dot": 7078,
+        "negative_on_dot": 7680,
+        "negative_temporal_dot": 4405,
+        "prospective_scalars": 7680,
+        "saturated": 0,
+        "zero_direction_gradient": 0
+      }
+    },
+    "reader_sha256": "dac81df4ddc644c45d71bc6234064bbadb4ee7fe3d1a04978f96962b2e36ddc0",
+    "status": "PASS"
+  },
+  "audit_execution": {
+    "status": "PASS",
+    "steps": [
+      {
+        "kind": "new_saved_analysis",
+        "exit_code": 0,
+        "seconds": 0.18064730241894722,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "kind": "prior_probe",
+        "exit_code": 0,
+        "seconds": 1.919698502868414,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "kind": "recovered_parent",
+        "exit_code": 0,
+        "seconds": 12.08972429484129,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "kind": "independent_reader",
+        "exit_code": 0,
+        "seconds": 14.346827644854784,
+        "max_rss_kib": 206424
+      }
+    ],
+    "elapsed_seconds": 28.53692116960883,
+    "completed_utc": "2026-10-08T18:49:25.791465+00:00",
+    "reader_sha256": "dac81df4ddc644c45d71bc6234064bbadb4ee7fe3d1a04978f96962b2e36ddc0",
+    "scope": "saved independent arithmetic; no encoder/backward/finite/model"
+  },
+  "preservation": {
+    "revision": "dbbd2cd718cc13b4700708070dff2c8fd5d1811e",
+    "prefix": "codex/sol-transition-credit/complete-a1b77d7c6a",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "408a6d1a53961c86d1d5f9038d2ec6cd6848349d2779028104fc3abd943ab9b7",
+        "bytes": 1366
+      },
+      "checks.log": {
+        "sha256": "b5ea5592f3011a45257bd295f827e7e96f8421be2fb3d9ba738216090e127295",
+        "bytes": 7549
+      },
+      "native-prefix-transition-credit-audit": {
+        "sha256": "e065356b7ea36ec098928b893a86fbc72a0587f8b07a86df26bd7d62bf1b2937",
+        "bytes": 1347776
+      },
+      "saved-evidence.tar.gz": {
+        "sha256": "a5f7dc4d5053352bf24a43838ca4594c85b4016307b529d322aab82e4e89bafa",
+        "bytes": 1633666
+      },
+      "source.tar.gz": {
+        "sha256": "ccb06621c5b3fbfb0e32eb6d3fee5c2f3dab9dae448be010f348b93bd1c10863",
+        "bytes": 99435904
+      }
+    },
+    "manifest": {
+      "source_commit": "a1b77d7c6a8f6c0a5f1bf875efca5a8f6c2c7998",
+      "source_tree": "27471363df621508be94543e39ba6295d81221e1",
+      "binary_sha256": "e065356b7ea36ec098928b893a86fbc72a0587f8b07a86df26bd7d62bf1b2937",
+      "report_sha256": "3a0c30dff9c8bd9b1f5c7a30251de432b90ef07b62f77ff79ab1d3b00bca0722",
+      "manifest_sha256": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b",
+      "report_files": 6,
+      "report_bytes": 8850245,
+      "audit_sha256": "bf5ddc7f28796c36c7473833543649dcf70a7da4982b3b4dd9f4148470e7d46b",
+      "reader_sha256": "dac81df4ddc644c45d71bc6234064bbadb4ee7fe3d1a04978f96962b2e36ddc0",
+      "scope": "saved gradient ranks and exact native local margins at authenticated fixed inputs; no new model/encoder/backward/finite artifact or prediction claim",
+      "files": {
+        "checks.log": {
+          "sha256": "b5ea5592f3011a45257bd295f827e7e96f8421be2fb3d9ba738216090e127295",
+          "bytes": 7549
+        },
+        "native-prefix-transition-credit-audit": {
+          "sha256": "e065356b7ea36ec098928b893a86fbc72a0587f8b07a86df26bd7d62bf1b2937",
+          "bytes": 1347776
+        },
+        "saved-evidence.tar.gz": {
+          "sha256": "a5f7dc4d5053352bf24a43838ca4594c85b4016307b529d322aab82e4e89bafa",
+          "bytes": 1633666
+        },
+        "source.tar.gz": {
+          "sha256": "ccb06621c5b3fbfb0e32eb6d3fee5c2f3dab9dae448be010f348b93bd1c10863",
+          "bytes": 99435904
+        }
+      }
+    },
+    "seconds": 28.421762209385633,
+    "completed_utc": "2026-10-08T18:51:36.686172+00:00"
+  },
+  "cost": {
+    "prior_cumulative_projection_seconds": 558870,
+    "same_remaining_projection_task_seconds": 3600,
+    "new_projection_increment": 0,
+    "cpu_threads": 2,
+    "process_ram_bytes": 1073741824,
+    "report_cap_bytes": 16777216,
+    "local_build_or_model": "NOT_RUN",
+    "large_local_download": "NOT_RUN",
+    "manual_runner_deployment": "UNVERIFIED"
+  },
+  "interpretation": "Temporal credit is distinct from total ON ranking. 1660 inherits descent while new temporal credit opposes it; 3610 has totalON/OFF/temporal descent dots, local margins not yet measured. Difference-only52 has totalON ascent and is not the declared-objective descent candidate. Hypothetical fixedinput action crossing is not recurrent finite improvement.",
+  "next": "After actual protected delivery, analyze only saved local margin3610 against actual task carrier inputs and references, without reranking/new gradient/encoder. Only justified task boundary evidence permits a prospective full native finite candidate; otherwise name omitted carrier inputs.",
+  "limits": [
+    "Native local integer operator score arithmetic EXECUTED at saved inputs; no native encoder or recurrent model forward",
+    "No gradient recomputation, candidate artifact export, optimizer, recurrent finite evaluation or model selection",
+    "No new fullprefix/original-eight/AR/full512 qualification; previous8/512 keeps its scope",
+    "Conditional surrogate/geometry/energy/useful model claims not promoted"
+  ]
+}
