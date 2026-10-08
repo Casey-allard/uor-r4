@@ -1,0 +1,61 @@
+UOR-R4 — RETRACTION: the Stage 4 shortlist result was a constant-shift artifact, not learning
+Date: 2026-10-08. DeepSeek session. References #820.
+Corrects: docs/evidence/native_geometric_lut4_shortlist_rerank_2026-10-08.txt (PR #1880).
+
+WHAT WAS CLAIMED
+  That a learned LUT-4 term re-ranking the baseline's top-64 improved held-out bits per byte on
+  real text: baseline 4.211070, soft 4.194177 (-0.016893), hard 4.191505 (-0.019565), supported by
+  a uniform-boost control that lost 0.048235 BPB at the same scale ("learned minus uniform boost
+  -0.067801").
+
+WHY IT IS WRONG
+  The served artifact emits ONE CONSTANT OUTPUT for every candidate. Instrumenting the artifact
+  output directly (now recorded by the harness) gives, on the held-out shortlists:
+
+    chosen_gates                [12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 0]
+    distinct_hard_outputs       1
+    distinct_soft_outputs       1  (to milli-precision)
+    hard_bit_tally              [4096, 0]   every candidate receives bit 0
+
+  Gate 12 is the pass-through gate A and gate 0 is FALSE, so the network's output is the constant
+  0 for every input. The "learned" correction is therefore a UNIFORM PENALTY of -scale/2 applied
+  to every shortlist candidate, and nothing else.
+
+  A uniform shortlist penalty lowers BPB here for a reason that has nothing to do with learning:
+  the target lies outside the top-64 shortlist for 80 % of held-out rows, so moving probability
+  mass off the shortlist is usually right. The uniform-BOOST control pointed the other way
+  (+0.048235) only because it moves mass the wrong way; the two constants are not mirror images,
+  because the softmax response to a fixed logit shift is not linear in the shift. The control
+  therefore did NOT isolate learning, and my reading of it was mistaken.
+
+CORRECTED STATUS OF THE STAGE 4 GATE
+  NOT PASSED. No measurement in this session shows a learned nonlinear term improving held-out BPB
+  on real text. The first form (all 4,096 candidates) moved BPB by +0.0000061 with the best of all
+  1,056 two-input terms; this form moved it by a constant shift that the term's degeneracy makes
+  indistinguishable from a fixed shortlist penalty. The plan's gate stands unmet.
+
+ROOT CAUSE OF THE DEGENERACY
+  Training drives the final gate to a constant and the first layer to the pass-through gate. With
+  balanced 0/1 labels the mixture's least-squares optimum at the initial wiring is a constant, and
+  the only mechanism that could change *which* features a gate reads is the connectivity utility
+  step, whose weight (0.01 * rate / batch) is far too weak to escape that optimum in 400 steps.
+  The plan's requirement "learnable connectivity (not fixed random)" is therefore still unmet in
+  this implementation: the wiring is initialised deterministically and never effectively moves.
+  Recorded as the defect that must be fixed before Stage 4 can be measured at all.
+
+WHAT THE HARNESS NOW GUARDS
+  `lut4-prose` reports `artifact_output_diagnostic` (hard-bit tally, distinct hard and soft output
+  counts, chosen gates) on every run, so a degenerate term can no longer be reported as an
+  improvement. The uniform-boost control stays, but it is necessary and not sufficient: the
+  degeneracy check is the load-bearing one.
+
+NEXT ACTION
+  1. Implement genuine connectivity learning (straight-through or score-based selection with a
+     real gradient scale), and assert the network is non-degenerate before measuring: at least two
+     distinct outputs on the training shortlists and a gate distribution that is not a single gate.
+  2. Only then re-run the held-out measurement, with a paired bootstrap interval, and report
+     learned-minus-uniform-shift rather than learned alone.
+  3. The cone-size defect noted in the same earlier document is the same failure seen from the
+     other side: `cone_sizes()` correctly reported 0, and I wrongly treated it as a bug in the
+     accounting rather than as the degeneracy it was. The accounting was right; the training is
+     what is broken.

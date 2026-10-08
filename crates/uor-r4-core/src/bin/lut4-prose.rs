@@ -246,63 +246,64 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let codebook = Codebook::<64>::on_demand(vocab, model.vsa_seed);
-    let load = |stream: &[usize],
-                start: usize,
-                count: usize|
-     -> Result<(Vec<Position>, Vec<Vec<Vec<f32>>>, usize), Box<dyn std::error::Error>> {
-        let mut rows = Vec::with_capacity(count);
-        let mut feature_rows = Vec::with_capacity(count);
-        let mut target_in_shortlist = 0usize;
-        for step in 0..count {
-            let end = start + step;
-            let ctx = &stream[end - args.seq_len..end];
-            let target = stream[end];
-            let fiber = model.context_predicted_fiber_q30(ctx);
-            let mut buf = [0u32; 64];
-            let n = ctx.len().min(64);
-            for (i, token) in ctx[ctx.len() - n..].iter().enumerate() {
-                buf[i] = *token as u32;
-            }
-            let ctx_vsa = encode_attended_multiscale_context(&buf[..n], &codebook, 64);
-            let mut scores = vec![0i32; vocab];
-            let mut terms_per_candidate = Vec::with_capacity(vocab);
-            let mut engram_active = 0.0f32;
-            for cand in 0..vocab {
-                let terms = model.score_context_candidate_terms(
-                    ctx,
-                    cand,
-                    fiber,
-                    Some((&codebook, &ctx_vsa)),
-                );
-                scores[cand] = terms.total();
-                if terms.engram != 0 {
-                    engram_active = 1.0;
+    let load =
+        |stream: &[usize],
+         start: usize,
+         count: usize|
+         -> Result<(Vec<Position>, Vec<Vec<Vec<f32>>>, usize), Box<dyn std::error::Error>> {
+            let mut rows = Vec::with_capacity(count);
+            let mut feature_rows = Vec::with_capacity(count);
+            let mut target_in_shortlist = 0usize;
+            for step in 0..count {
+                let end = start + step;
+                let ctx = &stream[end - args.seq_len..end];
+                let target = stream[end];
+                let fiber = model.context_predicted_fiber_q30(ctx);
+                let mut buf = [0u32; 64];
+                let n = ctx.len().min(64);
+                for (i, token) in ctx[ctx.len() - n..].iter().enumerate() {
+                    buf[i] = *token as u32;
                 }
-                terms_per_candidate.push(terms);
+                let ctx_vsa = encode_attended_multiscale_context(&buf[..n], &codebook, 64);
+                let mut scores = vec![0i32; vocab];
+                let mut terms_per_candidate = Vec::with_capacity(vocab);
+                let mut engram_active = 0.0f32;
+                for cand in 0..vocab {
+                    let terms = model.score_context_candidate_terms(
+                        ctx,
+                        cand,
+                        fiber,
+                        Some((&codebook, &ctx_vsa)),
+                    );
+                    scores[cand] = terms.total();
+                    if terms.engram != 0 {
+                        engram_active = 1.0;
+                    }
+                    terms_per_candidate.push(terms);
+                }
+                let mut order: Vec<usize> = (0..vocab).collect();
+                order.sort_by(|a, b| scores[*b].cmp(&scores[*a]).then_with(|| a.cmp(b)));
+                order.truncate(args.shortlist.min(vocab));
+                if order.contains(&target) {
+                    target_in_shortlist += 1;
+                }
+                let context_bits = [engram_active, f32::from(u8::from(ctx.len() >= 32))];
+                let mut rows_features = Vec::with_capacity(order.len());
+                for &cand in &order {
+                    let mut bits = vec![0.0f32; FEATURE_BITS];
+                    features(&terms_per_candidate[cand], context_bits, &mut bits);
+                    rows_features.push(bits);
+                }
+                feature_rows.push(rows_features);
+                rows.push(Position {
+                    target,
+                    bytes: token_bytes.get(target).copied().unwrap_or(1).max(1) as u64,
+                    scores,
+                    shortlist: order,
+                });
             }
-            let mut order: Vec<usize> = (0..vocab).collect();
-            order.sort_by(|a, b| scores[*b].cmp(&scores[*a]).then_with(|| a.cmp(b)));
-            order.truncate(args.shortlist.min(vocab));
-            if order.contains(&target) {
-                target_in_shortlist += 1;
-            }
-            let context_bits = [engram_active, f32::from(u8::from(ctx.len() >= 32))];
-            let mut rows_features = Vec::with_capacity(order.len());
-            for &cand in &order {
-                let mut bits = vec![0.0f32; FEATURE_BITS];
-                features(&terms_per_candidate[cand], context_bits, &mut bits);
-                rows_features.push(bits);
-            }
-            feature_rows.push(rows_features);
-            rows.push(Position {
-                target,
-                bytes: token_bytes.get(target).copied().unwrap_or(1).max(1) as u64,
-                scores,
-                shortlist: order,
-            });
-        }
-        Ok((rows, feature_rows, target_in_shortlist))
-    };
+            Ok((rows, feature_rows, target_in_shortlist))
+        };
 
     let (fit_rows, fit_features, fit_in) = load(&tokens, args.seq_len, fit_positions)?;
     let (select_rows, select_features, select_in) = load(&tokens, select_start, select_positions)?;
@@ -432,8 +433,9 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 .iter()
                 .map(|s| libm::exp((((*s - max) as f64) / SAMPLER_SCALE).clamp(-60.0, 0.0)))
                 .sum();
-            let p = libm::exp((((scores[row.target] - max) as f64) / SAMPLER_SCALE).clamp(-60.0, 0.0))
-                / sum;
+            let p =
+                libm::exp((((scores[row.target] - max) as f64) / SAMPLER_SCALE).clamp(-60.0, 0.0))
+                    / sum;
             bits_total += -p.max(1e-300).log2();
             bytes += row.bytes;
         }
@@ -454,6 +456,31 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
     let (base_bpb, soft_bpb, hard_bpb, top1_change) = measure(best_scale);
+
+    // Artifact-output diagnostic. `cone_sizes` reports 0 for this network while the hard path
+    // clearly varies its correction, so record exactly what the served tables emit per shortlist
+    // slot before trusting either number.
+    let mut bit_tally = [0u64; 2];
+    let mut distinct_outputs: std::collections::BTreeSet<Vec<u8>> =
+        std::collections::BTreeSet::new();
+    let mut distinct_soft_rounded: std::collections::BTreeSet<i32> =
+        std::collections::BTreeSet::new();
+    for features_row in eval_features.iter() {
+        for bits in features_row.iter() {
+            let out = artifact.eval_f32(bits);
+            distinct_outputs.insert(out.clone());
+            if let Some(bit) = out.first() {
+                bit_tally[*bit as usize] += 1;
+            }
+            let soft = network.soft_forward(bits).first().copied().unwrap_or(0.0);
+            distinct_soft_rounded.insert((soft * 1000.0).round() as i32);
+        }
+    }
+    let chosen: Vec<u8> = network
+        .layers()
+        .iter()
+        .flat_map(|l| l.chosen_gates())
+        .collect();
     let boost_bpb = boost_only(best_scale);
     let boost_curve: Vec<(f64, f64)> = [256.0f64, 512.0, 1024.0, 2048.0, 4096.0, 8192.0]
         .iter()
@@ -506,13 +533,28 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "gate_utilisation": utilisation,
         "gate_entropy_bits": entropy,
         "cone_sizes": cones,
+        "artifact_output_diagnostic": {
+            "hard_bit_tally": bit_tally,
+            "distinct_hard_outputs": distinct_outputs.len(),
+            "distinct_soft_outputs_milli": distinct_soft_rounded.len(),
+            "chosen_gates": chosen,
+        },
         "elapsed_seconds": started.elapsed().as_secs_f64(),
+        "degenerate_term": distinct_outputs.len() <= 1,
         "scope": "Stage 4 gate, shortlist form: a learned nonlinear term re-ranks the baseline scorer's own top-K on real held-out text. Trained at the corpus head, scale chosen on a disjoint tail, evaluated on a separate held-out file. No serving default changed.",
     });
     let text = serde_json::to_string_pretty(&report)?;
     match &args.out {
         Some(path) => std::fs::write(path, text)?,
         None => println!("{text}"),
+    }
+    if distinct_outputs.len() <= 1 {
+        eprintln!(
+            "WARNING: the learned term is DEGENERATE ({} distinct artifact outputs); the reported \
+             delta is a constant shift over the shortlist, not a learned re-ranking, and must not \
+             be reported as improvement.",
+            distinct_outputs.len()
+        );
     }
     eprintln!(
         "baseline {base_bpb:.6} soft {soft_bpb:.6} hard {hard_bpb:.6} delta {:.6} top1change {top1_change:.3} target_in_shortlist {:.3}",
