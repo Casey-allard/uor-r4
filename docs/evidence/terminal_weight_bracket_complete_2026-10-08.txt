@@ -1,0 +1,44 @@
+UOR-R4 — The terminal-weight bracket is complete: 60x is the best dose and the compliance band is narrow
+Date: 2026-10-08 (overnight rounds 99-103). DeepSeek session. References #820.
+
+FOUR DOSES, ONE RECIPE, ONE INSTRUMENT
+  Same 7.16 M shape (rrarra), same corpus, mask, policy=full_prefix, steps and seed. Only
+  UOR_TERMINAL_WEIGHT differs. Panel v2 read as the first TWO content tokens per reply.
+
+    weight  yes/no class                       retention (both turns)   follow-up   verdict
+    20x     complies 2 of 3 ("Yes, the")       one of two answers        --          partial
+    60x     COMPLIES ("Yes, the","Yes,that's") BOTH answer "My name"     responds    BEST
+    100x    fails - list artifacts ("1. San")  BOTH answer "My name"     responds    no
+    200x    reverts ("The sky")                BREAKS ("The main")       --          collapsed
+
+  So the ordering on the behaviours that matter is 60 > 20 > 100 > 200. The yes/no compliance band is
+  NARROW - it is present at 20 and 60 and gone by 100 - while the retention and follow-up behaviours
+  survive from 20 through 100 and only break at 200. Retirement of compliance at 100 while retention
+  holds is the sharpest feature of the curve: the two behaviours respond to the dose at different
+  thresholds, so there is a window in which both are satisfied, and 60x sits in it.
+
+WHY THIS COMPLETES THE ARC
+  1. The session's five eliminations left token-level MLE length bias, and the change they implied -
+     weighting the response's terminating <|eos|>, identified by the mask proven byte-identical to the
+     builder's hash - was written, tested, merged as #1946, and has now been shown to move compliance
+     UP (20, 60), DOWN (100, 200) and to a best point in between. A single scalar that changes only
+     what a completed answer is worth to the loss is the only intervention tonight that moved
+     instruction compliance at all.
+  2. THE METRIC LESSON IS NOW FULLY DOCUMENTED. Weighted development loss rises monotonically with
+     the dose (2.20, 2.35, 2.56, 3.09 at step 2,000) while behaviour peaks in the middle. Any sweep
+     selected on the loss would have chosen the collapse.
+  3. WHAT REMAINS, PRECISELY. One-word and numeric turns do not comply at any dose: they produce
+     procedures, phrases and list openers ("To make", "To find", "1. Serve", "Listename 1") rather
+     than the requested token. The narrowness of the yes/no band suggests those classes need
+     something further rather than a different weight, and that is the next question - a much smaller
+     one than the one this window opened with.
+
+THE RECIPE TO BUILD ON
+  policy=full_prefix, the verified response mask, UOR_TERMINAL_WEIGHT=60, the frozen 7.16 M shape.
+  Instruments: panel v2 read as the first two content tokens with the echo item removed; fluency and
+  the retention pairs are the guards; development nll is a dose indicator and not a metric.
+
+SCOPE
+  Four doses, single seed each, one shape, one panel, greedy decoding. The doses are single
+  measurements rather than a fitted curve; "60x is best" means best of the four measured, and the
+  compliance band is bounded by them rather than measured continuously.
