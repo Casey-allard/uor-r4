@@ -99,3 +99,33 @@ ADDENDUM (round 45): FIRST-TOKEN MEASUREMENT — IT IS NOT A STOPPING PROBLEM
   This is now the sharpest available statement of the chat path's deficit and the most specific
   target the session has produced, and it is checkable in one command (max_new_tokens=1 on the same
   panel) after any change.
+
+ADDENDUM (round 46): ANSWER-SCAFFOLDED PROMPTS DO NOT FIX IT — IT IS NOT A PROMPT CONVENTION
+  The escape hatch after the first-token result was that the model might answer if the turn itself
+  looked like an answer-shaped training example. Six turns were given explicit scaffolds, greedy,
+  protocol=2, max_new_tokens=12:
+
+    "Question: is the sky blue?\nAnswer with one word:"                     -> " The sky blue is a
+                                                                            beautiful blue,"
+    "Question: do fish live in trees?\nAnswer with one word:"               -> " Question: Answer with one"
+    "Question: what is the capital of France?\nAnswer:"                     -> " The capital of France is
+                                                                            Paris."
+    "Question: how many days are in a week?\nAnswer with a number:"         -> " To find the number of days
+                                                                            in a week, we need"
+    "Question: what is the largest planet...?\nAnswer:"                     -> " The largest planet in our
+                                                                            solar system"
+    "Question: how many cats do I have? I have two cats.\nAnswer with a
+     number:"                                                               -> " Question: What is the best
+                                                                            way to"
+
+  The scaffold changes nothing. The model still writes descriptive sentences, and on two turns it
+  degenerates into echoing the template itself ("Question: Answer with one", "Question: What is the
+  best way to"). The one correct factual sentence (France) is the same one the unscaffolded panel
+  produced, i.e. it was never the scaffold doing the work.
+
+  THREE INDEPENDENT PROBES NOW AGREE: the panel (0/6 instruction compliance), the first-token probe
+  (not one of eight opens with the answer), and this scaffold probe (no change). The deficit is not
+  response length, not a stop condition, and not a prompt convention: the model has no
+  representation of the requested response FORM, and no phrasing of the request supplies one. That
+  places the fix squarely in training - data whose replies vary in form and are determined by the
+  turn - and rules out the cheaper explanations that would have avoided a data intervention.
