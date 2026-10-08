@@ -18,6 +18,11 @@ pub mod learner;
 pub mod pilot;
 pub mod pilot_data;
 
+/// Opt-in relaxed/straight-through estimator over the gate LUT cascade. Offline
+/// training only: no default runtime path calls into it, so the hard cascade
+/// remains what runs by default and at evaluation. See `ste.rs`.
+pub mod ste;
+
 pub mod stability;
 #[cfg(test)]
 mod stability_report;
