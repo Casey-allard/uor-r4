@@ -1,0 +1,51 @@
+UOR-R4 — At 19.9M the mixture keeps perfect compliance, adds a correct fact, and partially grounds retention
+Date: 2026-10-08 (overnight rounds 127-130). DeepSeek session. References #820.
+
+THE ARM
+  The same two-turn demand mixture (2,860 dependency-carrying documents) with the hash-proven chat
+  corpus, policy=full_prefix, UOR_TERMINAL_WEIGHT=60, at 19,929,136 parameters (rrarrarr, width 512,
+  heads 8, read L2), 12,207 steps - the capacity test the retention elimination pointed to.
+
+RESULT ON PANEL V2
+
+  form compliance - STILL PERFECT AT THE LARGER SIZE
+    one word grass "Green."   one word bees "Honey."   yes/no "Yes." "No." "No."
+    number "7." "4." "8."     list "Red, blue,"        capital "Paris."
+    Ten of ten form-demanded turns comply, with correct content for seven - identical to the 7.16 M
+    arms, so capacity costs nothing on the behaviour the demand store bought.
+
+  facts and context grounding - IMPROVED
+    largest planet   "Jupiter's generation"   the FACT is now present ("Jupiter"), where the smaller
+                                              arms produced "The largest" with no value at all
+    cats retention   "My cat,"                ANCHORED TO THE CONTEXT, where the 7.16 M arms produced
+                                              "Ice." and "Woof and" - neither of which refers to a cat
+    greeting         "Hello! How"             canonical
+    name retention   "I'd be"                 still not answered
+
+WHAT IT ESTABLISHES
+  1. CAPACITY IMPROVES BOTH AXES WITHOUT COST. Compliance stays perfect, a factual answer the smaller
+     model could not produce appears, and the retention turn now refers to the thing it was told about.
+     That is the opposite of a trade: at 2.8x parameters the model gets better at the demanded forms
+     AND at using its context.
+  2. BUT RETENTION IS NOT FULLY RESTORED. "My cat," refers to the right entity and does not state the
+     count that was given; the name turn still fails. So the pre-registered fork lands between its
+     branches: capacity is not sufficient by itself. What remains is not "does the model attend to its
+     context" - it demonstrably does now - but precision in extracting the requested attribute from it.
+  3. THAT REFRAMES THE REMAINING PROBLEM USEFULLY. The failure is no longer "multi-turn conditioning is
+     destroyed by the demand store"; it is "the model can ground a follow-up in its context and cannot
+     yet read a specific attribute out of it". Attributes of that kind are exactly what the demand
+     store already teaches for single facts, so the natural next artefact is a demand store whose
+     follow-ups ask for a SPECIFIC ATTRIBUTE of the previous turn (the count, the name, the colour)
+     rather than a repetition of the whole answer - which is a small extension of the generator that
+     produced 2,860 such documents tonight.
+
+WHAT THIS MEANS FOR THE PROJECT'S RECIPE
+  The configuration to carry forward is now: the chat corpus, plus a small demand-bearing store with
+  two-turn dependency pairs, at the larger shape, with UOR_TERMINAL_WEIGHT=60. That combination
+  produces the demanded answer forms with correct content, canonical conversation, a correct factual
+  answer, and a follow-up that refers to its context. It is the first configuration in this session
+  that does all of those at once.
+
+SCOPE
+  One shape comparison, one mixture, one weight, single seed each, greedy decoding, one panel.
+  Compliance on ten turns, retention on two pairs and one follow-up; exact for this panel.
