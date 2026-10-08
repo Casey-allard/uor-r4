@@ -569,13 +569,31 @@ impl<'a> EpisodeIndex<'a> {
                 .selected_target_ids
                 .extend(self.tokens[r..e].iter().map(|&token| u32::from(token)));
             let real_input_positions = episode.len() - 1;
+            // Optional turn-terminal weight (UOR_TERMINAL_WEIGHT >= 1.0; default 1.0 = unchanged).
+            let terminal_weight: f32 = std::env::var("UOR_TERMINAL_WEIGHT")
+                .ok()
+                .and_then(|value| value.parse::<f32>().ok())
+                .filter(|weight| *weight >= 1.0)
+                .unwrap_or(1.0);
             for position in 0..time {
                 if position < real_input_positions {
                     batch.inputs.push(episode[position]);
                     batch.targets.push(episode[position + 1]);
-                    batch
-                        .weights
-                        .push(f32::from(u8::from(position + 1 >= prefix_positions)));
+                    // Every response target is weighted 1.0 by default. The response's TERMINATING
+                    // target - the last real position, i.e. the <|eos|> that ends the reply - can be
+                    // weighted higher, because a per-token objective over a mixed-length reply
+                    // distribution otherwise gives a completed answer almost no mass relative to the
+                    // continuations the corpus offers (measured at roughly 250:1 after "Yes."). The
+                    // factor is read from UOR_TERMINAL_WEIGHT and defaults to 1.0, so behaviour is
+                    // unchanged unless a run asks for the change.
+                    let supervised = position + 1 >= prefix_positions;
+                    let terminal = position + 1 == real_input_positions;
+                    let weight = if supervised {
+                        if terminal { terminal_weight } else { 1.0 }
+                    } else {
+                        0.0
+                    };
+                    batch.weights.push(weight);
                 } else {
                     batch.inputs.push(self.contract.padding_id);
                     batch.targets.push(self.contract.padding_id);
@@ -696,7 +714,7 @@ mod tests {
         batch.targets[start..start + batch.time]
             .iter()
             .zip(&batch.weights[start..start + batch.time])
-            .filter_map(|(&id, &weight)| (weight == 1.0).then_some(id))
+            .filter_map(|(&id, &weight)| (weight > 0.0).then_some(id))
             .collect()
     }
 
