@@ -128,8 +128,9 @@ fn usage() -> String {
          \x20 --holdout-offset <n>  token offset of the held-out slice [default: 0]; use a\n\
          \x20                     disjoint offset to confirm a verdict on a second slice\n\
          \x20 --epsilon <f>      equivalence margin in BPB [default: {DEFAULT_EPSILON}]\n\
-         \x20 --vsa-code-mode <m>  VSA token codes: `fixed` (token-id hash, current) or\n\
-         \x20                     `root` (derived from the learned 120-root assignment)\n\
+         \x20 --vsa-code-mode <m>  VSA token codes: `fixed` (token-id hash, current),\n\
+         \x20                     `root` (learned 120-root assignment), or `learned`\n\
+         \x20                     (learned root bound with the per-token readout residual)\n\
          \x20 --ablations <list>  comma-separated subset; default all\n\
          \x20 --help\n\
          \n\
@@ -193,9 +194,9 @@ fn parse_args() -> Result<Args, String> {
             }
             "--vsa-code-mode" => {
                 let mode = next(i)?.to_ascii_lowercase();
-                if mode != "fixed" && mode != "root" {
+                if mode != "fixed" && mode != "root" && mode != "learned" {
                     return Err(format!(
-                        "unknown --vsa-code-mode '{mode}'; known: fixed, root"
+                        "unknown --vsa-code-mode '{mode}'; known: fixed, root, learned"
                     ));
                 }
                 args.vsa_code_mode = mode;
@@ -577,10 +578,18 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let reader = MmapCorpusReader::open(&args.corpus)?;
     let corpus = reader.as_slice();
     let vocab = model.vocab_size;
+    // `root` uses the learned 120-root assignment; `learned` additionally binds the per-token
+    // readout residual, which is what removes the 120-code aliasing ceiling (Stage 3b).
     let codebook = match args.vsa_code_mode.as_str() {
         "root" => uor_r4_core::native_geometric::learner::build_root_codebook(
             vocab,
             &model.token_to_root,
+            model.vsa_seed,
+        ),
+        "learned" => uor_r4_core::native_geometric::learner::build_readout_codebook(
+            vocab,
+            &model.token_to_root,
+            &model.discrete_s2_readout,
             model.vsa_seed,
         ),
         _ => Codebook::<64>::on_demand(vocab, model.vsa_seed),

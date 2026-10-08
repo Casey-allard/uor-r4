@@ -623,6 +623,12 @@ pub struct ExportedGeometricModel {
     /// codebook to be rebuilt in the matching space; call
     /// [`ExportedGeometricModel::prepare_vsa_code_mode`] after deserializing.
     ///
+    /// `2` = codes derived from the learned representation **including the per-token residual**:
+    /// each token's code is its learned root code bound (XOR) with the locality-sensitive hash of
+    /// its own `discrete_s2_readout` vector. This removes the 120-code aliasing ceiling that mode
+    /// `1` is bounded by, because two tokens in the same root no longer share a code. Stage 3(b)
+    /// of [the native core transition plan](../../../../docs/integration/native-core-transition-plan.md).
+    ///
     /// `serde(default)` keeps artifacts written before this field loadable.
     #[serde(default)]
     pub vsa_code_mode: u8,

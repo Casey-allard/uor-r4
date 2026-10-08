@@ -77,7 +77,7 @@ pub use transferable_lexical::{
 pub use transition_table::{
     ContinuousLaneTable, DiscreteServingTable, MultiLaneTransitionTables, ENTRIES_PER_TABLE,
 };
-pub use vsa_codes::{build_root_codebook, root_codes};
+pub use vsa_codes::{build_readout_codebook, build_root_codebook, root_codes};
 
 #[cfg(test)]
 mod tests {

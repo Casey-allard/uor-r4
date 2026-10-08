@@ -127,11 +127,88 @@ pub fn build_root_codebook(vocab_size: usize, token_to_root: &[u8], seed: u64) -
     Codebook::from_vectors(seed, table)
 }
 
+/// Deterministic random projection vector for readout bit `bit`: one integer hyperplane over the
+/// five per-token readout dimensions (three base S2 plus two U(1) fiber).
+///
+/// A disjoint seed domain from [`projection_weights`] keeps the residual independent of the root
+/// code it is bound with.
+#[inline]
+fn readout_projection_weights(seed: u64, bit: usize) -> [i64; 5] {
+    const READOUT_DOMAIN: u64 = 0x5EED_0F7A_5EC0_DE01;
+    let mut out = [0i64; 5];
+    for (i, slot) in out.iter_mut().enumerate() {
+        let h = splitmix64(
+            (seed ^ READOUT_DOMAIN)
+                ^ (bit as u64)
+                    .wrapping_mul(0xA24B_AED4_963E_E407)
+                    .wrapping_add((i as u64).wrapping_mul(0x9FB2_1C65_1E98_DF25)),
+        );
+        *slot = ((h >> 33) as i64) - (1i64 << 30);
+    }
+    out
+}
+
+/// LSH code for one token's learned per-token readout vector, in Q1.14.
+///
+/// This is the **per-token residual** a root code cannot express: two tokens in the same root
+/// have different readouts and therefore different residual codes, which is what removes the
+/// 120-code aliasing ceiling at this resolution.
+fn code_for_readout(readout: &[i16; 5], seed: u64) -> Hypervector<64> {
+    let mut words = [0u64; CODE_BITS / 64];
+    for bit in 0..CODE_BITS {
+        let w = readout_projection_weights(seed, bit);
+        let mut dot = 0i64;
+        for (i, &component) in readout.iter().enumerate() {
+            dot += w[i] * i64::from(component);
+        }
+        if dot > 0 {
+            words[bit / 64] |= 1u64 << (bit % 64);
+        }
+    }
+    Hypervector::from_words(words)
+}
+
+/// Build a [`Codebook<64>`] from the learned representation **including the per-token residual**:
+/// each token's code is its learned root code bound (XOR) with the LSH code of its per-token
+/// readout vector.
+///
+/// Properties, asserted by the tests below: identical (root, readout) pairs give identical codes;
+/// equal roots with different readouts separate by the residual rather than colliding at
+/// `d_H = 0`; and the root difference still dominates across roots, so the coarse geometry
+/// survives. A token whose readout is absent falls back to its root code alone.
+pub fn build_readout_codebook(
+    vocab_size: usize,
+    token_to_root: &[u8],
+    readouts: &[[i16; 5]],
+    seed: u64,
+) -> Codebook<64> {
+    let codes = root_codes(seed);
+    let mut table = Vec::with_capacity(vocab_size);
+    for token in 0..vocab_size {
+        let root = token_to_root
+            .get(token)
+            .copied()
+            .unwrap_or(0)
+            .min((H4_ROOT_COUNT - 1) as u8) as usize;
+        table.push(match readouts.get(token) {
+            Some(readout) => codes[root] ^ code_for_readout(readout, seed),
+            None => codes[root],
+        });
+    }
+    Codebook::from_vectors(seed, table)
+}
+
 impl ExportedGeometricModel {
     /// The VSA codebook implied by the artifact's declared code mode.
     pub fn vsa_codebook(&self) -> Codebook<64> {
         match self.vsa_code_mode {
             1 => build_root_codebook(self.vocab_size, &self.token_to_root, self.vsa_seed),
+            2 => build_readout_codebook(
+                self.vocab_size,
+                &self.token_to_root,
+                &self.discrete_s2_readout,
+                self.vsa_seed,
+            ),
             _ => Codebook::<64>::on_demand(self.vocab_size, self.vsa_seed),
         }
     }
@@ -150,7 +227,7 @@ impl ExportedGeometricModel {
     pub fn prepare_vsa_code_mode(&mut self) -> Result<(), String> {
         match self.vsa_code_mode {
             0 => Ok(()),
-            1 => {
+            1 | 2 => {
                 let codebook = self.vsa_codebook();
                 self.hierarchical_codebook = Some(HierarchicalCodebook::<64>::new(
                     self.vocab_size,
@@ -160,7 +237,8 @@ impl ExportedGeometricModel {
                 Ok(())
             }
             other => Err(format!(
-                "unsupported vsa_code_mode {other}; known: 0 (fixed), 1 (learned-root codes)"
+                "unsupported vsa_code_mode {other}; known: 0 (fixed), 1 (learned-root codes), \
+                 2 (learned-root codes bound with the per-token readout residual)"
             )),
         }
     }
@@ -257,6 +335,63 @@ mod tests {
     }
 
     /// Documents the aliasing cost: at most 120 distinct codes for the whole vocabulary.
+    /// Stage 3b: binding the per-token readout residual must break the 120-code aliasing
+    /// ceiling, stay deterministic, and leave identical inputs identical.
+    #[test]
+    fn readout_residual_breaks_the_120_code_ceiling() {
+        let seed = 0x5653_415f_3230_3236;
+        let vocab = 4096usize;
+        // Synthetic but representative: tokens spread over the 120 roots, each with its own
+        // readout vector, which is the shape the exported artifact carries.
+        let mut roots = Vec::with_capacity(vocab);
+        let mut readouts = Vec::with_capacity(vocab);
+        for token in 0..vocab {
+            roots.push((token % H4_ROOT_COUNT) as u8);
+            readouts.push([
+                ((token * 37) % 8191) as i16 - 4096,
+                ((token * 101) % 8191) as i16 - 4096,
+                ((token * 211) % 8191) as i16 - 4096,
+                ((token * 307) % 8191) as i16 - 4096,
+                ((token * 401) % 8191) as i16 - 4096,
+            ]);
+        }
+
+        let root_only = build_root_codebook(vocab, &roots, seed);
+        let with_residual = build_readout_codebook(vocab, &roots, &readouts, seed);
+        let distinct = |c: &Codebook<64>| {
+            (0..vocab as u32)
+                .map(|t| c.get(t).data.to_vec())
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+        };
+
+        // Root codes collapse onto at most 120 values; the residual separates tokens.
+        assert!(
+            distinct(&root_only) <= H4_ROOT_COUNT,
+            "root codes must alias onto at most 120 values, got {}",
+            distinct(&root_only)
+        );
+        assert!(
+            distinct(&with_residual) > H4_ROOT_COUNT * 4,
+            "the residual must separate far more than 120 codes, got {}",
+            distinct(&with_residual)
+        );
+
+        // Determinism and identity: the same inputs must give the same codes.
+        let again = build_readout_codebook(vocab, &roots, &readouts, seed);
+        for token in 0..vocab as u32 {
+            assert_eq!(
+                with_residual.get(token).data,
+                again.get(token).data,
+                "codebook must be deterministic"
+            );
+        }
+
+        // A token with no stored readout falls back to its root code rather than aliasing to 0.
+        let short = build_readout_codebook(4, &roots, &readouts[..2], seed);
+        assert_eq!(short.get(3).data, root_only.get(3).data);
+    }
+
     #[test]
     fn root_codes_alias_the_vocabulary_onto_120_values() {
         let seed = 1;

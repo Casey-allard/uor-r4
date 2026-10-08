@@ -35,10 +35,13 @@ fn usage() -> String {
     format!(
         "set-vsa-code-mode -- declare the VSA token-code mode in a .rgm artifact\n\
          \n\
-         USAGE:\n  set-vsa-code-mode --mode <fixed|root> [--model <in.rgm>] [--out <out.rgm>]\n\
+         USAGE:\n  set-vsa-code-mode --mode <fixed|root|learned> [--model <in.rgm>] [--out <out.rgm>]\n\
          \n\
          OPTIONS:\n\
-         \x20 --mode <fixed|root>  REQUIRED. fixed = token-id hash (0); root = codes from the\n\
+         \x20 --mode <fixed|root|learned>  REQUIRED. fixed = token-id hash (0);\n\
+         \x20                     root = codes from the learned 120-root assignment (1);\n\
+         \x20                     learned = root bound with the per-token readout\n\
+         \x20                     residual (2)\n\
          \x20                     learned 120-root assignment (1)\n\
          \x20 --model <path>      input artifact (.rgm or .json)  [default: {DEFAULT_MODEL}]\n\
          \x20 --out <path>        output .rgm  [default: <model>_<mode>.rgm]\n\
@@ -84,8 +87,11 @@ fn parse_args() -> Result<Args, String> {
                 mode = Some(match v.as_str() {
                     "fixed" | "0" => (0, "fixed"),
                     "root" | "1" => (1, "root"),
+                    "learned" | "2" => (2, "learned"),
                     other => {
-                        return Err(format!("unknown --mode '{other}'; known: fixed, root"));
+                        return Err(format!(
+                            "unknown --mode '{other}'; known: fixed, root, learned"
+                        ));
                     }
                 });
                 i += 2;

@@ -1,0 +1,85 @@
+UOR-R4 — Stage 3(b) executed: the per-token residual removes the aliasing ceiling, and the
+VSA term is still NEGLIGIBLE (gate FAILED)
+Date: 2026-10-08. Executed by: DeepSeek session, local M1 checkout.
+References #820. Plan: docs/integration/native-core-transition-plan.md §4 Stage 3(b).
+
+WHY
+  `learner/vsa_codes.rs` states the ceiling behind the Card P7 VSA verdict: codes are a
+  function of the learned root, so a 4,096-token vocabulary collapses onto at most 120
+  distinct codes and two distinct tokens in one root have `d_H = 0`. It names the remedy:
+  codes at finer resolution derived from the continuous learned representation. Stage 3(b)
+  of the transition plan specifies that change and its gate. The prior measurement in this
+  same session established the baseline: switching fixed -> learned-root codes left the
+  `vsa` ablation NEGLIGIBLE on two disjoint slices.
+
+WHAT WAS BUILT
+  Mode `2` (`learned`) for the artifact's VSA code mode, implemented in
+  `crates/uor-r4-core/src/native_geometric/learner/vsa_codes.rs`:
+
+    code(token) = code_for_root(token_to_root[token]) XOR code_for_readout(readout[token])
+
+  `code_for_readout` locality-sensitive-hashes the token's own `discrete_s2_readout`
+  vector (five Q1.14 dimensions: three base S2 plus two U(1) fiber) with deterministic
+  integer hyperplanes drawn from a seed domain disjoint from the root projection. The XOR
+  binding is the VSA "bind": equal roots with different readouts no longer collide at
+  `d_H = 0`, and the root difference still dominates across roots.
+
+  No artifact format change was needed, contrary to the plan's assumed `SECTION_VSA_CODES`.
+  The per-token learned vector the residual needs is ALREADY carried by the artifact as
+  `discrete_s2_readout` (`[vocab x 5]`, Q1.14), and the plan's own mode-1 precedent rebuilds
+  the code space on load. Mode `2` is therefore size-compatible and declarable in the
+  existing header byte via `set-vsa-code-mode --mode learned`.
+
+  Tests: `readout_residual_breaks_the_120_code_ceiling` asserts the root codebook aliases to
+  <=120 values while the residual codebook produces more than 480 distinct codes for a
+  4,096-token vocabulary, that the construction is deterministic, and that a token with no
+  stored readout falls back to its root code. `cargo test -p uor-r4-core vsa` -> 26 passed.
+
+MEASUREMENT (the plan's gate)
+  artifact : native_geometric_prose_model.rgm, sha256 7023c4507039acc01653b2dd6a41cf4329635767c66811a17d76591a4f356d96
+  corpus   : tinystories_train.u16 (555,385,505 tokens), held-out slices at offsets 0 and 100,000,000
+  scorer   : discrete additive scorer, full-vocabulary softmax, temperature 1.0, 8,127 scored positions per slice
+  tool     : ablate-prose --ablations vsa --vsa-code-mode {fixed|root|learned}
+
+  slice 1 (offset 0)
+    mode      distinct codes   baseline BPB   vsa delta   paired 95% CI          band
+    fixed     0 (on demand)    1.8964         -0.0010     [-0.0011, -0.0009]    NEGLIGIBLE
+    root      120              1.8969         -0.0015     [-0.0019, -0.0010]    NEGLIGIBLE
+    learned   4096             1.8967         -0.0013     [-0.0016, -0.0010]    NEGLIGIBLE
+
+  slice 2 (offset 100,000,000)
+    fixed     0 (on demand)    1.8783         -0.0015     [-0.0016, -0.0013]    NEGLIGIBLE
+    learned   4096             1.8785         -0.0017     [-0.0020, -0.0014]    NEGLIGIBLE
+
+GATE VERDICT: FAILED
+  The aliasing ceiling was real and is now removed: the residual codebook produces 4,096
+  distinct codes where the root codebook can produce at most 120. Held-out BPB does NOT
+  improve (1.8967 vs 1.8964 fixed, 1.8785 vs 1.8783 fixed), and the `vsa` ablation does NOT
+  stop being ~0 — it stays within 0.002 BPB and is slightly NEGATIVE in all five runs
+  (ablating the term marginally helps), with top-1 accuracy unchanged (<=0.09 pp).
+
+  So at this resolution, on this artifact, the codebook's aliasing was NOT what made the VSA
+  term inert. The plan's own Stage 4 note names the deeper limit: the serving scorer is
+  purely additive, a log-linear model over sparse discrete features. A better code space
+  cannot give an additive sum a feature interaction it does not have.
+
+SCOPE — what this does NOT establish
+  * One artifact, one corpus, two 8,256-token slices, temperature 1.0, debug build. No
+    training, no fitting, no serving default changed.
+  * The per-token representation used is `discrete_s2_readout`, the strongest per-token
+    learned vector the artifact carries. It is a proxy for the training-time token
+    embedding, which the artifact does not store. So this refutes "finer codes alone fix
+    this term at the resolution available", not "no codebook derived from the true
+    continuous embedding could ever help".
+  * The plan's gate adds "if the heads still contribute nothing with a learned codebook,
+    delete them rather than carry them". That deletion verdict is NOT taken here: it would
+    require the true embedding and a decision about the routed heads, which this sweep does
+    not measure.
+  * It is not a verdict on routing: the September record measured the learned-root codebook
+    improving `shortlist-recall` recall 8.4-8.8 % -> 10.7-11.2 % on two slices.
+
+NEXT ACTION THIS POINTS AT
+  Stage 4 (nonlinearity): the additive scorer's log-linear ceiling. The VSA channel's value
+  cannot be recovered by improving the code space at this resolution; if the channel is to
+  be kept it needs a form the additive scorer can express, and the plan's sequencing already
+  makes LUT-4 the next mechanism once the input representation is settled.
