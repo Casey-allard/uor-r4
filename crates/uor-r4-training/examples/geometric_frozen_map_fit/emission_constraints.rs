@@ -80,9 +80,21 @@ pub(super) fn construct(
     pools: Vec<ProtectedPool>,
     reducer: &mut NativeVocabularyActions,
 ) -> Result<Construction> {
+    construct_with_protected_count(parent, gradients, pools, reducer, PROTECTED)
+}
+
+/// Explicit compensation adds one existing objective entry as a constraint;
+/// this does not append a loss term or change the once-only coordinate rule.
+pub(super) fn construct_with_protected_count(
+    parent: &np::Shadows,
+    gradients: &np::Shadows,
+    pools: Vec<ProtectedPool>,
+    reducer: &mut NativeVocabularyActions,
+    protected_count: usize,
+) -> Result<Construction> {
     replay_require(
-        pools.len() == PROTECTED,
-        "emission requires all84 protected pools",
+        matches!(protected_count, 84 | 85) && pools.len() == protected_count,
+        "emission protected population differs from explicit contract",
     )?;
     let mut ordered = Vec::with_capacity(COORDINATES);
     for (name, count, start) in [("generate.unary", UNARY, 0), ("generate.pair", PAIR, UNARY)] {
@@ -195,8 +207,8 @@ pub(super) fn construct(
         }
     }
     drop(cursors);
-    let mut required = Vec::with_capacity(PROTECTED);
-    let mut caches = Vec::with_capacity(PROTECTED);
+    let mut required = Vec::with_capacity(protected_count);
+    let mut caches = Vec::with_capacity(protected_count);
     for pool in pools {
         let cache = reducer.prepare_generate_patch_cache(
             pool.generate_q24,
@@ -212,7 +224,7 @@ pub(super) fn construct(
     }
     let mut stats = Stats {
         coordinates: COORDINATES,
-        protected_pools: PROTECTED,
+        protected_pools: protected_count,
         incidence_postings: count,
         incidence_bytes: 4 * (postings.len() + offsets.len()),
         ..Stats::default()
@@ -358,6 +370,37 @@ mod tests {
             })
             .collect();
         (parent, gradient, pools)
+    }
+    #[test]
+    fn compensation_extra_entry_is_a_real_eighty_fifth_atomic_constraint() -> Result<()> {
+        let (parent, mut g, mut pools) = fixture();
+        let old = &pools[0];
+        let mut extra = ProtectedPool {
+            required_token: 5,
+            generate_q24: old.generate_q24.clone(),
+            copy_ids: old.copy_ids.clone(),
+            copy_q24: old.copy_q24.clone(),
+            factor_keys: old.factor_keys.clone(),
+        };
+        extra.generate_q24.fill(-(4 << 24));
+        extra.generate_q24[5] = 0;
+        extra.generate_q24[4] = -(1 << 19);
+        pools.push(extra);
+        g.get_mut("generate.unary")
+            .ok_or_else(|| bad("fixture unary"))?[4] = -1.0;
+        let result = construct_with_protected_count(&parent, &g, pools, &mut reducer()?, 85)?;
+        assert_eq!(result.stats.protected_pools, 85);
+        let rejected = result
+            .trials
+            .iter()
+            .find(|t| t.name == "generate.unary" && t.index == 4)
+            .ok_or_else(|| bad("trial absent"))?;
+        assert_eq!(rejected.blocking_pool, Some(84));
+        assert_eq!(rejected.checked_pools, 85);
+        assert_eq!(result.stats.accepted, 0);
+        assert_eq!(result.stats.rejected, 1);
+        assert!(result.stats.protected_decisions_preserved);
+        Ok(())
     }
     #[test]
     fn emission_once_only_shared_patch_late_rejection_and_offgrid_bits() -> Result<()> {

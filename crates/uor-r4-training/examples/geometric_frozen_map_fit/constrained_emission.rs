@@ -163,11 +163,25 @@ fn terms(a: &Args) -> Result<Vec<np::Term>> {
         })
         .collect())
 }
-fn capture(
+pub(super) fn capture(
     p: &ContinuationParent,
     field: &NativeContinuationField,
     eps: &[Episode],
     terms: &[np::Term],
+) -> Result<(Vec<emission_constraints::ProtectedPool>, Value)> {
+    let selected = terms
+        .iter()
+        .filter(|t| t.component == 1)
+        .cloned()
+        .collect::<Vec<_>>();
+    capture_selected(p, field, eps, &selected, 84)
+}
+pub(super) fn capture_selected(
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[Episode],
+    terms: &[np::Term],
+    expected_count: usize,
 ) -> Result<(Vec<emission_constraints::ProtectedPool>, Value)> {
     let bytes = field.to_bytes()?;
     let sha = sha256_bytes(&bytes);
@@ -178,7 +192,7 @@ fn capture(
     let mut banks = BTreeMap::new();
     let mut pools = Vec::new();
     let mut witnesses = Vec::new();
-    for term in terms.iter().filter(|t| t.component == 1) {
+    for term in terms {
         if let std::collections::btree_map::Entry::Vacant(entry) = banks.entry(term.index) {
             entry.insert(generator.admit_bank(continuation_snapshot(&eps[term.index].packet)?)?);
         }
@@ -220,12 +234,12 @@ fn capture(
         });
     }
     replay_require(
-        pools.len() == 84 && banks.len() == 8,
+        pools.len() == expected_count && banks.len() == if expected_count == 84 { 8 } else { 9 },
         "protected emission capture population differs",
     )?;
     Ok((pools, json!(witnesses)))
 }
-fn verify_pools(
+pub(super) fn verify_pools(
     actual: &Value,
     construction: &emission_constraints::Construction,
     baseline: &Value,
@@ -237,7 +251,9 @@ fn verify_pools(
         .as_array()
         .ok_or_else(|| bad("protected baseline rows absent"))?;
     replay_require(
-        rows.len() == 84 && old.len() == 84,
+        matches!(rows.len(), 84 | 85)
+            && rows.len() == old.len()
+            && rows.len() == construction.final_pool_summaries.len(),
         "protected replay coverage differs",
     )?;
     for (i, row) in rows.iter().enumerate() {

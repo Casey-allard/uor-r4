@@ -1,0 +1,310 @@
+{
+  "schema": "uor-r4.native-prototype-compensation-evidence/1",
+  "date": "2026-10-08",
+  "owning_issue": 820,
+  "pull_request": 1892,
+  "status": "COMPLETED_SELECTED_OBJECTIVE_AND_ENTRY_GAIN_WITHOUT_NEW_COMPLETE_REPLIES",
+  "persistent_goal_status": "active",
+  "source_base": "f0f5392d43e88a9d37d894623352d53c74f4bc1b",
+  "executed_source": "08c477ebdf5d1e4f70c5c2b1c7b882e606f20a6d",
+  "binary_sha256": "5ce20afbd7c9980a38b87ef6ba608628a0cdd73265a80603d16f2f4340fed402",
+  "launch_config_sha256": "8d71471d0beb95053a0d5ebe14d92cfb51affff991b62a4901617ad93cf222b6",
+  "report_sha256": "9e19da31b0b35088d1d2e1f054de62769e5b3e118016342540f5fe7af12eb49a",
+  "seal_sha256": "1bca3281c00d7bcd90554eadbd4b32b65cc996c9a58b66b6d48410aadb67e0a5",
+  "sealed_files": 1240,
+  "intervention": {
+    "token": 617,
+    "lane": 0,
+    "before": 58,
+    "after": 48,
+    "objective_term_index": 391,
+    "input_index": 399,
+    "master_encoding": "unique2.0 at48; other119 entries0; other rows bitwisefixed"
+  },
+  "fixed_terms": 588,
+  "protected_pools": 85,
+  "objective": {
+    "original": {
+      "combined": 8.52634374894637,
+      "continuation_sha256": "b4e15b3bbae4cdf7e93cb21ed13664967cbec4bc66559ea7b33e853a9084b107",
+      "elapsed_seconds": 2.357062546,
+      "generate_sha256": "d0f98a54652ca5892ff821d842fca450ff6e31b4785fc71f43fe821926aa293e",
+      "reference": 0.9184891902404883,
+      "task": 7.607854558705883
+    },
+    "intermediate": {
+      "combined": 8.634086267334682,
+      "continuation_sha256": "ad0231bd6f51d5f19a3fe22e0521808631945297edadbe63e2b04742edf4f67f",
+      "elapsed_seconds": 2.383070653,
+      "generate_sha256": "448be17719a5d8151ccc225a439a0620a1c3614893cc11f08c48e01c7e90023d",
+      "reference": 1.0269118046864747,
+      "task": 7.607174462648208
+    },
+    "final": {
+      "combined": 8.216818642455662,
+      "continuation_sha256": "a42cc8d9a9d04bdcddb9f1a513128f66361611556f0e6d768de37da0bc9d1030",
+      "elapsed_seconds": 2.355078052,
+      "generate_sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737",
+      "reference": 0.97123611100986,
+      "task": 7.245582531445803
+    }
+  },
+  "construction": {
+    "accepted": 2930,
+    "accepted_postings": 1512495,
+    "changed_reference_fallbacks": 346,
+    "checked_pools": 101313,
+    "checked_postings": 1512495,
+    "coordinates": 58560,
+    "incidence_bytes": 16945924,
+    "incidence_postings": 4177920,
+    "maximum_scans": 346,
+    "no_protected_incidence": 0,
+    "protected_decisions_preserved": true,
+    "protected_pools": 85,
+    "rejected": 0,
+    "saturated": 55630,
+    "winner_scans": 445,
+    "zero_gradient": 0
+  },
+  "changed_coefficients": {
+    "unary": 501,
+    "pair": 2429
+  },
+  "g_dot_actual_delta": -0.43578576787925816,
+  "actual_outputs": {
+    "complete_before_after": [
+      8,
+      8
+    ],
+    "retained_original_complete": 8,
+    "gained_complete": 0,
+    "lost_complete": 0,
+    "correct_entry_before_after": [
+      8,
+      10
+    ],
+    "changed_sequences": 201,
+    "complete_source_swap_pairs": 4,
+    "pairs": 256,
+    "own_prefix_equal_episode_ce_before_after": [
+      6.12455739863479,
+      6.0610663379483505
+    ],
+    "useful_candidate": false
+  },
+  "newly_reached_failure": {
+    "input_index": 399,
+    "id": "development-diverse-update-00-swap1-q3-reverse-home",
+    "actual_prefix_ids": [
+      617
+    ],
+    "position": 1,
+    "expected_canonical_token": 2097,
+    "actual_token": 3817,
+    "expected_target_mass": 240940988,
+    "winner_mass": 2147483648,
+    "denominator": 338704725571,
+    "copy_actions": 14,
+    "target_in_copy_pool": false,
+    "winner_copy_mass": 0,
+    "post_bridge_generate_state": [
+      2,
+      22,
+      21,
+      91,
+      18,
+      17,
+      40,
+      94
+    ],
+    "inactive_zero_U_encoding_state": [
+      20,
+      37,
+      45,
+      72,
+      64,
+      108,
+      17,
+      26
+    ],
+    "scope": "actualprefix reached; canonical and actual summaries equal; Generateonly competition does not diagnose selectedsource correctness",
+    "matched_controls": {
+      "indices": [
+        5,
+        13
+      ],
+      "same_query_prefix_encoding_state": true,
+      "same_actual_prefix": [
+        617
+      ],
+      "zero_U": true,
+      "expected_token_absent_copy": true,
+      "post_bridge_states_differ": true,
+      "successful_winner": 2097,
+      "successful_max_raw_q24": [
+        73400320,
+        75497472
+      ],
+      "failed_max_raw_q24": 1048576
+    }
+  },
+  "checks": {
+    "format": "PASS",
+    "fitter_tests": 46,
+    "cpu_cuda_coefficient_credit_parity_tests": 2,
+    "failed": 0,
+    "ignored": 0,
+    "release": "PASS",
+    "math_exact_source_review": "PASS",
+    "adversarial_exact_source_review": "PASS",
+    "execution_boundary_review": "PASS",
+    "independent_endpoint_reader": "PASS",
+    "seven_rust_seals": "PASS",
+    "six_prior_output_comparisons": "PASS",
+    "decision_analysis": "PASS",
+    "claim_wording": "PASS"
+  },
+  "timing_seconds": {
+    "cuda_library_preparation": 224.478,
+    "fresh_gradient": 7.17909684,
+    "coefficient_construction": 0.109958417,
+    "model_supervisor": 581.7695406898856,
+    "runtime2_preservation": 35.022612538188696,
+    "independent_reader": 241.5731426551938,
+    "reader_supervisor": 241.8248037584126,
+    "seven_rust_seals": 94.65239626169205,
+    "six_prior_comparisons": 8.397729396820068,
+    "six_prior_comparison_supervisor": 8.94454524666071,
+    "decision_analysis_supervisor": 0.9792520515620708,
+    "result_preservation": 45.79787843301892
+  },
+  "resources": {
+    "peak_model_rss_kib": 2128768,
+    "cpu_affinity": [
+      0,
+      1
+    ],
+    "build_jobs": 2,
+    "ram_cap_gib": 8,
+    "report_cap_gib": 2,
+    "cumulative_projected_seconds_before_after": [
+      422070,
+      443670
+    ],
+    "legacy_model_time": "UNAVAILABLE; prior charges retained",
+    "laptop_build_model_large_download": false,
+    "compute": "CUDA coefficient gradient on owned leased4090; production native integer evaluation on podCPU, no laptop fallback",
+    "independent_reader_peak_rss_kib": 1147648
+  },
+  "runtime_preservation": {
+    "revision": "3ffd50e24f112284ee273ae84c8d7f9c598420d2",
+    "prefix": "codex/sol-compensation/runtime-08c477ebdf-attempt2",
+    "all_fresh_download_verified": true
+  },
+  "failed_attempt1": {
+    "source": "d43d2baec4786caffe082528254066ba033d2063",
+    "producer_seconds": 124.927986849,
+    "supervisor_seconds": 140.51375195384026,
+    "peak_rss_kib": 1289060,
+    "gradient": "NOT_RUN",
+    "coefficient_construction": "NOT_RUN",
+    "quality_verdict": "UNQUALIFIED_EXECUTION_FAILURE",
+    "reason": "missing authenticated frontier/reference plan in claimed nested checkpoint; repaired by exactbytecopy+fullbindingverification+regressiontest",
+    "preservation": {
+      "revision": "627b8901caa2a69273bf817b24994d7c06361c8e",
+      "prefix": "codex/sol-compensation/failed-attempt1-d43d2baec4",
+      "all_fresh_download_verified": true
+    }
+  },
+  "limitations": [
+    "exposed retrospective development prototype selection",
+    "single greedy coordinate construction, not global feasibility or capacity",
+    "success probability costs can rise while winners staycorrect",
+    "two new correct entries but no additional complete reply",
+    "no heldout transfer, general prose, chat, durable memory integration, geometry advantage or complete D11 energy qualification",
+    "original accepted Source48/Generate64 remains accepted"
+  ],
+  "next": "After verified protectedmerge, inspect actual newly reached prefix617 with targetfree bank/read/bridge/nativeGenerate witnesses and accepted sameprefix controls; distinguish source selection/consumption from shared emission alignment before another learning rule. No dose/order/refill/alternate witness retry.",
+  "independent_endpoint_audit": {
+    "rows": 1024,
+    "protected_pools_recomputed": 85,
+    "coordinate_trials": 58560,
+    "accepted_coordinates": 2930,
+    "early8_matches_full512": true,
+    "scope": "independent saved finite arithmetic, integer masses and identities; no greedy constructor or forward/backward repetition"
+  },
+  "prior_output_comparisons": {
+    "pr1872": {
+      "changed_generated_sequences": 504,
+      "changed_first_tokens": 442,
+      "changed_eos": 3,
+      "retained_complete": 8,
+      "gained_complete": 0,
+      "lost_complete": 0
+    },
+    "pr1875": {
+      "changed_generated_sequences": 504,
+      "changed_first_tokens": 451,
+      "changed_eos": 5,
+      "retained_complete": 8,
+      "gained_complete": 0,
+      "lost_complete": 0
+    },
+    "pr1877": {
+      "changed_generated_sequences": 504,
+      "changed_first_tokens": 451,
+      "changed_eos": 5,
+      "retained_complete": 8,
+      "gained_complete": 0,
+      "lost_complete": 0
+    },
+    "pr1878": {
+      "changed_generated_sequences": 504,
+      "changed_first_tokens": 451,
+      "changed_eos": 5,
+      "retained_complete": 8,
+      "gained_complete": 0,
+      "lost_complete": 0
+    },
+    "pr1882": {
+      "changed_generated_sequences": 321,
+      "changed_first_tokens": 122,
+      "changed_eos": 3,
+      "retained_complete": 8,
+      "gained_complete": 0,
+      "lost_complete": 0
+    },
+    "pr1886": {
+      "changed_generated_sequences": 201,
+      "changed_first_tokens": 66,
+      "changed_eos": 2,
+      "retained_complete": 8,
+      "gained_complete": 0,
+      "lost_complete": 0
+    }
+  },
+  "prior_output_scope": "All512 IDs/order/EOS/exact accepted membership with pinned tokenizer/labels; six full archiveSHA pins reused,0 downloaded bytes by comparison reader; prior1886 final equals currentoriginal; no model replay",
+  "audit_readers_sha256": {
+    "endpoint": "a16ecbc23aa28a08cd64a73ebd4a5445a1447a7091a9adfd32f1f3b8ed77f8fb",
+    "decision": "ed8fbbfc60c5c7fec174a652a5630e8ab7eb85df30cfea79b88b09fb237715c2",
+    "prior": "3b4af9347ae8ee7b1e4dfd3bedf0ef8e3328c2938260e6d9944ad461660e7496"
+  },
+  "preservation": {
+    "revision": "571ce48fa852df2957e8bc31573ec36b40291d15",
+    "prefix": "codex/sol-compensation/compensation-0001-08c477ebdf",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "f8290da10c0d3cf47258f3a87d5b19561823ebd7e2041138d276ba7034a64636",
+        "bytes": 16083
+      },
+      "compensation-0001-08c477ebdf.tar.gz": {
+        "sha256": "bbc0204f333647de16ef596e6de7e5a149baa98411055a48f3d6d1a71fbd3ca5",
+        "bytes": 108122616
+      }
+    },
+    "seconds": 45.79787843301892,
+    "completed_utc": "2026-10-08T11:27:15.688421+00:00"
+  }
+}

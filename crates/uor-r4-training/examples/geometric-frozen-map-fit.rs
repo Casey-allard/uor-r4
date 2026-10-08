@@ -70,6 +70,8 @@ mod frontier;
 mod native_proposals;
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
 mod output_support;
+#[path = "geometric_frozen_map_fit/prototype_compensation.rs"]
+mod prototype_compensation;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -143,8 +145,8 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
     replay_require(
-        a.constrained_emission_learning == a.retained_context_root.is_some(),
-        "emission mode requires explicit retained Context root",
+        if a.prototype_compensation.is_some() {a.constrained_emission_learning && a.retained_context_root.is_none()} else {a.constrained_emission_learning == a.retained_context_root.is_some()},
+        "emission needs retained Context root, or compensation needs explicit retained emission/diagnostic roots and no Context root",
     )?;
     replay_require(
         !a.constrained_emission_learning
@@ -473,6 +475,8 @@ struct Args {
     constrained_emission_learning: bool,
     #[serde(default)]
     retained_context_root: Option<PathBuf>,
+    #[serde(default)]
+    prototype_compensation: Option<prototype_compensation::Config>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -738,6 +742,11 @@ fn args() -> Result<Args> {
     .chain(a.baseline.iter())
     .chain(a.prediction_control_resume.iter())
     .chain(a.retained_context_root.iter())
+    .chain(
+        a.prototype_compensation
+            .iter()
+            .flat_map(|c| [&c.retained_emission_root, &c.prototype_diagnostic_root]),
+    )
     .chain(
         a.reference_replay
             .iter()
@@ -2037,7 +2046,9 @@ impl Loaded {
     }
 }
 fn proposal_policy(a: &Args) -> Value {
-    if a.constrained_emission_learning {
+    if a.prototype_compensation.is_some() {
+        prototype_compensation::policy()
+    } else if a.constrained_emission_learning {
         constrained_emission::policy()
     } else if a.constrained_context_learning {
         constrained_context::policy()
@@ -4979,7 +4990,11 @@ fn joint_checkpoint(
         receipt["fresh_adam"] = json!(false);
         receipt["credit_scope"] = json!("one original-parent full120 shared categorical action contrast; only one action row may change; Context/Potential/Generate/U fixed for attribution, no Adam; independent native CE acceptance; not joint Context adaptation");
     }
-    if a.constrained_emission_learning {
+    if a.prototype_compensation.is_some() {
+        receipt["prototype_compensation"] = prototype_compensation::input_identity(a)?;
+        receipt["fresh_adam"] = json!(false);
+        receipt["credit_scope"] = prototype_compensation::policy();
+    } else if a.constrained_emission_learning {
         receipt["constrained_emission_learning"] = json!(true);
         receipt["immediate_input"] = constrained_emission::input_identity(a)?;
         receipt["fresh_adam"] = json!(false);
@@ -5147,6 +5162,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.prototype_compensation.is_some() {
+        return prototype_compensation::run(a, start, d);
+    }
     let rates = joint_continuation_settings(a)?.ok_or_else(|| bad("joint config absent"))?;
     let original_parent = ContinuationParent::load(a)?;
     let parent = if a.constrained_emission_learning {
