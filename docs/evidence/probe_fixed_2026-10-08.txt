@@ -1,0 +1,51 @@
+UOR-R4 — The first-token probe, repaired, finds a fixed multi-turn failure
+Date: 2026-10-08 (overnight round 61). DeepSeek session. References #820.
+
+THE INSTRUMENT PROBLEM AND ITS FIX
+  Round 56 reported that the max_new_tokens=1 first-token probe returned a single space for all
+  nine turns on the masked model, and said plainly that reporting that as "0 of 9" would be wrong:
+  the model had learned the corpus's separator convention, so a one-token probe reads the boundary
+  rather than the answer.
+  The fix needs no code change: generate a few tokens and read the first NON-WHITESPACE token.
+  max_new_tokens=6, greedy, protocol=2, on the round-58 artifact (policy=full_prefix + mask):
+
+    turn                                    first content token   reply opens
+    "Reply with exactly one word: yes"            "Hello!"        Hello! How can I...
+    "Answer yes or no: is the sky blue?"          "I"             I do not have access...
+    "Answer yes or no: do fish live in trees?"    "I"             I do not have access...
+    "What is the capital of France?"              "The"           The capital of France is Paris.
+    "How many days are in a week?"                "I"             I do not have inf...
+    "What is the largest planet...?"              "The"           The largest planet in our...
+    "What is two plus two?"                       "I'm"           I'm just a lang...
+    "Hello! How are you today?"                   "Hello!"        Hello! How can I...
+    "How many cats do I have?" (2nd turn)         "You"           You have two cats, but...
+
+WHAT IT SHOWS
+  1. THE MULTI-TURN FAILURE IS FIXED. The retention turn - the second turn of a pair whose first
+     turn said "I have two cats" - now begins "You have two cats, but...". In the chat-only model
+     the same turn returned text IDENTICAL to the first turn (round 44 recorded 0 of 5 second-turn
+     questions answered). This is the single clearest behavioural improvement measured in this
+     session, and it is exactly the failure the response-region objective was aimed at.
+  2. TWO TURNS OPEN WITH THE CORRECT ANSWER'S FIRST WORD: "The" for the capital of France (full
+     reply correct) and "The" for the largest planet (full reply not).
+  3. THE GREETING STILL GETS THE CANONICAL ASSISTANT OPENER, twice, consistently.
+  4. INSTRUCTION COMPLIANCE IS STILL ABSENT where a FORM is demanded: both yes/no turns open with
+     "I do not have access..." rather than "Yes"/"No", and "two plus two" opens with "I'm". The
+     model now explains what it can do instead of writing about the topic, but it still does not
+     obey a requested answer shape - and "I do not have access to..." repeated across turns is a
+     learned template rather than an assessment of each question.
+
+WHAT THIS CHANGES
+  The response-region objective, under full_prefix with the extracted mask, has produced the first
+  measured behavioural improvements on the chat path: a canonical greeting, a correct factual
+  answer, and - most importantly - a multi-turn question answered about something said earlier.
+  It has not produced instruction compliance, and the repeated "I do not have access" opener is now
+  the most conspicuous template in its output.
+
+  It also retires an instrument caveat honestly: the probe that was confounded in round 56 is
+  repaired here by a change of reading rather than of model, so the earlier masked-model numbers
+  need not be revisited - they simply were not measuring content, and this is what does.
+
+SCOPE
+  One artifact (round-58 full_prefix + mask), nine turns, greedy, one protocol, first-content-token
+  reading. The 19.9 M arm of round 59 is still training and is not represented here.
