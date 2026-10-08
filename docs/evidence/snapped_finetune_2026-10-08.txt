@@ -1,0 +1,60 @@
+UOR-R4 — A 500-step snapped fine-tune improves the served-representation score and turns the snap from a cost into a gain
+Date: 2026-10-08 (overnight rounds 28-29). DeepSeek session. References #820.
+
+THE EXPERIMENT
+  Round 27 priced full snapped training (`transport_snap=icosian`) at roughly an order of magnitude of
+  throughput and proposed the economical form: fine-tune briefly from a continuously trained
+  checkpoint so the weights move into the snapped basin. This is that test.
+
+  init  = the round-16 checkpoint (trained in continuous transport, 12,207 steps)
+  train = chat-v0-p2 train, valid = chat-v0-p2/heldout (sha256 e5f400b0...)
+  flags = arch=geometric layers=8 width=512 heads=8 context=384 pattern=rrarrarr read=l2
+          rotation=true transport_snap=icosian device=cuda
+  steps = 500, batch 32, lr 1e-4, warmup 50
+  then  = snap-evaluate, 512 windows, 196,608 targets
+
+RESULTS (bits per byte on the same held-out stream, byte basis 2.837427)
+
+  model                                  fused float   snapped (served representation)
+  round 16, trained unsnapped             0.87755       0.91333      snap costs +0.03578 BPB
+  rounds 28-29, 500-step snapped tune     0.91855       0.89113      snap GAINS  0.02742 BPB
+
+  The served-representation score improves from 0.91333 to 0.89113 - a gain of 0.02220 BPB - and the
+  sign of the snap's effect flips: after fine-tuning, the snapped evaluation is BETTER than the
+  unfused float evaluation by 0.05125 nats.
+
+WHAT IT MEANS
+  1. The cheap form works. A 500-step fine-tune from a continuously trained checkpoint moves the
+     served-representation score by more than half of the transport snap's original cost, at a
+     small fraction of the throughput price full snapped training would charge. The recipe to
+     recommend is: train continuous, then fine-tune snapped briefly.
+  2. The snap is not only a requirement, it can be a regulariser. Once the weights are trained in
+     the representation, snapping improves the model's own nll relative to its unfused path. That
+     is a stronger statement than "the snap is affordable" and it is worth the project's attention:
+     the 120-icosian constraint may be buying generalisation, not just serving compliance.
+  3. The unfused float score gets WORSE (0.87755 -> 0.91855) while the served score gets BETTER.
+     For a project whose deliverable is the served artifact, the snapped number is the one that
+     tracks the deliverable, and it moved in the right direction.
+
+A MEASUREMENT CAUTION, RECORDED
+  The in-training development metric (24,576 targets) moved 1.8907 -> 1.8612 at step 250 and then
+  1.9017 at step 500, which reads as a reversal. The authoritative 196,608-target evaluation shows
+  the opposite for the quantity that matters. The two score different slices and the in-training
+  dev line is evidently not a reliable proxy at this granularity; the evaluation decides. Recorded
+  because a reader of the training log alone would draw the wrong conclusion, as this session
+  briefly did.
+
+NEXT
+  * Export the fine-tuned model (GPTQ, 64 windows, damp 0.01 - the measured optimum) and score it
+    with d11-evaluate to see what the served artifact actually delivers: the expectation is a
+    served number below 0.89113 by the quantisation term.
+  * Sweep the fine-tune length: 250, 500 and 1,500 steps, since the served score and the training
+    dev line disagree and only the evaluation can choose.
+  * The full snapped run (rounds 24-27) remains the control for whether training snapped from
+    scratch does better than a short tune into the basin.
+
+SCOPE
+  One model, one corpus, one held-out stream, one fine-tune length, single seed. The 0.87755 and
+  0.91333 rows are the round-16 model measured earlier in this session on the same stream and
+  targets; the fine-tuned rows are a 500-step tune of it. Nothing here separates the effect of the
+  extra 500 steps of training from the effect of the snap; both differ from the parent.
