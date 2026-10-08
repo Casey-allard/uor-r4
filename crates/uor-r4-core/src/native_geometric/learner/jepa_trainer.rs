@@ -643,6 +643,24 @@ pub struct ExportedGeometricModel {
     pub hierarchical_lattice: Option<HierarchicalLatticeTables>,
 }
 
+/// One candidate's six additive term groups. `total()` reproduces the scorer exactly.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct CandidateTermScores {
+    pub bias: i32,
+    pub lattice_lag: i32,
+    pub s2: i32,
+    pub vsa: i32,
+    pub engram: i32,
+    pub hierarchical: i32,
+}
+
+impl CandidateTermScores {
+    #[inline]
+    pub fn total(&self) -> i32 {
+        self.bias + self.lattice_lag + self.s2 + self.vsa + self.engram + self.hierarchical
+    }
+}
+
 impl ExportedGeometricModel {
     /// O(1) query-key scoring across all lanes with zero runtime matrix multiplications.
     #[inline]
@@ -699,21 +717,26 @@ impl ExportedGeometricModel {
         self.score_context_candidate_with_vsa(context, candidate, fiber_pt, None)
     }
 
-    /// Score candidate token with optional precomputed VSA context vector to eliminate
-    /// redundant multiscale context encoding in inner candidate loops.
-    pub fn score_context_candidate_with_vsa(
+    /// The six additive term groups the scorer sums for one candidate.
+    ///
+    /// Exposed so a learned nonlinear term can read exactly what the additive scorer sums,
+    /// instead of a parallel reimplementation that could drift from it. `total()` is the
+    /// existing score, term for term.
+    pub fn score_context_candidate_terms(
         &self,
         context: &[usize],
         candidate: usize,
         fiber_pt: HopfFiberPointQ30,
         precomputed_vsa: Option<(&Codebook<64>, &Hypervector<64>)>,
-    ) -> i32 {
+    ) -> CandidateTermScores {
+        let mut terms = CandidateTermScores::default();
         if self.token_to_root.is_empty() {
-            return self.discrete_bias.get(candidate).copied().unwrap_or(0);
+            terms.bias = self.discrete_bias.get(candidate).copied().unwrap_or(0);
+            return terms;
         }
         let root_len = self.token_to_root.len();
         let cand_root = self.token_to_root[candidate.min(root_len - 1)] as usize;
-        let mut total = self.discrete_bias.get(candidate).copied().unwrap_or(0);
+        terms.bias = self.discrete_bias.get(candidate).copied().unwrap_or(0);
 
         let ctx_len = context.len();
         for (l, table) in self.discrete_tables.iter().enumerate() {
@@ -721,7 +744,7 @@ impl ExportedGeometricModel {
             if ctx_len >= lag {
                 let ctx_token = context[ctx_len - lag];
                 let ctx_root = self.token_to_root[ctx_token.min(root_len - 1)] as usize;
-                total += table.score(ctx_root, cand_root) as i32;
+                terms.lattice_lag += table.score(ctx_root, cand_root) as i32;
             }
         }
 
@@ -734,7 +757,7 @@ impl ExportedGeometricModel {
                 + mul_shift_add(u1[0] as i64, r[3] as i64)
                 + mul_shift_add(u1[1] as i64, r[4] as i64))
                 >> 31;
-            total += s2_proj as i32;
+            terms.s2 = s2_proj as i32;
         }
 
         if self.vsa_scale_q15 != 0 && ctx_len > 0 {
@@ -759,8 +782,7 @@ impl ExportedGeometricModel {
                     ctx_vec.bipolar_correlation_q15(&cand_vec)
                 }
             };
-            let vsa_score = (self.vsa_scale_q15 as i32 * sim_q15 as i32) >> 16;
-            total += vsa_score;
+            terms.vsa = (self.vsa_scale_q15 as i32 * sim_q15 as i32) >> 16;
         }
 
         if let Some(engram) = &self.engram_table {
@@ -774,7 +796,7 @@ impl ExportedGeometricModel {
                 {
                     for &(c, q15) in cands {
                         if c == candidate as u32 {
-                            total += q15 as i32;
+                            terms.engram += q15 as i32;
                         }
                     }
                 }
@@ -787,7 +809,7 @@ impl ExportedGeometricModel {
                 if let Some(cands) = engram.lookup_4gram(w_prev3, w_prev2, w_prev, w_curr) {
                     for &(c, q15) in cands {
                         if c == candidate as u32 {
-                            total += q15 as i32;
+                            terms.engram += q15 as i32;
                         }
                     }
                 }
@@ -799,7 +821,7 @@ impl ExportedGeometricModel {
                 if let Some(cands) = engram.lookup_trigram(w_prev2, w_prev, w_curr) {
                     for &(c, q15) in cands {
                         if c == candidate as u32 {
-                            total += q15 as i32;
+                            terms.engram += q15 as i32;
                         }
                     }
                 }
@@ -810,7 +832,7 @@ impl ExportedGeometricModel {
                 if let Some(cands) = engram.lookup_bigram(w_prev, w_curr) {
                     for &(c, q15) in cands {
                         if c == candidate as u32 {
-                            total += q15 as i32;
+                            terms.engram += q15 as i32;
                         }
                     }
                 }
@@ -823,7 +845,7 @@ impl ExportedGeometricModel {
                     if let Some(cands) = engram.lookup_skip(w_skip, w_curr, syn) {
                         for &(c, q15) in cands {
                             if c == candidate as u32 {
-                                total += q15 as i32;
+                                terms.engram += q15 as i32;
                             }
                         }
                     }
@@ -844,16 +866,31 @@ impl ExportedGeometricModel {
                 let r_curr = self.token_to_root[curr_tok.min(root_len - 1)] as usize;
                 let c_curr = lattice.cluster_of(curr_tok);
                 let c_cand = lattice.cluster_of(candidate);
-                total += lattice.score_token(r_prev, r_curr, cand_root, c_curr, c_cand, is_self);
+                terms.hierarchical +=
+                    lattice.score_token(r_prev, r_curr, cand_root, c_curr, c_cand, is_self);
             } else if ctx_len == 1 {
                 let r_curr = self.token_to_root[curr_tok.min(root_len - 1)] as usize;
                 let c_curr = lattice.cluster_of(curr_tok);
                 let c_cand = lattice.cluster_of(candidate);
-                total += lattice.score_token(r_curr, r_curr, cand_root, c_curr, c_cand, is_self);
+                terms.hierarchical +=
+                    lattice.score_token(r_curr, r_curr, cand_root, c_curr, c_cand, is_self);
             }
         }
 
-        total
+        terms
+    }
+
+    /// Score candidate token with optional precomputed VSA context vector to eliminate
+    /// redundant multiscale context encoding in inner candidate loops.
+    pub fn score_context_candidate_with_vsa(
+        &self,
+        context: &[usize],
+        candidate: usize,
+        fiber_pt: HopfFiberPointQ30,
+        precomputed_vsa: Option<(&Codebook<64>, &Hypervector<64>)>,
+    ) -> i32 {
+        self.score_context_candidate_terms(context, candidate, fiber_pt, precomputed_vsa)
+            .total()
     }
 
     /// Readout score for candidate token given fiber state with zero runtime floats.

@@ -136,11 +136,26 @@ impl Lut4Layer {
                 connectivity[out * width_in + index] = 1.0 + jitter + slot as f32 * 0.01;
             }
         }
+        // Break the mixture's symmetry at initialisation. A uniform mixture over the sixteen
+        // gates maps EVERY input pair to exactly 0.5, which is the fixed point of the mixture:
+        // the next layer then receives a constant, no gate can change its output, and training
+        // stalls at the best constant (measured: loss pinned at 0.25 with balanced labels and an
+        // output gate that collapsed to a constant). Initialising near the identity gates keeps
+        // the layer's outputs at the inputs' own values so gradients reach the gates.
+        let mut gates = vec![0.0f32; width_out * 16];
+        for out in 0..width_out {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            let jitter = ((state >> 40) as f32 / 16_777_216.0) * 0.2;
+            gates[out * 16 + GATE_A as usize] = 1.0 + jitter;
+            gates[out * 16 + GATE_B as usize] = 0.5 + jitter;
+        }
         Self {
             width_in,
             width_out,
             connectivity,
-            gates: vec![0.0f32; width_out * 16],
+            gates,
             residual: false,
         }
     }
@@ -274,14 +289,20 @@ impl Lut4Layer {
         out
     }
 
-    /// Gradients of a scalar loss with respect to this layer's parameters, given the
-    /// upstream gradient `d_out` for the layer output. Connectivity scores receive the
-    /// first-order utility `d_out * (d gate / d input) * input`, which is the straight-through
-    /// score of "this input mattered for this gate"; gate logits receive the exact softmax
-    /// gradient of the gate mixture.
-    pub fn backward(&self, input: &[f32], d_out: &[f32]) -> (Vec<f32>, Vec<f32>) {
+    /// Gradients of a scalar loss with respect to this layer's parameters **and its input**,
+    /// given the upstream gradient `d_out` for the layer output.
+    ///
+    /// Gate logits receive the exact softmax gradient of the mixture. Connectivity scores
+    /// receive the first-order utility `d_out * (d gate / d input) * input` — the
+    /// straight-through score of "this input mattered for this gate" — which is *not* a
+    /// gradient and is used only to keep a live alternative wired. The returned input gradient
+    /// is the exact chain-rule product, and it is what the previous layer must receive: routing
+    /// the utility upstream instead breaks the backward pass (measured: a two-layer network
+    /// whose loss never left 0.25 and whose output gate collapsed to a constant).
+    pub fn backward(&self, input: &[f32], d_out: &[f32]) -> (Vec<f32>, Vec<f32>, Vec<f32>) {
         let mut d_connectivity = vec![0.0f32; self.width_in * self.width_out];
         let mut d_gates = vec![0.0f32; self.width_out * 16];
+        let mut d_input = vec![0.0f32; self.width_in];
         for out_index in 0..self.width_out {
             let (ia, ib) = self.selected_inputs(out_index);
             let a = input[ia];
@@ -313,8 +334,16 @@ impl Lut4Layer {
             // Straight-through utility for the selection: only the chosen inputs score.
             d_connectivity[out_index * self.width_in + ia] += upstream * d_value_da * a;
             d_connectivity[out_index * self.width_in + ib] += upstream * d_value_db * b;
+            // Exact chain rule for the previous layer.
+            d_input[ia] += upstream * d_value_da;
+            d_input[ib] += upstream * d_value_db;
         }
-        (d_connectivity, d_gates)
+        if self.residual && self.width_in == self.width_out {
+            for (index, gradient) in d_out.iter().enumerate() {
+                d_input[index] += gradient;
+            }
+        }
+        (d_connectivity, d_gates, d_input)
     }
 }
 
@@ -490,15 +519,8 @@ impl Lut4Network {
                 }
                 for index in (0..self.layers.len()).rev() {
                     let layer = &self.layers[index];
-                    let (dc, dg) = layer.backward(&activations[index], &d);
-                    // Upstream for the previous layer: the same selected-input utility.
-                    let mut next_d = vec![0.0f32; layer.width_in()];
-                    for out in 0..layer.width_out() {
-                        let (ia, ib) = layer.selected_inputs(out);
-                        let row = &dc[out * layer.width_in()..(out + 1) * layer.width_in()];
-                        next_d[ia] += row[ia];
-                        next_d[ib] += row[ib];
-                    }
+                    let (dc, dg, d_input) = layer.backward(&activations[index], &d);
+                    let next_d = d_input;
                     let (acc_c, acc_g) = &mut accumulated[index];
                     if acc_c.is_empty() {
                         *acc_c = dc;

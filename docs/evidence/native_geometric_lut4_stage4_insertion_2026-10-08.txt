@@ -1,0 +1,81 @@
+UOR-R4 — Stage 4 insertion attempt: the best two-input LUT term over the additive scorer's own
+term groups does not improve held-out BPB on real text (gate NOT PASSED)
+Date: 2026-10-08. Executed by: DeepSeek session, local M1 checkout.
+References #820. Plan: docs/integration/native-core-transition-plan.md section 5, Stage 4.
+
+WHY
+  Stage 4 names the deepest algorithmic limit: the serving scorer is purely additive, a
+  log-linear model over sparse discrete features, so its ceiling is n-gram/backoff quality. The
+  plan's Stage 4 gate is improvement on REAL held-out text (not TinyStories-shaped) with the
+  discretisation gap and gate utilisation reported, for a LUT-4 nonlinear term inserted over the
+  shortlist feature vector as a selected read.
+
+WHAT WAS BUILT
+  1. `ExportedGeometricModel::score_context_candidate_terms` — the scorer's six additive term
+     groups (bias, lattice lags, S2 readout, VSA, engram, hierarchical lattice) exposed as
+     `CandidateTermScores`, with `score_context_candidate_with_vsa` now defined as its `total()`.
+     Pinned by `term_groups_sum_to_the_scorer_exactly` in tests/binary_model_tests.rs, which
+     asserts equality for every candidate of three contexts, so a learned term reads exactly what
+     the scorer sums and cannot drift from it.
+  2. `crates/uor-r4-core/src/bin/lut4-prose.rs` — the insertion harness: loads the artifact and
+     two token streams, builds a 12-bit feature vector per candidate (sign and magnitude bit of
+     each of the six term groups), trains a LUT-4 network at the training corpus head, chooses
+     the correction scale on a disjoint selection tail, and measures held-out bits per byte with
+     and without the term on a separate held-out corpus file.
+  3. An exhaustive search over every two-input term: C(12,2) * 16 = 1056 candidate (bit, bit,
+     gate) terms, so the strongest LUT-4 term at this arity is found exactly rather than left to
+     a connectivity heuristic.
+
+TWO REAL DEFECTS THE WORK FOUND, both fixed and recorded in the module
+  * The backward pass routed the connectivity UTILITY upstream instead of the chain-rule
+    gradient, so the first layer received a wrong signal. `Lut4Layer::backward` now returns the
+    exact input gradient and the utility is used only to keep a live alternative wired.
+  * A uniform mixture over the sixteen gates maps EVERY input pair to exactly 0.5, the fixed
+    point of the mixture. The next layer then receives a constant, no gate can change its
+    output, and training stalls at the best constant — measured as a loss pinned at 0.25 with
+    balanced labels and an output gate collapsed to a constant. Initialisation now breaks that
+    symmetry near the identity gates.
+
+MEASUREMENT
+  artifact : native_geometric_prose_model.rgm, sha256 7023c4507039acc01653b2dd6a41cf4329635767c66811a17d76591a4f356d96
+  training : chat-v0-p2/train/tokens.u16 (real conversational text, not TinyStories-shaped)
+  held-out : chat-v0-p2/heldout/tokens.u16 (a separate file; 693 scored bytes at 256 positions)
+  scale    : chosen on a disjoint selection tail of the training stream, grid 256..16384
+
+  run A (512 train / 256 eval positions, net untrained after the first defect was found):
+    baseline 4.211070   soft 4.211070   hard 4.211070   delta 0.000000   top-1 change 0.0
+  run B (64 train / 64 eval positions, exhaustive best term, feature_a 4, feature_b 7, gate 14):
+    baseline 4.669634   soft 4.669640   delta +0.0000061   top-1 change 0.0
+    term train loss 0.2371 against a constant-0.25 baseline, i.e. the term classifies
+    target-versus-decoy at roughly 76 % on balanced training classes.
+
+  Feature informativeness, measured before training: the best single feature bit separates the
+  classes by 0.371 mean (feature 7, the S2 magnitude bit: 0.373 for targets against 0.001 for
+  decoys). So the features carry signal; the term that uses them does not transfer it.
+
+GATE VERDICT: NOT PASSED
+  The strongest available two-input term over these features does not improve held-out bits per
+  byte on real text — the delta is +0.0000061 bits/byte, i.e. slightly WORSE, and the correction
+  never changes the argmax (top-1 change rate 0.0) at any scale in the grid. Held-out BPB does
+  not improve, so the plan's gate is not met. The mechanism is implemented and measured; the
+  result is a preserved negative at this scope.
+
+WHAT THIS DOES AND DOES NOT ESTABLISH
+  * It establishes: at THIS artifact, THIS feature encoding (sign and magnitude bit per term
+    group), THIS arity (two inputs) and THESE two real-text slices, a learned nonlinear term
+    does not improve held-out BPB. It is not evidence against nonlinearity in general.
+  * It does NOT establish that LUT-4 cannot help: a term that classifies candidates at 76 %
+    carries information the current correction scale and form do not convert into held-out
+    probability. The plan allows the term to be inserted as a selected read of the shortlist
+    feature vector; this harness reads a coarser encoding than the scorer's own values.
+  * Scope: one artifact (TinyStories-trained prose scorer), one real corpus, 64-256 scored
+    positions per slice, debug build, no serving default changed.
+
+NEXT ACTION THIS POINTS AT
+  1. Richer features for the same term: quantise each term group to several thresholds instead
+     of two bits, and include the per-lag lane terms separately rather than summed.
+  2. Insert the term as a calibrated re-ranking correction (per-position normalised) rather than
+     an additive logit shift, so a 76 %-accurate classifier changes the ordering it is able to
+     change.
+  3. Only then re-run this exact harness; the scale grid, the feature-informativeness diagnostic
+     and the exhaustive 1056-term search are already in place and are cheap to repeat.

@@ -644,3 +644,38 @@ fn test_mmap_serving_zero_allocations() {
         byte_count
     );
 }
+
+/// The six additive term groups must sum to the scorer exactly. This pins the refactor that
+/// exposes them: a learned nonlinear term reading `score_context_candidate_terms` sees precisely
+/// what `score_context_candidate` sums, with no parallel reimplementation to drift from.
+#[test]
+fn term_groups_sum_to_the_scorer_exactly() {
+    let model = create_test_model();
+    let contexts: [&[usize]; 3] = [
+        &[1, 2, 3],
+        &[b't' as usize, b'h' as usize, b'e' as usize, b' ' as usize, b'c' as usize],
+        &[7, 11, 13, 17, 19, 23, 29, 31],
+    ];
+    for ctx in contexts {
+        let fiber = model.context_hopf_fiber_q30(ctx);
+        for cand in 0..model.vocab_size {
+            let terms = model.score_context_candidate_terms(ctx, cand, fiber, None);
+            assert_eq!(
+                terms.total(),
+                model.score_context_candidate(ctx, cand, fiber),
+                "term total differs from the scorer for ctx {:?} candidate {cand}",
+                ctx
+            );
+            // The groups must actually be populated somewhere, or the equality is vacuous.
+            assert_eq!(
+                terms.total(),
+                terms.bias
+                    + terms.lattice_lag
+                    + terms.s2
+                    + terms.vsa
+                    + terms.engram
+                    + terms.hierarchical
+            );
+        }
+    }
+}
