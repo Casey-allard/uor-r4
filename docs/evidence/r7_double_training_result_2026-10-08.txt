@@ -1,0 +1,55 @@
+UOR-R4 — Doubling the training does not close the instruction-precision gap
+Date: 2026-10-08 (overnight rounds 75-84). DeepSeek session. References #820.
+
+WHAT RAN
+  The working configuration (19,929,136 params, rrarrarr, width 512, heads 8, read L2,
+  policy=full_prefix, the verified response mask) trained for 24,414 steps, i.e. TWICE the 12,207 of
+  the arm it is compared against. Final development response nll 1.6801235877441423. Exported and
+  scored automatically by the watcher installed for it, with no intervention.
+
+RESULT ON THE TARGET: NO CHANGE
+  Panel, greedy, protocol 2, read as the first TWO content tokens per reply (the reading the round-81
+  review established as necessary, since the yes/no class fails at the second token):
+
+    greeting turns (x3)      "Hello! How"       canonical, as before
+    largest planet           "The largest"      promising opener, no value
+    name retention (x2)      "My name"          RESPONSIVE - the question is answered in kind
+    cats retention           "Smallly, cats"    responsive in kind
+    Japan follow-up          "Planning a"       topical
+    cake turn                "To cook"          topical
+    two plus two             "A classic"        still no number
+    one-word turns           no bare token      still non-compliant
+    numeric turns            no bare number     still non-compliant
+
+  NOT ONE instruction-form request is complied with. Doubling the training changed nothing about
+  compliance, which is exactly what the round-81 review predicted from the data: of 129,465
+  responses only 4 one-word replies remain after the context-384 episode filter, so there is almost
+  nothing to learn the form from, and no amount of further exposure creates it.
+
+WHAT IT DID NOT BREAK
+  The behaviours the objective bought are intact and, on the retention class, clearer than before:
+  greetings stay canonical, the follow-ups stay topical, and BOTH retention turns now open by
+  answering the question asked ("My name", "Smallly, cats") where the chat-only model returned the
+  previous turn's text verbatim. The regression guard the review asked for therefore holds: extra
+  training did not buy anything on the target and did not cost anything on the behaviours already
+  won.
+
+WHAT IT RULES OUT
+  The remaining explanations for the instruction-precision gap were: data support, capacity,
+  optimization, the objective, and decoding. This arm rules out OPTIMIZATION (2x steps, no change)
+  and, with the round-74 capacity arm, CAPACITY (2.8x params, no change on compliance) and DECODING
+  (round 73: sampling removes the refusal template but not non-compliance). Two candidates are left,
+  and they are the two the review ranked first and third: DATA SUPPORT, which the queued
+  policy=truncated_prefix arm tests with one argument and 14.75x the short-form episodes, and the
+  TOKEN-LEVEL MLE LENGTH BIAS, which predicts that even with support the model continues after "Yes"
+  because 31 continuations carry about 250:1 of the token mass against 16 stops.
+
+  If truncated_prefix fails as this arm did, the objective explanation becomes the leading one, and
+  the fix moves from data to the loss or the decoding - which is a different piece of work than any
+  tried tonight.
+
+SCOPE
+  One model, one objective, one mask, one training length doubling, single seed, greedy decoding, the
+  earlier panel read with the corrected two-token rule. The dev nll (1.6801) is worse than the
+  12,207-step arm's (1.4176) while behaviour is equivalent, which is a third data point that
+  development nll does not track this objective's quality.
