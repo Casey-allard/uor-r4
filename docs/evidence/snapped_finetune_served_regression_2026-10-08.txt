@@ -1,0 +1,52 @@
+UOR-R4 — The snapped fine-tune improves the float model and degrades the served artifact
+Date: 2026-10-08 (overnight round 30). DeepSeek session. References #820.
+
+WHAT WAS MEASURED
+  Round 29 showed a 500-step snapped fine-tune improving the served-representation float score from
+  0.91333 to 0.89113 BPB, with the snap turning from a cost into a gain. This round asks the only
+  question that matters for the deliverable: what does the EXPORTED, multiplier-free artifact score?
+
+  Both artifacts: GPTQ, 64 calibration windows, damp 0.01 (the round-23 measured optimum), then
+  d11-evaluate on chat-v0-p2/heldout, 24,576 targets.
+
+                                           float snapped   served (D11)   quantisation cost
+  round 16, trained unsnapped               0.91333         0.93277        0.01944 BPB
+  500-step snapped fine-tune                0.89113         0.95150        0.06040 BPB
+
+  THE SERVED ARTIFACT GOT WORSE: 0.93277 -> 0.95150, a regression of 0.01873 BPB.
+
+WHY, AND WHY IT MATTERS
+  The float-side gain is real but the quantisation loss grew 3.1x (0.0382 -> 0.1187 nats). Snapped
+  fine-tuning makes the weights less amenable to the GPTQ grid, and that extra loss more than
+  consumes the 0.02220 BPB the fine-tune bought on the float side.
+
+  This is the second time in this session that a float-side improvement failed to survive to the
+  served artifact, and it is a sharper instance than the first: here the float number moved in the
+  RIGHT direction and the deliverable still regressed. The lesson is procedural and worth keeping:
+  for this project the served number is the result, and a float improvement is a hypothesis about
+  the result, not evidence of it.
+
+  It also reopens the round-20 attribution with a new question. Round 20 found 97 percent of the
+  quantisation loss in the weight matrices for an unsnapped-trained model. If snapped training
+  changes their distribution - tighter, or more outlier-prone - the right fix is not "don't
+  fine-tune" but "fine-tune and then quantise differently", which is testable: rounding-attribution
+  on this artifact would say which groups grew, and a per-group bit allocation could target them.
+
+WHAT STANDS
+  * Round 29's float-side result stands as measured: the fine-tune does move the model into the
+    snapped basin and the snap does become a gain there.
+  * Round 30 does not contradict it; it shows the gain does not transfer through this quantiser.
+  * The round-16 served artifact at 0.93277 remains the best served number measured in this project
+    on real held-out chat, and the 4.70x improvement over the 4.3885 currently served is unchanged.
+
+NEXT
+  1. rounding-attribution on the fine-tuned artifact to see which parameter groups absorbed the
+     tripled quantisation loss.
+  2. If it is the weight matrices again, a per-group bit allocation guided by that attribution is
+     the concrete test of whether snapped training can be served profitably.
+  3. Sweep the fine-tune length: a shorter tune may buy the basin without the quantisation damage.
+
+SCOPE
+  One model, one corpus, one stream, one quantiser setting, one fine-tune length, single seed.
+  d10 is null in the fine-tuned evaluation because a snapped artifact is scored against its float
+  side rather than a second integer engine; the served number is the d11 nll.
