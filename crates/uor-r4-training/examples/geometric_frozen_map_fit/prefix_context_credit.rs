@@ -18,6 +18,14 @@ const COHORT: [usize; 9] = [245, 0, 1, 4, 5, 8, 9, 12, 13];
 pub(super) struct Config {
     pub retained_intermediate_root: PathBuf,
     pub retained_capture_root: PathBuf,
+    #[serde(default)]
+    pub recorded_finite_contrast: Option<RecordedFiniteContrastConfig>,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct RecordedFiniteContrastConfig {
+    pub retained_path_root: PathBuf,
+    pub retained_probe_root: PathBuf,
 }
 pub(super) fn validate_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.prefix_context_credit {
@@ -29,6 +37,12 @@ pub(super) fn validate_settings(a: &Args) -> Result<()> {
             && !a.categorical_action_only && !a.native_code_proposals
             && !a.reached_frontier_objective && a.reference_replay.is_none(),
             "Prefix Context probe requires exclusive joint mode without historical proposal/reference paths")?;
+        if c.recorded_finite_contrast.is_some() {
+            replay_require(
+                a.context_path_credit.is_none() && a.maximum_report_bytes <= 256 * 1024 * 1024,
+                "Recorded finite Context resource/mode admission differs",
+            )?;
+        }
         replay_require(
             fs::canonicalize(&a.checkpoint)?
                 == fs::canonicalize(c.retained_intermediate_root.join("checkpoint-0001"))?,
@@ -156,6 +170,22 @@ fn evaluate(
     name: &str,
     saved_parity: bool,
 ) -> Result<Value> {
+    evaluate_inner(a, start, p, field, eps, frames, name, saved_parity, None)
+}
+fn evaluate_inner(
+    a: &Args,
+    start: Instant,
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[Episode],
+    frames: &[Frame],
+    name: &str,
+    saved_parity: bool,
+    capture: Option<&constrained_context::CapturedDecisions>,
+) -> Result<Value> {
+    let mut events = Vec::new();
+    let mut calls = Vec::new();
+    let mut differences = Vec::new();
     let bytes = field.to_bytes()?;
     let hash = sha256_bytes(&bytes);
     let mut native = p.generator()?.with_continuation_field(BoundNativeBytes {
@@ -168,8 +198,53 @@ fn evaluate(
     let mut retained = 0;
     for f in frames {
         deadline(a, start)?;
+        let tracing = capture.is_some() && f.input == 245;
+        let guard = if tracing {
+            Some(native.capture_context_decisions(20_000 - events.len())?)
+        } else {
+            None
+        };
         let bank = native.admit_bank(continuation_snapshot(&eps[f.input].packet)?)?;
+        if let Some(guard) = guard {
+            let first = events.len();
+            events.extend(guard.finish()?);
+            replay_require(
+                events.len() == first,
+                "Finite candidate bank admission Context coverage differs",
+            )?;
+            calls.push(json!({"kind":"bank_admission","index":245,"position":f.position,"first":first,"count":events.len()-first}));
+        }
+        let guard = if tracing {
+            Some(native.capture_context_decisions(20_000 - events.len())?)
+        } else {
+            None
+        };
         let step = native.step(&bank, &f.prefix)?;
+        if let Some(guard) = guard {
+            let actual = guard.finish()?;
+            let baseline = capture.ok_or_else(|| bad("Finite baseline capture absent"))?;
+            let matches = baseline
+                .calls
+                .iter()
+                .filter(|c| {
+                    c["kind"] == "native_step" && c["index"] == 245 && c["position"] == f.position
+                })
+                .collect::<Vec<_>>();
+            replay_require(
+                matches.len() == 1 && matches[0]["prefix"] == json!(f.prefix),
+                "Finite baseline actual capture scope differs",
+            )?;
+            let first = index(&matches[0]["first"])?;
+            let count = index(&matches[0]["count"])?;
+            let old = baseline
+                .events
+                .get(first..first + count)
+                .ok_or_else(|| bad("Finite baseline capture bounds"))?;
+            differences.push(capture_difference(f.position, old, &actual));
+            let first = events.len();
+            events.extend(actual);
+            calls.push(json!({"kind":"native_step","index":245,"position":f.position,"prefix":f.prefix,"first":first,"count":events.len()-first}));
+        }
         let v = snapshot(&step)?;
         if saved_parity {
             parity(&v, &f.saved)?;
@@ -194,7 +269,32 @@ fn evaluate(
         )?;
         rows.push(json!({"input_index":f.input,"position":f.position,"id":f.id,"target":f.target,"weight":f.weight,"chosen":step.actions.summary.chosen_token_id,"target_mass":mass,"total_mass":total,"ce":ce,"pool":step.actions.summary}));
     }
-    let out = json!({"task":task,"reference":reference,"combined":task+reference,"correct_reference_frames":retained,"terms":rows,"scope":"fixed18 actual prefixes; no rollout"});
+    let mut out = json!({"task":task,"reference":reference,"combined":task+reference,"correct_reference_frames":retained,"terms":rows,"scope":"fixed18 actual prefixes; no rollout"});
+    if capture.is_some() {
+        let file = "candidate-context-decisions.json";
+        let path = a.out.join(file);
+        let remaining = a
+            .maximum_report_bytes
+            .checked_sub(size(&a.out)? + 65536)
+            .ok_or_else(|| bad("Finite Context output cap"))?;
+        let mut writer = constrained_context::BudgetWriter {
+            inner: io::BufWriter::new(
+                fs::OpenOptions::new()
+                    .write(true)
+                    .create_new(true)
+                    .open(&path)?,
+            ),
+            remaining,
+        };
+        serde_json::to_writer(
+            &mut writer,
+            &constrained_context::CapturedDecisions { calls, events },
+        )?;
+        io::Write::flush(&mut writer)?;
+        out["actual_context_capture"] =
+            json!({"file":file,"sha256":sha256_file(&path)?,"bytes":fs::metadata(path)?.len()});
+        out["actual_context_divergence"] = json!(differences);
+    }
     write(a, &format!("{name}.json"), &out)?;
     Ok(out)
 }
@@ -545,6 +645,17 @@ fn export(
     p: &ContinuationParent,
     d: &Device,
 ) -> Result<(ContinuationParent, NativeContinuationField, Value)> {
+    export_with_policy(a, l, field, p, d, "prefix_context_credit_probe", policy())
+}
+fn export_with_policy(
+    a: &Args,
+    l: &Loaded,
+    field: &NativeContinuationField,
+    p: &ContinuationParent,
+    d: &Device,
+    mode: &str,
+    receipt_policy: Value,
+) -> Result<(ContinuationParent, NativeContinuationField, Value)> {
     let (_, generate, _, mut receipt) = checkpoint(a, 1, l)?;
     let root = a.out.join("checkpoint-0001");
     let current = ContinuationParent::from_checkpoint(&root)?;
@@ -594,10 +705,16 @@ fn export(
             && current.exp == p.exp,
         "Prefix Context frozen payload changed",
     )?;
-    receipt["mode"] = json!("prefix_context_credit_probe");
+    receipt["mode"] = json!(mode);
     receipt["fresh_adam"] = json!(false);
     receipt["optimizer_updates"] = json!(0);
-    receipt["policy"] = policy();
+    receipt["policy"] = receipt_policy;
+    if mode == "context_recorded_finite_contrast" {
+        receipt["new_gradients"] = json!(0);
+        receipt["training_updates"] = json!(0);
+        receipt["master_loader_device"] = json!("cuda");
+        receipt["native_evaluation_device"] = json!("host");
+    }
     receipt["continuation_parameters"] = masters;
     receipt["continuation_sha256"] = json!(sha256_bytes(&rebound.to_bytes()?));
     receipt["parent_report_sha256"] = json!(REPORT);
@@ -761,6 +878,9 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         &p.binding,
         &NativeGeometricGenerate::from_bytes(&p.generate, p.integer.binding())?,
     )?;
+    if let Some(finite) = &c.recorded_finite_contrast {
+        return run_finite(a, start, d, finite, &p, &field, &eps, frames);
+    }
     let l = load_joint_continuation(a, &p, d)?;
     let params = l
         .source
@@ -1052,6 +1172,502 @@ mod tests {
         frozen_guard(&before, &after, "a")?;
         after.insert("frozen".into(), "different".into());
         assert!(frozen_guard(&before, &after, "a").is_err());
+        Ok(())
+    }
+}
+
+fn finite_policy() -> Value {
+    json!({"schema":"uor-r4.context-recorded-finite-contrast/1","intervention":"already recorded self_transition3610 actual master to-.5; nativeq-1to-2","new_gradients":0,"optimizer_updates":0,"new_proposals":0,"reranking":false,"baseline":"reused sealed1947 eighteen raw native pools; no baseline encoder replay","candidate":"one coherent export/independentreload followed by18fixed actual-prefix steps; task Contextcapture within same2steps","objective":"task245pos4 weight1+other17each1/17","positive":"strictcombinedCEdescent+exact tasktargetprobabilityimprovement+all17referencewinnerguards","selected_model":false,"scope":"finite18contrast only; no full-prefix/reply/useful qualification"})
+}
+fn capture_difference(
+    position: usize,
+    old: &[uor_r4_integer::geometric_context::ContextDecisionEvent],
+    new: &[uor_r4_integer::geometric_context::ContextDecisionEvent],
+) -> Value {
+    let mut first_any = None;
+    let mut first_topology = None;
+    let mut first_scores = None;
+    let mut first_action_or_state = None;
+    let mut winner_changes = 0;
+    let mut transition_winner_changes = 0;
+    for i in 0..old.len().max(new.len()) {
+        let a = old.get(i);
+        let b = new.get(i);
+        let topology = match (a, b) {
+            (Some(a), Some(b)) => {
+                a.call_index != b.call_index
+                    || a.invocation != b.invocation
+                    || a.family != b.family
+                    || a.token_id != b.token_id
+                    || a.flat_lane != b.flat_lane
+                    || a.head != b.head
+                    || a.lane != b.lane
+            }
+            _ => true,
+        };
+        let states = match (a, b) {
+            (Some(a), Some(b)) => a.own != b.own || a.neighbor != b.neighbor,
+            _ => false,
+        };
+        let scores = match (a, b) {
+            (Some(a), Some(b)) => a.scores_q24 != b.scores_q24,
+            _ => false,
+        };
+        let winner = match (a, b) {
+            (Some(a), Some(b)) => a.winner != b.winner,
+            _ => false,
+        };
+        if !topology && winner {
+            winner_changes += 1;
+            if a.is_some_and(|a| {
+                a.family == uor_r4_integer::geometric_context::ContextDecisionFamily::Transition
+            }) {
+                transition_winner_changes += 1;
+            }
+        }
+        let receipt = || json!({"event_index":i,"baseline":a,"candidate":b,"topology_difference":topology,"input_state_difference":states,"score_difference":scores,"winner_difference":winner,"comparison_scope":"aligned ordinal events; a topology mismatch invalidates subsequent call-site correspondence"});
+        if topology && first_topology.is_none() {
+            first_topology = Some(receipt());
+        }
+        if scores && !topology && first_scores.is_none() {
+            first_scores = Some(receipt());
+        }
+        if (states || winner) && !topology && first_action_or_state.is_none() {
+            first_action_or_state = Some(receipt());
+        }
+        if (topology || states || scores || winner) && first_any.is_none() {
+            first_any = Some(receipt());
+        }
+    }
+    json!({"input_index":245,"position":position,"baseline_events":old.len(),"candidate_events":new.len(),"first_any_event_difference":first_any,"first_topology_difference":first_topology,"first_score_difference":first_scores,"first_action_or_state_difference":first_action_or_state,"aligned_winner_changes":winner_changes,"aligned_transition_winner_changes":transition_winner_changes,"scope":"actual candidate recurrence versus saved baseline events; distinct from four baseline held-input hypothetical crossings"})
+}
+fn recorded_proposal(v: &Value) -> Result<Proposal> {
+    replay_require(
+        v["name"] == "consumer.context.self_transition"
+            && v["index"] == 3610
+            && v["before"] == -1
+            && v["after"] == -2
+            && v["decoded"] == json!({"head":1,"lane":3,"class":62,"basis_component":2}),
+        "Recorded finite coordinate differs",
+    )?;
+    let scalar = |n: &str| {
+        v[n].as_f64()
+            .filter(|x| x.is_finite())
+            .ok_or_else(|| bad("Recorded finite scalar absent/nonfinite"))
+    };
+    let before = scalar("master_before")?;
+    let after = scalar("master_after")?;
+    replay_require(
+        before == f64::from(-0.1445201337337494f32)
+            && after == -0.5
+            && scalar("actual_delta")? == after - before,
+        "Recorded finite fractional displacement differs",
+    )?;
+    let proposal = Proposal {
+        name: "consumer.context.self_transition".into(),
+        index: 3610,
+        before: -1,
+        after: -2,
+        master_before: before as f32,
+        master_after: after as f32,
+        actual_delta: after - before,
+        g_off: scalar("g_off")? as f32,
+        g_on: scalar("g_on")? as f32,
+        g_difference: scalar("g_difference_f64")?,
+        dot_off: scalar("dot_off")?,
+        dot_on: scalar("dot_on")?,
+    };
+    replay_require(
+        proposal.dot_off < 0.
+            && proposal.dot_on < 0.
+            && scalar("temporal_dot")? < 0.
+            && proposal.dot_on == f64::from(proposal.g_on) * proposal.actual_delta
+            && proposal.dot_off == f64::from(proposal.g_off) * proposal.actual_delta,
+        "Recorded finite gradient prediction differs",
+    )?;
+    Ok(proposal)
+}
+fn finite_gate(baseline: &Value, candidate: &Value) -> Result<Value> {
+    let before = baseline["combined"]
+        .as_f64()
+        .filter(|x| x.is_finite())
+        .ok_or_else(|| bad("Finite baseline CE absent"))?;
+    let after = candidate["combined"]
+        .as_f64()
+        .filter(|x| x.is_finite())
+        .ok_or_else(|| bad("Finite candidate CE absent"))?;
+    let term = |v: &Value| -> Result<Value> {
+        let rows = v["terms"]
+            .as_array()
+            .ok_or_else(|| bad("Finite objective terms absent"))?;
+        let matched = rows
+            .iter()
+            .filter(|t| t["input_index"] == 245 && t["position"] == 4)
+            .collect::<Vec<_>>();
+        replay_require(matched.len() == 1, "Finite task term uniqueness")?;
+        Ok(matched[0].clone())
+    };
+    let old = term(baseline)?;
+    let new = term(candidate)?;
+    let mass = |v: &Value, key: &str| {
+        v[key]
+            .as_u64()
+            .ok_or_else(|| bad("Finite exact mass absent"))
+    };
+    let (om, od, nm, nd) = (
+        mass(&old, "target_mass")?,
+        mass(&old, "total_mass")?,
+        mass(&new, "target_mass")?,
+        mass(&new, "total_mass")?,
+    );
+    replay_require(
+        od > 0 && nd > 0 && om > 0 && nm > 0 && om <= od && nm <= nd,
+        "Finite mass support invalid",
+    )?;
+    let ce = after < before - 1e-10 * (1. + before.abs());
+    let probability = (nm as u128) * (od as u128) > (om as u128) * (nd as u128);
+    let guards = candidate["correct_reference_frames"] == 17;
+    Ok(
+        json!({"strict_ce_descent":ce,"task_target_probability_improved":probability,"all17_reference_winners_retained":guards,"finite_probe_positive":ce&&probability&&guards,"task_correct":new["chosen"]==new["target"],"baseline_combined":before,"candidate_combined":after,"task_baseline_mass":om,"task_baseline_denominator":od,"task_candidate_mass":nm,"task_candidate_denominator":nd,"scope":"fixed18 finite gate only; no selected/reply qualification"}),
+    )
+}
+fn run_finite(
+    a: &Args,
+    start: Instant,
+    d: &Device,
+    c: &RecordedFiniteContrastConfig,
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[Episode],
+    mut frames: Vec<Frame>,
+) -> Result<Value> {
+    const PATH_REPORT: &str = "ee12bfc8275768886024ec5784624315b2df2f70e9f2d2bfe7e30167ca3cba24";
+    const PATH_SEAL: &str = "e545b8598294b9bbdd7d0c72227796425300bfebdbf0edb7c73c3a1ed4f5f96e";
+    const PROBE_REPORT: &str = "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9";
+    const PROBE_SEAL: &str = "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332";
+    let path = sealed(&c.retained_path_root, PATH_REPORT, PATH_SEAL)?;
+    let probe = sealed(&c.retained_probe_root, PROBE_REPORT, PROBE_SEAL)?;
+    replay_require(
+        path["schema"] == "uor-r4.context-path-credit/1"
+            && path["task_path_unchanged"] == false
+            && path["task_action_crossings"] == 4
+            && path["source_binding"] == serde_json::to_value(&p.binding)?
+            && path["generate_sha256"] == GENERATE
+            && path["continuation_sha256"] == FIELD
+            && probe["schema"] == "uor-r4.prefix-context-credit-probe/1"
+            && probe["parent_report_sha256"] == REPORT
+            && probe["parent_manifest_sha256"] == SEAL,
+        "Finite recorded path/probe authority differs",
+    )?;
+    let proposal = recorded_proposal(&path["candidate"])?;
+    let baseline = read(&c.retained_probe_root.join("baseline.json"))?;
+    replay_require(
+        baseline == probe["baseline_objective"]
+            && baseline["combined"] == 4.391651926613631
+            && baseline["correct_reference_frames"] == 17,
+        "Finite original18 baseline differs",
+    )?;
+    let mut raw_receipts = Vec::new();
+    let mut reconstructed = [0f64; 2];
+    for (i, f) in frames.iter_mut().enumerate() {
+        let file = format!(
+            "baseline-row-{:04}-position-{:02}.json",
+            f.input, f.position
+        );
+        let saved = read(&c.retained_probe_root.join(&file))?;
+        replay_require(
+            saved["input_index"] == f.input
+                && saved["position"] == f.position
+                && saved["id"] == f.id
+                && saved["actual_prefix_ids"] == json!(f.prefix)
+                && saved["target_label_only"] == f.target
+                && saved["weight"] == f.weight,
+            "Finite reused baseline frame differs",
+        )?;
+        parity(&saved["native"], &f.saved)?;
+        let (mass, total) = masses(&saved["native"], f.target)?;
+        replay_require(
+            mass > 0 && mass <= total,
+            "Finite baseline native masses invalid",
+        )?;
+        let term = &baseline["terms"][i];
+        replay_require(
+            term["input_index"] == f.input
+                && term["position"] == f.position
+                && term["id"] == f.id
+                && term["target"] == f.target
+                && term["weight"] == f.weight
+                && term["target_mass"] == mass
+                && term["total_mass"] == total
+                && term["pool"] == saved["native"]["pool"]["summary"],
+            "Finite reused baseline objective/raw binding differs",
+        )?;
+        reconstructed[usize::from(!(f.input == 245 && f.position == 4))] +=
+            f.weight * (-(mass as f64 / total as f64).ln());
+        f.saved = saved["native"].clone();
+        raw_receipts.push(json!({"file":file,"sha256":sha256_file(&c.retained_probe_root.join(&file))?,"input_index":f.input,"position":f.position}));
+    }
+    replay_require(
+        (reconstructed[0] + reconstructed[1] - 4.391651926613631).abs() < 1e-12,
+        "Finite baseline weight reconstruction differs",
+    )?;
+    let baseline_capture_path = c.retained_path_root.join("task-context-decisions.json");
+    replay_require(
+        path["fresh_capture"]["file"] == "task-context-decisions.json"
+            && path["fresh_capture"]["sha256"] == sha256_file(&baseline_capture_path)?,
+        "Finite baseline Context capture differs",
+    )?;
+    let baseline_capture: constrained_context::CapturedDecisions =
+        serde_json::from_reader(io::BufReader::new(fs::File::open(&baseline_capture_path)?))?;
+    let numerical_projection = frames.iter().try_fold(0u64, |sum, f| {
+        Ok::<_, Box<dyn std::error::Error>>(sum + serde_json::to_vec(&f.saved)?.len() as u64)
+    })? * 4
+        + 128 * 1024 * 1024;
+    let report_projection = size(&a.checkpoint)? + numerical_projection / 4 + 32 * 1024 * 1024;
+    replay_require(
+        numerical_projection <= 512 * 1024 * 1024
+            && report_projection + 1048576 < a.maximum_report_bytes,
+        "Finite numerical/report projection exceedscap",
+    )?;
+    write(
+        a,
+        "resource-projection.json",
+        &json!({"numeric_projection_bytes":numerical_projection,"maximum_numeric_cache_bytes":536870912u64,"report_projection_bytes":report_projection,"maximum_report_bytes":a.maximum_report_bytes,"maximum_process_ram_bytes":4294967296u64,"maximum_temporary_bytes":536870912u64,"maximum_cpu_threads":2,"scope":"host numeric snapshot/capture/native array projection; CUDA model tensors and serde report temporaries separately charged processRAM"}),
+    )?;
+    let l = load_joint_continuation(a, p, d)?;
+    let source_before = identities(&l.source.parameters())?;
+    let generate_before = identities(&l.generate.parameters())?;
+    let bridge_before = json!({"original":identities(&l.original_bridge.parameters())?,"marker":identities(&l.marker.parameters())?,"categorical":l.categorical.as_ref().map(|x|identities(&x.parameters())).transpose()?});
+    let basis = l
+        .source
+        .parameters()
+        .into_iter()
+        .filter(|(n, _)| {
+            np::BASIS
+                .iter()
+                .any(|s| n == &format!("consumer.context.{s}"))
+        })
+        .collect::<BTreeMap<_, _>>();
+    let masters = np::snapshot(&basis)?;
+    replay_require(
+        basis.len() == 6
+            && masters[&proposal.name][proposal.index].to_bits()
+                == proposal.master_before.to_bits(),
+        "Finite restored fractional coordinate differs",
+    )?;
+    write(
+        a,
+        "recorded-finite-proposal.json",
+        &json!({"authority":path["candidate"],"actual_restored_master":masters[&proposal.name][proposal.index],"reranking":false,"new_gradient":false}),
+    )?;
+    let (candidate_objective, receipt, code_receipt) =
+        np::attempt_restored(&basis, &masters, || {
+            let mut expected = masters.clone();
+            expected
+                .get_mut(&proposal.name)
+                .ok_or_else(|| bad("Finite basis absent"))?[proposal.index] = proposal.master_after;
+            let var = basis
+                .get(&proposal.name)
+                .ok_or_else(|| bad("Finite Var absent"))?;
+            var.set(&Tensor::from_vec(
+                expected[&proposal.name].clone(),
+                var.shape(),
+                var.device(),
+            )?)?;
+            replay_require(
+                np::same_bits(&expected, &np::snapshot(&basis)?),
+                "Finite unselected Context scalar changed",
+            )?;
+            frozen_guard(
+                &source_before,
+                &identities(&l.source.parameters())?,
+                &proposal.name,
+            )?;
+            replay_require(
+                generate_before == identities(&l.generate.parameters())?,
+                "Finite Generate masters changed",
+            )?;
+            let (candidate, candidate_field, mut receipt) = export_with_policy(
+                a,
+                &l,
+                field,
+                p,
+                d,
+                "context_recorded_finite_contrast",
+                finite_policy(),
+            )?;
+            receipt["recorded_path_report_sha256"] = json!(PATH_REPORT);
+            receipt["recorded_path_manifest_sha256"] = json!(PATH_SEAL);
+            receipt["recorded_proposal"] = path["candidate"].clone();
+            for file in [
+                a.out.join("checkpoint-0001/receipt.json"),
+                a.out
+                    .join("checkpoint-0001/continuation-source/metadata.json"),
+            ] {
+                fs::write(file, serde_json::to_vec_pretty(&receipt)?)?;
+            }
+            let old = fs::read(a.checkpoint.join("native/consumer/context-q4.bin"))?;
+            let new = fs::read(a.out.join("checkpoint-0001/native/consumer/context-q4.bin"))?;
+            let code_receipt = packed_one(
+                &old,
+                &new,
+                ContextQ4Config {
+                    vocab_size: 4096,
+                    heads: 2,
+                    lanes_per_head: 4,
+                },
+                &proposal,
+            )?;
+            write(a, "native-context-displacement.json", &code_receipt)?;
+            let objective = evaluate_inner(
+                a,
+                start,
+                &candidate,
+                &candidate_field,
+                eps,
+                &frames,
+                "candidate",
+                false,
+                Some(&baseline_capture),
+            )?;
+            Ok((objective, receipt, code_receipt))
+        })?;
+    let source_after = identities(&l.source.parameters())?;
+    let generate_after = identities(&l.generate.parameters())?;
+    let bridge_after = json!({"original":identities(&l.original_bridge.parameters())?,"marker":identities(&l.marker.parameters())?,"categorical":l.categorical.as_ref().map(|x|identities(&x.parameters())).transpose()?});
+    replay_require(
+        source_before == source_after
+            && generate_before == generate_after
+            && bridge_before == bridge_after,
+        "Finite parent master restoration differs",
+    )?;
+    let gate = finite_gate(&baseline, &candidate_objective)?;
+    write(
+        a,
+        "reused-baseline.json",
+        &json!({"report_sha256":PROBE_REPORT,"manifest_sha256":PROBE_SEAL,"objective_file":"baseline.json","objective_sha256":sha256_file(&c.retained_probe_root.join("baseline.json"))?,"raw_frames":raw_receipts,"objective":baseline,"native_baseline_steps":0}),
+    )?;
+    write(
+        a,
+        "frozen-master-identities.json",
+        &json!({"source_before":source_before,"source_restored":source_after,"generate_before":generate_before,"generate_restored":generate_after,"bridge_before":bridge_before,"bridge_restored":bridge_after,"selected_family_unselected_bits_checked":true,"parent_restored":true}),
+    )?;
+    Ok(
+        json!({"schema":"uor-r4.context-recorded-finite-contrast/1","status":"COMPLETED","mode":"context_recorded_finite_contrast","policy":finite_policy(),"parent_report_sha256":REPORT,"parent_manifest_sha256":SEAL,"path_report_sha256":PATH_REPORT,"path_manifest_sha256":PATH_SEAL,"probe_report_sha256":PROBE_REPORT,"probe_manifest_sha256":PROBE_SEAL,"baseline_objective":baseline,"baseline_provenance":"reused sealed18 raw arrays; zero baseline encoding steps","candidate_objective":candidate_objective,"candidate_receipt":receipt,"native_context_displacement":code_receipt,"gate":gate,"finite_probe_positive":gate["finite_probe_positive"],"selected_model":false,"useful_candidate":false,"parent_master_bits_restored":true,"new_gradients":0,"optimizer_updates":0,"reranking":"NOT_RUN","master_loader_device":"cuda","native_evaluation_device":"host","gpu_training":"NOT_RUN","native_candidate_steps":18,"native_candidate_task_capture_steps":2,"actual_context_capture":"same two task steps; no additional capture step","autoregressive_rollout":"NOT_RUN","full_prefix_qualification":"NOT_RUN","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"scope":"one recorded coordinate finite18 contrast; baseline hypothetical crossings are not actual candidate recurrence changes"}),
+    )
+}
+
+#[cfg(test)]
+mod finite_tests {
+    use super::*;
+    fn proposal() -> Result<Proposal> {
+        recorded_proposal(
+            &json!({"name":"consumer.context.self_transition","index":3610,"before":-1,"after":-2,"decoded":{"head":1,"lane":3,"class":62,"basis_component":2},"master_before":f64::from(-0.1445201337337494f32),"master_after":-0.5,"actual_delta":-0.5-f64::from(-0.1445201337337494f32),"g_off":f64::from(0.0013931867433711886f32),"g_on":f64::from(0.0070373560301959515f32),"g_difference_f64":0.005644169286824763,"dot_off":-0.0004952498372175033,"dot_on":-0.002501638380482049,"temporal_dot":-0.0020063885432645458}),
+        )
+    }
+    #[test]
+    fn recorded_finite_code_rejects_second_native_change() -> Result<()> {
+        use uor_r4_integer::geometric_context_q4::pack_coefficients;
+        let p = proposal()?;
+        let config = ContextQ4Config {
+            vocab_size: 4096,
+            heads: 2,
+            lanes_per_head: 4,
+        };
+        let mut offset = 0;
+        let mut selected = None;
+        for (name, shape) in config.coefficient_shapes()? {
+            if name == "self_transition" {
+                selected = Some(offset + p.index);
+            }
+            offset += shape.iter().product::<usize>();
+        }
+        let selected = selected.ok_or_else(|| bad("testbasisabsent"))?;
+        let mut old = vec![0i8; config.coefficient_count()?];
+        old[selected] = -1;
+        let a = pack_coefficients(&old)?;
+        let mut changed = old;
+        changed[selected] = -2;
+        let b = pack_coefficients(&changed)?;
+        packed_one(&a, &b, config, &p)?;
+        changed[selected + 1] = 1;
+        assert!(packed_one(&a, &pack_coefficients(&changed)?, config, &p).is_err());
+        Ok(())
+    }
+    #[test]
+    fn recorded_finite_late_error_and_negative_restore_fractional_signed_bits() -> Result<()> {
+        let p = proposal()?;
+        let mut values = vec![-0f32; 3840];
+        values[p.index] = p.master_before;
+        let params = BTreeMap::from([(p.name.clone(), Var::from_vec(values, 3840, &Device::Cpu)?)]);
+        let parent = np::snapshot(&params)?;
+        let apply = || -> Result<()> {
+            let mut x = parent[&p.name].clone();
+            x[p.index] = p.master_after;
+            let var = &params[&p.name];
+            var.set(&Tensor::from_vec(x, var.shape(), var.device())?)?;
+            Ok(())
+        };
+        let failed: Result<()> = np::attempt_restored(&params, &parent, || {
+            apply()?;
+            Err(bad("late export/score fixtureerror"))
+        });
+        assert!(failed.is_err());
+        assert!(np::same_bits(&parent, &np::snapshot(&params)?));
+        let negative = np::attempt_restored(&params, &parent, || {
+            apply()?;
+            Ok(false)
+        })?;
+        assert!(!negative);
+        assert!(np::same_bits(&parent, &np::snapshot(&params)?));
+        Ok(())
+    }
+    #[test]
+    fn recorded_finite_gate_uses_exact_mass_ratio_and_reference_guard() -> Result<()> {
+        let m = 1u64 << 63;
+        let d = m + 10;
+        let old = json!({"combined":4.0,"correct_reference_frames":17,"terms":[{"input_index":245,"position":4,"target":267,"chosen":307,"target_mass":m,"total_mass":d}]});
+        let mut new = old.clone();
+        new["combined"] = json!(3.0);
+        new["terms"][0]["target_mass"] = json!(m + 1);
+        assert_eq!(m as f64 / d as f64, (m + 1) as f64 / d as f64);
+        assert_eq!(finite_gate(&old, &new)?["finite_probe_positive"], true);
+        new["correct_reference_frames"] = json!(16);
+        assert_eq!(finite_gate(&old, &new)?["finite_probe_positive"], false);
+        new["correct_reference_frames"] = json!(17);
+        new["terms"][0]["target_mass"] = json!(m);
+        assert_eq!(finite_gate(&old, &new)?["finite_probe_positive"], false);
+        Ok(())
+    }
+    #[test]
+    fn recorded_finite_divergence_separates_score_action_and_topology() -> Result<()> {
+        use uor_r4_integer::geometric_context::{
+            ContextDecisionEvent, ContextDecisionFamily, ContextInvocation,
+        };
+        let e = ContextDecisionEvent {
+            call_index: 0,
+            invocation: ContextInvocation::Step,
+            family: ContextDecisionFamily::Transition,
+            token_id: 7,
+            head: 1,
+            lane: 3,
+            flat_lane: 7,
+            own: 1,
+            neighbor: 1,
+            winner: 0,
+            scores_q24: vec![2, 1],
+        };
+        let old = vec![e.clone(), e.clone()];
+        let mut new = old.clone();
+        new[0].scores_q24[1] = 2;
+        new[1].winner = 1;
+        let r = capture_difference(4, &old, &new);
+        assert_eq!(r["first_score_difference"]["event_index"], 0);
+        assert_eq!(r["first_action_or_state_difference"]["event_index"], 1);
+        assert!(r["first_topology_difference"].is_null());
+        new[0].token_id = 8;
+        let r = capture_difference(4, &old, &new);
+        assert_eq!(r["first_topology_difference"]["event_index"], 0);
         Ok(())
     }
 }

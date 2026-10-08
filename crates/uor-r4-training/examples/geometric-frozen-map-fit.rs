@@ -781,6 +781,12 @@ fn args() -> Result<(Args, Vec<u8>)> {
             .iter()
             .flat_map(|c| [&c.retained_intermediate_root, &c.retained_capture_root]),
     )
+    .chain(
+        a.prefix_context_credit
+            .iter()
+            .filter_map(|c| c.recorded_finite_contrast.as_ref())
+            .flat_map(|c| [&c.retained_path_root, &c.retained_probe_root]),
+    )
     .chain(a.context_path_credit.iter().flat_map(|c| {
         [
             &c.retained_decomposition_root,
