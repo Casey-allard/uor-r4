@@ -1,0 +1,189 @@
+{
+  "schema": "uor-r4.native-readout-intermediate-evidence/1",
+  "scope": "Existing accepted coefficient prefix recovery, unchanged native development gate, coherent export/reload and actual autoregressive outputs. No new gradient, optimizer update, proposal, serving special case, held-out, chat or energy qualification.",
+  "source_commit": "4232ad32877f81dfd0a27b0880b2eed95f49256b",
+  "source_hashes": {
+    "readout_intermediate.rs": "a37a2df7d87ab8e573049cfbe884cdb425f5d41de68d3b1680741a816d409764",
+    "readout_coadaptation.rs": "2f1ebffea4efde38a3ed22ea049ef6a9edb6bcab24f6f45fe0a6669bb89be384",
+    "geometric-frozen-map-fit.rs": "fc035f0db51e0ad7b50886a5167e0682e889720447f56d9ca7e6487acac2dd6e"
+  },
+  "binary_sha256": "85a6e80c6186824d9297148247cb58b545850f4ca90db0273790534cd8e88f87",
+  "config_sha256": "c2b5ee304199dcc30a6c20f790fe9906037853345aaa2440859668ff3be86422",
+  "reader_sha256": "5297fffc8d875875866330c1e15330f7a7488766bfe15a09d8245c8d8caa6028",
+  "checks": {
+    "job": "20261008T162324Z-sol-prototype-20261008-gpu0",
+    "status": "PASS",
+    "tests": 65,
+    "total_seconds": 83,
+    "test_command_seconds": 66.699,
+    "build_command_seconds": 15.391
+  },
+  "setup_attempts": [
+    {
+      "job": "20261008T162210Z-sol-prototype-20261008-gpu0",
+      "exit_code": 128,
+      "seconds": 1,
+      "reason": "wrapper supplied branch shorthand to gitcheckout --detach; remote DWIM attemptedbranchcreation conflict. No compile/model run.",
+      "repair": "pass exact4232ad32877f81dfd0a27b0880b2eed95f49256b unchangedsource; retainedcharged log"
+    }
+  ],
+  "candidate_gate": {
+    "actual_guard_and_objective_reductions": 466,
+    "candidate_combined": 3.4177030191650397,
+    "corrected_factual_frontiers": 1,
+    "first_crossing": {
+      "coordinate": 915,
+      "family": "prefix.coefficients",
+      "input_index": 245,
+      "order": 147
+    },
+    "gradient_evaluations": 0,
+    "guard_failures": [],
+    "new_proposals": 0,
+    "optimizer_updates": 0,
+    "original_baseline_combined": 5.465593983756579,
+    "original_guards": 377,
+    "policy": {
+      "frozen": "Source/Context/Potential/Generate/bridge/U/cue-joint/tokenizer/geometry",
+      "gate": "strict original89baselineCE descent +atleastonefact +all377winnerguards",
+      "guards": 377,
+      "mechanism": "recover globally earliest recorded accepted factual crossing; original accepted prefix inclusive",
+      "objective": "unchanged89term weights: five actual factual terms plus84 original successful trajectory positions",
+      "proposal_path": "same saved1920gradient/order/statuses; no new gradient/dose/seed/reorder/refill/latch",
+      "schema": "uor-r4.readout-intermediate-candidate/1",
+      "serving_policy_change": false
+    },
+    "reused_parent_evaluation": true,
+    "selected": true,
+    "strict_ce_descent": true
+  },
+  "early8": {
+    "status": "PASS",
+    "complete": 8,
+    "indices": [
+      0,
+      1,
+      4,
+      5,
+      8,
+      9,
+      12,
+      13
+    ]
+  },
+  "candidate_execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T16:31:12.045545+00:00",
+    "ended_utc": "2026-10-08T16:36:42.779115+00:00",
+    "elapsed_seconds": 330.73359479010105,
+    "children_max_rss_kib": 6184512,
+    "binary_sha256": "85a6e80c6186824d9297148247cb58b545850f4ca90db0273790534cd8e88f87",
+    "config_sha256": "c2b5ee304199dcc30a6c20f790fe9906037853345aaa2440859668ff3be86422"
+  },
+  "candidate_preseal_seconds": 294.89274068,
+  "measured_outcome": {
+    "complete_parent": 8,
+    "complete_candidate": 8,
+    "new_complete": 0,
+    "lost_complete": 0,
+    "complete_swap_pairs": 4,
+    "changed_outputs": 491,
+    "native_gate_and_retention": true,
+    "useful_candidate": false,
+    "entry_own_correct": 274,
+    "actual_first_divergent_reached_correct": 9
+  },
+  "new_boundary": {
+    "input_index": 245,
+    "position": 4,
+    "actual_correct_prefix_ids": [
+      617,
+      2097,
+      315,
+      1057
+    ],
+    "target": 267,
+    "chosen": 307
+  },
+  "independent_audit": {
+    "sha256": "78dc59a136554baffd726bbc06cbb3fe78da5726bd0f168f4b1f5f288e6ffad4",
+    "status": "PASS",
+    "reader_sha256": "5297fffc8d875875866330c1e15330f7a7488766bfe15a09d8245c8d8caa6028",
+    "execution": {
+      "steps": [
+        {
+          "name": "rust-verify",
+          "exit_code": 0,
+          "elapsed_seconds": 25.24556829407811
+        },
+        {
+          "name": "self-test",
+          "exit_code": 0,
+          "elapsed_seconds": 0.1398237943649292
+        },
+        {
+          "name": "independent-audit",
+          "exit_code": 0,
+          "elapsed_seconds": 518.3280457481742
+        }
+      ],
+      "elapsed_seconds": 543.797972612083,
+      "children_max_rss_kib": 2143388,
+      "reader_sha256": "5297fffc8d875875866330c1e15330f7a7488766bfe15a09d8245c8d8caa6028",
+      "completed_utc": "2026-10-08T16:46:39.668921+00:00"
+    }
+  },
+  "prior_cumulative_projected_seconds": 519270,
+  "necessary_sameclass_increment_seconds": 14400,
+  "new_cumulative_projected_seconds": 533670,
+  "runtime_preservation": {
+    "revision": "a344478e154646e51acbb1692311ce861adc4e4c",
+    "prefix": "codex/sol-readout-intermediate-candidate/runtime-4232ad328-attempt1",
+    "all_fresh_download_verified": true,
+    "seconds": 25.897835962474346
+  },
+  "result_preservation": {
+    "revision": "2bb7b60de59d74d14bb651a09840c6f212e1cda3",
+    "prefix": "codex/sol-readout-intermediate-candidate/intermediate-0001-4232ad3287",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "9469ff8443f841a0523e0d43ad0ee511c35d5cb0be20de78b5cc1ac2772598ca",
+        "bytes": 1023
+      },
+      "intermediate-0001-4232ad3287.tar.gz": {
+        "sha256": "cb785196c06cb177870bedd05683f85d27ca8e3a9e5b41810561d179bacad2f2",
+        "bytes": 64068802
+      }
+    },
+    "manifest": {
+      "source_commit": "4232ad32877f81dfd0a27b0880b2eed95f49256b",
+      "runtime_hf_revision": "a344478e154646e51acbb1692311ce861adc4e4c",
+      "binary_sha256": "85a6e80c6186824d9297148247cb58b545850f4ca90db0273790534cd8e88f87",
+      "config_sha256": "c2b5ee304199dcc30a6c20f790fe9906037853345aaa2440859668ff3be86422",
+      "report_sha256": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+      "report_manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+      "audit_sha256": "78dc59a136554baffd726bbc06cbb3fe78da5726bd0f168f4b1f5f288e6ffad4",
+      "files": {
+        "intermediate-0001-4232ad3287.tar.gz": {
+          "sha256": "cb785196c06cb177870bedd05683f85d27ca8e3a9e5b41810561d179bacad2f2",
+          "bytes": 64068802
+        }
+      },
+      "scope": "Recovered originalfirstacceptedcross147; fixed89CE+377gatepasses, coherentnativeexport/reload andactual8/512, parent8complete->candidate8,491outputschanged, usefulfalse. No newgradient/proposals/encodertraining/parent512repeat/heldout/chat/energy claim."
+    },
+    "seconds": 23.382516842335463,
+    "completed_utc": "2026-10-08T16:49:16.707054+00:00"
+  },
+  "independent_audit_limits": [
+    "Finite saved native bridge/Generate/U/full physical alias algebra independently recomputed; no independent Context/Cue/Prefix encoder or backward recomputation.",
+    "Original pinned raw construction bytes, all original semantic statuses/orders/raw f32 gradients authenticated; producer Rust-float JSON digest retained as receipt, not Python JSON byte-equivalence.",
+    "Actual candidate 512 output membership, EOS, decoding and pair counts checked; numeric full rollout pools not independently reconstructed where raw vectors were absent."
+  ],
+  "next": {
+    "status": "NOT_ADMITTED until protected delivery actually merged",
+    "question": "At newly reached actual position4, distinguish source occurrence/word progression, base bridge donor, final Copy alias selection and effective feedback/phase-binding representation.",
+    "capture": "Target-free NativeStep for actual [617,2097,315,1057], preceding correct position3 and matched controls, bound to recovered artifact.",
+    "excluded": "No automatic cursor/latch, repeated gradient/dose/seed/threshold sweep or source filter."
+  }
+}

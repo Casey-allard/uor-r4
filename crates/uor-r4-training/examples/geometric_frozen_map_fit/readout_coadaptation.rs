@@ -10,11 +10,15 @@ const MANIFEST: &str = "6cbfabf807427f3baa2bfcfda7187e1b00f3a205ec9466b30a7437a4
 const SOURCE: &str = "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b";
 const GENERATE: &str = "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737";
 const FIELD: &str = "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee";
+#[path = "readout_intermediate.rs"]
+mod intermediate;
 const DONOR_CACHE_BYTES: usize = 64 * 1024 * 1024;
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Config {
     pub retained_reached_u_root: PathBuf,
+    #[serde(default)]
+    pub intermediate_candidate: Option<intermediate::Config>,
 }
 pub(super) fn validate_settings(a: &Args) -> Result<()> {
     if a.readout_coadaptation.is_some() {
@@ -191,7 +195,16 @@ fn export(
     receipt["cue_metadata"] = serde_json::to_value(cue.metadata())?;
     receipt["prefix_metadata"] = read(&root.join("prefix/native-metadata.json"))?;
     receipt["readout_parameters"] = inventory;
-    receipt["readout_coadaptation"] = policy();
+    receipt["readout_coadaptation"] = if a
+        .readout_coadaptation
+        .as_ref()
+        .and_then(|c| c.intermediate_candidate.as_ref())
+        .is_some()
+    {
+        intermediate::policy()
+    } else {
+        policy()
+    };
     receipt["active_parameter_names"] = json!(["cue.coefficients", "prefix.coefficients"]);
     receipt["optimizer_updates"] = json!(0);
     receipt["reference_replay"] = reference_binding(a)?;
@@ -485,6 +498,13 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         .as_ref()
         .ok_or_else(|| bad("readout config absent"))?
         .retained_reached_u_root;
+    if let Some(c) = a
+        .readout_coadaptation
+        .as_ref()
+        .and_then(|c| c.intermediate_candidate.as_ref())
+    {
+        intermediate::authenticate_inputs(c)?;
+    }
     let p = authenticate(root)?;
     let mut selected_args = a.clone();
     selected_args.checkpoint = root.join("checkpoint-0001");
@@ -512,7 +532,15 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         original.len() == 2 && original.values().all(|v| v.len() == 960),
         "readout1920 master population differs",
     )?;
-    let result = run_inner(a, start, d, &p, &l, &cw, &mut pw, &params, &original);
+    let result = if let Some(c) = a
+        .readout_coadaptation
+        .as_ref()
+        .and_then(|c| c.intermediate_candidate.as_ref())
+    {
+        intermediate::run(a, start, c, &p, &l, &cw, &mut pw, &params, &original)
+    } else {
+        run_inner(a, start, d, &p, &l, &cw, &mut pw, &params, &original)
+    };
     if result.is_err() {
         np::restore(&params, &original)?;
     }

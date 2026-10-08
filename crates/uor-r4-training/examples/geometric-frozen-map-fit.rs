@@ -714,13 +714,14 @@ fn seal_for(path: &Path) -> Result<PathBuf> {
     Err(bad("input has no enclosing seal"))
 }
 
-fn args() -> Result<Args> {
+fn args() -> Result<(Args, Vec<u8>)> {
     let mut it = std::env::args().skip(1);
     let path = it.next().ok_or_else(|| bad("one JSON config required"))?;
     if it.next().is_some() {
         return Err(bad("one JSON config only"));
     }
-    let a: Args = serde_json::from_slice(&fs::read(path)?)?;
+    let raw = fs::read(path)?;
+    let a: Args = serde_json::from_slice(&raw)?;
     control_settings(&a)?;
     continuation_settings(&a)?;
     joint_continuation_settings(&a)?;
@@ -763,6 +764,12 @@ fn args() -> Result<Args> {
             .map(|c| &c.retained_reached_u_root),
     )
     .chain(
+        a.readout_coadaptation
+            .iter()
+            .filter_map(|c| c.intermediate_candidate.as_ref())
+            .flat_map(|c| [&c.original_readout_root, &c.margin_root]),
+    )
+    .chain(
         a.prototype_compensation
             .iter()
             .flat_map(|c| [&c.retained_emission_root, &c.prototype_diagnostic_root]),
@@ -782,7 +789,7 @@ fn args() -> Result<Args> {
             }
         }
     }
-    Ok(a)
+    Ok((a, raw))
 }
 #[cfg(feature = "cuda")]
 fn cuda() -> Result<Device> {
@@ -6424,10 +6431,32 @@ fn main() -> Result<()> {
     if cli.len() == 3 && cli[1] == "prepare-reached-frontier" {
         return prepare_reference_replay(Path::new(&cli[2]), true);
     }
-    let a = args()?;
+    let (a, config_raw) = args()?;
     report_output::claim(&a.out)?;
     let start = Instant::now();
-    let result = run(&a, start);
+    let result = (|| -> Result<Value> {
+        if a.readout_coadaptation
+            .as_ref()
+            .and_then(|c| c.intermediate_candidate.as_ref())
+            .is_some()
+        {
+            let path = cli
+                .get(1)
+                .ok_or_else(|| bad("external config path absent"))?;
+            let raw = &config_raw;
+            replay_require(
+                raw.len() as u64 + size(&a.out)? < a.maximum_report_bytes,
+                "external config report cap",
+            )?;
+            fs::write(a.out.join("config.json"), &raw)?;
+            write(
+                &a,
+                "external-config-binding.json",
+                &json!({"path":fs::canonicalize(path)?,"sha256":sha256_bytes(&raw),"bytes":raw.len(),"attempt_argv":cli}),
+            )?;
+        }
+        run(&a, start)
+    })();
     let report = match &result {
         Ok(value) => value.clone(),
         Err(e) => {
