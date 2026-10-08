@@ -1,0 +1,60 @@
+UOR-R4 — The Kneser-Ney gate on real held-out text, and why the barrier is the serving path
+Date: 2026-10-08. DeepSeek session. References #820.
+Instrument: crates/uor-r4-training/examples/kn-ngram-gate.rs (new, in this PR).
+
+WHY THIS EXISTS
+  Every native-mechanism measurement in this session was compared against a baseline of 4.211070
+  bits per byte computed over 256 held-out positions / 693 bytes on chat-v0-p2. An evidence audit
+  found that slice is far too small to distinguish any effect this project has measured, and that
+  no comparable n-gram gate had ever been recorded for this corpus. The transition plan's
+  acceptance gate is a Kneser-Ney 5-gram, so the gate is now measured directly, with the same
+  tokenizer and the same byte accounting the model evaluations use.
+
+THE GATE
+  Corpus   : chat-v0-p2 train (20,000,000 tokens) -> chat-v0-p2/heldout (real conversational text)
+  Split    : a separate file, disjoint from training
+  Scored   : 399,988 positions / 1,088,056 bytes; 8 positions skipped for an out-of-vocabulary id
+  Windows  : the training stream is split around out-of-vocabulary tokens (~1 per million), so no
+             window is rejected whole
+  Result   : **Kneser-Ney 5-gram = 1.280275 bits per byte**
+  Artifact : ~/uor-r4-local/kn-gate-chat.json
+
+  This is the number a native mechanism must beat on this corpus, and it is the first trustworthy
+  gate this board has had for real conversational text.
+
+WHAT THE EVIDENCE AUDIT CHANGED ABOUT THE PICTURE
+  Pulled from git history, the HF store and the dated evidence files (full citations in the
+  audit's report):
+  * The gate on TinyStories was measured once before: matched Kneser-Ney 5-gram 1.2055 BPB against
+    the discrete `.rgm` artifact at 1.2372 BPB continuous and **1.8055 BPB as shipped**. The
+    geometric model lost to the n-gram by 0.0316 against a pre-registered +0.30 bar, and Card P3
+    was retired. The card file no longer exists in-tree.
+  * Therefore the largest measured gap in this project is NOT any mechanism delta: it is the
+    **0.5683 BPB between the continuous trainer (1.2372) and the shipped discrete artifact
+    (1.8055)**. Everything this session chased was 0.000006 to 0.02 BPB, i.e. 30 to 100,000 times
+    smaller than the gap the serving path already has.
+  * A 214M geometric stack (`geo-214m-e448de86`, pattern `rrarrarrarrarrar`, width 1536, L2 read,
+    1.85B tokens) records NLL 1.0322358 on TinyStories V2 validation, which is about 0.37 BPB on
+    that corpus's byte basis. If that derivation holds it is roughly a third of the n-gram gate,
+    which would mean the architecture is not the barrier at all.
+  * The audit also confirms the retractions in this session and the invalidity of the 693-byte
+    chat measurements, and notes that no ladder/214M run ever recorded `bits_per_byte` (it is
+    null in every report), so none of those numbers is a BPB measurement.
+
+WHAT THIS MEANS FOR THE NEXT STEP
+  The barrier to break is the **serving/discretisation path**, not the mechanism and not the
+  corpus: the project already trains a model that appears to beat the n-gram gate while the
+  artifact it ships does not. The next measurements, in order:
+  1. Score the 214M stack on TinyStories V2 validation with the same byte accounting, and run this
+     gate instrument on the same split, so the head-to-head is like for like rather than derived.
+  2. Measure the continuous-to-served gap on that pair directly, and locate where it is lost
+     (quantisation of the read, the additive scorer's feature set, or the export path).
+  3. Only then revisit the mechanism. Stages 3 and 4 of the transition plan are both aimed at this
+     gap, and Stage 3's own gate ("held-out BPB improves") has now never been met for a reason
+     that is measurable rather than architectural.
+
+SCOPE
+  The gate number is for chat-v0-p2 held-out with the 4096-vocabulary tokenizer d36d3e87. BPB is
+  comparable only within a corpus: the TinyStories gate of 1.2055 belongs to that corpus, and the
+  214M figure is a derivation from an nats-per-token NLL with an estimated bytes-per-token basis,
+  flagged as such by the audit. No training was run for this document.
