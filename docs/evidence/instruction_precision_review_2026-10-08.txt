@@ -1,0 +1,82 @@
+UOR-R4 — Independent review of instruction precision: a mechanism correction, the eligibility filter, and a 121:1 form ratio
+Date: 2026-10-08 (overnight round 81, independent review). DeepSeek session. References #820.
+All [M] items were measured by the reviewer from tokens.u16 + response_mask.u8 + the pinned tokenizer.
+
+CORRECTION 1: role_only DOES NOT MEAN WHAT I PUBLISHED
+  response_region_policy_verdict_2026-10-08.txt explains the bullet collapse as role_only
+  "over-weighting the corpus's bullet-heavy assistant style". THAT IS WRONG. [R] Both policies set
+  weight 0 on every prefix token (dialogue_episodes.rs:572-582), so neither trains on prompt tokens.
+  The actual difference is episode construction (dialogue_episodes.rs:541-554): FullPrefix keeps
+  tokens[document_start..response_start]; RoleOnly keeps ONLY [BOS] plus the five assistant-marker
+  ids - IT DELETES THE USER TURN.
+  CONSEQUENCE, which is more useful than the claim it replaces: the bullet spam is the corpus's
+  UNCONDITIONAL assistant form, and reply FORM is carried by the PREFIX. That is why full_prefix
+  produces assistant-register replies and role_only cannot: with the turn deleted there is nothing
+  left to condition a form on, so the model emits the marginal. The round-58 conclusion (full_prefix
+  + mask is the working configuration) stands; the mechanism published for it does not.
+
+CORRECTION 2: THE RESPONSE FRACTION
+  [M] The official mask is 56,661,483 ones of 82,248,461 tokens = 68.8906 %. My published 71.1168 %
+  was the looser scan rule before the round-55 contract fix, and my later 69.68 % figure does not
+  match the artefact either; use 68.8906 %. The manifest's own response_fraction field reads
+  0.6864231, inconsistent with its own response_tokens/tokens by 0.25 % - a defect in the builder's
+  record worth knowing, not in the mask.
+
+THE ELIGIBILITY FILTER - A NEW AND DECISIVE MEASUREMENT
+  [R] dialogue_episodes.rs:416-422 admits an episode only if BOS to end-of-response fits the context;
+  synthetic-memory-corpus.rs:36-40 states the same exclusion independently.
+  [M] At context 384 that admits 31,798 of 129,465 responses (24.56 %), carrying 3,430,907 response
+  tokens = 6.07 % of all response tokens. MEDIAN eligible reply 97 tokens; median prefix 124.
+  [M] AMONG THE ELIGIBLE POPULATION: 4 episodes of one word; 8 of five words or fewer; 24 of ten or
+  fewer. One-word replies contribute 41 tokens = 0.0012 % of the eligible token mass. Of the eligible
+  five-word replies, about 4 carry any strong short-form demand in the user turn.
+  So the effective training distribution contains FOUR one-word demonstrations of the behaviour the
+  panels score. No learner extracts a conditional from that, and the target is unreachable for a
+  reason that is now measured rather than argued. This sharpens rounds 79-80: the raw corpus has 26
+  one-word replies, and the EPISODE FILTER removes almost all of them.
+
+THE FORM RATIO - 121:1 AGAINST
+  [M] Of 129,465 responses: one word 26 (0.020 %); yes/no <=4 words 2 (0.002 %); bare number 18
+  (0.014 %); <=5 words 118 (0.091 %). By word mass, <=5 words is 0.0015 %.
+  [M] User turns demanding a form: "Your answer/response must|should" 17,205 (13.29 %), while the
+  entire contract family (one word / yes-no / only the answer / no explanation / reply with only) is
+  142 turns (0.110 %). EXPAND:CONTRACT = 121:1. "how many" turns number 2,042 and NONE has a
+  five-word-or-fewer reply.
+  [M] The corpus's own modal yes/no answer is a short answer plus a long justification: of 72 yes/no
+  turns, 16 (22.2 %) are exactly Yes/No, but 31 (43.1 %) open with Yes/No and continue for a median
+  of 95 words. Corpus-wide 6,115 replies open with Yes/No and 18 (0.3 %) are pure. So
+  "Yes, fish live in trees. They are a variety of fish..." is the corpus's conditional MODE for that
+  turn shape, not a contract failure - which is a sharper statement than round 44's scoring.
+
+THE RIVAL EXPLANATION, WHICH THE DATA STORY DOES NOT COVER
+  [M]+[I] TOKEN-LEVEL MLE LENGTH BIAS. At the decision point after a model emits "Yes.", 31 corpus
+  continuations run a median 95 words while 16 stop: continuation carries roughly 250:1 of the TOKEN
+  mass even though 22 % of TURN TYPES stop. The per-token optimum is therefore to continue, and the
+  panel scores a TURN-level property against a TOKEN-level objective. This explains the one fact the
+  support story does not: the model gets the FIRST token right for yes/no and loses it at the SECOND.
+  Both explanations predict 0 of 6 compliance; they differ on what fixes it.
+
+INSTRUMENT DEFECTS, FOUND IN THE FROZEN PANEL
+  [M] Two of the six compliance items are weakly posed: "Reply with exactly one word: yes" contains
+  the demanded word in the prompt, so "Yes, that's a good example." opens with the correct token and
+  may be echo rather than compliance; and the first-token probe reads the protocol-2 separator, which
+  makes it the wrong instrument for yes/no - a SECOND-token failure. The six-item instrument cannot
+  separate "no form variable" from "a form variable outweighed by continuation mass". Fixing the
+  instrument is now a prerequisite for spending on this target.
+
+WHAT THIS CHANGES ABOUT THE NEXT STEP
+  [R]+[M] policy=truncated_prefix (dialogue_episodes.rs:418) admits 68,127 responses (52.62 %),
+  20.59 % of response tokens, and ALL 118 five-word-or-fewer replies - a 2.14x increase in episodes
+  and a 14.75x increase in short-form episodes, for ONE ARGUMENT, on the unchanged corpus and mask.
+  That arm has been queued behind the current 2x run: same shape, same objective, same steps, same
+  mask, train stream identical, only the episode-construction policy differs.
+  The synthetic short-form split specified in short_form_split_run_card_2026-10-08.txt remains the
+  route that SUPPLIES support rather than RECOVERS it, and is complementary rather than redundant:
+  truncated_prefix recovers the 118 existing short replies, a synthetic split adds new ones.
+  FALSIFIER, recorded before the run: if truncated_prefix still scores 0 of 6 with the first-content
+  token distribution unmoved, data support is falsified as the binding cause and token-level MLE
+  length bias is it - after which the fix moves to the loss or the decoding, not the corpus.
+
+SCOPE
+  Corrections are to published claims of mine; measurements are the reviewer's, reproducible from the
+  named scripts. No arm has finished; no result is claimed for truncated_prefix.
