@@ -1,0 +1,475 @@
+{
+  "schema": "uor-r4.native-prefix-context-credit-evidence/1",
+  "status": "COMPLETED_BOUNDED_NEGATIVE",
+  "source_commit": "92215de1ef497dcab477b193ea6964c1137832b8",
+  "source_module_sha256": "483a8e9940abfea24c545eb8ff8b1b4d310775a96165b81aa47150852539eda2",
+  "configuration_sha256": "c7478501e4307d939004d21f1b048905d22831eb953d348f68aba612e39f844e",
+  "binary_sha256": "acfe7950313626108f8ff9cfc71980b30ac6faec34ec30b98523ab95e67b2eec",
+  "report_root": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1",
+  "policy": {
+    "arms": [
+      false,
+      true
+    ],
+    "autoregressive_rollouts": 0,
+    "categorical_bridge_credit": true,
+    "continuation_context_credit": true,
+    "objective": "task245position4 weight1 +other17 correct actual frames each1/17; combined taskCE+referenceCE",
+    "optimizer_updates": 0,
+    "positive": "strict combined18 CE descent +245pos4 target probability improvement +all17 correct-frame winners retained",
+    "prefix_temporal_utility_only_toggle": true,
+    "proposal": "one most-negative ON-gradient actual-master displacement/name/index; adjacent rounded native Q4 code in six Context bases",
+    "read_selector_credit": true,
+    "schema": "uor-r4.prefix-context-credit/1",
+    "scope": "18 fixed actual-prefix probe only; no all-prefix/full-reply/useful-model qualification; unchanged single adjacent move is a limited negative, not a seam or global capacity failure"
+  },
+  "fixed_parent": {
+    "report_sha256": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+    "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+    "capture_report_sha256": "d65698bec3d57aa2415841b5507205d5f23cdab401a826c8e24978e9990a0143",
+    "capture_manifest_sha256": "0fd94f36f05051a024f7c1765eb16b357bbc752b8f1a77c3fe78577b921c2012"
+  },
+  "forward_validation": "Both complete18 OFF/ON native graph passes precede either of two backward arms; exact saved G/physicalCopy/U/fullpool/bank/bridge witnesses",
+  "objective": "task row245position4 weight1 plus17correctactualprefix frames weight1/17 each; this is not the earlier89-term objective",
+  "all_context_gradient_scalars_per_arm": 8963136,
+  "proposal_basis_scalars": 17472,
+  "single_proposal": {
+    "actual_delta": 0.3606712967157364,
+    "after": 2,
+    "before": 1,
+    "dot_off": -0.01935402409889353,
+    "dot_on": -0.01935402409889353,
+    "g_difference": 0.0,
+    "g_off": -0.05366111546754837,
+    "g_on": -0.05366111546754837,
+    "index": 413,
+    "master_after": 0.5,
+    "master_before": 0.1393287032842636,
+    "name": "consumer.context.self_category"
+  },
+  "baseline": {
+    "task": 3.9825648354708663,
+    "reference": 0.40908709114276476,
+    "combined": 4.391651926613631,
+    "correct_reference_frames": 17
+  },
+  "candidate": {
+    "task": 3.9825648354708663,
+    "reference": 0.40908709114276476,
+    "combined": 4.391651926613631,
+    "correct_reference_frames": 17
+  },
+  "finite_probe_positive": false,
+  "selected_model": false,
+  "useful_candidate": false,
+  "parent_master_bits_restored": true,
+  "interpretation": "Temporal Prefix utility changes all3840 self-transition and3840 neighbor-transition gradient scalars and23115 token-transition scalars; root/categorydelta zero. TotalON ranking selected an inheritedcategorycoordinate with equalOFF/ON dots. Its once-adjacentcode displacement gives unchanged18nativeCE/17winner retention. This is connected localtemporalcredit plus one selectedcategorymove plateau, not a global derivative, family failure or model selection. Saved comparison distinguishes changed category/code observations on all18 frames from unchanged retained Context states, bank head scores, bridge/U/Generate/Copy vectors and full pools. No independently exported expandedContexttables are available.",
+  "complete_reply_evidence": "Prior8/512 unchanged scope; no new full512 evaluation in this probe",
+  "checks": {
+    "exact_head": "92215de1ef497dcab477b193ea6964c1137832b8",
+    "release_cuda_build": "PASS",
+    "format": "PASS",
+    "actual_example_tests": 69,
+    "failed": 0,
+    "job": "20261008T175521Z-sol-prototype-20261008-gpu0",
+    "source_math_review": "PASS",
+    "source_adversarial_review": "PASS"
+  },
+  "execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T18:02:03.261117+00:00",
+    "ended_utc": "2026-10-08T18:02:43.383229+00:00",
+    "elapsed_seconds": 40.122138008475304,
+    "children_max_rss_kib": 1393276,
+    "binary_sha256": "acfe7950313626108f8ff9cfc71980b30ac6faec34ec30b98523ab95e67b2eec",
+    "config_sha256": "c7478501e4307d939004d21f1b048905d22831eb953d348f68aba612e39f844e"
+  },
+  "independent_audit": {
+    "status": "PASS",
+    "reader_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+    "reader_math_review": "PASS",
+    "scope": "Saved raw f32 differences/selector/frozenpayload/bridge/G/U/physicalaliaspool arithmetic; not encoder/backward replication",
+    "difference_nonzero": {
+      "consumer.context.neighbor_category": 0,
+      "consumer.context.neighbor_root": 0,
+      "consumer.context.neighbor_transition": 3840,
+      "consumer.context.self_category": 0,
+      "consumer.context.self_root": 0,
+      "consumer.context.self_transition": 3840,
+      "consumer.context.token_category": 0,
+      "consumer.context.token_root": 0,
+      "consumer.context.token_transition": 23115
+    },
+    "eligible_scalars": 17472,
+    "execution": {
+      "status": "PASS",
+      "steps": [
+        {
+          "kind": "probe",
+          "exit_code": 0,
+          "elapsed_seconds": 1.890341404825449,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "recovered_parent",
+          "exit_code": 0,
+          "elapsed_seconds": 12.322333086282015,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "capture18",
+          "exit_code": 0,
+          "elapsed_seconds": 0.5313756167888641,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "input_panel",
+          "exit_code": 0,
+          "elapsed_seconds": 0.13908739760518074,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "independent_reader",
+          "exit_code": 0,
+          "elapsed_seconds": 793.8084445148706,
+          "max_rss_kib": 766964
+        }
+      ],
+      "elapsed_seconds": 808.8235894329846,
+      "reader_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+      "completed_utc": "2026-10-08T18:18:03.767385+00:00",
+      "scope": "saved evidence arithmetic; no independent encoder/backward/autoregressive computation"
+    },
+    "limitations": [
+      "No independent Context/Cue/Prefix encoder, CUDA backward or conditional-gradient recomputation; raw gradients and initial/native encoder states are authenticated saved witnesses",
+      "Packed bridge/Generate/U, Cue/Prefix relative bins/contributions and full physical-alias reducers independently recomputed at saved18 endpoints",
+      "One mostnegative ON-only displacement and both linear dots independently reconstructed from saved exact fractional masters; no new proposals or learning",
+      "No autoregressive rollout, original8 EOS retention or full512 qualification; in-memory parent restoration is a source/producer receipt, not a new endpoint replay",
+      "Rust BLAKE3 complete-file verification remains separately executed"
+    ],
+    "sha256": "873f4ba3dd9c058482584dcef0f187fd9c1ef227bbee11d7fa1bf71d6c29bd58"
+  },
+  "runtime_preservation": {
+    "revision": "9eeb1d399c0480dbde17dff13b71ed85cb64b8b5",
+    "prefix": "codex/sol-prefix-context-credit/runtime-92215de1ef-attempt1",
+    "fresh_verified": true,
+    "seconds": 26.32397272065282
+  },
+  "resource_projection": {
+    "prior_cumulative_seconds": 544470,
+    "necessary_sameclass_increment_seconds": 14400,
+    "new_cumulative_seconds": 558870,
+    "host_numeric_projected_bytes": 217516744,
+    "host_numeric_cap_bytes": 268435456,
+    "model_report_projected_bytes": 313200552,
+    "model_report_cap_bytes": 536870912,
+    "process_ram_gib": 8,
+    "pod_cpu_threads": 2,
+    "no_local_model_or_large_download": true,
+    "runner": "manual uor-pod; shared runner deployment UNVERIFIED"
+  },
+  "next": "After actual protected delivery, saved-only changed-transition-credit decomposition and native-action-boundary evidence; fresh finite contrast only under a new prospective card. No unchanged gradient/dose/selector/cursor repeat.",
+  "report_manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332",
+  "report_file_count": 122,
+  "report_payload_bytes": 204338578,
+  "preservation": {
+    "revision": "7a3bf149c64a8e6ba77bcb70a11086b76387135d",
+    "prefix": "codex/sol-prefix-context-credit/prefix-context-credit-0001-92215de1ef",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "c68d30a6f892745187f5c0957309ec9513a1b10a0a6a32448b762af77db371d3",
+        "bytes": 1099
+      },
+      "prefix-context-credit-0001-92215de1ef.tar.gz": {
+        "sha256": "89180b331a61ecfd5dd4172ae993cc1f7800ba39d9b5223c9371cabc368993f1",
+        "bytes": 26939483
+      }
+    },
+    "manifest": {
+      "source_commit": "92215de1ef497dcab477b193ea6964c1137832b8",
+      "runtime_hf_revision": "9eeb1d399c0480dbde17dff13b71ed85cb64b8b5",
+      "runtime_manifest_sha256": "4e4b69fa952c1930d3eef9460e5a56d3fd4209b16923651ecdfdaed856322c9b",
+      "binary_sha256": "acfe7950313626108f8ff9cfc71980b30ac6faec34ec30b98523ab95e67b2eec",
+      "config_sha256": "c7478501e4307d939004d21f1b048905d22831eb953d348f68aba612e39f844e",
+      "report_sha256": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9",
+      "report_manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332",
+      "audit_sha256": "873f4ba3dd9c058482584dcef0f187fd9c1ef227bbee11d7fa1bf71d6c29bd58",
+      "files": {
+        "prefix-context-credit-0001-92215de1ef.tar.gz": {
+          "sha256": "89180b331a61ecfd5dd4172ae993cc1f7800ba39d9b5223c9371cabc368993f1",
+          "bytes": 26939483
+        }
+      },
+      "scope": "Fixed18 matched OFF/ON Context gradient arms; one prospectively ranked adjacent code and native finite effect. Raw-gradient and saved native arithmetic independently audited; no optimizer, new full512/AR or model promotion."
+    },
+    "seconds": 24.52951253950596,
+    "completed_utc": "2026-10-08T18:21:21.795639+00:00"
+  },
+  "report_sha256": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9",
+  "finite_effect_witness_comparison": {
+    "schema": "uor-r4.saved-finite-context-effects/1",
+    "rows": [
+      {
+        "input_index": 245,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 245,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 0,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 0,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 1,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 1,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 4,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 4,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 5,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 5,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 8,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 8,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 9,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 9,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 12,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 12,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 13,
+        "position": 3,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      },
+      {
+        "input_index": 13,
+        "position": 4,
+        "changed_native_keys": [],
+        "changed_context_trace_keys": [
+          "categories",
+          "codes"
+        ],
+        "bank_context_states_changed": false,
+        "bank_head_scores_changed": false,
+        "cue_trace_changed": true,
+        "prefix_trace_changed": true,
+        "bank_binding_changed": false
+      }
+    ],
+    "scope": "Comparison of sealed baseline/candidate witnesses only; no encoder, model, gradient or additional finite displacement",
+    "native_expanded_context_tables": "UNAVAILABLE as independently exported expanded tables; exact one packed coefficient and all other native numerical payloads were independently audited separately"
+  },
+  "finite_effect_witness_comparison_sha256": "55b440deefcae45a63cabbc0c6f657925c64ddee4fc77e15585c457a954155de",
+  "delivery_pull_request": "https://github.com/UOR-Foundation/uor-r4/pull/1947"
+}

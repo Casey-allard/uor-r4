@@ -70,6 +70,8 @@ mod frontier;
 mod native_proposals;
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
 mod output_support;
+#[path = "geometric_frozen_map_fit/prefix_context_credit.rs"]
+mod prefix_context_credit;
 #[path = "geometric_frozen_map_fit/prototype_compensation.rs"]
 mod prototype_compensation;
 #[path = "geometric_frozen_map_fit/reached_u.rs"]
@@ -154,6 +156,12 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
 fn reference_replay_settings(a: &Args) -> Result<()> {
     reached_u::validate_settings(a)?;
     readout_coadaptation::validate_settings(a)?;
+    prefix_context_credit::validate_settings(a)?;
+    if a.prefix_context_credit.is_some() {
+        // The fixed eighteen-frame discriminator owns its objective and pins;
+        // historical 89/377 reference-plan admission does not describe this probe.
+        return Ok(());
+    }
     replay_require(
         if a.prototype_compensation.is_some() {a.constrained_emission_learning && a.retained_context_root.is_none()} else {a.constrained_emission_learning == a.retained_context_root.is_some()},
         "emission needs retained Context root, or compensation needs explicit retained emission/diagnostic roots and no Context root",
@@ -491,6 +499,9 @@ struct Args {
     reached_u: Option<reached_u::Config>,
     #[serde(default)]
     readout_coadaptation: Option<readout_coadaptation::Config>,
+    /// Fixed native-forward OFF/ON Prefix temporal Context-credit discriminator.
+    #[serde(default)]
+    prefix_context_credit: Option<prefix_context_credit::Config>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -757,6 +768,11 @@ fn args() -> Result<(Args, Vec<u8>)> {
     .chain(a.baseline.iter())
     .chain(a.prediction_control_resume.iter())
     .chain(a.retained_context_root.iter())
+    .chain(
+        a.prefix_context_credit
+            .iter()
+            .flat_map(|c| [&c.retained_intermediate_root, &c.retained_capture_root]),
+    )
     .chain(a.reached_u.iter().map(|c| &c.retained_compensation_root))
     .chain(
         a.readout_coadaptation
@@ -5193,6 +5209,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.prefix_context_credit.is_some() {
+        return prefix_context_credit::run(a, start, d);
+    }
     if a.readout_coadaptation.is_some() {
         return readout_coadaptation::run(a, start, d);
     }
@@ -6435,10 +6454,11 @@ fn main() -> Result<()> {
     report_output::claim(&a.out)?;
     let start = Instant::now();
     let result = (|| -> Result<Value> {
-        if a.readout_coadaptation
-            .as_ref()
-            .and_then(|c| c.intermediate_candidate.as_ref())
-            .is_some()
+        if a.prefix_context_credit.is_some()
+            || a.readout_coadaptation
+                .as_ref()
+                .and_then(|c| c.intermediate_candidate.as_ref())
+                .is_some()
         {
             let path = cli
                 .get(1)
