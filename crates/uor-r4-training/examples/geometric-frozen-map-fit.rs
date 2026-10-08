@@ -68,6 +68,91 @@ enum Mode {
     JointContinuation,
 }
 
+const REPLAY_REPORT_SHA: &str = "9582f56c8d285920cd67977fd23d36e8a96beabe7c5f27ea45ad4b1113d3503c";
+const REPLAY_MANIFEST_SHA: &str =
+    "45bbcbf2550b6d6a726df09b3c8ad6307ad20b4a8073306be458ca93f3376da5";
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct ReferenceReplayConfig {
+    plan_root: PathBuf,
+    reference_root: PathBuf,
+    expected_plan_report_sha256: String,
+    expected_plan_manifest_sha256: String,
+    lambda: f64,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReferencePrepareConfig {
+    reference_root: PathBuf,
+    training_inputs: PathBuf,
+    training_labels: PathBuf,
+    out: PathBuf,
+    maximum_report_bytes: u64,
+}
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct ReferenceRow {
+    index: usize,
+    id: String,
+    packet_sha256: String,
+    saved_row_sha256: String,
+    targets: Vec<u32>,
+    copy_ids: Vec<u32>,
+    phases: Vec<usize>,
+    eligible: Vec<bool>,
+    weight_denominators: Vec<usize>,
+    weights: Vec<f64>,
+}
+#[derive(Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct ReferencePlan {
+    schema: String,
+    reference_root: PathBuf,
+    source_binding: NativeArtifactBinding,
+    generate_sha256: String,
+    initial_receipt_sha256: String,
+    reference_report_sha256: String,
+    reference_manifest_sha256: String,
+    input_sha256: String,
+    labels_sha256: String,
+    eos_token_id: u32,
+    rows: Vec<ReferenceRow>,
+}
+fn replay_require(ok: bool, message: &str) -> Result<()> {
+    if ok {
+        Ok(())
+    } else {
+        Err(bad(message))
+    }
+}
+fn reference_replay_settings(a: &Args) -> Result<()> {
+    if let Some(c) = &a.reference_replay {
+        let rates = a
+            .joint_continuation
+            .as_ref()
+            .ok_or_else(|| bad("replay joint rates absent"))?;
+        replay_require(
+            a.mode == Mode::JointContinuation
+                && !a.query_conditioned_read
+                && a.seed == 1001
+                && a.updates == 1
+                && c.lambda == 1.0
+                && rates.generate_learning_rate == 0.003
+                && rates.context_learning_rate == 0.002
+                && rates.potential_learning_rate == 0.003
+                && rates.continuation_learning_rate == 0.03
+                && [
+                    &c.expected_plan_report_sha256,
+                    &c.expected_plan_manifest_sha256,
+                ]
+                .iter()
+                .all(|s| s.len() == 64 && s.bytes().all(|b| b.is_ascii_hexdigit())),
+            "reference replay requires one seed1001 proposal, lambda1 and unchanged joint rates",
+        )?;
+    }
+    Ok(())
+}
+
 /// The joint rung keeps prototypes and the categorical bridge frozen. These
 /// rates change only the declared four active families, never parent selection.
 #[derive(Clone, Copy, Deserialize, serde::Serialize)]
@@ -316,6 +401,8 @@ struct Args {
     continuation: Option<ContinuationConfig>,
     #[serde(default)]
     joint_continuation: Option<JointContinuationConfig>,
+    #[serde(default)]
+    reference_replay: Option<ReferenceReplayConfig>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -549,6 +636,7 @@ fn args() -> Result<Args> {
     control_settings(&a)?;
     continuation_settings(&a)?;
     joint_continuation_settings(&a)?;
+    reference_replay_settings(&a)?;
     if ![1001, 1002, 1003].contains(&a.seed)
         || a.maximum_seconds == 0
         || a.maximum_report_bytes < (64 << 20)
@@ -579,7 +667,11 @@ fn args() -> Result<Args> {
     .into_iter()
     .chain(a.baseline.iter())
     .chain(a.prediction_control_resume.iter())
-    {
+    .chain(
+        a.reference_replay
+            .iter()
+            .flat_map(|r| [&r.plan_root, &r.reference_root]),
+    ) {
         let input = fs::canonicalize(path)?;
         if output.starts_with(&input) || input.starts_with(&output) {
             return Err(bad("output/input overlap"));
@@ -1189,6 +1281,577 @@ fn episode_loss_weights(
     })
 }
 
+fn reference_weights(rows: &mut [ReferenceRow]) -> Result<()> {
+    let episodes = rows
+        .iter()
+        .filter(|r| r.eligible.iter().any(|&v| v))
+        .count();
+    replay_require(episodes > 0, "empty reference population")?;
+    for row in rows {
+        replay_require(
+            row.targets.len() == row.phases.len()
+                && row.targets.len() == row.eligible.len()
+                && row.phases.iter().all(|&p| p < 3),
+            "reference phase/eligibility shape",
+        )?;
+        let mut counts = [0usize; 3];
+        for (&phase, &eligible) in row.phases.iter().zip(&row.eligible) {
+            if eligible {
+                counts[phase] += 1;
+            }
+        }
+        let phases = counts.iter().filter(|&&n| n > 0).count();
+        row.weight_denominators = row
+            .phases
+            .iter()
+            .zip(&row.eligible)
+            .map(|(&p, &eligible)| {
+                if eligible {
+                    episodes * phases * counts[p]
+                } else {
+                    0
+                }
+            })
+            .collect();
+        row.weights = row
+            .weight_denominators
+            .iter()
+            .map(|&n| if n == 0 { 0. } else { 1. / n as f64 })
+            .collect();
+    }
+    Ok(())
+}
+fn reference_saved_row(root: &Path, reference: &Value) -> Result<Value> {
+    let name = reference["row_file"]
+        .as_str()
+        .ok_or_else(|| bad("reference row path absent"))?;
+    let path = Path::new(name);
+    replay_require(
+        !path.is_absolute()
+            && path
+                .components()
+                .all(|p| matches!(p, std::path::Component::Normal(_))),
+        "unsafe reference row path",
+    )?;
+    let bytes = fs::read(root.join(path))?;
+    replay_require(
+        reference["row_sha256"] == sha256_bytes(&bytes),
+        "reference row digest differs",
+    )?;
+    let value: Value = serde_json::from_slice(&bytes)?;
+    replay_require(value["id"] == reference["id"], "reference row ID differs")?;
+    Ok(value)
+}
+fn authenticate_reference_root(root: &Path) -> Result<(Value, Value)> {
+    report_output::verify(root)?;
+    replay_require(
+        sha256_file(&root.join("report.json"))? == REPLAY_REPORT_SHA
+            && sha256_file(&root.join("manifest.json"))? == REPLAY_MANIFEST_SHA,
+        "reference donor report/seal differs",
+    )?;
+    let report = read(&root.join("report.json"))?;
+    let initial = read(&root.join("checkpoint-0000/receipt.json"))?;
+    replay_require(
+        report["status"] == "COMPLETED"
+            && report["mode"] == "joint_continuation"
+            && report["updates"] == 1
+            && initial == report["initial_receipt"]
+            && initial["step"] == 0
+            && initial["parent_report_sha256"] == CONTINUATION_PARENT_REPORT_SHA
+            && initial["parent_manifest_sha256"] == CONTINUATION_PARENT_MANIFEST_SHA
+            && initial["training_input_sha256"] == INPUT_SHA
+            && initial["training_labels_sha256"] == LABEL_SHA,
+        "reference initial checkpoint provenance differs",
+    )?;
+    Ok((report, initial))
+}
+fn build_reference_plan(c: &ReferencePrepareConfig) -> Result<(ReferencePlan, Value)> {
+    let (report, initial) = authenticate_reference_root(&c.reference_root)?;
+    for (path, sha) in [
+        (&c.training_inputs, INPUT_SHA),
+        (&c.training_labels, LABEL_SHA),
+    ] {
+        report_output::verify(&seal_for(path)?)?;
+        replay_require(sha256_file(path)? == sha, "reference input/labels differ")?;
+    }
+    let inputs: Inputs = serde_json::from_slice(&fs::read(&c.training_inputs)?)?;
+    let labels: Labels = serde_json::from_slice(&fs::read(&c.training_labels)?)?;
+    replay_require(
+        inputs.schema == "uor-r4.native-source-bank-probe-input/1"
+            && labels.schema == "uor-r4.native-source-bank-labels/1"
+            && labels.protocol == "uor-r4.literal-role-dialogue/2"
+            && labels.membership_only
+            && inputs.cases.len() == 512
+            && labels.cases.len() == 512,
+        "reference complete512 schema differs",
+    )?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&fs::read(
+        c.reference_root
+            .join("checkpoint-0000/native/tokenizer.json"),
+    )?)
+    .ok_or_else(|| bad("reference tokenizer absent"))?;
+    let protocol = uor_r4_tokenizer::dialogue::DialogueProtocol::literal_roles_v2(&tok)?;
+    let summary = read(&c.reference_root.join("development-0000.json"))?;
+    replay_require(
+        summary == report["initial_evaluation"],
+        "reference initial evaluation differs",
+    )?;
+    let refs = summary["rows"]
+        .as_array()
+        .ok_or_else(|| bad("reference rows absent"))?;
+    replay_require(refs.len() == 512, "reference saved population differs")?;
+    let mut seen = BTreeSet::new();
+    let mut rows = Vec::new();
+    let mut total_positions = 0;
+    let mut phase_population = [0usize; 3];
+    let mut phase_eligible = [0usize; 3];
+    let mut eos_eligible = 0;
+    for (index, (packet, label)) in inputs.cases.into_iter().zip(labels.cases).enumerate() {
+        replay_require(
+            !packet.id.is_empty()
+                && seen.insert(packet.id.clone())
+                && label.id == packet.id
+                && refs[index]["id"] == packet.id
+                && packet.actual_prefix_ids.is_empty(),
+            "reference packet/label identity differs",
+        )?;
+        label.answers.validate()?;
+        let answer = label
+            .answers
+            .accepted
+            .first()
+            .ok_or_else(|| bad("reference accepted answer absent"))?;
+        let mut targets = tok.encode(answer);
+        replay_require(
+            tok.decode_bytes(&targets) == answer.as_bytes(),
+            "reference answer roundtrip differs",
+        )?;
+        targets.push(protocol.eos_id);
+        let saved = reference_saved_row(&c.reference_root, &refs[index])?;
+        replay_require(
+            saved["canonical_target_ids_labels_only"] == json!(targets),
+            "reference canonical target sequence differs",
+        )?;
+        let canonical = saved["canonical"]
+            .as_array()
+            .ok_or_else(|| bad("reference canonical positions absent"))?;
+        replay_require(
+            canonical.len() == targets.len() && !targets.is_empty(),
+            "reference canonical coverage differs",
+        )?;
+        let copy_ids: Vec<u32> =
+            serde_json::from_value(canonical[0]["native"]["copy_token_ids"].clone())?;
+        let union = copy_ids.iter().copied().collect();
+        let phases = episode_loss_weights(&targets, &union, 1, true, LossScope::All)?.phases;
+        let mut eligible = Vec::new();
+        for (t, ((&target, &phase), step)) in targets.iter().zip(&phases).zip(canonical).enumerate()
+        {
+            let native = &step["native"];
+            let pool = &native["pool"]["summary"];
+            replay_require(
+                step["target_label_only"] == target
+                    && native["copy_token_ids"] == json!(copy_ids)
+                    && native["continuation"]["actual_prefix_tokens"] == t
+                    && pool["legal_generate_actions"] == 4096
+                    && pool["copy_actions"] == copy_ids.len(),
+                "reference target/prefix-count/support differs",
+            )?;
+            let correct = pool["chosen_token_id"] == target;
+            eligible.push(correct);
+            total_positions += 1;
+            phase_population[phase] += 1;
+            if correct {
+                phase_eligible[phase] += 1;
+                eos_eligible += usize::from(target == protocol.eos_id);
+            }
+        }
+        rows.push(ReferenceRow {
+            index,
+            id: packet.id.clone(),
+            packet_sha256: sha256_bytes(&serde_json::to_vec(&packet)?),
+            saved_row_sha256: refs[index]["row_sha256"]
+                .as_str()
+                .ok_or_else(|| bad("row digest absent"))?
+                .into(),
+            targets,
+            copy_ids,
+            phases,
+            eligible,
+            weight_denominators: Vec::new(),
+            weights: Vec::new(),
+        });
+    }
+    reference_weights(&mut rows)?;
+    let total_weight: f64 = rows.iter().flat_map(|r| &r.weights).sum();
+    replay_require(
+        (total_weight - 1.).abs() < 1e-12,
+        "reference weights do not sum to one",
+    )?;
+    let eligible_episodes = rows
+        .iter()
+        .filter(|r| r.eligible.iter().any(|&v| v))
+        .count();
+    let eligible_positions: usize = phase_eligible.iter().sum();
+    let mut phase_weights = [0.; 3];
+    for row in &rows {
+        for (&phase, &weight) in row.phases.iter().zip(&row.weights) {
+            phase_weights[phase] += weight;
+        }
+    }
+    let counts = json!({"episodes":512,"eligible_episodes":eligible_episodes,"positions":total_positions,"eligible_positions":eligible_positions,
+        "excluded_positions":total_positions-eligible_positions,"phase_population":phase_population,"phase_eligible":phase_eligible,
+        "eos_eligible":eos_eligible,"phase_weights":phase_weights,"total_reference_weight":total_weight});
+    Ok((
+        ReferencePlan {
+            schema: "uor-r4.supervised-reference-plan/1".into(),
+            reference_root: fs::canonicalize(&c.reference_root)?,
+            source_binding: serde_json::from_value(initial["parent"].clone())?,
+            generate_sha256: initial["generate_sha256"]
+                .as_str()
+                .ok_or_else(|| bad("initial Generate SHA absent"))?
+                .into(),
+            initial_receipt_sha256: sha256_file(
+                &c.reference_root.join("checkpoint-0000/receipt.json"),
+            )?,
+            reference_report_sha256: REPLAY_REPORT_SHA.into(),
+            reference_manifest_sha256: REPLAY_MANIFEST_SHA.into(),
+            input_sha256: INPUT_SHA.into(),
+            labels_sha256: LABEL_SHA.into(),
+            eos_token_id: protocol.eos_id,
+            rows,
+        },
+        counts,
+    ))
+}
+fn prepare_reference_replay(path: &Path) -> Result<()> {
+    let raw = fs::read(path)?;
+    let mut c: ReferencePrepareConfig = serde_json::from_slice(&raw)?;
+    replay_require(
+        c.maximum_report_bytes == 64 << 20,
+        "reference preparation requires64MiB cap",
+    )?;
+    c.out = output_support::prospective_output(&c.out)?;
+    for input in [
+        &mut c.reference_root,
+        &mut c.training_inputs,
+        &mut c.training_labels,
+    ] {
+        replay_require(
+            input.is_absolute()
+                && !input
+                    .components()
+                    .any(|v| matches!(v, std::path::Component::ParentDir)),
+            "reference absolute nontraversing paths required",
+        )?;
+        *input = fs::canonicalize(&*input)?;
+        let seal = seal_for(input)?;
+        replay_require(
+            !c.out.starts_with(&*input) && !input.starts_with(&c.out) && !c.out.starts_with(seal),
+            "reference output overlaps sealed input",
+        )?;
+    }
+    report_output::claim(&c.out)?;
+    let started = Instant::now();
+    let result = (|| -> Result<Value> {
+        fs::write(c.out.join("config.json"), &raw)?;
+        let (plan, counts) = build_reference_plan(&c)?;
+        let encoded = serde_json::to_vec_pretty(&plan)?;
+        replay_require(
+            (encoded.len() as u64 + raw.len() as u64) < c.maximum_report_bytes - (1 << 20),
+            "reference preparation storage cap",
+        )?;
+        fs::write(c.out.join("plan.json"), encoded)?;
+        Ok(
+            json!({"schema":"uor-r4.supervised-reference-preparation/1","status":"COMPLETED","plan_sha256":sha256_file(&c.out.join("plan.json"))?,
+            "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":sha256_file(&std::env::current_exe()?)?,
+            "reference_report_sha256":REPLAY_REPORT_SHA,"reference_manifest_sha256":REPLAY_MANIFEST_SHA,"counts":counts,
+            "eligibility":"frozen authenticated parent native winner equals supervised target at canonical position; all512/allphases",
+            "weighting":"mean eligible episodes, then nonempty eligible phases, then eligible positions; total weight1",
+            "prefix_evidence":"saved prefix lengths plus canonical targets; full prefix IDs source-bound to pinned producer, not stored independently",
+            "native_calls":0,"optimizer_steps":0,"elapsed_seconds":started.elapsed().as_secs_f64()}),
+        )
+    })();
+    let report = match &result {
+        Ok(r) => r.clone(),
+        Err(e) => {
+            json!({"schema":"uor-r4.supervised-reference-preparation/1","status":"FAILED","error":e.to_string(),"native_calls":0,"optimizer_steps":0})
+        }
+    };
+    fs::write(
+        c.out.join("report.json"),
+        serde_json::to_vec_pretty(&report)?,
+    )?;
+    report_output::seal(&c.out)?;
+    report_output::verify(&c.out)?;
+    result.map(|_| ())
+}
+fn load_reference_plan(
+    a: &Args,
+    parent: &ContinuationParent,
+    eps: &[Episode],
+) -> Result<Option<ReferencePlan>> {
+    let Some(c) = &a.reference_replay else {
+        return Ok(None);
+    };
+    reference_replay_settings(a)?;
+    report_output::verify(&c.plan_root)?;
+    replay_require(
+        sha256_file(&c.plan_root.join("report.json"))? == c.expected_plan_report_sha256
+            && sha256_file(&c.plan_root.join("manifest.json"))? == c.expected_plan_manifest_sha256,
+        "reference preparation seal differs",
+    )?;
+    let report = read(&c.plan_root.join("report.json"))?;
+    let plan_bytes = fs::read(c.plan_root.join("plan.json"))?;
+    replay_require(
+        report["schema"] == "uor-r4.supervised-reference-preparation/1"
+            && report["status"] == "COMPLETED"
+            && report["plan_sha256"] == sha256_bytes(&plan_bytes),
+        "reference plan identity differs",
+    )?;
+    let plan: ReferencePlan = serde_json::from_slice(&plan_bytes)?;
+    replay_require(
+        plan.schema == "uor-r4.supervised-reference-plan/1"
+            && plan.source_binding == parent.binding
+            && plan.generate_sha256 == parent.generate_sha256
+            && plan.reference_report_sha256 == REPLAY_REPORT_SHA
+            && plan.reference_manifest_sha256 == REPLAY_MANIFEST_SHA
+            && plan.input_sha256 == INPUT_SHA
+            && plan.labels_sha256 == LABEL_SHA
+            && plan.rows.len() == eps.len(),
+        "reference/model/data identity differs",
+    )?;
+    let (mut rebuilt, _) = build_reference_plan(&ReferencePrepareConfig {
+        reference_root: c.reference_root.clone(),
+        training_inputs: a.training_inputs.clone(),
+        training_labels: a.training_labels.clone(),
+        out: a.out.clone(),
+        maximum_report_bytes: 64 << 20,
+    })?;
+    // Location is provenance, not artifact identity. A fresh pod may mount the
+    // identical sealed donor elsewhere; all content pins remain exact.
+    rebuilt.reference_root = plan.reference_root.clone();
+    replay_require(
+        serde_json::to_vec(&rebuilt)? == serde_json::to_vec(&plan)?,
+        "reference eligibility/weight reconstruction differs",
+    )?;
+    for (i, (row, e)) in plan.rows.iter().zip(eps).enumerate() {
+        let copy = e
+            .views
+            .iter()
+            .flatten()
+            .flat_map(|v| v.emitted_token_ids().iter().copied())
+            .collect::<BTreeSet<_>>();
+        replay_require(
+            row.index == i
+                && row.id == e.packet.id
+                && row.targets == e.target
+                && row.packet_sha256 == sha256_bytes(&serde_json::to_vec(&e.packet)?)
+                && row.copy_ids.iter().copied().collect::<BTreeSet<_>>() == copy
+                && row.phases
+                    == episode_loss_weights(&e.target, &copy, 1, true, LossScope::All)?.phases,
+            "reference live episode/prefix/phase binding differs",
+        )?;
+    }
+    write(a, "reference-plan.json", &serde_json::to_value(&plan)?)?;
+    Ok(Some(plan))
+}
+fn combine_reference_gradients(
+    task: &BTreeMap<String, Tensor>,
+    reference: &BTreeMap<String, Tensor>,
+    lambda: f64,
+) -> Result<BTreeMap<String, Tensor>> {
+    replay_require(
+        lambda.is_finite() && lambda > 0.,
+        "reference gradient coefficient invalid",
+    )?;
+    let mut combined = task
+        .iter()
+        .map(|(n, g)| (n.clone(), g.detach()))
+        .collect::<BTreeMap<_, _>>();
+    for (name, gradient) in reference {
+        let weighted = gradient.affine(lambda, 0.)?;
+        let value = match combined.get(name) {
+            Some(current) => current.add(&weighted)?.detach(),
+            None => weighted.detach(),
+        };
+        combined.insert(name.clone(), value);
+    }
+    Ok(combined)
+}
+
+fn reference_binding(a: &Args) -> Result<Value> {
+    let c = a
+        .reference_replay
+        .as_ref()
+        .ok_or_else(|| bad("reference config absent"))?;
+    Ok(
+        json!({"configuration":c,"plan_sha256":sha256_file(&c.plan_root.join("plan.json"))?,
+        "copied_plan_sha256":sha256_file(&a.out.join("reference-plan.json"))?,
+        "objective":"unchanged currentB8 phase-balanced CE + 1.0*hierarchical supervised parent-correct reference CE",
+        "updates":1,"reference_passes":1,"eligibility_frozen_before_fit":true,
+        "acceptance":"all8 parent complete replies retained and more than8/512 complete; teacher-position retention reported separately, never an own-prefix evaluation veto"}),
+    )
+}
+fn reference_gradient_norms(
+    grads: &BTreeMap<String, Tensor>,
+    groups: &[(&str, &BTreeMap<String, Var>)],
+    d: &Device,
+) -> Result<Value> {
+    let mut result = BTreeMap::new();
+    for (name, params) in groups {
+        let subset = params
+            .keys()
+            .filter_map(|key| grads.get(key).map(|g| (key.clone(), g.clone())))
+            .collect::<BTreeMap<_, _>>();
+        let norm = if subset.is_empty() {
+            0.
+        } else {
+            clip_denominator(&subset, d)?.1
+        };
+        result.insert(*name, json!({"l2":norm,"gradient_tensors":subset.len()}));
+    }
+    Ok(serde_json::to_value(result)?)
+}
+fn reference_native_loss(step: &Value, target: u32) -> Result<f64> {
+    let mass = step["native_target_mass"]
+        .as_u64()
+        .ok_or_else(|| bad("saved target mass absent"))?;
+    let total = step["native_denominator"]
+        .as_u64()
+        .ok_or_else(|| bad("saved denominator absent"))?;
+    replay_require(
+        step["target_label_only"] == target
+            && mass > 0
+            && mass <= total
+            && step["native"]["pool"]["summary"]["total_weight_q31"] == total,
+        "reference native target/pool invalid",
+    )?;
+    Ok(-(mass as f64 / total as f64).ln())
+}
+fn reference_outcomes(
+    a: &Args,
+    plan: &ReferencePlan,
+    before: &Value,
+    after: &Value,
+    eps: &[Episode],
+    task_indices: &[usize],
+) -> Result<Value> {
+    let old = before["rows"]
+        .as_array()
+        .ok_or_else(|| bad("initial reference rows absent"))?;
+    let new = after["rows"]
+        .as_array()
+        .ok_or_else(|| bad("final reference rows absent"))?;
+    replay_require(
+        old.len() == plan.rows.len() && new.len() == plan.rows.len(),
+        "reference evaluation population differs",
+    )?;
+    let mut reference_losses = [0.; 2];
+    let mut task_losses = [0.; 2];
+    let mut lost = Vec::new();
+    let mut gains = Vec::new();
+    let mut retained = [0usize; 3];
+    let mut lost_by_phase = [0usize; 3];
+    let mut gain_by_phase = [0usize; 3];
+    let mut positions = Vec::new();
+    let mut factual_state_changed = 0;
+    let mut local_state_changed = 0;
+    for (index, row) in plan.rows.iter().enumerate() {
+        replay_require(
+            old[index]["id"] == row.id && new[index]["id"] == row.id,
+            "reference evaluation ID differs",
+        )?;
+        let initial = reference_saved_row(&a.out, &old[index])?;
+        let final_row = reference_saved_row(&a.out, &new[index])?;
+        let initial_steps = initial["canonical"]
+            .as_array()
+            .ok_or_else(|| bad("initial canonical absent"))?;
+        let final_steps = final_row["canonical"]
+            .as_array()
+            .ok_or_else(|| bad("final canonical absent"))?;
+        replay_require(
+            initial["canonical_target_ids_labels_only"] == json!(row.targets)
+                && final_row["canonical_target_ids_labels_only"] == json!(row.targets)
+                && initial_steps.len() == row.targets.len()
+                && final_steps.len() == row.targets.len(),
+            "reference evaluation target coverage differs",
+        )?;
+        let copy = row.copy_ids.iter().copied().collect();
+        let task = episode_loss_weights(
+            &eps[index].target,
+            &copy,
+            task_indices.len(),
+            true,
+            LossScope::All,
+        )?;
+        for (t, &target) in row.targets.iter().enumerate() {
+            let left = &initial_steps[t];
+            let right = &final_steps[t];
+            let native_losses = [
+                reference_native_loss(left, target)?,
+                reference_native_loss(right, target)?,
+            ];
+            let was = left["native"]["pool"]["summary"]["chosen_token_id"] == target;
+            let now = right["native"]["pool"]["summary"]["chosen_token_id"] == target;
+            replay_require(
+                was == row.eligible[t],
+                "actual initial eligibility differs from frozen parent",
+            )?;
+            let phase = row.phases[t];
+            let identity = json!({"index":index,"id":row.id,"position":t,"target":target,"phase":phase,"eos":target==plan.eos_token_id});
+            factual_state_changed += usize::from(
+                left["native"]["post_state_codes"] != right["native"]["post_state_codes"],
+            );
+            local_state_changed += usize::from(
+                left["native"]["continuation"]["state_codes"]
+                    != right["native"]["continuation"]["state_codes"],
+            );
+            if row.eligible[t] {
+                for arm in 0..2 {
+                    reference_losses[arm] += row.weights[t] * native_losses[arm];
+                }
+                if now {
+                    retained[phase] += 1;
+                } else {
+                    lost_by_phase[phase] += 1;
+                    lost.push(identity.clone());
+                }
+                positions.push(json!({"identity":identity,"weight":row.weights[t],"weight_denominator":row.weight_denominators[t],
+                    "native_losses_before_after":native_losses,"retained":now,
+                    "before_mass":left["native_target_mass"],"before_total":left["native_denominator"],
+                    "after_mass":right["native_target_mass"],"after_total":right["native_denominator"],
+                    "after_chosen":right["native"]["pool"]["summary"]["chosen_token_id"]}));
+            } else if now {
+                gain_by_phase[phase] += 1;
+                gains.push(identity);
+            }
+            if task_indices.contains(&index) {
+                for arm in 0..2 {
+                    task_losses[arm] += task.weights[t] * native_losses[arm];
+                }
+            }
+        }
+    }
+    let retained_complete = old
+        .iter()
+        .zip(new)
+        .filter(|(a, b)| a["complete"] == true && b["complete"] == true)
+        .count();
+    let initial_complete = old.iter().filter(|a| a["complete"] == true).count();
+    let final_complete = new.iter().filter(|a| a["complete"] == true).count();
+    Ok(
+        json!({"reference_losses_before_after":reference_losses,"current_batch_losses_before_after":task_losses,
+        "combined_losses_before_after":[task_losses[0]+reference_losses[0],task_losses[1]+reference_losses[1]],"lambda":1.0,
+        "reference_positions":positions,"reference_retained_by_phase":retained,"reference_lost_by_phase":lost_by_phase,
+        "reference_lost_positions":lost,"all_reference_positions_retained":lost.is_empty(),
+        "full_panel_wrong_to_correct_by_phase":gain_by_phase,"full_panel_wrong_to_correct_positions":gains,
+        "factual_state_changed_positions":factual_state_changed,"local_context_state_changed_positions":local_state_changed,
+        "initial_complete":initial_complete,"retained_parent_complete":retained_complete,"final_complete":final_complete,
+        "useful_candidate":initial_complete==8 && retained_complete==8 && final_complete>8,
+        "scope":"native saved canonical objectives/retention and independent own-prefix answers; teacher retention is diagnostic, not an output-evaluation veto"}),
+    )
+}
+
 fn apply(
     optimizer: &mut AdamW,
     params: &BTreeMap<String, Var>,
@@ -1467,6 +2130,37 @@ fn batch_live(
     independent: Option<&IntegerRealizer>,
     continuation: Option<&ContinuationLearningWeights>,
 ) -> Result<(BTreeMap<String, Tensor>, Value)> {
+    batch_live_weighted(
+        a,
+        l,
+        eps,
+        indices,
+        d,
+        start,
+        independent,
+        continuation,
+        None,
+    )
+}
+fn supervised_prefix(targets: &[u32], position: usize) -> Result<&[u32]> {
+    replay_require(
+        position < targets.len(),
+        "supervised position outside target sequence",
+    )?;
+    Ok(&targets[..position])
+}
+
+fn batch_live_weighted(
+    a: &Args,
+    l: &Loaded,
+    eps: &[Episode],
+    indices: &[usize],
+    d: &Device,
+    start: Instant,
+    independent: Option<&IntegerRealizer>,
+    continuation: Option<&ContinuationLearningWeights>,
+    reference: Option<&ReferencePlan>,
+) -> Result<(BTreeMap<String, Tensor>, Value)> {
     if continuation.is_some() && independent.is_some() {
         return Err(bad(
             "joint native parity requires the bound current full generator",
@@ -1537,23 +2231,37 @@ fn batch_live(
         let mut plan = None;
         let mut ep_loss = 0.;
         for (t, &target) in e.target.iter().enumerate() {
+            if let Some(plan) = reference {
+                let row = plan
+                    .rows
+                    .get(index)
+                    .ok_or_else(|| bad("reference episode absent"))?;
+                if !*row
+                    .eligible
+                    .get(t)
+                    .ok_or_else(|| bad("reference position absent"))?
+                {
+                    continue;
+                }
+            }
             deadline(a, start)?;
+            let actual_prefix = supervised_prefix(&e.target, t)?;
             let out = if e.has_source() {
                 learner.forward_bank(
                     &e.segments()?,
                     &e.packet.query_ids,
-                    &e.target[..t],
+                    actual_prefix,
                     &cue,
                     &prefix,
                 )?
             } else if continuation.is_some() {
                 learner.forward_no_source_with_query(
-                    &e.causal_no_source(&e.target[..t])?,
+                    &e.causal_no_source(actual_prefix)?,
                     &e.packet.query_ids,
-                    &e.target[..t],
+                    actual_prefix,
                 )?
             } else {
-                learner.forward_no_source(&e.causal_no_source(&e.target[..t])?)?
+                learner.forward_no_source(&e.causal_no_source(actual_prefix)?)?
             };
             let union = out.copy_token_ids.iter().copied().collect::<BTreeSet<_>>();
             if union != expected_union {
@@ -1566,7 +2274,7 @@ fn batch_live(
                     Some(&bs.native),
                     &mut pool,
                     e,
-                    &e.target[..t],
+                    actual_prefix,
                     &l.cue,
                     &l.prefix,
                     None,
@@ -1641,8 +2349,17 @@ fn batch_live(
                 )?);
             }
             let plan = plan.as_ref().ok_or_else(|| bad("loss phases absent"))?;
-            let weight = plan.weights[t];
             let phase = plan.phases[t];
+            let weight = if let Some(reference) = reference {
+                let row = &reference.rows[index];
+                replay_require(
+                    row.id == e.packet.id && row.targets[t] == target && row.phases[t] == phase,
+                    "reference target/phase differs at live forward",
+                )?;
+                row.weights[t]
+            } else {
+                plan.weights[t]
+            };
             let mass = out
                 .actions
                 .token_masses
@@ -1690,9 +2407,7 @@ fn batch_live(
             "phase_counts":plan.map(|p|p.counts)}),
         );
     }
-    Ok((
-        sums,
-        json!({"indices":indices,"rows":rows,"positions":positions,"weighted_native_loss":total,
+    let mut receipt = json!({"indices":indices,"rows":rows,"positions":positions,"weighted_native_loss":total,
         "phase_positions":phase_positions,"phase_losses":phase_losses,
         "independent_native_parity":independent.is_some(),
         "matched_forward_loss_bit_equal":independent.is_some(),
@@ -1700,8 +2415,13 @@ fn batch_live(
         "joint_continuation":continuation.is_some(),"prototype_excluded_from_gradient_accumulation_and_clip":continuation.is_some(),
         "current_source_binding":current.execution_binding()?,
         "current_generate_sha256":sha256_bytes(&gs.native.to_bytes()?),
-        "current_continuation_sha256":field.as_ref().map(|f| f.native.to_bytes().map(|b| sha256_bytes(&b))).transpose()?}),
-    ))
+        "current_continuation_sha256":field.as_ref().map(|f| f.native.to_bytes().map(|b| sha256_bytes(&b))).transpose()?});
+    if reference.is_some() {
+        receipt["reference_weighting"]=json!("externally normalized fixed episode/eligible-phase/eligible-position weights; no batch divisor");
+        receipt["actual_teacher_prefix_policy"] =
+            json!("e.target[..t], including preceding positions excluded from replay");
+    }
+    Ok((sums, receipt))
 }
 fn save_masters(root: &Path, vars: &BTreeMap<String, Var>) -> Result<Value> {
     fs::create_dir(root)?;
@@ -3802,6 +4522,16 @@ fn continuation_evaluate(
     eps: &[Episode],
     start: Instant,
 ) -> Result<Value> {
+    continuation_evaluate_rows(a, name, p, field, &eps.iter().collect::<Vec<_>>(), start)
+}
+fn continuation_evaluate_rows(
+    a: &Args,
+    name: &str,
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[&Episode],
+    start: Instant,
+) -> Result<Value> {
     let bytes = field.to_bytes()?;
     let field_sha = sha256_bytes(&bytes);
     let mut generator = p.generator()?.with_continuation_field(BoundNativeBytes {
@@ -4025,6 +4755,9 @@ fn joint_checkpoint(
     receipt["learning_rates_sha256"] = json!(sha256_bytes(&serde_json::to_vec(
         joint_continuation_settings(a)?.ok_or_else(|| bad("joint config absent"))?,
     )?));
+    if a.reference_replay.is_some() {
+        receipt["reference_replay"] = reference_binding(a)?;
+    }
     receipt["credit_scope"] = json!("Context/Potential + Generate unary/pair/bias + v2 U; local conditional full120 Context utility and factual selector credit; frozen prototype choices and categorical map; RawIdentity surrogate, not a hard-runtime derivative");
     fs::write(
         root.join("continuation-source/metadata.json"),
@@ -4185,6 +4918,7 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         return Err(bad("joint requires complete512 construction panel"));
     }
     pairs(&eps)?;
+    let reference = load_reference_plan(a, &parent, &eps)?;
     let weights = ContinuationLearningWeights::zeroed_shared_action(
         l.integer.binding(),
         &parent.binding,
@@ -4223,6 +4957,11 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         "device_scope":"CUDA learning graphs and backward; native reference preparation, alias reduction, exports and evaluation on host; not fully device resident",
         "data_scope":"train and open development are the same exposed512; no held-out/chat qualification"}),
     )?;
+    if reference.is_some() {
+        let mut admission = read(&a.out.join("admission.json"))?;
+        admission["reference_replay"] = reference_binding(a)?;
+        write(a, "admission.json", &admission)?;
+    }
     let clock = Instant::now();
     let (initial_parent, initial_field, initial_receipt) = joint_checkpoint(a, 0, &l, &weights)?;
     let mut checkpoint_seconds = clock.elapsed().as_secs_f64();
@@ -4251,6 +4990,10 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     )?;
     let initial_metrics = metrics(a, &initial, &eps)?;
     write(a, "metrics-0000.json", &initial_metrics)?;
+    if let Some(plan) = &reference {
+        let baseline = reference_outcomes(a, plan, &initial, &initial, &eps, &schedule[..BATCH])?;
+        write(a, "reference-initial-validation.json", &baseline)?;
+    }
     let mut evaluation_seconds = clock.elapsed().as_secs_f64();
     if initial["complete"] != 8 {
         return Err(bad("joint initial parent complete-answer replay differs"));
@@ -4278,7 +5021,81 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             .map(|i| schedule[(update * BATCH + i) % schedule.len()])
             .collect::<Vec<_>>();
         let clock = Instant::now();
-        let (grads, receipt) = batch_live(a, &l, &eps, &indices, d, start, None, Some(&weights))?;
+        let master_snapshot = if reference.is_some() {
+            Some(identities(&params)?)
+        } else {
+            None
+        };
+        let (mut grads, mut receipt) =
+            batch_live(a, &l, &eps, &indices, d, start, None, Some(&weights))?;
+        if let Some(plan) = &reference {
+            let indices = (0..eps.len()).collect::<Vec<_>>();
+            let (reference_grads, reference_receipt) = batch_live_weighted(
+                a,
+                &l,
+                &eps,
+                &indices,
+                d,
+                start,
+                None,
+                Some(&weights),
+                Some(plan),
+            )?;
+            replay_require(
+                Some(identities(&params)?) == master_snapshot,
+                "parameters changed between task/reference graphs",
+            )?;
+            for key in [
+                "current_source_binding",
+                "current_generate_sha256",
+                "current_continuation_sha256",
+            ] {
+                replay_require(
+                    receipt[key] == reference_receipt[key],
+                    "task/reference native snapshots differ",
+                )?;
+            }
+            let lambda = a
+                .reference_replay
+                .as_ref()
+                .ok_or_else(|| bad("replay settings absent"))?
+                .lambda;
+            let baseline = read(&a.out.join("reference-initial-validation.json"))?;
+            for (observed, expected) in [
+                (
+                    &receipt["weighted_native_loss"],
+                    &baseline["current_batch_losses_before_after"][0],
+                ),
+                (
+                    &reference_receipt["weighted_native_loss"],
+                    &baseline["reference_losses_before_after"][0],
+                ),
+            ] {
+                let observed = observed
+                    .as_f64()
+                    .ok_or_else(|| bad("live objective absent"))?;
+                let expected = expected
+                    .as_f64()
+                    .ok_or_else(|| bad("baseline objective absent"))?;
+                replay_require((observed-expected).abs()<=1e-10*(1.+expected.abs()),
+                    "live task/reference objective differs from independently evaluated native baseline")?;
+            }
+            let combined = combine_reference_gradients(&grads, &reference_grads, lambda)?;
+            let groups = [
+                ("generate", &coefficients),
+                ("context", &context),
+                ("potential", &potential),
+                ("continuation", &u),
+            ];
+            receipt["reference_replay"] = json!({"lambda":lambda,"reference_before_update":reference_receipt,
+                "objective":"L_current_B8 + lambda*L_reference; no half-average or overlap deduplication",
+                "combined_native_loss":receipt["weighted_native_loss"].as_f64().ok_or_else(||bad("task loss absent"))?+lambda*reference_receipt["weighted_native_loss"].as_f64().ok_or_else(||bad("reference loss absent"))?,
+                "task_family_gradient_norms":reference_gradient_norms(&grads,&groups,d)?,
+                "reference_family_gradient_norms":reference_gradient_norms(&reference_grads,&groups,d)?,
+                "combined_family_gradient_norms":reference_gradient_norms(&combined,&groups,d)?,
+                "same_master_snapshot":true,"same_native_snapshot":true,"clip_and_adam_policy":"sum first; one shared clip, one Adam step per active family"});
+            grads = combined;
+        }
         if grads.contains_key("generate.prototype_choices") {
             return Err(bad("joint prototype entered active clip"));
         }
@@ -4335,6 +5152,25 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             joint_native_parity(&l, &weights, &current, &field, &eps, admission_indices, d)?;
         write(a, "final-native-parity.json", &parity)?;
         let clock = Instant::now();
+        if reference.is_some() {
+            // Evaluation only: no reference eligibility or optimization uses this eight-row list.
+            let selected = CONTROL_INDICES.iter().map(|&i| &eps[i]).collect::<Vec<_>>();
+            let early = continuation_evaluate_rows(
+                a,
+                "pilot-original8",
+                &current,
+                &field,
+                &selected,
+                start,
+            )?;
+            write(
+                a,
+                "pilot-original8-receipt.json",
+                &json!({"checkpoint_step":a.updates,
+                "checkpoint_receipt_sha256":sha256_file(&root.join("receipt.json"))?,"indices":CONTROL_INDICES,
+                "evaluation":early,"scope":"independently reloaded actual-artifact own-prefix original8, before full512; not a training gate"}),
+            )?;
+        }
         let result = continuation_evaluate(
             a,
             &format!("development-{:04}", a.updates),
@@ -4350,16 +5186,30 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     };
     let rowwise = joint_row_comparison(&initial, &final_evaluation)?;
     write(a, "complete-row-comparison.json", &rowwise)?;
-    Ok(
-        json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"joint_continuation",
+    let mut report = json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"joint_continuation",
         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"updates":a.updates,"batch":BATCH,"rates":rates,
         "credit":"raw_identity","read_state_pullback":"categorical","order_seed":a.seed,
         "initial_receipt":initial_receipt,"final_receipt":final_receipt,"final_native_parity":final_parity,
         "initial_evaluation":initial,"final_evaluation":final_evaluation,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
         "rowwise":rowwise,"updates_receipt":updates,"fit_seconds":fit_seconds,"checkpoint_seconds":checkpoint_seconds,
         "native_evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
-        "scope":"exposed512 joint Context/Potential/Generate-coefficient/U construction learning; frozen prototypes and categorical map; native independent reload and own-feedback outputs; no transfer/chat/energy qualification"}),
-    )
+        "scope":"exposed512 joint Context/Potential/Generate-coefficient/U construction learning; frozen prototypes and categorical map; native independent reload and own-feedback outputs; no transfer/chat/energy qualification"});
+    if let Some(plan) = &reference {
+        let outcomes = reference_outcomes(
+            a,
+            plan,
+            &initial,
+            &final_evaluation,
+            &eps,
+            &schedule[..BATCH],
+        )?;
+        write(a, "reference-outcomes.json", &outcomes)?;
+        report["reference_replay"] = reference_binding(a)?;
+        report["reference_outcomes"] = outcomes;
+        report["early_original8_receipt_sha256"] =
+            json!(sha256_file(&a.out.join("pilot-original8-receipt.json"))?);
+    }
+    Ok(report)
 }
 
 fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
@@ -4930,6 +5780,10 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     )
 }
 fn main() -> Result<()> {
+    let cli = std::env::args().collect::<Vec<_>>();
+    if cli.len() == 3 && cli[1] == "prepare-reference-replay" {
+        return prepare_reference_replay(Path::new(&cli[2]));
+    }
     let a = args()?;
     report_output::claim(&a.out)?;
     let start = Instant::now();
@@ -4954,6 +5808,122 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn reference_row_fixture(phases: Vec<usize>, eligible: Vec<bool>) -> ReferenceRow {
+        ReferenceRow {
+            index: 0,
+            id: "fixture".into(),
+            packet_sha256: "a".repeat(64),
+            saved_row_sha256: "b".repeat(64),
+            targets: (0..phases.len() as u32).collect(),
+            copy_ids: vec![],
+            phases,
+            eligible,
+            weight_denominators: vec![],
+            weights: vec![],
+        }
+    }
+    #[test]
+    fn reference_weights_balance_eligible_episodes_then_nonempty_phases() -> Result<()> {
+        let mut rows = vec![
+            reference_row_fixture(vec![0, 1, 1, 2], vec![true, true, false, true]),
+            reference_row_fixture(vec![0, 1, 1, 1, 2], vec![false, true, true, true, false]),
+            reference_row_fixture(vec![0, 1, 2], vec![false, false, false]),
+        ];
+        reference_weights(&mut rows)?;
+        assert_eq!(rows[0].weight_denominators, vec![6, 6, 0, 6]);
+        assert_eq!(rows[1].weight_denominators, vec![0, 6, 6, 6, 0]);
+        assert_eq!(rows[2].weights, vec![0.; 3]);
+        for row in &rows[..2] {
+            assert!((row.weights.iter().sum::<f64>() - 0.5).abs() < 1e-14);
+        }
+        assert!((rows.iter().flat_map(|r| &r.weights).sum::<f64>() - 1.).abs() < 1e-14);
+        // Eligibility stays frozen; weighting cannot turn an excluded parent error into a target.
+        assert!(!rows[0].eligible[2]);
+        assert_eq!(rows[0].weights[2], 0.);
+        assert!(
+            reference_weights(&mut [reference_row_fixture(vec![0, 1], vec![false, false])])
+                .is_err()
+        );
+        assert!(
+            reference_weights(&mut [reference_row_fixture(vec![0, 3], vec![true, true])]).is_err()
+        );
+        Ok(())
+    }
+    #[test]
+    fn sparse_reference_preserves_ineligible_tokens_in_teacher_prefix() -> Result<()> {
+        let targets = [11, 22, 33, 44];
+        let eligible = [false, true, false, true];
+        let selected = eligible
+            .iter()
+            .enumerate()
+            .filter(|(_, yes)| **yes)
+            .map(|(t, _)| supervised_prefix(&targets, t).map(|v| v.to_vec()))
+            .collect::<Result<Vec<_>>>()?;
+        assert_eq!(selected, vec![vec![11], vec![11, 22, 33]]);
+        assert!(supervised_prefix(&targets, 4).is_err());
+        Ok(())
+    }
+    #[test]
+    fn reference_gradients_add_overlap_before_one_global_clip() -> Result<()> {
+        let d = Device::Cpu;
+        let task = BTreeMap::from([("context".into(), Tensor::from_vec(vec![3f32, 0.], 2, &d)?)]);
+        let reference =
+            BTreeMap::from([("context".into(), Tensor::from_vec(vec![-3f32, 4.], 2, &d)?)]);
+        let combined = combine_reference_gradients(&task, &reference, 1.)?;
+        assert_eq!(combined["context"].to_vec1::<f32>()?, vec![0., 4.]);
+        let (denominator, norm) = clip_denominator(&combined, &d)?;
+        assert!((norm - 4.).abs() < 1e-6);
+        assert_eq!(
+            combined["context"]
+                .broadcast_div(&denominator)?
+                .to_vec1::<f32>()?,
+            vec![0., 1.]
+        );
+        let overlap = combine_reference_gradients(&task, &task, 1.)?;
+        assert_eq!(overlap["context"].to_vec1::<f32>()?, vec![6., 0.]);
+        assert!(combine_reference_gradients(&task, &reference, f64::NAN).is_err());
+        Ok(())
+    }
+    #[test]
+    fn reference_pilot_requires_one_proposal_and_declared_weight_rates_seed() -> Result<()> {
+        let base = json!({"mode":"joint_continuation","credit":"raw_identity","read_state_pullback":"categorical","seed":1001,
+            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
+            "training_inputs":"input","training_labels":"labels","development_inputs":"input","development_labels":"labels",
+            "maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":"new","updates":1,
+            "joint_continuation":{"generate_learning_rate":0.003,"context_learning_rate":0.002,"potential_learning_rate":0.003,"continuation_learning_rate":0.03},
+            "reference_replay":{"plan_root":"plan","reference_root":"donor","expected_plan_report_sha256":"a".repeat(64),"expected_plan_manifest_sha256":"b".repeat(64),"lambda":1.0}});
+        reference_replay_settings(&serde_json::from_value(base.clone())?)?;
+        for (key, value) in [
+            ("updates", json!(2)),
+            ("seed", json!(1002)),
+            ("mode", json!("fit")),
+            ("query_conditioned_read", json!(true)),
+        ] {
+            let mut changed = base.clone();
+            changed[key] = value;
+            assert!(reference_replay_settings(&serde_json::from_value(changed)?).is_err());
+        }
+        for value in [0., 0.5, 2.] {
+            let mut changed = base.clone();
+            changed["reference_replay"]["lambda"] = json!(value);
+            assert!(reference_replay_settings(&serde_json::from_value(changed)?).is_err());
+        }
+        let mut changed = base.clone();
+        changed["reference_replay"]["expected_plan_report_sha256"] = json!("wrong");
+        assert!(reference_replay_settings(&serde_json::from_value(changed)?).is_err());
+        let mut changed = base.clone();
+        changed["joint_continuation"]["context_learning_rate"] = json!(0.001);
+        assert!(reference_replay_settings(&serde_json::from_value(changed)?).is_err());
+        let mut legacy = base;
+        legacy
+            .as_object_mut()
+            .ok_or_else(|| bad("fixture object"))?
+            .remove("reference_replay");
+        legacy["updates"] = json!(64);
+        reference_replay_settings(&serde_json::from_value(legacy)?)?;
+        Ok(())
+    }
+
     #[test]
     fn legacy_saved_row_metrics_reproduce_exact_historical_schema() -> Result<()> {
         struct TemporaryRows(PathBuf);
