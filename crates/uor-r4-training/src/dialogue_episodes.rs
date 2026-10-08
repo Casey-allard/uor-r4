@@ -569,6 +569,12 @@ impl<'a> EpisodeIndex<'a> {
                 .selected_target_ids
                 .extend(self.tokens[r..e].iter().map(|&token| u32::from(token)));
             let real_input_positions = episode.len() - 1;
+            // Optional commitment-token weight (UOR_COMMITMENT_WEIGHT >= 1.0; default 1.0 = unchanged).
+            let commitment_weight: f32 = std::env::var("UOR_COMMITMENT_WEIGHT")
+                .ok()
+                .and_then(|value| value.parse::<f32>().ok())
+                .filter(|weight| *weight >= 1.0)
+                .unwrap_or(1.0);
             // Optional turn-terminal weight (UOR_TERMINAL_WEIGHT >= 1.0; default 1.0 = unchanged).
             let terminal_weight: f32 = std::env::var("UOR_TERMINAL_WEIGHT")
                 .ok()
@@ -588,8 +594,20 @@ impl<'a> EpisodeIndex<'a> {
                     // unchanged unless a run asks for the change.
                     let supervised = position + 1 >= prefix_positions;
                     let terminal = position + 1 == real_input_positions;
+                    // The FIRST supervised position of a response is its commitment token: the token
+                    // that decides whether the reply takes the demanded form at all. It can be
+                    // weighted separately by UOR_COMMITMENT_WEIGHT (default 1.0). Measured need: on the
+                    // binding probe the failure sits at the answer's first token, where the mixture's
+                    // response-slot prior outcompetes the context value.
+                    let commitment = position + 1 == prefix_positions;
                     let weight = if supervised {
-                        if terminal { terminal_weight } else { 1.0 }
+                        if commitment {
+                            commitment_weight
+                        } else if terminal {
+                            terminal_weight
+                        } else {
+                            1.0
+                        }
                     } else {
                         0.0
                     };
