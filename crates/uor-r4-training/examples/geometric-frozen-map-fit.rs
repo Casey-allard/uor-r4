@@ -2783,6 +2783,10 @@ fn entry_ceiling_panel(
             // The boundary state itself, so a readout can be fitted against it
             // offline without any model: does the read encode what was asked?
             "retained_state_codes":native["retained_state_codes"].clone(),
+            // What the read selected, which the state does not expose: if the
+            // selection is question-determined and content-invariant, it is the
+            // channel the state is missing.
+            "source_provenance":native["source_provenance"].clone(),
             "full_summary":full.summary,"generate_only_summary":generate_only.summary}),
         );
     }
