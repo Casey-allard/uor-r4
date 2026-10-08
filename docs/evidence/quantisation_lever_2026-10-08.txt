@@ -1,0 +1,57 @@
+UOR-R4 — The quantisation lever is the weight matrices, and a better quantiser is already implemented
+Date: 2026-10-08 (overnight round 21). DeepSeek session. References #820.
+
+WHAT THE ATTRIBUTION GROUPS ACTUALLY ARE
+  Round 20 measured 97 % of the quantisation loss in the `mixer_maps` group. Reading the source
+  (`crates/uor-r4-training/examples/geometric-stack.rs:3374`) shows that group is precisely the
+  recurrence and read path weight matrices:
+
+    mixer_maps     rec_norm.weight, rec.in.weight, rec.gate.weight, rec.out.weight,
+                   read_norm.weight, read.query.weight, read.key.weight,
+                   read.value.weight, read.null.weight, read.out.weight
+    mixer_scalars  rec.conv.weight/bias, rec.gate.bias, rec.decay, read.null.bias,
+                   read.age, read.log_beta, read.offset
+    mlp            mlp_norm.weight, mlp.gate.weight, mlp.up.weight, mlp.down.weight
+
+  They are ordinary dense learned matrices, not algebraic tables. So the finding is not
+  "geometric structure is being rounded away" - it is that the loss sits where the parameters sit,
+  in the linear maps of the recurrence and the read path. The scalars, which number in the dozens
+  per layer, cost 2.7 % of the loss; the maps, which hold essentially all the parameters, cost 97 %.
+
+WHY THAT MAKES THE ROUND-19 RESULT EXPECTED
+  Round 19 found that quadrupling calibration windows and tightening damping made the artifact
+  slightly worse. That is what a weight-matrix quantisation problem looks like: calibration and
+  damping choose the grid, and no choice of grid changes how much of a matrix one cell can carry.
+  A method that uses error feedback can, because it accounts for what each rounded weight does to
+  the layer's output rather than rounding each weight independently.
+
+THE LEVER IS ALREADY IN THE TREE
+  `export_mode` carries a second quantiser: `crates/uor-r4-training/examples/geometric-stack.rs:2956`
+  reports `"method": "gptq"` alongside the round-to-nearest path used for every artifact measured
+  this session. The project has already run it once, on the earlier `d11-l2` artifact, where the
+  record shows `top1_agreement` 0.9379 against its float reference. The round-to-nearest artifact
+  measured here reaches 0.9244 on the same kind of comparison under `rounding-attribution`'s `all`
+  group. So the alternative quantiser measured **better agreement on the artifact where both
+  exist**, which is a concrete reason to expect it to recover part of this model's 0.01886-nat
+  quantisation loss.
+
+THE EXPERIMENT, WITH ITS PREDICTION
+  Export the same 19.9 M chat stack with the GPTQ method, evaluate with `d11-evaluate` on the same
+  held-out stream, and compare against round 19's round-to-nearest artifact (nll
+  1.8345359993679817, top-1 agreement 0.9244 against float under the attribution tool).
+    * If GPTQ serves below 1.8345359993679817, the quantisation third of the served gap is
+      recoverable by method choice and the ceiling of that recovery is the 0.01886-nat maps term.
+    * If it serves at or above it, the quantiser is not the lever on this model and the remaining
+      served gap is the transport snap alone, which round 19 measured at 0.03578 BPB.
+  Both outcomes are decisive, neither needs training, and the whole comparison is one export plus
+  one integer evaluation per arm.
+
+  A second, independent lever with the same target: `rounding-attribution`'s groups show the
+  scalars cost 0.00046 nats against the maps' 0.01685, so any fixed bit budget is better spent on
+  the maps. Coarsening the scalars to fund finer maps is a reallocation the attribution already
+  quantifies.
+
+SCOPE
+  The 0.9379 and 0.9244 agreements are from different artifacts, corpora and tools and are cited
+  as motivation, not as a controlled comparison; the controlled comparison is the experiment above,
+  which has not been run yet and for which no result is claimed here.
