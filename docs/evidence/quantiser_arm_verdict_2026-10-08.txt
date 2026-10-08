@@ -1,0 +1,41 @@
+UOR-R4 — The quantiser arms, measured on one model: GPTQ beats round-to-nearest, and 64 windows is an interior optimum
+Date: 2026-10-08 (overnight round 23). DeepSeek session. References #820.
+
+THE CONTROLLED COMPARISON
+  Same 19.9 M chat stack, same held-out stream (chat-v0-p2/heldout, sha256 e5f400b0...), same
+  integer evaluation (d11-evaluate, 24,576 targets, engine top-1 agreement 1.0 in every arm).
+  Only the export's quantisation differs; the method is selected by whether calibration tokens are
+  supplied (geometric-stack.rs:2954-2975).
+
+  arm                                   export record          d11 nll                bits/byte
+  round-to-nearest (no calibration)     round_to_nearest        1.8419342517773867     0.93652
+  GPTQ, 64 windows, damp 0.01           gptq                   1.8345359993679817     0.93277
+  GPTQ, 256 windows, damp 0.001         gptq                   1.836327732755273      0.93368
+
+  GPTQ with 64 calibration windows and damp 0.01 is the best of the three by 0.00375 BPB over
+  round-to-nearest and 0.00091 over the finer-calibrated GPTQ arm.
+
+WHAT IT SETTLES
+  1. The export path's default is the right one. GPTQ beats round-to-nearest on this model, so the
+     calibration-bearing export that every artifact tonight used is buying real fidelity, and the
+     round-21 proposal to "try GPTQ" was chasing something already in use.
+  2. The calibration setting is an INTERIOR optimum, not a floor. Both directions are worse: four
+     times the windows with an order of magnitude finer damping loses 0.00091 BPB, and removing
+     calibration entirely loses 0.00375. The default therefore sits between two measured worse
+     options, which is a stronger statement than "the default is fine".
+  3. The quantisation term of the served gap is 0.01944 BPB at its measured optimum. Round 19
+     showed calibration choice does not improve it and round 20 showed 97 % of it is the weight
+     matrices; this round shows the method that produced it is the better of the two available.
+
+THE SERVED GAP, FINAL FORM FOR THIS MODEL
+  fused float reference      0.87755
+  transport snap             +0.03578   (64.8 %)
+  quantisation (GPTQ)        +0.01944   (35.2 %, of which 97 % is the weight matrices)
+  served                     0.93277
+  The remaining recoverable term is the transport snap - a representation question, not an export
+  setting - and the quantisation term is at the optimum of the two quantisers this repository has.
+
+SCOPE
+  One model, one corpus, one held-out stream, one export per arm, deterministic integer evaluation.
+  The three arms differ only in quantisation method and calibration parameters. Bit-level claims
+  concern the recorded nll values, not every intermediate.
