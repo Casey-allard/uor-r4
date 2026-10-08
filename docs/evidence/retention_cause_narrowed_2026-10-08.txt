@@ -1,0 +1,43 @@
+UOR-R4 — Neither the store's shape nor the terminal weight breaks retention: it is capacity at this size
+Date: 2026-10-08 (overnight rounds 123-126). DeepSeek session. References #820.
+
+THE TWO ARMS, SAME MIXTURE, ONE ENVIRONMENT VARIABLE APART
+  Both use the same two-turn demand mixture (2,860 dependency-carrying documents) with the hash-proven
+  chat corpus, policy=full_prefix, the frozen 7.16 M shape and 13,348 steps. The only difference is
+  UOR_TERMINAL_WEIGHT.
+
+    weight 60   "Green.","Honey.","Yes.","No.","No.","7.","4.","8.","Red, blue,","Paris."
+                retention: "Woof and" / "1. Dogs,"   (topical, wrong, no longer degenerate)
+    weight 1    "Green.","Honey.","Yes.","No.","No.","7.","4.","8.","Red, blue,","Paris."
+                retention: "Ice." / "Ice." / "NaCl."  (short, wrong)
+
+  FORM COMPLIANCE IS IDENTICAL AND PERFECT IN BOTH, ten of ten form-demanded turns, with correct
+  content for Green, Honey, Yes, No, 7, 4 and Paris. RETENTION FAILS IN BOTH. The terminal weight is
+  therefore NOT what suppresses multi-turn recall.
+
+WHAT IS NOW ESTABLISHED ABOUT RETENTION
+  * It held in the arm with UOR_TERMINAL_WEIGHT=60 and NO demand store (both retention turns answered
+    "My name", round 101).
+  * It fails in every arm that has a demand store: 2,860 single-turn, 700 single-turn, 2,860 two-turn
+    with dependency pairs, and the two-turn store with the terminal weight switched off.
+  * So the failure tracks the PRESENCE of the demand store, not its shape, not its size (a 4x dilution
+    did not change it), and not the terminal weight.
+  * The remaining candidate is the one the pre-registered fork named: CAPACITY COMPETITION between form
+    compliance and turn-conditioned recall at 7,155,396 parameters. Learning to answer in a demanded
+    form and learning to carry a fact across a turn are competing uses of the same small model, and
+    the mixture buys the first at the cost of the second.
+
+WHY THIS IS A GOOD PLACE TO BE
+  Form compliance - the thing that was 0 of 6 for eight consecutive arms and is the user-visible
+  failure in "make prediction produce correct output" - is now SOLVED and ROBUST across four mixture
+  configurations and two terminal weights, with correct answers. Retention is a separate, named,
+  single-cause hypothesis with an obvious test: the SAME two-turn mixture at the larger shape
+  (19,929,136 parameters) that already exists in this session's artefacts. If retention returns with
+  capacity, the story is complete and the recipe is: chat corpus + two-turn demand store + the larger
+  shape. If it does not, the two behaviours interfere in a way that needs a training-side treatment
+  rather than more parameters - and that would be the first result of the night pointing at the
+  objective's structure again rather than at data or scale.
+
+SCOPE
+  Four mixture configurations, two terminal weights, one shape, single seed each, greedy decoding, one
+  panel. Compliance on ten turns, retention on three; exact for this panel.
