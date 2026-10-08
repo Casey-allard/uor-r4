@@ -76,6 +76,8 @@ mod native_proposals;
 mod output_support;
 #[path = "geometric_frozen_map_fit/prefix_context_credit.rs"]
 mod prefix_context_credit;
+#[path = "geometric_frozen_map_fit/prefix_fragment_learning.rs"]
+mod prefix_fragment_learning;
 #[path = "geometric_frozen_map_fit/prototype_compensation.rs"]
 mod prototype_compensation;
 #[path = "geometric_frozen_map_fit/reached_u.rs"]
@@ -158,6 +160,14 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    prefix_fragment_learning::validate_artifact_settings(a)?;
+    if a.prefix_artifact_check.is_some() {
+        return Ok(());
+    }
+    prefix_fragment_learning::validate_settings(a)?;
+    if a.prefix_fragment_learning.is_some() {
+        return Ok(());
+    }
     context_cue_coadapt::validate_settings(a)?;
     if a.context_cue_coadapt.is_some() {
         return Ok(());
@@ -518,6 +528,10 @@ struct Args {
     context_path_credit: Option<context_path_credit::Config>,
     #[serde(default)]
     context_cue_coadapt: Option<context_cue_coadapt::Config>,
+    #[serde(default)]
+    prefix_fragment_learning: Option<prefix_fragment_learning::Config>,
+    #[serde(default)]
+    prefix_artifact_check: Option<prefix_fragment_learning::ArtifactConfig>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -794,6 +808,16 @@ fn args() -> Result<(Args, Vec<u8>)> {
             .iter()
             .filter_map(|c| c.recorded_finite_contrast.as_ref())
             .flat_map(|c| [&c.retained_path_root, &c.retained_probe_root]),
+    )
+    .chain(
+        a.prefix_artifact_check
+            .iter()
+            .flat_map(|c| [&c.retained_candidate_root, &c.retained_intermediate_root]),
+    )
+    .chain(
+        a.prefix_fragment_learning
+            .iter()
+            .flat_map(|c| [&c.retained_intermediate_root, &c.retained_probe_root]),
     )
     .chain(a.context_cue_coadapt.iter().flat_map(|c| {
         [
@@ -4830,6 +4854,17 @@ fn continuation_evaluate_rows(
     eps: &[&Episode],
     start: Instant,
 ) -> Result<Value> {
+    continuation_evaluate_rows_impl(a, name, p, field, eps, start, true)
+}
+fn continuation_evaluate_rows_impl(
+    a: &Args,
+    name: &str,
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[&Episode],
+    start: Instant,
+    include_canonical: bool,
+) -> Result<Value> {
     let bytes = field.to_bytes()?;
     let field_sha = sha256_bytes(&bytes);
     let mut generator = p.generator()?.with_continuation_field(BoundNativeBytes {
@@ -4845,28 +4880,30 @@ fn continuation_evaluate_rows(
         let bank = generator.admit_bank(continuation_snapshot(&e.packet)?)?;
         let mut canonical = Vec::new();
         let mut rowce = 0.;
-        for (t, &target) in e.target.iter().enumerate() {
-            deadline(a, start)?;
-            let step = generator.step(&bank, &e.target[..t])?;
-            let total = step.actions.summary.total_weight_q31;
-            let mass = step
-                .actions
-                .token_masses
-                .iter()
-                .find(|m| m.token_id == target)
-                .ok_or_else(|| bad("continuation full-pool target support missing"))?
-                .weight_q31;
-            if total == 0 || mass == 0 {
-                return Err(bad("continuation positive native support violated"));
-            }
-            let loss = -(mass as f64 / total as f64).ln();
-            rowce += loss;
-            tokens += 1;
-            canonical.push(json!({"target_label_only":target,"native_ce":loss,"native_target_mass":mass,
+        if include_canonical {
+            for (t, &target) in e.target.iter().enumerate() {
+                deadline(a, start)?;
+                let step = generator.step(&bank, &e.target[..t])?;
+                let total = step.actions.summary.total_weight_q31;
+                let mass = step
+                    .actions
+                    .token_masses
+                    .iter()
+                    .find(|m| m.token_id == target)
+                    .ok_or_else(|| bad("continuation full-pool target support missing"))?
+                    .weight_q31;
+                if total == 0 || mass == 0 {
+                    return Err(bad("continuation positive native support violated"));
+                }
+                let loss = -(mass as f64 / total as f64).ln();
+                rowce += loss;
+                tokens += 1;
+                canonical.push(json!({"target_label_only":target,"native_ce":loss,"native_target_mass":mass,
                 "native_denominator":total,"native":{"pool":{"summary":step.actions.summary},
                     "copy_token_ids":step.copy_token_ids,"post_state_codes":step.post_state.iter().map(|v|v.index()).collect::<Vec<_>>(),
                     "generate_raw_scores_sha256":sha256_bytes(&serde_json::to_vec(&step.generate_raw_scores_q24)?),
                     "continuation":continuation_witness(&step)?}}));
+            }
         }
         // No target, accepted answer or cache is passed to own-feedback serving.
         let generated = generator.generate(
@@ -4891,16 +4928,16 @@ fn continuation_evaluate_rows(
         write(
             a,
             &filename,
-            &json!({"id":e.packet.id,"canonical_target_ids_labels_only":e.target,"canonical":canonical,
+            &json!({"id":e.packet.id,"canonical_target_ids_labels_only":e.target,"canonical":if include_canonical {json!(canonical)} else {json!("NOT_RUN")},
             "generation":generation,"generated_ids":generated.generated_ids,"decoded":text,"eos":eos,"complete":accepted,
-            "native_equal_episode_ce":rowce/e.target.len()as f64,"continuation_sha256":field_sha}),
+            "native_equal_episode_ce":if include_canonical {json!(rowce/e.target.len()as f64)} else {Value::Null},"continuation_sha256":field_sha}),
         )?;
-        rows.push(json!({"id":e.packet.id,"native_equal_episode_ce":rowce/e.target.len()as f64,"complete":accepted,
+        rows.push(json!({"id":e.packet.id,"native_equal_episode_ce":if include_canonical {json!(rowce/e.target.len()as f64)} else {Value::Null},"complete":accepted,
             "eos":eos,"generated_ids":generated.generated_ids,"row_file":filename,"row_sha256":sha256_file(&a.out.join(&filename))?}));
     }
-    let result = json!({"cases":eps.len(),"target_positions":tokens,"complete":complete,"native_equal_episode_ce":ce/eps.len()as f64,
+    let result = json!({"cases":eps.len(),"target_positions":tokens,"complete":complete,"native_equal_episode_ce":if include_canonical {json!(ce/eps.len()as f64)} else {Value::Null},
         "rows":rows,"continuation_sha256":field_sha,"runtime":"production native integer generator; full Copy/Generate common pool; own emitted feedback",
-        "scope":"retained exposed512 construction panel; teacher-prefix metrics separate from complete own-prefix answers; no transfer/chat qualification"});
+        "scope":if include_canonical {"retained exposed512 construction panel; teacher-prefix metrics separate from complete own-prefix answers; no transfer/chat qualification"} else {"selected exposed-panel actual ownprefix rows; canonical metrics NOT_RUN; no fullpanel/transfer/chat qualification"}});
     write(a, &format!("{name}.json"), &result)?;
     Ok(result)
 }
@@ -5246,6 +5283,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.prefix_fragment_learning.is_some() {
+        return prefix_fragment_learning::run(a, start, d);
+    }
     if a.context_cue_coadapt.is_some() {
         return context_cue_coadapt::run(a, start, d);
     }
@@ -6216,6 +6256,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
 }
 
 fn run(a: &Args, start: Instant) -> Result<Value> {
+    if a.prefix_artifact_check.is_some() {
+        return prefix_fragment_learning::run_artifact_check(a, start);
+    }
     if a.context_path_credit.is_some() {
         return context_path_credit::run(a, start);
     }
@@ -6498,6 +6541,8 @@ fn main() -> Result<()> {
     let start = Instant::now();
     let result = (|| -> Result<Value> {
         if a.context_path_credit.is_some()
+            || a.prefix_artifact_check.is_some()
+            || a.prefix_fragment_learning.is_some()
             || a.context_cue_coadapt.is_some()
             || a.prefix_context_credit.is_some()
             || a.readout_coadaptation

@@ -1,0 +1,878 @@
+{
+  "schema": "uor-r4.native-prefix-fragment-learning-evidence/1",
+  "status": "COMPLETED_MEASURED_NEGATIVE_OWNFEEDBACK_PROTECTED_DELIVERY_PENDING",
+  "card": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-6070622637",
+  "predecessor_merge": "021588c834b3ad63eb26396dfca1e4e3d1cf8232",
+  "model_source": "995d4197ad7a7260cb9168e283e28c7fd0b15e93",
+  "artifact_evaluator_source": "8173d5298c914f6c76fc358e1321b257d6257f76",
+  "source_reconciliation_head": "e3bdf095690a523550e93f589bb929a466123f99",
+  "fresh_main": "9129ed45de5c1140a29a65de4a4b23015f3d68f2",
+  "fixed_authorities": {
+    "Source": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b",
+    "Generate": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737",
+    "U": "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee",
+    "data_inputs": "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a",
+    "data_labels": "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155",
+    "original_Prefix_f32": "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3"
+  },
+  "learning_policy": {
+    "active_family": "prefix.coefficients",
+    "construction": "one frozen actual-master-delta preferred adjacent960 pass; strict current18 CE descent AND all17 original winners per accepted transaction; no refill/revisit/rerank",
+    "context_gradient": "NOT_RUN",
+    "coordinates": 960,
+    "cue_gradient": "NOT_RUN",
+    "final_gate": "strict ORIGINAL18 CE descent, exact task probability increase, all17 original winners",
+    "fragment_correction": "actual pooled target267 winner is a distinct required qualification",
+    "gradient": "one aggregate from18 backwards; only Prefix master gradients extracted/proposed; frozen Generate graph transports direct gather and detached conditional-donor contrast, not hard argmax derivative",
+    "initialization": "ORIGINAL Source9f/Cue/Prefix fractional masters/G4248/U82ae; no negative Context/Cue adoption",
+    "optimizer_updates": 0,
+    "schema": "uor-r4.prefix-fragment-learning/1",
+    "serving_changes": false,
+    "strict_ce_tolerance": "1e-10*(1+abs(current_or_original_CE))"
+  },
+  "gradient_scope": "Only Prefix gradients extracted/proposed; backward through frozen Generate graph may compute its gradients. No Context/Cue/U gradient or optimizer update; no hard-argmax derivative claim.",
+  "construction": {
+    "report": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/runs/prefix-0001-attempt1/report.json",
+      "bytes": 77739,
+      "sha256": "71301b77d9d4606dda1501385e43f8e114c4e72af9a502b799f363b604b14cfe"
+    },
+    "manifest": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/runs/prefix-0001-attempt1/manifest.json",
+      "bytes": 16645,
+      "sha256": "12c1412d049724e6dd7ba1e1cd8fc0383be65f7a3c9f43251a206fc23ba76d32"
+    },
+    "actual_full_Rust_verification": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 0.5133886374533176,
+      "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+      "report_sha256": "71301b77d9d4606dda1501385e43f8e114c4e72af9a502b799f363b604b14cfe",
+      "report_manifest_sha256": "12c1412d049724e6dd7ba1e1cd8fc0383be65f7a3c9f43251a206fc23ba76d32",
+      "completed_utc": "2026-10-08T23:07:31.176703+00:00"
+    },
+    "config": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/configs/prefix-0001-attempt1.json",
+      "bytes": 2466,
+      "sha256": "77572e4687e4cdd312ed4ed153706120a96b0032ddf806d3df847a68556d5395"
+    },
+    "execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-08T23:05:10.099825+00:00",
+      "ended_utc": "2026-10-08T23:05:50.243336+00:00",
+      "elapsed_seconds": 40.14353656023741,
+      "children_max_rss_kib": 1540696,
+      "binary_sha256": "a975132ff8756119ecee196c2d750976a845451c9483fa6d3b3d6c103fa6e1a6",
+      "config_sha256": "77572e4687e4cdd312ed4ed153706120a96b0032ddf806d3df847a68556d5395"
+    },
+    "gradient_terms": 18,
+    "aggregate_gradients": 1,
+    "ranked_coordinates": 960,
+    "accepted": 427,
+    "rejected": 36,
+    "zero_gradient": 497,
+    "baseline_combined": 4.391651926613631,
+    "candidate_combined": 2.078473462126631,
+    "final_gate": {
+      "all17_original_winners_retained": true,
+      "baseline_combined": 4.391651926613631,
+      "candidate_combined": 2.078473462126631,
+      "exact_original_task_probability_improved": true,
+      "finite_joint_positive": true,
+      "strict_original_ce_descent": true
+    },
+    "actual_fragment_corrected": true,
+    "task_baseline_mass_denominator": [
+      298710449,
+      16027151659
+    ],
+    "task_candidate_mass_denominator": [
+      2149471010,
+      15482438819
+    ],
+    "candidate_Prefix_Q4": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/runs/prefix-0001-attempt1/checkpoint-0001/prefix/prefix-q4.bin",
+      "bytes": 480,
+      "sha256": "a6ea6299cec8b5739b2e20002488989f932392054ec28c24dde5057eb2de2b86"
+    },
+    "candidate_Prefix_f32": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/runs/prefix-0001-attempt1/checkpoint-0001/prefix/prefix-source-f32.bin",
+      "bytes": 3840,
+      "sha256": "900f1e23d31369fc0a7f78d6db23cf7777f95226b06ae4ebce6685111075ad36"
+    },
+    "parent_master_bits_restored": "producer receipt and focused error-path test; no independent in-RAM observation"
+  },
+  "independent_saved_audit": {
+    "reader": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/audit-readers/independent-reader.py",
+      "bytes": 21747,
+      "sha256": "e104064ebb4118406e384ae02a484d27216163d907186f922c4935bde0938e31"
+    },
+    "packet": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/audit-readers/source-packet.json",
+      "bytes": 1827,
+      "sha256": "46895f3503477de29bdfe129389185b7be1586f006d9b693ad4bc9fa47aa9fef"
+    },
+    "result": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/audits/attempt2/independent-audit.json",
+      "bytes": 1879,
+      "sha256": "910ea2488ab0c2457dc75427343ffb00964b0d340ce5998ccf32ef879282cc45"
+    },
+    "manifest": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/audits/attempt2/manifest.json",
+      "bytes": 771,
+      "sha256": "3d741e37891461f6f93da5892565b7539370975b8a56e5d35d5195af1f6d7813"
+    },
+    "execution": {
+      "status": "PASS",
+      "steps": [
+        {
+          "kind": "current_actual_report_complete_file_verification",
+          "receipt": {
+            "status": "PASS",
+            "exit_code": 0,
+            "seconds": 0.5133886374533176,
+            "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+            "report_sha256": "71301b77d9d4606dda1501385e43f8e114c4e72af9a502b799f363b604b14cfe",
+            "report_manifest_sha256": "12c1412d049724e6dd7ba1e1cd8fc0383be65f7a3c9f43251a206fc23ba76d32",
+            "completed_utc": "2026-10-08T23:07:31.176703+00:00"
+          }
+        },
+        {
+          "kind": "immutable_prior_inputs_full_verification_reused",
+          "verified_prior_audit_manifest_sha256": "9e9dcf34bdcaa49b1da00ee20b28735c08dd38c76e6f750ff1b15858a2f7e395",
+          "receipt": {
+            "status": "PASS",
+            "steps": [
+              {
+                "kind": "reused_complete_file_verifications",
+                "attempt_manifest_sha256": "284263f6194483db044f1b603332d40324d2278bfe5de33ad356101e9d591fb5",
+                "prior_checks": [
+                  {
+                    "kind": "new_finite_candidate",
+                    "exit_code": 0,
+                    "elapsed_seconds": 0.7601408287882805,
+                    "stdout": "",
+                    "stderr": ""
+                  },
+                  {
+                    "kind": "selected_parent",
+                    "exit_code": 0,
+                    "elapsed_seconds": 10.197921995073557,
+                    "stdout": "",
+                    "stderr": ""
+                  },
+                  {
+                    "kind": "baseline18",
+                    "exit_code": 0,
+                    "elapsed_seconds": 1.329401146620512,
+                    "stdout": "",
+                    "stderr": ""
+                  },
+                  {
+                    "kind": "original_capture18",
+                    "exit_code": 0,
+                    "elapsed_seconds": 0.26408836618065834,
+                    "stdout": "",
+                    "stderr": ""
+                  },
+                  {
+                    "kind": "complete_context_path",
+                    "exit_code": 0,
+                    "elapsed_seconds": 0.10479336231946945,
+                    "stdout": "",
+                    "stderr": ""
+                  }
+                ],
+                "scope": "All five unchanged immutable producer/input roots verified in preserved failed-reader attempt1; no model/artifact mutation since."
+              },
+              {
+                "kind": "independent_reader",
+                "exit_code": 0,
+                "elapsed_seconds": 16.722685262560844,
+                "max_rss_kib": 352908
+              }
+            ],
+            "elapsed_seconds": 16.831695079803467,
+            "reader_sha256": "ca6e1f3fa15c42a508734b543c54b94d7d1d5be2bec774047389c955487edc16",
+            "completed_utc": "2026-10-08T20:52:36.412787+00:00",
+            "scope": "saved evidence arithmetic; no independent encoder/backward/autoregressive computation"
+          },
+          "scope": "Unchanged originalparent andbaseline18 reports; cachedpriorreceipt also containsfiniteContextchecks notconsumedbynewreader; reader pins their report+manifest hashes; no encoder rerun."
+        },
+        {
+          "kind": "independent_reader",
+          "exit_code": 0,
+          "elapsed_seconds": 29.853937186300755,
+          "max_rss_kib": 217212
+        }
+      ],
+      "elapsed_seconds": 29.96381837874651,
+      "reader_sha256": "e104064ebb4118406e384ae02a484d27216163d907186f922c4935bde0938e31",
+      "completed_utc": "2026-10-08T23:19:12.044770+00:00",
+      "scope": "saved arithmetic only; no encoder/backward/autoregressive compute"
+    },
+    "scope": "Saved integer algebra, raw gradient inventories/ordered f32 sum, actual960 rank, alltransactions, physical aliases/donor G/U/fullpool and export/reload. No model/encoder/backward or autoregressive repetition.",
+    "setup_failure": {
+      "root": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/audits/attempt1",
+      "before_arithmetic": true,
+      "reader_seconds": 0.49712544307112694,
+      "reason": "Original launch pathname vs byte-identical immutable copy; repaired via launch argv/pid/SHA/config/startUTC binding; failed attempt retained/sealed/verified, not model negative."
+    }
+  },
+  "actual_ownfeedback": {
+    "report": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/qualifications/ownfeedback-0001-attempt1/report.json",
+      "bytes": 7222,
+      "sha256": "d120dd6948e440abadf66ac47c0e5e01f3a90069d5691f49159fa7100bae89c9"
+    },
+    "manifest": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/qualifications/ownfeedback-0001-attempt1/manifest.json",
+      "bytes": 2768,
+      "sha256": "3ddfc9d701b38da86d933ba2e50459940d6b7a2e7f11d0c09305d360fd6a5f15"
+    },
+    "actual_full_Rust_verification": {
+      "status": "PASS",
+      "exit_code": 0,
+      "seconds": 0.13746162503957748,
+      "report_sha256": "d120dd6948e440abadf66ac47c0e5e01f3a90069d5691f49159fa7100bae89c9",
+      "report_manifest_sha256": "3ddfc9d701b38da86d933ba2e50459940d6b7a2e7f11d0c09305d360fd6a5f15",
+      "completed_utc": "2026-10-08T23:28:36.684531+00:00"
+    },
+    "config": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/configs/ownfeedback-0001-attempt1.json",
+      "bytes": 2494,
+      "sha256": "5e803a94049424fa933b97940500b09c104b1da3ffa8280d2f40d718a7865c15"
+    },
+    "execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-08T23:25:02.884734+00:00",
+      "ended_utc": "2026-10-08T23:25:22.969778+00:00",
+      "elapsed_seconds": 20.085065331310034,
+      "children_max_rss_kib": 404500,
+      "binary_sha256": "f2d7b516cdb31a2e7e53ec1325ef45542cc03de9bba161761d8f7bfd644f706f",
+      "config_sha256": "5e803a94049424fa933b97940500b09c104b1da3ffa8280d2f40d718a7865c15"
+    },
+    "original_indices": [
+      0,
+      1,
+      4,
+      5,
+      8,
+      9,
+      12,
+      13
+    ],
+    "task_index": 245,
+    "rows": [
+      {
+        "complete": true,
+        "eos": true,
+        "generated_ids": [
+          2997,
+          1541,
+          435,
+          261,
+          92,
+          607,
+          770,
+          397,
+          471,
+          16,
+          1
+        ],
+        "id": "development-diverse-length2-00-swap0-q0-forward-job",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0000.json",
+        "row_sha256": "3cd60aca5c204be5ec487ab2a32be021580513eb4547f35924da03d0e9aab1d6"
+      },
+      {
+        "complete": true,
+        "eos": true,
+        "generated_ids": [
+          617,
+          2097,
+          315,
+          683,
+          3123,
+          2211,
+          1202,
+          520,
+          16,
+          1
+        ],
+        "id": "development-diverse-length2-00-swap0-q0-forward-home",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0001.json",
+        "row_sha256": "9f8aac3f9b6e41e781259418c3f7e06e4bf60e398233865de70cf536987e76e8"
+      },
+      {
+        "complete": true,
+        "eos": true,
+        "generated_ids": [
+          2997,
+          1541,
+          435,
+          261,
+          92,
+          607,
+          770,
+          397,
+          471,
+          16,
+          1
+        ],
+        "id": "development-diverse-length2-00-swap0-q3-forward-job",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0002.json",
+        "row_sha256": "6ff14356aad4431becde39c32e7960cfc13085f2aed0d1fd72277cb8adb7f5a5"
+      },
+      {
+        "complete": true,
+        "eos": true,
+        "generated_ids": [
+          617,
+          2097,
+          315,
+          683,
+          3123,
+          2211,
+          1202,
+          520,
+          16,
+          1
+        ],
+        "id": "development-diverse-length2-00-swap0-q3-forward-home",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0003.json",
+        "row_sha256": "6970556e9207483d3f487d21ad5b08d853573d1593bb49d0df898a4e582b0ff3"
+      },
+      {
+        "complete": true,
+        "eos": true,
+        "generated_ids": [
+          2997,
+          1541,
+          435,
+          683,
+          3123,
+          2211,
+          1202,
+          520,
+          16,
+          1
+        ],
+        "id": "development-diverse-length2-00-swap1-q0-forward-job",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0004.json",
+        "row_sha256": "645f62299156417a8bbf66a3087ef1194c15842b2b163cbcd64cb350743fcbee"
+      },
+      {
+        "complete": true,
+        "eos": true,
+        "generated_ids": [
+          617,
+          2097,
+          315,
+          261,
+          92,
+          607,
+          770,
+          397,
+          471,
+          16,
+          1
+        ],
+        "id": "development-diverse-length2-00-swap1-q0-forward-home",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0005.json",
+        "row_sha256": "eb859c3a93cacd6701a7163e765691fb8a3f59d8e413366d7bd74eb51ac15d28"
+      },
+      {
+        "complete": true,
+        "eos": true,
+        "generated_ids": [
+          2997,
+          1541,
+          435,
+          683,
+          3123,
+          2211,
+          1202,
+          520,
+          16,
+          1
+        ],
+        "id": "development-diverse-length2-00-swap1-q3-forward-job",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0006.json",
+        "row_sha256": "1a41bd4d816823ce079c84967f3109df186de4d93a3eb9fb0b5ec76115703514"
+      },
+      {
+        "complete": false,
+        "eos": false,
+        "generated_ids": [
+          617,
+          2097,
+          315,
+          261,
+          92,
+          607,
+          770,
+          3123,
+          3123,
+          397,
+          471,
+          397,
+          471,
+          3645,
+          607,
+          397,
+          471,
+          2345,
+          607,
+          397,
+          471,
+          3896,
+          3123,
+          397,
+          471,
+          1202,
+          520,
+          3973,
+          397,
+          471,
+          770,
+          397
+        ],
+        "id": "development-diverse-length2-00-swap1-q3-forward-home",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0007.json",
+        "row_sha256": "5fe4db76aad872f6d03d9b8bf0561876b5412ab3f03fd2cf2a3701ae85ac02c0"
+      },
+      {
+        "complete": false,
+        "eos": false,
+        "generated_ids": [
+          617,
+          2097,
+          1717,
+          91,
+          91,
+          471,
+          267,
+          471,
+          267,
+          267,
+          267,
+          267,
+          267,
+          307,
+          2795,
+          397,
+          471,
+          2795,
+          471,
+          471,
+          267,
+          2394,
+          267,
+          397,
+          1717,
+          1057,
+          820,
+          397,
+          91,
+          2795,
+          307,
+          770
+        ],
+        "id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "native_equal_episode_ce": null,
+        "row_file": "cheap-ownprefix-row-0008.json",
+        "row_sha256": "95566bda9ca1e106a60e8f5f27a20ff05af65469edf4423dee05ccd16b299e42"
+      }
+    ],
+    "steps": 137,
+    "original_complete_EOS_retained": 7,
+    "qualification_positive": false,
+    "canonical": "NOT_RUN",
+    "full512": "NOT_RUN",
+    "multiturn": "UNAVAILABLE_FOR_THIS_NATIVE_SOURCE_GENERATE_U_EPOCH",
+    "task245_boundary_witness": {
+      "actual_prefix_comparable": false,
+      "authority": "posthoc specific boundary witness; typed-oracle full reply acceptance does not require canonical tokenization",
+      "position4_target267": "NO_COMPARABLE_ACTUAL_PREFIX"
+    },
+    "task245_first_divergence": {
+      "position": 2,
+      "actual_prefix": [
+        617,
+        2097
+      ],
+      "parent_and_canonical": 315,
+      "candidate": 1717
+    },
+    "lost_original13_first_divergence": {
+      "position": 7,
+      "actual_prefix": [
+        617,
+        2097,
+        315,
+        261,
+        92,
+        607,
+        770
+      ],
+      "parent_and_canonical": 397,
+      "candidate": 3123
+    },
+    "no_clip_at_first_divergences": true,
+    "family_cause": "UNRESOLVED; summaries/digests omit physical donor and full Source/Cue/Prefix/G score witnesses"
+  },
+  "selected_model": false,
+  "useful_candidate": false,
+  "prior8of512": "Retains ORIGINAL parent/artifact/evaluator scope; candidate full512 NOT_RUN",
+  "reviews": {
+    "math-source-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/math-source-review.json",
+      "bytes": 4252,
+      "sha256": "ee78fba23f1049ca77af45f217b22ce4c0341592fcc8a18a9c00b73eb9dadc12"
+    },
+    "adversarial-source-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/adversarial-source-review.json",
+      "bytes": 3613,
+      "sha256": "0fb4a889063d8441023ae66974c7d3a27168574428d8dc6e39421c7abf06efa8"
+    },
+    "artifact-check-math-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/artifact-check-math-review.json",
+      "bytes": 3598,
+      "sha256": "4f0b9cbb50370e1c8f9521d02bc7526f2583d9b4d258b70d2c1ae7e9da1d08f2"
+    },
+    "artifact-check-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/artifact-check-adversarial-review.json",
+      "bytes": 2742,
+      "sha256": "2fff797a1a783d039dbfbceee4a311616a340d8e43d3e270e744c40adecd37ed"
+    },
+    "audit-reader-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/audit-reader-review.json",
+      "bytes": 3426,
+      "sha256": "cf7fec5d1ccc0044ec85ff40ac369dd1aac45d82295ac08ab6f610ba1400a707"
+    },
+    "audit-reader-relocation-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/audit-reader-relocation-review.json",
+      "bytes": 2025,
+      "sha256": "2737af67ae397b9bac533ef418753539f35d4b618a7ec14de0523eeb2d2687a5"
+    },
+    "cheap-result-math-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/cheap-result-math-review.json",
+      "bytes": 9872,
+      "sha256": "89c0af51eff81b45c1c4a1d7a2a7b8e395af9090589b46cc592697eba53b327e"
+    },
+    "cheap-result-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-fragment-learning/cheap-result-adversarial-review.json",
+      "bytes": 5454,
+      "sha256": "970b336ea47104001e046a3fc2565c43f1d5ea48aeb866f394e8e6a46bd716ee"
+    }
+  },
+  "checks": {
+    "model_source": {
+      "fmt": "PASS",
+      "example_tests": 82,
+      "tests_passed": 82,
+      "test_build_seconds": 67.99,
+      "test_execution_seconds": 0.08,
+      "CUDA_release_build_seconds": 19.095
+    },
+    "artifact_source": {
+      "fmt": "PASS",
+      "example_tests": 83,
+      "tests_passed": 83,
+      "test_build_seconds": 71.738,
+      "test_execution_seconds": 0.08,
+      "CUDA_release_build_seconds": 19.471
+    }
+  },
+  "preservation": {
+    "runtime-upload.json": {
+      "revision": "59b3f82c7c1eaf70b2cfdfbd6c2461a9c6f76323",
+      "prefix": "codex/sol-prefix-fragment-learning/runtime-995d4197ad-attempt1",
+      "all_fresh_download_verified": true,
+      "files": {
+        "SHA256-manifest.json": {
+          "sha256": "74df74cb9f802b3f4cc2c2904817aef7da193cb5b6584c208f8c39752f584651",
+          "bytes": 1938
+        },
+        "adversarial-source-review.json": {
+          "sha256": "0fb4a889063d8441023ae66974c7d3a27168574428d8dc6e39421c7abf06efa8",
+          "bytes": 3613
+        },
+        "checks.log": {
+          "sha256": "7cc17bc9269f7aa8454e2763cf027b575299c748758e00fec9c7d0b6e801c7d3",
+          "bytes": 16046
+        },
+        "config.json": {
+          "sha256": "77572e4687e4cdd312ed4ed153706120a96b0032ddf806d3df847a68556d5395",
+          "bytes": 2466
+        },
+        "constructor-policy.md": {
+          "sha256": "765bafc423a3087932cbce95d29e3ede474c06e4da758624c896ec510b650d12",
+          "bytes": 3110
+        },
+        "engineering-source-packet.json": {
+          "sha256": "986ecc2ed4d48b4ffb098811e6d9aed5734d42ca5308c8f3af1acba16f976e4f",
+          "bytes": 6466
+        },
+        "geometric-frozen-map-fit": {
+          "sha256": "a975132ff8756119ecee196c2d750976a845451c9483fa6d3b3d6c103fa6e1a6",
+          "bytes": 34171392
+        },
+        "math-source-review.json": {
+          "sha256": "ee78fba23f1049ca77af45f217b22ce4c0341592fcc8a18a9c00b73eb9dadc12",
+          "bytes": 4252
+        },
+        "resource-ledger.json": {
+          "sha256": "fabe091902631a2261c5b030872e9cdac99157d7acb585e35d03e5d9bf25ac9a",
+          "bytes": 1864
+        },
+        "source.tar.gz": {
+          "sha256": "e805f2f115ced7593b1d988544b5735e33bf81755d9339989edb58c7bd64207b",
+          "bytes": 99641155
+        },
+        "supervise.py": {
+          "sha256": "d0f7c9fc56e4921154b079b8d734f8998ac45d2fd2a40a5be85e084b4d79400e",
+          "bytes": 2865
+        },
+        "work-card.md": {
+          "sha256": "fab38c04113c21728d90b4b26ad0e4fdc9dd034cea6d18ca59e35ff3d9136430",
+          "bytes": 2851
+        }
+      },
+      "manifest": {
+        "source_commit": "995d4197ad7a7260cb9168e283e28c7fd0b15e93",
+        "source_tree": "1f58bf090db443259d19f5512579581756a25db8",
+        "files": {
+          "adversarial-source-review.json": {
+            "sha256": "0fb4a889063d8441023ae66974c7d3a27168574428d8dc6e39421c7abf06efa8",
+            "bytes": 3613
+          },
+          "checks.log": {
+            "sha256": "7cc17bc9269f7aa8454e2763cf027b575299c748758e00fec9c7d0b6e801c7d3",
+            "bytes": 16046
+          },
+          "config.json": {
+            "sha256": "77572e4687e4cdd312ed4ed153706120a96b0032ddf806d3df847a68556d5395",
+            "bytes": 2466
+          },
+          "constructor-policy.md": {
+            "sha256": "765bafc423a3087932cbce95d29e3ede474c06e4da758624c896ec510b650d12",
+            "bytes": 3110
+          },
+          "engineering-source-packet.json": {
+            "sha256": "986ecc2ed4d48b4ffb098811e6d9aed5734d42ca5308c8f3af1acba16f976e4f",
+            "bytes": 6466
+          },
+          "geometric-frozen-map-fit": {
+            "sha256": "a975132ff8756119ecee196c2d750976a845451c9483fa6d3b3d6c103fa6e1a6",
+            "bytes": 34171392
+          },
+          "math-source-review.json": {
+            "sha256": "ee78fba23f1049ca77af45f217b22ce4c0341592fcc8a18a9c00b73eb9dadc12",
+            "bytes": 4252
+          },
+          "resource-ledger.json": {
+            "sha256": "fabe091902631a2261c5b030872e9cdac99157d7acb585e35d03e5d9bf25ac9a",
+            "bytes": 1864
+          },
+          "source.tar.gz": {
+            "sha256": "e805f2f115ced7593b1d988544b5735e33bf81755d9339989edb58c7bd64207b",
+            "bytes": 99641155
+          },
+          "supervise.py": {
+            "sha256": "d0f7c9fc56e4921154b079b8d734f8998ac45d2fd2a40a5be85e084b4d79400e",
+            "bytes": 2865
+          },
+          "work-card.md": {
+            "sha256": "fab38c04113c21728d90b4b26ad0e4fdc9dd034cea6d18ca59e35ff3d9136430",
+            "bytes": 2851
+          }
+        },
+        "scope": "Original selected-parent Prefix-only18 gradient and one frozen960 adjacent pass; strictcurrentCE plus17originalwinner guards pertrial; coherent reload; actual267winner separate; no otherfamily gradient or autoregressive qualification"
+      },
+      "seconds": 28.68392189592123,
+      "completed_utc": "2026-10-08T23:04:16.120743+00:00"
+    },
+    "runtime-scope-preservation.json": {
+      "revision": "7556125169b54d423f232c0e42dabb6ca0d5d27d",
+      "sha256": "9254ad5b7b5f0215d0d75794b841433304cd4c66a65e5f041d13bbd9044f383e",
+      "all_fresh_download_verified": true,
+      "seconds": 1.351811956614256
+    },
+    "artifact-runtime-upload.json": {
+      "revision": "cc77ec6c990d9bea6d07fc15cc5a600ee328f764",
+      "prefix": "codex/sol-prefix-fragment-learning/artifact-runtime-8173d5298c-attempt1",
+      "all_fresh_download_verified": true,
+      "files": {
+        "SHA256-manifest.json": {
+          "sha256": "a51b134090aef8993b700a592bc9b4938e08f85da1798baf402a02bf83c09b04",
+          "bytes": 2002
+        },
+        "artifact-check-adversarial-review.json": {
+          "sha256": "2fff797a1a783d039dbfbceee4a311616a340d8e43d3e270e744c40adecd37ed",
+          "bytes": 2742
+        },
+        "artifact-check-engineering-source-packet.json": {
+          "sha256": "cdd726cacf1ee2eb9496ecce08115f8a41a6f86a4fa19b173039dfc6189217aa",
+          "bytes": 4556
+        },
+        "artifact-check-math-review.json": {
+          "sha256": "4f0b9cbb50370e1c8f9521d02bc7526f2583d9b4d258b70d2c1ae7e9da1d08f2",
+          "bytes": 3598
+        },
+        "artifact-supervise.py": {
+          "sha256": "a84b882309471e8a69e4cbdedf6f36a86590881426e4f89e4cbdd768ead407d1",
+          "bytes": 3398
+        },
+        "checks.log": {
+          "sha256": "7f9b1f8c12d226494d8b92c85daa507eceaf08ccfb68c3b806b9f12c323931a8",
+          "bytes": 16157
+        },
+        "config.json": {
+          "sha256": "5e803a94049424fa933b97940500b09c104b1da3ffa8280d2f40d718a7865c15",
+          "bytes": 2494
+        },
+        "constructor-policy.md": {
+          "sha256": "feb3a512316e6e1846095abe1a5ee77036b7e0521edd0279c851cc9d8b5f248a",
+          "bytes": 3381
+        },
+        "geometric-frozen-map-fit": {
+          "sha256": "f2d7b516cdb31a2e7e53ec1325ef45542cc03de9bba161761d8f7bfd644f706f",
+          "bytes": 34292128
+        },
+        "resource-ledger.json": {
+          "sha256": "f9d80c3a3e0689a5e63812e2c4aa37964a618b5c387c053a2afee8633ebb6469",
+          "bytes": 31909
+        },
+        "source.tar.gz": {
+          "sha256": "0ceebc94185f0a6e514ab8faeb053bc11930c45bb6bbba0b8559d0d5ce9106e3",
+          "bytes": 99640365
+        },
+        "work-card.md": {
+          "sha256": "fab38c04113c21728d90b4b26ad0e4fdc9dd034cea6d18ca59e35ff3d9136430",
+          "bytes": 2851
+        }
+      },
+      "manifest": {
+        "source_commit": "8173d5298c914f6c76fc358e1321b257d6257f76",
+        "source_tree": "1dd262bfb1e19150f55e90c02d056501e3935a9b",
+        "files": {
+          "artifact-check-adversarial-review.json": {
+            "sha256": "2fff797a1a783d039dbfbceee4a311616a340d8e43d3e270e744c40adecd37ed",
+            "bytes": 2742
+          },
+          "artifact-check-engineering-source-packet.json": {
+            "sha256": "cdd726cacf1ee2eb9496ecce08115f8a41a6f86a4fa19b173039dfc6189217aa",
+            "bytes": 4556
+          },
+          "artifact-check-math-review.json": {
+            "sha256": "4f0b9cbb50370e1c8f9521d02bc7526f2583d9b4d258b70d2c1ae7e9da1d08f2",
+            "bytes": 3598
+          },
+          "artifact-supervise.py": {
+            "sha256": "a84b882309471e8a69e4cbdedf6f36a86590881426e4f89e4cbdd768ead407d1",
+            "bytes": 3398
+          },
+          "checks.log": {
+            "sha256": "7f9b1f8c12d226494d8b92c85daa507eceaf08ccfb68c3b806b9f12c323931a8",
+            "bytes": 16157
+          },
+          "config.json": {
+            "sha256": "5e803a94049424fa933b97940500b09c104b1da3ffa8280d2f40d718a7865c15",
+            "bytes": 2494
+          },
+          "constructor-policy.md": {
+            "sha256": "feb3a512316e6e1846095abe1a5ee77036b7e0521edd0279c851cc9d8b5f248a",
+            "bytes": 3381
+          },
+          "geometric-frozen-map-fit": {
+            "sha256": "f2d7b516cdb31a2e7e53ec1325ef45542cc03de9bba161761d8f7bfd644f706f",
+            "bytes": 34292128
+          },
+          "resource-ledger.json": {
+            "sha256": "f9d80c3a3e0689a5e63812e2c4aa37964a618b5c387c053a2afee8633ebb6469",
+            "bytes": 31909
+          },
+          "source.tar.gz": {
+            "sha256": "0ceebc94185f0a6e514ab8faeb053bc11930c45bb6bbba0b8559d0d5ce9106e3",
+            "bytes": 99640365
+          },
+          "work-card.md": {
+            "sha256": "fab38c04113c21728d90b4b26ad0e4fdc9dd034cea6d18ca59e35ff3d9136430",
+            "bytes": 2851
+          }
+        },
+        "scope": "Artifact-only host-native ownfeedback9 using frozen candidate7130/12c1 and original8authority; no canonical/fixed18/gradient/training/full512; fulltypedanswer+actualEOS and original8retention primary,267ownprefixwitness separate; no multiturn qualification"
+      },
+      "seconds": 26.309269323945045,
+      "completed_utc": "2026-10-08T23:24:20.872779+00:00"
+    },
+    "preservation.json": {
+      "revision": "19c0a0d5afbf11ad1f65a5c2703fb78d493448d1",
+      "prefix": "codex/sol-prefix-fragment-learning/prefix-fragment-0001-995d4197ad",
+      "all_fresh_download_verified": true,
+      "files": {
+        "SHA256-manifest.json": {
+          "sha256": "ce3f2d1bfdeedd34322bfb8ec4fb0965f574f50338f01a1e10c0deb30cd11dbf",
+          "bytes": 1194
+        },
+        "prefix-fragment-0001-995d4197ad.tar.gz": {
+          "sha256": "4d9422baa0820ac32e58ad5fe1717c2f0766112517ccbe796d9c39929ea078d8",
+          "bytes": 24453414
+        }
+      },
+      "manifest": {
+        "source_commit": "995d4197ad7a7260cb9168e283e28c7fd0b15e93",
+        "runtime_hf_revision": "59b3f82c7c1eaf70b2cfdfbd6c2461a9c6f76323",
+        "runtime_manifest_sha256": "74df74cb9f802b3f4cc2c2904817aef7da193cb5b6584c208f8c39752f584651",
+        "binary_sha256": "a975132ff8756119ecee196c2d750976a845451c9483fa6d3b3d6c103fa6e1a6",
+        "config_sha256": "77572e4687e4cdd312ed4ed153706120a96b0032ddf806d3df847a68556d5395",
+        "report_sha256": "71301b77d9d4606dda1501385e43f8e114c4e72af9a502b799f363b604b14cfe",
+        "report_manifest_sha256": "12c1412d049724e6dd7ba1e1cd8fc0383be65f7a3c9f43251a206fc23ba76d32",
+        "audit_sha256": "910ea2488ab0c2457dc75427343ffb00964b0d340ce5998ccf32ef879282cc45",
+        "files": {
+          "prefix-fragment-0001-995d4197ad.tar.gz": {
+            "sha256": "4d9422baa0820ac32e58ad5fe1717c2f0766112517ccbe796d9c39929ea078d8",
+            "bytes": 24453414
+          }
+        },
+        "scope": "One original-parent Prefix-only18 gradient/frozen960 pass427 accepts; fixed18 gate and267winner pass, rawgrad/rank/transactions/export/reload independent auditPASS. Artifact-only ownfeedback9 fails7of8retained plusfailed245; no comparablepos4, candidateunselected. No full512/multiturn qualification or modeltraining repeat."
+      },
+      "seconds": 12.274576470255852,
+      "completed_utc": "2026-10-08T23:30:52.939035+00:00"
+    }
+  },
+  "resources": {
+    "cpu_threads": 2,
+    "process_RAM_bytes": 4294967296,
+    "numeric_cap_bytes": 536870912,
+    "report_cap_bytes": 268435456,
+    "temporary_cap_bytes": 536870912,
+    "retained_total_extension": {
+      "from_bytes": 536870912,
+      "increment_bytes": 536870912,
+      "to_bytes": 1073741824,
+      "comment": 6071002905
+    },
+    "construction_report_bytes": 102049187,
+    "ownfeedback_report_bytes": 189406,
+    "complete_wall_projection_seconds": 7200,
+    "continuous_from": "2026-10-08T22:45:30Z",
+    "cumulative_projection_seconds": 558870,
+    "cumulative_increment": 0,
+    "local": "POD_ONLY; no local artifact/build/cleanup; otherlab untouched",
+    "pod_cost": "one shared pod $1.48/h within owner caps; no new spending class",
+    "shared_runner": "UNVERIFIED; approved pod/manual fallback"
+  },
+  "next_after_protected_actual_merge": "Join saved original/candidate first divergences at task245position2 and row13position7. Recover existing full witnesses first; only if unavailable, prospectively admit target-free original/candidate capture of those two frozen actual-prefix frames to separate direct Prefix Copy, BASE donor/derived Generate, fixed U and aliases. No gradient, rerank, refill, dose or unchanged18/9/full512 repeat. New learning requires this causal evidence and distinct outcome decisions.",
+  "claim_boundary": "One geometric Prefix coefficient construction passes fixed18 and267fragment pool, but fails independently reloaded9 ownfeedback. No useful reply, held-out transfer, general language, conversation/memory, geometric advantage or energy qualification."
+}

@@ -4,6 +4,9 @@ use super::native_proposals as np;
 use super::*;
 use uor_r4_integer::{
     geometric_cue_carrier::{CarrierState, CueCarrierCosts, CueCarrierTrace, CueSegmentTrace},
+    geometric_prefix_transport::{
+        PrefixState, PrefixTransportCosts, PrefixTransportTrace, SourcePrefixTrace,
+    },
     geometric_source_realizer::ObservedCode,
     geometric_vocabulary_actions::VocabularyActionTrace,
     h4_tables::H4Code,
@@ -13,20 +16,22 @@ use uor_r4_training::geometric_occurrence_consumer::source_realizer::{
     CueAngularWeights, PrefixAngularWeights,
 };
 
-const P_REPORT: &str = "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee";
-const P_SEAL: &str = "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5";
-const B_REPORT: &str = "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9";
-const B_SEAL: &str = "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332";
+pub(super) const P_REPORT: &str =
+    "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee";
+pub(super) const P_SEAL: &str = "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5";
+pub(super) const B_REPORT: &str =
+    "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9";
+pub(super) const B_SEAL: &str = "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332";
 const F_REPORT: &str = "975cdaf9185f21ceb4c867d4cbb00eafbe6079ad05a36cc481b86621600bffea";
 const F_SEAL: &str = "6d51345dbc5c4fc3307a2b79f113470b8f1434f1496a5dc2146c59f305557bfd";
 const FINITE_SOURCE: &str = "2a79a8e75a8c9614d6802146af0c5d0b6ceed0e09668151b571ea3beb75efab8";
-const SOURCE: &str = "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b";
-const G_SHA: &str = "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737";
-const U_SHA: &str = "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee";
-const COHORT: [usize; 9] = [245, 0, 1, 4, 5, 8, 9, 12, 13];
+pub(super) const SOURCE: &str = "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b";
+pub(super) const G_SHA: &str = "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737";
+pub(super) const U_SHA: &str = "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee";
+pub(super) const COHORT: [usize; 9] = [245, 0, 1, 4, 5, 8, 9, 12, 13];
 const NAME: &str = "cue.coefficients";
 const CONTEXT: &str = "consumer.context.self_transition";
-const CACHE_LIMIT: usize = 64 * 1024 * 1024;
+pub(super) const CACHE_LIMIT: usize = 64 * 1024 * 1024;
 
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -41,6 +46,7 @@ pub(super) fn validate_settings(a: &Args) -> Result<()> {
             a.mode == Mode::JointContinuation
                 && a.updates == 1
                 && a.loss_scope == LossScope::All
+                && a.prefix_fragment_learning.is_none()
                 && a.prefix_context_credit.is_none()
                 && a.context_path_credit.is_none()
                 && a.readout_coadaptation.is_none()
@@ -76,7 +82,7 @@ pub(super) fn policy() -> Value {
     })
 }
 // Finite960 termination is the bound. A healthy run is never stopped by an elapsed estimate.
-fn progress(a: &Args, start: Instant) -> Result<()> {
+pub(super) fn progress(a: &Args, start: Instant) -> Result<()> {
     disk_floor(a)?;
     let path = a.out.join("elapsed-estimate-extension-needed.json");
     if start.elapsed().as_secs_f64() > a.maximum_seconds as f64 && !path.exists() {
@@ -90,7 +96,7 @@ fn progress(a: &Args, start: Instant) -> Result<()> {
     }
     Ok(())
 }
-fn sealed(root: &Path, report: &str, seal: &str) -> Result<Value> {
+pub(super) fn sealed(root: &Path, report: &str, seal: &str) -> Result<Value> {
     report_output::verify(root)?;
     replay_require(
         sha256_file(&root.join("report.json"))? == report
@@ -104,15 +110,15 @@ fn sealed(root: &Path, report: &str, seal: &str) -> Result<Value> {
     )?;
     Ok(r)
 }
-fn dec<T: serde::de::DeserializeOwned>(v: &Value) -> Result<T> {
+pub(super) fn dec<T: serde::de::DeserializeOwned>(v: &Value) -> Result<T> {
     Ok(serde_json::from_value(v.clone())?)
 }
-fn idx(v: &Value) -> Result<usize> {
+pub(super) fn idx(v: &Value) -> Result<usize> {
     Ok(v.as_u64()
         .ok_or_else(|| bad("Context/Cue index missing"))?
         .try_into()?)
 }
-fn floats(p: &Path) -> Result<Vec<f32>> {
+pub(super) fn floats(p: &Path) -> Result<Vec<f32>> {
     let b = fs::read(p)?;
     replay_require(b.len() == 3840, "Cue raw master shape differs")?;
     let v = b
@@ -181,53 +187,92 @@ fn cue_trace(v: &Value) -> Result<CueCarrierTrace> {
         },
     })
 }
+fn prefix_trace(v: &Value) -> Result<PrefixTransportTrace> {
+    let c = &v["costs"];
+    Ok(PrefixTransportTrace {
+        metadata: dec(&v["metadata"])?,
+        response: PrefixState {
+            token_ids: dec(&v["response"]["token_ids"])?,
+            states: dec(&v["response"]["states"])?,
+        },
+        sources: v["sources"]
+            .as_array()
+            .ok_or_else(|| bad("Prefix sources absent"))?
+            .iter()
+            .map(|x| {
+                Ok(SourcePrefixTrace {
+                    source_segment_index: idx(&x["source_segment_index"])?,
+                    token_ids: dec(&x["token_ids"])?,
+                    states_before: dec(&x["states_before"])?,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?,
+        candidate_source_indices: dec(&v["candidate_source_indices"])?,
+        candidate_offsets: dec(&v["candidate_offsets"])?,
+        angular_indices: dec(&v["angular_indices"])?,
+        relative_roots: dec(&v["relative_roots"])?,
+        copy_q24: dec(&v["copy_q24"])?,
+        costs: PrefixTransportCosts {
+            extra_source_encoder_tokens: idx(&c["extra_source_encoder_tokens"])?,
+            extra_response_encoder_tokens: idx(&c["extra_response_encoder_tokens"])?,
+            extra_context_coefficient_reads: idx(&c["extra_context_coefficient_reads"])?,
+            extra_angular_table_reads: idx(&c["extra_angular_table_reads"])?,
+            extra_geometry_relative_operations: idx(&c["extra_geometry_relative_operations"])?,
+            logical_sidecar_payload_bytes: idx(&c["logical_sidecar_payload_bytes"])?,
+            compiled_table_payload_bytes: idx(&c["compiled_table_payload_bytes"])?,
+            packed_source_bytes: idx(&c["packed_source_bytes"])?,
+            preparation_vec_containers: idx(&c["preparation_vec_containers"])?,
+        },
+    })
+}
 fn query_shape(v: &Value) -> bool {
     v.as_array()
         .is_some_and(|r| r.len() == 8 && r.iter().all(|c| c.as_u64().is_some_and(|x| x < 120)))
 }
-fn codes(v: &Value) -> Result<Vec<H4Code>> {
+pub(super) fn codes(v: &Value) -> Result<Vec<H4Code>> {
     replay_require(query_shape(v), "Cue H4 state shape/bounds differ")?;
     dec::<Vec<u8>>(v)?
         .into_iter()
         .map(|x| H4Code::try_from(x).map_err(Into::into))
         .collect()
 }
-struct Frame {
-    input: usize,
-    position: usize,
-    id: String,
-    prefix: Vec<u32>,
-    target: u32,
-    weight: f64,
-    native: Value,
-    trace: CueCarrierTrace,
-    ids: Vec<u32>,
-    base_copy: Vec<i64>,
-    u: Vec<i64>,
-    cue_keys: Vec<Vec<Option<usize>>>,
-    query: Vec<H4Code>,
-    sources: Vec<Vec<H4Code>>,
+pub(super) struct Frame {
+    pub(super) input: usize,
+    pub(super) position: usize,
+    pub(super) id: String,
+    pub(super) prefix: Vec<u32>,
+    pub(super) target: u32,
+    pub(super) weight: f64,
+    pub(super) native: Value,
+    pub(super) trace: CueCarrierTrace,
+    pub(super) prefix_trace: Option<PrefixTransportTrace>,
+    pub(super) ids: Vec<u32>,
+    pub(super) base_copy: Vec<i64>,
+    pub(super) u: Vec<i64>,
+    pub(super) cue_keys: Vec<Vec<Option<usize>>>,
+    pub(super) query: Vec<H4Code>,
+    pub(super) sources: Vec<Vec<H4Code>>,
 }
 #[derive(Clone)]
-struct Pool {
-    donor: usize,
-    post: Vec<H4Code>,
-    generate: Vec<i64>,
-    copy: Vec<i64>,
-    base_copy: Vec<i64>,
-    trace: VocabularyActionTrace,
+pub(super) struct Pool {
+    pub(super) donor: usize,
+    pub(super) post: Vec<H4Code>,
+    pub(super) generate: Vec<i64>,
+    pub(super) copy: Vec<i64>,
+    pub(super) base_copy: Vec<i64>,
+    pub(super) trace: VocabularyActionTrace,
 }
-struct DonorCache {
-    source_binding: NativeArtifactBinding,
-    generate_sha256: String,
-    bridge_sha256: String,
-    values: BTreeMap<(usize, usize), (String, Vec<H4Code>, Vec<i64>)>,
-    bytes: usize,
-    peak: usize,
-    calls: usize,
+pub(super) struct DonorCache {
+    pub(super) source_binding: NativeArtifactBinding,
+    pub(super) generate_sha256: String,
+    pub(super) bridge_sha256: String,
+    pub(super) values: BTreeMap<(usize, usize), (String, Vec<H4Code>, Vec<i64>)>,
+    pub(super) bytes: usize,
+    pub(super) peak: usize,
+    pub(super) calls: usize,
 }
 impl DonorCache {
-    fn new(p: &ContinuationParent) -> Self {
+    pub(super) fn new(p: &ContinuationParent) -> Self {
         Self {
             source_binding: p.binding.clone(),
             generate_sha256: sha256_bytes(&p.generate),
@@ -317,7 +362,33 @@ fn native_code(v: f32) -> Result<i8> {
     )?;
     Ok((4. * v).round().clamp(-7., 7.) as i8)
 }
-fn score(
+pub(super) fn staged_base(
+    original: &[i64],
+    keys: &[Vec<Option<usize>>],
+    parent: &[f32],
+    current: &[f32],
+) -> Result<Vec<i64>> {
+    replay_require(
+        keys.len() == original.len()
+            && parent.len() == 960
+            && current.len() == 960
+            && keys
+                .iter()
+                .all(|row| row.len() == 8 && row.iter().flatten().all(|k| *k < 960)),
+        "Angular physical incidence shape/domain differs",
+    )?;
+    let mut base = original.to_vec();
+    for (j, row) in keys.iter().enumerate() {
+        for key in row.iter().flatten() {
+            let d = i64::from(native_code(current[*key])? - native_code(parent[*key])?) * (1 << 22);
+            base[j] = base[j]
+                .checked_add(d)
+                .ok_or_else(|| bad("Cue staged Copy overflow"))?;
+        }
+    }
+    Ok(base)
+}
+pub(super) fn score(
     i: usize,
     f: &Frame,
     parent: &[f32],
@@ -326,15 +397,7 @@ fn score(
     cache: &mut DonorCache,
     reducer: &mut NativeVocabularyActions,
 ) -> Result<Pool> {
-    let mut base = f.base_copy.clone();
-    for (j, keys) in f.cue_keys.iter().enumerate() {
-        for key in keys.iter().flatten() {
-            let d = i64::from(native_code(current[*key])? - native_code(parent[*key])?) * (1 << 22);
-            base[j] = base[j]
-                .checked_add(d)
-                .ok_or_else(|| bad("Cue staged Copy overflow"))?;
-        }
-    }
+    let base = staged_base(&f.base_copy, &f.cue_keys, parent, current)?;
     let donor = earliest(&base)?;
     let (post, g) = cache.get(i, donor, f, p)?;
     let generate = g
@@ -372,7 +435,7 @@ fn mass(p: &Pool, target: u32) -> Result<(u64, u64)> {
     replay_require(m > 0 && m <= d, "Cue masses invalid")?;
     Ok((m, d))
 }
-fn objective(frames: &[Frame], pools: &[Pool]) -> Result<Value> {
+pub(super) fn objective(frames: &[Frame], pools: &[Pool]) -> Result<Value> {
     replay_require(frames.len() == pools.len(), "Cue objective length differs")?;
     let mut task = 0.;
     let mut reference = 0.;
@@ -403,11 +466,12 @@ fn objective(frames: &[Frame], pools: &[Pool]) -> Result<Value> {
         "original_reference_violations":violations,"task_target_mass":t["target_mass"],"task_total_mass":t["total_mass"],"terms":rows}),
     )
 }
-fn prepare_frames(
+pub(super) fn prepare_frames(
     a: &Args,
     c: &Config,
     original: &ContinuationParent,
     finite: &ContinuationParent,
+    original_seed: bool,
 ) -> Result<(Vec<Frame>, Value)> {
     let baseline = read(&c.retained_probe_root.join("baseline.json"))?;
     replay_require(
@@ -443,9 +507,13 @@ fn prepare_frames(
         for position in [3, 4] {
             let file = format!("baseline-row-{input:04}-position-{position:02}.json");
             let old = read(&c.retained_probe_root.join(&file))?;
-            let saved = read(&c.retained_finite_root.join(format!(
-                "candidate-row-{input:04}-position-{position:02}.json"
-            )))?;
+            let saved = if original_seed {
+                old.clone()
+            } else {
+                read(&c.retained_finite_root.join(format!(
+                    "candidate-row-{input:04}-position-{position:02}.json"
+                )))?
+            };
             let e = eps.get(input).ok_or_else(|| bad("Cue episode missing"))?;
             let prefix: Vec<u32> = dec(&old["actual_prefix_ids"])?;
             let target = *e
@@ -568,6 +636,32 @@ fn prepare_frames(
                     &bank["context"]["states"][idx(&x["context_position"])?],
                 )?);
             }
+            let prefix_trace = if original_seed {
+                Some(prefix_trace(&v["bank_trace"]["prefix"])?)
+            } else {
+                None
+            };
+            if let Some(prefix) = &prefix_trace {
+                replay_require(
+                    prefix.angular_indices.len() == 8
+                        && prefix
+                            .angular_indices
+                            .iter()
+                            .all(|row| row.len() == ids.len() && row.iter().all(|b| *b < 120))
+                        && prefix.metadata.parent_artifact == original.binding
+                        && prefix.metadata.frozen_cue == trace.metadata,
+                    "Prefix original unmasked key/Source/Cue binding differs",
+                )?;
+                keys = (0..ids.len())
+                    .map(|j| {
+                        (0..8)
+                            .map(|lane| {
+                                Some(lane * 120 + usize::from(prefix.angular_indices[lane][j]))
+                            })
+                            .collect()
+                    })
+                    .collect();
+            }
             let query = codes(&v["bridge"]["query_state"])?;
             let oldg: Vec<i64> = dec(&old["native"]["generate_q24"])?;
             let oldc: Vec<i64> = dec(&old["native"]["copy_q24"])?;
@@ -595,6 +689,7 @@ fn prepare_frames(
                 weight,
                 native: v.clone(),
                 trace,
+                prefix_trace,
                 ids,
                 base_copy,
                 u,
@@ -612,7 +707,7 @@ fn prepare_frames(
     )?;
     let frame_files=frames.iter().map(|f|Ok(json!({"input_index":f.input,"position":f.position,"id":f.id,"actual_prefix_ids":f.prefix,
         "baseline_sha256":sha256_file(&c.retained_probe_root.join(format!("baseline-row-{:04}-position-{:02}.json",f.input,f.position)))?,
-        "finite_sha256":sha256_file(&c.retained_finite_root.join(format!("candidate-row-{:04}-position-{:02}.json",f.input,f.position)))?})))
+        "finite_sha256":sha256_file(&if original_seed {c.retained_probe_root.join(format!("baseline-row-{:04}-position-{:02}.json",f.input,f.position))} else {c.retained_finite_root.join(format!("candidate-row-{:04}-position-{:02}.json",f.input,f.position))})?})))
         .collect::<Result<Vec<_>>>()?;
     write(
         a,
@@ -652,12 +747,48 @@ fn selector(
         .reshape((8, 120))?;
     Ok((Tensor::from_vec(one, (8, 120), d)? + (&mean - mean.detach())?)?)
 }
-fn gradient(
+pub(super) enum ActiveCredit<'a> {
+    Cue(&'a CueAngularWeights),
+    Prefix(&'a PrefixAngularWeights),
+}
+impl ActiveCredit<'_> {
+    fn name(&self) -> &'static str {
+        match self {
+            Self::Cue(_) => NAME,
+            Self::Prefix(_) => "prefix.coefficients",
+        }
+    }
+    fn label(&self) -> &'static str {
+        match self {
+            Self::Cue(_) => "cue",
+            Self::Prefix(_) => "prefix",
+        }
+    }
+    fn parameters(&self) -> BTreeMap<String, Var> {
+        match self {
+            Self::Cue(x) => x.parameters(),
+            Self::Prefix(x) => x.parameters(),
+        }
+    }
+    fn credit(&self, frame: &Frame, device: &Device) -> Result<Tensor> {
+        match self {
+            Self::Cue(x) => Ok(x.coefficient_credit(&frame.trace, device)?),
+            Self::Prefix(x) => Ok(x.coefficient_credit(
+                frame
+                    .prefix_trace
+                    .as_ref()
+                    .ok_or_else(|| bad("Prefix trace absent"))?,
+                device,
+            )?),
+        }
+    }
+}
+pub(super) fn gradient(
     a: &Args,
     start: Instant,
     frames: &[Frame],
     p: &ContinuationParent,
-    cw: &CueAngularWeights,
+    cw: &ActiveCredit,
     g: &GenerateLearningWeights,
     parent: &[f32],
     pools: &[Pool],
@@ -667,7 +798,7 @@ fn gradient(
     let prepared = g.prepare_native()?;
     let var = cw
         .parameters()
-        .remove(NAME)
+        .remove(cw.name())
         .ok_or_else(|| bad("Cue Var absent"))?;
     // Complete hard-forward parity for all18 precedes ANY backward call.
     for (i, (f, pool)) in frames.iter().zip(pools).enumerate() {
@@ -679,7 +810,7 @@ fn gradient(
                 && serde_json::to_value(&pool.trace)? == f.native["pool"],
             "Cue complete cached native pool parity differs",
         )?;
-        let credit = cw.coefficient_credit(&f.trace, d)?;
+        let credit = cw.credit(f, d)?;
         let raw = Tensor::from_vec(
             pool.base_copy
                 .iter()
@@ -715,14 +846,14 @@ fn gradient(
     write(
         a,
         "gradient-forward-parity.json",
-        &json!({"positions":18,"all_before_backward":true,"native_fullpool_parity":true,"context_encoder_calls":0,"context_backward_calls":0,"device":if d.is_cpu(){"cpu"}else{"cuda"}}),
+        &json!({"positions":18,"active_family":cw.name(),"all_before_backward":true,"native_fullpool_parity":true,"context_encoder_calls":0,"context_backward_calls":0,"device":if d.is_cpu(){"cpu"}else{"cuda"}}),
     )?;
     let mut sum = vec![0f32; 960];
     let mut perterm = Vec::new();
     let mut weighted = 0.;
     for (i, (f, pool)) in frames.iter().zip(pools).enumerate() {
         progress(a, start)?;
-        let credit = cw.coefficient_credit(&f.trace, d)?;
+        let credit = cw.credit(f, d)?;
         let base = Tensor::from_vec(
             pool.base_copy
                 .iter()
@@ -795,7 +926,7 @@ fn gradient(
         for (s, v) in sum.iter_mut().zip(&values) {
             *s += *v;
         }
-        let file = format!("cue-gradient-term-{i:02}.f32le");
+        let file = format!("{}-gradient-term-{i:02}.f32le", cw.label());
         let bytes = values
             .iter()
             .flat_map(|x| x.to_le_bytes())
@@ -817,27 +948,27 @@ fn gradient(
         "Cue aggregate gradient nonfinite",
     )?;
     let bytes = sum.iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<_>>();
-    fs::write(a.out.join("cue-gradient.f32le"), &bytes)?;
+    fs::write(a.out.join(format!("{}-gradient.f32le", cw.label())), &bytes)?;
     write(
         a,
-        "cue-gradient-receipt.json",
-        &json!({"shape":[960],"active_names":[NAME],"bytes":bytes.len(),"sha256":sha256_bytes(&bytes),"file":"cue-gradient.f32le","per_term":perterm,"weighted_graph_ce":weighted,"new_gradients":1,"context_gradient":"NOT_RUN","surrogate":"native anchored direct Cue gather plus existing detached soft-selector state contrast; local conditional utility, not hard argmax derivative"}),
+        &format!("{}-gradient-receipt.json", cw.label()),
+        &json!({"shape":[960],"active_names":[cw.name()],"bytes":bytes.len(),"sha256":sha256_bytes(&bytes),"file":format!("{}-gradient.f32le",cw.label()),"per_term":perterm,"weighted_graph_ce":weighted,"new_gradients":1,"context_gradient":"NOT_RUN","surrogate":format!("native anchored direct {} gather plus existing detached soft-selector state contrast; local conditional utility, not hard argmax derivative",cw.label())}),
     )?;
     Ok(sum)
 }
 #[derive(Clone, serde::Serialize)]
-struct Move {
-    index: usize,
-    before: i8,
-    after: i8,
-    master_before: f32,
-    master_after: f32,
-    actual_delta: f64,
-    gradient: f32,
-    utility: f64,
-    status: String,
+pub(super) struct Move {
+    pub(super) index: usize,
+    pub(super) before: i8,
+    pub(super) after: i8,
+    pub(super) master_before: f32,
+    pub(super) master_after: f32,
+    pub(super) actual_delta: f64,
+    pub(super) gradient: f32,
+    pub(super) utility: f64,
+    pub(super) status: String,
 }
-fn ranking(m: &[f32], g: &[f32]) -> Result<Vec<Move>> {
+pub(super) fn ranking(m: &[f32], g: &[f32]) -> Result<Vec<Move>> {
     replay_require(
         m.len() == 960 && g.len() == 960,
         "Cue ranking shape differs",
@@ -882,7 +1013,7 @@ fn ranking(m: &[f32], g: &[f32]) -> Result<Vec<Move>> {
     rows.sort_by(|a, b| a.utility.total_cmp(&b.utility).then(a.index.cmp(&b.index)));
     Ok(rows)
 }
-fn improved(a: &Value, b: &Value) -> Result<bool> {
+pub(super) fn improved(a: &Value, b: &Value) -> Result<bool> {
     let am = a["task_target_mass"]
         .as_u64()
         .ok_or_else(|| bad("Cue task mass missing"))?;
@@ -897,7 +1028,7 @@ fn improved(a: &Value, b: &Value) -> Result<bool> {
         .ok_or_else(|| bad("Cue task denominator missing"))?;
     Ok(u128::from(bm) * u128::from(ad) > u128::from(am) * u128::from(bd))
 }
-fn gate(original: &Value, final_value: &Value) -> Result<Value> {
+pub(super) fn gate(original: &Value, final_value: &Value) -> Result<Value> {
     let b = original["combined"]
         .as_f64()
         .ok_or_else(|| bad("Cue baseline CE missing"))?;
@@ -913,10 +1044,11 @@ fn gate(original: &Value, final_value: &Value) -> Result<Value> {
         "baseline_combined":b,"candidate_combined":f}),
     )
 }
-fn export_joint(
+pub(super) fn export_joint(
     a: &Args,
     l: &Loaded,
     cw: &CueAngularWeights,
+    prefix_override: Option<&PrefixAngularWeights>,
     p: &ContinuationParent,
     d: &Device,
 ) -> Result<(ContinuationParent, NativeContinuationField, Value)> {
@@ -942,7 +1074,13 @@ fn export_joint(
     np::restore(&bound_cue.parameters(), &masters)?;
     bound_cue.save(&root.join("cue"))?;
     let newcarrier = native.compile_cue_carrier(bound_cue.native()?)?;
-    let pref = native.compile_prefix_transport(&newcarrier, prefix_clone(&l.prefix)?)?;
+    let pref = native.compile_prefix_transport(
+        &newcarrier,
+        match prefix_override {
+            Some(x) => x.native()?,
+            None => prefix_clone(&l.prefix)?,
+        },
+    )?;
     let mut bound_prefix = PrefixAngularWeights::from_native(
         &native,
         &root.join("native"),
@@ -960,7 +1098,7 @@ fn export_joint(
     )?;
     np::restore(
         &bound_prefix.parameters(),
-        &np::snapshot(&original_prefix.parameters())?,
+        &np::snapshot(&prefix_override.unwrap_or(&original_prefix).parameters())?,
     )?;
     bound_prefix.rebind_cue(&native, &root.join("cue"), &newcarrier)?;
     bound_prefix.save(&root.join("prefix"))?;
@@ -1005,14 +1143,42 @@ fn export_joint(
         "Cue U fractional masters/native independent reload differs",
     )?;
     fs::write(root.join("continuation-field.bin"), rebound.to_bytes()?)?;
-    receipt["mode"] = json!("context_cue_coadapt");
-    receipt["policy"] = policy();
+    receipt["mode"] = json!(if prefix_override.is_some() {
+        "prefix_fragment_learning"
+    } else {
+        "context_cue_coadapt"
+    });
+    receipt["policy"] = if prefix_override.is_some() {
+        super::prefix_fragment_learning::policy()
+    } else {
+        policy()
+    };
+    receipt["active_parameter_names"] = json!([if prefix_override.is_some() {
+        "prefix.coefficients"
+    } else {
+        NAME
+    }]);
+    receipt["credit_scope"] = json!(if prefix_override.is_some() {
+        "only Prefix master gradients extracted/proposed; native-anchored direct retained-latent Prefix coefficient gather plus existing detached conditional physical-donor state contrast through frozen Generate graph; no Context/Cue/U gradients or updates"
+    } else {
+        "only Cue master gradients extracted/proposed; fixed recorded Context3610 displacement without Context gradient; native-anchored direct Cue gather plus existing detached conditional physical-donor state contrast through frozen Generate graph"
+    });
+    receipt["coefficient_backward_calls"] = json!(18);
+    receipt["frozen_numerical_scope"] = json!(if prefix_override.is_some() {
+        "all Source Context/Potential/map, Cue angular/joint, Generate coefficients/prototypes/bias, bridges and U; only Prefix coefficient f32 masters/nativeQ4 changed"
+    } else {
+        "all Source masters except recorded self_transition3610, Potential/map, Prefix, Cue joint, Generate coefficients/prototypes/bias, bridges and U; shared Cue angular masters learned"
+    });
     receipt["fresh_adam"] = json!(false);
     receipt["optimizer_updates"] = json!(0);
     receipt["new_gradients"] = json!(1);
     receipt["continuation_parameters"] = inventory;
     receipt["continuation_sha256"] = json!(sha256_bytes(&rebound.to_bytes()?));
     receipt["cue_parameters"] = save_masters(&root.join("cue-source"), &bound_cue.parameters())?;
+    if prefix_override.is_some() {
+        receipt["prefix_parameters"] =
+            save_masters(&root.join("prefix-source"), &bound_prefix.parameters())?;
+    }
     receipt["parent_report_sha256"] = json!(P_REPORT);
     receipt["parent_manifest_sha256"] = json!(P_SEAL);
     fs::write(
@@ -1033,7 +1199,7 @@ fn export_joint(
     )?;
     replay_require(
         np::same_bits(
-            &np::snapshot(&original_prefix.parameters())?,
+            &np::snapshot(&prefix_override.unwrap_or(&original_prefix).parameters())?,
             &np::snapshot(&loaded_prefix.parameters())?,
         ),
         "Cue frozen Prefix fractional master bits changed",
@@ -1046,12 +1212,88 @@ fn export_joint(
             && cp.joint == p.joint
             && cp.exp == p.exp
             && fs::read(root.join("prefix/prefix-q4.bin"))?
-                == fs::read(a.checkpoint.join("prefix/prefix-q4.bin"))?
+                == match prefix_override {
+                    Some(x) => x.packed_coefficients()?,
+                    None => fs::read(a.checkpoint.join("prefix/prefix-q4.bin"))?,
+                }
             && fs::read(root.join("cue/cue-joint-q4.bin"))?
                 == fs::read(a.checkpoint.join("cue/cue-joint-q4.bin"))?,
         "Cue export frozen/reloaded payload differs",
     )?;
     Ok((cp, rebound, receipt))
+}
+pub(super) fn reload_candidate(
+    a: &Args,
+    cp: &ContinuationParent,
+    field: &NativeContinuationField,
+    frames: &[Frame],
+    pools: &[Pool],
+) -> Result<()> {
+    let fields = field.to_bytes()?;
+    let hash = sha256_bytes(&fields);
+    let mut native = cp.generator()?.with_continuation_field(BoundNativeBytes {
+        bytes: &fields,
+        sha256: &hash,
+    })?;
+    let legal = NativeVocabularyActions::new(cp.integer.binding().clone(), &cp.exp)?
+        .legal_token_ids()
+        .iter()
+        .copied()
+        .collect();
+    let eps = load_panel(
+        &a.training_inputs,
+        &a.training_labels,
+        &cp.integer,
+        &cp.tokenizer,
+        &legal,
+        512,
+    )?;
+    for (f, expected) in frames.iter().zip(pools) {
+        let bank = native.admit_bank(continuation_snapshot(&eps[f.input].packet)?)?;
+        let s = native.step(&bank, &f.prefix)?;
+        replay_require(
+            s.generate_raw_scores_q24 == expected.generate
+                && s.copy_raw_scores_q24 == expected.copy
+                && s.copy_token_ids == f.ids
+                && s.post_state == expected.post
+                && s.actions == expected.trace,
+            "Cue constructed/exported full pool differs",
+        )?;
+        let bridge = s
+            .bridge
+            .as_ref()
+            .ok_or_else(|| bad("Cue reload bridge missing"))?;
+        replay_require(
+            bridge.selected_ordinal == expected.donor,
+            "Cue reloaded donor differs",
+        )?;
+        let u = s
+            .continuation
+            .as_ref()
+            .ok_or_else(|| bad("Cue reloaded U witness missing"))?;
+        replay_require(
+            u.delta_scores_q24 == f.u
+                && u.state_codes == codes(&f.native["continuation"]["state_codes"])?
+                && u.query_tokens == idx(&f.native["continuation"]["query_tokens"])?
+                && u.actual_prefix_tokens
+                    == idx(&f.native["continuation"]["actual_prefix_tokens"])?,
+            "Cue reloaded U state/scores changed",
+        )?;
+        let snapshot = json!({"generate_q24":s.generate_raw_scores_q24,"copy_ids":s.copy_token_ids,"copy_q24":s.copy_raw_scores_q24,
+                "pool":s.actions,"post_state":s.post_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"bank_trace":s.bank_trace,
+                "bridge":{"selected_ordinal":bridge.selected_ordinal,"selected_candidate":bridge.selected_candidate,"query_state":bridge.query_state.iter().map(|x|x.index()).collect::<Vec<_>>(),
+                    "source_state":bridge.source_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"action_codes":bridge.action_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"action_scores_q24":bridge.action_scores_q24,"counts":bridge.counts},
+                "continuation":s.continuation.as_ref().map(|u|json!({"query_tokens":u.query_tokens,"actual_prefix_tokens":u.actual_prefix_tokens,"state_codes":u.state_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"delta_scores_q24":u.delta_scores_q24,"counts":u.counts,"encoding_coefficient_reads":u.encoding_coefficient_reads}))});
+        write(
+            a,
+            &format!(
+                "candidate-row-{:04}-position-{:02}.json",
+                f.input, f.position
+            ),
+            &json!({"input_index":f.input,"position":f.position,"id":f.id,"actual_prefix_ids":f.prefix,"target_label_only":f.target,"weight":f.weight,"native":snapshot}),
+        )?;
+    }
+    Ok(())
 }
 pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     validate_settings(a)?;
@@ -1183,7 +1425,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         original_field.packed_unary() == finite_field.packed_unary(),
         "Cue seed changed numerical U coefficients",
     )?;
-    let (frames, baseline) = prepare_frames(a, c, &original, &finite)?;
+    let (frames, baseline) = prepare_frames(a, c, &original, &finite, false)?;
     for f in &frames {
         let state = codes(&f.native["continuation"]["state_codes"])?;
         let mut scores = vec![0; 4096];
@@ -1275,7 +1517,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         start,
         &frames,
         &finite,
-        &cw,
+        &ActiveCredit::Cue(&cw),
         &g,
         &cue_parent,
         &pools,
@@ -1376,76 +1618,13 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 "categorical":l.categorical.as_ref().map(|x|identities(&x.parameters())).transpose()?}),
             "Cue frozen Generate/bridge master changed",
         )?;
-        let (cp, field, receipt) = export_joint(a, &l, &cw, &original, d)?;
+        let (cp, field, receipt) = export_joint(a, &l, &cw, None, &original, d)?;
         replay_require(
             fs::read(a.out.join("checkpoint-0001/native/consumer/context-q4.bin"))?
                 == fs::read(fcp.join("native/consumer/context-q4.bin"))?,
             "Cue recorded Context packed payload differs",
         )?;
-        let fields = field.to_bytes()?;
-        let hash = sha256_bytes(&fields);
-        let mut native = cp.generator()?.with_continuation_field(BoundNativeBytes {
-            bytes: &fields,
-            sha256: &hash,
-        })?;
-        let legal = NativeVocabularyActions::new(cp.integer.binding().clone(), &cp.exp)?
-            .legal_token_ids()
-            .iter()
-            .copied()
-            .collect();
-        let eps = load_panel(
-            &a.training_inputs,
-            &a.training_labels,
-            &cp.integer,
-            &cp.tokenizer,
-            &legal,
-            512,
-        )?;
-        for (f, expected) in frames.iter().zip(&pools) {
-            let bank = native.admit_bank(continuation_snapshot(&eps[f.input].packet)?)?;
-            let s = native.step(&bank, &f.prefix)?;
-            replay_require(
-                s.generate_raw_scores_q24 == expected.generate
-                    && s.copy_raw_scores_q24 == expected.copy
-                    && s.copy_token_ids == f.ids
-                    && s.post_state == expected.post
-                    && s.actions == expected.trace,
-                "Cue constructed/exported full pool differs",
-            )?;
-            let bridge = s
-                .bridge
-                .as_ref()
-                .ok_or_else(|| bad("Cue reload bridge missing"))?;
-            replay_require(
-                bridge.selected_ordinal == expected.donor,
-                "Cue reloaded donor differs",
-            )?;
-            let u = s
-                .continuation
-                .as_ref()
-                .ok_or_else(|| bad("Cue reloaded U witness missing"))?;
-            replay_require(
-                u.delta_scores_q24 == f.u
-                    && u.state_codes == codes(&f.native["continuation"]["state_codes"])?
-                    && u.query_tokens == idx(&f.native["continuation"]["query_tokens"])?
-                    && u.actual_prefix_tokens
-                        == idx(&f.native["continuation"]["actual_prefix_tokens"])?,
-                "Cue reloaded U state/scores changed",
-            )?;
-            let snapshot = json!({"generate_q24":s.generate_raw_scores_q24,"copy_ids":s.copy_token_ids,"copy_q24":s.copy_raw_scores_q24,
-                "pool":s.actions,"post_state":s.post_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"bank_trace":s.bank_trace,
-                "bridge":{"selected_ordinal":bridge.selected_ordinal,"selected_candidate":bridge.selected_candidate,"query_state":bridge.query_state.iter().map(|x|x.index()).collect::<Vec<_>>(),
-                    "source_state":bridge.source_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"action_codes":bridge.action_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"action_scores_q24":bridge.action_scores_q24,"counts":bridge.counts},
-                "continuation":s.continuation.as_ref().map(|u|json!({"query_tokens":u.query_tokens,"actual_prefix_tokens":u.actual_prefix_tokens,"state_codes":u.state_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"delta_scores_q24":u.delta_scores_q24,"counts":u.counts,"encoding_coefficient_reads":u.encoding_coefficient_reads}))});
-            write(
-                a,
-                &format!(
-                    "candidate-row-{:04}-position-{:02}.json",
-                    f.input, f.position
-                ),
-                &json!({"input_index":f.input,"position":f.position,"id":f.id,"actual_prefix_ids":f.prefix,"target_label_only":f.target,"weight":f.weight,"native":snapshot}),
-            )?;
-        }
+        reload_candidate(a, &cp, &field, &frames, &pools)?;
         Ok(receipt)
     });
     replay_require(
