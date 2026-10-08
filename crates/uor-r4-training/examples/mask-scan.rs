@@ -70,25 +70,25 @@ fn main() {
     // `Assistant:` marker, until the next role marker or the end of the conversation region).
     if let Some(idx) = argv.iter().position(|a| a == "--write-mask") {
         let out = argv.get(idx + 1).expect("--write-mask needs a path");
+        // Contract from dialogue_episodes.rs:385-405: the assistant marker itself is mask=0 and
+        // the response run starts immediately after it, ends at a genuine terminal EOS inclusive,
+        // and contains no other EOS.
         let assistant: Vec<u16> = tokenizer.encode("Assistant:").into_iter().map(|i| i as u16).collect();
-        let user: Vec<u16> = tokenizer.encode("User:").into_iter().map(|i| i as u16).collect();
-        let mut marks = vec![(0usize, 0u8); 0];
-        for hit in occurrences(&stream, &assistant) {
-            marks.push((hit + assistant.len(), 1));
-        }
-        for hit in occurrences(&stream, &user) {
-            marks.push((hit, 0));
-        }
-        marks.sort_unstable();
+        let eos_id = tokenizer
+            .encode("<|eos|>")
+            .first()
+            .copied()
+            .unwrap_or(u16::MAX as u32) as u16;
         let mut mask = vec![0u8; stream.len()];
-        let mut state = 0u8;
-        let mut next = 0usize;
-        for i in 0..stream.len() {
-            while next < marks.len() && marks[next].0 == i {
-                state = marks[next].1;
-                next += 1;
+        for hit in occurrences(&stream, &assistant) {
+            let mut i = hit + assistant.len();
+            while i < stream.len() {
+                mask[i] = 1;
+                if stream[i] == eos_id {
+                    break;
+                }
+                i += 1;
             }
-            mask[i] = state;
         }
         let ones = mask.iter().filter(|m| **m == 1).count();
         std::fs::write(out, &mask).expect("write mask");

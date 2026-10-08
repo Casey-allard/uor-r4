@@ -1,0 +1,58 @@
+UOR-R4 — First response-region objective run: the output form moves, and a frozen probe breaks
+Date: 2026-10-08 (overnight rounds 55-56). DeepSeek session. References #820.
+
+WHAT RAN
+  geometric-stack dialogue-train with the response mask extracted in rounds 53-55, policy=role_only
+  (train only on response tokens), the frozen 7.16 M shape (pattern rrarra, width 288, heads 6,
+  context 384, read L2), 13,348 steps, batch 16, protocol 2. Final development response nll
+  1.802750876406361. The mask satisfies the strict contract in dialogue_episodes.rs:385-405 - the
+  assistant marker is mask 0, the run starts immediately after it, ends at a terminal EOS inclusive
+  and contains no other EOS.
+
+WHAT MOVED - THE OUTPUT FORM
+  Every previous arm tonight produced prose DESCRIBING the topic of the turn; three probes and a
+  data intervention could not move that. This arm produces instruction-shaped, list-form replies:
+
+    "What ingredients do I need?"  -> "* Preheat your oven to 350 degrees Fahrenheit and grease a
+                                       9-inch cake pan. * P..."
+    cake (second turn)             -> "* A reusable containers * Water * Carrots Music: ..."
+    Japan trip                     -> "* Check visa: [location], [location]"
+    three colours                  -> "* This is point 1. * This is point 2. * This is point 3."
+    procedural opener              -> "* Research the company thoroughly to understand its mission,
+                                       values, and recent news."
+
+  Bullets, imperatives and procedural openers appear for the first time. The model's response FORM
+  is trainable, which nothing earlier in this session demonstrated.
+
+WHAT IT COST - THREE REGRESSIONS, STATED PLAINLY
+  1. FORMAT COLLAPSE. Every reply now begins with "* ", whatever the request, and several are pure
+     bullet spam ("* This is point 1. * This is point 2. * This is point 3."). Training only on
+     response tokens plausibly over-weights the corpus's bullet-heavy assistant style.
+  2. PLACEHOLDERS LEAK. "[location]", "[address]" and "[city]" appear as literal text, the corpus's
+     templated content surfacing now that the model attends to response tokens specifically.
+  3. THE FROZEN FIRST-TOKEN PROBE NO LONGER MEASURES WHAT IT MEASURED. All nine probes return a
+     single space. That is not a regression in answering: the model learned the corpus's separator
+     convention (a response begins with a space after the marker), so a one-token probe now reads
+     the boundary rather than the answer. THE INSTRUMENT IS CONFOUNDED FOR THIS MODEL and reporting
+     "0 of 9" as a result would be wrong. It must skip the separator and read the first content
+     token; that change is a fix to the probe, not a change to the standard.
+
+VERDICT, AND WHAT IT DOES NOT ESTABLISH
+  The objective change did something real - the output shape moved - and it traded prose for a
+  degenerate list habit. NO IMPROVEMENT IS CLAIMED: on the panel as written, instruction compliance
+  is not obviously better and fluency is worse. The two effects are not separated by this arm,
+  because policy=role_only differs from the earlier recipe in two ways at once (it uses a mask at
+  all, and it trains only on response tokens).
+
+THE CONTROL NOW RUNNING
+  policy=full_prefix with the SAME mask and the same recipe, which separates "trains with a
+  response-region signal" from "trains only on response tokens". If the list collapse persists under
+  full_prefix, it comes from the mask's emphasis rather than from excluding prompt tokens; if it
+  disappears, role_only is the cause and the mask alone is the safer objective.
+  Also required before judging: the first-token probe fixed to skip the separator token, since the
+  panel is a weak instrument for a change this coarse.
+
+SCOPE
+  One model size, one policy, one mask, single seed, one panel and one probe. The mask and the
+  training pipeline are new this session, so the infrastructure result (the objective can be trained
+  and served end to end) is more solid than the quality result, which is deliberately not claimed.
