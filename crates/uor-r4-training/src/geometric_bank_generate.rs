@@ -815,9 +815,11 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
         Ok(self)
     }
 
-    /// Opt into the authenticated frozen categorical map's conditional query
-    /// and source full120 pullback. No bridge variables are learned. Hard route,
-    /// native transport, alternatives and the complete alias pool are unchanged.
+    /// Opt into an authenticated categorical map's conditional query and source
+    /// full120 pullback. An attached action carrier additionally receives local
+    /// full120 action utility at the factual relative key. Without that attachment
+    /// the map is frozen. Native transport uses the prepared map in either case;
+    /// hard occurrence selection and the complete alias pool are unchanged.
     /// This is an offline conditional surrogate, not a derivative of argmax.
     /// It cannot be combined with `with_read_state_bridge` in either call order.
     pub fn with_categorical_read_state_bridge(
@@ -1045,7 +1047,15 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
                 .read_state_bridge
                 .is_some_and(|bridge| bridge.categorical())
             {
-                if self.read_selector_credit {
+                if self.read_state_bridge.is_some_and(|bridge| {
+                    matches!(bridge, ReadStateBridge::Categorical(prepared) if prepared.has_action_credit())
+                }) {
+                    if self.read_selector_credit {
+                        "hard-native-allbank-occurrence-read;trainable-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;factual-relative-key-full120-action-choice-credit;no-action-softmax-or-extra-query-carry;detached-contrast-poststate-selector-credit;local-conditional-utility-not-global-hard-runtime-derivative;complete-token-alias-pool/1"
+                    } else {
+                        "hard-native-allbank-occurrence-read;trainable-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;factual-relative-key-full120-action-choice-credit;no-action-softmax-or-extra-query-carry;selector-adjoint-disabled;local-conditional-utility-not-global-hard-runtime-derivative;complete-token-alias-pool/1"
+                    }
+                } else if self.read_selector_credit {
                     "hard-native-allbank-occurrence-read;fixed-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;no-action-softmax-coefficient-credit-or-extra-query-carry;detached-contrast-poststate-selector-credit;local-decoder-state-sensitivity-not-candidate-loss;complete-token-alias-pool/1"
                 } else {
                     "hard-native-allbank-occurrence-read;fixed-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;no-action-softmax-coefficient-credit-or-extra-query-carry;selector-adjoint-disabled;complete-token-alias-pool/1"

@@ -1,8 +1,8 @@
 //! One frozen parent-rooted discrete native-code optimization round. No Adam update.
 use super::*;
 
-type Shadows = BTreeMap<String, Vec<f32>>;
-const BASIS: [&str; 6] = [
+pub(super) type Shadows = BTreeMap<String, Vec<f32>>;
+pub(super) const BASIS: [&str; 6] = [
     "self_transition",
     "neighbor_transition",
     "self_root",
@@ -11,33 +11,33 @@ const BASIS: [&str; 6] = [
     "neighbor_category",
 ];
 #[derive(Clone, Debug, Deserialize, serde::Serialize, PartialEq)]
-struct Edit {
-    name: String,
-    index: usize,
-    before: i8,
-    after: i8,
+pub(super) struct Edit {
+    pub(super) name: String,
+    pub(super) index: usize,
+    pub(super) before: i8,
+    pub(super) after: i8,
 }
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
-struct Proposal {
-    family: String,
-    name: String,
-    row: usize,
+pub(super) struct Proposal {
+    pub(super) family: String,
+    pub(super) name: String,
+    pub(super) row: usize,
     rank_l1: f64,
-    selected_gradient: Vec<f32>,
-    direction: i8,
-    edits: Vec<Edit>,
-    blocked_coordinates: Vec<usize>,
-    status: String,
+    pub(super) selected_gradient: Vec<f32>,
+    pub(super) direction: i8,
+    pub(super) edits: Vec<Edit>,
+    pub(super) blocked_coordinates: Vec<usize>,
+    pub(super) status: String,
 }
 #[derive(Clone, Debug, Deserialize, serde::Serialize)]
-struct Term {
-    index: usize,
-    position: usize,
-    target: u32,
-    component: usize,
-    weight: f64,
+pub(super) struct Term {
+    pub(super) index: usize,
+    pub(super) position: usize,
+    pub(super) target: u32,
+    pub(super) component: usize,
+    pub(super) weight: f64,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    parent_actual_prefix_ids: Option<Vec<u32>>,
+    pub(super) parent_actual_prefix_ids: Option<Vec<u32>>,
 }
 pub(super) fn policy(reached: bool) -> Value {
     let mut result = json!({"schema":"uor-r4.native-code-proposals/1", "rounds":1,"maximum_candidates":18,
@@ -63,7 +63,7 @@ fn code(v: f32) -> Result<i8> {
     )?;
     Ok((v * 4.).round() as i8)
 }
-fn snapshot(params: &BTreeMap<String, Var>) -> Result<Shadows> {
+pub(super) fn snapshot(params: &BTreeMap<String, Var>) -> Result<Shadows> {
     params
         .iter()
         .map(|(name, v)| {
@@ -74,7 +74,7 @@ fn snapshot(params: &BTreeMap<String, Var>) -> Result<Shadows> {
         })
         .collect()
 }
-fn same_bits(a: &Shadows, b: &Shadows) -> bool {
+pub(super) fn same_bits(a: &Shadows, b: &Shadows) -> bool {
     a.len() == b.len()
         && a.iter().all(|(name, x)| {
             b.get(name).is_some_and(|y| {
@@ -82,7 +82,7 @@ fn same_bits(a: &Shadows, b: &Shadows) -> bool {
             })
         })
 }
-fn restore(params: &BTreeMap<String, Var>, parent: &Shadows) -> Result<()> {
+pub(super) fn restore(params: &BTreeMap<String, Var>, parent: &Shadows) -> Result<()> {
     for (name, values) in parent {
         let v = params
             .get(name)
@@ -94,7 +94,7 @@ fn restore(params: &BTreeMap<String, Var>, parent: &Shadows) -> Result<()> {
         "proposal parent bits not restored",
     )
 }
-fn edited(parent: &Shadows, edits: &[Edit]) -> Result<Shadows> {
+pub(super) fn edited(parent: &Shadows, edits: &[Edit]) -> Result<Shadows> {
     let mut expected = parent.clone();
     let mut seen = BTreeSet::new();
     for edit in edits {
@@ -116,7 +116,11 @@ fn edited(parent: &Shadows, edits: &[Edit]) -> Result<Shadows> {
     }
     Ok(expected)
 }
-fn apply_edits(params: &BTreeMap<String, Var>, parent: &Shadows, edits: &[Edit]) -> Result<()> {
+pub(super) fn apply_edits(
+    params: &BTreeMap<String, Var>,
+    parent: &Shadows,
+    edits: &[Edit],
+) -> Result<()> {
     replay_require(
         same_bits(parent, &snapshot(params)?),
         "proposal did not start from parent masters",
@@ -137,7 +141,7 @@ fn apply_edits(params: &BTreeMap<String, Var>, parent: &Shadows, edits: &[Edit])
         "unselected master bits changed",
     )
 }
-fn attempt_restored<T>(
+pub(super) fn attempt_restored<T>(
     params: &BTreeMap<String, Var>,
     parent: &Shadows,
     f: impl FnOnce() -> Result<T>,
@@ -216,7 +220,7 @@ fn make_pair(
     }
     Ok(out)
 }
-fn ranked_pair(
+pub(super) fn ranked_pair(
     family: &str,
     names: &[String],
     width: usize,
@@ -410,7 +414,7 @@ fn terms(eps: &[Episode], indices: &[usize], plan: &ReferencePlan) -> Result<Vec
     }
     Ok(out)
 }
-fn score(
+pub(super) fn score(
     a: &Args,
     p: &ContinuationParent,
     field: &NativeContinuationField,
@@ -475,13 +479,15 @@ fn score(
             "generate_raw_scores_sha256":sha256_bytes(&serde_json::to_vec(&step.generate_raw_scores_q24)?),
             "continuation":continuation_witness(&step)?}));
     }
-    Ok(
-        json!({"task":losses[0],"reference":losses[1],"combined":losses[0]+losses[1],"terms":rows,
+    let mut receipt = json!({"task":losses[0],"reference":losses[1],"combined":losses[0]+losses[1],"terms":rows,
         "source_binding":p.binding,"generate_sha256":p.generate_sha256,"continuation_sha256":sha,
-        "native_calls":terms.len(),"elapsed_seconds":clock.elapsed().as_secs_f64()}),
-    )
+        "native_calls":terms.len(),"elapsed_seconds":clock.elapsed().as_secs_f64()});
+    if a.categorical_action_learning {
+        receipt["categorical_sha256"] = json!(p.bridge_sha256);
+    }
+    Ok(receipt)
 }
-fn objective(value: &Value) -> Result<f64> {
+pub(super) fn objective(value: &Value) -> Result<f64> {
     let v = value["combined"]
         .as_f64()
         .ok_or_else(|| bad("native objective absent"))?;
@@ -568,7 +574,7 @@ fn native_codes(
     );
     Ok(result)
 }
-fn verify_codes(
+pub(super) fn verify_codes(
     p: &ContinuationParent,
     field: &NativeContinuationField,
     expected: &Shadows,
@@ -792,6 +798,7 @@ pub(super) fn verify_final(
         "source_binding",
         "generate_sha256",
         "continuation_sha256",
+        "categorical_sha256",
         "native_calls",
     ] {
         replay_require(

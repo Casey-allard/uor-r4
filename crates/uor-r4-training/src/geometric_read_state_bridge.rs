@@ -320,14 +320,22 @@ impl BridgeLearningWeights {
 /// additional factual-query carry is introduced. Selection remains external.
 pub const CATEGORICAL_CREDIT_SCOPE: &str = "fixed-authenticated-categorical-map;conditional-query-and-source-full120-pushforward;many-to-one-index-add;hard-native-anchor;no-action-softmax-coefficient-credit-or-extra-query-carry;no-occurrence-selection-credit/1";
 
-/// Immutable adapter with no trainable variables. The expected artifact digest
-/// and typed native binding are authenticated here. The caller separately binds
-/// the export receipt to its retained-master provenance.
+/// Authenticated categorical map. `from_bytes` keeps the original immutable
+/// query/source-only adapter. `CategoricalBridgeLearningWeights::prepare_native`
+/// explicitly attaches one live action-choice carrier and a full master snapshot.
+/// The caller separately binds the export receipt to retained-master provenance.
 pub struct PreparedCategoricalBridge {
     native: NativeGeometricReadStateBridge,
     map: Vec<u8>,
     native_sha256: String,
     device: Device,
+    action_credit: Option<CategoricalActionCredit>,
+}
+struct CategoricalActionCredit {
+    choices: Var,
+    snapshot: Tensor,
+    sha256: String,
+    downloaded_master_bytes: usize,
 }
 impl PreparedCategoricalBridge {
     pub fn from_bytes(
@@ -382,6 +390,7 @@ impl PreparedCategoricalBridge {
             map,
             native_sha256: digest,
             device: device.clone(),
+            action_credit: None,
         })
     }
     pub fn native(&self) -> &NativeGeometricReadStateBridge {
@@ -391,7 +400,49 @@ impl PreparedCategoricalBridge {
         &self.native_sha256
     }
 
-    /// Device of the immutable conditional-map pullback carrier.
+    /// Whether this explicitly prepared snapshot carries trainable action credit.
+    pub fn has_action_credit(&self) -> bool {
+        self.action_credit.is_some()
+    }
+    /// Shared categorical actions in [lane, relative] order.
+    pub fn action_map(&self) -> &[u8] {
+        &self.map
+    }
+    pub fn action_choices_sha256(&self) -> Option<&str> {
+        self.action_credit.as_ref().map(|c| c.sha256.as_str())
+    }
+    pub fn downloaded_master_bytes(&self) -> usize {
+        self.action_credit
+            .as_ref()
+            .map_or(0, |c| c.downloaded_master_bytes)
+    }
+    fn admit_action_snapshot(&self) -> Result<()> {
+        if let Some(credit) = &self.action_credit {
+            let current = credit.choices.as_tensor();
+            if current.dims() != [self.native.lanes(), ROOTS, ROOTS]
+                || current.dtype() != DType::F32
+                || !current.device().same_device(&self.device)
+            {
+                return Err(invalid(
+                    "categorical action master shape/dtype/device differs",
+                ));
+            }
+            // Whole-table equality, including currently unvisited keys. The
+            // independent snapshot cannot alias Var::set; NaN/Inf reject too.
+            let error = (current - &credit.snapshot)?
+                .abs()?
+                .sum_all()?
+                .to_scalar::<f32>()?;
+            if error != 0. || !error.is_finite() {
+                return Err(invalid(
+                    "categorical action masters changed; refresh snapshot",
+                ));
+            }
+        }
+        Ok(())
+    }
+
+    /// Device of the conditional-map pullback carrier.
     pub fn device(&self) -> &Device {
         &self.device
     }
@@ -438,6 +489,7 @@ impl PreparedCategoricalBridge {
         query_choices: &Tensor,
         source_choices: &Tensor,
     ) -> Result<BridgeLearningOutput> {
+        self.admit_action_snapshot()?;
         let (qi, ki) = self.conditional_maps(query, selected_source)?;
         carrier_admit(query_choices, query, &self.device)?;
         carrier_admit(source_choices, selected_source, &self.device)?;
@@ -464,17 +516,165 @@ impl PreparedCategoricalBridge {
         };
         let qpush = push(qi, query_choices)?;
         let kpush = push(ki, source_choices)?;
-        let state_choices = ((hard_choices(&post, &self.device)? + (&qpush - qpush.detach())?)?
+        let mut state_choices = ((hard_choices(&post, &self.device)?
+            + (&qpush - qpush.detach())?)?
             + (&kpush - kpush.detach())?)?;
+        if let Some(credit) = &self.action_credit {
+            let algebra = self.native.algebra().map_err(native_error)?;
+            let mut rows = Vec::with_capacity(lanes);
+            let mut indices = Vec::with_capacity(lanes * ROOTS);
+            for lane in 0..lanes {
+                let q = query[lane].index();
+                let d = algebra
+                    .compose(
+                        algebra.inverse(q).map_err(native_error)?,
+                        selected_source[lane].index(),
+                    )
+                    .map_err(native_error)?;
+                rows.push(
+                    credit
+                        .choices
+                        .narrow(0, lane, 1)?
+                        .narrow(1, usize::from(d), 1)?
+                        .reshape(ROOTS)?,
+                );
+                for action in 0..ROOTS as u8 {
+                    let output = algebra.compose(q, action).map_err(native_error)?;
+                    indices.push((lane * ROOTS + usize::from(output)) as u32);
+                }
+            }
+            // One factual-key action carrier. The existing query/source maps
+            // contain detached native action IDs, so this adds neither a second
+            // action derivative through them nor an extra factual-query carry.
+            let action_push = push(indices, &Tensor::stack(&rows, 0)?)?;
+            state_choices = (state_choices + (&action_push - action_push.detach())?)?;
+        }
         Ok(BridgeLearningOutput {
             post_state_codes: post,
             action_codes: actions,
             state_choices,
             action_scores_q24: scores,
             counts,
-            validation_scalar_reads: 2,
-            credit_scope: CATEGORICAL_CREDIT_SCOPE,
+            validation_scalar_reads: 2 + usize::from(self.has_action_credit()),
+            credit_scope: if self.has_action_credit() {
+                TRAINABLE_CATEGORICAL_CREDIT_SCOPE
+            } else {
+                CATEGORICAL_CREDIT_SCOPE
+            },
         })
+    }
+}
+
+/// Hard native categorical map with separate first-order conditional credit for
+/// query, selected source, and the factual shared action-choice row. No softmax,
+/// coefficient-energy derivative or additional query carry is used. Replacement
+/// ranking must use g[new] - g[current], aggregated over all visits to a key;
+/// these utilities are not exact native candidate losses.
+pub const TRAINABLE_CATEGORICAL_CREDIT_SCOPE: &str = "authenticated-trainable-categorical-map;conditional-query-and-source-full120-pushforward-once;factual-shared-key-full120-action-utility-once;hard-native-anchor;no-softmax-extra-query-carry-or-occurrence-selection-credit;first-order-conditional-surrogate-not-global-posterior/1";
+
+/// Offline shared categorical choices in [lane, relative, action] order.
+/// Parent initialization is exactly one-hot. Finite masters select a native
+/// argmax with identity-first strict ties; master magnitudes are not energies.
+pub struct CategoricalBridgeLearningWeights {
+    binding: SourceActionBinding,
+    lanes: usize,
+    pub action_choices: Var,
+}
+impl CategoricalBridgeLearningWeights {
+    pub fn from_bytes(
+        bytes: &[u8],
+        binding: &SourceActionBinding,
+        expected_native_sha256: &str,
+        device: &Device,
+    ) -> Result<Self> {
+        let parent =
+            PreparedCategoricalBridge::from_bytes(bytes, binding, expected_native_sha256, device)?;
+        let lanes = parent.native.lanes();
+        let mut choices = vec![0f32; lanes * ROOTS * ROOTS];
+        for (key, &action) in parent.map.iter().enumerate() {
+            choices[key * ROOTS + usize::from(action)] = 1.;
+        }
+        let weights = Self {
+            binding: binding.clone(),
+            lanes,
+            action_choices: Var::from_vec(choices, (lanes, ROOTS, ROOTS), device)?,
+        };
+        if weights.export_native()?.to_bytes().map_err(native_error)? != bytes {
+            return Err(invalid("categorical action parent roundtrip differs"));
+        }
+        Ok(weights)
+    }
+    pub fn parameters(&self) -> BTreeMap<String, Var> {
+        BTreeMap::from([(
+            "categorical_bridge.action_choices".into(),
+            self.action_choices.clone(),
+        )])
+    }
+    pub fn lanes(&self) -> usize {
+        self.lanes
+    }
+    pub fn binding(&self) -> &SourceActionBinding {
+        &self.binding
+    }
+    pub fn device(&self) -> &Device {
+        self.action_choices.device()
+    }
+    pub fn prepare_native(&self) -> Result<PreparedCategoricalBridge> {
+        device_admit(self.device())?;
+        if self.action_choices.dims() != [self.lanes, ROOTS, ROOTS]
+            || self.action_choices.dtype() != DType::F32
+        {
+            return Err(invalid("categorical action master shape/dtype differs"));
+        }
+        let masters = self.action_choices.flatten_all()?.to_vec1::<f32>()?;
+        if masters.iter().any(|v| !v.is_finite()) {
+            return Err(invalid("categorical action masters must be finite"));
+        }
+        let mut markers = vec![0f32; masters.len()];
+        for (key, row) in masters.chunks_exact(ROOTS).enumerate() {
+            let mut chosen = usize::from(H4Code::IDENTITY.index());
+            for action in 0..ROOTS {
+                if row[action] > row[chosen] {
+                    chosen = action;
+                }
+            }
+            let lane = key / ROOTS;
+            let relative = key % ROOTS;
+            // Runtime payload order is [lane, action, padded-relative].
+            markers[(lane * ROOTS + chosen) * ROOTS + relative] = 0.25;
+        }
+        let native = NativeGeometricReadStateBridge::compile(
+            &self.binding,
+            self.lanes,
+            &vec![0; self.lanes * BIAS_BYTES_PER_LANE],
+            &pack(&markers, true)?,
+        )
+        .map_err(native_error)?;
+        let bytes = native.to_bytes().map_err(native_error)?;
+        let mut prepared = PreparedCategoricalBridge::from_bytes(
+            &bytes,
+            &self.binding,
+            &sha256_bytes(&bytes),
+            self.device(),
+        )?;
+        if prepared.native.to_bytes().map_err(native_error)? != bytes {
+            return Err(invalid("categorical action native reload differs"));
+        }
+        let master_bytes = masters
+            .iter()
+            .flat_map(|x| x.to_le_bytes())
+            .collect::<Vec<_>>();
+        prepared.action_credit = Some(CategoricalActionCredit {
+            choices: self.action_choices.clone(),
+            // Fresh storage, never a detached view of mutable Var storage.
+            snapshot: Tensor::from_vec(masters, (self.lanes, ROOTS, ROOTS), self.device())?,
+            sha256: sha256_bytes(&master_bytes),
+            downloaded_master_bytes: master_bytes.len(),
+        });
+        Ok(prepared)
+    }
+    pub fn export_native(&self) -> Result<NativeGeometricReadStateBridge> {
+        Ok(self.prepare_native()?.native)
     }
 }
 
@@ -1076,6 +1276,297 @@ mod categorical_pullback_tests {
                 assert_eq!(ki[usize::from(k)], u32::from(post[0].index()));
             }
         }
+        Ok(())
+    }
+    fn trainable(
+        p: &PreparedCategoricalBridge,
+        binding: &SourceActionBinding,
+    ) -> Result<CategoricalBridgeLearningWeights> {
+        CategoricalBridgeLearningWeights::from_bytes(
+            &p.native().to_bytes().map_err(native_error)?,
+            binding,
+            p.native_sha256(),
+            p.device(),
+        )
+    }
+    #[test]
+    fn categorical_action_parent_export_and_replacement_contract() -> Result<()> {
+        let map = (0..2 * ROOTS)
+            .map(|i| (i % ROOTS) as u8)
+            .collect::<Vec<_>>();
+        let (binding, parent) = fixture(&map, &Device::Cpu)?;
+        let w = trainable(&parent, &binding)?;
+        let original = parent.native().to_bytes().map_err(native_error)?;
+        assert_eq!(
+            w.export_native()?.to_bytes().map_err(native_error)?,
+            original
+        );
+        let prepared = w.prepare_native()?;
+        assert!(!parent.has_action_credit());
+        assert!(prepared.has_action_credit());
+        assert_eq!(prepared.action_map(), map);
+        assert_eq!(prepared.downloaded_master_bytes(), 2 * ROOTS * ROOTS * 4);
+        assert_eq!(
+            w.parameters().keys().cloned().collect::<Vec<_>>(),
+            vec!["categorical_bridge.action_choices"]
+        );
+        let mut masters = w.action_choices.flatten_all()?.to_vec1::<f32>()?;
+        assert_eq!(
+            prepared.action_choices_sha256(),
+            Some(
+                sha256_bytes(
+                    &masters
+                        .iter()
+                        .flat_map(|x| x.to_le_bytes())
+                        .collect::<Vec<_>>()
+                )
+                .as_str()
+            )
+        );
+        let key = ROOTS + 11;
+        masters[key * ROOTS..(key + 1) * ROOTS].fill(0.);
+        masters[key * ROOTS + 7] = 1.;
+        w.action_choices.set(&Tensor::from_vec(
+            masters.clone(),
+            (2, ROOTS, ROOTS),
+            &Device::Cpu,
+        )?)?;
+        let changed = w.prepare_native()?;
+        let mut expected = map;
+        expected[key] = 7;
+        assert_eq!(changed.action_map(), expected);
+        for lane in 0..2 {
+            for action in 0..ROOTS {
+                assert_eq!(
+                    changed
+                        .native()
+                        .coefficient_bias(lane, action)
+                        .map_err(native_error)?,
+                    0
+                );
+                for relative in 0..ROOTS {
+                    assert_eq!(
+                        changed
+                            .native()
+                            .coefficient_relative(lane, action, relative)
+                            .map_err(native_error)?,
+                        if action == usize::from(expected[lane * ROOTS + relative]) {
+                            1
+                        } else {
+                            0
+                        }
+                    );
+                }
+            }
+        }
+        let bytes = changed.native().to_bytes().map_err(native_error)?;
+        assert_eq!(
+            NativeGeometricReadStateBridge::from_bytes(&bytes, &binding)
+                .map_err(native_error)?
+                .to_bytes()
+                .map_err(native_error)?,
+            bytes
+        );
+        // A tie exports the native identity-first rule, not the lowest index.
+        masters[key * ROOTS..(key + 1) * ROOTS].fill(0.);
+        w.action_choices.set(&Tensor::from_vec(
+            masters.clone(),
+            (2, ROOTS, ROOTS),
+            &Device::Cpu,
+        )?)?;
+        assert_eq!(
+            w.prepare_native()?.action_map()[key],
+            H4Code::IDENTITY.index()
+        );
+        masters[0] = f32::NAN;
+        w.action_choices
+            .set(&Tensor::from_vec(masters, (2, ROOTS, ROOTS), &Device::Cpu)?)?;
+        assert!(w.prepare_native().is_err());
+        assert!(CategoricalBridgeLearningWeights::from_bytes(
+            &original,
+            &binding,
+            "wrong",
+            &Device::Cpu
+        )
+        .is_err());
+        Ok(())
+    }
+    fn categorical_action_adjoint_fixture(device: &Device) -> Result<Vec<Vec<f32>>> {
+        let map = (0..2 * ROOTS)
+            .map(|i| if i % 3 == 0 { 0 } else { 1 })
+            .collect::<Vec<_>>();
+        let (binding, parent) = fixture(&map, device)?;
+        let w = trainable(&parent, &binding)?;
+        let prepared = w.prepare_native()?;
+        let q = [code(7)?, code(31)?];
+        let k = [code(11)?, code(119)?];
+        let qc = Var::from_tensor(&hard_choices(&q, device)?)?;
+        let kc = Var::from_tensor(&hard_choices(&k, device)?)?;
+        let old = parent.forward(&q, &k, qc.as_tensor(), kc.as_tensor())?;
+        let new = prepared.forward(&q, &k, qc.as_tensor(), kc.as_tensor())?;
+        assert_eq!(old.post_state_codes, new.post_state_codes);
+        assert_eq!(old.action_codes, new.action_codes);
+        assert_eq!(old.action_scores_q24, new.action_scores_q24);
+        assert_eq!(
+            old.state_choices.to_vec2::<f32>()?,
+            new.state_choices.to_vec2::<f32>()?
+        );
+        assert_eq!(new.credit_scope, TRAINABLE_CATEGORICAL_CREDIT_SCOPE);
+        let u = utility(2 * ROOTS, device)?;
+        let og = old.state_choices.mul(&u)?.sum_all()?.backward()?;
+        let ng = new.state_choices.mul(&u)?.sum_all()?.backward()?;
+        for carrier in [&qc, &kc] {
+            assert_eq!(
+                og.get(carrier.as_tensor())
+                    .ok_or_else(|| invalid("old context credit absent"))?
+                    .to_vec2::<f32>()?,
+                ng.get(carrier.as_tensor())
+                    .ok_or_else(|| invalid("new context credit absent"))?
+                    .to_vec2::<f32>()?
+            );
+        }
+        let actual = ng
+            .get(w.action_choices.as_tensor())
+            .ok_or_else(|| invalid("action credit absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let utilities = u.flatten_all()?.to_vec1::<f32>()?;
+        let algebra = prepared.native().algebra().map_err(native_error)?;
+        let mut expected = vec![0f32; 2 * ROOTS * ROOTS];
+        for lane in 0..2 {
+            let d = algebra
+                .compose(
+                    algebra.inverse(q[lane].index()).map_err(native_error)?,
+                    k[lane].index(),
+                )
+                .map_err(native_error)?;
+            for action in 0..ROOTS as u8 {
+                let post = algebra
+                    .compose(q[lane].index(), action)
+                    .map_err(native_error)?;
+                expected[(lane * ROOTS + usize::from(d)) * ROOTS + usize::from(action)] =
+                    utilities[lane * ROOTS + usize::from(post)];
+            }
+        }
+        assert_eq!(actual, expected);
+        let mut gradients = vec![actual];
+        for carrier in [&qc, &kc] {
+            gradients.push(
+                ng.get(carrier.as_tensor())
+                    .ok_or_else(|| invalid("context credit absent"))?
+                    .flatten_all()?
+                    .to_vec1::<f32>()?,
+            );
+        }
+        Ok(gradients)
+    }
+    #[test]
+    fn categorical_action_full120_adjoint_preserves_context_credit_once() -> Result<()> {
+        categorical_action_adjoint_fixture(&Device::Cpu)?;
+        Ok(())
+    }
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires an explicitly leased CUDA GPU; no skipped parity claim"]
+    fn categorical_action_cuda_full120_adjoint_matches_cpu_and_frozen_context_credit() -> Result<()>
+    {
+        let device = Device::new_cuda(0)?;
+        assert_eq!(
+            categorical_action_adjoint_fixture(&Device::Cpu)?,
+            categorical_action_adjoint_fixture(&device)?,
+        );
+        Ok(())
+    }
+    #[test]
+    fn categorical_action_shared_key_sums_conflicting_utilities_and_constant_contrasts(
+    ) -> Result<()> {
+        let (binding, parent) = fixture(&vec![1; ROOTS], &Device::Cpu)?;
+        let w = trainable(&parent, &binding)?;
+        let prepared = w.prepare_native()?;
+        let algebra = prepared.native().algebra().map_err(native_error)?;
+        let d = 11u8;
+        let mut losses = Vec::new();
+        for (query, scale) in [(7u8, 1f32), (31u8, -2f32)] {
+            let q = [code(query)?];
+            let k = [code(algebra.compose(query, d).map_err(native_error)?)?];
+            let out = prepared.forward(
+                &q,
+                &k,
+                &hard_choices(&q, &Device::Cpu)?,
+                &hard_choices(&k, &Device::Cpu)?,
+            )?;
+            let mut u = vec![0f32; ROOTS];
+            for action in 0..ROOTS as u8 {
+                u[usize::from(algebra.compose(query, action).map_err(native_error)?)] =
+                    scale * f32::from(action);
+            }
+            losses.push(
+                out.state_choices
+                    .mul(&Tensor::from_vec(u, (1, ROOTS), &Device::Cpu)?)?
+                    .sum_all()?,
+            );
+        }
+        let grads = (&losses[0] + &losses[1])?.backward()?;
+        let actual = grads
+            .get(w.action_choices.as_tensor())
+            .ok_or_else(|| invalid("shared action credit absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let mut expected = vec![0f32; ROOTS * ROOTS];
+        for action in 0..ROOTS {
+            expected[usize::from(d) * ROOTS + action] = -(action as f32);
+        }
+        assert_eq!(actual, expected);
+        let q = [code(7)?];
+        let k = [code(algebra.compose(7, d).map_err(native_error)?)?];
+        let out = prepared.forward(
+            &q,
+            &k,
+            &hard_choices(&q, &Device::Cpu)?,
+            &hard_choices(&k, &Device::Cpu)?,
+        )?;
+        let grads = out.state_choices.sum_all()?.backward()?;
+        let values = grads
+            .get(w.action_choices.as_tensor())
+            .ok_or_else(|| invalid("constant action credit absent"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        let at = usize::from(d) * ROOTS;
+        let current = usize::from(prepared.action_map()[usize::from(d)]);
+        for action in 0..ROOTS {
+            assert_eq!(values[at + action], 1.);
+            assert_eq!(values[at + action] - values[at + current], 0.);
+        }
+        Ok(())
+    }
+    #[test]
+    fn categorical_action_snapshot_rejects_unvisited_master_motion() -> Result<()> {
+        let (binding, parent) = fixture(&vec![1; ROOTS], &Device::Cpu)?;
+        let w = trainable(&parent, &binding)?;
+        let prepared = w.prepare_native()?;
+        let q = [H4Code::IDENTITY];
+        let k = [H4Code::IDENTITY];
+        let qc = hard_choices(&q, &Device::Cpu)?;
+        let kc = hard_choices(&k, &Device::Cpu)?;
+        prepared.forward(&q, &k, &qc, &kc)?;
+        let mut masters = w.action_choices.flatten_all()?.to_vec1::<f32>()?;
+        // Unvisited relative key2, losing action3: hard map is unchanged.
+        masters[2 * ROOTS + 3] = 0.125;
+        w.action_choices
+            .set(&Tensor::from_vec(masters, (1, ROOTS, ROOTS), &Device::Cpu)?)?;
+        assert_eq!(
+            w.export_native()?.to_bytes().map_err(native_error)?,
+            parent.native().to_bytes().map_err(native_error)?
+        );
+        assert!(prepared.forward(&q, &k, &qc, &kc).is_err());
+        let fresh = w.prepare_native()?;
+        assert_ne!(
+            fresh.action_choices_sha256(),
+            prepared.action_choices_sha256()
+        );
+        fresh.forward(&q, &k, &qc, &kc)?;
+        // The immutable constructor never picks up live action credit.
+        parent.forward(&q, &k, &qc, &kc)?;
         Ok(())
     }
     #[cfg(feature = "cuda")]

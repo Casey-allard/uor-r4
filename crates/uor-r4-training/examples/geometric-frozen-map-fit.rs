@@ -49,9 +49,13 @@ use uor_r4_training::{
         source_realizer::{NativeSourceRealizer, SourceRealizerWeights},
         ConsumerIdentity,
     },
-    geometric_read_state_bridge::{BridgeLearningWeights, PreparedCategoricalBridge},
+    geometric_read_state_bridge::{
+        BridgeLearningWeights, CategoricalBridgeLearningWeights, PreparedCategoricalBridge,
+    },
     sha256_bytes, sha256_file,
 };
+#[path = "geometric_frozen_map_fit/categorical_proposals.rs"]
+mod categorical_proposals;
 #[path = "geometric_frozen_map_fit/frontier.rs"]
 mod frontier;
 #[path = "geometric_frozen_map_fit/native_proposals.rs"]
@@ -130,6 +134,10 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    replay_require(
+        !a.categorical_action_learning || a.reached_frontier_objective,
+        "categorical action learning requires the reached frontier joint pilot",
+    )?;
     if a.reached_frontier_objective && !a.native_code_proposals {
         return Err(bad(
             "reached frontier objective requires native code proposals",
@@ -167,8 +175,8 @@ fn reference_replay_settings(a: &Args) -> Result<()> {
     Ok(())
 }
 
-/// The joint rung keeps prototypes and the categorical bridge frozen. These
-/// rates change only the declared four active families, never parent selection.
+/// Legacy joint rates change four declared families with prototypes/map frozen.
+/// The opt-in categorical pilot uses its explicit native two-block rule instead.
 #[derive(Clone, Copy, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct JointContinuationConfig {
@@ -421,6 +429,8 @@ struct Args {
     native_code_proposals: bool,
     #[serde(default)]
     reached_frontier_objective: bool,
+    #[serde(default)]
+    categorical_action_learning: bool,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -1924,12 +1934,41 @@ struct Loaded {
     generate: GenerateLearningWeights,
     original_bridge: BridgeLearningWeights,
     marker: BridgeLearningWeights,
+    categorical: Option<CategoricalBridgeLearningWeights>,
     cue: CueAngularQ4,
     prefix: PrefixAngularQ4,
     exp: Vec<u8>,
     receipt: Value,
     categorical_receipt: Value,
 }
+impl Loaded {
+    fn prepared_categorical(&self, d: &Device) -> Result<PreparedCategoricalBridge> {
+        if let Some(weights) = &self.categorical {
+            Ok(weights.prepare_native()?)
+        } else {
+            Ok(PreparedCategoricalBridge::from_bytes(
+                &self.marker.export_native()?.to_bytes()?,
+                self.generate.binding(),
+                CAT_SHA,
+                d,
+            )?)
+        }
+    }
+    fn categorical_bytes(&self) -> Result<Vec<u8>> {
+        match &self.categorical {
+            Some(weights) => Ok(weights.export_native()?.to_bytes()?),
+            None => Ok(self.marker.export_native()?.to_bytes()?),
+        }
+    }
+}
+fn proposal_policy(a: &Args) -> Value {
+    if a.categorical_action_learning {
+        categorical_proposals::policy()
+    } else {
+        native_proposals::policy(a.reached_frontier_objective)
+    }
+}
+
 fn authenticate(a: &Args) -> Result<()> {
     report_output::verify(&a.saved_fit)?;
     report_output::verify(&a.categorical)?;
@@ -2104,6 +2143,7 @@ fn load(a: &Args, d: &Device) -> Result<Loaded> {
         generate,
         original_bridge,
         marker,
+        categorical: None,
         cue,
         prefix,
         exp,
@@ -2150,15 +2190,17 @@ fn batch(
 }
 
 fn joint_active(
-    source: &SourceRealizerWeights,
-    generate: &GenerateLearningWeights,
+    l: &Loaded,
     continuation: &ContinuationLearningWeights,
 ) -> Result<BTreeMap<String, Var>> {
-    let mut parameters = active(source, generate)?;
+    let mut parameters = active(&l.source, &l.generate)?;
     if parameters.remove("generate.prototype_choices").is_none() {
         return Err(bad("joint frozen prototype family absent"));
     }
     parameters.extend(continuation.parameters());
+    if let Some(categorical) = &l.categorical {
+        parameters.extend(categorical.parameters());
+    }
     Ok(parameters)
 }
 
@@ -2217,15 +2259,10 @@ fn batch_live_weighted(
     if sha256_bytes(&bs.native.to_bytes()?) != CAT_SHA {
         return Err(bad("frozen categorical map changed"));
     }
-    // Re-authenticate the same marker snapshot at every batch preparation.
-    // Context/Potential/Generate may have changed; the frozen map may not.
+    // The historical marker remains authenticated above; the explicit learned
+    // mode prepares a fresh current action map and master snapshot below.
     let categorical = if a.read_state_pullback == ReadStatePullback::Categorical {
-        Some(PreparedCategoricalBridge::from_bytes(
-            &bs.native.to_bytes()?,
-            l.generate.binding(),
-            CAT_SHA,
-            d,
-        )?)
+        Some(l.prepared_categorical(d)?)
     } else {
         None
     };
@@ -2251,7 +2288,7 @@ fn batch_live_weighted(
             .with_continuation_context_credit(true)?;
     }
     let params = if let Some(weights) = continuation {
-        joint_active(&l.source, &l.generate, weights)?
+        joint_active(l, weights)?
     } else {
         active(&l.source, &l.generate)?
     };
@@ -2453,7 +2490,11 @@ fn batch_live_weighted(
         "phase_positions":phase_positions,"phase_losses":phase_losses,
         "independent_native_parity":independent.is_some(),
         "matched_forward_loss_bit_equal":independent.is_some(),
-        "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"token_backward_chunk":1,"frozen_bridge_excluded_from_gradient_accumulation":true,
+        "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"token_backward_chunk":1,"frozen_bridge_excluded_from_gradient_accumulation":l.categorical.is_none(),
+        "historical_quarter_and_marker_excluded_from_gradient_accumulation":true,
+        "current_categorical_sha256":categorical.as_ref().map(|c|c.native_sha256()),
+        "current_categorical_master_sha256":categorical.as_ref().and_then(|c|c.action_choices_sha256()),
+        "categorical_master_download_bytes":categorical.as_ref().map(|c|c.downloaded_master_bytes()),
         "joint_continuation":continuation.is_some(),"prototype_excluded_from_gradient_accumulation_and_clip":continuation.is_some(),
         "current_source_binding":current.execution_binding()?,
         "current_generate_sha256":sha256_bytes(&gs.native.to_bytes()?),
@@ -2573,8 +2614,8 @@ fn checkpoint(
         &a.checkpoint.join("read-state-bridge-source"),
         &root.join("read-state-bridge-source"),
     )?;
-    let cat = l.marker.export_native()?.to_bytes()?;
-    if sha256_bytes(&cat) != CAT_SHA {
+    let cat = l.categorical_bytes()?;
+    if l.categorical.is_none() && sha256_bytes(&cat) != CAT_SHA {
         return Err(bad("categorical frozen map changed"));
     }
     fs::write(root.join("read-state-bridge-categorical.bin"), &cat)?;
@@ -2608,10 +2649,44 @@ fn checkpoint(
             .export_categorical_actions()?
             .native
             .to_bytes()?
-            != cat
+            != l.marker.export_native()?.to_bytes()?
     {
-        return Err(bad("independently restored frozen original/map differs"));
+        return Err(bad(
+            "independently restored historical original/map differs",
+        ));
     }
+    // Historical quarter masters retain their original map provenance. Learned
+    // categorical choices have a separate current artifact and master receipt.
+    let categorical_masters = if let Some(weights) = &l.categorical {
+        let dir = root.join("categorical-action-source");
+        let masters = save_masters(&dir, &weights.parameters())?;
+        let restored = CategoricalBridgeLearningWeights::from_bytes(
+            &cat,
+            integer.binding(),
+            &sha256_bytes(&cat),
+            &Device::Cpu,
+        )?;
+        restore(&dir, &masters, &restored.parameters(), &Device::Cpu)?;
+        replay_require(
+            restored.export_native()?.to_bytes()? == cat,
+            "categorical action masters/native independent reload differs",
+        )?;
+        replay_require(
+            identities(&restored.parameters())? == identities(&weights.parameters())?,
+            "categorical action restored master identities differ",
+        )?;
+        fs::write(
+            dir.join("metadata.json"),
+            serde_json::to_vec_pretty(&json!({
+                "parameters":masters,"categorical_sha256":sha256_bytes(&cat),
+                "original_categorical_sha256":CAT_SHA,"original_quarter_sha256":QUARTER_SHA,
+                "lanes":weights.lanes(),"tokenizer_sha256":integer.binding().tokenizer_sha256()
+            }))?,
+        )?;
+        Some(masters)
+    } else {
+        None
+    };
     let cue = integer.compile_cue_carrier(l.cue.clone())?;
     let prefix = integer.compile_prefix_transport(&cue, prefix_clone(&l.prefix)?)?;
     fs::create_dir(root.join("cue"))?;
@@ -2641,14 +2716,21 @@ fn checkpoint(
         return Err(bad("frozen sidecar/exp payload reload differs"));
     }
     let old_binding = &l.receipt["parent"];
-    let receipt = json!({"step":step,"parent":binding,"original_parent":old_binding,
+    let mut receipt = json!({"step":step,"parent":binding,"original_parent":old_binding,
         "source_metadata_rebound":serde_json::to_value(&binding)?!=*old_binding,
         "binding_scope":"source context/potential metadata honestly rebound; typed action bindings checked against current artifact; unchanged bridge coefficients, original masters and map bytes independently verified",
-        "generate_sha256":sha256_bytes(&genbytes),"original_quarter_sha256":QUARTER_SHA,"categorical_sha256":CAT_SHA,
+        "generate_sha256":sha256_bytes(&genbytes),"original_quarter_sha256":QUARTER_SHA,"categorical_sha256":sha256_bytes(&cat),
         "categorical_receipt":l.categorical_receipt,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"order_seed":a.seed,
         "native_independently_reloaded":true,"masters_independently_reloaded":true,
         "fresh_adam":"moments zero-initialized; not historical optimizer continuation",
         "frozen_bridge_training":"marker parameters excluded from Adam and clip; original masters unchanged"});
+    if let Some(masters) = categorical_masters {
+        receipt["categorical_action_learning"] = json!({"parameters":masters,
+            "original_categorical_sha256":CAT_SHA,"current_categorical_sha256":sha256_bytes(&cat),
+            "independent_master_and_native_reload":true});
+        receipt["binding_scope"] = json!("current source metadata and current categorical action artifact independently rebound and reloaded; historical quarter masters and their parent map preserved separately");
+        receipt["frozen_bridge_training"] = json!("historical quarter/marker masters unchanged; separately trained categorical action choices exported as one-marker zero-bias map");
+    }
     fs::write(
         root.join("receipt.json"),
         serde_json::to_vec_pretty(&receipt)?,
@@ -4730,6 +4812,7 @@ fn load_joint_continuation(a: &Args, p: &ContinuationParent, d: &Device) -> Resu
         generate,
         original_bridge,
         marker,
+        categorical: None,
         cue,
         prefix,
         exp: p.exp.clone(),
@@ -4782,9 +4865,7 @@ fn joint_checkpoint(
     receipt["mode"] = json!("joint_continuation");
     receipt["continuation_sha256"] = json!(sha256_bytes(&bytes));
     receipt["continuation_parameters"] = masters;
-    receipt["active_parameter_names"] = json!(joint_active(&l.source, &l.generate, weights)?
-        .keys()
-        .collect::<Vec<_>>());
+    receipt["active_parameter_names"] = json!(joint_active(l, weights)?.keys().collect::<Vec<_>>());
     receipt["frozen_prototype_masters"] = json!(identities(&BTreeMap::from([(
         "generate.prototype_choices".into(),
         l.generate.prototype_choices.clone(),
@@ -4802,9 +4883,12 @@ fn joint_checkpoint(
     }
     receipt["credit_scope"] = json!("Context/Potential + Generate unary/pair/bias + v2 U; local conditional full120 Context utility and factual selector credit; frozen prototype choices and categorical map; RawIdentity surrogate, not a hard-runtime derivative");
     if a.native_code_proposals {
-        receipt["native_code_proposals"] = native_proposals::policy(a.reached_frontier_objective);
+        receipt["native_code_proposals"] = proposal_policy(a);
         receipt["optimizer_updates"] = json!(0);
         receipt["credit_scope"] = json!("parent RawIdentity gradients rank fixed legal native-code Context basis/Potential/Generate unary-pair/U proposals; native objective selects at most one; no Adam or global clipping applied; token coefficients, Generate bias/prototypes and other source masters frozen");
+    }
+    if a.categorical_action_learning {
+        receipt["credit_scope"] = json!("parent Context row credit followed by recomputed full120 shared categorical action contrasts at changed Context; one conditional two-block native candidate; Potential/Generate/U unchanged, no Adam; independent native CE acceptance");
     }
     fs::write(
         root.join("continuation-source/metadata.json"),
@@ -4849,13 +4933,7 @@ fn joint_native_parity(
     let cue = current.compile_cue_carrier(l.cue.clone())?;
     let prefix = current.compile_prefix_transport(&cue, prefix_clone(&l.prefix)?)?;
     let gs = l.generate.prepare_native()?;
-    let bs = l.marker.prepare_native()?;
-    let categorical = PreparedCategoricalBridge::from_bytes(
-        &bs.native.to_bytes()?,
-        l.generate.binding(),
-        CAT_SHA,
-        d,
-    )?;
+    let categorical = l.prepared_categorical(d)?;
     let us = weights.prepare_native(&current.execution_binding()?, &gs.native)?;
     if us.native.to_bytes()? != field.to_bytes()? || current.execution_binding()? != p.binding {
         return Err(bad("joint current graph/checkpoint bindings differ"));
@@ -4975,7 +5053,19 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let rates = joint_continuation_settings(a)?.ok_or_else(|| bad("joint config absent"))?;
     let parent = ContinuationParent::load(a)?;
-    let l = load_joint_continuation(a, &parent, d)?;
+    let mut l = load_joint_continuation(a, &parent, d)?;
+    if a.categorical_action_learning {
+        l.categorical = Some(CategoricalBridgeLearningWeights::from_bytes(
+            &parent.bridge,
+            l.generate.binding(),
+            CAT_SHA,
+            d,
+        )?);
+        replay_require(
+            l.categorical_bytes()? == parent.bridge,
+            "categorical learning initialization changed parent bytes",
+        )?;
+    }
     let legal = NativeVocabularyActions::new(parent.integer.binding().clone(), &parent.exp)?
         .legal_token_ids()
         .iter()
@@ -5006,7 +5096,7 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         l.generate.lanes(),
         d,
     )?;
-    let params = joint_active(&l.source, &l.generate, &weights)?;
+    let params = joint_active(&l, &weights)?;
     let prototype = BTreeMap::from([(
         "generate.prototype_choices".into(),
         l.generate.prototype_choices.clone(),
@@ -5049,7 +5139,7 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     }
     if a.native_code_proposals {
         let mut admission = read(&a.out.join("admission.json"))?;
-        admission["native_code_proposals"] = native_proposals::policy(a.reached_frontier_objective);
+        admission["native_code_proposals"] = proposal_policy(a);
         admission["fresh_adam"] = json!(false);
         admission["optimizer_updates"] = json!(0);
         admission["rates_role"] = json!("legacy parent/replay identity only; no rate applied");
@@ -5064,12 +5154,20 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 "policy":"all frozen reached-frontier and successful-trajectory terms; no B8 sampling"}),
             )?;
         }
+        if a.categorical_action_learning {
+            admission["categorical_action_learning"] = categorical_proposals::policy();
+            admission["prototype_policy"] = json!("Generate prototypes frozen; independently learned onehot categorical action choices admitted at factual shared relative key");
+            admission["context_credit"] = json!("existing full120 conditional Context utility retained exactly once; full120 factual-key action utility added; Context and action gradients recomputed between blocks");
+        }
         write(a, "admission.json", &admission)?;
     }
     let clock = Instant::now();
     let (initial_parent, initial_field, initial_receipt) = joint_checkpoint(a, 0, &l, &weights)?;
     let mut checkpoint_seconds = clock.elapsed().as_secs_f64();
-    if initial_parent.binding != parent.binding || initial_parent.generate != parent.generate {
+    if initial_parent.binding != parent.binding
+        || initial_parent.generate != parent.generate
+        || initial_parent.bridge != parent.bridge
+    {
         return Err(bad("joint zero-update parent replay differs"));
     }
     let all_indices = (0..eps.len()).collect::<Vec<_>>();
@@ -5209,6 +5307,8 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 "current_source_binding",
                 "current_generate_sha256",
                 "current_continuation_sha256",
+                "current_categorical_sha256",
+                "current_categorical_master_sha256",
             ] {
                 replay_require(
                     receipt[key] == reference_receipt[key],
@@ -5252,12 +5352,20 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                     "live task/reference objective differs from independently evaluated native baseline")?;
             }
             let combined = combine_reference_gradients(&grads, &reference_grads, lambda)?;
-            let groups = [
+            let categorical_parameters = l
+                .categorical
+                .as_ref()
+                .map(|c| c.parameters())
+                .unwrap_or_default();
+            let mut groups = vec![
                 ("generate", &coefficients),
                 ("context", &context),
                 ("potential", &potential),
                 ("continuation", &u),
             ];
+            if l.categorical.is_some() {
+                groups.push(("categorical_action", &categorical_parameters));
+            }
             receipt["reference_replay"] = json!({"lambda":lambda,"reference_before_update":reference_receipt,
                 "objective":"L_current_B8 + lambda*L_reference; no half-average or overlap deduplication",
                 "combined_native_loss":receipt["weighted_native_loss"].as_f64().ok_or_else(||bad("task loss absent"))?+lambda*reference_receipt["weighted_native_loss"].as_f64().ok_or_else(||bad("reference loss absent"))?,
@@ -5278,21 +5386,40 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         if a.native_code_proposals {
             receipt["reference_replay"]["clip_and_adam_policy"] =
                 json!("none: gradients rank a frozen native-code candidate bank only");
-            receipt["native_code_proposals"] = native_proposals::run(
-                a,
-                &l,
-                &weights,
-                &params,
-                &grads,
-                &initial_parent,
-                &initial_field,
-                &eps,
-                &indices,
-                reference
-                    .as_ref()
-                    .ok_or_else(|| bad("proposal reference absent"))?,
-                start,
-            )?;
+            receipt["native_code_proposals"] = if a.categorical_action_learning {
+                categorical_proposals::run(
+                    a,
+                    &l,
+                    &weights,
+                    &params,
+                    &grads,
+                    &initial_parent,
+                    &initial_field,
+                    &eps,
+                    &indices,
+                    reference
+                        .as_ref()
+                        .ok_or_else(|| bad("categorical proposal reference absent"))?,
+                    start,
+                    d,
+                )?
+            } else {
+                native_proposals::run(
+                    a,
+                    &l,
+                    &weights,
+                    &params,
+                    &grads,
+                    &initial_parent,
+                    &initial_field,
+                    &eps,
+                    &indices,
+                    reference
+                        .as_ref()
+                        .ok_or_else(|| bad("proposal reference absent"))?,
+                    start,
+                )?
+            };
         } else {
             let (go, co, po, uo) = optimizers
                 .as_mut()
@@ -5438,6 +5565,10 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     if a.native_code_proposals {
         report["native_code_proposals"] = read(&a.out.join("native-code-proposals.json"))?;
         report["optimizer_updates"] = json!(0);
+    }
+    if a.categorical_action_learning {
+        report["categorical_action_learning"] = categorical_proposals::policy();
+        report["scope"] = json!("exposed512 conditional Context plus shared geometric action map construction learning; original quarter provenance and Generate prototypes retained; independently reloaded native own-prefix outputs; no transfer/chat/energy qualification");
     }
     if let Some(plan) = &reference {
         let outcomes = reference_outcomes(
@@ -6181,6 +6312,12 @@ mod tests {
         let mut reached = enabled.clone();
         reached["reached_frontier_objective"] = json!(true);
         reference_replay_settings(&serde_json::from_value(reached.clone())?)?;
+        let mut categorical = reached.clone();
+        categorical["categorical_action_learning"] = json!(true);
+        reference_replay_settings(&serde_json::from_value(categorical.clone())?)?;
+        categorical["reached_frontier_objective"] = json!(false);
+        assert!(reference_replay_settings(&serde_json::from_value(categorical)?).is_err());
+        assert!(!serde_json::from_value::<Args>(base.clone())?.categorical_action_learning);
         reached["native_code_proposals"] = json!(false);
         assert!(reference_replay_settings(&serde_json::from_value(reached)?).is_err());
         enabled
