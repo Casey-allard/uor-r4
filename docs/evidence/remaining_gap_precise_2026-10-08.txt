@@ -1,0 +1,51 @@
+UOR-R4 — The remaining gap, stated precisely: the project has demands without short answers and short answers without demands
+Date: 2026-10-08 (overnight round 109). DeepSeek session. References #820.
+
+WHAT THE GENERATOR'S OWN DOCUMENTATION SAYS
+  synthetic-memory-corpus.rs, header: "the reply always keeps the single canonical answer form, so an
+  arm that varies `forms` varies how a fact is stated and asked, NOT HOW IT IS ANSWERED." And `forms`
+  is clamped to 1..=8, with 8..12 held out for the panel.
+
+  So the synthetic generator cannot supply what the previous arm needed. It produces SHORT ANSWERS
+  reliably - 20,000 documents at a 14.9 % response fraction, against the chat corpus's 68.9 % - but
+  its USER TURNS are relation phrasings ("what is X?"), never a demand on the answer's form ("answer
+  with exactly one word"). The instruction half of the combination is not available from that tool at
+  any setting.
+
+WHAT THE CORPUS HAS, AND WHAT IT LACKS
+  Measured in round 81: the chat corpus contains 17,205 turns whose user text says "your answer must /
+  should ..." and exactly 142 turns in the whole contract family (one word / yes-no / only the answer /
+  no explanation / reply with only). It has DEMANDS - and their replies are prose (median 78 words) -
+  but it has 26 one-word replies in 129,465 responses, of which 4 survive the context filter.
+  The synthetic store has SHORT ANSWERS - and no demands at all.
+
+  SO THE PROJECT POSSESSES EACH HALF SEPARATELY AND NEITHER TOGETHER:
+    demands without short answers      the corpus's 142 contract turns
+    short answers without demands      the 20,000 synthetic documents
+    the pair, together                 DOES NOT EXIST IN ANY STORE THE PROJECT HAS
+
+  That is the precise reason the combination arm of round 108 reproduced the stopping signal's
+  behaviour and moved nothing on the one-word and numeric classes. It is not that the model cannot
+  learn the form; it is that nothing it has been trained on ever shows a demand and its matching
+  short answer in the same turn.
+
+THE ARTEFACT TO BUILD, NAMED
+  A demand-bearing short-form store: user turns that instruct a form ("Answer with exactly one word.",
+  "Answer with a number only.", "Answer yes or no.") paired with replies that are exactly that form,
+  in the project's own literal-role protocol 2 with the mask convention dialogue_episodes.rs:385-405
+  requires (the five Assistant marker ids with mask 0, the response content marked 1, terminating in a
+  genuine EOS, no EOS inside the run - the three clauses this session has now satisfied twice).
+  The generator can be extended to emit demand surface forms for its existing relations, or a small
+  standalone generator can be written; either way it is a bounded piece of work with a known format,
+  and the two frozen instruments already measure the outcome.
+
+WHAT THIS DOES NOT YET ESTABLISH
+  Whether the pair is sufficient. If a store with demands and matching short answers still leaves the
+  one-word and numeric classes non-compliant, then the per-token objective is the last explanation
+  standing and the fix moves to the loss or the decoding rather than the data - which is the same
+  fork the session has been narrowing toward all night, now with one artefact left to rule out.
+
+SCOPE
+  Read from the generator's documentation and the round-81 measurement. No new store was built and no
+  arm was run in this round; the contribution is the precise statement of what is missing and why the
+  previous arm could not have supplied it.
