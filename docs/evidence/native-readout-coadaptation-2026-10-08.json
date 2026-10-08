@@ -1,0 +1,552 @@
+{
+  "schema": "uor-r4.readout-coadaptation-evidence/1",
+  "pr": 1911,
+  "executed_source": "0e5619b298c578dcc6b3736ee44c392e9ebd716b",
+  "binary_sha256": "11b32aa304f44daec363bc8e36f0f3c427492343b4685c3e6e218335b5feb08f",
+  "config_sha256": "8180d3adb19d90bbb0505d8be7ebaea2e2554b7a08f8e86bf9218c1fd7348e28",
+  "report_sha256": "d1d47739b897c4d6cd7d7e01500d0ba05749dce885dd64bb3530001b7007222b",
+  "seal_sha256": "01fa3c74d69a6e1d9ba45e82c58cf84a9d0fa203488b77a4757cdbe137f5248b",
+  "tree_inventory": {
+    "files": 1199,
+    "bytes": 899769424,
+    "includes_nested_manifests": true
+  },
+  "execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T14:35:16.684691+00:00",
+    "ended_utc": "2026-10-08T14:45:38.162895+00:00",
+    "elapsed_seconds": 621.4782351627946,
+    "children_max_rss_kib": 4493004,
+    "binary_sha256": "11b32aa304f44daec363bc8e36f0f3c427492343b4685c3e6e218335b5feb08f",
+    "config_sha256": "8180d3adb19d90bbb0505d8be7ebaea2e2554b7a08f8e86bf9218c1fd7348e28"
+  },
+  "preseal_seconds": 570.83989695,
+  "fixed_scope": {
+    "component_weight_sums": [
+      1.0,
+      1.0
+    ],
+    "current_incomplete_correct_prefix_guards": 293,
+    "episodes": 512,
+    "factual_indices": [
+      97,
+      156,
+      151,
+      245,
+      392
+    ],
+    "original_success_guards": 84,
+    "protected_pools": 377,
+    "selected_runtime_reference_binding": "runtime Source/Generate/Cue/Prefix/U validated separately; canonical reference retains original authority",
+    "success_terms": 84,
+    "success_terms_and_weights_unchanged": true,
+    "successful_indices": [
+      0,
+      1,
+      4,
+      5,
+      8,
+      9,
+      12,
+      13
+    ],
+    "task_terms": 5,
+    "total_terms": 89
+  },
+  "objectives": {
+    "baseline_objective": {
+      "combined": 5.465593983756579,
+      "elapsed_seconds": 0.636371677,
+      "reference": 0.4176344001065728,
+      "task": 5.047959583650005
+    },
+    "candidate_objective": {
+      "combined": 3.3310216544577758,
+      "elapsed_seconds": 0.660766267,
+      "reference": 0.2428959007260971,
+      "task": 3.0881257537316786
+    },
+    "final_objective": {
+      "combined": 5.465593983756579,
+      "elapsed_seconds": 0.643491416,
+      "reference": 0.4176344001065728,
+      "task": 5.047959583650005
+    }
+  },
+  "selection": {
+    "candidate_combined": 3.3310216544577758,
+    "corrected_factual_frontiers": 0,
+    "mechanism_classes_corrected": {
+      "correct_source_wrong_offset": 0,
+      "mixed_245": 0,
+      "wrong_source": 0
+    },
+    "optimizer_updates": 0,
+    "parent_combined": 5.465593983756579,
+    "policy": {
+      "active_names": [
+        "cue.coefficients",
+        "prefix.coefficients"
+      ],
+      "construction": "one frozen adjacent Q4 pass; earliest BASEphysicalCopy donor before U/alias pooling; exact frozen bridge/Generate replay on donor change; transactional377winnerguards",
+      "coordinates": 1920,
+      "frozen": "Source/Context/Potential/Generate/prototypes/bias/readmap/U/cue-joint/tokenizer/geometry",
+      "gradient": "one fresh full Generate+allphysicalCopy+frozenU marginal; exact native-bin coefficient gathers; detached conditional donor-state selector credit",
+      "guards": "all377 parentcorrectprefixes incl84 completeEOS +293 incompletecorrectprefixes",
+      "objective": "five actual pos3 factual frontiers equal weight.2 each + unchanged original84 successful trajectory weights;89terms; no duplicate8sourcecontrols",
+      "schema": "uor-r4.readout-coadaptation/1",
+      "scope": "exposed authored panel; useful only new completeEOS with original8 retained; no heldout/chat/energy qualification",
+      "selection": "strict fresh revised nativeCE descent +>=1fact corrected +all377 preserved"
+    },
+    "two_class_mechanism_positive": false,
+    "winner": null
+  },
+  "construction": {
+    "cache_policy": "immutable exact donor vectors;clearall on64MiB numerical payload ceiling; rejected reads canremain",
+    "construction_seconds": 1.498578606,
+    "donor_callback_calls": 285,
+    "gradient_receipt": {
+      "combined": 5.465594038483687,
+      "elapsed_seconds": 5.918981553,
+      "inventory": {
+        "cue.coefficients": {
+          "bytes": 3840,
+          "file": "native-code-ranking-gradients/cue.coefficients.f32le",
+          "missing_gradient_filled_zero": false,
+          "sha256": "73b5116e7018a4a56c532fec68b625f3cef0d8871a6da95ae2f9bb6ea192f981",
+          "shape": [
+            960
+          ]
+        },
+        "prefix.coefficients": {
+          "bytes": 3840,
+          "file": "native-code-ranking-gradients/prefix.coefficients.f32le",
+          "missing_gradient_filled_zero": false,
+          "sha256": "dc762d4e7b0ecca044a7fff7a280558ae7bdb3ae9463688c3665a831c9af02ff",
+          "shape": [
+            960
+          ]
+        }
+      }
+    },
+    "native_donor_replays": 132,
+    "peak_donor_cache_payload_bytes": 4325376,
+    "policy": {
+      "active_names": [
+        "cue.coefficients",
+        "prefix.coefficients"
+      ],
+      "construction": "one frozen adjacent Q4 pass; earliest BASEphysicalCopy donor before U/alias pooling; exact frozen bridge/Generate replay on donor change; transactional377winnerguards",
+      "coordinates": 1920,
+      "frozen": "Source/Context/Potential/Generate/prototypes/bias/readmap/U/cue-joint/tokenizer/geometry",
+      "gradient": "one fresh full Generate+allphysicalCopy+frozenU marginal; exact native-bin coefficient gathers; detached conditional donor-state selector credit",
+      "guards": "all377 parentcorrectprefixes incl84 completeEOS +293 incompletecorrectprefixes",
+      "objective": "five actual pos3 factual frontiers equal weight.2 each + unchanged original84 successful trajectory weights;89terms; no duplicate8sourcecontrols",
+      "schema": "uor-r4.readout-coadaptation/1",
+      "scope": "exposed authored panel; useful only new completeEOS with original8 retained; no heldout/chat/energy qualification",
+      "selection": "strict fresh revised nativeCE descent +>=1fact corrected +all377 preserved"
+    }
+  },
+  "coordinate_counts": {
+    "accepted": 802,
+    "rejected": 212,
+    "zero_gradient": 906,
+    "saturated": 0
+  },
+  "rowwise_final_restored_parent": {
+    "changed_output_ids": [],
+    "gained_complete_ids": [],
+    "lost_complete_ids": [],
+    "retained_complete_ids": [
+      "development-diverse-length2-00-swap0-q0-forward-job",
+      "development-diverse-length2-00-swap0-q0-forward-home",
+      "development-diverse-length2-00-swap0-q3-forward-job",
+      "development-diverse-length2-00-swap0-q3-forward-home",
+      "development-diverse-length2-00-swap1-q0-forward-job",
+      "development-diverse-length2-00-swap1-q0-forward-home",
+      "development-diverse-length2-00-swap1-q3-forward-job",
+      "development-diverse-length2-00-swap1-q3-forward-home"
+    ]
+  },
+  "candidate_full512_evaluation": "NOT_RUN; final512 and pilot8 describe restored parent after candidate rejection",
+  "useful_candidate": false,
+  "source_reviews": "PASS exact e220 numerical math/adversarial; b3 fixture-only repair;0e save-only rawgradient guard independently reviewed",
+  "actual_checks_executed_source": {
+    "fitter": 62,
+    "bank": 11,
+    "bank_historical_ignored": 1,
+    "new_CPU_credit_parity": 1,
+    "new_CUDA_credit_parity_explicit_ignored_flag": 1,
+    "release_build": "PASS",
+    "standalone_rustfmt": "PASS"
+  },
+  "runtime_preservation": {
+    "revision": "69713537923841f48f223b43ff51b25c2963fa08",
+    "prefix": "codex/sol-readout-coadaptation/runtime-0e5619b298-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "a25ebb6d0462a5625665d026c40f5cf17180c54d8eab5e1fb1bf9336da3463bb",
+        "bytes": 1885
+      },
+      "checks-b3c-CPU-CUDA-PASS.log": {
+        "sha256": "793b88b36047eef4dd0de7eb8c24d0233d05ed7d1193f4275fce27cfb11405fc",
+        "bytes": 23584
+      },
+      "checks-e220-CUDA-fixture-fault.log": {
+        "sha256": "c87f8a5851ddc9f56d2d57cd56b583f99bc870644eba7f9c8c3761b20d825271",
+        "bytes": 20149
+      },
+      "checks.log": {
+        "sha256": "104038bb97739aa4f3437411c7203bcdf551f1b1e384edb4b02897d12580b572",
+        "bytes": 23691
+      },
+      "config.json": {
+        "sha256": "8180d3adb19d90bbb0505d8be7ebaea2e2554b7a08f8e86bf9218c1fd7348e28",
+        "bytes": 2764
+      },
+      "device-fixture-repair.patch": {
+        "sha256": "7690739bf2fcdcb8739666332142bbbceff6db46c36afda841347676b8dd94fc",
+        "bytes": 1272
+      },
+      "exact-source-review.md": {
+        "sha256": "2fcb1a73923b931ef269d2a23cc6e1f0dc6eeeaf15e68bda5a013eb0b2192584",
+        "bytes": 3775
+      },
+      "geometric-frozen-map-fit": {
+        "sha256": "11b32aa304f44daec363bc8e36f0f3c427492343b4685c3e6e218335b5feb08f",
+        "bytes": 32903976
+      },
+      "raw-gradient-inventory-repair.patch": {
+        "sha256": "85172715c22f0dded2886c9ab90e6ce12e9f62790bed7487bfc248b109f0c8e5",
+        "bytes": 4714
+      },
+      "saved-bin-admission-preservation.json": {
+        "sha256": "976005bad576318900f0846e833399dfd550819007f48f796a9bdcc9b47e9479",
+        "bytes": 2118
+      },
+      "source.tar.gz": {
+        "sha256": "cf6047448fc3e767385bc3d0a19b703caa0aa43f1257d5c54ff6c32708f6cfb4",
+        "bytes": 99303395
+      },
+      "supervise.py": {
+        "sha256": "0522820271e609403dc732683afdd897f778d7254867e9f3a1ea63923567728b",
+        "bytes": 2730
+      }
+    },
+    "manifest": {
+      "source_commit": "0e5619b298c578dcc6b3736ee44c392e9ebd716b",
+      "source_tree": "7ec85c2bb568ad595dfeac6b66a6c77997cbba17",
+      "files": {
+        "checks-b3c-CPU-CUDA-PASS.log": {
+          "sha256": "793b88b36047eef4dd0de7eb8c24d0233d05ed7d1193f4275fce27cfb11405fc",
+          "bytes": 23584
+        },
+        "checks-e220-CUDA-fixture-fault.log": {
+          "sha256": "c87f8a5851ddc9f56d2d57cd56b583f99bc870644eba7f9c8c3761b20d825271",
+          "bytes": 20149
+        },
+        "checks.log": {
+          "sha256": "104038bb97739aa4f3437411c7203bcdf551f1b1e384edb4b02897d12580b572",
+          "bytes": 23691
+        },
+        "config.json": {
+          "sha256": "8180d3adb19d90bbb0505d8be7ebaea2e2554b7a08f8e86bf9218c1fd7348e28",
+          "bytes": 2764
+        },
+        "device-fixture-repair.patch": {
+          "sha256": "7690739bf2fcdcb8739666332142bbbceff6db46c36afda841347676b8dd94fc",
+          "bytes": 1272
+        },
+        "exact-source-review.md": {
+          "sha256": "2fcb1a73923b931ef269d2a23cc6e1f0dc6eeeaf15e68bda5a013eb0b2192584",
+          "bytes": 3775
+        },
+        "geometric-frozen-map-fit": {
+          "sha256": "11b32aa304f44daec363bc8e36f0f3c427492343b4685c3e6e218335b5feb08f",
+          "bytes": 32903976
+        },
+        "raw-gradient-inventory-repair.patch": {
+          "sha256": "85172715c22f0dded2886c9ab90e6ce12e9f62790bed7487bfc248b109f0c8e5",
+          "bytes": 4714
+        },
+        "saved-bin-admission-preservation.json": {
+          "sha256": "976005bad576318900f0846e833399dfd550819007f48f796a9bdcc9b47e9479",
+          "bytes": 2118
+        },
+        "source.tar.gz": {
+          "sha256": "cf6047448fc3e767385bc3d0a19b703caa0aa43f1257d5c54ff6c32708f6cfb4",
+          "bytes": 99303395
+        },
+        "supervise.py": {
+          "sha256": "0522820271e609403dc732683afdd897f778d7254867e9f3a1ea63923567728b",
+          "bytes": 2730
+        }
+      },
+      "scope": "single CuePrefix coefficient-only CUDA gradient and once-adjacent1920donor-aware377guards construction; no general usefulchat claim"
+    },
+    "seconds": 28.062575589865446,
+    "completed_utc": "2026-10-08T14:32:39.093690+00:00"
+  },
+  "admission_preservation": {
+    "revision": "f010682dfb6371d72f2cb50f6ffdf127402c3cc5",
+    "prefix": "codex/sol-readout-coadaptation/admission-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "657f9826734da069d329815c46070219a5cec5609073fe63751ab1054381ac2d",
+        "bytes": 2129
+      },
+      "actual-seal-checks.log": {
+        "sha256": "d3b95960fa3e530698f854b155f70f2cae9b94ed3d2b346e8f43ae2308fb1dbe",
+        "bytes": 1955
+      },
+      "attempt1/manifest.json": {
+        "sha256": "e7839647775784557c8e6a51050c10d7515c8ad2d2a668202dfd02eb3ee8ebca",
+        "bytes": 614
+      },
+      "attempt1/reader.py": {
+        "sha256": "541e7c38f1a3ed9145b4b5c9f3228cca8b72e4137b5cae950b9f6a8c663c0dc4",
+        "bytes": 15850
+      },
+      "attempt1/report.json": {
+        "sha256": "c40c271fa2cfa88f22eedb5680fdcdb5265044d1bcdd3c544d18a09af1fea55c",
+        "bytes": 117
+      },
+      "attempt1/sha256-inventory.json": {
+        "sha256": "943b96086e4e3ee04ee674ec7fe84e6afa3e6b6e8ad408b17d5e780e6413bedf",
+        "bytes": 381
+      },
+      "attempt2/incidence.json": {
+        "sha256": "60d80e5e39ed478bb0c8cae1f483861386bbe932c6022d70c230d280f9c788e6",
+        "bytes": 2887936
+      },
+      "attempt2/manifest.json": {
+        "sha256": "db9c574d3914716ccc955c0820eea4ff5b5603e6e1d4797c29e7c2d7047f7383",
+        "bytes": 768
+      },
+      "attempt2/reader.py": {
+        "sha256": "e90cd666056eb79bd1065216fb2b80d5c05df6cd4bd030124da9640a9c891884",
+        "bytes": 16710
+      },
+      "attempt2/report.json": {
+        "sha256": "b23e560f68b24e6cdfd2fba4bfb28100c3b506480f4339e414e6298f5b74c088",
+        "bytes": 71543
+      },
+      "attempt2/sha256-inventory.json": {
+        "sha256": "15f461c630ef3eeac36abfa5a50694ae15f308b8ea3fb919bd42e5cf37926883",
+        "bytes": 535
+      },
+      "seal-tool.rs": {
+        "sha256": "2b1d2d450e0c174ce691e91ede786ebe4a0cc31c9591df4384ca035a3ce94aea",
+        "bytes": 113932
+      },
+      "verify-tool.rs": {
+        "sha256": "77776b8946ee11c17fb30315cb2b4bf2db174cc1581cc30b929e5d0f5c1381cc",
+        "bytes": 40765
+      }
+    },
+    "seconds": 12.319657780230045,
+    "completed_utc": "2026-10-08T13:55:31.396928+00:00"
+  },
+  "independent_audit": {
+    "status": "PASS",
+    "schema": "uor-r4.saved-readout-audit/1",
+    "source_commit": "0e5619b298c578dcc6b3736ee44c392e9ebd716b",
+    "reader_sha256": "ff31d814a5b93fc584d8465578d026601e86993246a3393b6ac957fe13b37f1b",
+    "inventories": {
+      "/workspace/uor-r4/codex/sol-readout-coadaptation/runs/readout-0001-seed1001-attempt1": {
+        "files": 1198,
+        "bytes": 899571438,
+        "manifest_sha256": "01fa3c74d69a6e1d9ba45e82c58cf84a9d0fa203488b77a4757cdbe137f5248b",
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "full_file_sha256_inventory": "Retained in privately preserved independent-audit.json, SHA256 ad68046cb44fb12c7fb32ccc6a1c4462b3c42db7e0e7223da2e4291abe273156"
+      },
+      "/workspace/uor-r4/codex/sol-reached-u/runs/reached-u-0001-seed1001-attempt1": {
+        "files": 1178,
+        "bytes": 379831294,
+        "manifest_sha256": "6cbfabf807427f3baa2bfcfda7187e1b00f3a205ec9466b30a7437a410baad94",
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "full_file_sha256_inventory": "Retained in privately preserved independent-audit.json, SHA256 ad68046cb44fb12c7fb32ccc6a1c4462b3c42db7e0e7223da2e4291abe273156"
+      },
+      "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2": {
+        "files": 7,
+        "bytes": 7186256,
+        "manifest_sha256": "d24b87cff9295f34c7996eed3b974e08531c2b594e62fb5b2795f9f2972404a4",
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "full_file_sha256_inventory": "Retained in privately preserved independent-audit.json, SHA256 ad68046cb44fb12c7fb32ccc6a1c4462b3c42db7e0e7223da2e4291abe273156"
+      },
+      "/workspace/uor-r4/codex/sol-readout-coadaptation/runs/readout-0001-seed1001-attempt1/native-candidate-00": {
+        "files": 51,
+        "bytes": 261874194,
+        "manifest_sha256": "35c9b3181e9b92a3a7f594988e465b96023af78c900169639634bce9339a28f9",
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+        "full_file_sha256_inventory": "Retained in privately preserved independent-audit.json, SHA256 ad68046cb44fb12c7fb32ccc6a1c4462b3c42db7e0e7223da2e4291abe273156"
+      }
+    },
+    "external_executed_config": {
+      "path": "/workspace/uor-r4/codex/sol-readout-coadaptation/configs/readout-0001.json",
+      "sha256": "8180d3adb19d90bbb0505d8be7ebaea2e2554b7a08f8e86bf9218c1fd7348e28",
+      "attempt_argv": [
+        "/root/codex/prototype-target/release/examples/geometric-frozen-map-fit",
+        "/workspace/uor-r4/codex/sol-readout-coadaptation/configs/readout-0001.json"
+      ]
+    },
+    "separate_raw_gradient_inventory_verified": true,
+    "trial_status_counts": {
+      "accepted": 802,
+      "rejected": 212,
+      "zero_gradient": 906
+    },
+    "rejected_first_blockers_full_reduced": 212,
+    "guard_pools_full_reduced": 1131,
+    "fresh_objective_terms_full_reduced": 267,
+    "coordinates_verified": 1920,
+    "candidate_correct_factual_indices": [],
+    "selected": false,
+    "mechanism_classes": {
+      "wrong_source": 0,
+      "correct_source_wrong_offset": 0,
+      "mixed_245": 0
+    },
+    "rowwise": {
+      "retained_complete_ids": [
+        "development-diverse-length2-00-swap0-q0-forward-job",
+        "development-diverse-length2-00-swap0-q0-forward-home",
+        "development-diverse-length2-00-swap0-q3-forward-job",
+        "development-diverse-length2-00-swap0-q3-forward-home",
+        "development-diverse-length2-00-swap1-q0-forward-job",
+        "development-diverse-length2-00-swap1-q0-forward-home",
+        "development-diverse-length2-00-swap1-q3-forward-job",
+        "development-diverse-length2-00-swap1-q3-forward-home"
+      ],
+      "gained_complete_ids": [],
+      "lost_complete_ids": [],
+      "changed_output_ids": []
+    },
+    "entries_before_after": [
+      273,
+      273
+    ],
+    "useful_candidate": false,
+    "limitations": [
+      "Rust complete BLAKE3 verification remains a separately executed requirement",
+      "No independent backward/autodiff or Context/cue/prefix encoder kernel replay; authenticated finite states and saved bin maps are input witnesses",
+      "Finite categorical bridge, Generate energy, packed U, Cue-joint integer expansion and full alias integer reduction ARE independently recomputed",
+      "Every rejected FIRST blocker is independently full-reduced; preceding trial guards and all intermediate accepted winner verdicts are not all independently full-reduced; ordering/incidence/donor transitions/accepted drift and all final guards ARE checked",
+      "Actual512 emitted-prefix/EOS/decode/member chains are checked; their full numerical action pools cannot be independently recomputed where raw vectors are not saved",
+      "Exposed authored panel only; no heldout, general conversation, energy or serving qualification"
+    ]
+  },
+  "result_preservation": {
+    "revision": "06938a95a4ecc0bd56077f8c7aa89601559f0b6d",
+    "prefix": "codex/sol-readout-coadaptation/readout-0001-0e5619b298",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "280f901ecb51a3259d5ee653644fd51b8cffc4802ad8fb48d2338bfdb8788679",
+        "bytes": 1128
+      },
+      "readout-0001-0e5619b298.tar.gz": {
+        "sha256": "3230e2ff6c468713678750f953094a99e6ebb276fe8e7417c6bae202747304c3",
+        "bytes": 152858211
+      }
+    },
+    "manifest": {
+      "source_commit": "0e5619b298c578dcc6b3736ee44c392e9ebd716b",
+      "runtime_hf_revision": "69713537923841f48f223b43ff51b25c2963fa08",
+      "runtime_manifest_sha256": "a25ebb6d0462a5625665d026c40f5cf17180c54d8eab5e1fb1bf9336da3463bb",
+      "binary_sha256": "11b32aa304f44daec363bc8e36f0f3c427492343b4685c3e6e218335b5feb08f",
+      "config_sha256": "8180d3adb19d90bbb0505d8be7ebaea2e2554b7a08f8e86bf9218c1fd7348e28",
+      "report_sha256": "d1d47739b897c4d6cd7d7e01500d0ba05749dce885dd64bb3530001b7007222b",
+      "report_manifest_sha256": "01fa3c74d69a6e1d9ba45e82c58cf84a9d0fa203488b77a4757cdbe137f5248b",
+      "audit_sha256": "ad68046cb44fb12c7fb32ccc6a1c4462b3c42db7e0e7223da2e4291abe273156",
+      "files": {
+        "readout-0001-0e5619b298.tar.gz": {
+          "sha256": "3230e2ff6c468713678750f953094a99e6ebb276fe8e7417c6bae202747304c3",
+          "bytes": 152858211
+        }
+      },
+      "scope": "One fixed Cue/Prefix full-pool credit attempt: rejected candidate retained;89 objective terms and377 guards, final restored parent actual512 outputs. Saved arithmetic audit is not independent backward or encoder replay, heldout or useful conversation qualification."
+    },
+    "seconds": 40.54308230802417,
+    "completed_utc": "2026-10-08T15:16:26.238343+00:00"
+  },
+  "limits": [
+    "One local once-adjacent coefficient pass, not global feasibility/capacity",
+    "Conditional donor credit is local surrogate, no hardargmax derivative",
+    "Exposed authored development panel, no heldout/general conversation/transfer/energy qualification",
+    "Saved audit does not independently recompute backward or Context/cue/prefix encoder kernels"
+  ],
+  "resource_projection": {
+    "previous_seconds": 490470,
+    "increment_seconds": 21600,
+    "new_cumulative_seconds": 512070,
+    "cpu_threads": 2,
+    "ram_gib": 8,
+    "numeric_auxiliary_bytes": 234865664,
+    "numeric_auxiliary_cap_bytes": 268435456,
+    "actual_cache_payload_bytes": 4325376,
+    "disk_floor_gib": 8,
+    "stop_margin_bytes": 134217728
+  },
+  "next_not_admitted": "After protected merge, saved-only replay of original1920 proposal order/producer-accepted path for fiveactualfacts (<=9600 reductions), attributing mass margins to accepted movement, saved first guardveto or specific identical binincidence. Exact donorGenerate/U/fullalias; no gradient/refill/reorderedpass/globalfeasibility or familyretirement.",
+  "audit_execution": {
+    "steps": [
+      {
+        "name": "rust-model-verify",
+        "exit_code": 0,
+        "elapsed_seconds": 27.157136231660843
+      },
+      {
+        "name": "rust-candidate-verify",
+        "exit_code": 0,
+        "elapsed_seconds": 1.1799258291721344
+      },
+      {
+        "name": "self-test",
+        "exit_code": 0,
+        "elapsed_seconds": 0.39188363775610924
+      },
+      {
+        "name": "independent-audit",
+        "exit_code": 0,
+        "elapsed_seconds": 665.7463732138276
+      }
+    ],
+    "elapsed_seconds": 694.7097994014621,
+    "children_max_rss_kib": 2699480,
+    "reader_sha256": "ff31d814a5b93fc584d8465578d026601e86993246a3393b6ac957fe13b37f1b",
+    "completed_utc": "2026-10-08T15:13:38.142651+00:00"
+  },
+  "retained_failed_audit_setup_attempt1": {
+    "steps": [
+      {
+        "name": "rust-model-verify",
+        "exit_code": 0,
+        "elapsed_seconds": 20.735894590616226
+      },
+      {
+        "name": "rust-candidate-verify",
+        "exit_code": 0,
+        "elapsed_seconds": 1.113032080233097
+      },
+      {
+        "name": "self-test",
+        "exit_code": 0,
+        "elapsed_seconds": 0.4198709614574909
+      },
+      {
+        "name": "independent-audit",
+        "exit_code": 1,
+        "elapsed_seconds": 141.1790892779827
+      }
+    ],
+    "elapsed_seconds": 163.71489068493247,
+    "children_max_rss_kib": 234280,
+    "reader_sha256": "9bf788a075cfc65fce87145ae05cc5e9197bcc64091c1f82fe2ba02991789655",
+    "completed_utc": "2026-10-08T14:58:40.870581+00:00"
+  },
+  "actual_rust_seals": "PASS model/candidate/derived audit2; failed audit1 sealed for preservation",
+  "retained_preservation_setup_defect": "Attempt1 failed before publication: observation path spelling inherited from template; failed script/log retained, corrected wrapper publishes same unchanged sealed model/audits"
+}

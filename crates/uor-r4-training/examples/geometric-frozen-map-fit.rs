@@ -74,6 +74,10 @@ mod output_support;
 mod prototype_compensation;
 #[path = "geometric_frozen_map_fit/reached_u.rs"]
 mod reached_u;
+#[path = "geometric_frozen_map_fit/readout_coadaptation.rs"]
+mod readout_coadaptation;
+#[path = "geometric_frozen_map_fit/readout_constraints.rs"]
+mod readout_constraints;
 #[path = "geometric_frozen_map_fit/u_constraints.rs"]
 mod u_constraints;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -149,6 +153,7 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
     reached_u::validate_settings(a)?;
+    readout_coadaptation::validate_settings(a)?;
     replay_require(
         if a.prototype_compensation.is_some() {a.constrained_emission_learning && a.retained_context_root.is_none()} else {a.constrained_emission_learning == a.retained_context_root.is_some()},
         "emission needs retained Context root, or compensation needs explicit retained emission/diagnostic roots and no Context root",
@@ -484,6 +489,8 @@ struct Args {
     prototype_compensation: Option<prototype_compensation::Config>,
     #[serde(default)]
     reached_u: Option<reached_u::Config>,
+    #[serde(default)]
+    readout_coadaptation: Option<readout_coadaptation::Config>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -750,6 +757,11 @@ fn args() -> Result<Args> {
     .chain(a.prediction_control_resume.iter())
     .chain(a.retained_context_root.iter())
     .chain(a.reached_u.iter().map(|c| &c.retained_compensation_root))
+    .chain(
+        a.readout_coadaptation
+            .iter()
+            .map(|c| &c.retained_reached_u_root),
+    )
     .chain(
         a.prototype_compensation
             .iter()
@@ -1792,6 +1804,10 @@ fn reference_binding(a: &Args) -> Result<Value> {
         binding["schema"] = json!("uor-r4.reached-frontier-plan/1");
         binding["legacy398_scope"] =
             json!("separate stability diagnostic only; not included in either training component");
+    }
+    if a.readout_coadaptation.is_some() {
+        binding["objective"] = json!("five actual reached factual terms weight.2 + unchanged original84 successful trajectory terms;89positions");
+        binding["schema"] = json!("uor-r4.readout-coadaptation-plan/1");
     }
     Ok(binding)
 }
@@ -5170,6 +5186,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.readout_coadaptation.is_some() {
+        return readout_coadaptation::run(a, start, d);
+    }
     if a.reached_u.is_some() {
         return reached_u::run(a, start, d);
     }

@@ -305,15 +305,12 @@ pub(super) fn build(c: &ReferencePrepareConfig) -> Result<(Plan, Value)> {
         counts,
     ))
 }
-/// Rebuild supervision from the selected parent's authenticated actual outputs.
-/// The canonical reference retains its original artifact provenance; its labels
-/// and phase normalization do not become a claim about the selected runtime.
-pub(super) fn selected_endpoint_plan(
+fn authenticated_endpoint_trajectories(
     endpoint_root: &Path,
     original: &Plan,
     eps: &[Episode],
     tok: &ByteBpeTokenizer,
-) -> Result<(Plan, Vec<Term>, Value)> {
+) -> Result<Vec<Trajectory>> {
     components(original)?;
     report_output::verify(endpoint_root)?;
     let summary = read(&endpoint_root.join("development-0001.json"))?;
@@ -363,6 +360,19 @@ pub(super) fn selected_endpoint_plan(
         )?;
         trajectories.push(observed);
     }
+    Ok(trajectories)
+}
+
+/// Rebuild supervision from the selected parent's authenticated actual outputs.
+/// The canonical reference retains its original artifact provenance; its labels
+/// and phase normalization do not become a claim about the selected runtime.
+pub(super) fn selected_endpoint_plan(
+    endpoint_root: &Path,
+    original: &Plan,
+    eps: &[Episode],
+    tok: &ByteBpeTokenizer,
+) -> Result<(Plan, Vec<Term>, Value)> {
+    let trajectories = authenticated_endpoint_trajectories(endpoint_root, original, eps, tok)?;
     let terms = derive_terms(&original.canonical_reference, &trajectories)?;
     let old_success: Vec<_> = original.terms.iter().filter(|t| t.component == 1).collect();
     let new_success: Vec<_> = terms.iter().filter(|t| t.component == 1).collect();
@@ -412,6 +422,83 @@ pub(super) fn selected_endpoint_plan(
         "selected_runtime_reference_binding":"runtime Source/Generate validated separately; canonical reference retains original authority"});
     Ok((plan, guards, counts))
 }
+pub(super) const READOUT_OBJECTIVE: &str = "mean five selected-parent actual reached factual first-divergence CE + unchanged original full accepted-trajectory CE; all current correct prefixes protected";
+
+pub(super) fn readout_endpoint_plan(
+    endpoint_root: &Path,
+    original: &Plan,
+    eps: &[Episode],
+    tok: &ByteBpeTokenizer,
+) -> Result<(Plan, Vec<Term>, Value)> {
+    let trajectories = authenticated_endpoint_trajectories(endpoint_root, original, eps, tok)?;
+    let all_terms = derive_terms(&original.canonical_reference, &trajectories)?;
+    let old_success: Vec<_> = original.terms.iter().filter(|t| t.component == 1).collect();
+    let new_success: Vec<_> = all_terms.iter().filter(|t| t.component == 1).collect();
+    replay_require(
+        serde_json::to_vec(&old_success)? == serde_json::to_vec(&new_success)?
+            && trajectories
+                .iter()
+                .filter(|t| t.accepted_complete)
+                .map(|t| t.index)
+                .collect::<Vec<_>>()
+                == successful_indices(original),
+        "readout parent changed original complete trajectories or weights",
+    )?;
+    let mut plan = Plan {
+        schema: "uor-r4.readout-frontier-plan/1".into(),
+        objective: READOUT_OBJECTIVE.into(),
+        canonical_reference: original.canonical_reference.clone(),
+        trajectories,
+        terms: all_terms,
+    };
+    let guards = protected_prefix_terms(&plan)?;
+    let selected = readout_terms(&plan)?;
+    plan.terms = selected;
+    readout_components(&plan)?;
+    replay_require(
+        guards.len() == 377 && plan.terms.len() == 89,
+        "readout fixed89/377 population differs",
+    )?;
+    let counts = json!({"episodes":512,"task_terms":5,"success_terms":84,"total_terms":89,
+        "protected_pools":377,"original_success_guards":84,"current_incomplete_correct_prefix_guards":293,
+        "successful_indices":successful_indices(&plan),"factual_indices":[97,156,151,245,392],
+        "component_weight_sums":[1.,1.],"success_terms_and_weights_unchanged":true,
+        "selected_runtime_reference_binding":"runtime Source/Generate/Cue/Prefix/U validated separately; canonical reference retains original authority"});
+    Ok((plan, guards, counts))
+}
+
+fn readout_terms(plan: &Plan) -> Result<Vec<Term>> {
+    let derived = derive_terms(&plan.canonical_reference, &plan.trajectories)?;
+    let mut terms = Vec::new();
+    for index in [97, 156, 151, 245, 392] {
+        let mut term = derived
+            .iter()
+            .find(|t| t.component == 0 && t.index == index)
+            .ok_or_else(|| bad("readout factual first error absent"))?
+            .clone();
+        replay_require(
+            term.position == 3 && term.phase == 1 && term.parent_actual_prefix_ids.len() == 3,
+            "readout factual phase/position/prefix differs",
+        )?;
+        term.weight = 0.2;
+        term.weight_denominator = 5;
+        terms.push(term);
+    }
+    terms.extend(derived.into_iter().filter(|t| t.component == 1));
+    replay_require(terms.len() == 89, "readout reference population differs")?;
+    Ok(terms)
+}
+
+pub(super) fn readout_components(plan: &Plan) -> Result<(ReferencePlan, ReferencePlan)> {
+    replay_require(
+        plan.schema == "uor-r4.readout-frontier-plan/1"
+            && plan.objective == READOUT_OBJECTIVE
+            && serde_json::to_vec(&readout_terms(plan)?)? == serde_json::to_vec(&plan.terms)?,
+        "readout objective eligibility/weight/prefix reconstruction differs",
+    )?;
+    term_components(plan)
+}
+
 fn protected_prefix_terms(plan: &Plan) -> Result<Vec<Term>> {
     let mut protected = Vec::new();
     let mut seen = BTreeSet::new();
@@ -468,6 +555,9 @@ pub(super) fn components(plan: &Plan) -> Result<(ReferencePlan, ReferencePlan)> 
         serde_json::to_vec(&rebuilt)? == serde_json::to_vec(&plan.terms)?,
         "frontier eligibility/weight/prefix reconstruction differs",
     )?;
+    term_components(plan)
+}
+fn term_components(plan: &Plan) -> Result<(ReferencePlan, ReferencePlan)> {
     let mut masks = [
         plan.canonical_reference.clone(),
         plan.canonical_reference.clone(),
@@ -812,6 +902,107 @@ mod tests {
         assert_eq!(frontier.weight, 1.);
         plan.trajectories[0].generated_ids[0] = 4;
         assert!(protected_prefix_terms(&plan).is_err());
+        Ok(())
+    }
+    #[test]
+    fn readout_fixed_facts_preserve_reference_weights_and_all_current_prefixes() -> Result<()> {
+        let mut plan = weighted_fixture()?;
+        let row_template = plan.canonical_reference.rows[0].clone();
+        let trajectory_template = plan.trajectories[0].clone();
+        plan.canonical_reference.rows.clear();
+        plan.trajectories.clear();
+        let success = [0, 1, 4, 5, 8, 9, 12, 13];
+        let facts = [97, 156, 151, 245, 392];
+        let mut remaining = [239usize, 242, 18];
+        for index in 0..512 {
+            let mut row = row_template.clone();
+            row.index = index;
+            row.id = format!("readout-{index}");
+            let complete = success.contains(&index);
+            let length = if complete && [0, 1, 4, 5].contains(&index) {
+                10
+            } else {
+                11
+            };
+            row.targets = vec![1; length];
+            row.targets[length - 1] = 9;
+            row.phases = vec![0; length];
+            row.phases[3] = 1;
+            row.phases[length - 1] = 2;
+            row.eligible = vec![true; length];
+            row.weights = vec![0.; length];
+            row.weight_denominators = vec![0; length];
+            let mut t = trajectory_template.clone();
+            t.index = index;
+            t.id = row.id.clone();
+            t.accepted_complete = complete;
+            t.eos = complete;
+            if complete {
+                t.generated_ids = row.targets.clone();
+                t.first_divergence = None;
+            } else {
+                let first = if facts.contains(&index) {
+                    3
+                } else {
+                    let phase = remaining
+                        .iter()
+                        .position(|&n| n > 0)
+                        .ok_or_else(|| bad("fixture counts"))?;
+                    remaining[phase] -= 1;
+                    phase
+                };
+                t.generated_ids = row.targets[..first].to_vec();
+                t.generated_ids.push(7);
+                t.first_divergence = Some(first);
+            }
+            plan.canonical_reference.rows.push(row);
+            plan.trajectories.push(t);
+        }
+        plan.terms = derive_terms(&plan.canonical_reference, &plan.trajectories)?;
+        let original_success: Vec<_> = plan
+            .terms
+            .iter()
+            .filter(|t| t.component == 1)
+            .cloned()
+            .collect();
+        let guards = protected_prefix_terms(&plan)?;
+        assert_eq!(guards.len(), 377);
+        assert!(guards.iter().all(|t| t.weight == 0.));
+        let terms = readout_terms(&plan)?;
+        assert_eq!(
+            serde_json::to_vec(&original_success)?,
+            serde_json::to_vec(&terms[5..])?
+        );
+        plan.schema = "uor-r4.readout-frontier-plan/1".into();
+        plan.objective = READOUT_OBJECTIVE.into();
+        plan.terms = terms;
+        let (task, reference) = readout_components(&plan)?;
+        assert_eq!(
+            task.rows
+                .iter()
+                .flat_map(|r| r.weights.iter())
+                .filter(|&&w| w > 0.)
+                .count(),
+            5
+        );
+        assert_eq!(
+            reference
+                .rows
+                .iter()
+                .flat_map(|r| r.weights.iter())
+                .filter(|&&w| w > 0.)
+                .count(),
+            84
+        );
+        let original = plan.clone();
+        plan.terms[0].weight = 0.21;
+        assert!(readout_components(&plan).is_err());
+        plan = original.clone();
+        plan.terms[0].parent_actual_prefix_ids[0] = 3;
+        assert!(readout_components(&plan).is_err());
+        plan = original;
+        plan.trajectories[97].first_divergence = Some(2);
+        assert!(readout_components(&plan).is_err());
         Ok(())
     }
 }

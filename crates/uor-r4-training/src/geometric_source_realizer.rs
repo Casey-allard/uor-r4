@@ -24,13 +24,17 @@ use std::{
 use candle_core::{Device, IndexOp, Tensor, Var};
 use serde::{Deserialize, Serialize};
 use uor_r4_integer::{
-    geometric_cue_carrier::{CueAngularConfig, CueAngularQ4, CueScoreMode, NativeCueCarrier},
+    geometric_cue_carrier::{
+        CueAngularConfig, CueAngularQ4, CueCarrierTrace, CueJointMetadata, CueJointQ4,
+        CueScoreMode, NativeCueCarrier,
+    },
     geometric_no_read::{NativeGeometricNoRead, NoReadConfig},
     geometric_occurrence_read::SelectedRecordFrame,
     geometric_potential::AddressLane,
-    geometric_potential_q4::pack_coefficients,
+    geometric_potential_q4::{pack_coefficients, unpack_coefficients},
     geometric_prefix_transport::{
         NativePrefixTransport, PrefixAngularConfig, PrefixAngularQ4, PrefixScoreMode,
+        PrefixTransportTrace,
     },
     geometric_source_end_transport::{
         NativeSourceEndTransport, SourceEndAngularConfig, SourceEndAngularQ4, SourceEndScoreMode,
@@ -1176,6 +1180,7 @@ pub struct BankRealizerLoss {
 /// Offline-only shadows for the capacity-matched, integer cue angular readout.
 /// Parent context, ordinary source heads and terminal heads are immutable.
 pub struct CueAngularWeights {
+    frozen_joint: Option<CueJointQ4>,
     coefficients: Var,
     metadata: CueAngularSourceMetadata,
 }
@@ -1209,7 +1214,95 @@ fn cue_parent_files(
     .map(|name| Ok((name.into(), crate::sha256_file(&root.join(name))?)))
     .collect()
 }
+fn angular_coefficient_credit(
+    coefficients: &Var,
+    maps: &[Vec<Option<u8>>],
+    device: &Device,
+) -> Result<Tensor> {
+    let width = maps.len();
+    let count = maps.first().map_or(0, Vec::len);
+    if width == 0
+        || count == 0
+        || maps.iter().any(|r| r.len() != count)
+        || coefficients.elem_count() != width * 120
+        || !coefficients.device().same_device(device)
+    {
+        return Err(invalid("angular coefficient credit shape/device differs"));
+    }
+    let mut indices = Vec::with_capacity(width * count);
+    let mut mask = Vec::with_capacity(width * count);
+    for (lane, row) in maps.iter().enumerate() {
+        for bin in row {
+            if bin.is_some_and(|b| b >= 120) {
+                return Err(invalid("angular coefficient bin exceeds120"));
+            }
+            indices.push((lane * 120 + usize::from(bin.unwrap_or(0))) as u32);
+            mask.push(if bin.is_some() { 1f32 } else { 0f32 });
+        }
+    }
+    let selected =
+        coefficients.index_select(&Tensor::from_vec(indices, width * count, device)?, 0)?;
+    (selected * Tensor::from_vec(mask, width * count, device)?)?
+        .reshape((width, count))?
+        .sum(0)
+        .map_err(Into::into)
+}
 impl CueAngularWeights {
+    /// Restore exact quarter masters from authenticated native bytes; retain joint payload frozen.
+    pub fn from_native(
+        parent: &NativeSourceRealizer,
+        native_root: &Path,
+        carrier: &NativeCueCarrier<'_>,
+        device: &Device,
+    ) -> Result<Self> {
+        if carrier.metadata().parent_artifact != parent.artifact_binding()? {
+            return Err(invalid("cue native parent differs"));
+        }
+        let config = carrier.metadata().potential;
+        let values = unpack_coefficients(
+            config
+                .coefficient_count()
+                .map_err(|e| invalid(e.to_string()))?,
+            carrier.packed_coefficients(),
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let result = Self {
+            coefficients: Var::from_vec(
+                values
+                    .iter()
+                    .map(|v| f32::from(*v) / 4.)
+                    .collect::<Vec<_>>(),
+                values.len(),
+                device,
+            )?,
+            frozen_joint: carrier.joint().cloned(),
+            metadata: CueAngularSourceMetadata {
+                schema: "uor-r4.geometric-cue-angular-source/1".into(),
+                parent: parent.artifact_binding()?,
+                parent_native_files_sha256: cue_parent_files(parent, native_root)?,
+                config,
+                source_sha256: String::new(),
+                packed_sha256: String::new(),
+                native_metadata: serde_json::to_value(carrier.metadata())?,
+            },
+        };
+        if parent.compile_cue_carrier(result.native()?)?.metadata() != carrier.metadata() {
+            return Err(invalid("cue quarter master/native roundtrip differs"));
+        }
+        Ok(result)
+    }
+    pub fn coefficient_credit(&self, trace: &CueCarrierTrace, device: &Device) -> Result<Tensor> {
+        if trace.metadata.parent_artifact != self.metadata.parent
+            || trace.metadata.potential != self.config()
+            || trace.metadata.potential_packed_sha256 != sha256_bytes(&self.packed_coefficients()?)
+            || serde_json::to_value(&trace.metadata.joint)?
+                != self.metadata.native_metadata["joint"]
+        {
+            return Err(invalid("cue coefficient credit stale native payload"));
+        }
+        angular_coefficient_credit(&self.coefficients, &trace.angular_indices, device)
+    }
+
     pub fn zero(
         parent: &NativeSourceRealizer,
         native_root: &Path,
@@ -1225,6 +1318,7 @@ impl CueAngularWeights {
             .coefficient_count()
             .map_err(|e| invalid(e.to_string()))?;
         let result = Self {
+            frozen_joint: None,
             coefficients: Var::from_vec(vec![0f32; count], count, &Device::Cpu)?,
             metadata: CueAngularSourceMetadata {
                 schema: "uor-r4.geometric-cue-angular-source/1".into(),
@@ -1262,7 +1356,7 @@ impl CueAngularWeights {
                 .map(|x| x.clamp(-1.75, 1.75))
                 .collect::<Vec<_>>(),
             self.coefficients.shape(),
-            &Device::Cpu,
+            self.coefficients.device(),
         )?)?;
         Ok(())
     }
@@ -1279,8 +1373,14 @@ impl CueAngularWeights {
         .map_err(|e| invalid(e.to_string()))
     }
     pub fn native(&self) -> Result<CueAngularQ4> {
-        CueAngularQ4::new(self.config(), &self.packed_coefficients()?)
-            .map_err(|e| invalid(e.to_string()))
+        let mut q = CueAngularQ4::new(self.config(), &self.packed_coefficients()?)
+            .map_err(|e| invalid(e.to_string()))?;
+        if let Some(joint) = &self.frozen_joint {
+            q = q
+                .with_joint(joint.clone())
+                .map_err(|e| invalid(e.to_string()))?;
+        }
+        Ok(q)
     }
     fn source_bytes(&self) -> Result<Vec<u8>> {
         Ok(self
@@ -1304,6 +1404,9 @@ impl CueAngularWeights {
         )?;
         fs::write(path.join("cue-source-f32.bin"), source)?;
         fs::write(path.join("cue-q4.bin"), packed)?;
+        if let Some(joint) = &self.frozen_joint {
+            fs::write(path.join("cue-joint-q4.bin"), joint.packed_coefficients())?;
+        }
         fs::write(path.join("metadata.json"), serde_json::to_vec_pretty(&m)?)?;
         Ok(())
     }
@@ -1329,7 +1432,19 @@ impl CueAngularWeights {
             .chunks_exact(4)
             .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
             .collect::<Vec<_>>();
+        let frozen_joint = if let Some(value) = m.native_metadata.get("joint") {
+            let meta: CueJointMetadata = serde_json::from_value(value.clone())?;
+            let j = CueJointQ4::new(meta.config, fs::read(path.join("cue-joint-q4.bin"))?)
+                .map_err(|e| invalid(e.to_string()))?;
+            if j.metadata() != meta {
+                return Err(invalid("cue frozen joint source replay differs"));
+            }
+            Some(j)
+        } else {
+            None
+        };
         let result = Self {
+            frozen_joint,
             coefficients: Var::from_vec(values, count, &Device::Cpu)?,
             metadata: m,
         };
@@ -1398,6 +1513,97 @@ fn prefix_cue_files(root: &Path, cue: &NativeCueCarrier<'_>) -> Result<BTreeMap<
         .collect()
 }
 impl PrefixAngularWeights {
+    pub fn from_native(
+        parent: &NativeSourceRealizer,
+        native_root: &Path,
+        cue_root: &Path,
+        cue: &NativeCueCarrier<'_>,
+        prefix: &NativePrefixTransport<'_>,
+        device: &Device,
+    ) -> Result<Self> {
+        if prefix.metadata().parent_artifact != parent.artifact_binding()?
+            || prefix.metadata().frozen_cue != *cue.metadata()
+        {
+            return Err(invalid("prefix native parent/Cue differs"));
+        }
+        let config = prefix.metadata().potential;
+        let values = unpack_coefficients(
+            config
+                .coefficient_count()
+                .map_err(|e| invalid(e.to_string()))?,
+            prefix.packed_coefficients(),
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let result = Self {
+            coefficients: Var::from_vec(
+                values
+                    .iter()
+                    .map(|v| f32::from(*v) / 4.)
+                    .collect::<Vec<_>>(),
+                values.len(),
+                device,
+            )?,
+            metadata: PrefixAngularSourceMetadata {
+                schema: "uor-r4.geometric-prefix-angular-source/1".into(),
+                parent: parent.artifact_binding()?,
+                parent_native_files_sha256: prefix_parent_files(parent, native_root)?,
+                cue_native_files_sha256: prefix_cue_files(cue_root, cue)?,
+                cue_native_metadata: serde_json::to_value(cue.metadata())?,
+                config,
+                source_sha256: String::new(),
+                packed_sha256: String::new(),
+                native_metadata: serde_json::to_value(prefix.metadata())?,
+            },
+        };
+        if parent
+            .compile_prefix_transport(cue, result.native()?)?
+            .metadata()
+            != prefix.metadata()
+        {
+            return Err(invalid("prefix quarter master/native roundtrip differs"));
+        }
+        Ok(result)
+    }
+    /// Rebind only metadata to the newly exported Cue; preserve all Prefix masters.
+    pub fn rebind_cue(
+        &mut self,
+        parent: &NativeSourceRealizer,
+        cue_root: &Path,
+        cue: &NativeCueCarrier<'_>,
+    ) -> Result<()> {
+        if parent.artifact_binding()? != self.metadata.parent {
+            return Err(invalid("prefix rebind parent differs"));
+        }
+        self.metadata.cue_native_files_sha256 = prefix_cue_files(cue_root, cue)?;
+        self.metadata.cue_native_metadata = serde_json::to_value(cue.metadata())?;
+        self.metadata.native_metadata = serde_json::to_value(
+            parent
+                .compile_prefix_transport(cue, self.native()?)?
+                .metadata(),
+        )?;
+        Ok(())
+    }
+    pub fn coefficient_credit(
+        &self,
+        trace: &PrefixTransportTrace,
+        device: &Device,
+    ) -> Result<Tensor> {
+        if trace.metadata.parent_artifact != self.metadata.parent
+            || trace.metadata.potential != self.config()
+            || trace.metadata.potential_packed_sha256 != sha256_bytes(&self.packed_coefficients()?)
+            || serde_json::to_value(&trace.metadata.frozen_cue)?
+                != self.metadata.cue_native_metadata
+        {
+            return Err(invalid("prefix coefficient credit stale native payload"));
+        }
+        let maps = trace
+            .angular_indices
+            .iter()
+            .map(|r| r.iter().map(|b| Some(*b)).collect())
+            .collect::<Vec<Vec<Option<u8>>>>();
+        angular_coefficient_credit(&self.coefficients, &maps, device)
+    }
+
     pub fn zero(
         parent: &NativeSourceRealizer,
         native_root: &Path,
@@ -1457,7 +1663,7 @@ impl PrefixAngularWeights {
                 .map(|x| x.clamp(-1.75, 1.75))
                 .collect::<Vec<_>>(),
             self.coefficients.shape(),
-            &Device::Cpu,
+            self.coefficients.device(),
         )?)?;
         Ok(())
     }
@@ -5313,6 +5519,275 @@ mod tests {
             .values()
             .all(|v| v.device().same_device(&Device::Cpu)));
         Ok(())
+    }
+
+    fn readout_fullpool_fixture(device: &Device) -> Result<()> {
+        use crate::{
+            geometric_bank_generate::PreparedBankGenerate,
+            geometric_continuation_learning::ContinuationLearningWeights,
+            geometric_generate_learning::{GenerateLearningWeights, VocabularyScoreAdjoint},
+            geometric_read_state_bridge::{BridgeLearningWeights, PreparedCategoricalBridge},
+        };
+        let fixture = Fixture::new_with_lanes(2)?;
+        for (name, var) in fixture.weights.context_state_parameters() {
+            if name.ends_with("token_category") {
+                let mut v = vec![0f32; var.elem_count()];
+                for row in v.chunks_exact_mut(33) {
+                    row[17] = 1.5;
+                }
+                var.set(&Tensor::from_vec(v, var.shape(), &Device::Cpu)?)?;
+            }
+        }
+        let source_root = fixture.path.join("credit-source");
+        fixture.weights.save_source(&source_root)?;
+        let native_root = fixture.path.join("credit-native");
+        fixture
+            .weights
+            .compile(fixture.identity.clone())?
+            .save(&native_root)?;
+        let native = NativeSourceRealizer::load(&native_root, &fixture.weights, &fixture.identity)?;
+        let staged = SourceRealizerWeights::load_context_potential_on_device(
+            &source_root,
+            TOK.as_bytes(),
+            device,
+        )?;
+        // Match the runner's staged loader: composed Potential STEs share the
+        // graph device, though only Cue/Prefix masters are eligible for edits.
+        assert!(staged
+            .potential_parameters()
+            .values()
+            .all(|v| v.device().same_device(device)));
+        let before = parameter_identities(&staged)?;
+        let prepared = staged.prepare_context_potential_on_device(&native, device)?;
+        let joint = CueJointQ4::new(
+            CueJointConfig {
+                head: 0,
+                left_lane: 0,
+                right_lane: 1,
+            },
+            vec![0x11; 8],
+        )
+        .map_err(|e| invalid(e.to_string()))?;
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?
+            .with_joint(joint)
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let cw = CueAngularWeights::from_native(&native, &native_root, &cue, device)?;
+        let cue_root = fixture.path.join("credit-cue");
+        cw.save(&cue_root)?;
+        let prefix = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let mut pw = PrefixAngularWeights::from_native(
+            &native,
+            &native_root,
+            &cue_root,
+            &cue,
+            &prefix,
+            device,
+        )?;
+        let generate = GenerateLearningWeights::seeded(staged.binding().clone(), 2, 1001, device)?;
+        let gs = generate.prepare_native()?;
+        let marker = BridgeLearningWeights::zeroed(staged.binding(), 2, device)?;
+        let artifact = marker.export_categorical_actions()?;
+        let bytes = artifact
+            .native
+            .to_bytes()
+            .map_err(|e| invalid(e.to_string()))?;
+        let bridge = PreparedCategoricalBridge::from_bytes(
+            &bytes,
+            staged.binding(),
+            &sha256_bytes(&bytes),
+            device,
+        )?;
+        let u = ContinuationLearningWeights::zeroed_shared_action(
+            staged.binding(),
+            &native.artifact_binding()?,
+            2,
+            device,
+        )?;
+        let us = u.prepare_native(&native.execution_binding()?, &gs.native)?;
+        let exp = fs::read(native_root.join("consumer/exp-q31.bin"))?;
+        let ids = [4, 4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: frame(&ids),
+                view: &view,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: frame(&ids),
+                view: &view,
+                event: 8,
+            },
+        ];
+        let forward = |credit| -> Result<crate::geometric_bank_generate::BankGenerateOutput> {
+            let learner = PreparedBankGenerate::new(&prepared, &generate, &gs, &exp)?
+                .with_categorical_read_state_bridge(&bridge)?
+                .with_read_selector_credit(true)
+                .with_continuation_field(&u, &us)?;
+            let mut learner = if credit {
+                learner.with_readout_coefficient_credit(&cw, &pw)?
+            } else {
+                learner
+            };
+            learner.forward_bank(&segments, &[5], &[4], &cue, &prefix)
+        };
+        let frozen = forward(false)?;
+        let live = forward(true)?;
+        assert_eq!(frozen.generate.scores_q24, live.generate.scores_q24);
+        assert_eq!(frozen.copy_scores_q24, live.copy_scores_q24);
+        assert_eq!(
+            serde_json::to_value(&frozen.actions)?,
+            serde_json::to_value(&live.actions)?
+        );
+        let copy = live
+            .copy
+            .as_ref()
+            .ok_or_else(|| invalid("test Copy absent"))?;
+        let hard = native.read_bank_with_prefix_transport(&segments, &[5], &[4], &cue, &prefix)?;
+        assert_eq!(copy.trace, hard);
+        assert!(copy
+            .trace
+            .cue_bank
+            .carrier
+            .angular_indices
+            .iter()
+            .all(|row| row
+                .iter()
+                .skip(view.emitted_token_ids().len())
+                .all(Option::is_none)));
+        assert!(live.copy_token_ids.iter().filter(|id| **id == 4).count() >= 2);
+        let raw_copy = (0..live.copy_token_ids.len())
+            .map(|j| {
+                hard.cue_bank
+                    .bank
+                    .heads
+                    .iter()
+                    .map(|h| h.scores_q24[j])
+                    .sum::<i64>()
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(raw_copy, live.copy_scores_q24);
+        let mut raw_generate = vec![0i64; gs.native.vocab_size()];
+        gs.native
+            .score_into(
+                &live.final_state_codes,
+                &mut raw_generate,
+                &mut Default::default(),
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(raw_generate, live.generate.scores_q24);
+        let mut reducer =
+            uor_r4_integer::geometric_vocabulary_actions::NativeVocabularyActions::new(
+                staged.binding().clone(),
+                &exp,
+            )
+            .map_err(|e| invalid(e.to_string()))?;
+        let authoritative = reducer
+            .reduce_trace(&raw_generate, &live.copy_token_ids, &raw_copy)
+            .map_err(|e| invalid(e.to_string()))?;
+        assert_eq!(
+            serde_json::to_value(authoritative)?,
+            serde_json::to_value(&live.actions)?
+        );
+        let grads = live
+            .loss_with_credit(1, VocabularyScoreAdjoint::RawIdentity)?
+            .backward()?;
+        for weights in [cw.parameters(), pw.parameters()] {
+            let var = weights
+                .values()
+                .next()
+                .ok_or_else(|| invalid("test master absent"))?;
+            let grad = grads
+                .get(var.as_tensor())
+                .ok_or_else(|| invalid("readout gradient disconnected"))?
+                .flatten_all()?
+                .to_device(&Device::Cpu)?
+                .to_vec1::<f32>()?;
+            assert!(grad.iter().all(|v| v.is_finite()));
+            assert!(grad.iter().any(|v| v.abs() > 1e-8));
+        }
+        assert_eq!(before, parameter_identities(&staged)?);
+        let mut stale = copy.trace.cue_bank.carrier.clone();
+        stale.metadata.joint = None;
+        assert!(cw.coefficient_credit(&stale, device).is_err());
+        let mut stale = copy.trace.prefix.clone();
+        stale.metadata.frozen_cue.joint = None;
+        assert!(pw.coefficient_credit(&stale, device).is_err());
+        let old_prefix = pw.packed_coefficients()?;
+        let old_joint = cue
+            .joint()
+            .ok_or_else(|| invalid("frozen joint absent"))?
+            .packed_coefficients()
+            .to_vec();
+        let mut values = cw.coefficients.to_vec1::<f32>()?;
+        values[0] += 0.25;
+        cw.coefficients
+            .set(&Tensor::from_vec(values, cw.coefficients.shape(), device)?)?;
+        let changed_root = fixture.path.join("changed-cue");
+        cw.save(&changed_root)?;
+        let changed = native.compile_cue_carrier(cw.native()?)?;
+        pw.rebind_cue(&native, &changed_root, &changed)?;
+        let prefix_root = fixture.path.join("changed-prefix");
+        pw.save(&prefix_root)?;
+        let cpu = CueAngularWeights::load(&changed_root, &native, &native_root)?;
+        let rebuilt = native.compile_cue_carrier(cpu.native()?)?;
+        assert_eq!(
+            rebuilt
+                .joint()
+                .ok_or_else(|| invalid("reloaded joint absent"))?
+                .packed_coefficients(),
+            old_joint
+        );
+        let restored = PrefixAngularWeights::load(
+            &prefix_root,
+            &native,
+            &native_root,
+            &changed_root,
+            &rebuilt,
+        )?;
+        assert_eq!(restored.packed_coefficients()?, old_prefix);
+        assert!(
+            PrefixAngularWeights::load(&prefix_root, &native, &native_root, &cue_root, &cue)
+                .is_err()
+        );
+        device.synchronize()?;
+        Ok(())
+    }
+    #[test]
+    fn readout_two_family_native_fullpool_credit_cpu() -> Result<()> {
+        readout_fullpool_fixture(&Device::Cpu)
+    }
+    #[cfg(feature = "cuda")]
+    #[test]
+    #[ignore = "requires admitted CUDA GPU; run explicitly"]
+    fn readout_two_family_native_fullpool_credit_cuda() -> Result<()> {
+        readout_fullpool_fixture(&Device::new_cuda(0)?)
     }
 
     #[test]

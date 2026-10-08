@@ -42,7 +42,7 @@ use crate::{
         PreclipEntryMarginDiagnostic, PreparedGenerateLearning, VocabularyScoreAdjoint,
     },
     geometric_occurrence_consumer::source_realizer::{
-        ComposedCopyBankOutput, PreparedSourceRealizer,
+        ComposedCopyBankOutput, CueAngularWeights, PrefixAngularWeights, PreparedSourceRealizer,
     },
     geometric_read_state_bridge::{
         BridgeLearningOutput, BridgeLearningWeights, PreparedBridgeLearning,
@@ -562,6 +562,7 @@ pub struct PreparedBankGenerate<'a, 'source> {
     read_state_bridge: Option<ReadStateBridge<'a>>,
     read_selector_credit: bool,
     continuation: Option<ContinuationBranch<'a>>,
+    readout_coefficients: Option<(&'a CueAngularWeights, &'a PrefixAngularWeights)>,
 }
 
 #[derive(Clone, Copy)]
@@ -704,7 +705,21 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             read_state_bridge: None,
             read_selector_credit: true,
             continuation: None,
+            readout_coefficients: None,
         })
+    }
+
+    /// Attach only exact Cue/Prefix coefficient adjoints; native forward stays authoritative.
+    pub fn with_readout_coefficient_credit(
+        mut self,
+        cue: &'a CueAngularWeights,
+        prefix: &'a PrefixAngularWeights,
+    ) -> Result<Self> {
+        if cue.parent_binding() != prefix.parent_binding() {
+            return Err(invalid("readout coefficient parent differs"));
+        }
+        self.readout_coefficients = Some((cue, prefix));
+        Ok(self)
     }
 
     /// Install a separately bound factor. The first rung credits only its shared
@@ -871,6 +886,15 @@ impl<'a, 'source> PreparedBankGenerate<'a, 'source> {
             self.realizer
                 .forward_bank_composed_copy(segments, query, actual_prefix, cue, prefix)?
         };
+        if let Some((cue_weights, prefix_weights)) = self.readout_coefficients {
+            let device = self.generate.device();
+            let cue_credit =
+                cue_weights.coefficient_credit(&copy.trace.cue_bank.carrier, device)?;
+            let prefix_credit = prefix_weights.coefficient_credit(&copy.trace.prefix, device)?;
+            // Attach both before selector credit. Subtract first so full integer anchor is unchanged.
+            copy.copy_raw = (&copy.copy_raw + (&cue_credit - cue_credit.detach())?)?;
+            copy.copy_raw = (&copy.copy_raw + (&prefix_credit - prefix_credit.detach())?)?;
+        }
         let bank = &copy.trace.cue_bank.bank;
         let time = copy.context.trace.time;
         if copy.context.trace.batch != 1

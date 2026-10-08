@@ -334,7 +334,14 @@ pub(super) fn save_ranking_gradients(
             .iter()
             .any(|family| name == &format!("consumer.context.{family}"))
             || name.starts_with("consumer.potential.")
-            || ["generate.unary", "generate.pair", "continuation.unary"].contains(&name.as_str());
+            || [
+                "generate.unary",
+                "generate.pair",
+                "continuation.unary",
+                "cue.coefficients",
+                "prefix.coefficients",
+            ]
+            .contains(&name.as_str());
         if !eligible {
             continue;
         }
