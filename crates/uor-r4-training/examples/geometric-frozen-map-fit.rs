@@ -52,6 +52,8 @@ use uor_r4_training::{
     geometric_read_state_bridge::{BridgeLearningWeights, PreparedCategoricalBridge},
     sha256_bytes, sha256_file,
 };
+#[path = "geometric_frozen_map_fit/native_proposals.rs"]
+mod native_proposals;
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
 mod output_support;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
@@ -71,7 +73,7 @@ enum Mode {
 const REPLAY_REPORT_SHA: &str = "9582f56c8d285920cd67977fd23d36e8a96beabe7c5f27ea45ad4b1113d3503c";
 const REPLAY_MANIFEST_SHA: &str =
     "45bbcbf2550b6d6a726df09b3c8ad6307ad20b4a8073306be458ca93f3376da5";
-#[derive(Deserialize, serde::Serialize)]
+#[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct ReferenceReplayConfig {
     plan_root: PathBuf,
@@ -126,6 +128,11 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    if a.native_code_proposals && a.reference_replay.is_none() {
+        return Err(bad(
+            "native code proposals require the fixed reference replay pilot",
+        ));
+    }
     if let Some(c) = &a.reference_replay {
         let rates = a
             .joint_continuation
@@ -188,7 +195,7 @@ fn joint_continuation_settings(a: &Args) -> Result<Option<&JointContinuationConf
 
 /// Only this new mode may learn a continuation field on the sealed48/64 parent.
 /// All legacy loaders and component-resume guards retain their existing scope.
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct ContinuationConfig {
     expected_model_report_sha256: String,
@@ -340,7 +347,7 @@ enum ControlTrainable {
     GenerateField,
     PotentialGenerateField,
 }
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Args {
     mode: Mode,
@@ -403,6 +410,8 @@ struct Args {
     joint_continuation: Option<JointContinuationConfig>,
     #[serde(default)]
     reference_replay: Option<ReferenceReplayConfig>,
+    #[serde(default)]
+    native_code_proposals: bool,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -640,7 +649,7 @@ fn args() -> Result<Args> {
     if ![1001, 1002, 1003].contains(&a.seed)
         || a.maximum_seconds == 0
         || a.maximum_report_bytes < (64 << 20)
-        || a.maximum_report_bytes > (2 << 30)
+        || a.maximum_report_bytes > if a.native_code_proposals { 4 << 30 } else { 2 << 30 }
         || (a.baseline.is_some() && a.mode != Mode::Fit)
         // A declared panel is a zero-update diagnostic read, never a fit input.
         || ((a.panel_inputs.is_some() || a.panel_labels.is_some())
@@ -4759,6 +4768,11 @@ fn joint_checkpoint(
         receipt["reference_replay"] = reference_binding(a)?;
     }
     receipt["credit_scope"] = json!("Context/Potential + Generate unary/pair/bias + v2 U; local conditional full120 Context utility and factual selector credit; frozen prototype choices and categorical map; RawIdentity surrogate, not a hard-runtime derivative");
+    if a.native_code_proposals {
+        receipt["native_code_proposals"] = native_proposals::policy();
+        receipt["optimizer_updates"] = json!(0);
+        receipt["credit_scope"] = json!("parent RawIdentity gradients rank fixed legal native-code Context basis/Potential/Generate unary-pair/U proposals; native objective selects at most one; no Adam or global clipping applied; token coefficients, Generate bias/prototypes and other source masters frozen");
+    }
     fs::write(
         root.join("continuation-source/metadata.json"),
         serde_json::to_vec_pretty(&receipt)?,
@@ -4962,6 +4976,14 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         admission["reference_replay"] = reference_binding(a)?;
         write(a, "admission.json", &admission)?;
     }
+    if a.native_code_proposals {
+        let mut admission = read(&a.out.join("admission.json"))?;
+        admission["native_code_proposals"] = native_proposals::policy();
+        admission["fresh_adam"] = json!(false);
+        admission["optimizer_updates"] = json!(0);
+        admission["rates_role"] = json!("legacy parent/replay identity only; no rate applied");
+        write(a, "admission.json", &admission)?;
+    }
     let clock = Instant::now();
     let (initial_parent, initial_field, initial_receipt) = joint_checkpoint(a, 0, &l, &weights)?;
     let mut checkpoint_seconds = clock.elapsed().as_secs_f64();
@@ -5007,10 +5029,16 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     let context = l.source.context_state_parameters();
     let potential = l.source.potential_parameters();
     let u = weights.parameters();
-    let mut go = optimizer(&coefficients, rates.generate_learning_rate)?;
-    let mut co = optimizer(&context, rates.context_learning_rate)?;
-    let mut po = optimizer(&potential, rates.potential_learning_rate)?;
-    let mut uo = optimizer(&u, rates.continuation_learning_rate)?;
+    let mut optimizers = if a.native_code_proposals {
+        None
+    } else {
+        Some((
+            optimizer(&coefficients, rates.generate_learning_rate)?,
+            optimizer(&context, rates.context_learning_rate)?,
+            optimizer(&potential, rates.potential_learning_rate)?,
+            optimizer(&u, rates.continuation_learning_rate)?,
+        ))
+    };
     let mut updates = Vec::new();
     let fit_start = Instant::now();
     let mut fit_checkpoint_seconds = 0.;
@@ -5100,16 +5128,39 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             return Err(bad("joint prototype entered active clip"));
         }
         let (denominator, norm) = clip_denominator(&grads, d)?;
-        apply(&mut go, &coefficients, &grads, &denominator)?;
-        apply(&mut co, &context, &grads, &denominator)?;
-        apply(&mut po, &potential, &grads, &denominator)?;
-        apply(&mut uo, &u, &grads, &denominator)?;
-        l.generate.project_shadow_range()?;
-        for var in context.values() {
-            var.set(&var.as_tensor().clamp(-1.75, 1.75)?)?;
+        if a.native_code_proposals {
+            receipt["reference_replay"]["clip_and_adam_policy"] =
+                json!("none: gradients rank a frozen native-code candidate bank only");
+            receipt["native_code_proposals"] = native_proposals::run(
+                a,
+                &l,
+                &weights,
+                &params,
+                &grads,
+                &initial_parent,
+                &initial_field,
+                &eps,
+                &indices,
+                reference
+                    .as_ref()
+                    .ok_or_else(|| bad("proposal reference absent"))?,
+                start,
+            )?;
+        } else {
+            let (go, co, po, uo) = optimizers
+                .as_mut()
+                .ok_or_else(|| bad("joint optimizers absent"))?;
+            apply(go, &coefficients, &grads, &denominator)?;
+            apply(co, &context, &grads, &denominator)?;
+            apply(po, &potential, &grads, &denominator)?;
+            apply(uo, &u, &grads, &denominator)?;
+            l.generate.project_shadow_range()?;
+            for var in context.values() {
+                var.set(&var.as_tensor().clamp(-1.75, 1.75)?)?;
+            }
+            l.source.project_potential_range()?;
+            weights.project_shadow_range()?;
         }
-        l.source.project_potential_range()?;
-        weights.project_shadow_range()?;
         if identities(&prototype)? != frozen_prototype
             || identities(&l.original_bridge.parameters())? != frozen_bridge
             || identities(&l.marker.parameters())? != frozen_marker
@@ -5127,8 +5178,20 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             fit_checkpoint_seconds += clock.elapsed().as_secs_f64();
         }
     }
-    let fit_seconds = fit_start.elapsed().as_secs_f64() - fit_checkpoint_seconds;
+    let mut fit_seconds = fit_start.elapsed().as_secs_f64() - fit_checkpoint_seconds;
     checkpoint_seconds += fit_checkpoint_seconds;
+    if a.native_code_proposals {
+        let proposal = read(&a.out.join("native-code-proposals.json"))?;
+        let candidate_checkpoints = proposal["candidate_checkpoint_seconds"]
+            .as_f64()
+            .ok_or_else(|| bad("proposal checkpoint timing absent"))?;
+        let native_objectives = proposal["native_objective_seconds"]
+            .as_f64()
+            .ok_or_else(|| bad("proposal native timing absent"))?;
+        fit_seconds -= candidate_checkpoints + native_objectives;
+        checkpoint_seconds += candidate_checkpoints;
+        evaluation_seconds += native_objectives;
+    }
     let (final_evaluation, final_metrics, final_receipt, final_parity) = if a.updates == 0 {
         (
             initial.clone(),
@@ -5148,6 +5211,20 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             &current.binding,
             current.generator()?.generate_model(),
         )?;
+        if a.native_code_proposals {
+            let objective_clock = Instant::now();
+            native_proposals::verify_final(
+                a,
+                &current,
+                &field,
+                &eps,
+                reference
+                    .as_ref()
+                    .ok_or_else(|| bad("proposal reference absent"))?,
+                start,
+            )?;
+            evaluation_seconds += objective_clock.elapsed().as_secs_f64();
+        }
         let parity =
             joint_native_parity(&l, &weights, &current, &field, &eps, admission_indices, d)?;
         write(a, "final-native-parity.json", &parity)?;
@@ -5194,6 +5271,10 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         "rowwise":rowwise,"updates_receipt":updates,"fit_seconds":fit_seconds,"checkpoint_seconds":checkpoint_seconds,
         "native_evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
         "scope":"exposed512 joint Context/Potential/Generate-coefficient/U construction learning; frozen prototypes and categorical map; native independent reload and own-feedback outputs; no transfer/chat/energy qualification"});
+    if a.native_code_proposals {
+        report["native_code_proposals"] = read(&a.out.join("native-code-proposals.json"))?;
+        report["optimizer_updates"] = json!(0);
+    }
     if let Some(plan) = &reference {
         let outcomes = reference_outcomes(
             a,
@@ -5914,6 +5995,15 @@ mod tests {
         let mut changed = base.clone();
         changed["joint_continuation"]["context_learning_rate"] = json!(0.001);
         assert!(reference_replay_settings(&serde_json::from_value(changed)?).is_err());
+        let mut enabled = base.clone();
+        enabled["native_code_proposals"] = json!(true);
+        reference_replay_settings(&serde_json::from_value(enabled.clone())?)?;
+        enabled
+            .as_object_mut()
+            .ok_or_else(|| bad("fixture object"))?
+            .remove("reference_replay");
+        assert!(reference_replay_settings(&serde_json::from_value(enabled)?).is_err());
+        assert!(!serde_json::from_value::<Args>(base.clone())?.native_code_proposals);
         let mut legacy = base;
         legacy
             .as_object_mut()
