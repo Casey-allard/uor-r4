@@ -1,0 +1,43 @@
+UOR-R4 — The snapped-training route is closed for this quantiser, and the damage is a basin effect, not a dose
+Date: 2026-10-08 (overnight round 33). DeepSeek session. References #820.
+
+THE SWEEP
+  Same 19.9 M chat stack, same held-out stream (chat-v0-p2/heldout, sha256 e5f400b0...), same
+  evaluation (snap-evaluate 512 windows for the float side; export with GPTQ at the measured
+  optimum, then d11-evaluate on 24,576 targets for the served side).
+
+  arm        snapped float   served (D11)   quantisation cost
+  no tune    0.91333         0.93277        0.01944 BPB  (0.0382 nats)
+  250-step   0.89420         0.95540        0.06117 BPB  (0.1203 nats)
+  500-step   0.89113         0.95150        0.06033 BPB  (0.1187 nats)
+
+FINDINGS
+  1. BOTH tuned arms serve WORSE than no tune: +0.02263 BPB for 250 steps and +0.01873 for 500,
+     against a float-side improvement in both cases. The float gain does not survive the artifact.
+  2. THE DAMAGE IS NOT DOSE-DEPENDENT. Quantisation cost jumps from 0.01944 to 0.06117 BPB on
+     entering the snapped basin with 250 steps, and then essentially plateaus: 500 steps costs
+     0.06033, slightly LESS than 250. Twice the tune is not twice the damage; the first snapped
+     steps do the damage and further steps do not add to it.
+  3. Therefore the mechanism is a BASIN effect, not a length effect. Snapped fine-tuning moves the
+     weights to a region of parameter space that this quantiser serves poorly; once there, staying
+     longer neither helps nor hurts the servability much. A shorter tune is not the fix, which is
+     what the sweep was run to test.
+  4. The served ordering is not the float ordering. By float, 500 < 250 < no tune. By served,
+     no tune < 500 < 250. Anyone selecting on the float proxy would pick exactly the wrong arm.
+
+WHAT IT CLOSES, AND WHAT IT LEAVES OPEN
+  CLOSED: recovering the 0.03578 BPB transport-snap term by training in the snapped representation
+  and exporting with GPTQ. The route costs more in servability than it returns in fidelity, at
+  every length tested, and the cost appears at the first snapped step.
+  OPEN, and now better aimed: the problem is that the quantiser does not tolerate the snapped
+  basin. Two routes remain - a quantiser or bit allocation that tolerates it (the round-20
+  attribution says the weight matrices carry the loss, but the tool refuses snapped artifacts, so
+  this needs a measurement that does not exist yet), or serving the snap differently rather than
+  training into it. Neither is a sweep and neither is claimed here.
+
+  The best served result on real held-out chat remains the untuned artifact at 0.93277 BPB,
+  4.70 times better than the 4.3885 this project serves today.
+
+SCOPE
+  One model, one corpus, one stream, two tune lengths, single seed each, one quantiser setting.
+  The three arms differ in the number of fine-tune steps and nothing else that is recorded.
