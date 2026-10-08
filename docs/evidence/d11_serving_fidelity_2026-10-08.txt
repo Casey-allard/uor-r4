@@ -1,0 +1,72 @@
+UOR-R4 — The multiplier-free serving path is bit-exact on a geometric stack, so the barrier is which model is served
+Date: 2026-10-08 (overnight round 5). DeepSeek session. References #820.
+
+WHAT WAS FOUND ALREADY ON DISK, UNCONVERTED
+  ~/uor-r4-local/d11-l2/ contains a complete D11 conversion and evaluation of a geometric stack
+  (source model geo-20m, pattern rrarrarr, width 512, heads 8, context 384, read l2, vocab 4096),
+  produced 2026-10-03 and never reported in bits per byte:
+
+    export/export.json         schema uor-r4.geometric-stack-export/1
+    d11-eval/evaluation.json   schema uor-r4.geometric-stack-d11-evaluation/1
+
+  The D11 evaluation, 3,072 targets on ladder/corpora/tinystories-v2-valid/tokens.u16:
+
+    d10 nll                       1.4595371721399573
+    d11 nll                       1.4595371721399573
+    d11_minus_d10_nll             0.0
+    top1_agreement                1.0
+    max_abs_logit_difference      0
+    positions_with_a_difference   0
+    weights_read_per_token        19,931,648
+    protocol                      evenly spaced windows, one fresh session of each engine per
+                                  window, position by position, logits compared as integers
+
+  **The multiplier-free D11 engine reproduces the reference engine exactly** on this artifact:
+  identical negative log-likelihood to sixteen digits, every top-1 identical, no position with any
+  logit difference. There is no discretisation loss to recover in the serving kernel.
+
+  A second conversion in the same directory (GPTQ quantisation) records `top1_agreement` 0.9379
+  over 24,576 targets against its float reference, so quantisation *choice* matters (round-to-
+  nearest here is exact; GPTQ is not) even though the engine itself is faithful.
+
+WHAT THIS SETTLES
+  The 3.27 BPB gap measured in rounds 3 and 4 is not a serving-kernel loss. It decomposes as
+  2.57 BPB of domain mismatch and 0.58 BPB of in-domain export loss, and the export loss is not
+  the integer engine: that engine is exact. Both gaps are about WHICH model is exported.
+
+    served today      native_geometric_prose_model.rgm       2.7 MB   120-root features,
+                                                              TinyStories, chat BPB 4.3885
+    trained and idle  ladder/runs/geo-8m-l2                  28.6 MB  width 288, l2 read,
+                                                              chat BPB 1.1199
+    converted+proved  geo-20m D11 export                     --       engine parity exact
+
+  The project has, in three separate places on one laptop: a model that scores 1.1199 bits per
+  byte on real chat, an exporter that turns such a model into a multiplier-free artifact, and a
+  proof that the multiplier-free artifact is bit-identical to its reference. What it does not have
+  is the three joined together on the chat distribution.
+
+THE RUN THIS POINTS AT (recorded as a work card, not yet executed)
+  Deliverable : a served, multiplier-free artifact for the chat distribution, evaluated with
+                d11-evaluate on chat-v0-p2/heldout, reported in bits per byte.
+  Recipe      : a stack trained with qat=true so it has a served representation (the docs are
+                explicit that a model without one exports only as that), exported with
+                `geometric-stack export`, then `geometric-stack d11-evaluate artifact=ROOT/model.lut
+                valid=VALID.u16`. The 20M precedent above used exactly this path.
+  Cost        : the ladder runbook's 20M rung on a single RTX 5090 measured at 0.09-0.10 s per step
+                per GPU: a 300M-token chat-only run is about 1.3 GPU-hours, roughly $1.30 at the
+                $0.99/GPU-hour rate, inside the owner's pod caps and requiring no new approval.
+  Expected    : the served artifact's chat BPB should land within a few hundredths of the float
+                run's, because the engine is exact and the only loss is the quantisation choice -
+                i.e. of order 1.1-1.2 bits per byte against the 4.3885 served today.
+  Kill        : if the exported artifact's d11 nll differs from its own float reference by more
+                than the GPTQ row's agreement suggests, or if the run lands above 2.0 BPB, then
+                the chat distribution is not reachable by this stack at this size and the next
+                spend belongs to data and capacity rather than to serving.
+  Precedent   : the lab recorded a D11 integer export of a geometric stack at 0.793384 BPB against
+                0.789108 for its QAT float parent on code development - a 0.004 BPB cost, 0.5 %.
+
+SCOPE
+  All figures are read from artifacts on disk; nothing was retrained. The 1.4595 nll above is the
+  geo-20m conversion on TinyStories validation and is not comparable to the chat numbers; it is
+  cited for engine fidelity, not quality. Bits per byte remains null in every one of these sealed
+  records, which is why token-stream-bytes exists.
