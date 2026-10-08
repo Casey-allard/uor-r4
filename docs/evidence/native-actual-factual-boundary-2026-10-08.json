@@ -1,0 +1,620 @@
+{
+  "schema": "uor-r4.actual-factual-boundary-evidence/1",
+  "pr": 1905,
+  "executed_source": "70b2c556b3b52ab5b57c0767b95abf9512825a5f",
+  "binary_sha256": "cec8430a35238c2a05860099aa31ae32f00d1926ec8a3917360c1f3d86c10bcb",
+  "config_sha256": "415c9ac02e1f6feb77ae8601907d48d4cc7ee4b32fd0b5e6a4da0ef1648ae065",
+  "capture_report_sha256": "8f99cc6ad83f5ec6901a4ecae4f6783bf469dbb30a949d177b0e636c796af076",
+  "capture_seal_sha256": "e698e92c4c4fcd1e743808c0ffe901916cf1716f1ffc048f4848186986a5e458",
+  "capture_inventory": {
+    "files": 20,
+    "bytes": 82388813,
+    "manifest_sha256": "e698e92c4c4fcd1e743808c0ffe901916cf1716f1ffc048f4848186986a5e458",
+    "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+  },
+  "capture": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T13:21:07.773059+00:00",
+    "ended_utc": "2026-10-08T13:21:37.919758+00:00",
+    "elapsed_seconds": 30.146723218262196,
+    "children_max_rss_kib": 208160,
+    "binary_sha256": "cec8430a35238c2a05860099aa31ae32f00d1926ec8a3917360c1f3d86c10bcb",
+    "config_sha256": "415c9ac02e1f6feb77ae8601907d48d4cc7ee4b32fd0b5e6a4da0ef1648ae065"
+  },
+  "capture_preseal_seconds": 24.046046431,
+  "fixed_cohort_and_result": {
+    "status": "PASS",
+    "source": "70b2c556b3b52ab5b57c0767b95abf9512825a5f",
+    "scores": 65536,
+    "U_scores": 65536,
+    "controls": 32,
+    "frames": [
+      {
+        "row": 97,
+        "pos": 3,
+        "role": "factual_failure",
+        "target": 332,
+        "winner": 770,
+        "controls": {
+          "generate_only": 3526,
+          "copy_u_removed": 770
+        },
+        "base_bridge_donor_expected_source": false,
+        "base_bridge_donor_token": 770,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 1,
+            "token_id": 770,
+            "token_offset": 3,
+            "expected_source_tuple_match": false,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 20971520,
+        "U_margin": 8388608
+      },
+      {
+        "row": 156,
+        "pos": 3,
+        "role": "factual_failure",
+        "target": 1634,
+        "winner": 1717,
+        "controls": {
+          "generate_only": 1257,
+          "copy_u_removed": 1717
+        },
+        "base_bridge_donor_expected_source": false,
+        "base_bridge_donor_token": 1717,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 3,
+            "token_id": 1717,
+            "token_offset": 1,
+            "expected_source_tuple_match": false,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 16777216,
+        "U_margin": -8388608
+      },
+      {
+        "row": 151,
+        "pos": 3,
+        "role": "factual_failure",
+        "target": 1634,
+        "winner": 520,
+        "controls": {
+          "generate_only": 554,
+          "copy_u_removed": 520
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 520,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 1,
+            "token_id": 520,
+            "token_offset": 5,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": -11534336,
+        "U_margin": 8388608
+      },
+      {
+        "row": 245,
+        "pos": 3,
+        "role": "factual_failure",
+        "target": 1057,
+        "winner": 307,
+        "controls": {
+          "generate_only": 2737,
+          "copy_u_removed": 1717
+        },
+        "base_bridge_donor_expected_source": false,
+        "base_bridge_donor_token": 1717,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 3,
+            "token_id": 307,
+            "token_offset": 2,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": -11534336,
+        "U_margin": -16777216
+      },
+      {
+        "row": 392,
+        "pos": 3,
+        "role": "factual_failure",
+        "target": 3585,
+        "winner": 324,
+        "controls": {
+          "generate_only": 171,
+          "copy_u_removed": 324
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 324,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 3,
+            "token_id": 324,
+            "token_offset": 3,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": -7340032,
+        "U_margin": 0
+      },
+      {
+        "row": 0,
+        "pos": 3,
+        "role": "source_control",
+        "target": 261,
+        "winner": 261,
+        "controls": {
+          "generate_only": 266,
+          "copy_u_removed": 261
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 261,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 1,
+            "token_id": 261,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 1,
+        "pos": 3,
+        "role": "source_control",
+        "target": 683,
+        "winner": 683,
+        "controls": {
+          "generate_only": 3103,
+          "copy_u_removed": 683
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 683,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 3,
+            "token_id": 683,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 4,
+        "pos": 3,
+        "role": "source_control",
+        "target": 261,
+        "winner": 261,
+        "controls": {
+          "generate_only": 2571,
+          "copy_u_removed": 261
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 261,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 1,
+            "token_id": 261,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 5,
+        "pos": 3,
+        "role": "source_control",
+        "target": 683,
+        "winner": 683,
+        "controls": {
+          "generate_only": 179,
+          "copy_u_removed": 683
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 683,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 3,
+            "token_id": 683,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 8,
+        "pos": 3,
+        "role": "source_control",
+        "target": 683,
+        "winner": 683,
+        "controls": {
+          "generate_only": 3866,
+          "copy_u_removed": 683
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 683,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 1,
+            "token_id": 683,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 9,
+        "pos": 3,
+        "role": "source_control",
+        "target": 261,
+        "winner": 261,
+        "controls": {
+          "generate_only": 3994,
+          "copy_u_removed": 261
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 261,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 3,
+            "token_id": 261,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 12,
+        "pos": 3,
+        "role": "source_control",
+        "target": 683,
+        "winner": 683,
+        "controls": {
+          "generate_only": 2966,
+          "copy_u_removed": 683
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 683,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 1,
+            "token_id": 683,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 13,
+        "pos": 3,
+        "role": "source_control",
+        "target": 261,
+        "winner": 261,
+        "controls": {
+          "generate_only": 3042,
+          "copy_u_removed": 261
+        },
+        "base_bridge_donor_expected_source": true,
+        "base_bridge_donor_token": 261,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 3,
+            "token_id": 261,
+            "token_offset": 0,
+            "expected_source_tuple_match": true,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 399,
+        "pos": 2,
+        "role": "grammar_failure",
+        "target": 315,
+        "winner": 520,
+        "controls": {
+          "generate_only": 2032,
+          "copy_u_removed": 520
+        },
+        "base_bridge_donor_expected_source": false,
+        "base_bridge_donor_token": 520,
+        "winner_copy_aliases": [
+          {
+            "segment_index": 1,
+            "token_id": 520,
+            "token_offset": 4,
+            "expected_source_tuple_match": false,
+            "weight_q31": 2147483648
+          }
+        ],
+        "base_G_margin": -11534336,
+        "U_margin": 25165824
+      },
+      {
+        "row": 5,
+        "pos": 2,
+        "role": "grammar_control",
+        "target": 315,
+        "winner": 315,
+        "controls": {
+          "generate_only": 315,
+          "copy_u_removed": 315
+        },
+        "base_bridge_donor_expected_source": false,
+        "base_bridge_donor_token": 770,
+        "winner_copy_aliases": [],
+        "base_G_margin": 0,
+        "U_margin": 0
+      },
+      {
+        "row": 13,
+        "pos": 2,
+        "role": "grammar_control",
+        "target": 315,
+        "winner": 315,
+        "controls": {
+          "generate_only": 315,
+          "copy_u_removed": 315
+        },
+        "base_bridge_donor_expected_source": false,
+        "base_bridge_donor_token": 520,
+        "winner_copy_aliases": [],
+        "base_G_margin": 0,
+        "U_margin": 0
+      }
+    ]
+  },
+  "independent_audit_sha256": "587897dbb1726d309aaf82f2ec1799b00f5a4879b5457648f17e58b6dd5fb277",
+  "independent_reader_sha256": "abcf5ba7d3730f0ebdfa5560f50335bfc7f5c84b305854800009bec8733dddc7",
+  "all_verifications": [
+    {
+      "kind": "independent_reader",
+      "exit_code": 0,
+      "elapsed_seconds": 27.36476607248187,
+      "max_rss_kib": 98596
+    },
+    {
+      "kind": "capture",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4635115675628185,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "kind": "compensation",
+      "exit_code": 0,
+      "elapsed_seconds": 13.05876099318266,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "kind": "input_panel",
+      "exit_code": 0,
+      "elapsed_seconds": 0.28078342229127884,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "runtime_preservation": {
+    "revision": "04a9b3d32695141d6adc1560b2611c572ae629e3",
+    "prefix": "codex/sol-u-factual-attribution/runtime-70b2c556b3-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "20261008T131419Z-setup-fault.log": {
+        "sha256": "0e58aa26e9811b15b7bae4d59a389f631ad6395386e9d87f2358387596db4acb",
+        "bytes": 920
+      },
+      "20261008T131552Z-setup-fault.log": {
+        "sha256": "a90175b228a9c69759f220e2fff7237010e003dfd0f6843753658f06a1acb8c7",
+        "bytes": 894
+      },
+      "SHA256-manifest.json": {
+        "sha256": "fc5b3562906374716d60b0f67941b6a7bfa61f2b19f7c208424ea222de993ba1",
+        "bytes": 1751
+      },
+      "checks.log": {
+        "sha256": "da29da8364b4db946e9384995014ec75d532e502de848ff2f662cb0032642be8",
+        "bytes": 4299
+      },
+      "config.json": {
+        "sha256": "415c9ac02e1f6feb77ae8601907d48d4cc7ee4b32fd0b5e6a4da0ef1648ae065",
+        "bytes": 7080
+      },
+      "exact-head-review.md": {
+        "sha256": "f96ca18f73afb8eaaabb25b1ee0ac3bf2474c4955e4934ec965b9e39b431f131",
+        "bytes": 761
+      },
+      "historical-panel-authoring-source.rs": {
+        "sha256": "a825d239d2a7ef441b0c78b8409244c4a44d8a2c82cd1ab9696b21e6e7af1bc4",
+        "bytes": 23067
+      },
+      "independent-reader.py": {
+        "sha256": "abcf5ba7d3730f0ebdfa5560f50335bfc7f5c84b305854800009bec8733dddc7",
+        "bytes": 27175
+      },
+      "native-reached-prefix-attribution": {
+        "sha256": "cec8430a35238c2a05860099aa31ae32f00d1926ec8a3917360c1f3d86c10bcb",
+        "bytes": 3278568
+      },
+      "source.tar.gz": {
+        "sha256": "daf2544aab4999f85cb0bcdc82b677cb02acf85afd838fe14b7c47e1c065540f",
+        "bytes": 99278627
+      },
+      "supervise.py": {
+        "sha256": "f97e5038dec1139dceae6e2a622fc67647e78ed5bb5d7561ba4a8fff3cf60051",
+        "bytes": 2711
+      }
+    },
+    "manifest": {
+      "source_commit": "70b2c556b3b52ab5b57c0767b95abf9512825a5f",
+      "source_tree": "fe798b112935a4b2077aea6474e52afef6afbbbc",
+      "files": {
+        "20261008T131419Z-setup-fault.log": {
+          "sha256": "0e58aa26e9811b15b7bae4d59a389f631ad6395386e9d87f2358387596db4acb",
+          "bytes": 920
+        },
+        "20261008T131552Z-setup-fault.log": {
+          "sha256": "a90175b228a9c69759f220e2fff7237010e003dfd0f6843753658f06a1acb8c7",
+          "bytes": 894
+        },
+        "checks.log": {
+          "sha256": "da29da8364b4db946e9384995014ec75d532e502de848ff2f662cb0032642be8",
+          "bytes": 4299
+        },
+        "config.json": {
+          "sha256": "415c9ac02e1f6feb77ae8601907d48d4cc7ee4b32fd0b5e6a4da0ef1648ae065",
+          "bytes": 7080
+        },
+        "exact-head-review.md": {
+          "sha256": "f96ca18f73afb8eaaabb25b1ee0ac3bf2474c4955e4934ec965b9e39b431f131",
+          "bytes": 761
+        },
+        "historical-panel-authoring-source.rs": {
+          "sha256": "a825d239d2a7ef441b0c78b8409244c4a44d8a2c82cd1ab9696b21e6e7af1bc4",
+          "bytes": 23067
+        },
+        "independent-reader.py": {
+          "sha256": "abcf5ba7d3730f0ebdfa5560f50335bfc7f5c84b305854800009bec8733dddc7",
+          "bytes": 27175
+        },
+        "native-reached-prefix-attribution": {
+          "sha256": "cec8430a35238c2a05860099aa31ae32f00d1926ec8a3917360c1f3d86c10bcb",
+          "bytes": 3278568
+        },
+        "source.tar.gz": {
+          "sha256": "daf2544aab4999f85cb0bcdc82b677cb02acf85afd838fe14b7c47e1c065540f",
+          "bytes": 99278627
+        },
+        "supervise.py": {
+          "sha256": "f97e5038dec1139dceae6e2a622fc67647e78ed5bb5d7561ba4a8fff3cf60051",
+          "bytes": 2711
+        }
+      },
+      "scope": "Sixteen fixed target-free production integer native reached-prefix captures plus saved-vector diagnostic reductions; no learning or generated counterfactual"
+    },
+    "seconds": 45.28855233639479,
+    "completed_utc": "2026-10-08T13:20:08.476442+00:00"
+  },
+  "result_preservation": {
+    "revision": "710bd601fda1879cc44415a1c0f0bec568aba975",
+    "prefix": "codex/sol-u-factual-attribution/u-factual-0001-70b2c556b3",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "dbd0c7d8b11c08a02203731d9af9e833851ef55700f09585278ff1d9c2aebe9e",
+        "bytes": 1121
+      },
+      "u-factual-0001-70b2c556b3.tar.gz": {
+        "sha256": "022712927623fbc086d67a732b23d24b281e1e0906f11daa9a5ac12d3cf6090d",
+        "bytes": 10691752
+      }
+    },
+    "manifest": {
+      "source_commit": "70b2c556b3b52ab5b57c0767b95abf9512825a5f",
+      "runtime_hf_revision": "04a9b3d32695141d6adc1560b2611c572ae629e3",
+      "runtime_manifest_sha256": "fc5b3562906374716d60b0f67941b6a7bfa61f2b19f7c208424ea222de993ba1",
+      "binary_sha256": "cec8430a35238c2a05860099aa31ae32f00d1926ec8a3917360c1f3d86c10bcb",
+      "config_sha256": "415c9ac02e1f6feb77ae8601907d48d4cc7ee4b32fd0b5e6a4da0ef1648ae065",
+      "report_sha256": "8f99cc6ad83f5ec6901a4ecae4f6783bf469dbb30a949d177b0e636c796af076",
+      "report_manifest_sha256": "e698e92c4c4fcd1e743808c0ffe901916cf1716f1ffc048f4848186986a5e458",
+      "audit_sha256": "587897dbb1726d309aaf82f2ec1799b00f5a4879b5457648f17e58b6dd5fb277",
+      "files": {
+        "u-factual-0001-70b2c556b3.tar.gz": {
+          "sha256": "022712927623fbc086d67a732b23d24b281e1e0906f11daa9a5ac12d3cf6090d",
+          "bytes": 10691752
+        }
+      },
+      "scope": "Exactly sixteen fixed production native captures at authenticated actual prefixes; saved BASEGenerate/U/bridge/physicalCopy arithmetic audit and full saved-vector controls. No fit, gradient, alternate-case sweep, generated counterfactual or model promotion."
+    },
+    "seconds": 9.571618124842644,
+    "completed_utc": "2026-10-08T13:24:11.399363+00:00"
+  },
+  "source_authority": {
+    "panel_source_commit": "013a5d6dca7dc288d6c82d4a3df58bf49cd3ee61",
+    "historical_source_sha256": "a825d239d2a7ef441b0c78b8409244c4a44d8a2c82cd1ab9696b21e6e7af1bc4",
+    "reference_sha256": "54489a02b0b49fe17efc99c514667bac553628b9dee8eea564a3c49a0bfbf594",
+    "selector": "input-only explicit decodedquery/cue role plus scope/relation and latest matching EVENT",
+    "runtime_reference": false,
+    "interpreted_after_capture": true
+  },
+  "checks": {
+    "source": "70b2c556b3b52ab5b57c0767b95abf9512825a5f",
+    "job": "20261008T131722Z",
+    "tests": 8,
+    "failures": 0,
+    "ignored": 0,
+    "format": "PASS",
+    "release": "PASS",
+    "math_review": "PASS",
+    "adversarial_review": "PASS",
+    "reader_source_review": "PASS"
+  },
+  "scope": "16fixed production integer native steps; no fit/gradient/refill/new serving policy; exact saved-vector reductions and posthoc provenance. No independent recurrent Context/cue/prefix numerical reexecution, inference replication, usefulchat, transfer, energy or globalcapacity claim.",
+  "initial_setup_faults": [
+    {
+      "job": "20261008T131419Z",
+      "source": "fec0d781cff11c23352de014a6948f37b7f9c359",
+      "exit": 101,
+      "kind": "unsupportedcoreCUDAfeature beforetests/model"
+    },
+    {
+      "job": "20261008T131552Z",
+      "source": "70b2c556b3b52ab5b57c0767b95abf9512825a5f",
+      "exit": 101,
+      "kind": "queuedsamewrapperfault beforetests/model"
+    }
+  ],
+  "next": {
+    "status": "NOT_ADMITTED_BEFORE_PROTECTED_DELIVERY",
+    "question": "existing sharedCue+Prefix Copy coefficient coadaptation for source-role and within-source occurrence distinctions; freeze Source/Context/Potential/Generate/bridge/U/geometry, full donor-specific Generate recomputation when BASECopy donor changes",
+    "boundaries": "no Urefill/Copyremoval/cursor/teacherprefix; use freshly scored objective, preserve originalcomplete and declared currentcorrectprefix guards, actual exported ownprefix/EOS required for useful gain"
+  },
+  "cost": {
+    "prior_cumulative_projection_seconds": 476070,
+    "necessary_increment_seconds": 14400,
+    "cumulative_projection_seconds": 490470,
+    "cpu_threads": 2,
+    "ram_gib": 2,
+    "cache_mib": 128,
+    "report_mib": 128,
+    "remote_disk_floor_gib": 8,
+    "stop_margin_bytes": 134217728,
+    "complete_cost_ledger": "resource-sol-u-factual-attribution-20261008.json",
+    "unavailable_legacy_times": "retained; projection is not measured model time"
+  }
+}

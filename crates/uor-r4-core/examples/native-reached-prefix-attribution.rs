@@ -31,6 +31,10 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
+    #[serde(default)]
+    endpoint_kind: EndpointKind,
+    #[serde(default)]
+    frames: Option<Vec<FrameRequest>>,
     compensation_root: PathBuf,
     expected_report_sha256: String,
     expected_manifest_sha256: String,
@@ -45,6 +49,97 @@ struct Config {
     output: PathBuf,
     maximum_cache_bytes: u64,
     maximum_report_bytes: u64,
+}
+#[derive(Clone, Copy, Default, Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum EndpointKind {
+    #[default]
+    ZeroCompensation,
+    SelectedReachedU,
+}
+#[derive(Clone, Copy, Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum FrameRole {
+    LegacyEntry,
+    FactualFailure,
+    SourceControl,
+    GrammarFailure,
+    GrammarControl,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct FrameRequest {
+    input_index: usize,
+    position: usize,
+    expected_id: String,
+    #[serde(default)]
+    expected_saved_row_sha256: Option<String>,
+    expected_actual_prefix_ids: Vec<u32>,
+    role: FrameRole,
+}
+fn validate_frames(frames: &[FrameRequest], kind: EndpointKind) -> Result<()> {
+    let mut seen = std::collections::BTreeSet::new();
+    for f in frames {
+        require(
+            f.input_index < 512
+                && f.position < 32
+                && f.position == f.expected_actual_prefix_ids.len()
+                && !f.expected_id.is_empty()
+                && !f.expected_actual_prefix_ids.contains(&1)
+                && seen.insert((f.input_index, f.position)),
+            "illegal/duplicate frame request",
+        )?;
+    }
+    if kind == EndpointKind::SelectedReachedU {
+        let expected = [
+            (97, 3),
+            (156, 3),
+            (151, 3),
+            (245, 3),
+            (392, 3),
+            (0, 3),
+            (1, 3),
+            (4, 3),
+            (5, 3),
+            (8, 3),
+            (9, 3),
+            (12, 3),
+            (13, 3),
+            (399, 2),
+            (5, 2),
+            (13, 2),
+        ]
+        .into_iter()
+        .collect::<std::collections::BTreeSet<_>>();
+        require(
+            frames.len() == 16 && seen == expected,
+            "prospective16frame cohort differs",
+        )?;
+        for f in frames {
+            require(
+                f.expected_saved_row_sha256
+                    .as_ref()
+                    .is_some_and(|h| h.len() == 64 && h.bytes().all(|x| x.is_ascii_hexdigit())),
+                "selectedframe expected rowhash absent/invalid",
+            )?;
+            let role = if [97, 156, 151, 245, 392].contains(&f.input_index) {
+                FrameRole::FactualFailure
+            } else if f.position == 3 {
+                FrameRole::SourceControl
+            } else if f.input_index == 399 {
+                FrameRole::GrammarFailure
+            } else {
+                FrameRole::GrammarControl
+            };
+            require(f.role == role, "prospective frame group differs")?;
+        }
+    } else {
+        require(
+            frames.len() == 3 && seen == [(399, 1), (5, 1), (13, 1)].into_iter().collect(),
+            "legacy cohort differs",
+        )?;
+    }
+    Ok(())
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -184,6 +279,14 @@ fn snapshot(p: &Packet) -> Result<PinnedBankSnapshot> {
     })
 }
 fn admit_paths(c: &mut Config) -> Result<()> {
+    if let Some(frames) = &c.frames {
+        validate_frames(frames, c.endpoint_kind)?;
+    } else {
+        require(
+            c.endpoint_kind == EndpointKind::ZeroCompensation,
+            "selectedUrequires prospective16frames before model loading",
+        )?;
+    }
     for p in [
         &c.compensation_root,
         &c.inputs,
@@ -223,22 +326,46 @@ fn admit_paths(c: &mut Config) -> Result<()> {
     }
     Ok(())
 }
-fn authenticate_reached_prefix(saved: &Value) -> Result<()> {
+fn authenticate_reached_prefix(saved: &Value, prefix: &[u32], position: usize) -> Result<()> {
+    let generated: Vec<u32> = serde_json::from_value(saved["generated_ids"].clone())?;
+    let eos = generated.last() == Some(&1);
     require(
-        saved["generated_ids"][0] == 617
-            && saved["generation"][1]["actual_prefix_ids"] == json!([617])
-            && saved["canonical"][1]["native"]["pool"]["summary"]
-                == saved["generation"][1]["pool"]["summary"],
-        "saved position1 is not matching actual/canonical reached prefix",
+        saved["eos"].as_bool() == Some(eos)
+            && !generated[..generated.len().saturating_sub(usize::from(eos))].contains(&1),
+        "savedEOSflag/placement differs",
+    )?;
+    let steps = saved["generation"]
+        .as_array()
+        .ok_or_else(|| bad("saved actual trajectory absent"))?;
+    require(
+        position == prefix.len()
+            && position < generated.len()
+            && steps.len() == generated.len()
+            && generated.get(..position) == Some(prefix)
+            && !prefix.contains(&1),
+        "requested frame absent/pastEOS/notactualprefix",
+    )?;
+    for (i, step) in steps.iter().enumerate().take(position + 1) {
+        require(
+            step["actual_prefix_ids"] == json!(&generated[..i])
+                && step["pool"]["summary"]["chosen_token_id"] == generated[i],
+            "saved winner/prefix chain differs",
+        )?;
+    }
+    require(
+        saved["canonical"][position]["native"]["pool"]["summary"]
+            == steps[position]["pool"]["summary"],
+        "saved actual frame is not canonical reached prefix",
     )
 }
 fn check_saved(
     step: &uor_r4_core::native_geometric::learner::native_bank_generate::NativeBankGenerateStep,
     saved: &Value,
+    position: usize,
 ) -> Result<()> {
-    let actual = &saved["generation"][1];
-    let canonical = &saved["canonical"][1]["native"];
-    authenticate_reached_prefix(saved)?;
+    let actual = &saved["generation"][position];
+    let canonical = &saved["canonical"][position]["native"];
+    authenticate_reached_prefix(saved, &step.actual_prefix_ids, position)?;
     require(
         actual["pool"]["summary"] == serde_json::to_value(&step.actions.summary)?
             && canonical["generate_raw_scores_sha256"]
@@ -282,7 +409,12 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     let receipt = read(&cp.join("receipt.json"))?;
     require(
         report["status"] == "COMPLETED"
-            && report["mode"] == "prototype_compensation"
+            && report["mode"]
+                == if c.endpoint_kind == EndpointKind::ZeroCompensation {
+                    "prototype_compensation"
+                } else {
+                    "reached_u"
+                }
             && report["native_code_proposals"]["winner"] == 0
             && report["final_receipt"] == receipt
             && receipt["step"] == 1,
@@ -296,9 +428,22 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             && c.expected_generate_sha256
                 == "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737"
             && c.expected_continuation_sha256
-                == "a42cc8d9a9d04bdcddb9f1a513128f66361611556f0e6d768de37da0bc9d1030",
+                == if c.endpoint_kind == EndpointKind::ZeroCompensation {
+                    "a42cc8d9a9d04bdcddb9f1a513128f66361611556f0e6d768de37da0bc9d1030"
+                } else {
+                    "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee"
+                },
         "fixed successor artifact pins differ",
     )?;
+    if c.endpoint_kind == EndpointKind::SelectedReachedU {
+        require(
+            c.expected_report_sha256
+                == "2a9f967a955c6dc40b422c94f1b6d1d54f2511a24fb601af97218d49440b9923"
+                && c.expected_manifest_sha256
+                    == "6cbfabf807427f3baa2bfcfda7187e1b00f3a205ec9466b30a7437a410baad94",
+            "selectedUreport/seal differs",
+        )?;
+    }
     let gen = bytes(&cp.join("generate.bin"))?;
     let bridge = bytes(&cp.join("read-state-bridge-categorical.bin"))?;
     let exp = bytes(&cp.join("native/consumer/exp-q31.bin"))?;
@@ -351,12 +496,15 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         "U endpoint pin differs",
     )?;
     let field = NativeContinuationField::from_bytes(&u, &binding, generator.generate_model())?;
-    for lane in 0..8 {
-        for relative in 0..120 {
-            require(
-                field.coefficient_unary(lane, relative)? == 0,
-                "prototype-dependent U is nonzero",
-            )?;
+    require(field.applies_to_copy(), "shared-actionv2 field required")?;
+    if c.endpoint_kind == EndpointKind::ZeroCompensation {
+        for lane in 0..8 {
+            for relative in 0..120 {
+                require(
+                    field.coefficient_unary(lane, relative)? == 0,
+                    "prototype-dependent U is nonzero",
+                )?;
+            }
         }
     }
     generator = generator.with_continuation_field(BoundNativeBytes {
@@ -375,11 +523,30 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         "frozen input panel differs",
     )?;
     // Selection is fixed by the prospective card, not by runtime scores or labels.
-    let mut captured = Vec::new();
-    for index in [399usize, 5, 13] {
+    let frames = c.frames.clone().unwrap_or_else(|| {
+        [399usize, 5, 13]
+            .into_iter()
+            .map(|i| FrameRequest {
+                input_index: i,
+                position: 1,
+                expected_id: panel.cases[i].id.clone(),
+                expected_saved_row_sha256: None,
+                expected_actual_prefix_ids: vec![617],
+                role: FrameRole::LegacyEntry,
+            })
+            .collect()
+    });
+    validate_frames(&frames, c.endpoint_kind)?;
+    let mut summaries = Vec::new();
+    for request in &frames {
+        let index = request.input_index;
+        let position = request.position;
         let packet = &panel.cases[index];
         let row = &report["final_evaluation"]["rows"][index];
-        require(row["id"] == packet.id, "report/input case identity differs")?;
+        require(
+            row["id"] == packet.id && packet.id == request.expected_id,
+            "report/input/request case identity differs",
+        )?;
         let row_name = text(&row["row_file"])?;
         require(
             row_name == format!("development-0001-row-{index:04}.json"),
@@ -387,7 +554,11 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         )?;
         let saved_bytes = bytes(&c.compensation_root.join(row_name))?;
         require(
-            hash(&saved_bytes) == text(&row["row_sha256"])?,
+            hash(&saved_bytes) == text(&row["row_sha256"])?
+                && request
+                    .expected_saved_row_sha256
+                    .as_ref()
+                    .map_or(true, |h| h == &hash(&saved_bytes)),
             "saved actual row digest differs",
         )?;
         let saved: Value = serde_json::from_slice(&saved_bytes)?;
@@ -398,9 +569,10 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 && saved["continuation_sha256"] == c.expected_continuation_sha256,
             "saved actual row/report binding differs",
         )?;
+        authenticate_reached_prefix(&saved, &request.expected_actual_prefix_ids, position)?;
         let bank = generator.admit_bank(snapshot(packet)?)?;
-        let step = generator.step(&bank, &[617])?;
-        check_saved(&step, &saved)?;
+        let step = generator.step(&bank, &request.expected_actual_prefix_ids)?;
+        check_saved(&step, &saved, position)?;
         let replay = reducer.reduce_trace(
             &step.generate_raw_scores_q24,
             &step.copy_token_ids,
@@ -418,6 +590,16 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             .bridge
             .as_ref()
             .ok_or_else(|| bad("bridge witness absent"))?;
+        let continuation = step
+            .continuation
+            .as_ref()
+            .ok_or_else(|| bad("continuation witness absent"))?;
+        let (base_generate, base_copy) = remove_shared_u(
+            &step.generate_raw_scores_q24,
+            &step.copy_token_ids,
+            &step.copy_raw_scores_q24,
+            &continuation.delta_scores_q24,
+        )?;
         let mut summed_copy = vec![0i64; step.copy_token_ids.len()];
         for head in &trace.cue_bank.bank.heads {
             require(
@@ -431,37 +613,25 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             }
         }
         require(
-            summed_copy == step.copy_raw_scores_q24,
+            summed_copy == base_copy,
             "physical Copy differs from already combined bank heads",
         )?;
-        let selected = summed_copy
-            .iter()
-            .enumerate()
-            .max_by(|(ia, a), (ib, b)| a.cmp(b).then_with(|| ib.cmp(ia)))
-            .map(|(i, _)| i)
-            .ok_or_else(|| bad("physical Copy candidates absent"))?;
+        let selected = earliest_physical_max(&summed_copy)?;
         require(
             selected == bridge.selected_ordinal
                 && trace.cue_bank.bank.candidates.get(selected) == Some(&bridge.selected_candidate),
             "bridge differs from earliest physical raw maximum",
         )?;
-        let continuation = step
-            .continuation
-            .as_ref()
-            .ok_or_else(|| bad("continuation witness absent"))?;
-        require(
-            continuation
-                .state_codes
-                .iter()
-                .map(|x| x.index())
-                .collect::<Vec<_>>()
-                == [20, 37, 45, 72, 64, 108, 17, 26]
-                && continuation.delta_scores_q24.iter().all(|x| *x == 0),
-            "fixed U encoding or numeric0 differs",
-        )?;
+        if c.endpoint_kind == EndpointKind::ZeroCompensation {
+            require(
+                continuation.delta_scores_q24.iter().all(|x| *x == 0),
+                "legacyUdelta notzero",
+            )?;
+        }
         let model = generator.generate_model();
         let mut factor_counts = GenerateReadCounts::default();
         let mut factors = Vec::with_capacity(4096);
+        let mut u_factors = Vec::with_capacity(4096);
         for token in 0..4096usize {
             let mut relative = Vec::with_capacity(8);
             let mut unary = Vec::with_capacity(8);
@@ -494,58 +664,133 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             let bias = model.token_bias(token)?;
             let total = component_sum_q24(&unary, &pairs, bias)?;
             require(
-                total == step.generate_raw_scores_q24[token],
+                total == base_generate[token],
                 "factor decomposition does not equal complete Generate score",
             )?;
-            factors.push(json!({"token_id":token,"prototype_codes":&model.prototypes()[token*8..(token+1)*8],"relative_codes":relative,"logical_factor_keys":keys,"unary_codes":unary,"pair_codes":pairs,"bias_code":bias,"score_shift":20,"total_q24":total}));
+            let mut u_relative = Vec::new();
+            let mut u_coefficients = Vec::new();
+            for lane in 0..8 {
+                let r = model.algebra().compose(
+                    model
+                        .algebra()
+                        .inverse(continuation.state_codes[lane].index())?,
+                    model.prototypes()[token * 8 + lane],
+                )?;
+                u_relative.push(r);
+                u_coefficients.push(field.coefficient_unary(lane, r)?);
+            }
+            let u_total = shifted_sum(&u_coefficients, 22)?;
+            require(
+                u_total == continuation.delta_scores_q24[token],
+                "alltokenUfactor sum differs",
+            )?;
+            u_factors.push(json!({"token_id":token,"relative_codes":u_relative,"coefficient_codes":u_coefficients,"score_shift":22,"total_q24":u_total}));
+            factors.push(json!({"token_id":token,"prototype_codes":&model.prototypes()[token*8..(token+1)*8],"relative_codes":relative,"logical_factor_keys":keys,"unary_codes":unary,"pair_codes":pairs,"bias_code":bias,"score_shift":20,"total_q24":total,"total_scope":"BASEGenerate beforeU","u_total_q24":u_total}));
         }
-        let frame = json!({"input_index":index,"id":packet.id,"actual_prefix_ids":[617],"saved_row_sha256":hash(&saved_bytes),
+        let generate_only = reducer.reduce_trace(&step.generate_raw_scores_q24, &[], &[])?;
+        let undo_u_copy = reducer.reduce_trace(
+            &step.generate_raw_scores_q24,
+            &step.copy_token_ids,
+            &base_copy,
+        )?;
+        let frame = json!({"input_index":index,"id":packet.id,"position":position,"request":request,"actual_prefix_ids":request.expected_actual_prefix_ids,"saved_row_sha256":hash(&saved_bytes),
           "capture_target_free":true,"label_access_before_capture":false,"query_ids":packet.query_ids,"snapshot_pin":{"lineage":0,"commit":packet.segments.iter().filter_map(|s|if let Segment::Source{commit,..}=s{Some(*commit)}else{None}).max(),"scope":packet.segments.iter().find_map(|s|if let Segment::Source{scope,..}=s{Some(scope)}else{None})},"bank_trace":trace,
           "bridge":{"selected_ordinal":bridge.selected_ordinal,"selected_candidate":bridge.selected_candidate,
-            "state_roles":{"query_state":"complete bank final prebridge state; not query-only","source_state":"cumulative bank replay state at selected physical occurrence; not isolated source embedding","post_state":"actual Generate scorer input after categorical bridge","continuation_state":"separate query+actualprefix encoding; U numeric0"},"selection_policy":"default earliest PHYSICAL raw Copy maximum before token alias pooling","physical_copy_sum_verified":true,"query_state":bridge.query_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"source_state":bridge.source_state.iter().map(|x|x.index()).collect::<Vec<_>>(),
+            "state_roles":{"query_state":"complete bank final prebridge state; not query-only","source_state":"cumulative bank replay state at selected physical occurrence; not isolated source embedding","post_state":"actual Generate scorer input after categorical bridge","continuation_state":"separate query+actualprefix encoding; shared-actionU, distinct from bridge"},"selection_policy":"default earliest PHYSICAL raw Copy maximum before token alias pooling","physical_copy_sum_verified":true,"query_state":bridge.query_state.iter().map(|x|x.index()).collect::<Vec<_>>(),"source_state":bridge.source_state.iter().map(|x|x.index()).collect::<Vec<_>>(),
             "action_codes":bridge.action_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"action_scores_q24":bridge.action_scores_q24,"counts":bridge.counts},
           "post_state":step.post_state.iter().map(|x|x.index()).collect::<Vec<_>>(),
           "continuation":{"query_tokens":continuation.query_tokens,"actual_prefix_tokens":continuation.actual_prefix_tokens,"state_codes":continuation.state_codes.iter().map(|x|x.index()).collect::<Vec<_>>(),"delta_scores_q24":continuation.delta_scores_q24,"encoding_coefficient_reads":continuation.encoding_coefficient_reads,"counts":continuation.counts},
-          "generate_q24":step.generate_raw_scores_q24,"generate_sha256":hash(&serde_json::to_vec(&step.generate_raw_scores_q24)?),"copy_ids":step.copy_token_ids,"copy_q24":step.copy_raw_scores_q24,
-          "pool":step.actions,"generate_counts":step.generate_counts,"factor_attribution_counts":factor_counts,"declared_pair_edges":model.energy().edges(),"factors":factors,
-          "saved_actual_pos1":saved["generation"][1],"saved_canonical_native_pos1":saved["canonical"][1]["native"]});
-        captured.push((index, frame));
-        let retained = captured.iter().try_fold(0u64, |n, (_, v)| -> Result<u64> {
-            Ok(n.checked_add(serde_json::to_vec(v)?.len() as u64)
-                .ok_or_else(|| bad("cache size overflow"))?)
-        })?;
+          "base_generate_q24":base_generate,"base_copy_q24":base_copy,"generate_q24":step.generate_raw_scores_q24,"generate_sha256":hash(&serde_json::to_vec(&step.generate_raw_scores_q24)?),"copy_ids":step.copy_token_ids,"copy_q24":step.copy_raw_scores_q24,
+          "pool":step.actions,"generate_counts":step.generate_counts,"factor_attribution_counts":factor_counts,"declared_pair_edges":model.energy().edges(),"factors":factors,"u_factors":u_factors,
+          "saved_actual":saved["generation"][position],"saved_canonical_native":saved["canonical"][position]["native"],"controls":{"generate_only":generate_only,"copy_u_removed":undo_u_copy},"control_scope":"savedvector reducer diagnostics; not servingoptions or generatedcounterfactuals","expected_record_query_role":"NOT_LOADED: separately authenticated reference joined posthoc by reader; never inferred from ID/target/bridge donor"});
+        let payload = serde_json::to_vec(&frame)?;
         require(
-            retained <= c.maximum_cache_bytes,
-            "target-free saved frame cache exceeds cap",
+            payload.len() as u64 <= c.maximum_cache_bytes,
+            "oneframe payload exceeds cache cap",
         )?;
+        let name = if c.endpoint_kind == EndpointKind::ZeroCompensation {
+            format!("frame-{index:04}.json")
+        } else {
+            format!("frame-{index:04}-position-{position:02}.json")
+        };
+        summaries.push(json!({"input_index":index,"position":position,"id":packet.id,"role":request.role,"file":name,"sha256":hash(&payload),"winner":step.actions.summary.chosen_token_id,"post_state":frame["post_state"]}));
+        write(c, &name, &frame, written)?;
     }
-    // Labels are parsed only after all three production captures and all-token attribution.
+    // No label fields are accessed until every admitted production capture is saved.
     let labels = read(&c.labels)?;
     require(
         labels["schema"] == "uor-r4.native-source-bank-labels/1"
-            && labels["cases"].as_array().map_or(false, |x| x.len() == 512),
-        "label authority shape differs",
+            && labels["cases"].as_array().is_some_and(|x| x.len() == 512),
+        "labelauthority shape differs",
     )?;
-    let mut summaries = Vec::new();
-    for (index, mut frame) in captured {
-        let saved = read(
-            &c.compensation_root
-                .join(format!("development-0001-row-{index:04}.json")),
-        )?;
-        let target_ids = &saved["canonical_target_ids_labels_only"];
+    let mut posthoc = Vec::new();
+    for request in &frames {
+        let saved = read(&c.compensation_root.join(format!(
+            "development-0001-row-{:04}.json",
+            request.input_index
+        )))?;
         require(
-            labels["cases"][index]["id"] == frame["id"],
-            "postcapture label case differs",
+            labels["cases"][request.input_index]["id"] == request.expected_id,
+            "posthoclabel ID differs",
         )?;
-        frame["posthoc_labels"] = json!({"authority":labels["cases"][index],"saved_canonical_target_ids":target_ids,"attached_after_all_three_captures":true});
-        let name = format!("frame-{index:04}.json");
-        let digest = hash(&serde_json::to_vec(&frame)?);
-        summaries.push(json!({"input_index":index,"id":frame["id"],"file":name,"sha256":digest,"winner":frame["pool"]["summary"]["chosen_token_id"],"post_state":frame["post_state"]}));
-        write(c, &name, &frame, written)?;
+        posthoc.push(json!({"input_index":request.input_index,"position":request.position,"request":request,"authority":labels["cases"][request.input_index],"saved_canonical_target_ids":saved["canonical_target_ids_labels_only"],"current_target_label_only":saved["canonical"][request.position]["target_label_only"],"attached_after_all_captures":true,"expected_record_query_role":"NOT_LOADED: external authenticated posthoc authority"}));
     }
+    write(
+        c,
+        "posthoc-labels.json",
+        &json!({"frames":posthoc,"labels_sha256":c.expected_labels_sha256,"scope":"labels separate from targetfree production captures"}),
+        written,
+    )?;
     Ok(
-        json!({"schema":"uor-r4.native-reached-prefix-attribution/1","status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":"production native bank generator; exactly3 steps at authenticated actualprefix617; full Copy+Generate reducer","source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role unresolved; no counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
+        json!({"schema":"uor-r4.native-reached-prefix-attribution/2","status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":"production native bank generator; exact admittedframes at authenticated saved actualprefixes; full Copy+Generate reducer","source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"endpoint_kind":c.endpoint_kind,"frame_count":frames.len(),"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role authority joined separately posthoc; no generated counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
     )
+}
+fn earliest_physical_max(scores: &[i64]) -> Result<usize> {
+    scores
+        .iter()
+        .enumerate()
+        .max_by(|(ia, a), (ib, b)| a.cmp(b).then_with(|| ib.cmp(ia)))
+        .map(|(i, _)| i)
+        .ok_or_else(|| bad("physicalCopy candidates absent"))
+}
+fn shifted_sum(coefficients: &[i8], shift: u32) -> Result<i64> {
+    let sum = coefficients.iter().try_fold(0i64, |n, x| {
+        n.checked_add(i64::from(*x))
+            .ok_or_else(|| bad("coefficient sum overflow"))
+    })?;
+    sum.checked_mul(1i64.checked_shl(shift).ok_or_else(|| bad("invalidshift"))?)
+        .ok_or_else(|| bad("shiftedscore overflow"))
+}
+fn remove_shared_u(
+    generate: &[i64],
+    copy_ids: &[u32],
+    copy: &[i64],
+    delta: &[i64],
+) -> Result<(Vec<i64>, Vec<i64>)> {
+    require(
+        generate.len() == delta.len() && copy_ids.len() == copy.len(),
+        "sharedU vectorshape differs",
+    )?;
+    let base_g = generate
+        .iter()
+        .zip(delta)
+        .map(|(g, u)| {
+            g.checked_sub(*u)
+                .ok_or_else(|| bad("baseGenerate subtraction overflow"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let base_c = copy
+        .iter()
+        .zip(copy_ids)
+        .map(|(c, id)| {
+            let u = delta
+                .get(*id as usize)
+                .ok_or_else(|| bad("physicalalias outofdomain"))?;
+            c.checked_sub(*u)
+                .ok_or_else(|| bad("baseCopy subtraction overflow"))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok((base_g, base_c))
 }
 fn component_sum_q24(unary: &[i8], pair: &[i8], bias: i8) -> Result<i64> {
     let sum = unary.iter().chain(pair).try_fold(i64::from(bias), |n, x| {
@@ -582,7 +827,7 @@ fn main() -> Result<()> {
     let mut report = match &outcome {
         Ok(v) => v.clone(),
         Err(e) => {
-            json!({"schema":"uor-r4.native-reached-prefix-attribution/1","status":"FAILED","error":e.to_string(),"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"scope":"execution failure; no model-quality verdict"})
+            json!({"schema":"uor-r4.native-reached-prefix-attribution/2","status":"FAILED","error":e.to_string(),"source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"scope":"execution failure; no model-quality verdict"})
         }
     };
     let mut data = serde_json::to_vec(&report)?;
@@ -637,10 +882,77 @@ mod tests {
     fn teacher_only_prefix_cannot_authorize_actual_frame() -> Result<()> {
         // Reject actual-prefix mismatch before accessing any native arrays.
         let saved = json!({"generated_ids":[617],"generation":[{}, {"actual_prefix_ids":[2997]}],"canonical":[{}, {"native":{}}]});
-        assert!(authenticate_reached_prefix(&saved).is_err());
+        assert!(authenticate_reached_prefix(&saved, &[617], 1).is_err());
         let missing_actual =
             json!({"generated_ids":[617],"canonical":[{}, {"native":{"actual_prefix_ids":[617]}}]});
-        assert!(authenticate_reached_prefix(&missing_actual).is_err());
+        assert!(authenticate_reached_prefix(&missing_actual, &[617], 1).is_err());
+        Ok(())
+    }
+    #[test]
+    fn shared_u_removal_preserves_every_duplicate_copy_alias_and_base_donor() -> Result<()> {
+        let delta = [0, 10, -4];
+        let (g, c) = remove_shared_u(&[2, 13, 0], &[1, 1, 2], &[15, 14, 5], &delta)?;
+        assert_eq!(g, vec![2, 3, 4]);
+        assert_eq!(c, vec![5, 4, 9]);
+        assert_eq!(earliest_physical_max(&c)?, 2);
+        assert_eq!(earliest_physical_max(&[15, 14, 5])?, 0);
+        assert_eq!(earliest_physical_max(&[9, 9, 8])?, 0);
+        assert!(remove_shared_u(&[i64::MIN], &[], &[], &[1]).is_err());
+        assert!(remove_shared_u(&[0], &[1], &[0], &[0]).is_err());
+        assert_eq!(shifted_sum(&[-7, 7, 1], 22)?, 1 << 22);
+        Ok(())
+    }
+    #[test]
+    fn actual_frame_authority_rejects_wrong_chain_past_eos_and_cutoff() -> Result<()> {
+        let summary0 = json!({"chosen_token_id":617});
+        let summary1 = json!({"chosen_token_id":2097});
+        let mut saved = json!({"generated_ids":[617,2097],"eos":false,"generation":[{"actual_prefix_ids":[],"pool":{"summary":summary0}},{"actual_prefix_ids":[617],"pool":{"summary":summary1}}],"canonical":[{}, {"native":{"pool":{"summary":summary1}}}]});
+        authenticate_reached_prefix(&saved, &[617], 1)?;
+        assert!(authenticate_reached_prefix(&saved, &[617, 2097], 2).is_err());
+        saved["generation"][0]["pool"]["summary"]["chosen_token_id"] = json!(2997);
+        assert!(authenticate_reached_prefix(&saved, &[617], 1).is_err());
+        saved["generated_ids"] = json!([1, 2097]);
+        assert!(authenticate_reached_prefix(&saved, &[1], 1).is_err());
+        Ok(())
+    }
+    #[test]
+    fn frame_identity_includes_position_and_duplicate_positions_rejected() -> Result<()> {
+        let request = |i, p| FrameRequest {
+            input_index: i,
+            position: p,
+            expected_id: format!("id{i}"),
+            expected_saved_row_sha256: Some("a".repeat(64)),
+            expected_actual_prefix_ids: vec![617; p],
+            role: FrameRole::LegacyEntry,
+        };
+        let valid = vec![request(399, 1), request(5, 1), request(13, 1)];
+        validate_frames(&valid, EndpointKind::ZeroCompensation)?;
+        let invalid = vec![request(399, 1), request(5, 1), request(5, 1)];
+        assert!(validate_frames(&invalid, EndpointKind::ZeroCompensation).is_err());
+        let mut cohort = Vec::new();
+        for i in [97, 156, 151, 245, 392] {
+            let mut f = request(i, 3);
+            f.role = FrameRole::FactualFailure;
+            cohort.push(f);
+        }
+        for i in [0, 1, 4, 5, 8, 9, 12, 13] {
+            let mut f = request(i, 3);
+            f.role = FrameRole::SourceControl;
+            cohort.push(f);
+        }
+        for i in [399, 5, 13] {
+            let mut f = request(i, 2);
+            f.role = if i == 399 {
+                FrameRole::GrammarFailure
+            } else {
+                FrameRole::GrammarControl
+            };
+            cohort.push(f);
+        }
+        validate_frames(&cohort, EndpointKind::SelectedReachedU)?;
+        cohort[15].position = 3;
+        cohort[15].expected_actual_prefix_ids.push(315);
+        assert!(validate_frames(&cohort, EndpointKind::SelectedReachedU).is_err());
         Ok(())
     }
 }
