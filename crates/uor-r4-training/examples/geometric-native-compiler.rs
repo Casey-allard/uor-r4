@@ -1083,7 +1083,7 @@ fn run(a: &Args) -> Result<()> {
 }
 
 // Deliberately explicit instrumentation control, not a learned model or serving fallback.
-pub(super) struct ReferenceRule {
+pub struct ReferenceRule {
     identity: CompilerIdentity,
     bytes: Vec<u8>,
     writes: Vec<(String, String, u32, bool)>,
@@ -1117,7 +1117,7 @@ impl ReferenceRule {
         }
         Self::from_templates(tokenizer_sha, writes, queries)
     }
-    pub(super) fn new_with_templates(tokenizer_sha: &str, examples: &[Example]) -> Result<Self> {
+    pub fn new_with_templates(tokenizer_sha: &str, examples: &[Example]) -> Result<Self> {
         let mut writes = Vec::new();
         let mut queries = Vec::new();
         for e in examples {
