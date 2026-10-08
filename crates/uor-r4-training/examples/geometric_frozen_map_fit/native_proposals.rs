@@ -36,9 +36,11 @@ struct Term {
     target: u32,
     component: usize,
     weight: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    parent_actual_prefix_ids: Option<Vec<u32>>,
 }
-pub(super) fn policy() -> Value {
-    json!({"schema":"uor-r4.native-code-proposals/1", "rounds":1,"maximum_candidates":18,
+pub(super) fn policy(reached: bool) -> Value {
+    let mut result = json!({"schema":"uor-r4.native-code-proposals/1", "rounds":1,"maximum_candidates":18,
         "context":"one highest L1 combined-gradient [H,L,class,4] row per self/neighbor transition/root/category tensor; both signs",
         "other":"one highest absolute combined-gradient scalar each Potential, Generate unary/pair only, U; both signs",
         "rank_ties":"lexical parameter name then flattened row/index; candidate order frozen before any proposal loss",
@@ -47,7 +49,12 @@ pub(super) fn policy() -> Value {
         "acceptance":"at most one minimum native combined CE, strict decrease > 1e-10*(1+abs(parent)); first candidate on equal losses; parent preferred otherwise",
         "objective":"same 119 task terms + 398 frozen reference terms, including two overlaps twice; lambda1; no half average",
         "optimizer_updates":0,"global_clipping_applied":false,"gradients":"parent ranking only",
-        "scope":"finite native shared-operator neighborhood; scalar-only descent is not Context repair; native CE descent is not useful chat qualification"})
+        "scope":"finite native shared-operator neighborhood; scalar-only descent is not Context repair; native CE descent is not useful chat qualification"});
+    if reached {
+        result["objective"] = json!(frontier::OBJECTIVE);
+        result["objective_terms"] = json!({"frontier":504,"success":84,"total":588});
+    }
+    result
 }
 fn code(v: f32) -> Result<i8> {
     replay_require(
@@ -366,6 +373,7 @@ fn terms(eps: &[Episode], indices: &[usize], plan: &ReferencePlan) -> Result<Vec
                 target,
                 component: 0,
                 weight,
+                parent_actual_prefix_ids: None,
             });
         }
     }
@@ -378,6 +386,7 @@ fn terms(eps: &[Episode], indices: &[usize], plan: &ReferencePlan) -> Result<Vec
                     target: row.targets[position],
                     component: 1,
                     weight: row.weights[position],
+                    parent_actual_prefix_ids: None,
                 });
             }
         }
@@ -433,7 +442,15 @@ fn score(
             e.target.get(term.position) == Some(&term.target),
             "objective target/prefix mismatch",
         )?;
-        let step = generator.step(&banks[&term.index], &e.target[..term.position])?;
+        let prefix = term
+            .parent_actual_prefix_ids
+            .as_deref()
+            .unwrap_or(&e.target[..term.position]);
+        replay_require(
+            prefix == &e.target[..term.position],
+            "native objective actual-prefix admission differs",
+        )?;
+        let step = generator.step(&banks[&term.index], prefix)?;
         let total = step.actions.summary.total_weight_q31;
         let mass = step
             .actions
@@ -586,25 +603,60 @@ pub(super) fn run(
     let parent = snapshot(params)?;
     let proposals = bank(params, &parent, gradients)?;
     let ranking_gradients = save_ranking_gradients(a, params, gradients)?;
-    let terms = terms(eps, indices, plan)?;
+    let terms = if a.reached_frontier_objective {
+        let reached = frontier::read_plan(a)?;
+        frontier::components(&reached)?;
+        reached
+            .terms
+            .iter()
+            .map(|t| Term {
+                index: t.index,
+                position: t.position,
+                target: t.target,
+                component: t.component,
+                weight: t.weight,
+                parent_actual_prefix_ids: Some(t.parent_actual_prefix_ids.clone()),
+            })
+            .collect::<Vec<_>>()
+    } else {
+        terms(eps, indices, plan)?
+    };
     write(a, "native-code-objective-terms.json", &json!(terms))?;
     write(
         a,
         "native-code-proposal-bank.json",
-        &json!({"policy":policy(),"proposals":proposals,
+        &json!({"policy":policy(a.reached_frontier_objective),"proposals":proposals,
         "parent_master_identities":identities(params)?,"parent_receipt":initial.receipt,
         "ranking_gradients":ranking_gradients,"ranking_gradients_inventory_sha256":sha256_file(&a.out.join("native-code-ranking-gradients.json"))?,
         "objective_terms_sha256":sha256_file(&a.out.join("native-code-objective-terms.json"))?,
-        "reference_plan_sha256":sha256_file(&a.out.join("reference-plan.json"))?,
+        "reference_plan_sha256":sha256_file(&a.out.join(if a.reached_frontier_objective {"frontier-plan.json"}else{"reference-plan.json"}))?,
         "training_inputs_sha256":INPUT_SHA,"training_labels_sha256":LABEL_SHA}),
     )?;
     verify_codes(initial, initial_field, &parent)?;
     let baseline = score(a, initial, initial_field, eps, plan, &terms, start)?;
-    let expected = read(&a.out.join("reference-initial-validation.json"))?;
+    let expected = read(&a.out.join(if a.reached_frontier_objective {
+        "frontier-initial-validation.json"
+    } else {
+        "reference-initial-validation.json"
+    }))?;
     let baseline_loss = objective(&baseline)?;
     for (key, expected_key) in [
-        ("task", "current_batch_losses_before_after"),
-        ("reference", "reference_losses_before_after"),
+        (
+            "task",
+            if a.reached_frontier_objective {
+                "frontier_losses_before_after"
+            } else {
+                "current_batch_losses_before_after"
+            },
+        ),
+        (
+            "reference",
+            if a.reached_frontier_objective {
+                "success_losses_before_after"
+            } else {
+                "reference_losses_before_after"
+            },
+        ),
         ("combined", "combined_losses_before_after"),
     ] {
         let x = baseline[key]
@@ -643,6 +695,12 @@ pub(super) fn run(
                 a.out.join("reference-plan.json"),
                 candidate.out.join("reference-plan.json"),
             )?;
+            if a.reached_frontier_objective {
+                fs::copy(
+                    a.out.join("frontier-plan.json"),
+                    candidate.out.join("frontier-plan.json"),
+                )?;
+            }
             write(&candidate, "proposal.json", &json!(proposal))?;
             apply_edits(params, &parent, &proposal.edits)?;
             let checkpoint_clock = Instant::now();
@@ -687,7 +745,7 @@ pub(super) fn run(
         if let Some(index) = winner {
             apply_edits(params, &parent, &proposals[index].edits)?;
         }
-        let result = json!({"policy":policy(),"status":if winner.is_some(){"NATIVE_OBJECTIVE_DESCENT_SELECTED"}else{"NO_IMPROVING_DECLARED_CANDIDATE"},
+        let result = json!({"policy":policy(a.reached_frontier_objective),"status":if winner.is_some(){"NATIVE_OBJECTIVE_DESCENT_SELECTED"}else{"NO_IMPROVING_DECLARED_CANDIDATE"},
             "proposal_bank_sha256":sha256_file(&a.out.join("native-code-proposal-bank.json"))?,"parent_combined":baseline_loss,
             "winner":winner,"winner_family":winner.map(|i|proposals[i].family.clone()),
             "selected_combined":winner.and_then(|i|losses[i]).unwrap_or(baseline_loss),

@@ -52,6 +52,8 @@ use uor_r4_training::{
     geometric_read_state_bridge::{BridgeLearningWeights, PreparedCategoricalBridge},
     sha256_bytes, sha256_file,
 };
+#[path = "geometric_frozen_map_fit/frontier.rs"]
+mod frontier;
 #[path = "geometric_frozen_map_fit/native_proposals.rs"]
 mod native_proposals;
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
@@ -91,7 +93,7 @@ struct ReferencePrepareConfig {
     out: PathBuf,
     maximum_report_bytes: u64,
 }
-#[derive(Deserialize, serde::Serialize)]
+#[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct ReferenceRow {
     index: usize,
@@ -105,7 +107,7 @@ struct ReferenceRow {
     weight_denominators: Vec<usize>,
     weights: Vec<f64>,
 }
-#[derive(Deserialize, serde::Serialize)]
+#[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct ReferencePlan {
     schema: String,
@@ -128,6 +130,11 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    if a.reached_frontier_objective && !a.native_code_proposals {
+        return Err(bad(
+            "reached frontier objective requires native code proposals",
+        ));
+    }
     if a.native_code_proposals && a.reference_replay.is_none() {
         return Err(bad(
             "native code proposals require the fixed reference replay pilot",
@@ -412,6 +419,8 @@ struct Args {
     reference_replay: Option<ReferenceReplayConfig>,
     #[serde(default)]
     native_code_proposals: bool,
+    #[serde(default)]
+    reached_frontier_objective: bool,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -1532,7 +1541,7 @@ fn build_reference_plan(c: &ReferencePrepareConfig) -> Result<(ReferencePlan, Va
         counts,
     ))
 }
-fn prepare_reference_replay(path: &Path) -> Result<()> {
+fn prepare_reference_replay(path: &Path, reached: bool) -> Result<()> {
     let raw = fs::read(path)?;
     let mut c: ReferencePrepareConfig = serde_json::from_slice(&raw)?;
     replay_require(
@@ -1563,27 +1572,37 @@ fn prepare_reference_replay(path: &Path) -> Result<()> {
     let started = Instant::now();
     let result = (|| -> Result<Value> {
         fs::write(c.out.join("config.json"), &raw)?;
-        let (plan, counts) = build_reference_plan(&c)?;
-        let encoded = serde_json::to_vec_pretty(&plan)?;
+        let (encoded, counts) = if reached {
+            let (plan, counts) = frontier::build(&c)?;
+            (serde_json::to_vec_pretty(&plan)?, counts)
+        } else {
+            let (plan, counts) = build_reference_plan(&c)?;
+            (serde_json::to_vec_pretty(&plan)?, counts)
+        };
         replay_require(
             (encoded.len() as u64 + raw.len() as u64) < c.maximum_report_bytes - (1 << 20),
             "reference preparation storage cap",
         )?;
         fs::write(c.out.join("plan.json"), encoded)?;
-        Ok(
-            json!({"schema":"uor-r4.supervised-reference-preparation/1","status":"COMPLETED","plan_sha256":sha256_file(&c.out.join("plan.json"))?,
+        let mut report = json!({"schema":"uor-r4.supervised-reference-preparation/1","status":"COMPLETED","plan_sha256":sha256_file(&c.out.join("plan.json"))?,
             "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":sha256_file(&std::env::current_exe()?)?,
             "reference_report_sha256":REPLAY_REPORT_SHA,"reference_manifest_sha256":REPLAY_MANIFEST_SHA,"counts":counts,
             "eligibility":"frozen authenticated parent native winner equals supervised target at canonical position; all512/allphases",
             "weighting":"mean eligible episodes, then nonempty eligible phases, then eligible positions; total weight1",
             "prefix_evidence":"saved prefix lengths plus canonical targets; full prefix IDs source-bound to pinned producer, not stored independently",
-            "native_calls":0,"optimizer_steps":0,"elapsed_seconds":started.elapsed().as_secs_f64()}),
-        )
+            "native_calls":0,"optimizer_steps":0,"elapsed_seconds":started.elapsed().as_secs_f64()});
+        if reached {
+            report["schema"] = json!("uor-r4.reached-frontier-preparation/1");
+            report["eligibility"] = json!("one first canonical divergence at actual prefix for each noncomplete episode, plus every actual accepted-complete trajectory position through EOS; alternate accepted token sequence explicitly unsupported in this pilot");
+            report["weighting"] = json!(frontier::OBJECTIVE);
+            report["prefix_evidence"] = json!("authenticated full saved emitted prefix IDs; all trace/prediction/EOS/decoded membership checks; no native forward");
+        }
+        Ok(report)
     })();
     let report = match &result {
         Ok(r) => r.clone(),
         Err(e) => {
-            json!({"schema":"uor-r4.supervised-reference-preparation/1","status":"FAILED","error":e.to_string(),"native_calls":0,"optimizer_steps":0})
+            json!({"schema":if reached {"uor-r4.reached-frontier-preparation/1"} else {"uor-r4.supervised-reference-preparation/1"},"status":"FAILED","error":e.to_string(),"native_calls":0,"optimizer_steps":0})
         }
     };
     fs::write(
@@ -1693,14 +1712,20 @@ fn reference_binding(a: &Args) -> Result<Value> {
         .reference_replay
         .as_ref()
         .ok_or_else(|| bad("reference config absent"))?;
-    Ok(
-        json!({"configuration":c,"plan_sha256":sha256_file(&c.plan_root.join("plan.json"))?,
-        "copied_plan_sha256":sha256_file(&a.out.join("reference-plan.json"))?,
+    let mut binding = json!({"configuration":c,"plan_sha256":sha256_file(&c.plan_root.join("plan.json"))?,
+        "copied_plan_sha256":sha256_file(&a.out.join(if a.reached_frontier_objective {"frontier-plan.json"} else {"reference-plan.json"}))?,
         "objective":"unchanged currentB8 phase-balanced CE + 1.0*hierarchical supervised parent-correct reference CE",
         "updates":1,"reference_passes":1,"eligibility_frozen_before_fit":true,
-        "acceptance":"all8 parent complete replies retained and more than8/512 complete; teacher-position retention reported separately, never an own-prefix evaluation veto"}),
-    )
+        "acceptance":"all8 parent complete replies retained and more than8/512 complete; teacher-position retention reported separately, never an own-prefix evaluation veto"});
+    if a.reached_frontier_objective {
+        binding["objective"] = json!(frontier::OBJECTIVE);
+        binding["schema"] = json!("uor-r4.reached-frontier-plan/1");
+        binding["legacy398_scope"] =
+            json!("separate stability diagnostic only; not included in either training component");
+    }
+    Ok(binding)
 }
+
 fn reference_gradient_norms(
     grads: &BTreeMap<String, Tensor>,
     groups: &[(&str, &BTreeMap<String, Var>)],
@@ -1789,7 +1814,7 @@ fn reference_outcomes(
         let task = episode_loss_weights(
             &eps[index].target,
             &copy,
-            task_indices.len(),
+            task_indices.len().max(1),
             true,
             LossScope::All,
         )?;
@@ -1848,8 +1873,7 @@ fn reference_outcomes(
         .count();
     let initial_complete = old.iter().filter(|a| a["complete"] == true).count();
     let final_complete = new.iter().filter(|a| a["complete"] == true).count();
-    Ok(
-        json!({"reference_losses_before_after":reference_losses,"current_batch_losses_before_after":task_losses,
+    let mut result = json!({"reference_losses_before_after":reference_losses,"current_batch_losses_before_after":task_losses,
         "combined_losses_before_after":[task_losses[0]+reference_losses[0],task_losses[1]+reference_losses[1]],"lambda":1.0,
         "reference_positions":positions,"reference_retained_by_phase":retained,"reference_lost_by_phase":lost_by_phase,
         "reference_lost_positions":lost,"all_reference_positions_retained":lost.is_empty(),
@@ -1857,8 +1881,17 @@ fn reference_outcomes(
         "factual_state_changed_positions":factual_state_changed,"local_context_state_changed_positions":local_state_changed,
         "initial_complete":initial_complete,"retained_parent_complete":retained_complete,"final_complete":final_complete,
         "useful_candidate":initial_complete==8 && retained_complete==8 && final_complete>8,
-        "scope":"native saved canonical objectives/retention and independent own-prefix answers; teacher retention is diagnostic, not an output-evaluation veto"}),
-    )
+        "scope":"native saved canonical objectives/retention and independent own-prefix answers; teacher retention is diagnostic, not an output-evaluation veto"});
+    if a.reached_frontier_objective {
+        let object = result
+            .as_object_mut()
+            .ok_or_else(|| bad("reference diagnostic object absent"))?;
+        object.remove("current_batch_losses_before_after");
+        object.remove("combined_losses_before_after");
+        object.remove("lambda");
+        result["scope"]=json!("legacy398 canonical teacher-position stability diagnostic only; not the reached-frontier training objective; no B8 draw");
+    }
+    Ok(result)
 }
 
 fn apply(
@@ -4769,7 +4802,7 @@ fn joint_checkpoint(
     }
     receipt["credit_scope"] = json!("Context/Potential + Generate unary/pair/bias + v2 U; local conditional full120 Context utility and factual selector credit; frozen prototype choices and categorical map; RawIdentity surrogate, not a hard-runtime derivative");
     if a.native_code_proposals {
-        receipt["native_code_proposals"] = native_proposals::policy();
+        receipt["native_code_proposals"] = native_proposals::policy(a.reached_frontier_objective);
         receipt["optimizer_updates"] = json!(0);
         receipt["credit_scope"] = json!("parent RawIdentity gradients rank fixed legal native-code Context basis/Potential/Generate unary-pair/U proposals; native objective selects at most one; no Adam or global clipping applied; token coefficients, Generate bias/prototypes and other source masters frozen");
     }
@@ -4802,7 +4835,15 @@ fn joint_native_parity(
     eps: &[Episode],
     indices: &[usize],
     d: &Device,
+    reached: Option<&frontier::Plan>,
 ) -> Result<Value> {
+    let clock = Instant::now();
+    let mask = reached.map(|plan| {
+        plan.terms
+            .iter()
+            .map(|t| ((t.index, t.position), t.parent_actual_prefix_ids.as_slice()))
+            .collect::<BTreeMap<_, _>>()
+    });
     let current = l.source.compile_context_potential_rebound(&l.frozen)?;
     let prepared = l.source.prepare_context_potential_on_device(&current, d)?;
     let cue = current.compile_cue_carrier(l.cue.clone())?;
@@ -4837,7 +4878,17 @@ fn joint_native_parity(
             .ok_or_else(|| bad("joint parity index absent"))?;
         let bank = generator.admit_bank(continuation_snapshot(&e.packet)?)?;
         for t in 0..e.target.len() {
-            let actual = &e.target[..t];
+            if mask.as_ref().is_some_and(|m| !m.contains_key(&(index, t))) {
+                continue;
+            }
+            let actual = mask
+                .as_ref()
+                .and_then(|m| m.get(&(index, t)).copied())
+                .unwrap_or(&e.target[..t]);
+            replay_require(
+                actual == &e.target[..t],
+                "parity actual prefix admission differs",
+            )?;
             let out =
                 learner.forward_bank(&e.segments()?, &e.packet.query_ids, actual, &cue, &prefix)?;
             let native = generator.step(&bank, actual)?;
@@ -4864,11 +4915,21 @@ fn joint_native_parity(
             positions += 1;
         }
     }
-    Ok(
-        json!({"indices":indices,"positions":positions,"current_source_binding":p.binding,
+    if let Some(mask) = mask {
+        replay_require(
+            positions == mask.len(),
+            "reached parity position coverage differs",
+        )?;
+    }
+    let mut receipt = json!({"indices":indices,"positions":positions,"current_source_binding":p.binding,
         "generate_sha256":p.generate_sha256,"continuation_sha256":sha256_bytes(&bytes),
-        "exact_scores_states_alias_pool":true,"labels":"previous teacher prefix only; current target never enters forward"}),
-    )
+        "exact_scores_states_alias_pool":true,"labels":"previous teacher prefix only; current target never enters forward"});
+    if reached.is_some() {
+        receipt["labels"] =
+            json!("frozen authenticated parent actual prefix; current target never enters forward");
+        receipt["elapsed_seconds"] = json!(clock.elapsed().as_secs_f64());
+    }
+    Ok(receipt)
 }
 
 fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
@@ -4932,7 +4993,13 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         return Err(bad("joint requires complete512 construction panel"));
     }
     pairs(&eps)?;
-    let reference = load_reference_plan(a, &parent, &eps)?;
+    let reached = frontier::load(a, &parent, &eps)?;
+    let reference = if let Some(plan) = &reached {
+        Some(plan.canonical_reference.clone())
+    } else {
+        load_reference_plan(a, &parent, &eps)?
+    };
+    let reached_components = reached.as_ref().map(frontier::components).transpose()?;
     let weights = ContinuationLearningWeights::zeroed_shared_action(
         l.integer.binding(),
         &parent.binding,
@@ -4947,7 +5014,11 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     let frozen_prototype = identities(&prototype)?;
     let frozen_bridge = identities(&l.original_bridge.parameters())?;
     let frozen_marker = identities(&l.marker.parameters())?;
-    let schedule = order(a.seed, eps.len());
+    let schedule = if reached.is_some() {
+        (0..eps.len()).collect()
+    } else {
+        order(a.seed, eps.len())
+    };
     write(
         a,
         "order.json",
@@ -4978,10 +5049,21 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     }
     if a.native_code_proposals {
         let mut admission = read(&a.out.join("admission.json"))?;
-        admission["native_code_proposals"] = native_proposals::policy();
+        admission["native_code_proposals"] = native_proposals::policy(a.reached_frontier_objective);
         admission["fresh_adam"] = json!(false);
         admission["optimizer_updates"] = json!(0);
         admission["rates_role"] = json!("legacy parent/replay identity only; no rate applied");
+        if reached.is_some() {
+            admission["reached_frontier_objective"] = json!(frontier::OBJECTIVE);
+            admission["batch"] = Value::Null;
+            admission["phase_policy"] = json!("frontier equal episodes; successful trajectories equal episodes/nonempty phases/positions");
+            write(
+                a,
+                "order.json",
+                &json!({"seed":a.seed,"order":(0..eps.len()).collect::<Vec<_>>(),"batch":null,"updates":1,
+                "policy":"all frozen reached-frontier and successful-trajectory terms; no B8 sampling"}),
+            )?;
+        }
         write(a, "admission.json", &admission)?;
     }
     let clock = Instant::now();
@@ -4990,7 +5072,12 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     if initial_parent.binding != parent.binding || initial_parent.generate != parent.generate {
         return Err(bad("joint zero-update parent replay differs"));
     }
-    let admission_indices = &schedule[..BATCH];
+    let all_indices = (0..eps.len()).collect::<Vec<_>>();
+    let admission_indices = if reached.is_some() {
+        all_indices.as_slice()
+    } else {
+        &schedule[..BATCH]
+    };
     let parity = joint_native_parity(
         &l,
         &weights,
@@ -4999,6 +5086,7 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         &eps,
         admission_indices,
         d,
+        reached.as_ref(),
     )?;
     write(a, "zero-update-admission.json", &parity)?;
     let clock = Instant::now();
@@ -5013,10 +5101,30 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     let initial_metrics = metrics(a, &initial, &eps)?;
     write(a, "metrics-0000.json", &initial_metrics)?;
     if let Some(plan) = &reference {
-        let baseline = reference_outcomes(a, plan, &initial, &initial, &eps, &schedule[..BATCH])?;
+        let baseline = reference_outcomes(
+            a,
+            plan,
+            &initial,
+            &initial,
+            &eps,
+            if reached.is_some() {
+                &[]
+            } else {
+                &schedule[..BATCH]
+            },
+        )?;
         write(a, "reference-initial-validation.json", &baseline)?;
     }
+    if let Some(plan) = &reached {
+        let measured = frontier::outcomes(a, plan, &initial, &initial, true)?;
+        write(a, "frontier-initial-validation.json", &measured)?;
+    }
     let mut evaluation_seconds = clock.elapsed().as_secs_f64();
+    if reached.is_some() {
+        evaluation_seconds += parity["elapsed_seconds"]
+            .as_f64()
+            .ok_or_else(|| bad("initial frontier parity timing absent"))?;
+    }
     if initial["complete"] != 8 {
         return Err(bad("joint initial parent complete-answer replay differs"));
     }
@@ -5045,18 +5153,42 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     for update in 0..a.updates {
         deadline(a, start)?;
         disk_floor(a)?;
-        let indices = (0..BATCH)
-            .map(|i| schedule[(update * BATCH + i) % schedule.len()])
-            .collect::<Vec<_>>();
+        let indices = if reached.is_some() {
+            (0..eps.len()).collect::<Vec<_>>()
+        } else {
+            (0..BATCH)
+                .map(|i| schedule[(update * BATCH + i) % schedule.len()])
+                .collect::<Vec<_>>()
+        };
         let clock = Instant::now();
         let master_snapshot = if reference.is_some() {
             Some(identities(&params)?)
         } else {
             None
         };
-        let (mut grads, mut receipt) =
-            batch_live(a, &l, &eps, &indices, d, start, None, Some(&weights))?;
-        if let Some(plan) = &reference {
+        let (mut grads, mut receipt) = if let Some((task, _)) = &reached_components {
+            batch_live_weighted(
+                a,
+                &l,
+                &eps,
+                &indices,
+                d,
+                start,
+                None,
+                Some(&weights),
+                Some(task),
+            )?
+        } else {
+            batch_live(a, &l, &eps, &indices, d, start, None, Some(&weights))?
+        };
+        if reached.is_some() {
+            receipt["reference_weighting"] = json!("one actual-prefix frontier per noncomplete episode, equal episode mass; no B8 sampling");
+        }
+        if let Some(canonical_plan) = &reference {
+            let plan = reached_components
+                .as_ref()
+                .map(|(_, success)| success)
+                .unwrap_or(canonical_plan);
             let indices = (0..eps.len()).collect::<Vec<_>>();
             let (reference_grads, reference_receipt) = batch_live_weighted(
                 a,
@@ -5088,15 +5220,26 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 .as_ref()
                 .ok_or_else(|| bad("replay settings absent"))?
                 .lambda;
-            let baseline = read(&a.out.join("reference-initial-validation.json"))?;
+            let baseline = if reached.is_some() {
+                read(&a.out.join("frontier-initial-validation.json"))?
+            } else {
+                read(&a.out.join("reference-initial-validation.json"))?
+            };
+            let task_key = if reached.is_some() {
+                "frontier_losses_before_after"
+            } else {
+                "current_batch_losses_before_after"
+            };
+            let reference_key = if reached.is_some() {
+                "success_losses_before_after"
+            } else {
+                "reference_losses_before_after"
+            };
             for (observed, expected) in [
-                (
-                    &receipt["weighted_native_loss"],
-                    &baseline["current_batch_losses_before_after"][0],
-                ),
+                (&receipt["weighted_native_loss"], &baseline[task_key][0]),
                 (
                     &reference_receipt["weighted_native_loss"],
-                    &baseline["reference_losses_before_after"][0],
+                    &baseline[reference_key][0],
                 ),
             ] {
                 let observed = observed
@@ -5122,6 +5265,10 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 "reference_family_gradient_norms":reference_gradient_norms(&reference_grads,&groups,d)?,
                 "combined_family_gradient_norms":reference_gradient_norms(&combined,&groups,d)?,
                 "same_master_snapshot":true,"same_native_snapshot":true,"clip_and_adam_policy":"sum first; one shared clip, one Adam step per active family"});
+            if reached.is_some() {
+                receipt["reference_replay"]["objective"] = json!(frontier::OBJECTIVE);
+                receipt["reference_replay"]["reference_before_update"]["reference_weighting"] = json!("full accepted trajectories, equal successful episode/nonempty phase/position mass");
+            }
             grads = combined;
         }
         if grads.contains_key("generate.prototype_choices") {
@@ -5225,13 +5372,30 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             )?;
             evaluation_seconds += objective_clock.elapsed().as_secs_f64();
         }
-        let parity =
-            joint_native_parity(&l, &weights, &current, &field, &eps, admission_indices, d)?;
+        let parity = joint_native_parity(
+            &l,
+            &weights,
+            &current,
+            &field,
+            &eps,
+            admission_indices,
+            d,
+            reached.as_ref(),
+        )?;
         write(a, "final-native-parity.json", &parity)?;
+        if reached.is_some() {
+            evaluation_seconds += parity["elapsed_seconds"]
+                .as_f64()
+                .ok_or_else(|| bad("final frontier parity timing absent"))?;
+        }
         let clock = Instant::now();
         if reference.is_some() {
-            // Evaluation only: no reference eligibility or optimization uses this eight-row list.
-            let selected = CONTROL_INDICES.iter().map(|&i| &eps[i]).collect::<Vec<_>>();
+            // Legacy uses its retained control list; the reached mode derives successes mechanically.
+            let success_indices = reached
+                .as_ref()
+                .map(frontier::successful_indices)
+                .unwrap_or_else(|| CONTROL_INDICES.to_vec());
+            let selected = success_indices.iter().map(|&i| &eps[i]).collect::<Vec<_>>();
             let early = continuation_evaluate_rows(
                 a,
                 "pilot-original8",
@@ -5244,7 +5408,7 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 a,
                 "pilot-original8-receipt.json",
                 &json!({"checkpoint_step":a.updates,
-                "checkpoint_receipt_sha256":sha256_file(&root.join("receipt.json"))?,"indices":CONTROL_INDICES,
+                "checkpoint_receipt_sha256":sha256_file(&root.join("receipt.json"))?,"indices":success_indices,
                 "evaluation":early,"scope":"independently reloaded actual-artifact own-prefix original8, before full512; not a training gate"}),
             )?;
         }
@@ -5282,11 +5446,24 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             &initial,
             &final_evaluation,
             &eps,
-            &schedule[..BATCH],
+            if reached.is_some() {
+                &[]
+            } else {
+                &schedule[..BATCH]
+            },
         )?;
         write(a, "reference-outcomes.json", &outcomes)?;
         report["reference_replay"] = reference_binding(a)?;
         report["reference_outcomes"] = outcomes;
+        if let Some(plan) = &reached {
+            let reached_outcomes = frontier::outcomes(a, plan, &initial, &final_evaluation, false)?;
+            write(a, "frontier-outcomes.json", &reached_outcomes)?;
+            report["reached_frontier_objective"] = json!(frontier::OBJECTIVE);
+            report["frontier_outcomes"] = reached_outcomes;
+            report["batch"] = Value::Null;
+            report["order_policy"] =
+                json!("all512 episodes, both frozen sparse components; no B8 sampling");
+        }
         report["early_original8_receipt_sha256"] =
             json!(sha256_file(&a.out.join("pilot-original8-receipt.json"))?);
     }
@@ -5863,7 +6040,10 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
 fn main() -> Result<()> {
     let cli = std::env::args().collect::<Vec<_>>();
     if cli.len() == 3 && cli[1] == "prepare-reference-replay" {
-        return prepare_reference_replay(Path::new(&cli[2]));
+        return prepare_reference_replay(Path::new(&cli[2]), false);
+    }
+    if cli.len() == 3 && cli[1] == "prepare-reached-frontier" {
+        return prepare_reference_replay(Path::new(&cli[2]), true);
     }
     let a = args()?;
     report_output::claim(&a.out)?;
@@ -5998,6 +6178,11 @@ mod tests {
         let mut enabled = base.clone();
         enabled["native_code_proposals"] = json!(true);
         reference_replay_settings(&serde_json::from_value(enabled.clone())?)?;
+        let mut reached = enabled.clone();
+        reached["reached_frontier_objective"] = json!(true);
+        reference_replay_settings(&serde_json::from_value(reached.clone())?)?;
+        reached["native_code_proposals"] = json!(false);
+        assert!(reference_replay_settings(&serde_json::from_value(reached)?).is_err());
         enabled
             .as_object_mut()
             .ok_or_else(|| bad("fixture object"))?
