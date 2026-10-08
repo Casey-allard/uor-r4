@@ -1,0 +1,68 @@
+UOR-R4 — A chat-trained geometric stack, served multiplier-free: 0.9550 bits per byte on real held-out chat
+Date: 2026-10-08 (overnight round 10). DeepSeek session. References #820.
+
+THE RESULT
+  One end-to-end chain, chat distribution, one RTX 5090, ~15 minutes of training:
+  train -> snap-evaluate -> export -> d11-evaluate -> lut-evaluate.
+  Held-out stream sha256 e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef,
+  the same file the sealed 8M evaluation used; byte basis 2.837427 bytes per token throughout.
+
+  stage                              measurement                                   bits per byte
+  train      12,207 steps, chat-only  dev nll 1.9008 at step 8,000 (24,576 targets)   --
+  snap       fused float reference    nll 1.7250754982233047 (196,608 targets)       0.8770
+  snap       transport-snapped        nll 1.7975700236856937                         0.9138
+  export     round-to-nearest         model.lut 11,891,652 bytes,
+                                      sha256 2ac4c3068551e56e3883880419e12f06bef8bc65cbabde59d00136953fe111af
+  d11        multiplier-free engine   d10 = d11 = 1.8345338586523747 (24,576 targets) 0.9550
+                                      d11_minus_d10_nll 0.0, top1_agreement 1.0,
+                                      max_abs_logit_difference 0
+  lut        artifact vs float parent top1_agreement 0.9294
+
+  Model: geometric stack, pattern rrarrarr, width 512, heads 8, context 384, read L2, float,
+  19,929,136 parameters; trained on chat-v0-p2 train only, batch 32, lr 4e-4, warmup 500,
+  164,277 tokens per second, 12,207 steps = 150 M tokens.
+
+WHERE IT SITS (same corpus, same byte basis)
+  served artifact today (120-root, TinyStories-fit)     4.3885
+  Kneser-Ney 5-gram                                     1.2803
+  sealed geo-8m-l2 (TinyStories/TinyDialogues/chat mix) 1.1199
+  THIS RUN, served by the multiplier-free D11 engine    0.9550
+  THIS RUN, fused float                                 0.8770
+
+  The served number is 4.6 times better than what the project serves today, and the engine
+  reproduces its reference exactly - zero nll difference, every top-1 identical, not one logit
+  differing anywhere. The round-5 evidence that the D11 kernel is bit-exact therefore holds on a
+  second, independently trained artifact on a different distribution.
+
+WHAT IT SETTLES
+  The barrier this session spent nine rounds locating was never the mechanism, the data or the
+  serving kernel. It was that the end-to-end pipeline had never been run: the project trained
+  models it did not serve (geo-8m-l2 at 1.1199 idle on disk), served a model it did not train for
+  the distribution in front of it (2.7 MB, 120-root, TinyStories-fit, 4.3885 on chat), and had
+  already proved in a sealed record that its integer serving engine is exact. Running the three
+  together gives 0.9550 bits per byte on real held-out chat.
+
+  It also retro-explains the whole session: every mechanism delta measured on the served artifact
+  was measured on a model sitting below uniform on that corpus (top-1 2.25 %), in a feature space
+  of 120 roots, while a trained stack with a 1536-wide-class embedding was available and idle.
+
+HONEST SCOPE
+  * Single seed. Chat-only training, so part of the gain over the sealed 8M mix-trained model is
+    in-domain data rather than architecture; the two are not separated here.
+  * d11-evaluate covered 24,576 targets, snap-evaluate 196,608, and the sealed 8M 6,194,304. The
+    absolute numbers will move slightly under one common full-file protocol, and a claim finer than
+    ~0.01 BPB needs the document-clustered protocol from round 2 (clustered SE 0.003489).
+  * The export is round-to-nearest; the GPTQ route measured 0.9379 top-1 agreement on the earlier
+    artifact, so quantisation choice is a live lever, not a solved one.
+  * lut-evaluate's 0.9294 agreement is against the float parent on 24,576 targets, so the served
+    artifact is not bit-identical to its parent even though the engine is faithful to the artifact.
+  * The D11 engine runs on CPU at 61 tokens per second: correctness is established here, throughput
+    is not.
+
+NEXT
+  1. Re-run the evaluation of both this artifact and the sealed 8M on one common position list with
+     the document-clustered protocol, so the comparison is exact rather than close.
+  2. Separate in-domain data from architecture: the same stack on the sealed mix, and the same data
+     on a larger rung, are the two controls.
+  3. Raise the served number's fidelity: the gap between 0.9550 served and 0.8770 fused float is
+     quantisation and snapping, which are levers, not limits.
