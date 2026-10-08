@@ -1,0 +1,464 @@
+{
+  "schema": "uor-r4.native-intermediate-word-boundary-evidence/1",
+  "scope": "18 target-free production native steps at previously authenticated actual prefixes; posthoc source-token progression and saved arithmetic. No fit, gradient, model promotion or new complete reply.",
+  "source_commit_attempt2": "76e10b53f70130104800a96b7928bddb014fa785",
+  "source_sha256_attempt2": "6dc1e676aece59a25854c2e05fa9696f14f4abd3dd2ebbff05c5561cc85b616b",
+  "binary_sha256_attempt2": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+  "config_sha256_attempt2": "f4d7d117fdc021d4a5bb085bbb6ed0586f0b388d1b40f08a243d7d6551710142",
+  "reader_sha256_attempt2": "5a8beee388b36373a32377a21a047ff10a8260e524656cf72b8d46325cd2684a",
+  "checks_attempt2": {
+    "tests": 11,
+    "total_job_seconds": 4,
+    "build_command_seconds": 2.248,
+    "status": "PASS"
+  },
+  "capture_execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T17:18:57.247021+00:00",
+    "ended_utc": "2026-10-08T17:19:17.334876+00:00",
+    "elapsed_seconds": 20.087879460304976,
+    "children_max_rss_kib": 206540,
+    "binary_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+    "config_sha256": "f4d7d117fdc021d4a5bb085bbb6ed0586f0b388d1b40f08a243d7d6551710142"
+  },
+  "capture_preseal_seconds": 15.599331222,
+  "independent_audit": {
+    "status": "PASS",
+    "sha256": "206304c45544efce4b309eb395804cc1f93ca4c7af965046f3ce1779a76ece46",
+    "execution": {
+      "steps": [
+        {
+          "kind": "capture",
+          "exit_code": 0,
+          "elapsed_seconds": 0.18082385137677193,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "recovered_candidate",
+          "exit_code": 0,
+          "elapsed_seconds": 7.655352655798197,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "input_panel",
+          "exit_code": 0,
+          "elapsed_seconds": 0.07908845692873001,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "independent_reader",
+          "exit_code": 0,
+          "elapsed_seconds": 15.956412177532911,
+          "max_rss_kib": 206440
+        }
+      ],
+      "elapsed_seconds": 23.95532514154911,
+      "reader_sha256": "5a8beee388b36373a32377a21a047ff10a8260e524656cf72b8d46325cd2684a",
+      "completed_utc": "2026-10-08T17:20:04.749146+00:00"
+    },
+    "verified_Generate_scores": 73728,
+    "verified_U_scores": 73728,
+    "verified_controls": 36
+  },
+  "prior_cumulative_projected_seconds": 533670,
+  "necessary_sameclass_increment_seconds": 10800,
+  "new_cumulative_projected_seconds": 544470,
+  "setup_attempts": [
+    {
+      "job": "20261008T170939Z-sol-prototype-20261008-gpu0",
+      "exit_code": 101,
+      "seconds": 1,
+      "reason": "legacy wrapper requested cuda feature absent from current core Cargo package; no compile/model",
+      "repair": "remove feature for integer diagnostic; exactsource unchanged"
+    }
+  ],
+  "capture_attempt1": {
+    "job": "20261008T171320Z-sol-prototype-20261008-gpu0",
+    "exit_code": 1,
+    "seconds": 20.08711601421237,
+    "peak_rss_kib": 206772,
+    "frames_written": 17,
+    "reason": "full18frame payload exceeds64MiB; sealed outputcapFAILED noqualityverdict",
+    "output_root": "/workspace/uor-r4/codex/sol-intermediate-word-boundary/runs/word-boundary-0001-attempt1",
+    "binary_sha256": "e65df683a3a8c6288250c0d02d0c18a58ed065e4ae189f8fab1d3fdc011ea901",
+    "config_sha256": "0e13ce4835f48f62521fb081403b2dbbad2b6fa086a0683e42f6beec07d52d47"
+  },
+  "failure_preservation": {
+    "revision": "3b7881a944981b06bc8749de9fae897151e7ed1e",
+    "prefix": "codex/sol-intermediate-word-boundary/setup-cap-attempt1",
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "fe2679bb6fe94dd01929f3995922abb3d250534a943f64431e2f5c803c40a5e2",
+        "bytes": 428
+      },
+      "setup-cap-attempt1.tar.gz": {
+        "sha256": "966470f551b0e91fb9ee099b664e6087d971d656fa8b54ffab417a531a436952",
+        "bytes": 9616919
+      }
+    },
+    "all_fresh_download_verified": true,
+    "seconds": 7.526415690779686,
+    "completed_utc": "2026-10-08T17:15:42.494533+00:00"
+  },
+  "cohort": {
+    "factual": [
+      245
+    ],
+    "retained_controls": [
+      0,
+      1,
+      4,
+      5,
+      8,
+      9,
+      12,
+      13
+    ],
+    "positions": [
+      3,
+      4
+    ],
+    "frames": 18
+  },
+  "capture_manifest": {
+    "files": 22,
+    "bytes": 70294103,
+    "manifest_sha256": "0fd94f36f05051a024f7c1765eb16b357bbc752b8f1a77c3fe78577b921c2012",
+    "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+  },
+  "runtime_preservation": {
+    "revision": "8545e3f784fb017a46b33ccaa23a7f25af0ccb92",
+    "prefix": "codex/sol-intermediate-word-boundary/runtime-76e10b53f7-attempt2",
+    "all_fresh_download_verified": true,
+    "seconds": 25.082557316869497
+  },
+  "result_preservation": {
+    "revision": "dbc4f854a151987e1c398ce5c7216dca1b616678",
+    "prefix": "codex/sol-intermediate-word-boundary/word-boundary-0001-76e10b53f7",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "30b3d9f1c102cb89929482e3b468be4cab5682710e3dc9e4c3ea34c8a077a7e1",
+        "bytes": 1126
+      },
+      "word-boundary-0001-76e10b53f7.tar.gz": {
+        "sha256": "2b1a2a8bd2749ad6f4eab324803d7cdf6d9da060adb33e5846d3e795d9d08500",
+        "bytes": 19875229
+      }
+    },
+    "manifest": {
+      "source_commit": "76e10b53f70130104800a96b7928bddb014fa785",
+      "runtime_hf_revision": "8545e3f784fb017a46b33ccaa23a7f25af0ccb92",
+      "runtime_manifest_sha256": "76d66bbc7c0997756f8cb00a8e471a7232ee6581c2afeeb4341042ae697da426",
+      "binary_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d",
+      "config_sha256": "f4d7d117fdc021d4a5bb085bbb6ed0586f0b388d1b40f08a243d7d6551710142",
+      "report_sha256": "d65698bec3d57aa2415841b5507205d5f23cdab401a826c8e24978e9990a0143",
+      "report_manifest_sha256": "0fd94f36f05051a024f7c1765eb16b357bbc752b8f1a77c3fe78577b921c2012",
+      "audit_sha256": "206304c45544efce4b309eb395804cc1f93ca4c7af965046f3ce1779a76ece46",
+      "files": {
+        "word-boundary-0001-76e10b53f7.tar.gz": {
+          "sha256": "2b1a2a8bd2749ad6f4eab324803d7cdf6d9da060adb33e5846d3e795d9d08500",
+          "bytes": 19875229
+        }
+      },
+      "scope": "Exactly eighteen fixed production native captures at authenticated actual prefixes; saved BASEGenerate/U/bridge/physicalCopy arithmetic audit and full saved-vector controls. No fit, gradient, alternate-case sweep, generated counterfactual or model promotion."
+    },
+    "seconds": 10.698171108961105,
+    "completed_utc": "2026-10-08T17:21:59.669529+00:00"
+  },
+  "row245_position4": {
+    "actual_prefix_ids": [
+      617,
+      2097,
+      315,
+      1057
+    ],
+    "bound_BPE_tokens": {
+      "1057": "\u0120warm",
+      "267": "\u0120b",
+      "307": "ir",
+      "79": "m"
+    },
+    "target": 267,
+    "winner": 307,
+    "posthoc_expected_literal": "warm birch beyond orchard",
+    "bridge_donor": {
+      "ordinal": 2,
+      "segment_index": 1,
+      "event": 0,
+      "record": 1,
+      "commit": 1,
+      "relation": 1,
+      "token_id": 79,
+      "token_offset": 2,
+      "expected_source_tuple_match": false,
+      "view_provenance": {
+        "emitted_byte_end": 10,
+        "emitted_byte_start": 9,
+        "emitted_token_offset": 2,
+        "includes_protocol_separator": false,
+        "original_token_end": 4,
+        "original_token_start": 3,
+        "source_byte_end": 9,
+        "source_byte_start": 8
+      }
+    },
+    "target_occurrence": {
+      "ordinal": 7,
+      "segment_index": 3,
+      "event": 1,
+      "record": 2,
+      "commit": 2,
+      "relation": 2,
+      "token_id": 267,
+      "token_offset": 1,
+      "expected_source_tuple_match": true,
+      "view_provenance": {
+        "emitted_byte_end": 7,
+        "emitted_byte_start": 5,
+        "emitted_token_offset": 1,
+        "includes_protocol_separator": false,
+        "original_token_end": 3,
+        "original_token_start": 2,
+        "source_byte_end": 6,
+        "source_byte_start": 4
+      },
+      "base_copy_q24": 40646929,
+      "combined_copy_q24": 7092497,
+      "copy_weight_q31": 298048779,
+      "is_bridge_donor": false,
+      "is_target": true,
+      "is_winning_token": false,
+      "source_before_state": [
+        78,
+        8,
+        3,
+        55,
+        42,
+        22,
+        6,
+        15
+      ],
+      "prefix_response_state": [
+        65,
+        101,
+        87,
+        12,
+        92,
+        56,
+        74,
+        67
+      ],
+      "prefix_angular_indices": [
+        81,
+        36,
+        63,
+        64,
+        53,
+        112,
+        105,
+        101
+      ],
+      "prefix_relative_roots": [
+        81,
+        36,
+        63,
+        64,
+        53,
+        112,
+        105,
+        101
+      ],
+      "prefix_copy_contributions_q24": [
+        -4194304,
+        -8388608
+      ],
+      "cue_index": 1,
+      "cue_angular_indices": [
+        57,
+        60,
+        113,
+        65,
+        48,
+        null,
+        null,
+        98
+      ],
+      "cue_relative_roots": [
+        57,
+        60,
+        113,
+        65,
+        48,
+        null,
+        null,
+        98
+      ],
+      "cue_copy_contributions_q24": [
+        12582912,
+        4194304
+      ]
+    },
+    "winning_occurrence": {
+      "ordinal": 8,
+      "segment_index": 3,
+      "event": 1,
+      "record": 2,
+      "commit": 2,
+      "relation": 2,
+      "token_id": 307,
+      "token_offset": 2,
+      "expected_source_tuple_match": true,
+      "view_provenance": {
+        "emitted_byte_end": 9,
+        "emitted_byte_start": 7,
+        "emitted_token_offset": 2,
+        "includes_protocol_separator": false,
+        "original_token_end": 4,
+        "original_token_start": 3,
+        "source_byte_end": 8,
+        "source_byte_start": 6
+      },
+      "base_copy_q24": 48612697,
+      "combined_copy_q24": 40224089,
+      "copy_weight_q31": 2147483648,
+      "is_bridge_donor": false,
+      "is_target": false,
+      "is_winning_token": true,
+      "source_before_state": [
+        37,
+        6,
+        81,
+        6,
+        42,
+        112,
+        91,
+        14
+      ],
+      "prefix_response_state": [
+        65,
+        101,
+        87,
+        12,
+        92,
+        56,
+        74,
+        67
+      ],
+      "prefix_angular_indices": [
+        59,
+        56,
+        76,
+        23,
+        53,
+        91,
+        78,
+        95
+      ],
+      "prefix_relative_roots": [
+        59,
+        56,
+        76,
+        23,
+        53,
+        91,
+        78,
+        95
+      ],
+      "prefix_copy_contributions_q24": [
+        -4194304,
+        -12582912
+      ],
+      "cue_index": 1,
+      "cue_angular_indices": [
+        57,
+        60,
+        113,
+        65,
+        48,
+        null,
+        null,
+        98
+      ],
+      "cue_relative_roots": [
+        57,
+        60,
+        113,
+        65,
+        48,
+        null,
+        null,
+        98
+      ],
+      "cue_copy_contributions_q24": [
+        12582912,
+        4194304
+      ]
+    },
+    "target_minus_rival_base_copy_q24": -7965768,
+    "target_minus_rival_prefix_q24": 4194304,
+    "target_minus_rival_U_q24": -25165824,
+    "controls": {
+      "generate_only": {
+        "winner": 3058,
+        "reference": -5242880,
+        "total_mass": 153176134040,
+        "target_mass": {
+          "token_id": 267,
+          "weight_q31": 9944822,
+          "generate_weight_q31": 9944822,
+          "copy_weight_q31": 0
+        }
+      },
+      "copy_u_removed": {
+        "winner": 79,
+        "reference": 53302072,
+        "total_mass": 13336900922,
+        "target_mass": {
+          "token_id": 267,
+          "weight_q31": 1010345708,
+          "generate_weight_q31": 303463,
+          "copy_weight_q31": 1010042245
+        }
+      }
+    },
+    "target_mass": {
+      "token_id": 267,
+      "weight_q31": 298710449,
+      "generate_weight_q31": 661670,
+      "copy_weight_q31": 298048779
+    },
+    "winner_mass": {
+      "token_id": 307,
+      "weight_q31": 2153023739,
+      "generate_weight_q31": 5540091,
+      "copy_weight_q31": 2147483648
+    },
+    "different_prefix_lanes": 7
+  },
+  "controls_summary": "All sixteen retained-success captures correct; BASE donor matches expected source/version and offset0 then1. Row245 precedingposition3 sameexpectedsourceoffset0/correct; position4desiredoffset1 vswinningoffset2.",
+  "source_findings": {
+    "effective_step": "NativeBankGenerator::step(bank,actual_prefix) carries token prefix only; each step retains bank occurrence provenance, but prior physical source identity is not explicit feedback.",
+    "alias_semantics": "BASE bridge donor differs from final pooled token and all physical aliases; no unique prior occurrence inferred from emitted token.",
+    "inactive_paths": "ReadLineage::PhaseBinding belongs to training StackModel, not this serving path; bank-dependent legacyfeedback explicitly unavailable because source-local offset is not bankordinal.",
+    "training_seam": "PreparedBankGenerate prefix_temporal_utility defaults false and current fitter explicitfalse; existing true path supplies full120 response/source-before Prefix utility to Context choices. Source observation only, not measured repair."
+  },
+  "limitations": [
+    "Rust complete BLAKE3 verification is separate",
+    "Context/cue/prefix learned numerical kernel is not independently reexecuted; captured states/provenance authenticated; relative maps and packed contribution scores independently recomputed against authenticated saved rows and source role invariants",
+    "Labels interpreted posthoc; bank availability and selected occurrence are distinct from source-role correctness",
+    "Original tokenization is not reexecuted; authenticated lexical IDs/bytes and provenance ranges retained",
+    "This narrow distinct-bin finding is not a global capacity or information-loss result.",
+    "Saved-vector Generate-only/Copy-U-removed controls are not generated counterfactual replies."
+  ],
+  "next": {
+    "status": "NOT_ADMITTED until actual protected merge",
+    "causal_question": "Does enabling the existing full120 Prefix temporal Context credit preserve native forward parity and provide a useful Context/read-to-emission gradient at the newly reached actual boundary?",
+    "fixed": "Recovered artifact, full combined native pool, exact actual prefixes and retained controls; freeze Cue/Prefix/Generate/map/U coefficients.",
+    "rebind": "Changed Context changes numeric U states/scores; coherently rebind Source and dependent artifacts, do not claim frozen U scores.",
+    "excluded": "No unchanged readout/U dose, sourcefilter, blindcursor/latch or family-capacity claim."
+  }
+}
