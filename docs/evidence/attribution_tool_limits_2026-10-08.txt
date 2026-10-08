@@ -1,0 +1,26 @@
+UOR-R4 — Two tool limits that constrain the next experiments
+Date: 2026-10-08 (overnight round 31). DeepSeek session. References #820.
+
+1. rounding-attribution refuses snapped artifacts.
+   Running it on the round-29 fine-tuned export returns:
+     "rounding attribution measures the D10 comparator, which computes the free transport"
+   The tool attributes quantisation loss by comparing against a comparator that computes continuous
+   transport, so it cannot speak about an artifact whose model was trained with
+   transport_snap=icosian. The round-30 conclusion - that snapped fine-tuning triples the
+   quantisation loss - therefore cannot be attributed to parameter groups with the tooling that
+   exists; the intended follow-up ("rounding-attribution on the fine-tuned artifact to see which
+   groups absorbed the loss") is not executable as written and is withdrawn.
+
+2. d11-evaluate needs model= for a snapped artifact.
+   Without it: "a snapped artifact needs model= for its float side". The float side is required
+   because a snapped artifact is not scored against a second integer engine but against its own
+   float model, which is also why d10 is null in that evaluation record. Recorded so the next run
+   does not rediscover it.
+
+WHY THIS MATTERS FOR THE PLAN
+  Round 30 left one concrete question - which groups absorbed the tripled quantisation loss - and
+  this round shows the available tool cannot answer it. The remaining executable path is empirical:
+  sweep the fine-tune length and measure the SERVED result directly, since neither the float proxy
+  (round 29) nor the attribution tool can predict it. That sweep is running: 250 steps, then
+  snap-evaluate, export and d11-evaluate on the same held-out stream, to be compared against the
+  500-step arm's served 0.95150 and the no-tune arm's served 0.93277.
