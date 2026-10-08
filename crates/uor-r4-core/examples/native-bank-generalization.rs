@@ -1,6 +1,6 @@
 //! Frozen integer-only deployment and source-value substitution evaluation.
 //! Labels are evaluator-only; native generation sees an owned complete bank.
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
@@ -21,8 +21,10 @@ use uor_r4_core::{
     report_output,
 };
 use uor_r4_integer::{
-    geometric_cue_carrier::CueCarrierMetadata, geometric_prefix_transport::PrefixTransportMetadata,
+    geometric_cue_carrier::CueCarrierMetadata,
+    geometric_prefix_transport::PrefixTransportMetadata,
     geometric_source_realizer::NativeArtifactBinding,
+    geometric_vocabulary_actions::{VocabularyAction, VocabularyTokenMass, SCORE_CLIP_Q24},
 };
 #[path = "../../uor-r4-integer/examples/support/source_probe.rs"]
 mod output_support;
@@ -35,9 +37,25 @@ enum ModelKind {
     LegacyRecomposition,
     JointContinuation,
 }
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
+enum EvaluationKind {
+    #[default]
+    #[serde(rename = "own_prefix")]
+    OwnPrefix,
+    #[serde(rename = "entry_zero_u_v2")]
+    EntryZeroUV2,
+}
+const ENTRY_REPORT_SHA: &str = "f46342484238b1f806be312bb2b0e712873c6e8493d92dab6cd9c526308ee342";
+const ENTRY_MANIFEST_SHA: &str = "10c8d4598e361eda30d2fe8367f8ad105798a2841ab41f303a276153b4d80057";
+const ENTRY_U_SHA: &str = "21b66d25271ca97551d094afed2e492d5a8981db47a527e845c96e41c518c141";
+const ENTRY_INPUT_SHA: &str = "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a";
+const ENTRY_LABEL_SHA: &str = "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155";
+const ENTRY_ORIGINAL_EIGHT: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
+    #[serde(default)]
+    evaluation_kind: EvaluationKind,
     #[serde(default)]
     model_kind: ModelKind,
     #[serde(default)]
@@ -104,7 +122,7 @@ struct Panel {
     schema: String,
     cases: Vec<Packet>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Packet {
     id: String,
@@ -112,7 +130,7 @@ struct Packet {
     query_ids: Vec<u32>,
     actual_prefix_ids: Vec<u32>,
 }
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(tag = "kind", deny_unknown_fields)]
 enum Segment {
     Source {
@@ -505,6 +523,18 @@ fn admit_model_options(c: &Config) -> Result<()> {
             }
         }
     }
+    if c.evaluation_kind == EvaluationKind::EntryZeroUV2
+        && (c.model_kind != ModelKind::JointContinuation
+            || c.checkpoint_step != Some(64)
+            || c.expected_model_report_sha256 != ENTRY_REPORT_SHA
+            || c.expected_model_manifest_sha256 != ENTRY_MANIFEST_SHA
+            || c.expected_continuation_field_sha256.as_deref() != Some(ENTRY_U_SHA)
+            || c.expected_inputs_sha256 != ENTRY_INPUT_SHA
+            || c.expected_labels_sha256 != ENTRY_LABEL_SHA
+            || c.maximum_report_bytes != 64 << 20)
+    {
+        return Err(bad("entry zero-U diagnostic requires exact final64, genuine learned U, original512 and64MiB cap"));
+    }
     Ok(())
 }
 fn validate_joint_receipt(c: &Config, r: &Value, admission: &Value, receipt: &Value) -> Result<()> {
@@ -795,6 +825,694 @@ fn run(c: &Config) -> Result<Value> {
     }
     Ok(report)
 }
+fn entry_require(ok: bool, message: &str) -> Result<()> {
+    if !ok {
+        return Err(bad(message));
+    }
+    Ok(())
+}
+fn json_hash<T: Serialize + ?Sized>(value: &T) -> Result<String> {
+    Ok(hash(&serde_json::to_vec(value)?))
+}
+fn saved_entry_row(root: &Path, reference: &Value, id: &str) -> Result<Value> {
+    let name = expected_string(&reference["row_file"])?;
+    entry_require(
+        !Path::new(name)
+            .components()
+            .any(|p| !matches!(p, std::path::Component::Normal(_))),
+        "unsafe saved entry row path",
+    )?;
+    let path = root.join(name);
+    entry_require(
+        file_hash(&path)? == expected_string(&reference["row_sha256"])?,
+        "saved entry row digest differs",
+    )?;
+    let row = read(&path)?;
+    entry_require(
+        row["id"] == id && reference["id"] == id,
+        "saved entry row identity/order differs",
+    )?;
+    Ok(row)
+}
+/// Compare dimensionless fractions; raw Q31 masses can have different references.
+fn normalized_change(
+    zero: i128,
+    zero_total: u64,
+    learned: i128,
+    learned_total: u64,
+) -> Result<(i128, u128)> {
+    entry_require(
+        zero_total > 0 && learned_total > 0,
+        "zero probability denominator",
+    )?;
+    let numerator = zero
+        .checked_mul(i128::from(learned_total))
+        .and_then(|a| {
+            learned
+                .checked_mul(i128::from(zero_total))
+                .and_then(|b| a.checked_sub(b))
+        })
+        .ok_or_else(|| bad("normalized difference overflow"))?;
+    let denominator = u128::from(zero_total)
+        .checked_mul(u128::from(learned_total))
+        .ok_or_else(|| bad("normalized denominator overflow"))?;
+    Ok((numerator, denominator))
+}
+fn rational(value: (i128, u128)) -> Value {
+    json!({"numerator":value.0.to_string(),"denominator":value.1.to_string(),"direction":if value.0>0 {"improved"} else if value.0<0 {"worsened"} else {"equal"}})
+}
+struct EntryMasses {
+    target: VocabularyTokenMass,
+    rival: VocabularyTokenMass,
+    winner: VocabularyTokenMass,
+    total: u64,
+    tied_maximum_tokens: usize,
+    target_strict_mass_rank: usize,
+    target_tiebroken_rank: usize,
+}
+impl EntryMasses {
+    fn margin(&self) -> i128 {
+        i128::from(self.target.weight_q31) - i128::from(self.rival.weight_q31)
+    }
+    fn value(&self) -> Value {
+        json!({"target":self.target,"strongest_rival":self.rival,"winner":self.winner,
+            "target_minus_rival_mass":self.margin().to_string(),"denominator":self.total,
+            "target_probability":{"numerator":self.target.weight_q31,"denominator":self.total},
+            "normalized_target_minus_rival":{"numerator":self.margin().to_string(),"denominator":self.total.to_string()},
+            "maximum_mass_tie_count":self.tied_maximum_tokens,"smallest_maximum_id":self.winner.token_id,
+            "target_strict_mass_rank":self.target_strict_mass_rank,"target_tiebroken_rank":self.target_tiebroken_rank,
+            "target_tied_for_maximum":self.target.weight_q31==self.winner.weight_q31 && self.tied_maximum_tokens>1,
+            "target_is_selected":self.target.token_id==self.winner.token_id})
+    }
+}
+fn entry_masses(
+    masses: &[VocabularyTokenMass],
+    target: u32,
+    total: u64,
+    chosen: u32,
+) -> Result<EntryMasses> {
+    entry_require(
+        masses.len() > 1 && masses.windows(2).all(|v| v[0].token_id < v[1].token_id),
+        "token mass support/order differs",
+    )?;
+    let mut sum = 0u64;
+    for m in masses {
+        entry_require(
+            m.weight_q31 > 0
+                && m.generate_weight_q31.checked_add(m.copy_weight_q31) == Some(m.weight_q31),
+            "token mass decomposition differs",
+        )?;
+        sum = sum
+            .checked_add(m.weight_q31)
+            .ok_or_else(|| bad("token mass sum overflow"))?;
+    }
+    entry_require(sum == total, "token denominator differs")?;
+    let strongest = |exclude: Option<u32>| -> Result<VocabularyTokenMass> {
+        masses
+            .iter()
+            .filter(|m| Some(m.token_id) != exclude)
+            .max_by(|a, b| {
+                a.weight_q31
+                    .cmp(&b.weight_q31)
+                    .then_with(|| b.token_id.cmp(&a.token_id))
+            })
+            .cloned()
+            .ok_or_else(|| bad("entry rival/winner absent"))
+    };
+    let winner = strongest(None)?;
+    entry_require(
+        winner.token_id == chosen,
+        "served winner differs from mass/smallest-ID tie rule",
+    )?;
+    let target_mass = masses
+        .iter()
+        .find(|m| m.token_id == target)
+        .cloned()
+        .ok_or_else(|| bad("entry target outside legal support"))?;
+    let target_strict_mass_rank = 1 + masses
+        .iter()
+        .filter(|m| m.weight_q31 > target_mass.weight_q31)
+        .count();
+    let target_tiebroken_rank = target_strict_mass_rank
+        + masses
+            .iter()
+            .filter(|m| m.weight_q31 == target_mass.weight_q31 && m.token_id < target)
+            .count();
+    Ok(EntryMasses {
+        target: target_mass,
+        target_strict_mass_rank,
+        target_tiebroken_rank,
+        rival: strongest(Some(target))?,
+        tied_maximum_tokens: masses
+            .iter()
+            .filter(|m| m.weight_q31 == winner.weight_q31)
+            .count(),
+        winner,
+        total,
+    })
+}
+/// Every physical Copy occurrence, including duplicates, gets its token's U.
+fn verify_entry_score_deltas(
+    ids: &[u32],
+    learned_gen: &[i64],
+    zero_gen: &[i64],
+    learned_copy: &[i64],
+    zero_copy: &[i64],
+    delta: &[i64],
+) -> Result<()> {
+    entry_require(
+        learned_gen.len() == zero_gen.len()
+            && delta.len() == zero_gen.len()
+            && ids.len() == learned_copy.len()
+            && ids.len() == zero_copy.len(),
+        "matched score dimensions differ",
+    )?;
+    for ((&a, &b), &u) in learned_gen.iter().zip(zero_gen).zip(delta) {
+        entry_require(
+            i128::from(a) - i128::from(b) == i128::from(u),
+            "Generate difference is not learned U",
+        )?;
+    }
+    for ((&id, &a), &b) in ids.iter().zip(learned_copy).zip(zero_copy) {
+        let u = *delta
+            .get(id as usize)
+            .ok_or_else(|| bad("Copy token outside U vocabulary"))?;
+        entry_require(
+            i128::from(a) - i128::from(b) == i128::from(u),
+            "physical Copy difference is not token U",
+        )?;
+    }
+    Ok(())
+}
+fn bridge_identity(step: &NativeBankGenerateStep) -> Result<Value> {
+    let b = step
+        .bridge
+        .as_ref()
+        .ok_or_else(|| bad("entry bridge witness missing"))?;
+    Ok(
+        json!({"selected_ordinal":b.selected_ordinal,"selected_candidate":b.selected_candidate,
+        "query_state_codes":b.query_state.iter().map(|c|c.index()).collect::<Vec<_>>(),
+        "source_state_codes":b.source_state.iter().map(|c|c.index()).collect::<Vec<_>>(),
+        "action_codes":b.action_codes.iter().map(|c|c.index()).collect::<Vec<_>>(),
+        "action_scores_q24":b.action_scores_q24,"counts":b.counts}),
+    )
+}
+fn entry_continuation(step: &NativeBankGenerateStep) -> Result<Value> {
+    let u = step
+        .continuation
+        .as_ref()
+        .ok_or_else(|| bad("entry U witness absent"))?;
+    Ok(
+        json!({"query_tokens":u.query_tokens,"actual_prefix_tokens":u.actual_prefix_tokens,
+        "state_codes":u.state_codes.iter().map(|c|c.index()).collect::<Vec<_>>(),
+        "delta_scores_q24_sha256":json_hash(&u.delta_scores_q24)?,"delta_scores":u.delta_scores_q24.len(),
+        "minimum_delta_q24":u.delta_scores_q24.iter().min(),"maximum_delta_q24":u.delta_scores_q24.iter().max(),
+        "encoding_coefficient_reads":u.encoding_coefficient_reads,"field_counts":u.counts}),
+    )
+}
+fn matched_entry_invariants(
+    a: &NativeBankGenerateStep,
+    b: &NativeBankGenerateStep,
+    query_tokens: usize,
+) -> Result<Value> {
+    entry_require(
+        a.actual_prefix_ids.is_empty() && b.actual_prefix_ids.is_empty(),
+        "entry prefix is not empty",
+    )?;
+    entry_require(
+        a.bank_trace.is_some() && a.bank_trace == b.bank_trace,
+        "factual bank replay differs across U arms",
+    )?;
+    entry_require(
+        a.post_state == b.post_state && a.copy_token_ids == b.copy_token_ids,
+        "post-state or physical Copy IDs differ",
+    )?;
+    let bridge = bridge_identity(a)?;
+    entry_require(
+        bridge == bridge_identity(b)?,
+        "factual selected occurrence/bridge differs",
+    )?;
+    entry_require(
+        serde_json::to_value(a.generate_counts)? == serde_json::to_value(b.generate_counts)?,
+        "Generate work differs",
+    )?;
+    entry_require(
+        a.actions.policy == b.actions.policy
+            && a.actions.tokenizer_sha256 == b.actions.tokenizer_sha256
+            && a.actions.eos_token_id == b.actions.eos_token_id
+            && a.actions.period_token_id == b.actions.period_token_id,
+        "reducer identities differ",
+    )?;
+    let u = a
+        .continuation
+        .as_ref()
+        .ok_or_else(|| bad("learned U witness absent"))?;
+    let z = b
+        .continuation
+        .as_ref()
+        .ok_or_else(|| bad("zero U witness absent"))?;
+    entry_require(
+        u.state_codes == z.state_codes
+            && u.query_tokens == query_tokens
+            && z.query_tokens == query_tokens
+            && u.actual_prefix_tokens == 0
+            && z.actual_prefix_tokens == 0
+            && u.encoding_coefficient_reads == z.encoding_coefficient_reads
+            && u.counts == z.counts
+            && u.delta_scores_q24.len() == 4096
+            && z.delta_scores_q24.len() == 4096
+            && z.delta_scores_q24.iter().all(|&v| v == 0),
+        "local carrier differs or control U is nonzero",
+    )?;
+    for s in [a, b] {
+        entry_require(
+            s.actions.summary.legal_generate_actions == 4096
+                && s.generate_raw_scores_q24.len() == 4096
+                && s.actions.token_masses.len() == 4096
+                && s.actions
+                    .token_masses
+                    .iter()
+                    .enumerate()
+                    .all(|(id, mass)| mass.token_id == id as u32)
+                && s.copy_raw_scores_q24.len() == s.copy_token_ids.len()
+                && s.actions.actions.len() == 4096 + s.copy_token_ids.len()
+                && s.actions.summary.copy_actions == s.copy_token_ids.len(),
+            "entry full support differs",
+        )?;
+        for (offset, action) in s.actions.actions.iter().enumerate() {
+            let (kind, id, raw) = if offset < 4096 {
+                (
+                    VocabularyAction::Generate {
+                        token_id: offset as u32,
+                    },
+                    offset as u32,
+                    s.generate_raw_scores_q24[offset],
+                )
+            } else {
+                let i = offset - 4096;
+                (
+                    VocabularyAction::Copy { source_offset: i },
+                    s.copy_token_ids[i],
+                    s.copy_raw_scores_q24[i],
+                )
+            };
+            entry_require(
+                action.action == kind
+                    && action.action_offset == offset
+                    && action.token_id == id
+                    && action.raw_score_q24 == raw
+                    && action.score_q24 == raw.clamp(-SCORE_CLIP_Q24, SCORE_CLIP_Q24),
+                "ordered physical action identity/raw score differs",
+            )?;
+        }
+    }
+    entry_require(
+        a.actions
+            .actions
+            .iter()
+            .zip(&b.actions.actions)
+            .all(|(x, y)| {
+                x.action == y.action
+                    && x.action_offset == y.action_offset
+                    && x.token_id == y.token_id
+            }),
+        "action identity differs across arms",
+    )?;
+    verify_entry_score_deltas(
+        &a.copy_token_ids,
+        &a.generate_raw_scores_q24,
+        &b.generate_raw_scores_q24,
+        &a.copy_raw_scores_q24,
+        &b.copy_raw_scores_q24,
+        &u.delta_scores_q24,
+    )?;
+    let mut compact_bridge = bridge;
+    let scores = compact_bridge
+        .as_object_mut()
+        .ok_or_else(|| bad("bridge object absent"))?
+        .remove("action_scores_q24")
+        .ok_or_else(|| bad("bridge score witness absent"))?;
+    compact_bridge["action_scores_q24_sha256"] = json!(json_hash(&scores)?);
+    Ok(
+        json!({"factual_replay_equal":true,"factual_replay_sha256":json_hash(&a.bank_trace)?,
+        "bridge_equal":true,"bridge":compact_bridge,"post_state_codes":a.post_state.iter().map(|c|c.index()).collect::<Vec<_>>(),
+        "local_carrier_equal":true,"local_state_codes":u.state_codes.iter().map(|c|c.index()).collect::<Vec<_>>(),
+        "copy_ids_sha256":json_hash(&a.copy_token_ids)?,"physical_copy_occurrences":a.copy_token_ids.len(),
+        "ordered_alias_identity_sha256":json_hash(&a.actions.actions.iter().map(|x|(&x.action,x.action_offset,x.token_id)).collect::<Vec<_>>())?,
+        "all_score_differences_equal_token_u":true,"zero_delta_exact":true,"generate_reads":a.generate_counts}),
+    )
+}
+fn entry_arm(step: &NativeBankGenerateStep, target: u32) -> Result<(EntryMasses, Value)> {
+    let masses = entry_masses(
+        &step.actions.token_masses,
+        target,
+        step.actions.summary.total_weight_q31,
+        step.actions.summary.chosen_token_id,
+    )?;
+    entry_require(
+        masses.winner.weight_q31 == step.actions.summary.chosen_weight_q31,
+        "winner mass differs from reducer summary",
+    )?;
+    let u = step
+        .continuation
+        .as_ref()
+        .ok_or_else(|| bad("entry U witness absent"))?;
+    let get_score = |scores: &[i64], id: u32| -> Result<i64> {
+        scores
+            .get(id as usize)
+            .copied()
+            .ok_or_else(|| bad("entry score token outside vocabulary"))
+    };
+    let result = json!({"pool_summary":step.actions.summary,"masses":masses.value(),
+        "target_generate_preclip_q24":get_score(&step.generate_raw_scores_q24,target)?,
+        "strongest_rival_generate_preclip_q24":get_score(&step.generate_raw_scores_q24,masses.rival.token_id)?,
+        "target_u_q24":get_score(&u.delta_scores_q24,target)?,
+        "strongest_rival_u_q24":get_score(&u.delta_scores_q24,masses.rival.token_id)?,
+        "target_physical_copy_aliases":step.copy_token_ids.iter().filter(|&&id|id==target).count(),
+        "generate_preclip_sha256":json_hash(&step.generate_raw_scores_q24)?,"copy_preclip_sha256":json_hash(&step.copy_raw_scores_q24)?,
+        "clipped_action_scores_sha256":json_hash(&step.actions.actions.iter().map(|a|a.score_q24).collect::<Vec<_>>())?,
+        "token_masses_sha256":json_hash(&step.actions.token_masses)?,"continuation":entry_continuation(step)?});
+    Ok((masses, result))
+}
+fn verify_saved_learned_entry(
+    step: &NativeBankGenerateStep,
+    saved: &Value,
+    target: u32,
+    target_mass: u64,
+) -> Result<()> {
+    let entry = &saved["canonical"][0];
+    let native = &entry["native"];
+    entry_require(
+        saved["canonical_target_ids_labels_only"][0] == target
+            && entry["target_label_only"] == target,
+        "saved canonical entry target differs",
+    )?;
+    entry_require(
+        native["pool"]["summary"] == serde_json::to_value(&step.actions.summary)?
+            && native["post_state_codes"]
+                == json!(step
+                    .post_state
+                    .iter()
+                    .map(|c| c.index())
+                    .collect::<Vec<_>>())
+            && native["copy_token_ids"] == json!(step.copy_token_ids)
+            && native["generate_raw_scores_sha256"] == json_hash(&step.generate_raw_scores_q24)?
+            && entry["native_target_mass"] == target_mass
+            && entry["native_denominator"] == step.actions.summary.total_weight_q31,
+        "learned entry differs from saved final native result",
+    )?;
+    let witness = entry_continuation(step)?;
+    for (key, value) in witness
+        .as_object()
+        .ok_or_else(|| bad("U witness object absent"))?
+    {
+        entry_require(
+            native["continuation"][key] == *value,
+            "learned local U witness differs from saved canonical entry",
+        )?;
+    }
+    Ok(())
+}
+fn run_entry_zero_u(c: &Config) -> Result<Value> {
+    let started = std::time::Instant::now();
+    admit_model_options(c)?;
+    entry_require(
+        c.evaluation_kind == EvaluationKind::EntryZeroUV2,
+        "explicit entry diagnostic mode required",
+    )?;
+    // Ordinary joint admission authenticates the genuine learned U first.
+    let model = load_joint_model(c)?;
+    let r = &model.report;
+    let cp = &model.checkpoint;
+    let receipt = read(&cp.join("receipt.json"))?;
+    let learned_bytes = bytes(
+        c.continuation_field
+            .as_ref()
+            .ok_or_else(|| bad("learned U path absent"))?,
+    )?;
+    let learned = NativeContinuationField::from_bytes(
+        &learned_bytes,
+        model.generator.source_binding(),
+        model.generator.generate_model(),
+    )?;
+    entry_require(
+        learned.applies_to_copy()
+            && learned.score_shift() == 22
+            && learned.packed_unary().iter().any(|&v| v != 0),
+        "final64 learned U is not nonzero shared-action v2",
+    )?;
+    let zero = NativeContinuationField::compile_shared_action(
+        model.generator.source_binding(),
+        model.generator.generate_model(),
+        &vec![0; model.generator.generate_model().lanes() * 60],
+    )?;
+    let zero_bytes = zero.to_bytes()?;
+    // Derived bytes live only in this new diagnostic root, never the model seal.
+    fs::write(
+        c.output.join("learned-continuation-field.bin"),
+        &learned_bytes,
+    )?;
+    fs::write(c.output.join("zero-continuation-field.bin"), &zero_bytes)?;
+    let learned = NativeContinuationField::from_bytes(
+        &bytes(&c.output.join("learned-continuation-field.bin"))?,
+        model.generator.source_binding(),
+        model.generator.generate_model(),
+    )?;
+    let zero = NativeContinuationField::from_bytes(
+        &bytes(&c.output.join("zero-continuation-field.bin"))?,
+        model.generator.source_binding(),
+        model.generator.generate_model(),
+    )?;
+    entry_require(
+        learned.to_bytes()? == learned_bytes
+            && zero.to_bytes()? == zero_bytes
+            && zero.packed_unary().iter().all(|&v| v == 0)
+            && zero.applies_to_copy()
+            && zero.score_shift() == 22,
+        "same-v2 field independent roundtrip/zero check differs",
+    )?;
+    let mut matched_metadata = zero.metadata().clone();
+    matched_metadata.payload_sha256 = learned.metadata().payload_sha256.clone();
+    entry_require(
+        &matched_metadata == learned.metadata(),
+        "zero intervention changed nonpayload field metadata",
+    )?;
+    let zero_sha = hash(&zero_bytes);
+    let fields = json!({"learned_sha256":hash(&learned_bytes),"zero_sha256":zero_sha,"learned_metadata":learned.metadata(),"zero_metadata":zero.metadata(),
+        "same_metadata_except_payload_sha256":true,"independently_reloaded":true,"zero_payload_exact":true,"source":"derived v2 control after authentic joint admission; original learned artifact unchanged"});
+    write_row(c, "field-receipt.json", &fields)?;
+    let second = load_checkpoint(
+        cp.clone(),
+        r.clone(),
+        model.admission.clone(),
+        receipt.clone(),
+    )?;
+    entry_require(
+        model.generator.source_binding() == second.generator.source_binding()
+            && model.generator.generate_sha256() == second.generator.generate_sha256()
+            && model.generator.bridge_sha256() == second.generator.bridge_sha256()
+            && model.generator.generate_model().prototypes()
+                == second.generator.generate_model().prototypes(),
+        "two native generators have different upstream artifacts",
+    )?;
+    let mut learned_generator = model.generator.with_continuation_field(BoundNativeBytes {
+        bytes: &learned_bytes,
+        sha256: ENTRY_U_SHA,
+    })?;
+    let mut zero_generator = second.generator.with_continuation_field(BoundNativeBytes {
+        bytes: &zero_bytes,
+        sha256: &zero_sha,
+    })?;
+    let input_seal = seal_for(&c.inputs)?;
+    let label_seal = seal_for(&c.labels)?;
+    report_output::verify(&input_seal)?;
+    report_output::verify(&label_seal)?;
+    entry_require(
+        file_hash(&c.inputs)? == ENTRY_INPUT_SHA && file_hash(&c.labels)? == ENTRY_LABEL_SHA,
+        "exact512 entry panel identity differs",
+    )?;
+    let panel: Panel = serde_json::from_slice(&bytes(&c.inputs)?)?;
+    let labels: Labels = serde_json::from_slice(&bytes(&c.labels)?)?;
+    entry_require(
+        panel.schema == "uor-r4.native-source-bank-probe-input/1"
+            && labels.schema == "uor-r4.native-source-bank-labels/1"
+            && labels.protocol == "uor-r4.literal-role-dialogue/2"
+            && labels.membership_only
+            && panel.cases.len() == 512
+            && labels.cases.len() == 512,
+        "entry diagnostic requires complete original512 schema",
+    )?;
+    let final_summary = read(&c.model_root.join("development-0064.json"))?;
+    let initial_summary = read(&c.model_root.join("development-0000.json"))?;
+    entry_require(
+        final_summary == r["final_evaluation"] && initial_summary == r["initial_evaluation"],
+        "saved entry summaries differ from authenticated report",
+    )?;
+    let final_refs = final_summary["rows"]
+        .as_array()
+        .ok_or_else(|| bad("final row references absent"))?;
+    let initial_refs = initial_summary["rows"]
+        .as_array()
+        .ok_or_else(|| bad("initial row references absent"))?;
+    entry_require(
+        final_refs.len() == 512 && initial_refs.len() == 512,
+        "saved entry population differs",
+    )?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes(
+        &model.native_directory.join("tokenizer.json"),
+    )?)
+    .ok_or_else(|| bad("entry ByteBPE unavailable"))?;
+    let mut seen = BTreeSet::new();
+    let mut rows = Vec::new();
+    let mut transitions: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    let mut probability_changes = BTreeMap::<String, usize>::new();
+    let mut margin_changes = BTreeMap::<String, usize>::new();
+    let mut parent_rows = Vec::new();
+    let mut learned_correct = 0usize;
+    let mut zero_correct = 0usize;
+    let mut winners_changed = Vec::new();
+    let mut clipped_winner_changes = [0usize; 2];
+    let mut forward_seconds = 0.;
+    for (index, (packet, label)) in panel.cases.into_iter().zip(labels.cases).enumerate() {
+        let id = packet.id.clone();
+        let query_tokens = packet.query_ids.len();
+        let packet_sha = json_hash(&packet)?;
+        entry_require(
+            !id.is_empty()
+                && seen.insert(id.clone())
+                && label.id == id
+                && final_refs[index]["id"] == id
+                && initial_refs[index]["id"] == id,
+            "entry packet/label/saved identities differ",
+        )?;
+        let bank = learned_generator.admit_bank(snapshot(packet)?)?;
+        let clock = std::time::Instant::now();
+        let learned_step = learned_generator.step(&bank, &[])?;
+        let zero_step = zero_generator.step(&bank, &[])?;
+        forward_seconds += clock.elapsed().as_secs_f64();
+        let invariants = matched_entry_invariants(&learned_step, &zero_step, query_tokens)?;
+        // Only after BOTH target-free forwards may labels define the metric.
+        label.answers.validate()?;
+        let accepted = label
+            .answers
+            .accepted
+            .first()
+            .ok_or_else(|| bad("entry accepted form absent"))?;
+        let target_ids = tok.encode(accepted);
+        entry_require(
+            tok.decode_bytes(&target_ids) == accepted.as_bytes(),
+            "entry accepted form tokenizer roundtrip differs",
+        )?;
+        let target = *target_ids
+            .first()
+            .ok_or_else(|| bad("entry target empty"))?;
+        let (learned_mass, learned_value) = entry_arm(&learned_step, target)?;
+        let (zero_mass, zero_value) = entry_arm(&zero_step, target)?;
+        let saved = saved_entry_row(&c.model_root, &final_refs[index], &id)?;
+        verify_saved_learned_entry(
+            &learned_step,
+            &saved,
+            target,
+            learned_mass.target.weight_q31,
+        )?;
+        let lp = learned_mass.winner.token_id == target;
+        let zp = zero_mass.winner.token_id == target;
+        learned_correct += usize::from(lp);
+        zero_correct += usize::from(zp);
+        let transition = match (lp, zp) {
+            (true, true) => "both_correct",
+            (true, false) => "correct_to_wrong",
+            (false, true) => "wrong_to_correct",
+            (false, false) => "both_wrong",
+        };
+        transitions
+            .entry(transition.into())
+            .or_default()
+            .push(id.clone());
+        if learned_mass.winner.token_id != zero_mass.winner.token_id {
+            winners_changed.push(id.clone());
+        }
+        let probability = normalized_change(
+            i128::from(zero_mass.target.weight_q31),
+            zero_mass.total,
+            i128::from(learned_mass.target.weight_q31),
+            learned_mass.total,
+        )?;
+        let margin = normalized_change(
+            zero_mass.margin(),
+            zero_mass.total,
+            learned_mass.margin(),
+            learned_mass.total,
+        )?;
+        let direction = |n: i128| {
+            if n > 0 {
+                "improved"
+            } else if n < 0 {
+                "worsened"
+            } else {
+                "equal"
+            }
+        };
+        *probability_changes
+            .entry(direction(probability.0).into())
+            .or_default() += 1;
+        *margin_changes
+            .entry(direction(margin.0).into())
+            .or_default() += 1;
+        clipped_winner_changes[0] +=
+            usize::from(learned_step.actions.summary.token_winner_changed_by_clip);
+        clipped_winner_changes[1] +=
+            usize::from(zero_step.actions.summary.token_winner_changed_by_clip);
+        let mut parent = Value::Null;
+        if ENTRY_ORIGINAL_EIGHT.contains(&index) {
+            let old = saved_entry_row(&c.model_root, &initial_refs[index], &id)?;
+            entry_require(
+                old["canonical_target_ids_labels_only"][0] == target
+                    && old["canonical"][0]["target_label_only"] == target
+                    && old["canonical"][0]["native"]["pool"]["summary"]["chosen_token_id"]
+                        == target,
+                "original8 saved parent entry is not correct",
+            )?;
+            parent = json!({"index":index,"id":id,"saved_parent_row_sha256":initial_refs[index]["row_sha256"],"parent_entry_correct":true,"learned_entry_retained":lp,"zero_entry_retained":zp});
+            parent_rows.push(parent.clone());
+        }
+        let filename = format!("entry-row-{index:04}.json");
+        let row = json!({"index":index,"id":id,"packet_serde_sha256":packet_sha,"target_definition":"first token of first accepted answer, matching existing entry metric; labels after both forwards",
+            "target_token_id":target,"saved_final_row_sha256":final_refs[index]["row_sha256"],"learned_saved_entry_parity":true,
+            "invariants":invariants,"learned":learned_value,"zero":zero_value,"zero_minus_learned_target_probability":rational(probability),
+            "zero_minus_learned_normalized_margin":rational(margin),"transition":transition,"original8_parent_entry":parent});
+        write_row(c, &filename, &row)?;
+        rows.push(json!({"index":index,"id":id,"row_file":filename,"row_sha256":file_hash(&c.output.join(&filename))?,"learned_correct":lp,"zero_correct":zp}));
+    }
+    entry_require(
+        rows.len() == 512 && parent_rows.len() == 8,
+        "diagnostic coverage incomplete",
+    )?;
+    let report = json!({"schema":"uor-r4.native-bank-entry-zero-u-v2/1","status":"COMPLETED","evaluation_kind":"entry_zero_u_v2",
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":file_hash(&std::env::current_exe()?)?,"model_source_commit":r["source_commit"],
+        "model_report_sha256":ENTRY_REPORT_SHA,"model_manifest_sha256":ENTRY_MANIFEST_SHA,"checkpoint_step":64,"checkpoint_receipt_sha256":file_hash(&cp.join("receipt.json"))?,
+        "source_binding":learned_generator.source_binding(),"generate_sha256":learned_generator.generate_sha256(),"bridge_sha256":learned_generator.bridge_sha256(),"exp_sha256":model.exp_sha256,
+        "fields":fields,"inputs_sha256":ENTRY_INPUT_SHA,"labels_sha256":ENTRY_LABEL_SHA,"input_seal_sha256":file_hash(&input_seal.join("manifest.json"))?,"label_seal_sha256":file_hash(&label_seal.join("manifest.json"))?,
+        "config_sha256":file_hash(&c.output.join("config.json"))?,"cases":512,"native_entry_calls":1024,"learned_saved_entry_parity_cases":512,
+        "learned_entry_correct":learned_correct,"zero_entry_correct":zero_correct,"transitions":transitions,"winner_changed_ids":winners_changed,
+        "target_probability_changes":probability_changes,"normalized_margin_changes":margin_changes,"clip_changed_winners":{"learned":clipped_winner_changes[0],"zero":clipped_winner_changes[1]},
+        "original8_parent_entry":parent_rows,
+        "original8_entry_retention":{"learned_retained_ids":parent_rows.iter().filter(|p|p["learned_entry_retained"]==true).map(|p|&p["id"]).collect::<Vec<_>>(),
+            "learned_lost_ids":parent_rows.iter().filter(|p|p["learned_entry_retained"]==false).map(|p|&p["id"]).collect::<Vec<_>>(),
+            "zero_retained_ids":parent_rows.iter().filter(|p|p["zero_entry_retained"]==true).map(|p|&p["id"]).collect::<Vec<_>>(),
+            "zero_lost_ids":parent_rows.iter().filter(|p|p["zero_entry_retained"]==false).map(|p|&p["id"]).collect::<Vec<_>>()},
+        "rows":rows,"native_forward_seconds":forward_seconds,"elapsed_seconds":started.elapsed().as_secs_f64(),
+        "hash_encoding":"SHA256 of compact serde_json::to_vec; original data and artifact hashes bind exact file bytes",
+        "raw_diagnostic_scope":"existing tail-limited raw-score reducer diagnostics, not the served common-clipped token selection",
+        "interpretation":"conditional U effect on final coadapted Source/Generate; upstream family attribution unresolved; no interaction term identified",
+        "scope":"all512 exposed empty-prefix native decisions only; exact same-v2 zero intervention; no fit, autoregressive rerun, EOS/complete-reply or transfer/chat qualification"});
+    entry_require(
+        serde_json::to_vec_pretty(&report)?.len() <= 512 << 10,
+        "compact report exceeds reserved final-summary allowance",
+    )?;
+    Ok(report)
+}
+
 fn admit_paths(c: &mut Config) -> Result<()> {
     admit_model_options(c)?;
     if c.maximum_report_bytes < 8 << 20 || c.maximum_report_bytes > 4 << 30 {
@@ -941,11 +1659,19 @@ fn main() -> Result<()> {
         &c.output.join("config.json"),
         &serde_json::from_slice(&raw)?,
     )?;
-    let result = run(&c);
+    let result = match c.evaluation_kind {
+        EvaluationKind::OwnPrefix => run(&c),
+        EvaluationKind::EntryZeroUV2 => run_entry_zero_u(&c),
+    };
     let report = match &result {
         Ok(v) => v.clone(),
         Err(e) => {
-            json!({"schema":"uor-r4.native-bank-generalization/1","status":"FAILED","error":e.to_string(),"scope":"execution/instrument failure; no model-quality verdict"})
+            let mut failure = json!({"schema":"uor-r4.native-bank-generalization/1","status":"FAILED","error":e.to_string(),"scope":"execution/instrument failure; no model-quality verdict"});
+            if c.evaluation_kind == EvaluationKind::EntryZeroUV2 {
+                failure["schema"] = json!("uor-r4.native-bank-entry-zero-u-v2/1");
+                failure["evaluation_kind"] = json!("entry_zero_u_v2");
+            }
+            failure
         }
     };
     write(&c.output.join("report.json"), &report)?;
@@ -970,6 +1696,149 @@ mod tests {
         c["continuation_field"] = json!("/fixture/model/checkpoint-0001/continuation-field.bin");
         c["expected_continuation_field_sha256"] = json!("f".repeat(64));
         c
+    }
+    fn entry_config() -> Value {
+        let mut c = joint_config();
+        c["evaluation_kind"] = json!("entry_zero_u_v2");
+        c["checkpoint_step"] = json!(64);
+        c["continuation_field"] = json!("/fixture/model/checkpoint-0064/continuation-field.bin");
+        c["expected_model_report_sha256"] = json!(ENTRY_REPORT_SHA);
+        c["expected_model_manifest_sha256"] = json!(ENTRY_MANIFEST_SHA);
+        c["expected_continuation_field_sha256"] = json!(ENTRY_U_SHA);
+        c["expected_inputs_sha256"] = json!(ENTRY_INPUT_SHA);
+        c["expected_labels_sha256"] = json!(ENTRY_LABEL_SHA);
+        c["maximum_report_bytes"] = json!(64 << 20);
+        c
+    }
+    #[test]
+    fn entry_diagnostic_requires_exact_final64_full_panel_and_genuine_u() -> Result<()> {
+        let old: Config = serde_json::from_value(legacy_config())?;
+        assert_eq!(old.evaluation_kind, EvaluationKind::OwnPrefix);
+        admit_model_options(&old)?;
+        admit_model_options(&serde_json::from_value(entry_config())?)?;
+        for (key, value) in [
+            ("model_kind", json!("legacy_recomposition")),
+            ("checkpoint_step", json!(32)),
+            ("expected_model_report_sha256", json!("0".repeat(64))),
+            ("expected_model_manifest_sha256", json!("0".repeat(64))),
+            ("expected_continuation_field_sha256", json!("0".repeat(64))),
+            ("expected_inputs_sha256", json!("0".repeat(64))),
+            ("expected_labels_sha256", json!("0".repeat(64))),
+            ("continuation_field", Value::Null),
+            ("baseline_parity", json!(true)),
+            ("maximum_report_bytes", json!(32 << 20)),
+        ] {
+            let mut c = entry_config();
+            c[key] = value;
+            assert!(
+                admit_model_options(&serde_json::from_value(c)?).is_err(),
+                "{key}"
+            );
+        }
+        let mut subset = entry_config();
+        subset["maximum_cases"] = json!(256);
+        assert!(serde_json::from_value::<Config>(subset).is_err());
+        Ok(())
+    }
+    #[test]
+    fn entry_u_difference_checks_each_duplicate_copy_and_factual_base() -> Result<()> {
+        let ids = [0, 0, 1];
+        let base_generate = [10, 2, 2];
+        let learned_generate = [12, -1, 2];
+        let base_copy = [4, 7, 10];
+        let learned_copy = [6, 9, 7];
+        let delta = [2, -3, 0];
+        verify_entry_score_deltas(
+            &ids,
+            &learned_generate,
+            &base_generate,
+            &learned_copy,
+            &base_copy,
+            &delta,
+        )?;
+        let mut wrong_duplicate = learned_copy;
+        wrong_duplicate[1] -= 1;
+        assert!(verify_entry_score_deltas(
+            &ids,
+            &learned_generate,
+            &base_generate,
+            &wrong_duplicate,
+            &base_copy,
+            &delta
+        )
+        .is_err());
+        let mut different_base = base_generate;
+        different_base[2] += 1;
+        assert!(verify_entry_score_deltas(
+            &ids,
+            &learned_generate,
+            &different_base,
+            &learned_copy,
+            &base_copy,
+            &delta
+        )
+        .is_err());
+        assert!(verify_entry_score_deltas(
+            &ids,
+            &learned_generate,
+            &base_generate,
+            &learned_copy,
+            &base_copy[..2],
+            &delta
+        )
+        .is_err());
+        Ok(())
+    }
+    #[test]
+    fn entry_mass_ties_use_smallest_id_not_positive_margin_heuristics() -> Result<()> {
+        let masses = [
+            VocabularyTokenMass {
+                token_id: 0,
+                weight_q31: 4,
+                generate_weight_q31: 1,
+                copy_weight_q31: 3,
+            },
+            VocabularyTokenMass {
+                token_id: 1,
+                weight_q31: 4,
+                generate_weight_q31: 4,
+                copy_weight_q31: 0,
+            },
+            VocabularyTokenMass {
+                token_id: 2,
+                weight_q31: 2,
+                generate_weight_q31: 2,
+                copy_weight_q31: 0,
+            },
+        ];
+        let lost = entry_masses(&masses, 1, 10, 0)?;
+        assert_eq!(lost.margin(), 0);
+        assert_eq!(lost.tied_maximum_tokens, 2);
+        assert_eq!(lost.target_strict_mass_rank, 1);
+        assert_eq!(lost.target_tiebroken_rank, 2);
+        assert_eq!(lost.rival.token_id, 0);
+        assert_ne!(lost.winner.token_id, lost.target.token_id);
+        let won = entry_masses(&masses, 0, 10, 0)?;
+        assert_eq!(won.margin(), 0);
+        assert_eq!(won.winner.token_id, won.target.token_id);
+        assert_eq!(won.target_tiebroken_rank, 1);
+        assert!(entry_masses(&masses, 1, 10, 1).is_err());
+        assert!(entry_masses(&masses, 1, 11, 0).is_err());
+        Ok(())
+    }
+    #[test]
+    fn entry_normalized_margin_handles_changed_references_and_wide_products() -> Result<()> {
+        // The larger raw margin2 is worse after normalizing by100 rather than10.
+        assert_eq!(normalized_change(2, 100, 1, 10)?, (-80, 1000));
+        assert_eq!(normalized_change(4, 20, 2, 10)?, (0, 200));
+        let wide = normalized_change(1 << 44, 1 << 45, 1 << 43, 1 << 45)?;
+        assert!(wide.0 > i128::from(u64::MAX));
+        let encoded = rational(wide);
+        assert_eq!(encoded["numerator"], wide.0.to_string());
+        assert_eq!(encoded["denominator"], wide.1.to_string());
+        assert!(normalized_change(i128::MAX, 1, 0, 2).is_err());
+        assert!(normalized_change(1, 0, 0, 1).is_err());
+        Ok(())
     }
     #[test]
     fn joint_model_options_require_explicit_checkpoint_and_u_preserving_legacy_default(
