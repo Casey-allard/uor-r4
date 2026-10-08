@@ -1,0 +1,51 @@
+UOR-R4 — The response-form intervention: what is running and how it will be judged
+Date: 2026-10-08 (overnight round 47). DeepSeek session. References #820.
+
+THE DIAGNOSIS IT ANSWERS
+  Three independent probes agree that the served chat model has no representation of the response
+  FORM a turn requests: the 22-turn panel scores 0/6 instruction compliance (round 44), not one of
+  eight decisive turns opens with the answer at max_new_tokens=1 (round 45), and answer-shaped
+  prompt scaffolds change nothing (round 46). The model writes descriptive prose about the topic of
+  every turn. With the serving path proven faithful to 0.00883 BPB (round 37) and the prompt format
+  corrected (round 43), the remaining explanation is training data whose replies are uniformly
+  prose.
+
+THE INTERVENTION NOW RUNNING
+  Same frozen 7.16 M chat-only recipe (pattern rrarra, width 288, heads 6, context 384, read L2,
+  batch 32, lr 4e-4, warmup 500, 13,348 steps), one change: the training stream is a 50/50 mixture
+
+    train=chat-v0-p2/train/tokens.u16,tinydialogues-train/tokens.u16  train_weights=0.5,0.5
+
+  tinydialogues is 81,555,972 bytes = about 42.8 M tokens of SHORT TURN-PAIR dialogue - question and
+  answer shapes, minimal prose - which is the register the chat corpus lacks. It is the only
+  form-diverse tokenised corpus available on this machine; every other large stream is one of the
+  eight copies of the same 82 M-token chat-v0-p2 set that round 36's data review enumerated.
+
+  Honest limitation: tinydialogues is low-register synthetic child dialogue. If it moves the
+  yardsticks, that says FORM DIVERSITY helps and a better corpus of the same kind is worth
+  assembling; it does not by itself make the model a good assistant, and the mixture change also
+  alters topic distribution, so the two effects are not separated by this arm alone.
+
+HOW IT WILL BE JUDGED - the two fixed instruments
+  1. The 22-turn instruction panel (docs/evidence/chat_instruction_panel_2026-10-08.txt): a rise in
+     instruction compliance above 0/6, factual correctness above 1/4, or answered second turns above
+     0/5 is a positive result.
+  2. The max_new_tokens=1 first-token probe on the same eight decisive turns: the sharpest test,
+     because it asks whether the FIRST token becomes responsive. Anything other than " The"/" To"/
+     " I"/" " for the yes-no and one-word turns is evidence the form conditioning exists.
+  Both are mechanical and were fixed BEFORE this arm was launched, so there is no selection.
+
+  The dose-response volume arms are retired to make room: the 2-epoch arm finished its work and the
+  queued 4-epoch arm was stopped, because rounds 44-46 all point at form rather than volume and the
+  GPU is the scarce resource. That decision is recorded as a scientific one, not a budget one.
+
+WHAT WOULD FALSIFY THE INTERVENTION
+  Neither yardstick moving after a 50/50 form-diverse mixture means the deficit is not the form
+  distribution of the corpus - it would then be the objective (what the model is asked to predict)
+  or the model's capacity, and the next step becomes an objective change rather than a data change.
+  A fall in the panel's fluency would mean the mixture damaged the register, which is also worth
+  knowing and would set a mixture-weight experiment.
+
+SCOPE
+  One model size, one mixture weight, one corpus pair, single seed. No result is claimed: the arm is
+  training.
