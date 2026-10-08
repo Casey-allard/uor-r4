@@ -1,0 +1,74 @@
+UOR-R4 — Run card: the objective change that the elimination left
+Date: 2026-10-08 (overnight round 94). DeepSeek session. References #820.
+
+WHY THIS AND NOT ANYTHING ELSE
+  Round 93 closed the elimination. Capacity (2.8x parameters), optimization (2x steps), decoding
+  (sampling), the prompt protocol (a real defect, fixed) and now DATA SUPPORT (14.75x the short-form
+  episode support, one argument, no compliance change) have each been ruled out by a measured arm.
+  The remaining explanation, and the one that predicts the observed failure signature "Yes, fish" -
+  first token right, second wrong - is TOKEN-LEVEL MLE LENGTH BIAS: after a turn-level answer is
+  complete, the corpus's continuations carry roughly 250 times the token mass of its stops, so the
+  per-token optimum is to continue.
+  The fix therefore has to make a COMPLETED ANSWER worth something to the loss, and this card
+  specifies where.
+
+WHERE THE HOOK IS, ACCORDING TO THE ROUND-81 REVIEW
+  [R] dialogue_episodes.rs:572-582 assigns the per-target weights: weight 1.0 iff
+  position + 1 >= prefix_positions, i.e. every response token is weighted equally and the assistant
+  marker and everything before it are weighted 0. Response regions are exactly identified by the
+  verified mask (proven byte-identical to the builder's mask_sha256 in round 80), and each region
+  ENDS at the terminating <|eos|> by construction of the mask rule.
+  So the terminal token of every response is already addressable in the training data: it is the
+  last position of each masked run.
+
+THREE CANDIDATE CHANGES, CHEAPEST FIRST
+  1. TURN-TERMINAL WEIGHTING. Multiply the weight of the response's terminating EOS position by a
+     factor w > 1 (for example 5, 20, 100) and leave everything else identical. This is the smallest
+     possible intervention that directly attacks the 250:1 continuation-to-stop mass ratio, it needs
+     no new data, and it changes one term in the weight assignment the review located. Predicted
+     effect if the diagnosis is right: the model begins to terminate after a correct short answer.
+     Failure mode to watch: premature termination in the prose arms - fluency is the guard.
+  2. LENGTH-NORMALISED COMPLETION TERM. Score each response by its own mean log-probability rather
+     than by its summed token mass, which removes the mechanical advantage long replies have in the
+     gradient. Larger change than 1 (it alters the estimand, not just a weight) and therefore a
+     second experiment, not a first.
+  3. TERMINATING DECODING RULE. Stop generation when the reply satisfies the requested form, without
+     touching training at all. This is a serving-side patch rather than a learned capability: it can
+     demonstrate the diagnosis quickly and it cannot be the final answer for a model that should
+     learn when to stop - but it is nearly free and it isolates the diagnosis from the fix.
+  Recommendation: run 1 with a small sweep of w, and 3 in parallel as a diagnostic, because they
+  answer different questions (can the loss be made to value stopping; does stopping alone restore
+  compliance).
+
+HOW TO JUDGE, WITH THE INSTRUMENTS ALREADY FIXED
+  * Panel v2 read as the first TWO content tokens per reply (docs/evidence/panel_v2_instrument_fix_2026-10-08.txt),
+    with the echo item removed: the target is a first-token "Yes"/"No"/number/colour where the turn
+    asks for one, and NO LONGER just a correct opener.
+  * Fluency is the guard, and so are the two retention pairs: a change that buys compliance by
+    destroying multi-turn conditioning is not progress.
+  * Development nll is NOT the metric. Three arms have now shown it does not track this objective's
+    behaviour (r5 vs r4, r6 better behaviour with worse nll, r7 worse nll with equivalent behaviour,
+    and truncated_prefix's best-in-class 1.3623 with no compliance gain). It may be reported and must
+    not be selected on.
+
+WHAT WOULD FALSIFY THE DIAGNOSIS
+  If turn-terminal weighting at every factor tested still produces no compliance, then the
+  continuation-mass explanation is wrong too, and the remaining candidate is that the requested form
+  is not represented at all in the prefix representation the model conditions on - a REPRESENTATION
+  question rather than a loss, data, or scale one - which would be the first result of the night
+  pointing back at the architecture. That outcome is worth the run because it is cheap and it would
+  be decisive about where the remaining work belongs.
+
+PREREQUISITES, ALL IN PLACE
+  * the mask, proven bit-identical to the builder's hash (round 80), giving the terminal positions;
+  * dialogue-train consuming tokens, mask and manifest with policy=full_prefix (the measured working
+    configuration);
+  * panel v2 and the two-token reader installed on the pod;
+  * an export-and-serve chain that produced every measurement tonight, plus a watcher pattern that
+    has already run an arm to completion unattended (round 67);
+  * the falsified alternatives documented on main, so this card is not re-litigating dead ends.
+
+SCOPE
+  A run card: no loss change has been written, no arm trained, no result claimed. Its value is that
+  the hook, the three candidate changes, the judging instruments, the guard, and the falsifier are
+  fixed before the work starts - the pattern that made rounds 48, 56 and 81 decisive.
