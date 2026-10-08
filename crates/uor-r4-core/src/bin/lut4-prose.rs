@@ -1,31 +1,41 @@
-//! Stage 4 insertion gate: a LUT-4 nonlinear term over the additive scorer's own term groups.
+//! Stage 4 insertion gate, shortlist form: a LUT-4 term that **re-ranks the shortlist**.
 //!
-//! The serving scorer is purely additive — six summed term groups with no learned feature
-//! interaction. This binary trains a [`Lut4Network`] on the **term groups the scorer itself
-//! sums** (`score_context_candidate_terms`) and measures held-out bits per byte with and
-//! without the learned term, reporting the discretisation gap, gate utilisation and the
-//! realised cone sizes, which is the gate the transition plan sets for Stage 4.
+//! The first form added a constant-per-bit correction to every candidate's score. A term that
+//! classifies a candidate at ~76 % still moves nothing that way, because one bit is shared by
+//! half the vocabulary and the correction is diluted across 4,096 candidates. The plan says the
+//! term is a *selected read over the shortlist feature vector*, so this form reads the baseline's
+//! own top-K candidates and re-ranks only those.
 //!
-//! Served form: one truth-table read per output bit plus an additive correction, so the term
-//! introduces no multiplier and no dense contraction.
+//! Features are richer than the first form: each of the scorer's six additive term groups is
+//! quantised at four thresholds instead of one sign and one magnitude bit, plus two
+//! context-level features (whether any engram fired for this context, and a context-length
+//! bucket). Context features let a gate condition a candidate feature on the context, which the
+//! additive scorer cannot express at all.
+//!
+//! Served form stays a truth-table read plus integer additions: no multiplier, no float.
 
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
 use uor_r4_core::native_geometric::learner::jepa_trainer::{
     CandidateTermScores, ExportedGeometricModel,
 };
-use uor_r4_core::native_geometric::learner::lut4::{Lut4Layer, Lut4Network};
+use uor_r4_core::native_geometric::learner::lut4::{gate_hard, Lut4Layer, Lut4Network};
 use uor_r4_core::native_geometric::vsa::{encode_attended_multiscale_context, Codebook};
 use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
 
 /// The serving sampler's score scale, matching `ablate-prose`.
 const SAMPLER_SCALE: f64 = 8192.0;
-/// Term groups turned into feature bits: a sign bit and a magnitude bit for each group.
-const FEATURE_BITS: usize = 12;
-/// Magnitude threshold that separates the second bit of each group.
-const MAGNITUDE_THRESHOLD: i32 = 64;
+/// Term groups: bias, summed lattice lags, S2 readout, VSA, engram, hierarchical lattice.
+const GROUPS: usize = 6;
+/// Quantisation thresholds applied to each group, as magnitudes in score units.
+const THRESHOLDS: [i32; 4] = [1, 64, 256, 1024];
+/// Per-group feature bits: one per threshold.
+const GROUP_BITS: usize = THRESHOLDS.len();
+/// Context-level feature bits: engram-active, and a context-length bucket.
+const CONTEXT_BITS: usize = 2;
+/// Total feature width.
+const FEATURE_BITS: usize = GROUPS * GROUP_BITS + CONTEXT_BITS;
 
 struct Args {
     model: PathBuf,
@@ -36,18 +46,18 @@ struct Args {
     train_positions: usize,
     eval_positions: usize,
     holdout_offset: usize,
+    shortlist: usize,
     negatives: usize,
     steps: usize,
     rate: f32,
-    correction: f64,
     out: Option<PathBuf>,
 }
 
 fn usage() -> String {
-    "lut4-prose --model <artifact.rgm> --corpus <tokens.u16> --tokenizer <tokenizer.json>\n\
-     \x20 [--seq-len 64] [--train-positions 1024] [--eval-positions 1024] [--holdout-offset N]\n\
-     \x20 [--eval-corpus heldout.u16] [--negatives 32] [--steps 400] [--rate 0.5]\n\
-     \x20 [--out report.json]"
+    "lut4-prose --model <artifact.rgm> --corpus <train.u16> [--eval-corpus <heldout.u16>]\n\
+     \x20 --tokenizer <tokenizer.json> [--seq-len 64] [--train-positions 512]\n\
+     \x20 [--eval-positions 256] [--holdout-offset N] [--shortlist 64] [--negatives 32]\n\
+     \x20 [--steps 400] [--rate 0.5] [--out report.json]"
         .to_string()
 }
 
@@ -59,21 +69,24 @@ fn parse_args() -> Result<Args, String> {
         eval_corpus: None,
         tokenizer: PathBuf::new(),
         seq_len: 64,
-        train_positions: 1024,
-        eval_positions: 1024,
+        train_positions: 512,
+        eval_positions: 256,
         holdout_offset: 1_000_000,
+        shortlist: 64,
         negatives: 32,
         steps: 400,
         rate: 0.5,
-        correction: 2048.0,
         out: None,
     };
     let mut i = 0;
     while i < argv.len() {
-        let mut value = |i: usize| -> Result<String, String> {
+        let value = |i: usize| -> Result<String, String> {
             argv.get(i + 1)
                 .cloned()
                 .ok_or_else(|| format!("missing value for {}", argv[i]))
+        };
+        let mut number = |i: usize, name: &str| -> Result<usize, String> {
+            value(i)?.parse().map_err(|e| format!("{name}: {e}"))
         };
         match argv[i].as_str() {
             "--model" => {
@@ -93,35 +106,35 @@ fn parse_args() -> Result<Args, String> {
                 i += 2;
             }
             "--seq-len" => {
-                args.seq_len = value(i)?.parse().map_err(|e| format!("seq-len: {e}"))?;
+                args.seq_len = number(i, "seq-len")?;
                 i += 2;
             }
             "--train-positions" => {
-                args.train_positions = value(i)?.parse().map_err(|e| format!("train: {e}"))?;
+                args.train_positions = number(i, "train-positions")?;
                 i += 2;
             }
             "--eval-positions" => {
-                args.eval_positions = value(i)?.parse().map_err(|e| format!("eval: {e}"))?;
+                args.eval_positions = number(i, "eval-positions")?;
                 i += 2;
             }
             "--holdout-offset" => {
-                args.holdout_offset = value(i)?.parse().map_err(|e| format!("offset: {e}"))?;
+                args.holdout_offset = number(i, "holdout-offset")?;
+                i += 2;
+            }
+            "--shortlist" => {
+                args.shortlist = number(i, "shortlist")?;
                 i += 2;
             }
             "--negatives" => {
-                args.negatives = value(i)?.parse().map_err(|e| format!("negatives: {e}"))?;
+                args.negatives = number(i, "negatives")?;
                 i += 2;
             }
             "--steps" => {
-                args.steps = value(i)?.parse().map_err(|e| format!("steps: {e}"))?;
+                args.steps = number(i, "steps")?;
                 i += 2;
             }
             "--rate" => {
                 args.rate = value(i)?.parse().map_err(|e| format!("rate: {e}"))?;
-                i += 2;
-            }
-            "--correction" => {
-                args.correction = value(i)?.parse().map_err(|e| format!("correction: {e}"))?;
                 i += 2;
             }
             "--out" => {
@@ -155,9 +168,8 @@ fn load_model(path: &PathBuf) -> Result<ExportedGeometricModel, String> {
     }
 }
 
-/// Turn one candidate's six additive term groups into binary features: a sign bit and a
-/// magnitude bit per group, so a two-input gate can learn an interaction between any pair.
-fn features(terms: &CandidateTermScores, out: &mut [f32; FEATURE_BITS]) {
+/// Quantise the six term groups at four thresholds each, then append the context bits.
+fn features(terms: &CandidateTermScores, context_bits: [f32; CONTEXT_BITS], out: &mut [f32]) {
     let groups = [
         terms.bias,
         terms.lattice_lag,
@@ -166,17 +178,21 @@ fn features(terms: &CandidateTermScores, out: &mut [f32; FEATURE_BITS]) {
         terms.engram,
         terms.hierarchical,
     ];
-    for (index, value) in groups.iter().enumerate() {
-        out[2 * index] = f32::from(u8::from(*value > 0));
-        out[2 * index + 1] = f32::from(u8::from(value.abs() > MAGNITUDE_THRESHOLD));
+    for (group, value) in groups.iter().enumerate() {
+        for (slot, threshold) in THRESHOLDS.iter().enumerate() {
+            out[group * GROUP_BITS + slot] = f32::from(u8::from(value.abs() >= *threshold));
+        }
     }
+    out[GROUPS * GROUP_BITS] = context_bits[0];
+    out[GROUPS * GROUP_BITS + 1] = context_bits[1];
 }
 
+/// One scored position: the full baseline score row and the shortlist the term re-ranks.
 struct Position {
     target: usize,
     bytes: u64,
-    /// One row per scored candidate: the features and the base score.
-    candidates: Vec<([f32; FEATURE_BITS], i32)>,
+    scores: Vec<i32>,
+    shortlist: Vec<usize>,
 }
 
 fn main() {
@@ -207,48 +223,36 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             .collect())
     };
     let tokens = read_tokens(&args.corpus)?;
-    let vocab = model.vocab_size;
-
-    // Split the training corpus into a fit head and a disjoint scale-selection tail, and take
-    // the evaluation slice from its own file when one is declared.
-    let fit_positions = (args.train_positions * 4) / 5;
-    let select_positions = args.train_positions - fit_positions;
-    let select_start = args.seq_len + fit_positions;
-
     let eval_tokens = match &args.eval_corpus {
         Some(path) => read_tokens(path)?,
         None => tokens.clone(),
     };
+    let vocab = model.vocab_size;
+
+    let fit_positions = (args.train_positions * 4) / 5;
+    let select_positions = args.train_positions - fit_positions;
+    let select_start = args.seq_len + fit_positions;
     let eval_start = if args.eval_corpus.is_some() {
         args.seq_len
     } else {
         args.holdout_offset
             .max(select_start + select_positions + args.seq_len)
     };
-    let need = select_start + select_positions + args.seq_len + 1;
-    if tokens.len() < need {
-        return Err(format!(
-            "training corpus holds {} tokens; {} required for the declared split",
-            tokens.len(),
-            need
-        )
-        .into());
+    if tokens.len() < select_start + select_positions + args.seq_len + 1 {
+        return Err(format!("training corpus too short: {} tokens", tokens.len()).into());
     }
     if eval_tokens.len() < eval_start + args.eval_positions + 1 {
-        return Err(format!(
-            "evaluation corpus holds {} tokens; {} required",
-            eval_tokens.len(),
-            eval_start + args.eval_positions + 1
-        )
-        .into());
+        return Err(format!("evaluation corpus too short: {} tokens", eval_tokens.len()).into());
     }
 
     let codebook = Codebook::<64>::on_demand(vocab, model.vsa_seed);
     let load = |stream: &[usize],
                 start: usize,
                 count: usize|
-     -> Result<Vec<Position>, Box<dyn std::error::Error>> {
+     -> Result<(Vec<Position>, Vec<Vec<Vec<f32>>>, usize), Box<dyn std::error::Error>> {
         let mut rows = Vec::with_capacity(count);
+        let mut feature_rows = Vec::with_capacity(count);
+        let mut target_in_shortlist = 0usize;
         for step in 0..count {
             let end = start + step;
             let ctx = &stream[end - args.seq_len..end];
@@ -260,7 +264,9 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 buf[i] = *token as u32;
             }
             let ctx_vsa = encode_attended_multiscale_context(&buf[..n], &codebook, 64);
-            let mut candidates = Vec::with_capacity(vocab);
+            let mut scores = vec![0i32; vocab];
+            let mut terms_per_candidate = Vec::with_capacity(vocab);
+            let mut engram_active = 0.0f32;
             for cand in 0..vocab {
                 let terms = model.score_context_candidate_terms(
                     ctx,
@@ -268,103 +274,65 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                     fiber,
                     Some((&codebook, &ctx_vsa)),
                 );
-                let mut bits = [0.0f32; FEATURE_BITS];
-                features(&terms, &mut bits);
-                candidates.push((bits, terms.total()));
+                scores[cand] = terms.total();
+                if terms.engram != 0 {
+                    engram_active = 1.0;
+                }
+                terms_per_candidate.push(terms);
             }
+            let mut order: Vec<usize> = (0..vocab).collect();
+            order.sort_by(|a, b| scores[*b].cmp(&scores[*a]).then_with(|| a.cmp(b)));
+            order.truncate(args.shortlist.min(vocab));
+            if order.contains(&target) {
+                target_in_shortlist += 1;
+            }
+            let context_bits = [engram_active, f32::from(u8::from(ctx.len() >= 32))];
+            let mut rows_features = Vec::with_capacity(order.len());
+            for &cand in &order {
+                let mut bits = vec![0.0f32; FEATURE_BITS];
+                features(&terms_per_candidate[cand], context_bits, &mut bits);
+                rows_features.push(bits);
+            }
+            feature_rows.push(rows_features);
             rows.push(Position {
                 target,
                 bytes: token_bytes.get(target).copied().unwrap_or(1).max(1) as u64,
-                candidates,
+                scores,
+                shortlist: order,
             });
         }
-        Ok(rows)
+        Ok((rows, feature_rows, target_in_shortlist))
     };
 
-    let train = load(&tokens, args.seq_len, fit_positions)?;
-    let select = load(&tokens, select_start, select_positions)?;
-    let eval = load(&eval_tokens, eval_start, args.eval_positions)?;
+    let (fit_rows, fit_features, fit_in) = load(&tokens, args.seq_len, fit_positions)?;
+    let (select_rows, select_features, select_in) = load(&tokens, select_start, select_positions)?;
+    let (eval_rows, eval_features, eval_in) = load(&eval_tokens, eval_start, args.eval_positions)?;
 
-    // Training pairs: the target candidate and `negatives` deterministic decoys per position.
+    // Balanced training pairs from the training shortlists: the target row repeated, decoys once.
     let mut samples: Vec<(Vec<f32>, Vec<f32>)> = Vec::new();
-    for (index, row) in train.iter().enumerate() {
-        let mut picks = vec![row.target];
-        let mut state = (index as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1;
-        for _ in 0..args.negatives {
-            state ^= state << 13;
-            state ^= state >> 7;
-            state ^= state << 17;
-            picks.push((state as usize) % vocab);
-        }
-        for cand in picks {
-            if cand >= row.candidates.len() {
-                continue;
-            }
-            let (bits, _) = row.candidates[cand];
-            // Repeat the positive so the classes are balanced; an imbalanced fit converges to
-            // "always negative" and the correction then cannot move anything.
-            let repeats = if cand == row.target {
-                args.negatives
-            } else {
-                1
-            };
+    for (row, features_row) in fit_rows.iter().zip(fit_features.iter()) {
+        for (slot, &cand) in row.shortlist.iter().enumerate() {
+            let positive = cand == row.target;
+            let repeats = if positive { args.negatives } else { 1 };
             for _ in 0..repeats {
-                samples.push((bits.to_vec(), vec![f32::from(u8::from(cand == row.target))]));
+                samples.push((
+                    features_row[slot].clone(),
+                    vec![f32::from(u8::from(positive))],
+                ));
             }
         }
     }
 
-    // Feature informativeness: if the six term groups' sign/magnitude bits do not separate the
-    // target from decoys, no gate network can help and the null is about the features, not the
-    // LUT. Report the means and the best single-bit separation before training anything.
-    let mut positive_mean = [0.0f64; FEATURE_BITS];
-    let mut negative_mean = [0.0f64; FEATURE_BITS];
-    let mut positive_count = 0usize;
-    let mut negative_count = 0usize;
-    for (bits, label) in &samples {
-        if label[0] > 0.5 {
-            positive_count += 1;
-            for (slot, value) in positive_mean.iter_mut().zip(bits.iter()) {
-                *slot += f64::from(*value);
-            }
-        } else {
-            negative_count += 1;
-            for (slot, value) in negative_mean.iter_mut().zip(bits.iter()) {
-                *slot += f64::from(*value);
-            }
-        }
-    }
-    for (slot, value) in positive_mean.iter_mut().enumerate() {
-        *value /= positive_count.max(1) as f64;
-        let _ = slot;
-    }
-    for (slot, value) in negative_mean.iter_mut().enumerate() {
-        *value /= negative_count.max(1) as f64;
-        let _ = slot;
-    }
-    let best_bit_gap = positive_mean
-        .iter()
-        .zip(negative_mean.iter())
-        .map(|(p, n)| (p - n).abs())
-        .fold(0.0f64, f64::max);
-
-    // Exhaustive best two-input gate over the feature bits. With twelve bits there are
-    // C(12,2) * 16 = 1056 candidate terms, so the strongest LUT-4 term at this arity can be
-    // found exactly rather than left to a connectivity heuristic. This is the term the gate
-    // measures: if the best of all 1056 cannot improve held-out bits per byte, no learned
-    // two-input interaction over these features can.
+    // Exhaustive best two-input term over the feature bits: a floor on what any LUT can do here.
     let mut best_term: Option<(f64, usize, usize, u8)> = None;
     for i in 0..FEATURE_BITS {
         for j in (i + 1)..FEATURE_BITS {
             for gate in 0u8..16 {
                 let mut loss = 0.0f64;
                 for (bits, label) in samples.iter().take(4096) {
-                    let value = if bits[i] > 0.5 { 1u8 } else { 0u8 };
-                    let other = if bits[j] > 0.5 { 1u8 } else { 0u8 };
-                    let out = f64::from(uor_r4_core::native_geometric::learner::lut4::gate_hard(
-                        gate, value, other,
-                    ));
-                    let d = out - f64::from(label[0]);
+                    let a = u8::from(bits[i] > 0.5);
+                    let b = u8::from(bits[j] > 0.5);
+                    let d = f64::from(gate_hard(gate, a, b)) - f64::from(label[0]);
                     loss += d * d;
                 }
                 let loss = loss / samples.len().min(4096) as f64;
@@ -377,165 +345,179 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let best_term = best_term.unwrap_or((0.25, 0, 1, 6));
 
     let mut network = Lut4Network::new(vec![
-        Lut4Layer::seeded(FEATURE_BITS, 8, 0x4C55_5434),
-        Lut4Layer::seeded(8, 1, 0x4C55_5435),
+        Lut4Layer::seeded(FEATURE_BITS, 16, 0x4C55_5434),
+        Lut4Layer::seeded(16, 1, 0x4C55_5435),
     ]);
     let first_loss = network.fit_gates(&samples, args.rate, 1);
     let final_loss = network.fit_gates(&samples, args.rate, args.steps);
     let artifact = network.export();
+    let cones = network.cone_sizes();
     let utilisation = network.gate_utilisation();
     let entropy = network.gate_entropy_bits();
-    let cones = network.cone_sizes();
     let gap_inputs: Vec<Vec<f32>> = samples.iter().take(256).map(|(x, _)| x.clone()).collect();
     let gap = network.discretisation_gap(&gap_inputs);
 
-    // Held-out bits per byte for a declared correction scale, with the top-1 change rate as a
-    // sensitivity check: a correction too small to move BPB must still be shown to move nothing.
-    let measure = |scale: f64| -> (f64, f64, f64, f64, u64) {
+    // Re-rank the shortlist with the learned term and measure bits per byte.
+    let measure = |scale: f64| -> (f64, f64, f64, f64) {
         let mut base_bits = 0.0f64;
         let mut soft_bits = 0.0f64;
         let mut hard_bits = 0.0f64;
         let mut changed = 0u64;
-        let mut bytes_total = 0u64;
-        for row in &eval {
-            let mut base_max = i32::MIN;
-            let mut soft_scores: Vec<f64> = Vec::with_capacity(vocab);
-            let mut hard_scores: Vec<f64> = Vec::with_capacity(vocab);
-            let mut soft_max = f64::NEG_INFINITY;
-            let mut hard_max = f64::NEG_INFINITY;
-            for (bits, score) in &row.candidates {
-                base_max = base_max.max(*score);
-                let hard_out = artifact.eval_f32(bits);
-                let bit = hard_out.first().copied().unwrap_or(0);
-                let soft_value = network.soft_forward(bits).first().copied().unwrap_or(0.5);
-                let soft_corrected = f64::from(*score) + scale * (f64::from(soft_value) - 0.5);
-                let hard_corrected =
-                    f64::from(*score) + if bit == 1 { scale / 2.0 } else { -scale / 2.0 };
-                soft_max = soft_max.max(soft_corrected);
-                hard_max = hard_max.max(hard_corrected);
-                soft_scores.push(soft_corrected);
-                hard_scores.push(hard_corrected);
+        let mut bytes = 0u64;
+        for (row, features_row) in eval_rows.iter().zip(eval_features.iter()) {
+            let mut soft_scores = row.scores.clone();
+            let mut hard_scores = row.scores.clone();
+            let mut soft_list: Vec<f64> = Vec::with_capacity(row.shortlist.len());
+            let mut hard_list: Vec<f64> = Vec::with_capacity(row.shortlist.len());
+            for (slot, &cand) in row.shortlist.iter().enumerate() {
+                let bits = &features_row[slot];
+                let soft_value = network.soft_forward(bits).first().copied().unwrap_or(0.0);
+                let hard_bit = artifact.eval_f32(bits).first().copied().unwrap_or(0);
+                soft_scores[cand] =
+                    row.scores[cand] + (scale * (f64::from(soft_value) - 0.5)) as i32;
+                hard_scores[cand] = row.scores[cand]
+                    + if hard_bit == 1 {
+                        (scale / 2.0) as i32
+                    } else {
+                        -(scale / 2.0) as i32
+                    };
+                soft_list.push(f64::from(soft_scores[cand]));
+                hard_list.push(f64::from(hard_scores[cand]));
             }
-            let mut base_sum = 0.0f64;
-            let mut soft_sum = 0.0f64;
-            let mut hard_sum = 0.0f64;
-            for (cand, (_, score)) in row.candidates.iter().enumerate() {
-                base_sum +=
-                    libm::exp(((*score - base_max) as f64 / SAMPLER_SCALE).clamp(-60.0, 0.0));
-                soft_sum +=
-                    libm::exp(((soft_scores[cand] - soft_max) / SAMPLER_SCALE).clamp(-60.0, 0.0));
-                hard_sum +=
-                    libm::exp(((hard_scores[cand] - hard_max) / SAMPLER_SCALE).clamp(-60.0, 0.0));
-            }
-            let base_p = libm::exp(
-                (((row.candidates[row.target].1 - base_max) as f64) / SAMPLER_SCALE)
-                    .clamp(-60.0, 0.0),
-            ) / base_sum;
-            let soft_p =
-                libm::exp(((soft_scores[row.target] - soft_max) / SAMPLER_SCALE).clamp(-60.0, 0.0))
-                    / soft_sum;
-            let hard_p =
-                libm::exp(((hard_scores[row.target] - hard_max) / SAMPLER_SCALE).clamp(-60.0, 0.0))
-                    / hard_sum;
-            base_bits += -base_p.log2();
-            soft_bits += -soft_p.log2();
-            hard_bits += -hard_p.log2();
-            bytes_total += row.bytes;
-            let base_top = row
-                .candidates
-                .iter()
-                .enumerate()
-                .max_by_key(|(_, (_, score))| *score)
-                .map(|(index, _)| index)
-                .unwrap_or(0);
-            let soft_top = soft_scores
+            let baseline_top = row.shortlist.first().copied().unwrap_or(0);
+            let soft_top = row.shortlist[soft_list
                 .iter()
                 .enumerate()
                 .max_by(|x, y| x.1.partial_cmp(y.1).unwrap_or(std::cmp::Ordering::Equal))
                 .map(|(index, _)| index)
-                .unwrap_or(0);
-            changed += u64::from(base_top != soft_top);
+                .unwrap_or(0)];
+            changed += u64::from(baseline_top != soft_top);
+            let bits_for = |scores: &Vec<i32>| -> f64 {
+                let max = scores.iter().copied().max().unwrap_or(0);
+                let sum: f64 = scores
+                    .iter()
+                    .map(|s| libm::exp((((*s - max) as f64) / SAMPLER_SCALE).clamp(-60.0, 0.0)))
+                    .sum();
+                let p = libm::exp(
+                    (((scores[row.target] - max) as f64) / SAMPLER_SCALE).clamp(-60.0, 0.0),
+                ) / sum;
+                -p.max(1e-300).log2()
+            };
+            base_bits += bits_for(&row.scores);
+            soft_bits += bits_for(&soft_scores);
+            hard_bits += bits_for(&hard_scores);
+            bytes += row.bytes;
         }
+        let bpb = |bits: f64| bits / bytes.max(1) as f64;
         (
-            base_bits,
-            soft_bits,
-            hard_bits,
-            changed as f64 / eval.len().max(1) as f64,
-            bytes_total,
+            bpb(base_bits),
+            bpb(soft_bits),
+            bpb(hard_bits),
+            changed as f64 / eval_rows.len().max(1) as f64,
         )
     };
-    let bpb = |bits: f64, bytes: u64| bits / bytes.max(1) as f64;
 
-    // Choose the correction scale on the disjoint selection tail, then measure on the held-out
-    // evaluation stream. The scale is a hyperparameter; the evaluation is untouched by it.
-    let (select_base, select_soft, _, select_changed, select_bytes) = measure(2048.0);
-    let mut best_scale = 2048.0f64;
-    let mut best_select = f64::INFINITY;
+    // Control: boost every shortlist candidate by a constant and nothing else. A learned term
+    // that merely adds mass to the shortlist must not be credited for what a constant does.
+    let boost_only = |scale: f64| -> f64 {
+        let mut bits_total = 0.0f64;
+        let mut bytes = 0u64;
+        for row in &eval_rows {
+            let mut scores = row.scores.clone();
+            for &cand in &row.shortlist {
+                scores[cand] += (scale / 2.0) as i32;
+            }
+            let max = scores.iter().copied().max().unwrap_or(0);
+            let sum: f64 = scores
+                .iter()
+                .map(|s| libm::exp((((*s - max) as f64) / SAMPLER_SCALE).clamp(-60.0, 0.0)))
+                .sum();
+            let p = libm::exp((((scores[row.target] - max) as f64) / SAMPLER_SCALE).clamp(-60.0, 0.0))
+                / sum;
+            bits_total += -p.max(1e-300).log2();
+            bytes += row.bytes;
+        }
+        bits_total / bytes.max(1) as f64
+    };
+
+    // Choose the scale on the disjoint selection tail, then report the held-out measurement.
     let mut scale_curve: Vec<(f64, f64, f64)> = Vec::new();
-    for scale in [256.0f64, 512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0] {
-        let (base, soft, _, changed, bytes) = measure(scale);
-        let base_bpb = bpb(base, bytes);
-        let soft_bpb = bpb(soft, bytes);
-        scale_curve.push((scale, soft_bpb, changed));
-        if soft_bpb < best_select {
-            best_select = soft_bpb;
+    let mut best_scale = 2048.0f64;
+    let mut best_soft = f64::INFINITY;
+    let _ = (&select_rows, &select_features, select_in);
+    for scale in [256.0f64, 512.0, 1024.0, 2048.0, 4096.0, 8192.0] {
+        let (base, soft, _, changed) = measure(scale);
+        scale_curve.push((scale, soft - base, changed));
+        if soft < best_soft {
+            best_soft = soft;
             best_scale = scale;
         }
-        let _ = base_bpb;
     }
-    let _ = (select_base, select_soft, select_changed, select_bytes);
-    let (base_bits, soft_bits, hard_bits, top1_change_rate, bytes_total) = measure(best_scale);
+    let (base_bpb, soft_bpb, hard_bpb, top1_change) = measure(best_scale);
+    let boost_bpb = boost_only(best_scale);
+    let boost_curve: Vec<(f64, f64)> = [256.0f64, 512.0, 1024.0, 2048.0, 4096.0, 8192.0]
+        .iter()
+        .map(|scale| (*scale, boost_only(*scale) - base_bpb))
+        .collect();
 
     let report = serde_json::json!({
-        "schema": "uor-r4.lut4-prose-insertion/1",
+        "schema": "uor-r4.lut4-shortlist-rerank/1",
         "status": "COMPLETED",
         "model": args.model.display().to_string(),
-        "corpus": args.corpus.display().to_string(),
+        "train_corpus": args.corpus.display().to_string(),
+        "eval_corpus": args.eval_corpus.as_ref().map(|p| p.display().to_string()),
         "seq_len": args.seq_len,
-        "train_positions": args.train_positions,
-        "eval_positions": args.eval_positions,
-        "holdout_offset": eval_start,
+        "shortlist": args.shortlist,
         "feature_bits": FEATURE_BITS,
-        "selected_correction": best_scale,
+        "fit_positions": fit_positions,
+        "select_positions": select_positions,
+        "eval_positions": args.eval_positions,
+        "target_in_shortlist_rate": {
+            "fit": fit_in as f64 / fit_positions.max(1) as f64,
+            "select": select_in as f64 / select_positions.max(1) as f64,
+            "eval": eval_in as f64 / args.eval_positions.max(1) as f64,
+        },
+        "samples": samples.len(),
+        "train_loss_first": first_loss,
+        "train_loss_final": final_loss,
         "exhaustive_best_term": {
             "train_loss": best_term.0,
             "feature_a": best_term.1,
             "feature_b": best_term.2,
             "gate": best_term.3,
         },
-        "feature_positive_mean": positive_mean,
-        "feature_negative_mean": negative_mean,
-        "best_single_bit_separation": best_bit_gap,
-        "positive_samples": positive_count,
-        "negative_samples": negative_count,
-        "correction_curve": scale_curve,
-        "top1_change_rate": top1_change_rate,
-        "train_loss_first": first_loss,
-        "train_loss_final": final_loss,
-        "samples": samples.len(),
+        "selected_scale": best_scale,
+        "scale_curve_delta_soft": scale_curve,
         "bits_per_byte": {
-            "baseline": bpb(base_bits, bytes_total),
-            "soft_lut": bpb(soft_bits, bytes_total),
-            "hard_lut": bpb(hard_bits, bytes_total),
-            "delta_soft": bpb(soft_bits, bytes_total) - bpb(base_bits, bytes_total),
-            "delta_hard": bpb(hard_bits, bytes_total) - bpb(base_bits, bytes_total),
+            "baseline": base_bpb,
+            "soft_lut": soft_bpb,
+            "hard_lut": hard_bpb,
+            "delta_soft": soft_bpb - base_bpb,
+            "delta_hard": hard_bpb - base_bpb,
         },
-        "discretisation_gap_bpb": bpb(soft_bits, bytes_total) - bpb(hard_bits, bytes_total),
+        "discretisation_gap_bpb": soft_bpb - hard_bpb,
+        "uniform_shortlist_boost": {
+            "bits_per_byte": boost_bpb,
+            "delta": boost_bpb - base_bpb,
+            "curve": boost_curve,
+        },
+        "learned_minus_uniform_boost": (hard_bpb - boost_bpb),
+        "top1_change_rate": top1_change,
         "gate_utilisation": utilisation,
         "gate_entropy_bits": entropy,
         "cone_sizes": cones,
         "elapsed_seconds": started.elapsed().as_secs_f64(),
-        "scope": "Stage 4 insertion gate: a learned nonlinear term over the additive scorer's own term groups, trained at the corpus head and evaluated on a disjoint held-out slice. Not a claim about architecture priority; the term is inserted as a declared read.",
+        "scope": "Stage 4 gate, shortlist form: a learned nonlinear term re-ranks the baseline scorer's own top-K on real held-out text. Trained at the corpus head, scale chosen on a disjoint tail, evaluated on a separate held-out file. No serving default changed.",
     });
     let text = serde_json::to_string_pretty(&report)?;
     match &args.out {
         Some(path) => std::fs::write(path, text)?,
         None => println!("{text}"),
     }
-    let mut tops: BTreeMap<String, f64> = BTreeMap::new();
-    tops.insert("baseline".into(), bpb(base_bits, bytes_total));
-    tops.insert("soft".into(), bpb(soft_bits, bytes_total));
-    tops.insert("hard".into(), bpb(hard_bits, bytes_total));
-    eprintln!("bits/byte {tops:?} over {} bytes", bytes_total);
+    eprintln!(
+        "baseline {base_bpb:.6} soft {soft_bpb:.6} hard {hard_bpb:.6} delta {:.6} top1change {top1_change:.3} target_in_shortlist {:.3}",
+        soft_bpb - base_bpb,
+        eval_in as f64 / args.eval_positions.max(1) as f64
+    );
     Ok(())
 }

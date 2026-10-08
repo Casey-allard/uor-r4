@@ -1,0 +1,66 @@
+UOR-R4 — Stage 4 gate, shortlist form: a learned LUT-4 term re-ranks the shortlist and improves
+held-out bits per byte on real text, against a uniform-boost control
+Date: 2026-10-08. Executed by: DeepSeek session, local M1 checkout.
+References #820. Plan: docs/integration/native-core-transition-plan.md section 5, Stage 4.
+
+WHY THIS FORM
+  The first form added a per-candidate correction over all 4,096 candidates; the best of all 1,056
+  two-input terms moved held-out BPB by +0.0000061 (evidence
+  native_geometric_lut4_stage4_insertion_2026-10-08.txt). The plan says the term is a selected
+  read over the SHORTLIST feature vector, and a bit shared by half the vocabulary is diluted
+  across 4,096 candidates. This form reads the baseline's own top-K and re-ranks only those, with
+  richer features: each of the six additive term groups quantised at four thresholds instead of a
+  sign and a magnitude bit, plus two context-level features (any engram active, context length
+  bucket) that let a gate condition a candidate feature on the context.
+
+MEASUREMENT
+  artifact : native_geometric_prose_model.rgm, sha256 7023c4507039acc01653b2dd6a41cf4329635767c66811a17d76591a4f356d96
+  training : chat-v0-p2/train/tokens.u16, 256 positions (205 fit, 51 scale-selection tail)
+  held-out : chat-v0-p2/heldout/tokens.u16, 256 positions, a separate file
+  shortlist: top 64 by the baseline scorer; the target is inside it for 20.3 % of held-out rows
+  features : 26 bits; scale chosen on the disjoint tail from the grid 256..8192 (chose 8192)
+
+  bits/byte        baseline 4.211070
+                   soft learned term 4.194177   delta -0.016893
+                   hard served term  4.191505   delta -0.019565
+  discretisation gap soft-to-hard      0.002672 bits/byte
+  top-1 change rate                    0.000 (the term redistributes mass, it does not change the argmax)
+  gate utilisation entropy             0.323 bits of 4 (low: the network concentrated on few gates)
+
+CONTROL — the result is not a shortlist boost
+  A constant boost of +scale/2 applied to every shortlist candidate, and nothing else:
+    delta  +0.048235 bits/byte at the same scale, and monotonically worse with scale
+    (256:+0.0010, 512:+0.0021, 1024:+0.0044, 2048:+0.0092, 4096:+0.0203, 8192:+0.0482)
+  Learned minus uniform boost: -0.067801 bits/byte.
+  A uniform boost HURTS because the target is outside the shortlist 80 % of the time, so mass
+  moved to the shortlist is usually wasted. The learned term improves BPB while doing the same
+  amount of shortlist-local correction, so the gain is attributable to what it learned, not to
+  adding mass.
+
+GATE VERDICT
+  Improvement on real held-out text: YES, -0.019565 bits/byte in served (hard) form, against a
+  control that loses 0.0482 at the same scale. Discretisation gap and gate utilisation reported
+  as the plan requires. This is the first Stage 4 measurement in this session that improves
+  held-out BPB on real text.
+
+SCOPE AND LIMITS — read before reusing
+  * One artifact (a TinyStories-trained prose scorer), one corpus pair, 256 held-out positions,
+    debug build, no serving default changed. Point estimates without a paired confidence interval;
+    the control is the strongest evidence here, not the absolute delta.
+  * Shortlist re-ranking is capped by the target-in-shortlist rate of 20.3 %: it can only help the
+    rows where the baseline already ranked the target inside the top 64. Raising K raises the
+    ceiling and the cost together.
+  * Gate utilisation is low (0.32 bits of 4): the network concentrated on few gates. The plan asks
+    for utilisation to be reported; it is reported, not celebrated.
+  * KNOWN DEFECT, not fixed here: `Lut4Network::cone_sizes()` reports 0 for this trained network
+    while the served artifact demonstrably varies its output per candidate. The cone accounting
+    for a constant-looking final gate needs correcting before cone size is quoted as a result.
+  * The exhaustive best single two-input term on these features reaches training loss 0.0754
+    (features 14 and 16, gate 6), so a single gate already carries much of the signal; the
+    network's own contribution over that single term is not separated here.
+
+NEXT ACTIONS
+  1. Fix `cone_sizes` for the trained-network case and re-report it.
+  2. Add a paired bootstrap confidence interval on the held-out delta.
+  3. Sweep the shortlist size K and report BPB against target-in-shortlist rate, since that rate
+     bounds the achievable gain.
