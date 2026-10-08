@@ -1,0 +1,44 @@
+UOR-R4 — What it costs to train in the served transport representation
+Date: 2026-10-08 (overnight rounds 24-27). DeepSeek session. References #820.
+
+THE COMPARISON
+  Same 19.9 M chat stack, same corpus, same steps (12,207), same batch/lr/warmup, same pod, same
+  binary. The only difference is one flag: `transport_snap=icosian`.
+
+    arm                       GPU utilisation   first eval (step 4,000)   checkpoints
+    continuous transport      100 %             reached in ~150 s          yes
+    transport_snap=icosian    15-25 %           not reached in ~25 min     none
+
+  Process evidence for the snapped arm: 336-337 % CPU, 38-40 minutes of CPU time inside 11-12
+  minutes of wall time, GPU holding 4,498 MiB but idle 75-85 % of the time. The projection is not
+  a rounding error: the snap moves work onto the CPU critical path every step, so the same run
+  that finishes in about eleven minutes in the continuous representation has not reached a third
+  of its steps in twenty-five.
+
+WHAT THAT MEANS AS A TRADE
+  Round 24 established `transport_snap=icosian` as the candidate fix for the largest remaining
+  served term, 0.03578 BPB - 64.8 % of the whole served gap - on the reasoning that a model
+  trained in the representation it is served in should not pay to be snapped into it.
+  This round prices that fix: roughly an order of magnitude of training throughput.
+
+  For a project whose stated objective includes lower energy and wasted compute, that is not a
+  free flag. The honest trade is 0.03578 BPB of served fidelity against an order-of-magnitude
+  training cost, and the two cannot be weighed without the fidelity number, which the run has not
+  produced yet.
+
+THE PRACTICAL FORM OF THE IDEA, IF THE FIDELITY GAIN IS REAL
+  The cost is in *training* with the snap, not in *serving* it. If the fidelity gain holds, the
+  cheap way to buy it may be a short snapped fine-tune from a model trained in the continuous
+  representation - enough steps to move the weights into the snapped basin, rather than 12,207
+  steps paying the slow path throughout. That is a testable variant: take the round-16 checkpoint,
+  fine-tune with `transport_snap=icosian` for a small step count, then `snap-evaluate` and
+  `d11-evaluate`. If `snapped_nll` collapses toward `fused_nll` in a few hundred steps, the cost
+  of the flag is paid once and briefly instead of throughout training.
+
+  This document does not claim that happens. It records the measurement, the trade it prices, and
+  the cheapest next test.
+
+SCOPE
+  One model, one corpus, one pod, single seed, two runs differing only in `transport_snap`. The
+  throughput figures are process and GPU observations, not a benchmark harness; the "not reached"
+  entries are absences of output, recorded as absences rather than estimated.
