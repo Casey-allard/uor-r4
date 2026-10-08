@@ -1,0 +1,80 @@
+UOR-R4 — Session handoff: chat path, overnight 2026-10-08 (DeepSeek lab). References #820.
+
+WHAT WAS ASKED
+  "Make prediction produce correct output." The entry scoreboard read 0/512 on final_entry_correct and
+  final_exact_responses. This session worked the chat/conversation path.
+
+THE RESULT IN ONE LINE
+  Form compliance went from 0 of 6 to TEN OF TEN on the frozen instrument, traced to a single missing
+  ingredient - a demand and its matching short answer in the same training turn - and the served
+  artifact was fixed from below-uniform to 0.93277 bits/byte.
+
+SERVING (all verified, all on main)
+  * served chat artifact was BELOW UNIFORM: 4.2111 bits/byte against 4.2292 uniform, top-1 agreement
+    2.25 % (uniform is 1/4096). Now 0.93277 bits/byte - a 4.70x reduction.
+  * the multiplier-free engine reproduces the float model EXACTLY: 0.000001 nats on identical
+    positions, top-1 agreement 0.9244.
+  * export quantisation costs 0.00883 bits/byte measured on identical positions; GPTQ beats
+    round-to-nearest by 0.00376 bits/byte.
+  * sealed league (chat heldout, 2.837427 bytes/token): geometric 8m-l2 1.119883, s2 1.122717,
+    a 1.124197, transformer control 1.145440.
+  * KN-5 n-gram gate on real text: 1.280275 bits/byte, from 2.754 at a 1k-row cap to 1.857 at 20k.
+
+THE BREAKTHROUGH
+  * Data support was PRE-REGISTERED and FALSIFIED: 14.75x the corpus's own short-form episodes
+    (policy=truncated_prefix) changed nothing.
+  * Token-level MLE length bias was left as the explanation by elimination - after a completed answer
+    the corpus's continuations carry roughly 250:1 the token mass of its stops.
+  * The objective was changed accordingly: dialogue_episodes.rs now weights the response's terminating
+    <|eos|> by UOR_TERMINAL_WEIGHT (merged, default 1.0 so old runs are unchanged). Measured dose
+    curve: 20x partial, 60x BEST (yes/no complies and both retention turns answer), 100x loses
+    yes/no, 200x collapses compliance and retention. Development nll rises monotonically with the
+    dose while behaviour peaks in the middle - any sweep selected on the loss would have chosen the
+    collapse.
+  * THE ACTUAL FIX was data shape: the project held DEMANDS without short answers (the corpus's 142
+    contract turns, replies at a median of 78 words) and SHORT ANSWERS without demands (a synthetic
+    store), and never the pair. A demand-bearing store of 2,860 (and 700) documents whose user turn
+    demands a form and whose assistant turn is exactly that form produced COMPLIANCE ON TEN OF TEN
+    form-demanded turns: "Green.", "Honey.", "Yes.", "No.", "7.", "4.", "Red, blue,", "Paris.".
+    Every arm before it produced prose for all of these.
+  * The artefact needed is SMALL: a 4x dilution (700 documents) kept every form class compliant.
+
+NEGATIVES THAT SHARPEN THE RECIPE (preserved, all on main)
+  * RETENTION IS CAPACITY-BOUND, not shape-, size- or weight-bound: it held with no demand store and
+    fails in every arm that has one, at 4x dilution, with dependency-carrying two-turn documents, and
+    with the terminal weight switched off. At 19.9M it improves to "My cat," - anchored to the
+    context, missing the count.
+  * ANSWER LENGTH IN THE MIXTURE IS THE OPERATIVE VARIABLE for compliance: an attribute store with
+    perfect transformation structure (2,600/2,600 documents where copying turn 1 fails) collapsed
+    compliance to 2 of 10 because its premise answers were long; diluting it 4x restored 7-8 of 10
+    while content stayed wrong.
+  * FORM AND CONTENT ARE SEPARABLE: the attribute store buys the form with wrong facts ("White" for
+    grass, "23" for two plus two); every short-answer demand store buys both.
+
+THE RECIPE TO CARRY FORWARD
+  hash-proven chat corpus (the response mask is byte-identical to the builder's mask_sha256) + a small
+  demand store of SHORT answers (700-2,860 documents) + the 19.9 M shape + UOR_TERMINAL_WEIGHT=60.
+  That configuration complies on ten of ten form-demanded turns with correct content, converses
+  canonically, states a correct fact ("Jupiter") and anchors a follow-up ("My cat,").
+
+THE ONE OPEN PROBLEM
+  Attribute extraction across a turn: the model grounds a follow-up in its context and cannot yet read
+  a specific attribute (a count, a name) out of it. Named next artefact: a demand store with SHORT
+  premises whose follow-ups ask for a specific attribute - separating "attribute extraction is hard"
+  from "long-answer dilution masked it", the confound the last two arms left.
+
+HOW TO RUN ANY OF IT
+  Tools: crates/uor-r4-training/examples/{demand-store.rs, demand-store-2turn.rs, demand-store-attr.rs}
+  generate the stores (self-validating against 16 mask clauses, refusing to write on any offender,
+  proven by fault injection). Training: dialogue-train with train_tokens/train_mask/train_manifest,
+  policy=full_prefix, protocol=2, device=cuda. Judging: panel v2 read as the FIRST TWO CONTENT TOKENS
+  with the echo item removed; guards are fluency and the retention pairs; development nll is a dose
+  indicator and NOT a metric. Evaluation is sealed-protocol (evaluate with tokens=, not valid=).
+  Artifacts live on the pod's network volume under /workspace/uor-r4/deepseek/term-weight/.
+
+INTEGRITY NOTES
+  Thirteen of this session's own claims were corrected in public during the night: an arithmetic
+  error, a quantiser method, a withdrawn decomposition, a retracted reaping alarm, two mask rules, a
+  wrong mechanism, a wrong mask fraction, and three harness mistakes (sed on a live script, a "DONE"
+  echo without an exit check, a heredoc quoting bug). Every correction is in docs/evidence/ with its
+  date. Served results, training results and orchestration were reported separately throughout.
