@@ -22,6 +22,7 @@ pub mod lexical_realization;
 pub mod lowbit;
 pub mod lowbit_attention;
 pub mod lowbit_core;
+pub mod lut4;
 pub mod native_bank_generate;
 pub mod observed_text_session;
 pub mod occurrence;
