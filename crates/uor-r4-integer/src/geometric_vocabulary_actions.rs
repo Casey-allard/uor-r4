@@ -202,6 +202,23 @@ impl PendingGeneratePatch {
     pub fn summary(&self) -> GeneratePatchSummary {
         self.summary
     }
+    /// Exact staged pooled mass, bound to the unmodified incumbent revision.
+    /// Targets are attached by the offline evaluator after full pool admission.
+    pub fn token_mass(&self, cache: &GeneratePatchCache, token: u32) -> Result<u64> {
+        if self.identity != cache.identity || self.revision != cache.revision {
+            return Err(VocabularyActionError::StalePatch);
+        }
+        if cache.binding.validate_tokens(&[token]).is_err() {
+            return Err(VocabularyActionError::InvalidTargetToken(token));
+        }
+        match &self.storage {
+            GeneratePatchStorage::Sparse(atoms) => Ok(atoms
+                .binary_search_by_key(&(token as usize), |v| v.token)
+                .map(|i| atoms[i].mass)
+                .unwrap_or(cache.masses[token as usize])),
+            GeneratePatchStorage::Full { masses, .. } => Ok(masses[token as usize]),
+        }
+    }
 }
 static PATCH_CACHE_ID: AtomicU64 = AtomicU64::new(1);
 
@@ -1144,6 +1161,49 @@ mod tests {
         assert!(matches!(
             reducer.evaluate_generate_patch(&caches[0], &[]),
             Err(VocabularyActionError::Overflow)
+        ));
+        Ok(())
+    }
+    #[test]
+    fn pending_patch_target_mass_is_exact_revision_bound_and_nonmutating(
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let mut reducer = fixture(12, true)?;
+        let mut gen = vec![0; 12];
+        gen[4] = SCORE_CLIP_Q24;
+        let mut caches = vec![
+            reducer.prepare_generate_patch_cache(gen.clone(), vec![5, 5], vec![0, 0])?,
+            reducer.prepare_generate_patch_cache(gen, vec![], vec![])?,
+        ];
+        for trial in [vec![(5, 2 << 24)], vec![(4, 0), (5, 2 << 24)]] {
+            let patch = reducer.evaluate_generate_patch(&caches[0], &trial)?;
+            let before = caches[0].generate_scores().to_vec();
+            let mut actual = before.clone();
+            for &(id, score) in &trial {
+                actual[id as usize] = score;
+            }
+            let full = reducer.reduce_trace(&actual, &caches[0].copy_ids, &caches[0].copy_q24)?;
+            for token in &full.token_masses {
+                assert_eq!(
+                    patch.token_mass(&caches[0], token.token_id)?,
+                    token.weight_q31
+                );
+            }
+            assert!(matches!(
+                patch.token_mass(&caches[0], 7),
+                Err(VocabularyActionError::InvalidTargetToken(7))
+            ));
+            assert!(matches!(
+                patch.token_mass(&caches[1], 5),
+                Err(VocabularyActionError::StalePatch)
+            ));
+            assert_eq!(before, caches[0].generate_scores());
+        }
+        let stale = reducer.evaluate_generate_patch(&caches[0], &[(5, 1 << 24)])?;
+        let current = reducer.evaluate_generate_patch(&caches[0], &[(6, 1 << 24)])?;
+        reducer.commit_generate_patch_batch(&mut caches, vec![(0, current)])?;
+        assert!(matches!(
+            stale.token_mass(&caches[0], 5),
+            Err(VocabularyActionError::StalePatch)
         ));
         Ok(())
     }

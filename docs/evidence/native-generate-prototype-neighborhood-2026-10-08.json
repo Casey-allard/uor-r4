@@ -1,0 +1,151 @@
+{
+  "schema": "uor-r4.native-generate-prototype-neighborhood-evidence/1",
+  "date": "2026-10-08",
+  "owning_issue": 820,
+  "pull_request": 1891,
+  "status": "COMPLETED_AUDITED_DIAGNOSTIC_ENTRY_VERSUS_OBJECTIVE_TRADEOFF",
+  "persistent_goal_status": "active",
+  "executed_source": "2d8837625022b8f9c3e0de8b5517863e0ec5914c",
+  "source_base": "247f5f1338adf8eb7a71e6123c136a10ab27eb16",
+  "binary_sha256": "a77228f2b724ac0a4b1f64af082612c20d21ed3b76a0a38e70f0107192984abd",
+  "launch_config_sha256": "1bc836127d3e7e0aeed372b71e7dc13a9b35190ee945aad4d9a3509db7687311",
+  "sealed_serialized_config_sha256": "fabed60e364b0790f1616e45d62663546e3ea5327213a2cfa78d1768f470566d",
+  "report_sha256": "cb7ab288e0d5bc11172b54e877a56c864a5fd64696358c86fbd76dfde46a72e7",
+  "seal_sha256": "e53c2594295f5f27f1b8ce2129b760167f0d25adda0904e9905d323dcc155f13",
+  "baseline_ce": {
+    "task": 7.607854558705883,
+    "reference": 0.9184891902404883,
+    "combined": 8.52634374894637
+  },
+  "population": 1920,
+  "noops": 16,
+  "genuine_replacements": 1904,
+  "fixed_terms": 588,
+  "protected_terms": 84,
+  "conditional_values": 1128960,
+  "current_code_fidelity_checks": 9408,
+  "positive_witnesses": 483,
+  "positive_by_token": {
+    "617": 315,
+    "2997": 168
+  },
+  "all_ce_descending": 0,
+  "positive_with_ce_descent": 0,
+  "positive_task_descent": 4,
+  "positive_reference_descent": 0,
+  "maximum_new_entries_per_witness": 3,
+  "selection": {
+    "basis": "minimum combined positive triple, ascending token/lane/code ties; exposed-development selection",
+    "token": 617,
+    "lane": 0,
+    "old_code": 58,
+    "code": 48,
+    "new_failed_row_indices": [
+      391
+    ],
+    "task": 7.607174462648208,
+    "reference": 1.0269118046864747,
+    "combined": 8.634086267334682,
+    "gap_improved_tied_worse": [
+      72,
+      275,
+      157
+    ]
+  },
+  "checks": {
+    "format": "PASS",
+    "pending_mass_tests": 1,
+    "cache_tests": 5,
+    "core_conditional_tests": 1,
+    "optimized_build": "PASS",
+    "exact_source_math_review": "PASS",
+    "exact_source_adversarial_review": "PASS",
+    "independent_reader": "PASS",
+    "rust_four_complete_seals": "PASS"
+  },
+  "timing_seconds": {
+    "capture": 44.632854856,
+    "census": 69.830023147,
+    "producer_before_seal": 114.462878564,
+    "supervisor": 180.56574427708983,
+    "runtime_preservation": 40.674084074795246,
+    "independent_reader": 177.6739819906652,
+    "reader_supervisor": 177.98693244159222,
+    "rust_four_seals": 53.008008651435375,
+    "result_preservation": 35.94291114807129
+  },
+  "resources": {
+    "peak_rss_kib": 209332,
+    "principal_cache_array_bytes": 66942960,
+    "full_reduction_fallbacks": 8398,
+    "pre_final_report_payload_bytes": 287836089,
+    "cumulative_projected_seconds_before_after": [
+      411270,
+      422070
+    ],
+    "legacy_model_time": "UNAVAILABLE; priorcharges retained",
+    "laptop_build_model_large_download": false,
+    "independent_reader_peak_rss_kib": 578108
+  },
+  "runtime_preservation": {
+    "revision": "12b29a95ca66b1a17827d0c89fd77e8a3b21cca1",
+    "prefix": "codex/sol-prototype/runtime-2d88376250-attempt1",
+    "all_fresh_download_verified": true
+  },
+  "reader_correction": {
+    "original_sha256": "82e78bdc6dc095689078b6be01ab6b1631566a29e82dd3ad65ff6d9ebb844269",
+    "corrected_sha256": "0ed33007fa870e7713b84e859df23d454f6316c7b76d3725a0f69c9ab599b2a5",
+    "reason": "original preparation plan byte identity differs from learner-reserialized plan; original retained; no model rerun"
+  },
+  "limitations": [
+    "fixed factual states on exposed development data",
+    "no optimizer/model export/own-prefix evaluation in diagnostic",
+    "no capacity/transfer/chat/geometry advantage or complete D11 energy qualification",
+    "original accepted parent remains accepted"
+  ],
+  "next": "One fixed617/lane0/48 geometric intervention, coherent categorical-master export and zeroU rebind, fresh coefficient-only credit/rebuiltincidence, once-only adjacentcode construction preserving84plus gainedentry391; require strictcombinedCE below ORIGINAL8.52634374894637; exactreload/early8/full512; no alternatewitnessfits or refill. NOT_RUN pending protectedcurrentmerge.",
+  "independent_audit": {
+    "conditional_values": 1128960,
+    "integer_patches": 1128960,
+    "current_code_fidelity_checks": 9408,
+    "reference_replicas": 909,
+    "run_complete_file_count": 2511,
+    "scope": "Saved finite algebra, ordered edges, packing and integer pool recomputation; no inference/training/gradient"
+  },
+  "preservation": {
+    "revision": "2696294a31af05b5d3ab6a85066e27a5f172aa5e",
+    "prefix": "codex/sol-prototype/prototype-0001-2d88376250",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "72c289b21e826b31f47e38f9ff145684a60e3acc59773dab1ca011bf44379287",
+        "bytes": 1084
+      },
+      "prototype-0001-2d88376250.tar.gz": {
+        "sha256": "9eeff9d964389562e3111831773f3a0637233a8dc14b65844c675820f39604b5",
+        "bytes": 55900720
+      }
+    },
+    "manifest": {
+      "source_commit": "2d8837625022b8f9c3e0de8b5517863e0ec5914c",
+      "runtime_hf_revision": "12b29a95ca66b1a17827d0c89fd77e8a3b21cca1",
+      "runtime_manifest_sha256": "e71372cc99ab8df13c939f6c51b273f6f79b795526646bd853d32ad0f6685925",
+      "binary_sha256": "a77228f2b724ac0a4b1f64af082612c20d21ed3b76a0a38e70f0107192984abd",
+      "config_sha256": "1bc836127d3e7e0aeed372b71e7dc13a9b35190ee945aad4d9a3509db7687311",
+      "report_sha256": "cb7ab288e0d5bc11172b54e877a56c864a5fd64696358c86fbd76dfde46a72e7",
+      "report_manifest_sha256": "e53c2594295f5f27f1b8ce2129b760167f0d25adda0904e9905d323dcc155f13",
+      "audit_sha256": "0dbda4dcb8b0d350ee2f441ab5197d8201a6be6314c3a7d6a2210570fed28c35",
+      "positive_witnesses": 483,
+      "positive_with_ce_descent_count": 0,
+      "files": {
+        "prototype-0001-2d88376250.tar.gz": {
+          "sha256": "9eeff9d964389562e3111831773f3a0637233a8dc14b65844c675820f39604b5",
+          "bytes": 55900720
+        }
+      },
+      "scope": "Exhaustive fixed-state 1920 shared token/lane/code diagnostic,84 protected outputs; no exported candidate or autoregressive/transfer/chat qualification."
+    },
+    "seconds": 35.94291114807129,
+    "completed_utc": "2026-10-08T10:30:11.035650+00:00"
+  }
+}
