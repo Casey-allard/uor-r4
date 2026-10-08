@@ -1,0 +1,77 @@
+UOR-R4 — P1 binding probe: readout failure downstream of retrieval, with a method correction that matters
+Date: 2026-10-08 (overnight rounds 149-153). DeepSeek session. References #820.
+
+WHAT RAN
+  The expert review's P1 over four rows differing ONLY in the value inside turn 1 (cats2/cats5, ana/ben),
+  inference only on four existing checkpoints, no training. Conditions: natural, turn 1 PINNED to
+  "Sure.", turn 1 PINNED to the store's own "Noted.", and P2's single-turn formulation. Protocol 2,
+  greedy, max_new_tokens=40, TAU=0.10. DELTA(t) = ln p(first token t | own premise) - ln p(first token t
+  | paired premise), from the tool's answer-position mixture distribution; read mass = read_expected_max.
+  Full tables: /workspace/uor-r4/deepseek/term-weight/bindprobe/P1-REPORT.md (312 lines).
+
+A METHOD CORRECTION THAT CHANGES THE READING OF ANY PINNED EXPERIMENT
+  A raw-text single-turn emulation of a pinned turn 1 - the obvious ~30-line helper - OMITS THE EOS THAT
+  CLOSES TURN 1, and that EOS is worth UP TO 1.33 NATS of DELTA (effect -0.94 to +1.33; 14 of 16
+  pair-terms move more than 0.1). Re-encoding the reply text versus using the model's own generated ids
+  is worth +0.0000 on all 16 terms. So the naive pinned runs are invalid and only EOS-bearing exact runs
+  count. The pinned implementation was validated against the official binary bit-exactly: turn1=null
+  reproduces the natural-condition marker observation with worst absolute difference 0.0e+00 over 16
+  rows x 4 arms, and pinning arm-as to "Noted." reproduces its own natural window ids exactly.
+
+RESULT - THE PRE-REGISTERED BRANCH
+  BRANCH 4 for all three store arms: READ MASS ABOVE TAU ON THE EXPECTED SPAN WHILE THE ANSWER STILL
+  PREFERS A PRIOR - a readout failure downstream of retrieval.
+    arm-as (19.9 M, attrshort): read mass above TAU on 4/4 rows in ALL conditions (natural, pinned
+      Sure., pinned Noted.; 0.16-0.36, 1-4 of 16 heads) and every row classifies c_readout at the
+      marker. Replies are the store's own family strings: natural " Noted." / " I see." / " Italy." /
+      " Got it."; pinned Sure. " Java." / prose / " Neon." / " Italy."; pinned Noted. " Noted." /
+      " I see." / " Nineteen." / " Noted.". DELTA pinned Sure. = +1.91 / -0.11 / +2.60 / +1.67 and
+      pinned Noted. = +0.78 / +0.12 / +3.33 / +1.26 - three of four at or above 0.7 in both - YET
+      0/4 correct argmax and 0/4 exact match.
+    arm-bind (33.8 M, same mixture): read mass above TAU on 3/4; DELTA pinned Sure. = +0.96 / -0.42 /
+      +2.43 / +1.09; 0/4 exact. The one "argmax correct" row's greedy string is " Ag.", a sub-word
+      prefix, not an answer.
+    arm-t2 (7.16 M, two-turn store): read mass above TAU on 2-3 of 4; DELTA pinned Sure. = -0.82 /
+      -0.22 / +0.57 / -0.67; 0/4 at or above 0.7; 0/4 exact.
+    arm-w60 (7.16 M, NO store, the control): read mass BELOW TAU on 4/4 rows in EVERY condition
+      (natural .042/.035/.069/.061; pinned Sure. .083/.086/.077/.070; pinned Noted. .077/.054/.070/.072
+      - 0/12 heads at or above TAU). DELTA natural +0.23/+0.53/+0.22/+0.88; pinned Sure. -0.10/+0.50/
+      +0.73/+0.84. Its ana natural reply IS THE VALUE IN PROSE ("My name is Ana, a city known for...")
+      but the frozen two-token rule judges it a miss - the measurement gap the review flagged.
+
+  WHICH BRANCHES ARE EXCLUDED
+    * NOT branch 1: that required DELTA at or above 0.7 with correct argmax on all rows while form
+      compliance holds. The best case (arm-as pinned Sure.) gives 3/4 at or above 0.7 with 0/4 argmax
+      and 0/4 exact.
+    * NOT branch 2: |DELTA| below 0.1 never holds on more than one of four rows, so binding is not
+      unused.
+    * Branch 3 (read mass below TAU, the queried span never addressed) holds ONLY for the no-store
+      control arm-w60.
+  A FURTHER FINDING THAT BLUNTS THE DELTA STATISTIC ITSELF: in arm-as the +1.91 comes from "two" (a
+  high-frequency token, p 1.6e-2) while "five" (p 6.0e-4) has DELTA near zero in the same condition. The
+  margin tracks TOKEN PRIOR, not a symmetric read, so DELTA at or above 0.7 alone is not evidence of
+  binding and was rightly not treated as such.
+
+WHAT IT MEANS FOR THE PROGRAMME
+  1. THE FAILURE IS READOUT, NOT RETRIEVAL, IN THE STORE ARMS. The mixture's models DO put mass on the
+     value's span (above TAU, though thin - 1-4 of 12-20 heads, per-head means 0.7-6.6 %) and then emit
+     their own family strings instead of the value. The no-store control does the opposite: it never
+     addresses the span and yet produces the value in prose. The two arms fail in different places,
+     which is why the mixture's presence both helped form compliance and harmed binding.
+  2. THE MIXTURE/REGISTER EXPLANATION STAYS LIVE and is not ruled out: form compliance is 0 in the
+     pinned conditions, and the pinned "Noted." replies reproduce the store's family strings exactly.
+  3. THE MEASUREMENT INSTRUMENT HAS A KNOWN GAP: the no-store arm's ana reply is the value in prose and
+     the frozen two-token panel rule scores it a miss. Any future claim about binding must add a
+     log-probability or prose-value channel alongside the two-token reading, as the review advised.
+  4. THE NEXT CHANGES ARE THE REVIEW'S P3 AND P4, both cheap: commitment-token weighting (weight the
+     FIRST supervised position of each response run, and LOWER the terminal weight to 30 rather than
+     pushing both) and a store whose turn-1 answers are SHORT CONTENT-BEARING COPIES of the premise
+     ("Metals: iron, copper, zinc." -> "Iron, copper, zinc.") rather than acknowledgements, so the
+     turn-1 slot teaches span selection instead of a register. The probe shows the value span is
+     already reached often enough to be usable, so the incentive and the readout are what to fix.
+
+SCOPE
+  Four checkpoints, four rows, four conditions, inference only, greedy, single seed; exact for these
+  rows. Read mass above TAU is a max over layers x heads (only 1-4 heads exceed it), so it is a thin
+  effect and is reported as such. No scaling claim. Artifacts: bindprobe/P1-REPORT.md, transcripts.md,
+  runs/, exact/ on the pod; lease released.
