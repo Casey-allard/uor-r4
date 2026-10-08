@@ -53,3 +53,24 @@ WHAT IS STILL NOT DONE
 SCOPE
   One corpus, its held-out split, one tokenizer (sha256 d36d3e87...), one marker definition, exact
   counts. The tool reports; it writes no mask.
+
+ADDENDUM (round 54): THE MASK IS EMITTED
+  mask-scan now writes the mask as well as counting markers:
+
+    ./target/release/examples/mask-scan chat-v0-p2/train/tokens.u16 tokenizer.json \
+        --write-mask chat-train.mask
+
+    {"mask":"chat-train.mask","bytes":82248461,"response_tokens":58492458,
+     "response_fraction":0.711168}
+
+  One byte per token, the same length as the corpus payload, 71.1 % of tokens inside an assistant
+  response. That fraction is higher than the median-gap estimate in the round-53 section and it is
+  the better number: these corpora pair SHORT user prompts with LONG detailed replies, so a
+  response-majority token stream is exactly what single-turn instruction data looks like. The
+  marking rule is: after an `Assistant:` marker, response = 1 until the next role marker.
+
+  So the three things this document said were still undone are now two: the mask EXISTS (emitted
+  locally, 82,248,461 bytes). Still undone: transferring it beside the pod's corpus and running
+  dialogue-train with it - which also requires checking what train_manifest must contain, since
+  dialogue-train takes train_tokens, train_mask and train_manifest together - and then scoring the
+  two frozen instruments on the resulting model.

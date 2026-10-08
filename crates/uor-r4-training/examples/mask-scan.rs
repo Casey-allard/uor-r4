@@ -66,5 +66,39 @@ fn main() {
             gaps.last()
         );
     }
+    // Emit the response mask when asked: 1 for tokens inside an assistant response (after an
+    // `Assistant:` marker, until the next role marker or the end of the conversation region).
+    if let Some(idx) = argv.iter().position(|a| a == "--write-mask") {
+        let out = argv.get(idx + 1).expect("--write-mask needs a path");
+        let assistant: Vec<u16> = tokenizer.encode("Assistant:").into_iter().map(|i| i as u16).collect();
+        let user: Vec<u16> = tokenizer.encode("User:").into_iter().map(|i| i as u16).collect();
+        let mut marks = vec![(0usize, 0u8); 0];
+        for hit in occurrences(&stream, &assistant) {
+            marks.push((hit + assistant.len(), 1));
+        }
+        for hit in occurrences(&stream, &user) {
+            marks.push((hit, 0));
+        }
+        marks.sort_unstable();
+        let mut mask = vec![0u8; stream.len()];
+        let mut state = 0u8;
+        let mut next = 0usize;
+        for i in 0..stream.len() {
+            while next < marks.len() && marks[next].0 == i {
+                state = marks[next].1;
+                next += 1;
+            }
+            mask[i] = state;
+        }
+        let ones = mask.iter().filter(|m| **m == 1).count();
+        std::fs::write(out, &mask).expect("write mask");
+        println!(
+            "{{\"mask\":\"{}\",\"bytes\":{},\"response_tokens\":{},\"response_fraction\":{:.6}}}",
+            out,
+            mask.len(),
+            ones,
+            ones as f64 / mask.len().max(1) as f64
+        );
+    }
     println!("{{\"tokens\":{},\"role_positions\":true}}", stream.len());
 }
