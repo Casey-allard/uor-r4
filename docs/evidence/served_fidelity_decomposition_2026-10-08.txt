@@ -1,0 +1,56 @@
+UOR-R4 — Where the served gap lives: 65 % transport snap, 35 % quantisation, and calibration does not help
+Date: 2026-10-08 (overnight rounds 16-19). DeepSeek session. References #820.
+
+THE QUESTION
+  The end-to-end chain serves 0.93277 bits per byte where its own fused float model scores
+  0.87755 on the same held-out stream (sha e6f... see the corpus line below). A 0.05522 BPB gap.
+  Is it a knob the project can turn, or a property of the served representation?
+
+THE MEASUREMENTS (all on chat-v0-p2/heldout, sha256 e5f400b0..., 512-window float reference and
+  24,576-target integer evaluations, byte basis 2.837427 bytes per token)
+
+  stage                                   nll                     bits per byte     cost
+  fused float reference                   1.7259248122572899      0.87755            --
+  transport-snapped reference             1.7963021881878376      0.91333           +0.03578
+  multiplier-free D11, export a1          1.8345359993679817      0.93277           +0.01944
+  (64 calibration windows, damp 0.01)
+
+  total served-to-fused gap                                                          +0.05522
+  share from the transport snap                                                        64.8 %
+  share from export quantisation                                                       35.2 %
+
+  Second export arm - MORE calibration, FINER damping:
+  multiplier-free D11, export a2          1.836327732755273       0.93368           +0.00091
+  (256 calibration windows, damp 0.001)                                            versus a1
+
+FINDINGS
+  1. Export tuning does not buy fidelity here. Quadrupling calibration windows and tightening
+     damping by an order of magnitude makes the served artifact 0.00091 BPB WORSE, not better.
+     The evaluation is deterministic (same positions, integer logits, top-1 agreement 1.0 between
+     engines), so this is a property of the two artifacts and not sampling noise. The hypothesis
+     that calibration is the knob is retired.
+  2. The gap is two thirds transport snap and one third quantisation. The snap is not an export
+     setting: it is the representation choice that maps continuous transport onto the 120 unit
+     icosians, and it costs 0.03578 BPB by itself. A finer quantisation grid can only address the
+     smaller 0.01944 BPB term.
+  3. Therefore the lever is the representation, not the exporter: if the served gap is to close,
+     it closes by making the snapped representation itself richer or by reducing what snapping
+     discards, not by exporting more carefully.
+
+REPRODUCTION, MEASURED
+  Rn independent retrain of the same 19.9 M stack on a different GPU (5090 -> 4090), a different
+  binary commit and a different pod reproduces the multiplier-free served nll to 2.1e-6
+  (1.8345338587 -> 1.8345359994) with top-1 agreement 1.0 throughout. The train, export and
+  multiplier-free serve chain is deterministic in the quantity that matters. This is the
+  execution policy's "do not claim bitwise cross-backend reproducibility without measuring it"
+  case, now measured rather than assumed.
+
+OPERATIONAL NOTE
+  The identical training recipe ran at 218.6 k tokens per second on an idle pod and 126.9 k with a
+  CPU-bound evaluation holding six-plus cores alongside it: a 42 % slowdown. "One job per GPU"
+  does not cover a competing job that is not on a GPU at all.
+
+SCOPE
+  One model, one corpus, one held-out stream, one byte basis, single seed for training, two export
+  configurations. The a2 arm differs from a1 in calibration_windows (64 -> 256) and damp
+  (0.01 -> 0.001) only. Bit-level claims are about nll reproduction, not about every intermediate.
