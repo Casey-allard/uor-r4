@@ -1,0 +1,628 @@
+{
+  "schema": "uor-r4.reached-prefix-delivery-evidence/1",
+  "pr": 1896,
+  "executed_source": "0c5c7257233527a51bb8254ba3f4695d27c0fbfe",
+  "binary_sha256": "ff55b5e9732f7472af25ca62652244f327efc61d6bbb2870b3d2f208db8a9424",
+  "config_sha256": "9e6018f32b024302fe1730dde99d19d8596009ead8b63c9339982e1b1dc0c6ef",
+  "report_sha256": "be6d6c8f807bd7c3a5c477e060828221611fbe882967390e2bba99b34fdcbf1e",
+  "seal_sha256": "b94a78279acf01973ea85588945a696916ff590c1c63ac62cb82da35b05216dd",
+  "report": {
+    "categorical_sha256": "af5039e74c6cd92e2fa0bf4c72c315ef34f912d77b09fc607215a18f86cd1d0e",
+    "compensation_manifest_sha256": "1bca3281c00d7bcd90554eadbd4b32b65cc996c9a58b66b6d48410aadb67e0a5",
+    "compensation_report_sha256": "9e19da31b0b35088d1d2e1f054de62769e5b3e118016342540f5fe7af12eb49a",
+    "continuation_sha256": "a42cc8d9a9d04bdcddb9f1a513128f66361611556f0e6d768de37da0bc9d1030",
+    "elapsed_seconds": 21.219540392,
+    "exp_sha256": "79485d6e63cc28f5e01d98c5d73abe021db33fa7fef368142ae6592d06b4817f",
+    "frames": [
+      {
+        "file": "frame-0399.json",
+        "id": "development-diverse-update-00-swap1-q3-reverse-home",
+        "input_index": 399,
+        "post_state": [
+          2,
+          22,
+          21,
+          91,
+          18,
+          17,
+          40,
+          94
+        ],
+        "sha256": "2827f4242f175751fc6e235e17d9696cc814753852785aa042eb9fbd7ab8059f",
+        "winner": 3817
+      },
+      {
+        "file": "frame-0005.json",
+        "id": "development-diverse-length2-00-swap0-q3-forward-home",
+        "input_index": 5,
+        "post_state": [
+          80,
+          59,
+          2,
+          97,
+          15,
+          13,
+          29,
+          52
+        ],
+        "sha256": "673ad0db7705ab0bdcf341c4ba0772f81a6892d82f89f2a3b3191431d7a0beb2",
+        "winner": 2097
+      },
+      {
+        "file": "frame-0013.json",
+        "id": "development-diverse-length2-00-swap1-q3-forward-home",
+        "input_index": 13,
+        "post_state": [
+          33,
+          10,
+          40,
+          16,
+          81,
+          102,
+          74,
+          2
+        ],
+        "sha256": "4862f7258ff724c6a72225c5488f667ed0fb82ce1a836d5119ab8f8a6feb24de",
+        "winner": 2097
+      }
+    ],
+    "generate_sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737",
+    "inputs_sha256": "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a",
+    "labels_sha256": "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155",
+    "runtime": "production native bank generator; exactly3 steps at authenticated actualprefix617; full Copy+Generate reducer",
+    "schema": "uor-r4.native-reached-prefix-attribution/1",
+    "scope": "exposed reached-prefix attribution; source role unresolved; no counterfactual, fit, gradient, model promotion, transfer or chat claim",
+    "source_binding": {
+      "identity": {
+        "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+        "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+        "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+    },
+    "source_commit": "0c5c7257233527a51bb8254ba3f4695d27c0fbfe",
+    "status": "COMPLETED"
+  },
+  "independent_saved_audit": {
+    "schema": "uor-r4.saved-reached-prefix-audit/1",
+    "status": "PASS",
+    "source_commit": "0c5c7257233527a51bb8254ba3f4695d27c0fbfe",
+    "inventories": {
+      "/workspace/uor-r4/codex/sol-reached-prefix/runs/reached-prefix-0001-attempt1": {
+        "files": 6,
+        "bytes": 6934917,
+        "manifest_sha256": "b94a78279acf01973ea85588945a696916ff590c1c63ac62cb82da35b05216dd",
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+      },
+      "/workspace/uor-r4/codex/sol-compensation/runs/compensation-0001-seed1001-attempt2": {
+        "files": 1240,
+        "bytes": 424200528,
+        "manifest_sha256": "1bca3281c00d7bcd90554eadbd4b32b65cc996c9a58b66b6d48410aadb67e0a5",
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+      },
+      "/workspace/uor-r4/codex/sol-prototype/restore/parent-unpacked/native-geometric-generate/prose-panel-dev-2": {
+        "files": 7,
+        "bytes": 7186256,
+        "manifest_sha256": "d24b87cff9295f34c7996eed3b974e08531c2b594e62fb5b2795f9f2972404a4",
+        "blake3": "SEPARATE_RUST_VERIFY_REQUIRED"
+      }
+    },
+    "frames": [
+      {
+        "input_index": 399,
+        "id": "development-diverse-update-00-swap1-q3-reverse-home",
+        "post_state": [
+          2,
+          22,
+          21,
+          91,
+          18,
+          17,
+          40,
+          94
+        ],
+        "query_prefix_state": [
+          20,
+          37,
+          45,
+          72,
+          64,
+          108,
+          17,
+          26
+        ],
+        "bankfinal_prebridge": [
+          9,
+          17,
+          75,
+          6,
+          5,
+          9,
+          65,
+          91
+        ],
+        "selected_candidate": {
+          "bank_index": 4,
+          "context_position": 20,
+          "event": 2,
+          "occurrence": {
+            "commit": 3,
+            "record": 3,
+            "token_id": 520,
+            "token_offset": 4
+          },
+          "segment_index": 1
+        },
+        "selected_source_metadata": {
+          "commit": 3,
+          "entity": [
+            1
+          ],
+          "event": 2,
+          "record": 3,
+          "relation": 1,
+          "scope": [
+            99,
+            111,
+            109,
+            112,
+            105,
+            108,
+            101,
+            114,
+            45,
+            112,
+            114,
+            111,
+            98,
+            101
+          ],
+          "store_view": 0
+        },
+        "selected_view_provenance": {
+          "emitted_byte_end": 19,
+          "emitted_byte_start": 15,
+          "emitted_token_offset": 4,
+          "includes_protocol_separator": false,
+          "original_token_end": 6,
+          "original_token_start": 5,
+          "source_byte_end": 18,
+          "source_byte_start": 14
+        },
+        "posthoc_primary_copy_role_fields": {},
+        "source_correctness": "UNRESOLVED unless typed expected source/relation explicitly identifies donor; no global bad-source claim",
+        "bridge_actions": [
+          17,
+          18,
+          103,
+          55,
+          20,
+          19,
+          107,
+          107
+        ],
+        "winner": 3817,
+        "posthoc_target": 2097,
+        "target_copy_present": false,
+        "target_minus_winner_q24": -36700160,
+        "target_minus_winner_unary_codes": [
+          3,
+          -12,
+          -3,
+          -12,
+          0,
+          -1,
+          -1,
+          -11
+        ],
+        "target_minus_winner_pair_codes": [
+          -12,
+          0,
+          0,
+          0
+        ],
+        "target_minus_winner_bias_code": 14,
+        "target_mass": {
+          "token_id": 2097,
+          "weight_q31": 240940988,
+          "generate_weight_q31": 240940988,
+          "copy_weight_q31": 0
+        },
+        "winner_mass": {
+          "token_id": 3817,
+          "weight_q31": 2147483648,
+          "generate_weight_q31": 2147483648,
+          "copy_weight_q31": 0
+        },
+        "eos_token_id": 1,
+        "eos_is_factual_winner": false
+      },
+      {
+        "input_index": 5,
+        "id": "development-diverse-length2-00-swap0-q3-forward-home",
+        "post_state": [
+          80,
+          59,
+          2,
+          97,
+          15,
+          13,
+          29,
+          52
+        ],
+        "query_prefix_state": [
+          20,
+          37,
+          45,
+          72,
+          64,
+          108,
+          17,
+          26
+        ],
+        "bankfinal_prebridge": [
+          2,
+          100,
+          76,
+          17,
+          73,
+          12,
+          4,
+          107
+        ],
+        "selected_candidate": {
+          "bank_index": 3,
+          "context_position": 17,
+          "event": 0,
+          "occurrence": {
+            "commit": 1,
+            "record": 1,
+            "token_id": 770,
+            "token_offset": 3
+          },
+          "segment_index": 1
+        },
+        "selected_source_metadata": {
+          "commit": 1,
+          "entity": [
+            1
+          ],
+          "event": 0,
+          "record": 1,
+          "relation": 1,
+          "scope": [
+            99,
+            111,
+            109,
+            112,
+            105,
+            108,
+            101,
+            114,
+            45,
+            112,
+            114,
+            111,
+            98,
+            101
+          ],
+          "store_view": 0
+        },
+        "selected_view_provenance": {
+          "emitted_byte_end": 9,
+          "emitted_byte_start": 6,
+          "emitted_token_offset": 3,
+          "includes_protocol_separator": false,
+          "original_token_end": 3,
+          "original_token_start": 2,
+          "source_byte_end": 8,
+          "source_byte_start": 5
+        },
+        "posthoc_primary_copy_role_fields": {},
+        "source_correctness": "UNRESOLVED unless typed expected source/relation explicitly identifies donor; no global bad-source claim",
+        "bridge_actions": [
+          60,
+          97,
+          34,
+          105,
+          80,
+          19,
+          91,
+          49
+        ],
+        "winner": 2097,
+        "posthoc_target": 2097,
+        "target_copy_present": false,
+        "target_minus_winner_q24": 0,
+        "target_minus_winner_unary_codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "target_minus_winner_pair_codes": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "target_minus_winner_bias_code": 0,
+        "target_mass": {
+          "token_id": 2097,
+          "weight_q31": 2147483648,
+          "generate_weight_q31": 2147483648,
+          "copy_weight_q31": 0
+        },
+        "winner_mass": {
+          "token_id": 2097,
+          "weight_q31": 2147483648,
+          "generate_weight_q31": 2147483648,
+          "copy_weight_q31": 0
+        },
+        "eos_token_id": 1,
+        "eos_is_factual_winner": false
+      },
+      {
+        "input_index": 13,
+        "id": "development-diverse-length2-00-swap1-q3-forward-home",
+        "post_state": [
+          33,
+          10,
+          40,
+          16,
+          81,
+          102,
+          74,
+          2
+        ],
+        "query_prefix_state": [
+          20,
+          37,
+          45,
+          72,
+          64,
+          108,
+          17,
+          26
+        ],
+        "bankfinal_prebridge": [
+          116,
+          69,
+          7,
+          34,
+          15,
+          106,
+          34,
+          31
+        ],
+        "selected_candidate": {
+          "bank_index": 7,
+          "context_position": 35,
+          "event": 1,
+          "occurrence": {
+            "commit": 2,
+            "record": 2,
+            "token_id": 607,
+            "token_offset": 2
+          },
+          "segment_index": 3
+        },
+        "selected_source_metadata": {
+          "commit": 2,
+          "entity": [
+            1
+          ],
+          "event": 1,
+          "record": 2,
+          "relation": 2,
+          "scope": [
+            99,
+            111,
+            109,
+            112,
+            105,
+            108,
+            101,
+            114,
+            45,
+            112,
+            114,
+            111,
+            98,
+            101
+          ],
+          "store_view": 0
+        },
+        "selected_view_provenance": {
+          "emitted_byte_end": 6,
+          "emitted_byte_start": 3,
+          "emitted_token_offset": 2,
+          "includes_protocol_separator": false,
+          "original_token_end": 2,
+          "original_token_start": 1,
+          "source_byte_end": 5,
+          "source_byte_start": 2
+        },
+        "posthoc_primary_copy_role_fields": {},
+        "source_correctness": "UNRESOLVED unless typed expected source/relation explicitly identifies donor; no global bad-source claim",
+        "bridge_actions": [
+          87,
+          97,
+          81,
+          59,
+          49,
+          19,
+          107,
+          49
+        ],
+        "winner": 2097,
+        "posthoc_target": 2097,
+        "target_copy_present": false,
+        "target_minus_winner_q24": 0,
+        "target_minus_winner_unary_codes": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "target_minus_winner_pair_codes": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "target_minus_winner_bias_code": 0,
+        "target_mass": {
+          "token_id": 2097,
+          "weight_q31": 2147483648,
+          "generate_weight_q31": 2147483648,
+          "copy_weight_q31": 0
+        },
+        "winner_mass": {
+          "token_id": 2097,
+          "weight_q31": 2147483648,
+          "generate_weight_q31": 2147483648,
+          "copy_weight_q31": 0
+        },
+        "eos_token_id": 1,
+        "eos_is_factual_winner": false
+      }
+    ],
+    "alltoken_scores_verified": 12288,
+    "scope": "Saved integer artifact/trace audit only; exactly3 fixed reached-prefix frames. No new evaluation, model, fit, gradient, counterfactual or semantic hash distance.",
+    "limitations": [
+      "Rust complete BLAKE3 verification is separate",
+      "Context/cue/prefix learned numerical kernel is not independently reexecuted; captured states/maps/provenance are checked against authenticated saved rows and source role invariants",
+      "Labels interpreted posthoc; bank availability and selected occurrence are distinct from source-role correctness",
+      "Original tokenization is not reexecuted; authenticated lexical IDs/bytes and provenance ranges retained"
+    ]
+  },
+  "checks": {
+    "format": "PASS",
+    "total_tests": 5,
+    "new_tests": 3,
+    "report_ancestry_support_tests": 2,
+    "failed": 0,
+    "ignored": 0,
+    "release": "PASS"
+  },
+  "capture_telemetry": {
+    "supervisor_seconds": 30.137358826,
+    "producer_preseal_seconds": 21.219540392,
+    "max_rss_kib": 184300,
+    "report_sha256": "be6d6c8f807bd7c3a5c477e060828221611fbe882967390e2bba99b34fdcbf1e",
+    "manifest_sha256": "b94a78279acf01973ea85588945a696916ff590c1c63ac62cb82da35b05216dd",
+    "files": 6,
+    "payload_bytes": 6934917
+  },
+  "audit_telemetry": {
+    "status": "PASS",
+    "scores": 12288,
+    "reader_seconds": 26.404939447,
+    "max_rss_kib": 57336,
+    "three_rust_seals_seconds": 19.012293182
+  },
+  "runtime_preservation": {
+    "revision": "03cec37ef15e22210433b6ed36cb0cb46866f47f",
+    "prefix": "codex/sol-reached-prefix/runtime-0c5c725723-attempt2",
+    "all_fresh_download_verified": true,
+    "seconds": 25.609997685998678
+  },
+  "result_preservation": {
+    "revision": "51abff40d6fb1ee9d2e6a6edd9e8b4cb849d167b",
+    "prefix": "codex/sol-reached-prefix/reached-prefix-0001-0c5c725723",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "42c3d288c3bac958c400072ccb222b2bee912885d980874e3b8baa7acea8294e",
+        "bytes": 1049
+      },
+      "reached-prefix-0001-0c5c725723.tar.gz": {
+        "sha256": "758185d89fa6722948b9ddf3a91f2f73998bae7005e18976be5ab84d1ecd98f3",
+        "bytes": 1158382
+      }
+    },
+    "manifest": {
+      "source_commit": "0c5c7257233527a51bb8254ba3f4695d27c0fbfe",
+      "runtime_hf_revision": "03cec37ef15e22210433b6ed36cb0cb46866f47f",
+      "runtime_manifest_sha256": "8bf0dc187dc55b373ded2ebe0accedf52adb510461afd8ef7bbef00d49e7257c",
+      "binary_sha256": "ff55b5e9732f7472af25ca62652244f327efc61d6bbb2870b3d2f208db8a9424",
+      "config_sha256": "9e6018f32b024302fe1730dde99d19d8596009ead8b63c9339982e1b1dc0c6ef",
+      "report_sha256": "be6d6c8f807bd7c3a5c477e060828221611fbe882967390e2bba99b34fdcbf1e",
+      "report_manifest_sha256": "b94a78279acf01973ea85588945a696916ff590c1c63ac62cb82da35b05216dd",
+      "audit_sha256": "3fb49c4b1c9f8b81e7c4e39ea7d095531f5c5b03bc54671d538bb8836428173d",
+      "files": {
+        "reached-prefix-0001-0c5c725723.tar.gz": {
+          "sha256": "758185d89fa6722948b9ddf3a91f2f73998bae7005e18976be5ab84d1ecd98f3",
+          "bytes": 1158382
+        }
+      },
+      "scope": "Exactly three fixed production native captures at actual prefix617; saved factor/bridge/physicalCopy arithmetic audit. No fit, intervention, alternate-case sweep or model promotion."
+    },
+    "seconds": 7.654813509434462,
+    "completed_utc": "2026-10-08T12:03:29.304430+00:00"
+  },
+  "prospective_continuation_necessary_bound": {
+    "status": "SAVED_NECESSARY_BOUND",
+    "target": 2097,
+    "rival": 3817,
+    "target_prototype": [
+      98,
+      12,
+      46,
+      80,
+      114,
+      28,
+      62,
+      96
+    ],
+    "rival_prototype": [
+      18,
+      66,
+      114,
+      42,
+      90,
+      18,
+      66,
+      114
+    ],
+    "different_lanes": 8,
+    "once_adjacent_max_improvement_generate_code_units": 64,
+    "raw_gap_generate_code_units": 35,
+    "necessary_bound_clears": true,
+    "fullpool_guard_feasibility": "UNRESOLVED",
+    "scope": "Saved prototype vectors only; no inference, gradient or proposed coefficient edits"
+  },
+  "necessary_bound_publication_scope": "Derived after result archive publication; preserved in repository evidence and final delivery, not falsely included in earlier sealed capture or archive",
+  "resource_projection": {
+    "prior_seconds": 443670,
+    "increment_seconds": 10800,
+    "cumulative_seconds": 454470,
+    "cpu_threads": 2,
+    "ram_gib": 8,
+    "report_cap_mib": 128,
+    "remote_free_floor_gib": 8,
+    "stop_margin_bytes": 134217728
+  },
+  "wrapper_setup_defects": {
+    "incorrect_testcount_assertion": "expected3new but actual5total includes2support; originalassertfailure retained toolreceipt, no check/modelrerun",
+    "runtime_publication_failure": "incorrectsupervisor-2 filename; originalwrapper/log retained, no capture; fresh exclusivepublicationattempt2fixed filename"
+  },
+  "next_learning_status": "NOT_ADMITTED; source-grounded U-only discriminator requires refrozen current actual-frontier objective and fullpool preservation guards; no donor replacement justified by this capture",
+  "claim_limits": [
+    "Exactly three captures; no new model learning, counterfactual, full512 evaluation or transfer",
+    "Targets parsed and attached after all three captures; saved canonical parity metadata is read but not supplied to inference or selection",
+    "Context/cue/prefix learned kernels and tokenization not independently reexecuted by saved reader",
+    "Source-role correctness UNRESOLVED; donor relations399=1,5=1,13=2",
+    "All4096 Generate factors per frame and 960 categorical bridge actions per frame independently reconstructed; Copy physical provenance and final score sums verified"
+  ]
+}
