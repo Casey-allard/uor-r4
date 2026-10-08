@@ -1,0 +1,57 @@
+UOR-R4 — Cross-turn attribute binding is not bought by 1.7x capacity: it is a mechanism question, not a scale one
+Date: 2026-10-08 (overnight rounds 143-146). DeepSeek session. References #820.
+
+THE TEST
+  Exactly the mixture of round 143 - the 1,100-document short-premise attribute store with 9,360
+  response tokens, inside the compliant envelope - at 33,773,500 parameters (layers 10, width 640,
+  heads 10) against 19,929,136 for the arm that isolated the gap. Same hash-proven chat corpus, same
+  mask, policy=full_prefix, UOR_TERMINAL_WEIGHT=60, greedy decoding, panel v2 read as the first two
+  content tokens.
+
+RESULT
+
+  form compliance - holds
+    "water." "Yes." "No." "3." "Fifteen." "Neutral." "Nile." "Nile."
+    seven of fourteen items in the demanded short form, including yes/no with two correct facts
+
+  content - still ungrounded
+    "water." for the colour of grass, "3." for the days in a week, "Fifteen." for two plus two
+
+  retention - STILL NOT ANSWERED, AND STILL IN THE STORE'S OWN REGISTER
+    "Noted." and "I see." - both turn-1 acknowledgements from this store's own family, not answers
+    and not corpus behaviour. At 19.9 M the same two turns returned "Noted." and "Noted."; 1.7x the
+    parameters changed the acknowledgement variant and not the failure.
+
+WHAT THIS SETTLES
+  1. CROSS-TURN ATTRIBUTE BINDING IS NOT A CAPACITY PROBLEM IN THIS RANGE. A 70 % parameter increase
+     leaves it exactly where it was - the model reproduces the mixture's surface register where an
+     attribute was requested. That closes the fork the previous round left open, and rules out the
+     last "more of the same" remedy on this axis.
+  2. FORM COMPLIANCE AND BINDING HAVE DIFFERENT CAUSES, AND ONLY ONE OF THEM IS DATA. Form compliance
+     was bought by DATA SHAPE - a demand and its matching short answer in the same turn - and is
+     robust across four configurations, two shapes, two terminal weights, and a 70 % smaller store.
+     Binding has now survived three data designs AND a capacity increase, so the remaining candidates
+     are the OBJECTIVE and the ARCHITECTURE, which is where the session's central finding already
+     points: the per-token next-token objective over a mixed-length corpus values continuation, and
+     the model has never been given a reason to bind a question to the span its answer depends on.
+  3. THE OBSERVABLE IS SHARP ENOUGH TO TEST A MECHANISM CHANGE. The failure is not diffuse: the model
+     answers with the store's own acknowledgement tokens ("Noted.", "I see.") where a recalled
+     attribute was asked for, and with the count family's canonical answer ("3.") for every numeric
+     item. A mechanism change that makes the model condition on the relevant span should move those
+     specific behaviours, and the instrument that reads them is frozen.
+
+WHAT THE PROJECT CARRIES FORWARD
+  * SOLVED AND ROBUST: instruction-form compliance. Ten of ten form-demanded turns with correct
+    content for the factual classes, from a store of about a thousand documents, at 19.9 M, with
+    UOR_TERMINAL_WEIGHT=60. Served under the native contract at 0.93277 bits/byte, a 4.70x reduction,
+    with a multiplier-free engine exact to 1e-6 nats.
+  * NAMED AND ISOLATED: cross-turn attribute binding, with FOUR failed routes documented - dependency
+    carrying documents, longer premises, shorter premises at 70 % less mass, and now 1.7x capacity.
+  * The remaining work is therefore a mechanism or objective change for binding, not more data, more
+    scale or a better store. That is a materially different and better-posed problem than the one this
+    session opened with, and it is the honest next target.
+
+SCOPE
+  Two capacities, one mixture, one weight, single seed each, greedy decoding, one panel read as the
+  first two content tokens. Exact for this panel; the conclusion is about binding at 19.9-33.8 M and
+  does not claim a scaling law beyond that range.
