@@ -1,0 +1,55 @@
+UOR-R4 — The response mask, specified to the line: literal role markers make it a scan
+Date: 2026-10-08 (overnight round 51). DeepSeek session. References #820.
+
+WHAT WAS PINNED DOWN THIS ROUND
+  Round 50 showed the mask is recoverable rather than needing a corpus rebuild. This round fixes
+  exactly what to scan for.
+
+  1. THE PROTOCOL VERSION IS 2, AND IT IS NAMED. crates/uor-r4-tokenizer/src/dialogue.rs:22:
+       pub const SCHEMA_V2: &str = "uor-r4.literal-role-dialogue/2";
+     reached through DialogueProtocol::literal_roles_version(&tokenizer, 2) (dialogue.rs:110-125).
+
+  2. THE MARKERS ARE LITERAL TEXT. dialogue.rs:16-17 documents version 2 as: "each role marker ends
+     at its colon (`User:`, `Assistant:`)". So the assistant marker is the literal string
+     `Assistant:` and the user marker `User:`, both encoded as ordinary tokens in the stream.
+
+  3. THE MARKER THE CONTRACT USES is produced by `encode_assistant_prefix` (dialogue.rs:250-252) ->
+     `self.encode(messages, Ending::AssistantPrefix, true, false)`, whose marker is appended by
+     `self.protocol.assistant_marker()` (dialogue.rs:367); the episode contract exposes it as
+     `assistant_marker_ids` (stack_dialogue.rs:333-352).
+
+  4. INDEPENDENT CONFIRMATION THAT THE CORPUS CARRIES IT: the served model answers coherently when
+     lut-chat is given protocol=2 (round 43) and degenerates into template echoes when it is not
+     (round 46's scaffolds). A model trained on a stream without those literal markers could not
+     behave that way, so the markers are present in chat-train.u16's token stream.
+
+THE EXTRACTION, STATED SO IT CAN BE IMPLEMENTED IN ONE SMALL TOOL
+  Inputs : chat-train.u16 (164,496,986 bytes), the local tokenizer (sha256 d36d3e87...), version 2.
+  Steps  :
+    1. Build the protocol with literal_roles_version(&tokenizer, 2) and encode the literal markers
+       `Assistant:` and `User:` (and `System:` if the schema defines one) to token id sequences.
+    2. Scan the stream for each marker sequence. Mark the tokens AFTER an `Assistant:` marker as
+       response = 1 until the next role marker or BOS; everything else response = 0.
+    3. Write response_mask.u8 (one byte per token, the same length as the token payload) beside the
+       tokens, matching the builder's own output name at
+       prepare-chat-parquet.rs:210 - `out.join("response_mask.u8")`.
+  Checks :
+    * the marker occurrence count and their spacing (a conversation count and a response fraction);
+    * the response fraction should be plausible for chat data and, if any manifest from the original
+      build survives, comparable to the builder's `response_tokens` statistic;
+    * `dialogue-train` takes train_tokens, train_mask and train_manifest together, so a manifest
+      may also be needed - check what it is required to contain before running.
+
+WHY THIS IS THE STEP AND NOT SOMETHING ELSE
+  Round 48 falsified the data hypothesis with a pre-registered arm, leaving the objective as the
+  route: a loss that distinguishes response tokens from prompt tokens. Round 50 removed the cost of
+  that route. This round removes the ambiguity about how to build its input, and the answer is that
+  it is a marker scan over a stream that already contains literal markers - not a rebuild, not a
+  retokenisation, and not a new corpus.
+  The two instruments that will judge the objective change were fixed in rounds 44-45 and are
+  unchanged: the 22-turn instruction panel, and the max_new_tokens=1 first-token probe.
+
+SCOPE
+  Read from source. NO scan has been run, NO mask has been produced and NO objective change has been
+  trained. The claim in this document is that the mask is a scan away, with the lines that say so;
+  the verification of that claim is the first bullet under Checks and it has not been executed.
