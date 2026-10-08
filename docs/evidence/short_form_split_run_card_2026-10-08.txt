@@ -1,0 +1,71 @@
+UOR-R4 — Run card: a synthetic short-form instruction split for the missing answer-form tail
+Date: 2026-10-08 (overnight round 81). DeepSeek session. References #820.
+
+WHY THIS, AND WHY NOW
+  Round 79 measured the corpus's response-length distribution from the verified mask: median 350
+  tokens, 0.0 % of 129,465 responses at three tokens or fewer, 67.8 % above two hundred. Round 80
+  showed every ingredient source is prose-dominant (medians 701, 438, 225, 174, 103 and 45 tokens,
+  none reaching 0.3 % at ten tokens or fewer). Instruction precision - performing "answer with one
+  word", a yes/no, or a number - is therefore not learnable from this material by any mixture, and
+  four arms have now failed to move it while the causes were eliminated one at a time (capacity,
+  objective, decoding, prompt protocol).
+  What is missing is not knowledge and not register; it is the ANSWER FORM. A synthetic split
+  supplies exactly that, uses no new source, and needs no licence decision.
+
+WHAT TO BUILD
+  A Rust tool (the project's own language, and the tokenizer and dialogue protocol are already
+  available as libraries) that emits, in the format the trainer already consumes:
+    * tokens: the same literal-role protocol 2 stream the existing corpus uses, i.e. BOS, then
+      "User:" + question + "Assistant:" + answer + EOS per turn, with the role markers encoded to
+      the ids the corpus uses (User: [55, 2728, 28]; Assistant: [35, 560, 652, 714, 28]);
+    * response_mask.u8: 1 for the answer tokens and the terminating EOS, 0 for BOS, both role
+      markers and the question - the rule the manifest states and the mask reconstructed in round 80
+      matches bit-for-bit;
+    * manifest.json: the schema stack_dialogue.rs:53-80 requires, i.e.
+      drops.special_token_occurrences = 0 and files[] entries carrying label, tokens and
+      special_token_occurrences.
+  Targets in the first version, all generated programmatically and therefore licence-free:
+    one-word answers ("Answer with one word: what colour is grass?" -> "Green"),
+    yes/no ("Answer yes or no: is the sky blue?" -> "Yes"),
+    numbers ("What is two plus two?" -> "4"; "How many days are in a week?" -> "7"),
+    short lists ("List exactly three colours, separated by commas." -> "Red, green, blue."),
+    short factual names ("What is the capital of France?" -> "Paris.").
+  Size: a few thousand to tens of thousands of pairs, varied in wording so the model learns the
+  INSTRUCTION rather than a template - the failure mode to watch is a new template habit replacing
+  the old one.
+
+HOW TO USE IT
+  Mix it with the conversational corpus rather than replacing it: the existing corpus supplies
+  register, conversation and knowledge; the synthetic split supplies form. Two arms are worth
+  running, a small weight (for example 5-10 % of tokens) and a larger one, because the mixture
+  weight is the free parameter and the panel is the instrument.
+
+HOW TO JUDGE IT - the instruments are already frozen
+  1. The 22-turn instruction panel (docs/evidence/chat_instruction_panel_2026-10-08.txt): the target
+     is compliance above 0 of 6, with the exact-count and one-word turns the sharpest.
+  2. The separator-skipping first-token probe (docs/evidence/probe_fixed_2026-10-08.txt): the target
+     is first content tokens of "Yes", "No", a number, or a name where those are what the turn asks
+     for.
+  And two cautions recorded in advance: fluency must not fall (the 22 of 22 baseline is the guard),
+  and a new template must not replace the old one - the failure mode of role_only was exactly that.
+
+WHAT WOULD FALSIFY THE APPROACH
+  If the synthetic split is trained in at a meaningful weight and the panel's compliance stays at
+  0 of 6 while fluency holds, then the reply-form hypothesis is wrong too, and the remaining
+  candidate is the training objective's granularity (per-token next-token loss over response regions
+  with no notion of a completed answer) rather than the data. That outcome would be decisive and is
+  worth the run precisely because it is cheap.
+
+PREREQUISITES, ALL ALREADY IN PLACE
+  * the mask rule, proven bit-identical against the builder's mask_sha256 (round 80);
+  * dialogue-train consuming tokens, mask and manifest (rounds 55-58), with policy=full_prefix the
+    measured working configuration;
+  * the two frozen instruments and a working export-and-serve chain (rounds 37-58);
+  * a pod with a renewed lease (23:19Z) and a watcher pattern that has already run unattended once
+    (round 67's watcher produced round 74's results without intervention).
+
+SCOPE
+  This is a run card: no synthetic split has been generated, no arm trained, no result claimed. Its
+  value is that the design, the exact format, the verification rule, the instruments and the
+  falsifier are fixed before the work starts, which is what the pre-registered arms of round 48 and
+  round 56 did well.
