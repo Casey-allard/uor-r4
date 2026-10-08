@@ -1,0 +1,59 @@
+UOR-R4 — Stage 4: connectivity made learnable, and the degeneracy guard that refuses a fake delta
+Date: 2026-10-08. DeepSeek session. References #820.
+Follows: native_geometric_lut4_shortlist_retraction_2026-10-08.txt.
+
+WHAT WAS FIXED
+  The retraction identified the real defect: connectivity never effectively moved, so training
+  collapsed to a constant gate. Two changes make selection learnable:
+
+  1. Two selection heads per output. `connectivity` is now `[width_out][2][width_in]`: each slot has
+     its own distribution, so the two inputs a gate reads are two independent decisions and both
+     receive gradients. The soft forward reads the EXPECTATION of each distribution; the hard
+     export takes the argmaxes, with the runner-up resolving a duplicate so a gate always has a
+     distinct second input (a single-input gate cannot express XOR, which was the earlier collapse).
+  2. Exact gradients for selection. `Lut4Layer::backward` now returns the softmax gradient of each
+     selection head's expectation, `upstream * dvalue * p_j * (x_j - a)`, instead of the previous
+     utility nudge, and `fit_gates` applies real descent with a bounded range.
+
+  A sharpening constant was required for this to work at all: with a near-uniform selection softmax
+  the soft forward reads the MEAN of every input, which is a constant, and a constant layer cannot
+  learn. `SELECTION_TEMPERATURE = 0.25` sharpens the selection at initialisation. This is the same
+  failure seen in the gate mixture earlier: a symmetric start is a fixed point, not a neutral one.
+
+WHAT THE TESTS NOW OBLIGE (8 passed, 0 failed)
+  * `connectivity_learns_which_inputs_matter_and_the_result_is_not_degenerate`: on sixteen
+    features where only x[5] XOR x[11] carries the label, training reduces the loss (0.2500 ->
+    0.2434 in 4,000 steps, about 75 % accuracy), the first layer wires at least one informative
+    input, and the trained network reports MORE THAN ONE distinct hard output and more than one
+    distinct soft output. This is the assertion the retracted result lacked.
+  * `a_constant_gate_network_is_reported_as_degenerate`: a network whose gate pins FALSE reports
+    exactly one distinct output. The guard is tested against the exact failure that produced the
+    retraction.
+  * The earlier six tests still pass, including XOR learning with an exact hard export.
+
+WHAT THE HARNESS DOES NOW, AND THE CURRENT RESULT
+  `lut4-prose` records `artifact_output_diagnostic` (hard-bit tally, distinct hard and soft output
+  counts, chosen gates) and a `degenerate_term` flag, and prints a warning when the term is
+  constant. Re-run on the real task (chat-v0-p2 train to held-out, 64 positions, top-64 shortlist):
+
+    WARNING: the learned term is DEGENERATE (1 distinct artifact outputs); the reported delta is a
+    constant shift over the shortlist, not a learned re-ranking, and must not be reported as
+    improvement.
+    chosen_gates [12 x16, 0]; distinct_hard_outputs 1; hard_bit_tally [4096, 0]
+    reported hard delta -0.043631 (NOT a result: it is the constant shortlist penalty)
+
+  So the mechanism learns on the controlled task and STILL collapses on the real one. The Stage 4
+  gate remains NOT PASSED, and for the first time the harness says so by itself instead of my
+  having to catch it afterwards.
+
+WHY THE REAL TASK STILL COLLAPSES, AND THE NEXT LEVER
+  Only 12.5-20 % of positions have the target inside the shortlist, so for most training rows every
+  candidate is negative and the least-squares optimum is the constant 0. The obvious next lever is
+  to train only on rows where the target IS in the shortlist — the only rows where re-ranking can
+  possibly help — which both balances the labels and matches the decision the term is meant to
+  make. That is the next experiment, not another architectural change.
+
+SCOPE
+  One artifact, one corpus pair, 64-256 positions, debug build, no serving default changed. The
+  connectivity change is a training-path change inside `learner/lut4`; the served form remains a
+  truth-table read.
