@@ -1,0 +1,42 @@
+UOR-R4 — The quantisation third of the served gap is 97 % the mixer maps
+Date: 2026-10-08 (overnight round 20). DeepSeek session. References #820.
+Instrument: `geometric-stack rounding-attribution artifact=... model=... valid=... windows=64`.
+
+CONTEXT
+  Round 19 decomposed the served-to-fused gap (0.05522 BPB) into 64.8 % transport snap and
+  35.2 % export quantisation, and retired calibration as the knob. This asks the next question:
+  inside the quantisation third, what is actually losing the information?
+
+THE ATTRIBUTION (19.9 M chat stack, export a1, chat-v0-p2/heldout, 64 windows)
+
+  group          parameters rounded                        cost (nats)   share    top-1 vs float
+  all            every embedded parameter                   0.0173756     100.0 %  0.9244
+  all_maps       every layer's mixer_maps + mlp + embed/head 0.0168514     97.0 %  0.9256
+  all_scalars    every layer's mixer_scalars                  0.0004643      2.7 %  0.9908
+  l7.mlp         the last layer's MLP alone                   0.0006545      3.8 %  0.9815
+
+  The mixer maps carry essentially the entire quantisation loss. Rounding the scalars alone costs
+  0.00046 nats and keeps 99.1 % top-1 agreement with the float model; rounding the maps costs
+  0.01685 nats and drops agreement to 92.6 %. Rounding every parameter costs almost exactly what
+  the maps cost on their own (0.01738 against 0.01685), so the two groups are not additive
+  problems - the maps are the problem.
+
+WHAT IT MEANS
+  1. The quantisation term is not spread evenly through the artifact and not a grid-resolution
+     question in general: it is concentrated in one parameter class. A finer or differently
+     structured representation for the mixer maps is the whole of the available recovery here.
+  2. It also explains why the round-19 export arm failed to help. More calibration windows and
+     finer damping change how the *grid* is chosen; they do not change how much of a map's
+     information one grid cell can carry. The lever is the map's representation, not the fitting
+     procedure.
+  3. Combined with round 19, the served gap now reads: 0.03578 BPB from the transport snap plus
+     0.01944 from quantisation, and of that quantisation, 0.01886 is the mixer maps and 0.0005 the
+     scalars. Two thirds representation, one third one parameter class, and almost nothing
+     elsewhere.
+
+SCOPE
+  One model, one export, one corpus, 64 windows, single run of a deterministic tool. Costs are
+  nats per token relative to this model's own float evaluation inside the same tool, so they are
+  comparable to each other and to the round-19 numbers in sign and share, but the absolute value
+  differs slightly from the 24,576-target d11-evaluate figure because the scored position set
+  differs.
