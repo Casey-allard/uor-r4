@@ -1,0 +1,421 @@
+{
+  "schema": "uor-r4.native-readout-margin-evidence/1",
+  "scope": "Saved five actual position3 prefixes; original1920 proposal statuses only. Finite bridge/Generate/U/fullalias scoring; no encoder/autoregressive rollout/backward/newgradient/export/heldout/chat/energy claim.",
+  "source_commit": "7672cc00823cbf346cd8ac3b51457b16fdef8bc5",
+  "source_sha256": "668760e2ae6634b9394b22d6dbaba208749a400749dbf099c2dd8d1986e68371",
+  "binary_sha256": "61498c2eae9b6cfb65f4f2063c004482f296ab5838f5f84262936b9bb47e7515",
+  "config_sha256": "8300b9ed36f66c75c294d37e9d870d17c5f3ecd32366e4276467ad1a61e25c1e",
+  "parent_readout_report_sha256": "d1d47739b897c4d6cd7d7e01500d0ba05749dce885dd64bb3530001b7007222b",
+  "parent_readout_manifest_sha256": "01fa3c74d69a6e1d9ba45e82c58cf84a9d0fa203488b77a4757cdbe137f5248b",
+  "full_reductions": 561,
+  "maximum_full_reductions": 9600,
+  "frames": [
+    {
+      "input_index": 97,
+      "posthoc_desired_ordinal": 6,
+      "counts": {
+        "rejected_mass_gap_gains": 5,
+        "rejected_probability_gains": 9,
+        "rejected_ratio_gains": 5
+      },
+      "ever_correct_accepted_state": false,
+      "accepted_crossing_orders": [],
+      "accepted_regression_orders": [],
+      "favourable_original_vetoes": 9,
+      "distinct_desired_rival_joint_incidence_collisions": [],
+      "accepted_events": [],
+      "baseline_probability": 0.0019035374849431194,
+      "final_probability": 0.03198234490536769,
+      "baseline_target_winner_ratio": 0.008053115411092382,
+      "final_target_winner_ratio": 0.1782228001451306
+    },
+    {
+      "input_index": 156,
+      "posthoc_desired_ordinal": 0,
+      "counts": {
+        "rejected_mass_gap_gains": 12,
+        "rejected_probability_gains": 17,
+        "rejected_ratio_gains": 12
+      },
+      "ever_correct_accepted_state": false,
+      "accepted_crossing_orders": [],
+      "accepted_regression_orders": [],
+      "favourable_original_vetoes": 17,
+      "distinct_desired_rival_joint_incidence_collisions": [],
+      "accepted_events": [],
+      "baseline_probability": 0.0014126067814393484,
+      "final_probability": 0.005894450886180729,
+      "baseline_target_winner_ratio": 0.021624613458123866,
+      "final_target_winner_ratio": 0.16597478149605438
+    },
+    {
+      "input_index": 151,
+      "posthoc_desired_ordinal": 0,
+      "counts": {
+        "rejected_mass_gap_gains": 9,
+        "rejected_probability_gains": 22,
+        "rejected_ratio_gains": 9
+      },
+      "ever_correct_accepted_state": false,
+      "accepted_crossing_orders": [],
+      "accepted_regression_orders": [],
+      "favourable_original_vetoes": 22,
+      "distinct_desired_rival_joint_incidence_collisions": [],
+      "accepted_events": [],
+      "baseline_probability": 0.019649948071375017,
+      "final_probability": 0.09506785591568359,
+      "baseline_target_winner_ratio": 0.23648159113297532,
+      "final_target_winner_ratio": 0.3407475617983283
+    },
+    {
+      "input_index": 245,
+      "posthoc_desired_ordinal": 6,
+      "counts": {
+        "accepted_crossings": 1,
+        "accepted_regressions": 1,
+        "rejected_hypothetical_corrections": 20,
+        "rejected_mass_gap_gains": 7,
+        "rejected_probability_gains": 17,
+        "rejected_ratio_gains": 7
+      },
+      "ever_correct_accepted_state": true,
+      "accepted_crossing_orders": [
+        147
+      ],
+      "accepted_regression_orders": [
+        226
+      ],
+      "favourable_original_vetoes": 37,
+      "distinct_desired_rival_joint_incidence_collisions": [],
+      "accepted_events": [
+        {
+          "accepted_crossing": true,
+          "accepted_regression": false,
+          "after": -2,
+          "before": -1,
+          "blocking_pool": null,
+          "blocking_winner": null,
+          "committed": true,
+          "index": 915,
+          "mass_gap_gain": true,
+          "name": "prefix.coefficients",
+          "numerically_changed": true,
+          "order": 147,
+          "original_status": "accepted",
+          "previous_correct": false,
+          "probability_gain": true,
+          "ratio_gain": true,
+          "staged": {
+            "base_copy_q24": [
+              20170478,
+              28253117,
+              24976723,
+              -9990689,
+              -37253666,
+              15859306,
+              54525952,
+              -23752843,
+              35840685,
+              27452076,
+              17083186,
+              51510890,
+              5112215,
+              -2970424,
+              31340410,
+              29287897
+            ],
+            "copy_q24": [
+              -4995346,
+              3087293,
+              -189101,
+              -43545121,
+              -62419490,
+              -17695126,
+              29360128,
+              -48918667,
+              27452077,
+              10674860,
+              8694578,
+              17956458,
+              -3276393,
+              -36524856,
+              14563194,
+              -4266535
+            ],
+            "copy_q24_sha256": "676016d451b0c56e50d251adace8e2dcff869eebf006f2ddfe265484460df763",
+            "donor": 6,
+            "generate_q24_sha256": "2764b9fea5e7384061ddcf37eaa6f65a05951a6c45ec0da7c34d719f5a9e8b64",
+            "mass_gap": 0,
+            "pool": {
+              "chosen_copy_weight_q31": 2147483648,
+              "chosen_generate_weight_q31": 984671,
+              "chosen_raw_mass_rank": 1,
+              "chosen_token_id": 1057,
+              "chosen_weight_q31": 2148468319,
+              "clipped_high_actions": 0,
+              "clipped_low_actions": 0,
+              "copy_actions": 16,
+              "copy_weight_q31": 9293429832,
+              "generate_weight_q31": 18348032937,
+              "legal_generate_actions": 4096,
+              "max_score_q24": 29360128,
+              "raw_chosen_clipped_mass_rank": 1,
+              "raw_chosen_token_id": 1057,
+              "raw_chosen_weight_q31": 2148468319,
+              "raw_max_score_q24": 29360128,
+              "raw_total_weight_q31": 27641462769,
+              "token_winner_changed_by_clip": false,
+              "total_weight_q31": 27641462769
+            },
+            "post_state": [
+              73,
+              37,
+              60,
+              54,
+              16,
+              82,
+              10,
+              69
+            ],
+            "probability": 0.07772628883481214,
+            "target_copy_mass": 2147483648,
+            "target_copy_ordinals": [
+              6
+            ],
+            "target_generate_mass": 984671,
+            "target_mass": 2148468319,
+            "target_to_winner_ratio": 1.0,
+            "winner_copy_mass": 2147483648,
+            "winner_copy_ordinals": [
+              6
+            ],
+            "winner_generate_mass": 984671,
+            "winner_mass": 2148468319
+          },
+          "staged_correct": true
+        },
+        {
+          "accepted_crossing": false,
+          "accepted_regression": true,
+          "after": 0,
+          "before": -1,
+          "blocking_pool": null,
+          "blocking_winner": null,
+          "committed": true,
+          "index": 803,
+          "mass_gap_gain": false,
+          "name": "prefix.coefficients",
+          "numerically_changed": true,
+          "order": 226,
+          "original_status": "accepted",
+          "previous_correct": true,
+          "probability_gain": false,
+          "ratio_gain": false,
+          "staged": {
+            "base_copy_q24": [
+              20170478,
+              28253117,
+              29171027,
+              -9990689,
+              -33059362,
+              15859306,
+              54525952,
+              -23752843,
+              35840685,
+              31646380,
+              17083186,
+              64093802,
+              9306519,
+              1223880,
+              31340410,
+              33482201
+            ],
+            "copy_q24": [
+              -4995346,
+              3087293,
+              4005203,
+              -43545121,
+              -58225186,
+              -17695126,
+              29360128,
+              -48918667,
+              27452077,
+              14869164,
+              8694578,
+              30539370,
+              917911,
+              -32330552,
+              14563194,
+              -72231
+            ],
+            "copy_q24_sha256": "0bd988e12ae09688d0ac3eef1438d3fb24949a5e17985f50407accb3e6af75e5",
+            "donor": 11,
+            "generate_q24_sha256": "fe67720a066d9c74154de547a85171d09d3c3d63958bd643c1d289804568276d",
+            "mass_gap": -145310165,
+            "pool": {
+              "chosen_copy_weight_q31": 2147483648,
+              "chosen_generate_weight_q31": 180733,
+              "chosen_raw_mass_rank": 1,
+              "chosen_token_id": 91,
+              "chosen_weight_q31": 2147664381,
+              "clipped_high_actions": 0,
+              "clipped_low_actions": 0,
+              "copy_actions": 16,
+              "copy_weight_q31": 10251561449,
+              "generate_weight_q31": 17086785942,
+              "legal_generate_actions": 4096,
+              "max_score_q24": 30539370,
+              "raw_chosen_clipped_mass_rank": 1,
+              "raw_chosen_token_id": 91,
+              "raw_chosen_weight_q31": 2147664381,
+              "raw_max_score_q24": 30539370,
+              "raw_total_weight_q31": 27338347391,
+              "token_winner_changed_by_clip": false,
+              "total_weight_q31": 27338347391
+            },
+            "post_state": [
+              119,
+              56,
+              26,
+              38,
+              53,
+              33,
+              15,
+              27
+            ],
+            "probability": 0.07324342570389572,
+            "target_copy_mass": 2001723396,
+            "target_copy_ordinals": [
+              6
+            ],
+            "target_generate_mass": 630820,
+            "target_mass": 2002354216,
+            "target_to_winner_ratio": 0.9323403757656304,
+            "winner_copy_mass": 2147483648,
+            "winner_copy_ordinals": [
+              11
+            ],
+            "winner_generate_mass": 180733,
+            "winner_mass": 2147664381
+          },
+          "staged_correct": false
+        }
+      ],
+      "baseline_probability": 0.006708756738166514,
+      "final_probability": 0.06371622214799903,
+      "baseline_target_winner_ratio": 0.05606271847872467,
+      "final_target_winner_ratio": 0.34300710267562295
+    },
+    {
+      "input_index": 392,
+      "posthoc_desired_ordinal": 6,
+      "counts": {
+        "rejected_hypothetical_corrections": 10,
+        "rejected_mass_gap_gains": 12,
+        "rejected_probability_gains": 20,
+        "rejected_ratio_gains": 12
+      },
+      "ever_correct_accepted_state": false,
+      "accepted_crossing_orders": [],
+      "accepted_regression_orders": [],
+      "favourable_original_vetoes": 20,
+      "distinct_desired_rival_joint_incidence_collisions": [],
+      "accepted_events": [],
+      "baseline_probability": 0.03082541044177089,
+      "final_probability": 0.17241806057461515,
+      "baseline_target_winner_ratio": 0.28149266057272004,
+      "final_target_winner_ratio": 0.8681357537370322
+    }
+  ],
+  "operator_seconds": 57.425459971,
+  "supervised_seconds": 60.23379593342543,
+  "operator_peak_rss_kib": 439932,
+  "independent_audit": {
+    "status": "PASS",
+    "sha256": "15a007ace7bab32f46221ea42550c4ec79318fc83bbfd21cdc6bf5c29c86c2d4",
+    "reader_sha256": "8aaf9d90aa0c58b3cf35cac789235e94da5c72845b1e8f3c8bd8a438635db8f6",
+    "execution": {
+      "steps": [
+        {
+          "name": "rust-verify",
+          "exit_code": 0,
+          "elapsed_seconds": 0.19663609936833382
+        },
+        {
+          "name": "self-test",
+          "exit_code": 0,
+          "elapsed_seconds": 0.4596494361758232
+        },
+        {
+          "name": "independent-audit",
+          "exit_code": 0,
+          "elapsed_seconds": 160.2373881302774
+        }
+      ],
+      "elapsed_seconds": 161.03786946833134,
+      "children_max_rss_kib": 279808,
+      "reader_sha256": "8aaf9d90aa0c58b3cf35cac789235e94da5c72845b1e8f3c8bd8a438635db8f6",
+      "completed_utc": "2026-10-08T15:59:02.251840+00:00"
+    },
+    "limitations": "Does not replay Context/cue/prefix encoders, backward, autoregressive outputs or independently readmit every intermediate state against all377 guards. Original producer statuses control path."
+  },
+  "checks": {
+    "source": "7672cc00823cbf346cd8ac3b51457b16fdef8bc5",
+    "status": "PASS",
+    "focused_tests": 5,
+    "optimized_build": true,
+    "total_seconds": 4,
+    "review": "engineering/math/adversarial exact-source PASS"
+  },
+  "runtime_preservation": {
+    "revision": "6451d98870780d90d464c4b7ee744d1cf31a7df3",
+    "prefix": "codex/sol-readout-margin-attribution/runtime-7672cc008-attempt1",
+    "all_fresh_download_verified": true,
+    "seconds": 26.488850980997086
+  },
+  "result_preservation": {
+    "revision": "d59d81f594b1a8362183c1a82c16fa48d9167b1f",
+    "prefix": "codex/sol-readout-margin-attribution/margin-0001-7672cc0082",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "59801b1c5eeed39b9a717d51610371ab6a32d4fd094483d9c9fe048112a32b80",
+        "bytes": 980
+      },
+      "margin-0001-7672cc0082.tar.gz": {
+        "sha256": "4748f95af38e87574a3f6f5f8b57e8b0843d653cd4114deb2b7fa7d788aef689",
+        "bytes": 506992
+      }
+    },
+    "manifest": {
+      "source_commit": "7672cc00823cbf346cd8ac3b51457b16fdef8bc5",
+      "runtime_hf_revision": "6451d98870780d90d464c4b7ee744d1cf31a7df3",
+      "binary_sha256": "61498c2eae9b6cfb65f4f2063c004482f296ab5838f5f84262936b9bb47e7515",
+      "config_sha256": "8300b9ed36f66c75c294d37e9d870d17c5f3ecd32366e4276467ad1a61e25c1e",
+      "report_sha256": "1337b6e9f280543844cd2cb6de0c14408a9ff5416702867526eac789492829f0",
+      "report_manifest_sha256": "ad62944cb96e33ac73e9c777a42cc62720b3c3ad9c9c968127ca10faa6eac06d",
+      "audit_sha256": "15a007ace7bab32f46221ea42550c4ec79318fc83bbfd21cdc6bf5c29c86c2d4",
+      "files": {
+        "margin-0001-7672cc0082.tar.gz": {
+          "sha256": "4748f95af38e87574a3f6f5f8b57e8b0843d653cd4114deb2b7fa7d788aef689",
+          "bytes": 506992
+        }
+      },
+      "scope": "Saved original1920accepted-status path, fiveactualfactualprefixes,561fullreductions; accepted245crossing thenregression. No autoregressive rollout, newgradient/model export, heldout or usefulconversation qualification."
+    },
+    "seconds": 7.9436848647892475,
+    "completed_utc": "2026-10-08T16:00:06.469493+00:00"
+  },
+  "resources": {
+    "cpu_threads": 2,
+    "ram_gib": 8,
+    "cache_mib": 64,
+    "report_mib": 64,
+    "prior_cumulative_projection_seconds": 512070,
+    "standing_authorized_increment_seconds": 7200,
+    "cumulative_projection_seconds": 519270,
+    "no_local_build_or_large_download": true,
+    "legacy_unavailable_timing": "retained UNAVAILABLE, not zero"
+  },
+  "next": "After actual protected merge: reconstruct original accepted crossing snapshot at zero-based order147, evaluate unchanged89 native CE and all377 full-pool guards. If eligible, consider generic intermediate-candidate retention plus coherent reload/actualreply qualification; if CE fails, separately justify acceptance-progress locks. No fresh gradient, unchanged-dose repeat or source-filter/cursor."
+}
