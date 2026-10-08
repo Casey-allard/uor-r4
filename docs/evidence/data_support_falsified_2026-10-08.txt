@@ -1,0 +1,61 @@
+UOR-R4 — Data support is falsified: the instruction-precision barrier is the objective, not the corpus
+Date: 2026-10-08 (overnight rounds 81-93). DeepSeek session. References #820.
+
+THE PRE-REGISTERED TEST AND ITS RESULT
+  The independent review of round 81 ranked data support first (4 one-word episodes survive the
+  context-384 filter) and token-level MLE length bias third (after "Yes." the corpus offers 31
+  continuations of median 95 words against 16 stops, so about 250:1 of the token mass favours
+  continuing). It named the cheapest test: policy=truncated_prefix, ONE argument changed, same
+  corpus, same mask, same shape, same objective, same steps - which admits 68,127 episodes instead
+  of 31,798 and ALL 118 of the corpus's five-word-or-fewer replies instead of 8, a 14.75x increase
+  in short-form episodes. And it wrote down the falsifier: if that arm still shows no compliance
+  and leaves the first-content-token distribution unmoved, data support is falsified as the binding
+  cause and the objective explanation is it.
+
+  THE FALSIFIER FIRED. Panel, greedy, protocol 2, read as the first TWO content tokens per reply:
+
+    greeting                 "Absolutely! Here"    canonical
+    one word (grass colour)  "The color"           NOT a single word
+    three colours            "Here's a"            NOT a list
+    yes/no (sky blue)        "The sky"             NOT yes or no
+    yes/no (fish in trees)   "Yes, fish"           FIRST token right, second wrong
+    capital of France        "The capital"         correct opener
+    two plus two             "The plus"            NOT a number
+    largest planet           "The largest"         opener, no value
+    retention turns          "I do." / "I'm happy" responded, not answered
+
+  NOT ONE instruction-form request is complied with, at 14.75x the short-form episode support - and
+  the fish turn is the decisive signature: "Yes, fish" gets the first token RIGHT and continues
+  anyway. That is exactly what continuation mass predicts and exactly what data support cannot
+  explain.
+
+WHAT IS NOW ELIMINATED, ALL BY MEASUREMENT
+  capacity        2.8x parameters, no compliance change (round 74)
+  optimization    2x steps, no compliance change (round 84)
+  decoding        sampling removes the refusal template but not non-compliance (round 73)
+  prompt protocol a real defect, fixed, and not this (round 43)
+  data support    14.75x episode support, no compliance change (this round)
+
+  THE BARRIER IS THE OBJECTIVE. The model predicts the next token over a mixed-length reply
+  distribution, and the per-token optimum after a turn-level answer is complete is to keep writing,
+  because the corpus's continuations carry roughly 250 times the token mass of its stops. No corpus,
+  no scale and no amount of training turns that into a complete one-word reply, which is why five
+  arms have now failed in the same way with the failure signature of a continuation.
+
+  This is the first time in the session that the binding constraint has been identified by
+  ELIMINATION with a measured arm for each candidate rather than by argument, and it is the most
+  actionable result of the night: the fix is in the loss or the decoding, not in data or scale.
+
+WHAT THE FIX HAS TO DO, STATED WITHOUT CLAIMING IT WORKS
+  The objective must value a completed answer, not only its next token: candidates are a turn-
+  terminal weighting (the corpus's EOS positions inside response regions are exactly identified by
+  the verified mask), a completion-style estimand that scores the whole reply rather than each
+  token, or a decoding rule that terminates when the answer form is satisfied. All three are
+  testable against the two frozen instruments, and the panel v2 reading rule (first two content
+  tokens, no echo item) is the instrument that can now attribute a change correctly.
+  None is claimed here: the next work is a loss/decoding change, and it has not been written.
+
+SCOPE
+  Five arms, one corpus, one mask, one model family, single seed each, greedy decoding, the
+  instruments as documented. The elimination is only as strong as the arms: each candidate was
+  tested by a real run with a pre-registered reading, which is what makes the conclusion usable.
