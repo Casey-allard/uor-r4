@@ -1,0 +1,45 @@
+UOR-R4 — Stage 4: training on shortlist-hit rows only still does not produce a useful term
+Date: 2026-10-08. DeepSeek session. References #820.
+Follows: native_geometric_lut4_connectivity_2026-10-08.txt.
+
+WHAT CHANGED
+  The harness now trains ONLY on rows whose target is inside the shortlist, and measures those
+  rows separately. Rationale from the previous document: for rows with the target outside the
+  shortlist every candidate is negative, whose least-squares optimum is the constant term that
+  produced the retracted result. 57 of 204 fit positions (28 %) and 52 of 256 held-out positions
+  (20 %) are hits.
+
+MEASUREMENT (chat-v0-p2 train to held-out, top-64 shortlist, 600 steps, 26-bit features)
+  Training loss          0.252945 -> 0.223337   (the term does learn on hit rows)
+  Degenerate?            YES: distinct_hard_outputs 1; chosen_gates [12 x16, 0]
+                         hard_bit_tally [16384, 0]; distinct_soft_outputs_milli 3
+  All held-out rows      baseline 4.211070, soft 4.201949 (-0.009121), hard 4.191505 (-0.019565)
+  Hit rows only (52)     baseline 2.444325, soft 2.500545, delta +0.056219  (WORSE)
+
+WHAT THIS ESTABLISHES
+  * The constant-shift problem is not fixed by the data lever: the served term is still degenerate,
+    so the all-rows "improvement" (-0.019565 hard) is again the uniform shortlist penalty and the
+    harness again says so instead of reporting it as a result.
+  * On the only rows where re-ranking can possibly help, the learned soft correction makes bits per
+    byte WORSE by 0.056. Teaching the term with the right rows was necessary and is not sufficient.
+  * The connectivity mechanism does learn now (loss falls, unit tests oblige non-degeneracy on a
+    controlled task); what fails is the transfer of that learning to this artifact's real features.
+
+STANDING CONCLUSION FOR STAGE 4 IN THIS SESSION
+  Three forms have now been measured and none improves held-out bits per byte on real text:
+    all-candidate correction, best of 1056 two-input terms   +0.0000061
+    shortlist re-ranking, constant penalty (degenerate)      -0.019565  not a result
+    shortlist re-ranking, trained on hit rows (degenerate)   all-rows -0.019565, hit rows +0.056219
+  The Stage 4 gate is NOT passed, and the evidence no longer supports another insertion-form
+  iteration at this scale. The levers that remain, in the order the measurements point to them:
+    1. Data scale for the term: 204 fit positions cannot train a 26-bit interaction, and the
+       honest next test needs the term trained where the features are dense, not on 200 rows.
+    2. A different decision to re-rank: this term re-ranks candidates of a scorer that is already
+       weak on this corpus (baseline 4.21 bits/byte), so the ceiling is the scorer, not the term.
+    3. Representation and data for the base scorer, which is what this session's measurements have
+       pointed at repeatedly.
+
+SCOPE
+  One artifact, one corpus pair, 204-256 positions, debug build, no serving default changed. The
+  served form remains a truth-table read. The hit-row split is reported so the ceiling of any
+  shortlist re-ranker (20 %) is visible rather than implied.

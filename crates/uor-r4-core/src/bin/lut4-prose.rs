@@ -309,9 +309,19 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let (select_rows, select_features, select_in) = load(&tokens, select_start, select_positions)?;
     let (eval_rows, eval_features, eval_in) = load(&eval_tokens, eval_start, args.eval_positions)?;
 
-    // Balanced training pairs from the training shortlists: the target row repeated, decoys once.
+    // Train only on rows whose target IS inside the shortlist. Those are the only rows where
+    // re-ranking can change anything, and including the others makes every candidate negative,
+    // whose least-squares optimum is the constant term that produced the retracted result.
     let mut samples: Vec<(Vec<f32>, Vec<f32>)> = Vec::new();
-    for (row, features_row) in fit_rows.iter().zip(fit_features.iter()) {
+    let fit_hits = fit_rows
+        .iter()
+        .filter(|row| row.shortlist.contains(&row.target))
+        .count();
+    for (row, features_row) in fit_rows
+        .iter()
+        .zip(fit_features.iter())
+        .filter(|(row, _)| row.shortlist.contains(&row.target))
+    {
         for (slot, &cand) in row.shortlist.iter().enumerate() {
             let positive = cand == row.target;
             let repeats = if positive { args.negatives } else { 1 };
@@ -359,12 +369,16 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let gap = network.discretisation_gap(&gap_inputs);
 
     // Re-rank the shortlist with the learned term and measure bits per byte.
-    let measure = |scale: f64| -> (f64, f64, f64, f64) {
+    let measure = |scale: f64| -> (f64, f64, f64, f64, (f64, f64, u64)) {
         let mut base_bits = 0.0f64;
         let mut soft_bits = 0.0f64;
         let mut hard_bits = 0.0f64;
         let mut changed = 0u64;
         let mut bytes = 0u64;
+        let mut hit_base = 0.0f64;
+        let mut hit_soft = 0.0f64;
+        let mut hit_bytes = 0u64;
+        let mut hit_rows = 0u64;
         for (row, features_row) in eval_rows.iter().zip(eval_features.iter()) {
             let mut soft_scores = row.scores.clone();
             let mut hard_scores = row.scores.clone();
@@ -404,10 +418,18 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 ) / sum;
                 -p.max(1e-300).log2()
             };
-            base_bits += bits_for(&row.scores);
-            soft_bits += bits_for(&soft_scores);
+            let base_row = bits_for(&row.scores);
+            let soft_row = bits_for(&soft_scores);
+            base_bits += base_row;
+            soft_bits += soft_row;
             hard_bits += bits_for(&hard_scores);
             bytes += row.bytes;
+            if row.shortlist.contains(&row.target) {
+                hit_base += base_row;
+                hit_soft += soft_row;
+                hit_bytes += row.bytes;
+                hit_rows += 1;
+            }
         }
         let bpb = |bits: f64| bits / bytes.max(1) as f64;
         (
@@ -415,6 +437,7 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             bpb(soft_bits),
             bpb(hard_bits),
             changed as f64 / eval_rows.len().max(1) as f64,
+            (hit_base / hit_bytes.max(1) as f64, hit_soft / hit_bytes.max(1) as f64, hit_rows),
         )
     };
 
@@ -448,14 +471,14 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let mut best_soft = f64::INFINITY;
     let _ = (&select_rows, &select_features, select_in);
     for scale in [256.0f64, 512.0, 1024.0, 2048.0, 4096.0, 8192.0] {
-        let (base, soft, _, changed) = measure(scale);
+        let (base, soft, _, changed, _) = measure(scale);
         scale_curve.push((scale, soft - base, changed));
         if soft < best_soft {
             best_soft = soft;
             best_scale = scale;
         }
     }
-    let (base_bpb, soft_bpb, hard_bpb, top1_change) = measure(best_scale);
+    let (base_bpb, soft_bpb, hard_bpb, top1_change, hit) = measure(best_scale);
 
     // Artifact-output diagnostic. `cone_sizes` reports 0 for this network while the hard path
     // clearly varies its correction, so record exactly what the served tables emit per shortlist
@@ -482,6 +505,8 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         .flat_map(|l| l.chosen_gates())
         .collect();
     let boost_bpb = boost_only(best_scale);
+    let (hit_base_bpb, hit_soft_bpb, hit_rows) = hit;
+    let hit_delta = hit_soft_bpb - hit_base_bpb;
     let boost_curve: Vec<(f64, f64)> = [256.0f64, 512.0, 1024.0, 2048.0, 4096.0, 8192.0]
         .iter()
         .map(|scale| (*scale, boost_only(*scale) - base_bpb))
@@ -530,6 +555,15 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         },
         "learned_minus_uniform_boost": (hard_bpb - boost_bpb),
         "top1_change_rate": top1_change,
+        "shortlist_hit_rows": {
+            "fit": fit_hits,
+            "fit_positions": fit_positions,
+            "eval": hit_rows,
+            "eval_positions": args.eval_positions,
+            "eval_baseline_bits_per_byte": hit_base_bpb,
+            "eval_soft_bits_per_byte": hit_soft_bpb,
+            "eval_delta": hit_delta,
+        },
         "gate_utilisation": utilisation,
         "gate_entropy_bits": entropy,
         "cone_sizes": cones,
