@@ -1,5 +1,23 @@
 # Current UOR-R4 research state
 
+## The chat path: from below-uniform serving to assistant-register replies — October 8 (DeepSeek, rounds 37-75)
+
+The served artifact for conversation was **scoring below chance** on chat and the reply path was never wired to the models that predict. Both are now measured and largely fixed, and every step below is on main with its evidence document.
+
+**Serving.** The artifact the chat path served scored **4.2111 bits per byte against uniform 4.2292** on `chat-v0-p2/heldout` (top-1 2.25 %) while working in domain (1.8202, top-1 25.81 %); the 3.27 BPB apparent gap was 2.5683 of domain mismatch plus a cross-protocol artefact. Measured on **identical positions** with `lut-evaluate reference=true`, serving costs **0.00883 BPB of quantisation and 0.000001 nats of engine arithmetic**: the multiplier-free D11 engine is exact, and a chat-trained geometric stack serves at **0.93277 bits per byte — 4.70× better than what was shipped** — reproduced to 2.1e-6 across GPU, binary commit and pod. Quantiser arms measured on one model: GPTQ beats round-to-nearest by 0.00376 BPB and 64 calibration windows with damp 0.01 is an interior optimum.
+
+**The reply path.** `lut-chat` had been used with the wrong role-template protocol; `protocol=2` produces canonical assistant openers, clean facts and no format artefacts. With that fixed, a mechanically scoreable panel showed the model was **fluent (22/22) but not responsive**: 0/6 instruction compliance, 0/5 second-turn questions, and a first-token probe in which **not one of eight turns opened with the answer**.
+
+**What the deficit was not.** A pre-registered data intervention (50/50 chat with short-turn dialogue) **failed on all three measures** and cost 0.127 nats, falsifying the data-form hypothesis. Answer-shaped prompt scaffolds changed nothing. At 10× scale a 214 M SmolTalk-mixture stack scored **1.0966 against 0.9607** for a 7.16 M chat-only model, and at matched 7.16 M parameters in-domain data was worth **0.1592 BPB against 0.0837** for size.
+
+**What it was.** The objective. The corpus renders roles as literal text, so the **response mask is recoverable by scanning** for the assistant marker: 129,472 and 129,728 markers in the 82 M-token training stream, 71.1 % of tokens in response regions once emitted. `dialogue-train` with that mask under **`policy=full_prefix`** produces assistant-register replies — canonical greeting, correct France answer, refusals replaced by offers of help — and **repairs multi-turn behaviour** ("You have two cats, but…" where the chat-only model returned the previous turn's text verbatim). `policy=role_only` was measured and rejected: it collapses into bullet spam.
+
+**Capacity pays.** At 2.8× parameters with the same objective, the **refusal template disappears under greedy decoding (0 of 22)**, the largest-planet question is answered **"Jupiter"** where the smaller model said "the absence of the planet", and the model reasons about requested form ("Imagine a response with exactly three bullet points using markdown"). Note for metric choice: that arm's development response nll is **worse** (1.4176 against 1.3806) while its behaviour is better on every qualitative measure.
+
+**Remaining, single named target: precision of instruction following** — one-word and exact-count requests are not obeyed and "how many days in a week" gives the right shape with the wrong value. The two instruments (the 22-turn panel and the separator-skipping first-token probe) are frozen and comparable; a 2× longer run of the working configuration is in flight.
+
+Evidence: `sealed_bpb_league_2026-10-08.txt`, `served_gap_settled_2026-10-08.txt`, `chat_protocol_defect_2026-10-08.txt`, `chat_panel_first_2026-10-08.txt`, `chat_instruction_panel_2026-10-08.txt`, `form_diversity_verdict_2026-10-08.txt`, `size_at_ten_x_2026-10-08.txt`, `mask_scan_verified_2026-10-08.txt`, `capacity_arm_result_2026-10-08.txt` (see `capacity_arm_result_2026-10-08.txt`), `sampling_and_correction_2026-10-08.txt`.
+
 ## Recovered intermediate passes the native gate; complete replies remain 8/512 — October 8
 
 The globally earliest accepted factual crossing from the original #1911 construction is recovered at zero-based order **147**, `prefix.coefficients[915]`, inclusive of **84 accepted edits across both shared Cue/Prefix tables**. Original rejected and later proposals are excluded. The original 1,920 proposal records, accepted endpoint, report/config identities and frozen payloads are authenticated. This is generic offline checkpoint recovery and selection; it adds no serving cases for rows, answers or source roles and performs **zero new gradients, optimizer updates or proposals**.
