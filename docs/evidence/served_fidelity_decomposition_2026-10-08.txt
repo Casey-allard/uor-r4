@@ -1,3 +1,7 @@
+SUPERSEDED (round 36): this decomposition attributed 0.03578 BPB to a transport snap the served
+artifact does not use - its header carries no transport_snap, so it is served free-transport.
+The 0.01944 BPB figure was a cross-mode difference. See serving_mode_audit_2026-10-08.txt.
+
 UOR-R4 — Where the served gap lives: 65 % transport snap, 35 % quantisation, and calibration does not help
 Date: 2026-10-08 (overnight rounds 16-19). DeepSeek session. References #820.
 

@@ -1,0 +1,56 @@
+UOR-R4 — The blocked data lever: the larger chat corpus is rebuildable, with a cheaper test first
+Date: 2026-10-08 (overnight round 36, independent review). References #820.
+
+THE FINDING
+  chat-v1-p2-train - 589,939 rows, 1,388,814,239 tokens - is not lost upstream; it is missing from
+  this machine. It was built once, its manifest survives on the pod volume, and its tokens were
+  deleted without being shipped to any store, tar or archive. The recipe is already in the
+  repository: docs/compute/ladder-runbook.md section 2.3 and the tool on main at
+  crates/uor-r4-training/src/bin/prepare-chat-parquet.rs (build with --features parquet-input).
+
+  Independent arithmetic check of the recipe: chat-v0-p2's manifest gives per-source bytes/token
+  ratios of 2.881 (smoltalk smol-magpie-ultra) and 3.462 (ultrachat_200k default/train_sft). Taken
+  to the full upstream splits that projects 1,444.9 M tokens, less chat-v0's skipped prefixes
+  (34.9 M + 20.4 M) = 1,389.6 M, against the documented 1,388,814,239 - 0.05 % agreement.
+
+RANKED ROUTES
+  1. Rebuild chat-v1-p2-train from 9 parquet exports (~2.1 GB): +1,306,565,778 net chat tokens,
+     16.9x the current corpus, same two upstream sources and the same role-template protocol as
+     chat-v0-p2, Apache-2.0 + MIT (no new licence class), and strict row-skip disjointness from
+     chat-v0's fetched prefix.
+  2. Local smol-smoltalk parquet already on disk: ~550-640 M chat tokens, zero download, but a
+     different conversation shape and not disjoint in origin from chat-v0 (near-duplicate risk).
+  3. tinydialogues-train, already tokenised locally: +42.8 M tokens, MIT, but low-register
+     synthetic dialogue already present in the mix - more of the same, not new coverage.
+  4. Remaining truncated chat-v0 sources (summarize/rewrite/constraints): ~+95 M, overlapping
+     route 2, partly task-formatted rather than conversational.
+  5. dolly_15k and TinyStoriesInstruct are on disk but were excluded by the fetcher for share-alike
+     licences: an owner decision, not an engineering one.
+
+DEAD ENDS CLOSED, SO THEY ARE NOT RE-WALKED
+  The store holds no corpora (674 files / 10.0 GB: 653 codex results, 8 models, 6 bases, 6 data
+  entries, none a chat corpus). Every local chat store found is the same 82-83 M token
+  chat-v0-p2-derived set from the same six truncated sources, across eight directories. No archive
+  holds chat-v1.
+
+THE ARGUMENT AGAINST ROUTE 1, WHICH IS THE STRONGEST PART OF THE REVIEW
+  chat-v1 scales the same two sources as chat-v0 - volume, not distribution coverage. The 0.1592 BPB
+  data term was measured by SWITCHING distribution at a matched 82.2 M-token corpus trained for
+  ~1.8 epochs, so what is measured is "matching the training distribution is worth about twice what
+  size is worth", not "more tokens of the matched distribution keeps paying". The project has seen
+  the opposite at larger scale: the 214 M SmolTalk-mixture stack scores 1.0966 against 0.9607 for a
+  7.16 M chat-only model. And Magpie/UltraChat rows are heavily templated, so 1.39 B rows are far
+  from 1.39 B unique tokens.
+
+CHEAPER TEST FIRST
+  A dose-response on the existing 82.2 M-token corpus with the frozen 7,155,396-parameter chat-only
+  recipe: hold steps fixed and vary epochs, or hold epochs fixed and vary unique tokens at 41/82/164/
+  329 M. If BPB is flat or rising past about one epoch, the 2.1 GB rebuild should not be bought.
+  Cost is a fraction of one pod-hour, and corpus, tokenizer and evaluator all exist.
+
+OWNER ACTION THAT WOULD UNBLOCK IT
+  Approve re-fetching ~2.1 GB of already-used, licence-clean HF parquet and the compute to rebuild
+  chat-v1-p2-train - or explicitly accept that the marginal return of more same-distribution tokens
+  stays unmeasured. Nothing else is missing: the tool is on main, the tokenizer is local, filenames
+  and skip counts are recorded, and the surviving manifest supplies the tokens_sha256 to verify
+  against.

@@ -1,3 +1,9 @@
+SUPERSEDED IN PART (round 36): the served-mode audit shows the 0.93277 baseline artifact is
+FREE-transport while both fine-tuned arms are snapped-served, so the regression and the
+"basin effect" reading below confound training with serving mode. The measurements stand;
+the conclusion is withdrawn pending a matched-mode control. See
+serving_mode_audit_2026-10-08.txt.
+
 UOR-R4 — The snapped-training route is closed for this quantiser, and the damage is a basin effect, not a dose
 Date: 2026-10-08 (overnight round 33). DeepSeek session. References #820.
 

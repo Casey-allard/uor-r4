@@ -1,0 +1,61 @@
+UOR-R4 — Serving-mode audit: the artifact is free-transport, two conclusions are withdrawn, and the headroom re-aims
+Date: 2026-10-08 (overnight round 36). DeepSeek session. References #820.
+
+HOW THIS AROSE
+  An independent review of the transport-snap question reported, from reading the export and D10
+  format code rather than the numbers, that the artifact behind the served result might not be
+  snapped at all. The check is one command and it had never been run.
+
+THE CHECK, AND ITS RESULT
+  Reading the header record out of each artifact (MAGIC 8 bytes, u64 LE header length, JSON header):
+
+    artifact                             served score   transport_snap in header
+    round-16 export-a1 (sha 2ac4c306...) 0.93277        ABSENT - free transport
+    round-29/30 export-f1 (500-step tune) 0.95150       {"name":"icosian","roots":120}
+    round-32/33 export-f2 (250-step tune) 0.95540       {"name":"icosian","roots":120}
+
+  The supporting code facts the review cited also hold: export records only the snap the model
+  directory declares (transport.json), and the D10 read path refuses any artifact whose header
+  carries one - which is why rounding-attribution succeeded on the round-16 artifact at all, and
+  why d10 is present in the round-16 d11 record but null in the fine-tuned ones (those route to a
+  snapped evaluator whose comparator is the float-snapped model).
+
+CORRECTION 1: THE SERVED GAP HAS NO SNAP TERM
+  The artifact scoring 0.93277 is served on the FREE transport path, and its own free float parent
+  scores 0.87755. The 0.05522 BPB gap is therefore entirely within free transport:
+    weight rounding        0.0088 BPB   (the round-20 attribution's 0.0173756 nats)
+    un-attributed integer  0.0464 BPB   (serving arithmetic: activations, norm, l2, tables)
+  The 0.03578 BPB "transport snap" term in the published decomposition is the cost of
+  snap-evaluate on the FLOAT model - a counterfactual branch - and is not a term the served
+  artifact pays. The 0.01944 BPB "quantisation" figure is likewise invalid: it was computed as
+  snapped-float minus free-served, a cross-mode difference rather than a quantisation measurement.
+  The decomposition in served_fidelity_decomposition_2026-10-08.txt is superseded by this document.
+
+CORRECTION 2: ROUNDS 30 AND 33 COMPARED ACROSS SERVING MODES
+  The 0.93277 baseline is free-served; both fine-tuned arms are snapped-served. Their apparent
+  regression (0.95150, 0.95540) and the "quantisation damage is a basin effect" conclusion
+  therefore confound training with serving mode. That conclusion is WITHDRAWN pending a matched
+  mode control: export the same untuned weights snapped (writing the transport record into a copy
+  of the model directory) and score it. If that control lands near 0.93277 the basin effect is
+  real; if it lands near 0.95, rounds 30 and 33 were measuring the serving mode throughout.
+
+WHAT SURVIVES
+  * The served result stands: 0.93277 bits per byte on real held-out chat against 4.3885 served
+    today, a 4.70x improvement, reproduced to 2.1e-6 across GPU, binary commit and pod.
+  * The data-versus-size finding stands and was extended this session: the 214 M SmolTalk-mixture
+    stack scores 1.0966 against 0.9607 for a 7.16 M chat-only model.
+  * The quantiser finding stands within its own mode: GPTQ beats round-to-nearest by 0.00376 BPB.
+
+WHAT IT RE-AIMS
+  The largest single term in the served gap is now the un-attributed fixed-point serving arithmetic
+  at roughly 0.046 BPB - an order of magnitude more than weight rounding, and not the transport
+  representation the session spent rounds 24-34 on. The review's recommended first measurement for
+  it is `lut-evaluate artifact=... model=... valid=... windows=64 reference=true`, which reports
+  float, artifact-in-float and integer NLL on one identical position set; every cross-mode number
+  this session produced would have needed that form.
+
+PROCESS NOTE, RECORDED BECAUSE IT RECURRED
+  The snap term was built from a float counterfactual and then treated as part of the served gap
+  without checking which transport the served artifact used. The same pattern - a plausible proxy
+  adopted as a measured term - produced the round-29 float-gain error. Both were caught by an
+  independent reader checking the source, not by the numbers agreeing with themselves.
