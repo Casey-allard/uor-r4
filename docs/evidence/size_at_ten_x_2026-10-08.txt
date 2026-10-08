@@ -1,0 +1,53 @@
+UOR-R4 — Size at ten times: the 214 M chat stack loses to a 7.16 M chat-only model
+Date: 2026-10-08 (overnight round 35). DeepSeek session. References #820.
+
+WHAT WAS MEASURED
+  The private store holds chat-trained 214 M geometric stacks. `models/chat-214m-smoltalk-b16`
+  (pattern rrarrarrarrarrar, width 1536, heads 24, context 384, read L2, pointer model) was scored on
+  chat-v0-p2/heldout - sha256 e5f400b0..., the same stream every number in this session uses -
+  under the repository's own sealed `evaluate` protocol: consecutive blocks of 256 inputs and 256
+  shifted targets, fresh state per block.
+
+    full  nll 2.1568440326982325   over 6,194,304 targets (16,131 blocks)   = 1.09655 bits/byte
+    tune  nll 1.9492776837467096   over    24,576 targets                   = 0.99103 bits/byte
+
+  The full-stream figure is the comparable one: the sealed league table was produced with the same
+  protocol and the same target count.
+
+THE COMPARISON
+
+  model                        parameters    training data            bits/byte (chat heldout)
+  served artifact today             2.7 MB   TinyStories                        4.3885
+  Kneser-Ney 5-gram                     --   chat-v0-p2 train                   1.2803
+  sealed geo-8m-l2               7,155,396   TinyStories/TinyDialogues/chat     1.1199
+  chat-214m-smoltalk              ~214 M     SmolTalk-derived chat mix          1.0966
+  control, round 12              7,155,396   chat-v0-p2 train only              0.9607
+  round 16 arm                  19,929,136   chat-v0-p2 train only              0.8770
+
+FINDING
+  Ten times the parameters with a different chat mixture loses by 0.1359 BPB to a model one
+  thirtieth its size trained on this corpus, and by 0.2196 BPB to a 19.9 M model on the same data.
+  Round 12 measured the data term at twice the size term (0.1592 against 0.0837 BPB) over a 7.16 M
+  to 19.93 M range; this extends the comparison an order of magnitude further and finds the ordering
+  unchanged and the margin larger, not smaller. Within this project's corpora and at this scale,
+  matching the training distribution is worth more than adding parameters by a wide margin.
+
+  It also means the project's largest chat model - 214 M parameters, trained on a SmolTalk mixture -
+  is not the best chat model it has. That is a fact about training data, not about the architecture;
+  the same family at 19.9 M on chat-v0-p2 beats it.
+
+SCOPE AND CAVEATS, STATED BECAUSE THE PROTOCOLS DIFFER
+  * The 214 M figure is a full-stream sealed-protocol evaluation over 6,194,304 targets. The 19.9 M
+    and 7.16 M rows come from snap-evaluate over 512 windows (196,608 targets) and are the models'
+    fused float scores, not served scores. The rows are therefore not on one identical protocol and
+    the exact deltas should be read as approximate; the ORDERING is the finding, and it is large
+    relative to any protocol difference this session has measured.
+  * The 214 M model is a pointer model, which is why it was scored with `evaluate` rather than
+    `snap-evaluate`; its mixture head means the plain snapped score is not defined for it.
+  * Training mixtures for the store models are taken from their manifests, not re-derived here.
+
+CONSEQUENCE
+  The data lever is the one worth unblocking, and it is currently blocked: no chat corpus larger
+  than the 82 M-token chat-v0-p2 train is reachable in the store or on the canonical volume. This
+  measurement is the strongest argument yet for spending the next effort there rather than on a
+  larger rung of the same mixture.
