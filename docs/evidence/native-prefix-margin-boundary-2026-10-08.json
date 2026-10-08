@@ -1,0 +1,943 @@
+{
+  "schema": "uor-r4.saved-prefix-margin-evidence/1",
+  "status": "SAVED_ANALYSIS_PASS_PROTECTED_DELIVERY_PENDING",
+  "card": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-6070109006",
+  "source_main": "3e975e400d7d79d003fb53455c522f5737df4ccc",
+  "helper_sha256": "f142381554f825f2b0884a8bae6645d3c649afa22feef053a846efb1d91e7a40",
+  "source_packet_sha256": "ab043cc3e04a3db6855dd604b56e4891412403add1c6c2fc1a98b26e1da87ee9",
+  "result_sha256": "93fddcc2c9226987ba833ce61dbb40cac3f0cbdbbf14d150d6650a88d11d39e8",
+  "result_bytes": 1636473,
+  "rust_manifest_sha256": "d610639baf15136f0f885f1574875620155e55f423f5c96c0e77f64b8dec402c",
+  "actual_rust_claim_seal_complete_file_verify": "PASS",
+  "report_root": "/workspace/uor-r4/codex/sol-prefix-margin-boundary/analysis-attempt1",
+  "prefix_authority": {
+    "actual_fractional_master_sha256": "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+    "frozen_all960_bits": true,
+    "layout": "8 physical lanes x120 signedQ4; lane-major",
+    "packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+    "unit_q24": 4194304
+  },
+  "cohort": [
+    [
+      245,
+      3
+    ],
+    [
+      245,
+      4
+    ],
+    [
+      0,
+      3
+    ],
+    [
+      0,
+      4
+    ],
+    [
+      1,
+      3
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      4,
+      3
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      5,
+      3
+    ],
+    [
+      5,
+      4
+    ],
+    [
+      8,
+      3
+    ],
+    [
+      8,
+      4
+    ],
+    [
+      9,
+      3
+    ],
+    [
+      9,
+      4
+    ],
+    [
+      12,
+      3
+    ],
+    [
+      12,
+      4
+    ],
+    [
+      13,
+      3
+    ],
+    [
+      13,
+      4
+    ]
+  ],
+  "physical_pairs": 190,
+  "shared_keys": 460,
+  "both_sign_keys": 26,
+  "decisive_pairs": [
+    {
+      "input_index": 245,
+      "position": 4,
+      "target": 267,
+      "desired_ordinal": 7,
+      "rival_ordinal": 8,
+      "desired_occurrence": {
+        "bank_index": 7,
+        "context_position": 40,
+        "event": 1,
+        "occurrence": {
+          "commit": 2,
+          "record": 2,
+          "token_id": 267,
+          "token_offset": 1
+        },
+        "segment_index": 3
+      },
+      "rival_occurrence": {
+        "bank_index": 8,
+        "context_position": 41,
+        "event": 1,
+        "occurrence": {
+          "commit": 2,
+          "record": 2,
+          "token_id": 307,
+          "token_offset": 2
+        },
+        "segment_index": 3
+      },
+      "shared_key_difference": [
+        {
+          "bin": 59,
+          "current_q4": -1,
+          "head": 0,
+          "key": 59,
+          "lane": 0,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 81,
+          "current_q4": -1,
+          "head": 0,
+          "key": 81,
+          "lane": 0,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 36,
+          "current_q4": 0,
+          "head": 0,
+          "key": 156,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 56,
+          "current_q4": 1,
+          "head": 0,
+          "key": 176,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 2,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 63,
+          "current_q4": 0,
+          "head": 0,
+          "key": 303,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 76,
+          "current_q4": -1,
+          "head": 0,
+          "key": 316,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 23,
+          "current_q4": 0,
+          "head": 0,
+          "key": 383,
+          "lane": 3,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 64,
+          "current_q4": 0,
+          "head": 0,
+          "key": 424,
+          "lane": 3,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 91,
+          "current_q4": -1,
+          "head": 1,
+          "key": 691,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 112,
+          "current_q4": 0,
+          "head": 1,
+          "key": 712,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 78,
+          "current_q4": -1,
+          "head": 1,
+          "key": 798,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 105,
+          "current_q4": -1,
+          "head": 1,
+          "key": 825,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 95,
+          "current_q4": -1,
+          "head": 1,
+          "key": 935,
+          "lane": 3,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 101,
+          "current_q4": -1,
+          "head": 1,
+          "key": 941,
+          "lane": 3,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        }
+      ],
+      "original_gaps": {
+        "base_gap_q24": -7965768,
+        "copy_gap_q24": -33131592,
+        "prefix_gap_q24": 4194304,
+        "u_gap_q24": -25165824
+      },
+      "candidate_gaps": {
+        "base_gap_q24": -7965768,
+        "prefix_gap_q24": 4194304,
+        "u_gap_q24": -25165824,
+        "copy_gap_q24": -33131592
+      },
+      "raw_unclipped_copy_box": [
+        -448367688,
+        373715896
+      ],
+      "one_adjacent_copy_interval": [
+        -37325896,
+        -28937288
+      ]
+    },
+    {
+      "input_index": 4,
+      "position": 4,
+      "target": 92,
+      "desired_ordinal": 1,
+      "rival_ordinal": 5,
+      "desired_occurrence": {
+        "bank_index": 1,
+        "context_position": 15,
+        "event": 0,
+        "occurrence": {
+          "commit": 1,
+          "record": 1,
+          "token_id": 92,
+          "token_offset": 1
+        },
+        "segment_index": 1
+      },
+      "rival_occurrence": {
+        "bank_index": 5,
+        "context_position": 19,
+        "event": 0,
+        "occurrence": {
+          "commit": 1,
+          "record": 1,
+          "token_id": 471,
+          "token_offset": 5
+        },
+        "segment_index": 1
+      },
+      "shared_key_difference": [
+        {
+          "bin": 81,
+          "current_q4": -1,
+          "head": 0,
+          "key": 81,
+          "lane": 0,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 106,
+          "current_q4": 0,
+          "head": 0,
+          "key": 106,
+          "lane": 0,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 88,
+          "current_q4": -1,
+          "head": 0,
+          "key": 208,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 110,
+          "current_q4": -1,
+          "head": 0,
+          "key": 230,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 3,
+          "current_q4": -1,
+          "head": 0,
+          "key": 243,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 79,
+          "current_q4": -1,
+          "head": 0,
+          "key": 319,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 1,
+          "current_q4": 1,
+          "head": 1,
+          "key": 481,
+          "lane": 0,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 2,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 15,
+          "current_q4": -1,
+          "head": 1,
+          "key": 495,
+          "lane": 0,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 34,
+          "current_q4": -1,
+          "head": 1,
+          "key": 634,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 77,
+          "current_q4": -1,
+          "head": 1,
+          "key": 677,
+          "lane": 1,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 36,
+          "current_q4": 0,
+          "head": 1,
+          "key": 756,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        },
+        {
+          "bin": 86,
+          "current_q4": -1,
+          "head": 1,
+          "key": 806,
+          "lane": 2,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 51,
+          "current_q4": 0,
+          "head": 1,
+          "key": 891,
+          "lane": 3,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -1,
+              "direct_gap_effect_q24": 4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 1,
+              "direct_gap_effect_q24": -4194304
+            }
+          ],
+          "signed_multiplicity": -1
+        },
+        {
+          "bin": 111,
+          "current_q4": -1,
+          "head": 1,
+          "key": 951,
+          "lane": 3,
+          "legal_adjacent": [
+            {
+              "actual_fractional_master_delta": -0.25,
+              "code": -2,
+              "direct_gap_effect_q24": -4194304
+            },
+            {
+              "actual_fractional_master_delta": 0.25,
+              "code": 0,
+              "direct_gap_effect_q24": 4194304
+            }
+          ],
+          "signed_multiplicity": 1
+        }
+      ],
+      "original_gaps": {
+        "base_gap_q24": 42554980,
+        "copy_gap_q24": 25777764,
+        "prefix_gap_q24": 12582912,
+        "u_gap_q24": -16777216
+      },
+      "candidate_gaps": {
+        "base_gap_q24": 5112214,
+        "prefix_gap_q24": 12582912,
+        "u_gap_q24": -16777216,
+        "copy_gap_q24": -11665002
+      },
+      "raw_unclipped_copy_box": [
+        -435289706,
+        386793878
+      ],
+      "one_adjacent_copy_interval": [
+        -15859306,
+        -7470698
+      ]
+    }
+  ],
+  "cue_gradient_alignment": {
+    "accepted_actual_displacements": 95,
+    "aggregate_dot_local_surrogate": -2.318762971670367,
+    "aggregate_f64_sum_max_f32_difference": 6.743357516825199e-08,
+    "already_weighted_no_second_weight": true,
+    "scope": "local detached conditional-donor/Cue surrogate at initial unselected Context3610 seed; not actual hard loss or integrated path credit",
+    "status_counts": {
+      "accepted": 95,
+      "rejected": 7,
+      "zero_gradient": 858
+    },
+    "sum_perterm_dot_local_surrogate": -2.3187629499225295
+  },
+  "local_all18_dots_negative": true,
+  "seed_all18_weighted_ce_deltas_negative": true,
+  "original_worsened_reference_terms": [
+    [
+      1,
+      3
+    ],
+    [
+      1,
+      4
+    ],
+    [
+      4,
+      4
+    ],
+    [
+      5,
+      3
+    ],
+    [
+      5,
+      4
+    ]
+  ],
+  "prior89_novelty": {
+    "position_counts": {
+      "0": 8,
+      "1": 8,
+      "2": 8,
+      "3": 13,
+      "4": 8,
+      "5": 8,
+      "6": 8,
+      "7": 8,
+      "8": 8,
+      "9": 8,
+      "10": 4
+    },
+    "task245_position4_absent": true,
+    "task245_terms": [
+      {
+        "component": 0,
+        "index": 245,
+        "parent_actual_prefix_ids": [
+          617,
+          2097,
+          315
+        ],
+        "position": 3,
+        "target": 1057,
+        "weight": 0.2
+      }
+    ],
+    "terms": 89,
+    "warning": "zero recovery-wrapper gradients says nothing about earlier original readout fit backward calls",
+    "wrapper_gradient_evaluations": 0
+  },
+  "probe_checkpoint_epoch_warning": "probe checkpoint is historical negative category413; baseline authority is saved raw frames/prior audit, not its checkpoint metadata",
+  "limits": {
+    "exclusions": [
+      "Generate mass",
+      "physical alias pooling",
+      "finite clipping/reference changes",
+      "donor/bridge/Generate changes",
+      "joint shared-coefficient guard interactions"
+    ],
+    "fullpool_feasibility": "UNRESOLVED",
+    "no_new_answer_necessary_condition": true,
+    "no_new_proposal_gradient_encoder_reducer_export": true,
+    "pairwise_box_joint_feasibility": "UNRESOLVED",
+    "static_raw_unclipped_only": true
+  },
+  "execution": {
+    "helper_elapsed_seconds": 10.963725246489048,
+    "peak_rss_kib": 81492,
+    "source_claim_compile_seconds": 0.6999752074480057,
+    "model_calls": 0,
+    "encoder_calls": 0,
+    "new_gradients": 0,
+    "native_reducer_calls": 0,
+    "new_proposals": 0
+  },
+  "reviews": {
+    "math-source-review.json": {
+      "bytes": 2500,
+      "sha256": "43ab6385c3702329076c7e3655e615a83dc006034d32d52b183bc6d2f935f146"
+    },
+    "adversarial-source-review.json": {
+      "bytes": 2556,
+      "sha256": "d33eee0ab8d700f36220a40f99423e4a7b9fcb206000c2e402f94265c8bb416c"
+    },
+    "result-math-review.json": {
+      "bytes": 6870,
+      "sha256": "a4cec6f734b8fd271d604fa45c2e8fa25bf18e7e815287ebd4cd2fc2be59c8d6"
+    },
+    "result-adversarial-review.json": {
+      "bytes": 2087,
+      "sha256": "1dfe39582d115fa864f2c0519b7a244c96630ecdde7278fd489cfd0eaaab1bae"
+    },
+    "initialization-review.json": {
+      "bytes": 3836,
+      "sha256": "d875eb0187378240c6e0d815ffa0b7ce86897dd1d6511b380eb4e1e3844eafb3"
+    },
+    "initialization-engineering-review.json": {
+      "bytes": 6925,
+      "sha256": "0dbd4b325fe7c7f8ba41b1904cf3064191adff108afc76f5f2cd9307bfecebd5"
+    }
+  },
+  "runtime_private_preservation": {
+    "revision": "517f25ae92ecae617825be14b1cbf9135ea43cf5",
+    "prefix": "codex/sol-prefix-margin-boundary/runtime-f142381554-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "d664c91e6f88f116f4e4329f236aeaee7d47076a5e5757250bcdd5d99270b2cd",
+        "bytes": 287
+      },
+      "runtime-f142381554-attempt1.tar.gz": {
+        "sha256": "fbef04df5486cc14a3413aa54f3a15800ecb70cf8de7fa5953af6c1eb62d3e21",
+        "bytes": 1254330
+      }
+    },
+    "seconds": 6.157701496034861,
+    "completed_utc": "2026-10-08T22:30:54.622078+00:00"
+  },
+  "complete_private_preservation": {
+    "revision": "3af2dccd12db11830dd7ff01c09b6f66d7eecdc0",
+    "prefix": "codex/sol-prefix-margin-boundary/complete-f142381554-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "54ed6a6426a496b9e1a4902a09f4da67dc59c515f72d7deea4416be3f3bba307",
+        "bytes": 289
+      },
+      "complete-f142381554-attempt1.tar.gz": {
+        "sha256": "17fb8e263da471a975fccb515b0f1278f4ee335d83594a38c06a0f642a3c4f4f",
+        "bytes": 1353401
+      }
+    },
+    "seconds": 5.264791194349527,
+    "completed_utc": "2026-10-08T22:37:38.930384+00:00"
+  },
+  "next": {
+    "chosen_initialization": "ORIGINAL selected Source9f/Cue/Generate4248/U82ae parent, actual fractional Prefix masters",
+    "active_prospective_family": "existing shared960 Prefix angular coefficients",
+    "causal_question": "Learn task245 later fragment position4target267 absent from prior89 task; isolate existing withinSource Prefix distinction without compensating unrelated negativeContextdamage",
+    "unchosen_hypothesis": "fixedContext3610+Cue95 conditionalPrefix compensation remains retained, not necessary dependency or adopted model",
+    "frozen": "All original Context/Potential/Cue/joint/Generate/categorical bridge/U coefficients and master bits",
+    "gate": "strict ORIGINAL18CE descent plus exact ORIGINAL task probability increase and all17 original winners",
+    "separate_required_fragment_result": "actual pooled target267 win; necessary to describe fragment boundary correction, insufficient for complete replies/usefulchat",
+    "compute_status": "NOT_ADMITTED until protected delivery/prospective card/construction policy/source checks/reviews",
+    "scope": "no extraCue dose/rank or newContextcoordinate, no serving cases/features"
+  },
+  "resources": {
+    "continuous_cost_from": "2026-10-08T22:11:24Z",
+    "existing_cumulative_projection_seconds": 558870,
+    "cumulative_increment_seconds": 0,
+    "task_projection_seconds": 2700,
+    "cpu_threads": 2,
+    "ram_bytes": 1073741824,
+    "new_retained_bytes": 16777216,
+    "temporary_bytes": 16777216,
+    "local_storage": "podonly; latestlocal30.44GiB",
+    "owner_caps": "unchanged samepod/shared1.48USDperhour, otherlabGPU1 untouched"
+  }
+}
