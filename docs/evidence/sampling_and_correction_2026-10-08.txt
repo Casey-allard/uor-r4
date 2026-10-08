@@ -1,0 +1,53 @@
+UOR-R4 — The refusal template is greedy-mode collapse, and a retraction: nothing was reaped
+Date: 2026-10-08 (overnight rounds 70-73). DeepSeek session. References #820.
+
+RETRACTION FIRST, BECAUSE IT WAS PUBLISHED
+  Round 72 reported that report directories and artifacts on the pod were "disappearing between
+  commands", called it the session's most dangerous failure mode, and concluded that results could
+  vanish before being read. THAT WAS WRONG. Nothing was reaped. A directory listing shows every file
+  present and intact:
+
+    sampled/chat.json          53,011 bytes   (17:07)
+    export-r5b/model.lut    4,619,588 bytes   (17:07)
+    panel-r5/, panel/, probe-r5/, p3/        all present
+
+  The two failed reads were caused by MY OWN quoting bug: the Python was passed inside a quoted
+  heredoc (<<PY), which does not expand shell variables, so the path argument arrived empty and
+  Python looked for a RELATIVE path - the error text said exactly that ("sampled/chat.json"), and I
+  read past it. The lesson is not about the pod; it is that the error message contained the answer
+  and I attributed the failure to the environment instead of to my command. Retracted in full.
+
+  The practical guidance from round 72 stands for a different reason: copy results off a pod you do
+  not own as soon as they exist, and pass paths explicitly rather than through nested quoting.
+
+THE EXPERIMENT (round 70's hypothesis, now measured)
+  Round 58's panel ran greedy (temperature 0) on the round-58 full_prefix plus mask artifact and the
+  refusal shape - "I do not have access to ... However, I can provide ..." - appeared repeatedly.
+  The same artifact, same panel, same protocol, decoded at temperature 0.7 with top_k 40 and seed 1:
+
+    refusal template in 1 of 22 replies      (against repeated occurrences under greedy)
+
+  So the hypothesis is CONFIRMED for the most part: the refusal template is largely GREEDY-MODE
+  COLLAPSE, not a fixed property of the model. Sampling escapes it.
+
+  BUT THE TRADE IS VISIBLE AND MATTERS. The sampled replies are less coherent:
+
+    "The weight of Quicken is a beautiful setting that consists of positive effects..."
+    "Magnetism is a fundamental energy that involves a powerful larger that connects the heart..."
+    "1. Binly summarize the main characteristics of a natural world 2. Krish in Walt on a single-..."
+
+  Counterparts that were correct under greedy stay correct ("The capital of France is Paris."), so
+  the model's distribution is broad with a noisy tail rather than simply wrong.
+
+WHAT IT MEANS FOR THE NEXT LEVER
+  The refusal template should NOT be attacked as a training defect: it is what greedy decoding does
+  to this distribution, and it can be traded away by decoding. What sampling exposes instead is the
+  underlying weakness - coherence and factual accuracy - which is a property of a 7.16 M model whose
+  response nll is about 1.38 nats, and which the 19.9 M arm was launched to test.
+  The next decisions therefore remain: does the larger arm improve coherence, and does any decoding
+  setting keep the assistant register while reducing the noisy tail. Both are measurable with the
+  instruments already frozen.
+
+SCOPE
+  One artifact, one panel, one sampling setting, one seed, greedy comparison from the earlier run of
+  the same panel on the same artifact. The retraction concerns a published claim, not a measurement.
