@@ -1,0 +1,61 @@
+UOR-R4 — Diluting the demand mixture keeps compliance but does not restore retention
+Date: 2026-10-08 (overnight rounds 119-122). DeepSeek session. References #820.
+
+THE TEST
+  Round 119's breakthrough used 2,860 demand-bearing documents (103,169 tokens, about 1.2 % of the
+  mixed stream) and produced compliance across every form class while BOTH retention turns dropped to
+  "I do". This arm reduces the demand store to 700 documents (25,260 tokens, about 0.03 %) with
+  everything else identical: same chat store and hash-proven mask, policy=full_prefix,
+  UOR_TERMINAL_WEIGHT=60, the frozen 7.16 M shape, 13,348 steps, panel v2 read as the first two
+  content tokens.
+
+RESULT
+
+  form classes under dilution (700 documents)
+    one word, colour of grass   "Yellow."        COMPLIES (form right, the fact is not)
+    one word, what bees make    "Hydrogen, also"  partial
+    yes/no, sky blue            "Yes."           COMPLIES, correct
+    yes/no, fish in trees       "No."            COMPLIES, correct
+    yes/no, is ice hot          "Yes."           COMPLIES in form only (the fact is wrong)
+    number, days in a week      "60."            COMPLIES (form right, the fact is not)
+    number, two plus two        "4."             COMPLIES, correct
+    number, dog legs            "6."             COMPLIES in form
+    list, three colours         "Red, blue,"     COMPLIES (short list)
+
+  retention under dilution
+    cats -> "One healthy"                        does NOT answer
+    name -> "Imagineopotamids have"              does NOT answer, and degenerates
+
+  So COMPLIANCE SURVIVES A 4x DILUTION OF THE DEMAND STORE, and RETENTION DOES NOT RETURN AT EITHER
+  CONCENTRATION. The trade seen in round 119 is therefore NOT a simple mixture-ratio effect at this
+  scale: reducing the demand share by 4x leaves retention exactly as broken as it was.
+
+WHAT IT ESTABLISHES
+  1. COMPLIANCE IS ROBUST TO THE MIXTURE RATIO. Four form classes comply with a demand store that is
+     0.03 % of the training tokens, which is a strong statement about the data-shape explanation: a
+     small, well-formed demonstration of demand-and-matching-answer is enough to teach the behaviour.
+     That also makes the fix cheap - the store needed is tiny, not a corpus.
+  2. RETENTION IS A SEPARATE PROBLEM, NOT A WEIGHT. It held in the full_prefix arms without any
+     demand store (both turns answered "My name", round 101's 60x arm) and fails with the store
+     present at both concentrations tested. The natural next candidates are the store's CONTENT
+     (its documents are single-turn by construction, so the mixture acquires thousands of documents
+     that never require carrying anything across a turn) and the terminal weighting interacting with
+     multi-turn documents. Both are testable: a demand store built with TWO-turn documents whose
+     second turn demands a form would separate them, and it is a small extension of the generator
+     that already exists.
+  3. It also confirms the qualitative picture from round 119 with a weaker dose: the model now answers
+     "Yellow.", "Yes.", "No.", "4.", "60.", "Red, blue," where every arm before round 119 produced
+     prose for all of these.
+
+WHAT REMAINS, NAMED
+  * Restore retention while keeping compliance: build a demand store whose documents are TWO-turn -
+    a first turn that states something and a second that demands a form about it - so the mixture no
+    longer trades multi-turn conditioning away for form compliance.
+  * Factual accuracy inside the correct form is still imperfect at this size ("Yellow" for grass,
+    "60" for the days in a week), which is a separate and much more familiar scaling question now
+    that the form itself is solved.
+
+SCOPE
+  Two concentrations of one demand store, one mixture, one weight, one shape, single seed each, greedy
+  decoding, one panel. Compliance is measured on nine form-demanded turns and retention on two pairs;
+  the counts are exact for this panel and are not a benchmark.
