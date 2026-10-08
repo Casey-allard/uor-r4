@@ -1,0 +1,68 @@
+UOR-R4 — Instruction-following panel for the served chat model: fluent, topically aware, instruction compliance 0/6
+Date: 2026-10-08 (overnight round 44). DeepSeek session. References #820.
+
+WHAT WAS RUN
+  geometric-stack lut-chat artifact=export-a1/model.lut tokenizer=TOKENIZER.json requests=panel2.json
+  max_new_tokens=40 temperature=0 protocol=2. The artifact is the chat-trained 19.9 M stack at
+  0.93277 bits per byte, served multiplier-free. 17 requests / 22 turns, constructed so that
+  compliance can be checked mechanically: one-word answers, exact counts, yes/no, factual answers
+  with expected content, three two-turn retention pairs and two two-turn follow-ups.
+
+RESULTS, WITH THE REPLIES THAT DECIDE THEM
+
+  instruction compliance                                          0 / 6
+    "Reply with exactly one word: yes"          -> "Yes, that's a good example."            (not one word)
+    "Answer with one word only: colour of grass"-> "The sunlight filtered through the sky..." (unrelated)
+    "List exactly three colours, commas"        -> "1. Add the color to the mixture...  2. ...  3. ..."
+                                                   (three items, but no colours, numbered not commas)
+    "Name exactly two planets"                  -> "Yes, the planets are extremely hot and dry..."
+    "Answer yes or no: is the sky blue?"        -> "The sun is shining bright, All there is a light..."
+    "Answer yes or no: do fish live in trees?"  -> "Yes, fish live in trees. They are a variety of fish..."
+                                                   (right format, wrong answer)
+
+  factual correctness                                             1 / 4
+    "capital of France"        -> "The capital of France is Paris."                            CORRECT
+    "days in a week"           -> "To find the number of days in a week, we'll need to calculate..."
+    "two plus two"             -> "The first two sentences are indeed two."
+    "largest planet"           -> "The largest planet in our solar system is a complex and dynamic process..."
+
+  greeting response                                               0 / 2
+    "Hello! How are you today?"-> "I'm planning to travel to Japan for a while now..."
+    "Good morning!"            -> "I'm glad you're interested in learning more about the history of..."
+
+  second-turn question answered                                   0 / 5
+    name / what is my name?           -> "Ana.  Ana.  Ana.  Ana.  Ana.  Ana.  Ana."  (both turns identical)
+    colour / what is my colour?       -> "My My My"                                  (both turns identical)
+    cats / how many cats?             -> "Yes, there are several categories..." then "There are several
+                                          categories..."                            (differs, unanswered)
+    Japan / what to pack?             -> turn 1 topical, turn 2 topical, never answers packing
+    cake / what ingredients?          -> both turns identical, "start by preparing the dough... flour,
+                                          salt, and pepper"                         (topical, unanswered)
+
+  fluency                                                        22 / 22
+  degenerate repetition                                           2 / 22  ("Ana. Ana. Ana.", "My My My")
+  second turn differs from the first                              2 / 5   (improved from 0/1 in round 42)
+
+WHAT THE MODEL DOES AND DOES NOT DO
+  It produces fluent English in every case, and it is TOPICALLY conditioned: "Japan" produces an
+  itinerary opener, "bake a cake" produces a recipe opener, "planets" produces a sentence about
+  planets. It cannot yet perform the ACT the turn requests: not one-word answers, not counts, not
+  yes/no, and it does not answer a question about something it was just told.
+
+  The distinction matters and is now measured: this is not a fluency failure, not a formatting
+  failure (the round-43 protocol fix removed those), and not a serving failure (the same served path
+  reproduces its float model to 0.00883 BPB). It is a failure to bind the response to the request.
+
+WHY THIS IS THE RIGHT TARGET
+  Everything the session measured says the pipeline is faithful and the model is limited by what it
+  learned. The panel says precisely WHAT it failed to learn: instruction-to-response binding,
+  including carrying a fact across a turn boundary. The three two-turn retention pairs are the
+  sharpest evidence - the model repeats the entity ("Ana") but cannot answer about it - and they
+  point at training data and objective rather than at volume. More tokens of the same conversational
+  register would produce more fluent topical text; binding needs examples where the reply is
+  determined by the turn.
+
+SCOPE
+  One artifact, greedy decoding, 17 requests, one protocol setting, compliance judged by mechanical
+  checks on the transcripts reproduced here. Small panel, single model; the counts are exact for
+  this panel and are not a benchmark.
