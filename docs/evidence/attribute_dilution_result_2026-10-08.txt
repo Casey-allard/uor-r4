@@ -1,0 +1,53 @@
+UOR-R4 — Response mass caused the compliance collapse; the attribute store buys form without content
+Date: 2026-10-08 (overnight rounds 134-136). DeepSeek session. References #820.
+
+THE SEPARATING ARM
+  The attribute store DILUTED 4x - 650 of 2,600 documents, 13,602 response tokens against 53,671 -
+  with the dependency structure IDENTICAL (transformation fraction 1.000000 in the material kept) and
+  everything else fixed: the same hash-proven chat corpus, 19,929,136 parameters, policy=full_prefix,
+  UOR_TERMINAL_WEIGHT=60, 12,207 steps, panel v2.
+
+RESULT
+
+  compliance by FORM - most of it returns
+    one word, grass    "White."    form correct (fact wrong)
+    one word, bees     "When you"  not compliant
+    yes/no x3          "Yes." "Yes." "Yes."   form correct (two facts wrong)
+    number             "5." "23." "- 1." "5."  numeric form (facts wrong)
+    list, capital, planet  "Another number" / "The capital" / "The largest"  not compliant
+    retention          "I can"     not answered
+
+  So form compliance goes from 2 of 10 at full mass to 7-8 of 10 at a quarter mass, while CONTENT
+  correctness does not: "White" for grass, "5" for the days in a week, "23" for two plus two, and
+  "Yes" for whether ice is hot.
+
+WHAT THE TWO ARMS TOGETHER ESTABLISH
+  1. RESPONSE MASS WAS THE CAUSE OF THE COLLAPSE. The only variable changed was the demand-side
+     response token count, and form compliance recovered with it. That confirms round 122's reading
+     from the opposite direction: what the mixture teaches as ANSWERS must stay short and few, and a
+     store can carry perfect dependency structure while destroying compliance simply by adding
+     long-answer mass.
+  2. FORM AND CONTENT ARE SEPARABLE, AND THIS STORE TRADES CONTENT FOR FORM. Every earlier demand
+     store produced correct facts with the compliant form ("Green.", "Honey.", "7.", "4.", "Paris.");
+     the attribute store produces the form with wrong facts ("White.", "5.", "23."). Its long
+     authored PREMISES teach the model to emit a short token without grounding it, which is the
+     opposite of what the attribute families were meant to teach.
+  3. IT DOES NOT BUY RETENTION. At full mass and at a quarter mass the multi-turn turns return prose
+     fragments ("I can"), so the dependency structure - 2,600 documents requiring a transformation,
+     measured at fraction 1.000000 - did not produce recall in either arm. Retention remains the open
+     problem, and the attribute route is now ruled out as its solution at this scale and mixture.
+
+WHAT THE PROJECT SHOULD CARRY FORWARD
+  The best measured configuration is unchanged: the hash-proven chat corpus plus a SMALL demand store
+  of short answers (the 700-2,860 document range measured tonight), at 19.9 M parameters, with
+  UOR_TERMINAL_WEIGHT=60. That configuration complies on ten of ten form-demanded turns WITH correct
+  content, converses canonically, states a correct fact ("Jupiter") and anchors a follow-up
+  ("My cat,"). The attribute store is preserved as a negative result with a clear mechanism rather
+  than deleted, and the generator remains available if a future hypothesis needs transformation-heavy
+  documents with SHORT premises.
+
+SCOPE
+  Three attribute-store arms (full mass, quarter mass, and the round-134 full-mass run), one shape, one
+  weight, single seed each, greedy decoding, one panel, exact for the ten form-demanded turns used
+  throughout the session. Content correctness is judged on the same items as every earlier arm, so
+  the comparison is like for like.
