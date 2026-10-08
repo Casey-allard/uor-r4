@@ -1,0 +1,46 @@
+UOR-R4 — Mask-scan status: the verification needs a small tool, and the corpus for it is local
+Date: 2026-10-08 (overnight round 52). DeepSeek session. References #820.
+
+WHAT WAS ATTEMPTED
+  Round 51 specified the marker scan and named its own unexecuted verification. This round tried to
+  execute it on the leased pod and could not, for a mundane reason worth recording so the next
+  attempt does not repeat it:
+
+  * The leased pod carries PREBUILT binaries under /workspace/bin/<sha>-sm89/ but no source
+    checkout: /root/build/src-* does not exist there. Nothing can be compiled on it without first
+    staging a checkout, and no `mask-scan` tool exists in the repository to compile anyway.
+
+WHAT IS ACTUALLY NEEDED, AND WHERE IT SHOULD RUN
+  The scan needs a small Rust example - a few dozen lines:
+    1. read the tokenizer (ByteBpeTokenizer::from_tokenizer_json_bytes, the same call
+       token-stream-bytes.rs already uses successfully);
+    2. DialogueProtocol::literal_roles_version(&tokenizer, 2) then .bind(&tokenizer), and
+       encode_assistant_prefix(&[]) from crates/uor-r4-tokenizer/src/dialogue.rs:250-252 to obtain
+       the literal `Assistant:` marker as a token id sequence;
+    3. scan a token stream for that sequence and for `User:`, counting occurrences and the token
+       gaps between them, which yields the conversation count and the response fraction;
+    4. emit response_mask.u8 (one byte per token) if the counts look right.
+  It should run LOCALLY, not on a pod: the corpus is already here
+  (~/uor-r4-local/chat-v0-p2/train/tokens.u16, 164,496,986 bytes) with its held-out split and the
+  tokenizer (~/uor-r4-local/entry-scorer-inputs/tokenizer.json, sha256 d36d3e87...), and the scan is
+  a single pass over 82 M u16 values - seconds of CPU. The pod bought nothing for this step and its
+  lease is therefore released once the current pod work is confirmed complete.
+
+WHAT REMAINS TRUE FROM ROUNDS 50-51
+  * The builder emits response_mask.u8 itself (prepare-chat-parquet.rs:210), so the artefact is a
+    first-class output, not new machinery to invent.
+  * Version 2's markers are literal text ending at a colon (`User:`, `Assistant:`)
+    (crates/uor-r4-tokenizer/src/dialogue.rs:16-17, :22).
+  * The contract's assistant marker is derived from the tokenizer and protocol version alone
+    (stack_dialogue.rs:333-352), with no reference to source conversations.
+  * Independent behavioural evidence that the markers are present: the served model answers
+    coherently under protocol=2 (round 43) and degenerates into template echoes without it
+    (round 46).
+
+  NONE OF THAT IS VERIFIED BY A SCAN YET. The claim that the mask is one small tool away is a
+  source reading; the marker-count check is what would turn it into a measurement, and it has now
+  survived two rounds unexecuted - recorded plainly rather than left implied.
+
+NEXT, IN ONE LINE
+  Write mask-scan locally, run it on the local chat corpus, report the marker counts and the implied
+  response fraction, then run dialogue-train with the mask and score the two frozen instruments.
