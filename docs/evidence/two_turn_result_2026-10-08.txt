@@ -1,0 +1,53 @@
+UOR-R4 — The two-turn demand store keeps compliance perfect and does not restore correct retention
+Date: 2026-10-08 (overnight rounds 123-126). DeepSeek session. References #820.
+
+THE TEST
+  A two-turn demand store built from the single-turn store: 2,860 documents, 5,720 response runs,
+  31,084 response tokens, 66.68 % DEPENDENCY-CARRYING (recall 1,294, polarity 197, arithmetic 180,
+  count 118, item 118) - turn 2's answer exists only in turn 1. Verified with 0 offenders on all 16
+  mask clauses by two independent implementations, a corruption test whose broken bytes were rejected
+  by the project's own EpisodeIndex, and 5,720/5,720 responses admitted with none excluded. Mixed with
+  the hash-proven chat corpus, trained with policy=full_prefix and UOR_TERMINAL_WEIGHT=60 on the
+  frozen 7.16 M shape, exported, scored with panel v2.
+
+RESULT
+
+  form compliance - COMPLETE AND UNDISTURBED
+    one word, grass      "Green."      correct
+    one word, bees       "Honey."      correct
+    yes/no sky blue      "Yes."        correct
+    yes/no fish/trees    "No."         correct
+    yes/no ice hot       "No."         correct
+    number days/week     "7."          correct
+    number 2+2           "4."          correct
+    number dog legs      "8."          form correct, fact wrong
+    list three colours   "Red, blue,"  list form
+    capital of France    "Paris."      correct
+
+  retention - STILL NOT CORRECT, but no longer degenerate
+    cats -> "Woof and"          topical, wrong, previously "One healthy"
+    name -> "1. Dogs,"          wrong, previously "Imagineopotamids have"
+    follow-up -> "Hello! How"   canonical
+
+WHAT IT ESTABLISHES
+  1. FORM COMPLIANCE IS SOLVED AND ROBUST. Ten of ten form-demanded turns comply in the requested
+     form, with correct content for Green, Honey, Yes, No, 7, 4 and Paris - now across three mixture
+     configurations (2,860 single-turn, 700 single-turn, 2,860 two-turn). Nothing in this session
+     before the demand store produced compliance on ANY of these turns.
+  2. THE STORE'S SHAPE IS NOT WHY RETENTION FAILED. With 1,907 dependency-carrying documents in the
+     mixture - where turn 2's answer exists only in turn 1 - the model still does not answer "how many
+     cats do I have" with the count. The pre-registered fork therefore fires for the second branch.
+  3. RETENTION DID NOT DEGRADE FURTHER, AND THE OUTPUT IS MORE COHERENT: the degenerate strings of
+     round 119 are gone, replaced by short topical responses. That is consistent with the mixture
+     helping rather than harming, without being sufficient.
+  4. THE PRIME SUSPECT IS NOW THE TERMINAL WEIGHT INTERACTING WITH MULTI-TURN SEQUENCES. Retention
+     held in the arm with UOR_TERMINAL_WEIGHT=60 and NO demand store (both turns answered "My name"),
+     and fails in every arm that has a demand store. That is the arm now running: the SAME two-turn
+     mixture with UOR_TERMINAL_WEIGHT=1 (the default). If retention returns, the interaction is
+     identified and the fix is a mixture/no-weight configuration; if it does not, the remaining
+     candidate is capacity competition between form compliance and turn-conditioned recall at this
+     model size, which is a scaling question rather than a mechanism one.
+
+SCOPE
+  One mixture, one weight, one shape, single seed, greedy decoding, one panel. Compliance is measured
+  on ten form-demanded turns and retention on three multi-turn turns; exact for this panel.
