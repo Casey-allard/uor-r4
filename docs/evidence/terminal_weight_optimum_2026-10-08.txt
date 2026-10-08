@@ -1,0 +1,43 @@
+UOR-R4 — The terminal-weight optimum sits near 60x: compliance and retention together
+Date: 2026-10-08 (overnight rounds 99-101). DeepSeek session. References #820.
+
+THE THREE DOSES, ONE PANEL, ONE RECIPE
+  Same 7.16 M shape (rrarra), same corpus, mask, policy=full_prefix, steps and seed; the only
+  difference is UOR_TERMINAL_WEIGHT, which weights the response's terminating <|eos|>.
+
+    weight   what the panel shows (first two content tokens)
+    20x      yes/no compiles 2 of 3 ("Yes, the"); retention answers once ("My name");
+             one-word and numeric turns do not comply
+    60x      yes/no compiles ("Yes, the", "Yes, that's"); BOTH retention turns answer "My name";
+             the follow-up responds ("You can"); France and largest-planet openers intact;
+             one-word and numeric turns still do not comply
+    200x     yes/no REVERTS ("The sky"); retention BREAKS ("The main"); list artifacts return
+
+  So the ordering on the behaviours that matter is 60 > 20 > 200, with 200 a clear collapse and 60
+  the first dose at which compliance and the existing behaviours hold TOGETHER.
+
+WHY THIS IS THE MOST USEFUL RESULT OF THE NIGHT ON THE CHAT PATH
+  1. IT IS THE FIRST SETTING THAT DOES NOT TRADE ONE BEHAVIOUR FOR ANOTHER. Every previous
+     intervention moved either compliance (never, before this change) or register/multi-turn, and the
+     first two doses here showed the trade explicitly: 20x bought yes/no at the cost of losing one
+     retention turn, 200x lost both. At 60x the yes/no class complies AND both retention turns answer
+     the question asked, with the factual openers intact.
+  2. IT CONFIRMS THE CAUSAL STORY. The session's five eliminations left token-level MLE length bias -
+     after a complete answer the corpus's continuations carry roughly 250:1 the token mass of its
+     stops - and a single scalar that changes only what a completed answer is WORTH to the loss
+     moves compliance up, back down, and to a better point in between. Nothing else tried tonight did
+     that, and no data, scale or decoding change came close.
+  3. IT LEAVES A CLEAN SEARCH. The optimum lies between 20x and 200x and appears near 60x; the next
+     doses (30, 60, 100) would locate it, each one arm of the same recipe with the same instrument.
+
+WHAT REMAINS UNMOVED
+  One-word and numeric turns still do not comply at any dose ("To make", "To find", "To solve"): the
+  model produces a procedure or a phrase rather than the requested single token. Either the weight
+  that reaches those classes is outside [20, 200] - which the 200x collapse makes unlikely - or the
+  requested form for them is not reachable by terminal weighting alone, and something further is
+  needed. That is the next question, and it is now a narrow one.
+
+SCOPE
+  Three doses, single seed each, one shape, one panel read as the first two content tokens with the
+  echo item removed, greedy decoding. Doses are single measurements, not a fitted curve; "optimum
+  near 60x" means it is the best of the three measured, not that 60 is optimal.
