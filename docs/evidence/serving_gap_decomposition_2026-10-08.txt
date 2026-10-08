@@ -1,0 +1,60 @@
+UOR-R4 — Decomposing the serving gap: 2.57 BPB of it is domain mismatch, 0.58 is export
+Date: 2026-10-08 (overnight round 4). DeepSeek session. References #820.
+
+THE QUESTION
+  Round 3 measured a 3.27 BPB gap at matched protocol between a trained model of this project's
+  family (geo-8m-l2, 1.1199 BPB on chat-v0-p2/heldout) and the artifact the project serves
+  (4.3885 BPB on the same file with the same 256-token context). This round asks where those
+  3.27 BPB actually are.
+
+THE MEASUREMENT THAT SEPARATES THEM
+  The served artifact scored in-domain, identical protocol (256-token context, same tokenizer,
+  4,096 positions):
+
+    chat-v0-p2/heldout   BPB 4.3885   top-1 2.25 %      <- out of domain
+    tinystories_train    BPB 1.8202   top-1 25.81 %     <- in domain
+
+  The artifact was trained on TinyStories. In domain it is a working model with a quarter of the
+  next tokens correct; out of domain it is worse than a unigram. So the 3.27 BPB is not a serving
+  defect: it is 2.57 BPB of domain mismatch plus the in-domain serving loss.
+
+THE DECOMPOSITION, ALL MEASURED
+
+  Domain mismatch            4.3885 (chat, served)   - 1.8202 (TinyStories, served)   = 2.5683
+  Export / discretisation    1.2372 (continuous)     - 1.8202 (served, in domain)     = 0.5830
+                                                                  (recorded pair, same corpus)
+  Out-of-domain sanity       3.2299 (order-0 frequency table, 16 KB, fit on chat train)
+                             4.3885 (served artifact, 2.7 MB)  -> worse than a unigram
+
+  For reference, at matched protocol and on the same chat file:
+    geo-8m-l2 trained stack  1.1199 BPB       (sealed evaluation, converted in round 3)
+    Kneser-Ney 5-gram        ~1.23-1.28 BPB   (this session's measurement)
+    served artifact          4.3885 BPB, top-1 2.25 %
+    uniform                  4.2292 BPB, top-1 0.024 %
+
+WHAT IT MEANS, AND WHAT IT KILLS
+  1. "The serving path loses 3.27 BPB" is wrong as stated. The in-domain serving loss is 0.58 BPB;
+     the rest is the artifact being evaluated on a distribution it was never trained on. That
+     matters because it invalidates the experiment design this session spent its time on: every
+     mechanism delta was measured on chat, where the served scorer sits below uniform, has 2.25 %
+     top-1, and therefore cannot show a mechanism effect at all.
+  2. The place to iterate on the discrete scorer is IN DOMAIN, where it has 25.81 % top-1 and
+     1.82 BPB. Stage 3 (resolution) and Stage 4 (nonlinearity) should be measured there; on chat
+     their ceiling is the transfer failure, not the mechanism.
+  3. The prize is not repairing this artifact's chat behaviour. It is serving the mechanism that
+     reaches 1.1199 on chat, which is the 8M read-stack, multiplier-free. Its 7.15 M parameters
+     and 28.6 MB fp32 artifact are the object to convert, not the 2.7 MB discrete scorer whose
+     token representation is 120 roots (6.9 bits) against the stack's 1536-wide embedding.
+
+NEXT
+  1. In-domain (TinyStories, served artifact, 256 context, 4,096 positions, top-1 25.81 %) becomes
+     the iteration bench for Stages 3 and 4, with the document-clustered protocol.
+  2. The serving conversion of the 8M read-stack is the high-value path: 1.1199 BPB on real chat
+     against the 4.3885 currently served, on an artifact 10x the size of the current one.
+  3. Any comparison must state corpus, context length and byte basis. Three numbers in this
+     project's own records were unusable for want of one of those.
+
+SCOPE
+  All four numbers above are the same artifact, tokenizer (d36d3e87) and context protocol; chat
+  bases 2.837427 bytes per token, tinystories 4.0328 (the recorded in-domain pair uses that
+  basis). Single artefact, 4,096 positions per row, release build. No training was run.
