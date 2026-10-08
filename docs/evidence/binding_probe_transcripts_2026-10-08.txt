@@ -1,0 +1,60 @@
+UOR-R4 — Binding probe, natural condition: the acknowledgement loop is self-conditioned and retrieval is partly intact
+Date: 2026-10-08 (overnight rounds 149-153). DeepSeek session. References #820.
+
+WHAT RAN
+  The expert review's P1: a binding probe over the four rows that differ ONLY in the value inside turn 1
+  (I have two cats / I have five cats, both asked "How many cats do I have?"; My name is Ana / My name
+  is Ben, both asked "What is my name?"), scoring existing checkpoints with no training. Checkpoints:
+  arm-t2 (19.9 M, two-turn demand store), arm-as (19.9 M, attrshort store), arm-bind (33.8 M), and
+  arm-w60 (7.16 M, NO demand store - the control in which the record shows binding previously worked).
+  The probe records the model's own turn-1 output, its turn-2 reply, and CLASSIFIES each failure into
+  the pre-registered categories (binding swap / unreached / readout). Artifacts on the pod:
+  bindprobe/{transcripts.md, rows_selftext_eos_arm-*.json, checks.tsv}.
+
+WHAT THE NATURAL-CONDITION TRANSCRIPTS SHOW
+
+  arm-as (attrshort store) - THE ACKNOWLEDGEMENT LOOP IS SELF-CONDITIONED
+    cats2   the model's OWN turn 1: " Noted."    -> turn-2 reply: " Noted."    class c_readout
+    cats5   the model's OWN turn 1: " Noted."    -> turn-2 reply: " I see."    class c_readout
+    The model generates the store's acknowledgement as turn 1 and then answers the follow-up with
+    ANOTHER acknowledgement. The failure is a register loop that the mixture itself created: "Noted."
+    and "I see." are the hard-coded turn-1 answers of every count/attribute family in the attrshort
+    generator, and the model reproduces them in both slots.
+
+  arm-t2 (two-turn store, no acknowledgement family) - RETRIEVAL IS PARTLY INTACT, READOUT IS NOT
+    ana     reply: " My name is Ana brain."                      class c_readout
+    ben     reply: " My name is Reflection, and I'm..."          class c_readout
+    cats5   reply: " My favorite pet is the most popular pet..." class b_unreached
+    The ana row RETRIEVES THE VALUE - "Ana" is in the reply - and still fails to answer the question,
+    which is the readout failure downstream of retrieval that the review predicted from the earlier
+    "My cat," observation. With a store whose turn-1 answers are prose rather than acknowledgements,
+    the model's own turn-1 outputs are prose too (" Hey 1. Balance is a beautiful day..."), so the
+    loop and the retrieval failure are separable by the mixture's register.
+
+WHY THIS MATTERS BEFORE THE PINNED MARGINS ARRIVE
+  1. THE LEADING MECHANISM HAS DIRECT OBSERVATIONAL SUPPORT. The review's proposal P1 was designed to
+     discriminate self-conditioning from a missing span mechanism, and the natural condition already
+     shows the self-conditioning signature in the arm whose store supplies acknowledgements, while the
+     arm whose store does not shows partial retrieval with a readout failure instead.
+  2. IT EXPLAINS WHY EVERY STORE IMPROVEMENT FAILED. Rounds 134, 136 and 143 each made the store
+     "better" - longer premises, dilution, short premises at 70 % less mass - and each kept or
+     reintroduced the acknowledgement register in the turn-1 slot, so each taught the model the same
+     self-conditioned loop. The stores were never the variable; the REGISTER of their turn-1 answers
+     was.
+  3. IT NAMES THE NEXT DATA CHANGE PRECISELY: turn-1 answers must be CONTENT-BEARING short copies of
+     the premise ("Metals: iron, copper, zinc." -> "Iron, copper, zinc.") rather than content-free
+     acknowledgements, so the turn-1 slot teaches span selection instead of a register. That is the
+     review's P4, and it is cheap: one generator change and one arm.
+  4. IT ALSO CORRECTS THE STORE'S OWN VALIDATION, as the review found: the "transformation fraction
+     1.000000" checks the answer against turn 1's ANSWER but never against turn 1's PREMISE, where the
+     value usually sits, so no store built tonight ever forced the model to ignore the premise.
+
+WHAT IS STILL PENDING (stated so it is not confused with the above)
+  The PINNED conditions - turn 1 fixed to a canonical reply ("Sure.") versus the store's own "Noted." -
+  and the DELTA margins in nats with the mixture/generator split. Those are the pre-registered
+  discriminator and they are still running; this document reports only what the natural condition
+  measured, with the failure classes the probe assigned.
+
+SCOPE
+  Inference only on four existing checkpoints, greedy decoding, four rows in the natural condition plus
+  full transcripts. Exact for these rows; no claim is made about the pinned margins or about scaling.
