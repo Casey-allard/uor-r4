@@ -1,0 +1,80 @@
+UOR-R4 — VSA code-mode ablation on the discrete prose artifact (Card P7 sweep)
+Date: 2026-10-08. Executed by: DeepSeek session, local M1 checkout.
+References #820.
+
+WHY THIS WAS RUN
+  `learner/vsa_codes.rs` documents a defect and its repair. The defect: the serving
+  path built its VSA codebook from `splitmix64(vsa_seed, token_id)`, a fixed random
+  function of the token id, so `E[d_H] = D/2` and "the only recoverable signal is
+  `a == b`". The repair: derive each token's code from the LEARNED 120-root
+  assignment by locality-sensitive hashing of the canonical icosian root
+  quaternions, so `E[d_H] = D*theta/pi`, monotone in the angle between roots.
+  The Card P7 ablation had measured the VSA term as HARMFUL under the fixed
+  codebook. Question: does the repaired codebook change that verdict in the
+  full-vocabulary discrete scorer?
+
+ARTIFACT AND INPUTS (bound to bytes)
+  model      : native_geometric_prose_model.rgm
+               size 2,691,950 bytes; sha256 7023c4507039acc01653b2dd6a41cf4329635767c66811a17d76591a4f356d96
+               (same artifact identity as the Card P7 record of 2026-09-19)
+  corpus     : tinystories_train.u16 (555,385,505 tokens); held-out slices at
+               offset 0 and offset 100,000,000, 8,256 tokens each
+  tokenizer  : tokenizer.json sha256 d36d3e8700a123e620012df7... (TinyStories 4096-vocab;
+               used only for token byte lengths, identical in both modes, so the
+               paired contrast is unaffected by tokenizer provenance)
+  scorer     : discrete additive scorer, full-vocabulary softmax at temperature 1.0
+  tool       : ablate-prose (Card P7), debug build, exact head of the run recorded below
+
+COMMANDS
+  ablate-prose --model native_geometric_prose_model.rgm --corpus tinystories_train.u16 \
+    --tokenizer tokenizer.json --vsa-code-mode {fixed|root}
+  ablate-prose ... --vsa-code-mode {fixed|root} --ablations vsa --holdout-offset 100000000
+
+RESULTS — slice 1 (offset 0, 8,127 scored positions)
+  mode    baseline BPB   vsa delta    paired 95% CI          band        dTop1pp   flip%
+  fixed   1.8964         -0.0010      [-0.0011, -0.0009]    NEGLIGIBLE  -0.04     0.5
+  root    1.8969         -0.0015      [-0.0019, -0.0010]    NEGLIGIBLE  +0.00     1.7
+  (fixed: 0 distinct code vectors; root: 120 distinct code vectors)
+
+RESULTS — slice 2 (offset 100,000,000, 8,127 scored positions)
+  mode    baseline BPB   vsa delta    paired 95% CI          band        dTop1pp   flip%
+  fixed   1.8783         -0.0015      [-0.0016, -0.0013]    NEGLIGIBLE  -0.05     0.6
+  root    1.8788         -0.0020      [-0.0025, -0.0016]    NEGLIGIBLE  -0.12     1.8
+
+WHAT THIS ESTABLISHES
+  * Switching the codebook from the fixed token-id hash to the learned-root LSH
+    construction does NOT make the VSA term contribute to the full-vocabulary
+    discrete scorer. The band is NEGLIGIBLE (epsilon = 0.01 BPB) in all four runs,
+    and the delta is slightly NEGATIVE in every one (ablating VSA marginally helps,
+    by 0.0010 to 0.0020 BPB), replicated on two disjoint held-out slices.
+  * Top-1 accuracy is unchanged by the mode (within 0.12 pp, both directions).
+  * This is the aliasing ceiling that `vsa_codes.rs` itself states: codes are a
+    function of the root, so a 4,096-token vocabulary collapses onto at most 120
+    distinct codes and two distinct tokens in the same root have `d_H = 0` —
+    indistinguishable to every head. The module's own words: escaping that requires
+    codes at finer resolution derived from the CONTINUOUS learned embedding, which
+    the exported artifact does not carry (it stores `token_to_root` only); that is
+    Stage 3 of `native-core-transition-plan.md`.
+
+SCOPE AND LIMITS — read before reusing these numbers
+  * This measures the VSA term's contribution to THIS artifact's full-vocabulary
+    discrete scorer. It is not a verdict on the 120-root representation, on the
+    JEPA learner, or on routing: the September wiring record measured the root
+    codebook improving `shortlist-recall` on two disjoint slices (recall 8.4-8.8 %
+    -> 10.7-11.2 %; shortlist BPB 2.72-2.83 -> 2.67-2.78). The repair is real; its
+    effect does not reach this scorer's VSA term.
+  * `ablate-prose` prints a static wiring note for the `vsa` row ("MIS-WIRED: heads
+    bind a fixed random codebook..."). That string is not mode-aware, so it is stale
+    for the root runs here; the mode switch is confirmed by the header line
+    ("root (120 distinct code vectors)" against "fixed (0 distinct code vectors)").
+  * Debug build, one artifact, one corpus, two 8,256-token slices, temperature 1.0.
+    No training, no fitting, no serving change was made.
+  * The absolute BPB differs from the Card P7 record (vsa row 1.8048) because that
+    record evaluated the stripped `_nocoarse` artifact (963,950 bytes); this one
+    evaluates the 2,691,950-byte artifact whose sha256 is quoted above.
+
+NEXT ACTION THIS POINTS AT
+  Stage 3 of `native-core-transition-plan.md`: codes derived from the continuous
+  learned embedding at finer resolution than 120 buckets. Until the artifact carries
+  that embedding, no codebook at root resolution can make this term informative, and
+  this sweep cannot be used to retire the mechanism.
