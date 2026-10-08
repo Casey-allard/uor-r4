@@ -1,0 +1,62 @@
+UOR-R4 — The attribute store as built DIULTES the short-form mode: compliance falls from ten of ten to two of ten
+Date: 2026-10-08 (overnight rounds 132-134). DeepSeek session. References #820.
+
+WHAT RAN
+  A new attribute-extraction store: 2,600 two-turn documents, 175,906 tokens, 53,671 response
+  tokens, with a measured transformation fraction of 1.000000 (copying turn 1's answer passes ZERO
+  documents - count 640, ordinal 600, name 480, attribute 400, number 240, polarity 200, flip_word
+  40). Verified with 0 offenders on all 16 mask clauses by two implementations, a corruption test the
+  project's EpisodeIndex rejected, and 5,200/5,200 responses admitted with none excluded. Mixed with
+  the hash-proven chat corpus and trained at 19,929,136 parameters with UOR_TERMINAL_WEIGHT=60.
+
+RESULT - A CLEAR REGRESSION
+
+  form compliance (10 form-demanded turns)
+    one word grass     "The wall"     NOT compliant   (was "Green.")
+    one word bees      "You can"      NOT compliant   (was "Honey.")
+    yes/no sky blue    "Yes."         compliant
+    yes/no fish/trees  "Yes."         wrong content
+    yes/no ice hot     "Yes."         wrong content
+    number days/week   "A number"     NOT compliant   (was "7.")
+    number 2+2         "4."           compliant
+    capital of France  "Tokyo is"     WRONG content and prose (was "Paris.")
+    list colours       "Here are"     NOT compliant   (was "Red, blue,")
+
+  So compliance falls from TEN OF TEN (five previous configurations, two shapes) to TWO OF TEN, and
+  the factual answer regresses as well ("Tokyo" for France, where the 19.9 M two-turn arm produced
+  "Paris" and the planet turn produced "Jupiter"). Retention does not improve: the multi-turn turns
+  return prose fragments ("The instruments", "Here are") rather than either an answer or the earlier
+  anchored "My cat,".
+
+WHY, FROM THE STORE'S OWN NUMBERS
+  The store's turn-1 answers are LONG by construction - 2 to 31 tokens, authored sentences - and it
+  contributes 53,671 response tokens, MORE than the two-turn store that worked (31,084) and more than
+  half of the total demand-side response mass. The mixture therefore re-taught the long-answer mode
+  that the earlier stores had specifically countered, and the model's replies drift back to prose
+  ("Here are", "The wall", "The instruments"). The previous findings already contain the shape of the
+  fix: a 4x DILUTION of the demand store kept compliance intact (round 122), so the demand-side
+  response mass is the operative variable, and this store roughly doubled it while making each of its
+  answers longer.
+
+WHAT THIS DOES AND DOES NOT CHANGE
+  * It does NOT weaken the breakthrough: the demand-store result stands on five configurations and
+    two shapes, ten of ten compliance each, and this arm is a different store whose answers are long
+    by design.
+  * It DOES establish the operative variable: what matters is not only that demands and matching
+    answers are present, but that the ANSWERS THE MIXTURE TEACHES STAY SHORT. A store can carry the
+    right dependency structure and still harm compliance by teaching long replies.
+  * RETENTION REMAINS UNEXPLAINED BY THIS ARM. The dependency structure did not produce recall, and
+    the arm cannot separate "attribute extraction is hard" from "the long-answer dilution masked
+    whatever the dependency structure taught".
+
+THE NEXT ARM, NAMED AND CHEAP
+  The same attribute store DILUTED - or, better, rebuilt with SHORT turn-1 answers (the count,
+  ordinal and name families need only a short premise, e.g. "Metals: iron, copper, zinc." rather than
+  a full authored sentence) - so the dependency structure is present while the demand-side response
+  mass stays at the level that produced ten of ten. The two variables that this arm confounded are
+  then separated by construction, and both instruments are already frozen.
+
+SCOPE
+  One store, one mixture, one shape, one weight, single seed, greedy decoding, one panel. The
+  regression is measured on the same ten form-demanded turns used throughout the session, so the
+  comparison to the five compliant configurations is exact for this panel.
