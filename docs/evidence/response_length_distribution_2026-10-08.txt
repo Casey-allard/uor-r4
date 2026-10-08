@@ -1,0 +1,69 @@
+UOR-R4 — The corpus has no short-form replies, so instruction precision is not learnable from it
+Date: 2026-10-08 (overnight round 79). DeepSeek session. References #820.
+Instrument: response-length distribution computed from the mask emitted and verified in rounds 53-55.
+
+THE MEASUREMENT
+  chat-v0-p2/train, 82,248,461 tokens, response regions from chat-train.mask (one byte per token,
+  verified against the literal-role markers: 129,472 Assistant markers, 71.1 % response region):
+
+    responses                    129,465
+    median length                350 tokens
+    mean                         438
+    p10 / p90                    61 / 919
+    max                          3,925
+
+    length distribution
+      <=   1 token                 0.0 %
+      <=   2 tokens                0.0 %
+      <=   3 tokens                0.0 %
+      <=   5 tokens                0.0 %
+      <=  10 tokens                0.1 %
+      <=  20 tokens                2.2 %
+      <=  50 tokens                7.8 %
+      >  200 tokens               67.8 %
+
+WHAT IT SETTLES
+  THE CORPUS CONTAINS ESSENTIALLY NO SHORT-FORM RESPONSES. Across 129,465 assistant replies there is
+  not one of one to three tokens, and one in a thousand is ten tokens or fewer. Two thirds are longer
+  than two hundred.
+
+  That is the answer to the instruction-precision question that four arms have now failed to move.
+  When a turn asks for "exactly one word", a yes/no, or a number, the model has no such reply in its
+  training target distribution to imitate - the reply distribution is prose, without exception. It
+  therefore does the only thing it can: it writes prose ABOUT the request, which is exactly what the
+  panels show ("Imagine a response with exactly three bullet points using markdown...", "The sky blue
+  is a symbol of life...").
+
+  It also explains why the four candidate causes were each refuted in turn: capacity helped the
+  things capacity can help (the refusal default, a factual answer, format awareness) but cannot
+  invent a reply form absent from the data; the objective change fixed REGISTER and multi-turn
+  conditioning because those ARE in the data; sampling changes style, not the support of the
+  distribution; and the prompt protocol was a separate, already-fixed defect.
+
+WHAT IT CHANGES ABOUT THE NEXT STEP
+  Rounds 75-76 recorded "scale capacity rather than buy data" for the remaining gap. THAT IS NOW
+  WRONG FOR THIS TARGET, and the correction is specific rather than a reversal of the earlier
+  findings:
+    * more tokens of the same corpus: still NO. Round 48 falsified it (all three measures flat or
+      worse, 0.127 nats cost) and the 214 M mixture comparison agrees (1.0966 against 0.9607).
+    * a corpus whose RESPONSE-LENGTH DISTRIBUTION includes short forms: this is the binding
+      constraint for instruction precision, and it is a much smaller and more specific ask than
+      "1.39 B more tokens". What is needed is on the order of thousands to tens of thousands of turns
+      whose correct reply is one word, a yes/no, a number or a short list - a mixed-form instruction
+      set - not a general chat corpus.
+  The existing corpus remains the right base for register and conversation; what it cannot supply is
+  the answer-form tail, and no amount of it will.
+
+HOW TO GET THE MISSING PIECE, STATED WITHOUT CLAIMING IT WORKS
+  The repository already contains the machinery to build such a set: prepare-chat-parquet takes
+  per-source selection with skip counts, and the sources already used include task-formatted
+  configurations (summarize, rewrite, constraints) whose replies are far shorter than the
+  conversational ones. A first estimate of their form distribution, from the same mask method, is
+  cheap and is the obvious next measurement: if those sources are also prose-dominant, the short-form
+  data must come from elsewhere, and the owner would need to decide about a new licence-clean source.
+  That check should precede any training run aimed at instruction precision.
+
+SCOPE
+  One corpus, one mask, exact counts from a single pass. The mask's response regions were verified
+  against the marker contract in rounds 53-55; the distribution is therefore exact for this corpus
+  and says nothing about corpora not measured here.
