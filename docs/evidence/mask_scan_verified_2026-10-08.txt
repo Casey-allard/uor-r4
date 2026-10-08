@@ -1,0 +1,55 @@
+UOR-R4 — The response mask is verified extractable: literal role markers found in the corpus
+Date: 2026-10-08 (overnight round 53). DeepSeek session. References #820.
+New instrument: crates/uor-r4-training/examples/mask-scan.rs.
+
+WHAT ROUNDS 50-52 CLAIMED WITHOUT MEASURING, AND WHAT THIS ROUND MEASURED
+  Rounds 50-52 read the source and concluded that the chat corpus's response regions are
+  recoverable because version 2 renders its roles as literal text. Two rounds passed without a
+  scan. This round wrote the scan, built it locally (no pod: the corpus and tokenizer are on this
+  laptop, and the run is one pass over 82 M u16 values) and ran it.
+
+THE MEASUREMENT
+
+  chat-v0-p2/train/tokens.u16, 82,248,461 tokens, header skipped:
+    "Assistant:"  token ids [35, 560, 652, 714, 28]      129,472 occurrences
+                  first at position 105, median gap 548 tokens, max gap 4,756
+    "User:"       token ids [55, 2728, 28]               129,728 occurrences
+                  first at position 1,   median gap 526 tokens, max gap 5,847
+
+  chat-v0-p2/heldout/tokens.u16, 6,194,589 tokens:
+    "Assistant:"  10,251 occurrences, median gap 512, max 4,086
+    "User:"       10,264 occurrences, median gap 487, max 5,258
+
+WHAT IT ESTABLISHES
+  1. THE MARKERS ARE PRESENT AND LITERAL, exactly as the protocol documents. The ids are stable
+     five- and three-token sequences, and the protocol's own test asserts the string
+     `Assistant:` at crates/uor-r4-tokenizer/src/dialogue.rs:475, which is what these ids encode.
+  2. THE PATTERN IS THE EXPECTED ALTERNATION. Assistant and user counts agree to 0.2 % in the
+     training stream (129,472 against 129,728) and to 0.13 % in the held-out stream, which is what
+     a corpus of single-turn conversations looks like; the median gaps of 548 and 526 tokens are
+     the turn lengths.
+  3. THE RESPONSE MASK IS THEREFORE A SCAN, NOT A REBUILD. Marking the tokens after each
+     `Assistant:` marker until the next role marker or BOS yields the mask that
+     `prepare-chat-parquet.rs:210` writes as response_mask.u8. No parquet, no re-fetch, no
+     retokenisation.
+  4. THE RESPONSE FRACTION IS SUBSTANTIAL. With a median assistant-to-next-user gap of about 548
+     tokens against a median user-to-assistant gap of about 526, roughly half the corpus is
+     response region - enough for a response-region loss to have something to weight, which was
+     an open question when the objective route was only a source reading.
+
+STATUS OF THE CHAIN
+  Round 48 falsified the data hypothesis with a pre-registered arm and pointed at the objective.
+  Round 49 thought the objective needed a 2.1 GB corpus rebuild. Round 50 corrected that from
+  source. Round 51 specified the extraction. Round 52 recorded that the verification had not run
+  twice. THIS round runs it, and the answer is yes.
+
+WHAT IS STILL NOT DONE
+  * response_mask.u8 has not been emitted, only the counts that justify emitting it.
+  * dialogue-train has not been run with a mask, and needs train_tokens, train_mask and
+    train_manifest together, so the manifest requirement is still unchecked.
+  * The two frozen instruments (the 22-turn instruction panel and the max_new_tokens=1 first-token
+    probe) have not been re-scored on any objective-changed model, because none exists yet.
+
+SCOPE
+  One corpus, its held-out split, one tokenizer (sha256 d36d3e87...), one marker definition, exact
+  counts. The tool reports; it writes no mask.
