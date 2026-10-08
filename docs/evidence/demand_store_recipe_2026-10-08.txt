@@ -1,0 +1,49 @@
+UOR-R4 — Recipe: build the demand-bearing short-form store by splicing the two halves the project already has
+Date: 2026-10-08 (overnight round 110). DeepSeek session. References #820.
+
+THE INSIGHT THAT MAKES THIS CHEAP
+  The project has demands (the corpus's contract turns) and short answers (the synthetic store's
+  canonical replies) as TOKENISED MATERIAL. It does not need new text, a new licence, a new
+  tokenizer run or a new generator: the two halves can be SPLICED, in the project's own format, using
+  only the Rust libraries that already read both stores.
+
+THE RECIPE
+  1. SELECT DEMAND TURNS from the chat corpus. Round 81 measured 142 turns in the contract family
+     (one word / yes-no / only the answer / no explanation / reply with only) and 17,205 turns whose
+     user text says "your answer must|should"; the narrower family is the useful one because its
+     demand is explicit about form. Selection needs the tokenizer to decode user turns, which the
+     existing readers already do.
+  2. SELECT SHORT ANSWERS from the synthetic store - its replies are, by its own documentation, "the
+     single canonical answer form", which is why 20,000 documents occupy a 14.9 % response fraction
+     against the chat corpus's 68.9 %. Take the answer token run (marker excluded) for each.
+  3. SPLICE, per document: BOS, then a demand turn's user content, then the literal Assistant marker
+     (ids 35, 560, 652, 714, 28), then a short answer's tokens, then the genuine EOS id (measured as
+     1 from the chat store's 129,465 termination positions). Pair demands with answers that MATCH the
+     demanded form - a one-word demand with a one-token answer, a numeric demand with a number, a
+     yes/no demand with Yes or No - because the whole point is that the pair appears together.
+  4. MASK: 0 on BOS, the user turn and the five marker ids; 1 on the answer tokens and the terminating
+     EOS; no EOS inside the run. These are the three clauses of dialogue_episodes.rs:385-405 that this
+     session has now satisfied twice, and the same checker used on the synthetic store validates the
+     result before it is trained on.
+  5. FORMAT: the 64-byte UORT header with the token count at offset 8 - the field the mixer reads, and
+     the one that silently broke the last rebuild - plus a manifest with drops.special_token_occurrences
+     = 0 and files[] carrying label, tokens and special_token_occurrences.
+  6. TRAIN: mix with the chat store at a small weight (the demand set is small by construction - 142
+     demands, so thousands of spliced documents by pairing each demand with many answers), with
+     policy=full_prefix and UOR_TERMINAL_WEIGHT=60, then export and read PANEL V2.
+
+WHY THIS IS THE RIGHT LAST EXPERIMENT
+  Every other candidate for the instruction-precision failure has been eliminated by a measured arm:
+  capacity, optimization, decoding, the prompt protocol, raw data support, data volume in the wrong
+  shape, and the stop signal alone. What has never existed in any training stream is A DEMAND AND ITS
+  MATCHING SHORT ANSWER IN THE SAME TURN. This recipe produces exactly that, from material the
+  project already holds, in the format the trainer already accepts.
+  If the classes still do not comply, the per-token objective is the last explanation standing and the
+  work moves to the loss or the decoding - and the session will have got there by elimination rather
+  than by preference.
+
+SCOPE
+  A recipe: no store has been built and no arm run in this round. Its value is that the selection, the
+  splice, the mask clauses, the header field and the judging instruments are all specified from
+  measurements made earlier in this session, including the two format faults that cost the last arm
+  three repairs.
