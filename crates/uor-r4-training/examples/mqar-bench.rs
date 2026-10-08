@@ -1901,6 +1901,12 @@ fn stage0_readout(
                 "query": dump_f32(&dir.join(format!("layer{layer}.query.f32")), &row.query)?,
                 "key": dump_f32(&dir.join(format!("layer{layer}.key.f32")), &row.key)?,
                 "aux": dump_f32(&dir.join(format!("layer{layer}.aux.f32")), &row.aux)?,
+                // The two pre-projection normalized states, from the SAME
+                // forward as the query/key above: the hidden-space readout and
+                // the projected-space readout therefore see identical rows,
+                // positions and candidate sets, and differ only in the map.
+                "qk_input": dump_f32(&dir.join(format!("layer{layer}.qk_input.f32")), &row.qk_input)?,
+                "value_input": dump_f32(&dir.join(format!("layer{layer}.value_input.f32")), &row.value_input)?,
             }));
         }
         let (l2_weights, weight_order) = stack_layers(&a1_dump.0)?;

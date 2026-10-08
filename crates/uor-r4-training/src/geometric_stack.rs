@@ -761,6 +761,19 @@ pub struct ReadQkLayer {
     /// score is scaled, the heads' `read.log_beta` exponentials and the heads'
     /// `read.offset` offsets (`2 * heads` more).
     pub aux: Tensor,
+    /// `[batch, time, width]`: the exact normalized state the query and key
+    /// projections above were computed *from*, captured before that map and
+    /// before any key shift, lineage term or latched identity term. This is the
+    /// hidden state the projections read, at the same positions as `query`, so
+    /// a caller can score candidates directly in hidden space with no
+    /// projection at all. With identity carry enabled this is already the
+    /// causal predecessor state (zero at position zero), exactly as the
+    /// projections saw it.
+    pub qk_input: Tensor,
+    /// `[batch, time, width]`: the exact normalized state the value and NoRead
+    /// maps were computed from. Unlike `qk_input` this is the *current* state
+    /// and is unaffected by identity carry.
+    pub value_input: Tensor,
 }
 
 /// Every read layer's full softmax weight row at declared `(batch, query)`
@@ -2386,7 +2399,9 @@ impl StackModel {
         // tensors the fused read is about to score with, after the layout check
         // above, so its `aux` is the one `fused_read_selected` receives. It adds
         // no value channel, no parameter and no arithmetic: nothing downstream
-        // of this point can observe it.
+        // of this point can observe it. `qk_input`/`value_input` are the two
+        // pre-projection normalized states, cloned at the same site so the
+        // hidden-space and projected-space readouts are taken from one forward.
         if let Some(dump) = binding.as_mut().and_then(|binding| binding.qk.as_mut()) {
             dump.layers.push((
                 layer,
@@ -2394,6 +2409,8 @@ impl StackModel {
                     query: query.clone(),
                     key: key.clone(),
                     aux: aux.clone(),
+                    qk_input: identity.clone(),
+                    value_input: u.clone(),
                 },
             ));
         }
@@ -7277,6 +7294,13 @@ impl StackModel {
     /// re-implementation of the projections. The second returned value is the
     /// ordinary logits `[batch * time, vocabulary]` of that same forward, so a
     /// caller can check that attaching the dump changed nothing.
+    ///
+    /// Each entry also carries the two pre-projection normalized states the
+    /// read maps were computed from ([`ReadQkLayer::qk_input`] and
+    /// [`ReadQkLayer::value_input`]), cloned at that same site. That makes the
+    /// projected readout and a hidden-space readout directly comparable: both
+    /// see one forward's identical rows, positions and candidate sets and
+    /// differ only in whether the learned projection is applied.
     ///
     /// No score, weight, hidden state, logit or parameter is modified: the
     /// capture adds no value channel and no arithmetic. This is observation
