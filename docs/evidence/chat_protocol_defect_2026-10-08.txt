@@ -1,0 +1,58 @@
+UOR-R4 — The served chat path was using the wrong role-template protocol, and fixing it changes the replies
+Date: 2026-10-08 (overnight round 43). DeepSeek session. References #820.
+
+HOW IT WAS FOUND
+  Round 42's reply panel scored the served chat model as fluent but unresponsive, and the failures
+  were specific: it continued the prompt instead of answering, decorated replies with training-data
+  artifacts (`<<Title>>` wrappers, markdown headings) and looped. Those are the symptoms of an
+  off-distribution prompt rather than of a weak model. The corpus was built with the role-template
+  PROTOCOL 2 (docs/compute/ladder-runbook.md section 2.3), and the round-42 run passed no protocol
+  argument, so `lut-chat` used its default.
+
+THE TEST
+  Same artifact, same panel, same greedy decoding, one argument added: `protocol=2`.
+
+    prompt                                  protocol 1 (default)                     protocol 2
+    "Hi there, good morning!"               "...good morning routine and I'm going     "Hello! How can I help you today?"
+                                            to have a good morning routine."
+    "What is the capital of France?"        "<<The Enigma of France>>  The capital     "The capital of France is Paris."
+                                            of France is Paris."
+    "Write a short poem about the sea."     "<<The Role of the Reds>>  The sea is a    "In a world where the sea is a dream,
+                                            beautiful and beautiful place..."          there is a sense of wonder..."
+    "I am planning a trip to Japan."        "Yes, I can help you with that. I have a   "To plan a trip to Japan, let's start
+                                            general plan for a trip to Japan..."       with a mix of must-see attractions
+                                                                                       and activities..."
+    "The sky on a clear day"                "1. Ancient Egypt 2. Ancient Egypt 3..."   "The sky on a clear day is a beautiful
+                                                                                       day, with its gentle rustle..."
+
+WHAT CHANGED
+  * The greeting now produces the canonical assistant opener instead of an unrelated sentence, and
+    the repetition loop is gone.
+  * The factual answer is clean, with no format wrapper.
+  * The poem request produces literary prose without a fabricated title.
+  * The trip request produces a genuinely responsive answer ("let's start with a mix of must-see
+    attractions and activities") rather than a generic offer of help.
+  * The numbered-list and title artifacts that dominated round 42 mostly disappear.
+
+WHAT DID NOT CHANGE
+  * Instruction following is still absent: "reply with exactly one word" is not obeyed and
+    "what is two plus two" still returns "***".
+  * Multi-turn state still does not drive behaviour: the second turn of both retention requests
+    returns text identical to the first, and the name request degenerates into "Ana. Ana. Ana."
+    (it does now at least produce the name, where protocol 1 produced an unrelated sentence).
+
+WHY THIS MATTERS
+  1. It is a REAL chat-quality gain from a configuration fix, on the served artifact, with no
+     training: the prompt format had been off-distribution for every served reply generated in this
+     session.
+  2. It is a second instance of the same class of error the session kept finding - a default adopted
+     without checking it matched the corpus - and this one was in the chatbot path itself rather
+     than in the measurement.
+  3. It narrows the remaining deficit to instruction following and multi-turn conditioning, which
+     are training-objective and data properties rather than formatting ones, and which no protocol
+     setting will supply.
+
+SCOPE
+  One artifact, one panel, greedy decoding, two protocol settings, automatic reading of the replies.
+  The comparison is qualitative: the panel is small and the scoring is by inspection of the
+  transcripts reproduced here, not by a judge. Every quoted reply is verbatim from the two records.
