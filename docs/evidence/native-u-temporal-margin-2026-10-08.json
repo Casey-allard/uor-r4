@@ -1,0 +1,1446 @@
+{
+  "scope": "Native local integer margins at nine authenticated saved U predecessors; no rerank, backward, encoder advance, finite candidate, fullpool/objective or autoregressive result",
+  "goal": "Existing exact unbudgeted useful native geometric model goal remains active",
+  "preceding_delivery": {
+    "pr": 1956,
+    "merge": "6133f2725f218c3ed6f96e5762c50cef59f7fefe",
+    "verified_fresh_main_and_integrated_tree": true
+  },
+  "source_commit": "db5a67aa1fb5478a5b831a3b1f50ad273c0df58d",
+  "source_sha256": "e08c1c181937f83659d95a71e131eb98279c1817b659f3e5971762206eef7f17",
+  "shared_margin_sha256": "7efbc450a8bbe1627de9949666a9db431569ef12147fe32f14cdb65c3f85ec09",
+  "binary_sha256": "85c7ab56304f2fc1d093e208a00e0d169bfa1afb0350b6b042aad854afb90523",
+  "checks": {
+    "job": "20261008T193434Z-sol-prototype-20261008-gpu0",
+    "actual_tests": {
+      "new_U_tool": 4,
+      "retained_Prefix_tool": 4
+    },
+    "format": "PASS",
+    "CUDA_release_build": "PASS",
+    "scope": "actualpodtests; no GPU model performance claim"
+  },
+  "source_reviews": {
+    "mathematical": "PASS exactsource only",
+    "adversarial": "PASS exactsource only"
+  },
+  "report": {
+    "attempt_argv": [
+      "/root/codex/prototype-target/release/examples/native-u-temporal-margin",
+      "/workspace/uor-r4/codex/sol-transition-credit/runs/decomposition-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-u-temporal-margin/runs/margin-3610-0001-attempt1"
+    ],
+    "autoregressive_rollout": "NOT_RUN",
+    "backward": "NOT_RUN",
+    "candidate": {
+      "actual_delta": -0.3554798662662506,
+      "after": -2,
+      "before": -1,
+      "decoded": {
+        "basis_component": 2,
+        "class": 62,
+        "head": 1,
+        "lane": 3
+      },
+      "dot_off": -0.0004952498372175033,
+      "dot_on": -0.002501638380482049,
+      "g_difference_f64": 0.005644169286824763,
+      "g_off": 0.0013931867433711886,
+      "g_on": 0.0070373560301959515,
+      "index": 3610,
+      "master_after": -0.5,
+      "master_before": -0.1445201337337494,
+      "name": "consumer.context.self_transition",
+      "raw_difference_f32": 0.005644169170409441,
+      "temporal_dot": -0.0020063885432645458
+    },
+    "candidate_authority": "recorded first on_directed.top20_temporal_dot entry; no rerank",
+    "derived_manifest_sha256": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b",
+    "derived_report_sha256": "3a0c30dff9c8bd9b1f5c7a30251de432b90ef07b62f77ff79ab1d3b00bca0722",
+    "elapsed_seconds": 17.633611582,
+    "encoder_advance": "NOT_RUN",
+    "finite_artifact": "NOT_RUN",
+    "maximum_cpu_threads": 2,
+    "maximum_process_ram_bytes": 1073741824,
+    "maximum_report_bytes": 2097152,
+    "model_forward": "NOT_RUN",
+    "parent_manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+    "parent_report_sha256": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+    "probe_manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332",
+    "probe_report_sha256": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9",
+    "references": {
+      "local_action_changes": 0,
+      "local_rows": 8,
+      "scope": "eight saved U position3-to4 source-control predecessors"
+    },
+    "reranking": "NOT_RUN",
+    "saved_input_margins": {
+      "cohort": [
+        {
+          "actual_prefix_ids_after": [
+            617,
+            2097,
+            315,
+            1057
+          ],
+          "actual_prefix_ids_before": [
+            617,
+            2097,
+            315
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length4-07-swap0-q0-forward-home",
+          "input_index": 245,
+          "next_state_codes": [
+            21,
+            63,
+            20,
+            49,
+            46,
+            100,
+            62,
+            67
+          ],
+          "old_state_codes": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "position": 4,
+          "query_token_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "query_tokens": 10
+        },
+        {
+          "actual_prefix_ids_after": [
+            2997,
+            1541,
+            435,
+            261
+          ],
+          "actual_prefix_ids_before": [
+            2997,
+            1541,
+            435
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap0-q0-forward-job",
+          "input_index": 0,
+          "next_state_codes": [
+            100,
+            110,
+            62,
+            51,
+            74,
+            82,
+            45,
+            33
+          ],
+          "old_state_codes": [
+            0,
+            65,
+            100,
+            86,
+            114,
+            74,
+            101,
+            102
+          ],
+          "position": 4,
+          "query_token_ids": [
+            1085,
+            435,
+            627,
+            280,
+            456,
+            275,
+            349,
+            1541,
+            33
+          ],
+          "query_tokens": 9
+        },
+        {
+          "actual_prefix_ids_after": [
+            617,
+            2097,
+            315,
+            683
+          ],
+          "actual_prefix_ids_before": [
+            617,
+            2097,
+            315
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap0-q0-forward-home",
+          "input_index": 1,
+          "next_state_codes": [
+            88,
+            21,
+            30,
+            49,
+            93,
+            66,
+            70,
+            30
+          ],
+          "old_state_codes": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "position": 4,
+          "query_token_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "query_tokens": 10
+        },
+        {
+          "actual_prefix_ids_after": [
+            2997,
+            1541,
+            435,
+            261
+          ],
+          "actual_prefix_ids_before": [
+            2997,
+            1541,
+            435
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap0-q3-forward-job",
+          "input_index": 4,
+          "next_state_codes": [
+            101,
+            115,
+            59,
+            105,
+            37,
+            93,
+            8,
+            13
+          ],
+          "old_state_codes": [
+            103,
+            74,
+            106,
+            115,
+            67,
+            79,
+            72,
+            46
+          ],
+          "position": 4,
+          "query_token_ids": [
+            759,
+            1788,
+            1541,
+            377,
+            340,
+            500,
+            960,
+            33
+          ],
+          "query_tokens": 8
+        },
+        {
+          "actual_prefix_ids_after": [
+            617,
+            2097,
+            315,
+            683
+          ],
+          "actual_prefix_ids_before": [
+            617,
+            2097,
+            315
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap0-q3-forward-home",
+          "input_index": 5,
+          "next_state_codes": [
+            2,
+            52,
+            69,
+            4,
+            47,
+            37,
+            73,
+            5
+          ],
+          "old_state_codes": [
+            103,
+            40,
+            115,
+            35,
+            31,
+            13,
+            78,
+            54
+          ],
+          "position": 4,
+          "query_token_ids": [
+            52,
+            970,
+            445,
+            519,
+            1059,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            16
+          ],
+          "query_tokens": 13
+        },
+        {
+          "actual_prefix_ids_after": [
+            2997,
+            1541,
+            435,
+            683
+          ],
+          "actual_prefix_ids_before": [
+            2997,
+            1541,
+            435
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap1-q0-forward-job",
+          "input_index": 8,
+          "next_state_codes": [
+            35,
+            59,
+            109,
+            113,
+            15,
+            82,
+            102,
+            94
+          ],
+          "old_state_codes": [
+            0,
+            65,
+            100,
+            86,
+            114,
+            74,
+            101,
+            102
+          ],
+          "position": 4,
+          "query_token_ids": [
+            1085,
+            435,
+            627,
+            280,
+            456,
+            275,
+            349,
+            1541,
+            33
+          ],
+          "query_tokens": 9
+        },
+        {
+          "actual_prefix_ids_after": [
+            617,
+            2097,
+            315,
+            261
+          ],
+          "actual_prefix_ids_before": [
+            617,
+            2097,
+            315
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap1-q0-forward-home",
+          "input_index": 9,
+          "next_state_codes": [
+            21,
+            42,
+            83,
+            87,
+            93,
+            12,
+            10,
+            47
+          ],
+          "old_state_codes": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "position": 4,
+          "query_token_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "query_tokens": 10
+        },
+        {
+          "actual_prefix_ids_after": [
+            2997,
+            1541,
+            435,
+            683
+          ],
+          "actual_prefix_ids_before": [
+            2997,
+            1541,
+            435
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap1-q3-forward-job",
+          "input_index": 12,
+          "next_state_codes": [
+            2,
+            56,
+            28,
+            51,
+            22,
+            110,
+            8,
+            71
+          ],
+          "old_state_codes": [
+            103,
+            74,
+            106,
+            115,
+            67,
+            79,
+            72,
+            46
+          ],
+          "position": 4,
+          "query_token_ids": [
+            759,
+            1788,
+            1541,
+            377,
+            340,
+            500,
+            960,
+            33
+          ],
+          "query_tokens": 8
+        },
+        {
+          "actual_prefix_ids_after": [
+            617,
+            2097,
+            315,
+            261
+          ],
+          "actual_prefix_ids_before": [
+            617,
+            2097,
+            315
+          ],
+          "actual_prefix_tokens_after": 4,
+          "actual_prefix_tokens_before": 3,
+          "context_authority": {
+            "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+            "context": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "vocab_size": 4096
+            },
+            "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+            "frozen_cue": {
+              "algebra_sha256": "70cb0b96e551b4c6db21931e7e5ab49a3d8ab55b493ed66760cf6b4207c4e968",
+              "context": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "vocab_size": 4096
+              },
+              "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+              "joint": {
+                "basis_sha256": "c673af2cebbf940eb2d0ee3f5f4ae45bbe180035e493410ccb01f69575ba5ee7",
+                "config": {
+                  "head": 1,
+                  "left_lane": 1,
+                  "right_lane": 3
+                },
+                "packed_sha256": "33c6021151e84b27cb222a333303ccff093219e46c661b0ca689bd9b92929254",
+                "policy": "ordered-directed-relative-roots;both-present;canonical-F32-Q25;16-row-major-quarter-nat;cross-Q24-nearest-ties-away;zero-padded128;lookup-add/1",
+                "schema": "uor-r4.geometric-cue-joint-q4/1",
+                "table_sha256": "d6568799ae7de44f6d5c48754cfaecf74014dae0b2f1cdc4bafb86b753fcccb8"
+              },
+              "parent_artifact": {
+                "identity": {
+                  "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                  "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                  "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                  "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+                },
+                "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+              },
+              "policy": "local-Context-text-encoder-from-identity;Source-immediate-predecessor-Context-only;empty-or-no-Context-structurally-absent;query-only-encoder-stable-through-prefix;inverse(query)*cue;signed120-angular-q4;observed-both-present-mask;radius-retained-unused-v1;all-Copy-before-global-normalization/1",
+              "potential": {
+                "heads": 2,
+                "lanes_per_head": 4,
+                "mode": "DirectedRelative"
+              },
+              "potential_packed_sha256": "8d5eb664bf8ba9660ca201255dc59d6b68fdcab0c8a4d7d580d41dbad2ecd3ba",
+              "schema": "uor-r4.geometric-text-cue-carrier/1"
+            },
+            "parent_artifact": {
+              "identity": {
+                "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+                "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+                "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+                "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+              },
+              "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+            },
+            "policy": "Source-emission-view-local-prefix-before-candidate;actual-ownprefix-only;empty-identity;retained-latent-not-observed-presence;inverse(response)*source-before;all-candidates;signed120-q4-quarter;cue-frozen;before-global-Copy-Period-Stop/1",
+            "potential": {
+              "heads": 2,
+              "lanes_per_head": 4,
+              "mode": "DirectedRelative"
+            },
+            "potential_packed_sha256": "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a",
+            "schema": "uor-r4.geometric-ordered-prefix-transport/1"
+          },
+          "id": "development-diverse-length2-00-swap1-q3-forward-home",
+          "input_index": 13,
+          "next_state_codes": [
+            101,
+            5,
+            77,
+            35,
+            117,
+            37,
+            105,
+            106
+          ],
+          "old_state_codes": [
+            103,
+            40,
+            115,
+            35,
+            31,
+            13,
+            78,
+            54
+          ],
+          "position": 4,
+          "query_token_ids": [
+            52,
+            970,
+            445,
+            519,
+            1059,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            16
+          ],
+          "query_tokens": 13
+        }
+      ],
+      "compiled_table_bytes": 44564480,
+      "hypothetical_candidates": 1,
+      "limitations": [
+        "Only last actual-prefix U transitions are retained; earlier query and prefix U inputs UNAVAILABLE",
+        "One-factor hypothetical margins hold old states fixed; no recurrent, fullpool, objective or reply qualification"
+      ],
+      "local_action_changes": 0,
+      "local_input_rows": 9,
+      "packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+      "saved_rows": {
+        "bytes": 39245,
+        "file": "saved-u-action-margins.json",
+        "sha256": "03596eb48515139a35a71bb9809aa424381eae73dce03de33449777ea1ae9288"
+      },
+      "scope": "Exact native transition scores at nine authenticated U position3-to4 predecessors; no encoder advance, candidate artifact or full model replay"
+    },
+    "schema": "uor-r4.u-temporal-margin/1",
+    "scope": "exact native local operator margins at authenticated fixed inputs for one already recorded displacement; local crossings do not establish recurrent/fullpool/objective/complete-reply improvement",
+    "source_commit": "db5a67aa1fb5478a5b831a3b1f50ad273c0df58d",
+    "status": "COMPLETED",
+    "task245": {
+      "local_action_changes": 0,
+      "local_rows": 1,
+      "scope": "one saved U position3-to4 task predecessor"
+    },
+    "task_carriers": {
+      "annotation_scope": "posthoc join after all nine U local scores; U query-plus-actual-prefix register is distinct from isolated Source and Prefix response states; earlier U inputs unavailable",
+      "input_index": 245,
+      "row": {
+        "actual_prefix_ids_after": [
+          617,
+          2097,
+          315,
+          1057
+        ],
+        "actual_prefix_ids_before": [
+          617,
+          2097,
+          315
+        ],
+        "actual_prefix_tokens_after": 4,
+        "actual_prefix_tokens_before": 3,
+        "baseline_action_consistent": true,
+        "baseline_composed_next_code": 67,
+        "baseline_next_code": 67,
+        "class": 62,
+        "component": 2,
+        "factor_state": 11,
+        "frozen_input_action_changed": false,
+        "head": 1,
+        "hypothetical_winner": 49,
+        "id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "index": 3610,
+        "input_index": 245,
+        "lane": 3,
+        "name": "consumer.context.self_transition",
+        "neighbor": 105,
+        "next_state_codes": [
+          21,
+          63,
+          20,
+          49,
+          46,
+          100,
+          62,
+          67
+        ],
+        "old_state_codes": [
+          74,
+          80,
+          20,
+          66,
+          105,
+          110,
+          101,
+          11
+        ],
+        "own": 11,
+        "position": 4,
+        "query_token_ids": [
+          2812,
+          377,
+          340,
+          280,
+          456,
+          275,
+          349,
+          463,
+          2097,
+          33
+        ],
+        "query_tokens": 10,
+        "scope": "U last actual-prefix transition at position4; old U state from saved position3",
+        "selected_class_effect_q24": 2097152,
+        "selected_class_gap_q24": 13879024,
+        "token_id": 1057,
+        "winner": 49,
+        "winner_margin_q24": 4689375
+      },
+      "token_literal_posthoc": "Ġwarm"
+    }
+  },
+  "report_sha256": "d43606bc342e99d922d3665e67afeb7779ab72f1e771b5fba44e1093dbb53f35",
+  "execution": {
+    "argv": [
+      "/root/codex/prototype-target/release/examples/native-u-temporal-margin",
+      "/workspace/uor-r4/codex/sol-transition-credit/runs/decomposition-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1",
+      "/workspace/uor-r4/codex/sol-u-temporal-margin/runs/margin-3610-0001-attempt1"
+    ],
+    "exit_code": 0,
+    "source_commit": "db5a67aa1fb5478a5b831a3b1f50ad273c0df58d",
+    "binary_sha256": "85c7ab56304f2fc1d093e208a00e0d169bfa1afb0350b6b042aad854afb90523",
+    "started_utc": "2026-10-08T19:36:09.737449+00:00",
+    "ended_utc": "2026-10-08T19:36:27.599851+00:00",
+    "elapsed_seconds": 17.862430669367313,
+    "children_max_rss_kib": 217708,
+    "scope": "native local integer score arithmetic at held saved U query-plus-prefix predecessor inputs; no encoder advance/backward/new finite candidate/model"
+  },
+  "independent_reader": {
+    "sha256": "22d1deb5f9cc4cff8bdcfe108e6fa2a1260247a0a324e3184b0db39ca7078bbc",
+    "prior_arithmetic_sha256": "dac81df4ddc644c45d71bc6234064bbadb4ee7fe3d1a04978f96962b2e36ddc0",
+    "mathematical_source_review": "PASS",
+    "actual_audit": {
+      "arithmetic_module_sha256": "dac81df4ddc644c45d71bc6234064bbadb4ee7fe3d1a04978f96962b2e36ddc0",
+      "binary_sha256": "85c7ab56304f2fc1d093e208a00e0d169bfa1afb0350b6b042aad854afb90523",
+      "candidate": {
+        "actual_delta": -0.3554798662662506,
+        "after": -2,
+        "before": -1,
+        "decoded": {
+          "basis_component": 2,
+          "class": 62,
+          "head": 1,
+          "lane": 3
+        },
+        "dot_off": -0.0004952498372175033,
+        "dot_on": -0.002501638380482049,
+        "g_difference_f64": 0.005644169286824763,
+        "g_off": 0.0013931867433711886,
+        "g_on": 0.0070373560301959515,
+        "index": 3610,
+        "master_after": -0.5,
+        "master_before": -0.1445201337337494,
+        "name": "consumer.context.self_transition",
+        "raw_difference_f32": 0.005644169170409441,
+        "temporal_dot": -0.0020063885432645458
+      },
+      "executed_source": "db5a67aa1fb5478a5b831a3b1f50ad273c0df58d",
+      "inventories": {
+        "derived": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 8850245,
+          "files": 6,
+          "manifest_sha256": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b"
+        },
+        "parent": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 378554003,
+          "files": 1100,
+          "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5"
+        },
+        "probe": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 204338578,
+          "files": 122,
+          "manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332"
+        },
+        "run": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 75752,
+          "files": 4,
+          "manifest_sha256": "c1417a9bf18cd185604e8515c96ed35a8eb98751a4c92e5dd97dc38443288f14"
+        }
+      },
+      "limits": [
+        "Rust BLAKE3 seals verified separately",
+        "No fresh gradient reads/reranking, encoder/backward, finite model or autoregressive replay",
+        "Native fixed-input scoring and baseline H4 composition witness independently computed",
+        "Earlier U query/prefix inputs remain unavailable; local effects do not establish recurrent/fullpool/objective/reply improvement"
+      ],
+      "margins": {
+        "baseline_action_consistent": 9,
+        "cached_score_vectors": 9,
+        "local_action_changes": 0,
+        "rows": 9
+      },
+      "reader_sha256": "22d1deb5f9cc4cff8bdcfe108e6fa2a1260247a0a324e3184b0db39ca7078bbc",
+      "references": {
+        "local_action_changes": 0,
+        "local_rows": 8,
+        "scope": "eight saved U position3-to4 source-control predecessors"
+      },
+      "status": "PASS",
+      "task245": {
+        "local_action_changes": 0,
+        "local_rows": 1,
+        "scope": "one saved U position3-to4 task predecessor"
+      }
+    },
+    "audit_sha256": "ccba23aba258d4bcd30cc5ea66199ab525a1501d029e078f0f6fd765fc0b610e",
+    "execution": {
+      "status": "PASS",
+      "steps": [
+        {
+          "kind": "new_saved_analysis",
+          "exit_code": 0,
+          "seconds": 0.12603281065821648,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "prior_decomposition",
+          "exit_code": 0,
+          "seconds": 0.14703772962093353,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "prior_probe",
+          "exit_code": 0,
+          "seconds": 2.1405863016843796,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "recovered_parent",
+          "exit_code": 0,
+          "seconds": 13.579453233629465,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "independent_reader",
+          "exit_code": 0,
+          "seconds": 15.782545305788517,
+          "max_rss_kib": 206268
+        }
+      ],
+      "elapsed_seconds": 31.7756804600358,
+      "completed_utc": "2026-10-08T19:38:02.331298+00:00",
+      "reader_sha256": "22d1deb5f9cc4cff8bdcfe108e6fa2a1260247a0a324e3184b0db39ca7078bbc",
+      "scope": "saved independent arithmetic; no encoder/backward/finite/model"
+    }
+  },
+  "resources": {
+    "cumulative_projected_seconds": 558870,
+    "new_increment": 0,
+    "complete_task_projection_seconds": 2400,
+    "pod_threads": 2,
+    "process_RAM_bytes": 1073741824,
+    "report_bytes": 2097152,
+    "local_disk_floor_GiB": 30,
+    "manual_shared_runner": "UNVERIFIED",
+    "owned_GPU": "codex/sol-prototype-20261008 GPU0",
+    "other_GPU": "DeepSeek untouched"
+  },
+  "interpretation": [
+    "No action crossing on this final U transition for any of nine fixed predecessors",
+    "Task class62effect2097152Q24 is smaller than13879024Q24 gap, winner49 unchanged; right-group baseline nextcode67 verified",
+    "Earlier query/prefix inputs and propagation are unmeasured; this is not global lack of Context effect",
+    "Previous8/512 complete replies retains original scope; no useful-language/transfer/energy qualification"
+  ],
+  "next_question": "After actual protected delivery, recover any retained complete actual Context decision capture. Reuse matching complete scopes after exact artifact/input/call-coverage verification. For missing scopes, use existing capture_context_decisions guard on the exact parent fixed18 prefixes (admission plus step), authenticate baseline parity and complete consumed-event coverage; test recorded3610 at all actual native transition inputs including earlier query/prefix. No rerank/backward; one integrated causal path question rather than successive endpoint checks. Preserve unchanged/crossing as limited coordinate/path evidence.",
+  "private_preservation": {
+    "revision": "619d45f4a0d623fc58b712c6449c94006129f862",
+    "prefix": "codex/sol-u-temporal-margin/complete-db5a67aa1f",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "3493181e2bc557e78cec28d3959e63faf6340747f4183031c823c7f71c49895d",
+        "bytes": 1369
+      },
+      "checks.log": {
+        "sha256": "f6208af2b6d83f7c6c01cc0bda064ccfe5bc421e5a377c17c44cad3f0ec9f7c5",
+        "bytes": 12310
+      },
+      "native-u-temporal-margin": {
+        "sha256": "85c7ab56304f2fc1d093e208a00e0d169bfa1afb0350b6b042aad854afb90523",
+        "bytes": 1258128
+      },
+      "saved-evidence.tar.gz": {
+        "sha256": "80aa472c7ad7f112aa34f22364d86dfa500fbb181fb99302084a8e3db02a6793",
+        "bytes": 23307
+      },
+      "source.tar.gz": {
+        "sha256": "5c36238c2fdceb028ea8ff547ab131b8a6bf0dfec4ef1620d35f1e943875085d",
+        "bytes": 99459801
+      }
+    },
+    "manifest": {
+      "source_commit": "db5a67aa1fb5478a5b831a3b1f50ad273c0df58d",
+      "source_tree": "d49349f52bb846f08076ce9b4f441d80a3c1c547",
+      "binary_sha256": "85c7ab56304f2fc1d093e208a00e0d169bfa1afb0350b6b042aad854afb90523",
+      "report_sha256": "d43606bc342e99d922d3665e67afeb7779ab72f1e771b5fba44e1093dbb53f35",
+      "manifest_sha256": "c1417a9bf18cd185604e8515c96ed35a8eb98751a4c92e5dd97dc38443288f14",
+      "report_files": 4,
+      "report_bytes": 75752,
+      "audit_sha256": "ccba23aba258d4bcd30cc5ea66199ab525a1501d029e078f0f6fd765fc0b610e",
+      "reader_sha256": "22d1deb5f9cc4cff8bdcfe108e6fa2a1260247a0a324e3184b0db39ca7078bbc",
+      "scope": "recorded gradient-selected coordinate and exact native U local margins at authenticated fixed inputs; no new model/encoder/backward/finite artifact or prediction claim",
+      "files": {
+        "checks.log": {
+          "sha256": "f6208af2b6d83f7c6c01cc0bda064ccfe5bc421e5a377c17c44cad3f0ec9f7c5",
+          "bytes": 12310
+        },
+        "native-u-temporal-margin": {
+          "sha256": "85c7ab56304f2fc1d093e208a00e0d169bfa1afb0350b6b042aad854afb90523",
+          "bytes": 1258128
+        },
+        "saved-evidence.tar.gz": {
+          "sha256": "80aa472c7ad7f112aa34f22364d86dfa500fbb181fb99302084a8e3db02a6793",
+          "bytes": 23307
+        },
+        "source.tar.gz": {
+          "sha256": "5c36238c2fdceb028ea8ff547ab131b8a6bf0dfec4ef1620d35f1e943875085d",
+          "bytes": 99459801
+        }
+      }
+    },
+    "seconds": 22.80141467228532,
+    "completed_utc": "2026-10-08T19:39:59.075874+00:00"
+  },
+  "report_manifest_sha256": "c1417a9bf18cd185604e8515c96ed35a8eb98751a4c92e5dd97dc38443288f14",
+  "report_inventory": {
+    "files": 4,
+    "bytes": 75752
+  }
+}
