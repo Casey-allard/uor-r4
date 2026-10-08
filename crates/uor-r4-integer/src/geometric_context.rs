@@ -20,6 +20,8 @@
 //! whole-model serving qualification remain separate.
 
 use std::fmt;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
 
 use crate::geometric_potential::{AddressLane, PotentialError};
 use crate::h4_tables::{H4Code, HistoricalH4Tables, ROOT_COUNT};
@@ -49,6 +51,11 @@ pub enum ContextFamily {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ContextError {
+    CaptureActive,
+    CaptureLimit,
+    CaptureAllocation,
+    CapturePoisoned,
+    InvalidDecisionLane(usize),
     InvalidVocabulary(usize),
     InvalidHeads(usize),
     InvalidLanes(usize),
@@ -84,6 +91,11 @@ pub enum ContextError {
 impl fmt::Display for ContextError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::CaptureActive => f.write_str("native context capture already active"),
+            Self::CaptureLimit => f.write_str("native context capture event limit reached or invalid"),
+            Self::CaptureAllocation => f.write_str("native context capture allocation failed"),
+            Self::CapturePoisoned => f.write_str("native context capture lock poisoned"),
+            Self::InvalidDecisionLane(lane) => write!(f, "native context decision lane {lane} is invalid"),
             Self::InvalidVocabulary(v) => write!(f, "native context vocabulary {v} is outside 1..={MAX_VOCAB}"),
             Self::InvalidHeads(h) => write!(f, "native context heads {h} are outside 1..={MAX_HEADS}"),
             Self::InvalidLanes(l) => write!(f, "native context lanes/head {l} are outside 1..={MAX_LANES_PER_HEAD}"),
@@ -250,6 +262,29 @@ impl Factors {
         }
     }
 
+    fn scores<'a>(
+        &'a self,
+        token: &'a [i32],
+        own: H4Code,
+        neighbor: H4Code,
+        shift: u32,
+        choices: usize,
+    ) -> impl Iterator<Item = i64> + 'a {
+        let start = usize::from(own.index()) << shift;
+        let own = &self.own[start..start + choices];
+        let start = usize::from(neighbor.index()) << shift;
+        let neighbor = self
+            .neighbor
+            .as_ref()
+            .map(|values| &values[start..start + choices]);
+        (0..choices).map(move |choice| {
+            let mut score = i64::from(token[choice]) + i64::from(own[choice]);
+            if let Some(neighbor) = neighbor {
+                score += i64::from(neighbor[choice]);
+            }
+            score
+        })
+    }
     fn select(
         &self,
         token: &[i32],
@@ -258,20 +293,12 @@ impl Factors {
         shift: u32,
         choices: usize,
     ) -> usize {
-        let start = usize::from(own.index()) << shift;
-        let own = &self.own[start..start + choices];
-        let start = usize::from(neighbor.index()) << shift;
-        let neighbor = self
-            .neighbor
-            .as_ref()
-            .map(|values| &values[start..start + choices]);
         let mut winner = 0;
         let mut best = i64::MIN;
-        for choice in 0..choices {
-            let mut score = i64::from(token[choice]) + i64::from(own[choice]);
-            if let Some(neighbor) = neighbor {
-                score += i64::from(neighbor[choice]);
-            }
+        for (choice, score) in self
+            .scores(token, own, neighbor, shift, choices)
+            .enumerate()
+        {
             if score > best {
                 best = score;
                 winner = choice;
@@ -292,6 +319,87 @@ struct LaneTables {
     neighbor_index: usize,
 }
 
+/// Offline diagnostic family. Transition inputs are OLD states; readout inputs
+/// are NEW states (or the supplied state for a direct observation).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ContextDecisionFamily {
+    Transition,
+    Root,
+    Category,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum ContextInvocation {
+    Step,
+    ObserveStates,
+}
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ContextDecisionEvent {
+    pub call_index: usize,
+    pub invocation: ContextInvocation,
+    pub family: ContextDecisionFamily,
+    pub token_id: usize,
+    pub head: usize,
+    pub lane: usize,
+    pub flat_lane: usize,
+    pub own: u8,
+    pub neighbor: u8,
+    pub winner: u8,
+    pub scores_q24: Vec<i64>,
+}
+#[derive(Debug)]
+struct DecisionCaptureState {
+    events: Vec<ContextDecisionEvent>,
+    limit: usize,
+    calls: usize,
+    failure: Option<ContextError>,
+}
+#[derive(Debug)]
+struct DecisionRecorder {
+    enabled: AtomicBool,
+    capture: Mutex<Option<DecisionCaptureState>>,
+}
+/// Per-instance offline capture. Drop always detaches, including error paths.
+/// Capture allocates and repeats score reads; it is excluded from normal serving
+/// cost. Callers must synchronize the scope with users of this table instance.
+/// Other independently loaded instances never share this recorder. The owned
+/// guard does not borrow the table or generator and may safely outlive either.
+/// One recorder allocation is made during table admission, never during an
+/// ordinary step.
+pub struct ContextDecisionCapture {
+    recorder: Arc<DecisionRecorder>,
+    finished: bool,
+}
+impl ContextDecisionCapture {
+    pub fn finish(mut self) -> ContextResult<Vec<ContextDecisionEvent>> {
+        let mut slot = self
+            .recorder
+            .capture
+            .lock()
+            .map_err(|_| ContextError::CapturePoisoned)?;
+        let state = slot.take().ok_or(ContextError::CapturePoisoned)?;
+        self.recorder.enabled.store(false, Ordering::Release);
+        self.finished = true;
+        match state.failure {
+            Some(e) => Err(e),
+            None => Ok(state.events),
+        }
+    }
+}
+impl Drop for ContextDecisionCapture {
+    fn drop(&mut self) {
+        if !self.finished {
+            let mut slot = self
+                .recorder
+                .capture
+                .lock()
+                .unwrap_or_else(|p| p.into_inner());
+            *slot = None;
+            self.recorder.enabled.store(false, Ordering::Release);
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct NativeContextTables {
     tokens: Box<[TokenTables]>,
@@ -301,6 +409,7 @@ pub struct NativeContextTables {
     codes: [H4Code; ROOT_COUNT],
     absent: AddressLane,
     stats: ContextTableStats,
+    recorder: Arc<DecisionRecorder>,
 }
 
 impl NativeContextTables {
@@ -452,6 +561,10 @@ impl NativeContextTables {
             lanes_per_head,
             codes,
             absent: AddressLane::new(1, 0, false).map_err(ContextError::Address)?,
+            recorder: Arc::new(DecisionRecorder {
+                enabled: AtomicBool::new(false),
+                capture: Mutex::new(None),
+            }),
             stats: ContextTableStats {
                 stored_entries,
                 stored_bytes,
@@ -461,6 +574,156 @@ impl NativeContextTables {
                 coefficient_reads: transition_reads + root_readout_reads + category_readout_reads,
             },
         })
+    }
+
+    /// Start a bounded diagnostic scope. The event vector is reserved up front;
+    /// score vectors are at most 120 i64 values/event. Allocation/cap failures
+    /// poison this capture's result rather than returning a truncated success.
+    pub fn capture_decisions(&self, max_events: usize) -> ContextResult<ContextDecisionCapture> {
+        if max_events == 0 {
+            return Err(ContextError::CaptureLimit);
+        }
+        max_events
+            .checked_mul(std::mem::size_of::<ContextDecisionEvent>() + ROOT_COUNT * 8)
+            .ok_or(ContextError::CaptureLimit)?;
+        let mut slot = self
+            .recorder
+            .capture
+            .lock()
+            .map_err(|_| ContextError::CapturePoisoned)?;
+        if slot.is_some() {
+            return Err(ContextError::CaptureActive);
+        }
+        let mut events = Vec::new();
+        events
+            .try_reserve_exact(max_events)
+            .map_err(|_| ContextError::CaptureAllocation)?;
+        *slot = Some(DecisionCaptureState {
+            events,
+            limit: max_events,
+            calls: 0,
+            failure: None,
+        });
+        self.recorder.enabled.store(true, Ordering::Release);
+        Ok(ContextDecisionCapture {
+            recorder: Arc::clone(&self.recorder),
+            finished: false,
+        })
+    }
+
+    /// Exact compiled diagnostic scores, using the same factor sums and strict
+    /// greater-than tie selection as the native numerical kernel.
+    pub fn decision_scores(
+        &self,
+        token_id: usize,
+        flat_lane: usize,
+        family: ContextDecisionFamily,
+        own: H4Code,
+        neighbor: H4Code,
+    ) -> ContextResult<(u8, Vec<i64>)> {
+        let token = self
+            .tokens
+            .get(token_id)
+            .ok_or(ContextError::TokenOutOfRange {
+                token: token_id,
+                vocabulary: self.tokens.len(),
+            })?;
+        let lane = self
+            .lanes
+            .get(flat_lane)
+            .ok_or(ContextError::InvalidDecisionLane(flat_lane))?;
+        let (factors, values, shift, count): (&Factors, &[i32], u32, usize) = match family {
+            ContextDecisionFamily::Transition => (
+                &lane.transition,
+                &token.transition[flat_lane],
+                7,
+                ROOT_COUNT,
+            ),
+            ContextDecisionFamily::Root => (&lane.root, &token.root[flat_lane], 7, ROOT_COUNT),
+            ContextDecisionFamily::Category => (
+                &lane.category,
+                &token.category[flat_lane],
+                6,
+                CATEGORY_COUNT,
+            ),
+        };
+        let mut scores = Vec::new();
+        scores
+            .try_reserve_exact(count)
+            .map_err(|_| ContextError::CaptureAllocation)?;
+        scores.extend(factors.scores(values, own, neighbor, shift, count));
+        let winner = factors.select(values, own, neighbor, shift, count);
+        Ok((winner as u8, scores))
+    }
+
+    fn record_decisions(
+        &self,
+        token_id: usize,
+        old: Option<&[H4Code]>,
+        new: &[H4Code],
+    ) -> ContextResult<()> {
+        if !self.recorder.enabled.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let mut slot = self
+            .recorder
+            .capture
+            .lock()
+            .map_err(|_| ContextError::CapturePoisoned)?;
+        let state = slot.as_mut().ok_or(ContextError::CapturePoisoned)?;
+        if let Some(error) = state.failure {
+            return Err(error);
+        }
+        let count = self.lanes.len() * if old.is_some() { 3 } else { 2 };
+        if count > state.limit - state.events.len() {
+            state.failure = Some(ContextError::CaptureLimit);
+            return Err(ContextError::CaptureLimit);
+        }
+        let result = (|| {
+            for (index, lane) in self.lanes.iter().enumerate() {
+                for family in [
+                    ContextDecisionFamily::Transition,
+                    ContextDecisionFamily::Root,
+                    ContextDecisionFamily::Category,
+                ] {
+                    let inputs = if family == ContextDecisionFamily::Transition {
+                        let Some(old) = old else {
+                            continue;
+                        };
+                        old
+                    } else {
+                        new
+                    };
+                    let own = inputs[index];
+                    let neighbor = inputs[lane.neighbor_index];
+                    let (winner, scores_q24) =
+                        self.decision_scores(token_id, index, family, own, neighbor)?;
+                    state.events.push(ContextDecisionEvent {
+                        call_index: state.calls,
+                        invocation: if old.is_some() {
+                            ContextInvocation::Step
+                        } else {
+                            ContextInvocation::ObserveStates
+                        },
+                        family,
+                        token_id,
+                        head: index / self.lanes_per_head,
+                        lane: index % self.lanes_per_head,
+                        flat_lane: index,
+                        own: own.index(),
+                        neighbor: neighbor.index(),
+                        winner,
+                        scores_q24,
+                    });
+                }
+            }
+            state.calls += 1;
+            Ok(())
+        })();
+        if let Err(error) = result {
+            state.failure = Some(error);
+        }
+        result
     }
 
     pub fn vocab_size(&self) -> usize {
@@ -570,7 +833,8 @@ impl NativeContextState {
             actions[index] = tables.codes[selected];
             next[index] = geometry.compose(old[index], actions[index]);
         }
-        let mut observed = Self::observe_states(token_id, &next[..self.total], tables)?;
+        let mut observed = Self::observe_states_uncaptured(token_id, &next[..self.total], tables)?;
+        tables.record_decisions(token_id, Some(&old[..self.total]), &next[..self.total])?;
         observed.actions = actions;
         observed.coefficient_reads = tables.stats.coefficient_reads;
         self.states = next;
@@ -579,6 +843,15 @@ impl NativeContextState {
     /// Project the supplied finite state without executing another transition.
     /// Typed H4 codes and exact shape are checked before any output is produced.
     pub fn observe_states(
+        token_id: usize,
+        states: &[H4Code],
+        tables: &NativeContextTables,
+    ) -> ContextResult<ContextStep> {
+        let observed = Self::observe_states_uncaptured(token_id, states, tables)?;
+        tables.record_decisions(token_id, None, states)?;
+        Ok(observed)
+    }
+    fn observe_states_uncaptured(
         token_id: usize,
         states: &[H4Code],
         tables: &NativeContextTables,
@@ -647,6 +920,122 @@ impl NativeContextState {
 mod tests {
     use super::*;
     type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+    #[test]
+    fn native_context_capture_exact_decisions_and_instance_isolation() -> TestResult {
+        let mut fixture = Fixture::new(1, 2, 2);
+        // A tied nonzero transition selects the smaller index. Readout scores
+        // test negative values and widening of three i32 factors.
+        fixture.data[0][3] = 9;
+        fixture.data[0][4] = 9;
+        fixture.data[3][7] = i32::MAX;
+        fixture.data[4][7] = i32::MAX; // state0 row; visited below by direct observe
+        fixture.data[5][7] = i32::MAX;
+        fixture.data[6][0] = -2;
+        fixture.data[6][1] = -1;
+        let tables = fixture.tables()?;
+        let independent = fixture.tables()?;
+        let geometry = geometry()?;
+        let mut baseline = NativeContextState::new(2, 2)?;
+        let expected = baseline.step(0, &tables, &geometry)?;
+        let capture = tables.capture_decisions(20)?;
+        assert!(matches!(
+            tables.capture_decisions(1),
+            Err(ContextError::CaptureActive)
+        ));
+        let mut actual = NativeContextState::new(2, 2)?;
+        assert_eq!(actual.step(0, &tables, &geometry)?, expected);
+        let supplied = [H4Code::try_from(0)?; 4];
+        let observed = NativeContextState::observe_states(0, &supplied, &tables)?;
+        let _ = NativeContextState::observe_states(0, &supplied, &independent)?;
+        let events = capture.finish()?;
+        assert_eq!(events.len(), 20); // 3*4 step, 2*4 direct observation
+        assert_eq!(events[0].winner, 3);
+        assert_eq!(events[0].own, H4Code::IDENTITY.index());
+        for event in &events {
+            assert_eq!(event.head, event.flat_lane / 2);
+            assert_eq!(event.lane, event.flat_lane % 2);
+            let output = if event.call_index == 0 {
+                &expected
+            } else {
+                &observed
+            };
+            let winner = match event.family {
+                ContextDecisionFamily::Transition => output.actions[event.flat_lane].index(),
+                ContextDecisionFamily::Root => output.readout_roots[event.flat_lane].index(),
+                ContextDecisionFamily::Category => output.categories[event.flat_lane],
+            };
+            assert_eq!(event.winner, winner);
+            if event.family != ContextDecisionFamily::Transition {
+                assert_eq!(event.own, output.states[event.flat_lane].index());
+            }
+            assert!(event.scores_q24.iter().enumerate().all(|(i, &score)| {
+                score < event.scores_q24[usize::from(event.winner)]
+                    || (score == event.scores_q24[usize::from(event.winner)]
+                        && i >= usize::from(event.winner))
+            }));
+        }
+        assert_eq!(events[12].invocation, ContextInvocation::ObserveStates);
+        assert_eq!(events[12].scores_q24[7], 3 * i64::from(i32::MAX));
+        // Finish detaches; no implicit truncation or contamination of later scope.
+        let empty = tables.capture_decisions(1)?;
+        assert!(empty.finish()?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn native_context_capture_owned_guard_and_event_serialization() -> TestResult {
+        let capture = {
+            let tables = Fixture::new(1, 1, 1).tables()?;
+            let capture = tables.capture_decisions(2)?;
+            NativeContextState::observe_states(0, &[H4Code::IDENTITY], &tables)?;
+            capture
+        };
+        let events = capture.finish()?;
+        let bytes = serde_json::to_vec(&events)?;
+        assert_eq!(
+            serde_json::from_slice::<Vec<ContextDecisionEvent>>(&bytes)?,
+            events
+        );
+        let mut extra = serde_json::to_value(&events[0])?;
+        extra["unexpected"] = serde_json::json!(true);
+        assert!(serde_json::from_value::<ContextDecisionEvent>(extra).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn native_context_capture_failure_and_drop_are_transactional() -> TestResult {
+        let tables = Fixture::new(1, 1, 1).tables()?;
+        let geometry = geometry()?;
+        let mut state = NativeContextState::new(1, 1)?;
+        let before = state;
+        {
+            let capture = tables.capture_decisions(2)?;
+            assert_eq!(
+                state.step(0, &tables, &geometry),
+                Err(ContextError::CaptureLimit)
+            );
+            assert_eq!(state, before);
+            assert_eq!(capture.finish(), Err(ContextError::CaptureLimit));
+        }
+        {
+            let _capture = tables.capture_decisions(3)?;
+            assert!(state.step(1, &tables, &geometry).is_err());
+            // Early return/drop of a caller does not leave capture installed.
+        }
+        let capture = tables.capture_decisions(3)?;
+        state.step(0, &tables, &geometry)?;
+        assert_eq!(capture.finish()?.len(), 3);
+        assert!(matches!(
+            tables.capture_decisions(0),
+            Err(ContextError::CaptureLimit)
+        ));
+        assert!(matches!(
+            tables.capture_decisions(usize::MAX),
+            Err(ContextError::CaptureLimit)
+        ));
+        Ok(())
+    }
 
     #[test]
     fn native_geometric_context_descriptor_strides_are_power_of_two() {

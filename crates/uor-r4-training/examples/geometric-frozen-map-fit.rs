@@ -56,6 +56,10 @@ use uor_r4_training::{
 };
 #[path = "geometric_frozen_map_fit/categorical_proposals.rs"]
 mod categorical_proposals;
+#[path = "geometric_frozen_map_fit/constrained_context.rs"]
+mod constrained_context;
+#[path = "geometric_frozen_map_fit/context_constraints.rs"]
+mod context_constraints;
 #[path = "geometric_frozen_map_fit/frontier.rs"]
 mod frontier;
 #[path = "geometric_frozen_map_fit/native_proposals.rs"]
@@ -134,6 +138,13 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    replay_require(
+        !a.constrained_context_learning
+            || (a.reached_frontier_objective
+                && !a.categorical_action_learning
+                && !a.categorical_action_only),
+        "constrained Context requires reached-frontier replay with fixed categorical map",
+    )?;
     replay_require(
         !a.categorical_action_only || a.categorical_action_learning,
         "categorical action-only requires explicit categorical action learning",
@@ -438,6 +449,9 @@ struct Args {
     /// Original-parent action attribution only; not joint Context adaptation.
     #[serde(default)]
     categorical_action_only: bool,
+    /// One composite shared-Q4 update constructed under native success constraints.
+    #[serde(default)]
+    constrained_context_learning: bool,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -1969,7 +1983,9 @@ impl Loaded {
     }
 }
 fn proposal_policy(a: &Args) -> Value {
-    if a.categorical_action_learning {
+    if a.constrained_context_learning {
+        constrained_context::policy()
+    } else if a.categorical_action_learning {
         categorical_proposals::policy_for(a.categorical_action_only)
     } else {
         native_proposals::policy(a.reached_frontier_objective)
@@ -4894,6 +4910,11 @@ fn joint_checkpoint(
         receipt["optimizer_updates"] = json!(0);
         receipt["credit_scope"] = json!("parent RawIdentity gradients rank fixed legal native-code Context basis/Potential/Generate unary-pair/U proposals; native objective selects at most one; no Adam or global clipping applied; token coefficients, Generate bias/prototypes and other source masters frozen");
     }
+    if a.constrained_context_learning {
+        receipt["constrained_context_learning"] = json!(true);
+        receipt["fresh_adam"] = json!(false);
+        receipt["credit_scope"] = json!("one complete original-parent all-channel Context gradient ranks adjacent Q4 moves across six shared bases; one composite preserves exact protected native decisions; Potential/Generate/U and categorical map fixed; no Adam or global clipping; independent native CE acceptance; greedy feasible-prefix construction, not an exact recurrent gradient");
+    }
     if a.categorical_action_learning {
         receipt["credit_scope"] = json!("parent Context row credit followed by recomputed full120 shared categorical action contrasts at changed Context; one conditional two-block native candidate; Potential/Generate/U unchanged, no Adam; independent native CE acceptance");
     }
@@ -5166,6 +5187,11 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 "policy":"all frozen reached-frontier and successful-trajectory terms; no B8 sampling"}),
             )?;
         }
+        if a.constrained_context_learning {
+            admission["constrained_context_learning"] = json!(true);
+            admission["context_credit"] = json!("complete original-parent parameter gradient with all existing credit channels; one coordinated shared Context composite constrained by exact successful native decisions");
+            admission["parameter_update_policy"] = json!("six shared Context bases only; one frozen coordinate order; all other master bits and categorical map preserved; no Adam or global clipping");
+        }
         if a.categorical_action_learning {
             admission["categorical_action_learning"] =
                 categorical_proposals::policy_for(a.categorical_action_only);
@@ -5408,7 +5434,26 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 receipt["reference_replay"]["clip_and_adam_policy"] = json!("none: one original-parent action gradient ranks at most one shared-key replacement; no Context update or conditional gradient recomputation");
                 receipt["gradient_role"] = json!("categorical action contrasts choose the only permitted edit; other family gradients are diagnostic and never applied");
             }
-            receipt["native_code_proposals"] = if a.categorical_action_learning {
+            if a.constrained_context_learning {
+                receipt["reference_replay"]["clip_and_adam_policy"] = json!("none: one complete gradient drives a single coordinated constrained Context pass; no native candidate bank or Adam");
+                receipt["gradient_role"] = json!("all existing credit channels aggregated; six shared Context basis families construct one native-constrained candidate; other masters frozen");
+            }
+            receipt["native_code_proposals"] = if a.constrained_context_learning {
+                constrained_context::run(
+                    a,
+                    &l,
+                    &weights,
+                    &params,
+                    &grads,
+                    &initial_parent,
+                    &initial_field,
+                    &eps,
+                    reference
+                        .as_ref()
+                        .ok_or_else(|| bad("constrained Context reference absent"))?,
+                    start,
+                )?
+            } else if a.categorical_action_learning {
                 categorical_proposals::run(
                     a,
                     &l,
@@ -5595,6 +5640,11 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     if a.native_code_proposals {
         report["native_code_proposals"] = read(&a.out.join("native-code-proposals.json"))?;
         report["optimizer_updates"] = json!(0);
+    }
+    if a.constrained_context_learning {
+        report["constrained_context_learning"] = json!(true);
+        report["constrained_context_policy"] = constrained_context::policy();
+        report["scope"] = json!("exposed512 one coordinated shared Context basis update constrained by exact original-success native decisions; Potential/Generate/U/prototypes/categorical map fixed; independently reloaded native own-prefix outputs; greedy construction, no transfer/chat/energy qualification");
     }
     if a.categorical_action_learning {
         report["categorical_action_learning"] =
@@ -6347,6 +6397,25 @@ mod tests {
         let mut reached = enabled.clone();
         reached["reached_frontier_objective"] = json!(true);
         reference_replay_settings(&serde_json::from_value(reached.clone())?)?;
+        let mut constrained = reached.clone();
+        constrained["constrained_context_learning"] = json!(true);
+        let admitted: Args = serde_json::from_value(constrained.clone())?;
+        reference_replay_settings(&admitted)?;
+        assert_eq!(proposal_policy(&admitted), constrained_context::policy());
+        for (key, value) in [
+            ("categorical_action_learning", json!(true)),
+            ("categorical_action_only", json!(true)),
+            ("reached_frontier_objective", json!(false)),
+            ("native_code_proposals", json!(false)),
+            ("reference_replay", Value::Null),
+            ("query_conditioned_read", json!(true)),
+            ("updates", json!(2)),
+        ] {
+            let mut invalid = constrained.clone();
+            invalid[key] = value;
+            assert!(reference_replay_settings(&serde_json::from_value(invalid)?).is_err());
+        }
+        assert!(!serde_json::from_value::<Args>(base.clone())?.constrained_context_learning);
         let mut categorical = reached.clone();
         categorical["categorical_action_learning"] = json!(true);
         reference_replay_settings(&serde_json::from_value(categorical.clone())?)?;

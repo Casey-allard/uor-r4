@@ -236,6 +236,20 @@ fn basis_score(q: &[i8], root: &[i32; 4]) -> ContextQ4Result<i32> {
     round_div8(sum)
 }
 
+/// Exact offline single-row compiler score at one canonical Q25 H4 root.
+/// Shares the compiler arithmetic, including per-factor ties-away rounding.
+pub fn basis_score_q24(q: [i8; 4], root: u8) -> ContextQ4Result<i32> {
+    for (index, &value) in q.iter().enumerate() {
+        if !(-7..=7).contains(&value) {
+            return Err(ContextQ4Error::InvalidCoefficient { index, value });
+        }
+    }
+    let root = CANONICAL_BASIS_Q25
+        .get(usize::from(root))
+        .ok_or(ContextQ4Error::Configuration)?;
+    basis_score(&q, root)
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ContextQ4Stats {
     pub learned_coefficients: usize,
@@ -411,6 +425,19 @@ mod tests {
             rounded as i32
         }
     }
+    #[test]
+    fn context_q4_public_basis_score_matches_compiler_and_rejects_invalid() -> TestResult {
+        for (code, root) in canonical_basis_q25().iter().enumerate() {
+            for q in [[0; 4], [7, -7, 3, -2], [-1, 1, -1, 1]] {
+                assert_eq!(basis_score_q24(q, code as u8)?, basis_score(&q, root)?);
+            }
+        }
+        assert!(basis_score_q24([-8, 0, 0, 0], 0).is_err());
+        assert!(basis_score_q24([8, 0, 0, 0], 0).is_err());
+        assert!(basis_score_q24([0; 4], 120).is_err());
+        Ok(())
+    }
+
     #[test]
     fn context_q4_packing_dimensions_and_single_lane_padding() -> TestResult {
         let values = [-7, -1, 0, 1, 7];

@@ -321,7 +321,7 @@ fn bank(
     replay_require(proposals.len() == 18, "native proposal inventory differs")?;
     Ok(proposals)
 }
-fn save_ranking_gradients(
+pub(super) fn save_ranking_gradients(
     a: &Args,
     params: &BTreeMap<String, Var>,
     gradients: &BTreeMap<String, Tensor>,
@@ -423,7 +423,28 @@ pub(super) fn score(
     terms: &[Term],
     start: Instant,
 ) -> Result<Value> {
+    score_with_capture(a, p, field, eps, plan, terms, start, None)
+}
+/// Capture only actual successful-trajectory executions, including source-bank
+/// admission before caching. Other endpoints use the same numerical scorer.
+pub(super) fn score_with_capture(
+    a: &Args,
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[Episode],
+    plan: &ReferencePlan,
+    terms: &[Term],
+    start: Instant,
+    capture_file: Option<&str>,
+) -> Result<Value> {
     let clock = Instant::now();
+    let mut captured = Vec::new();
+    let mut calls = Vec::new();
+    let protected = terms
+        .iter()
+        .filter(|t| t.component == 1)
+        .map(|t| t.index)
+        .collect::<BTreeSet<_>>();
     let bytes = field.to_bytes()?;
     let sha = sha256_bytes(&bytes);
     let mut generator = p.generator()?.with_continuation_field(BoundNativeBytes {
@@ -434,7 +455,23 @@ pub(super) fn score(
     let mut banks = BTreeMap::new();
     for term in terms {
         if let std::collections::btree_map::Entry::Vacant(entry) = banks.entry(term.index) {
+            let capture = if capture_file.is_some() && protected.contains(&term.index) {
+                Some(
+                    generator.capture_context_decisions(
+                        constrained_context::MAX_CAPTURE_EVENTS
+                            .checked_sub(captured.len())
+                            .ok_or_else(|| bad("Context capture budget exhausted"))?,
+                    )?,
+                )
+            } else {
+                None
+            };
             entry.insert(generator.admit_bank(continuation_snapshot(&eps[term.index].packet)?)?);
+            if let Some(capture) = capture {
+                let first = captured.len();
+                captured.extend(capture.finish()?);
+                calls.push(json!({"kind":"bank_admission","index":term.index,"first":first,"count":captured.len()-first}));
+            }
         }
     }
     let mut losses = [0.; 2];
@@ -454,7 +491,23 @@ pub(super) fn score(
             prefix == &e.target[..term.position],
             "native objective actual-prefix admission differs",
         )?;
+        let capture = if capture_file.is_some() && term.component == 1 {
+            Some(
+                generator.capture_context_decisions(
+                    constrained_context::MAX_CAPTURE_EVENTS
+                        .checked_sub(captured.len())
+                        .ok_or_else(|| bad("Context capture budget exhausted"))?,
+                )?,
+            )
+        } else {
+            None
+        };
         let step = generator.step(&banks[&term.index], prefix)?;
+        if let Some(capture) = capture {
+            let first = captured.len();
+            captured.extend(capture.finish()?);
+            calls.push(json!({"kind":"native_step","index":term.index,"position":term.position,"prefix":prefix,"first":first,"count":captured.len()-first}));
+        }
         let total = step.actions.summary.total_weight_q31;
         let mass = step
             .actions
@@ -482,6 +535,37 @@ pub(super) fn score(
     let mut receipt = json!({"task":losses[0],"reference":losses[1],"combined":losses[0]+losses[1],"terms":rows,
         "source_binding":p.binding,"generate_sha256":p.generate_sha256,"continuation_sha256":sha,
         "native_calls":terms.len(),"elapsed_seconds":clock.elapsed().as_secs_f64()});
+    if let Some(file) = capture_file {
+        replay_require(
+            !captured.is_empty()
+                && protected.len() == 8
+                && calls.iter().filter(|v| v["kind"] == "native_step").count() == 84,
+            "protected Context capture population differs",
+        )?;
+        let path = a.out.join(file);
+        let stream = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&path)?;
+        let remaining = a
+            .maximum_report_bytes
+            .checked_sub(size(&a.out)?.saturating_add(1 << 20))
+            .ok_or_else(|| bad("Context capture report budget exhausted"))?;
+        disk_floor(a)?;
+        let mut writer = constrained_context::BudgetWriter {
+            inner: io::BufWriter::new(stream),
+            remaining,
+        };
+        serde_json::to_writer(
+            &mut writer,
+            &constrained_context::CapturedDecisions {
+                calls,
+                events: captured,
+            },
+        )?;
+        std::io::Write::flush(&mut writer)?;
+        disk_floor(a)?;
+    }
     if a.categorical_action_learning {
         receipt["categorical_sha256"] = json!(p.bridge_sha256);
     }

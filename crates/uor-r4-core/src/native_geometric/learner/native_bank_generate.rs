@@ -352,7 +352,11 @@ fn query_conditioned_choice(
         }
         let key = (
             distance,
-            scores.get(index).copied().unwrap_or(i64::MIN).saturating_neg(),
+            scores
+                .get(index)
+                .copied()
+                .unwrap_or(i64::MIN)
+                .saturating_neg(),
             index,
         );
         if best.is_none_or(|current| key < current) {
@@ -463,6 +467,19 @@ impl NativeBankGenerator {
     }
     pub fn generate_model(&self) -> &NativeGeometricGenerate {
         &self.generate
+    }
+    /// Opt-in offline diagnostics on the exact encoder used by bank admission
+    /// and generated-prefix evaluation. The guard must cover admission as well
+    /// as step calls; no second encoder or serving selection rule is installed.
+    pub fn capture_context_decisions(
+        &self,
+        maximum_events: usize,
+    ) -> Result<uor_r4_integer::geometric_context::ContextDecisionCapture> {
+        self.model
+            .context_encoder_parts()
+            .0
+            .capture_decisions(maximum_events)
+            .map_err(|e| NativeBankGenerateError::Execution(e.to_string()))
     }
     /// Install a separately authenticated factor bound to this exact Generate
     /// snapshot and native source identity. No output phase selects this field.
