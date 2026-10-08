@@ -66,3 +66,36 @@ SCOPE
   One artifact, greedy decoding, 17 requests, one protocol setting, compliance judged by mechanical
   checks on the transcripts reproduced here. Small panel, single model; the counts are exact for
   this panel and are not a benchmark.
+
+ADDENDUM (round 45): FIRST-TOKEN MEASUREMENT — IT IS NOT A STOPPING PROBLEM
+  Re-ran eight of the panel's decisive turns with max_new_tokens=1, greedy, protocol=2, to separate
+  "the model knows what to say but does not stop" from "the model never commits to an answer".
+
+    "Reply with exactly one word: yes"           first token: " "      (not "Yes")
+    "Answer yes or no: is the sky blue?"         first token: " The"   (not "Yes")
+    "Answer yes or no: do fish live in trees?"   first token: " "      (not "No")
+    "What is the capital of France?"             first token: " The"   (not "Paris")
+    "How many days are in a week?"               first token: " To"    (not "Seven")
+    "What is the largest planet in our system?"  first token: " The"   (not "Jupiter")
+    "Good morning!"                              first token: " I"     (a sentence about the speaker)
+    second turn of the cats retention pair       first token: " It"    (not "Two")
+
+  NOT ONE of the eight opens with the answer. Seven of eight open with an article, a preposition or a
+  pronoun - the beginning of a DESCRIPTIVE SENTENCE about the topic. The full-generation records
+  agree: "The capital of France is Paris." is a correct sentence reached by writing about France,
+  not an answer produced by the turn.
+
+  So the deficit is not response length and not a missing stop condition: it is present in the FIRST
+  TOKEN. The model treats every turn as a topic to write about, and has no representation of the
+  response FORM the turn requests - one word, yes/no, a number, a name. That is precisely the
+  behaviour of training on conversational text whose replies are uniformly prose, and it means:
+    * a boundary/EOS objective alone will not fix it;
+    * rebuilding more of the SAME conversational sources (chat-v1) will not fix it either, because
+      the form distribution would be unchanged;
+    * what the panel's failures point to is training data with RESPONSE-FORM DIVERSITY - short
+      answers, yes/no, counts, lists mixed with prose - so that the first token is conditioned on the
+      request rather than on the topic.
+
+  This is now the sharpest available statement of the chat path's deficit and the most specific
+  target the session has produced, and it is checkable in one command (max_new_tokens=1 on the same
+  panel) after any change.
