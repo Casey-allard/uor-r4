@@ -1,0 +1,112 @@
+{
+  "schema": "uor-r4.native-generate-coadaptation-evidence/1",
+  "date": "2026-10-08",
+  "owning_issue": 820,
+  "pull_request": 1886,
+  "status": "COMPLETED_OPTIMIZATION_EVIDENCE_UTILITY_NOT_MET",
+  "persistent_goal_status": "active",
+  "executed_source": "3952de49e6bf7a97721a5dec6ec3080231ec7b6a",
+  "source_base": "6e33a751c8760bd697fee1ce8a2ad564420eef27",
+  "immediate_context_report": "fba3f4cbcdc475147062105bf175a82f0556e873c6a6b6918714d23c5aac57e4",
+  "native_objective_before_after": [
+    8.971047852627056,
+    8.52634374894637
+  ],
+  "complete_before_after": [
+    8,
+    8
+  ],
+  "original_complete_retained": 8,
+  "new_complete": 0,
+  "lost_complete": 0,
+  "entry_correct_before_after": [
+    8,
+    8
+  ],
+  "source_swap_pairs_before_after": [
+    4,
+    4
+  ],
+  "changed_outputs": 237,
+  "accepted_coordinates": 2798,
+  "saturated_original_gradient_proposals": 55762,
+  "rejected_coordinates": 0,
+  "protected_outputs": 84,
+  "checks": {
+    "format": "PASS",
+    "cache_tests": 5,
+    "incidence_tests": 1,
+    "cuda_fitter_tests": 41,
+    "failed_tests": 0,
+    "ignored_tests": 0,
+    "cuda_release": "PASS",
+    "math_review": "PASS",
+    "adversarial_review": "PASS",
+    "corrected_endpoint_reader": "PASS",
+    "rust_five_complete_seals": "PASS"
+  },
+  "timing_seconds": {
+    "producer": 451.717209241,
+    "fit_gradient": 63.04975789699999,
+    "native_evaluation": 368.938558193,
+    "checkpoint": 6.764095246,
+    "supervisor": 461.56388418003917,
+    "construction": 0.144504919,
+    "original_reader": 13.486566429957747,
+    "corrected_reader": 16.75190010201186,
+    "rust_seals": 9.337172804400325,
+    "saved_margin": 0.2180797252804041
+  },
+  "resources": {
+    "peak_rss_kib": 2032492,
+    "sampled_gpu_mib": 1965,
+    "report_bytes": 330864663,
+    "cumulative_projected_seconds_before_after": [
+      375270,
+      411270
+    ],
+    "local_build_model_large_download": false
+  },
+  "preservation": {
+    "revision": "52abd5e497894cb00d88dea77bbdcca509be1b03",
+    "prefix": "codex/sol-emission/emission-0001-3952de49e6",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "c624df27f752fd0f1f01cddf7a175ba21613d5d338a989b1abb2970463c5a037",
+        "bytes": 1064
+      },
+      "emission-0001-3952de49e6.tar.gz": {
+        "sha256": "0ef2a476a40349fb6152154996a125aac5bf5da9a8beaef19c7ec12e43ae7ff3",
+        "bytes": 81166494
+      }
+    },
+    "manifest": {
+      "source_commit": "3952de49e6bf7a97721a5dec6ec3080231ec7b6a",
+      "runtime_hf_revision": "38b827ae59d626572d1407581f68775ef5b5acda",
+      "runtime_manifest_sha256": "6c8a8f399387089395d1f18c4e1888506a072ad31f75d333a0487a3f364003ea",
+      "binary_sha256": "1154003b46961c66d3fe927d310220abc5e12af424ea8a1346aa8b6034b21752",
+      "config_sha256": "5888251aaf1dfb7a19b117791d5188612b2124a1c8aa1a5f6d7873f2a0fef68a",
+      "report_sha256": "d9e118b53eb82c4c1c458d561fd271d6a3d96faccd2df92f25c00ab062a9a801",
+      "report_manifest_sha256": "f7bc3f344270c84856f803b78bec9e6f0d35ae5511ce20ae5ec0f4749fc75e20",
+      "audit_sha256": "d1c38dd80f3e7224f2dfd6498c1018d35a5e48774fb8fd6ec01389c1ebfdd90a",
+      "files": {
+        "emission-0001-3952de49e6.tar.gz": {
+          "sha256": "0ef2a476a40349fb6152154996a125aac5bf5da9a8beaef19c7ec12e43ae7ff3",
+          "bytes": 81166494
+        }
+      },
+      "scope": "One finite shared Generate unary/pair coadaptation at retained Context; nativeCEdescent, complete8/512 retained8/8 no gains. Original accepted parent preserved; no usefulchat/transfer/energy promotion."
+    },
+    "seconds": 48.745616517961025,
+    "completed_utc": "2026-10-08T09:44:38.527155+00:00"
+  },
+  "limitations": [
+    "exposed development panel only",
+    "no independently reproduced backward or internal greedy replay",
+    "no useful-chat, transfer, geometry advantage or complete serving/energy qualification",
+    "original accepted parent remains accepted",
+    "endpoint gradient NOT_RUN"
+  ],
+  "next": "Bounded shared prototype neighborhood diagnostic; no new learning admission without positive pooled/preservation evidence and protected current merge."
+}

@@ -58,8 +58,12 @@ use uor_r4_training::{
 mod categorical_proposals;
 #[path = "geometric_frozen_map_fit/constrained_context.rs"]
 mod constrained_context;
+#[path = "geometric_frozen_map_fit/constrained_emission.rs"]
+mod constrained_emission;
 #[path = "geometric_frozen_map_fit/context_constraints.rs"]
 mod context_constraints;
+#[path = "geometric_frozen_map_fit/emission_constraints.rs"]
+mod emission_constraints;
 #[path = "geometric_frozen_map_fit/frontier.rs"]
 mod frontier;
 #[path = "geometric_frozen_map_fit/native_proposals.rs"]
@@ -138,6 +142,18 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    replay_require(
+        a.constrained_emission_learning == a.retained_context_root.is_some(),
+        "emission mode requires explicit retained Context root",
+    )?;
+    replay_require(
+        !a.constrained_emission_learning
+            || (a.reached_frontier_objective
+                && !a.constrained_context_learning
+                && !a.categorical_action_learning
+                && !a.categorical_action_only),
+        "emission requires reached frontier with frozen upstream operators",
+    )?;
     replay_require(
         !a.constrained_context_learning
             || (a.reached_frontier_objective
@@ -452,6 +468,11 @@ struct Args {
     /// One composite shared-Q4 update constructed under native success constraints.
     #[serde(default)]
     constrained_context_learning: bool,
+    /// Pinned Context endpoint for one shared Generate-only finite construction.
+    #[serde(default)]
+    constrained_emission_learning: bool,
+    #[serde(default)]
+    retained_context_root: Option<PathBuf>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -716,6 +737,7 @@ fn args() -> Result<Args> {
     .into_iter()
     .chain(a.baseline.iter())
     .chain(a.prediction_control_resume.iter())
+    .chain(a.retained_context_root.iter())
     .chain(
         a.reference_replay
             .iter()
@@ -1814,6 +1836,10 @@ fn reference_outcomes(
     let mut reference_losses = [0.; 2];
     let mut task_losses = [0.; 2];
     let mut lost = Vec::new();
+    let mut historical_initial_lost = Vec::new();
+    let mut recovered_during_emission = Vec::new();
+    let mut emission_lost = Vec::new();
+    let mut emission_retained = Vec::new();
     let mut gains = Vec::new();
     let mut retained = [0usize; 3];
     let mut lost_by_phase = [0usize; 3];
@@ -1859,7 +1885,7 @@ fn reference_outcomes(
             let was = left["native"]["pool"]["summary"]["chosen_token_id"] == target;
             let now = right["native"]["pool"]["summary"]["chosen_token_id"] == target;
             replay_require(
-                was == row.eligible[t],
+                a.constrained_emission_learning || was == row.eligible[t],
                 "actual initial eligibility differs from frozen parent",
             )?;
             let phase = row.phases[t];
@@ -1872,6 +1898,18 @@ fn reference_outcomes(
                     != right["native"]["continuation"]["state_codes"],
             );
             if row.eligible[t] {
+                if !was {
+                    historical_initial_lost.push(identity.clone());
+                }
+                if !was && now {
+                    recovered_during_emission.push(identity.clone());
+                }
+                if was && !now {
+                    emission_lost.push(identity.clone());
+                }
+                if was && now {
+                    emission_retained.push(identity.clone());
+                }
                 for arm in 0..2 {
                     reference_losses[arm] += row.weights[t] * native_losses[arm];
                 }
@@ -1882,7 +1920,7 @@ fn reference_outcomes(
                     lost.push(identity.clone());
                 }
                 positions.push(json!({"identity":identity,"weight":row.weights[t],"weight_denominator":row.weight_denominators[t],
-                    "native_losses_before_after":native_losses,"retained":now,
+                    "native_losses_before_after":native_losses,"historical_eligible_correct_after":now,"correct_at_immediate_input":was,"retained":was && now,
                     "before_mass":left["native_target_mass"],"before_total":left["native_denominator"],
                     "after_mass":right["native_target_mass"],"after_total":right["native_denominator"],
                     "after_chosen":right["native"]["pool"]["summary"]["chosen_token_id"]}));
@@ -1913,6 +1951,18 @@ fn reference_outcomes(
         "initial_complete":initial_complete,"retained_parent_complete":retained_complete,"final_complete":final_complete,
         "useful_candidate":initial_complete==8 && retained_complete==8 && final_complete>8,
         "scope":"native saved canonical objectives/retention and independent own-prefix answers; teacher retention is diagnostic, not an output-evaluation veto"});
+    if a.constrained_emission_learning {
+        result["historical_initial_lost_positions"] = json!(historical_initial_lost);
+        result["recovered_during_emission_positions"] = json!(recovered_during_emission);
+        result["lost_during_emission_positions"] = json!(emission_lost);
+        result["retained_during_emission_positions"] = json!(emission_retained);
+        let object = result
+            .as_object_mut()
+            .ok_or_else(|| bad("reference diagnostic absent"))?;
+        if let Some(value) = object.remove("reference_retained_by_phase") {
+            object.insert("historical_eligible_correct_after_by_phase".into(), value);
+        }
+    }
     if a.reached_frontier_objective {
         let object = result
             .as_object_mut()
@@ -1920,7 +1970,11 @@ fn reference_outcomes(
         object.remove("current_batch_losses_before_after");
         object.remove("combined_losses_before_after");
         object.remove("lambda");
-        result["scope"]=json!("legacy398 canonical teacher-position stability diagnostic only; not the reached-frontier training objective; no B8 draw");
+        result["scope"] = json!(if a.constrained_emission_learning {
+            "original398 donor teacher-position diagnostic with original eligibility weights; current retained-Context initial correctness may differ; not the emission objective; no B8 draw"
+        } else {
+            "legacy398 canonical teacher-position stability diagnostic only; not the reached-frontier training objective; no B8 draw"
+        });
     }
     Ok(result)
 }
@@ -1983,7 +2037,9 @@ impl Loaded {
     }
 }
 fn proposal_policy(a: &Args) -> Value {
-    if a.constrained_context_learning {
+    if a.constrained_emission_learning {
+        constrained_emission::policy()
+    } else if a.constrained_context_learning {
         constrained_context::policy()
     } else if a.categorical_action_learning {
         categorical_proposals::policy_for(a.categorical_action_only)
@@ -4923,6 +4979,13 @@ fn joint_checkpoint(
         receipt["fresh_adam"] = json!(false);
         receipt["credit_scope"] = json!("one original-parent full120 shared categorical action contrast; only one action row may change; Context/Potential/Generate/U fixed for attribution, no Adam; independent native CE acceptance; not joint Context adaptation");
     }
+    if a.constrained_emission_learning {
+        receipt["constrained_emission_learning"] = json!(true);
+        receipt["immediate_input"] = constrained_emission::input_identity(a)?;
+        receipt["fresh_adam"] = json!(false);
+        receipt["credit_scope"] = json!("fresh retained-Context gradient; only shared Generate unary/pair adjacent Q4 codes accumulate under exact pooled successful-output constraints; all upstream, bias, prototypes and U numerical masters fixed; one composite, no Adam");
+    }
+
     fs::write(
         root.join("continuation-source/metadata.json"),
         serde_json::to_vec_pretty(&receipt)?,
@@ -5085,8 +5148,17 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let rates = joint_continuation_settings(a)?.ok_or_else(|| bad("joint config absent"))?;
-    let parent = ContinuationParent::load(a)?;
-    let mut l = load_joint_continuation(a, &parent, d)?;
+    let original_parent = ContinuationParent::load(a)?;
+    let parent = if a.constrained_emission_learning {
+        constrained_emission::load_parent(a, &original_parent)?
+    } else {
+        ContinuationParent::from_checkpoint(&a.checkpoint)?
+    };
+    let mut load_args = a.clone();
+    if let Some(root) = &a.retained_context_root {
+        load_args.checkpoint = root.join("checkpoint-0001");
+    }
+    let mut l = load_joint_continuation(&load_args, &parent, d)?;
     if a.categorical_action_learning {
         l.categorical = Some(CategoricalBridgeLearningWeights::from_bytes(
             &parent.bridge,
@@ -5116,7 +5188,8 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         return Err(bad("joint requires complete512 construction panel"));
     }
     pairs(&eps)?;
-    let reached = frontier::load(a, &parent, &eps)?;
+    // Historical eligibility remains pinned to its original donor, even when the immediate input is the retained Context endpoint.
+    let reached = frontier::load(a, &original_parent, &eps)?;
     let reference = if let Some(plan) = &reached {
         Some(plan.canonical_reference.clone())
     } else {
@@ -5129,6 +5202,9 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         l.generate.lanes(),
         d,
     )?;
+    if a.constrained_emission_learning {
+        constrained_emission::restore_field(a, &parent, &weights, d)?;
+    }
     let params = joint_active(&l, &weights)?;
     let prototype = BTreeMap::from([(
         "generate.prototype_choices".into(),
@@ -5205,6 +5281,14 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         }
         write(a, "admission.json", &admission)?;
     }
+    if a.constrained_emission_learning {
+        let mut admission = read(&a.out.join("admission.json"))?;
+        admission["immediate_input"] = constrained_emission::input_identity(a)?;
+        admission["continuation_initialization"] = json!("authenticated retained Context checkpoint continuation master restore; numeric U frozen");
+        admission["fresh_adam"] = json!(false);
+        admission["parameter_update_policy"] = constrained_emission::policy();
+        write(a, "admission.json", &admission)?;
+    }
     let clock = Instant::now();
     let (initial_parent, initial_field, initial_receipt) = joint_checkpoint(a, 0, &l, &weights)?;
     let mut checkpoint_seconds = clock.elapsed().as_secs_f64();
@@ -5230,6 +5314,7 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         d,
         reached.as_ref(),
     )?;
+
     write(a, "zero-update-admission.json", &parity)?;
     let clock = Instant::now();
     let initial = continuation_evaluate(
@@ -5258,7 +5343,13 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         write(a, "reference-initial-validation.json", &baseline)?;
     }
     if let Some(plan) = &reached {
-        let measured = frontier::outcomes(a, plan, &initial, &initial, true)?;
+        let measured = frontier::outcomes(
+            a,
+            plan,
+            &initial,
+            &initial,
+            !a.constrained_emission_learning,
+        )?;
         write(a, "frontier-initial-validation.json", &measured)?;
     }
     let mut evaluation_seconds = clock.elapsed().as_secs_f64();
@@ -5434,11 +5525,30 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
                 receipt["reference_replay"]["clip_and_adam_policy"] = json!("none: one original-parent action gradient ranks at most one shared-key replacement; no Context update or conditional gradient recomputation");
                 receipt["gradient_role"] = json!("categorical action contrasts choose the only permitted edit; other family gradients are diagnostic and never applied");
             }
+            if a.constrained_emission_learning {
+                receipt["reference_replay"]["clip_and_adam_policy"] = json!("none: one fresh retained-Context gradient ranks a single coordinated Generate unary/pair construction; no candidate bank, Adam or clipping");
+                receipt["gradient_role"] = json!("shared Generate unary/pair fresh coefficient credit drives one once-only pass; all other master gradients remain diagnostic and are never applied");
+            }
             if a.constrained_context_learning {
                 receipt["reference_replay"]["clip_and_adam_policy"] = json!("none: one complete gradient drives a single coordinated constrained Context pass; no native candidate bank or Adam");
                 receipt["gradient_role"] = json!("all existing credit channels aggregated; six shared Context basis families construct one native-constrained candidate; other masters frozen");
             }
-            receipt["native_code_proposals"] = if a.constrained_context_learning {
+            receipt["native_code_proposals"] = if a.constrained_emission_learning {
+                constrained_emission::run(
+                    a,
+                    &l,
+                    &weights,
+                    &params,
+                    &grads,
+                    &initial_parent,
+                    &initial_field,
+                    &eps,
+                    reference
+                        .as_ref()
+                        .ok_or_else(|| bad("emission reference absent"))?,
+                    start,
+                )?
+            } else if a.constrained_context_learning {
                 constrained_context::run(
                     a,
                     &l,
@@ -5640,6 +5750,11 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
     if a.native_code_proposals {
         report["native_code_proposals"] = read(&a.out.join("native-code-proposals.json"))?;
         report["optimizer_updates"] = json!(0);
+    }
+    if a.constrained_emission_learning {
+        report["constrained_emission_learning"] = json!(true);
+        report["immediate_input"] = constrained_emission::input_identity(a)?;
+        report["scope"] = json!("exposed512 sequential shared Generate unary/pair learning at pinned retained Context endpoint; exact protected pooled outputs; upstream/bias/prototype/U numeric masters frozen; independent native reload and own-feedback outputs; no transfer/chat/energy qualification");
     }
     if a.constrained_context_learning {
         report["constrained_context_learning"] = json!(true);
@@ -6397,6 +6512,27 @@ mod tests {
         let mut reached = enabled.clone();
         reached["reached_frontier_objective"] = json!(true);
         reference_replay_settings(&serde_json::from_value(reached.clone())?)?;
+        let mut emission = reached.clone();
+        emission["constrained_emission_learning"] = json!(true);
+        emission["retained_context_root"] = json!("context-sealed");
+        let admitted_emission: Args = serde_json::from_value(emission.clone())?;
+        reference_replay_settings(&admitted_emission)?;
+        assert_eq!(
+            proposal_policy(&admitted_emission),
+            constrained_emission::policy()
+        );
+        for (key, value) in [
+            ("retained_context_root", Value::Null),
+            ("constrained_emission_learning", json!(false)),
+            ("constrained_context_learning", json!(true)),
+            ("categorical_action_learning", json!(true)),
+            ("reached_frontier_objective", json!(false)),
+            ("native_code_proposals", json!(false)),
+        ] {
+            let mut invalid = emission.clone();
+            invalid[key] = value;
+            assert!(reference_replay_settings(&serde_json::from_value(invalid)?).is_err());
+        }
         let mut constrained = reached.clone();
         constrained["constrained_context_learning"] = json!(true);
         let admitted: Args = serde_json::from_value(constrained.clone())?;

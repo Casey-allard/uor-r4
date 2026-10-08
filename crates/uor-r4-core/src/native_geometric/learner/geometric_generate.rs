@@ -322,13 +322,13 @@ impl NativeGeometricGenerate {
         }
         Ok(frame)
     }
-    fn score(
+    fn relative_tuple(
         &self,
         inverse_state: &[u8],
         token: usize,
         override_code: Option<(usize, u8)>,
         counts: &mut GenerateReadCounts,
-    ) -> Result<i64> {
+    ) -> Result<[u8; MAX_LANES]> {
         if token >= self.vocab_size() {
             return Err(GenerateError::Shape("Generate token out of domain"));
         }
@@ -348,6 +348,48 @@ impl NativeGeometricGenerate {
                 self.algebra()
                     .compose_counted(inverse_state[lane], code, &mut counts.algebra)?;
         }
+        Ok(relative)
+    }
+    /// Offline logical learning-coordinate incidence, in unary-lane then declared
+    /// edge order. Keys exclude bias/prototype choices and packed-table padding.
+    /// Invalid shape/token/state leaves the output unchanged.
+    pub fn factor_incidence_into(
+        &self,
+        state: &[H4Code],
+        token: usize,
+        out: &mut [u32],
+        counts: &mut GenerateReadCounts,
+    ) -> Result<()> {
+        self.check_state(state)?;
+        if out.len() != self.lanes() + self.energy().edges().len() {
+            return Err(GenerateError::Shape(
+                "Generate factor incidence shape differs",
+            ));
+        }
+        let frame = self.frame(state, counts)?;
+        let relative = self.relative_tuple(&frame[..self.lanes()], token, None, counts)?;
+        let mut keys = [0u32; MAX_LANES + MAX_PAIRS];
+        for lane in 0..self.lanes() {
+            keys[lane] = (lane * 120 + usize::from(relative[lane])) as u32;
+        }
+        for (index, edge) in self.energy().edges().iter().enumerate() {
+            keys[self.lanes() + index] = (self.lanes() * 120
+                + index * 14_400
+                + usize::from(relative[usize::from(edge.left)]) * 120
+                + usize::from(relative[usize::from(edge.right)]))
+                as u32;
+        }
+        out.copy_from_slice(&keys[..out.len()]);
+        Ok(())
+    }
+    fn score(
+        &self,
+        inverse_state: &[u8],
+        token: usize,
+        override_code: Option<(usize, u8)>,
+        counts: &mut GenerateReadCounts,
+    ) -> Result<i64> {
+        let relative = self.relative_tuple(inverse_state, token, override_code, counts)?;
         let z = self
             .energy()
             .score(&relative[..self.lanes()], &mut counts.energy)?
@@ -558,6 +600,89 @@ mod tests {
         // bias changes their scores without merging their identities.
         assert_eq!(&m.prototypes()[8..10], &m.prototypes()[10..12]);
         assert_ne!(before[4], before[5]);
+        Ok(())
+    }
+    #[test]
+    fn native_generate_factor_incidence_matches_recompiled_shared_edits() -> Result<()> {
+        let b = binding()?;
+        // Declared edge order differs from lexicographic order.
+        let edges = vec![
+            LanePair { left: 1, right: 3 },
+            LanePair { left: 0, right: 2 },
+        ];
+        let prototypes = vec![
+            3, 5, 7, 9, 31, 57, 11, 13, 3, 5, 7, 9, 17, 19, 23, 29, 41, 43, 47, 53, 59, 61, 67, 71,
+        ];
+        let base = NativeGeometricGenerate::compile(
+            &b,
+            4,
+            &prototypes,
+            &[0; 3],
+            EnergyTables::zeroed(4, edges)?,
+        )?;
+        let state = codes(&[31, 57, 79, 83])?;
+        let mut incidence = vec![[0u32; 6]; 6];
+        for (token, keys) in incidence.iter_mut().enumerate() {
+            base.factor_incidence_into(&state, token, keys, &mut GenerateReadCounts::default())?;
+            for lane in 0..4 {
+                let relative = base.algebra().compose(
+                    base.algebra().inverse(state[lane].index())?,
+                    prototypes[token * 4 + lane],
+                )?;
+                assert_eq!(keys[lane], (lane * 120 + usize::from(relative)) as u32);
+            }
+        }
+        assert_eq!(incidence[0], incidence[2]);
+        let mut original = [0i64; 6];
+        base.score_into(&state, &mut original, &mut GenerateReadCounts::default())?;
+        let keys = [incidence[0][0], incidence[0][4], incidence[1][5]];
+        let mut energy = base.energy().clone();
+        for &key in &keys {
+            if key < 480 {
+                energy.set_unary((key / 120) as u8, (key % 120) as u8, 1)?;
+            } else {
+                let pair = key - 480;
+                energy.set_pair(
+                    (pair / 14_400) as usize,
+                    ((pair % 14_400) / 120) as u8,
+                    (pair % 120) as u8,
+                    1,
+                )?;
+            }
+        }
+        let candidate = NativeGeometricGenerate::compile(&b, 4, &prototypes, &[0; 3], energy)?;
+        let reloaded = NativeGeometricGenerate::from_bytes(&candidate.to_bytes()?, &b)?;
+        let mut actual = [0i64; 6];
+        reloaded.score_into(&state, &mut actual, &mut GenerateReadCounts::default())?;
+        for token in 0..6 {
+            let affected = keys
+                .iter()
+                .filter(|key| incidence[token].contains(key))
+                .count();
+            assert_eq!(
+                actual[token] - original[token],
+                (affected as i64) << SCORE_SHIFT
+            );
+        }
+        let mut unchanged = [u32::MAX; 6];
+        assert!(base
+            .factor_incidence_into(
+                &state,
+                6,
+                &mut unchanged,
+                &mut GenerateReadCounts::default()
+            )
+            .is_err());
+        assert_eq!(unchanged, [u32::MAX; 6]);
+        assert!(base
+            .factor_incidence_into(
+                &state,
+                0,
+                &mut unchanged[..5],
+                &mut GenerateReadCounts::default()
+            )
+            .is_err());
+        assert_eq!(unchanged, [u32::MAX; 6]);
         Ok(())
     }
     #[test]
