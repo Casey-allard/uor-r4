@@ -1,0 +1,49 @@
+UOR-R4 — The objective change needs a mask the corpus does not have, and that changes the corpus decision
+Date: 2026-10-08 (overnight round 49). DeepSeek session. References #820.
+
+WHAT ROUND 48 CONCLUDED AND WHAT IT IMPLIES
+  The pre-registered form-diversity arm failed on all three measures, so the chat model's failure to
+  bind replies to turns is an objective or capacity problem rather than a data-form problem. The
+  indicated change is a loss that distinguishes the RESPONSE region of a conversation from the
+  prompt, or an objective that conditions generation on the turn instead of continuing a flattened
+  transcript.
+
+WHAT THE MACHINERY REQUIRES, AND WHAT IS MISSING
+  `dialogue-train` accepts exactly that: `train_tokens=TRAIN.uort train_mask=TRAIN.mask
+  train_manifest=TRAIN/manifest.json` (crates/uor-r4-training/examples/geometric-stack.rs:41-43).
+  The mask is the response region.
+
+  IT DOES NOT EXIST FOR THIS CORPUS. The training data on the volume is
+  chat-train.u16 (164,496,986 bytes), heldout.u16 and tokenizer.json - no mask, no manifest, no
+  per-turn sidecar. Searching the whole volume for a mask file returns only cargo-registry sources.
+  The chat corpus was built as a flat token stream with role templates rendered INTO the text
+  (protocol 2), so the reply boundaries exist only in the source conversations, not in the artefact.
+
+CONSEQUENCE - AND IT FLIPS A RECOMMENDATION
+  The objective change cannot be run on what is on disk. It requires rebuilding the corpus from the
+  source parquet with a mask emitted alongside the tokens, i.e. the same ~2.1 GB licence-clean
+  re-fetch and `prepare-chat-parquet` path that rounds 36 and 48 argued against.
+
+  But the argument against it was about VOLUME, and this is not a volume reason. The rebuild would
+  be bought to obtain the ROLE/MASK STRUCTURE of the conversations - the thing that makes a
+  response-region loss possible at all - and that structure is not obtainable any other way: the
+  flat corpus has already discarded it. Stated precisely for the owner's decision:
+    * for more tokens of the same register: NO, the evidence is against it;
+    * for a mask that enables the objective change: it appears to be the only route, and the
+      decision should be made on that basis rather than on corpus size.
+  The tool may already emit what is needed - `prepare-chat-parquet` is on main and the runbook's
+  section 2.3 documents the source/skip protocol - so the first step is to read its output options
+  for a mask or per-turn sidecar emission before assuming new code is required. That check is cheap
+  and is the next action.
+
+ALSO WORTH KNOWING FOR THAT STEP
+  The corpus's role structure came from two licence-clean sources already used by this project
+  (smoltalk smol-magpie-ultra, Apache-2.0; ultrachat_200k default/train_sft, MIT), with skip counts
+  recorded in the runbook, and the tokenizer is local with a known sha256, so a rebuild is
+  deterministic and verifiable. The held-out stream used by every measurement in this session
+  (sha256 e5f400b0...) lives on the laptop and is unaffected by a rebuild of the training corpus.
+
+SCOPE
+  This document reports an absence, verified by listing the data directory and searching the volume,
+  and records the decision it changes. No objective change has been run and no result is claimed for
+  one.
