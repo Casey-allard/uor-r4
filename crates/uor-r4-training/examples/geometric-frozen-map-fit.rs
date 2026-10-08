@@ -65,6 +65,40 @@ enum Mode {
     EntryCeiling,
     EntryScorerFit,
     ContinuationOnly,
+    JointContinuation,
+}
+
+/// The joint rung keeps prototypes and the categorical bridge frozen. These
+/// rates change only the declared four active families, never parent selection.
+#[derive(Clone, Copy, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct JointContinuationConfig {
+    generate_learning_rate: f64,
+    context_learning_rate: f64,
+    potential_learning_rate: f64,
+    continuation_learning_rate: f64,
+}
+fn joint_continuation_settings(a: &Args) -> Result<Option<&JointContinuationConfig>> {
+    match (a.mode, a.joint_continuation.as_ref()) {
+        (Mode::JointContinuation, Some(c))
+            if a.credit == Credit::RawIdentity
+                && a.read_state_pullback == ReadStatePullback::Categorical
+                && a.loss_scope == LossScope::All
+                && !a.ceiling_scorer
+                && !a.ceiling_float
+                && a.baseline.is_none()
+                && a.panel_inputs.is_none()
+                && a.panel_labels.is_none()
+                && a.continuation.is_none()
+                && [c.generate_learning_rate, c.context_learning_rate,
+                    c.potential_learning_rate, c.continuation_learning_rate]
+                    .iter().all(|v| v.is_finite() && *v > 0.) => Ok(Some(c)),
+        (Mode::JointContinuation, _) => Err(bad(
+            "joint continuation requires categorical/RawIdentity all-answer credit, four positive rates and no old diagnostic/cache options",
+        )),
+        (_, None) => Ok(None),
+        (_, Some(_)) => Err(bad("joint continuation settings require joint_continuation mode")),
+    }
 }
 
 /// Only this new mode may learn a continuation field on the sealed48/64 parent.
@@ -275,6 +309,8 @@ struct Args {
     prediction_control_trainable: ControlTrainable,
     #[serde(default)]
     continuation: Option<ContinuationConfig>,
+    #[serde(default)]
+    joint_continuation: Option<JointContinuationConfig>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -507,6 +543,7 @@ fn args() -> Result<Args> {
     let a: Args = serde_json::from_slice(&fs::read(path)?)?;
     control_settings(&a)?;
     continuation_settings(&a)?;
+    joint_continuation_settings(&a)?;
     if ![1001, 1002, 1003].contains(&a.seed)
         || a.maximum_seconds == 0
         || a.maximum_report_bytes < (64 << 20)
@@ -518,9 +555,8 @@ fn args() -> Result<Args> {
         // Declared doses stay schedule-comparable with the retained campaign
         // and land on a written checkpoint, because recovery checkpoints are
         // written every 32 updates and the final reload reads the last one.
-        || a.updates == 0
         || a.updates > UPDATES
-        || a.updates % 32 != 0
+        || (a.mode != Mode::JointContinuation && (a.updates == 0 || a.updates % 32 != 0))
     {
         return Err(bad("fixed order seeds/resource admission"));
     }
@@ -1321,6 +1357,37 @@ fn batch(
     start: Instant,
     independent: Option<&IntegerRealizer>,
 ) -> Result<(BTreeMap<String, Tensor>, Value)> {
+    batch_live(a, l, eps, indices, d, start, independent, None)
+}
+
+fn joint_active(
+    source: &SourceRealizerWeights,
+    generate: &GenerateLearningWeights,
+    continuation: &ContinuationLearningWeights,
+) -> Result<BTreeMap<String, Var>> {
+    let mut parameters = active(source, generate)?;
+    if parameters.remove("generate.prototype_choices").is_none() {
+        return Err(bad("joint frozen prototype family absent"));
+    }
+    parameters.extend(continuation.parameters());
+    Ok(parameters)
+}
+
+fn batch_live(
+    a: &Args,
+    l: &Loaded,
+    eps: &[Episode],
+    indices: &[usize],
+    d: &Device,
+    start: Instant,
+    independent: Option<&IntegerRealizer>,
+    continuation: Option<&ContinuationLearningWeights>,
+) -> Result<(BTreeMap<String, Tensor>, Value)> {
+    if continuation.is_some() && independent.is_some() {
+        return Err(bad(
+            "joint native parity requires the bound current full generator",
+        ));
+    }
     let current = l.source.compile_context_potential_rebound(&l.frozen)?;
     let prepared = l.source.prepare_context_potential_on_device(&current, d)?;
     let cue = current.compile_cue_carrier(l.cue.clone())?;
@@ -1353,7 +1420,21 @@ fn batch(
         )?,
     }
     .with_read_selector_credit(true);
-    let params = active(&l.source, &l.generate)?;
+    // Rebuild against both current upstream artifacts at every batch. No
+    // FixedContinuationPosition (states or scores) survives an optimizer step.
+    let field = continuation
+        .map(|weights| weights.prepare_native(&current.execution_binding()?, &gs.native))
+        .transpose()?;
+    if let (Some(weights), Some(prepared_field)) = (continuation, field.as_ref()) {
+        learner = learner
+            .with_continuation_field(weights, prepared_field)?
+            .with_continuation_context_credit(true)?;
+    }
+    let params = if let Some(weights) = continuation {
+        joint_active(&l.source, &l.generate, weights)?
+    } else {
+        active(&l.source, &l.generate)?
+    };
     let mut sums = BTreeMap::<String, Tensor>::new();
     let mut rows = Vec::new();
     let mut total = 0.;
@@ -1380,6 +1461,12 @@ fn batch(
                     &e.target[..t],
                     &cue,
                     &prefix,
+                )?
+            } else if continuation.is_some() {
+                learner.forward_no_source_with_query(
+                    &e.causal_no_source(&e.target[..t])?,
+                    &e.packet.query_ids,
+                    &e.target[..t],
                 )?
             } else {
                 learner.forward_no_source(&e.causal_no_source(&e.target[..t])?)?
@@ -1524,7 +1611,11 @@ fn batch(
         "phase_positions":phase_positions,"phase_losses":phase_losses,
         "independent_native_parity":independent.is_some(),
         "matched_forward_loss_bit_equal":independent.is_some(),
-        "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"token_backward_chunk":1,"frozen_bridge_excluded_from_gradient_accumulation":true}),
+        "credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"token_backward_chunk":1,"frozen_bridge_excluded_from_gradient_accumulation":true,
+        "joint_continuation":continuation.is_some(),"prototype_excluded_from_gradient_accumulation_and_clip":continuation.is_some(),
+        "current_source_binding":current.execution_binding()?,
+        "current_generate_sha256":sha256_bytes(&gs.native.to_bytes()?),
+        "current_continuation_sha256":field.as_ref().map(|f| f.native.to_bytes().map(|b| sha256_bytes(&b))).transpose()?}),
     ))
 }
 fn save_masters(root: &Path, vars: &BTreeMap<String, Var>) -> Result<Value> {
@@ -1812,8 +1903,11 @@ fn metrics(a: &Args, eval: &Value, eps: &[Episode]) -> Result<Value> {
     let mut teacher_count = 0;
     let mut own_count = 0;
     let mut reached_count = 0;
+    let mut reached_correct_count = 0;
     let mut teacher_both = 0;
     let mut own_both = 0;
+    let mut reached_correct_both = 0;
+    let mut complete_both = 0;
     let mut receipts = Vec::new();
     let paired = if a.mode == Mode::PredictionControl {
         scoped_pairs(eps)?
@@ -1836,27 +1930,43 @@ fn metrics(a: &Args, eval: &Value, eps: &[Episode]) -> Result<Value> {
             teacher_count += usize::from(teacher);
             own_count += usize::from(own);
             reached_count += usize::from(reached);
-            arms.push(
-                json!({"index":k,"id":eps[k].packet.id,"position":pos,"target":target,
+            reached_correct_count += usize::from(reached && own);
+            let mut arm = json!({"index":k,"id":eps[k].packet.id,"position":pos,"target":target,
                 "teacher_prefix_correct":teacher,"own_position_correct":own,
                 "own_prefix_reached_correctly":reached,
                 "target_mass":canonical[pos]["native_target_mass"],
                 "denominator":canonical[pos]["native_denominator"],
-                "chosen_token":chosen}),
-            );
+                "chosen_token":chosen});
+            if a.mode == Mode::JointContinuation {
+                arm["own_prefix_reached_and_answered_correctly"] = json!(reached && own);
+            }
+            arms.push(arm);
         }
         teacher_both += usize::from(arms.iter().all(|v| v["teacher_prefix_correct"] == true));
         own_both += usize::from(arms.iter().all(|v| v["own_position_correct"] == true));
+        reached_correct_both += usize::from(
+            arms.iter()
+                .all(|v| v["own_prefix_reached_and_answered_correctly"] == true),
+        );
+        complete_both += usize::from(refs[i]["complete"] == true && refs[j]["complete"] == true);
         receipts.push(json!({"indices":[i,j],"first_divergent_position":pos,"arms":arms}));
     }
-    Ok(
-        json!({"rows":eps.len(),"missing_rows":0,"entry_teacher_correct":entry_teacher,"entry_own_correct":entry_own,
+    let mut result = json!({"rows":eps.len(),"missing_rows":0,"entry_teacher_correct":entry_teacher,"entry_own_correct":entry_own,
         "first_divergent_teacher_correct":teacher_count,"first_divergent_own_position_correct":own_count,
         "first_divergent_own_prefix_reached":reached_count,"paired_teacher_both_correct":teacher_both,
         "paired_own_position_both_correct":own_both,"pairs":receipts,
         "later_copy_covered_positions":copy_total,"later_copy_covered_teacher_correct":copy_correct,
-        "scope":"complete native own-prefix outputs and separately canonical teacher-prefix metrics; own position matches without a correct preceding prefix are not successful source-dependent continuation"}),
-    )
+        "scope":"complete native own-prefix outputs and separately canonical teacher-prefix metrics; own position matches without a correct preceding prefix are not successful source-dependent continuation"});
+    // Legacy baseline reuse compares the complete historical metric object.
+    // New diagnostics must not invalidate a verified old evaluation receipt.
+    if a.mode == Mode::JointContinuation {
+        result["first_divergent_own_prefix_reached_and_answered_correctly"] =
+            json!(reached_correct_count);
+        result["paired_own_prefix_reached_and_answered_both_correct"] = json!(reached_correct_both);
+        result["complete_swap_pairs"] = json!(complete_both);
+        result["any_emitted_eos"] = json!(refs.iter().filter(|r| r["eos"] == true).count());
+    }
+    Ok(result)
 }
 
 // f63's native_step/evaluate semantics are byte-identical here. This explicit
@@ -3319,10 +3429,15 @@ struct ContinuationParent {
 }
 impl ContinuationParent {
     fn load(a: &Args) -> Result<Self> {
-        let c = continuation_settings(a)?.ok_or_else(|| bad("continuation config absent"))?;
+        if a.mode == Mode::JointContinuation {
+            joint_continuation_settings(a)?
+                .ok_or_else(|| bad("joint continuation config absent"))?;
+        } else {
+            continuation_settings(a)?.ok_or_else(|| bad("continuation config absent"))?;
+        }
         report_output::verify(&a.saved_fit)?;
-        if sha256_file(&a.saved_fit.join("report.json"))? != c.expected_model_report_sha256
-            || sha256_file(&a.saved_fit.join("manifest.json"))? != c.expected_model_manifest_sha256
+        if sha256_file(&a.saved_fit.join("report.json"))? != CONTINUATION_PARENT_REPORT_SHA
+            || sha256_file(&a.saved_fit.join("manifest.json"))? != CONTINUATION_PARENT_MANIFEST_SHA
             || fs::canonicalize(&a.checkpoint)?
                 != fs::canonicalize(a.saved_fit.join("checkpoint-0000"))?
         {
@@ -3361,7 +3476,13 @@ impl ContinuationParent {
                 return Err(bad("fixed512 continuation panel identity differs"));
             }
         }
-        let cp = &a.checkpoint;
+        Self::from_checkpoint(&a.checkpoint)
+    }
+    /// Current checkpoints are owned by this still-open report. Their receipt
+    /// and every native sidecar are authenticated here before any evaluation.
+    /// Only load() authorizes an initial parent from the sealed retained run.
+    fn from_checkpoint(cp: &Path) -> Result<Self> {
+        let receipt = read(&cp.join("receipt.json"))?;
         let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
         let native_directory = cp.join("native");
         let integer = IntegerRealizer::load_native(&native_directory, &binding)?;
@@ -3665,6 +3786,491 @@ fn continuation_evaluate(
         "scope":"retained exposed512 construction panel; teacher-prefix metrics separate from complete own-prefix answers; no transfer/chat qualification"});
     write(a, &format!("{name}.json"), &result)?;
     Ok(result)
+}
+
+/// Restore the accepted recomposition's floating masters as well as native
+/// bytes. The old load() authenticates a different historical parent and must
+/// never be weakened to admit this joint rung.
+fn load_joint_continuation(a: &Args, p: &ContinuationParent, d: &Device) -> Result<Loaded> {
+    let cp = &a.checkpoint;
+    let tokbytes = fs::read(cp.join("native/tokenizer.json"))?;
+    let source =
+        SourceRealizerWeights::load_context_potential_on_device(&cp.join("source"), &tokbytes, d)?;
+    let identity: ConsumerIdentity =
+        serde_json::from_value(read(&cp.join("native/metadata.json"))?["identity"].clone())?;
+    let frozen = NativeSourceRealizer::load(&cp.join("native"), &source, &identity)?;
+    if frozen.artifact_binding()? != p.binding {
+        return Err(bad("joint source masters/native parent differ"));
+    }
+    let integer = IntegerRealizer::load_native(&cp.join("native"), &p.binding)?;
+    let native_generate = NativeGeometricGenerate::from_bytes(&p.generate, integer.binding())?;
+    let generate =
+        GenerateLearningWeights::from_native(integer.binding().clone(), &native_generate, d)?;
+    let gm = read(&cp.join("generate-source/metadata.json"))?;
+    if gm["tokenizer_sha256"] != sha256_bytes(&tokbytes)
+        || gm["protocol"] != serde_json::to_value(integer.binding().protocol())?
+        || gm["lanes"] != json!(generate.lanes())
+        || generate.lanes() != 8
+        || generate.vocab_size() != 4096
+    {
+        return Err(bad("joint Generate master/tokenizer/shape binding differs"));
+    }
+    restore(
+        &cp.join("generate-source"),
+        &gm["parameters"],
+        &generate.parameters(),
+        d,
+    )?;
+    if generate.export_native()?.to_bytes()? != p.generate {
+        return Err(bad(
+            "joint restored Generate differs from exact48/64 native parent",
+        ));
+    }
+    let original_bytes = fs::read(cp.join("read-state-bridge.bin"))?;
+    if sha256_bytes(&original_bytes) != QUARTER_SHA || p.bridge_sha256 != CAT_SHA {
+        return Err(bad("joint frozen bridge identity differs"));
+    }
+    let original = NativeGeometricReadStateBridge::from_bytes(&original_bytes, integer.binding())?;
+    let original_bridge = BridgeLearningWeights::from_native(&original, integer.binding(), d)?;
+    let bm = read(&cp.join("read-state-bridge-source/metadata.json"))?;
+    if bm["metadata"] != serde_json::to_value(original.metadata())? {
+        return Err(bad("joint original bridge metadata differs"));
+    }
+    restore(
+        &cp.join("read-state-bridge-source"),
+        &bm["source_parameters"],
+        &original_bridge.parameters(),
+        d,
+    )?;
+    let rebuilt = original_bridge.export_categorical_actions()?;
+    if original_bridge.export_native()?.to_bytes()? != original_bytes
+        || rebuilt.native.to_bytes()? != p.bridge
+    {
+        return Err(bad("joint frozen bridge masters/native/map differ"));
+    }
+    let marker = BridgeLearningWeights::from_native(&rebuilt.native, integer.binding(), d)?;
+    if marker.export_native()?.to_bytes()? != p.bridge {
+        return Err(bad("joint categorical marker differs"));
+    }
+    let cue = cue_payload(&cp.join("cue"))?;
+    let prefix = prefix_payload(&cp.join("prefix"))?;
+    let cc = frozen.compile_cue_carrier(cue.clone())?;
+    let pp = frozen.compile_prefix_transport(&cc, prefix_clone(&prefix)?)?;
+    if cc.metadata() != &p.cue_metadata || pp.metadata() != &p.prefix_metadata {
+        return Err(bad("joint frozen cue/prefix binding differs"));
+    }
+    let tokenizer = ByteBpeTokenizer::from_tokenizer_json_bytes(&tokbytes)
+        .ok_or_else(|| bad("joint tokenizer unavailable"))?;
+    Ok(Loaded {
+        source,
+        frozen,
+        integer,
+        tokenizer,
+        generate,
+        original_bridge,
+        marker,
+        cue,
+        prefix,
+        exp: p.exp.clone(),
+        receipt: p.receipt.clone(),
+        categorical_receipt: serde_json::to_value(rebuilt.receipt)?,
+    })
+}
+
+fn joint_checkpoint(
+    a: &Args,
+    step: usize,
+    l: &Loaded,
+    weights: &ContinuationLearningWeights,
+) -> Result<(ContinuationParent, NativeContinuationField, Value)> {
+    // This saves/reloads current Source, Generate, their floating masters and
+    // all rebound cue/prefix sidecars before U is bound to them.
+    let (_, _, _, mut receipt) = checkpoint(a, step, l)?;
+    let root = a.out.join(format!("checkpoint-{step:04}"));
+    let current = ContinuationParent::from_checkpoint(&root)?;
+    let generator = current.generator()?;
+    let field = weights.export_native(generator.source_binding(), generator.generate_model())?;
+    let bytes = field.to_bytes()?;
+    let masters = save_masters(&root.join("continuation-source"), &weights.parameters())?;
+    fs::write(root.join("continuation-field.bin"), &bytes)?;
+    let disk = NativeContinuationField::from_bytes(
+        &fs::read(root.join("continuation-field.bin"))?,
+        generator.source_binding(),
+        generator.generate_model(),
+    )?;
+    let cpu = ContinuationLearningWeights::from_native(
+        &disk,
+        generator.generate_model(),
+        current.integer.binding(),
+        &Device::Cpu,
+    )?;
+    restore(
+        &root.join("continuation-source"),
+        &masters,
+        &cpu.parameters(),
+        &Device::Cpu,
+    )?;
+    if disk.to_bytes()? != bytes
+        || cpu
+            .export_native(generator.source_binding(), generator.generate_model())?
+            .to_bytes()?
+            != bytes
+    {
+        return Err(bad("joint U masters/native independent reload differs"));
+    }
+    receipt["mode"] = json!("joint_continuation");
+    receipt["continuation_sha256"] = json!(sha256_bytes(&bytes));
+    receipt["continuation_parameters"] = masters;
+    receipt["active_parameter_names"] = json!(joint_active(&l.source, &l.generate, weights)?
+        .keys()
+        .collect::<Vec<_>>());
+    receipt["frozen_prototype_masters"] = json!(identities(&BTreeMap::from([(
+        "generate.prototype_choices".into(),
+        l.generate.prototype_choices.clone(),
+    )]))?);
+    receipt["parent_report_sha256"] = json!(CONTINUATION_PARENT_REPORT_SHA);
+    receipt["parent_manifest_sha256"] = json!(CONTINUATION_PARENT_MANIFEST_SHA);
+    receipt["training_input_sha256"] = json!(INPUT_SHA);
+    receipt["training_labels_sha256"] = json!(LABEL_SHA);
+    receipt["source_commit"] = json!(option_env!("UOR_BUILD_SOURCE_COMMIT"));
+    receipt["learning_rates_sha256"] = json!(sha256_bytes(&serde_json::to_vec(
+        joint_continuation_settings(a)?.ok_or_else(|| bad("joint config absent"))?,
+    )?));
+    receipt["credit_scope"] = json!("Context/Potential + Generate unary/pair/bias + v2 U; local conditional full120 Context utility and factual selector credit; frozen prototype choices and categorical map; RawIdentity surrogate, not a hard-runtime derivative");
+    fs::write(
+        root.join("continuation-source/metadata.json"),
+        serde_json::to_vec_pretty(&receipt)?,
+    )?;
+    fs::write(
+        root.join("receipt.json"),
+        serde_json::to_vec_pretty(&receipt)?,
+    )?;
+    let reloaded = ContinuationParent::from_checkpoint(&root)?;
+    let _ = reloaded
+        .generator()?
+        .with_continuation_field(BoundNativeBytes {
+            bytes: &bytes,
+            sha256: &sha256_bytes(&bytes),
+        })?;
+    Ok((reloaded, disk, receipt))
+}
+
+/// New interface guard: actual live learning graph versus the separately
+/// loaded production generator, across entry, continuation, factual Copy and
+/// EOS positions. No cache from the frozen-only fitter participates.
+fn joint_native_parity(
+    l: &Loaded,
+    weights: &ContinuationLearningWeights,
+    p: &ContinuationParent,
+    field: &NativeContinuationField,
+    eps: &[Episode],
+    indices: &[usize],
+    d: &Device,
+) -> Result<Value> {
+    let current = l.source.compile_context_potential_rebound(&l.frozen)?;
+    let prepared = l.source.prepare_context_potential_on_device(&current, d)?;
+    let cue = current.compile_cue_carrier(l.cue.clone())?;
+    let prefix = current.compile_prefix_transport(&cue, prefix_clone(&l.prefix)?)?;
+    let gs = l.generate.prepare_native()?;
+    let bs = l.marker.prepare_native()?;
+    let categorical = PreparedCategoricalBridge::from_bytes(
+        &bs.native.to_bytes()?,
+        l.generate.binding(),
+        CAT_SHA,
+        d,
+    )?;
+    let us = weights.prepare_native(&current.execution_binding()?, &gs.native)?;
+    if us.native.to_bytes()? != field.to_bytes()? || current.execution_binding()? != p.binding {
+        return Err(bad("joint current graph/checkpoint bindings differ"));
+    }
+    let mut learner = PreparedBankGenerate::new(&prepared, &l.generate, &gs, &l.exp)?
+        .with_prefix_temporal_utility(false)
+        .with_categorical_read_state_bridge(&categorical)?
+        .with_read_selector_credit(true)
+        .with_continuation_field(weights, &us)?
+        .with_continuation_context_credit(true)?;
+    let bytes = field.to_bytes()?;
+    let mut generator = p.generator()?.with_continuation_field(BoundNativeBytes {
+        bytes: &bytes,
+        sha256: &sha256_bytes(&bytes),
+    })?;
+    let mut positions = 0usize;
+    for &index in indices {
+        let e = eps
+            .get(index)
+            .ok_or_else(|| bad("joint parity index absent"))?;
+        let bank = generator.admit_bank(continuation_snapshot(&e.packet)?)?;
+        for t in 0..e.target.len() {
+            let actual = &e.target[..t];
+            let out =
+                learner.forward_bank(&e.segments()?, &e.packet.query_ids, actual, &cue, &prefix)?;
+            let native = generator.step(&bank, actual)?;
+            let local = out
+                .continuation
+                .as_ref()
+                .ok_or_else(|| bad("joint local graph missing"))?;
+            let witness = native
+                .continuation
+                .as_ref()
+                .ok_or_else(|| bad("joint native local witness missing"))?;
+            if out.generate.scores_q24 != native.generate_raw_scores_q24
+                || out.copy_token_ids != native.copy_token_ids
+                || out.copy_scores_q24 != native.copy_raw_scores_q24
+                || out.final_state_codes != native.post_state
+                || local.final_state_codes != witness.state_codes
+                || local.field.delta_scores_q24 != witness.delta_scores_q24
+                || serde_json::to_value(&out.actions)? != serde_json::to_value(&native.actions)?
+            {
+                return Err(bad(
+                    "joint live graph/native current checkpoint parity differs",
+                ));
+            }
+            positions += 1;
+        }
+    }
+    Ok(
+        json!({"indices":indices,"positions":positions,"current_source_binding":p.binding,
+        "generate_sha256":p.generate_sha256,"continuation_sha256":sha256_bytes(&bytes),
+        "exact_scores_states_alias_pool":true,"labels":"previous teacher prefix only; current target never enters forward"}),
+    )
+}
+
+fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
+    let a = before["rows"]
+        .as_array()
+        .ok_or_else(|| bad("initial joint rows absent"))?;
+    let b = after["rows"]
+        .as_array()
+        .ok_or_else(|| bad("final joint rows absent"))?;
+    if a.len() != b.len() {
+        return Err(bad("joint row populations differ"));
+    }
+    let mut retained = Vec::new();
+    let mut gained = Vec::new();
+    let mut lost = Vec::new();
+    let mut changed = Vec::new();
+    for (old, new) in a.iter().zip(b) {
+        if old["id"] != new["id"] {
+            return Err(bad("joint row identity/order differs"));
+        }
+        let was = old["complete"]
+            .as_bool()
+            .ok_or_else(|| bad("initial complete missing"))?;
+        let now = new["complete"]
+            .as_bool()
+            .ok_or_else(|| bad("final complete missing"))?;
+        match (was, now) {
+            (true, true) => retained.push(old["id"].clone()),
+            (false, true) => gained.push(old["id"].clone()),
+            (true, false) => lost.push(old["id"].clone()),
+            _ => (),
+        }
+        if old["generated_ids"] != new["generated_ids"] {
+            changed.push(old["id"].clone());
+        }
+    }
+    Ok(
+        json!({"retained_complete_ids":retained,"gained_complete_ids":gained,
+        "lost_complete_ids":lost,"changed_output_ids":changed}),
+    )
+}
+
+fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    let rates = joint_continuation_settings(a)?.ok_or_else(|| bad("joint config absent"))?;
+    let parent = ContinuationParent::load(a)?;
+    let l = load_joint_continuation(a, &parent, d)?;
+    let legal = NativeVocabularyActions::new(parent.integer.binding().clone(), &parent.exp)?
+        .legal_token_ids()
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>();
+    let eps = load_panel(
+        &a.training_inputs,
+        &a.training_labels,
+        &parent.integer,
+        &parent.tokenizer,
+        &legal,
+        512,
+    )?;
+    if eps.len() != 512 {
+        return Err(bad("joint requires complete512 construction panel"));
+    }
+    pairs(&eps)?;
+    let weights = ContinuationLearningWeights::zeroed_shared_action(
+        l.integer.binding(),
+        &parent.binding,
+        l.generate.lanes(),
+        d,
+    )?;
+    let params = joint_active(&l.source, &l.generate, &weights)?;
+    let prototype = BTreeMap::from([(
+        "generate.prototype_choices".into(),
+        l.generate.prototype_choices.clone(),
+    )]);
+    let frozen_prototype = identities(&prototype)?;
+    let frozen_bridge = identities(&l.original_bridge.parameters())?;
+    let frozen_marker = identities(&l.marker.parameters())?;
+    let schedule = order(a.seed, eps.len());
+    write(
+        a,
+        "order.json",
+        &json!({"seed":a.seed,"order":schedule,"batch":BATCH,"updates":a.updates,
+        "policy":"full512 SplitMix64/Fisher-Yates cyclic batches; actual input plus prior supervised prefix"}),
+    )?;
+    write(
+        a,
+        "admission.json",
+        &json!({"mode":"joint_continuation","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),
+        "parent":parent.receipt,"parent_report_sha256":CONTINUATION_PARENT_REPORT_SHA,
+        "parent_manifest_sha256":CONTINUATION_PARENT_MANIFEST_SHA,"training_input_sha256":INPUT_SHA,"training_labels_sha256":LABEL_SHA,
+        "active_parameter_names":params.keys().collect::<Vec<_>>(),"initial_active_master_identities":identities(&params)?,
+        "frozen_prototype_masters":frozen_prototype,"frozen_bridge_masters":frozen_bridge,"rates":rates,
+        "continuation_initialization":"zero v2 field on accepted Source48/Generate64; failed U32/U64 fields not adopted",
+        "phase_policy":loss_weight_policy(true,LossScope::All),"fresh_adam":true,"credit":"raw_identity",
+        "read_state_pullback":"categorical","context_credit":"local full120 conditional utility through actual query+prefix ContextQ4; factual bank/selector remains live",
+        "snapshot_policy":"fresh current Source/Potential, Generate and mutually bound U each batch; no fixed-position cache",
+        "prototype_policy":"masters excluded from gradients accumulated for optimizer/global clipping; native prototype codes frozen; U prototype adjoint absent",
+        "serving":"full legal vocabulary and physical Copy aliases, one common clip/marginal; actual own emitted prefix, no selected record supplied",
+        "device_scope":"CUDA learning graphs and backward; native reference preparation, alias reduction, exports and evaluation on host; not fully device resident",
+        "data_scope":"train and open development are the same exposed512; no held-out/chat qualification"}),
+    )?;
+    let clock = Instant::now();
+    let (initial_parent, initial_field, initial_receipt) = joint_checkpoint(a, 0, &l, &weights)?;
+    let mut checkpoint_seconds = clock.elapsed().as_secs_f64();
+    if initial_parent.binding != parent.binding || initial_parent.generate != parent.generate {
+        return Err(bad("joint zero-update parent replay differs"));
+    }
+    let admission_indices = &schedule[..BATCH];
+    let parity = joint_native_parity(
+        &l,
+        &weights,
+        &initial_parent,
+        &initial_field,
+        &eps,
+        admission_indices,
+        d,
+    )?;
+    write(a, "zero-update-admission.json", &parity)?;
+    let clock = Instant::now();
+    let initial = continuation_evaluate(
+        a,
+        "development-0000",
+        &initial_parent,
+        &initial_field,
+        &eps,
+        start,
+    )?;
+    let initial_metrics = metrics(a, &initial, &eps)?;
+    write(a, "metrics-0000.json", &initial_metrics)?;
+    let mut evaluation_seconds = clock.elapsed().as_secs_f64();
+    if initial["complete"] != 8 {
+        return Err(bad("joint initial parent complete-answer replay differs"));
+    }
+    let coefficients = l
+        .generate
+        .parameters()
+        .into_iter()
+        .filter(|(name, _)| name != "generate.prototype_choices")
+        .collect::<BTreeMap<_, _>>();
+    let context = l.source.context_state_parameters();
+    let potential = l.source.potential_parameters();
+    let u = weights.parameters();
+    let mut go = optimizer(&coefficients, rates.generate_learning_rate)?;
+    let mut co = optimizer(&context, rates.context_learning_rate)?;
+    let mut po = optimizer(&potential, rates.potential_learning_rate)?;
+    let mut uo = optimizer(&u, rates.continuation_learning_rate)?;
+    let mut updates = Vec::new();
+    let fit_start = Instant::now();
+    let mut fit_checkpoint_seconds = 0.;
+    for update in 0..a.updates {
+        deadline(a, start)?;
+        disk_floor(a)?;
+        let indices = (0..BATCH)
+            .map(|i| schedule[(update * BATCH + i) % schedule.len()])
+            .collect::<Vec<_>>();
+        let clock = Instant::now();
+        let (grads, receipt) = batch_live(a, &l, &eps, &indices, d, start, None, Some(&weights))?;
+        if grads.contains_key("generate.prototype_choices") {
+            return Err(bad("joint prototype entered active clip"));
+        }
+        let (denominator, norm) = clip_denominator(&grads, d)?;
+        apply(&mut go, &coefficients, &grads, &denominator)?;
+        apply(&mut co, &context, &grads, &denominator)?;
+        apply(&mut po, &potential, &grads, &denominator)?;
+        apply(&mut uo, &u, &grads, &denominator)?;
+        l.generate.project_shadow_range()?;
+        for var in context.values() {
+            var.set(&var.as_tensor().clamp(-1.75, 1.75)?)?;
+        }
+        l.source.project_potential_range()?;
+        weights.project_shadow_range()?;
+        if identities(&prototype)? != frozen_prototype
+            || identities(&l.original_bridge.parameters())? != frozen_bridge
+            || identities(&l.marker.parameters())? != frozen_marker
+        {
+            return Err(bad("joint frozen prototype/bridge mutated"));
+        }
+        d.synchronize()?;
+        updates.push(json!({"step":update+1,"before_update":receipt,
+            "active_gradient_names":grads.keys().collect::<Vec<_>>(),"global_active_gradient_norm":norm,
+            "elapsed_update_seconds":clock.elapsed().as_secs_f64()}));
+        write(a, "updates.json", &json!(updates))?;
+        if (update + 1) % 32 == 0 || update + 1 == a.updates {
+            let clock = Instant::now();
+            joint_checkpoint(a, update + 1, &l, &weights)?;
+            fit_checkpoint_seconds += clock.elapsed().as_secs_f64();
+        }
+    }
+    let fit_seconds = fit_start.elapsed().as_secs_f64() - fit_checkpoint_seconds;
+    checkpoint_seconds += fit_checkpoint_seconds;
+    let (final_evaluation, final_metrics, final_receipt, final_parity) = if a.updates == 0 {
+        (
+            initial.clone(),
+            initial_metrics.clone(),
+            initial_receipt.clone(),
+            parity,
+        )
+    } else {
+        let root = a.out.join(format!("checkpoint-{:04}", a.updates));
+        let current = ContinuationParent::from_checkpoint(&root)?;
+        let bytes = fs::read(root.join("continuation-field.bin"))?;
+        if current.receipt["continuation_sha256"] != sha256_bytes(&bytes) {
+            return Err(bad("joint final U receipt differs"));
+        }
+        let field = NativeContinuationField::from_bytes(
+            &bytes,
+            &current.binding,
+            current.generator()?.generate_model(),
+        )?;
+        let parity =
+            joint_native_parity(&l, &weights, &current, &field, &eps, admission_indices, d)?;
+        write(a, "final-native-parity.json", &parity)?;
+        let clock = Instant::now();
+        let result = continuation_evaluate(
+            a,
+            &format!("development-{:04}", a.updates),
+            &current,
+            &field,
+            &eps,
+            start,
+        )?;
+        let metrics = metrics(a, &result, &eps)?;
+        write(a, &format!("metrics-{:04}.json", a.updates), &metrics)?;
+        evaluation_seconds += clock.elapsed().as_secs_f64();
+        (result, metrics, current.receipt, parity)
+    };
+    let rowwise = joint_row_comparison(&initial, &final_evaluation)?;
+    write(a, "complete-row-comparison.json", &rowwise)?;
+    Ok(
+        json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"joint_continuation",
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"updates":a.updates,"batch":BATCH,"rates":rates,
+        "credit":"raw_identity","read_state_pullback":"categorical","order_seed":a.seed,
+        "initial_receipt":initial_receipt,"final_receipt":final_receipt,"final_native_parity":final_parity,
+        "initial_evaluation":initial,"final_evaluation":final_evaluation,"initial_metrics":initial_metrics,"final_metrics":final_metrics,
+        "rowwise":rowwise,"updates_receipt":updates,"fit_seconds":fit_seconds,"checkpoint_seconds":checkpoint_seconds,
+        "native_evaluation_seconds":evaluation_seconds,"elapsed_seconds":start.elapsed().as_secs_f64(),
+        "scope":"exposed512 joint Context/Potential/Generate-coefficient/U construction learning; frozen prototypes and categorical map; native independent reload and own-feedback outputs; no transfer/chat/energy qualification"}),
+    )
 }
 
 fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
@@ -3972,6 +4578,9 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
     if a.mode == Mode::ContinuationOnly {
         return run_continuation(a, start, &d);
     }
+    if a.mode == Mode::JointContinuation {
+        return run_joint_continuation(a, start, &d);
+    }
     let l = load(a, &d)?;
     let public = NativeVocabularyActions::new(l.integer.binding().clone(), &l.exp)?;
     let legal = public
@@ -4255,6 +4864,128 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn legacy_saved_row_metrics_reproduce_exact_historical_schema() -> Result<()> {
+        struct TemporaryRows(PathBuf);
+        impl Drop for TemporaryRows {
+            fn drop(&mut self) {
+                let _ = fs::remove_dir_all(&self.0);
+            }
+        }
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let temp = TemporaryRows(std::env::temp_dir().join(format!(
+            "uor-legacy-metrics-{}-{unique}",
+            std::process::id()
+        )));
+        fs::create_dir(&temp.0)?;
+        let a: Args = serde_json::from_value(
+            json!({"mode":"prediction_control","credit":"raw_identity","seed":1001,
+            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
+            "training_inputs":"input","training_labels":"labels","development_inputs":"input","development_labels":"labels",
+            "maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":temp.0}),
+        )?;
+        let mut episodes = Vec::new();
+        let mut refs = Vec::new();
+        let mut expected_arms = Vec::new();
+        for (index, target, generated) in
+            [(0usize, 20u32, vec![10, 20, 1]), (1, 30, vec![99, 30, 1])]
+        {
+            let id = format!("legacy-swap{index}-pair");
+            let canonical = [10,target,1].into_iter().map(|chosen| json!({
+                "native_target_mass":2,"native_denominator":4,
+                "native":{"copy_token_ids":[target],"pool":{"summary":{"chosen_token_id":chosen}}}
+            })).collect::<Vec<_>>();
+            let filename = format!("row-{index}.json");
+            fs::write(
+                temp.0.join(&filename),
+                serde_json::to_vec(&json!({"canonical":canonical,"generated_ids":generated}))?,
+            )?;
+            refs.push(json!({"id":id,"row_file":filename,"row_sha256":sha256_file(&temp.0.join(&filename))?,
+                "complete":index==0,"eos":true}));
+            expected_arms.push(json!({"index":index,"id":id,"position":1,"target":target,
+                "teacher_prefix_correct":true,"own_position_correct":true,"own_prefix_reached_correctly":index==0,
+                "target_mass":2,"denominator":4,"chosen_token":target}));
+            episodes.push(Episode {
+                packet: Packet {
+                    id,
+                    segments: vec![],
+                    query_ids: vec![5],
+                    actual_prefix_ids: vec![],
+                },
+                answers: serde_json::from_value(
+                    json!({"intent":"current","accepted":["fixture"]}),
+                )?,
+                target: vec![10, target, 1],
+                views: vec![],
+            });
+        }
+        let actual = metrics(&a, &json!({"rows":refs}), &episodes)?;
+        let historical = json!({"rows":2,"missing_rows":0,"entry_teacher_correct":2,"entry_own_correct":1,
+            "first_divergent_teacher_correct":2,"first_divergent_own_position_correct":2,
+            "first_divergent_own_prefix_reached":1,"paired_teacher_both_correct":1,"paired_own_position_both_correct":1,
+            "pairs":[{"indices":[0,1],"first_divergent_position":1,"arms":expected_arms}],
+            "later_copy_covered_positions":2,"later_copy_covered_teacher_correct":2,
+            "scope":"complete native own-prefix outputs and separately canonical teacher-prefix metrics; own position matches without a correct preceding prefix are not successful source-dependent continuation"});
+        assert_eq!(actual, historical);
+        Ok(())
+    }
+
+    #[test]
+    fn joint_continuation_admits_only_declared_families_and_credit() -> Result<()> {
+        let base = json!({"mode":"joint_continuation","credit":"raw_identity","read_state_pullback":"categorical","seed":1001,
+            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
+            "training_inputs":"input","training_labels":"labels","development_inputs":"input",
+            "development_labels":"labels","maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":"new","updates":0,
+            "joint_continuation":{"generate_learning_rate":0.003,"context_learning_rate":0.002,
+                "potential_learning_rate":0.003,"continuation_learning_rate":0.03}});
+        let parsed: Args = serde_json::from_value(base.clone())?;
+        control_settings(&parsed)?;
+        continuation_settings(&parsed)?;
+        assert!(joint_continuation_settings(&parsed)?.is_some());
+        for (key, value) in [
+            ("credit", json!("clipped")),
+            ("read_state_pullback", json!("legacy")),
+            ("loss_scope", json!("entry_only")),
+            ("ceiling_float", json!(true)),
+            ("mode", json!("fit")),
+        ] {
+            let mut changed = base.clone();
+            changed[key] = value;
+            assert!(
+                joint_continuation_settings(&serde_json::from_value::<Args>(changed)?).is_err()
+            );
+        }
+        let mut changed = base.clone();
+        changed["joint_continuation"]["prototype_learning_rate"] = json!(0.01);
+        assert!(serde_json::from_value::<Args>(changed).is_err());
+        let mut changed = base;
+        changed["joint_continuation"]["continuation_learning_rate"] = json!(0.);
+        assert!(joint_continuation_settings(&serde_json::from_value::<Args>(changed)?).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn joint_rowwise_comparison_preserves_regressions_and_rejects_population_change() -> Result<()>
+    {
+        let before = json!({"rows":[{"id":"a","complete":true,"generated_ids":[1]},
+            {"id":"b","complete":false,"generated_ids":[2]},
+            {"id":"c","complete":true,"generated_ids":[3]}]});
+        let after = json!({"rows":[{"id":"a","complete":true,"generated_ids":[1]},
+            {"id":"b","complete":true,"generated_ids":[4]},
+            {"id":"c","complete":false,"generated_ids":[5]}]});
+        let result = joint_row_comparison(&before, &after)?;
+        assert_eq!(result["retained_complete_ids"], json!(["a"]));
+        assert_eq!(result["gained_complete_ids"], json!(["b"]));
+        assert_eq!(result["lost_complete_ids"], json!(["c"]));
+        assert_eq!(result["changed_output_ids"], json!(["b", "c"]));
+        let mut wrong = after;
+        wrong["rows"][1]["id"] = json!("unmatched");
+        assert!(joint_row_comparison(&before, &wrong).is_err());
+        Ok(())
+    }
+
     #[test]
     fn continuation_mode_requires_exact_parent_all_answer_credit_and_no_entry_gate() -> Result<()> {
         let base = json!({"mode":"continuation_only","credit":"raw_identity","seed":1001,

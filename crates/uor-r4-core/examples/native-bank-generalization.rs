@@ -28,9 +28,22 @@ use uor_r4_integer::{
 mod output_support;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 use uor_r4_tokenizer::ByteBpeTokenizer;
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum ModelKind {
+    #[default]
+    LegacyRecomposition,
+    JointContinuation,
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
+    #[serde(default)]
+    model_kind: ModelKind,
+    #[serde(default)]
+    checkpoint_step: Option<usize>,
+    #[serde(default)]
+    expected_checkpoint_receipt_sha256: Option<String>,
     model_root: PathBuf,
     expected_model_report_sha256: String,
     expected_model_manifest_sha256: String,
@@ -407,6 +420,11 @@ fn load_frozen_model(
     {
         return Err(bad("coherent frozen native checkpoint receipt differs"));
     }
+    load_checkpoint(cp, r, admission, receipt)
+}
+
+/// Both admission branches share only the authenticated native byte loader.
+fn load_checkpoint(cp: PathBuf, r: Value, admission: Value, receipt: Value) -> Result<FrozenModel> {
     let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
     let gen = bytes(&cp.join("generate.bin"))?;
     let bridge = bytes(&cp.join("read-state-bridge-categorical.bin"))?;
@@ -454,6 +472,136 @@ fn load_frozen_model(
         exp_sha256: exp_hash,
     })
 }
+fn hex_identity(value: &str, digits: usize) -> bool {
+    value.len() == digits && value.bytes().all(|v| v.is_ascii_hexdigit())
+}
+fn admit_model_options(c: &Config) -> Result<()> {
+    match c.model_kind {
+        ModelKind::LegacyRecomposition => {
+            if c.checkpoint_step.is_some() || c.expected_checkpoint_receipt_sha256.is_some() {
+                return Err(bad(
+                    "joint checkpoint selectors require joint_continuation model_kind",
+                ));
+            }
+        }
+        ModelKind::JointContinuation => {
+            if c.baseline_parity {
+                return Err(bad(
+                    "joint model cannot request unchanged legacy baseline parity",
+                ));
+            }
+            if c.checkpoint_step.is_none()
+                || !c
+                    .expected_checkpoint_receipt_sha256
+                    .as_deref()
+                    .is_some_and(|v| hex_identity(v, 64))
+                || c.continuation_field.is_none()
+                || !c
+                    .expected_continuation_field_sha256
+                    .as_deref()
+                    .is_some_and(|v| hex_identity(v, 64))
+            {
+                return Err(bad("joint model requires explicit final checkpoint step, receipt SHA and continuation path/SHA"));
+            }
+        }
+    }
+    Ok(())
+}
+fn validate_joint_receipt(c: &Config, r: &Value, admission: &Value, receipt: &Value) -> Result<()> {
+    admit_model_options(c)?;
+    let step = c
+        .checkpoint_step
+        .ok_or_else(|| bad("joint checkpoint step absent"))?;
+    if c.model_kind != ModelKind::JointContinuation
+        || r["schema"] != "uor-r4.geometric-frozen-map-fit/1"
+        || r["status"] != "COMPLETED"
+        || r["mode"] != "joint_continuation"
+        || r["updates"].as_u64() != Some(step as u64)
+        || receipt != &r["final_receipt"]
+        || receipt["mode"] != "joint_continuation"
+        || receipt["step"].as_u64() != Some(step as u64)
+        || receipt["native_independently_reloaded"] != true
+        || receipt["masters_independently_reloaded"] != true
+        || !r["source_commit"]
+            .as_str()
+            .is_some_and(|v| hex_identity(v, 40))
+        || receipt["source_commit"] != r["source_commit"]
+        || admission["source_commit"] != r["source_commit"]
+        || admission["mode"] != "joint_continuation"
+        || receipt["continuation_sha256"].as_str()
+            != c.expected_continuation_field_sha256.as_deref()
+    {
+        return Err(bad(
+            "coherent completed joint final checkpoint identity differs",
+        ));
+    }
+    for key in [
+        "parent_report_sha256",
+        "parent_manifest_sha256",
+        "training_input_sha256",
+        "training_labels_sha256",
+    ] {
+        if !receipt[key].as_str().is_some_and(|v| hex_identity(v, 64))
+            || receipt[key] != admission[key]
+        {
+            return Err(bad(
+                "joint checkpoint/admission parent or training provenance differs",
+            ));
+        }
+    }
+    Ok(())
+}
+fn validate_joint_field_path(path: &Path, checkpoint: &Path) -> Result<()> {
+    if fs::canonicalize(path)? != fs::canonicalize(checkpoint.join("continuation-field.bin"))? {
+        return Err(bad(
+            "joint continuation field must come from the selected checkpoint",
+        ));
+    }
+    Ok(())
+}
+fn load_joint_model(c: &Config) -> Result<FrozenModel> {
+    admit_model_options(c)?;
+    report_output::verify(&c.model_root)?;
+    if file_hash(&c.model_root.join("report.json"))? != c.expected_model_report_sha256
+        || file_hash(&c.model_root.join("manifest.json"))? != c.expected_model_manifest_sha256
+    {
+        return Err(bad("joint model report/seal identity differs"));
+    }
+    let r = read(&c.model_root.join("report.json"))?;
+    let admission = read(&c.model_root.join("admission.json"))?;
+    let step = c
+        .checkpoint_step
+        .ok_or_else(|| bad("joint checkpoint step absent"))?;
+    let cp = c.model_root.join(format!("checkpoint-{step:04}"));
+    if Some(file_hash(&cp.join("receipt.json"))?.as_str())
+        != c.expected_checkpoint_receipt_sha256.as_deref()
+    {
+        return Err(bad("joint checkpoint receipt SHA differs"));
+    }
+    let receipt = read(&cp.join("receipt.json"))?;
+    validate_joint_receipt(c, &r, &admission, &receipt)?;
+    let path = c
+        .continuation_field
+        .as_ref()
+        .ok_or_else(|| bad("joint continuation path absent"))?;
+    validate_joint_field_path(path, &cp)?;
+    if Some(file_hash(path)?.as_str()) != c.expected_continuation_field_sha256.as_deref() {
+        return Err(bad("joint continuation field SHA differs"));
+    }
+    load_checkpoint(cp, r, admission, receipt)
+}
+fn load_model(c: &Config) -> Result<FrozenModel> {
+    admit_model_options(c)?;
+    match c.model_kind {
+        ModelKind::LegacyRecomposition => load_frozen_model(
+            &c.model_root,
+            &c.expected_model_report_sha256,
+            &c.expected_model_manifest_sha256,
+        ),
+        ModelKind::JointContinuation => load_joint_model(c),
+    }
+}
+
 fn run(c: &Config) -> Result<Value> {
     let FrozenModel {
         generator: mut g,
@@ -462,11 +610,7 @@ fn run(c: &Config) -> Result<Value> {
         checkpoint: cp,
         native_directory: native_dir,
         exp_sha256: exp_hash,
-    } = load_frozen_model(
-        &c.model_root,
-        &c.expected_model_report_sha256,
-        &c.expected_model_manifest_sha256,
-    )?;
+    } = load_model(c)?;
     // This is an external authored panel, not a store enumeration or lineage proof.
     let input_root = seal_for(&c.inputs)?;
     let label_root = seal_for(&c.labels)?;
@@ -502,7 +646,12 @@ fn run(c: &Config) -> Result<Value> {
     let tok =
         ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes(&native_dir.join("tokenizer.json"))?)
             .ok_or_else(|| bad("ByteBPE unavailable"))?;
-    let saved = read(&c.model_root.join("prediction-0000.json"))?;
+    // Keep the legacy saved-row contract; joint reports have development rows
+    // instead and are never compared for unchanged legacy trace parity.
+    let saved = match c.model_kind {
+        ModelKind::LegacyRecomposition => read(&c.model_root.join("prediction-0000.json"))?,
+        ModelKind::JointContinuation => json!({"rows": []}),
+    };
     let saved_refs = saved["rows"]
         .as_array()
         .ok_or_else(|| bad("saved model generation rows absent"))?;
@@ -624,6 +773,15 @@ fn run(c: &Config) -> Result<Value> {
         "config_sha256":file_hash(&c.output.join("config.json"))?,"cases":rows.len(),"complete":complete,"entry_correct":entry,"pairs":pairs,"pairs_both_complete_distinct":pair_complete,"rows":rows,
         "baseline_parity":c.baseline_parity,"runtime":"CPU bounded integer/table native generator; no training/CUDA/optimizer","pin_scope":"Source-metadata-derived authored panel pin, lineage0; no store enumeration/lineage authenticity claim",
         "scope":"frozen source-value substitution evaluation in declared grammar; labels after actual-feedback generation; no general chat/held-out whole-program claim","model_admission":admission["resume"]});
+    if c.model_kind == ModelKind::JointContinuation {
+        report["model_kind"] = json!("joint_continuation");
+        report["checkpoint_step"] = json!(c.checkpoint_step);
+        // source_commit/executable_sha256 above identify this consumer;
+        // model_source_commit and this receipt identify the separate trainer.
+        report["component_provenance"] = r["final_receipt"].clone();
+        report["model_admission"] = admission;
+        report["scope"] = json!("saved joint checkpoint independent-packet evaluation; labels after actual-feedback generation; no construction qualification, multi-turn chat or held-out whole-program claim");
+    }
     if let Some(digest) = g.continuation_sha256() {
         report["continuation_sha256"] = json!(digest);
         report["continuation_seal_sha256"] = json!(file_hash(
@@ -638,6 +796,7 @@ fn run(c: &Config) -> Result<Value> {
     Ok(report)
 }
 fn admit_paths(c: &mut Config) -> Result<()> {
+    admit_model_options(c)?;
     if c.maximum_report_bytes < 8 << 20 || c.maximum_report_bytes > 4 << 30 {
         return Err(bad("report storage limit must be8MiB..4GiB"));
     }
@@ -797,6 +956,150 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn legacy_config() -> Value {
+        json!({"model_root":"/fixture/model","expected_model_report_sha256":"a".repeat(64),
+            "expected_model_manifest_sha256":"b".repeat(64),"inputs":"/fixture/inputs.json",
+            "expected_inputs_sha256":"c".repeat(64),"labels":"/fixture/labels.json",
+            "expected_labels_sha256":"d".repeat(64),"output":"/fixture/attempt"})
+    }
+    fn joint_config() -> Value {
+        let mut c = legacy_config();
+        c["model_kind"] = json!("joint_continuation");
+        c["checkpoint_step"] = json!(1);
+        c["expected_checkpoint_receipt_sha256"] = json!("e".repeat(64));
+        c["continuation_field"] = json!("/fixture/model/checkpoint-0001/continuation-field.bin");
+        c["expected_continuation_field_sha256"] = json!("f".repeat(64));
+        c
+    }
+    #[test]
+    fn joint_model_options_require_explicit_checkpoint_and_u_preserving_legacy_default(
+    ) -> Result<()> {
+        let legacy: Config = serde_json::from_value(legacy_config())?;
+        assert_eq!(legacy.model_kind, ModelKind::LegacyRecomposition);
+        admit_model_options(&legacy)?;
+        let mut legacy_u = legacy_config();
+        legacy_u["continuation_field"] = json!("/fixture/zero/continuation-field.bin");
+        legacy_u["expected_continuation_field_sha256"] = json!("f".repeat(64));
+        admit_model_options(&serde_json::from_value(legacy_u)?)?;
+        for key in ["checkpoint_step", "expected_checkpoint_receipt_sha256"] {
+            let mut mixed = legacy_config();
+            mixed[key] = joint_config()[key].clone();
+            assert!(
+                admit_model_options(&serde_json::from_value(mixed)?).is_err(),
+                "{key}"
+            );
+        }
+        admit_model_options(&serde_json::from_value(joint_config())?)?;
+        for key in [
+            "checkpoint_step",
+            "expected_checkpoint_receipt_sha256",
+            "continuation_field",
+            "expected_continuation_field_sha256",
+        ] {
+            let mut missing = joint_config();
+            missing
+                .as_object_mut()
+                .ok_or_else(|| bad("config fixture"))?
+                .remove(key);
+            assert!(
+                admit_model_options(&serde_json::from_value(missing)?).is_err(),
+                "{key}"
+            );
+        }
+        for (key, value) in [
+            ("baseline_parity", json!(true)),
+            ("expected_checkpoint_receipt_sha256", json!("not-a-digest")),
+            ("expected_continuation_field_sha256", json!("")),
+        ] {
+            let mut invalid = joint_config();
+            invalid[key] = value;
+            assert!(
+                admit_model_options(&serde_json::from_value(invalid)?).is_err(),
+                "{key}"
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn joint_receipt_rejects_wrong_endpoint_mixed_provenance_and_omitted_u() -> Result<()> {
+        let c: Config = serde_json::from_value(joint_config())?;
+        let receipt = json!({"mode":"joint_continuation","step":1,
+            "source_commit":"1".repeat(40),"native_independently_reloaded":true,
+            "masters_independently_reloaded":true,"continuation_sha256":"f".repeat(64),
+            "parent_report_sha256":"2".repeat(64),"parent_manifest_sha256":"3".repeat(64),
+            "training_input_sha256":"4".repeat(64),"training_labels_sha256":"5".repeat(64)});
+        let admission = receipt.clone();
+        let report = json!({"schema":"uor-r4.geometric-frozen-map-fit/1","mode":"joint_continuation",
+            "status":"COMPLETED","updates":1,"source_commit":"1".repeat(40),"final_receipt":receipt});
+        validate_joint_receipt(&c, &report, &admission, &receipt)?;
+        for (key, value) in [
+            ("schema", json!("uor-r4.geometric-prediction-control/1")),
+            ("status", json!("FAILED")),
+            ("updates", json!(64)),
+            ("source_commit", json!("other-consumer-head")),
+            ("final_receipt", Value::Null),
+        ] {
+            let mut changed = report.clone();
+            changed[key] = value;
+            assert!(
+                validate_joint_receipt(&c, &changed, &admission, &receipt).is_err(),
+                "{key}"
+            );
+        }
+        // Even if a changed receipt is also copied into final_receipt, reject
+        // incomplete exports, U substitution and source/provenance mixing.
+        for (key, value) in [
+            ("mode", json!("continuation")),
+            ("step", json!(0)),
+            ("native_independently_reloaded", json!(false)),
+            ("masters_independently_reloaded", json!(false)),
+            ("source_commit", json!("6".repeat(40))),
+            ("continuation_sha256", Value::Null),
+            ("continuation_sha256", json!("6".repeat(64))),
+            ("parent_report_sha256", json!("6".repeat(64))),
+            ("parent_manifest_sha256", json!("6".repeat(64))),
+            ("training_input_sha256", json!("6".repeat(64))),
+            ("training_labels_sha256", Value::Null),
+        ] {
+            let mut changed = receipt.clone();
+            changed[key] = value;
+            let mut changed_report = report.clone();
+            changed_report["final_receipt"] = changed.clone();
+            assert!(
+                validate_joint_receipt(&c, &changed_report, &admission, &changed).is_err(),
+                "{key}"
+            );
+        }
+        Ok(())
+    }
+    #[test]
+    fn joint_field_requires_selected_checkpoint_even_when_bytes_match() -> Result<()> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("uor-joint-field-{}-{nonce}", std::process::id()));
+        fs::create_dir(&root)?;
+        struct OwnedTemp(PathBuf);
+        impl Drop for OwnedTemp {
+            fn drop(&mut self) {
+                let _ = fs::remove_dir_all(&self.0);
+            }
+        }
+        let _owned = OwnedTemp(root.clone());
+        let selected = root.join("checkpoint-0001");
+        let old = root.join("checkpoint-0000");
+        fs::create_dir(&selected)?;
+        fs::create_dir(&old)?;
+        let selected_field = selected.join("continuation-field.bin");
+        let old_field = old.join("continuation-field.bin");
+        fs::write(&selected_field, b"identical zero field fixture")?;
+        fs::write(&old_field, b"identical zero field fixture")?;
+        assert_eq!(file_hash(&selected_field)?, file_hash(&old_field)?);
+        validate_joint_field_path(&selected_field, &selected)?;
+        assert!(validate_joint_field_path(&old_field, &selected).is_err());
+        Ok(())
+    }
     #[test]
     fn zero_continuation_config_rejects_labels_and_targets() -> Result<()> {
         let config = json!({"model_root":"/fixture/model","expected_model_report_sha256":"a".repeat(64),

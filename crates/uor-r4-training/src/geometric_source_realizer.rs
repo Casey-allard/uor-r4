@@ -5316,6 +5316,193 @@ mod tests {
     }
 
     #[test]
+    fn joint_continuation_actual_context_credit_changes_adjoint_without_changing_native_pool(
+    ) -> Result<()> {
+        use crate::{
+            geometric_bank_generate::PreparedBankGenerate,
+            geometric_continuation_learning::ContinuationLearningWeights,
+            geometric_generate_learning::{GenerateLearningWeights, VocabularyScoreAdjoint},
+            geometric_read_state_bridge::{BridgeLearningWeights, PreparedCategoricalBridge},
+        };
+        let fixture = Fixture::new_with_lanes(2)?;
+        // Nonuniform native transitions keep the full120 temporal path real;
+        // labels do not construct states or restrict the candidate bank.
+        for (name, var) in fixture.weights.context_state_parameters() {
+            let mut values = (0..var.elem_count())
+                .map(|i| ((i % 7) as f32 - 3.) * 0.25)
+                .collect::<Vec<_>>();
+            if name.ends_with("token_category") {
+                for row in values.chunks_exact_mut(33) {
+                    row.fill(0.);
+                    row[17] = 1.5;
+                }
+            }
+            var.set(&Tensor::from_vec(values, var.shape(), &Device::Cpu)?)?;
+        }
+        let root = fixture.path.join("joint-continuation-parent");
+        fixture
+            .weights
+            .compile(fixture.identity.clone())?
+            .save(&root)?;
+        let native = NativeSourceRealizer::load(&root, &fixture.weights, &fixture.identity)?;
+        let prepared = fixture
+            .weights
+            .prepare_context_potential_on_device(&native, &Device::Cpu)?;
+        let cue = native.compile_cue_carrier(
+            CueAngularQ4::new(
+                CueAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: CueScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let prefix = native.compile_prefix_transport(
+            &cue,
+            PrefixAngularQ4::new(
+                PrefixAngularConfig {
+                    heads: 1,
+                    lanes_per_head: 2,
+                    mode: PrefixScoreMode::DirectedRelative,
+                },
+                &vec![0x12; 120],
+            )
+            .map_err(|e| invalid(e.to_string()))?,
+        )?;
+        let generate = GenerateLearningWeights::seeded(
+            fixture.weights.binding().clone(),
+            2,
+            1001,
+            &Device::Cpu,
+        )?;
+        let gs = generate.prepare_native()?;
+        assert!(gs
+            .native
+            .prototypes()
+            .chunks_exact(2)
+            .any(|codes| codes != &gs.native.prototypes()[..2]));
+        let marker = BridgeLearningWeights::zeroed(fixture.weights.binding(), 2, &Device::Cpu)?;
+        let categorical = marker.export_categorical_actions()?;
+        let cb = categorical
+            .native
+            .to_bytes()
+            .map_err(|e| invalid(e.to_string()))?;
+        let bridge = PreparedCategoricalBridge::from_bytes(
+            &cb,
+            fixture.weights.binding(),
+            &sha256_bytes(&cb),
+            &Device::Cpu,
+        )?;
+        let u = ContinuationLearningWeights::zeroed_shared_action(
+            fixture.weights.binding(),
+            &native.artifact_binding()?,
+            2,
+            &Device::Cpu,
+        )?;
+        let exp = fs::read(root.join("consumer/exp-q31.bin"))?;
+        let ids = [4, 4];
+        let view = SourceEmissionCompiler::new(TOK.as_bytes())?.compile(&ids)?;
+        let segments = [
+            SourceBankSegment::Context {
+                token_ids: &[5],
+                role: 1,
+                event: 7,
+            },
+            SourceBankSegment::Source {
+                frame: frame(&ids),
+                view: &view,
+                event: 7,
+            },
+        ];
+        let gradient = |g: &candle_core::backprop::GradStore, var: &Var| -> Result<Vec<f32>> {
+            Ok(match g.get(var.as_tensor()) {
+                Some(t) => t.flatten_all()?.to_vec1::<f32>()?,
+                None => vec![0.; var.elem_count()],
+            })
+        };
+        for nonzero in [false, true] {
+            if nonzero {
+                u.unary.set(&Tensor::from_vec(
+                    (0..240)
+                        .map(|i| ((i % 13) as f32 - 6.) * 0.25)
+                        .collect::<Vec<_>>(),
+                    (2, 120),
+                    &Device::Cpu,
+                )?)?;
+            }
+            let us = u.prepare_native(&native.execution_binding()?, &gs.native)?;
+            let forward = |credit| -> Result<crate::geometric_bank_generate::BankGenerateOutput> {
+                PreparedBankGenerate::new(&prepared, &generate, &gs, &exp)?
+                    .with_categorical_read_state_bridge(&bridge)?
+                    .with_read_selector_credit(true)
+                    .with_continuation_field(&u, &us)?
+                    .with_continuation_context_credit(credit)?
+                    .forward_bank(&segments, &[5], &[4], &cue, &prefix)
+            };
+            let frozen = forward(false)?;
+            let live = forward(true)?;
+            assert_eq!(frozen.generate.scores_q24, live.generate.scores_q24);
+            assert_eq!(frozen.copy_scores_q24, live.copy_scores_q24);
+            assert_eq!(frozen.copy_token_ids, view.emitted_token_ids());
+            assert_eq!(
+                serde_json::to_value(&frozen.actions)?,
+                serde_json::to_value(&live.actions)?
+            );
+            let witness = live
+                .continuation
+                .as_ref()
+                .ok_or_else(|| invalid("local context absent"))?;
+            assert_eq!(witness.token_ids, vec![5, 4]);
+            assert_eq!(witness.local_context.trace.time, 2);
+            // EOS supplies ordinary complete-answer loss, after the whole
+            // target-free pool. This is a local conditional surrogate witness,
+            // not an exact derivative of the discrete native forward.
+            let fg = frozen
+                .loss_with_credit(1, VocabularyScoreAdjoint::RawIdentity)?
+                .backward()?;
+            let lg = live
+                .loss_with_credit(1, VocabularyScoreAdjoint::RawIdentity)?
+                .backward()?;
+            let mut transition_difference = 0f64;
+            for (name, var) in fixture.weights.context_state_parameters() {
+                let before = gradient(&fg, &var)?;
+                let after = gradient(&lg, &var)?;
+                assert!(after.iter().all(|x| x.is_finite()));
+                let difference = before
+                    .iter()
+                    .zip(&after)
+                    .map(|(a, b)| f64::from((a - b).abs()))
+                    .sum::<f64>();
+                if name.ends_with("transition") {
+                    transition_difference += difference;
+                }
+                if !nonzero {
+                    assert_eq!(before, after, "zero U added local context credit: {name}");
+                }
+            }
+            if nonzero {
+                assert!(
+                    transition_difference > 1e-7,
+                    "nonzero U must reach actual Context transition masters"
+                );
+            }
+            // Enabling state utility must not double coefficient/prototype
+            // credit: detached conditional utilities isolate the added path.
+            for var in generate
+                .parameters()
+                .values()
+                .chain(u.parameters().values())
+            {
+                assert_eq!(gradient(&fg, var)?, gradient(&lg, var)?);
+            }
+            assert!(gradient(&lg, &u.unary)?.iter().any(|x| x.abs() > 1e-7));
+        }
+        Ok(())
+    }
+
+    #[test]
     fn composed_state_native_alias_parity_and_context_only_credit() -> Result<()> {
         let fixture = Fixture::new_with_lanes(2)?;
         for (name, var) in fixture.weights.parameters() {
