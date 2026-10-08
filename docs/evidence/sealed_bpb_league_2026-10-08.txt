@@ -1,0 +1,69 @@
+UOR-R4 — The sealed evaluations converted to bits per byte: the project's real BPB league table
+Date: 2026-10-08 (overnight round 3). DeepSeek session. References #820.
+New instrument: crates/uor-r4-training/examples/token-stream-bytes.rs.
+
+WHY THIS WAS FREE AND HAD NEVER BEEN DONE
+  Every sealed model evaluation in this repository records nats per token and leaves
+  `bits_per_byte: null`. Nobody had converted them, so the project has been making decisions
+  without knowing what its own models score in the unit every gate is written in. The conversion
+  is exact and costs no GPU: each token's byte string is fixed by the tokenizer, so a stream's
+  byte total is the sum of its tokens' lengths.
+
+  `token-stream-bytes <stream.u16> <tokenizer.json> [--skip-header 64] [--eval evaluation.json]`
+
+  Both streams carry a 64-byte UORT header. Skipping it removes the "out-of-vocabulary ids" that
+  had been reported for these files: with the header skipped, chat-v0-p2/heldout has 6,194,589
+  tokens and **zero** ids outside the 4096 vocabulary, max id 4095. The IDs 20309/21586/34205
+  seen earlier were header bytes read as tokens.
+
+  Byte bases, exact: chat-v0-p2/heldout 17,576,697 bytes / 6,194,589 tokens = **2.837427**;
+  tinydialogues-val 23,068,327 / 7,679,215 = **3.003995**.
+
+THE TABLE (sealed evaluations, 2026-10-03, converted)
+
+  chat-v0-p2/heldout, 6,194,304 targets each
+    geo-8m-l2          nll 2.2025344   **1.119883 bits per byte**
+    geo-8m-s2-metal-b  nll 2.2081085     1.122717
+    geo-8m-a           nll 2.2110192     1.124197
+    tf-8m (control)    nll 2.2527989     1.145440
+
+  tinydialogues-val, 7,678,848 targets each
+    geo-8m-l2          nll 1.8877944   **0.906630 bits per byte**
+    geo-8m-s2-metal-b  nll 1.8890558     0.907236
+    geo-8m-a           nll 1.8941910     0.909702
+    tf-8m (control)    nll 1.9100456     0.917316
+
+WHAT IT SAYS
+  1. All three geometric variants beat the parameter-matched transformer control on BOTH corpora:
+     chat by 0.0213-0.0256 BPB (1.9-2.2 % of the control) and tinydialogues by 0.0076-0.0107
+     (0.8-1.2 %). The ordering is consistent: l2 < s2 < a < transformer on both.
+  2. `geo-8m-l2` is the best arm, which matches the recorded finding that the L2 read wins its
+     panels and that the Lorentz variants are superseded.
+  3. These are single-seed evaluations with no paired confidence interval, and the laboratory's own
+     review of a comparable cycle called the stack's edge parity rather than advantage because it
+     sat inside the seed spread. The margins here (0.8-2.2 %) are of that order. Treat the ordering
+     as suggestive and the absolute levels as solid.
+  4. Every one of these models is far below both the n-gram gate and the artifact the project
+     actually serves:
+       geo-8m-l2 1.1199  <  Kneser-Ney 5-gram 1.280275 (head-range basis; about 1.227 on the
+                            whole-file byte basis)  <  served discrete scorer 4.211070
+     and uniform on that corpus is 4.2292, so the served scorer is 0.018 BPB BELOW uniform.
+
+THE BARRIER, STATED WITH THE PROJECT'S OWN NUMBERS
+  A trained 8M-parameter model of this family, sitting on local disk since 3 October, scores
+  1.1199 bits per byte on real held-out chat and beats its own transformer control. The artifact
+  the project serves from the same family scores 4.2111, below uniform and 0.98 BPB worse than an
+  order-0 frequency table fit on the same training split. The gap is **3.09 bits per byte**, and it
+  is in the serving path, not in the architecture, the data or the mechanism.
+
+  That also means the artefact's 4.2111 is not a baseline anyone should measure a mechanism
+  against: this session's retracted shortlist delta of -0.0196 was 0.09 sigma of the per-document
+  spread on that corpus, and every other delta was smaller still.
+
+NEXT
+  1. Score the served artifact on the SAME position set and context protocol as the sealed stack
+     evaluations, so the 3.09 BPB serving gap is a matched measurement rather than two numbers
+     from different protocols.
+  2. Then attack that gap directly: the artifact is table-based and integer by construction, so
+     the question is where 3.09 BPB is lost between the trained continuous model and the exported
+     scorer (read quantisation, the six-term feature set, or the export path).
