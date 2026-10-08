@@ -1,0 +1,59 @@
+UOR-R4 — Correction: the response mask is recoverable locally, so the objective change does not need the corpus rebuild
+Date: 2026-10-08 (overnight round 50). DeepSeek session. References #820.
+
+WHAT ROUND 49 SAID, AND WHY IT WAS INCOMPLETE
+  Round 49 established that no response mask exists for the chat corpus and concluded that the
+  objective change "cannot be run on what is on disk" and that rebuilding the corpus from source
+  parquet "appears to be the only route". The second half of that is wrong, and the source says so.
+
+WHAT THE SOURCE SHOWS
+  1. The corpus builder ALREADY EMITS A MASK. crates/uor-r4-training/src/bin/prepare-chat-parquet.rs
+     computes `encoded.response_mask` per conversation (lines 151, 162-163) and writes it:
+       line 210:  let mask_path = out.join("response_mask.u8");
+     It also records `response_tokens` counts. So the mask is a first-class output of the builder,
+     not missing machinery - it is simply not present beside the corpus copy on this volume.
+
+  2. THE CORPUS IS LITERAL-ROLE, WHICH IS WHAT MAKES THE MASK RECOVERABLE. The builder prepares a
+     "literal-role dialogue split" (its line 1) using
+     `DialogueProtocol::literal_roles_version(&tokenizer, version)`. The role structure is therefore
+     rendered INTO the token stream as literal marker tokens rather than being discarded.
+
+  3. THE MARKER IS DERIVABLE FROM THE TOKENIZER AND THE PROTOCOL VERSION ALONE.
+     crates/uor-r4-training/src/stack_dialogue.rs:333-352 builds an `EpisodeContract` from
+     `literal_roles_version(tokenizer, version)` and `encoder.encode_assistant_prefix(&[])`,
+     producing `assistant_marker_ids` - documented as "the assistant marker that opens each scored
+     response". Nothing in that path reads the source conversations.
+
+  THEREFORE THE RESPONSE MASK CAN BE RECONSTRUCTED FROM THE EXISTING CORPUS: scan chat-train.u16
+  for the assistant marker ids, mark the region that follows each marker as response until the next
+  role marker or BOS, and write response_mask.u8 alongside the tokens. The pieces required are the
+  tokenizer (local, sha256 known), the protocol version (2, recorded in the runbook) and the marker
+  construction above. No parquet, no re-fetch, no new licence decision.
+
+CORRECTED RECOMMENDATION
+  The objective change - a response-region loss, which round 48's falsified data hypothesis points to
+  - does NOT require the ~2.1 GB corpus rebuild. The rebuild remains justified only if the project
+  wants MORE or DIFFERENT conversations, and every piece of evidence this session produced says it
+  does not need them for this purpose. What it needs is a mask extracted from the corpus it already
+  has, using marker logic that already exists.
+
+  Round 49's owner-facing question ("do you want a response-region objective, and if so the rebuild
+  is the only route") is WITHDRAWN. The correct next action is a small extraction step, and the
+  question for the owner, if any, is simply whether to spend the effort on the objective change
+  itself.
+
+WHAT STILL NEEDS CHECKING BEFORE THE EXTRACTION IS TRUSTED
+  * That the assistant marker tokens actually appear in chat-train.u16 as expected - a scan that
+    counts their occurrences and their spacing is the cheap verification, and it also yields the
+    mask's response fraction, which can be checked against the builder's `response_tokens` statistic
+    if a manifest from the original build survives anywhere on the volume.
+  * Whether the episode contract's context/episode framing (stack_dialogue.rs) expects additional
+    sidecars beyond the mask and the manifest, since `dialogue-train` takes train_tokens, train_mask
+    and train_manifest together.
+  * Which protocol version the corpus actually used; the runbook records 2, and a marker scan for
+    both candidate versions would settle it empirically.
+
+SCOPE
+  Everything above is read from source and from the tool's own output paths; no scan of the corpus
+  has been run yet and no mask has been produced. The correction is to a recommendation, not to a
+  measurement.
