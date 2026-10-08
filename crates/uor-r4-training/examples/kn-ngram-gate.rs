@@ -24,12 +24,16 @@ struct Args {
     tokenizer: PathBuf,
     train_tokens: usize,
     eval_tokens: usize,
+    /// Retained row caps for orders two to five. The default is KN's own capacity; a tiny value
+    /// models a count table at the scale the served artifact's engram term actually carries
+    /// (about ten thousand contexts), which is what isolates capacity from estimator quality.
+    row_caps: [usize; 4],
     out: Option<PathBuf>,
 }
 
 fn usage() -> String {
     "kn-ngram-gate --train <train.u16> --eval <heldout.u16> --tokenizer <tokenizer.json>\n\
-     \x20 [--train-tokens N] [--eval-tokens N] [--out report.json]"
+     \x20 [--train-tokens N] [--eval-tokens N] [--row-caps a,b,c,d] [--out report.json]"
         .to_string()
 }
 
@@ -41,6 +45,7 @@ fn parse_args() -> Result<Args, String> {
         tokenizer: PathBuf::new(),
         train_tokens: 20_000_000,
         eval_tokens: 200_000,
+        row_caps: [4_000_000, 4_000_000, 8_000_000, 8_000_000],
         out: None,
     };
     let mut i = 0;
@@ -71,6 +76,18 @@ fn parse_args() -> Result<Args, String> {
             }
             "--eval-tokens" => {
                 args.eval_tokens = value(i)?.parse().map_err(|e| format!("eval-tokens: {e}"))?;
+                i += 2;
+            }
+            "--row-caps" => {
+                let raw = value(i)?;
+                let parts: Vec<&str> = raw.split(',').collect();
+                if parts.len() != 4 {
+                    return Err("--row-caps needs four comma-separated values".to_string());
+                }
+                for (slot, part) in parts.iter().enumerate() {
+                    args.row_caps[slot] =
+                        part.trim().parse().map_err(|e| format!("row-caps: {e}"))?;
+                }
                 i += 2;
             }
             "--out" => {
@@ -140,6 +157,7 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     }
     let config = NgramConfig {
         vocab_size: 4096,
+        row_caps: args.row_caps,
         ..NgramConfig::default()
     };
     config.validate()?;
@@ -176,6 +194,7 @@ fn run(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "eval_positions": scored,
         "skipped_out_of_vocabulary": skipped_oov,
         "eval_bytes": bytes,
+        "row_caps": args.row_caps,
         "bits_per_byte": bits / bytes.max(1) as f64,
         "model_bytes": model.model_bytes(),
         "fit": {

@@ -1,0 +1,73 @@
+UOR-R4 — The chat gate, the capacity curve, and the criterion that says stop chasing BPB
+Date: 2026-10-08 (overnight round 2). DeepSeek session. References #820.
+
+VERIFIED: THE PROJECT ALREADY BEATS THE GATE IT WAS CHASING
+  Sealed evaluation ~/uor-r4-local/ladder/evals/geo-8m-l2-chatv0-heldout/evaluation.json
+  (schema uor-r4.geometric-stack-evaluation/1, written 2026-10-03):
+    model      : ladder/runs/geo-8m-l2/model/model.safetensors, 28,628,872 bytes,
+                 sha256 50f8a175c0431b0f96214e535523900fd586d10e23297db045e023a2ae300c99
+    corpus     : chat-v0-p2/heldout/tokens.u16,
+                 sha256 e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef
+                 -- the same file every measurement in this session used
+    full       : nll 2.2025344473015567 nats/token over 6,194,304 targets, 16,131 blocks
+    comparison : nll 2.2027294608723613 (parameter-matched control) -- parity, 0.0002 nats
+    bits_per_byte: null. The conversion was never done.
+
+  Converting with the tokenizer's own byte lengths on that stream (2.8374 bytes/token):
+    **geo-8m-l2 = 1.1199 bits per byte** on real held-out chat.
+
+THE GATE, MEASURED THIS SESSION FOR THE FIRST TIME
+  kn-ngram-gate (PR #1885) on chat-v0-p2 train (20M tokens) -> heldout, 399,988 positions:
+    Kneser-Ney 5-gram            = 1.280275 bits per byte
+  Same artifact, same byte basis (ablate-prose / lut4-prose):
+    served discrete scorer       = 4.211070 bits per byte
+
+  So the 8M trained stack beats the 5-gram gate by 0.16 BPB, and the SERVED artifact is
+  3.09 BPB behind the 5-gram and 3.09 behind its own family's trained model.
+
+THE ARTIFACT IS BELOW UNIFORM AND WORSE THAN A UNIGRAM
+  Uniform over the 4096-token vocabulary at 2.8374 bytes/token = 4.2292 bits per byte.
+  The served scorer's 4.211070 is 0.018 BPB BELOW uniform.
+  An order-0 frequency table fitted on chat train scores 3.2299 (independent review, this
+  session): the artifact is 0.98 BPB WORSE than a unigram on this corpus.
+  4.2111 is therefore a TinyStories-to-chat transfer number, not a measurement of the
+  architecture, and every delta this session chased inside it was measured on that floor.
+
+THE CAPACITY CURVE AT FIXED ESTIMATOR (this session, kn-ngram-gate --row-caps)
+  Same estimator, same corpus and split, only the retained row caps change:
+    caps 1,000 per order      = 2.754200 bits per byte
+    caps 20,000 per order     = 1.856607
+    caps 4M/4M/8M/8M (KN)     = 1.280275
+  The served artifact's only data-driven term carries about 10,240 contexts and 12,800
+  candidates, i.e. at or below the smallest point on this curve. Capacity, not estimator
+  choice, dominates the range the artifact lives in: 1.47 BPB between 1k and 20k caps,
+  against 0.58 BPB between 20k and full KN.
+
+THE PRE-REGISTERED CRITERION, AND IT FIRES
+  The independent methodology review set the stop rule in advance: "Stop if KN-5 >= ~1.25 BPB
+  -- the existing 8M model already meets the gate, so the next spend must buy
+  context/memory, not BPB." Measured KN-5 here is 1.280275, and the 8M model is at 1.1199.
+  **The criterion fires.** Further spend on beating this gate with a better n-gram-class
+  scorer is buying a result the project already has.
+
+WHAT THE EVIDENCE POINTS AT NOW
+  1. The largest measured gap in the project is not a gate, it is the SERVING path: the
+     continuous trainer 1.2372 vs the shipped discrete artifact 1.8055 on TinyStories
+     (0.5683 BPB), and here the trained stack 1.1199 vs the served scorer 4.2111 (3.09 BPB).
+     Both are far larger than any mechanism delta measured this session.
+  2. The state channel is not the place to look: an independent review measured the served
+     120-state as Haar-uniform with a full-lookup BPB of 3.3027 against 3.3050 for a random
+     root map and 3.2909 for a unigram, and I(S;X_{t-L}) flat at the random null for lags
+     1..63. Read-side nonlinearity cannot recover information that is not in the state.
+  3. The next spend should buy CONTEXT AND MEMORY, not corpus-fit BPB: the served scorer is
+     a 5-gram-class model with a 6.9-bit side channel, while the trained stack that reaches
+     1.1199 uses 255-token context. Long-context retention (the plan's K-tuple direction,
+     K~16-64) and the continuous-to-served gap are the two levers the measurements leave.
+
+SCOPE
+  BPB is comparable only within a corpus and only with one byte basis; all numbers here use
+  the tokenizer's own byte lengths on chat-v0-p2 held-out (sha e5f400b0). The 1.1199 figure is
+  a conversion of a sealed nats-per-token evaluation; the file itself records bits_per_byte as
+  null. A document-clustered protocol (per-document delta sd 0.2148 BPB, clustered SE 0.003489
+  over the full file) is required for any claim below about 0.01 BPB, and this session's
+  retracted -0.0196 was 0.09 sigma under it.
