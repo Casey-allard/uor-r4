@@ -1,0 +1,58 @@
+UOR-R4 — The reconstructed mask is byte-identical to the builder's, and no source can teach short replies
+Date: 2026-10-08 (overnight round 80). DeepSeek session. References #820.
+
+RESULT 1: THE MASK RECONSTRUCTION IS PROVEN EXACT
+  Rounds 50-55 argued from source that the response mask could be recovered by scanning the corpus for
+  its literal role markers, and round 53 counted those markers. The corpus manifest carries the
+  builder's own expected hash:
+
+    manifest mask_sha256  28b7e98bb8a85368596dd7d1b8aa8aa16a277879a8368925dadbd37f20c3b3c1
+    reconstructed mask    28b7e98bb8a85368596dd7d1b8aa8aa16a277879a8368925dadbd37f20c3b3c1   MATCH
+    manifest mask_bytes   82,248,461          reconstructed     82,248,461                    MATCH
+
+  AND THE MANIFEST'S mask_rule IS THE RULE THAT WAS IMPLEMENTED, verbatim in meaning: "1 = each token
+  of an assistant turn's response content and its terminating <|eos|>; 0 = <|bos|>, all role markers,
+  turn separators, system/user content, and an unmasked document-terminal <|eos|>".
+
+  So the reconstruction required no rebuild, no re-fetch and no new licence decision, and it is now
+  PROVEN BIT-EXACT against the builder's own record rather than argued. This also retroactively
+  validates the two rejected mask rules of round 55: the validator's complaints were real and the
+  third rule is the correct one.
+
+RESULT 2: EVERY SOURCE IS PROSE-DOMINANT - NONE CAN TEACH SHORT REPLIES
+  Per-source response-length distributions, computed by slicing the verified mask at the manifest's
+  source boundaries:
+
+    source                                responses   median tokens   <=10 tok   >200 tok
+    smoltalk_smol-magpie-ultra.train          41,319          701        0.1 %     96.8 %
+    smoltalk_smol-constraints.train           17,900          174        0.2 %     40.7 %
+    smoltalk_smol-rewrite.train               17,200          225        0.0 %     61.6 %
+    smoltalk_smol-summarize.train             12,300          103        0.0 %     27.9 %
+    ultrachat_200k.default.train_sft          32,121          438        0.0 %     82.3 %
+    everyday-conversations-llama3.1-2k         8,625           45        0.2 %      0.0 %
+
+  THE SHORTEST SOURCE HAS A MEDIAN OF FORTY-FIVE TOKENS, and not one source reaches 0.3 % of
+  responses at ten tokens or fewer. Round 79 measured 0.0 % at three tokens for the corpus as a
+  whole; this shows the same is true of every ingredient separately, so no re-weighting or
+  re-selection of the existing sources can produce an answer-form tail either. The constraint is the
+  data itself, not its mixture.
+
+WHAT THIS LEAVES, STATED WITHOUT CLAIMING IT WORKS
+  Instruction precision - answering "reply with exactly one word", a yes/no, or a number with that
+  form - needs replies of that form, and neither this corpus nor any part of it contains them. Two
+  routes remain, and they are cheap relative to the 1.39 B-token rebuild that rounds 36-48 correctly
+  argued against:
+    1. SYNTHETIC SHORT-FORM INSTRUCTION DATA derived from the corpus the project already has and
+       already has the right to use: factual statements in it can be turned into question/answer
+       pairs whose answers are a single word, a number or a yes/no, with the response mask marking
+       exactly the short answer. This needs no new source and no new licence, and the tooling to
+       write such a split (prepare-chat-parquet's source selection plus the mask rule now proven)
+       already exists.
+    2. A NEW LICENCE-CLEAN SHORT-FORM SOURCE, which is an owner decision.
+  Route 1 is the one this evidence supports trying first, because it is bounded, uses material the
+  project already holds, and directly supplies the missing tail rather than more of the same.
+
+SCOPE
+  One corpus, its manifest, one reconstructed mask, exact counts. The hash match is a verifiable
+  identity; the per-source distributions are exact for this corpus and say nothing about sources not
+  measured. No training result is claimed.
