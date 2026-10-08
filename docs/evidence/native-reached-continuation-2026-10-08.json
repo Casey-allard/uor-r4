@@ -1,0 +1,819 @@
+{
+  "schema": "uor-r4.reached-u-delivery-evidence/1",
+  "pr": 1898,
+  "executed_source": "8eed8478e800bbd01f499bc2d9ffb9c32cd59efc",
+  "binary_sha256": "52a36182dde322450f3703129a7dc9526d2d910c0489074f32d362352ddcc018",
+  "launch_config_sha256": "455361d76b656babd0764cf162229a00512c680eb2395a3a9363e542371c809c",
+  "result": {
+    "source_commit": "8eed8478e800bbd01f499bc2d9ffb9c32cd59efc",
+    "report_sha256": "2a9f967a955c6dc40b422c94f1b6d1d54f2511a24fb601af97218d49440b9923",
+    "manifest_sha256": "6cbfabf807427f3baa2bfcfda7187e1b00f3a205ec9466b30a7437a410baad94",
+    "sealed_files": 1178,
+    "payload_bytes": 379831294,
+    "metrics_keys": [
+      "any_emitted_eos",
+      "complete_swap_pairs",
+      "entry_own_correct",
+      "entry_teacher_correct",
+      "first_divergent_own_position_correct",
+      "first_divergent_own_prefix_reached",
+      "first_divergent_own_prefix_reached_and_answered_correctly",
+      "first_divergent_teacher_correct",
+      "later_copy_covered_positions",
+      "later_copy_covered_teacher_correct",
+      "missing_rows",
+      "paired_own_position_both_correct",
+      "paired_own_prefix_reached_and_answered_both_correct",
+      "paired_teacher_both_correct",
+      "pairs",
+      "rows",
+      "scope"
+    ],
+    "metrics": {
+      "any_emitted_eos": 14,
+      "complete_swap_pairs": 4,
+      "entry_own_correct": 273,
+      "entry_teacher_correct": 273,
+      "first_divergent_own_position_correct": 31,
+      "first_divergent_own_prefix_reached": 13,
+      "first_divergent_own_prefix_reached_and_answered_correctly": 8,
+      "first_divergent_teacher_correct": 54,
+      "later_copy_covered_positions": 4128,
+      "later_copy_covered_teacher_correct": 404,
+      "missing_rows": 0,
+      "paired_own_position_both_correct": 4,
+      "paired_own_prefix_reached_and_answered_both_correct": 4,
+      "paired_teacher_both_correct": 6,
+      "rows": 512,
+      "scope": "complete native own-prefix outputs and separately canonical teacher-prefix metrics; own position matches without a correct preceding prefix are not successful source-dependent continuation"
+    },
+    "changed_outputs": 504,
+    "gained_complete_ids": [],
+    "lost_complete_ids": [],
+    "final_U_sha256": "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee",
+    "baseline": {
+      "task": 7.261405644426435,
+      "reference": 0.97123611100986,
+      "combined": 8.232641755436294
+    },
+    "candidate": {
+      "task": 4.125422763911866,
+      "reference": 0.4176344001065728,
+      "combined": 4.543057164018439
+    },
+    "native_code_proposals": {
+      "candidate_combined": 4.543057164018439,
+      "corrected_current_frontiers": 264,
+      "optimizer_updates": 0,
+      "parent_combined": 8.232641755436294,
+      "policy": {
+        "active": "continuation.unary960 only; frozen U-localstate/prototypes; fresh588 weighted coefficientgradient",
+        "construction": "once-only adjacent legalQ4 pass sorted gradient times actual master displacement;86 transactional fullpoolguards; no refill/Adam/clip",
+        "frozen": "Source/Context/Potential/Generate/prototypes/bias/readmap/bridge/cue/prefix/tokenizer/geometry/labels",
+        "objective": "CURRENT504 actual reached first-errors + unchanged84 originalsuccess trajectory terms; componentmeans added lambda1",
+        "protected": "original84 + allcorrect prefixes ofcurrentlyfailed rows99and399;86 constraints; no objectiveweight added",
+        "schema": "uor-r4.reached-shared-action-u/1",
+        "scope": "exposed512 construction; useful only newcompleteEOS plus original8retained; no transfer/chat/energy qualification",
+        "selection": "strict freshly scored revised nativeCE descent and >=1currentfrontier correct; historical8.2168 is not baseline"
+      },
+      "status": "REVISED_NATIVE_DESCENT_AND_FRONTIER_GAIN_SELECTED",
+      "winner": 0
+    },
+    "producer_beforeseal_seconds": 507.434837421,
+    "gradient_seconds": 4.770525115,
+    "construction_seconds": 5.348491254,
+    "useful_candidate": false
+  },
+  "independent_saved_audit": {
+    "objective_integer_pools_recomputed": 1764,
+    "current_later_frontiers": [
+      [
+        99,
+        1
+      ],
+      [
+        399,
+        1
+      ]
+    ],
+    "current_plan_rederived": true,
+    "full_u_gradient_recomputed": false,
+    "v2_u_score_shift": 22,
+    "all_physical_copy_aliases_recomputed": true,
+    "protected_incidence_rederived": 2818048,
+    "status": "PASS",
+    "source_commit": "8eed8478e800bbd01f499bc2d9ffb9c32cd59efc",
+    "seals": {
+      "run": {
+        "status": "FILE_SET_AND_SIZES_VERIFIED",
+        "manifest_sha256": "6cbfabf807427f3baa2bfcfda7187e1b00f3a205ec9466b30a7437a410baad94",
+        "files": 1178,
+        "blake3_verified": false
+      },
+      "parent": {
+        "status": "FILE_SET_AND_SIZES_VERIFIED",
+        "manifest_sha256": "1bca3281c00d7bcd90554eadbd4b32b65cc996c9a58b66b6d48410aadb67e0a5",
+        "files": 1240,
+        "blake3_verified": false
+      },
+      "candidate": {
+        "status": "FILE_SET_AND_SIZES_VERIFIED",
+        "manifest_sha256": "132a151b616abe2109daee65a9c1144d77c5b66e020fb1fe00b60e9ef6c99e17",
+        "files": 45,
+        "blake3_verified": false
+      }
+    },
+    "complete_counts": [
+      8,
+      8
+    ],
+    "retained_complete_ids": [
+      "development-diverse-length2-00-swap0-q0-forward-home",
+      "development-diverse-length2-00-swap0-q0-forward-job",
+      "development-diverse-length2-00-swap0-q3-forward-home",
+      "development-diverse-length2-00-swap0-q3-forward-job",
+      "development-diverse-length2-00-swap1-q0-forward-home",
+      "development-diverse-length2-00-swap1-q0-forward-job",
+      "development-diverse-length2-00-swap1-q3-forward-home",
+      "development-diverse-length2-00-swap1-q3-forward-job"
+    ],
+    "gained_complete_ids": [],
+    "lost_complete_ids": [],
+    "entry_correct_before_after": [
+      10,
+      273
+    ],
+    "changed_outputs": 504,
+    "construction_statuses": {
+      "accepted": 959,
+      "rejected": 1
+    },
+    "accepted_coordinates": 959,
+    "selected": true,
+    "objectives": [
+      8.232641755436294,
+      4.543057164018439,
+      4.543057164018439
+    ],
+    "protected_pools_recomputed": 86,
+    "own_prefix_rows_verified": 1024,
+    "early8_matches_full512": true,
+    "complete_source_swap_pairs": [
+      4,
+      4
+    ],
+    "endpoint_diagnostics": [
+      {
+        "canonical_positions": 6664,
+        "entry_targets_without_physical_copy": 512,
+        "clipped_low_actions": 97,
+        "clipped_high_actions": 0,
+        "entry_clipped_vs_raw_winner_changes": 0
+      },
+      {
+        "canonical_positions": 6664,
+        "entry_targets_without_physical_copy": 512,
+        "clipped_low_actions": 1175,
+        "clipped_high_actions": 0,
+        "entry_clipped_vs_raw_winner_changes": 0
+      }
+    ],
+    "limitations": [
+      "saved-evidence reader; no inference, training, backward or full greedy feasibility rerun",
+      "all588 integer objective pools and86 guards reconstructed from frozen raw Generate/Copy plus finite U localstate/prototype arithmetic",
+      "BLAKE3 deferred to separate actual Rust complete-file verifier",
+      "token sequences independently ByteLevel decoded; Context/cue/prefix kernels and fresh gradient not reexecuted; raw physical Copy scores are authenticated captured inputs"
+    ],
+    "reader_seconds": 257.1172904968262
+  },
+  "rust_seal_verifications": [
+    {
+      "kind": "independent_reader",
+      "exit_code": 0,
+      "elapsed_seconds": 257.4534497372806,
+      "max_rss_kib": 921452
+    },
+    {
+      "kind": "reached_u",
+      "exit_code": 0,
+      "elapsed_seconds": 16.69142199680209,
+      "stdout": "",
+      "stderr": "",
+      "verifier_sha256": "3995529166bf37fd516a7b89a5919596bd91ecb97c4db9704d4ec786fc45e66b"
+    },
+    {
+      "kind": "compensation",
+      "exit_code": 0,
+      "elapsed_seconds": 22.754153452813625,
+      "stdout": "",
+      "stderr": "",
+      "verifier_sha256": "3995529166bf37fd516a7b89a5919596bd91ecb97c4db9704d4ec786fc45e66b"
+    },
+    {
+      "kind": "input_panel",
+      "exit_code": 0,
+      "elapsed_seconds": 0.15646568313241005,
+      "stdout": "",
+      "stderr": "",
+      "verifier_sha256": "3995529166bf37fd516a7b89a5919596bd91ecb97c4db9704d4ec786fc45e66b"
+    }
+  ],
+  "checks": {
+    "format": "PASS",
+    "example_tests": 54,
+    "failed": 0,
+    "ignored": 0,
+    "shared_copy_cpu_tests": 1,
+    "explicit_cuda_shared_copy_duplicate_adjoint_parity_tests": 1,
+    "release": "PASS",
+    "job": "20261008T122333Z",
+    "start_utc": "2026-10-08T12:23:33Z",
+    "end_utc": "2026-10-08T12:27:37Z",
+    "wall_seconds": 244
+  },
+  "source_reviews": {
+    "math": "PASS",
+    "adversarial": "PASS"
+  },
+  "runtime_preservation": {
+    "revision": "3d226bdbc9ea4acc07f501629de5b8be4ee5015f",
+    "prefix": "codex/sol-reached-u/runtime-8eed8478e8-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "2c61fc316000333290bb85934093fd7962ea6161a7d57b2713bc8530e37d180f",
+        "bytes": 1384
+      },
+      "checks.log": {
+        "sha256": "814e181d69ccda4aac4e383122e6dc1e3cf037660401430acfecd3b1c89e867b",
+        "bytes": 18928
+      },
+      "config.json": {
+        "sha256": "455361d76b656babd0764cf162229a00512c680eb2395a3a9363e542371c809c",
+        "bytes": 2753
+      },
+      "exact-source-review.md": {
+        "sha256": "6b10d72f8157d69bb0bf5aa1f1017fe0a60c4db7e273e2e2532893468d4a2184",
+        "bytes": 676
+      },
+      "geometric-frozen-map-fit": {
+        "sha256": "52a36182dde322450f3703129a7dc9526d2d910c0489074f32d362352ddcc018",
+        "bytes": 32201376
+      },
+      "initial-checks-wrapper-time-fault.log": {
+        "sha256": "c6bbfe4910caba3f13860566cfd6653cfe825f09ddb777de0f867452dc6d36a8",
+        "bytes": 9791
+      },
+      "initial-checks-wrapper.sh": {
+        "sha256": "ba1256f6eb9acf3be34fd75cd39a9694ec51fc9279f848f0a2c533fc6c19676d",
+        "bytes": 1371
+      },
+      "source.tar.gz": {
+        "sha256": "84113c269804ce23fd3d1b037d62e9fec7dc87a4307b62c703a65e26a3bfc1ff",
+        "bytes": 99256374
+      },
+      "supervise.py": {
+        "sha256": "65aa24f9a309d88b617ae6a9c48d800cf521071d92f5ae7f8dc17052cda735aa",
+        "bytes": 2701
+      }
+    },
+    "manifest": {
+      "source_commit": "8eed8478e800bbd01f499bc2d9ffb9c32cd59efc",
+      "source_tree": "6e67cfaea8757b2ff33cdb80e53d0fd825757234",
+      "files": {
+        "checks.log": {
+          "sha256": "814e181d69ccda4aac4e383122e6dc1e3cf037660401430acfecd3b1c89e867b",
+          "bytes": 18928
+        },
+        "config.json": {
+          "sha256": "455361d76b656babd0764cf162229a00512c680eb2395a3a9363e542371c809c",
+          "bytes": 2753
+        },
+        "exact-source-review.md": {
+          "sha256": "6b10d72f8157d69bb0bf5aa1f1017fe0a60c4db7e273e2e2532893468d4a2184",
+          "bytes": 676
+        },
+        "geometric-frozen-map-fit": {
+          "sha256": "52a36182dde322450f3703129a7dc9526d2d910c0489074f32d362352ddcc018",
+          "bytes": 32201376
+        },
+        "initial-checks-wrapper-time-fault.log": {
+          "sha256": "c6bbfe4910caba3f13860566cfd6653cfe825f09ddb777de0f867452dc6d36a8",
+          "bytes": 9791
+        },
+        "initial-checks-wrapper.sh": {
+          "sha256": "ba1256f6eb9acf3be34fd75cd39a9694ec51fc9279f848f0a2c533fc6c19676d",
+          "bytes": 1371
+        },
+        "source.tar.gz": {
+          "sha256": "84113c269804ce23fd3d1b037d62e9fec7dc87a4307b62c703a65e26a3bfc1ff",
+          "bytes": 99256374
+        },
+        "supervise.py": {
+          "sha256": "65aa24f9a309d88b617ae6a9c48d800cf521071d92f5ae7f8dc17052cda735aa",
+          "bytes": 2701
+        }
+      },
+      "scope": "Current reached-frontier U-only shared-action learning; model notrun before runtime publication"
+    },
+    "seconds": 30.872605811804533,
+    "completed_utc": "2026-10-08T12:28:35.652549+00:00"
+  },
+  "result_preservation": {
+    "revision": "4b443fd8bc19860e409cb31429bab3e623dc6cf0",
+    "prefix": "codex/sol-reached-u/reached-u-0001-8eed8478e8",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "af092fd1648438be91ce0fdc7c6e2350c50e24e43b4c2a56a60f30f6a993ea4f",
+        "bytes": 2377
+      },
+      "reached-u-0001-8eed8478e8.tar.gz": {
+        "sha256": "a7c626cb194aadcf81f452bd7460a9437e121273cc88251ef1bd1c5c7d930dbe",
+        "bytes": 89601538
+      }
+    },
+    "manifest": {
+      "source_commit": "8eed8478e800bbd01f499bc2d9ffb9c32cd59efc",
+      "runtime_hf_revision": "3d226bdbc9ea4acc07f501629de5b8be4ee5015f",
+      "runtime_manifest_sha256": "2c61fc316000333290bb85934093fd7962ea6161a7d57b2713bc8530e37d180f",
+      "binary_sha256": "52a36182dde322450f3703129a7dc9526d2d910c0489074f32d362352ddcc018",
+      "config_sha256": "455361d76b656babd0764cf162229a00512c680eb2395a3a9363e542371c809c",
+      "report_sha256": "2a9f967a955c6dc40b422c94f1b6d1d54f2511a24fb601af97218d49440b9923",
+      "report_manifest_sha256": "6cbfabf807427f3baa2bfcfda7187e1b00f3a205ec9466b30a7437a410baad94",
+      "audit_sha256": "8d078f738f63d287206f255d4498716d273bdbb7413c68e95efd303b70eb305a",
+      "native_code_proposals": {
+        "candidate_combined": 4.543057164018439,
+        "corrected_current_frontiers": 264,
+        "optimizer_updates": 0,
+        "parent_combined": 8.232641755436294,
+        "policy": {
+          "active": "continuation.unary960 only; frozen U-localstate/prototypes; fresh588 weighted coefficientgradient",
+          "construction": "once-only adjacent legalQ4 pass sorted gradient times actual master displacement;86 transactional fullpoolguards; no refill/Adam/clip",
+          "frozen": "Source/Context/Potential/Generate/prototypes/bias/readmap/bridge/cue/prefix/tokenizer/geometry/labels",
+          "objective": "CURRENT504 actual reached first-errors + unchanged84 originalsuccess trajectory terms; componentmeans added lambda1",
+          "protected": "original84 + allcorrect prefixes ofcurrentlyfailed rows99and399;86 constraints; no objectiveweight added",
+          "schema": "uor-r4.reached-shared-action-u/1",
+          "scope": "exposed512 construction; useful only newcompleteEOS plus original8retained; no transfer/chat/energy qualification",
+          "selection": "strict freshly scored revised nativeCE descent and >=1currentfrontier correct; historical8.2168 is not baseline"
+        },
+        "status": "REVISED_NATIVE_DESCENT_AND_FRONTIER_GAIN_SELECTED",
+        "winner": 0
+      },
+      "useful_candidate": false,
+      "files": {
+        "reached-u-0001-8eed8478e8.tar.gz": {
+          "sha256": "a7c626cb194aadcf81f452bd7460a9437e121273cc88251ef1bd1c5c7d930dbe",
+          "bytes": 89601538
+        }
+      },
+      "scope": "One fresh U-only shared-action gradient and once-adjacent construction on current reached504+84objective with86fullpoolguards; saved nativeexport/ownprefix outputs independently audited; development-only scope."
+    },
+    "seconds": 147.3983873166144,
+    "completed_utc": "2026-10-08T12:46:53.985363+00:00"
+  },
+  "supervisor_seconds": 541.2493559084833,
+  "peak_rss_kib": 1671768,
+  "saved_actual_first_error_census": {
+    "scope": "Saved actual-output census only; no new inference, gradients, selection sweep or source-role claim",
+    "endpoint_summaries": [
+      {
+        "endpoint": "original",
+        "entry_correct": 10,
+        "complete": 8,
+        "first_error_histogram": {
+          "0": 502,
+          "1": 2
+        },
+        "first_error_copy_coverage": {
+          "0/Generate-only": 502,
+          "1/Generate-only": 2
+        }
+      },
+      {
+        "endpoint": "final",
+        "entry_correct": 273,
+        "complete": 8,
+        "first_error_histogram": {
+          "0": 239,
+          "1": 242,
+          "2": 18,
+          "3": 5
+        },
+        "first_error_copy_coverage": {
+          "0/Generate-only": 239,
+          "1/Generate-only": 242,
+          "2/Generate-only": 18,
+          "3/Copy-covered": 5
+        }
+      }
+    ],
+    "incomplete_cases_reaching_source_dependent_divergence": [
+      {
+        "index": 97,
+        "id": "development-diverse-length2-06-swap0-q0-forward-home",
+        "pair_indices": [
+          97,
+          105
+        ],
+        "source_dependent_position": 3,
+        "actual_prefix": [
+          617,
+          2097,
+          315
+        ],
+        "target": 332,
+        "winner": 770,
+        "answered_source_position_correctly": false,
+        "first_error": {
+          "index": 97,
+          "id": "development-diverse-length2-06-swap0-q0-forward-home",
+          "first_error_position": 3,
+          "actual_correct_prefix": [
+            617,
+            2097,
+            315
+          ],
+          "target": 332,
+          "winner": 770,
+          "target_copy_present": true,
+          "pool": {
+            "chosen_copy_weight_q31": 2147483648,
+            "chosen_generate_weight_q31": 427206,
+            "chosen_raw_mass_rank": 1,
+            "chosen_token_id": 770,
+            "chosen_weight_q31": 2147910854,
+            "clipped_high_actions": 0,
+            "clipped_low_actions": 0,
+            "copy_actions": 12,
+            "copy_weight_q31": 2882433838,
+            "generate_weight_q31": 6204528797,
+            "legal_generate_actions": 4096,
+            "max_score_q24": 50709849,
+            "raw_chosen_clipped_mass_rank": 1,
+            "raw_chosen_token_id": 770,
+            "raw_chosen_weight_q31": 2147910854,
+            "raw_max_score_q24": 50709849,
+            "raw_total_weight_q31": 9086962635,
+            "token_winner_changed_by_clip": false,
+            "total_weight_q31": 9086962635
+          },
+          "target_mass": null,
+          "target_native_mass": 17297374,
+          "U_state": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "post_state": [
+            57,
+            88,
+            71,
+            95,
+            4,
+            41,
+            32,
+            96
+          ],
+          "decoded": " You live in orchchchardch oon canyonyon orre orchchonT ozchard orchard o Doggy"
+        }
+      },
+      {
+        "index": 156,
+        "id": "development-diverse-length4-01-swap1-q0-forward-job",
+        "pair_indices": [
+          148,
+          156
+        ],
+        "source_dependent_position": 3,
+        "actual_prefix": [
+          2997,
+          1541,
+          435
+        ],
+        "target": 1634,
+        "winner": 1717,
+        "answered_source_position_correctly": false,
+        "first_error": {
+          "index": 156,
+          "id": "development-diverse-length4-01-swap1-q0-forward-job",
+          "first_error_position": 3,
+          "actual_correct_prefix": [
+            2997,
+            1541,
+            435
+          ],
+          "target": 1634,
+          "winner": 1717,
+          "target_copy_present": true,
+          "pool": {
+            "chosen_copy_weight_q31": 2147483648,
+            "chosen_generate_weight_q31": 3576952,
+            "chosen_raw_mass_rank": 1,
+            "chosen_token_id": 1717,
+            "chosen_weight_q31": 2151060600,
+            "clipped_high_actions": 0,
+            "clipped_low_actions": 0,
+            "copy_actions": 15,
+            "copy_weight_q31": 6151964240,
+            "generate_weight_q31": 26777124457,
+            "legal_generate_actions": 4096,
+            "max_score_q24": 23446873,
+            "raw_chosen_clipped_mass_rank": 1,
+            "raw_chosen_token_id": 1717,
+            "raw_chosen_weight_q31": 2151060600,
+            "raw_max_score_q24": 23446873,
+            "raw_total_weight_q31": 32929088697,
+            "token_winner_changed_by_clip": false,
+            "total_weight_q31": 32929088697
+          },
+          "target_mass": null,
+          "target_native_mass": 46515854,
+          "U_state": [
+            0,
+            65,
+            100,
+            86,
+            114,
+            74,
+            101,
+            102
+          ],
+          "post_state": [
+            79,
+            94,
+            4,
+            96,
+            59,
+            20,
+            57,
+            57
+          ],
+          "decoded": " Your job is el quietor dogsor expl whistle har quietside quietededo green bearared be quiet nearbauororb plateor"
+        }
+      },
+      {
+        "index": 151,
+        "id": "development-diverse-length4-01-swap0-q0-reverse-home",
+        "pair_indices": [
+          151,
+          159
+        ],
+        "source_dependent_position": 3,
+        "actual_prefix": [
+          617,
+          2097,
+          315
+        ],
+        "target": 1634,
+        "winner": 520,
+        "answered_source_position_correctly": false,
+        "first_error": {
+          "index": 151,
+          "id": "development-diverse-length4-01-swap0-q0-reverse-home",
+          "first_error_position": 3,
+          "actual_correct_prefix": [
+            617,
+            2097,
+            315
+          ],
+          "target": 1634,
+          "winner": 520,
+          "target_copy_present": true,
+          "pool": {
+            "chosen_copy_weight_q31": 2147483648,
+            "chosen_generate_weight_q31": 2911808,
+            "chosen_raw_mass_rank": 1,
+            "chosen_token_id": 520,
+            "chosen_weight_q31": 2150395456,
+            "clipped_high_actions": 0,
+            "clipped_low_actions": 0,
+            "copy_actions": 15,
+            "copy_weight_q31": 9123941296,
+            "generate_weight_q31": 16755462413,
+            "legal_generate_actions": 4096,
+            "max_score_q24": 32141451,
+            "raw_chosen_clipped_mass_rank": 1,
+            "raw_chosen_token_id": 520,
+            "raw_chosen_weight_q31": 2150395456,
+            "raw_max_score_q24": 32141451,
+            "raw_total_weight_q31": 25879403709,
+            "token_winner_changed_by_clip": false,
+            "total_weight_q31": 25879403709
+          },
+          "target_mass": null,
+          "target_native_mass": 508528939,
+          "U_state": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "post_state": [
+            109,
+            88,
+            19,
+            90,
+            68,
+            7,
+            38,
+            77
+          ],
+          "decoded": " You live insideed besidear greenarbar plateedsidebor greenauedau cside c ced outside har elention har quiet"
+        }
+      },
+      {
+        "index": 245,
+        "id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "pair_indices": [
+          245,
+          253
+        ],
+        "source_dependent_position": 3,
+        "actual_prefix": [
+          617,
+          2097,
+          315
+        ],
+        "target": 1057,
+        "winner": 307,
+        "answered_source_position_correctly": false,
+        "first_error": {
+          "index": 245,
+          "id": "development-diverse-length4-07-swap0-q0-forward-home",
+          "first_error_position": 3,
+          "actual_correct_prefix": [
+            617,
+            2097,
+            315
+          ],
+          "target": 1057,
+          "winner": 307,
+          "target_copy_present": true,
+          "pool": {
+            "chosen_copy_weight_q31": 2147483648,
+            "chosen_generate_weight_q31": 4644955,
+            "chosen_raw_mass_rank": 1,
+            "chosen_token_id": 307,
+            "chosen_weight_q31": 2152128603,
+            "clipped_high_actions": 0,
+            "clipped_low_actions": 0,
+            "copy_actions": 16,
+            "copy_weight_q31": 5084409891,
+            "generate_weight_q31": 12900171263,
+            "legal_generate_actions": 4096,
+            "max_score_q24": 35840685,
+            "raw_chosen_clipped_mass_rank": 1,
+            "raw_chosen_token_id": 307,
+            "raw_chosen_weight_q31": 2152128603,
+            "raw_max_score_q24": 35840685,
+            "raw_total_weight_q31": 17984581154,
+            "token_winner_changed_by_clip": false,
+            "total_weight_q31": 17984581154
+          },
+          "target_mass": null,
+          "target_native_mass": 120654180,
+          "U_state": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "post_state": [
+            109,
+            73,
+            67,
+            44,
+            50,
+            82,
+            92,
+            43
+          ],
+          "decoded": " You live iniry el bard plate near b b beond bardchy bau platechy el elondm orch elard el"
+        }
+      },
+      {
+        "index": 392,
+        "id": "development-diverse-update-00-swap1-q0-forward-job",
+        "pair_indices": [
+          384,
+          392
+        ],
+        "source_dependent_position": 3,
+        "actual_prefix": [
+          2997,
+          1541,
+          435
+        ],
+        "target": 3585,
+        "winner": 324,
+        "answered_source_position_correctly": false,
+        "first_error": {
+          "index": 392,
+          "id": "development-diverse-update-00-swap1-q0-forward-job",
+          "first_error_position": 3,
+          "actual_correct_prefix": [
+            2997,
+            1541,
+            435
+          ],
+          "target": 3585,
+          "winner": 324,
+          "target_copy_present": true,
+          "pool": {
+            "chosen_copy_weight_q31": 2147483648,
+            "chosen_generate_weight_q31": 973636,
+            "chosen_raw_mass_rank": 1,
+            "chosen_token_id": 324,
+            "chosen_weight_q31": 2148457284,
+            "clipped_high_actions": 0,
+            "clipped_low_actions": 0,
+            "copy_actions": 14,
+            "copy_weight_q31": 8301167037,
+            "generate_weight_q31": 11318197258,
+            "legal_generate_actions": 4096,
+            "max_score_q24": 37937837,
+            "raw_chosen_clipped_mass_rank": 1,
+            "raw_chosen_token_id": 324,
+            "raw_chosen_weight_q31": 2148457284,
+            "raw_max_score_q24": 37937837,
+            "raw_total_weight_q31": 19619364295,
+            "token_winner_changed_by_clip": false,
+            "total_weight_q31": 19619364295
+          },
+          "target_mass": null,
+          "target_native_mass": 604774957,
+          "U_state": [
+            0,
+            65,
+            100,
+            86,
+            114,
+            74,
+            101,
+            102
+          ],
+          "post_state": [
+            115,
+            9,
+            28,
+            103,
+            60,
+            27,
+            14,
+            49
+          ],
+          "decoded": " Your job is be pine plate plate pine near recose plateside plateyon near plate can sily near nearm sil plate near green can near green el"
+        }
+      }
+    ],
+    "elapsed_seconds": 27.510305512696505
+  },
+  "census_publication_scope": "Derived after result archive publication; retained separately in repository evidence and final delivery, outside sealed model root",
+  "source_repair": {
+    "source": "9a00e4e1f27ac56acbbfc75fd3560bd8efcb9468",
+    "issue": "joint packing verifier assumes completeparameter inventory, incompatiblewithUonly; caughtbeforemodel",
+    "repair": "dedicated960Ucodevalidator+lastindex/illegal8test"
+  },
+  "wrapper_setup_defect": {
+    "source": "9a00e4e1f27ac56acbbfc75fd3560bd8efcb9468",
+    "tests": 53,
+    "failed": 0,
+    "ignored": 0,
+    "wrapper_exit_code": 127,
+    "wrapper_fault": "ENV time sought absent externalutility; parity/build NOT_RUN atthathead; correctedfreshheadscript Bash time"
+  },
+  "resource_projection": {
+    "prior_seconds": 454470,
+    "increment_seconds": 21600,
+    "cumulative_seconds": 476070,
+    "cpu_threads": 2,
+    "ram_gib": 8,
+    "cache_mib": 128,
+    "report_cap_gib": 2,
+    "remote_free_floor_gib": 8,
+    "stop_margin_bytes": 134217728
+  },
+  "claim_limits": [
+    "One finite U construction at one exposed current-parent objective; no refill/dose/seed sweep",
+    "Only U learned, Source/Generate/readmap/cue/prefix/geometry frozen",
+    "264 fixed-frontier corrections are not complete replies; actual complete8/512 unchanged",
+    "Saved integer replay does not reexecute Context/cue/prefix kernels, gradients, inference or greedy feasibility solver",
+    "Captured raw physical Copy scores authenticated as inputs; complete Rust file-set/BLAKE3 verification separate",
+    "No held-out transfer, general chat, source-role fix, energy advantage or family capacity conclusion"
+  ],
+  "next_status": "NOT_ADMITTED: after protected merge, target-free full-pool attribution at actual newly reached grammar/source boundaries; no U refill"
+}

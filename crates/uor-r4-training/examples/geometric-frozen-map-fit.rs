@@ -72,6 +72,10 @@ mod native_proposals;
 mod output_support;
 #[path = "geometric_frozen_map_fit/prototype_compensation.rs"]
 mod prototype_compensation;
+#[path = "geometric_frozen_map_fit/reached_u.rs"]
+mod reached_u;
+#[path = "geometric_frozen_map_fit/u_constraints.rs"]
+mod u_constraints;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[derive(Clone, Copy, Deserialize, PartialEq, Eq)]
@@ -144,6 +148,7 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    reached_u::validate_settings(a)?;
     replay_require(
         if a.prototype_compensation.is_some() {a.constrained_emission_learning && a.retained_context_root.is_none()} else {a.constrained_emission_learning == a.retained_context_root.is_some()},
         "emission needs retained Context root, or compensation needs explicit retained emission/diagnostic roots and no Context root",
@@ -477,6 +482,8 @@ struct Args {
     retained_context_root: Option<PathBuf>,
     #[serde(default)]
     prototype_compensation: Option<prototype_compensation::Config>,
+    #[serde(default)]
+    reached_u: Option<reached_u::Config>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -742,6 +749,7 @@ fn args() -> Result<Args> {
     .chain(a.baseline.iter())
     .chain(a.prediction_control_resume.iter())
     .chain(a.retained_context_root.iter())
+    .chain(a.reached_u.iter().map(|c| &c.retained_compensation_root))
     .chain(
         a.prototype_compensation
             .iter()
@@ -5162,6 +5170,9 @@ fn joint_row_comparison(before: &Value, after: &Value) -> Result<Value> {
 }
 
 fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
+    if a.reached_u.is_some() {
+        return reached_u::run(a, start, d);
+    }
     if a.prototype_compensation.is_some() {
         return prototype_compensation::run(a, start, d);
     }

@@ -305,6 +305,163 @@ pub(super) fn build(c: &ReferencePrepareConfig) -> Result<(Plan, Value)> {
         counts,
     ))
 }
+/// Rebuild supervision from the selected parent's authenticated actual outputs.
+/// The canonical reference retains its original artifact provenance; its labels
+/// and phase normalization do not become a claim about the selected runtime.
+pub(super) fn selected_endpoint_plan(
+    endpoint_root: &Path,
+    original: &Plan,
+    eps: &[Episode],
+    tok: &ByteBpeTokenizer,
+) -> Result<(Plan, Vec<Term>, Value)> {
+    components(original)?;
+    report_output::verify(endpoint_root)?;
+    let summary = read(&endpoint_root.join("development-0001.json"))?;
+    let refs = summary["rows"]
+        .as_array()
+        .ok_or_else(|| bad("selected endpoint rows absent"))?;
+    replay_require(
+        refs.len() == 512
+            && eps.len() == refs.len()
+            && original.canonical_reference.rows.len() == refs.len(),
+        "selected endpoint population differs",
+    )?;
+    let mut trajectories = Vec::with_capacity(refs.len());
+    for (index, ((row, e), saved_ref)) in original
+        .canonical_reference
+        .rows
+        .iter()
+        .zip(eps)
+        .zip(refs)
+        .enumerate()
+    {
+        replay_require(
+            row.index == index
+                && row.id == e.packet.id
+                && row.targets == e.target
+                && row.packet_sha256 == sha256_bytes(&serde_json::to_vec(&e.packet)?),
+            "selected packet/target authority differs",
+        )?;
+        let saved = reference_saved_row(endpoint_root, saved_ref)?;
+        replay_require(
+            saved_ref["id"] == row.id && saved["id"] == row.id,
+            "selected saved row identity/order differs from canonical authority",
+        )?;
+        let observed = trajectory(
+            index,
+            row,
+            &saved,
+            &e.answers,
+            tok,
+            original.canonical_reference.eos_token_id,
+        )?;
+        replay_require(
+            saved_ref["generated_ids"] == json!(observed.generated_ids)
+                && saved_ref["complete"] == observed.accepted_complete
+                && saved_ref["eos"] == observed.eos,
+            "selected endpoint summary differs from actual trajectory",
+        )?;
+        trajectories.push(observed);
+    }
+    let terms = derive_terms(&original.canonical_reference, &trajectories)?;
+    let old_success: Vec<_> = original.terms.iter().filter(|t| t.component == 1).collect();
+    let new_success: Vec<_> = terms.iter().filter(|t| t.component == 1).collect();
+    replay_require(
+        serde_json::to_vec(&old_success)? == serde_json::to_vec(&new_success)?
+            && successful_indices(original)
+                == trajectories
+                    .iter()
+                    .filter(|t| t.accepted_complete)
+                    .map(|t| t.index)
+                    .collect::<Vec<_>>(),
+        "selected parent changed original complete trajectories or success weights",
+    )?;
+    let success_count = new_success.len();
+    let plan = Plan {
+        schema: original.schema.clone(),
+        objective: original.objective.clone(),
+        canonical_reference: original.canonical_reference.clone(),
+        trajectories,
+        terms,
+    };
+    components(&plan)?;
+    let guards = protected_prefix_terms(&plan)?;
+    let later: Vec<_> = plan
+        .terms
+        .iter()
+        .filter(|t| t.component == 0 && t.position > 0)
+        .map(|t| {
+            (
+                t.index,
+                t.position,
+                t.target,
+                t.parent_actual_prefix_ids.clone(),
+            )
+        })
+        .collect();
+    replay_require(
+        plan.terms.len() == 588
+            && success_count == 84
+            && guards.len() == 86
+            && later == vec![(99, 1, 2097, vec![617]), (399, 1, 2097, vec![617])],
+        "selected reached population differs from declared504/84/86 and two later frontiers",
+    )?;
+    let counts = json!({"episodes":512,"frontier_terms":504,"success_terms":84,"total_terms":588,
+        "protected_pools":86,"successful_indices":successful_indices(&plan),"newly_reached_frontiers":later,
+        "component_weight_sums":[1.,1.],"success_terms_and_weights_unchanged":true,
+        "selected_runtime_reference_binding":"runtime Source/Generate validated separately; canonical reference retains original authority"});
+    Ok((plan, guards, counts))
+}
+fn protected_prefix_terms(plan: &Plan) -> Result<Vec<Term>> {
+    let mut protected = Vec::new();
+    let mut seen = BTreeSet::new();
+    for t in &plan.terms {
+        if t.component == 1 {
+            let mut guard = t.clone();
+            guard.weight = 0.;
+            replay_require(
+                seen.insert((guard.index, guard.position)),
+                "duplicate success guard",
+            )?;
+            protected.push(guard);
+        }
+    }
+    for trajectory in &plan.trajectories {
+        if trajectory.accepted_complete {
+            continue;
+        }
+        let first = trajectory
+            .first_divergence
+            .ok_or_else(|| bad("guard first divergence absent"))?;
+        let row = plan
+            .canonical_reference
+            .rows
+            .get(trajectory.index)
+            .ok_or_else(|| bad("guard row absent"))?;
+        replay_require(
+            first < trajectory.generated_ids.len()
+                && trajectory.generated_ids.get(..first) == row.targets.get(..first),
+            "guard prefix not actually correct and reached",
+        )?;
+        for position in 0..first {
+            replay_require(
+                seen.insert((trajectory.index, position)),
+                "duplicate gained prefix guard",
+            )?;
+            protected.push(Term {
+                index: trajectory.index,
+                position,
+                component: 0,
+                target: row.targets[position],
+                phase: row.phases[position],
+                weight_denominator: 0,
+                weight: 0.,
+                parent_actual_prefix_ids: trajectory.generated_ids[..position].to_vec(),
+            });
+        }
+    }
+    Ok(protected)
+}
 pub(super) fn components(plan: &Plan) -> Result<(ReferencePlan, ReferencePlan)> {
     let rebuilt = derive_terms(&plan.canonical_reference, &plan.trajectories)?;
     replay_require(
@@ -627,6 +784,34 @@ mod tests {
             .parent_actual_prefix_ids
             .clear();
         assert!(components(&restored).is_err());
+        Ok(())
+    }
+    #[test]
+    fn selected_frontier_guards_every_correct_gained_prefix_without_objective_weight() -> Result<()>
+    {
+        let mut plan = weighted_fixture()?;
+        plan.trajectories[0].generated_ids = vec![1, 7];
+        plan.trajectories[0].first_divergence = Some(1);
+        plan.terms = derive_terms(&plan.canonical_reference, &plan.trajectories)?;
+        let guards = protected_prefix_terms(&plan)?;
+        assert_eq!(guards.len(), 7); // Six complete-trajectory positions plus one gained entry.
+        let gained = guards
+            .iter()
+            .find(|t| t.component == 0)
+            .ok_or_else(|| bad("gained guard absent"))?;
+        assert_eq!((gained.index, gained.position, gained.target), (0, 0, 1));
+        assert!(gained.parent_actual_prefix_ids.is_empty());
+        assert!(guards.iter().all(|t| t.weight == 0.));
+        let frontier = plan
+            .terms
+            .iter()
+            .find(|t| t.component == 0)
+            .ok_or_else(|| bad("frontier absent"))?;
+        assert_eq!((frontier.position, frontier.target), (1, 2));
+        assert_eq!(frontier.parent_actual_prefix_ids, vec![1]);
+        assert_eq!(frontier.weight, 1.);
+        plan.trajectories[0].generated_ids[0] = 4;
+        assert!(protected_prefix_terms(&plan).is_err());
         Ok(())
     }
 }
