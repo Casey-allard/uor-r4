@@ -1,0 +1,51 @@
+UOR-R4 — The objective change moves a compliance class: turn-terminal weighting at 20x
+Date: 2026-10-08 (overnight rounds 94-99). DeepSeek session. References #820.
+
+WHAT RAN
+  The change merged as #1946: dialogue_episodes.rs now weights the response's TERMINATING target
+  (the <|eos|> that ends the reply, identified by the mask proven byte-identical to the builder's
+  hash) by UOR_TERMINAL_WEIGHT, defaulting to 1.0 so existing runs are unchanged. First arm:
+  UOR_TERMINAL_WEIGHT=20, the frozen 7.16 M shape (rrarra, width 288, heads 6, context 384, read L2),
+  policy=full_prefix, 13,348 steps, the same corpus and mask as every comparison arm. The pod's
+  checkout and binary were verified at commit e0b714e, so the run cannot be a stale-binary no-op.
+  Final development response nll 1.4160077217960014.
+
+RESULT ON PANEL V2 (14 items, echo item removed, read as the first TWO content tokens)
+
+  yes/no, sky blue            "Yes, the"      COMPLIES at the first token
+  yes/no, is ice hot?         "Yes, ice"      COMPLIES in form (the fact is wrong, which is a
+                                              different defect)
+  yes/no, fish in trees       "1. Smodates:"  does not comply
+  retention, what is my name? "My name"       RESPONDS to the question asked
+  one-word turns              "The buildings" / "I don't"          does not comply
+  number turns                "The number" / "A dog" / "Sanding is" does not comply
+  France / largest planet     "The capital" / "The largest"        openers only
+
+WHAT IT MEANS
+  1. TWO OF THREE YES/NO TURNS NOW OPEN WITH "Yes". That is the FIRST time any arm in this session
+     has moved a compliance class. Every previous intervention - capacity (2.8x), optimization (2x),
+     decoding (sampling), the data-support arm (14.75x short-form episodes) - left compliance at zero;
+     weighting the terminating target moved it.
+  2. THE PRE-REGISTERED FALSIFIER DID NOT FIRE. It was conditional on "every factor still producing
+     no compliance". Compliance moved, so the continuation-mass explanation is SUPPORTED rather than
+     dead, and the right next step is to escalate the intervention that showed an effect rather than
+     to switch direction.
+  3. NOTHING WAS LOST. Retention still responds ("My name"), the France opener is intact, and there
+     is no evidence yet of the failure mode to watch - a model that stops immediately everywhere.
+     Fluency and the retention pairs remain the guards precisely because a high weight can cause that.
+  4. OTHER CLASSES ARE UNMOVED. One-word and numeric turns still produce phrases ("The number",
+     "A dog") rather than the requested token. If the dose-response closes them, the explanation is
+     confirmed; if they stay flat while yes/no improves, the requested form for those classes is not
+     reachable by terminal weighting alone.
+
+THE DOSE-RESPONSE NOW RUNNING
+  UOR_TERMINAL_WEIGHT=200, everything else identical. Early signal at step 2,000: development
+  response nll 3.0944227027583624 against 2.196886646585287 for the 20x arm at the same step. A much
+  higher loss is expected when terminal targets carry 200x weight, and it is also the risk: too high
+  a weight can make the model stop immediately in prose turns too. The guards are fluency and the
+  retention pairs, the instrument is panel v2, and development nll is explicitly not the metric.
+
+SCOPE
+  One weight, one shape, one corpus, one mask, single seed, greedy decoding, one panel. The 20x arm
+  is a single measurement of a dose, not a dose-response; the response is what the 200x arm begins,
+  and no conclusion beyond "a compliance class moved" is claimed.
