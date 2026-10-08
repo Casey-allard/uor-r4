@@ -13,6 +13,8 @@ THE MEASUREMENTS (all on chat-v0-p2/heldout, sha256 e5f400b0..., 512-window floa
   fused float reference                   1.7259248122572899      0.87755            --
   transport-snapped reference             1.7963021881878376      0.91333           +0.03578
   multiplier-free D11, export a1          1.8345359993679817      0.93277           +0.01944
+  (GPTQ with calibration - see the round-22 correction; the export method is selected by
+   whether calibration tokens are supplied, so this arm is GPTQ, not round-to-nearest)
   (64 calibration windows, damp 0.01)
 
   total served-to-fused gap                                                          +0.05522

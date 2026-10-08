@@ -25,7 +25,15 @@ WHY THAT MAKES THE ROUND-19 RESULT EXPECTED
   A method that uses error feedback can, because it accounts for what each rounded weight does to
   the layer's output rather than rounding each weight independently.
 
-THE LEVER IS ALREADY IN THE TREE
+CORRECTION (round 22): the premise below was wrong. The export selects its method by whether
+  calibration tokens are supplied (geometric-stack.rs:2954-2975): with calibration it is GPTQ,
+  without it is export_quantizer_method. Both of round 19's arms passed calibration and the
+  artifact record says "quantizer": "gptq", so GPTQ was in use throughout tonight and the arm
+  that has NOT been tested is round-to-nearest. The 0.9379-versus-0.9244 comparison below is
+  between different artifacts on the same method and is not evidence about methods. Kept as
+  written for the record.
+
+THE LEVER THAT WAS ALREADY IN USE
   `export_mode` carries a second quantiser: `crates/uor-r4-training/examples/geometric-stack.rs:2956`
   reports `"method": "gptq"` alongside the round-to-nearest path used for every artifact measured
   this session. The project has already run it once, on the earlier `d11-l2` artifact, where the
@@ -36,7 +44,7 @@ THE LEVER IS ALREADY IN THE TREE
   quantisation loss.
 
 THE EXPERIMENT, WITH ITS PREDICTION
-  Export the same 19.9 M chat stack with the GPTQ method, evaluate with `d11-evaluate` on the same
+  Export the same 19.9 M chat stack WITHOUT calibration (round-to-nearest), evaluate with `d11-evaluate` on the same
   held-out stream, and compare against round 19's round-to-nearest artifact (nll
   1.8345359993679817, top-1 agreement 0.9244 against float under the attribution tool).
     * If GPTQ serves below 1.8345359993679817, the quantisation third of the served gap is

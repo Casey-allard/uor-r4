@@ -11,7 +11,7 @@ THE RESULT
   train      12,207 steps, chat-only  dev nll 1.9008 at step 8,000 (24,576 targets)   --
   snap       fused float reference    nll 1.7250754982233047 (196,608 targets)       0.8770
   snap       transport-snapped        nll 1.7975700236856937                         0.9138
-  export     round-to-nearest         model.lut 11,891,652 bytes,
+  export     gptq (calibrated)       model.lut 11,891,652 bytes,
                                       sha256 2ac4c3068551e56e3883880419e12f06bef8bc65cbabde59d00136953fe111af
   d11        multiplier-free engine   d10 = d11 = 1.8345338586523747 (24,576 targets) 0.93277
                                       d11_minus_d10_nll 0.0, top1_agreement 1.0,
