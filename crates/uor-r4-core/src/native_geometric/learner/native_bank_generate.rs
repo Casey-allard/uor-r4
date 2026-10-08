@@ -20,8 +20,8 @@ use uor_r4_integer::{
     geometric_source_actions::SourceActionBinding,
     geometric_source_emission_view::SourceEmissionView,
     geometric_source_realizer::{
-        BankCandidateTrace, NativeArtifactBinding, NativeSourceRealizer, PrefixBankRealizerTrace,
-        SourceBankSegment,
+        BankCandidateTrace, BankRealizerTrace, NativeArtifactBinding, NativeSourceRealizer,
+        PrefixBankRealizerTrace, SourceBankSegment,
     },
     geometric_vocabulary_actions::{NativeVocabularyActions, VocabularyActionTrace},
     h4_tables::H4Code,
@@ -210,6 +210,10 @@ pub struct NativeBankGenerator {
     bridge_sha256: Option<String>,
     continuation: Option<NativeContinuationField>,
     continuation_sha256: Option<String>,
+    /// Off by default. When set, the bank read picks the occurrence whose
+    /// cumulative source state is closest to the query state instead of the
+    /// earliest raw Copy maximum, so the selection depends on what was asked.
+    query_conditioned_selection: bool,
 }
 /// Independently encoded query followed by actual emitted tokens. Fact text
 /// never enters this register; factual transport and Copy remain available.
@@ -315,6 +319,48 @@ fn earliest_raw_max(scores: &[i64]) -> Result<usize> {
     }
     Ok(winner)
 }
+/// Choose the occurrence whose cumulative source state is closest to the query
+/// state, so that what was asked decides what gets read. Integer-only: the
+/// distance is an L1 sum over H4 code indices, with no product of runtime
+/// values. Ties fall back to the summed Copy score and then to the earliest
+/// occurrence, which makes the previous policy the degenerate case.
+fn query_conditioned_choice(
+    query: &[H4Code],
+    bank: &BankRealizerTrace,
+    scores: &[i64],
+) -> Result<usize> {
+    if bank.candidates.is_empty() {
+        return Err(NativeBankGenerateError::Input(
+            "bank read has no candidates".into(),
+        ));
+    }
+    let mut best: Option<(i64, i64, usize)> = None;
+    for (index, candidate) in bank.candidates.iter().enumerate() {
+        let state = bank
+            .context
+            .states
+            .get(candidate.context_position)
+            .ok_or_else(|| execution("candidate cumulative source state missing"))?;
+        if state.len() != query.len() {
+            return Err(execution("source and query state widths differ"));
+        }
+        let mut distance = 0i64;
+        for (q, &s) in query.iter().zip(state.iter()) {
+            distance = distance
+                .checked_add((q.index() as i64 - i64::from(s)).abs())
+                .ok_or(NativeBankGenerateError::Arithmetic)?;
+        }
+        let key = (
+            distance,
+            scores.get(index).copied().unwrap_or(i64::MIN).saturating_neg(),
+            index,
+        );
+        if best.is_none_or(|current| key < current) {
+            best = Some(key);
+        }
+    }
+    Ok(best.map(|(_, _, index)| index).unwrap_or(0))
+}
 fn summed_copy_scores(
     heads: &[uor_r4_integer::geometric_source_realizer::HeadTrace],
     count: usize,
@@ -396,7 +442,15 @@ impl NativeBankGenerator {
             bridge_sha256,
             continuation: None,
             continuation_sha256: None,
+            query_conditioned_selection: false,
         })
+    }
+    /// Opt in to a selection that reads what was asked. The default policy is
+    /// unchanged: earliest raw Copy maximum, which is measured to be
+    /// independent of the question and of the answer at the response boundary.
+    pub fn with_query_conditioned_selection(mut self, enabled: bool) -> Self {
+        self.query_conditioned_selection = enabled;
+        self
     }
     pub fn source_binding(&self) -> &NativeArtifactBinding {
         self.model.artifact_binding()
@@ -548,7 +602,11 @@ impl NativeBankGenerator {
             (state.states().to_vec(), Vec::new(), Vec::new(), None)
         };
         let bridge_witness = if let (Some(bridge), Some(trace)) = (&self.bridge, &bank_trace) {
-            let selected = earliest_raw_max(&scores)?;
+            let selected = if self.query_conditioned_selection {
+                query_conditioned_choice(&codes, &trace.cue_bank.bank, &scores)?
+            } else {
+                earliest_raw_max(&scores)?
+            };
             let b = &trace.cue_bank.bank;
             let candidate = b
                 .candidates

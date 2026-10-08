@@ -293,6 +293,11 @@ struct Args {
     panel_inputs: Option<PathBuf>,
     #[serde(default)]
     panel_labels: Option<PathBuf>,
+    /// Select the read occurrence whose cumulative source state is closest to
+    /// the query state instead of the earliest raw Copy maximum. Measured
+    /// default: the selection is independent of the question and of the answer.
+    #[serde(default)]
+    query_conditioned_read: bool,
     #[serde(default)]
     baseline: Option<PathBuf>,
     #[serde(default)]
@@ -775,6 +780,67 @@ fn identities(vars: &BTreeMap<String, Var>) -> Result<BTreeMap<String, String>> 
         })
         .collect()
 }
+/// Which occurrence the bank read reads. The retained default takes the earliest
+/// raw Copy maximum, which the entry probe measured to be independent of the
+/// question and of the answer.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BankSelection {
+    EarliestCopyMax,
+    QueryConditioned,
+}
+
+fn bank_selection(a: &Args) -> BankSelection {
+    if a.query_conditioned_read {
+        BankSelection::QueryConditioned
+    } else {
+        BankSelection::EarliestCopyMax
+    }
+}
+
+/// Pick the occurrence whose cumulative source state is closest to the query
+/// state, so what was asked decides what is read. Integer-only: an L1 sum over
+/// H4 code indices, with no product of runtime values. Ties fall back to the
+/// summed Copy score and then to the earliest occurrence.
+fn query_conditioned_copy_choice(
+    query: &[uor_r4_integer::h4_tables::H4Code],
+    bank: &uor_r4_integer::geometric_source_realizer::BankRealizerTrace,
+    scores: &[i64],
+) -> Result<usize> {
+    if bank.candidates.is_empty() {
+        return Err(bad("bank read has no candidates"));
+    }
+    let mut best: Option<(i64, i64, usize)> = None;
+    for (index, candidate) in bank.candidates.iter().enumerate() {
+        let state = bank
+            .context
+            .states
+            .get(candidate.context_position)
+            .ok_or_else(|| bad("candidate cumulative source state missing"))?;
+        if state.len() != query.len() {
+            return Err(bad("source and query state widths differ"));
+        }
+        let mut distance = 0i64;
+        for (q, &s) in query.iter().zip(state.iter()) {
+            distance = distance
+                .checked_add((q.index() as i64 - i64::from(s)).abs())
+                .ok_or_else(|| bad("query/source distance overflow"))?;
+        }
+        let key = (
+            distance,
+            scores
+                .get(index)
+                .copied()
+                .unwrap_or(i64::MIN)
+                .saturating_neg(),
+            index,
+        );
+        if best.is_none_or(|current| key < current) {
+            best = Some(key);
+        }
+    }
+    Ok(best.map(|(_, _, index)| index).unwrap_or(0))
+}
+
 fn earliest_raw_copy_max(scores: &[i64]) -> Result<usize> {
     let mut selected = 0;
     let mut best = *scores
@@ -798,6 +864,7 @@ fn native_step(
     cueq: &CueAngularQ4,
     prefixq: &PrefixAngularQ4,
     scorer: Option<&EntryScorer>,
+    selection: BankSelection,
 ) -> Result<Value> {
     use uor_r4_integer::h4_tables::H4Code;
     let (codes, copy_ids, copy_scores, provenance) = if e.has_source() {
@@ -834,7 +901,12 @@ fn native_step(
             }
         }
         let bridge_trace = if let Some(bridge) = bridge {
-            let selected = earliest_raw_copy_max(&scores)?;
+            let selected = match selection {
+                BankSelection::EarliestCopyMax => earliest_raw_copy_max(&scores)?,
+                BankSelection::QueryConditioned => {
+                    query_conditioned_copy_choice(&codes, b, &scores)?
+                }
+            };
             let candidate = &b.candidates[selected];
             let source = b
                 .context
@@ -980,6 +1052,7 @@ fn evaluate(
                 cue,
                 prefix,
                 scorer,
+                bank_selection(a),
             )?;
             let total = step["pool"]["summary"]["total_weight_q31"]
                 .as_u64()
@@ -1010,7 +1083,18 @@ fn evaluate(
         let generation_allowance = 32usize.min(128usize.saturating_sub(e.base_len()));
         for _ in 0..generation_allowance {
             deadline(a, start)?;
-            let mut step = native_step(model, g, bridge, &mut pool, e, &ids, cue, prefix, scorer)?;
+            let mut step = native_step(
+                model,
+                g,
+                bridge,
+                &mut pool,
+                e,
+                &ids,
+                cue,
+                prefix,
+                scorer,
+                bank_selection(a),
+            )?;
             let id = step["pool"]["summary"]["chosen_token_id"]
                 .as_u64()
                 .ok_or_else(|| bad("native chosen ID"))? as u32;
@@ -1486,6 +1570,7 @@ fn batch_live(
                     &l.cue,
                     &l.prefix,
                     None,
+                    BankSelection::EarliestCopyMax,
                 )?;
                 let masses = out
                     .actions
@@ -2328,6 +2413,7 @@ fn control_entry_diagnostics(
             &l.cue,
             &l.prefix,
             None,
+            bank_selection(a),
         )?;
         let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
         let state = state
@@ -2667,6 +2753,7 @@ fn entry_scorer_read(
             &l.cue,
             &l.prefix,
             None,
+            bank_selection(a),
         )?;
         let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
         let state = state
@@ -2765,6 +2852,7 @@ fn entry_ceiling_panel(
             &l.cue,
             &l.prefix,
             None,
+            bank_selection(a),
         )?;
         let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
         let state = state
@@ -2842,6 +2930,7 @@ fn entry_ceiling_panel(
                 &l.cue,
                 &l.prefix,
                 None,
+                bank_selection(a),
             )?;
             let state_next: Vec<u8> =
                 serde_json::from_value(native_next["retained_state_codes"].clone())?;
@@ -4743,6 +4832,7 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
             "updates":0,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"order_seed":a.seed,
             "checkpoint_receipt_sha256":CP_RECEIPT_SHA,"ceiling":ceiling,"entry_scorer":scorer,"initial_metrics":initial_metrics,
             "declared_panel":declared_panel,"panel_rows":dev.len(),
+            "query_conditioned_read":a.query_conditioned_read,
             "panel_inputs_sha256":sha256_file(&dev_inputs)?,"panel_labels_sha256":sha256_file(&dev_labels)?,
             "elapsed_seconds":start.elapsed().as_secs_f64(),
             "scope":"zero-update entry-position ceiling with the physical Copy channel removed; labels read only after the target-free forward; no fit and no serving change; a declared panel replaces the pinned one and its hashes are recorded here rather than asserted"}),
