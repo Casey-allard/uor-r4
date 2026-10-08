@@ -1,4 +1,5 @@
-//! One conditional Context/action-map block proposal. Neither block is an alternate candidate.
+//! Explicit finite categorical proposals: a conditional two-block construction or
+//! one parent-local action intervention. Neither mode refills rejected candidates.
 use super::native_proposals as np;
 use super::*;
 
@@ -23,6 +24,18 @@ pub(super) fn policy() -> Value {
         "acceptance":"combined Context+action only; strict decrease >1e-10*(1+abs(parent)); otherwise restore parent",
         "control":"Context-only snapshot is a construction control, never a selection candidate",
         "scope":"conditional two-block surrogate construction with exact native acceptance; not exact hard derivative or guaranteed coadaptation/utility"})
+}
+
+pub(super) fn policy_for(action_only: bool) -> Value {
+    if !action_only {
+        return policy();
+    }
+    json!({"schema":"uor-r4.categorical-parent-action/1","rounds":1,"maximum_candidates":1,
+        "action":"original-parent same588 weighted gradient; one globally most-negative shared-key g_new-g_current contrast; lane/relative/action ties; onehot replacement; no refill",
+        "objective":frontier::OBJECTIVE,"optimizer_updates":0,"global_clipping_applied":false,
+        "acceptance":"one parent-local action only; strict decrease >1e-10*(1+abs(parent)); otherwise restore parent",
+        "frozen":"all Context/Potential/Generate/U/prototype and other masters; no Context construction or conditional gradient recomputation",
+        "scope":"parent-local action attribution with exact native acceptance; not joint Context adaptation, permanent Context freezing, exact hard derivative or guaranteed utility"})
 }
 
 fn action_replacement(
@@ -260,6 +273,20 @@ pub(super) fn run(
         indices == (0..eps.len()).collect::<Vec<_>>().as_slice(),
         "categorical construction requires all episode indices",
     )?;
+    if a.categorical_action_only {
+        return run_parent_action(
+            a,
+            l,
+            weights,
+            params,
+            gradients,
+            initial,
+            initial_field,
+            eps,
+            plan,
+            start,
+        );
+    }
     let action_var = params
         .get(ACTION)
         .ok_or_else(|| bad("categorical trainable action Var absent"))?;
@@ -573,6 +600,189 @@ pub(super) fn run(
     result
 }
 
+/// The supplied gradient is the original-parent combined588-term gradient.
+/// This path never changes Context or performs another backward pass.
+fn run_parent_action(
+    a: &Args,
+    l: &Loaded,
+    weights: &ContinuationLearningWeights,
+    params: &BTreeMap<String, Var>,
+    gradients: &BTreeMap<String, Tensor>,
+    initial: &ContinuationParent,
+    initial_field: &NativeContinuationField,
+    eps: &[Episode],
+    plan: &ReferencePlan,
+    start: Instant,
+) -> Result<Value> {
+    deadline(a, start)?;
+    let action_var = params
+        .get(ACTION)
+        .ok_or_else(|| bad("parent action Var absent"))?;
+    replay_require(
+        action_var.dims().len() == 3 && action_var.dims()[1..] == [120, 120],
+        "parent action shape",
+    )?;
+    let lanes = action_var.dims()[0];
+    let parent = np::snapshot(params)?;
+    let gradient = gradients
+        .get(ACTION)
+        .ok_or_else(|| bad("original-parent action gradient absent"))?;
+    replay_require(
+        gradient.dims() == action_var.dims(),
+        "parent action gradient shape",
+    )?;
+    let host = gradient
+        .flatten_all()?
+        .to_device(&Device::Cpu)?
+        .to_vec1::<f32>()?;
+    let replacement = action_replacement(&parent[ACTION], &host, lanes)?;
+    let reached = frontier::read_plan(a)?;
+    let terms = reached
+        .terms
+        .iter()
+        .map(|t| np::Term {
+            index: t.index,
+            position: t.position,
+            target: t.target,
+            component: t.component,
+            weight: t.weight,
+            parent_actual_prefix_ids: Some(t.parent_actual_prefix_ids.clone()),
+        })
+        .collect::<Vec<_>>();
+    replay_require(terms.len() == 588, "parent action objective population")?;
+    write(a, "native-code-objective-terms.json", &json!(terms))?;
+    let inventory = save_gradients(
+        a,
+        "categorical-parent-gradients",
+        &[ACTION.into()],
+        params,
+        gradients,
+    )?;
+    write(
+        a,
+        "categorical-construction-plan.json",
+        &json!({
+            "policy":policy_for(true), "action":replacement, "parent_master_identities":identities(params)?,
+            "parent_gradients":inventory, "objective_terms_sha256":sha256_file(&a.out.join("native-code-objective-terms.json"))?,
+            "frontier_plan_sha256":sha256_file(&a.out.join("frontier-plan.json"))?, "parent_receipt":initial.receipt,
+            "gradient_scope":"original-parent combined588 objective; weighted shared-key contributions summed before contrast ranking",
+            "parent_action_master_sha256":sha256_bytes(&parent[ACTION].iter().flat_map(|v|v.to_le_bytes()).collect::<Vec<_>>()),
+            "additional_backward_passes":0
+        }),
+    )?;
+    verify_native(initial, initial_field, &parent, lanes)?;
+    let baseline = np::score(a, initial, initial_field, eps, plan, &terms, start)?;
+    let expected = read(&a.out.join("frontier-initial-validation.json"))?;
+    for (key, saved) in [
+        ("task", "frontier_losses_before_after"),
+        ("reference", "success_losses_before_after"),
+        ("combined", "combined_losses_before_after"),
+    ] {
+        let x = baseline[key]
+            .as_f64()
+            .ok_or_else(|| bad("parent action baseline component absent"))?;
+        let y = expected[saved][0]
+            .as_f64()
+            .ok_or_else(|| bad("saved parent action baseline absent"))?;
+        replay_require(
+            (x - y).abs() <= 1e-10 * (1. + y.abs()),
+            "parent action native objective differs from initial evaluation",
+        )?;
+    }
+    write(a, "native-code-parent-objective.json", &baseline)?;
+    let baseline_loss = np::objective(&baseline)?;
+    let mut checkpoint_seconds = 0.;
+    let mut native_seconds = baseline["elapsed_seconds"]
+        .as_f64()
+        .ok_or_else(|| bad("parent action baseline timing absent"))?;
+    let mut native_calls = terms.len();
+    let mut candidate = Value::Null;
+    let mut candidate_expected = None;
+    let mut candidate_loss = None;
+    if let Some(action) = &replacement {
+        let attempted = np::attempt_restored(params, &parent, || -> Result<()> {
+            deadline(a, start)?;
+            let proposed = apply_action(params, &parent, action)?;
+            let out = stage_args(a, "native-candidate-00")?;
+            let result = (|| -> Result<Value> {
+                let clock = Instant::now();
+                let (p, field, receipt) = joint_checkpoint(&out, 0, l, weights)?;
+                checkpoint_seconds = clock.elapsed().as_secs_f64();
+                verify_native(&p, &field, &proposed, lanes)?;
+                let measured = np::score(&out, &p, &field, eps, plan, &terms, start)?;
+                native_seconds += measured["elapsed_seconds"]
+                    .as_f64()
+                    .ok_or_else(|| bad("parent action candidate timing absent"))?;
+                native_calls += terms.len();
+                write(&out, "objective.json", &measured)?;
+                candidate_loss = Some(np::objective(&measured)?);
+                candidate_expected = Some(proposed);
+                Ok(
+                    json!({"status":"COMPLETED", "mode":"parent_action_only", "action":action,
+                    "receipt":receipt, "combined":candidate_loss, "checkpoint_seconds":checkpoint_seconds,
+                    "native_evaluation_seconds":measured["elapsed_seconds"],
+                    "objective_sha256":sha256_file(&out.out.join("objective.json"))?, "optimizer_updates":0,
+                    "only_action_master_changed":true, "exact_native_code_and_map_edits_verified":true}),
+                )
+            })();
+            seal_stage(&out, &result)?;
+            candidate = result?;
+            Ok(())
+        });
+        if let Err(error) = attempted {
+            let restored = np::snapshot(params)
+                .map(|v| np::same_bits(&parent, &v))
+                .unwrap_or(false);
+            write(
+                a,
+                "categorical-construction-failure.json",
+                &json!({"mode":"parent_action_only",
+                "error":error.to_string(),"all_parent_bits_restored":restored,
+                "model_verdict":"execution failure, not candidate quality"}),
+            )?;
+            return Err(error);
+        }
+    }
+    replay_require(
+        np::same_bits(&parent, &np::snapshot(params)?),
+        "parent action construction did not restore parent",
+    )?;
+    let accepted = candidate_loss
+        .is_some_and(|loss| loss < baseline_loss - 1e-10 * (1. + baseline_loss.abs()));
+    let result = (|| -> Result<Value> {
+        if accepted {
+            np::restore(
+                params,
+                candidate_expected
+                    .as_ref()
+                    .ok_or_else(|| bad("accepted parent action masters absent"))?,
+            )?;
+        }
+        let status = if replacement.is_none() {
+            "NO_NEGATIVE_SHARED_ACTION_CONTRAST"
+        } else if accepted {
+            "NATIVE_PARENT_ACTION_OBJECTIVE_DESCENT_SELECTED"
+        } else {
+            "PARENT_ACTION_NATIVE_OBJECTIVE_NOT_IMPROVED"
+        };
+        let summary = json!({"policy":policy_for(true),"status":status,"winner":if accepted{Some(0)}else{None},
+            "winner_family":if accepted{Some("categorical_action")}else{None},"parent_combined":baseline_loss,
+            "selected_combined":if accepted{candidate_loss.unwrap_or(baseline_loss)}else{baseline_loss},
+            "parent_action_combined":candidate_loss,"accepted_code_proposals":usize::from(accepted),"optimizer_updates":0,
+            "action":replacement,"parent_action_candidate":candidate,
+            "candidate_checkpoint_seconds":checkpoint_seconds,"native_objective_seconds":native_seconds,
+            "native_objective_calls_before_final":native_calls,"conditional_gradient_seconds":0.,"additional_backward_passes":0,
+            "all_parent_bits_restored_before_selection":true,"selected_master_identities":identities(params)?,
+            "categorical_construction_plan_sha256":sha256_file(&a.out.join("categorical-construction-plan.json"))?});
+        write(a, "native-code-proposals.json", &summary)?;
+        Ok(summary)
+    })();
+    if result.is_err() {
+        return np::attempt_restored(params, &parent, || result);
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -602,6 +812,31 @@ mod tests {
             (0, 0, 1, 2)
         );
         assert_eq!(choice.contrast, -2.);
+        Ok(())
+    }
+    #[test]
+    fn parent_action_ranks_contrast_not_absolute_gradient_and_preserves_policy() -> Result<()> {
+        let values = onehot(2);
+        let mut gradients = vec![0.; values.len()];
+        // The lowest absolute gradient is only a constant shift at another key.
+        gradients[..120].fill(-100.);
+        let offset = (120 + 4) * 120;
+        gradients[offset + 1] = 3.;
+        gradients[offset + 7] = -2.;
+        gradients[offset + 8] = -2.;
+        let chosen = action_replacement(&values, &gradients, 2)?
+            .ok_or_else(|| bad("parent action contrast absent"))?;
+        assert_eq!(
+            (chosen.lane, chosen.relative, chosen.before, chosen.after),
+            (1, 4, 1, 7)
+        );
+        assert_eq!(chosen.contrast, -5.);
+        assert_eq!(policy_for(false), policy());
+        assert_eq!(
+            policy_for(true)["schema"],
+            "uor-r4.categorical-parent-action/1"
+        );
+        assert_ne!(policy_for(true), policy_for(false));
         Ok(())
     }
     #[test]

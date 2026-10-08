@@ -135,6 +135,10 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
     replay_require(
+        !a.categorical_action_only || a.categorical_action_learning,
+        "categorical action-only requires explicit categorical action learning",
+    )?;
+    replay_require(
         !a.categorical_action_learning || a.reached_frontier_objective,
         "categorical action learning requires the reached frontier joint pilot",
     )?;
@@ -176,7 +180,7 @@ fn reference_replay_settings(a: &Args) -> Result<()> {
 }
 
 /// Legacy joint rates change four declared families with prototypes/map frozen.
-/// The opt-in categorical pilot uses its explicit native two-block rule instead.
+/// Opt-in categorical pilots use their explicit native proposal rules instead.
 #[derive(Clone, Copy, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 struct JointContinuationConfig {
@@ -431,6 +435,9 @@ struct Args {
     reached_frontier_objective: bool,
     #[serde(default)]
     categorical_action_learning: bool,
+    /// Original-parent action attribution only; not joint Context adaptation.
+    #[serde(default)]
+    categorical_action_only: bool,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -1963,7 +1970,7 @@ impl Loaded {
 }
 fn proposal_policy(a: &Args) -> Value {
     if a.categorical_action_learning {
-        categorical_proposals::policy()
+        categorical_proposals::policy_for(a.categorical_action_only)
     } else {
         native_proposals::policy(a.reached_frontier_objective)
     }
@@ -4890,6 +4897,11 @@ fn joint_checkpoint(
     if a.categorical_action_learning {
         receipt["credit_scope"] = json!("parent Context row credit followed by recomputed full120 shared categorical action contrasts at changed Context; one conditional two-block native candidate; Potential/Generate/U unchanged, no Adam; independent native CE acceptance");
     }
+    if a.categorical_action_only {
+        receipt["categorical_action_only"] = json!(true);
+        receipt["fresh_adam"] = json!(false);
+        receipt["credit_scope"] = json!("one original-parent full120 shared categorical action contrast; only one action row may change; Context/Potential/Generate/U fixed for attribution, no Adam; independent native CE acceptance; not joint Context adaptation");
+    }
     fs::write(
         root.join("continuation-source/metadata.json"),
         serde_json::to_vec_pretty(&receipt)?,
@@ -5155,9 +5167,15 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             )?;
         }
         if a.categorical_action_learning {
-            admission["categorical_action_learning"] = categorical_proposals::policy();
+            admission["categorical_action_learning"] =
+                categorical_proposals::policy_for(a.categorical_action_only);
             admission["prototype_policy"] = json!("Generate prototypes frozen; independently learned onehot categorical action choices admitted at factual shared relative key");
             admission["context_credit"] = json!("existing full120 conditional Context utility retained exactly once; full120 factual-key action utility added; Context and action gradients recomputed between blocks");
+        }
+        if a.categorical_action_only {
+            admission["categorical_action_only"] = json!(true);
+            admission["context_credit"] = json!("existing full120 conditional Context utility remains in the graph; only original-parent shared action contrast is used for a proposal; Context masters fixed for attribution, not joint learning");
+            admission["parameter_update_policy"] = json!("one shared categorical action row only; all non-action master bits preserved; no conditional Context step or second gradient pass");
         }
         write(a, "admission.json", &admission)?;
     }
@@ -5386,6 +5404,10 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         if a.native_code_proposals {
             receipt["reference_replay"]["clip_and_adam_policy"] =
                 json!("none: gradients rank a frozen native-code candidate bank only");
+            if a.categorical_action_only {
+                receipt["reference_replay"]["clip_and_adam_policy"] = json!("none: one original-parent action gradient ranks at most one shared-key replacement; no Context update or conditional gradient recomputation");
+                receipt["gradient_role"] = json!("categorical action contrasts choose the only permitted edit; other family gradients are diagnostic and never applied");
+            }
             receipt["native_code_proposals"] = if a.categorical_action_learning {
                 categorical_proposals::run(
                     a,
@@ -5485,6 +5507,14 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
             &current.binding,
             current.generator()?.generate_model(),
         )?;
+        if a.categorical_action_only {
+            replay_require(
+                current.binding == initial_parent.binding
+                    && current.generate == initial_parent.generate
+                    && bytes == initial_field.to_bytes()?,
+                "parent action-only final Source/Generate/U differs from original parent",
+            )?;
+        }
         if a.native_code_proposals {
             let objective_clock = Instant::now();
             native_proposals::verify_final(
@@ -5567,8 +5597,13 @@ fn run_joint_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value>
         report["optimizer_updates"] = json!(0);
     }
     if a.categorical_action_learning {
-        report["categorical_action_learning"] = categorical_proposals::policy();
+        report["categorical_action_learning"] =
+            categorical_proposals::policy_for(a.categorical_action_only);
         report["scope"] = json!("exposed512 conditional Context plus shared geometric action map construction learning; original quarter provenance and Generate prototypes retained; independently reloaded native own-prefix outputs; no transfer/chat/energy qualification");
+    }
+    if a.categorical_action_only {
+        report["categorical_action_only"] = json!(true);
+        report["scope"] = json!("exposed512 original-parent shared categorical action-only attribution; Context/Potential/Generate/U/prototypes fixed; one original-parent gradient and at most one native action-row candidate; independently reloaded native own-prefix outputs; not joint Context adaptation or transfer/chat/energy qualification");
     }
     if let Some(plan) = &reference {
         let outcomes = reference_outcomes(
@@ -6315,6 +6350,37 @@ mod tests {
         let mut categorical = reached.clone();
         categorical["categorical_action_learning"] = json!(true);
         reference_replay_settings(&serde_json::from_value(categorical.clone())?)?;
+        let old_categorical: Args = serde_json::from_value(categorical.clone())?;
+        assert!(!old_categorical.categorical_action_only);
+        assert_eq!(
+            proposal_policy(&old_categorical),
+            categorical_proposals::policy()
+        );
+        let mut action_only = categorical.clone();
+        action_only["categorical_action_only"] = json!(true);
+        let admitted: Args = serde_json::from_value(action_only.clone())?;
+        reference_replay_settings(&admitted)?;
+        assert_eq!(
+            proposal_policy(&admitted),
+            categorical_proposals::policy_for(true)
+        );
+        assert_ne!(
+            proposal_policy(&admitted),
+            proposal_policy(&old_categorical)
+        );
+        for (key, value) in [
+            ("categorical_action_learning", json!(false)),
+            ("reached_frontier_objective", json!(false)),
+            ("native_code_proposals", json!(false)),
+            ("reference_replay", Value::Null),
+            ("query_conditioned_read", json!(true)),
+            ("updates", json!(2)),
+        ] {
+            let mut invalid = action_only.clone();
+            invalid[key] = value;
+            assert!(reference_replay_settings(&serde_json::from_value(invalid)?).is_err());
+        }
+        assert!(!serde_json::from_value::<Args>(base.clone())?.categorical_action_only);
         categorical["reached_frontier_objective"] = json!(false);
         assert!(reference_replay_settings(&serde_json::from_value(categorical)?).is_err());
         assert!(!serde_json::from_value::<Args>(base.clone())?.categorical_action_learning);
