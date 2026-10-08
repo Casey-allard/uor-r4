@@ -62,6 +62,8 @@ mod constrained_context;
 mod constrained_emission;
 #[path = "geometric_frozen_map_fit/context_constraints.rs"]
 mod context_constraints;
+#[path = "geometric_frozen_map_fit/context_path_credit.rs"]
+mod context_path_credit;
 #[path = "geometric_frozen_map_fit/emission_constraints.rs"]
 mod emission_constraints;
 #[path = "geometric_frozen_map_fit/frontier.rs"]
@@ -154,6 +156,10 @@ fn replay_require(ok: bool, message: &str) -> Result<()> {
     }
 }
 fn reference_replay_settings(a: &Args) -> Result<()> {
+    context_path_credit::validate_settings(a)?;
+    if a.context_path_credit.is_some() {
+        return Ok(());
+    }
     reached_u::validate_settings(a)?;
     readout_coadaptation::validate_settings(a)?;
     prefix_context_credit::validate_settings(a)?;
@@ -502,6 +508,8 @@ struct Args {
     /// Fixed native-forward OFF/ON Prefix temporal Context-credit discriminator.
     #[serde(default)]
     prefix_context_credit: Option<prefix_context_credit::Config>,
+    #[serde(default)]
+    context_path_credit: Option<context_path_credit::Config>,
 }
 const CONTROL_INDICES: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
 fn default_updates() -> usize {
@@ -773,6 +781,14 @@ fn args() -> Result<(Args, Vec<u8>)> {
             .iter()
             .flat_map(|c| [&c.retained_intermediate_root, &c.retained_capture_root]),
     )
+    .chain(a.context_path_credit.iter().flat_map(|c| {
+        [
+            &c.retained_decomposition_root,
+            &c.retained_probe_root,
+            &c.retained_intermediate_root,
+            &c.retained_context_root,
+        ]
+    }))
     .chain(a.reached_u.iter().map(|c| &c.retained_compensation_root))
     .chain(
         a.readout_coadaptation
@@ -6176,6 +6192,9 @@ fn run_continuation(a: &Args, start: Instant, d: &Device) -> Result<Value> {
 }
 
 fn run(a: &Args, start: Instant) -> Result<Value> {
+    if a.context_path_credit.is_some() {
+        return context_path_credit::run(a, start);
+    }
     let d = cuda()?;
     if a.mode == Mode::ContinuationOnly {
         return run_continuation(a, start, &d);
@@ -6454,7 +6473,8 @@ fn main() -> Result<()> {
     report_output::claim(&a.out)?;
     let start = Instant::now();
     let result = (|| -> Result<Value> {
-        if a.prefix_context_credit.is_some()
+        if a.context_path_credit.is_some()
+            || a.prefix_context_credit.is_some()
             || a.readout_coadaptation
                 .as_ref()
                 .and_then(|c| c.intermediate_candidate.as_ref())

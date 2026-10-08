@@ -1,0 +1,1913 @@
+{
+  "schema": "uor-r4.context-path-credit-evidence/1",
+  "status": "MEASURED_AUDITED_RETAINED",
+  "executed_source": "1e1c6d4bb699b17eb21c929a0f5eaa48ea151ad0",
+  "child_sha256": "55f86a7f7ce484eb6eda1e05b5bc43ff81e6701b3a8fcb404632a7752b4282f2",
+  "main_sha256": "c1b0edc35d0be423fb4c739527bcbbe0a4867834186cfc6f014c4734b1b925df",
+  "report": {
+    "all18_path_unchanged": false,
+    "authorities": {
+      "decomposition": {
+        "report": "3a0c30dff9c8bd9b1f5c7a30251de432b90ef07b62f77ff79ab1d3b00bca0722",
+        "seal": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b"
+      },
+      "parent": {
+        "report": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+        "seal": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5"
+      },
+      "probe": {
+        "report": "1f7a51fe58e56862f6e8cd269225445bf9d42354d3cfe7eaf96a5910707568c9",
+        "seal": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332"
+      },
+      "retained": {
+        "report": "fba3f4cbcdc475147062105bf175a82f0556e873c6a6b6918714d23c5aac57e4",
+        "seal": "6be19fd174c0feb55b0bfa07815fb86dbac75739b2b86e7b2546b7bc5dcbc35f"
+      }
+    },
+    "authority_scope": "original reference-plan Source identity remains historical; packet pins reused, actual candidate Context Source epoch from objective/checkpoint verified",
+    "autoregressive_rollout": "NOT_RUN",
+    "candidate": {
+      "actual_delta": -0.3554798662662506,
+      "after": -2,
+      "before": -1,
+      "decoded": {
+        "basis_component": 2,
+        "class": 62,
+        "head": 1,
+        "lane": 3
+      },
+      "dot_off": -0.0004952498372175033,
+      "dot_on": -0.002501638380482049,
+      "g_difference_f64": 0.005644169286824763,
+      "g_off": 0.0013931867433711886,
+      "g_on": 0.0070373560301959515,
+      "index": 3610,
+      "master_after": -0.5,
+      "master_before": -0.1445201337337494,
+      "name": "consumer.context.self_transition",
+      "raw_difference_f32": 0.005644169170409441,
+      "temporal_dot": -0.0020063885432645458
+    },
+    "context_packed_sha256": "f19d1f8bd21315e58e7b3e165bea68b57d93cc6323e9838d6c598098c62389c3",
+    "continuation_sha256": "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee",
+    "control_action_crossings": 50,
+    "coverage_scope": "all families at every captured encoder call; retained controls only after exact packet/prefix/Source/Context matching; changed readout pools are not a reuse criterion",
+    "decision": "TASK_ACTION_CROSSING_REQUIRES_DECLARED_FINITE_CONTRAST",
+    "elapsed_seconds": 30.598106246,
+    "finite_artifact": "NOT_RUN",
+    "first_control_crossing": {
+      "call_index": 21,
+      "class": 62,
+      "event_index": 525,
+      "frozen_input_action_changed": true,
+      "hypothetical_winner": 62,
+      "neighbor": 57,
+      "own": 29,
+      "scope": {
+        "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0000-position-03.json",
+        "baseline_sha256": "483075180e9dfe5cf4cf07c822d859ad369e4aafb19ec8ee9309790b16921375",
+        "input_index": 0,
+        "origin": "retained",
+        "original_call": {
+          "count": 2688,
+          "first": 7632,
+          "index": 0,
+          "kind": "native_step",
+          "position": 3,
+          "prefix": [
+            2997,
+            1541,
+            435
+          ]
+        },
+        "packet_sha256": "44764e639c685392c7702cabfb7b3c69bc65dbf3843bdfe8fa75f1ba7ed20644",
+        "position": 3
+      },
+      "selected_class_effect_q24": 3393263,
+      "selected_class_gap_q24": 1602081,
+      "token_id": 280,
+      "winner": 97
+    },
+    "first_task_crossing": {
+      "call_index": 90,
+      "class": 62,
+      "event_index": 2181,
+      "frozen_input_action_changed": true,
+      "hypothetical_winner": 62,
+      "neighbor": 36,
+      "own": 29,
+      "scope": {
+        "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0245-position-03.json",
+        "baseline_sha256": "5a0ec8c1353d64560d546b8404f495004bd4325534782955b4e519e3868e2748",
+        "input_index": 245,
+        "origin": "fresh",
+        "packet_sha256": "dddb9ba27c4d78de1575876ae62c0c11a48e21fa611b8be26afd3e8847af9b19",
+        "position": 3
+      },
+      "selected_class_effect_q24": 3393263,
+      "selected_class_gap_q24": 2898192,
+      "token_id": 349,
+      "winner": 23
+    },
+    "frames": [
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435
+        ],
+        "id": "development-diverse-length2-00-swap0-q0-forward-job",
+        "input_index": 0,
+        "origin": "retained",
+        "packet_sha256": "44764e639c685392c7702cabfb7b3c69bc65dbf3843bdfe8fa75f1ba7ed20644",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435,
+          261
+        ],
+        "id": "development-diverse-length2-00-swap0-q0-forward-job",
+        "input_index": 0,
+        "origin": "retained",
+        "packet_sha256": "44764e639c685392c7702cabfb7b3c69bc65dbf3843bdfe8fa75f1ba7ed20644",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315
+        ],
+        "id": "development-diverse-length2-00-swap0-q0-forward-home",
+        "input_index": 1,
+        "origin": "retained",
+        "packet_sha256": "c80d3b8ea1559f4c3bd026c4bfbb02b85c0f6269e9bbf581e010c65dea4ef9c9",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          683
+        ],
+        "id": "development-diverse-length2-00-swap0-q0-forward-home",
+        "input_index": 1,
+        "origin": "retained",
+        "packet_sha256": "c80d3b8ea1559f4c3bd026c4bfbb02b85c0f6269e9bbf581e010c65dea4ef9c9",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435
+        ],
+        "id": "development-diverse-length2-00-swap0-q3-forward-job",
+        "input_index": 4,
+        "origin": "retained",
+        "packet_sha256": "ae5f4ac8a00fdfdf3e58fdbf03f34e3f06c0cec77265d350cbc9cf24b0f0e543",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435,
+          261
+        ],
+        "id": "development-diverse-length2-00-swap0-q3-forward-job",
+        "input_index": 4,
+        "origin": "retained",
+        "packet_sha256": "ae5f4ac8a00fdfdf3e58fdbf03f34e3f06c0cec77265d350cbc9cf24b0f0e543",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315
+        ],
+        "id": "development-diverse-length2-00-swap0-q3-forward-home",
+        "input_index": 5,
+        "origin": "retained",
+        "packet_sha256": "4c9f8624479b7c46e113fb8610ad31a41fe0f7d44a2c1263967dc797c906e977",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          683
+        ],
+        "id": "development-diverse-length2-00-swap0-q3-forward-home",
+        "input_index": 5,
+        "origin": "retained",
+        "packet_sha256": "4c9f8624479b7c46e113fb8610ad31a41fe0f7d44a2c1263967dc797c906e977",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435
+        ],
+        "id": "development-diverse-length2-00-swap1-q0-forward-job",
+        "input_index": 8,
+        "origin": "retained",
+        "packet_sha256": "d21afc17effaac6f96e66a0e71a718557a7756f63fb5b091d7e4055a43e6841a",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435,
+          683
+        ],
+        "id": "development-diverse-length2-00-swap1-q0-forward-job",
+        "input_index": 8,
+        "origin": "retained",
+        "packet_sha256": "d21afc17effaac6f96e66a0e71a718557a7756f63fb5b091d7e4055a43e6841a",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315
+        ],
+        "id": "development-diverse-length2-00-swap1-q0-forward-home",
+        "input_index": 9,
+        "origin": "retained",
+        "packet_sha256": "03e98336276999cd376b7ef3b0fc35c9b80534d5fded5dde4a1f46235a8a88b6",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          261
+        ],
+        "id": "development-diverse-length2-00-swap1-q0-forward-home",
+        "input_index": 9,
+        "origin": "retained",
+        "packet_sha256": "03e98336276999cd376b7ef3b0fc35c9b80534d5fded5dde4a1f46235a8a88b6",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435
+        ],
+        "id": "development-diverse-length2-00-swap1-q3-forward-job",
+        "input_index": 12,
+        "origin": "retained",
+        "packet_sha256": "b22ad84d631ef54cb8f0896e30a1e591be0bd932507a429dc54c9eb5a02699d7",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          2997,
+          1541,
+          435,
+          683
+        ],
+        "id": "development-diverse-length2-00-swap1-q3-forward-job",
+        "input_index": 12,
+        "origin": "retained",
+        "packet_sha256": "b22ad84d631ef54cb8f0896e30a1e591be0bd932507a429dc54c9eb5a02699d7",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315
+        ],
+        "id": "development-diverse-length2-00-swap1-q3-forward-home",
+        "input_index": 13,
+        "origin": "retained",
+        "packet_sha256": "097ea6748a08a9f559903222aa7df9418261e4d9d775c595dc37192ff6483734",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          261
+        ],
+        "id": "development-diverse-length2-00-swap1-q3-forward-home",
+        "input_index": 13,
+        "origin": "retained",
+        "packet_sha256": "097ea6748a08a9f559903222aa7df9418261e4d9d775c595dc37192ff6483734",
+        "position": 4
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315
+        ],
+        "id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "input_index": 245,
+        "origin": "fresh",
+        "position": 3
+      },
+      {
+        "actual_prefix_ids": [
+          617,
+          2097,
+          315,
+          1057
+        ],
+        "id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "input_index": 245,
+        "origin": "fresh",
+        "position": 4
+      }
+    ],
+    "fresh_capture": {
+      "bytes": 5929706,
+      "file": "task-context-decisions.json",
+      "sha256": "79f93c2a3de6c69de5f3d3306a7a60da5c7061a290b3e9dccc5448aa5cff5b55"
+    },
+    "fresh_scopes": [
+      {
+        "coverage": {
+          "events": 0,
+          "guard_finish": "PASS",
+          "scope": "guard enabled before admission; compiler/tokenizer admission consumes no Context decisions"
+        },
+        "input_index": 245,
+        "kind": "bank_admission",
+        "origin": "fresh"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 135,
+          "events": 3240,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 135
+        },
+        "native_parity": true,
+        "native_snapshot": {
+          "bytes": 1105291,
+          "file": "fresh-row-0245-position-03.json",
+          "sha256": "ba629c50469308715ca47b89fc1c96fe28f114532ef0d52fe7c5f24c8f50d4c1"
+        },
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0245-position-03.json",
+          "baseline_sha256": "5a0ec8c1353d64560d546b8404f495004bd4325534782955b4e519e3868e2748",
+          "input_index": 245,
+          "origin": "fresh",
+          "packet_sha256": "dddb9ba27c4d78de1575876ae62c0c11a48e21fa611b8be26afd3e8847af9b19",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315
+          ],
+          "encoding_step_calls": 13,
+          "final_state_codes": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "first_event": 2928,
+          "query_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 138,
+          "events": 3312,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 138
+        },
+        "native_parity": true,
+        "native_snapshot": {
+          "bytes": 1102295,
+          "file": "fresh-row-0245-position-04.json",
+          "sha256": "2fea5a43a25985f72e296b45ab096172d64690a02ff195b201512ae2cf863507"
+        },
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0245-position-04.json",
+          "baseline_sha256": "2154e5d534f6b72556f9d0e6828b09df065ad90053b907638ef724879d23a706",
+          "input_index": 245,
+          "origin": "fresh",
+          "packet_sha256": "dddb9ba27c4d78de1575876ae62c0c11a48e21fa611b8be26afd3e8847af9b19",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315,
+            1057
+          ],
+          "encoding_step_calls": 14,
+          "final_state_codes": [
+            21,
+            63,
+            20,
+            49,
+            46,
+            100,
+            62,
+            67
+          ],
+          "first_event": 2976,
+          "query_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      }
+    ],
+    "generate_sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737",
+    "gradient": "NOT_RUN",
+    "limitations": [
+      "One native coefficient and fixed18 calls only; not family, capacity, gradient or general recurrent qualification",
+      "Hard path invariance depends on complete consumed-call coverage and frozen allothercoefficients; no new candidate/fullpool/CE/reply measurement"
+    ],
+    "margins": {
+      "bytes": 1495152,
+      "file": "complete-path-margins.json",
+      "sha256": "ea24e4177452de18ae74b2c87d95381d97c7cc104ba5cf1be4702d16165eeee9"
+    },
+    "maximum_cpu_threads": 2,
+    "maximum_numerical_cache_bytes": 536870912,
+    "maximum_process_ram_bytes": 4294967296,
+    "maximum_temporary_bytes": 536870912,
+    "native_control_steps": 0,
+    "native_task_steps": 2,
+    "numerical_cache_projection_bytes": 498479455,
+    "optimizer": "NOT_RUN",
+    "reranking": "NOT_RUN",
+    "retained_capture_file": "/workspace/uor-r4/codex/astra-context/runs/context-0001-seed1001-attempt1/native-candidate-00/context-candidate-decisions.json",
+    "retained_capture_sha256": "2b64b25b38b9dda869c7a4b5b2c030cb66d17aa72dfe6693cd5498a212418a12",
+    "retained_objective_sha256": "12d7f967d601ac39222f5cb496fd8d5606ea0335cd0f34c9211dfd74174bf3cd",
+    "retained_reference_plan_sha256": "a28bc4b6f7e3434688af00bd73694e9c5de3a9e9651f790cc9b331a5c238cf1d",
+    "retained_report_sha256": "fba3f4cbcdc475147062105bf175a82f0556e873c6a6b6918714d23c5aac57e4",
+    "retained_report_source": "7f474caa819612c8f3fa6aafba2b0b2902368a26",
+    "reused_scopes": [
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 0,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 112,
+          "events": 2688,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 112
+        },
+        "events_sha256": "202f1a94af5c7ab557e447d1c03160d21c93f29490a3de72008bf73ec5b9b27d",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0000-position-03.json",
+          "baseline_sha256": "483075180e9dfe5cf4cf07c822d859ad369e4aafb19ec8ee9309790b16921375",
+          "input_index": 0,
+          "origin": "retained",
+          "original_call": {
+            "count": 2688,
+            "first": 7632,
+            "index": 0,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              2997,
+              1541,
+              435
+            ]
+          },
+          "packet_sha256": "44764e639c685392c7702cabfb7b3c69bc65dbf3843bdfe8fa75f1ba7ed20644",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435
+          ],
+          "encoding_step_calls": 12,
+          "final_state_codes": [
+            0,
+            65,
+            100,
+            86,
+            114,
+            74,
+            101,
+            102
+          ],
+          "first_event": 2400,
+          "query_ids": [
+            1085,
+            435,
+            627,
+            280,
+            456,
+            275,
+            349,
+            1541,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 115,
+          "events": 2760,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 115
+        },
+        "events_sha256": "2a6a1d468a4896e843e0194dfa70d714c5c5a8b140edb783ff8312c4e60df4b7",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0000-position-04.json",
+          "baseline_sha256": "a17dafafa51d75dd06f71e2dc0531472e3b6590fd03fa59ef7ef1a781d76d228",
+          "input_index": 0,
+          "origin": "retained",
+          "original_call": {
+            "count": 2760,
+            "first": 10320,
+            "index": 0,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              2997,
+              1541,
+              435,
+              261
+            ]
+          },
+          "packet_sha256": "44764e639c685392c7702cabfb7b3c69bc65dbf3843bdfe8fa75f1ba7ed20644",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435,
+            261
+          ],
+          "encoding_step_calls": 13,
+          "final_state_codes": [
+            100,
+            110,
+            62,
+            51,
+            74,
+            82,
+            45,
+            33
+          ],
+          "first_event": 2448,
+          "query_ids": [
+            1085,
+            435,
+            627,
+            280,
+            456,
+            275,
+            349,
+            1541,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 1,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 115,
+          "events": 2760,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 115
+        },
+        "events_sha256": "2441d5be0e8158f6c8627f0ffeec4af1bddaca9d1d72dc8322c67e0492d1bff0",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0001-position-03.json",
+          "baseline_sha256": "b750753cd091c94e9490d517fbfc270f357ef7be67c614f8589ae8d1ef86331a",
+          "input_index": 1,
+          "origin": "retained",
+          "original_call": {
+            "count": 2760,
+            "first": 39000,
+            "index": 1,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              617,
+              2097,
+              315
+            ]
+          },
+          "packet_sha256": "c80d3b8ea1559f4c3bd026c4bfbb02b85c0f6269e9bbf581e010c65dea4ef9c9",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315
+          ],
+          "encoding_step_calls": 13,
+          "final_state_codes": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "first_event": 2448,
+          "query_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 118,
+          "events": 2832,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 118
+        },
+        "events_sha256": "b5a68fd87962f623fc9dfb398cbe586b2b9a83ced101da1932d99e8bf84dbfc8",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0001-position-04.json",
+          "baseline_sha256": "633567e0879b2886ed4ffd56612127cdd2d6ea514399e8de2ebabc05e9c5a732",
+          "input_index": 1,
+          "origin": "retained",
+          "original_call": {
+            "count": 2832,
+            "first": 41760,
+            "index": 1,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              617,
+              2097,
+              315,
+              683
+            ]
+          },
+          "packet_sha256": "c80d3b8ea1559f4c3bd026c4bfbb02b85c0f6269e9bbf581e010c65dea4ef9c9",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315,
+            683
+          ],
+          "encoding_step_calls": 14,
+          "final_state_codes": [
+            88,
+            21,
+            30,
+            49,
+            93,
+            66,
+            70,
+            30
+          ],
+          "first_event": 2496,
+          "query_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 4,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 109,
+          "events": 2616,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 109
+        },
+        "events_sha256": "4ad1bff3920dc8988ce748151284571efe2cd3a8bdd2f774453ed732b535ce55",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0004-position-03.json",
+          "baseline_sha256": "16664be62e36c50529c2dd1262cff94a62fbd74d0e48d62f955ea90bc6aa6550",
+          "input_index": 4,
+          "origin": "retained",
+          "original_call": {
+            "count": 2616,
+            "first": 67248,
+            "index": 4,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              2997,
+              1541,
+              435
+            ]
+          },
+          "packet_sha256": "ae5f4ac8a00fdfdf3e58fdbf03f34e3f06c0cec77265d350cbc9cf24b0f0e543",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435
+          ],
+          "encoding_step_calls": 11,
+          "final_state_codes": [
+            103,
+            74,
+            106,
+            115,
+            67,
+            79,
+            72,
+            46
+          ],
+          "first_event": 2352,
+          "query_ids": [
+            759,
+            1788,
+            1541,
+            377,
+            340,
+            500,
+            960,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 112,
+          "events": 2688,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 112
+        },
+        "events_sha256": "0b424ccc8af275140e53e1efcc003e3cd5322122695c8b8cfc61b6f5f14da2bd",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0004-position-04.json",
+          "baseline_sha256": "f8b53458632262c3c7b243ea2956097b5ad76fa2b835bd5009114effce188a23",
+          "input_index": 4,
+          "origin": "retained",
+          "original_call": {
+            "count": 2688,
+            "first": 69864,
+            "index": 4,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              2997,
+              1541,
+              435,
+              261
+            ]
+          },
+          "packet_sha256": "ae5f4ac8a00fdfdf3e58fdbf03f34e3f06c0cec77265d350cbc9cf24b0f0e543",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435,
+            261
+          ],
+          "encoding_step_calls": 12,
+          "final_state_codes": [
+            101,
+            115,
+            59,
+            105,
+            37,
+            93,
+            8,
+            13
+          ],
+          "first_event": 2400,
+          "query_ids": [
+            759,
+            1788,
+            1541,
+            377,
+            340,
+            500,
+            960,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 5,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 124,
+          "events": 2976,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 124
+        },
+        "events_sha256": "5037b6cbf24869c24df02ed5444cdad82e147972712b5f956ac0eebb2d6b47f8",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0005-position-03.json",
+          "baseline_sha256": "9c8c9b75f1b90cd28f64627ed58829d02689acd27b8fa613b52521405f812f0b",
+          "input_index": 5,
+          "origin": "retained",
+          "original_call": {
+            "count": 2976,
+            "first": 98688,
+            "index": 5,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              617,
+              2097,
+              315
+            ]
+          },
+          "packet_sha256": "4c9f8624479b7c46e113fb8610ad31a41fe0f7d44a2c1263967dc797c906e977",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315
+          ],
+          "encoding_step_calls": 16,
+          "final_state_codes": [
+            103,
+            40,
+            115,
+            35,
+            31,
+            13,
+            78,
+            54
+          ],
+          "first_event": 2592,
+          "query_ids": [
+            52,
+            970,
+            445,
+            519,
+            1059,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            16
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 127,
+          "events": 3048,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 127
+        },
+        "events_sha256": "69dba67a5b1d3caa5b896966d754323efc305c90f1955b631195e4e6b786a630",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0005-position-04.json",
+          "baseline_sha256": "5ef92973d006701b9b1ea3a4e675f7ac70761560477dce9dba288ee6710487b9",
+          "input_index": 5,
+          "origin": "retained",
+          "original_call": {
+            "count": 3048,
+            "first": 101664,
+            "index": 5,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              617,
+              2097,
+              315,
+              683
+            ]
+          },
+          "packet_sha256": "4c9f8624479b7c46e113fb8610ad31a41fe0f7d44a2c1263967dc797c906e977",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315,
+            683
+          ],
+          "encoding_step_calls": 17,
+          "final_state_codes": [
+            2,
+            52,
+            69,
+            4,
+            47,
+            37,
+            73,
+            5
+          ],
+          "first_event": 2640,
+          "query_ids": [
+            52,
+            970,
+            445,
+            519,
+            1059,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            16
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 8,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 112,
+          "events": 2688,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 112
+        },
+        "events_sha256": "7d99cfb1e942c358cf8c7bfee81c238388ad2464cdac5ada96394bb281a27bc4",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0008-position-03.json",
+          "baseline_sha256": "8db21ea0f1cab68b4d9ca1d12600efc33afd842a2515c22219b001df968c765c",
+          "input_index": 8,
+          "origin": "retained",
+          "original_call": {
+            "count": 2688,
+            "first": 128664,
+            "index": 8,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              2997,
+              1541,
+              435
+            ]
+          },
+          "packet_sha256": "d21afc17effaac6f96e66a0e71a718557a7756f63fb5b091d7e4055a43e6841a",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435
+          ],
+          "encoding_step_calls": 12,
+          "final_state_codes": [
+            0,
+            65,
+            100,
+            86,
+            114,
+            74,
+            101,
+            102
+          ],
+          "first_event": 2400,
+          "query_ids": [
+            1085,
+            435,
+            627,
+            280,
+            456,
+            275,
+            349,
+            1541,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 115,
+          "events": 2760,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 115
+        },
+        "events_sha256": "bb65cb6e3b95b9c4533e600f1b3a5a4e11a8c52957cbc8f652d2172c04516fa9",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0008-position-04.json",
+          "baseline_sha256": "24a7fc5dc5b70cd15a7ddde91c82b5098a99082911de75b4ce2c9edf7aadf83b",
+          "input_index": 8,
+          "origin": "retained",
+          "original_call": {
+            "count": 2760,
+            "first": 131352,
+            "index": 8,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              2997,
+              1541,
+              435,
+              683
+            ]
+          },
+          "packet_sha256": "d21afc17effaac6f96e66a0e71a718557a7756f63fb5b091d7e4055a43e6841a",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435,
+            683
+          ],
+          "encoding_step_calls": 13,
+          "final_state_codes": [
+            35,
+            59,
+            109,
+            113,
+            15,
+            82,
+            102,
+            94
+          ],
+          "first_event": 2448,
+          "query_ids": [
+            1085,
+            435,
+            627,
+            280,
+            456,
+            275,
+            349,
+            1541,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 9,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 115,
+          "events": 2760,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 115
+        },
+        "events_sha256": "85f8699c11c966f937ae29babfe0abb4cf3b8cecc0d72a363a4aea1c12b4ddd4",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0009-position-03.json",
+          "baseline_sha256": "abd465fdbae5763c59c7bde7290229a9fc6c8fdf89c95afad13ce624c6825ed7",
+          "input_index": 9,
+          "origin": "retained",
+          "original_call": {
+            "count": 2760,
+            "first": 156840,
+            "index": 9,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              617,
+              2097,
+              315
+            ]
+          },
+          "packet_sha256": "03e98336276999cd376b7ef3b0fc35c9b80534d5fded5dde4a1f46235a8a88b6",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315
+          ],
+          "encoding_step_calls": 13,
+          "final_state_codes": [
+            74,
+            80,
+            20,
+            66,
+            105,
+            110,
+            101,
+            11
+          ],
+          "first_event": 2448,
+          "query_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 118,
+          "events": 2832,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 118
+        },
+        "events_sha256": "3a45430e728598a39816569123c780b32031335db53300a779bdf51e11db3321",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0009-position-04.json",
+          "baseline_sha256": "7023100a177c0651c5ed7db18bd9ad535016719b07c847e6aeb11092549adacb",
+          "input_index": 9,
+          "origin": "retained",
+          "original_call": {
+            "count": 2832,
+            "first": 159600,
+            "index": 9,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              617,
+              2097,
+              315,
+              261
+            ]
+          },
+          "packet_sha256": "03e98336276999cd376b7ef3b0fc35c9b80534d5fded5dde4a1f46235a8a88b6",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315,
+            261
+          ],
+          "encoding_step_calls": 14,
+          "final_state_codes": [
+            21,
+            42,
+            83,
+            87,
+            93,
+            12,
+            10,
+            47
+          ],
+          "first_event": 2496,
+          "query_ids": [
+            2812,
+            377,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 12,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 109,
+          "events": 2616,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 109
+        },
+        "events_sha256": "645cc4c434886d2ee135e55f6caf1780073926aa180a9a969aadc38ebef967b0",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0012-position-03.json",
+          "baseline_sha256": "6d93a39be80b6ed3f0bb99afaff00f72c615d892c2080344d44ab746708f327b",
+          "input_index": 12,
+          "origin": "retained",
+          "original_call": {
+            "count": 2616,
+            "first": 188352,
+            "index": 12,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              2997,
+              1541,
+              435
+            ]
+          },
+          "packet_sha256": "b22ad84d631ef54cb8f0896e30a1e591be0bd932507a429dc54c9eb5a02699d7",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435
+          ],
+          "encoding_step_calls": 11,
+          "final_state_codes": [
+            103,
+            74,
+            106,
+            115,
+            67,
+            79,
+            72,
+            46
+          ],
+          "first_event": 2352,
+          "query_ids": [
+            759,
+            1788,
+            1541,
+            377,
+            340,
+            500,
+            960,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 112,
+          "events": 2688,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 112
+        },
+        "events_sha256": "e83d5fe44d08dd8ad5809200b807fdecc444dd55fb1339000096dbc99964853d",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0012-position-04.json",
+          "baseline_sha256": "8cc4138cb815044210e9355304ea2d4a0c5264d6686d77f815aec75c42b69eb4",
+          "input_index": 12,
+          "origin": "retained",
+          "original_call": {
+            "count": 2688,
+            "first": 190968,
+            "index": 12,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              2997,
+              1541,
+              435,
+              683
+            ]
+          },
+          "packet_sha256": "b22ad84d631ef54cb8f0896e30a1e591be0bd932507a429dc54c9eb5a02699d7",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            2997,
+            1541,
+            435,
+            683
+          ],
+          "encoding_step_calls": 12,
+          "final_state_codes": [
+            2,
+            56,
+            28,
+            51,
+            22,
+            110,
+            8,
+            71
+          ],
+          "first_event": 2400,
+          "query_ids": [
+            759,
+            1788,
+            1541,
+            377,
+            340,
+            500,
+            960,
+            33
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "call": {
+          "count": 0,
+          "first": 0,
+          "index": 13,
+          "kind": "bank_admission"
+        },
+        "coverage": {
+          "events": 0,
+          "reason": "bank admission compiler/tokenizer path performs no Context calls; guard reached before admission"
+        },
+        "origin": "retained"
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 124,
+          "events": 2976,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 124
+        },
+        "events_sha256": "8a58132f79dc146bbad857b3581db6f0eab2f9493ab6a4c1dd1feaaa48e4fc95",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0013-position-03.json",
+          "baseline_sha256": "3b6ff7efaaa71d9e8f1f7657e32e5a4a4442ed96bc8556b89c3520427628c259",
+          "input_index": 13,
+          "origin": "retained",
+          "original_call": {
+            "count": 2976,
+            "first": 216672,
+            "index": 13,
+            "kind": "native_step",
+            "position": 3,
+            "prefix": [
+              617,
+              2097,
+              315
+            ]
+          },
+          "packet_sha256": "097ea6748a08a9f559903222aa7df9418261e4d9d775c595dc37192ff6483734",
+          "position": 3
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315
+          ],
+          "encoding_step_calls": 16,
+          "final_state_codes": [
+            103,
+            40,
+            115,
+            35,
+            31,
+            13,
+            78,
+            54
+          ],
+          "first_event": 2592,
+          "query_ids": [
+            52,
+            970,
+            445,
+            519,
+            1059,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            16
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      },
+      {
+        "coverage": {
+          "complete_all_families": true,
+          "encoder_calls": 127,
+          "events": 3048,
+          "native_scores_and_earliest_ties": true,
+          "observe_calls": 0,
+          "step_calls": 127
+        },
+        "events_sha256": "fcc2813b7b74c8347411265c8125b086d16c8c2ddb387e4c0b614f9ac92c30ea",
+        "scope": {
+          "baseline_file": "/workspace/uor-r4/codex/sol-prefix-context-credit/runs/prefix-context-credit-0001-attempt1/baseline-row-0013-position-04.json",
+          "baseline_sha256": "b427d21ff30fa2903fa0f38839c008e996192fc81a2d8ce951c71b8922c34a7a",
+          "input_index": 13,
+          "origin": "retained",
+          "original_call": {
+            "count": 3048,
+            "first": 219648,
+            "index": 13,
+            "kind": "native_step",
+            "position": 4,
+            "prefix": [
+              617,
+              2097,
+              315,
+              261
+            ]
+          },
+          "packet_sha256": "097ea6748a08a9f559903222aa7df9418261e4d9d775c595dc37192ff6483734",
+          "position": 4
+        },
+        "u_suffix": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315,
+            261
+          ],
+          "encoding_step_calls": 17,
+          "final_state_codes": [
+            101,
+            5,
+            77,
+            35,
+            117,
+            37,
+            105,
+            106
+          ],
+          "first_event": 2640,
+          "query_ids": [
+            52,
+            970,
+            445,
+            519,
+            1059,
+            340,
+            280,
+            456,
+            275,
+            349,
+            463,
+            2097,
+            16
+          ],
+          "scope": "algebraic saved action-chain witness; no encoder advance"
+        }
+      }
+    ],
+    "schema": "uor-r4.context-path-credit/1",
+    "source_binding": {
+      "identity": {
+        "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+        "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+        "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+    },
+    "source_commit": "1e1c6d4bb699b17eb21c929a0f5eaa48ea151ad0",
+    "status": "COMPLETED",
+    "task_action_crossings": 4,
+    "task_path_unchanged": false,
+    "transition_inputs": 2137
+  },
+  "report_sha256": "ee12bfc8275768886024ec5784624315b2df2f70e9f2d2bfe7e30167ca3cba24",
+  "report_manifest_sha256": "e545b8598294b9bbdd7d0c72227796425300bfebdbf0edb7c73c3a1ed4f5f96e",
+  "report_inventory": {
+    "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+    "bytes": 9680138,
+    "files": 8,
+    "manifest_sha256": "e545b8598294b9bbdd7d0c72227796425300bfebdbf0edb7c73c3a1ed4f5f96e"
+  },
+  "execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-08T20:14:58.092646+00:00",
+    "ended_utc": "2026-10-08T20:15:38.253824+00:00",
+    "elapsed_seconds": 40.16120096296072,
+    "children_max_rss_kib": 682328,
+    "binary_sha256": "38be84564ff14b118195ee3d44e546fde3a0023c4ab17bc721cfc70966720ce8",
+    "config_sha256": "bef495abd5d4c47dc359b745be2b23b879ca5a5207228106db3930c093102e76"
+  },
+  "independent_reader": {
+    "sha256": "a905323fa13d0caf2aec39e4bb56a386e16d945fa6d8196e5fc89fe86d29fffb",
+    "mathematical_source_review": "PASS",
+    "actual_audit": {
+      "arithmetic_module_sha256": "dac81df4ddc644c45d71bc6234064bbadb4ee7fe3d1a04978f96962b2e36ddc0",
+      "binary_sha256": "38be84564ff14b118195ee3d44e546fde3a0023c4ab17bc721cfc70966720ce8",
+      "control_crossings": 50,
+      "decision": "TASK_ACTION_CROSSING_REQUIRES_DECLARED_FINITE_CONTRAST",
+      "executed_source": "1e1c6d4bb699b17eb21c929a0f5eaa48ea151ad0",
+      "frames": 18,
+      "fresh_scopes": 3,
+      "inventories": {
+        "context": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 692560693,
+          "files": 1198,
+          "manifest_sha256": "6be19fd174c0feb55b0bfa07815fb86dbac75739b2b86e7b2546b7bc5dcbc35f"
+        },
+        "decomposition": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 8850245,
+          "files": 6,
+          "manifest_sha256": "a9b29208992b009fc55362116490d5ebe5746cd934f03ebd382b6b86c4b11b8b"
+        },
+        "intermediate": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 378554003,
+          "files": 1100,
+          "manifest_sha256": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5"
+        },
+        "probe": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 204338578,
+          "files": 122,
+          "manifest_sha256": "c43bbbe81eeea18338b2ea541c50f8f01d24dcfbe9a32662b73e2d2ebc03b332"
+        },
+        "run": {
+          "blake3": "SEPARATE_RUST_VERIFY_REQUIRED",
+          "bytes": 9680138,
+          "files": 8,
+          "manifest_sha256": "e545b8598294b9bbdd7d0c72227796425300bfebdbf0edb7c73c3a1ed4f5f96e"
+        }
+      },
+      "limits": [
+        "Rust BLAKE3 complete-file verification remains separate",
+        "Recomputed integer scores/right-H4 witnesses and fixed3610 effects only; no independent encoder/model/gradient replication",
+        "Fresh complete native arrays compared independently to sealed baseline; retained pools deliberately not compared across changed readout",
+        "Path closure conditional on captured consumed-call completeness, frozen other coefficients, same artifact and these18 calls; no family/capacity/gradient/global qualification"
+      ],
+      "native_score_cache_rows": 8781,
+      "native_task_steps": 2,
+      "reader_sha256": "a905323fa13d0caf2aec39e4bb56a386e16d945fa6d8196e5fc89fe86d29fffb",
+      "reused_scopes": 24,
+      "status": "PASS",
+      "task_crossings": 4,
+      "transition_inputs": 2137
+    },
+    "audit_sha256": "6f5b26a523bfe322f6a7f1759cfd3a2b676f6045ea5dd06bf52951381d706c94",
+    "execution": {
+      "status": "PASS",
+      "steps": [
+        {
+          "kind": "new_context_path",
+          "exit_code": 0,
+          "elapsed_seconds": 0.07430300116539001,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "selected_parent",
+          "exit_code": 0,
+          "elapsed_seconds": 11.431155700236559,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "baseline18",
+          "exit_code": 0,
+          "elapsed_seconds": 1.7044153288006783,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "recorded3610",
+          "exit_code": 0,
+          "elapsed_seconds": 0.11525757238268852,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "retained_context",
+          "exit_code": 0,
+          "elapsed_seconds": 11.663995627313852,
+          "stdout": "",
+          "stderr": ""
+        },
+        {
+          "kind": "independent_reader",
+          "exit_code": 0,
+          "elapsed_seconds": 30.445223074406385,
+          "max_rss_kib": 1474072
+        }
+      ],
+      "elapsed_seconds": 55.58830201625824,
+      "reader_sha256": "a905323fa13d0caf2aec39e4bb56a386e16d945fa6d8196e5fc89fe86d29fffb",
+      "completed_utc": "2026-10-08T20:16:49.847026+00:00",
+      "scope": "saved evidence arithmetic; no independent encoder/backward/autoregressive computation"
+    }
+  },
+  "actual_checks": {
+    "source": "1e1c6d4bb699b17eb21c929a0f5eaa48ea151ad0",
+    "tests": 71,
+    "failures": 0,
+    "scoped_rustfmt": "PASS",
+    "cuda_feature_release_build": "PASS",
+    "source_reviews": "PASS",
+    "job": "20261008T201156Z-sol-prototype-20261008-gpu0"
+  },
+  "runtime_private_preservation": {
+    "revision": "c1a90e40eac4e2c74804fb776375b066aacb11cd",
+    "prefix": "codex/sol-context-path-credit/runtime-1e1c6d4bb6-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "dd6b78398d8cceda3b1b2dfcdfb918e7278be817e4fa7d1d5285ba09d4ca259c",
+        "bytes": 1463
+      },
+      "checks.log": {
+        "sha256": "514646fdaacdeb57ce9ffd9333ad57eb12af05353712b026b469cc905e1ed306",
+        "bytes": 15400
+      },
+      "config.json": {
+        "sha256": "bef495abd5d4c47dc359b745be2b23b879ca5a5207228106db3930c093102e76",
+        "bytes": 2651
+      },
+      "exact-head-review.md": {
+        "sha256": "b13e8e8bea6ff3d46c3d81969f71780633489d1f17cdc1b55a9eb4160e6e3a23",
+        "bytes": 1099
+      },
+      "geometric-frozen-map-fit": {
+        "sha256": "38be84564ff14b118195ee3d44e546fde3a0023c4ab17bc721cfc70966720ce8",
+        "bytes": 33506280
+      },
+      "independent-reader.py": {
+        "sha256": "a905323fa13d0caf2aec39e4bb56a386e16d945fa6d8196e5fc89fe86d29fffb",
+        "bytes": 22063
+      },
+      "resource-ledger.json": {
+        "sha256": "746675969d13b6d9ae6a36a8bf84ec5f394c5fddfd94a8c25ed29abc43122a8c",
+        "bytes": 5276
+      },
+      "source.tar.gz": {
+        "sha256": "abe35c55f762a586d1b415b78d41ae92980b9369833911d5c628eee12ece9d4f",
+        "bytes": 99479129
+      },
+      "supervise.py": {
+        "sha256": "9d0d7b03c608851b8cf8be5dd2ab05a23c5834a89aa83d88a0f6f0e0efc274a1",
+        "bytes": 2815
+      }
+    },
+    "manifest": {
+      "source_commit": "1e1c6d4bb699b17eb21c929a0f5eaa48ea151ad0",
+      "source_tree": "5c18f5a6c634b83d75d2ce7924bdb2292be31d79",
+      "files": {
+        "checks.log": {
+          "sha256": "514646fdaacdeb57ce9ffd9333ad57eb12af05353712b026b469cc905e1ed306",
+          "bytes": 15400
+        },
+        "config.json": {
+          "sha256": "bef495abd5d4c47dc359b745be2b23b879ca5a5207228106db3930c093102e76",
+          "bytes": 2651
+        },
+        "exact-head-review.md": {
+          "sha256": "b13e8e8bea6ff3d46c3d81969f71780633489d1f17cdc1b55a9eb4160e6e3a23",
+          "bytes": 1099
+        },
+        "geometric-frozen-map-fit": {
+          "sha256": "38be84564ff14b118195ee3d44e546fde3a0023c4ab17bc721cfc70966720ce8",
+          "bytes": 33506280
+        },
+        "independent-reader.py": {
+          "sha256": "a905323fa13d0caf2aec39e4bb56a386e16d945fa6d8196e5fc89fe86d29fffb",
+          "bytes": 22063
+        },
+        "resource-ledger.json": {
+          "sha256": "746675969d13b6d9ae6a36a8bf84ec5f394c5fddfd94a8c25ed29abc43122a8c",
+          "bytes": 5276
+        },
+        "source.tar.gz": {
+          "sha256": "abe35c55f762a586d1b415b78d41ae92980b9369833911d5c628eee12ece9d4f",
+          "bytes": 99479129
+        },
+        "supervise.py": {
+          "sha256": "9d0d7b03c608851b8cf8be5dd2ab05a23c5834a89aa83d88a0f6f0e0efc274a1",
+          "bytes": 2815
+        }
+      },
+      "scope": "Complete consumed native Context path for stored self_transition3610 q-1 to -2; reuse16 controls, two fresh task captures; no gradient, optimizer, finite candidate, rollout or model qualification"
+    },
+    "seconds": 32.92643961310387,
+    "completed_utc": "2026-10-08T20:14:29.703047+00:00"
+  },
+  "private_preservation": {
+    "revision": "fc5e6dbf02f39250f37173edaff97804c8649f33",
+    "prefix": "codex/sol-context-path-credit/path-3610-0001-1e1c6d4bb6",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "3f4fb88b14458cda795d5e640b66e9d840ee9d1b6c2d9ca3134e3da8848783c5",
+        "bytes": 1113
+      },
+      "path-3610-0001-1e1c6d4bb6.tar.gz": {
+        "sha256": "0870dccabcf6f4c140764153e50c40fccf2baeddd67c51b9054356e09c55bce1",
+        "bytes": 1337643
+      }
+    },
+    "manifest": {
+      "source_commit": "1e1c6d4bb699b17eb21c929a0f5eaa48ea151ad0",
+      "runtime_hf_revision": "c1a90e40eac4e2c74804fb776375b066aacb11cd",
+      "runtime_manifest_sha256": "dd6b78398d8cceda3b1b2dfcdfb918e7278be817e4fa7d1d5285ba09d4ca259c",
+      "binary_sha256": "38be84564ff14b118195ee3d44e546fde3a0023c4ab17bc721cfc70966720ce8",
+      "config_sha256": "bef495abd5d4c47dc359b745be2b23b879ca5a5207228106db3930c093102e76",
+      "report_sha256": "ee12bfc8275768886024ec5784624315b2df2f70e9f2d2bfe7e30167ca3cba24",
+      "report_manifest_sha256": "e545b8598294b9bbdd7d0c72227796425300bfebdbf0edb7c73c3a1ed4f5f96e",
+      "audit_sha256": "6f5b26a523bfe322f6a7f1759cfd3a2b676f6045ea5dd06bf52951381d706c94",
+      "files": {
+        "path-3610-0001-1e1c6d4bb6.tar.gz": {
+          "sha256": "0870dccabcf6f4c140764153e50c40fccf2baeddd67c51b9054356e09c55bce1",
+          "bytes": 1337643
+        }
+      },
+      "scope": "Complete consumed native Context path fixed3610 q-1 to -2; reuse16 controls and two fresh task captures; native integer scores/ties/order/effects independently audited; no gradient, rerank, optimizer, finite candidate, rollout or model qualification."
+    },
+    "seconds": 6.489220667630434,
+    "completed_utc": "2026-10-08T20:17:20.656177+00:00"
+  },
+  "resources": {
+    "cumulative_projected_seconds": 558870,
+    "new_increment": 0,
+    "task_projection_seconds": 3600,
+    "pod_threads": 2,
+    "process_RAM_bytes": 4294967296,
+    "report_limit_bytes": 134217728,
+    "numerical_cache_bytes": 536870912,
+    "temporary_bytes": 536870912,
+    "local_disk_floor_GiB": 30,
+    "manual_shared_runner": "UNVERIFIED",
+    "model_GPU_compute": "NOT_RUN"
+  },
+  "interpretation": [
+    "Recorded3610 has four task and fifty control held-input action crossings across2137 consumed Transition inputs",
+    "Earlier consumed Context events distinguish this result from endpoint-only Prefix/Source/U plateaus",
+    "Hard score crossing justifies declared coherent native finite contrast; no changed recurrent candidate, objective or reply result yet",
+    "Same18 fixedprefixes and sole recordedcoordinate; no family/capacity/general-language/geometric-advantage/energy qualification; previous8/512 scope retained"
+  ],
+  "next_question": "After actual protected merge, one coherent Source/U-bound export and independently reloaded native18 finite contrast for ONLYrecordedself_transition3610q-1to-2, frozenG4248/U82ae andsame245pos4weight1+17referenceweight1/17 objective. StrictcombinedCE/taskprobability/referencewinner gates; preserve negative. No gradient/rerank/optimizer or serving case/cursor/filter.",
+  "delivery_receipt_scope": "Actual protected merge and fresh origin/main/tree receipt published on owning issue after delivery; source evidence does not forecast merge."
+}
