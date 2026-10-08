@@ -1,0 +1,52 @@
+UOR-R4 — The served gap, settled on identical positions: 0.00883 BPB, all of it weight quantisation
+Date: 2026-10-08 (overnight round 37). DeepSeek session. References #820.
+Instrument: `geometric-stack lut-evaluate artifact=... model=... valid=... windows=64 reference=true`.
+
+WHY THIS MEASUREMENT WAS NEEDED
+  Round 36 established that the served artifact is FREE-transport and that the 0.05522 BPB gap it had
+  been credited with was assembled from numbers taken on DIFFERENT position sets (a 512-window float
+  evaluation against a 64-window integer evaluation, and a snap-evaluate counterfactual in between).
+  An independent review's inference that roughly 0.046 BPB was un-attributed integer serving
+  arithmetic rested explicitly on that cross-set arithmetic and asked for this measurement instead.
+
+THE MEASUREMENT (chat-v0-p2/heldout sha256 e5f400b0..., 64 windows, 24,576 targets, one position set)
+
+    float      the model's own f32 kernels                      nll 1.8171591   0.92394 BPB
+    reference  its dequantized matrices, grid-code scalars
+               and integer biases with unit norm gains, in f32  nll 1.8345347   0.93277 BPB
+    integer    the multiplier-free served engine                nll 1.8345360   0.93277 BPB
+
+    quantisation   float -> reference   0.0174 nats   0.00883 BPB
+    engine         reference -> integer 0.000001 nats 0.000001 BPB
+    total          float -> integer     0.0174 nats   0.00884 BPB
+    top-1 agreement between the engine and the float model: 0.9244
+
+WHAT IT SETTLES
+  1. THE INTEGER ENGINE IS EXACT. It reproduces its own dequantized reference to one micro-nat
+     per token. There is no serving-arithmetic loss to find: not in activation fixed-point, not in
+     the tables, not in the norm, not in the l2 distance. The hypothesis that ~0.046 BPB sat in the
+     integer path is refuted, and it was an artefact of comparing different position sets.
+  2. THE WHOLE SERVED COST IS WEIGHT QUANTISATION, 0.00883 BPB. This matches the round-20
+     rounding attribution (0.0173756 nats, 0.0088 BPB) exactly, which is the independent
+     confirmation that both tools are measuring the same thing on the same weights.
+  3. THE SERVED ARTIFACT DELIVERS 99.0 PER CENT OF ITS OWN FLOAT MODEL, and the earlier "0.05522
+     BPB served gap" was a protocol artefact rather than a serving deficit. The published
+     decomposition of that gap into snap and quantisation terms is superseded; the real one is one
+     line: 0.00883 BPB of quantisation, 0.000001 BPB of engine.
+  4. CONSEQUENTLY THERE IS NO LARGE SERVING HEADROOM LEFT. Rounds 24-34 spent their effort on the
+     transport snap (0.03578 BPB credited, now known to be a float counterfactual the artifact does
+     not pay) and on quantiser arms (GPTQ vs round-to-nearest, 0.00376 BPB). Both were real
+     questions about real quantities, and neither was where the served number was being decided.
+     What decides it is the MODEL's own quality on the evaluation slice: 0.92394 BPB for its float
+     kernels here, against 0.87755 measured on a different 512-window slice in round 16.
+
+THE REMAINING QUESTION IS THEREFORE MODEL QUALITY, NOT SERVING
+  The pipeline is faithful: train -> export -> serve costs 0.0088 BPB and the engine adds nothing.
+  Every remaining lever is about the model and its data - which is where round 12's measurement
+  (in-domain data worth 0.1592 BPB against 0.0837 for size, extended at 10x in round 35 where a
+  214 M model at 1.0966 lost to a 7.16 M chat-only model at 0.9607) already pointed.
+
+SCOPE
+  One model, one artifact, one corpus, 64 windows, 24,576 targets, single deterministic run. The
+  comparison is exactly matched on positions, which is what makes it decisive where the earlier
+  cross-set numbers were not.
