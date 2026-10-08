@@ -44,6 +44,8 @@ enum EvaluationKind {
     OwnPrefix,
     #[serde(rename = "entry_zero_u_v2")]
     EntryZeroUV2,
+    #[serde(rename = "component_cross_entry")]
+    ComponentCrossEntry,
 }
 const ENTRY_REPORT_SHA: &str = "f46342484238b1f806be312bb2b0e712873c6e8493d92dab6cd9c526308ee342";
 const ENTRY_MANIFEST_SHA: &str = "10c8d4598e361eda30d2fe8367f8ad105798a2841ab41f303a276153b4d80057";
@@ -51,9 +53,32 @@ const ENTRY_U_SHA: &str = "21b66d25271ca97551d094afed2e492d5a8981db47a527e845c96
 const ENTRY_INPUT_SHA: &str = "b9661606b280884217a64e0a5b643f8324a90390e47ade7241da0889a5f7c86a";
 const ENTRY_LABEL_SHA: &str = "84991e0657b5697c0e061eaa3fe86e4a0ec7ce6bc2be8371b62698c6b8126155";
 const ENTRY_ORIGINAL_EIGHT: [usize; 8] = [0, 1, 4, 5, 8, 9, 12, 13];
+const COMPONENT_REPORT_SHA: &str =
+    "9582f56c8d285920cd67977fd23d36e8a96beabe7c5f27ea45ad4b1113d3503c";
+const COMPONENT_MANIFEST_SHA: &str =
+    "45bbcbf2550b6d6a726df09b3c8ad6307ad20b4a8073306be458ca93f3376da5";
+const COMPONENT_RECEIPT_SHA: &str =
+    "ea8258461ed0409139490c9cab8cfacbc6f575aa6398f616a13d3620b5a507ca";
+const COMPONENT_U_SHA: &str = "be6200897585dd26159d6e78cbfeb16cfce0912abf36fcfa4aab6f7b097314d0";
+const COMPONENT_PARENT_REPORT_SHA: &str =
+    "a1277d2be4ff962100f857d0da553257ad5596ac8bc72d9257299e74d2f2e278";
+const COMPONENT_PARENT_MANIFEST_SHA: &str =
+    "b37e2ca588bf1cc4dc5971fa5da97b9e83c90a94f4ea0bfdb0655b8f92bf94ca";
+const COMPONENT_PARENT_RECEIPT_SHA: &str =
+    "0b992aa45141fb1a60cef2dfc62c47af891e3d715c2f271c0662b918fa78f626";
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct ComponentParent {
+    model_root: PathBuf,
+    expected_model_report_sha256: String,
+    expected_model_manifest_sha256: String,
+    expected_checkpoint_receipt_sha256: String,
+}
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Config {
+    #[serde(default)]
+    component_parent: Option<ComponentParent>,
     #[serde(default)]
     evaluation_kind: EvaluationKind,
     #[serde(default)]
@@ -122,7 +147,7 @@ struct Panel {
     schema: String,
     cases: Vec<Packet>,
 }
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Packet {
     id: String,
@@ -130,7 +155,7 @@ struct Packet {
     query_ids: Vec<u32>,
     actual_prefix_ids: Vec<u32>,
 }
-#[derive(Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(tag = "kind", deny_unknown_fields)]
 enum Segment {
     Source {
@@ -443,8 +468,32 @@ fn load_frozen_model(
 
 /// Both admission branches share only the authenticated native byte loader.
 fn load_checkpoint(cp: PathBuf, r: Value, admission: Value, receipt: Value) -> Result<FrozenModel> {
-    let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
     let gen = bytes(&cp.join("generate.bin"))?;
+    let (generator, exp_sha256) = load_native_components(
+        &cp,
+        &receipt,
+        BoundNativeBytes {
+            bytes: &gen,
+            sha256: expected_string(&receipt["generate_sha256"])?,
+        },
+    )?;
+    Ok(FrozenModel {
+        generator,
+        report: r,
+        admission,
+        native_directory: cp.join("native"),
+        checkpoint: cp,
+        exp_sha256,
+    })
+}
+/// The Source donor keeps its own source-bound sidecars. Generate bytes and hash
+/// come directly from an authenticated donor; no receipt is rewritten.
+fn load_native_components(
+    cp: &Path,
+    receipt: &Value,
+    generate: BoundNativeBytes<'_>,
+) -> Result<(NativeBankGenerator, String)> {
+    let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
     let bridge = bytes(&cp.join("read-state-bridge-categorical.bin"))?;
     let exp = bytes(&cp.join("native/consumer/exp-q31.bin"))?;
     let exp_hash = hash(&exp);
@@ -463,10 +512,7 @@ fn load_checkpoint(cp: PathBuf, r: Value, admission: Value, receipt: Value) -> R
     let g = NativeBankGenerator::load(NativeBankArtifacts {
         native_directory: &native_dir,
         source_binding: &binding,
-        generate: BoundNativeBytes {
-            bytes: &gen,
-            sha256: expected_string(&receipt["generate_sha256"])?,
-        },
+        generate,
         bridge: Some(BoundNativeBytes {
             bytes: &bridge,
             sha256: expected_string(&receipt["categorical_sha256"])?,
@@ -481,19 +527,38 @@ fn load_checkpoint(cp: PathBuf, r: Value, admission: Value, receipt: Value) -> R
             sha256: &exp_hash,
         },
     })?;
-    Ok(FrozenModel {
-        generator: g,
-        report: r,
-        admission,
-        checkpoint: cp,
-        native_directory: native_dir,
-        exp_sha256: exp_hash,
-    })
+    Ok((g, exp_hash))
 }
 fn hex_identity(value: &str, digits: usize) -> bool {
     value.len() == digits && value.bytes().all(|v| v.is_ascii_hexdigit())
 }
 fn admit_model_options(c: &Config) -> Result<()> {
+    if c.evaluation_kind != EvaluationKind::ComponentCrossEntry && c.component_parent.is_some() {
+        return Err(bad(
+            "component parent is only valid for component_cross_entry",
+        ));
+    }
+    if c.evaluation_kind == EvaluationKind::ComponentCrossEntry {
+        let p = c
+            .component_parent
+            .as_ref()
+            .ok_or_else(|| bad("component parent absent"))?;
+        entry_require(
+            c.model_kind == ModelKind::JointContinuation
+                && c.checkpoint_step == Some(1)
+                && c.expected_model_report_sha256 == COMPONENT_REPORT_SHA
+                && c.expected_model_manifest_sha256 == COMPONENT_MANIFEST_SHA
+                && c.expected_checkpoint_receipt_sha256.as_deref() == Some(COMPONENT_RECEIPT_SHA)
+                && c.expected_continuation_field_sha256.as_deref() == Some(COMPONENT_U_SHA)
+                && p.expected_model_report_sha256 == COMPONENT_PARENT_REPORT_SHA
+                && p.expected_model_manifest_sha256 == COMPONENT_PARENT_MANIFEST_SHA
+                && p.expected_checkpoint_receipt_sha256 == COMPONENT_PARENT_RECEIPT_SHA
+                && c.expected_inputs_sha256 == ENTRY_INPUT_SHA
+                && c.expected_labels_sha256 == ENTRY_LABEL_SHA
+                && c.maximum_report_bytes == 128 << 20,
+            "component diagnostic requires exact parent/joint1, original512 and128MiB cap",
+        )?;
+    }
     match c.model_kind {
         ModelKind::LegacyRecomposition => {
             if c.checkpoint_step.is_some() || c.expected_checkpoint_receipt_sha256.is_some() {
@@ -1030,7 +1095,7 @@ fn entry_continuation(step: &NativeBankGenerateStep) -> Result<Value> {
         "encoding_coefficient_reads":u.encoding_coefficient_reads,"field_counts":u.counts}),
     )
 }
-fn matched_entry_invariants(
+fn matched_entry_geometry(
     a: &NativeBankGenerateStep,
     b: &NativeBankGenerateStep,
     query_tokens: usize,
@@ -1138,14 +1203,6 @@ fn matched_entry_invariants(
             }),
         "action identity differs across arms",
     )?;
-    verify_entry_score_deltas(
-        &a.copy_token_ids,
-        &a.generate_raw_scores_q24,
-        &b.generate_raw_scores_q24,
-        &a.copy_raw_scores_q24,
-        &b.copy_raw_scores_q24,
-        &u.delta_scores_q24,
-    )?;
     let mut compact_bridge = bridge;
     let scores = compact_bridge
         .as_object_mut()
@@ -1159,8 +1216,29 @@ fn matched_entry_invariants(
         "local_carrier_equal":true,"local_state_codes":u.state_codes.iter().map(|c|c.index()).collect::<Vec<_>>(),
         "copy_ids_sha256":json_hash(&a.copy_token_ids)?,"physical_copy_occurrences":a.copy_token_ids.len(),
         "ordered_alias_identity_sha256":json_hash(&a.actions.actions.iter().map(|x|(&x.action,x.action_offset,x.token_id)).collect::<Vec<_>>())?,
-        "all_score_differences_equal_token_u":true,"zero_delta_exact":true,"generate_reads":a.generate_counts}),
+        "zero_delta_exact":true,"generate_reads":a.generate_counts}),
     )
+}
+fn matched_entry_invariants(
+    a: &NativeBankGenerateStep,
+    b: &NativeBankGenerateStep,
+    query_tokens: usize,
+) -> Result<Value> {
+    let mut result = matched_entry_geometry(a, b, query_tokens)?;
+    let u = a
+        .continuation
+        .as_ref()
+        .ok_or_else(|| bad("learned U witness absent"))?;
+    verify_entry_score_deltas(
+        &a.copy_token_ids,
+        &a.generate_raw_scores_q24,
+        &b.generate_raw_scores_q24,
+        &a.copy_raw_scores_q24,
+        &b.copy_raw_scores_q24,
+        &u.delta_scores_q24,
+    )?;
+    result["all_score_differences_equal_token_u"] = json!(true);
+    Ok(result)
 }
 fn entry_arm(step: &NativeBankGenerateStep, target: u32) -> Result<(EntryMasses, Value)> {
     let masses = entry_masses(
@@ -1513,6 +1591,474 @@ fn run_entry_zero_u(c: &Config) -> Result<Value> {
     Ok(report)
 }
 
+/// Exact file inventories constrain the substitution to native Context/Potential.
+/// Source-bound metadata remains with its donor and is validated by the loader.
+fn component_files(root: &Path) -> Result<BTreeMap<String, String>> {
+    fn visit(root: &Path, at: &Path, out: &mut BTreeMap<String, String>) -> Result<()> {
+        for item in fs::read_dir(at)? {
+            let item = item?;
+            let path = item.path();
+            let kind = item.file_type()?;
+            entry_require(!kind.is_symlink(), "component tree contains symlink")?;
+            if kind.is_dir() {
+                visit(root, &path, out)?;
+            } else {
+                entry_require(kind.is_file(), "component tree contains non-file")?;
+                let relative = path
+                    .strip_prefix(root)?
+                    .to_str()
+                    .ok_or_else(|| bad("non-UTF8 component path"))?
+                    .to_owned();
+                out.insert(relative, file_hash(&path)?);
+            }
+        }
+        Ok(())
+    }
+    let mut out = BTreeMap::new();
+    visit(root, root, &mut out)?;
+    Ok(out)
+}
+fn component_cue_equal(a: &CueCarrierMetadata, b: &CueCarrierMetadata) -> bool {
+    let mut normalized = b.clone();
+    normalized.parent_artifact = a.parent_artifact.clone();
+    normalized.context_packed_sha256 = a.context_packed_sha256.clone();
+    &normalized == a
+}
+fn component_frozen_inventory(
+    a: &BTreeMap<String, String>,
+    b: &BTreeMap<String, String>,
+) -> Result<()> {
+    entry_require(a.keys().eq(b.keys()), "native donor file set differs")?;
+    for (name, sha) in a {
+        if !matches!(
+            name.as_str(),
+            "metadata.json"
+                | "consumer/metadata.json"
+                | "consumer/context-q4.bin"
+                | "consumer/potential-q4.bin"
+        ) {
+            entry_require(b.get(name) == Some(sha), "frozen native component differs")?;
+        }
+    }
+    Ok(())
+}
+fn component_donor_invariants(a: &FrozenModel, b: &FrozenModel) -> Result<Value> {
+    let left = component_files(&a.native_directory)?;
+    let right = component_files(&b.native_directory)?;
+    component_frozen_inventory(&left, &right)?;
+    let mut gm = b.generator.generate_model().metadata().clone();
+    gm.payload_sha256 = a
+        .generator
+        .generate_model()
+        .metadata()
+        .payload_sha256
+        .clone();
+    entry_require(
+        &gm == a.generator.generate_model().metadata()
+            && a.generator.generate_model().prototypes()
+                == b.generator.generate_model().prototypes(),
+        "Generate metadata/prototypes changed beyond coefficients",
+    )?;
+    entry_require(
+        a.generator.generate_model().energy().edges()
+            == b.generator.generate_model().energy().edges(),
+        "Generate ordered factor topology differs",
+    )?;
+    let mut sidecars = BTreeMap::new();
+    for name in [
+        "read-state-bridge.bin",
+        "read-state-bridge-categorical.bin",
+        "cue/cue-q4.bin",
+        "prefix/prefix-q4.bin",
+        "cue/cue-joint-q4.bin",
+    ] {
+        let x = a.checkpoint.join(name);
+        let y = b.checkpoint.join(name);
+        entry_require(
+            x.is_file() == y.is_file(),
+            "numeric sidecar presence differs",
+        )?;
+        if x.is_file() {
+            let sha = file_hash(&x)?;
+            entry_require(sha == file_hash(&y)?, "frozen numeric sidecar differs")?;
+            sidecars.insert(name, sha);
+        } else {
+            entry_require(
+                name == "cue/cue-joint-q4.bin",
+                "required frozen sidecar absent",
+            )?;
+        }
+    }
+    let ac: CueCarrierMetadata =
+        serde_json::from_value(read(&a.checkpoint.join("cue/native-metadata.json"))?)?;
+    let bc: CueCarrierMetadata =
+        serde_json::from_value(read(&b.checkpoint.join("cue/native-metadata.json"))?)?;
+    entry_require(
+        component_cue_equal(&ac, &bc),
+        "cue config or frozen payload binding differs",
+    )?;
+    let ap: PrefixTransportMetadata =
+        serde_json::from_value(read(&a.checkpoint.join("prefix/native-metadata.json"))?)?;
+    let mut bp: PrefixTransportMetadata =
+        serde_json::from_value(read(&b.checkpoint.join("prefix/native-metadata.json"))?)?;
+    entry_require(
+        component_cue_equal(&ap.frozen_cue, &bp.frozen_cue),
+        "prefix frozen cue differs",
+    )?;
+    bp.parent_artifact = ap.parent_artifact.clone();
+    bp.context_packed_sha256 = ap.context_packed_sha256.clone();
+    bp.frozen_cue = ap.frozen_cue.clone();
+    entry_require(ap == bp, "prefix config or frozen payload binding differs")?;
+    Ok(
+        json!({"source0_native_files":left,"source1_native_files":right,"frozen_numeric_sidecars":sidecars,
+        "generate_prototypes_sha256":json_hash(&a.generator.generate_model().prototypes())?,
+        "generate_metadata_equal_except_payload":true,"source_sidecar_configs_equal_except_source_bindings":true}),
+    )
+}
+fn component_loss_pattern(source_only_correct: bool, generate_only_correct: bool) -> &'static str {
+    match (source_only_correct, generate_only_correct) {
+        (false, true) => "source_alone_sufficient",
+        (true, false) => "generate_alone_sufficient",
+        (false, false) => "either_alone_sufficient",
+        (true, true) => "combination_specific",
+    }
+}
+fn component_fixed_source(
+    a: &NativeBankGenerateStep,
+    b: &NativeBankGenerateStep,
+    query_tokens: usize,
+) -> Result<Value> {
+    let mut invariant = matched_entry_geometry(a, b, query_tokens)?;
+    entry_require(
+        a.continuation
+            .as_ref()
+            .is_some_and(|u| u.delta_scores_q24.iter().all(|&v| v == 0))
+            && a.copy_raw_scores_q24 == b.copy_raw_scores_q24,
+        "fixed Source Copy scores changed or zero U was nonzero",
+    )?;
+    invariant["copy_preclip_equal"] = json!(true);
+    invariant["copy_preclip_sha256"] = json!(json_hash(&a.copy_raw_scores_q24)?);
+    Ok(invariant)
+}
+fn run_component_cross_entry(c: &Config) -> Result<Value> {
+    let started = std::time::Instant::now();
+    admit_model_options(c)?;
+    entry_require(
+        c.evaluation_kind == EvaluationKind::ComponentCrossEntry,
+        "explicit component mode required",
+    )?;
+    let donor = c
+        .component_parent
+        .as_ref()
+        .ok_or_else(|| bad("component parent absent"))?;
+    let joint = load_joint_model(c)?;
+    let parent = load_frozen_model(
+        &donor.model_root,
+        &donor.expected_model_report_sha256,
+        &donor.expected_model_manifest_sha256,
+    )?;
+    entry_require(
+        file_hash(&parent.checkpoint.join("receipt.json"))?
+            == donor.expected_checkpoint_receipt_sha256,
+        "component parent checkpoint receipt differs",
+    )?;
+    let parent_receipt = read(&parent.checkpoint.join("receipt.json"))?;
+    let joint_receipt = read(&joint.checkpoint.join("receipt.json"))?;
+    entry_require(
+        joint_receipt["parent_report_sha256"] == COMPONENT_PARENT_REPORT_SHA
+            && joint_receipt["parent_manifest_sha256"] == COMPONENT_PARENT_MANIFEST_SHA,
+        "joint1 parent provenance differs",
+    )?;
+    let initial_cp = c.model_root.join("checkpoint-0000");
+    let initial_receipt = read(&initial_cp.join("receipt.json"))?;
+    entry_require(
+        initial_receipt == joint.report["initial_receipt"]
+            && initial_receipt["step"] == 0
+            && initial_receipt["mode"] == "joint_continuation"
+            && initial_receipt["native_independently_reloaded"] == true
+            && initial_receipt["masters_independently_reloaded"] == true
+            && initial_receipt["parent"] == parent_receipt["parent"]
+            && initial_receipt["generate_sha256"] == parent_receipt["generate_sha256"],
+        "joint initial is not the authenticated parent",
+    )?;
+    entry_require(
+        component_files(&initial_cp.join("native"))? == component_files(&parent.native_directory)?,
+        "joint initial native files differ from parent",
+    )?;
+    for name in [
+        "generate.bin",
+        "read-state-bridge.bin",
+        "read-state-bridge-categorical.bin",
+        "cue/native-metadata.json",
+        "cue/cue-q4.bin",
+        "prefix/native-metadata.json",
+        "prefix/prefix-q4.bin",
+        "cue/cue-joint-q4.bin",
+    ] {
+        let a = initial_cp.join(name);
+        let b = parent.checkpoint.join(name);
+        entry_require(
+            a.is_file() == b.is_file(),
+            "initial-parent sidecar presence differs",
+        )?;
+        if a.is_file() {
+            entry_require(
+                bytes(&a)? == bytes(&b)?,
+                "initial-parent component bytes differ",
+            )?;
+        }
+    }
+    let frozen = component_donor_invariants(&parent, &joint)?;
+    let cps = [&parent.checkpoint, &joint.checkpoint];
+    let receipts = [&parent_receipt, &joint_receipt];
+    let generate_bytes = [
+        bytes(&cps[0].join("generate.bin"))?,
+        bytes(&cps[1].join("generate.bin"))?,
+    ];
+    let mut generators = Vec::new();
+    let mut arm_receipts = Vec::new();
+    // Arm order is S0G0,S0G1,S1G0,S1G1. Each field binds its actual pair.
+    for source in 0..2 {
+        for generate in 0..2 {
+            let gen_sha = expected_string(&receipts[generate]["generate_sha256"])?;
+            entry_require(
+                hash(&generate_bytes[generate]) == gen_sha,
+                "Generate donor bytes differ",
+            )?;
+            let (g, _) = load_native_components(
+                cps[source],
+                receipts[source],
+                BoundNativeBytes {
+                    bytes: &generate_bytes[generate],
+                    sha256: gen_sha,
+                },
+            )?;
+            let field = NativeContinuationField::compile_shared_action(
+                g.source_binding(),
+                g.generate_model(),
+                &vec![0; g.generate_model().lanes() * 60],
+            )?;
+            let encoded = field.to_bytes()?;
+            let name = format!("s{source}g{generate}-zero-v2.bin");
+            fs::write(c.output.join(&name), &encoded)?;
+            let reloaded_bytes = bytes(&c.output.join(&name))?;
+            let reloaded = NativeContinuationField::from_bytes(
+                &reloaded_bytes,
+                g.source_binding(),
+                g.generate_model(),
+            )?;
+            entry_require(
+                reloaded.to_bytes()? == encoded
+                    && reloaded.packed_unary().iter().all(|&v| v == 0)
+                    && reloaded.applies_to_copy()
+                    && reloaded.score_shift() == 22,
+                "component zero-v2 roundtrip differs",
+            )?;
+            if source == generate {
+                let original_cp = if source == 0 {
+                    &initial_cp
+                } else {
+                    &joint.checkpoint
+                };
+                let original = bytes(&original_cp.join("continuation-field.bin"))?;
+                let expected = if source == 0 {
+                    &initial_receipt
+                } else {
+                    &joint_receipt
+                };
+                entry_require(
+                    hash(&original) == expected_string(&expected["continuation_sha256"])?
+                        && original == encoded,
+                    "diagonal zero-v2 differs from genuine saved field",
+                )?;
+            }
+            let field_sha = hash(&encoded);
+            arm_receipts.push(json!({"arm":format!("s{source}g{generate}"),"source_donor":source,"generate_donor":generate,
+                "source_binding":g.source_binding(),"source_receipt_sha256":file_hash(&cps[source].join("receipt.json"))?,
+                "generate_sha256":gen_sha,"bridge_sha256":g.bridge_sha256(),"zero_field_file":name,"zero_field_sha256":field_sha,"zero_field_metadata":reloaded.metadata(),
+                "generate_exact_donor_bytes":true,"zero_independently_reloaded":true,"derived_unaccepted_diagnostic":source!=generate}));
+            generators.push(g.with_continuation_field(BoundNativeBytes {
+                bytes: &reloaded_bytes,
+                sha256: &field_sha,
+            })?);
+        }
+    }
+    write_row(
+        c,
+        "component-receipt.json",
+        &json!({"parent":donor,"joint_report_sha256":COMPONENT_REPORT_SHA,"joint_manifest_sha256":COMPONENT_MANIFEST_SHA,
+        "joint_initial_receipt_sha256":file_hash(&initial_cp.join("receipt.json"))?,"joint_initial_exact_parent":true,"frozen":frozen,"arms":arm_receipts}),
+    )?;
+    let input_seal = seal_for(&c.inputs)?;
+    let label_seal = seal_for(&c.labels)?;
+    report_output::verify(&input_seal)?;
+    report_output::verify(&label_seal)?;
+    entry_require(
+        file_hash(&c.inputs)? == ENTRY_INPUT_SHA && file_hash(&c.labels)? == ENTRY_LABEL_SHA,
+        "component512 data differs",
+    )?;
+    let panel: Panel = serde_json::from_slice(&bytes(&c.inputs)?)?;
+    let labels: Labels = serde_json::from_slice(&bytes(&c.labels)?)?;
+    entry_require(
+        panel.schema == "uor-r4.native-source-bank-probe-input/1"
+            && labels.schema == "uor-r4.native-source-bank-labels/1"
+            && labels.protocol == "uor-r4.literal-role-dialogue/2"
+            && labels.membership_only
+            && panel.cases.len() == 512
+            && labels.cases.len() == 512,
+        "component diagnostic requires complete original512",
+    )?;
+    let summaries = [
+        read(&c.model_root.join("development-0000.json"))?,
+        read(&c.model_root.join("development-0001.json"))?,
+    ];
+    entry_require(
+        summaries[0] == joint.report["initial_evaluation"]
+            && summaries[1] == joint.report["final_evaluation"],
+        "diagonal summaries differ",
+    )?;
+    let refs = [
+        summaries[0]["rows"]
+            .as_array()
+            .ok_or_else(|| bad("initial rows absent"))?,
+        summaries[1]["rows"]
+            .as_array()
+            .ok_or_else(|| bad("final rows absent"))?,
+    ];
+    entry_require(
+        refs.iter().all(|r| r.len() == 512),
+        "diagonal population differs",
+    )?;
+    let tok = ByteBpeTokenizer::from_tokenizer_json_bytes(&bytes(
+        &parent.native_directory.join("tokenizer.json"),
+    )?)
+    .ok_or_else(|| bad("entry tokenizer absent"))?;
+    let mut seen = BTreeSet::new();
+    let mut rows = Vec::new();
+    let mut original = Vec::new();
+    let mut patterns = BTreeMap::<String, Vec<String>>::new();
+    let mut correct: [Vec<String>; 4] = std::array::from_fn(|_| Vec::new());
+    let mut remaining_correct: [Vec<String>; 4] = std::array::from_fn(|_| Vec::new());
+    let mut forward_seconds = 0.;
+    for (index, (packet, label)) in panel.cases.into_iter().zip(labels.cases).enumerate() {
+        let id = packet.id.clone();
+        let query_tokens = packet.query_ids.len();
+        let packet_sha = json_hash(&packet)?;
+        entry_require(
+            !id.is_empty()
+                && seen.insert(id.clone())
+                && label.id == id
+                && refs.iter().all(|r| r[index]["id"] == id),
+            "component packet/label/diagonal IDs differ",
+        )?;
+        let bank0 = generators[0].admit_bank(snapshot(packet.clone())?)?;
+        let bank1 = generators[2].admit_bank(snapshot(packet)?)?;
+        let clock = std::time::Instant::now();
+        let steps = [
+            generators[0].step(&bank0, &[])?,
+            generators[1].step(&bank0, &[])?,
+            generators[2].step(&bank1, &[])?,
+            generators[3].step(&bank1, &[])?,
+        ];
+        forward_seconds += clock.elapsed().as_secs_f64();
+        let invariants = [
+            component_fixed_source(&steps[0], &steps[1], query_tokens)?,
+            component_fixed_source(&steps[2], &steps[3], query_tokens)?,
+        ];
+        // ALL FOUR target-free native calls precede label-derived targets.
+        label.answers.validate()?;
+        let accepted = label
+            .answers
+            .accepted
+            .first()
+            .ok_or_else(|| bad("entry accepted form absent"))?;
+        let target_ids = tok.encode(accepted);
+        entry_require(
+            tok.decode_bytes(&target_ids) == accepted.as_bytes(),
+            "entry tokenizer roundtrip differs",
+        )?;
+        let target = *target_ids
+            .first()
+            .ok_or_else(|| bad("entry target absent"))?;
+        let arms = steps
+            .iter()
+            .map(|s| entry_arm(s, target))
+            .collect::<Result<Vec<_>>>()?;
+        for (diagonal, arm) in [(0, 0), (1, 3)] {
+            let saved = saved_entry_row(&c.model_root, &refs[diagonal][index], &id)?;
+            verify_saved_learned_entry(&steps[arm], &saved, target, arms[arm].0.target.weight_q31)?;
+        }
+        let wins: Vec<_> = arms
+            .iter()
+            .map(|(m, _)| m.winner.token_id == target)
+            .collect();
+        for arm in 0..4 {
+            if wins[arm] {
+                correct[arm].push(id.clone());
+                if !ENTRY_ORIGINAL_EIGHT.contains(&index) {
+                    remaining_correct[arm].push(id.clone());
+                }
+            }
+        }
+        let mut contrasts = BTreeMap::new();
+        for (name, from, to) in [
+            ("source_at_g0", 0, 2),
+            ("source_at_g1", 1, 3),
+            ("generate_at_s0", 0, 1),
+            ("generate_at_s1", 2, 3),
+        ] {
+            let a = &arms[from].0;
+            let b = &arms[to].0;
+            contrasts.insert(name,json!({"target_probability":rational(normalized_change(i128::from(b.target.weight_q31),b.total,i128::from(a.target.weight_q31),a.total)?),
+                "normalized_margin":rational(normalized_change(b.margin(),b.total,a.margin(),a.total)?)}));
+        }
+        let pattern = if ENTRY_ORIGINAL_EIGHT.contains(&index) {
+            entry_require(
+                wins[0] && !wins[3],
+                "original8 diagonal collapse not reproduced",
+            )?;
+            let pattern = component_loss_pattern(wins[2], wins[1]);
+            patterns.entry(pattern.into()).or_default().push(id.clone());
+            original.push(json!({"index":index,"id":id,"correct_s0g0_s0g1_s1g0_s1g1":wins,"loss_pattern":pattern}));
+            Some(pattern)
+        } else {
+            None
+        };
+        let filename = format!("component-row-{index:04}.json");
+        write_row(
+            c,
+            &filename,
+            &json!({"index":index,"id":id,"packet_serde_sha256":packet_sha,"target_token_id":target,
+            "target_definition":"first token of first accepted answer; labels after all four forwards","arm_order":["s0g0","s0g1","s1g0","s1g1"],
+            "arms":arms.iter().map(|(_,v)|v).collect::<Vec<_>>(),"fixed_source_invariants":invariants,
+            "initial_saved_row_sha256":refs[0][index]["row_sha256"],"final_saved_row_sha256":refs[1][index]["row_sha256"],"both_diagonals_exact_saved_entry":true,
+            "component_contrasts":contrasts,"original8_loss_pattern":pattern}),
+        )?;
+        rows.push(json!({"index":index,"id":id,"row_file":filename,"row_sha256":file_hash(&c.output.join(&filename))?,"correct_s0g0_s0g1_s1g0_s1g1":wins}));
+    }
+    entry_require(
+        rows.len() == 512 && original.len() == 8,
+        "component coverage incomplete",
+    )?;
+    let report = json!({"schema":"uor-r4.native-bank-component-cross-entry/1","status":"COMPLETED","evaluation_kind":"component_cross_entry",
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"executable_sha256":file_hash(&std::env::current_exe()?)?,"model_source_commit":joint.report["source_commit"],
+        "parent_report_sha256":COMPONENT_PARENT_REPORT_SHA,"parent_manifest_sha256":COMPONENT_PARENT_MANIFEST_SHA,
+        "joint_report_sha256":COMPONENT_REPORT_SHA,"joint_manifest_sha256":COMPONENT_MANIFEST_SHA,"joint_checkpoint_receipt_sha256":COMPONENT_RECEIPT_SHA,
+        "component_receipt_sha256":file_hash(&c.output.join("component-receipt.json"))?,"config_sha256":file_hash(&c.output.join("config.json"))?,
+        "inputs_sha256":ENTRY_INPUT_SHA,"labels_sha256":ENTRY_LABEL_SHA,"input_seal_sha256":file_hash(&input_seal.join("manifest.json"))?,"label_seal_sha256":file_hash(&label_seal.join("manifest.json"))?,
+        "cases":512,"native_entry_calls":2048,"diagonal_parity_calls":1024,"arm_order":["s0g0","s0g1","s1g0","s1g1"],
+        "entry_correct_counts":correct.iter().map(Vec::len).collect::<Vec<_>>(),"entry_correct_ids":correct,"remaining504_correct_ids":remaining_correct,
+        "original8":original,"original8_loss_pattern_ids":patterns,"rows":rows,"native_forward_seconds":forward_seconds,"elapsed_seconds":started.elapsed().as_secs_f64(),
+        "hash_encoding":"SHA256 compact serde_json::to_vec for trace vectors; file pins bind exact bytes",
+        "interpretation":"conditional Source (Context+Potential) and Generate coefficient substitutions at joint1 onset; Source effect is not proof of source identity loss; quantization and learning attribution unresolved",
+        "scope":"all512 exposed empty-prefix decisions; four zero-v2 native arms; derived off-diagonals unaccepted; no fit, full-reply, fresh-transfer, chat, geometry advantage or final64 attribution"});
+    entry_require(
+        serde_json::to_vec_pretty(&report)?.len() <= 512 << 10,
+        "component summary exceeds reserved allowance",
+    )?;
+    Ok(report)
+}
+
 fn admit_paths(c: &mut Config) -> Result<()> {
     admit_model_options(c)?;
     if c.maximum_report_bytes < 8 << 20 || c.maximum_report_bytes > 4 << 30 {
@@ -1534,6 +2080,23 @@ fn admit_paths(c: &mut Config) -> Result<()> {
         let seal = seal_for(p)?;
         if c.output.starts_with(p) || p.starts_with(&c.output) || c.output.starts_with(seal) {
             return Err(bad("output/input or sealed ancestry overlap"));
+        }
+    }
+    if let Some(p) = &mut c.component_parent {
+        if !p.model_root.is_absolute()
+            || p.model_root
+                .components()
+                .any(|v| matches!(v, std::path::Component::ParentDir))
+        {
+            return Err(bad("absolute nontraversing component parent required"));
+        }
+        p.model_root = fs::canonicalize(&p.model_root)?;
+        let seal = seal_for(&p.model_root)?;
+        if c.output.starts_with(&p.model_root)
+            || p.model_root.starts_with(&c.output)
+            || c.output.starts_with(seal)
+        {
+            return Err(bad("output/component parent sealed ancestry overlap"));
         }
     }
     match (
@@ -1662,6 +2225,7 @@ fn main() -> Result<()> {
     let result = match c.evaluation_kind {
         EvaluationKind::OwnPrefix => run(&c),
         EvaluationKind::EntryZeroUV2 => run_entry_zero_u(&c),
+        EvaluationKind::ComponentCrossEntry => run_component_cross_entry(&c),
     };
     let report = match &result {
         Ok(v) => v.clone(),
@@ -1670,6 +2234,10 @@ fn main() -> Result<()> {
             if c.evaluation_kind == EvaluationKind::EntryZeroUV2 {
                 failure["schema"] = json!("uor-r4.native-bank-entry-zero-u-v2/1");
                 failure["evaluation_kind"] = json!("entry_zero_u_v2");
+            }
+            if c.evaluation_kind == EvaluationKind::ComponentCrossEntry {
+                failure["schema"] = json!("uor-r4.native-bank-component-cross-entry/1");
+                failure["evaluation_kind"] = json!("component_cross_entry");
             }
             failure
         }
@@ -1696,6 +2264,111 @@ mod tests {
         c["continuation_field"] = json!("/fixture/model/checkpoint-0001/continuation-field.bin");
         c["expected_continuation_field_sha256"] = json!("f".repeat(64));
         c
+    }
+    fn component_config() -> Value {
+        let mut c = joint_config();
+        c["evaluation_kind"] = json!("component_cross_entry");
+        c["expected_model_report_sha256"] = json!(COMPONENT_REPORT_SHA);
+        c["expected_model_manifest_sha256"] = json!(COMPONENT_MANIFEST_SHA);
+        c["expected_checkpoint_receipt_sha256"] = json!(COMPONENT_RECEIPT_SHA);
+        c["expected_continuation_field_sha256"] = json!(COMPONENT_U_SHA);
+        c["expected_inputs_sha256"] = json!(ENTRY_INPUT_SHA);
+        c["expected_labels_sha256"] = json!(ENTRY_LABEL_SHA);
+        c["maximum_report_bytes"] = json!(128 << 20);
+        c["component_parent"] = json!({"model_root":"/fixture/parent",
+            "expected_model_report_sha256":COMPONENT_PARENT_REPORT_SHA,
+            "expected_model_manifest_sha256":COMPONENT_PARENT_MANIFEST_SHA,
+            "expected_checkpoint_receipt_sha256":COMPONENT_PARENT_RECEIPT_SHA});
+        c
+    }
+    #[test]
+    fn component_admission_pins_both_donors_and_rejects_legacy_crossover() -> Result<()> {
+        admit_model_options(&serde_json::from_value(component_config())?)?;
+        for (key, value) in [
+            ("component_parent", Value::Null),
+            ("checkpoint_step", json!(64)),
+            ("expected_checkpoint_receipt_sha256", json!("0".repeat(64))),
+            ("expected_model_report_sha256", json!(ENTRY_REPORT_SHA)),
+            ("expected_model_manifest_sha256", json!(ENTRY_MANIFEST_SHA)),
+            ("expected_continuation_field_sha256", json!(ENTRY_U_SHA)),
+            ("expected_inputs_sha256", json!("0".repeat(64))),
+            ("expected_labels_sha256", json!("0".repeat(64))),
+            ("maximum_report_bytes", json!(64 << 20)),
+            ("continuation_field", Value::Null),
+            ("baseline_parity", json!(true)),
+            ("evaluation_kind", json!("own_prefix")),
+        ] {
+            let mut c = component_config();
+            c[key] = value;
+            assert!(
+                admit_model_options(&serde_json::from_value(c)?).is_err(),
+                "{key}"
+            );
+        }
+        for key in [
+            "expected_model_report_sha256",
+            "expected_model_manifest_sha256",
+            "expected_checkpoint_receipt_sha256",
+        ] {
+            let mut c = component_config();
+            c["component_parent"][key] = json!("0".repeat(64));
+            assert!(
+                admit_model_options(&serde_json::from_value(c)?).is_err(),
+                "parent {key}"
+            );
+        }
+        let mut legacy = legacy_config();
+        legacy["component_parent"] = component_config()["component_parent"].clone();
+        assert!(admit_model_options(&serde_json::from_value(legacy)?).is_err());
+        Ok(())
+    }
+    #[test]
+    fn component_frozen_inventory_allows_only_context_potential_and_rebinding() -> Result<()> {
+        let names = [
+            "metadata.json",
+            "consumer/metadata.json",
+            "consumer/context-q4.bin",
+            "consumer/potential-q4.bin",
+            "consumer/exp-q31.bin",
+            "tokenizer.json",
+            "encoder.bin",
+        ];
+        let a: BTreeMap<String, String> = names
+            .iter()
+            .map(|s| (s.to_string(), "parent".into()))
+            .collect();
+        let mut b = a.clone();
+        for name in &names[..4] {
+            b.insert(name.to_string(), "joint".into());
+        }
+        component_frozen_inventory(&a, &b)?;
+        for name in &names[4..] {
+            let mut bad = b.clone();
+            bad.insert(name.to_string(), "different".into());
+            assert!(component_frozen_inventory(&a, &bad).is_err(), "{name}");
+        }
+        b.remove("encoder.bin");
+        assert!(component_frozen_inventory(&a, &b).is_err());
+        let mut extra = a.clone();
+        extra.insert("new.bin".into(), "unknown".into());
+        assert!(component_frozen_inventory(&a, &extra).is_err());
+        Ok(())
+    }
+    #[test]
+    fn component_patterns_preserve_both_sufficiency_and_combination_case() {
+        assert_eq!(
+            component_loss_pattern(false, true),
+            "source_alone_sufficient"
+        );
+        assert_eq!(
+            component_loss_pattern(true, false),
+            "generate_alone_sufficient"
+        );
+        assert_eq!(
+            component_loss_pattern(false, false),
+            "either_alone_sufficient"
+        );
+        assert_eq!(component_loss_pattern(true, true), "combination_specific");
     }
     fn entry_config() -> Value {
         let mut c = joint_config();
