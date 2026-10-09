@@ -6,8 +6,8 @@
 #   uor-hygiene --apply    do it
 #
 # What it removes, and the guard on each:
-#   1. Worktrees of the main checkout whose HEAD is already in origin/main and
-#      that have no uncommitted or untracked files; their local branch too.
+#   1. Worktrees whose HEAD is in origin/main or is the head of a merged PR,
+#      and that have no uncommitted or untracked files; their local branch too.
 #   2. Rust build folders (~/.cache/uor-*, target/ inside worktrees) that no
 #      file was written to for IDLE_HOURS and that no running cargo/rustc uses.
 #   3. ~/uor-r4-local/<dir> already in the iCloud store (cloud-store index) with
@@ -56,7 +56,12 @@ while IFS=$'\t' read -r wt head br; do
   [ -d "$wt" ] || continue
   br=${br#refs/heads/}
   if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then say "keep   worktree $wt (uncommitted or untracked files)"; continue; fi
-  if ! git -C "$REPO" merge-base --is-ancestor "$head" origin/main 2>/dev/null; then say "keep   worktree $wt (${br:-detached} not in origin/main)"; continue; fi
+  # Main squash-merges, so a merged branch's HEAD is not an ancestor of main:
+  # accept either ancestry or a merged PR whose head is exactly this HEAD.
+  if ! git -C "$REPO" merge-base --is-ancestor "$head" origin/main 2>/dev/null &&
+     ! { [ -n "$br" ] && gh pr list -R "$(git -C "$REPO" remote get-url origin | sed -E 's#.*github.com[:/]##; s#\.git$##')" --head "$br" --state merged --json headRefOid -q '.[].headRefOid' 2>/dev/null | grep -qx "$head"; }; then
+    say "keep   worktree $wt (${br:-detached} not merged into origin/main)"; continue
+  fi
   if busy "$wt"; then say "keep   worktree $wt (build running)"; continue; fi
   k=$(kb "$wt")
   act "$k" "remove worktree $wt ($((k / 1024)) MB, ${br:-detached}, in origin/main)" \
