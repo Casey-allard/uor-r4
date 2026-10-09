@@ -1,0 +1,20 @@
+{
+  "reviewer": "emission_math",
+  "review_kind": "read-only mathematical source review",
+  "reviewed_source_sha256": "c3851deb327a5e94ea755da508bf5aef5fdbb2d9fc337456ed63978b25a5b63b",
+  "status": "NO_CONCRETE_BLOCKER_IN_SCOPED_DRAFT",
+  "scope": [
+    "full-family pair gradient and weighted31 physical frames",
+    "frozen fractional-master displacement ranking and fixed top960 cap",
+    "ordered edge CSR global offset960 and native score delta",
+    "all14 proposals at same incumbent and existing CE/17-reference/380-guard acceptance",
+    "expanded resource estimates"
+  ],
+  "excluded": [
+    "positive artifact authentication still being implemented",
+    "build or execution",
+    "actual-parent gradient replication",
+    "pair feasibility or language result",
+    "measured resource compliance"
+  ]
+}

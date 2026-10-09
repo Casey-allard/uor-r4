@@ -2101,21 +2101,49 @@ pub(super) struct GenerateArtifactAuthority {
     pub expected_report_sha256: String,
     pub expected_manifest_sha256: String,
     pub expected_generate_sha256: String,
-    pub expected_unary_master_sha256: String,
+    #[serde(default)]
+    pub family: super::generate_episode_learning::GenerateFamily,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_unary_master_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_pair_master_sha256: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum_coordinates: Option<usize>,
     pub expected_continuation_sha256: String,
 }
 fn validate_generate_artifact_authority(c: &GenerateArtifactAuthority) -> Result<()> {
+    use super::generate_episode_learning::GenerateFamily;
+    let valid_hash = |h: &str| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit());
     replay_require(
         [
             &c.expected_report_sha256,
             &c.expected_manifest_sha256,
             &c.expected_generate_sha256,
-            &c.expected_unary_master_sha256,
             &c.expected_continuation_sha256,
         ]
         .iter()
-        .all(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit())),
+        .all(|h| valid_hash(h)),
         "Generate artifact external identity hashes invalid",
+    )?;
+    replay_require(
+        match c.family {
+            GenerateFamily::Unary => {
+                c.expected_unary_master_sha256
+                    .as_deref()
+                    .is_some_and(valid_hash)
+                    && c.expected_pair_master_sha256.is_none()
+                    && c.maximum_coordinates.is_none()
+            }
+            GenerateFamily::Pair => {
+                c.expected_pair_master_sha256
+                    .as_deref()
+                    .is_some_and(valid_hash)
+                    && c.expected_unary_master_sha256.is_none()
+                    && c.maximum_coordinates
+                        .is_some_and(|n| (1..=960).contains(&n))
+            }
+        },
+        "Generate artifact family requires its own master hash and pair budget in1..960",
     )
 }
 fn validate_trajectory_artifact_authority(c: &TrajectoryArtifactAuthority) -> Result<()> {
@@ -2411,9 +2439,17 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
                 && report["candidate_objective"]["correct_reference_frames"] == 17,
             "coupled cheap qualification requires positive complete episode",
         )?;
-    } else if c.generate_episode_candidate.is_some() {
+    } else if let Some(g) = &c.generate_episode_candidate {
         replay_require(
-            report["mode"] == "generate_episode_learning"
+            report["mode"]
+                == match g.family {
+                    super::generate_episode_learning::GenerateFamily::Unary => {
+                        "generate_episode_learning"
+                    }
+                    super::generate_episode_learning::GenerateFamily::Pair => {
+                        "generate_pair_episode_learning"
+                    }
+                }
                 && report["finite_episode_positive"] == true
                 && report["final_gate"]["passed"] == true
                 && report["candidate_objective"]["correct_reference_frames"] == 17,
@@ -2665,6 +2701,40 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn generate_artifact_authority_separates_legacy_unary_and_bounded_pair() -> Result<()> {
+        let hash = "a".repeat(64);
+        let legacy = json!({
+            "expected_report_sha256":hash,"expected_manifest_sha256":hash,
+            "expected_generate_sha256":hash,"expected_unary_master_sha256":hash,
+            "expected_continuation_sha256":hash
+        });
+        let unary: GenerateArtifactAuthority = serde_json::from_value(legacy.clone())?;
+        validate_generate_artifact_authority(&unary)?;
+        let mut pair = legacy;
+        pair["family"] = json!("pair");
+        pair["expected_pair_master_sha256"] = json!(hash);
+        pair["maximum_coordinates"] = json!(960);
+        // A unary master pin must never silently authenticate a pair candidate.
+        assert!(
+            validate_generate_artifact_authority(&serde_json::from_value(pair.clone())?).is_err()
+        );
+        pair.as_object_mut()
+            .ok_or_else(|| bad("test authority absent"))?
+            .remove("expected_unary_master_sha256");
+        validate_generate_artifact_authority(&serde_json::from_value(pair.clone())?)?;
+        for budget in [json!(null), json!(0), json!(961)] {
+            let mut invalid = pair.clone();
+            invalid["maximum_coordinates"] = budget;
+            assert!(
+                validate_generate_artifact_authority(&serde_json::from_value(invalid)?).is_err()
+            );
+        }
+        pair["expected_pair_master_sha256"] = json!("invalid");
+        assert!(validate_generate_artifact_authority(&serde_json::from_value(pair)?).is_err());
+        Ok(())
+    }
 
     #[test]
     fn original_prefix_head_reconstruction_keeps_frozen_other_terms() -> Result<()> {

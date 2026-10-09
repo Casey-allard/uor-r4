@@ -1,0 +1,18 @@
+{
+  "status": "MD5_ROUNDTRIP_VERIFIED_AND_INDEXED",
+  "object": "codex-bounded-pair-credit-20261009",
+  "remote": "icloud:UOR-R4/results/codex/codex-bounded-pair-credit-20261009.tar",
+  "bytes": 8220160,
+  "md5": "73597d937eaecb49d08cb659cf184eb1",
+  "contents": "15/16 focused test evidence, source identity hashes, and Mac release test executable before unrelated #2047 base refresh",
+  "source_authority": "origin/main after protected delivery",
+  "local_stage_removed_after_verified_upload": true,
+  "refreshed_main_evidence": {
+    "object": "codex-bounded-pair-credit-final-20261009",
+    "bytes": 8241152,
+    "md5": "c22e383f1ff97d7c7fbe5da7efe7706b",
+    "remote": "icloud:UOR-R4/results/codex/codex-bounded-pair-credit-final-20261009.tar",
+    "status": "MD5_ROUNDTRIP_VERIFIED_AND_INDEXED",
+    "contents": "Complete refreshed-main validation evidence and final Mac release test executable"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "status": "PASS_IMPLEMENTATION_AND_FOCUSED_FIXTURES",
+  "training_library_build": {
+    "command": "CARGO_TARGET_DIR=<owned-worktree>/local/cargo-target CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0 cargo build --locked --offline --release -p uor-r4-training --lib",
+    "exit_code": 0,
+    "elapsed_seconds": 616.44,
+    "maximum_resident_set_size_bytes": 2317713408,
+    "warnings": "pre-existing dead code warnings; retained in build-training.log"
+  },
+  "model_fit": "NOT_RUN",
+  "actual_parent_gradients": "NOT_RUN",
+  "whole_answer_evaluation": "NOT_RUN",
+  "pod_provisioning": false,
+  "source_base_after_refresh": "7f9c50eaebd45c07b87ef6fdf57eb84aa9fabe70",
+  "sources": {
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/generate_episode_learning.rs": "30ac874b799a41cbfc57893944ac82cf7ac0c4a2681d2d95747da08017b2c769",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/prefix_fragment_learning.rs": "924b712a69d8721df998595ba5a2ed97b3d472576e40905d6c05f63798a3b455"
+  },
+  "test_runs": [
+    {
+      "log": "test-generate-attempt1.log",
+      "result": "FAILED. 12 passed; 2 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.02s",
+      "elapsed_seconds": 48.42,
+      "maximum_resident_set_size_bytes": 817381376
+    },
+    {
+      "log": "test-generate-attempt2.log",
+      "result": "ok. 14 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.02s",
+      "elapsed_seconds": 27.85,
+      "maximum_resident_set_size_bytes": 832716800
+    },
+    {
+      "log": "test-generate-final.log",
+      "result": "ok. 15 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.03s",
+      "elapsed_seconds": 32.48,
+      "maximum_resident_set_size_bytes": 830930944
+    },
+    {
+      "log": "test-prefix.log",
+      "result": "ok. 16 passed; 0 failed; 0 ignored; 0 measured; 106 filtered out; finished in 0.01s",
+      "elapsed_seconds": 0.98,
+      "maximum_resident_set_size_bytes": 83607552
+    },
+    {
+      "log": "test-prefix-final.log",
+      "result": "ok. 16 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 0.00s",
+      "elapsed_seconds": 0.49,
+      "maximum_resident_set_size_bytes": 83230720
+    },
+    {
+      "log": "test-refreshed-main.log",
+      "result": "ok. 15 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.05s",
+      "elapsed_seconds": 167.88,
+      "maximum_resident_set_size_bytes": 2043822080
+    },
+    {
+      "log": "test-prefix-refreshed-main.log",
+      "result": "ok. 16 passed; 0 failed; 0 ignored; 0 measured; 107 filtered out; finished in 0.00s",
+      "elapsed_seconds": 0.39,
+      "maximum_resident_set_size_bytes": 83017728
+    }
+  ],
+  "initial_failure": "Two invalid test tokenizer fixtures; compile succeeded,12 tests passed,2 stopped before native score/gradient execution. Valid existing byte-BPE fixture fixed both. Not model quality evidence.",
+  "test_executable": {
+    "sha256": "eecd2332c020365d5e8fefcd399939d7443234b67735254fdf1a7b44652989a5",
+    "bytes": 8119312,
+    "target": "aarch64-apple-darwin release example test harness; not CUDA model runner"
+  },
+  "formatting": "named changed Rust files PASS",
+  "claim_wording": "PASS",
+  "review": "Scoped independent mathematical and artifact authority source reviews, plus root final diff review; evidence separate from measured tests.",
+  "base_refresh": "Retested after #2047 changed training library; #2048 changes archive/governance only."
+}

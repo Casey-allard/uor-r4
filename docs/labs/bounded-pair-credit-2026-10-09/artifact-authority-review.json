@@ -1,0 +1,23 @@
+{
+  "reviewer": "emission_adversarial",
+  "kind": "source-only artifact-authority and evaluator review",
+  "reviewed_generate_sha256": "840458056560a5ceaf307d2db1a6eb9e43520057bf8fc3e76c94c8dd9b23f1c2",
+  "reviewed_prefix_sha256": "924b712a69d8721df998595ba5a2ed97b3d472576e40905d6c05f63798a3b455",
+  "status": "PASS_SOURCE_ONLY_FINDING_REPAIRED",
+  "verified_scope": [
+    "explicit pair master hash excluding unary pin",
+    "externally pinned cap1..960, full-family count/shape and exact policy",
+    "31 PRESENT saved raw gradients and ordered f32 aggregate",
+    "initial fractional masters, bounded rank, selected epochs and all final master bits",
+    "sealed candidate and original-parent authorities",
+    "caller reaches existing actual-artifact nine-row evaluator"
+  ],
+  "limitations": [
+    "not an exact final-head build verdict",
+    "no model execution or artifact qualification",
+    "subsequent change repairs only native test tokenizer fixture"
+  ],
+  "finding": "Pair positive evaluator checked native packed U equality but omitted saved continuation-source/continuation.unary.f32le equality; fractional changes sharing Q4 code could pass. Construction already checks U master identities.",
+  "final_generate_sha256": "30ac874b799a41cbfc57893944ac82cf7ac0c4a2681d2d95747da08017b2c769",
+  "resolution": "Required original/candidate U floating files, equal lengths and complete bytes in pair admission; missing file and same-Q4 fractional change tests added. Reviewer verified exact source; execution separate."
+}

@@ -1,0 +1,160 @@
+warning: method `score_source_cue` is never used
+   --> crates/uor-r4-integer/src/geometric_cue_carrier.rs:389:19
+    |
+280 | impl<'a> NativeCueCarrier<'a> {
+    | ----------------------------- method in this implementation
+...
+389 |     pub(crate) fn score_source_cue(
+    |                   ^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `uor-r4-integer` (lib) generated 1 warning
+warning: method `position` is never used
+   --> crates/uor-r4-core/src/native_geometric/learner/observed_text_session.rs:175:8
+    |
+168 | impl ObservedSpan {
+    | ----------------- method in this implementation
+...
+175 |     fn position(&self) -> (u32, u32, usize) {
+    |        ^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `example` is never used
+    --> crates/uor-r4-core/src/native_geometric/learner/transferable_lexical.rs:1590:8
+     |
+1405 | impl TlTrainer {
+     | -------------- method in this implementation
+...
+1590 |     fn example(&self, q: &TlQuant, ex: &TlExample) -> TlGrads {
+     |        ^^^^^^^
+
+warning: `uor-r4-core` (lib) generated 2 warnings
+warning: fields `sources` and `response` are never read
+    --> crates/uor-r4-training/src/geometric_source_realizer.rs:6707:5
+     |
+6705 | struct ComposedCopyAssembly {
+     |        -------------------- fields in this struct
+6706 |     context: crate::geometric_context::ContextQ4Output,
+6707 |     sources: Vec<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^
+6708 |     response: Option<crate::geometric_context::ContextQ4Output>,
+     |     ^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `geometric_read` is never used
+    --> crates/uor-r4-training/src/geometric_stack.rs:2445:8
+     |
+1889 | impl StackModel {
+     | --------------- method in this implementation
+...
+2445 |     fn geometric_read(
+     |        ^^^^^^^^^^^^^^
+
+warning: function `recall_cue` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1282:4
+     |
+1282 | fn recall_cue(source: &str) -> bool {
+     |    ^^^^^^^^^^
+
+warning: function `phrase_words` is never used
+    --> crates/uor-r4-training/src/relation_compiler.rs:1293:4
+     |
+1293 | fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     |    ^^^^^^^^^^^^
+
+warning: variant `AmbientLeastSquaresControl` is never constructed
+  --> crates/uor-r4-training/src/geometric_transport_state_credit.rs:45:5
+   |
+42 | enum CreditMode {
+   |      ---------- variant in this enum
+...
+45 |     AmbientLeastSquaresControl,
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `CreditMode` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: `uor-r4-training` (lib) generated 5 warnings
+   Compiling uor-r4-training v0.1.0 (/Users/casey.allard/.codex/worktrees/bounded-pair-credit/uor-r4/crates/uor-r4-training)
+warning: unused variable: `pg`
+    --> crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs:1535:5
+     |
+1535 |     pg: &[f32],
+     |     ^^ help: if this is intentional, prefix it with an underscore: `_pg`
+     |
+     = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `gg`
+    --> crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs:1537:5
+     |
+1537 |     gg: &[f32],
+     |     ^^ help: if this is intentional, prefix it with an underscore: `_gg`
+
+warning: field `pair_id` is never read
+   --> crates/uor-r4-training/examples/geometric-frozen-map-fit.rs:649:5
+    |
+643 | struct Label {
+    |        ----- field in this struct
+...
+649 |     pair_id: Option<String>,
+    |     ^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `LOSS_PHASE_NAMES` is never used
+    --> crates/uor-r4-training/examples/geometric-frozen-map-fit.rs:1474:7
+     |
+1474 | const LOSS_PHASE_NAMES: [&str; 3] = ["entry", "later_copy_covered", "later_generate_only"];
+     |       ^^^^^^^^^^^^^^^^
+
+warning: method `bytes` is never used
+   --> crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs:335:8
+    |
+303 | impl RowIncidence {
+    | ----------------- method in this implementation
+...
+335 |     fn bytes(&self) -> usize {
+    |        ^^^^^
+
+warning: `uor-r4-training` (example "geometric-frozen-map-fit" test) generated 5 warnings (run `cargo fix --example "geometric-frozen-map-fit" -p uor-r4-training --tests` to apply 2 suggestions)
+    Finished `release` profile [optimized] target(s) in 27.61s
+     Running unittests examples/geometric-frozen-map-fit.rs (local/cargo-target/release/examples/geometric_frozen_map_fit-5d1f02ec476e51c2)
+
+running 14 tests
+test generate_episode_learning::tests::bounded_pair_order_ranks_full_family_and_rejects_invalid_caps ... ok
+test generate_episode_learning::tests::completion_checkpoint_copy_preserves_nested_files_and_rejects_existing_destination_and_symlinks ... ok
+test generate_episode_learning::tests::completed_unary_reconstruction_preserves_unselected_fractional_bits_and_epochs ... ok
+test generate_episode_learning::tests::full_legal_order_uses_fractional_delta_and_keeps_zero_coordinates ... ok
+test generate_episode_learning::tests::inherited_inputs_defaults_match_but_nested_authority_change_is_rejected ... ok
+test generate_episode_learning::tests::late_native_guard_patch_is_discarded_and_same_epoch_alternatives_remain_valid ... ok
+test generate_episode_learning::tests::native_ce_tie_and_reference_veto_do_not_select_gradient_direction ... ok
+test generate_episode_learning::tests::omitted_family_keeps_legacy_config_serialization ... ok
+test generate_episode_learning::tests::factual_pair_credit_is_present_nonzero_and_does_not_mutate_frozen_masters ... ok
+test generate_episode_learning::tests::pair_artifact_replay_rejects_rank_drift_and_unselected_fractional_changes ... ok
+test generate_episode_learning::tests::report_projection_file_length_rejects_directory_and_missing_file ... ok
+test generate_episode_learning::tests::sidecar_key_order_is_allowed_only_for_full_native_metadata_identity ... ok
+test generate_episode_learning::tests::terminal_winner_and_original_guard_are_independent_final_gates ... ok
+test generate_episode_learning::tests::pair_patch_matches_full_native_scores_and_duplicate_alias_pool ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 108 filtered out; finished in 0.02s
+
+       27.85 real        40.64 user         1.05 sys
+           832716800  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              135074  page reclaims
+                8463  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   3  signals received
+                1923  voluntary context switches
+               51235  involuntary context switches
+          1606772328  instructions retired
+           762912972  cycles elapsed
+            58540728  peak memory footprint

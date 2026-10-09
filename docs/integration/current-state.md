@@ -1,5 +1,12 @@
 # Current UOR-R4 research state
 
+## Existing Generate pair family receives bounded learning credit — October 9
+
+The [bounded pair-credit implementation](../labs/bounded-pair-credit-2026-10-09/README.md) extends the existing complete-episode learner with explicit pair-family selection and a prospectively fixed limit of at most 960 coordinates. All actual pair coordinates are ranked once by the original full-family gradient and legal quarter-code displacement; fourteen alternative codes are evaluated per selected coordinate without reranking or witness-key selection. Native full-pool acceptance, the complete fifteen-position episode including EOS, seventeen references and 380 original-winner guards remain unchanged. Source/Cue/Prefix/bridge/U and all other Generate masters stay frozen. The original selected parent remains the initializer.
+
+This is an implementation deliverable, not a new model result. **Accepted 8/512 and unselected conditional 9/15 remain unchanged.** Fresh original-parent pair gradients/construction, actual whole-answer/EOS qualification and new full512 evaluation are NOT_RUN. After protected delivery and cleanup, recover the exact original checkpoint and objective authorities and admit a concrete bounded run with full preparation/build/fit/qualification cost. A positive complete-episode gate must be followed immediately by the existing cheap actual-artifact whole-answer/EOS check. No automatic full57600-coordinate sweep or unchanged unary/Prefix repeat is admitted.
+
+
 ## Existing pair factors narrow protected sharing — October 9
 
 The [native saved-incidence preflight](../labs/saved-pair-incidence-2026-10-09/README.md) enumerates all4096 Generate tokens for391 final and391 original saved states. All391 original posts also match frozen-bridge reconstruction. The six residual contrasts differ in all8 unary lanes and4 pair edges, so this is not a missing-identity result. EOS's seven vetoes are one unary937 coordinate at epoch207; its EOS contrast is−1 and guard299 contrast+1. Eight pair directions and fifteen unary directions avoid that particular signed conflict. Pair51817 has117 original guard/token incidences and zero required-winner hits, versus380 guard frames/~12969 incidences for its unary937 component. Full-pool guard safety and legal-code feasibility remain unmeasured.

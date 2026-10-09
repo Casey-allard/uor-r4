@@ -1,4 +1,4 @@
-//! Offline shared Generate-unary complete-episode learning. No serving changes.
+//! Offline shared Generate complete-episode learning: unary default, bounded pair opt-in. No serving changes.
 use super::context_cue_coadapt as shared;
 use super::native_proposals as np;
 use super::prefix_fragment_learning as prefix;
@@ -12,6 +12,75 @@ const GUARDS: usize = 380;
 const UNION: usize = 391;
 const CACHE_CAP: usize = 256 * 1024 * 1024;
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum GenerateFamily {
+    #[default]
+    Unary,
+    Pair,
+}
+impl GenerateFamily {
+    fn is_unary(&self) -> bool {
+        *self == Self::Unary
+    }
+    pub(super) fn name(self) -> &'static str {
+        match self {
+            Self::Unary => NAME,
+            Self::Pair => "generate.pair",
+        }
+    }
+    fn var(self, g: &GenerateLearningWeights) -> &candle_core::Var {
+        match self {
+            Self::Unary => &g.unary,
+            Self::Pair => &g.pair,
+        }
+    }
+    fn count(self, native: &NativeGeometricGenerate) -> Result<usize> {
+        replay_require(
+            native.lanes() == 8,
+            "Generate selected family requires eight lanes",
+        )?;
+        let count = match self {
+            Self::Unary => native.lanes() * 120,
+            Self::Pair => native.energy().edges().len() * 14400,
+        };
+        replay_require(
+            count > 0 && count <= 57600,
+            "Generate selected family cardinality invalid",
+        )?;
+        Ok(count)
+    }
+    fn shape(self, native: &NativeGeometricGenerate) -> Vec<usize> {
+        match self {
+            Self::Unary => vec![native.lanes(), 120],
+            Self::Pair => vec![native.energy().edges().len(), 120, 120],
+        }
+    }
+    fn factor_keys<'a>(self, keys: &'a [u32; 12], edges: usize) -> &'a [u32] {
+        match self {
+            Self::Unary => &keys[..8],
+            Self::Pair => &keys[8..8 + edges],
+        }
+    }
+    fn local_key(self, key: u32) -> Result<usize> {
+        match self {
+            Self::Unary => Ok(key as usize),
+            Self::Pair => Ok(usize::try_from(
+                key.checked_sub(COUNT as u32)
+                    .ok_or_else(|| bad("Generate pair key below unary offset"))?,
+            )?),
+        }
+    }
+}
+fn selected_limit(family: GenerateFamily, maximum: Option<usize>) -> Result<usize> {
+    match (family, maximum) {
+        (GenerateFamily::Unary, None) | (GenerateFamily::Unary, Some(COUNT)) => Ok(COUNT),
+        (GenerateFamily::Pair, Some(n)) if (1..=COUNT).contains(&n) => Ok(n),
+        _ => Err(bad(
+            "Generate pair requires explicit maximum_coordinates in1..960; legacy unary remains960",
+        )),
+    }
+}
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub(super) struct Config {
@@ -19,6 +88,10 @@ pub(super) struct Config {
     pub expected_report_sha256: String,
     pub expected_manifest_sha256: String,
     pub original_inputs: prefix::Config,
+    #[serde(default, skip_serializing_if = "GenerateFamily::is_unary")]
+    pub family: GenerateFamily,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum_coordinates: Option<usize>,
 }
 impl Config {
     pub(super) fn input_roots(&self) -> Vec<&PathBuf> {
@@ -128,6 +201,7 @@ pub(super) fn validate_completion_settings(a: &Args) -> Result<()> {
 }
 pub(super) fn validate_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.generate_episode_learning {
+        selected_limit(c.family, c.maximum_coordinates)?;
         replay_require(
             a.mode == Mode::JointContinuation
                 && a.updates == 1
@@ -181,6 +255,20 @@ pub(super) fn policy() -> Value {
         "native_score_unit_q24":1i64<<20,"frozen":"all other Generate masters/Source/Cue/Prefix/bridge/U coefficient bits",
         "gradient_context_encoder_calls":0,"captured_objective_encoder_calls":0,"native_reload_steps":391,"new_context_gradients":0,"new_prefix_gradients":0,"optimizer_updates":0})
 }
+fn policy_for(family: GenerateFamily, count: usize, maximum: usize) -> Value {
+    if family == GenerateFamily::Unary {
+        return policy();
+    }
+    let mut v = policy();
+    v["schema"] = json!("uor-r4.generate-pair-episode-learning/1");
+    v["active_parameter_names"] = json!([family.name()]);
+    v["coordinate_count"] = json!(maximum);
+    v["full_family_coordinate_count"] = json!(count);
+    v["selected_family"] = json!(family);
+    v["construction"]=json!("rank ALL actual ordered-pair coordinates once by frozen fresh gradient times best actual Q4 displacement and index tie; retain fixed maximum top coordinates; enumerate all14 other legal codes from same incumbent; one best feasible commit, no rerank/revisit/witness-key restriction");
+    v["frozen"]=json!("all Generate unary/bias/prototype masters and Source/Cue/Prefix/bridge/U coefficient bits; only selected shared pair coefficients may change");
+    v
+}
 // Strictly decode both authorities through the same schema. Omitted optional
 // defaults and explicit null are equivalent; every typed nested identity remains
 // part of the equality and unknown fields are rejected by Config.
@@ -206,7 +294,18 @@ fn coordinate_order(m: &[f32], g: &[f32]) -> Result<Vec<usize>> {
         m.len() == COUNT && g.len() == COUNT,
         "Generate rank shape differs",
     )?;
-    let mut rows = Vec::with_capacity(COUNT);
+    coordinate_order_bounded(m, g, COUNT)
+}
+fn coordinate_order_bounded(m: &[f32], g: &[f32], maximum: usize) -> Result<Vec<usize>> {
+    replay_require(
+        !m.is_empty()
+            && m.len() == g.len()
+            && maximum > 0
+            && maximum <= COUNT
+            && maximum <= m.len(),
+        "Generate bounded rank shape/cap differs",
+    )?;
+    let mut rows = Vec::with_capacity(m.len());
     for (i, (&m, &g)) in m.iter().zip(g).enumerate() {
         let q = code(m)?;
         replay_require(g.is_finite(), "Generate gradient nonfinite")?;
@@ -218,7 +317,7 @@ fn coordinate_order(m: &[f32], g: &[f32]) -> Result<Vec<usize>> {
         rows.push((i, potential));
     }
     rows.sort_by(|a, b| a.1.total_cmp(&b.1).then_with(|| a.0.cmp(&b.0)));
-    Ok(rows.into_iter().map(|r| r.0).collect())
+    Ok(rows.into_iter().take(maximum).map(|r| r.0).collect())
 }
 pub(super) fn saved_pool(
     f: &shared::Frame,
@@ -257,6 +356,7 @@ fn gradient(
     frames: &[shared::Frame],
     pools: &[shared::Pool],
     d: &Device,
+    family: GenerateFamily,
 ) -> Result<Vec<f32>> {
     let ng = NativeGeometricGenerate::from_bytes(&p.generate, p.integer.binding())?;
     let g = GenerateLearningWeights::from_native(p.integer.binding().clone(), &ng, d)?;
@@ -269,6 +369,11 @@ fn gradient(
     replay_require(
         g.export_native()?.to_bytes()? == p.generate,
         "Generate actual master restore/native differs",
+    )?;
+    let count = family.count(&ng)?;
+    replay_require(
+        family.var(&g).elem_count() == count && family.var(&g).dims() == family.shape(&ng),
+        "Generate selected gradient shape differs from native edges",
     )?;
     let prepared = g.prepare_native()?;
     // Native factual parity for every physical objective precedes ANY backward.
@@ -296,7 +401,7 @@ fn gradient(
         "all_before_any_backward":true,"native_raw_generate_copy_full_alias_pool":true,
         "frozen_poststate":true,"relaxed_transport":"NOT_RUN","device":"cuda"}),
     )?;
-    let mut aggregate = vec![0f32; COUNT];
+    let mut aggregate = vec![0f32; count];
     let mut weighted_forward_ce = 0f64;
     let mut terms = Vec::new();
     for (i, (f, pool)) in frames.iter().zip(pools).enumerate() {
@@ -337,13 +442,13 @@ fn gradient(
         weighted_forward_ce += loss.to_scalar::<f32>()? as f64;
         let grads = loss.backward()?;
         let v = grads
-            .get(g.unary.as_tensor())
-            .ok_or_else(|| bad("Generate unary gradient MISSING; no fill"))?
+            .get(family.var(&g).as_tensor())
+            .ok_or_else(|| bad("Generate selected family gradient MISSING; no fill"))?
             .flatten_all()?
             .to_device(&Device::Cpu)?
             .to_vec1::<f32>()?;
         replay_require(
-            v.len() == COUNT && v.iter().all(|x| x.is_finite()),
+            v.len() == count && v.iter().all(|x| x.is_finite()),
             "Generate unary raw gradient shape/nonfinite",
         )?;
         for (sum, x) in aggregate.iter_mut().zip(&v) {
@@ -377,13 +482,11 @@ fn gradient(
     write(
         a,
         "generate-gradient-receipt.json",
-        &json!({"active_parameter_names":[NAME],"shape":[8,120],
+        &json!({"active_parameter_names":[family.name()],"shape":family.shape(&ng),
         "coefficient_backward_calls":frames.len(),"weighted_roles":32,"native_combined_ce":native_ce,"float_graph_combined_ce":weighted_forward_ce,"loss_anchor_tolerance":1e-5,"perterm":terms,
         "aggregate":{"file":"generate-gradient.f32le","bytes":bytes.len(),"sha256":sha256_bytes(&bytes)},
         "sum":"ordered physical-frame f32 sum; duplicate task/reference coalesced weight, not32-backward bitwise equivalence",
-        "frozen_other_generate_masters":identities(&BTreeMap::from([
-            ("generate.pair".into(),g.pair.clone()),("generate.bias".into(),g.bias.clone()),
-            ("generate.prototype_choices".into(),g.prototype_choices.clone())]))?}),
+        "frozen_other_generate_masters":identities(&g.parameters().into_iter().filter(|(name,_)| name!=family.name()).collect::<BTreeMap<_,_>>())?}),
     )?;
     // g/prepared/graphs released before allocating the complete guard population.
     Ok(aggregate)
@@ -397,35 +500,39 @@ fn incidence(
     frames: &[shared::Frame],
     pools: &[shared::Pool],
     legal: &[u32],
+    family: GenerateFamily,
 ) -> Result<Incidence> {
     replay_require(
         frames.len() <= UNION && legal.iter().all(|t| (*t as usize) < VOCAB),
         "Generate incidence domain differs",
     )?;
-    let mut counts = vec![0usize; COUNT];
+    let count = family.count(ng)?;
+    let mut counts = vec![0usize; count];
     for pool in pools {
         let state = pool.post.clone();
         for &token in legal {
             let mut keys = [0u32; 12];
             ng.factor_incidence_into(&state, token as usize, &mut keys, &mut Default::default())?;
-            for &key in &keys[..8] {
-                counts[key as usize] += 1;
+            for &key in family.factor_keys(&keys, ng.energy().edges().len()) {
+                let k = family.local_key(key)?;
+                replay_require(k < count, "Generate logical family key domain")?;
+                counts[k] += 1;
             }
         }
     }
-    let mut offsets = vec![0usize; COUNT + 1];
-    for i in 0..COUNT {
+    let mut offsets = vec![0usize; count + 1];
+    for i in 0..count {
         offsets[i + 1] = offsets[i] + counts[i];
     }
-    let mut atoms = vec![0u32; offsets[COUNT]];
-    let mut cursor = offsets[..COUNT].to_vec();
+    let mut atoms = vec![0u32; offsets[count]];
+    let mut cursor = offsets[..count].to_vec();
     for (row, pool) in pools.iter().enumerate() {
         let state = pool.post.clone();
         for &token in legal {
             let mut keys = [0u32; 12];
             ng.factor_incidence_into(&state, token as usize, &mut keys, &mut Default::default())?;
-            for &key in &keys[..8] {
-                let k = key as usize;
+            for &key in family.factor_keys(&keys, ng.energy().edges().len()) {
+                let k = family.local_key(key)?;
                 atoms[cursor[k]] = ((row as u32) << 12) | token;
                 cursor[k] += 1;
             }
@@ -577,8 +684,18 @@ fn construct(
     csr: &Incidence,
     caches: &mut [GeneratePatchCache],
     reducer: &mut NativeVocabularyActions,
+    family: GenerateFamily,
+    maximum: usize,
 ) -> Result<(Vec<f32>, Value)> {
-    let order = coordinate_order(master, grad)?;
+    replay_require(
+        csr.offsets.len() == master.len() + 1,
+        "Generate family CSR/master shape",
+    )?;
+    let order = if family == GenerateFamily::Unary {
+        coordinate_order(master, grad)?
+    } else {
+        coordinate_order_bounded(master, grad, maximum)?
+    };
     write(a, "generate-coordinate-order.json", &json!(order))?;
     let baseline = objective(frames, map, spec, caches, &Patches::new())?;
     let mut current = master.to_vec();
@@ -591,7 +708,7 @@ fn construct(
         .open(a.out.join("generate-construction.json"))?;
     let mut records = std::io::BufWriter::new(file);
     records.write_all(b"{\"policy\":")?;
-    serde_json::to_writer(&mut records, &policy())?;
+    serde_json::to_writer(&mut records, &policy_for(family, master.len(), maximum))?;
     records.write_all(b",\"coordinate_records\":[")?;
     let mut row_patches = 0u64;
     let mut accepted = 0;
@@ -693,7 +810,7 @@ fn construct(
     records.write_all(b"],\"summary\":")?;
     serde_json::to_writer(
         &mut records,
-        &json!({"coordinates":COUNT,"alternatives":COUNT*14,
+        &json!({"coordinates":order.len(),"alternatives":order.len()*14,
         "accepted_coordinates":accepted,"row_patches":row_patches,"initial":baseline,"final":value,
         "revisited_coordinates":0,"selected_pending_restage_count":0}),
     )?;
@@ -736,7 +853,12 @@ pub(super) fn regular_file_bytes(path: &Path) -> Result<u64> {
     )?;
     Ok(metadata.len())
 }
-fn resource_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Result<()> {
+fn resource_projection(
+    a: &Args,
+    c: &Config,
+    frames: &[shared::Frame],
+    native: &NativeGeometricGenerate,
+) -> Result<()> {
     let previous = read(
         &c.retained_episode_root
             .join("trajectory-resource-projection.json"),
@@ -748,21 +870,43 @@ fn resource_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Result
     let full = frames.iter().try_fold(0u64, |sum, f| {
         Ok::<_, Box<dyn std::error::Error>>(sum + serde_json::to_vec(&f.native)?.len() as u64)
     })?;
-    let numeric = compact_numeric_projection(&previous)?;
+    let family_count = c.family.count(native)?;
+    let selected = selected_limit(c.family, c.maximum_coordinates)?;
+    let factors = if c.family == GenerateFamily::Unary {
+        8
+    } else {
+        native.energy().edges().len()
+    };
+    let csr_bytes = (UNION * VOCAB * factors * 4) as u64;
+    let offset_extra =
+        (family_count.saturating_sub(COUNT) * std::mem::size_of::<usize>() * 3) as u64;
+    let gradient_extra = (family_count.saturating_sub(COUNT) * 4 * 4) as u64;
+    let numeric = compact_numeric_projection(&previous)? - (UNION * VOCAB * 8 * 4) as u64
+        + csr_bytes
+        + offset_extra
+        + gradient_extra;
     let phase_ram = previous_pre["process_ram_projection_bytes"]
         .as_u64()
         .ok_or_else(|| bad("retained measured phase RAM projection absent"))?;
-    let process = phase_ram + 64 * 1024 * 1024;
+    let process = phase_ram + 64 * 1024 * 1024 + gradient_extra + offset_extra;
     let previous_total = size(&c.retained_episode_root)?;
     let removed_report =
         regular_file_bytes(&c.retained_episode_root.join("prefix-construction.json"))?;
     let report = previous_total
         .checked_sub(removed_report)
-        .and_then(|n| n.checked_add(64 * 1024 * 1024 + 16 * 1024 * 1024))
+        .and_then(|n| {
+            n.checked_add(
+                64 * 1024 * 1024
+                    + 16 * 1024 * 1024
+                    + (31 + 2) * 4 * family_count.saturating_sub(COUNT) as u64,
+            )
+        })
         .ok_or_else(|| bad("Generate report projection overflow"))?;
     // The new cache/CSR coexistence does not include old donor vectors or graphs.
-    let cache = (UNION * VOCAB * 8 * 4 + UNION * VOCAB * 8 * 3 + 2 * UNION * VOCAB * 8 * 3) as u64
-        + 8 * 1024 * 1024;
+    let cache = csr_bytes
+        + (UNION * VOCAB * 8 * 3 + 2 * UNION * VOCAB * 8 * 3) as u64
+        + 8 * 1024 * 1024
+        + offset_extra;
     write(
         a,
         "generate-resource-projection.json",
@@ -772,12 +916,23 @@ fn resource_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Result
         "cache_upper_bound":cache,"cache_cap":CACHE_CAP,"process_ram_projection_bytes":process,
         "process_ram_cap":4*1024*1024*1024u64,"report_projection_bytes":report,"report_cap":a.maximum_report_bytes,
         "retained_previous_output_bytes":previous_total,"replaced_previous_construction_bytes":removed_report,
-        "compact_alternative_receipt_reserve":16*1024*1024u64,"construction_receipts":"streamed coordinate records, never retain13440 alternative Values in RAM","projected_alternatives":13440,
+        "compact_alternative_receipt_reserve":16*1024*1024u64,"construction_receipts":"streamed coordinate records, never retain13440 alternative Values in RAM","projected_alternatives":selected*14,
         "graph_lifetime":"31 streamed coefficient graphs; Generate/device/prepared tensors dropped before guard380 load",
         "constructor_lifetime":"guard full pool buffers dropped after opaque cache admission, before CSR and all-code construction",
         "cache_scope":"CSR+opaque caches+best pending+current pending+container overhead; model/device RAM is separate",
         "fresh_backwards_completed":0,"estimate_not_hard_stop":true}),
     )?;
+    if c.family == GenerateFamily::Pair {
+        let mut receipt = read(&a.out.join("generate-resource-projection.json"))?;
+        receipt["selected_family"] = json!(c.family);
+        receipt["full_family_coordinates"] = json!(family_count);
+        receipt["selected_coordinate_cap"] = json!(selected);
+        receipt["all31_pair_gradient_bytes"] = json!(31 * family_count * 4);
+        receipt["CSR_bytes"] = json!(csr_bytes);
+        receipt["offset_count_cursor_extra_bytes"] = json!(offset_extra);
+        receipt["gradient_scratch_extra_bytes"] = json!(gradient_extra);
+        write(a, "generate-resource-projection.json", &receipt)?;
+    }
     replay_require(
         numeric <= 512 * 1024 * 1024
             && cache <= CACHE_CAP as u64
@@ -826,6 +981,9 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "Generate original Source/G/U differs",
     )?;
     let ng = NativeGeometricGenerate::from_bytes(&original.generate, original.integer.binding())?;
+    let family = c.family;
+    let count = family.count(&ng)?;
+    let maximum = selected_limit(family, c.maximum_coordinates)?;
     let field = NativeContinuationField::from_bytes(
         &fs::read(a.checkpoint.join("continuation-field.bin"))?,
         &original.binding,
@@ -851,8 +1009,16 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     }
     let baseline = shared::objective_for_spec(&objective_frames, &objective_pools, &spec)?;
     write(a, "initial-original-objective.json", &baseline)?;
-    resource_projection(a, c, &objective_frames)?;
-    let g = gradient(a, start, &original, &objective_frames, &objective_pools, d)?;
+    resource_projection(a, c, &objective_frames, &ng)?;
+    let g = gradient(
+        a,
+        start,
+        &original,
+        &objective_frames,
+        &objective_pools,
+        d,
+        family,
+    )?;
     // Full graph/native parity is complete. Remove redundant action Values before
     // the protected population loader, retaining the p3 addition authority.
     slim(&mut objective_frames)?;
@@ -917,7 +1083,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "weighted_roles":32,"guards":GUARDS,"unique_union":UNION}),
     )?;
     let legal = reducer.legal_token_ids().to_vec();
-    let csr = incidence(&ng, &frames, &pools, &legal)?;
+    let csr = incidence(&ng, &frames, &pools, &legal, family)?;
     let bytes = csr
         .atoms
         .iter()
@@ -928,7 +1094,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "generate-incidence.json",
         &json!({"legal_generate_ids":legal,"postings":csr.atoms.len(),
         "offsets":csr.offsets,"packed_atoms_sha256":sha256_bytes(&bytes),
-        "key_encoding":"lane*120+compose(inverse(poststate[lane]),prototype[token,lane]); first8 core factor_incidence_into keys",
+        "key_encoding":if family==GenerateFamily::Unary {"lane*120+compose(inverse(poststate[lane]),prototype[token,lane]); first8 core factor_incidence_into keys"}else{"edge*14400+left_relative*120+right_relative; declared ordered edges; core keys[8..8+edges] minus960"},
         "atom_encoding":"row<<12|token; legal admitted IDs only, full raw4096 arrays retained",
         "source_binding":original.binding,"generate_sha256":shared::G_SHA}),
     )?;
@@ -987,11 +1153,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     )?;
     let all_bits = np::snapshot(&actual.parameters())?;
     let master = all_bits
-        .get(NAME)
-        .ok_or_else(|| bad("Generate unary master absent"))?
+        .get(family.name())
+        .ok_or_else(|| bad("Generate selected family master absent"))?
         .clone();
     replay_require(
-        master.len() == COUNT && actual.export_native()?.to_bytes()? == original.generate,
+        master.len() == count && actual.export_native()?.to_bytes()? == original.generate,
         "Generate actual fractional authority differs",
     )?;
     fs::write(
@@ -1006,7 +1172,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "generate-original-master-binding.json",
         &json!({"source":a.checkpoint.join("generate-source"),
         "parameters":identities(&actual.parameters())?,"native_sha256":shared::G_SHA,
-        "all_original_f32_restored_before_graph":true,"active_parameter_names":[NAME]}),
+        "all_original_f32_restored_before_graph":true,"active_parameter_names":[family.name()]}),
     )?;
     drop(actual);
     let (current, value) = construct(
@@ -1020,6 +1186,8 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         &csr,
         &mut caches,
         &mut reducer,
+        family,
+        maximum,
     )?;
     let all_guards = (0..GUARDS).all(|r| caches[r].summary().chosen_token_id == frames[r].target);
     let gate = final_gate(&initial, &value, all_guards)?;
@@ -1059,7 +1227,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let u_bits = identities(&u.parameters())?;
     let receipt = np::attempt_restored(&params, &saved, || {
         let mut expected = saved.clone();
-        expected.insert(NAME.into(), current.clone());
+        expected.insert(family.name().into(), current.clone());
         np::restore(&params, &expected)?;
         replay_require(
             np::same_bits(&np::snapshot(&params)?, &expected)
@@ -1123,9 +1291,13 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         )?;
         receipt_expected.clear();
         drop(disk_g);
-        receipt["mode"] = json!("generate_episode_learning");
-        receipt["policy"] = policy();
-        receipt["active_parameter_names"] = json!([NAME]);
+        receipt["mode"] = json!(if family == GenerateFamily::Unary {
+            "generate_episode_learning"
+        } else {
+            "generate_pair_episode_learning"
+        });
+        receipt["policy"] = policy_for(family, count, maximum);
+        receipt["active_parameter_names"] = json!([family.name()]);
         receipt["optimizer_updates"] = json!(0);
         receipt["fresh_adam"] = json!(false);
         receipt["new_gradients"] = json!(1);
@@ -1134,6 +1306,10 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         receipt["parent_report_sha256"] = json!(shared::P_REPORT);
         receipt["parent_manifest_sha256"] = json!(shared::P_SEAL);
         receipt["frozen_numerical_scope"]=json!("all Source/Cue/Prefix/bridge/Generate pair+bias+prototypes/U masters; only unary960 float/native codes change; U metadata honestly rebound to new Generate");
+        if family == GenerateFamily::Pair {
+            receipt["credit_scope"]=json!("only shared Generate pair gradients extracted/proposed; fixed factual native post/prototypes coefficient-only Q4 STE; frozen unary/bias graph may receive incidental autodiff, never extracted/updated; no Prefix/Cue/Context/donor surrogate");
+            receipt["frozen_numerical_scope"]=json!("all Source/Cue/Prefix/bridge/Generate unary+bias+prototypes/U master bits; only bounded selected pair float/native codes change; U metadata rebound to new Generate");
+        }
         receipt["generate_sha256"] = json!(sha256_bytes(&cp.generate));
         receipt["candidate_native_steps"] = json!(UNION);
         for leaf in [
@@ -1181,8 +1357,8 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     )?;
     let receipt = receipt?;
     Ok(
-        json!({"schema":"uor-r4.generate-episode-learning-report/1","status":"COMPLETED","mode":"generate_episode_learning",
-        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"policy":policy(),"selected_model":false,
+        json!({"schema":"uor-r4.generate-episode-learning-report/1","status":"COMPLETED","mode":if family==GenerateFamily::Unary {"generate_episode_learning"}else{"generate_pair_episode_learning"},
+        "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"policy":policy_for(family,count,maximum),"selected_model":false,
         "finite_episode_positive":gate["passed"],"useful_candidate":false,"final_gate":gate,
         "baseline_objective":initial,"candidate_objective":value,"candidate_receipt":receipt,
         "all_original380_preserved":all_guards,"weighted_roles":32,"unique_objective_frames":31,
@@ -2017,6 +2193,133 @@ pub(super) fn run_completion(a: &Args, start: Instant) -> Result<Value> {
     )
 }
 
+fn require_exact_frozen_master_file(original: &Path, candidate: &Path) -> Result<()> {
+    replay_require(
+        original.is_file() && candidate.is_file(),
+        "Generate pair frozen master payload missing",
+    )?;
+    replay_require(
+        fs::metadata(original)?.len() == fs::metadata(candidate)?.len()
+            && fs::read(original)? == fs::read(candidate)?,
+        "Generate pair frozen fractional master bytes differ",
+    )
+}
+fn raw_f32_file(path: &Path, count: usize) -> Result<Vec<f32>> {
+    let bytes = fs::read(path)?;
+    replay_require(
+        bytes.len() == count * 4,
+        "Generate pair raw f32 shape differs",
+    )?;
+    let values = bytes
+        .chunks_exact(4)
+        .map(|x| f32::from_le_bytes([x[0], x[1], x[2], x[3]]))
+        .collect::<Vec<_>>();
+    replay_require(
+        values.iter().all(|x| x.is_finite()),
+        "Generate pair raw f32 nonfinite",
+    )?;
+    Ok(values)
+}
+fn same_float_bits(a: &[f32], b: &[f32]) -> bool {
+    a.len() == b.len() && a.iter().zip(b).all(|(x, y)| x.to_bits() == y.to_bits())
+}
+fn authenticate_pair_order_and_masters(
+    root: &Path,
+    original: &[f32],
+    candidate: &[f32],
+    receipt: &Value,
+    records: &[Value],
+    maximum: usize,
+) -> Result<()> {
+    replay_require(
+        same_float_bits(
+            original,
+            &raw_f32_file(&root.join("generate-initial-masters.f32le"), original.len())?,
+        ),
+        "Generate pair initial fractional masters differ from selected parent",
+    )?;
+    let mut aggregate = vec![0f32; original.len()];
+    let terms = receipt["perterm"]
+        .as_array()
+        .ok_or_else(|| bad("Generate pair terms absent"))?;
+    for (i, term) in terms.iter().enumerate() {
+        replay_require(
+            term["physical_index"] == i
+                && term["status"] == "PRESENT"
+                && term["missing_gradient_filled_zero"] == false,
+            "Generate pair weighted term order/presence differs",
+        )?;
+        let leaf = term["file"]
+            .as_str()
+            .ok_or_else(|| bad("Generate pair term file absent"))?;
+        for (sum, value) in aggregate
+            .iter_mut()
+            .zip(raw_f32_file(&root.join(leaf), original.len())?)
+        {
+            *sum += value;
+        }
+    }
+    replay_require(
+        same_float_bits(
+            &aggregate,
+            &raw_f32_file(&root.join("generate-gradient.f32le"), original.len())?,
+        ),
+        "Generate pair ordered f32 aggregate differs",
+    )?;
+    let order = coordinate_order_bounded(original, &aggregate, maximum)?;
+    let saved: Value = serde_json::from_reader(std::io::BufReader::new(fs::File::open(
+        root.join("generate-coordinate-order.json"),
+    )?))?;
+    replay_require(
+        saved == json!(order),
+        "Generate pair frozen full-family ranking differs",
+    )?;
+    let mut expected = original.to_vec();
+    let mut epoch = 0usize;
+    for (ordinal, (&index, record)) in order.iter().zip(records).enumerate() {
+        replay_require(
+            record["order"] == ordinal
+                && record["index"] == index
+                && record["incumbent_epoch"] == epoch
+                && record["incumbent_code"].as_i64() == Some(i64::from(code(expected[index])?))
+                && record["original_master"]
+                    .as_f64()
+                    .is_some_and(|x| (x as f32).to_bits() == original[index].to_bits())
+                && record["gradient"]
+                    .as_f64()
+                    .is_some_and(|x| (x as f32).to_bits() == aggregate[index].to_bits()),
+            "Generate pair order/epoch/master/gradient authority differs",
+        )?;
+        let q = record["selected"]["code"]
+            .as_i64()
+            .ok_or_else(|| bad("Generate pair selected code missing"))?;
+        replay_require((-7..=7).contains(&q), "Generate pair selected code invalid")?;
+        match record["selected"]["status"].as_str() {
+            Some("committed") => {
+                replay_require(
+                    q != i64::from(code(expected[index])?),
+                    "Generate pair commit did not change code",
+                )?;
+                expected[index] = q as f32 * 0.25;
+                epoch += 1;
+            }
+            Some("unchanged") => replay_require(
+                q == i64::from(code(expected[index])?),
+                "Generate pair rejected coordinate changed master",
+            )?,
+            _ => return Err(bad("Generate pair selection status invalid")),
+        }
+        replay_require(
+            record["epoch_after"] == epoch,
+            "Generate pair selected epoch differs",
+        )?;
+    }
+    replay_require(
+        same_float_bits(&expected, candidate),
+        "Generate pair committed or unselected fractional masters differ",
+    )
+}
+
 /// Admission for the cheap artifact-only evaluator. Independent arithmetic audit
 /// remains a final delivery requirement, not a prerequisite to this cheap check.
 pub(super) fn authenticate_positive_artifact(
@@ -2028,9 +2331,20 @@ pub(super) fn authenticate_positive_artifact(
         .generate_episode_candidate
         .as_ref()
         .ok_or_else(|| bad("Generate artifact authority missing"))?;
+    let family = pin.family;
+    let parent =
+        ContinuationParent::from_checkpoint(&c.retained_intermediate_root.join("checkpoint-0001"))?;
+    let original_native =
+        NativeGeometricGenerate::from_bytes(&parent.generate, parent.integer.binding())?;
+    let count = family.count(&original_native)?;
+    let maximum = selected_limit(family, pin.maximum_coordinates)?;
+    let mode = match family {
+        GenerateFamily::Unary => "generate_episode_learning",
+        GenerateFamily::Pair => "generate_pair_episode_learning",
+    };
     replay_require(
         report["status"] == "COMPLETED"
-            && report["mode"] == "generate_episode_learning"
+            && report["mode"] == mode
             && report["selected_model"] == false
             && report["finite_episode_positive"] == true
             && report["final_gate"]["passed"] == true
@@ -2048,7 +2362,7 @@ pub(super) fn authenticate_positive_artifact(
     replay_require(
         gradients["coefficient_backward_calls"] == 31
             && gradients["weighted_roles"] == 32
-            && gradients["active_parameter_names"] == json!([NAME]),
+            && gradients["active_parameter_names"] == json!([family.name()]),
         "Generate gradient inventory scope differs",
     )?;
     let rows = gradients["perterm"]
@@ -2061,7 +2375,7 @@ pub(super) fn authenticate_positive_artifact(
             .ok_or_else(|| bad("Generate raw gradient filename absent"))?;
         replay_require(
             Path::new(leaf).components().count() == 1
-                && fs::metadata(root.join(leaf))?.len() == 3840
+                && fs::metadata(root.join(leaf))?.len() == (count * 4) as u64
                 && sha256_file(&root.join(leaf))?
                     == row["sha256"]
                         .as_str()
@@ -2070,7 +2384,7 @@ pub(super) fn authenticate_positive_artifact(
         )?;
     }
     replay_require(
-        fs::metadata(root.join("generate-gradient.f32le"))?.len() == 3840
+        fs::metadata(root.join("generate-gradient.f32le"))?.len() == (count * 4) as u64
             && sha256_file(&root.join("generate-gradient.f32le"))?
                 == gradients["aggregate"]["sha256"]
                     .as_str()
@@ -2082,9 +2396,9 @@ pub(super) fn authenticate_positive_artifact(
         .as_array()
         .ok_or_else(|| bad("Generate coordinate records absent"))?;
     replay_require(
-        coords.len() == COUNT
-            && construction["summary"]["coordinates"] == 960
-            && construction["summary"]["alternatives"] == 13440
+        coords.len() == maximum
+            && construction["summary"]["coordinates"] == maximum
+            && construction["summary"]["alternatives"] == maximum * 14
             && construction["summary"]["revisited_coordinates"] == 0,
         "Generate exhaustive once-only policy receipt differs",
     )?;
@@ -2106,7 +2420,7 @@ pub(super) fn authenticate_positive_artifact(
             })
             .collect::<Result<BTreeSet<_>>>()?;
         replay_require(
-            index < COUNT
+            index < count
                 && indices.insert(index)
                 && alternatives.len() == 14
                 && codes
@@ -2116,7 +2430,6 @@ pub(super) fn authenticate_positive_artifact(
             "Generate exhaustive code population differs",
         )?;
     }
-    drop(construction);
     let guards = read(&root.join("final-trajectory-guards.json"))?;
     let terms = guards["terms"]
         .as_array()
@@ -2135,8 +2448,6 @@ pub(super) fn authenticate_positive_artifact(
         "Generate final wholeepisode/reference gate differs",
     )?;
 
-    let parent =
-        ContinuationParent::from_checkpoint(&c.retained_intermediate_root.join("checkpoint-0001"))?;
     let candidate = ContinuationParent::from_checkpoint(&a.checkpoint)?;
     replay_require(
         parent.binding == candidate.binding
@@ -2149,8 +2460,6 @@ pub(super) fn authenticate_positive_artifact(
                 == pin.expected_continuation_sha256,
         "Generate candidate frozen native families differ",
     )?;
-    let original_native =
-        NativeGeometricGenerate::from_bytes(&parent.generate, parent.integer.binding())?;
     let current_native =
         NativeGeometricGenerate::from_bytes(&candidate.generate, candidate.integer.binding())?;
     for leaf in [
@@ -2224,7 +2533,7 @@ pub(super) fn authenticate_positive_artifact(
     replay_require(
         original
             .iter()
-            .filter(|(n, _)| n.as_str() != NAME)
+            .filter(|(n, _)| n.as_str() != family.name())
             .all(|(n, v)| {
                 current.get(n).is_some_and(|x| {
                     v.iter().zip(x).all(|(a, b)| a.to_bits() == b.to_bits()) && v.len() == x.len()
@@ -2234,10 +2543,35 @@ pub(super) fn authenticate_positive_artifact(
     )?;
     let metadata = read(&a.checkpoint.join("generate-source/metadata.json"))?;
     replay_require(
-        metadata["parameters"][NAME]["shape"] == json!([8, 120])
-            && metadata["parameters"][NAME]["sha256"] == pin.expected_unary_master_sha256,
-        "Generate unary actual master identity differs",
+        metadata["parameters"][family.name()]["shape"] == json!(family.shape(&original_native))
+            && metadata["parameters"][family.name()]["sha256"].as_str()
+                == match family {
+                    GenerateFamily::Unary => pin.expected_unary_master_sha256.as_deref(),
+                    GenerateFamily::Pair => pin.expected_pair_master_sha256.as_deref(),
+                },
+        "Generate selected family actual master identity differs",
     )?;
+    if family == GenerateFamily::Pair {
+        // Native Q4 equality does not authenticate unchanged fractional U masters.
+        require_exact_frozen_master_file(
+            &c.retained_intermediate_root
+                .join("checkpoint-0001/continuation-source/continuation.unary.f32le"),
+            &a.checkpoint
+                .join("continuation-source/continuation.unary.f32le"),
+        )?;
+        replay_require(
+            report["policy"] == policy_for(family, count, maximum)
+                && gradients["shape"] == json!(family.shape(&original_native)),
+            "Generate pair policy or full gradient shape differs from externally pinned budget",
+        )?;
+        let masters = original
+            .get(family.name())
+            .ok_or_else(|| bad("Generate pair original masters absent"))?;
+        let selected = current
+            .get(family.name())
+            .ok_or_else(|| bad("Generate pair candidate masters absent"))?;
+        authenticate_pair_order_and_masters(root, masters, selected, &gradients, coords, maximum)?;
+    }
     let population = read(&root.join("generate-population.json"))?;
     replay_require(
         population["rows"]
@@ -2250,6 +2584,7 @@ pub(super) fn authenticate_positive_artifact(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uor_r4_integer::h4_tables::H4Code;
     #[test]
     fn completion_checkpoint_copy_preserves_nested_files_and_rejects_existing_destination_and_symlinks(
     ) -> Result<()> {
@@ -2481,6 +2816,303 @@ mod tests {
         assert_eq!(caches[0].copy_token_ids(), &[4, 4]);
         assert_eq!(caches[0].revision(), 1);
         assert_eq!(caches[GUARDS - 1].revision(), 0);
+        Ok(())
+    }
+    #[test]
+    fn bounded_pair_order_ranks_full_family_and_rejects_invalid_caps() -> Result<()> {
+        let mut m = vec![0f32; 57600];
+        let mut g = vec![0f32; 57600];
+        m[57599] = 0.13;
+        g[57599] = -2.;
+        g[100] = -1.;
+        g[200] = -1.;
+        assert_eq!(coordinate_order_bounded(&m, &g, 3)?, vec![57599, 100, 200]);
+        assert!(coordinate_order_bounded(&m, &g, 0).is_err());
+        assert!(coordinate_order_bounded(&m, &g, 961).is_err());
+        assert!(selected_limit(GenerateFamily::Pair, None).is_err());
+        assert!(selected_limit(GenerateFamily::Pair, Some(0)).is_err());
+        assert!(selected_limit(GenerateFamily::Pair, Some(961)).is_err());
+        assert_eq!(selected_limit(GenerateFamily::Pair, Some(960))?, 960);
+        assert_eq!(
+            coordinate_order(&m[..COUNT], &g[..COUNT])?,
+            coordinate_order_bounded(&m[..COUNT], &g[..COUNT], COUNT)?
+        );
+        assert_eq!(policy_for(GenerateFamily::Unary, COUNT, COUNT), policy());
+        Ok(())
+    }
+    #[test]
+    fn omitted_family_keeps_legacy_config_serialization() -> Result<()> {
+        let raw = json!({"retained_episode_root":"/episode","expected_report_sha256":"r","expected_manifest_sha256":"m",
+            "original_inputs":{"retained_intermediate_root":"/original","retained_probe_root":"/probe"}});
+        let parsed: Config = serde_json::from_value(raw.clone())?;
+        assert_eq!(parsed.family, GenerateFamily::Unary);
+        assert_eq!(parsed.maximum_coordinates, None);
+        let encoded = serde_json::to_value(&parsed)?;
+        assert!(encoded.get("family").is_none() && encoded.get("maximum_coordinates").is_none());
+        let mut explicit = raw;
+        explicit["family"] = json!("unary");
+        explicit["maximum_coordinates"] = Value::Null;
+        assert_eq!(
+            serde_json::to_value(serde_json::from_value::<Config>(explicit)?)?,
+            encoded
+        );
+        Ok(())
+    }
+    #[test]
+    fn pair_artifact_replay_rejects_rank_drift_and_unselected_fractional_changes() -> Result<()> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("uor-pair-authority-{}-{nonce}", std::process::id()));
+        fs::create_dir(&root)?;
+        let encode = |v: &[f32]| v.iter().flat_map(|x| x.to_le_bytes()).collect::<Vec<_>>();
+        let original = vec![0.13f32, -0.07, 0.];
+        fs::write(
+            root.join("generate-initial-masters.f32le"),
+            encode(&original),
+        )?;
+        let mut aggregate = vec![0f32; 3];
+        let mut terms = Vec::new();
+        for i in 0..31 {
+            let term = if i == 0 {
+                vec![-2f32, 0., 0.]
+            } else {
+                vec![0f32; 3]
+            };
+            for (sum, x) in aggregate.iter_mut().zip(&term) {
+                *sum += x;
+            }
+            let leaf = format!("term-{i:02}.f32le");
+            fs::write(root.join(&leaf), encode(&term))?;
+            terms.push(json!({"physical_index":i,"file":leaf,"status":"PRESENT","missing_gradient_filled_zero":false}));
+        }
+        fs::write(root.join("generate-gradient.f32le"), encode(&aggregate))?;
+        let order = coordinate_order_bounded(&original, &aggregate, 1)?;
+        fs::write(
+            root.join("generate-coordinate-order.json"),
+            serde_json::to_vec_pretty(&order)?,
+        )?;
+        let record = json!({"order":0,"index":0,"incumbent_epoch":0,"incumbent_code":code(original[0])?,
+            "original_master":original[0],"gradient":aggregate[0],"selected":{"status":"committed","code":7},"epoch_after":1});
+        let receipt = json!({"perterm":terms});
+        let candidate = vec![1.75f32, original[1], original[2]];
+        authenticate_pair_order_and_masters(
+            &root,
+            &original,
+            &candidate,
+            &receipt,
+            &[record.clone()],
+            1,
+        )?;
+        let mut changed = candidate.clone();
+        changed[1] = -0.25;
+        assert!(authenticate_pair_order_and_masters(
+            &root,
+            &original,
+            &changed,
+            &receipt,
+            &[record.clone()],
+            1
+        )
+        .is_err());
+        fs::write(root.join("generate-coordinate-order.json"), b"[1]")?;
+        assert!(authenticate_pair_order_and_masters(
+            &root,
+            &original,
+            &candidate,
+            &receipt,
+            &[record],
+            1
+        )
+        .is_err());
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+    #[test]
+    fn frozen_u_fractional_payload_rejects_same_code_change_and_missing_file() -> Result<()> {
+        let nonce = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let root =
+            std::env::temp_dir().join(format!("uor-pair-frozen-u-{}-{nonce}", std::process::id()));
+        fs::create_dir(&root)?;
+        let original = root.join("original.f32le");
+        let candidate = root.join("candidate.f32le");
+        fs::write(&original, 0.13f32.to_le_bytes())?;
+        assert!(require_exact_frozen_master_file(&original, &candidate).is_err());
+        fs::write(&candidate, 0.13f32.to_le_bytes())?;
+        require_exact_frozen_master_file(&original, &candidate)?;
+        assert_eq!(code(0.13)?, code(0.14)?);
+        fs::write(&candidate, 0.14f32.to_le_bytes())?;
+        assert!(require_exact_frozen_master_file(&original, &candidate).is_err());
+        fs::remove_dir_all(root)?;
+        Ok(())
+    }
+    fn pair_fixture_binding(
+    ) -> Result<uor_r4_integer::geometric_source_actions::SourceActionBinding> {
+        // Same valid byte-BPE binding used by geometric_generate_learning tests.
+        const TOK: &str = r#"{"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false},"model":{"type":"BPE","vocab":{"<|bos|>":0,"<|eos|>":1,"<|unk|>":2,".":3,"a":4,"b":5,"Ġ":6,"Ġa":7},"merges":["Ġ a"]},"added_tokens":[{"id":0,"content":"<|bos|>"},{"id":1,"content":"<|eos|>"},{"id":2,"content":"<|unk|>"}]}"#;
+        Ok(uor_r4_integer::geometric_source_actions::SourceActionBinding::new(TOK.as_bytes())?)
+    }
+    fn pair_native_fixture() -> Result<(
+        NativeGeometricGenerate,
+        GenerateLearningWeights,
+        Vec<H4Code>,
+        usize,
+    )> {
+        use uor_r4_core::native_geometric::learner::integrated_attention::geometry::{
+            EnergyTables, LanePair,
+        };
+        let binding = pair_fixture_binding()?;
+        let vocab = binding.vocab_size();
+        let edges = vec![
+            LanePair { left: 1, right: 3 },
+            LanePair { left: 0, right: 2 },
+            LanePair { left: 4, right: 6 },
+            LanePair { left: 5, right: 7 },
+        ];
+        let prototypes = (0..vocab)
+            .flat_map(|t| (0..8).map(move |l| ((t * 17 + l * 7 + 3) % 120) as u8))
+            .collect::<Vec<_>>();
+        let zero = NativeGeometricGenerate::compile(
+            &binding,
+            8,
+            &prototypes,
+            &vec![0; vocab.div_ceil(2)],
+            EnergyTables::zeroed(8, edges)?,
+        )?;
+        let state = vec![H4Code::IDENTITY; 8];
+        let mut keys = [0u32; 12];
+        zero.factor_incidence_into(&state, 5, &mut keys, &mut Default::default())?;
+        let index = GenerateFamily::Pair.local_key(keys[8])?;
+        let weights = GenerateLearningWeights::from_native(binding, &zero, &Device::Cpu)?;
+        let mut actual = vec![0f32; 57600];
+        actual[index] = 0.13;
+        actual[(index + 1) % 57600] = -0.07;
+        weights.pair.set(&Tensor::from_vec(
+            actual,
+            weights.pair.shape(),
+            &Device::Cpu,
+        )?)?;
+        let original = weights.export_native()?;
+        Ok((original, weights, state, index))
+    }
+    #[test]
+    fn pair_patch_matches_full_native_scores_and_duplicate_alias_pool() -> Result<()> {
+        let (original, weights, state, coordinate) = pair_native_fixture()?;
+        let before = np::snapshot(&weights.parameters())?;
+        let mut raw = vec![0; original.vocab_size()];
+        original.score_into(&state, &mut raw, &mut Default::default())?;
+        let exp = (0..uor_r4_integer::geometric_read::EXP_TABLE_LEN)
+            .flat_map(|i| {
+                (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
+            })
+            .collect::<Vec<_>>();
+        let mut reducer = NativeVocabularyActions::new(pair_fixture_binding()?, &exp)?;
+        let cache = reducer.prepare_generate_patch_cache(
+            raw.clone(),
+            vec![4, 4],
+            vec![-3 << 24, -3 << 24],
+        )?;
+        let incumbent = code(before["generate.pair"][coordinate])?;
+        let proposed = 7i8;
+        let mut changes = Vec::new();
+        for token in 0..original.vocab_size() {
+            let mut keys = [0; 12];
+            original.factor_incidence_into(&state, token, &mut keys, &mut Default::default())?;
+            if GenerateFamily::Pair
+                .factor_keys(&keys, 4)
+                .iter()
+                .any(|&k| GenerateFamily::Pair.local_key(k).ok() == Some(coordinate))
+            {
+                changes.push((
+                    token as u32,
+                    raw[token] + i64::from(proposed - incumbent) * (1 << 20),
+                ));
+            }
+        }
+        let staged = reducer.evaluate_generate_patch(&cache, &changes)?;
+        let mut edited = before["generate.pair"].clone();
+        edited[coordinate] = f32::from(proposed) * 0.25;
+        weights.pair.set(&Tensor::from_vec(
+            edited,
+            weights.pair.shape(),
+            &Device::Cpu,
+        )?)?;
+        let new = weights.export_native()?;
+        let mut native = vec![0; original.vocab_size()];
+        new.score_into(&state, &mut native, &mut Default::default())?;
+        let full = reducer.reduce_trace(&native, &[4, 4], &[-3 << 24, -3 << 24])?;
+        for (t, score) in native.iter().enumerate() {
+            assert_eq!(
+                *score,
+                changes
+                    .iter()
+                    .find(|(id, _)| *id == t as u32)
+                    .map(|(_, s)| *s)
+                    .unwrap_or(raw[t])
+            );
+        }
+        assert_eq!(
+            staged.summary().chosen_token_id,
+            full.summary.chosen_token_id
+        );
+        assert_eq!(
+            staged.summary().total_weight_q31,
+            full.summary.total_weight_q31
+        );
+        for mass in &full.token_masses {
+            assert_eq!(staged.token_mass(&cache, mass.token_id)?, mass.weight_q31);
+        }
+        let after = np::snapshot(&weights.parameters())?;
+        for name in [
+            "generate.unary",
+            "generate.bias",
+            "generate.prototype_choices",
+        ] {
+            assert!(before[name]
+                .iter()
+                .zip(&after[name])
+                .all(|(a, b)| a.to_bits() == b.to_bits()));
+        }
+        assert_eq!(
+            after["generate.pair"][(coordinate + 1) % 57600].to_bits(),
+            before["generate.pair"][(coordinate + 1) % 57600].to_bits()
+        );
+        Ok(())
+    }
+    #[test]
+    fn factual_pair_credit_is_present_nonzero_and_does_not_mutate_frozen_masters() -> Result<()> {
+        let (native, g, state, index) = pair_native_fixture()?;
+        let before = np::snapshot(&g.parameters())?;
+        let prepared = g.prepare_native()?;
+        let out = g.forward_prepared_coefficients_only(&prepared, &state)?;
+        let exp = (0..uor_r4_integer::geometric_read::EXP_TABLE_LEN)
+            .flat_map(|i| {
+                (((-(i as f64) / 256.).exp() * (1u64 << 31) as f64).round() as u32).to_le_bytes()
+            })
+            .collect::<Vec<_>>();
+        let mut reducer = NativeVocabularyActions::new(pair_fixture_binding()?, &exp)?;
+        let mut scores = vec![0; native.vocab_size()];
+        native.score_into(&state, &mut scores, &mut Default::default())?;
+        assert_eq!(scores, out.scores_q24);
+        let trace = reducer.reduce_trace(&scores, &[], &[])?;
+        let loss = uor_r4_training::geometric_generate_learning::vocabulary_marginal_loss(
+            &trace,
+            &out.raw_scores,
+            None,
+            5,
+        )?;
+        let gradients = loss.backward()?;
+        let pair = gradients
+            .get(g.pair.as_tensor())
+            .ok_or_else(|| bad("fixture pair gradient missing"))?
+            .flatten_all()?
+            .to_vec1::<f32>()?;
+        assert_eq!(pair.len(), 57600);
+        assert!(pair[index].is_finite() && pair[index] != 0.);
+        assert!(np::same_bits(&before, &np::snapshot(&g.parameters())?));
         Ok(())
     }
 }
