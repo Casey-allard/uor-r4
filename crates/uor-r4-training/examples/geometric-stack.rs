@@ -5407,6 +5407,7 @@ impl<S: Stepper> IntegerChat<S> {
             trace: Vec::new(),
             stopped_at: None,
             copy_stop: None,
+            span_extract: None,
         })
     }
 }
