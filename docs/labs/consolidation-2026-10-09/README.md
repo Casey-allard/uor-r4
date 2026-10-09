@@ -61,3 +61,7 @@ Read any exact head from `preserve-heads.json` with `git show <sha>:<path>`.
 The thin bundle pack passed strict object validation against main prerequisites.
 It retains the recorded source histories relative to the main base, including
 the pod-only coupled source. Recovering a commit does not adopt its code.
+
+The `working-copy-tails/manifest.json` binds 14 dirty or untracked files from
+three old Codex worktrees. Their exact bytes are retained as unfinished source
+and research input; they are not adopted into active crates or scored as results.

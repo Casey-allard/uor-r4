@@ -1,0 +1,156 @@
+[
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "scripts/post-epoch-eval.sh",
+    "status": " M",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/scripts/post-epoch-eval.sh",
+    "bytes": 4523,
+    "sha256": "e26ecc6fd9ec705beba7edf27fcc775ccfd3dbd3514268418a7602654687d859",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-A-original-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-A-original-20261002.json",
+    "bytes": 1589,
+    "sha256": "364ea161032ade2e5c2a077163abc9029e2b78262d6f982d9a57523502c593d3",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-B-no-distractor-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-B-no-distractor-20261002.json",
+    "bytes": 1340,
+    "sha256": "80985a62f96e37d508f32412090233fb18c7277cc33494c20e81df37a2b81610",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-C-distractor-first-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-C-distractor-first-20261002.json",
+    "bytes": 1589,
+    "sha256": "81fb120f1fe0689e7e59aca41c6109088bd107e9785fc386693fbd4281458205",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-D-distractor-not-an-assignment-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-D-distractor-not-an-assignment-20261002.json",
+    "bytes": 1820,
+    "sha256": "4c00a621b9144ce641d9bb622852e95e1a58e500f1fc0bf1e83a00c3735630d6",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-E-distractor-unrelated-relation-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-E-distractor-unrelated-relation-20261002.json",
+    "bytes": 1710,
+    "sha256": "cc592593c84f036f6fd6c5be453e944c0b13ccd635b1138d3126646b26c9b59b",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-F-adjacent-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-F-adjacent-20261002.json",
+    "bytes": 1340,
+    "sha256": "80985a62f96e37d508f32412090233fb18c7277cc33494c20e81df37a2b81610",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-G-reasserted-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-G-reasserted-20261002.json",
+    "bytes": 1888,
+    "sha256": "f6244126570271e57301a7246cdf4ea61912c7d678da0fa1cbd3e955ac2fd7f3",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-H-two-relations-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-H-two-relations-20261002.json",
+    "bytes": 1990,
+    "sha256": "649b0c29198dfbe0416093570bcc36350f07c8b2910364f86fe291131723c90b",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-control-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-control-20261002.json",
+    "bytes": 2239,
+    "sha256": "132b1c485829e436d8f8c2a3b3832d38e4b45f49359ce02400a3c0a9813acdc4",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-heldout-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-heldout-20261002.json",
+    "bytes": 1646,
+    "sha256": "0074794cb949a943068143cb29feb2b33e44c2f0bac63043d3f584b69a162786",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a",
+    "head": "fe28b849a85c2577b097edbfc9e785c6c6aea9f0",
+    "branch": "refs/heads/codex/post-epoch-eval-20261002",
+    "path": "research/value-faith-parent-20261002.json",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/chat-v0-phase-a/research/value-faith-parent-20261002.json",
+    "bytes": 1589,
+    "sha256": "364ea161032ade2e5c2a077163abc9029e2b78262d6f982d9a57523502c593d3",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/d19-emitter-eval",
+    "head": "46ba5a42dc7b0bb66f6ebaee5b0f4ade18113712",
+    "branch": "refs/heads/codex/compiler-word-spans",
+    "path": "scripts/launch-wide.sh",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/d19-emitter-eval/scripts/launch-wide.sh",
+    "bytes": 1572,
+    "sha256": "5c1599f27a122e6e646862e5f8eb7590aaae5f1517909d3a0509f33f3de75f0f",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  },
+  {
+    "worktree": "/Users/casey.allard/uor-r4/.worktrees/distance-curriculum",
+    "head": "cd4dd380deaa8d02cc4008eb69aefa14b150efeb",
+    "branch": "refs/heads/codex/distance-curriculum",
+    "path": "crates/uor-r4-training/src/bin/synthetic-memory-corpus-wide.rs",
+    "status": "??",
+    "retained_path": "docs/labs/consolidation-2026-10-09/working-copy-tails/distance-curriculum/crates/uor-r4-training/src/bin/synthetic-memory-corpus-wide.rs",
+    "bytes": 50671,
+    "sha256": "bc9a2be7a533acca1504a89ce5eddc0dcbe63f70e2fae1ac5ec5ce4fa2d32378",
+    "validation": "UNCOMPILED_RETAINED_SOURCE"
+  }
+]
