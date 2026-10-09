@@ -1,0 +1,63 @@
+UOR-R4 — Correction: over-generation is real but the MINORITY of the recall failures; a copy-terminating decoder is worth about +10 points, not the fix
+Date: 2026-10-09 (overnight rounds 183-184). DeepSeek session. References #820.
+
+CORRECTION TO THE PREVIOUS TWO ROUNDS
+  Round 182 recorded that the dominant residual failure was "the correct value followed by over-generation",
+  and round 183 set out to test that a length-constrained or copy-terminating decoder would recover the
+  copies. THE TEST DOES NOT SUPPORT THAT AS STATED. Over-generation is real and measurable, but it is the
+  MINORITY of the failures: of the 49 misses at the full budget, only 9 start with the value and then
+  continue, while 29 NEVER CONTAIN THE VALUE AT ALL. The "dominant residual failure is the continuation"
+  framing was too strong and is corrected here.
+
+WHAT RAN
+  Inference only, same binary (md5 0852f7ce2b1ce8dfeea72ce9e0c249d1, not rebuilt), same 28 novel values
+  and three conditions, with generation budgets 3, 5, 8 against the existing 40; plus the exact intended
+  intervention - a POST-HOC CUT of the frozen 40-budget replies, which needs no decoder and no new
+  generation. Determinism verified (two repeats at three budgets, 32 of 32 identical replies; the fresh
+  budget-40 file is byte-identical to the original).
+
+THE NUMBERS
+  exact-copy rate by budget (84 cells):   3 -> 7/84 = 0.083     5 -> 37/84 = 0.440
+                                          8 -> 35/84 = 0.417    40 -> 35/84 = 0.417
+  no-pointer control: 0/84 at EVERY budget, exact and containing alike.
+  post-hoc cut on frozen replies:         4 -> 41/84 = 0.488    8 -> 35/84 = 0.417
+    ORACLE cut at the value's own length: 44/84 = 0.524 [0.418, 0.627]
+  So the best possible copy-terminating decoder on this checkpoint's trajectories is worth +9 cells and
+  about +10.7 points: REAL, and MODEST - not the sharp recovery the hypothesis predicted.
+
+  A MEASURED CONFOUND, WHICH IS WHY THE FIRST READING WAS MISLEADING: the harness generates turn 1's
+  premise reply with the SAME max_new_tokens (bind-probe-exact.rs:153), and only the pinned conditions
+  fix turn 1. So for the natural condition the knob truncates the PREMISE as well as the answer, and the
+  answer's first token moves with the budget (prefix consistency 21/28 between budgets versus 27-28/28 for
+  the pinned conditions). IN THE UNCONFOUNDED PINNED CONDITIONS TRUNCATION GAINS EXACTLY ZERO CELLS:
+  pinned Sure 10/28 at all four budgets, pinned Noted 13/28 at all four. The whole apparent gain sat in
+  the confounded arm. The clean instrument is post-hoc truncation, which is what the oracle row above is.
+
+THE SPLIT THAT MATTERS
+  exact at SOME budget                18/28 values = 0.643 [0.458, 0.793]   (37/84 cells)
+  NEVER exact at any budget           10/28 values = 0.357 [0.207, 0.542]   (47/84 cells)
+  starts with the value at some budget 22/28 = 0.786 ; never even starts 6/28 = 0.214
+  prefix structure of the 49 misses at budget 40: first token spells a prefix of the value 22/49;
+    first two tokens 15/49; reply STARTS with the value 9/49; value present but not at the start 11/49;
+    VALUE ABSENT ENTIRELY 29/49.
+
+WHAT THIS MEANS FOR THE PROGRAMME
+  1. THE RECALL RESULT STANDS AND IS UNCHANGED: the pointer copies never-seen values at 0.417 of cells
+     against 0.000 for the no-pointer control at every budget tested, and a perfect stop would raise it
+     to 0.524. The control's zero is the spine of the finding.
+  2. THERE ARE TWO DISTINCT FAILURES, NOT ONE, AND THE LARGER IS RETRIEVAL/SELECTION: about 36 % of the
+     values are never copiable at any budget, 6 of them never even begin with the value, and 59 % of the
+     misses never contain it. A decoding fix therefore cannot close the gap - it addresses at most the
+     +10.7-point continuation surplus on top of a 0.417 base.
+  3. SO THE NEXT LEVER IS AGAIN THE ONE THE EVIDENCE KEEPS POINTING AT: the pointer's MATCHING step,
+     i.e. a token-identity key instead of a hidden-state key, which is where "the value is reachable and
+     the gate is open, yet a third of values are never selected" is decided. The gate route is closed
+     (four weights), read-binding supervision ranks last (the read already lands), and a copy-terminating
+     decoder is now bounded at +10.7 points.
+  4. RECORDED AS A CORRECTION: two consecutive rounds over-read the continuation, and the instrument
+     that caught it was a pre-registered budget sweep plus a post-hoc cut, with a determinism repeat.
+
+SCOPE
+  One pointer checkpoint, one control, 28 values, 3 conditions, 4 budgets, no training. Exact for these
+  rows. The confound in the natural condition is measured and stated; the pinned conditions carry the
+  unconfounded reading.
