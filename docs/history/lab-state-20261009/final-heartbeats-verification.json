@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "original_archived_tip": "669fc6dafb578a338560c446028d00e2e81a5692",
+  "final_tip": "d9eca2ab1d8240bd854e2ae92bf29f8f1781c765",
+  "final_tree": "1c89fbc378688c3509160d0a025946b45f553759",
+  "new_heartbeat_commits": 2,
+  "full_history_commits": 1976,
+  "genesis_commit": "4a4e47944f320250a4b6aa41513761c68484f166",
+  "changed_paths_since_original_tip": [
+    "events/opencode-deepseek-20260930-hb-20261009T155232Z.json",
+    "events/opencode-deepseek-20260930-hb-20261009T160237Z.json",
+    "state.json"
+  ],
+  "bundle_sha256": "d438f99f0c44a6be66265fe28e1bdd7077454dd3570120050c66bc7aa26ed323",
+  "bundle_bytes": 3565472,
+  "patch_sha256": "1ff693e6dfaf2e2b1b08e30640db7c71542950d1ea234fe0a358af3f4c6a6b67",
+  "fresh_empty_bare_repository_bundle_restore": true,
+  "fsck_full_no_reflogs": "PASS",
+  "exact_commit_tree_match": true,
+  "initial_archive_restore_failure": "Original shallow-checkout bundle lacked parent 1fc62a3d924a8525469f6704f14468575994f661; recovered complete remote history before replacing bundle. Original blob remains in Git history.",
+  "scope": "History preservation only; no model/code change or coord invocation. Remote deletion follows protected merge and exact-tip lease."
+}

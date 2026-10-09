@@ -1,0 +1,58 @@
+diff --git a/events/opencode-deepseek-20260930-hb-20261009T155232Z.json b/events/opencode-deepseek-20260930-hb-20261009T155232Z.json
+new file mode 100644
+index 000000000..36430e8e8
+--- /dev/null
++++ b/events/opencode-deepseek-20260930-hb-20261009T155232Z.json
+@@ -0,0 +1,10 @@
++{
++  "event": {
++    "available": true,
++    "event_id": "opencode-deepseek-20260930-hb-20261009T155232Z",
++    "op": "heartbeat",
++    "session": "opencode-deepseek-20260930"
++  },
++  "observed_server_time": 1791561153,
++  "previous_head": "669fc6dafb578a338560c446028d00e2e81a5692"
++}
+\ No newline at end of file
+diff --git a/events/opencode-deepseek-20260930-hb-20261009T160237Z.json b/events/opencode-deepseek-20260930-hb-20261009T160237Z.json
+new file mode 100644
+index 000000000..e7ba15164
+--- /dev/null
++++ b/events/opencode-deepseek-20260930-hb-20261009T160237Z.json
+@@ -0,0 +1,10 @@
++{
++  "event": {
++    "available": true,
++    "event_id": "opencode-deepseek-20260930-hb-20261009T160237Z",
++    "op": "heartbeat",
++    "session": "opencode-deepseek-20260930"
++  },
++  "observed_server_time": 1791561758,
++  "previous_head": "d6f96326cc4ae71540993233845a421ddfe9102d"
++}
+\ No newline at end of file
+diff --git a/state.json b/state.json
+index fe7bc1552..56dd2beb8 100644
+--- a/state.json
++++ b/state.json
+@@ -2,8 +2,8 @@
+   "schema": "uor-r4.lab-state/1",
+   "repository": "UOR-Foundation/uor-r4",
+   "policy_sha": "e445ee94657311ae158edfab292f2c58cd4f5b24",
+-  "sequence": 1901,
+-  "observed_server_time": 1791560529,
++  "sequence": 1903,
++  "observed_server_time": 1791561758,
+   "labs": {
+     "antigravity-lab-20260930": {
+       "lab": "Antigravity",
+@@ -115,7 +115,7 @@
+         "runner-coordinated-jobs"
+       ],
+       "available": true,
+-      "heartbeat": 1791560529
++      "heartbeat": 1791561758
+     }
+   },
+   "tasks": {

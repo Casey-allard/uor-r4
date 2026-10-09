@@ -226,3 +226,9 @@ movement - use the bundle to restore.
 | Retained source | Status | Restore base | Evidence |
 |---|---|---|---|
 | [Unbuffered reader](codex_saved-pair-incidence-unbuffered-20261009.patch) | Superseded analysis I/O; no model change | Apply to the buffered `native-saved-pair-incidence.rs` delivered with this row; final file SHA-256 `bc24d467eef6a4714bc7404715ed1cb3d45d480d4d7467a5e8cdb9912490665a` | [Both sealed attempts and exact source](../../labs/saved-pair-incidence-2026-10-09/README.md); restored source SHA-256 `2a1a5713f0a275eceaf7c9f687f3e79183c17ae438e787707c6d783a8fc068b8` |
+
+## Retired coordination tail
+
+| Branch | Base already archived on main | Final tip | Disposition |
+|---|---|---|---|
+| [`codex/lab-state`](codex_lab-state.final-heartbeats.patch) | `669fc6dafb578a338560c446028d00e2e81a5692` | `d9eca2ab1d8240bd854e2ae92bf29f8f1781c765` | Two final heartbeat commits; no source/research changes. Complete 1,976-commit history retained in the independently restored [full bundle](../lab-state-20261009/lab-state.bundle). Standing branch retired. |
