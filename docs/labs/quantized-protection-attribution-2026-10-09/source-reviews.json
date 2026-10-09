@@ -1,0 +1,32 @@
+{
+  "schema": "uor-r4.source-review/1",
+  "analysis_sha256": "cf3fac5c21f9ac34aef6b8893049d98c5d8b80709f5423b5a7f499f406d61925",
+  "source_base": "7cc3fa4b6c19408250b08e53034fed4f0f710113",
+  "review_scope": "Read-only analyzer and saved outputs; neither reviewer executed the analysis or a model. Final commit review and checks are posted on the PR.",
+  "reviews": [
+    {
+      "reviewer": "emission_math",
+      "decision": "PASS",
+      "blockers": [],
+      "findings": [
+        "Producer operation order and bit-level reconstruction agree with the stated quantizer.",
+        "Signed coordinate and raw-J dot closure are retained without forcing cancellation.",
+        "Quarter rounding dominates the defined adverse stage sums; pressure is conditional on violated-row sets and is not net causal loss.",
+        "Positive linearized margins do not establish native retention or justify weaker guards.",
+        "Supports a prospective protection-aware joint discrete transaction question, not a particular solver or feasibility claim."
+      ]
+    },
+    {
+      "reviewer": "emission_adversarial",
+      "decision": "PASS_READ_ONLY",
+      "blockers": [],
+      "findings": [
+        "Pinned full-file-set BLAKE3, raw SHA/shape/finite and receipt-chain checks bind the evidence.",
+        "All7680 destination bits and saved residual/objective arithmetic are authenticated by the analyzer result.",
+        "Ties-away and fractional-master preservation match producer source.",
+        "Retain helpful/adverse cancellation; do not prune inspected coordinates or repeat a radius/pass campaign.",
+        "Native candidate behavior remains unmeasured."
+      ]
+    }
+  ]
+}

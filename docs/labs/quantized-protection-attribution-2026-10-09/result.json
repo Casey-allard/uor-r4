@@ -1,0 +1,1166 @@
+{
+  "schema": "uor-r4.saved-quantized-protection-attribution/1",
+  "status": "PASS_SAVED_RECONSTRUCTION",
+  "report_sha256": "b1d27f7b15e65d0aa8ea7e0a995b8bc76979610f97dbcb3055c8bbb434d0ac9b",
+  "manifest_sha256": "cdadd7c5cbbbdca2225a71006ab58f70129e8df9e015b92f35b19359028a7167",
+  "complete_source_files_verified": 1676,
+  "analysis_sha256": "cf3fac5c21f9ac34aef6b8893049d98c5d8b80709f5423b5a7f499f406d61925",
+  "scope": "four measured saved displacements,1920coordinates,380rawJacobian rows; no model/backward/candidate/native scoring or changedpolicy",
+  "coordinate_bits_verified": 7680,
+  "trials": [
+    {
+      "radius": 1,
+      "eta": 1.5870155580142948,
+      "violated_rows": 104,
+      "violated_guard_indices": [
+        0,
+        1,
+        6,
+        10,
+        12,
+        16,
+        20,
+        25,
+        30,
+        31,
+        32,
+        34,
+        36,
+        44,
+        48,
+        51,
+        54,
+        58,
+        66,
+        72,
+        74,
+        79,
+        83,
+        87,
+        101,
+        116,
+        119,
+        120,
+        121,
+        123,
+        129,
+        134,
+        146,
+        149,
+        162,
+        163,
+        165,
+        167,
+        170,
+        173,
+        177,
+        185,
+        188,
+        189,
+        191,
+        200,
+        201,
+        205,
+        206,
+        210,
+        216,
+        221,
+        222,
+        225,
+        226,
+        227,
+        228,
+        231,
+        236,
+        237,
+        239,
+        242,
+        249,
+        250,
+        251,
+        253,
+        257,
+        258,
+        259,
+        261,
+        262,
+        264,
+        268,
+        271,
+        272,
+        274,
+        275,
+        279,
+        280,
+        281,
+        294,
+        295,
+        296,
+        297,
+        298,
+        299,
+        302,
+        303,
+        304,
+        306,
+        308,
+        313,
+        314,
+        326,
+        330,
+        332,
+        342,
+        343,
+        346,
+        354,
+        357,
+        361,
+        362,
+        371
+      ],
+      "objective_dot_actual": -0.3904020232602803,
+      "objective_dot_intended": -0.8343400193105419,
+      "native_proposal_scope": {
+        "feasible": false,
+        "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+      },
+      "component_adverse_unit_row_dots_over_violated": {
+        "intended": 2.054084190988272e-17,
+        "addition_subtraction_residual": 9.795697517828914e-16,
+        "clamp": 0.06139270329707259,
+        "f32_cast": 5.585536470325262e-07,
+        "quarter_round": 2.4212633882542764,
+        "preserved_fractional": 0.05747676442973312
+      },
+      "component_helpful_unit_row_dots_over_violated": {
+        "intended": 1.1326258319488647,
+        "addition_subtraction_residual": 1.9090178826329053e-15,
+        "clamp": 0.04228626308344753,
+        "f32_cast": 5.763852145068609e-07,
+        "quarter_round": 0.010393716651891007,
+        "preserved_fractional": 0.10035835518963274
+      },
+      "coordinate_pressure_scope": "sum max(0,-unitJ*(actual-intended)) over violated rows; descriptive concentration, not objective or candidate search",
+      "coordinate_adverse_total": 7.671753724882253,
+      "coordinate_relief_total": 5.284659221657721,
+      "top_pressure_share": {
+        "1": 0.16856103766527178,
+        "10": 0.41407056983477897,
+        "50": 0.6019298891330499,
+        "100": 0.7073588613961561,
+        "500": 0.953075160665083
+      },
+      "family_adverse": {
+        "Prefix": 6.838365898680642,
+        "Generate": 0.8333878262016142
+      },
+      "top_pressure_coordinates": [
+        {
+          "coordinate": 121,
+          "adverse": 1.2931587685785664,
+          "relief": 0.2803025665207671
+        },
+        {
+          "coordinate": 241,
+          "adverse": 0.6104422998841399,
+          "relief": 0.1394244701518348
+        },
+        {
+          "coordinate": 1,
+          "adverse": 0.3353764753735519,
+          "relief": 0.07189677841902282
+        },
+        {
+          "coordinate": 841,
+          "adverse": 0.23915326472557302,
+          "relief": 0.05175714048821079
+        },
+        {
+          "coordinate": 601,
+          "adverse": 0.22381699568348457,
+          "relief": 1.0117191646892414
+        },
+        {
+          "coordinate": 106,
+          "adverse": 0.13663715633322746,
+          "relief": 0.006848811154062551
+        },
+        {
+          "coordinate": 481,
+          "adverse": 0.0984915910591306,
+          "relief": 0.4104058409731336
+        },
+        {
+          "coordinate": 383,
+          "adverse": 0.0853003623235036,
+          "relief": 0.004047509450715997
+        },
+        {
+          "coordinate": 361,
+          "adverse": 0.07806022739770385,
+          "relief": 0.3643423998470791
+        },
+        {
+          "coordinate": 30,
+          "adverse": 0.0762102951352013,
+          "relief": 0.0
+        },
+        {
+          "coordinate": 1221,
+          "adverse": 0.06422281650663356,
+          "relief": 0.016567064346165714
+        },
+        {
+          "coordinate": 880,
+          "adverse": 0.06151622442044727,
+          "relief": 0.02558637689392162
+        },
+        {
+          "coordinate": 721,
+          "adverse": 0.05945086045539627,
+          "relief": 0.2513654281637296
+        },
+        {
+          "coordinate": 403,
+          "adverse": 0.059282952860372634,
+          "relief": 1.2480461352063016e-06
+        },
+        {
+          "coordinate": 712,
+          "adverse": 0.04868497461859927,
+          "relief": 0.07574096174093847
+        },
+        {
+          "coordinate": 234,
+          "adverse": 0.047885104302692695,
+          "relief": 0.04513912382580523
+        },
+        {
+          "coordinate": 254,
+          "adverse": 0.044518153257084705,
+          "relief": 0.004743355031101535
+        },
+        {
+          "coordinate": 735,
+          "adverse": 0.04310206667765511,
+          "relief": 0.005838533838610335
+        },
+        {
+          "coordinate": 270,
+          "adverse": 0.04297828850448053,
+          "relief": 0.00976178565886584
+        },
+        {
+          "coordinate": 78,
+          "adverse": 0.042940842757526104,
+          "relief": 0.018891604337952148
+        }
+      ],
+      "coordinate_counts": {
+        "Prefix": {
+          "clamped": 0,
+          "unchanged_code": 949,
+          "changed_code": 11,
+          "nonzero_preservation": 0,
+          "exact_half_ties": 0
+        },
+        "Generate": {
+          "clamped": 368,
+          "unchanged_code": 959,
+          "changed_code": 1,
+          "nonzero_preservation": 19,
+          "exact_half_ties": 0
+        }
+      },
+      "max_coordinate_closure": 0.0,
+      "max_dot_closure": 1.2414133999374788e-15,
+      "violated_original_margin_zero": 1,
+      "violated_linearized_margin_positive": 101,
+      "violated_linearized_margin_nonpositive": 3,
+      "minimum_linearized_margin": -0.027674093202866373
+    },
+    {
+      "radius": 2,
+      "eta": 3.1740311160285897,
+      "violated_rows": 170,
+      "violated_guard_indices": [
+        0,
+        1,
+        5,
+        6,
+        9,
+        10,
+        11,
+        13,
+        15,
+        17,
+        19,
+        20,
+        21,
+        22,
+        24,
+        25,
+        26,
+        27,
+        32,
+        33,
+        34,
+        35,
+        37,
+        39,
+        40,
+        41,
+        43,
+        44,
+        47,
+        48,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        64,
+        65,
+        67,
+        68,
+        70,
+        74,
+        76,
+        77,
+        79,
+        80,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        93,
+        95,
+        98,
+        99,
+        101,
+        104,
+        106,
+        107,
+        108,
+        112,
+        114,
+        116,
+        121,
+        122,
+        123,
+        124,
+        143,
+        144,
+        145,
+        146,
+        147,
+        149,
+        155,
+        156,
+        157,
+        163,
+        165,
+        168,
+        169,
+        170,
+        171,
+        173,
+        176,
+        177,
+        179,
+        180,
+        182,
+        184,
+        185,
+        188,
+        194,
+        199,
+        201,
+        213,
+        219,
+        220,
+        222,
+        225,
+        226,
+        227,
+        230,
+        231,
+        236,
+        237,
+        239,
+        242,
+        243,
+        244,
+        249,
+        250,
+        251,
+        252,
+        257,
+        260,
+        262,
+        263,
+        269,
+        271,
+        275,
+        276,
+        279,
+        280,
+        281,
+        285,
+        290,
+        292,
+        294,
+        295,
+        296,
+        297,
+        298,
+        300,
+        301,
+        302,
+        303,
+        306,
+        308,
+        310,
+        311,
+        314,
+        318,
+        319,
+        320,
+        322,
+        326,
+        330,
+        332,
+        336,
+        340,
+        342,
+        343,
+        346,
+        354,
+        355,
+        356,
+        357,
+        359,
+        361,
+        362,
+        364,
+        365,
+        366,
+        369,
+        370,
+        371,
+        373,
+        374,
+        375
+      ],
+      "objective_dot_actual": -1.7598691103502957,
+      "objective_dot_intended": -1.6686800386210838,
+      "native_proposal_scope": {
+        "feasible": false,
+        "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+      },
+      "component_adverse_unit_row_dots_over_violated": {
+        "intended": 5.479148426347053e-17,
+        "addition_subtraction_residual": 1.8106253288915318e-15,
+        "clamp": 0.23399158621514507,
+        "f32_cast": 8.792285505353639e-07,
+        "quarter_round": 9.322228665997217,
+        "preserved_fractional": 0.12089131959388337
+      },
+      "component_helpful_unit_row_dots_over_violated": {
+        "intended": 2.655318563787084,
+        "addition_subtraction_residual": 1.4556927462493727e-15,
+        "clamp": 0.09161035605509055,
+        "f32_cast": 9.740073235004284e-07,
+        "quarter_round": 0.013613404645107892,
+        "preserved_fractional": 0.2000895065025959
+      },
+      "coordinate_pressure_scope": "sum max(0,-unitJ*(actual-intended)) over violated rows; descriptive concentration, not objective or candidate search",
+      "coordinate_adverse_total": 20.690730381467986,
+      "coordinate_relief_total": 11.318932171643322,
+      "top_pressure_share": {
+        "1": 0.09102124150812747,
+        "10": 0.32669648312692706,
+        "50": 0.5049274831103753,
+        "100": 0.6196301472297052,
+        "500": 0.9219131101218313
+      },
+      "family_adverse": {
+        "Prefix": 18.430514194837205,
+        "Generate": 2.2602161866307835
+      },
+      "top_pressure_coordinates": [
+        {
+          "coordinate": 241,
+          "adverse": 1.8832959670311482,
+          "relief": 0.5972484843488056
+        },
+        {
+          "coordinate": 601,
+          "adverse": 1.4435611259350114,
+          "relief": 0.4968151686663856
+        },
+        {
+          "coordinate": 1,
+          "adverse": 0.9968868130437839,
+          "relief": 0.3176043308756095
+        },
+        {
+          "coordinate": 841,
+          "adverse": 0.6631915429302533,
+          "relief": 0.23635686644933915
+        },
+        {
+          "coordinate": 481,
+          "adverse": 0.41666066910651667,
+          "relief": 1.2114334435319354
+        },
+        {
+          "coordinate": 361,
+          "adverse": 0.35949500973654874,
+          "relief": 1.0102446066519442
+        },
+        {
+          "coordinate": 121,
+          "adverse": 0.27745914656603826,
+          "relief": 0.8029651800443423
+        },
+        {
+          "coordinate": 721,
+          "adverse": 0.2747613318547637,
+          "relief": 0.7301609889737599
+        },
+        {
+          "coordinate": 522,
+          "adverse": 0.23030399430027917,
+          "relief": 0.061881918785877746
+        },
+        {
+          "coordinate": 936,
+          "adverse": 0.21397324844870977,
+          "relief": 0.019334408744597936
+        },
+        {
+          "coordinate": 383,
+          "adverse": 0.1766096243580995,
+          "relief": 0.006589638127852541
+        },
+        {
+          "coordinate": 726,
+          "adverse": 0.16954101441796596,
+          "relief": 0.057280595741614905
+        },
+        {
+          "coordinate": 892,
+          "adverse": 0.16370541004791908,
+          "relief": 0.01791866185022802
+        },
+        {
+          "coordinate": 78,
+          "adverse": 0.1518529133839039,
+          "relief": 0.04209706561155589
+        },
+        {
+          "coordinate": 941,
+          "adverse": 0.12198800592981918,
+          "relief": 0.01621112038477318
+        },
+        {
+          "coordinate": 511,
+          "adverse": 0.12062893624202645,
+          "relief": 0.009394613330179562
+        },
+        {
+          "coordinate": 735,
+          "adverse": 0.12014697065008881,
+          "relief": 0.004129199344450175
+        },
+        {
+          "coordinate": 148,
+          "adverse": 0.10899248163110298,
+          "relief": 0.004482666889904048
+        },
+        {
+          "coordinate": 622,
+          "adverse": 0.10320561461184743,
+          "relief": 0.015022133313637996
+        },
+        {
+          "coordinate": 855,
+          "adverse": 0.09967430086266946,
+          "relief": 0.03945431413650451
+        }
+      ],
+      "coordinate_counts": {
+        "Prefix": {
+          "clamped": 0,
+          "unchanged_code": 879,
+          "changed_code": 81,
+          "nonzero_preservation": 0,
+          "exact_half_ties": 0
+        },
+        "Generate": {
+          "clamped": 368,
+          "unchanged_code": 959,
+          "changed_code": 1,
+          "nonzero_preservation": 19,
+          "exact_half_ties": 0
+        }
+      },
+      "max_coordinate_closure": 0.0,
+      "max_dot_closure": 2.886579864025407e-15,
+      "violated_original_margin_zero": 1,
+      "violated_linearized_margin_positive": 164,
+      "violated_linearized_margin_nonpositive": 6,
+      "minimum_linearized_margin": -0.24137409275200147
+    },
+    {
+      "radius": 4,
+      "eta": 6.348062232057179,
+      "violated_rows": 98,
+      "violated_guard_indices": [
+        1,
+        9,
+        10,
+        11,
+        13,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        25,
+        26,
+        33,
+        35,
+        37,
+        40,
+        41,
+        44,
+        48,
+        54,
+        56,
+        58,
+        64,
+        67,
+        70,
+        74,
+        77,
+        80,
+        84,
+        85,
+        86,
+        87,
+        88,
+        95,
+        99,
+        101,
+        107,
+        114,
+        124,
+        143,
+        144,
+        146,
+        147,
+        153,
+        155,
+        156,
+        157,
+        175,
+        176,
+        184,
+        194,
+        195,
+        197,
+        201,
+        213,
+        220,
+        221,
+        226,
+        239,
+        243,
+        249,
+        250,
+        251,
+        255,
+        262,
+        263,
+        267,
+        269,
+        275,
+        276,
+        279,
+        280,
+        281,
+        285,
+        290,
+        291,
+        295,
+        298,
+        299,
+        301,
+        302,
+        303,
+        306,
+        308,
+        312,
+        314,
+        316,
+        318,
+        320,
+        332,
+        346,
+        354,
+        355,
+        356,
+        369,
+        370,
+        371
+      ],
+      "objective_dot_actual": -3.2053928920867762,
+      "objective_dot_intended": -3.3373600772421677,
+      "native_proposal_scope": {
+        "feasible": false,
+        "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+      },
+      "component_adverse_unit_row_dots_over_violated": {
+        "intended": 7.512449647677237e-17,
+        "addition_subtraction_residual": 9.692974856311357e-16,
+        "clamp": 0.36220603407619417,
+        "f32_cast": 6.372841118110419e-07,
+        "quarter_round": 7.9087443469379854,
+        "preserved_fractional": 0.025518953613144567
+      },
+      "component_helpful_unit_row_dots_over_violated": {
+        "intended": 1.9371236253048494,
+        "addition_subtraction_residual": 1.8040341999684707e-15,
+        "clamp": 0.08461584281761876,
+        "f32_cast": 6.707690059880295e-07,
+        "quarter_round": 0.016028707338149966,
+        "preserved_fractional": 0.08146923239173567
+      },
+      "coordinate_pressure_scope": "sum max(0,-unitJ*(actual-intended)) over violated rows; descriptive concentration, not objective or candidate search",
+      "coordinate_adverse_total": 17.974583315852797,
+      "coordinate_relief_total": 9.86022779725791,
+      "top_pressure_share": {
+        "1": 0.04115936352226445,
+        "10": 0.20213832790369526,
+        "50": 0.3727594409554992,
+        "100": 0.5013485813834494,
+        "500": 0.894510908677801
+      },
+      "family_adverse": {
+        "Prefix": 14.367343839917575,
+        "Generate": 3.6072394759352404
+      },
+      "top_pressure_coordinates": [
+        {
+          "coordinate": 361,
+          "adverse": 0.7398224088584148,
+          "relief": 0.13822694804485036
+        },
+        {
+          "coordinate": 121,
+          "adverse": 0.5992811804577467,
+          "relief": 0.11014778571229403
+        },
+        {
+          "coordinate": 721,
+          "adverse": 0.5524528652053439,
+          "relief": 0.14048664259127702
+        },
+        {
+          "coordinate": 601,
+          "adverse": 0.5207011807415276,
+          "relief": 0.09710733857203235
+        },
+        {
+          "coordinate": 241,
+          "adverse": 0.3357118437336781,
+          "relief": 0.11844081569177978
+        },
+        {
+          "coordinate": 1,
+          "adverse": 0.2494839252242476,
+          "relief": 0.6772436814554096
+        },
+        {
+          "coordinate": 481,
+          "adverse": 0.22650680371342086,
+          "relief": 0.7343523282117579
+        },
+        {
+          "coordinate": 446,
+          "adverse": 0.13830653416629177,
+          "relief": 0.019161461286289788
+        },
+        {
+          "coordinate": 712,
+          "adverse": 0.1365497929284331,
+          "relief": 0.011136720917466316
+        },
+        {
+          "coordinate": 902,
+          "adverse": 0.13453568120303894,
+          "relief": 0.0034570455846371106
+        },
+        {
+          "coordinate": 97,
+          "adverse": 0.131210168133032,
+          "relief": 0.0009164710017032773
+        },
+        {
+          "coordinate": 954,
+          "adverse": 0.11424071711672681,
+          "relief": 0.01423912987497913
+        },
+        {
+          "coordinate": 346,
+          "adverse": 0.11388001720643537,
+          "relief": 0.004247703994192397
+        },
+        {
+          "coordinate": 250,
+          "adverse": 0.10775638901022372,
+          "relief": 0.015170476646731174
+        },
+        {
+          "coordinate": 685,
+          "adverse": 0.09887145360880956,
+          "relief": 0.0063435006548771015
+        },
+        {
+          "coordinate": 841,
+          "adverse": 0.09524594090145531,
+          "relief": 0.5044728478612714
+        },
+        {
+          "coordinate": 95,
+          "adverse": 0.09411587288066713,
+          "relief": 0.004979691062765488
+        },
+        {
+          "coordinate": 823,
+          "adverse": 0.09059277307363,
+          "relief": 0.0021059554138378868
+        },
+        {
+          "coordinate": 722,
+          "adverse": 0.08983456878257684,
+          "relief": 0.0054104442312784915
+        },
+        {
+          "coordinate": 451,
+          "adverse": 0.08479611154464593,
+          "relief": 0.015974118307521264
+        }
+      ],
+      "coordinate_counts": {
+        "Prefix": {
+          "clamped": 0,
+          "unchanged_code": 806,
+          "changed_code": 154,
+          "nonzero_preservation": 0,
+          "exact_half_ties": 0
+        },
+        "Generate": {
+          "clamped": 369,
+          "unchanged_code": 954,
+          "changed_code": 6,
+          "nonzero_preservation": 17,
+          "exact_half_ties": 0
+        }
+      },
+      "max_coordinate_closure": 0.0,
+      "max_dot_closure": 6.217248937900877e-15,
+      "violated_original_margin_zero": 1,
+      "violated_linearized_margin_positive": 94,
+      "violated_linearized_margin_nonpositive": 4,
+      "minimum_linearized_margin": -0.6067314167557925
+    },
+    {
+      "radius": 7,
+      "eta": 11.109108906100063,
+      "violated_rows": 93,
+      "violated_guard_indices": [
+        1,
+        6,
+        8,
+        11,
+        17,
+        18,
+        21,
+        22,
+        26,
+        32,
+        33,
+        35,
+        37,
+        41,
+        47,
+        49,
+        53,
+        55,
+        58,
+        64,
+        70,
+        76,
+        84,
+        85,
+        86,
+        88,
+        89,
+        95,
+        99,
+        101,
+        105,
+        107,
+        114,
+        128,
+        132,
+        140,
+        141,
+        143,
+        144,
+        147,
+        151,
+        153,
+        166,
+        169,
+        173,
+        175,
+        176,
+        179,
+        184,
+        186,
+        194,
+        195,
+        200,
+        201,
+        213,
+        221,
+        239,
+        248,
+        249,
+        250,
+        251,
+        257,
+        258,
+        265,
+        267,
+        269,
+        274,
+        275,
+        276,
+        279,
+        280,
+        281,
+        285,
+        290,
+        291,
+        294,
+        295,
+        298,
+        301,
+        303,
+        310,
+        312,
+        316,
+        319,
+        320,
+        332,
+        343,
+        346,
+        356,
+        358,
+        359,
+        371,
+        375
+      ],
+      "objective_dot_actual": -5.725063462181221,
+      "objective_dot_intended": -5.840380135173796,
+      "native_proposal_scope": {
+        "feasible": false,
+        "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+      },
+      "component_adverse_unit_row_dots_over_violated": {
+        "intended": 4.623779409510411e-16,
+        "addition_subtraction_residual": 1.2457676669240408e-15,
+        "clamp": 0.6873511226829501,
+        "f32_cast": 5.500072306786415e-07,
+        "quarter_round": 6.639188701546815,
+        "preserved_fractional": 0.016531454637071827
+      },
+      "component_helpful_unit_row_dots_over_violated": {
+        "intended": 1.3661952719319361,
+        "addition_subtraction_residual": 1.4182671940809607e-15,
+        "clamp": 0.19569490492009006,
+        "f32_cast": 8.540995179894138e-07,
+        "quarter_round": 0.009761325459090038,
+        "preserved_fractional": 0.06763612904000589
+      },
+      "coordinate_pressure_scope": "sum max(0,-unitJ*(actual-intended)) over violated rows; descriptive concentration, not objective or candidate search",
+      "coordinate_adverse_total": 18.772212061766922,
+      "coordinate_relief_total": 11.702233446411567,
+      "top_pressure_share": {
+        "1": 0.029545599759167894,
+        "10": 0.1437213476769758,
+        "50": 0.3027270670636605,
+        "100": 0.4306860738877924,
+        "500": 0.8594633497321936
+      },
+      "family_adverse": {
+        "Prefix": 12.822393631790995,
+        "Generate": 5.949818429975917
+      },
+      "top_pressure_coordinates": [
+        {
+          "coordinate": 841,
+          "adverse": 0.5546362641711894,
+          "relief": 0.3691925600364684
+        },
+        {
+          "coordinate": 721,
+          "adverse": 0.3951710857445838,
+          "relief": 0.5571020921396179
+        },
+        {
+          "coordinate": 241,
+          "adverse": 0.38060180278626227,
+          "relief": 0.3855688855827301
+        },
+        {
+          "coordinate": 601,
+          "adverse": 0.3715120394585076,
+          "relief": 0.255148868355977
+        },
+        {
+          "coordinate": 1,
+          "adverse": 0.28970436608145594,
+          "relief": 0.22375086657063986
+        },
+        {
+          "coordinate": 121,
+          "adverse": 0.17459209220519728,
+          "relief": 0.12106586970131959
+        },
+        {
+          "coordinate": 1301,
+          "adverse": 0.14535588035689218,
+          "relief": 0.028823172840888426
+        },
+        {
+          "coordinate": 361,
+          "adverse": 0.14121191248493647,
+          "relief": 0.20676612743510225
+        },
+        {
+          "coordinate": 890,
+          "adverse": 0.13122459269260203,
+          "relief": 0.006082627853906118
+        },
+        {
+          "coordinate": 936,
+          "adverse": 0.11395758041349616,
+          "relief": 0.024521757024041583
+        },
+        {
+          "coordinate": 705,
+          "adverse": 0.11331908227459198,
+          "relief": 0.0002629776283505536
+        },
+        {
+          "coordinate": 604,
+          "adverse": 0.11169427833325411,
+          "relief": 0.07388863952941634
+        },
+        {
+          "coordinate": 804,
+          "adverse": 0.10464071738778634,
+          "relief": 0.007413876011784362
+        },
+        {
+          "coordinate": 1078,
+          "adverse": 0.09728365784346171,
+          "relief": 0.054543655111807275
+        },
+        {
+          "coordinate": 876,
+          "adverse": 0.094653834024574,
+          "relief": 0.007769965522301473
+        },
+        {
+          "coordinate": 425,
+          "adverse": 0.09000751344450389,
+          "relief": 0.006559401977861673
+        },
+        {
+          "coordinate": 542,
+          "adverse": 0.08973915717534642,
+          "relief": 0.05804152245764298
+        },
+        {
+          "coordinate": 6,
+          "adverse": 0.08913412622800247,
+          "relief": 0.05649120741979542
+        },
+        {
+          "coordinate": 735,
+          "adverse": 0.0871096710128995,
+          "relief": 0.028801313886832595
+        },
+        {
+          "coordinate": 712,
+          "adverse": 0.08616818941175786,
+          "relief": 0.039586653762601606
+        }
+      ],
+      "coordinate_counts": {
+        "Prefix": {
+          "clamped": 2,
+          "unchanged_code": 681,
+          "changed_code": 279,
+          "nonzero_preservation": 0,
+          "exact_half_ties": 0
+        },
+        "Generate": {
+          "clamped": 369,
+          "unchanged_code": 918,
+          "changed_code": 42,
+          "nonzero_preservation": 16,
+          "exact_half_ties": 0
+        }
+      },
+      "max_coordinate_closure": 0.0,
+      "max_dot_closure": 4.440892098500626e-14,
+      "violated_original_margin_zero": 0,
+      "violated_linearized_margin_positive": 90,
+      "violated_linearized_margin_nonpositive": 3,
+      "minimum_linearized_margin": -0.10634217672749682
+    }
+  ],
+  "all_radius_violated_guard_intersection": [
+    1,
+    58,
+    101,
+    201,
+    239,
+    249,
+    250,
+    251,
+    275,
+    279,
+    280,
+    281,
+    295,
+    298,
+    303,
+    332,
+    346,
+    371
+  ],
+  "seconds": 10.703189875000001
+}

@@ -380,7 +380,13 @@ own-feedback qualification on a positive construction. The original-parent run
 passes the continuous constraints, but all four quantized displacements fail
 the surrogate screen (104/170/98/93 violated rows out of 380). No native proposal
 is scored or committed; this does not measure native winner loss or establish
-global infeasibility. Accepted whole-answer performance remains 8/512. The geometry's basis, signed
+global infeasibility. The [saved displacement attribution](labs/quantized-protection-attribution-2026-10-09/README.md)
+exactly reconstructs all7,680 destination bits: quarter rounding dominates adverse
+conversion-stage sums on the violated rows, while coordinate pressure is distributed
+and includes substantial opposing contributions. This supports investigating joint
+protection-aware discrete formation, not a floating-point/tie exception or guard
+weakening. Positive linearized original margins remain surrogate diagnostics, with
+no native proposal scored. Accepted whole-answer performance remains 8/512. The geometry's basis, signed
 operators, Source authority and D11 serving contract are unchanged.
 
 ## Life of one token
