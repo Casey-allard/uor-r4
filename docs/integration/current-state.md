@@ -1,3 +1,11 @@
+# Current UOR-R4 research state
+
+## Frozen Copy excludes every legal pair-only correction at the first saved error — October 9
+
+The [native pair/Copy bound](../labs/pair-copy-bound-2026-10-09/README.md) excludes input245/position4/target267 at all **nine** conservatively possible common references: even maximum legal target Generate mass plus every target Copy alias remains below rival307's Copy mass alone. At the actual reference, the optimistic masses are319960263 versus2147483648 Q31; the target already attains its maximum four-pair sum28. All4096 Generate/U scores and the complete saved pool reconstruct natively; three focused example tests and one integer atom test pass, with a retained loader compile failure repaired before the sole diagnostic run. This rules out further pair-only search at this fixed state with Copy/unary/bias/prototypes/U frozen; accepted **8/512**, unselected pair6/15 and separate coupled9/15 are unchanged, and no fit or whole-answer evaluation ran.
+
+**Next:** after protected delivery and cleanup, assess and specify complete-episode shared source-bound occurrence/progression credit coupled to Generate, tracing existing Prefix, donor-state and shared-action U roles while retaining the original parent and17/380 protection. Reuse the coupled9/15 and reached-first-error U-only negatives to identify a concrete joint credit/transaction change before a new fit; no unchanged pair sweep, candidate composition, removal of U or answer-specific serving case.
+
 ## 2026-10-09 — Token-identity copy stop: the open population is empty (deepseek, #2029)
 
 The token-identity copy stop holds **72/84 = 0.8571** [0.7667, 0.9163] exact recall of never-seen values
@@ -22,9 +30,7 @@ from main, which matters because the pod tree carried the pre-merge rule.
 
 Offline only: export refuses a pointer carrying an identity term, so there is no integer port and none of
 this is served. The remaining 4 failures are a generator/EOS failure that no serving-time rule can touch.
-Record: [docs/labs/token-identity-stop-open-population-2026-10-09](docs/labs/token-identity-stop-open-population-2026-10-09/README.md).
-
-# Current UOR-R4 research state
+Record: [Token-identity copy-stop record](../labs/token-identity-stop-open-population-2026-10-09/README.md).
 
 ## Pair proposals never correct the first error despite high initial credit coverage — October 9
 

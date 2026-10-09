@@ -25,6 +25,7 @@ pub enum VocabularyActionError {
     MissingLegalTerminal,
     CopyCount(usize),
     ScoreShape,
+    InvalidReference { score_q24: i64, reference_q24: i64 },
     OutputShape,
     InvalidCopyToken(u32),
     InvalidGenerateToken(u32),
@@ -292,6 +293,23 @@ impl NativeVocabularyActions {
     }
     pub fn legal_token_ids(&self) -> &[u32] {
         &self.legal_ids
+    }
+    /// Offline diagnostic atom weight under an explicitly supplied clipped
+    /// common reference. Uses this admitted reducer's authenticated exp table;
+    /// it does not select actions or change any reducer/cache state.
+    pub fn atom_weight_at_reference(&self, raw_score_q24: i64, reference_q24: i64) -> Result<u64> {
+        let score = raw_score_q24.clamp(-SCORE_CLIP_Q24, SCORE_CLIP_Q24);
+        if !(-SCORE_CLIP_Q24..=SCORE_CLIP_Q24).contains(&reference_q24) || reference_q24 < score {
+            return Err(VocabularyActionError::InvalidReference {
+                score_q24: score,
+                reference_q24,
+            });
+        }
+        let weight = stack_exp_neg(reference_q24 - score, -24, &self.exp, EXP_STEP_LOG2);
+        if weight == 0 {
+            return Err(VocabularyActionError::NonpositiveWeight);
+        }
+        Ok(weight)
     }
     pub fn action_count(&self, copies: usize) -> Result<usize> {
         if copies > MAX_SOURCE_TOKENS {
@@ -1035,6 +1053,34 @@ mod tests {
         for token in &trace.token_masses {
             assert_eq!(cache.masses[token.token_id as usize], token.weight_q31);
         }
+        Ok(())
+    }
+    #[test]
+    fn diagnostic_atom_reference_matches_native_trace_and_rejects_invalid_reference(
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let mut reducer = fixture(12, false)?;
+        let mut gen = vec![-SCORE_CLIP_Q24 - 1; 12];
+        gen[3] = SCORE_CLIP_Q24 + 1;
+        gen[4] = 1234567;
+        let trace = reducer.reduce_trace(&gen, &[4, 4, 5], &[1234567, -1234567, i64::MIN])?;
+        for atom in &trace.actions {
+            assert_eq!(
+                reducer
+                    .atom_weight_at_reference(atom.raw_score_q24, trace.summary.max_score_q24)?,
+                atom.weight_q31
+            );
+        }
+        assert!(reducer.atom_weight_at_reference(1, 0).is_err());
+        assert!(reducer
+            .atom_weight_at_reference(0, SCORE_CLIP_Q24 + 1)
+            .is_err());
+        assert!(reducer
+            .atom_weight_at_reference(i64::MIN, -SCORE_CLIP_Q24 - 1)
+            .is_err());
+        assert_eq!(
+            reducer.atom_weight_at_reference(i64::MAX, SCORE_CLIP_Q24)?,
+            1u64 << 31
+        );
         Ok(())
     }
     #[test]

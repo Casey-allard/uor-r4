@@ -19,7 +19,7 @@ closes only when its acceptance is met on the saved model.
 | | Milestone | Status | Goal and acceptance summary | Latest result |
 |---|---|---|---|---|
 | M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Claude, DeepSeek) | in progress | A trained geometric language model good enough to carry chat and memory; PROPOSED language-quality threshold on the saved model | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served |
-| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress | Replies emitted from the exact store by learned geometric operators; PROPOSED completion threshold | 8 of 512 complete; gate 9 of 15 |
+| M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress | Replies emitted from the exact store by learned geometric operators; PROPOSED completion threshold | 8 of 512 complete; gate 9 of 15; [one fixed-state pair-only obstruction](docs/labs/pair-copy-bound-2026-10-09/README.md) |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
 | M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) | not started | One model served multiplier-free through the shipped CLI; PROPOSED parity threshold | D11 engine bit-exact; CLI cannot serve the stack yet |
 | M5 | [Laptop cost, D5](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Measured J/token, RSS and tokens/s on the M1 with selected parameter access | none |

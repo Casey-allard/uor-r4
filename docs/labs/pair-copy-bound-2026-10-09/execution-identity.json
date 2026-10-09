@@ -1,0 +1,40 @@
+{
+  "execution_source": "3cf03d8a3ce6d9a27aa38898afcd24ee5c90e4d1",
+  "delivery_base": "5c14e047162f6747e7c8d66712ca24abfa5f0280",
+  "source_sha256": {
+    "crates/uor-r4-core/examples/native-pair-copy-bound.rs": "2ff7c83a871aaf3c05d54738dbeb9090812e45e95035f2bb3cd3b93337336fd4",
+    "crates/uor-r4-integer/src/geometric_vocabulary_actions.rs": "053d2cf430e501862b3d1dcbd3f261bdb86bb85e2c66e87104d8ac2444de51ce"
+  },
+  "input_report_sha256": "a4d9f86ed218494b6aedafb13a32fc7b7c923224686722e10545bb78fd4f3b1f",
+  "input_manifest_sha256": "e2028f55f68c0fb061fc604356f5524ea42cc8c3f5bd51f8d739e23b3b93463e",
+  "input_icloud": "codex-bounded-pair-outcome-20261009",
+  "focus": {
+    "input_index": 245,
+    "position": 4,
+    "target": 267,
+    "rival": 307
+  },
+  "parameters": {
+    "fixed_native_frame": true,
+    "pair_sum_min": -28,
+    "pair_sum_max": 28,
+    "score_unit_q24": 1048576,
+    "all_common_references": true,
+    "target_aliases": "all",
+    "rival_aliases": "all",
+    "strict_exclusion": true
+  },
+  "new_training": false,
+  "new_pods": 0,
+  "build_repair": {
+    "failed_source": "fb76d4ac983212292cb98c5fffa16927194bcb8e",
+    "cause": "E0308: Continuation loader requires NativeArtifactBinding, not SourceActionBinding",
+    "repair": "Construct expected binding from sealed native/metadata.json hash and identity; use strict existing loader",
+    "scope": "No diagnostic ran at failed source; no mathematical bound changes"
+  },
+  "executable_sha256": "c8690e44711c6e0a110e4d51b717bd73c158a8457bbe5cc995d1b2679eb1d5e7",
+  "executable_bytes": 1261888,
+  "command": "native-pair-copy-bound <restored>/runs/pair-0001-attempt1 <fresh>/bound-0001",
+  "report_sha256": "a8ea302d0cb44eec92ae80c2008bdcad79e055b7cf25dbdf0c4c0c6038082f9a",
+  "manifest_sha256": "7ca87717e96bd583c0f327669871fdb665e6ca34f01ad0d617e3fc0287bea585"
+}

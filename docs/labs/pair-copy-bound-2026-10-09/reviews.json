@@ -1,0 +1,35 @@
+{
+  "math": {
+    "reviewer": "emission_math",
+    "status": "PASS_SOURCE_ONLY",
+    "source_sha256": {
+      "crates/uor-r4-core/examples/native-pair-copy-bound.rs": "1999103698bba9671d82ffd1b51e0b65166874cbcd8da15f3a9b71c7cd765f56",
+      "crates/uor-r4-integer/src/geometric_vocabulary_actions.rs": "053d2cf430e501862b3d1dcbd3f261bdb86bb85e2c66e87104d8ac2444de51ce"
+    },
+    "scope": "Authenticated score decomposition; complete conservative reference union; monotonic native atom upper bound; physical alias multiplicity; strict tie-safe exclusion; current-assignment containment. No build or numerical execution by reviewer."
+  },
+  "adversarial": {
+    "reviewer": "emission_adversarial",
+    "status": "PASS_SOURCE_ONLY",
+    "head": "fb76d4ac983212292cb98c5fffa16927194bcb8e",
+    "source_sha256": {
+      "crates/uor-r4-core/examples/native-pair-copy-bound.rs": "1999103698bba9671d82ffd1b51e0b65166874cbcd8da15f3a9b71c7cd765f56",
+      "crates/uor-r4-integer/src/geometric_vocabulary_actions.rs": "053d2cf430e501862b3d1dcbd3f261bdb86bb85e2c66e87104d8ac2444de51ce"
+    },
+    "scope": "Pinned complete saved input; all4096 G/U, pooled mass and atom reconstruction; native factor keys/scale20; complete relaxed reference coverage; all aliases; strict tie-safe fixed-frame claim. No build/test/arithmetic execution by reviewer."
+  },
+  "result": {
+    "reviewer": "emission_math",
+    "status": "PASS_RESULT_SCOPE",
+    "source": "3cf03d8a3ce6d9a27aa38898afcd24ee5c90e4d1",
+    "scope": "All9reference bounds strict. Full legal pair-family correction excluded only under fixed authenticated post/Copy/unary/bias/prototype/U. Target already at pair ceiling; no fitting or global capacity claim. Next assess general learned occurrence/progression scoring coupled to Generate, not wider pair search; prior9/15 and U-only negatives retain scope.",
+    "reviewer_executed_model": false
+  },
+  "loader_repair": {
+    "reviewer": "emission_adversarial",
+    "status": "PASS_SOURCE_ONLY",
+    "head": "3cf03d8a3ce6d9a27aa38898afcd24ee5c90e4d1",
+    "example_sha256": "2ff7c83a871aaf3c05d54738dbeb9090812e45e95035f2bb3cd3b93337336fd4",
+    "scope": "Construct NativeArtifactBinding from pinned sealed metadata hash and typed identity. Existing loader validates exact binding; no bound arithmetic changed. Original source review missed compile mismatch."
+  }
+}

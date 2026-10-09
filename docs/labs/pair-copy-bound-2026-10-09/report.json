@@ -1,0 +1,151 @@
+{
+  "actual_reference_q24": 40224089,
+  "actual_rival_mass": 2152372762,
+  "actual_target_mass": 319960263,
+  "continuation_sha256": "ac1fccf1a0186a5e540ad3b667944f5e3d59df10cf9929690c4a2e910615c62e",
+  "elapsed_seconds": 0.457347042,
+  "equality_references": 0,
+  "excluded_by_relaxed_bound": true,
+  "focus": {
+    "actual_prefix_ids": [
+      617,
+      2097,
+      315,
+      1057
+    ],
+    "coalesced_objective_weight": 0.06666666666666667,
+    "donor": 2,
+    "guard_weight": 0.0,
+    "id": "development-diverse-length4-07-swap0-q0-forward-home",
+    "input_index": 245,
+    "position": 4,
+    "post_state": [
+      43,
+      101,
+      53,
+      98,
+      88,
+      96,
+      22,
+      111
+    ],
+    "row": 380,
+    "target_label_only": 267,
+    "zero_weight_guard": false
+  },
+  "frozen_base_includes_U": true,
+  "generate_sha256": "28eeab8e4d6700dd495a20aac64788d2d66c04d4cfb872a4c58f12e625a871ff",
+  "grid_sum_max": 28,
+  "grid_sum_min": -28,
+  "grid_unit_q24": 1048576,
+  "input_manifest_sha256": "e2028f55f68c0fb061fc604356f5524ea42cc8c3f5bd51f8d739e23b3b93463e",
+  "input_report_sha256": "a4d9f86ed218494b6aedafb13a32fc7b7c923224686722e10545bb78fd4f3b1f",
+  "interpretation": "Strict upper<lower at every possible reference excludes target victory under frozen Copy/unary/bias/prototypes/U with any legal shared pair coefficients.",
+  "legal_generate_tokens": 4096,
+  "new_gradients": 0,
+  "new_model_steps": 0,
+  "new_proposals": 0,
+  "pair_edges": 4,
+  "physical_copy_ids": [
+    1074,
+    1717,
+    79,
+    820,
+    2394,
+    689,
+    1057,
+    267,
+    307,
+    397,
+    324,
+    91,
+    2795,
+    770,
+    397,
+    471
+  ],
+  "physical_copy_scores_q24": [
+    -23374642,
+    -51933730,
+    28136248,
+    -33059361,
+    -4311173,
+    -29855199,
+    -26957005,
+    7092497,
+    40224089,
+    -38738876,
+    16354376,
+    -25966864,
+    27947147,
+    4689374,
+    -17956457,
+    -11097700
+  ],
+  "reference_bounds": [
+    [
+      40224089,
+      319960263,
+      2147483648
+    ],
+    [
+      40894464,
+      307427326,
+      2063370154
+    ],
+    [
+      41943040,
+      288801246,
+      1938356877
+    ],
+    [
+      42991616,
+      271303663,
+      1820917771
+    ],
+    [
+      44040192,
+      254866205,
+      1710593940
+    ],
+    [
+      45088768,
+      239424643,
+      1606954293
+    ],
+    [
+      46137344,
+      224918637,
+      1509593854
+    ],
+    [
+      47185920,
+      211291505,
+      1418132186
+    ],
+    [
+      48234496,
+      198490000,
+      1332211900
+    ]
+  ],
+  "reference_bounds_columns": [
+    "reference_q24",
+    "target_mass_upper_q31",
+    "rival_copy_mass_lower_q31"
+  ],
+  "reference_count": 9,
+  "relaxation": "All legal token scores independently use four-code sums; shared coefficient constraints dropped. Rival Generate mass omitted. Equality cannot exclude target267 because it wins an exact tie against307.",
+  "rival": 307,
+  "rival_fixed_copy_aliases": 1,
+  "saved_score_reconstructions": 1,
+  "schema": "uor-r4.native-pair-copy-bound/1",
+  "snapshot_sha256": "588fcab64ac9c3a81a6ace5fb674d61aa605fa4d34a1adfa319afb2867ff8405",
+  "source_commit": "3cf03d8a3ce6d9a27aa38898afcd24ee5c90e4d1",
+  "status": "COMPLETED",
+  "surviving_references": 0,
+  "target": 267,
+  "target_fixed_base_q24": -66060288,
+  "target_fixed_copy_aliases": 1,
+  "target_generate_clipped_max_q24": -36700160
+}

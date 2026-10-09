@@ -1,0 +1,20 @@
+{
+  "store": "icloud:UOR-R4/results/codex/codex-pair-copy-bound-20261009.tar",
+  "name": "codex-pair-copy-bound-20261009",
+  "bytes": 1467904,
+  "md5": "6f089bba16e0a5f65fde707e37c20afc",
+  "verification": "cloud-store put fresh remote MD5 round-trip; package inventory retained",
+  "package_inventory_sha256": "25f45ec6705100bdc91daace2002c7e127ab52dc0477d043fb61765654855808",
+  "complete_sealed_root": "bound-0001/",
+  "runtime_sha256": "c8690e44711c6e0a110e4d51b717bd73c158a8457bbe5cc995d1b2679eb1d5e7",
+  "retained_files": 20,
+  "retained_logical_bytes": 1385024,
+  "main_sealed_archive": {
+    "path": "bound-0001.tar.gz",
+    "bytes": 2237,
+    "sha256": "8ef2acd7fff1036e3b91c781a189c1385beb0967f754a2a5ac5834e9a70b8d53",
+    "full_file_set_and_bytes_vs_sealed_root": "PASS"
+  },
+  "input_preservation": "Existing codex-bounded-pair-outcome-20261009 remains canonical; no need to duplicate complete input in this package",
+  "cleanup": "After verified merge, remove local recovered input, regenerable build and verified preserved runtime/result copies; leave peer workspaces untouched"
+}

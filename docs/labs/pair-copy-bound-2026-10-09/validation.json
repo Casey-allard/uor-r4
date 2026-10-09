@@ -1,0 +1,61 @@
+{
+  "source": "3cf03d8a3ce6d9a27aa38898afcd24ee5c90e4d1",
+  "source_sha256": {
+    "crates/uor-r4-core/examples/native-pair-copy-bound.rs": "2ff7c83a871aaf3c05d54738dbeb9090812e45e95035f2bb3cd3b93337336fd4",
+    "crates/uor-r4-integer/src/geometric_vocabulary_actions.rs": "053d2cf430e501862b3d1dcbd3f261bdb86bb85e2c66e87104d8ac2444de51ce"
+  },
+  "example_tests": {
+    "passed": 3,
+    "failed": 0
+  },
+  "integer_api_tests": {
+    "passed": 1,
+    "failed": 0
+  },
+  "optimized_build": "PASS",
+  "native_report_file_set": "PASS",
+  "native_baseline": "all4096 Generate and U; complete pool summary/token masses; all4112 physical actions; actual assignment/reference containment",
+  "initial_build": "FAILED_E0308_preserved_then_fixed",
+  "commands": [
+    "cargo test --offline --locked --release --jobs 2 -p uor-r4-core --example native-pair-copy-bound",
+    "cargo test --offline --locked --release --jobs 2 -p uor-r4-integer --lib geometric_vocabulary_actions::tests::diagnostic_atom_reference_matches_native_trace_and_rejects_invalid_reference",
+    "cargo build --offline --locked --release --jobs 2 -p uor-r4-core --example native-pair-copy-bound"
+  ],
+  "measured": {
+    "example-build.log": {
+      "elapsed_seconds": 2.2,
+      "user_seconds": 2.85,
+      "sys_seconds": 0.25,
+      "max_rss_bytes": 221609984,
+      "sha256": "0e5080e15321532bafc24871d4c775fcc418195abd320e9ad0dd573bf388d291"
+    },
+    "example-tests-attempt2.log": {
+      "elapsed_seconds": 1.81,
+      "user_seconds": 0.67,
+      "sys_seconds": 0.33,
+      "max_rss_bytes": 189677568,
+      "sha256": "ae4e9e05584467db997cb647eb63f424f86c4b1b68f7ba19384f9fa157272bf3"
+    },
+    "example-tests.log": {
+      "elapsed_seconds": 311.96,
+      "user_seconds": 492.9,
+      "sys_seconds": 16.85,
+      "max_rss_bytes": 2211676160,
+      "sha256": "a186109f15aa3715670806f4d98837701305c787b6af051fc893030f6619c9a8"
+    },
+    "integer-tests.log": {
+      "elapsed_seconds": 33.49,
+      "user_seconds": 55.61,
+      "sys_seconds": 1.69,
+      "max_rss_bytes": 864845824,
+      "sha256": "40943d90311e78cf1e1a6a482d3414da0f8f79bf1e55d150f1d5b483b5ebb40a"
+    },
+    "bound-0001.log": {
+      "elapsed_seconds": 0.53,
+      "user_seconds": 0.19,
+      "sys_seconds": 0.06,
+      "max_rss_bytes": 77889536,
+      "sha256": "a41f8d8663f4210756b3f83f65eea38822dc1108f8481150bf90558ff231448b"
+    }
+  }
+}
