@@ -1,0 +1,65 @@
+UOR-R4 — Correction: the copy-store arms READ the value's onset but do not emit the value (0 of 63 replies)
+Date: 2026-10-09 (overnight rounds 162-164). DeepSeek session. References #820.
+
+RETRACTION OF THE PREVIOUS ROUND'S READING
+  Round 162 recorded that the name-like replies from the copy-store arms ("Anany." at weight 100, "Ane."
+  at weight 30) were "a reproducible signal" of the recalled value. THE PROBE REFUTES THAT. The replies
+  are onset-keyed, not value-driven: "Anany.", "Ane." and "Another." all share the first token " An",
+  and the value "Ana" appears in none of them as such. The word "reproducible" was wrong - what
+  reproduced was the ONSET, not the value.
+
+WHAT WAS MEASURED
+  Three copy-store arms (commitment 30, 60, and the arm designated 100), four original rows plus three
+  added ones designed to separate value from prior: zorba (a value that is not a common name), quillon
+  (a name outside every store family), anvil (a non-name sharing an onset with Ana). Conditions:
+  natural, turn 1 pinned to " Sure." plus EOS, pinned to " Noted." plus EOS, using the EOS-bearing exact
+  path validated bit-exactly against the official binary. 9 runs, all exit 0.
+
+  * THE SPAN IS REACHED: read mass on the expected span is at or above TAU in 62 of 63 arm x condition x
+    row cells (all of 7 rows at or above TAU in 8 of 9 cells; thin, 1-9 of 16 heads).
+  * THE VALUE IS NOT EMITTED: 0 of 63 replies start with the expected value and 0 of 63 contain it
+    anywhere, case-insensitively. The same held for the earlier attrshort arm (0 of 4).
+  * THE DECISIVE DISCRIMINATION: the rows "ana" and "anvil" differ ONLY in the value, and their
+    first-token candidate sets are IDENTICAL ([35,304,423,439]); their emitted first word agrees in 8 of
+    9 cells and the entire reply is identical in 4 of 9 (at weight 60 pinned Noted., both are " Au.").
+    Four apparent "argmax hits" for the quillon row are the token for a bare space.
+  * WHERE THE EMISSION DOES COME FROM (measured in the store's own bytes): the demand-copy store
+    contains "Zn." x16, "Au." x18, "Symbol: Zn" x2, "gold." x12, "zinc." x12, "Italy" x18, "Rome" x18,
+    "neon" x12, and its generator's pools include ELEMENT_FACTS (Zn/zinc, Au/gold), CAPITAL_FACTS
+    (Italy/Rome) and a metals list bank. The emitted " Zn." / " Au." / " Zinc." / " Gold." / " Rome." /
+    " Italy." are exactly those taught surfaces; the rest are generic chat priors (" An ecosystem...",
+    " last.", " first.", " I'm thrilled...").
+  * THE ZORBA ROW IS THE CLEANEST SINGLE OBSERVATION: the onset token " Z" takes probability 0.894
+    (weight 30 natural), 0.854 (weight 60 natural), 0.629 (weight 60 pinned Noted.) and is the argmax
+    there - so the READ IS VALUE-CONDITIONAL AT THE FIRST TOKEN, with a value-paired DELTA up to +10.8
+    nats - and then the model completes into the store's Zn/zinc family and never emits "Zorba".
+
+  SO THE PRECISE LABEL IS: ONSET READ, READOUT FAILURE (the harness class c_readout in 62 of 63 cells).
+  The copy-store change moved the first token; it did not move the answer.
+
+WHAT THIS CHANGES
+  1. THE REMAINING GAP IS THE CONTINUATION, NOT RETRIEVAL AND NOT THE ONSET. The span is reached, the
+     onset is value-conditional, and the continuation is family-driven. The single next intervention
+     that follows is to score or penalise the FULL VALUE SPAN at the answer position rather than the
+     first token alone - or a constrained/two-token decoder - because the first token is already doing
+     its job.
+  2. THE COMMITMENT WEIGHT IS A FIRST-TOKEN LEVER AND IS NOW MEASURABLY DOING THAT, which is a positive
+     result about a merged change even though it did not produce the answer. Weight 60 additionally
+     produces the most value-paired DELTA cells (7/7, 6/7, 6/7) while regressing on the panel's form
+     classes, so the two objectives are in tension at this size.
+  3. THE INSTRUMENT IS NOW TRUSTWORTHY FOR THIS QUESTION: three rows designed to separate value from
+     prior (non-name value, out-of-family name, same-onset non-name) plus a cross-check that reproduced
+     one panel reply BIT-IDENTICALLY under the float checkpoints (" Anany." ids [439,80,2782,16,1]).
+
+CAVEATS, RECORDED AS MEASURED
+  * The arm designated "commitment 100" has NO recorded weight in its artifact or the pod ledger; the
+    earlier sweep script on disk names 30 and 60. Its label is UNVERIFIED and any claim resting on
+    "100" specifically should be treated as resting on an unconfirmed configuration.
+  * Read mass is a maximum over layers x heads (1-9 of 16) and is thin.
+  * All four arms are pointerless, so the pointer/copy lane remains untested on this path.
+  * Attribution of emitted tokens to "the store's family" is inferred from byte counts and generator
+    pools, not from an intervention; the same surfaces also occur in the chat corpus.
+
+SCOPE
+  Three arms, seven rows, three conditions, inference only, greedy, single seed per arm. Exact for these
+  rows. The retraction above concerns the interpretation of the panel strings, not the panel data.
