@@ -1,0 +1,37 @@
+{
+  "files": [
+    {
+      "blake3": "b4056080d99e4634d877bf67e1dd70e5a6a12ea3600ff7a56c42b1d90f5a1b96",
+      "bytes": 396,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "927e2dc75cf5730be418e67d06798abf11bfbb79e19b1275432860a2d7edb492",
+      "bytes": 269,
+      "path": "execution.json"
+    },
+    {
+      "blake3": "fdbf2d20d1e53415f347b231c7704b1ad0f64c034a32e183f69ba1a868ad8573",
+      "bytes": 505,
+      "path": "input-verification.json"
+    },
+    {
+      "blake3": "a95256c73e2a85d845b5d292ee9fb12194e9ba86fcaad6f2e45966f7abb40f0f",
+      "bytes": 1023,
+      "path": "launch.json"
+    },
+    {
+      "blake3": "af1349b9f5f9a1a6a0404dea36dcc9499bcb25c9adc112b7cc9a93cae41f3262",
+      "bytes": 0,
+      "path": "stderr.log"
+    },
+    {
+      "blake3": "11f4a775c3f44288a9222b1958729a311c77bf3333489d94cd870ffe055ed1d3",
+      "bytes": 1080,
+      "path": "stdout.log"
+    }
+  ],
+  "root": "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/local/observation-attempt2",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1791572583"
+}

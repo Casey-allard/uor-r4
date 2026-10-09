@@ -1,0 +1,18 @@
+{
+  "status": "PASS_SOURCE_IDENTITY",
+  "execution_source": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "analysis_base": "819dc596276861be0c9f9f3576b52ae72beb17bc",
+  "modules": {
+    "crates/uor-r4-integer/src/geometric_vocabulary_actions.rs": "053d2cf430e501862b3d1dcbd3f261bdb86bb85e2c66e87104d8ac2444de51ce",
+    "crates/uor-r4-integer/src/stack/kernels.rs": "9566d450c7a9ef5932ecd553d6fe3a06bd319a9d572091e10384418f42f48b88",
+    "crates/uor-r4-integer/src/geometric_prefix_transport.rs": "3d6949ae43faf9435be35d31749db77cb294cdff33519361e0e4bff564326de5",
+    "crates/uor-r4-core/src/native_geometric/learner/geometric_generate.rs": "30cb4b8c405799a020530b6b53a527bbda8a7e2ddd4a64a32cdc480c06662a49",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs": "2efd3f31ca6192fed70edc5056550db2656dad1c9f27e177bb5493eda16773a5",
+    "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs": "0350c3e1ca574741a283cfc3727ccf36522533c89a710ce3717c559cc39d6923",
+    "crates/uor-r4-integer/src/geometric_source_realizer.rs": "b72f3e91ba825dfccd66015b52597a1e1a14ad5c1e1c0554cfd6f0eaa65f9b48"
+  },
+  "wrapper_sha256": "68a55288ee3e033784104dcbfd6b4a835a57b5953d7743465f1522dbc78df19b",
+  "wrapper_review": "emission_adversarial PASS_SOURCE_ONLY repaired fresh-root wrapper",
+  "scientific_reader": "PASS_REPAIRED_EXACT_SOURCE_REVIEW_AND_ACTUAL_SAVED_ANALYSIS",
+  "new_model_work": "NOT_RUN"
+}

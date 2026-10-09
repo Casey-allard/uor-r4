@@ -1,0 +1,13 @@
+{
+  "status": "PASS_FRESH_DOWNLOAD_ALL_MEMBERS_AND_NATIVE_ROOTS",
+  "package": "codex-residual-pool-competition-20261009",
+  "archive_bytes": 859648,
+  "archive_md5": "66e660d342f737d4a8773e2ab9a87eee",
+  "indexed": true,
+  "files": 39,
+  "logical_bytes": 724607,
+  "native_roots_verified": 4,
+  "inventory_sha256": "a5f697f0693b9ccbdad52921f25e4eaf88d3a4eac63703ffdcbf6c1ffeda8ec3",
+  "scope": "Complete failed and successful sealed roots; both reader/wrapper versions; verified report tool; pre-delivery documentation snapshot. Final docs/reviews/receipts authoritative on main.",
+  "parent_cloud_package": "codex-full-donor-outcome-20261009"
+}

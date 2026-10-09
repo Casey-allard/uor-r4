@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/docs/labs/residual-pool-competition-2026-10-09/analyze.py", line 256, in <module>
+    main()
+  File "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/docs/labs/residual-pool-competition-2026-10-09/analyze.py", line 160, in main
+    need(sum(combined) + u[token] == copy[ordinal] and
+  File "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/docs/labs/residual-pool-competition-2026-10-09/analyze.py", line 27, in need
+    raise ValueError(reason)
+ValueError: exact Source/Cue/Prefix/U Copy decomposition

@@ -1,3 +1,11 @@
+## Corrected-donor earliest residual: useful local credit, insufficient adjacent displacement — October 9
+
+The [saved pooled competition](../labs/residual-pool-competition-2026-10-09/README.md) at #2069 input245/position7 checks all4,096 Generate +16physicalCopy atoms against retained native token masses. Target324 has Copy801100048 +Generate222793 versus rival307 Copy2147483648 +Generate391014. One physical alias each, no clipping; distinct eight-key Prefix incidences with nonsaturated coefficients. Fourteen accepted helpful adjacent changes improved the local raw Copy contrast by3.5 nats, but a16,543,477 Q24 deficit remains. Initial frozen directions are not current gradients or protected-feasibility evidence. Source-only contributions are explicitly derived, not independently replayed.
+
+The first diagnostic attempt exposed and retained a saved-trace interpretation error; the repaired fresh attempt passes. No new model/gradient/proposal work or paid compute. The candidate remains unselected; accepted8/512 and conditional9/15 are unchanged. The result motivates a bounded coordinated finite-update question, not a larger unchanged sweep or an answer-specific exception.
+
+**Next:** After protected delivery and cleanup, implement a generic quantization-aware multi-coordinate Prefix transaction from the complete joint episode gradient, starting from the original selected initializer. Fix a small vector-magnitude/trust-region schedule prospectively, derive coordinates from the full family rather than these inspected keys, preserve fractional-master deltas and deterministic projection, and reevaluate changed physical donors/Generate states atomically. Keep strict current combined-CE descent, all seventeen references and 380 guards, and unchanged final fifteen-position/actual-answer qualification. Compare offered crossings, objective rejection, guard veto and acceptance against the retained adjacent-policy result. This tests finite coordinated movement; no unchanged sweep, answer-specific rule, relaxed protection or candidate composition.
+
 ## 2026-10-09 — CORRECTION: the pointer line's mechanism is softmax-based and cannot be served (deepseek, #2029)
 
 Recorded at the owner's request after a session review. This corrects how the pointer/gate-floor/identity-stop
@@ -46,7 +54,9 @@ The [saved journal attribution](../labs/donor-residual-attribution-2026-10-09/RE
 
 This is saved-observation attribution, not new model/gradient/score execution. The candidate remains unselected, accepted **8/512** and conditional **9/15** remain unchanged. No guard relaxation or unchanged fit follows from this result. The one sealed analysis passes; no pod or paid compute was used.
 
-**Next:** After protected delivery and cleanup, decompose the already-saved final native pool at the earliest residual (position 7, target 324 versus winner 307): all target/rival Copy aliases, Generate and frozen U contributions, clipping/reference and integer atom weights, joined to Prefix/Generate feature incidence and physical donor/post-state. Distinguish weak target mass, rival alias dominance and shared lookup dependencies before choosing a generic credit, transaction or representation change. Positive target mass is not missing token support. Retain EOS’s separate guard conflict; no unchanged fit, guard weakening or answer-specific exception.
+**Follow-up completed:** [saved pool competition](../labs/residual-pool-competition-2026-10-09/README.md) answers this question; retain its prospective wording as history.
+
+**Next (historical):** After protected delivery and cleanup, decompose the already-saved final native pool at the earliest residual (position 7, target 324 versus winner 307): all target/rival Copy aliases, Generate and frozen U contributions, clipping/reference and integer atom weights, joined to Prefix/Generate feature incidence and physical donor/post-state. Distinguish weak target mass, rival alias dominance and shared lookup dependencies before choosing a generic credit, transaction or representation change. Positive target mass is not missing token support. Retain EOS’s separate guard conflict; no unchanged fit, guard weakening or answer-specific exception.
 
 ## DeepSeek's VSA "inert" result re-scoped: valid only for a frozen artifact; retraining test pre-registered — October 9
 

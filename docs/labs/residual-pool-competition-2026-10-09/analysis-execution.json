@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "argv": [
+    "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/docs/labs/residual-pool-competition-2026-10-09/analyze.py",
+    "--run",
+    "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/local/recovered/evidence/runs/full-donor-0001-attempt1",
+    "--identity",
+    "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/local/recovered/codex-full-donor-outcome-20261009/publication-full-donor-0001-attempt1/identity.json",
+    "--evidence",
+    "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/local/recovered/evidence",
+    "--output",
+    "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/local/competition-attempt2"
+  ],
+  "script_sha256": "7f789a889086643f75306c3400f0de1aa891f5f47001c5014b462075b7f92752",
+  "report_sha256": "a5aac35730444406e7c77133df5780d06c4fbf4149c2a4e4c4a5bc2a743f3252",
+  "elapsed_seconds": 1.478456417,
+  "peak_rss_bytes": 373440512,
+  "new_model_calls": 0,
+  "Generate_score_regeneration": false,
+  "new_proposals_or_gradients": 0,
+  "normative_seal_and_verify": "PENDING_PARENT"
+}

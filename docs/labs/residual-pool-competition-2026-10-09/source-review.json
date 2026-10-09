@@ -1,0 +1,16 @@
+{
+  "status": "PASS_REPAIRED_SOURCE_ONLY",
+  "reader_sha256": "1ed4cf4865a5476109b3cbe5bc7b19fc65e382e56bd40459bfec4477dba8a247",
+  "wrapper_sha256": "a879f5e3ec0b0bea5b5e136d34e118ce543ec062b34eff4c035d4e29c63388d8",
+  "math_review": "Native interpolation, complete mass closure, donor before U, Source/Cue/Prefix/U, packed head gathers, Generate finite feature incidence, focused journal joins PASS",
+  "adversarial_wrapper": "PASS_SOURCE_ONLY",
+  "adversarial_reader": "Original PASS_SOURCE_ONLY superseded by the retained observed schema failure; see repaired_reviews",
+  "scope": "Saved arithmetic/feature incidence, no model replay or changed proposal; distinct keys do not prove protected feasibility",
+  "original_review_correction": "Original reviews missed bank.actions post-adjustment stage; first actual attempt failed assertion. Retained correction and originals.",
+  "repaired_reader_sha256": "7f789a889086643f75306c3400f0de1aa891f5f47001c5014b462075b7f92752",
+  "repaired_wrapper_sha256": "68a55288ee3e033784104dcbfd6b4a835a57b5953d7743465f1522dbc78df19b",
+  "repaired_reviews": [
+    "emission_math PASS_SOURCE_ONLY",
+    "emission_adversarial PASS_SOURCE_ONLY"
+  ]
+}

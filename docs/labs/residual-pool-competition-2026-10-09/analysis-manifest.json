@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "blake3": "77fdad57eb28c3efaf9873f91877aaad50c582e400b352e85424b83bd825996d",
+      "bytes": 396,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "3088f347ca5088b73e56df174b7a553d0155f8db2500df451a162f5469358fe3",
+      "bytes": 1142,
+      "path": "execution.json"
+    },
+    {
+      "blake3": "dbd47e19f19b6b72037745c899ff09d78e0bbdd2cb3f3c0f2d45acbc640b43b5",
+      "bytes": 29488,
+      "path": "report.json"
+    }
+  ],
+  "root": "/Users/casey.allard/.codex/worktrees/residual-pool-competition/uor-r4/local/competition-attempt2",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1791572583"
+}

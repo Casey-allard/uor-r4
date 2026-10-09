@@ -1,0 +1,13 @@
+{
+  "status": "PASS_ALL_MEMBERS",
+  "source_commit": "4f7eee35b250b6d5bf9e250fc0ea00d356998695",
+  "archive_sha256": "38bd9de53ea64a96e41a268b9aa0f96968c6dfae7c19fe615d950e6f6871c09d",
+  "files": 608,
+  "bytes": 372002006,
+  "seconds": 2.597531333,
+  "normative_roots_verified": true,
+  "report_tool_sha256": "79e8370646462717a5fd94f6e868383baca90ed491fc583646bb93d187cea0de",
+  "report_tool_reused": true,
+  "new_build": "NOT_RUN",
+  "wrapper_sha256": "a879f5e3ec0b0bea5b5e136d34e118ce543ec062b34eff4c035d4e29c63388d8"
+}

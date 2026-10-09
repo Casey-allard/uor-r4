@@ -1,0 +1,18 @@
+{
+  "status": "FAILED_ANALYSIS_BOUNDARY_NOT_MODEL_NEGATIVE",
+  "old_reader_sha256": "1ed4cf4865a5476109b3cbe5bc7b19fc65e382e56bd40459bfec4477dba8a247",
+  "reason": "Saved bank actions already contain Cue and Prefix; derived Source-only incorrectly compared to combined action score",
+  "reached": "Full saved token mass/reference/winner and Prefix packed gather checks passed before component assertion",
+  "execution": {
+    "status": "FAILED",
+    "exit_code": 1,
+    "error": "saved reader failed; inspect preserved stderr",
+    "started_utc": "2026-10-09T19:00:39.446688+00:00",
+    "seconds": 0.71108525,
+    "children_max_rss_bytes_macos": 110837760,
+    "reader_sha256": "1ed4cf4865a5476109b3cbe5bc7b19fc65e382e56bd40459bfec4477dba8a247"
+  },
+  "attempt1_preserved_sealed": true,
+  "repair": "Compare combined head sum to adjusted saved action and physical Copy after U; label Source as derived subtraction, not independent Source replay",
+  "wrapper_attempt2_sha256": "68a55288ee3e033784104dcbfd6b4a835a57b5953d7743465f1522dbc78df19b"
+}
