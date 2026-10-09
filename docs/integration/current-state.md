@@ -80,7 +80,11 @@ Plan A baseline to beat.
 are field-identical and no headline number moves on the other four. Then the model itself was run end to
 end on the laptop CPU (`device=cpu`; `model_sha256`, tokenizer, protocol and `max_new_tokens` identical to
 the sealed run): **31/40 with the same nine failures and all 64 rows byte-identical to the sealed CUDA
-replies in both reply strings and generated ids**, so this panel number needs no pod to reproduce.
+replies in both reply strings and generated ids**, so this panel number needs no pod to reproduce. Both
+sealed roots are preserved for checking as `icloud:UOR-R4/results/memory-v4/runs.tar` (329,728 bytes, md5
+`b7870d3f0c1c9d55c263c3f8bdfe13cc`; `cloud-store fetch runs <dest>`), holding the CPU `replies.json`, the
+re-grade report including the four rows that differ at the same digest, and the classifier runs' inputs and
+outputs — cited rather than committed because it is run output, not source.
 
 **The nine, per category, mechanism named.** Every one fails because the expected value is not in the
 reply: **3 wrong value** — the reply names the row's forbidden distractor in the asked slot (`mem-11`

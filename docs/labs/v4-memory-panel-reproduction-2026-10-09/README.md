@@ -112,6 +112,28 @@ ids** (64/64 rows, all 150 reply calls). Greedy decoding on this artifact is dev
 the pod's GPU path and the laptop CPU path, so the panel number is reproducible from the artifact without
 a pod at all. Wall 17 min 30 s (150 replies, 1,044.5 s reply time, 1.6 ids/s).
 
+**(c) Where the outputs of this round are.** The sealed roots both runs produced are preserved as one
+iCloud object, verified after storage:
+
+| object | bytes | md5 | index row |
+|---|---:|---|---|
+| `icloud:UOR-R4/results/memory-v4/runs.tar` | 329,728 | `b7870d3f0c1c9d55c263c3f8bdfe13cc` | `results/memory-v4/runs.tar`, lab `memory-v4`, 2026-10-09T19:33:18Z |
+
+It holds `runs/replies-v4-ftq-cpu/` (the CPU-generated `replies.json`, 64 rows, `device=cpu`,
+`model_sha256 9c0d9019…`, with its `attempt.json`/`manifest.json`) and `runs/grade-v4-repro1/` (the
+re-grade report — `per_category.multi_turn_memory` `check_pass` 31 / `acceptable` 27 — **including the four
+rows whose grader verdicts differ from the pod's at the same digest**, with its own sealed root files).
+The classifier runs of this round are the two invocations of the shipped `classify_v4_memory.py` documented
+above, reproducible from that script plus either replies file. It is cited rather than committed because it
+is run output, not source: the storage rule keeps bulk artifacts in iCloud with `main` holding the index
+and the identities, and the sealed inputs it derives from are already addressable by sha256 above. It is
+the evidence for the claim this record calls its strongest — **all 64 rows byte-identical to the sealed
+CUDA replies in both reply strings and generated ids, so greedy decoding on this artifact is
+device-independent and the panel reproduces with no pod.**
+
+`~/.local/share/uor-r4/bin/cloud-store fetch runs <dest>` restores it (the object's name is `runs`; its
+index row is `icloud:UOR-R4/index/runs.tsv`).
+
 ## The nine failures, per category, mechanism named (counts, not impressions)
 
 Every one of the nine fails because **the expected value is not in the reply**. The frozen check's own
