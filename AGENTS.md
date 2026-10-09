@@ -21,6 +21,15 @@
 > activated must still land as a patch and INDEX row in
 > `docs/history/branch-archive/`. Previously preserved bundles remain evidence.
 
+> **Owner direction, October 9 — delivery cadence:** every PR that completes work
+> also carries its canonical record (a dated `docs/labs/<topic>-<date>/README.md` plus a
+> newest-first entry in `docs/integration/current-state.md`) and updates every document the
+> change makes stale. STATUS/ROADMAP and the #2028 milestone table change when state changes.
+> The README is updated only when a capability, headline result, milestone, command or
+> mechanism actually changed, in its existing section format, never as a log. Then merge,
+> verify, delete the branch and worktree and run `scripts/storage/uor-hygiene --apply`.
+> Full checklist: [CONTRIBUTING.md § Delivery cadence](CONTRIBUTING.md#delivery-cadence-every-completed-unit-owner-9-october-2026).
+
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
 > for the owner-authorized continuation; other historical lab assignments are

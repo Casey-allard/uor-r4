@@ -33,32 +33,69 @@ is the full rule set and wins on any conflict.
 ## The workflow (every lab, agent and human)
 
 1. **Refresh.** `git fetch origin`; read the milestone issue, the tracker
-   [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028) and recent PRs.
+   [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028), the newest entries of
+   [current-state.md](docs/integration/current-state.md) and recent PRs.
 2. **Claim.** On the milestone issue (#2029 to #2036): post a claim comment, add the label
    `lab:claude`, `lab:codex` or `lab:deepseek` (humans: a comment suffices), and set
    `status:in-progress`. Work ownership is a renewable claim, not a monopoly.
-3. **Report results** as short comments on the milestone issue: the numbers, the scope and the
-   merged PR. The tracker carries only milestone-level decisions. No heartbeats or work logs on
-   the tracker or milestones; leases go to the compute board
-   [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037), coordination to `codex/lab-state`.
-4. **Branch.** A short-lived branch (or worktree) per deliverable. No long-lived branches.
-   The only standing branch is `codex/lab-state`.
-5. **Check.** Compile and exercise the changed Rust path with focused tests (arithmetic,
+3. **Branch.** One short-lived branch (or worktree) per deliverable. There are no standing
+   branches. Leases go to the compute board
+   [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037) through `uor-pod`.
+4. **Check.** Compile and exercise the changed Rust path with focused tests (arithmetic,
    causality, serialization, interfaces). Run actual generated behavior for a model change.
-   Run `python3 scripts/check_claim_wording.py` when editing capability claims. Do not treat
-   absent fixtures, unrun tests or the CI acknowledgement jobs as a pass: the `required-transport`
-   job executes no tests.
-6. **Open a protected PR.** Stage named paths only. Use `References #N`, not `Closes #N`, for
-   partial work. Post the checks you ran, at the exact head, on the PR.
+   Run `python3 scripts/check_claim_wording.py`. Do not treat absent fixtures, unrun tests or the
+   CI acknowledgement jobs as a pass: the `required-transport` job executes no tests.
+5. **Record and update docs in the same PR** (the delivery cadence below).
+6. **Open a protected PR.** Stage named paths only. Fill in the PR checklist. Use
+   `References #N`, not `Closes #N`, for partial work. Post the checks you ran at the exact head.
 7. **Review.** An exact-head review (self-review is allowed) plus passing tests at that head.
 8. **Merge** through the merge queue. Never direct-push `main`, bypass protection, fabricate
    checks or use admin merge.
 9. **Verify** on fresh `origin/main` that the merge commit and the delivered source match.
    Completed, validated work must be merged into `main`; opening a PR is not completion.
-10. **Clean up.** Delete the branch and worktree, then run `scripts/storage/uor-hygiene --apply`.
-    Do not start the dependent successor while delivery is unfinished.
-11. **Record** outcome, retained artifacts, limitations and next action on the owning issue.
-    Close an issue only when its complete acceptance is met.
+10. **Report** one short comment on the milestone issue: the number, its scope, the merged PR.
+    No heartbeats or work logs on the tracker or milestones.
+11. **Clean up.** Delete the branch on GitHub and locally, remove the worktree, move used results
+    to iCloud (`cloud-store put <lab> <dir>`), then run `scripts/storage/uor-hygiene --apply`.
+    Do not start the next piece while this one is unmerged or uncleaned.
+
+## Delivery cadence: every completed unit (owner, 9 October 2026)
+
+Each PR that completes a unit of work (an experiment, a fix, a feature, a negative result)
+carries its own record and its own documentation updates. Nothing is logged only in an issue,
+a chat or a local file, and nothing is left for "a docs pass later".
+
+**1. Canonical research record (always).**
+- A dated record for the work: `docs/labs/<topic>-<YYYY-MM-DD>/README.md` (or `docs/evidence/…`
+  for sealed evidence). State the question, the exact artifact/data/config, what was run, the
+  numbers with their scope, the decision (KEEP / REJECT / NOT YET PROMOTED) and limitations.
+- A new entry at the **top** of [docs/integration/current-state.md](docs/integration/current-state.md):
+  `## <one-line result> — <Month D>`, two to five sentences, a link to the record, and
+  `**Next:**` with the next action. Negative and inconclusive results are recorded the same way.
+
+**2. Every document the change touches (always).** Before opening the PR, search for what the
+change makes stale and fix it in the same PR:
+`git grep -n -i '<feature, flag, command, crate or number you changed>' -- '*.md'`.
+This includes crate READMEs, `docs/geometry.md`, `docs/labs/*`, `CONTRIBUTING.md`, `AGENTS.md`
+and code comments that describe behaviour.
+
+**3. STATUS, ROADMAP and the tracker (when state changes).** Update `STATUS.md` and `ROADMAP.md`
+when a lab's measured position, a best artifact or a milestone's status changes. Edit the
+milestone table in the body of #2028 at the same time.
+
+**4. README (only when the project actually changed).** The README is the curated front page,
+not a log. Update it only when something a reader relies on changed:
+- a capability that works or stops working;
+- a new or better headline result, a published model or dataset;
+- a milestone status, a command, a crate, or a new mechanism.
+
+Keep its existing structure and section order. Edit the matching section and table in place:
+Where we are, Training, Serving, Results so far, Roadmap, Models and data or Repository map.
+Never add a dated changelog. Keep claims scoped and measured, with negatives where they exist.
+
+**5. Honest wording.** Every number names its artifact, data split and comparison. Unverified
+claims are marked as unverified. A failed or retracted result stays on the record with its
+correction; it is never silently replaced.
 
 ## Data, artifacts and compute
 
