@@ -686,7 +686,156 @@ def fig_primes():
     fg.save()
 
 
+def fig_next_token():
+    fg = Fig("next-token.svg", "How the next token is predicted",
+             "Left-to-right pipeline of the geometric stack: a token id selects an embedding row; sixteen layers in the pattern rrarrarrarrarrar alternate quaternion-rotation recurrence (r) with reads over earlier positions (a); a final norm gives logits over the 4,096 tokens, a softmax in the float form, and an optional copy head routed by prime products mixes in a copy distribution to give the next-token probabilities. A band notes that the served form uses integer table reads and a greedy argmax over integer scores.",
+             ["Geometry: state carried by quaternion rotation, the past read by a Lorentz score, copying routed by primes. Float form shown.",
+              "Example numbers are illustrative. Served form: D11 integer table reads for steps 2-6, greedy argmax, no vocabulary softmax."])
+    SOFT = "#f6f9fc"
+
+    def badge(x, y, n, col=INK):
+        fg.circle(x, y, 10, col)
+        fg.text(x, y + 4.5, str(n), 12, "#ffffff", "middle", weight="bold")
+
+    def box(x, y, w, h, fill=SOFT, stroke=FAINT, sw=1.4):
+        fg.rect(x, y, w, h, fill, stroke, sw, 12)
+
+    # ---- row 1: token -> embedding -> layers
+    box(40, 160, 90, 70)
+    fg.text(85, 184, "token id", 13, MUTED, "middle")
+    fg.text(85, 205, "x_t", 20, INK, "middle", weight="bold")
+    fg.text(85, 221, "byte-BPE", 11.5, MUTED, "middle")
+    fg.arrow(130, 195, 155, 195, GRID, 2, 9)
+    box(155, 160, 140, 70)
+    fg.text(225, 182, "embedding E", 13, INK, "middle", weight="bold")
+    fg.text(225, 200, "row E[x_t]: 4,096 × d", 11.5, MUTED, "middle")
+    fg.text(225, 216, "(d = 1536 at 214M)", 11.5, MUTED, "middle")
+    badge(155, 160, 1, GRID)
+    fg.arrow(295, 195, 320, 195, GRID, 2, 9)
+
+    box(320, 90, 640, 210, "#fbfcfd")
+    fg.text(336, 113, "16 layers, repeated pattern:", 13, INK, weight="bold")
+    for i, ch in enumerate("rrarrarrarrarrar"):
+        fg.text(540 + 12 * i, 114, ch, 15, BLUE if ch == "r" else ORANGE, weight="bold")
+    fg.text(745, 113, "(r = recurrence, a = read)", 11.5, MUTED)
+    # r layer
+    fg.rect(336, 128, 290, 134, "#eef6fc", BLUE, 1.6, 10)
+    badge(336, 128, 2, BLUE)
+    fg.text(354, 147, "r layer: carry the state by rotation", 13, BLUE, weight="bold")
+    cx, cy = 392, 196
+    fg.circle(cx, cy, 28, "#ffffff", BLUE, 1.4)
+    a0, a1 = 0.0, -1.15
+    fg.arrow(cx, cy, cx + 24 * cos(a0), cy + 24 * sin(a0), MUTED, 2, 8)
+    fg.arrow(cx, cy, cx + 24 * cos(a1), cy + 24 * sin(a1), BLUE, 2.6, 8)
+    fg.path(f"M{f(cx + 13)} {f(cy)}A13 13 0 0 0 {f(cx + 13 * cos(a1))} {f(cy + 13 * sin(a1))}", stroke=VERM, w=1.8)
+    fg.text(450, 172, "u_t: unit quaternion", 11.5, INK)
+    fg.text(450, 188, "optional snap to 1 of 120", 11.5, MUTED)
+    fg.text(450, 203, "icosians (training)", 11.5, MUTED)
+    fg.text(450, 219, "λ_t gate; a_t conv input", 11.5, INK)
+    fg.text(350, 240, "grey: h_{t−1}    blue: u_t · h_{t−1}", 11, MUTED)
+    fg.text(350, 256, "h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t", 12.5, INK, weight="bold")
+    # a layer
+    fg.arrow(628, 180, 672, 180, GRID, 2, 8)
+    fg.arrow(672, 206, 628, 206, GRID, 2, 8)
+    fg.rect(674, 128, 270, 134, "#fff8e8", ORANGE, 1.6, 10)
+    badge(674, 128, 3, ORANGE)
+    fg.text(692, 147, "a layer: read the past", 13, "#9a6a00", weight="bold")
+    ys = 196
+    fg.add(f'<circle cx="700" cy="{ys}" r="8" fill="none" stroke="{GRID}" stroke-width="1.4" stroke-dasharray="3 2"/>')
+    xs = [740, 780, 820, 860]
+    for x in xs:
+        fg.circle(x, ys, 8, ORANGE, fop=0.35)
+    fg.circle(912, ys, 10, ORANGE)
+    fg.text(912, ys + 4, "t", 12, "#ffffff", "middle", weight="bold")
+    for x, w in zip(xs, (1.2, 2.0, 4.6, 3.0)):
+        fg.path(f"M{f(912)} {f(ys - 10)}Q{f((912 + x) / 2)} {f(ys - 58)} {f(x)} {f(ys - 9)}", stroke=ORANGE, w=w, op=0.85)
+    fg.text(700, ys + 24, "NoRead", 10.5, MUTED, "middle")
+    fg.text(800, ys + 24, "earlier positions", 10.5, MUTED, "middle")
+    fg.text(692, 240, "score: Dot or Lorentz −β·arcosh(1+e)", 12, INK)
+    fg.text(692, 256, "+ age term; softmax mixes earlier states", 12, INK)
+    fg.text(640, 284, "after every layer: SwiGLU MLP + residual", 12, MUTED, "middle")
+    badge(320, 284, 4, GRID)
+
+    # ---- connector to row 2
+    fg.path("M640 300L640 326L85 326", stroke=GRID, w=2)
+    fg.arrow(85, 326, 85, 356, GRID, 2, 9)
+    fg.text(100, 320, "h_t from the last layer", 11.5, MUTED)
+
+    # ---- row 2: norm -> logits -> softmax -> mix -> p
+    box(40, 358, 90, 62)
+    fg.text(85, 384, "final norm", 13, INK, "middle", weight="bold")
+    fg.text(85, 402, "norm(h_t)", 11.5, MUTED, "middle")
+    fg.arrow(130, 389, 158, 389, GRID, 2, 9)
+    z = [("mat", 1.6), ("cat", 1.9), ("sat", 0.9), ("dog", 1.3), ("on", 0.2)]
+    ez = [math.exp(v) for _, v in z]
+    soft = [e / sum(ez) for e in ez]
+    copy = {"mat": 0.85, "sat": 0.15}
+    g = 0.6
+    fin = [(1 - g) * soft[i] + g * copy.get(z[i][0], 0.0) for i in range(len(z))]
+    box(158, 352, 196, 108)
+    badge(158, 352, 5, GRID)
+    fg.text(172, 372, "logits z_t = norm(h_t) · Eᵀ", 12, INK, weight="bold")
+    base = 436
+    for i, (name, v) in enumerate(z):
+        bx = 174 + 31 * i
+        fg.rect(bx, base - v * 22, 22, v * 22, BLUE, rx=3, fop=0.85)
+        fg.text(bx + 11, base + 13, name, 10.5, MUTED, "middle")
+    fg.text(342, base, "…", 14, MUTED, "middle")
+    fg.text(342, base + 13, "4,096", 9.5, MUTED, "middle")
+    fg.arrow(354, 389, 380, 389, GRID, 2, 9)
+    box(380, 364, 84, 50)
+    fg.text(422, 386, "softmax", 13, INK, "middle", weight="bold")
+    fg.text(422, 402, "float form", 11, MUTED, "middle")
+    fg.arrow(464, 389, 524, 389, GRID, 2, 9)
+    fg.circle(560, 389, 32, "#e6f6ef", GREEN, 2.2)
+    fg.text(560, 394, "mix", 14, GREEN, "middle", weight="bold")
+    fg.text(560, 346, "p(v) = (1−g_t)·softmax(z_t)[v] + g_t·p_copy(v)", 12, INK, "middle", weight="bold")
+    fg.arrow(592, 389, 640, 389, GRID, 2, 9)
+    box(640, 358, 320, 102)
+    fg.text(656, 378, "p(next token)", 13.5, INK, weight="bold")
+    for i, (name, v) in enumerate(z):
+        bx = 664 + 54 * i
+        hh = fin[i] * 90
+        col = GREEN if name == "mat" else BLUE
+        fg.rect(bx, base - hh, 34, hh, col, rx=3, fop=0.85)
+        fg.text(bx + 17, base + 13, name, 10.5, MUTED, "middle")
+    fg.text(944, 378, "served: greedy argmax", 11, MUTED, "end")
+
+    # ---- copy head
+    box(340, 474, 440, 112, "#f2faf6", GREEN, 1.6)
+    badge(340, 474, 6, GREEN)
+    fg.text(358, 494, "optional copy head", 13, "#00704f", weight="bold")
+    fg.text(520, 494, "gate g_t = sigmoid(w_g·h_t + b_g)", 12, INK)
+    cells = ["the", "cat", "sat", "on", "the", "mat", "on the"]
+    x0, cwid, cy0 = 366, 50, 524
+    for i, c in enumerate(cells):
+        x = x0 + 54 * i
+        cur = i == 6
+        hit = i == 5
+        wmatch = i in (3, 4)
+        fg.rect(x, cy0, cwid + (4 if cur else 0), 24, "#fff4cf" if cur else ("#d9f0e6" if hit else "#ffffff"),
+                INK if cur else (GREEN if hit else (BLUE if wmatch else FAINT)), 2 if (cur or hit or wmatch) else 1.2, 5)
+        fg.text(x + (cwid + (4 if cur else 0)) / 2, cy0 + 16, c, 11.5, INK, "middle", weight="bold" if cur or hit else "normal")
+    fg.path(f"M{x0 + 54 * 6 + 24} {cy0}Q{x0 + 54 * 6 - 10} {cy0 - 34} {x0 + 54 * 5 + 25} {cy0 - 2}", stroke=GREEN, w=3)
+    fg.add(f'<polygon points="{x0 + 54 * 5 + 25},{cy0 - 1} {x0 + 54 * 5 + 18},{cy0 - 9} {x0 + 54 * 5 + 31},{cy0 - 8}" fill="{GREEN}"/>')
+    fg.text(x0 + 54 * 5 + 25, cy0 + 33, "p_copy(mat)", 10.5, "#00704f", "middle")
+    fg.text(x0 + 54 * 3.5 + 24, cy0 + 33, "window match", 10.5, BLUE, "middle")
+    fg.text(358, 573, "sources chosen by a learned score, or the exact prime route: gcd of prime products of the last", 11, MUTED)
+    fg.text(358, 584, "≤ 6 tokens vs earlier windows (or the longest n-let)", 11, MUTED)
+    fg.arrow(560, 474, 560, 424, GREEN, 2.4, 9)
+    fg.text(570, 454, "g_t, p_copy", 11.5, "#00704f")
+    fg.text(800, 492, "Example values are", 11.5, MUTED, style="italic")
+    fg.text(800, 508, "illustrative, not a", 11.5, MUTED, style="italic")
+    fg.text(800, 524, "measured output.", 11.5, MUTED, style="italic")
+
+    # ---- serving band
+    fg.rect(40, 596, 920, 24, "#e6f6ef", GREEN, 1.2, 12)
+    badge(58, 608, 7, GREEN)
+    fg.text(504, 612, "served: steps 2–6 as D11 integer table reads (no multiplier, no float); token = greedy argmax over i32 scores, no vocabulary softmax", 11.5, "#00704f", "middle", weight="bold")
+    fg.save()
+
+
 if __name__ == "__main__":
-    for fn in (fig_quaternion, fig_s3, fig_hopf, fig_600cell, fig_golden, fig_zeta, fig_primes):
+    for fn in (fig_quaternion, fig_s3, fig_hopf, fig_600cell, fig_golden, fig_zeta, fig_primes, fig_next_token):
         fn()
-    print("wrote 7 figures to", OUT)
+    print("wrote 8 figures to", OUT)

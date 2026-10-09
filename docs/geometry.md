@@ -19,6 +19,53 @@ Two code paths use these objects. The **geometric stack** (`crates/uor-r4-traini
 is the trained language model. The **native learner** (`crates/uor-r4-core/src/native_geometric/`)
 is the exact addressed-memory path. They share ideas but not all mechanisms; each section says which.
 
+## How the next token is predicted
+
+<img src="figures/geometry/next-token.svg" width="100%" alt="Pipeline of the geometric stack: token id, embedding, sixteen alternating recurrence and read layers, final norm, logits, softmax, optional copy head, next-token probabilities, and the served integer form">
+
+This is the path of the trained **geometric stack** (`crates/uor-r4-training/src/geometric_stack.rs`)
+for one token. The numbers match the figure's badges. Section 2 and the later sections draw the
+geometric objects in detail; [Life of one token](#life-of-one-token) lists the same path step by step.
+
+1. **Embed.** The byte-BPE id x_t selects one row of the learned embedding matrix E (vocabulary 4,096,
+   width d; d = 1536 at 214M). Formula: h⁰_t = E[x_t].
+2. **Carry the state by rotation (`r` layers).** For each 4-channel lane, projections give a unit
+   quaternion u_t, a gate λ_t and an input a_t (a width-4 causal convolution). The previous state is
+   rotated by u_t and blended with the new input: h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t. In
+   training, u_t can optionally be snapped to the nearest of the 120 unit icosians (straight-through).
+3. **Read the past (`a` layers).** The layer scores earlier positions with a Dot or a Lorentz
+   (hyperbolic) score, −β·arcosh(1+e), adds an age term and a NoRead slot, and a softmax mixes the
+   earlier states: h_t ← Σ_s softmax(score)_s · h_s.
+4. **MLP and residual.** Every layer ends in a SwiGLU MLP with a residual connection. The 16 layers
+   follow the pattern `rrarrarrarrarrar` (r = recurrence, a = read).
+5. **Logits.** A final norm, then z_t = norm(h_t) · Eᵀ, with the output head tied to the embedding E
+   (float form; the served form has its own head). In the float form a softmax over the 4,096 tokens
+   gives p_soft = softmax(z_t).
+6. **Optional copy head.** A gate g_t = sigmoid(w_g·h_t + b_g) mixes in a copy distribution:
+   p(v) = (1−g_t)·softmax(z_t)[v] + g_t·p_copy(v), where p_copy sums attention over earlier positions
+   that hold token v. The sources are chosen by a learned score or by the exact prime route: gcd of the
+   prime products of the last ≤ 6 tokens against earlier windows, or the longest n-let
+   ([section 7](#7-prime-uor-addressing-and-exact-memory)).
+7. **Serving.** Steps 2–6 run in fixed point through the D11 integer table kernels (4-bit weights, no
+   multiplier instruction, no floating point). The integer path is bit-exact with the float path on a
+   3,072-target check.
+
+**What it does not use.** The stack's prediction path uses no Hamming distances, no spin and no
+spherical harmonics. Hamming/popcount and H4 codes appear in the native learner (the exact
+addressed-memory path) and in the frozen R4G1 runtime. Spherical harmonics appear only in
+`native_geometric/learner/geometric_attention.rs`. The "R4/Spin" models in the project history were
+transformers. The output softmax is standard: the geometry is in how state is carried (quaternion
+rotation), how the past is read (Lorentz score) and how exact copying is routed (primes).
+
+### Softmax at runtime: where it is gone and where it is still emulated
+
+| Place | What the served engine does | Status |
+|---|---|---|
+| Next-token choice | Greedy argmax over integer i32 scores (`stack_argmax`, `crates/uor-r4-integer/src/stack/chat.rs:296`) | No softmax for token choice. Sampling would need one and is not implemented. |
+| Read-layer weights | exp(−d) read from a sealed lookup table (`stack_exp_neg`, `crates/uor-r4-integer/src/stack/kernels.rs:350–375`; table spec `format.rs:228`), then integer normalization. No float, no multiplier instruction. | Table-emulated softmax, not yet designed out. |
+| Flock selection | Fixed rank weights w_i ∝ 1/(i+1) from a table (`crates/uor-r4-integer/src/stack/flock.rs:356–436`) | A softmax-free alternative already in the engine. |
+| Copy-head mixture | Computed in fixed point by the integer engines | Softmax-shaped, through the same tables. |
+
 ## 1. Quaternions and rotation
 
 <img src="figures/geometry/quaternion-rotation.svg" width="100%" alt="A unit quaternion rotating a 3D vector, and the left-multiplication used as a state update">

@@ -85,6 +85,9 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 
 For an illustrated walkthrough of the geometry, see [docs/geometry.md](docs/geometry.md).
 
+For one token end to end (embedding, quaternion recurrence, Lorentz read, copy head, integer serving), see
+[How the next token is predicted](docs/geometry.md#how-the-next-token-is-predicted).
+
 <img src="docs/figures/geometry/600-cell-icosians.svg" alt="The 120 unit icosians (600-cell vertices) used as a rotation codebook" width="100%">
 
 Each mechanism lists its implemented role and its status. Architectural priority

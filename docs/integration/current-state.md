@@ -1,5 +1,16 @@
 # Current UOR-R4 research state
 
+## DeepSeek's VSA "inert" result re-scoped: valid only for a frozen artifact; retraining test pre-registered — October 9
+
+An [independent review](../labs/vsa-review-2026-10-09/README.md) of the four 8 October VSA measurements finds:
+- The query selector (L1 over H4 code indices) is a valid negative, but involves no hypervectors.
+- The token-overlap count is a valid measurement and diagnoses a task mismatch: question and record share no tokens.
+- The two codebook tests swapped codes into an already-trained artifact without retraining it, then measured the term with `vsa_scale_q15 = 0`.
+
+So "the VSA term is inert" holds for that frozen artifact only. Nothing trains the VSA weight or codes, and serving always rebuilds the fixed hash codebook. The mechanism is unproven, not ruled out.
+
+**Next:** pre-registered retraining test (Claude lab): 4 arms (VSA off, fixed codes, learned codes, learned codes without Copy) × 2 seeds on the same two held-out slices. KEEP if held-out BPB improves by ≥ 0.01 with the 95% interval excluding zero on both slices and seeds; retire the scorer term if no arm gains ≥ 0.005.
+
 ## Complete donor credit changes learning; the original-parent episode remains 9/15 — October 9
 
 The [original-parent run](../labs/full-donor-run-2026-10-09/README.md) executes the corrected `full_pool_utility` mode on source `4f7eee35`, retaining the original 15-position/17-reference/380-guard objective and Prefix/Generate unary families. It records 416 forced donor pools, 31 fresh backwards, 14,292 constructor alternatives and 956 accepted changes. All 391 final native snapshots reload. Conditional correctness remains **9/15**, with the same correct-position set as the legacy coupled negative; combined CE is 2.277403894726836 versus legacy 2.3306226779693264. All seventeen references and 380 guards are preserved. The candidate is **REJECTED for promotion**; actual-nine/full512/fresh/multi-turn remain NOT_RUN and accepted **8/512** is unchanged.

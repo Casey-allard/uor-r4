@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">How the next token is predicted</title>
+<desc id="d">Left-to-right pipeline of the geometric stack: a token id selects an embedding row; sixteen layers in the pattern rrarrarrarrarrar alternate quaternion-rotation recurrence (r) with reads over earlier positions (a); a final norm gives logits over the 4,096 tokens, a softmax in the float form, and an optional copy head routed by prime products mixes in a copy distribution to give the next-token probabilities. A band notes that the served form uses integer table reads and a greedy argmax over integer scores.</desc>
+<rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">How the next token is predicted</text>
+<rect x="40" y="160" width="90" height="70" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
+<text x="85" y="184" font-size="13" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">token id</text>
+<text x="85" y="205" font-size="20" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">x_t</text>
+<text x="85" y="221" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">byte-BPE</text>
+<line x1="130" y1="195" x2="149.6" y2="195" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="155,195 146,198.42 146,191.58" fill="#8a97a6" fill-opacity="1"/>
+<rect x="155" y="160" width="140" height="70" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
+<text x="225" y="182" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">embedding E</text>
+<text x="225" y="200" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">row E[x_t]: 4,096 × d</text>
+<text x="225" y="216" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">(d = 1536 at 214M)</text>
+<circle cx="155" cy="160" r="10" fill="#8a97a6" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="155" y="164.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">1</text>
+<line x1="295" y1="195" x2="314.6" y2="195" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="320,195 311,198.42 311,191.58" fill="#8a97a6" fill-opacity="1"/>
+<rect x="320" y="90" width="640" height="210" rx="12" fill="#fbfcfd" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
+<text x="336" y="113" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">16 layers, repeated pattern:</text>
+<text x="540" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="552" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="564" y="114" font-size="15" fill="#E69F00" fill-opacity="1" text-anchor="start" font-weight="bold">a</text>
+<text x="576" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="588" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="600" y="114" font-size="15" fill="#E69F00" fill-opacity="1" text-anchor="start" font-weight="bold">a</text>
+<text x="612" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="624" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="636" y="114" font-size="15" fill="#E69F00" fill-opacity="1" text-anchor="start" font-weight="bold">a</text>
+<text x="648" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="660" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="672" y="114" font-size="15" fill="#E69F00" fill-opacity="1" text-anchor="start" font-weight="bold">a</text>
+<text x="684" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="696" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="708" y="114" font-size="15" fill="#E69F00" fill-opacity="1" text-anchor="start" font-weight="bold">a</text>
+<text x="720" y="114" font-size="15" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r</text>
+<text x="745" y="113" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">(r = recurrence, a = read)</text>
+<rect x="336" y="128" width="290" height="134" rx="10" fill="#eef6fc" fill-opacity="1" stroke="#0072B2" stroke-width="1.6" stroke-opacity="1"/>
+<circle cx="336" cy="128" r="10" fill="#0072B2" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="336" y="132.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">2</text>
+<text x="354" y="147" font-size="13" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">r layer: carry the state by rotation</text>
+<circle cx="392" cy="196" r="28" fill="#ffffff" fill-opacity="1" stroke="#0072B2" stroke-width="1.4" stroke-opacity="1"/>
+<line x1="392" y1="196" x2="411.2" y2="196" stroke="#5f6b7a" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="416,196 408,199.04 408,192.96" fill="#5f6b7a" fill-opacity="1"/>
+<line x1="392" y1="196" x2="399.84" y2="178.47" stroke="#0072B2" stroke-width="2.6" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="401.8,174.09 401.31,182.64 395.76,180.15" fill="#0072B2" fill-opacity="1"/>
+<path d="M405 196A13 13 0 0 0 397.31 184.13" fill="none" fill-opacity="1" stroke="#D55E00" stroke-width="1.8" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="450" y="172" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">u_t: unit quaternion</text>
+<text x="450" y="188" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">optional snap to 1 of 120</text>
+<text x="450" y="203" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">icosians (training)</text>
+<text x="450" y="219" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">λ_t gate; a_t conv input</text>
+<text x="350" y="240" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">grey: h_{t−1}    blue: u_t · h_{t−1}</text>
+<text x="350" y="256" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">h_t = λ_t (u_t · h_{t−1}) + √(1−λ_t²) a_t</text>
+<line x1="628" y1="180" x2="667.2" y2="180" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="672,180 664,183.04 664,176.96" fill="#8a97a6" fill-opacity="1"/>
+<line x1="672" y1="206" x2="632.8" y2="206" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="628,206 636,202.96 636,209.04" fill="#8a97a6" fill-opacity="1"/>
+<rect x="674" y="128" width="270" height="134" rx="10" fill="#fff8e8" fill-opacity="1" stroke="#E69F00" stroke-width="1.6" stroke-opacity="1"/>
+<circle cx="674" cy="128" r="10" fill="#E69F00" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="674" y="132.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">3</text>
+<text x="692" y="147" font-size="13" fill="#9a6a00" fill-opacity="1" text-anchor="start" font-weight="bold">a layer: read the past</text>
+<circle cx="700" cy="196" r="8" fill="none" stroke="#8a97a6" stroke-width="1.4" stroke-dasharray="3 2"/>
+<circle cx="740" cy="196" r="8" fill="#E69F00" fill-opacity="0.35" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<circle cx="780" cy="196" r="8" fill="#E69F00" fill-opacity="0.35" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<circle cx="820" cy="196" r="8" fill="#E69F00" fill-opacity="0.35" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<circle cx="860" cy="196" r="8" fill="#E69F00" fill-opacity="0.35" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<circle cx="912" cy="196" r="10" fill="#E69F00" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="912" y="200" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">t</text>
+<path d="M912 186Q826 138 740 187" fill="none" fill-opacity="1" stroke="#E69F00" stroke-width="1.2" stroke-opacity="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M912 186Q846 138 780 187" fill="none" fill-opacity="1" stroke="#E69F00" stroke-width="2" stroke-opacity="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M912 186Q866 138 820 187" fill="none" fill-opacity="1" stroke="#E69F00" stroke-width="4.6" stroke-opacity="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M912 186Q886 138 860 187" fill="none" fill-opacity="1" stroke="#E69F00" stroke-width="3" stroke-opacity="0.85" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="700" y="220" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">NoRead</text>
+<text x="800" y="220" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">earlier positions</text>
+<text x="692" y="240" font-size="12" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">score: Dot or Lorentz −β·arcosh(1+e)</text>
+<text x="692" y="256" font-size="12" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">+ age term; softmax mixes earlier states</text>
+<text x="640" y="284" font-size="12" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">after every layer: SwiGLU MLP + residual</text>
+<circle cx="320" cy="284" r="10" fill="#8a97a6" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="320" y="288.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">4</text>
+<path d="M640 300L640 326L85 326" fill="none" fill-opacity="1" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="85" y1="326" x2="85" y2="350.6" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="85,356 81.58,347 88.42,347" fill="#8a97a6" fill-opacity="1"/>
+<text x="100" y="320" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">h_t from the last layer</text>
+<rect x="40" y="358" width="90" height="62" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
+<text x="85" y="384" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">final norm</text>
+<text x="85" y="402" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">norm(h_t)</text>
+<line x1="130" y1="389" x2="152.6" y2="389" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="158,389 149,392.42 149,385.58" fill="#8a97a6" fill-opacity="1"/>
+<rect x="158" y="352" width="196" height="108" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
+<circle cx="158" cy="352" r="10" fill="#8a97a6" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="158" y="356.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">5</text>
+<text x="172" y="372" font-size="12" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">logits z_t = norm(h_t) · Eᵀ</text>
+<rect x="174" y="400.8" width="22" height="35.2" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="185" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">mat</text>
+<rect x="205" y="394.2" width="22" height="41.8" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="216" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">cat</text>
+<rect x="236" y="416.2" width="22" height="19.8" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="247" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">sat</text>
+<rect x="267" y="407.4" width="22" height="28.6" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="278" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">dog</text>
+<rect x="298" y="431.6" width="22" height="4.4" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="309" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">on</text>
+<text x="342" y="436" font-size="14" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">…</text>
+<text x="342" y="449" font-size="9.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">4,096</text>
+<line x1="354" y1="389" x2="374.6" y2="389" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="380,389 371,392.42 371,385.58" fill="#8a97a6" fill-opacity="1"/>
+<rect x="380" y="364" width="84" height="50" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
+<text x="422" y="386" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">softmax</text>
+<text x="422" y="402" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">float form</text>
+<line x1="464" y1="389" x2="518.6" y2="389" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="524,389 515,392.42 515,385.58" fill="#8a97a6" fill-opacity="1"/>
+<circle cx="560" cy="389" r="32" fill="#e6f6ef" fill-opacity="1" stroke="#009E73" stroke-width="2.2" stroke-opacity="1"/>
+<text x="560" y="394" font-size="14" fill="#009E73" fill-opacity="1" text-anchor="middle" font-weight="bold">mix</text>
+<text x="560" y="346" font-size="12" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">p(v) = (1−g_t)·softmax(z_t)[v] + g_t·p_copy(v)</text>
+<line x1="592" y1="389" x2="634.6" y2="389" stroke="#8a97a6" stroke-width="2" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="640,389 631,392.42 631,385.58" fill="#8a97a6" fill-opacity="1"/>
+<rect x="640" y="358" width="320" height="102" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.4" stroke-opacity="1"/>
+<text x="656" y="378" font-size="13.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="bold">p(next token)</text>
+<rect x="664" y="380.71" width="34" height="55.29" rx="3" fill="#009E73" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="681" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">mat</text>
+<rect x="718" y="423.32" width="34" height="12.68" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="735" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">cat</text>
+<rect x="772" y="423.24" width="34" height="12.76" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="789" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">sat</text>
+<rect x="826" y="429.04" width="34" height="6.96" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="843" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">dog</text>
+<rect x="880" y="433.68" width="34" height="2.32" rx="3" fill="#0072B2" fill-opacity="0.85" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="897" y="449" font-size="10.5" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">on</text>
+<text x="944" y="378" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="end" font-weight="normal">served: greedy argmax</text>
+<rect x="340" y="474" width="440" height="112" rx="12" fill="#f2faf6" fill-opacity="1" stroke="#009E73" stroke-width="1.6" stroke-opacity="1"/>
+<circle cx="340" cy="474" r="10" fill="#009E73" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="340" y="478.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">6</text>
+<text x="358" y="494" font-size="13" fill="#00704f" fill-opacity="1" text-anchor="start" font-weight="bold">optional copy head</text>
+<text x="520" y="494" font-size="12" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">gate g_t = sigmoid(w_g·h_t + b_g)</text>
+<rect x="366" y="524" width="50" height="24" rx="5" fill="#ffffff" fill-opacity="1" stroke="#d3dae2" stroke-width="1.2" stroke-opacity="1"/>
+<text x="391" y="540" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="normal">the</text>
+<rect x="420" y="524" width="50" height="24" rx="5" fill="#ffffff" fill-opacity="1" stroke="#d3dae2" stroke-width="1.2" stroke-opacity="1"/>
+<text x="445" y="540" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="normal">cat</text>
+<rect x="474" y="524" width="50" height="24" rx="5" fill="#ffffff" fill-opacity="1" stroke="#d3dae2" stroke-width="1.2" stroke-opacity="1"/>
+<text x="499" y="540" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="normal">sat</text>
+<rect x="528" y="524" width="50" height="24" rx="5" fill="#ffffff" fill-opacity="1" stroke="#0072B2" stroke-width="2" stroke-opacity="1"/>
+<text x="553" y="540" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="normal">on</text>
+<rect x="582" y="524" width="50" height="24" rx="5" fill="#ffffff" fill-opacity="1" stroke="#0072B2" stroke-width="2" stroke-opacity="1"/>
+<text x="607" y="540" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="normal">the</text>
+<rect x="636" y="524" width="50" height="24" rx="5" fill="#d9f0e6" fill-opacity="1" stroke="#009E73" stroke-width="2" stroke-opacity="1"/>
+<text x="661" y="540" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">mat</text>
+<rect x="690" y="524" width="54" height="24" rx="5" fill="#fff4cf" fill-opacity="1" stroke="#1f2933" stroke-width="2" stroke-opacity="1"/>
+<text x="717" y="540" font-size="11.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">on the</text>
+<path d="M714 524Q680 490 661 522" fill="none" fill-opacity="1" stroke="#009E73" stroke-width="3" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="661,523 654,515 667,516" fill="#009E73"/>
+<text x="661" y="557" font-size="10.5" fill="#00704f" fill-opacity="1" text-anchor="middle" font-weight="normal">p_copy(mat)</text>
+<text x="579" y="557" font-size="10.5" fill="#0072B2" fill-opacity="1" text-anchor="middle" font-weight="normal">window match</text>
+<text x="358" y="573" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">sources chosen by a learned score, or the exact prime route: gcd of prime products of the last</text>
+<text x="358" y="584" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">≤ 6 tokens vs earlier windows (or the longest n-let)</text>
+<line x1="560" y1="474" x2="560" y2="429.4" stroke="#009E73" stroke-width="2.4" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="560,424 563.42,433 556.58,433" fill="#009E73" fill-opacity="1"/>
+<text x="570" y="454" font-size="11.5" fill="#00704f" fill-opacity="1" text-anchor="start" font-weight="normal">g_t, p_copy</text>
+<text x="800" y="492" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal" font-style="italic">Example values are</text>
+<text x="800" y="508" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal" font-style="italic">illustrative, not a</text>
+<text x="800" y="524" font-size="11.5" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal" font-style="italic">measured output.</text>
+<rect x="40" y="596" width="920" height="24" rx="12" fill="#e6f6ef" fill-opacity="1" stroke="#009E73" stroke-width="1.2" stroke-opacity="1"/>
+<circle cx="58" cy="608" r="10" fill="#009E73" fill-opacity="1" stroke="none" stroke-width="1" stroke-opacity="1"/>
+<text x="58" y="612.5" font-size="12" fill="#ffffff" fill-opacity="1" text-anchor="middle" font-weight="bold">7</text>
+<text x="504" y="612" font-size="11.5" fill="#00704f" fill-opacity="1" text-anchor="middle" font-weight="bold">served: steps 2–6 as D11 integer table reads (no multiplier, no float); token = greedy argmax over i32 scores, no vocabulary softmax</text>
+<text x="40" y="648" font-size="14" fill="#5f6b7a">Geometry: state carried by quaternion rotation, the past read by a Lorentz score, copying routed by primes. Float form shown.</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">Example numbers are illustrative. Served form: D11 integer table reads for steps 2-6, greedy argmax, no vocabulary softmax.</text>
+</svg>
