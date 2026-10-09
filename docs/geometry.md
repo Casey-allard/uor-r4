@@ -242,7 +242,7 @@ advantage is claimed here. VSA is not tied to SpiralCore (next section).
 | What carries route order? | The stack's quaternion recurrence: quaternion products are order-dependent, so the state encodes the order of rotations. Trained and served. | `geometric_stack.rs` |
 | What tracks accumulated phase? | `hopf_metric.rs` tracks a cumulative U(1) holonomy phase and a geodesic distance. Line B only. | `native_geometric/` |
 | What are chirality and polarity? | Exact signs on Z[φ]. Line B only. | `native_geometric/` |
-| What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly (oriented Fano cycles (124)(235)(346)(457)(561)(672)(713); 15 bivectors ↔ 15 semiprimes; a 64-state composition table). It is an exact finite control in `recursive_geometric_attention.rs` (A10), re-checked in graph-certify, and sits on no training or serving path (0 references in `uor-r4-training`, `uor-r4-integer`, `uor-r4-api`). The Fano cycles are the same algebra as N3mesis's octonion material. | `uor-r4-core/src/spiralcore_operator.rs` |
+| What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly (oriented Fano cycles (124)(235)(346)(457)(561)(672)(713); 15 bivectors ↔ 15 semiprimes; a 64-state composition table). It is an exact finite control in `recursive_geometric_attention.rs` (A10), re-checked in graph-certify, and sits on no training or serving path (0 references in `uor-r4-training`, `uor-r4-integer`, `uor-r4-api`). Mark (N3mesis)'s later supplied substrate sketch uses a different, inconsistent orientation; it must not replace this canonical table (see the review below). | `uor-r4-core/src/spiralcore_operator.rs` |
 | What was tried and what is pre-registered? | Recursive geometric attention over earlier tokens (A1) was stopped on 1 October (D18) because a reusable state erased order. A route-holonomy read (rank earlier positions by the angle of h_j⁻¹·h_t, softmax-free) and an octonion-signed binding test that may promote SpiralCore to a state carrier are pre-registered on M1 (#2029). | #2029 |
 
 ## 10. How the geometric pieces connect
@@ -275,9 +275,24 @@ Matthew (SpiralCore v63/v69); the octonion and Fano material to Mark (N3mesis, N
 | 2I | Hopf S² | S³ → S² maps the 120 icosians onto one orbit of 30 points, every fibre of size 4 (a two-fold-type orbit, not literally the axes of the chosen frame) | forced | `hopf_metric.rs` | native learner |
 | 2I | VSA bit codes | the learned token → icosian-root assignment builds the codes | learned | `vsa_codes.rs` (since #2077) | native learner (VSA test running) |
 
-**Two cautions for anyone building on this.**
+**Cautions for anyone building on this.**
 1. **Half-turns don't compose like bivectors.** Two half-turns whose K6 edges share a vertex multiply to an order-5 rotation, never a half-turn. The prime ↔ half-turn match is a correspondence of sets, not of products.
 2. **Labelling primes to axes is a choice.** A design that routes primes through icosian rotations must say which of the 12 inequivalent labellings it uses.
+
+**October 9 substrate review.** Mark (N3mesis)'s supplied *Octonian Substrate Architecture*
+and discussion PDFs motivate separating state, algebra, routing and identity. Their literal
+positive cycles (123)(145)(167)(246)(257)(347)(356), however, fail alternativity and quadratic
+norm multiplicativity: `(e1 + e2)(e4 + e7) = 0` despite factor norms 2 and 2. Fano incidence
+is not a complete sign convention. The canonical Rust table above remains unchanged; an
+alternative convention needs a signed basis correspondence, not just the same seven lines.
+The sample store route also discards a coordinate after right multiplication and projection,
+and its packing function returns empty bytes. A pre-route embed/project inverse does not
+establish post-route preservation. Modular `ZMod(2^256)` coefficients are neither the real
+normed division algebra nor a replacement for exact `Z[φ]` pairs. These findings concern the
+supplied draft, not a negative language experiment or retirement of octonion binding.
+The [full review and executable counterexamples](labs/octonion-substrate-review-2026-10-09/README.md)
+record the exact documents, source, decisions and limits. The 29 connection checks above
+continue to concern the repository's specified structures, not certification of external PDFs.
 
 A further fact: the icosahedron's five orthogonal frames of two-fold axes form a *synthematic total* of
 K6, five perfect matchings that together cover all 15 edges.
@@ -300,11 +315,12 @@ Each is integer-only and softmax-free by construction.
 <img src="figures/geometry/octonion-signed-binding.svg" width="100%" alt="Octonion-signed binding: on the Fano plane every line is a, b, a xor b, and e_a times e_b equals plus or minus e_(a xor b), so the order of the operands changes the sign, unlike plain XOR">
 
 **Octonion-signed binding.** Binding by XOR of the 3-bit Fano indices plus the Fano sign gives
-e_a·e_b = ±e_{a⊕b}, with e_a·e_b = −e_b·e_a.
+e_a·e_b = ±e_{a⊕b}, after a declared relabelling with a coherent sign table;
+for distinct imaginary basis units, e_a·e_b = −e_b·e_a.
 - Plain XOR binding loses the order of its operands; the sign keeps it.
 - Non-associativity keeps grouping: (a·b)·c ≠ a·(b·c) for 168 of 210 ordered unit triples (verified).
 - **Cost:** add, subtract and one sign-table read.
-- **Source:** Mark (N3mesis)'s octonion/Fano material and the SpiralCore v63 table.
+- **Source:** motivation from Mark (N3mesis)'s octonion/Fano material; the implemented convention is Matthew (SpiralCore)'s v63 table. The later substrate draft's all-positive orientations are not adopted.
 
 <img src="figures/geometry/hamming-rank-read.svg" width="100%" alt="Hamming-rank read: binarized query and keys, distance equals popcount of query xor key plus an age term, positions sorted and weighted by a fixed rank table, with no softmax">
 

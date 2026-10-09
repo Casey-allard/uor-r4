@@ -1113,8 +1113,8 @@ def fig_exact_lanes():
 
 def fig_signed_binding():
     fg = Fig("octonion-signed-binding.svg", "Octonion-signed binding vs XOR",
-             "The Fano plane has 7 points labelled 1 to 7 and 7 lines, each line being a, b, a xor b. Binding two basis units gives plus or minus the third unit on their line, the sign set by orientation. XOR binding is commutative and associative so it loses order and grouping; signed binding is anticommutative and non-associative for 168 of 210 triples, so it keeps both. Pre-registered, not yet measured.",
-             ["Signed binding = XOR on the labels plus one sign-table read; sign flips with orientation and grouping.",
+             "The Fano plane has 7 points labelled 1 to 7 and 7 lines, each line being a, b, a xor b. Binding two basis units gives plus or minus the third unit on their line, the sign set by orientation. XOR binding is commutative and associative so it loses order and grouping; signed binding changes sign on swapping distinct imaginary units and is non-associative for 168 of 210 ordered distinct imaginary triples. Incidence alone does not define coherent octonion signs. Pre-registered, not yet measured.",
+             ["Signed binding = XOR after relabelling plus a coherent sign-table read; incidence alone is insufficient.",
               "Costs add/subtract and table reads only; no multiplier, no float."])
     _badge(fg)
     for x, t in ((40, "1  Fano plane: 7 points, 7 lines"), (350, "2  oriented product"), (660, "3  XOR vs signed")):
@@ -1135,7 +1135,7 @@ def fig_signed_binding():
         fg.text(x, y + 5, str(k), 14, INK, "middle", weight="bold")
     fg.text(40, 404, "every line is {a, b, a⊕b}:", 13, INK, weight="bold")
     fg.text(40, 424, "123 · 145 · 167 · 246 · 257 · 347 · 356", 12.5, MUTED)
-    fg.text(40, 443, "(356 is the circle)", 12.5, MUTED)
+    fg.text(40, 443, "incidence only; not seven positive cycles", 12.5, MUTED)
     # middle: oriented product on line {1,2,3}
     T = {1: (460, 160), 2: (380, 290), 3: (540, 290)}
     for a, b in ((1, 2), (2, 3), (3, 1)):
@@ -1161,10 +1161,10 @@ def fig_signed_binding():
     fg.rect(660, 274, 300, 170, "#eef6fc", BLUE, 1.6, 12)
     fg.text(676, 298, "signed binding", 14, "#0b4f7c", weight="bold")
     fg.text(676, 324, "a·b = −b·a", 14, INK, weight="bold")
-    fg.text(676, 343, "order kept", 12.5, "#0b4f7c")
+    fg.text(676, 343, "distinct imaginary units only", 12.5, "#0b4f7c")
     fg.text(676, 370, "(a·b)·c ≠ a·(b·c)", 14, INK, weight="bold")
     fg.text(676, 389, "for 168 of 210 triples", 12.5, INK)
-    fg.text(676, 407, "(ordered, distinct units): grouping kept", 12.5, "#0b4f7c")
+    fg.text(676, 407, "(ordered, distinct imaginary units)", 12.5, "#0b4f7c")
     fg.rect(40, 486, 920, 30, "#f6f9fc", FAINT, 1.2, 10)
     fg.text(500, 506, "cost: XOR + one sign-table read: add/subtract only", 13.5, INK, "middle", weight="bold")
     _legend(fg, ((BLUE, "triangle side (line)", 190), (GREEN, "median (line)", 140), (ORANGE, "circle (line)", 140), (VERM, "sign flips on swap", 180)), 572)
