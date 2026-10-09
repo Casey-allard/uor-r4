@@ -38,6 +38,8 @@ struct Config {
     compensation_root: PathBuf,
     #[serde(default)]
     qualification_root: Option<PathBuf>,
+    #[serde(default)]
+    candidate_authority: Option<CandidateAuthority>,
     expected_report_sha256: String,
     expected_manifest_sha256: String,
     expected_source_metadata_sha256: String,
@@ -61,8 +63,84 @@ enum EndpointKind {
     SelectedReadoutIntermediate,
     UnselectedPrefixFragment,
     UnselectedPrefixTrajectory,
+    UnselectedPrefixCandidate,
     SelectedOriginalTrajectorySupplement,
     SelectedOriginalCanonicalConditional,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+struct CandidateAuthority {
+    family: CandidateFamily,
+    expected_prefix_packed_sha256: String,
+    expected_prefix_native_metadata_sha256: String,
+    expected_prefix_master_sha256: String,
+    expected_qualification_report_sha256: String,
+    expected_qualification_manifest_sha256: String,
+}
+#[derive(Clone, Copy, Deserialize, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CandidateFamily {
+    PrefixJointFragment,
+}
+fn validate_candidate_authority(
+    kind: EndpointKind,
+    authority: Option<&CandidateAuthority>,
+) -> Result<()> {
+    require(
+        (kind == EndpointKind::UnselectedPrefixCandidate) == authority.is_some(),
+        "typed candidate authority exclusive to generic candidate endpoint",
+    )?;
+    if let Some(a) = authority {
+        for h in [
+            &a.expected_prefix_packed_sha256,
+            &a.expected_prefix_native_metadata_sha256,
+            &a.expected_prefix_master_sha256,
+            &a.expected_qualification_report_sha256,
+            &a.expected_qualification_manifest_sha256,
+        ] {
+            require(
+                h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()),
+                "typed candidate identity malformed",
+            )?;
+        }
+    }
+    Ok(())
+}
+fn authenticate_candidate(
+    report: &Value,
+    receipt: &Value,
+    authority: &CandidateAuthority,
+) -> Result<()> {
+    match authority.family {
+        CandidateFamily::PrefixJointFragment => require(
+            report["status"] == "COMPLETED"
+                && report["mode"] == "prefix_joint_fragment_learning"
+                && report["candidate_receipt"] == *receipt
+                && receipt["step"] == 1
+                && report["selected_model"] == false
+                && report["finite_prefix_positive"] == true
+                && report["qualified_fragment"] == true
+                && report["all3_phase_targets_correct"] == true
+                && report["all_original380_preserved"] == true
+                && report["prefix_backward_calls"] == 20
+                && report["candidate_native_steps"] == 383,
+            "typed joint Prefix candidate authority differs",
+        ),
+    }
+}
+fn configured_qualification_pins(c: &Config) -> Result<(&str, &str)> {
+    if c.endpoint_kind == EndpointKind::UnselectedPrefixCandidate {
+        let a = c
+            .candidate_authority
+            .as_ref()
+            .ok_or_else(|| bad("typed candidate authority absent"))?;
+        Ok((
+            &a.expected_qualification_report_sha256,
+            &a.expected_qualification_manifest_sha256,
+        ))
+    } else {
+        Ok(qualification_pins(c.endpoint_kind))
+    }
 }
 #[derive(Clone, Copy, Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -87,7 +165,9 @@ struct FrameRequest {
 fn is_prefix_candidate(kind: EndpointKind) -> bool {
     matches!(
         kind,
-        EndpointKind::UnselectedPrefixFragment | EndpointKind::UnselectedPrefixTrajectory
+        EndpointKind::UnselectedPrefixFragment
+            | EndpointKind::UnselectedPrefixTrajectory
+            | EndpointKind::UnselectedPrefixCandidate
     )
 }
 fn qualification_pins(kind: EndpointKind) -> (&'static str, &'static str) {
@@ -169,7 +249,10 @@ fn validate_frames(frames: &[FrameRequest], kind: EndpointKind) -> Result<()> {
                     .is_some_and(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit())),
             "conditional training witness requires one pinned generic frame",
         )?;
-    } else if kind == EndpointKind::UnselectedPrefixTrajectory {
+    } else if matches!(
+        kind,
+        EndpointKind::UnselectedPrefixTrajectory | EndpointKind::UnselectedPrefixCandidate
+    ) {
         require(
             frames.len() == 1,
             "trajectory first-divergence capture requires exactly one frame",
@@ -483,6 +566,7 @@ fn admit_paths(c: &mut Config) -> Result<()> {
             "absolute paths without traversal required",
         )?;
     }
+    validate_candidate_authority(c.endpoint_kind, c.candidate_authority.as_ref())?;
     require(
         is_prefix_candidate(c.endpoint_kind) == c.qualification_root.is_some(),
         "qualification authority exclusive to Prefix endpoint",
@@ -499,6 +583,7 @@ fn admit_paths(c: &mut Config) -> Result<()> {
     let (cache_cap, report_cap) = if matches!(
         c.endpoint_kind,
         EndpointKind::UnselectedPrefixTrajectory
+            | EndpointKind::UnselectedPrefixCandidate
             | EndpointKind::SelectedOriginalCanonicalConditional
     ) {
         (64 * 1024 * 1024, 64 * 1024 * 1024)
@@ -678,6 +763,10 @@ fn compact_factor_layout() -> Value {
     json!({"format":"token_ordered_tuples/1","tokens":4096,"generate_columns":["relative_codes","logical_factor_keys","unary_codes","pair_codes","bias_code","total_q24","u_total_q24"],"u_columns":["relative_codes","coefficient_codes","total_q24"],"generate_score_shift":20,"u_score_shift":22,"prototype_codes":"bound immutable Generate artifact; token row index"})
 }
 fn authenticate_endpoint(report: &Value, receipt: &Value, kind: EndpointKind) -> Result<()> {
+    require(
+        kind != EndpointKind::UnselectedPrefixCandidate,
+        "generic candidate requires typed family authority",
+    )?;
     if is_prefix_candidate(kind) {
         return require(
             report["status"] == "COMPLETED"
@@ -747,7 +836,11 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     let report = read(&c.compensation_root.join("report.json"))?;
     let cp = c.compensation_root.join("checkpoint-0001");
     let receipt = read(&cp.join("receipt.json"))?;
-    authenticate_endpoint(&report, &receipt, c.endpoint_kind)?;
+    if let Some(a) = &c.candidate_authority {
+        authenticate_candidate(&report, &receipt, a)?;
+    } else {
+        authenticate_endpoint(&report, &receipt, c.endpoint_kind)?;
+    }
     let binding: NativeArtifactBinding = serde_json::from_value(receipt["parent"].clone())?;
     require(
         binding.metadata_sha256 == c.expected_source_metadata_sha256
@@ -786,7 +879,15 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     }
     let qualification = if is_prefix_candidate(c.endpoint_kind) {
         let (report_pin, seal_pin, packed_pin, metadata_pin, master_pin) =
-            if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+            if let Some(a) = &c.candidate_authority {
+                (
+                    c.expected_report_sha256.as_str(),
+                    c.expected_manifest_sha256.as_str(),
+                    a.expected_prefix_packed_sha256.as_str(),
+                    a.expected_prefix_native_metadata_sha256.as_str(),
+                    a.expected_prefix_master_sha256.as_str(),
+                )
+            } else if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
                 (
                     "77227984640fc55e29067bb6dae935068c7a9faf2bf8c8f0b296b5f0b9c05355",
                     "c1309528bcf45f7ceac54643e35657eedac679ff9b682deec3b93cffcf483442",
@@ -813,12 +914,18 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 && file_hash(&cp.join("prefix/prefix-source-f32.bin"))? == master_pin,
             "Prefix candidate payload/metadata/master identity differs",
         )?;
+        if c.endpoint_kind == EndpointKind::UnselectedPrefixCandidate {
+            require(
+                file_hash(&cp.join("prefix-source/prefix.coefficients.f32le"))? == master_pin,
+                "typed candidate source master identity differs",
+            )?;
+        }
         let root = c
             .qualification_root
             .as_ref()
             .ok_or_else(|| bad("qualification root absent"))?;
         report_output::verify(root)?;
-        let (q_report, q_manifest) = qualification_pins(c.endpoint_kind);
+        let (q_report, q_manifest) = configured_qualification_pins(c)?;
         require(
             file_hash(&root.join("report.json"))? == q_report
                 && file_hash(&root.join("manifest.json"))? == q_manifest,
@@ -831,10 +938,13 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 && q["candidate_report_sha256"] == c.expected_report_sha256
                 && q["candidate_manifest_sha256"] == c.expected_manifest_sha256
                 && q["qualification_positive"] == false
-                && (c.endpoint_kind != EndpointKind::UnselectedPrefixTrajectory
-                    || (q["selected_model"] == false
-                        && q["retained_original8"] == true
-                        && q["actual_ownprefix_rows"] == 9)),
+                && (!matches!(
+                    c.endpoint_kind,
+                    EndpointKind::UnselectedPrefixTrajectory
+                        | EndpointKind::UnselectedPrefixCandidate
+                ) || (q["selected_model"] == false
+                    && q["retained_original8"] == true
+                    && q["actual_ownprefix_rows"] == 9)),
             "unselected cheap qualification authority differs",
         )?;
         Some(q)
@@ -967,7 +1077,10 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         )?;
         let row_name = text(&row["row_file"])?;
         require(
-            if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+            if matches!(
+                c.endpoint_kind,
+                EndpointKind::UnselectedPrefixTrajectory | EndpointKind::UnselectedPrefixCandidate
+            ) {
                 safe_row_leaf(row)? == row_name
             } else if qualification.is_some() {
                 row_name
@@ -1179,7 +1292,10 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 == EndpointKind::SelectedOriginalTrajectorySupplement
             {
                 "two authenticated original correct-prefix supplements; labels attached separately after both captures"
-            } else if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+            } else if matches!(
+                c.endpoint_kind,
+                EndpointKind::UnselectedPrefixTrajectory | EndpointKind::UnselectedPrefixCandidate
+            ) {
                 "one authenticated actual-prefix frame; first-divergence label comparison validated postcapture; offline only"
             } else if qualification.is_some() {
                 "two authenticated actual first-divergence frames; labels attached separately after both captures"
@@ -1231,7 +1347,10 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     )?;
     let mut posthoc = Vec::new();
     for request in &frames {
-        let saved = if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+        let saved = if matches!(
+            c.endpoint_kind,
+            EndpointKind::UnselectedPrefixTrajectory | EndpointKind::UnselectedPrefixCandidate
+        ) {
             let q = qualification
                 .as_ref()
                 .ok_or_else(|| bad("qualification missing"))?;
@@ -1292,7 +1411,10 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             annotation["canonical_target_mass_parity"] = json!({"target":target,"native_target_mass":mass["weight_q31"],"native_denominator":captured["pool"]["summary"]["total_weight_q31"],"checked_after_all_captures":true});
             annotation["prefix_authority"] = json!("CANONICAL_CONDITIONAL_TRAINING; owner-declared label-derived prefix, not actual ownfeedback; checked after target-free step");
         }
-        if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+        if matches!(
+            c.endpoint_kind,
+            EndpointKind::UnselectedPrefixTrajectory | EndpointKind::UnselectedPrefixCandidate
+        ) {
             annotation["actual_first_divergence"] = authorize_first_divergence(&saved, request)?;
         }
         posthoc.push(annotation);
@@ -1304,7 +1426,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         written,
     )?;
     Ok(
-        json!({"schema":report_schema(c.endpoint_kind),"status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":if c.endpoint_kind==EndpointKind::SelectedOriginalCanonicalConditional {"production native bank generator; owner-declared canonical conditional training prefix; full Copy+Generate reducer; not actual ownfeedback"}else{"production native bank generator; exact admittedframes at authenticated saved actualprefixes; full Copy+Generate reducer"},"source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"endpoint_kind":c.endpoint_kind,"qualification_authority":if qualification.is_some(){json!({"root":c.qualification_root,"report_sha256":qualification_pins(c.endpoint_kind).0,"manifest_sha256":qualification_pins(c.endpoint_kind).1,"candidate_selected":false,"controls":"NOT_RUN"})}else{Value::Null},"frame_count":frames.len(),"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role authority joined separately posthoc; no generated counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
+        json!({"schema":report_schema(c.endpoint_kind),"status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":if c.endpoint_kind==EndpointKind::SelectedOriginalCanonicalConditional {"production native bank generator; owner-declared canonical conditional training prefix; full Copy+Generate reducer; not actual ownfeedback"}else{"production native bank generator; exact admittedframes at authenticated saved actualprefixes; full Copy+Generate reducer"},"source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"endpoint_kind":c.endpoint_kind,"qualification_authority":if qualification.is_some(){json!({"root":c.qualification_root,"report_sha256":configured_qualification_pins(c)?.0,"manifest_sha256":configured_qualification_pins(c)?.1,"candidate_authority":c.candidate_authority,"candidate_selected":false,"controls":"NOT_RUN"})}else{Value::Null},"frame_count":frames.len(),"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role authority joined separately posthoc; no generated counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
     )
 }
 fn earliest_physical_max(scores: &[i64]) -> Result<usize> {
@@ -1736,6 +1858,62 @@ mod tests {
         assert!(safe_row_leaf(qualification_row(&q, "one")?).is_err());
         let duplicate = json!({"evaluation":{"rows":[{"id":"one"},{"id":"one"}]}});
         assert!(qualification_row(&duplicate, "one").is_err());
+        Ok(())
+    }
+    #[test]
+    fn generic_candidate_authority_is_exclusive_and_pinned() -> Result<()> {
+        let mut a = CandidateAuthority {
+            family: CandidateFamily::PrefixJointFragment,
+            expected_prefix_packed_sha256: "a".repeat(64),
+            expected_prefix_native_metadata_sha256: "b".repeat(64),
+            expected_prefix_master_sha256: "c".repeat(64),
+            expected_qualification_report_sha256: "d".repeat(64),
+            expected_qualification_manifest_sha256: "e".repeat(64),
+        };
+        validate_candidate_authority(EndpointKind::UnselectedPrefixCandidate, Some(&a))?;
+        assert!(
+            validate_candidate_authority(EndpointKind::UnselectedPrefixTrajectory, Some(&a))
+                .is_err()
+        );
+        assert!(
+            validate_candidate_authority(EndpointKind::UnselectedPrefixCandidate, None).is_err()
+        );
+        let receipt = json!({"step":1});
+        let mut report = json!({"status":"COMPLETED","mode":"prefix_joint_fragment_learning",
+            "candidate_receipt":receipt,"selected_model":false,"finite_prefix_positive":true,
+            "qualified_fragment":true,"all3_phase_targets_correct":true,
+            "all_original380_preserved":true,"prefix_backward_calls":20,"candidate_native_steps":383});
+        authenticate_candidate(&report, &receipt, &a)?;
+        report["selected_model"] = json!(true);
+        assert!(authenticate_candidate(&report, &receipt, &a).is_err());
+        report["selected_model"] = json!(false);
+        report["candidate_receipt"] = json!({"step":2});
+        assert!(authenticate_candidate(&report, &receipt, &a).is_err());
+        a.expected_prefix_master_sha256 = "not-a-digest".into();
+        assert!(
+            validate_candidate_authority(EndpointKind::UnselectedPrefixCandidate, Some(&a))
+                .is_err()
+        );
+        Ok(())
+    }
+    #[test]
+    fn generic_candidate_request_has_no_fixed_case_or_position() -> Result<()> {
+        let mut f = FrameRequest {
+            input_index: 42,
+            position: 2,
+            expected_id: "generic-case".into(),
+            expected_saved_row_sha256: Some("a".repeat(64)),
+            expected_actual_prefix_ids: vec![7, 9],
+            role: FrameRole::FactualFailure,
+        };
+        validate_frames(&[f.clone()], EndpointKind::UnselectedPrefixCandidate)?;
+        assert!(validate_frames(
+            &[f.clone(), f.clone()],
+            EndpointKind::UnselectedPrefixCandidate
+        )
+        .is_err());
+        f.role = FrameRole::SourceControl;
+        assert!(validate_frames(&[f], EndpointKind::UnselectedPrefixCandidate).is_err());
         Ok(())
     }
 }

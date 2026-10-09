@@ -1,0 +1,315 @@
+{
+  "schema": "uor-r4.native-sequence-progress-causal-evidence/1",
+  "status": "MEASURED_REVIEWED_PROTECTED_DELIVERY_RECORD",
+  "work_card": "#820 comment6073666875",
+  "source": {
+    "commit": "6bd621e059c9510cf2887a3726af07a33e9c58dc",
+    "file_sha256": "b0d0e43347bc9c76dc1a1b6f12a4aa04485f36634bf8851f50cca022fda3144e",
+    "checks": "18 tests/build/fmt/claims/diff PASS job034656",
+    "binary_sha256": "4ce0cdd85824f5698ef34d5a03c476f73aeab71c37d1e6015629205041b3bee8",
+    "config_sha256": "1dce725875f233d397c1ee8faa7024cd57ed4bc1fa08fb300c4a20c72cedff52"
+  },
+  "capture": {
+    "report": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/runs/candidate-sequence-progress-0001-attempt1/report.json",
+      "bytes": 2949,
+      "sha256": "32505ccb9114d29046d07cd192ab30f894a004ba95f9e8ad28dc938ae62f5347"
+    },
+    "manifest": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/runs/candidate-sequence-progress-0001-attempt1/manifest.json",
+      "bytes": 958,
+      "sha256": "5f13bc5d80ea5893801cbb2442ac78edf832331772741dc57b9ad75d12414bbb"
+    },
+    "frame": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/runs/candidate-sequence-progress-0001-attempt1/frame-0245-position-07.json",
+      "bytes": 1993618,
+      "sha256": "684169a25a05f26632c9e4612ce422a7453e2b1d508053d4057cd3c889ae3cc7"
+    },
+    "native_seconds": 5.7405263170000005,
+    "supervisor_seconds": 10.04152426123619,
+    "rss_kib": 134696,
+    "steps": 1,
+    "original_steps": 0
+  },
+  "audit": {
+    "result": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/audits/attempt2/result.json",
+      "bytes": 21342,
+      "sha256": "956e29e776372f72c7795583c9f2be071e583ec297e7a98a04faf9ceb8ab3116"
+    },
+    "manifest": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/audits/attempt2/manifest.json",
+      "bytes": 761,
+      "sha256": "f860b4e10a861d7a05505cdc4cffc1d3c4834f5532690d051dbeb339543e0f6a"
+    },
+    "reader_sha256": "133f228b32dad85e43e5ababa9c9b1f47b93804f0b75ca9ef2e9b31eaeb0fb09",
+    "arithmetic_module_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+    "status": "PASS",
+    "elapsed_seconds": 15.16249143704772,
+    "rss_kib": 48584,
+    "original_reconstruction": "EXACT_FULL_SAVED_PARITY",
+    "candidate_parity": "EXACT_FULL_VECTORS_FACTORS_POOL_AND_ACTUAL_RECEIPT",
+    "subprocess_seconds": 15.308472454547882,
+    "supervisor_seconds": 15.482119616121054,
+    "actual_Rust_full_file_verification": {
+      "status": "PASS",
+      "seconds": 0.036294229328632355,
+      "manifest_sha256": "f860b4e10a861d7a05505cdc4cffc1d3c4834f5532690d051dbeb339543e0f6a",
+      "completed_utc": "2026-10-09T03:55:10.935641+00:00",
+      "scope": "Actual immutable Rust completefile verification of independently savedresult"
+    }
+  },
+  "ancestors": {
+    "learning_report": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+    "learning_manifest": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706",
+    "cheap_report": "b8b7a88dcccc00092ff53fa8ee8e64e9d29c1ca013f4067ccc57269ae5530486",
+    "cheap_manifest": "e71a75b223986e540440b7475fbc6c7b060dba716e8237c5231cb3c169187844",
+    "original_report": "c9b9fe10b6fbb4332cf919a5df7ba31403ad3d51ac6f877d94daeabd99672bee",
+    "original_manifest": "de90ba0ba2809ed37ca868ef2bcf94b6ceb8b176a60b86ae88801876dafbd0e5",
+    "candidate_artifacts": {
+      "prefix/prefix-q4.bin": {
+        "sha256": "7f7de09a8f8a9902bb4d7778ec78f1c31a834cd0201a9562887ae14ecb34d7a9",
+        "bytes": 480
+      },
+      "prefix/native-metadata.json": {
+        "sha256": "fa8df862b85ca2bcdacbec70b96cb2c0dc9db0cba100394cd92238563bcc3d36",
+        "bytes": 3346
+      },
+      "prefix/prefix-source-f32.bin": {
+        "sha256": "6df8f9e4b0e08986720d33729897bfcc6c33f525b7a0de5a861a3f2d06ee9061",
+        "bytes": 3840
+      },
+      "prefix-source/prefix.coefficients.f32le": {
+        "sha256": "6df8f9e4b0e08986720d33729897bfcc6c33f525b7a0de5a861a3f2d06ee9061",
+        "bytes": 3840
+      },
+      "native/metadata.json": {
+        "sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b",
+        "bytes": 5868
+      },
+      "cue/native-metadata.json": {
+        "sha256": "28f4edaf834920fa1b5c8660dca736ed925afadd97e88fb82010211db93fd202",
+        "bytes": 1940
+      }
+    },
+    "config": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/configs/candidate-sequence-progress-0001-attempt1.json",
+      "bytes": 2608,
+      "sha256": "1dce725875f233d397c1ee8faa7024cd57ed4bc1fa08fb300c4a20c72cedff52"
+    }
+  },
+  "result": {
+    "input_index": 245,
+    "position": 7,
+    "prefix": [
+      617,
+      2097,
+      315,
+      1057,
+      267,
+      307,
+      397
+    ],
+    "desired_posthoc": 324,
+    "rival_posthoc": 307,
+    "original_is_canonical_conditional_not_ownfeedback": true,
+    "original_donor_identity": {
+      "bank_index": 8,
+      "context_position": 41,
+      "event": 1,
+      "occurrence": {
+        "commit": 2,
+        "record": 2,
+        "token_id": 307,
+        "token_offset": 2
+      },
+      "segment_index": 3
+    },
+    "candidate_donor_identity": {
+      "bank_index": 8,
+      "context_position": 41,
+      "event": 1,
+      "occurrence": {
+        "commit": 2,
+        "record": 2,
+        "token_id": 307,
+        "token_offset": 2
+      },
+      "segment_index": 3
+    },
+    "original_post": [
+      1,
+      67,
+      70,
+      28,
+      95,
+      44,
+      33,
+      80
+    ],
+    "candidate_post": [
+      1,
+      67,
+      70,
+      28,
+      95,
+      44,
+      33,
+      80
+    ],
+    "raw_Generate_competition": {
+      "original_BASE_desired_q24": -76546048,
+      "original_BASE_rival_q24": -52428800,
+      "candidate_BASE_desired_q24": -76546048,
+      "candidate_BASE_rival_q24": -52428800,
+      "original_BASE_gap_q24": -24117248,
+      "candidate_BASE_gap_q24": -24117248,
+      "original_combined_gap_q24": -15728640,
+      "candidate_combined_gap_q24": -15728640,
+      "shared_U_desired_q24": -16777216,
+      "shared_U_rival_q24": -25165824,
+      "shared_U_gap_q24": 8388608
+    },
+    "desired_rival_incidence_contrasts": [
+      {
+        "desired_ordinal": 10,
+        "rival_ordinal": 8,
+        "distinct_lane_keys": 8,
+        "original_BASE_gap_q24": -83652341,
+        "candidate_BASE_gap_q24": -87846645,
+        "fixed_U_gap_q24": 8388608,
+        "scope": "Exact physical score/incidence contrast only; not semantic distance, global feasibility or pooled capacity."
+      }
+    ],
+    "classification": "Preexisting conditional competition newly reached; no loss of an originally correct winner. Controls report restoration or persistent obstruction and changed margins only."
+  },
+  "controls": {
+    "original": {
+      "chosen": 307,
+      "target_mass": 24273087,
+      "denominator": 3983167254,
+      "clipped_low": 0,
+      "clipped_high": 0
+    },
+    "candidate": {
+      "chosen": 307,
+      "target_mass": 18975199,
+      "denominator": 4526784452,
+      "clipped_low": 0,
+      "clipped_high": 0
+    },
+    "mixed_originalG_candidateCopy": {
+      "chosen": 307,
+      "target_mass": 18975199,
+      "denominator": 4526784452,
+      "clipped_low": 0,
+      "clipped_high": 0
+    },
+    "mixed_candidateG_originalCopy": {
+      "chosen": 307,
+      "target_mass": 24273087,
+      "denominator": 3983167254,
+      "clipped_low": 0,
+      "clipped_high": 0
+    },
+    "original_no_U": {
+      "chosen": 307,
+      "target_mass": 14722372,
+      "denominator": 3541669132,
+      "clipped_low": 0,
+      "clipped_high": 0
+    },
+    "candidate_no_U": {
+      "chosen": 307,
+      "target_mass": 11509040,
+      "denominator": 3905805202,
+      "clipped_low": 0,
+      "clipped_high": 0
+    }
+  },
+  "lifecycle": {
+    "continuous_start_utc": "2026-10-09T03:24:26Z",
+    "projection_seconds": 3600,
+    "pod_only": true,
+    "foreign_untouched": true,
+    "runtime_preservation": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/runtime-upload.json",
+      "bytes": 3838,
+      "sha256": "143fd5b764f7b826a27b229904efdae6ef1310561990651e1a05fc355ef0f4dc"
+    },
+    "reader_runtime_preservation": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/reader-attempt2-upload.json",
+      "bytes": 1169,
+      "sha256": "cc60a3896ea0ba629b8324cfe9d6d1d5655344ec20c5bb3c5118b41065af9e5f"
+    },
+    "audit_setup_failure_manifest": {
+      "path": "/workspace/uor-r4/codex/sol-sequence-progress-causal/audits/attempt1/manifest.json",
+      "bytes": 760,
+      "sha256": "9708a08eef2995e335dbd2eb46f8b406fc10103809983bd79d2c27a5f833b5a4"
+    },
+    "setup_failure_scope": "serialized-byte equality check repaired semantically on saved evidence; no model repeat",
+    "final_private_preservation": "Exact final source/checks/record preservation receipt posted on owning issue and protected PR",
+    "protected_merge": "Actual receipt verified on fresh main before reporting delivery; owning issue and PR authoritative",
+    "complete_private_preservation": {
+      "revision": "19c10d4ae71031416ac64b7ed47c69ce36bbe173",
+      "prefix": "codex/sol-sequence-progress-causal/complete-attempt1",
+      "all_fresh_download_verified": true,
+      "files": {
+        "SHA256-manifest.json": {
+          "sha256": "ae5044552b505f2c72b5f9fd9e6d67d8b0cc5815cabec057d131e87c80255e70",
+          "bytes": 133
+        },
+        "evidence.tar.gz": {
+          "sha256": "efb8e6b060c80c0bef3fe37a9f86bfb819aeb77c6ed8215695dee33269a4c42a",
+          "bytes": 418345
+        }
+      },
+      "seconds": 5.793847195804119,
+      "completed_utc": "2026-10-09T03:57:00.858203+00:00"
+    }
+  },
+  "limits": [
+    "Original conditional and candidate actual both choose307; not an established new regression.",
+    "All8 Prefix key distinction is not pooled/global learning feasibility or capacity evidence.",
+    "Expected semantic Source role UNRESOLVED.",
+    "No gradient, training, full512, autoregressive rerun or model promotion.",
+    "Successor learning remains prospective until actual protected merge and a new causal work card."
+  ],
+  "reviews": {
+    "source-math-review.json": {
+      "sha256": "cb617646fb0bf543dae8ceaf7c428cc46061a7d5c0de86cbeb0b3f636053e189",
+      "receipt": "PASS_SOURCE_ONLY"
+    },
+    "source-adversarial-review.json": {
+      "sha256": "58ab779d84bb6cbc195598620ea7039cab64848e084db01256fd25ada6c8958b",
+      "receipt": "PASS_SOURCE_ONLY"
+    },
+    "reader-adversarial-review.json": {
+      "sha256": "064ef6f775bf95052f3e755cd48f9e5b8cea19e08709fecd3203cc7ca3ad2b40",
+      "receipt": "PASS_SOURCE_ONLY"
+    },
+    "reader-attempt2-adversarial-review.json": {
+      "sha256": "29805ea79a9a4c643d7252f42fe4d6e41e980638cc814465190a8584eabea032",
+      "receipt": "PASS_SOURCE_ONLY"
+    },
+    "result-math-review.json": {
+      "sha256": "3ffff456e9a2acc303e72e068ce0704caa0c710b11f0cc70bc7f7f0c5bf5052d",
+      "receipt": "PASS_SAVED_RESULT_SCOPE"
+    },
+    "result-adversarial-review.json": {
+      "sha256": "c1a664ec1407121a9be75bb3b3d61d8e6dc76508e58b2f46fa724f8762a38cd7",
+      "receipt": "PASS_SAVED_RESULT_REVIEW"
+    }
+  },
+  "successor": {
+    "status": "PROSPECTIVE_AFTER_ACTUAL_MERGE",
+    "question": "Does generic episode-normalized complete ordered source-span and termination credit supply progression credit omitted by the three-phase objective?",
+    "requirements": [
+      "Freeze whole ordered episode population and weights, typed whole-answer/EOS and original-eight retention before gradient.",
+      "Bind intended occurrence/view and repeated-token offsets using frozen typed authority before any occurrence auxiliary.",
+      "Use original selected seed; no negative-candidate promotion or reuse of old20 gradient.",
+      "Preserve earlier three phases and generic original380 guards; conditional improvement alone remains unselected.",
+      "No p7-only loss append, dose/refill/order tuning, serving cursor or automatic full512."
+    ]
+  }
+}
