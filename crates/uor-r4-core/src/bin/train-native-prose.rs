@@ -489,6 +489,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut corpus_offset: usize = 0;
     let mut vsa_enabled = true;
     let mut engram_enabled = true;
+    let mut sample_count: usize = 5;
     let mut vsa_code_mode: u8 = 0;
     let mut vsa_codes_explicit = false;
     let mut vsa_code_refresh: usize = 1000;
@@ -614,6 +615,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "--no-engram" => {
                 engram_enabled = false;
             }
+            "--samples" => {
+                idx += 1;
+                if idx < args.len() {
+                    sample_count = args[idx].parse().unwrap_or(5);
+                }
+            }
             "--help" | "-h" => {
                 println!(
                     "train-native-prose [OPTIONS]\n\
@@ -627,6 +634,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                      --vsa-code-refresh N  Rebuild learned codes every N steps (default 1000)\n\
                      --no-vsa            Hold the VSA term at scale 0 (no update, exports 0)\n\
                      --no-engram         Disable the exact engram n-gram table in eval and export\n\
+                     --samples INT       Prose completions printed after training (default 5; 0 skips them)\n\
                      --epochs INT        Number of epochs (default: 1)\n\
                      --threads INT       Rayon worker threads (default: 8)\n\
                      --batch-size INT    Batch size (default: 256)\n\
@@ -951,7 +959,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Deep inside the quiet forest, a soft river flowed past",
         ];
 
-        for (idx, &prompt) in eval_prompts.iter().enumerate() {
+        for (idx, &prompt) in eval_prompts.iter().enumerate().take(sample_count) {
             let (completion, entropy) = generate_prose(
                 &exported,
                 &tokenizer,
