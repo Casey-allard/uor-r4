@@ -1,0 +1,52 @@
+UOR-R4 — Copy-store arm with commitment weighting: partial movement on both axes, and the first retrieved value in a retention reply
+Date: 2026-10-08 (overnight rounds 155-160). DeepSeek session. References #820.
+
+WHAT RAN - THE FIRST ARM WITH THE REVIEW'S FULL RECOMMENDATION IN PLACE
+  Mixture: the hash-proven chat corpus plus the content-copy store (1,006 documents, 10,757 response
+  tokens; turn-1 answers are the PREMISE'S OWN TOKEN SPAN and no acknowledgement appears anywhere - 0
+  hits over 2,012 responses; turn 2's answer appears in no user turn, 0/1006). Objective: the newly
+  merged UOR_COMMITMENT_WEIGHT=100 on each response's FIRST token with UOR_TERMINAL_WEIGHT LOWERED to
+  30, per the review rather than raising both. 19,929,136 parameters, policy=full_prefix, 12,207 steps,
+  panel v2. Mixed stream 82,305,690 tokens with 68.9 % response fraction.
+
+RESULT ON PANEL V2 (first two content tokens)
+
+  form classes
+    yes/no sky blue        "Yes, the"      compliant at the first token, correct
+    yes/no fish in trees   "No, you"       compliant at the first token, correct
+    yes/no ice hot         "Yes, a"        compliant in form, fact wrong
+    number days in a week  "10."           numeric form
+    number dog legs        "3."            numeric form
+    further numeric items  "300." "1. 100" numeric form
+    one-word turns         "Dr. A" / "In a"          NOT compliant
+    list, capital, planet  "1. Another" / "The capital" / "The 1999"   NOT compliant
+    a copy-style fragment  "rain, the"      the store's copying mode is visible in the output
+
+  retention - THE FIRST RETRIEVED VALUE IN A STORE ARM'S REPLY
+    name turn: "Anany." - the reply CONTAINS THE NAME THE USER GAVE ("Ana"), which no previous
+    store-armed model did: those returned "Noted." / "I see." (the acknowledgement register), and the
+    no-store control produced the value only in prose and was scored a miss by the frozen rule.
+    cats turn: "I'd be" - still not answered.
+
+WHAT THIS SHOWS, AND WHAT IT DOES NOT
+  1. THE TWO CHANGES MOVE THE RIGHT THING, BUT NOT YET ENOUGH. The commitment weight and the
+     content-copy store together produce (a) compliant yes/no forms with correct facts, (b) numeric
+     forms, and (c) the first retention reply in any store arm that contains the value that was given.
+     That is movement on exactly the axis the binding probe identified - the answer's first token -
+     and it is the first arm in which a store-armed model emits the recalled value at all.
+  2. COMPLIANCE IS MIXED RATHER THAN SOLVED AT THIS WEIGHT. One-word and list turns regress ("Dr. A",
+     "1. Another"), so commitment=100 with terminal=30 is past a good operating point on some classes
+     while being the first setting that surfaces the value on another. The review's sweep range was
+     30-100; the evidence now suggests trying 30 and 60 at this store, and reading both channels.
+  3. THE MEASUREMENT GAP MUST BE RESPECTED. "Anany." contains "Ana" and would be scored a miss by the
+     two-token exact rule; the log-probability channel the probe showed to be necessary has to be part
+     of the reading, or this movement is invisible.
+  4. NOT A CONCLUSION EITHER WAY. This is one weight pair on one store at one shape, single seed. The
+     honest summary is that the review's combined recommendation produced partial movement on both
+     axes simultaneously for the first time, and that the next step is a sweep over the commitment
+     weight at this store rather than a new mechanism.
+
+SCOPE
+  One mixture, one weight pair, one shape, single seed, greedy decoding, one panel read as the first
+  two content tokens. Exact for this panel; the retention observation is a substring judgement on one
+  reply and is labelled as such.
