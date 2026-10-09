@@ -1,0 +1,158 @@
+UOR-R4 — idstop3: the token-identity stop's 9 non-firing cells are NOT recoverable — the population a wider "open" was meant to catch is EMPTY (0 of 84). No relaxation was implemented; the strict rule and the default are untouched.
+Date: 2026-10-09. DeepSeek lab, session idstop3. References #820. Tracker #2029 (language base), #2032 (served model).
+Follows docs/evidence/token_identity_stop_breakthrough_2026-10-09.txt (the 72/84 result), whose own stated limit this closes.
+
+SCOPE AND CONDITIONS
+  84 cells = 28 invented values x 3 conditions (natural/sure/noted), arm-ptr checkpoint
+  (term-weight/arm-ptr/model, 80 MB), gate floor 0.5, pointer_copy_stop=2 with
+  pointer_copy_stop_identity=1 (the 72/84 configuration), protocol 2, greedy, max_new_tokens 40,
+  device=cuda, one seed, one session, one binary. Probe built from CURRENT MAIN
+  433a03f66b6ecbf2786f4e29051bcfbe93e04639 on the pod (sha256 of the example binary
+  56ebcae040dd2dabe8791bf89ec6d7685e13ae1dee3bc07bd380017cff2974f6). GPU work on pod
+  0o17jn2e6y9pfj (EU-RO-1, 2x4090); all scoring on the laptop CPU.
+  The run added ONE channel to the sealed configuration: copy_trace=1 (the pointer's own
+  selection at every step). Its replies and its 2x2 reproduce the sealed grid run exactly.
+
+THE 2x2 (all 84 cells, arm-ptr, floor 0.5, identity stop min_span=2)
+  (a) fires and exact          20/84 = 0.2381
+  (b) fires and not exact       3/84 = 0.0357   natural/n_therrick, natural/n_wrendal, sure/n_sylbex
+  (c) does not fire and exact  52/84 = 0.6190
+  (d) does not fire and not exact 9/84 = 0.1071 natural/n_ithmar, natural/n_iyandel, sure/n_ithmar,
+      sure/n_iyandel, sure/n_orvynn, sure/n_therrick, noted/n_ithmar, noted/n_iyandel, noted/n_therrick
+  exact 72/84 = 0.8571, Wilson [0.7667, 0.9163]; fired 23/84; value text present in the reply 77/84.
+  The 9 (d) cells are 3 values x 3 conditions: n_ithmar, n_iyandel, n_therrick
+  (n_therrick is (b) in natural and (d) in sure and noted).
+
+WHY THE 9 DID NOT OPEN (trace channels, counts not impressions)
+  Counting, over all 84 cells, where the value's first window id (v0) landed:
+    A  v0 never emitted                                        5/84
+    B  v0 emitted, pointer's source_held v0, NO run open       71/84   (open available)
+    C  v0 emitted, pointer's source held v0, a run ALREADY open 8/84
+    D  v0 emitted, pointer held something else, run open        0/84
+    E  v0 emitted, pointer held something else, no run open     0/84
+  SO THE HYPOTHESISED POPULATION IS EMPTY: in every one of the 79/84 cells that emitted the
+  value's first token, the pointer's argmax source at that step held EXACTLY that id
+  (matches_source true). There is no cell whose "pointer source is right but the emitted id is
+  not the window id at that source". A wider open window cannot add anything, because the strict
+  open already succeeded wherever the token existed.
+  The argument is not impressionistic: an offline re-implementation of CopyStopRun over each
+  record's emitted ids (EOS and short-cycle stops first, the dropped id restored) reproduces the
+  recorded fire decision on 84/84 cells and the recorded (window_index, copied) on 23/23 firings.
+
+  The 9 (d) cells, by the same classification:
+    4/9 are class A — the value's first token is never emitted at all; the reply is a template
+        fragment closed by EOS: " My name is" (natural/n_iyandel), " Sss." (sure/n_therrick),
+        " Noted." (noted/n_iyandel, noted/n_therrick). Value text present 0/4. There is nothing
+        for any stop rule to stop at.
+    5/9 are class C — the value IS emitted (present 5/5) and the reply ends with it:
+        " My name is Ithmar." (natural, sure, noted/n_ithmar), " My name is Iyandel." (sure),
+        " My name is Orvynn." (sure). In each, a run was ALREADY open when the value's first
+        token arrived, opened BEFORE the value on window position 4 or 6 while the value's span
+        starts at 7; it covers the template AND the value as one contiguous verbatim copy
+        (measured: emitted ids == window[4..11] for the ithmar cells, window[4..11] for iyandel,
+        window[6..12] for orvynn), and EOS ends the reply while the run is still extending, so
+        the strict rule never reaches a break. The reply does not "run on"; it terminates
+        correctly on the value and fails on its PREFIX.
+    PRESENT-RATE FOR (d): 5/9 = 0.5556. So the (d) population is NOT dominated by "value never
+    emitted" (4/9) and NOT by "right value, wrong termination" (0/9): the 5 present cells are
+    "right value, right termination, wrong prefix".
+
+RECOVERABILITY: 0 of 9, and 0 of all 12 non-exact cells
+  Any rule that only decides WHERE THE REPLY ENDS produces a text prefix of the reply (the reply
+  is a concatenation of id bytes; the probe decodes EOS away). No prefix of any (d) reply
+  normalises to the expected value: for the 4 class-A cells the value is absent, and for the 5
+  class-C cells the required characters " My name is " come BEFORE the value and no end-truncation
+  can remove them. Across all 84 cells, 0 of the 12 non-exact cells becomes exact after any prefix
+  truncation (for the 9 no-fire cells the reply is the full unstopped reply, so this is exact;
+  for the 3 fired cells it bounds their already-truncated replies).
+  Therefore step 3 of the brief was NOT triggered: (d) is not dominated by "pointer source right,
+  first emitted id different" — that population is empty — and no open-window relaxation was
+  implemented. No relaxation template-firing count exists to report. For context, the STRICT rule's
+  own template firing at this floor is 1 of 23 firings: natural/n_therrick fires fully outside the
+  value span on " What is" (copied=2).
+
+CONTEXT MEASURED ALONG THE WAY
+  Firing anatomy (23/84): span fully inside the value span 21, starts in the value span 21,
+  fully outside 1. Exact among fired 20.
+  The rule also acts on TURN 1's reply (the probe generates turn 1 when the row pins none), which
+  changes turn 2's window in 5 of the 61 non-firing cells; in 3 of those (natural/n_harrowen,
+  natural/n_quarnil, natural/n_sylbex) the turn-2 reply becomes exact because the window got
+  shorter. So 56 of 61 non-firing cells keep the no-stop reply byte for byte and 5 differ.
+
+THE DEFAULT IS PROVEN, NOT ASSERTED
+  The probe was rebuilt from current main (433a03f66) and its DEFAULT (pointer_gate_floor=0,
+  pointer_copy_stop=0, copy_trace=0) was re-run on all three arms x 3 conditions = 9 files,
+  288 records, and compared FIELD BY FIELD with the sealed references (every field the sealed
+  record has, at any depth): 0 differing fields, 0 missing, 0 added records on 9 of 9 files
+  (SEALED-COMPARE PASS). The parser self-check ran BEFORE any new number and reproduces the
+  sealed counts exactly: arm-ptr 35/84 with channels gate/ptr/read/pmix
+  0.5149/0.8351/0.5610/0.4901, arm-a-w05 10/84, arm-c-ctrl 24/84, using the PANEL ROW's
+  expected[0] ("vantel"), never the record id ("n_vantel") - the trap the brief warned about.
+
+WHAT REMAINS UNKNOWN
+  1. The 5 class-C (d) cells could in principle be repaired by a SPAN-EXTRACTION rule (emit only
+     the span the pointer selected, dropping the template prefix), which is a different instrument
+     from a copy stop, is not measured here, and would need its own pre-registered test. INFERRED,
+     not measured: the ceiling is +5/84 = +6.0 % on this panel.
+  2. The 4 class-A cells are a generator/EOS failure at floor 0.5 (the model emits EOS before the
+     value); no serving-time stop can touch them.
+  3. Not measured: other floors (0.75/1.0), other arms, other panels, non-greedy decoding, any
+     integer/D11 port (export still refuses a pointer with an identity term).
+
+ARTEFACTS (pod, network volume /workspace/uor-r4/deepseek/term-weight/bindprobe/idstop3/)
+  stage_a.sh, stage_build.sh            the pod build and run record
+  trace/trace-arm-ptr-f0.5-ident-*.json the 84-cell trace run (one per condition)
+  default/default-<arm>-f0-*.json       the 9 default runs (288 records)
+  score.py, crosschecks.py, turn1check.py   the scorer, the cross-checks and the sim check
+  bind-probe-exact-idstop3              the binary (sha256 56ebcae0...)
+  This round's volume is rfsx702p68 = uor-shared-EU-RO-1; the canonical EUR-NO-1 volume
+  (lmd1pfah3y) never held term-weight - that is what killed the previous attempt.
+
+REPRODUCING THIS ROUND (and the 72/84 result it classifies)
+  Everything below ran on the lab's EU-RO-1 network volume rfsx702p68
+  (uor-shared-EU-RO-1). The canonical EUR-NO-1 volume (lmd1pfah3y) does NOT hold
+  term-weight; an earlier attempt failed because it mounted that volume. W is
+  /workspace/uor-r4/deepseek/term-weight, D is the data/tokenizer directory
+  /workspace/uor-r4/deepseek/chat-data-control-20261008/data, P is $W/bindprobe/rate.
+
+  THE INSTRUMENT. This round lands the probe driver that produced the 72/84 result:
+  crates/uor-r4-training/examples/bind-probe-exact.rs. The measured copy on the volume has
+  md5 da3c1bb145bc93591c305a3e51681bc6; the landed copy is that same source with rustfmt
+  1.97.1 applied (two re-wraps only, no semantic change, md5
+  8d0bfa0c86edc5519ab420c3f391ab7a), which is why the binary sha256 below was built from
+  the pre-format bytes. Before this round the driver existed only on the pod volume under
+  bindprobe/idstop/, so the current best result could not be reproduced from main. The
+  serving-time mechanisms it drives are already on main (CopyStopMode::Identity,
+  CopyStop::identity, StackModel::set_pointer_copy_stop / set_pointer_copy_trace /
+  set_pointer_gate_floor).
+  The driver is a plain example: cargo discovers it, no Cargo.toml entry is needed, and
+  candle-core's non-cuda stub lets it build without --features cuda.
+
+  BUILD (pod, from CURRENT MAIN 433a03f66b6ecbf2786f4e29051bcfbe93e04639):
+    export PATH=/root/.cargo/bin:/usr/local/cuda-12.8/bin:$PATH
+    export LD_LIBRARY_PATH=/usr/local/cuda-12.8/lib64
+    export CARGO_TARGET_DIR=/root/build/target-sm89 CUDA_COMPUTE_CAP=89
+    cargo build --release -p uor-r4-training --features cuda --example bind-probe-exact
+    sha256 of the built driver: 56ebcae040dd2dabe8791bf89ec6d7685e13ae1dee3bc07bd380017cff2974f6
+  Two concurrent builds of this example deadlock the rustup component sync (both write the
+  same .partial path); build once, serially, before starting parallel GPU jobs.
+
+  RUN (one process per condition; device=cuda; the trace run of this round):
+    $B model=$W/arm-ptr/model tokenizer=$D/tokenizer.json rows=$P/rows_rate_natural.json \
+       out=trace-arm-ptr-f0.5-ident-natural.json device=cuda protocol=2 max_new_tokens=40 \
+       pointer_gate_floor=0.5 pointer_copy_stop=2 pointer_copy_stop_identity=1 copy_trace=1
+  The other two conditions use rows_rate_sure.json and rows_rate_noted.json. Drop
+  copy_trace=1 for the sealed 2x2 grid; use pointer_gate_floor=0 pointer_copy_stop=0 for
+  the default-unchanged proof (run on all three arms: arm-ptr/model,
+  ptrident/arm-a-w05/model, ptrident/arm-c-ctrl/model).
+
+  SCORE (laptop CPU, no GPU):
+    python3 score.py check                      the parser self-check on the sealed files
+    python3 score.py classify grid::rate-arm-ptr-f0.5-ident
+    python3 score.py simcheck trace::trace-arm-ptr-f0.5-ident    the offline rule replay
+    python3 score.py report  trace::trace-arm-ptr-f0.5-ident     the 2x2 + class counts
+    python3 score.py reasons trace::trace-arm-ptr-f0.5-ident     the (d) breakdown
+    python3 crosschecks.py ; python3 turn1check.py
+  Field-for-field default comparison: python3 compare_records.py (each pair is
+  sealed.json=new.json). score.py, crosschecks.py, turn1check.py, compare_records.py and
+  the runs live on the volume under bindprobe/idstop3/ and bindprobe/idstop/.
