@@ -83,6 +83,10 @@ Tracker: [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028). Measured
 
 *Figure 2. The geometric mechanisms and where each is used.*
 
+For an illustrated walkthrough of the geometry, see [docs/geometry.md](docs/geometry.md).
+
+<img src="docs/figures/geometry/600-cell-icosians.svg" alt="The 120 unit icosians (600-cell vertices) used as a rotation codebook" width="100%">
+
 Each mechanism lists its implemented role and its status. Architectural priority
 does not imply measured predictive advantage.
 
