@@ -90,6 +90,7 @@ For one token end to end (embedding, quaternion recurrence, Lorentz read, copy h
 
 For the 4096-bit VSA hypervectors and their Hamming similarity, see
 [VSA hypervectors and Hamming similarity](docs/geometry.md#8-vsa-hypervectors-and-hamming-similarity).
+How primes, K6, the icosians, the octonions and Fano plane, E8 and the Hopf map connect, with each link verified: [How the geometric pieces connect](docs/geometry.md#10-how-the-geometric-pieces-connect).
 
 <img src="docs/figures/geometry/600-cell-icosians.svg" alt="The 120 unit icosians (600-cell vertices) used as a rotation codebook" width="100%">
 
@@ -225,7 +226,7 @@ Every row holds at its exact artifact, data, operator and budget.
   phase binding, constant learning rate, abstention) were null or rejected.
 - Native learner: child fits lowered cross-entropy but complete replies stayed at 8/512.
 - Track A1 stopped (D18); the transformer-conversion track is parked after the parity failure
-  in #1518. VSA codebooks were inert; the LUT-4 shortlist was retracted; the broad-prose and
+  in #1518. DeepSeek's VSA codebook nulls were re-scoped as inconclusive (codes swapped into a frozen artifact, no retraining; #2070, #2071), and a native retraining test is running (#2077); the LUT-4 shortlist was retracted; the broad-prose and
   complete-roadmap claims of 8 September were retracted by audit.
 - `uor-chat --stack` (#2050) records a measured negative for the bundle route.
 
@@ -240,6 +241,19 @@ Sources: [current state](docs/integration/current-state.md), [evidence index](do
 
 Plan of record: [project-track.md](docs/integration/project-track.md). Dependency view: [ROADMAP.md](ROADMAP.md).
 Compute board: [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037).
+
+**Experiments in flight (pre-registered with thresholds fixed in advance):**
+
+| Experiment | Milestone | Status | Question |
+| --- | --- | --- | --- |
+| Native VSA retraining (4 arms × 2 seeds) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **running** (code #2077) | Do VSA codes help once trained into the model, with codes from the learned icosian-root assignment? |
+| Softmax-free reads: soft (A), flock rank (B), B + prime-route copy (C), Hamming-rank (D) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | pre-registered | Can served reads drop the table-emulated softmax with no loss? |
+| Route-holonomy read | M1 #2029 | pre-registered | Can the angle of h_j⁻¹·h_t rank earlier positions, order-aware and softmax-free? |
+| Exact icosian holonomy lanes (E1) | M1 #2029 | pre-registered | Does an exact 2I group product beside the r-layer help, beyond a shuffled-geometry control? |
+| Octonion-signed binding, then transport | M1 #2029 | pre-registered | Does a Fano-signed XOR keep order and grouping that plain XOR loses? |
+| Shared `BitCode` primitive | M4 #2032 | planned (engineering) | One Hamming/popcount type for the native learner, R4G1 and the integer engine |
+
+Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/geometry.md#11-pre-registered-mechanisms-not-yet-measured); none of them has a measured result yet.
 
 ## Quick start
 
@@ -336,8 +350,8 @@ reference for teacher models), [`docs/`](docs), [`scripts/`](scripts), [`researc
 - **Alex Flom** (UOR Foundation, [@afflom](https://github.com/afflom)): the upstream UOR framework, addressing and Lean sources this project builds on, and review of its early design.
 - **Ari** (UOR, [@auser](https://github.com/auser)): migrated the transformerless engine into this workspace and authored the R4G1/graph-compiler design and early certify measurement work (July to August 2026, 154 commits).
 - **Maura** (UOR, [@maurathat](https://github.com/maurathat)): UOR contributions including uor-addr, and a README correction here (PR #235).
-- **N3mesis**: geometry research in [NEMESIS-Theory](https://github.com/markrnd87-cmd/NEMESIS-Theory), whose structure-carrying criteria (bijective state representation, transition fidelity, native primitive interpretation) frame the lowering contract, and an octonion/Fano and integer XOR/Hamming state sketch (NEMESIS-Theory) that motivates the pre-registered Hamming-rank read and octonion-signed binding (ideas only; no text copied).
-- **Matthew**: author of SpiralCore (v63 Cl(0,6) octonion operator convention, reproduced in `crates/uor-r4-core/src/spiralcore_operator.rs` as a geometric control, and the v68 schema in `research/spiralcore-v68/`).
+- **Mark (N3mesis)**: geometry research in [NEMESIS-Theory](https://github.com/markrnd87-cmd/NEMESIS-Theory), whose structure-carrying criteria (bijective state representation, transition fidelity, native primitive interpretation) frame the lowering contract, and an octonion/Fano and integer XOR/Hamming state sketch (NEMESIS-Theory) that motivates the pre-registered Hamming-rank read and octonion-signed binding (ideas only; no text copied).
+- **Matthew**: author of SpiralCore (v63 Cl(0,6) octonion operator convention, reproduced in `crates/uor-r4-core/src/spiralcore_operator.rs` as a geometric control, and the v68 schema in `research/spiralcore-v68/`). SpiralCore v69: the verified binary-icosahedral (2I) peer-shell catalogue and the K6 ↔ half-turn-axis correspondence behind the pre-registered exact icosian holonomy lanes (E1, M1 #2029).
 - **DarkUnicorn**: author of GoldSnnail and goldworm-coder, reviewed as external sources whose state-layout patterns and evaluation ideas (contamination canary, Goodhart audit set, hash-chained gate log, score-then-verify coding loop) inform the gate and coding-loop plans.
 - **The AI research labs** (Claude, Codex, DeepSeek), which do most implementation under the owner's direction; owner and principal investigator Casey Allard.
 

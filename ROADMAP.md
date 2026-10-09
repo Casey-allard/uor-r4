@@ -21,7 +21,7 @@ closes only when its acceptance is met on the saved model.
 | M1 | [Language base](https://github.com/UOR-Foundation/uor-r4/issues/2029) (Claude, DeepSeek) | in progress | A trained geometric language model good enough to carry chat and memory; PROPOSED language-quality threshold on the saved model | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served |
 | M2 | [Grounded reply from exact memory](https://github.com/UOR-Foundation/uor-r4/issues/2030) (Codex) | in progress | Replies emitted from the exact store by learned geometric operators; PROPOSED completion threshold | 8 of 512 complete; gate 9 of 15; [complete donor credit run](docs/labs/full-donor-run-2026-10-09/README.md): changed credit/lower conditional CE, still9/15 and unselected |
 | M3 | [Durable conversation memory](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Memory persists across sessions and answers stay grounded | evaluator and session delivered; not qualified |
-| M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) | not started | One model served multiplier-free through the shipped CLI; PROPOSED parity threshold | D11 engine bit-exact; CLI cannot serve the stack yet |
+| M4 | [One served model, D11 and CLI](https://github.com/UOR-Foundation/uor-r4/issues/2032) | in progress | One model served multiplier-free through the shipped CLI, with no softmax-shaped normalization at runtime (item 0); PROPOSED parity threshold | D11 engine bit-exact; `uor-chat --stack` serves the stack (#2050); read layers still use a table-emulated softmax |
 | M5 | [Laptop cost, D5](https://github.com/UOR-Foundation/uor-r4/issues/2033) | not started | Measured J/token, RSS and tokens/s on the M1 with selected parameter access | none |
 | M6 | [Reasoning and coding](https://github.com/UOR-Foundation/uor-r4/issues/2034) | not started | Executable reasoning and coding on the same model | exact arithmetic is the visible gap |
 | M7 | [API, WASM, Pages Studio](https://github.com/UOR-Foundation/uor-r4/issues/2035) | not started | The model reachable through API, WASM and the Studio | local API only |
@@ -31,6 +31,19 @@ Standing direction (owner, 3 October): no transformer baselines; mechanisms are 
 
 Standing issues: compute board [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037); open bugs [#1542](https://github.com/UOR-Foundation/uor-r4/issues/1542), [#1476](https://github.com/UOR-Foundation/uor-r4/issues/1476),
 [#1718](https://github.com/UOR-Foundation/uor-r4/issues/1718), [#1738](https://github.com/UOR-Foundation/uor-r4/issues/1738).
+
+## Experiments in flight
+
+| Experiment | Milestone | Status | Question |
+| --- | --- | --- | --- |
+| Native VSA retraining (4 arms × 2 seeds) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **running** (code #2077) | Do VSA codes help once trained into the model, with codes from the learned icosian-root assignment? |
+| Softmax-free reads: soft (A), flock rank (B), B + prime-route copy (C), Hamming-rank (D) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | pre-registered | Can served reads drop the table-emulated softmax with no loss? |
+| Route-holonomy read | M1 #2029 | pre-registered | Can the angle of h_j⁻¹·h_t rank earlier positions, order-aware and softmax-free? |
+| Exact icosian holonomy lanes (E1) | M1 #2029 | pre-registered | Does an exact 2I group product beside the r-layer help, beyond a shuffled-geometry control? |
+| Octonion-signed binding, then transport | M1 #2029 | pre-registered | Does a Fano-signed XOR keep order and grouping that plain XOR loses? |
+| Shared `BitCode` primitive | M4 #2032 | planned (engineering) | One Hamming/popcount type for the native learner, R4G1 and the integer engine |
+
+Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/geometry.md#11-pre-registered-mechanisms-not-yet-measured); none of them has a measured result yet.
 
 ## 0. Mission and hard runtime rules
 

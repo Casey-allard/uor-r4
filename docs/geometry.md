@@ -245,6 +245,75 @@ advantage is claimed here. VSA is not tied to SpiralCore (next section).
 | What is SpiralCore? | `spiralcore_operator.rs` reproduces the SpiralCore v63 octonion/Cl(0,6) convention exactly (oriented Fano cycles (124)(235)(346)(457)(561)(672)(713); 15 bivectors ↔ 15 semiprimes; a 64-state composition table). It is an exact finite control in `recursive_geometric_attention.rs` (A10), re-checked in graph-certify, and sits on no training or serving path (0 references in `uor-r4-training`, `uor-r4-integer`, `uor-r4-api`). The Fano cycles are the same algebra as N3mesis's octonion material. | `uor-r4-core/src/spiralcore_operator.rs` |
 | What was tried and what is pre-registered? | Recursive geometric attention over earlier tokens (A1) was stopped on 1 October (D18) because a reusable state erased order. A route-holonomy read (rank earlier positions by the angle of h_j⁻¹·h_t, softmax-free) and an octonion-signed binding test that may promote SpiralCore to a state carrier are pre-registered on M1 (#2029). | #2029 |
 
+## 10. How the geometric pieces connect
+
+<img src="figures/geometry/connections.svg" width="100%" alt="Diagram connecting the six-prime registry, semiprimes, K6, the icosahedral axes, the 120 icosians, quaternions, Z[phi], octonions and the Fano plane, Cl(0,6) bivectors, E8, the Hopf map and VSA codes, with each link marked as verified math, used in a model, pre-registered, or a labelling choice">
+
+The project's geometric mechanisms are not separate inventions. They are views of one structure: the
+binary icosahedral group 2I (the 120 unit icosians) and the octonions that contain it. Every link below
+is checked by exact integer and Z[φ] arithmetic in
+[`figures/geometry/verify_connections.py`](figures/geometry/verify_connections.py) (29 of 29 claims pass).
+That makes the **structure verified mathematics**. **It does not establish predictive value.** Whether
+any of these links helps the model is the subject of the pre-registered experiments on M1
+[#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029). The SpiralCore material is credited to
+Matthew (SpiralCore v63/v69); the octonion and Fano material to Mark (N3mesis, NEMESIS-Theory).
+
+| From | To | Map | Forced or chosen | Where in code | Used by |
+| --- | --- | --- | --- | --- | --- |
+| Six-prime registry {5, 7, 11, 13, 17, 19} | 15 semiprimes p·q | products of distinct pairs | forced | `spiralcore_operator.rs` | SpiralCore control |
+| 15 semiprimes | 15 edges of K6 | edge (p, q); unique factorisation | forced | `verify_connections.py` | — |
+| 15 edges of K6 | 15 half-turn axes of the icosahedral group | each half-turn fixes exactly one pair of the 6 five-fold axes | forced, once the six axes carry the six labels | v69 AXIS2 | pre-registered E1 |
+| Six primes | six five-fold axes | a labelling | **chosen**: 720 labellings, 12 inequivalent under rotation | `verify_connections.py` prints its choice | — |
+| Semiprimes p_i·p_j | Cl(0,6) bivectors B_ij | B_ij·B_jk = −B_ik, mirroring p_i p_j · p_j p_k → p_i p_k; the B_ij generate a group of order 64 that maps onto the 32 square-free even prime products (kernel ±1) | forced | `spiralcore_operator.rs` | SpiralCore control |
+| Cl(0,6) bivectors | octonions | Cl(0,6) acting on the octonions through the 7 Fano lines (124)(235)(346)(457)(561)(672)(713) | forced | `spiralcore_operator.rs`, `cd_space.rs` | control; pre-registered octonion-signed binding |
+| Fano plane | XOR on 3-bit indices | after relabelling, every line is {a, b, a⊕b}, so the octonion product is a signed XOR (168 relabellings) | forced (up to relabelling) | `verify_connections.py` | pre-registered binding, Hamming-rank read |
+| Octonions | quaternions | each Fano line spans a copy of the quaternions; the octonions are alternative and norm-multiplicative, and 168 of 210 ordered unit triples are non-associative (exactly the non-collinear ones) | forced | `cd_space.rs` | stack transport |
+| Quaternions (S³) | 2I, the 120 unit icosians | the finite subgroup of S³; closed, order 120; shells 1, 12, 20, 12, 30, 12, 20, 12, 1 from every element; 720 edges (shell 1) | forced | `geometric_stack.rs` (icosian snap) | stack (snap), pre-registered E1 |
+| 2I | icosahedral rotations | 2I/±1 = A5 (60 rotations), acting 2-transitively on the six five-fold axes | forced | `verify_connections.py` | — |
+| 2I | exact Z[φ] | icosian coordinates lie in Z[φ]/2 | forced | `ZPhi { a, b }` | native learner |
+| 2I ∪ φ·2I | E8 | the 240 E8 roots (the project's E8 = H4 ⊕ φH4); the bivectors B_ij preserve them | forced | E8 notes in `AGENTS.md` | — |
+| 2I | Hopf S² | S³ → S² maps the 120 icosians onto one orbit of 30 points, every fibre of size 4 (a two-fold-type orbit, not literally the axes of the chosen frame) | forced | `hopf_metric.rs` | native learner |
+| 2I | VSA bit codes | the learned token → icosian-root assignment builds the codes | learned | `vsa_codes.rs` (since #2077) | native learner (VSA test running) |
+
+**Two cautions for anyone building on this.**
+1. **Half-turns don't compose like bivectors.** Two half-turns whose K6 edges share a vertex multiply to an order-5 rotation, never a half-turn. The prime ↔ half-turn match is a correspondence of sets, not of products.
+2. **Labelling primes to axes is a choice.** A design that routes primes through icosian rotations must say which of the 12 inequivalent labellings it uses.
+
+A further fact: the icosahedron's five orthogonal frames of two-fold axes form a *synthematic total* of
+K6, five perfect matchings that together cover all 15 edges.
+
+## 11. Pre-registered mechanisms (not yet measured)
+
+These three mechanisms follow from the connections above and are pre-registered with fixed thresholds on M1
+[#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) and M4
+[#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032). **None has a measured result yet.**
+Each is integer-only and softmax-free by construction.
+
+<img src="figures/geometry/exact-2i-lanes.svg" width="100%" alt="Exact icosian holonomy lanes: tokens map to icosians, a lane state is a product in the 120-element group updated by a 120 by 120 table, and earlier positions are ranked by the shell index of the relative product">
+
+**Exact icosian holonomy lanes (E1).**
+- **How it works:** each token maps to an icosian u_t, and a lane carries the exact product h_t = u_t·h_{t−1}. The state is 7 bits, updated by one read of a 120×120 table. A read ranks earlier positions by the shell index (0–8) of h_j⁻¹·h_t, using rank-table weights.
+- **Why it's interesting:** the product keeps route order, because the group is not commutative, and it is exactly invertible.
+- **Caveat:** it never decays, so it runs beside the learned r-layer rather than replacing it.
+- **Source:** Matthew's SpiralCore v69 peer-shell catalogue.
+
+<img src="figures/geometry/octonion-signed-binding.svg" width="100%" alt="Octonion-signed binding: on the Fano plane every line is a, b, a xor b, and e_a times e_b equals plus or minus e_(a xor b), so the order of the operands changes the sign, unlike plain XOR">
+
+**Octonion-signed binding.** Binding by XOR of the 3-bit Fano indices plus the Fano sign gives
+e_a·e_b = ±e_{a⊕b}, with e_a·e_b = −e_b·e_a.
+- Plain XOR binding loses the order of its operands; the sign keeps it.
+- Non-associativity keeps grouping: (a·b)·c ≠ a·(b·c) for 168 of 210 ordered unit triples (verified).
+- **Cost:** add, subtract and one sign-table read.
+- **Source:** Mark (N3mesis)'s octonion/Fano material and the SpiralCore v63 table.
+
+<img src="figures/geometry/hamming-rank-read.svg" width="100%" alt="Hamming-rank read: binarized query and keys, distance equals popcount of query xor key plus an age term, positions sorted and weighted by a fixed rank table, with no softmax">
+
+**Hamming-rank read.**
+- **How it works:** binarize the learned query and keys, score each earlier position by popcount(q ⊕ k_j) plus an age term, sort the positions, and weight them with the flock rank table w_i ∝ 1/(i+1).
+- **Why it's interesting:** it would replace today's exp-table-emulated softmax with XOR, popcount and a table.
+- **Status:** arm D of the softmax-free read experiment. It will use the shared `BitCode` primitive.
+- **Source:** motivated by Mark (N3mesis)'s XOR/Hamming sketch.
+
 ## Life of one token
 
 Follow one byte-BPE token through the stack (text path):

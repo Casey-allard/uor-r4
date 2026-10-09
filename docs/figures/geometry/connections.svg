@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">How the geometric pieces connect</title>
+<desc id="d">A map of how the project's geometric structures are derived from one another: six primes give 15 semiprimes and the complete graph K6, which matches the 15 two-fold axes of the icosahedron. Cl(0,6) bivectors, octonions and quaternions lead to the 120 icosians of 2I, which carry Z[phi] coordinates, the E8 roots, the Hopf map and the VSA bit codes. Edge colours mark verified mathematics, parts used in a model, pre-registered tests and a labelling choice.</desc>
+<rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">How the geometric pieces connect</text>
+<rect x="70" y="80" width="190" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="165" y="97" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Six primes</text>
+<text x="165" y="113" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">{5, 7, 11, 13, 17, 19}</text>
+<rect x="70" y="175" width="190" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="165" y="192" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">15 semiprimes</text>
+<text x="165" y="208" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">p·q</text>
+<rect x="70" y="270" width="190" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="165" y="287" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">K6</text>
+<text x="165" y="303" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">6 vertices, 15 edges</text>
+<rect x="70" y="367" width="190" height="66" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="165" y="384" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Icosahedral axes</text>
+<text x="165" y="400" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">6 five-fold · 10 three-fold</text>
+<text x="165" y="416" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">15 two-fold</text>
+<rect x="370" y="175" width="190" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="465" y="192" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Cl(0,6) bivectors B_ij</text>
+<text x="465" y="208" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">SpiralCore v63</text>
+<rect x="370" y="270" width="190" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="465" y="287" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Octonions / Fano</text>
+<text x="465" y="303" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">7 lines = signed XOR</text>
+<rect x="735" y="270" width="190" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="830" y="287" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Quaternions S³</text>
+<text x="830" y="303" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">stack transport, icosian snap</text>
+<rect x="365" y="367" width="200" height="66" rx="10" fill="#eef6fc" fill-opacity="1" stroke="#0072B2" stroke-width="1.8" stroke-opacity="1"/>
+<text x="465" y="384" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">2I / 600-cell</text>
+<text x="465" y="400" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">120 icosians</text>
+<text x="465" y="416" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">shells 1,12,20,12,30,12,20,12,1</text>
+<rect x="75" y="488" width="150" height="34" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="150" y="505" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Exact Z[φ]</text>
+<rect x="260" y="480" width="200" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="360" y="497" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Hopf S²</text>
+<text x="360" y="513" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">2I → 30 points, fibres of 4</text>
+<rect x="510" y="480" width="180" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="600" y="497" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">VSA bit codes</text>
+<text x="600" y="513" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">via token → icosian</text>
+<rect x="740" y="480" width="200" height="50" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.3" stroke-opacity="1"/>
+<text x="840" y="497" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">E8</text>
+<text x="840" y="513" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">240 roots = 2I ∪ φ·2I</text>
+<path d="M165 130 L165 169" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="165,175 161.2,165 168.8,165" fill="#0072B2"/>
+<text x="176" y="152" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">pairs</text>
+<path d="M165 225 L165 264" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="165,270 161.2,260 168.8,260" fill="#0072B2"/>
+<text x="176" y="247" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">edge (p,q)</text>
+<path d="M165 320 L165 361" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="165,367 161.2,357 168.8,357" fill="#0072B2"/>
+<text x="176" y="346" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">15 edges ↔ 15 half-turns</text>
+<path d="M70 105 L64.25 106.49 L59 110.8 L54.25 117.68 L50 126.85 L46.25 138.08 L43 151.09 L40.25 165.65 L38 181.48 L36.25 198.34 L35 215.97 L34.25 234.11 L34 252.5 L34.25 270.89 L35 289.03 L36.25 306.66 L38 323.52 L40.25 339.35 L43 353.91 L46.25 366.92 L50 378.15 L54.25 387.32 L59 394.2 L64.25 398.51 L64.19 398.49" fill="none" fill-opacity="1" stroke="#7A4FA3" stroke-width="2.2" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<polygon points="70,400 59.37,401.16 61.28,393.81" fill="#7A4FA3"/>
+<text transform="rotate(-90 52 252)" x="52" y="252" font-size="11" fill="#7A4FA3" text-anchor="middle">labelling: 12 inequivalent choices</text>
+<path d="M260 400 L359 400" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="365,400 355,403.8 355,396.2" fill="#0072B2"/>
+<text x="313" y="374" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">rotations</text>
+<text x="313" y="387" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">(2I/±1 = A5)</text>
+<path d="M260 200 L364 200" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="370,200 360,203.8 360,196.2" fill="#0072B2"/>
+<text x="315" y="192" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">B_ij ↔ p_i p_j</text>
+<path d="M465 225 L465 264" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="465,270 461.2,260 468.8,260" fill="#0072B2"/>
+<text x="475" y="252" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">Cl(0,6) on octonions</text>
+<path d="M560 285 L729 285" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="735,285 725,288.8 725,281.2" fill="#0072B2"/>
+<text x="648" y="278" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">each Fano line ⊃ H</text>
+<path d="M560 308 L729 308" fill="none" fill-opacity="1" stroke="#E69F00" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
+<polygon points="735,308 725,311.8 725,304.2" fill="#E69F00"/>
+<text x="648" y="335" font-size="11" fill="#9a6700" fill-opacity="1" text-anchor="middle" font-weight="normal">octonion-signed binding</text>
+<path d="M770 320 L570.77 376.37" fill="none" fill-opacity="1" stroke="#009E73" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="565,378 573.59,371.62 575.66,378.93" fill="#009E73"/>
+<rect x="625.65" y="341" width="84.7" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" stroke="none" stroke-width="0" stroke-opacity="1"/>
+<text x="668" y="351" font-size="11" fill="#00704f" fill-opacity="1" text-anchor="middle" font-weight="normal">unit icosians</text>
+<path d="M565 410 L840 410 L840 326" fill="none" fill-opacity="1" stroke="#E69F00" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
+<polygon points="840,320 843.8,330 836.2,330" fill="#E69F00"/>
+<text x="700" y="424" font-size="11" fill="#9a6700" fill-opacity="1" text-anchor="middle" font-weight="normal">E1 exact lanes</text>
+<path d="M385 433 L398.18 474.28" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="400,480 393.34,471.63 400.58,469.32" fill="#0072B2"/>
+<rect x="381.35" y="449" width="49.3" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" stroke="none" stroke-width="0" stroke-opacity="1"/>
+<text x="406" y="459" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">S³ → S²</text>
+<path d="M435 433 L584.26 478.26" fill="none" fill-opacity="1" stroke="#009E73" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="590,480 579.33,480.73 581.53,473.46" fill="#009E73"/>
+<rect x="498.9" y="452" width="114.2" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" stroke="none" stroke-width="0" stroke-opacity="1"/>
+<text x="556" y="462" font-size="11" fill="#00704f" fill-opacity="1" text-anchor="middle" font-weight="normal">learned assignment</text>
+<path d="M535 433 L784.1 478.91" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="790,480 779.48,481.92 780.85,474.45" fill="#0072B2"/>
+<rect x="669.45" y="449" width="61.1" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" stroke="none" stroke-width="0" stroke-opacity="1"/>
+<text x="700" y="459" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">with φ·2I</text>
+<path d="M370 433 L155.82 486.54" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="150,488 158.78,481.89 160.62,489.26" fill="#0072B2"/>
+<rect x="225.55" y="444" width="72.9" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" stroke="none" stroke-width="0" stroke-opacity="1"/>
+<text x="262" y="454" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">coordinates</text>
+<rect x="231.45" y="457" width="61.1" height="14" rx="3" fill="#ffffff" fill-opacity="0.92" stroke="none" stroke-width="0" stroke-opacity="1"/>
+<text x="262" y="467" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">in Z[φ]/2</text>
+<path d="M560 200 L965 200 L965 505 L946 505" fill="none" fill-opacity="1" stroke="#0072B2" stroke-width="1.9" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<polygon points="940,505 950,501.2 950,508.8" fill="#0072B2"/>
+<text x="765" y="192" font-size="11" fill="#5f6b7a" fill-opacity="1" text-anchor="middle" font-weight="normal">preserve the 240 roots</text>
+<rect x="40" y="566" width="920" height="40" rx="12" fill="#f6f9fc" fill-opacity="1" stroke="#d3dae2" stroke-width="1.2" stroke-opacity="1"/>
+<line x1="58" y1="586" x2="96" y2="586" stroke="#0072B2" stroke-width="2.6" stroke-opacity="1" stroke-linecap="round"/>
+<text x="106" y="591" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">verified mathematics</text>
+<line x1="288" y1="586" x2="326" y2="586" stroke="#009E73" stroke-width="2.6" stroke-opacity="1" stroke-linecap="round"/>
+<text x="336" y="591" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">used in a model</text>
+<line x1="498" y1="586" x2="536" y2="586" stroke="#E69F00" stroke-width="2.6" stroke-opacity="1" stroke-linecap="round" stroke-dasharray="7 5"/>
+<text x="546" y="591" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">pre-registered, not yet run</text>
+<line x1="768" y1="586" x2="806" y2="586" stroke="#7A4FA3" stroke-width="2.6" stroke-opacity="1" stroke-linecap="round" stroke-dasharray="1 5"/>
+<text x="816" y="591" font-size="12.5" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">labelling choice</text>
+<text x="40" y="648" font-size="14" fill="#5f6b7a">Each arrow reads as derived from or realised in. The map shows structure, not a measured advantage for the model.</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">Blue: verified mathematics. Green: used in a model. Dashed: pre-registered, not yet run. Dotted: a labelling choice.</text>
+</svg>

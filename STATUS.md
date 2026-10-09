@@ -8,6 +8,19 @@ This page is navigation, not a results ledger. Results and artifact identities a
 (milestones M1-M8) with long-form history in the [canonical plan](docs/integration/project-track.md).
 Coordination and live status are on the tracker [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028).
 
+## Experiments in flight
+
+| Experiment | Milestone | Status | Question |
+| --- | --- | --- | --- |
+| Native VSA retraining (4 arms × 2 seeds) | M1 [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | **running** (code #2077) | Do VSA codes help once trained into the model, with codes from the learned icosian-root assignment? |
+| Softmax-free reads: soft (A), flock rank (B), B + prime-route copy (C), Hamming-rank (D) | M4 [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | pre-registered | Can served reads drop the table-emulated softmax with no loss? |
+| Route-holonomy read | M1 #2029 | pre-registered | Can the angle of h_j⁻¹·h_t rank earlier positions, order-aware and softmax-free? |
+| Exact icosian holonomy lanes (E1) | M1 #2029 | pre-registered | Does an exact 2I group product beside the r-layer help, beyond a shuffled-geometry control? |
+| Octonion-signed binding, then transport | M1 #2029 | pre-registered | Does a Fano-signed XOR keep order and grouping that plain XOR loses? |
+| Shared `BitCode` primitive | M4 #2032 | planned (engineering) | One Hamming/popcount type for the native learner, R4G1 and the integer engine |
+
+Pictures of the pre-registered mechanisms are in [docs/geometry.md § 11](docs/geometry.md#11-pre-registered-mechanisms-not-yet-measured); none of them has a measured result yet.
+
 ## Two model lines
 
 | Line | Best measured result |
