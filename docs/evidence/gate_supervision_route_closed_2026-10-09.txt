@@ -1,0 +1,55 @@
+UOR-R4 — Gate supervision is net harmful at every weight tested: the route is closed and the ungated pointer arm stands as the best configuration
+Date: 2026-10-09 (overnight rounds 174-177). DeepSeek session. References #820.
+
+THE THREE POINTS
+  All on the same configuration (pointer=32 dot score, content-copy mixture, UOR_COMMITMENT_SPAN=3,
+  UOR_COMMITMENT_WEIGHT=100, UOR_TERMINAL_WEIGHT=30, 19.9M, 12,207 steps, greedy) with only
+  pointer_gate_supervision changed.
+
+    weight  mean gate   panel behaviour
+    0.0     0.2644      value-driven copying on out-of-family values (" Zorba.", " Quillon.", " Anvil.",
+                        " Ben."); yes/no complying with correct facts; numerics in form; "run, walk."
+                        as a verbatim premise span
+    0.1     0.2959      COMPLIANCE MUCH WORSE: "Fect is", "Collaboration make", "Youmagular for",
+                        "My plus", "To find", one "I do"; the only in-form items are two numerals
+                        (" 1.", " 6.") and the turn-1 echo position
+    1.0     0.4164      COMPLIANCE COLLAPSED: "I do" on SIX of fifteen items, "The sky" returning for
+                        the yes/no item that had been complying, and store-family-only short items
+
+  (A third point, weight 0.3, was still training when this was written; its panel is not reported here.)
+
+WHAT THIS ESTABLISHES
+  1. THE ROUTE IS CLOSED. The gate responds to supervision roughly linearly (+0.03 at 0.1, +0.15 at 1.0),
+     and at BOTH weights the response distribution degrades, monotonically with the weight. So the
+     supervision term competes with the response loss rather than complementing it, and raising the gate
+     is not a viable path to the answer at any weight tried. The gate was a correct diagnosis of WHERE
+     the failure sits and a wrong remedy: the mixture's gate is low because the response loss prefers it
+     low, and overriding that preference damages the very distribution the answer would be expressed in.
+  2. THE UNGATED POINTER ARM IS THE BEST CONFIGURATION ON BOTH AXES and should be the base for further
+     work: it is the only arm that combines (a) value-driven copying of values that exist in no store
+     family or chat prior, measured at pointer mass 0.90-1.00 on the value span in 9 of 21 cells and
+     value-paired DELTA +3.85 to +10.39 nats, with (b) partial form compliance that includes yes/no with
+     correct facts. It was produced by the pointer alone, with no gate supervision, no span supervision
+     and no read-binding supervision.
+  3. THIS IS THE FIFTH ROUTE EXHAUSTED FOR BINDING, and the fourth objective-side intervention
+     (terminal weight, commitment weight, commitment span, gate supervision) to be measured and
+     rejected or bounded. What remains untried on this path, in the order the evidence now supports:
+     (i) the READ-BINDING supervision the review identified (read_binding_supervision= /
+     read_binding_labels=, present in the trainer and never run on this path) which supervises WHERE the
+     read should look rather than how much the output uses it; (ii) the generator/pointer identity
+     mixture itself - a token-identity key instead of a hidden-state key, which the review flagged as
+     the pointer's honest limitation; (iii) the constrained/two-token decoder, which sidesteps the
+     mixture competition entirely by drawing the answer from the span.
+  4. WHAT NOT TO DO: no further gate-supervision weights, no further capacity, no further dependency
+     stores, and no panel-only readings - the emitted-value test must run through the probe on
+     out-of-family values, which is the standard that caught this session's own over-read.
+
+HONEST POSITION
+  A clean negative that narrows the field: the gate hypothesis is bounded from both sides and the
+  ungated pointer configuration is preserved as the best measured state. The night's solved result (ten
+  of ten form compliance on the demand-store configurations; 0.93277 bits/byte served) is unaffected.
+
+SCOPE
+  Three gate weights (one still training and excluded from the claims), one mixture, one shape, single
+  seed each, greedy decoding, one panel read as the first two content tokens per arm. Exact for these
+  panels; no probe rows were run on the gate-supervised checkpoints.
