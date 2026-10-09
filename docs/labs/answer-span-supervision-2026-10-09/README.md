@@ -75,7 +75,8 @@ head**, so it cannot have produced these arms at all. arm-ptr was trained **from
 recorded this correction publicly as their own error, not this round's.
 
 **2. The labels sidecar does not exist for this corpus.** `mixed-cp` is `mix-chat-corpus` of
-`chatstore` (label `chat`, 82,248,461 tokens) + `dcopy` (label `copy`, 57,229 response tokens).
+`chatstore` (label `chat`, 82,248,461 tokens) + `dcopy` (label `copy`, 57,229 tokens, of which 10,757
+response tokens).
 
 ```
 find /workspace/uor-r4 -maxdepth 5 -name 'binding_labels*'   → nothing
@@ -181,9 +182,11 @@ store.
    baseline: `cargo test -p uor-r4-training --lib` → **798 passed, 14 failed**, 11 of them this
    subtraction (`dialogue_episodes::tests::*`, `dialogue_development::tests::*`,
    `stack_dialogue::tests::{the_stack_learns…, a_pointer_stack…}`) plus 3 in `joint_campaign`. After
-   ordering the guard first: **811 passed, 3 failed** — the 3 `joint_campaign` failures are untouched and
-   out of scope for this round. Release behaviour is provably identical: `commitment` is `false` either
-   way when `!supervised`. Reported with the pristine-main list as evidence that it is pre-existing.
+   ordering the guard first: **3 failed** — the 3 `joint_campaign` failures are untouched and out of
+   scope for this round. The passing count is **811** with this round's two instrument tests present and
+   **809** on the delivered branch, which does not carry them. Release behaviour is provably identical:
+   `commitment` is `false` either way when `!supervised`. Reported with the pristine-main list as
+   evidence that it is pre-existing.
 2. **The `geometric-stack` example did not compile on main** (`Reply { .. }` was missing the
    `span_extract` field that #2062 added). Repaired in the owner's own PR **#2066** (`fa786e4ef`) while
    this round was running; this branch is rebased onto it and carries **no copy** of that fix.
