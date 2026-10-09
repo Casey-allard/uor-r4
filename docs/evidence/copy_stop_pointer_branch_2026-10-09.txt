@@ -1,0 +1,175 @@
+UOR-R4 — Serving-time copy stop on the pointer branch: it recovers F=1.0 from 6/84 to 46/84 and every floor above 0.5, but it does NOT reach the F=0.5 plateau, so the degeneration above 0.5 is not merely termination (a value-token stop, min_span=3, is implemented and NOT run)
+Date: 2026-10-09 (evening round). DeepSeek session. References #820. Follows gate_floor_breakthrough_2026-10-09.txt (#2008) and the run card gate_floor_run_card_2026-10-09.txt (#2007).
+
+THE QUESTION
+  The gate floor peaks at F=0.5 and collapses after it: arm-ptr 35 -> 40 -> 49 -> 16 -> 6 over
+  F = 0, .25, .5, .75, 1.0. At F=1.0 the gate is exactly 1.0 and the value is PRESENT in 79/84
+  replies (p_mixture of its first token 0.8700) yet exact copies are 6/84, because the replies no
+  longer terminate or read as the value alone ("Fennor.\n\nAss name is Fennor. Fennor.\n\nA"). The
+  stated reading was that ABOVE ~0.5 THE BINDING CONSTRAINT IS THE GENERATOR'S CONTRIBUTION TO THE
+  REPLY'S SHAPE AND TERMINATION. This experiment tests that reading directly, with a serving-time
+  stop rule on the pointer branch.
+
+WHAT RAN
+  An optional serving-time rule, `pointer_copy_stop=MIN_SPAN`, default 0 = OFF = the historical
+  decoder bit for bit (`greedy_reply`, i.e. the pre-existing `greedy_reply_with`). Generation ends
+  once an emitted id breaks a run of at least MIN_SPAN ids reproduced from the window that the
+  pointer ITSELF selected: at each step the source the head attends most (the lowest index on a
+  tie), then the consecutive window positions after it. The run may open at that source or at the
+  position after it (the head may select the position just read). A run that breaks before MIN_SPAN
+  is not a copy and the reply continues as if the rule were off. Values are not consulted: the rule
+  never sees the expected term, only the model's own selection.
+  MIN_SPAN = 2 was pre-registered here as the test of the stated hypothesis (the smallest thing
+  that is a span). A stricter MIN_SPAN = 3 is implemented and NOT run in this round (see SCOPE).
+  Inference only, no training, no new parameters, no serialization or export change. The gate floor
+  from #2008 is untouched and combines with it.
+
+  GRID, on the three existing checkpoints, 28 never-seen values x 3 conditions = 84 cells each,
+  protocol 2, greedy, max_new_tokens 40, device=cuda, one session, one binary:
+    F = 0 (untouched reference), then F = 0.5, 0.75, 1.0 each WITHOUT and WITH the rule.
+
+THE DEFAULT IS PROVABLY UNCHANGED
+  The F=0 runs were compared RECORD BY RECORD against the sealed pre-change files
+  (bindprobe/rate/arm-ptr-{natural,sure,noted}.json for arm-ptr, ptrident/rate-arm-a-w05-*.json and
+  ptrident/rate-arm-c-ctrl-*.json for the identity arms): every field that existed before this
+  change - reply, reply_ids, reply_eos, window_ids, window_text, span positions and sizes, all read
+  masses, the pointer gate/attention/span masses, the marker generator and mixture probabilities -
+  is IDENTICAL on 9 of 9 arm-condition files (288 records, zero differing fields), and the exact
+  counts reproduce the sealed ones exactly: arm-ptr 12/10/13 = 35/84, arm-a-w05 2/2/6 = 10/84,
+  arm-c-ctrl 10/11/3 = 24/84. The only added fields are the new ones, all null or empty with the
+  rule off. The probe was rebuilt from current main (b7541b9f9) on the pod; the pre-change and
+  #2008 binaries in bindprobe/floor are preserved untouched.
+
+THE RESULT - THE RULE RECOVERS EVERY FLOOR ABOVE 0.5, AND NOT TO THE PLATEAU
+
+  exact copies, 84 cells, Wilson 95%            no stop        with stop (MIN_SPAN=2)
+    arm-ptr      F=0     (reference)             35 = 0.4167     [0.3171, 0.5235]
+    arm-ptr      F=0.5                           49 = 0.5833     50 = 0.5952
+    arm-ptr      F=0.75                          16 = 0.1905     47 = 0.5595
+    arm-ptr      F=1.0                            6 = 0.0714     46 = 0.5476
+    arm-a-w05    F=0     (reference)             10 = 0.1190     [0.0660, 0.2054]
+    arm-a-w05    F=0.5                           59 = 0.7024     59 = 0.7024
+    arm-a-w05    F=0.75                          42 = 0.5000     65 = 0.7738
+    arm-a-w05    F=1.0                           26 = 0.3095     64 = 0.7619
+    arm-c-ctrl   F=0     (reference)             24 = 0.2857     [0.2002, 0.3900]
+    arm-c-ctrl   F=0.5                           52 = 0.6190     52 = 0.6190
+    arm-c-ctrl   F=0.75                          11 = 0.1310     54 = 0.6429
+    arm-c-ctrl   F=1.0                            7 = 0.0833     52 = 0.6190
+
+  Paired against the same floor without the rule (84 cells, exact McNemar):
+    arm-ptr     F=0.5   49 -> 50   +1   [+/-0.145]      1 gained / 0 lost   p=1
+    arm-ptr     F=0.75  16 -> 47  +31   [+0.225, +0.492]  34 / 3            p=1.23e-07
+    arm-ptr     F=1.0    6 -> 46  +40   [+0.346, +0.585]  41 / 1            p=1.96e-11
+    arm-a-w05   F=0.5   59 -> 59   +0                     0 / 0            p=1
+    arm-a-w05   F=0.75  42 -> 65  +23   [+0.129, +0.403]  23 / 0            p=2.38e-07
+    arm-a-w05   F=1.0   26 -> 64  +38   [+0.306, +0.571]  38 / 0            p=7.28e-12
+    arm-c-ctrl  F=0.5   52 -> 52   +0                     0 / 0            p=1
+    arm-c-ctrl  F=0.75  11 -> 54  +43   [+0.373, +0.622]  43 / 0            p=2.27e-13
+    arm-c-ctrl  F=1.0    7 -> 52  +45   [+0.403, +0.641]  46 / 1            p=6.82e-13
+
+  THE PRE-REGISTERED PREDICTIONS, SCORED ONE BY ONE
+    1. "At F=1.0 the stop rule should recover exact copies SHARPLY (from 6/84 toward or above the
+       F=0.5 level of 49/84)." RECOVERED SHARPLY: 6 -> 46 on arm-ptr (+40, p=1.96e-11), 26 -> 64
+       on arm-a-w05, 7 -> 52 on arm-c-ctrl, with 1 loss or none on any arm. TOWARD, NOT TO: 46 is
+       BELOW the F=0.5 level of 49 on arm-ptr, and the Newcombe interval against F=0 ([-0.0197,
+       +0.2735]) still contains zero. The prediction was written as "toward or above" and the
+       measurement lands in "toward".
+    2. "The value's presence rate stays high." IT DOES: 79/84 now against 79/84 without the rule on
+       arm-ptr at F=1.0 (the reply ids are a prefix of the unruled reply's, so presence can only
+       change by truncation: 76/84 with the rule).
+    3. "At F=0.5 the stop rule should add little, because the replies there already terminate."
+       EXACTLY ZERO: 49 -> 50 (+1, p=1) on arm-ptr, 59 -> 59 and 52 -> 52 on the identity arms. It
+       fires on only 6 of 84 cells on arm-a-w05 at F=0.5, and NONE of those 6 is exact.
+    4. "The best configuration should be F=1.0 + stop or F=0.5 + stop, whichever the data shows."
+       NEITHER, AND THE CARD'S TWO-CANDIDATE SET WAS TOO NARROW: the best configuration on the panel
+       is F=0.75 + stop on the identity arm, arm-a-w05 at 65/84 = 0.7738 [0.6735, 0.8501], +23 over
+       F=0.75 without the rule (p=2.38e-07, 23 gained / 0 lost) and +6 over the previous best of
+       59/84 (F=0.5 without the rule; Newcombe [-0.139, +0.115], p=1, and 1 gained / 0 lost by
+       value: 8 values gained, 3 lost). It beats arm-ptr at F=0.5 by +16 cells (p=5.46e-04) and
+       loses no cell to F=0 (55 gained / 0 lost, p=5.6e-17). This is a new best on the panel, but
+       the honest reading of the +6 is a TIE with the F=0.5 plateau, not a win over it.
+    5. "If the stop rule does not recover F=1.0, the degeneration is not merely termination."
+       IT RECOVERS 40 OF THE 43 MISSING CELLS BUT STOPS 3 CELLS SHORT OF THE PLATEAU AND 0 SHORT OF
+       F=0 - so the stated dichotomy does not resolve cleanly, and the mechanism section below shows
+       why: the rule reaches ~0.55 at F=1.0 for a reason that is NOT the value being copied.
+
+THE MECHANISM: THE RULE STOPS ON THE PROMPT TEMPLATE, NOT ON THE VALUE - AND THAT IS WHY IT CANNOT
+REACH THE PLATEAU
+  A per-step pointer trace (`copy_trace=1`; the same selection the rule uses, recorded for every
+  generated id) was taken on the ruled F=1.0 runs and compared with the window's OWN value span
+  (`span_positions.expected`). The matched run the rule stops on is a copy of the question template
+  ("User: My nam...", "Assistant: Sure.<|eos|>..."), not of the value:
+    arm             fired    matched run inside value span / overlaps / outside    exact among fired
+    arm-ptr   F=1.0  79/84   20 / 57 / 2                                            44 of 79
+    arm-a-w05 F=1.0  50/84    2 / 47 / 1                                            43 of 50
+    arm-c-ctrl F=1.0 82/84   18 / 59 / 5                                            51 of 82
+    arm-a-w05 F=0.5   6/84    6 /  0 / 0                                             0 of  6
+  At F=1.0 the head keeps selecting the just-written positions, so the reply walks down the prompt
+  template it is re-reading; a template run completes and then breaks, and the rule stops there.
+  That is LUCKY TIMING, not value detection. Each invented value tokenizes to about 5-7 ids (the
+  exact replies of the best configuration run 5-8 ids per value, and not one of them is a single
+  id), so the value is written over several steps while the run the rule is watching is the
+  template's. Where those two intervals line up well enough - the template run ends after the
+  value's ids have all been emitted - the stop leaves " Vantel.\n\n" and the reply reads as the
+  value alone, which is why the recovery is real but partial. Where they line up badly the reply
+  stops early and is not exact (" Brind is" for n_brindor). THE FLOOR KEEPS THE VALUE PRESENT
+  (p_mixture 0.8700) BUT AT F=1.0 THE POINTER DOES NOT SUSTAIN THE VALUE'S OWN SPAN, and the
+  template run ending right after it is a coincidence of these rows, not the mechanism working.
+  The mechanism channels are CONSISTENT WITH THIS AND WITH #2008: the reported gate, pointer mass on
+  the value span, read mass and p_mixture of the value's first token are bit-identical with and
+  without the rule wherever the window is unchanged (arm-ptr F=1.0: gate 1.0000/1.0000, ptr on value
+  0.8342/0.8296, read 0.5789/0.5564, p_mixture 0.8700/0.8644; the small differences are the shorter
+  windows the rule produces). THE FLOOR MOVES ONLY THE MIXING WEIGHT, THE STOP RULE MOVES ONLY WHERE
+  THE REPLY ENDS, AND NEITHER CHANGES WHAT THE POINTER IS LOOKING AT. At F=1.0 what it looks at is
+  the template it is re-reading.
+
+WHAT THIS SETTLES
+  1. THE SHAPE/TERMINATION READING IS PARTLY RIGHT: termination alone is worth +40 cells on arm-ptr
+     at F=1.0, +38 on arm-a-w05 and +45 on arm-c-ctrl, with essentially no cost. The F=1.0 collapse
+     is NOT an information problem - the value is present in 79/84 replies and the floor keeps it
+     there.
+  2. BUT IT IS NOT MERELY TERMINATION: a stop rule on the pointer's own selection recovers to 46/84
+     on arm-ptr and 64/84 on arm-a-w05, not to the 49/84 and 59/84 the floor already reaches at 0.5.
+     At F=1.0 the constraint above 0.5 is the COMPOSITION - with the generator crowded out the
+     pointer follows the prompt template rather than the value, so where the reply stops and what it
+     reads as are both symptoms of the same thing, and fixing only the stopping point leaves ~3
+     cells (and the value-alignment) behind.
+  3. THE BEST MEASURED CONFIGURATION IS NOW 65/84 = 0.7738: the identity-lineage arm (whose
+     unfloored read-out is 0.1190) at gate floor 0.75 with the copy stop on. The gate floor and the
+     stop rule are complementary and their optimum is INTERIOR in both knobs - F=0.75, exactly the
+     point where the floor stops being the only problem.
+  4. MIN_SPAN=2 IS A WEAK INSTRUMENT AND ITS FIRING IS ONLY LOOSELY RELATED TO THE VALUE. This is
+     measured, not inferred: at F=0.5 the rule fires on 6 cells and every one of those firings is a
+     cell that was exact WITHOUT the rule (0 of 6 exact among fired); at F=1.0 the matched run is
+     inside the value's own span on 20 of 79 cells (arm-ptr) and 2 of 50 (arm-a-w05). The next
+     instrument must tie the stop to the value's tokenization, not to a span length: a token-identity
+     stop, min_span=3, is implemented behind the same flag and is the obvious next run.
+
+HONEST POSITION
+  84 cells per arm per condition, one seed per arm, greedy, one session, one rebuilt binary, and the
+  default reproduced field-for-field against the sealed files on all three arms. The rule is a
+  read-out change only and is not saved. The trace is a diagnostic, not a scored channel.
+  NOT MEASURED: MIN_SPAN=3 (implemented, not run); the rule under a non-greedy decoder; any other
+  panel; any trained arm other than these three; any integer/D11 port - export still refuses a
+  pointer with an identity term ("no integer port"), so this remains an offline-capability result.
+  The "token-identity stop" that the alignment measurement points at is a hypothesis for the next
+  run, not a result.
+  The one thing this round did NOT reproduce is a positive control for the rule itself: no
+  configuration in the grid shows the rule firing mainly on the value span, so its mechanism claim
+  rests on the trace counts above, which are reported in full.
+
+ARTEFACTS (pod, network volume /workspace/uor-r4/deepseek/term-weight/bindprobe/copystop)
+  bind-probe-exact.rs        the probe source at the built revision (sha256 bbb8e300..., the
+                             rustfmt-clean copy of stage/probe-final.rs)
+  bind-probe-exact-copystop   the built probe (sha256 dfb1c8b5...), current main + this change
+  rate-<arm>-f<F>-stop<S>-trace<T>-{natural,sure,noted}.json   84 records per arm, 21 configurations
+  setup.sh/setup2.sh/build*.sh  the pod build record; tests.log, build9.log, the focused test output
+  score.py, compare.py, alignment.py, trace_report.py, grid-score.md, compare.md   the analysis
+  bindprobe/floor/*          the #2008 binaries and sources, untouched
+
+THE FOCUSED TESTS (pod, `cargo test --release -p uor-r4-training --lib`)
+  copy_stop_is_off_by_default_and_refuses_a_non_span            ok
+  the_copy_stop_rule_fires_on_a_copied_contiguous_span          ok
+  the_default_decoder_is_unchanged_by_the_copy_stop             ok
+  3 passed, 0 failed, 807 filtered out. `rustfmt --edition 2021 --check` reports no diff on every
+  file this change touches.

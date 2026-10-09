@@ -1874,6 +1874,16 @@ pub struct StackModel {
     /// `max(gate, floor)` in place of the head's own gate. `0.0`, the default,
     /// is the head's gate exactly. Not saved.
     pointer_gate_floor: f64,
+    /// Serving-time copy-stop rule on the pointer branch
+    /// ([`Self::set_pointer_copy_stop`]): `None`, the default, is the
+    /// historical decoder exactly. Not saved. What the rule did over one reply
+    /// travels with the reply itself
+    /// ([`crate::stack_dialogue::Reply::copy_stop`]).
+    pointer_copy_stop: Option<CopyStop>,
+    /// Record the pointer's selection at every step of a decoded reply
+    /// ([`Self::set_pointer_copy_trace`]); off by default, and off means the
+    /// decoder is the historical one bit for bit. Not saved.
+    pointer_copy_trace: bool,
 }
 
 impl StackModel {
@@ -1982,6 +1992,8 @@ impl StackModel {
             read_lineage_so4: None,
             pointer_key_fold: None,
             pointer_gate_floor: 0.0,
+            pointer_copy_stop: None,
+            pointer_copy_trace: false,
         })
     }
 
@@ -3429,6 +3441,70 @@ impl StackModel {
     /// ([`Self::set_pointer_gate_floor`]).
     pub fn pointer_gate_floor(&self) -> f64 {
         self.pointer_gate_floor
+    }
+
+    /// Turn the serving-time copy-stop rule on: generation ends once the ids
+    /// the pointer branch emitted reproduce a contiguous span of the window
+    /// the pointer itself selected ([`CopyStop`]). `None`, the default, is the
+    /// historical decoder bit for bit - no rule, no extra observation, no
+    /// change to any reply. Like the gate floor this is a read-out change
+    /// only, and it is not saved. A rule is refused on a model without a
+    /// pointer head, and one whose minimum span is below two ids is refused
+    /// because a single id is not a copied span.
+    pub fn set_pointer_copy_stop(&mut self, stop: Option<CopyStop>) -> Result<()> {
+        if let Some(stop) = stop {
+            if self.config.pointer.is_none() {
+                return Err(invalid("the model has no pointer head to stop on"));
+            }
+            if stop.min_span < 2 {
+                return Err(invalid(
+                    "the copy stop's minimum span is below two ids, which is not a span",
+                ));
+            }
+        }
+        self.pointer_copy_stop = stop;
+        Ok(())
+    }
+
+    /// The serving-time copy-stop rule, `None` when unset
+    /// ([`Self::set_pointer_copy_stop`]).
+    pub fn pointer_copy_stop(&self) -> Option<CopyStop> {
+        self.pointer_copy_stop
+    }
+
+    /// Record the pointer's own selection at every step of the next decoded
+    /// reply ([`crate::stack_dialogue::Reply::trace`]). Off by default; off
+    /// leaves every reply and every reported channel bit for bit as it was.
+    /// The trace itself reads the same selection the copy-stop rule reads, so
+    /// it costs nothing beyond what a ruled decoder already pays.
+    pub fn set_pointer_copy_trace(&mut self, trace: bool) {
+        self.pointer_copy_trace = trace;
+    }
+
+    /// Whether the next decoded reply is traced
+    /// ([`Self::set_pointer_copy_trace`]).
+    pub fn pointer_copy_trace(&self) -> bool {
+        self.pointer_copy_trace
+    }
+
+    /// The source the pointer attends most at the last position of `ids` (the
+    /// lowest index on a tie), its attention there, the gate the mixture used
+    /// and the head's own unfloored gate. `None` for a model without a pointer
+    /// head. This adds one pointer-side forward to an ordinary scoring call;
+    /// it is requested only by the copy-stop rule and by a caller that asks
+    /// ([`Self::next_scores_with_pointer`]), never by [`Self::next_scores`].
+    pub fn last_pointer_selection(&self, ids: &[u32]) -> Result<Option<PointerSelection>> {
+        Ok(self.next_scores_pointer_scores(ids)?.1)
+    }
+
+    /// [`Self::next_scores`]'s scores together with the pointer branch's own
+    /// choice at the scored position ([`Self::last_pointer_selection`]).
+    pub fn next_scores_with_pointer(
+        &self,
+        ids: &[u32],
+    ) -> Result<(Vec<f32>, Option<PointerSelection>)> {
+        let (scores, selection) = self.next_scores_pointer_scores(ids)?;
+        Ok((scores, selection))
     }
 
     /// The pointer's copy gate at one position from its gate logit: the head's
@@ -8280,13 +8356,25 @@ impl StackModel {
     /// the mixture `(1 - g) softmax(z) + g p_copy` there. The greedy token is
     /// the highest score, the lowest id on a tie.
     pub fn next_scores(&self, ids: &[u32]) -> Result<Vec<f32>> {
+        Ok(self.next_scores_pointer_scores(ids)?.0)
+    }
+
+    /// [`Self::next_scores`] and, for a pointer model, the pointer branch's own
+    /// choice at the scored position: its highest-weight source (the lowest
+    /// index on a tie), that weight, the gate the mixture used and the head's
+    /// own unfloored gate. The scores are the same values
+    /// [`Self::next_scores`] returns, from the same arithmetic.
+    fn next_scores_pointer_scores(
+        &self,
+        ids: &[u32],
+    ) -> Result<(Vec<f32>, Option<PointerSelection>)> {
         let time = ids.len();
         if time == 0 {
             return Err(invalid("next_scores needs at least one input id"));
         }
         let Some(pointer) = self.config.pointer else {
             let logits = self.forward(ids, 1, time)?.detach();
-            return Ok(logits.get(time - 1)?.to_vec1::<f32>()?);
+            return Ok((logits.get(time - 1)?.to_vec1::<f32>()?, None));
         };
         let p = self.params()?;
         let hidden = self.hidden_hooked(&p, ids, 1, time, &mut None)?.detach();
@@ -8317,9 +8405,16 @@ impl StackModel {
             ids
         };
         let attention = pointer_attention(&side, 0, time - 1, &rule, matched)?;
-        let gate = self.floored_gate(f64::from(
+        let raw_gate = sigmoid_f64(f64::from(
             side[(time - 1) * (2 * pointer.dim + 1) + 2 * pointer.dim],
         ));
+        // The gate the mixture uses, from the same sigmoid value
+        // [`Self::floored_gate`] returns for this logit.
+        let gate = if self.pointer_gate_floor > 0.0 {
+            raw_gate.max(self.pointer_gate_floor)
+        } else {
+            raw_gate
+        };
         let lse = row_log_sum_exp(&logits);
         let mut mixture: Vec<f64> = logits
             .iter()
@@ -8328,10 +8423,20 @@ impl StackModel {
         for (&a, &id) in attention.iter().zip(ids) {
             mixture[id as usize] += gate * a;
         }
-        Ok(mixture
-            .into_iter()
-            .map(|probability| probability.max(f64::MIN_POSITIVE).ln() as f32)
-            .collect())
+        let source = lowest_argmax(&attention);
+        let selection = source.map(|source| PointerSelection {
+            source,
+            attention: attention[source],
+            gate,
+            raw_gate,
+        });
+        Ok((
+            mixture
+                .into_iter()
+                .map(|probability| probability.max(f64::MIN_POSITIVE).ln() as f32)
+                .collect(),
+            selection,
+        ))
     }
 
     /// Per-target negative log-likelihoods (nats), using an explicit output head tensor
@@ -8914,6 +9019,8 @@ impl StackModel {
             read_lineage_so4: None,
             pointer_key_fold: None,
             pointer_gate_floor: 0.0,
+            pointer_copy_stop: None,
+            pointer_copy_trace: false,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -15139,6 +15246,250 @@ impl ReadQueryKey {
             no_read: null_weight / sum,
         })
     }
+}
+
+/// The source the pointer attended most at one scored position, with the
+/// weights the mixture used there ([`StackModel::last_pointer_selection`]).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PointerSelection {
+    /// The lowest source index whose attention is the largest.
+    pub source: usize,
+    /// The attention at `source`.
+    pub attention: f64,
+    /// The gate the mixture used (floored, when a floor is set).
+    pub gate: f64,
+    /// The head's own `sigmoid(gate logit)`, before any floor.
+    pub raw_gate: f64,
+}
+
+/// The serving-time copy-stop rule ([`StackModel::set_pointer_copy_stop`]):
+/// generation ends once the ids the pointer branch emitted since the copy
+/// began reproduce a contiguous run of the window that the pointer itself
+/// selected - the source the head attends most at each step, then the
+/// consecutive positions after it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct CopyStop {
+    /// The fewest ids that make a copied span. At least 2: one id is not a
+    /// span. A run that breaks before reaching it is not a copy, and the
+    /// reply continues as if the rule were off.
+    pub min_span: usize,
+}
+
+impl CopyStop {
+    /// A rule that stops at a copied span of at least `min_span` ids.
+    pub fn new(min_span: usize) -> Self {
+        Self { min_span }
+    }
+}
+
+impl Default for CopyStop {
+    fn default() -> Self {
+        Self::new(2)
+    }
+}
+
+/// What the copy-stop rule did over one reply, reported by
+/// [`crate::stack_dialogue::Reply::copy_stop`].
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CopyStopReport {
+    /// The window index the matched run started at.
+    pub window_index: usize,
+    /// How many ids the matched run covers. At least the rule's minimum span.
+    pub copied: usize,
+    /// The number of ids the reply had emitted when the rule fired.
+    pub emitted: usize,
+    /// The pointer's attention at the run's first source.
+    pub attention: f64,
+    /// The gate the mixture used at the run's first source.
+    pub gate: f64,
+    /// The head's own unfloored gate there.
+    pub raw_gate: f64,
+}
+
+/// One step of a decoded reply's copy trace ([`StackModel::set_pointer_copy_trace`]):
+/// the pointer's own selection at the step that emitted `id`.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct CopyTraceStep {
+    /// The step's index in the reply (0 is the first id after the history).
+    pub step: usize,
+    /// The id the decoder emitted.
+    pub id: u32,
+    /// The source the pointer attended most, `None` when the head had no
+    /// attention to report.
+    pub source: Option<usize>,
+    /// The window id at `source`, `None` when there is no selection.
+    pub source_id: Option<u32>,
+    /// Whether the emitted id is the window id at the selected source.
+    pub matches_source: bool,
+    /// The attention at the selected source.
+    pub attention: f64,
+    /// The gate the mixture used (floored, when a floor is set).
+    pub gate: f64,
+    /// The head's own `sigmoid(gate logit)`, before any floor.
+    pub raw_gate: f64,
+}
+
+/// A copy-stop rule's state over one reply: the pointer's selection at the
+/// last step and the contiguous run of window positions the emitted ids have
+/// reproduced since the copy began. The window is handed to each step, so the
+/// rule holds no reference to it.
+pub(crate) struct CopyStopRun {
+    rule: CopyStop,
+    /// The source the pointer most attended at the last step, `None` when the
+    /// head had no attention to report at all.
+    source: Option<usize>,
+    /// The attention, floored gate and own gate at that source.
+    attention: f64,
+    gate: f64,
+    raw_gate: f64,
+    /// The same three at the source that opened the open run.
+    run_attention: f64,
+    run_gate: f64,
+    run_raw_gate: f64,
+    /// The next window position the emitted ids must reproduce to extend the
+    /// run; `None` while no run is open.
+    run_next: Option<usize>,
+    /// The window position the open run started at.
+    run_start: usize,
+    /// How many ids of the open run have been reproduced.
+    copied: usize,
+}
+
+impl CopyStopRun {
+    pub(crate) fn new(rule: CopyStop) -> Self {
+        Self {
+            rule,
+            source: None,
+            attention: 0.0,
+            gate: 0.0,
+            raw_gate: 0.0,
+            run_attention: 0.0,
+            run_gate: 0.0,
+            run_raw_gate: 0.0,
+            run_next: None,
+            run_start: 0,
+            copied: 0,
+        }
+    }
+
+    /// Take the pointer's selection at the step that emitted the last id. A
+    /// step with no selection leaves it as it was.
+    pub(crate) fn observe(&mut self, selection: Option<PointerSelection>) {
+        if let Some(selection) = selection {
+            self.source = Some(selection.source);
+            self.attention = selection.attention;
+            self.gate = selection.gate;
+            self.raw_gate = selection.raw_gate;
+        }
+    }
+
+    /// Try to start a run at the pointer's own selection for an emitted id:
+    /// at the selected source itself, or at the source after it (the head may
+    /// select the position just read while the pre-read position is the one
+    /// holding the value).
+    fn open(&mut self, window: &[u32], id: u32) -> bool {
+        let Some(source) = self.source else {
+            return false;
+        };
+        let start = if window.get(source) == Some(&id) {
+            source
+        } else if window.get(source + 1) == Some(&id) {
+            source + 1
+        } else {
+            return false;
+        };
+        self.run_start = start;
+        self.run_next = Some(start + 1);
+        self.copied = 1;
+        self.run_attention = self.attention;
+        self.run_gate = self.gate;
+        self.run_raw_gate = self.raw_gate;
+        true
+    }
+
+    /// Account for the id at `position` - the last position of the window the
+    /// reply is being generated into, whose first `history` positions are the
+    /// prefix it is generated from - and report the matched run when the copy
+    /// is complete: an id that does not extend the run, with at least
+    /// [`CopyStop::min_span`] ids reproduced before it. The position, not the
+    /// id, is what identifies the step: a window that already holds the id
+    /// elsewhere must not let a repeated value open a second run.
+    pub(crate) fn after(
+        &mut self,
+        window: &[u32],
+        position: usize,
+        history: usize,
+    ) -> Option<CopyStopReport> {
+        if self.rule.min_span < 2 || window.is_empty() {
+            return None;
+        }
+        let emitted = position + 1 - history.min(position + 1);
+        let id = window[position];
+        let copied = match self.run_next {
+            Some(next) if window.get(next) == Some(&id) => {
+                self.run_next = Some(next + 1);
+                self.copied = self.copied.saturating_add(1);
+                self.copied
+            }
+            Some(_) => {
+                // The run is over. It is a copy only if it reached the span.
+                if self.copied >= self.rule.min_span {
+                    return Some(CopyStopReport {
+                        window_index: self.run_start,
+                        copied: self.copied,
+                        emitted,
+                        attention: self.run_attention,
+                        gate: self.run_gate,
+                        raw_gate: self.run_raw_gate,
+                    });
+                }
+                self.copied = 0;
+                self.run_next = None;
+                if !self.open(window, id) {
+                    return None;
+                }
+                self.copied
+            }
+            None => {
+                if !self.open(window, id) {
+                    return None;
+                }
+                self.copied
+            }
+        };
+        if copied >= self.rule.min_span {
+            // The run reached the span but may still continue: the next
+            // emitted id decides. A window position whose id equals its
+            // successor can never be extended (it would repeat the id), so the
+            // copy ends here - which keeps a repeating value from looping.
+            let repeated = self
+                .run_next
+                .and_then(|next| Some((*window.get(next)?, *window.get(next.checked_sub(1)?)?)));
+            if repeated.is_some_and(|(position, previous)| position == previous) {
+                return Some(CopyStopReport {
+                    window_index: self.run_start,
+                    copied,
+                    emitted,
+                    attention: self.run_attention,
+                    gate: self.run_gate,
+                    raw_gate: self.run_raw_gate,
+                });
+            }
+        }
+        None
+    }
+}
+
+/// The lowest index of a slice's largest value; `None` when empty.
+fn lowest_argmax(values: &[f64]) -> Option<usize> {
+    let mut best: Option<usize> = None;
+    for (index, &value) in values.iter().enumerate() {
+        match best {
+            Some(current) if value <= values[current] => {}
+            _ => best = Some(index),
+        }
+    }
+    best
 }
 
 /// The pointer head at the probed query: its gate `g` and its attention over
@@ -26637,6 +26988,135 @@ mod tests {
             .expect_err("a flock model is not exported");
         assert!(refusal.to_string().contains("flock"), "{refusal}");
         model.set_served_representation(Some(Arc::new(D11Interim)))?;
+        Ok(())
+    }
+
+    /// The copy-stop rule is off by default and refuses what is not a rule.
+    #[test]
+    fn copy_stop_is_off_by_default_and_refuses_a_non_span() -> Result<()> {
+        let model = toy_pointer(PointerConfig::new(16), 0.25, 10.0)?;
+        assert_eq!(model.pointer_copy_stop(), None);
+        let mut model = model;
+        for refused in [Some(CopyStop::new(0)), Some(CopyStop::new(1))] {
+            let error = model
+                .set_pointer_copy_stop(refused)
+                .expect_err("a span below two ids is not a span");
+            assert!(error.to_string().contains("below two ids"), "{error}");
+        }
+        model.set_pointer_copy_stop(Some(CopyStop::new(2)))?;
+        assert_eq!(model.pointer_copy_stop(), Some(CopyStop::new(2)));
+        model.set_pointer_copy_stop(None)?;
+        assert_eq!(model.pointer_copy_stop(), None);
+        // A model without a pointer head has nothing to stop on.
+        let plain = StackModel::new(
+            tiny(StackArch::Geometric, "a", ReadScore::Dot, false),
+            &cpu(),
+        )?;
+        let mut plain = plain;
+        let error = plain
+            .set_pointer_copy_stop(Some(CopyStop::new(2)))
+            .expect_err("no pointer head");
+        assert!(error.to_string().contains("no pointer head"), "{error}");
+        Ok(())
+    }
+
+    /// The rule fires on a copied contiguous span and only on one. The
+    /// decoder hands the rule the window with the ids generated so far
+    /// appended, so the id it judges is the window's last.
+    #[test]
+    fn the_copy_stop_rule_fires_on_a_copied_contiguous_span() {
+        let history: Vec<u32> = vec![10, 20, 30, 40, 50];
+        // One decoder step: `source` is the pointer's selection and `reply` the
+        // reply so far, whose last id the step just emitted.
+        let step = |run: &mut CopyStopRun, source: usize, reply: &[u32]| {
+            run.observe(Some(PointerSelection {
+                source,
+                attention: 0.9,
+                gate: 1.0,
+                raw_gate: 0.5,
+            }));
+            let mut window = history.clone();
+            window.extend_from_slice(reply);
+            run.after(&window, window.len() - 1, history.len())
+        };
+        // A two-id span at the selected source 1 (20, 30), broken by 99.
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        assert_eq!(step(&mut run, 1, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        let report = step(&mut run, 1, &[20, 30, 99]).expect("99 breaks the two-id span");
+        assert_eq!(report.window_index, 1);
+        assert_eq!(report.copied, 2);
+        assert_eq!(report.emitted, 3);
+        assert_eq!(report.attention, 0.9);
+        assert_eq!(report.gate, 1.0);
+        assert_eq!(report.raw_gate, 0.5);
+        // The copy may start one position after the selection: source 0 sees
+        // 10, and the reply opens at 1 with 20.
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        assert_eq!(step(&mut run, 0, &[20]), None);
+        assert_eq!(step(&mut run, 0, &[20, 30]), None);
+        let report = step(&mut run, 0, &[20, 30, 99]).expect("20, 30 is a span at 1");
+        assert_eq!(report.window_index, 1);
+        assert_eq!(report.copied, 2);
+        // A run that breaks before the rule's minimum span is not a copy.
+        let mut run = CopyStopRun::new(CopyStop::new(3));
+        assert_eq!(step(&mut run, 1, &[20]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30, 99]), None);
+        assert_eq!(step(&mut run, 1, &[20, 30, 99, 99]), None);
+        // A repeated window position stops at the span instead of looping.
+        let repeated: Vec<u32> = vec![10, 20, 20, 40];
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        run.observe(Some(PointerSelection {
+            source: 1,
+            attention: 0.9,
+            gate: 1.0,
+            raw_gate: 0.5,
+        }));
+        let repeat_step = |run: &mut CopyStopRun, reply: &[u32]| {
+            let mut window = repeated.clone();
+            window.extend_from_slice(reply);
+            run.after(&window, window.len() - 1, repeated.len())
+        };
+        assert_eq!(repeat_step(&mut run, &[20]), None);
+        assert_eq!(repeat_step(&mut run, &[20, 20]), None);
+        let report = repeat_step(&mut run, &[20, 20, 20]).expect("20 at 2 cannot extend 2");
+        assert_eq!(report.window_index, 1);
+        assert_eq!(report.copied, 2);
+        assert_eq!(report.emitted, 3);
+        // An id that matches nothing in the window opens no run.
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        assert_eq!(step(&mut run, 1, &[20, 99]), None);
+        // A step without a selection cannot open a run.
+        let mut run = CopyStopRun::new(CopyStop::new(2));
+        run.observe(None);
+        let mut window = history.clone();
+        window.push(20);
+        assert_eq!(run.after(&window, window.len() - 1, history.len()), None);
+    }
+
+    /// The default decoder is the historical one, bit for bit, and the ruled
+    /// decoder is identical whenever the rule does not fire.
+    #[test]
+    fn the_default_decoder_is_unchanged_by_the_copy_stop() -> Result<()> {
+        use crate::stack_dialogue::{greedy_reply, greedy_reply_with_copy_stop};
+        for gate_bias in [0.0f32, 10.0] {
+            let mut model = toy_pointer(PointerConfig::new(16), 0.25, gate_bias)?;
+            let history: Vec<u32> = vec![9, 5, 9, 5, 3, 9, 5];
+            let plain = greedy_reply(&model, &history, 12, 1)?;
+            let ruled = greedy_reply_with_copy_stop(&model, &history, 12, 1, 3)?;
+            // No rule set: same ids, same stop, no rule report.
+            assert_eq!(plain.ids, ruled.ids, "gate bias {gate_bias}");
+            assert_eq!(plain.eos, ruled.eos);
+            assert_eq!(plain.cycle, ruled.cycle);
+            assert!(plain.copy_stop.is_none() && ruled.copy_stop.is_none());
+            // With the rule on, an unstopped reply is still the same reply.
+            model.set_pointer_copy_stop(Some(CopyStop::new(2)))?;
+            let ruled = greedy_reply_with_copy_stop(&model, &history, 12, 1, 3)?;
+            if ruled.copy_stop.is_none() {
+                assert_eq!(plain.ids, ruled.ids, "gate bias {gate_bias}");
+            }
+        }
         Ok(())
     }
 }

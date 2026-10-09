@@ -5404,6 +5404,9 @@ impl<S: Stepper> IntegerChat<S> {
             ids,
             eos: false,
             cycle: None,
+            trace: Vec::new(),
+            stopped_at: None,
+            copy_stop: None,
         })
     }
 }
