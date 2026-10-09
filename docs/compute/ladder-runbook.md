@@ -292,7 +292,11 @@ Qualitative fluency and relevance are scored by a local judge (`qwen2.5:7b` host
 
 ### 6.1 Panel composition (232 requests total)
 
-The panel is frozen in `~/uor-r4-local/ladder/panel/` before model evaluation:
+The panel is frozen in `~/uor-r4-local/ladder/panel/` before model evaluation (that directory is archived
+as `icloud:UOR-R4/results/deepseek/ladder.tar`, md5 `ed9456d63472b7a424fe6ca62d36baa8`, since 2026-10-09;
+restore with `cloud-store fetch ladder <dest>` — see
+[docs/labs/open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md) for this panel's
+sha256 identities and its recorded 43/232):
 1. `everyday-32.json`: 32 requests in everyday conversational register (smalltalk, simple questions, simple instructions, two-turn follow-ups; 8 each).
 2. `heldout-200-a.json` (100 requests) & `heldout-200-b.json` (100 requests): held-out single-turn requests sampled from chat-v0 held-out split (`count=200`, `max_words=24`, seed 1; split into two files to observe the 128 requests/file panel cap).
 

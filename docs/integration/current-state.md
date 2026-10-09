@@ -10,6 +10,77 @@ The [fresh v69 source review](../labs/spiralcore-live-review-2026-10-09/README.m
 
 **Next:** Consolidate task/protected-margin credit through the existing native Generate/Copy pool before new learning. The protected guard role adds no gradient credit; overlapping task/reference roles still contribute their declared weights. Preserve all native acceptance conditions; require an explicit basis/metric and caller gap before transferring SpiralCore E8 actions to H4/icosian state.
 
+## 2026-10-09 — open reply panel: 43/232 reproduced, the 189 failures are DIFFUSE, Phase 2 not opened (deepseek, #2029)
+
+Acceptance criterion 1's largest gap is the **open reply panel**: 43/232 `acceptable` against a 116/232
+target, 2.7x short. The baseline is reproduced from the frozen instrument's own report, and the 189
+failures are classified per category with the grader's own verdict fields — with the result that **no
+single mechanism dominates**, so no candidate was trained and no pod was opened. Record:
+[open-reply-panel-2026-10-09](../labs/open-reply-panel-2026-10-09/README.md). Zero pod spend; no float
+generation; no laptop grading (see the disclosure below).
+
+**The panel is not in the repository.** It is `ladder/panel/everyday-32.json` (32 rows, sha256
+`945c0c97…b480`) + `heldout-200-a.json` (`019cc6f6…d2c1`) + `heldout-200-b.json` (`5434cfd9…436c`) = 232
+rows, 224 single-turn, in the ladder store, archived as
+`icloud:UOR-R4/results/deepseek/ladder.tar` (3,306,919,424 B, md5 `ed9456d6…baa8`). The three hashes are
+recorded in the sealed report itself and in the archive's `SHA256SUMS.txt`, and all 232 report rows bind
+to the panel files on id, category and user turns with **0 mismatches**. Report root
+`ladder/grades/chat-29m-B-lr5e-4-powered-7b`, `report.json` sha256 `72ab32a2…59d4` (29M model
+`d8a3c971…8068`, greedy, `max_new_tokens=64`), produced by chat-grade executable `a5071cfe…4239` — still on
+the laptop — with grader ollama `qwen2.5:7b` digest `845dbda0…b697e`. Its `actual.acceptable = 43` of 232
+(fluent 70, relevant 53, unparsed 0).
+
+**`acceptable` is the only reading this panel has.** The embedded checks files carry only `conv-*` ids, and
+all 232 rows here are `talk-*`/`do-*`/`ask-*`/`follow-*`/`heldout-*`, so `checked_rows = 0` and there is no
+deterministic `check_pass` — the opposite of the v4/v5 memory panels, where `check_pass` is primary.
+
+**Per category (criterion 3), from the grader's verdict fields, over the 189 failures:** `neither` (fluent
+no, relevant no) **152 = 80.4%**; `fluent_only` 27 = 14.3%; `relevant_only` 10 = 5.3%. By panel category
+(acceptable / failing): `smalltalk` 6/2, `simple_question` 1/7, `simple_instruction` 1/7, `follow_up` 1/7,
+`heldout_first_turn` 34/166. By tier: `everyday` 9/23, `K-clean` 18/115 (**86.5% failure**), `K-ill-posed`
+16/51 (76.1%) — the well-posed rows fail *more* than the ill-posed ones, so this is not a panel artifact.
+The 19 `fluent_only` rows of `K-ill-posed` are the one sharp sub-population: a fluent non-answer to an
+unanswerable request.
+
+**Mechanisms with counts (deterministic text rules, no model):** reply cut mid-clause 125/189 = 66.1%;
+verbatim 5-gram repeat 46 = 24.3%; ≥70% of the reply's words restated from the last turn 17; unclosed code
+fence 8; question 8; verbatim echo of the last turn 3; two-word stub 2; the instrument's own abstain list 1
+(declinations ≤ 11/189 = 5.8% even counting "do not have access" separately); **41 = 21.7% carry no marker
+at all**. The largest marker is not a cause: over all 232 rows, mid-clause replies are accepted 11.3%
+(16/141) against 29.7% (27/91) for finished ones, but the 86 rows with **neither** marker are still accepted
+only **29.1% (25/86)** and are 37.1% of the panel — acting on the markers would leave the panel near
+68/232, against the 116/232 target. The independent Step 0a hand taxonomy read
+the same 189 rows as K 26.5%, N 25.4%, O 29.6%, I 10.1%, T 5.8%, R 2.6% — largest class 29.6%, no majority
+— and froze "retrieval cannot move the open panel". The 96M `chat-100m-C` report (sha256 `3d5a2914…ccf6`)
+scores 46/232 with the same shape (neither 78.0%, fluent_only 18.3%, no-marker 21.5%), so the diffusion is
+stable across the recorded 43–46/232 plateau.
+
+**Decisions.** Phase 2 is NOT opened: no candidate, no training, no re-tuning, no pod. The Step 0a lever —
+corpus/knowledge/capacity — is the only one this classification leaves, and it is not bounded by this
+panel. A judge-stability re-grade was pre-registered and then **declined as decision-irrelevant**: v4
+measured 4/64 verdict changes at the same digest (~6%, ≈±14 cells on 232) while the gap to criterion 1 is
+**73 cells**, so the noise floor cannot move the verdict. That arithmetic exposes a **criterion defect, not
+a measurement defect**: criterion 1 on this panel rests on a judge-only reading, so it should either gain
+deterministic row checks in the v4/v5 style or state a tolerance, before anyone trains against 116/232.
+Criterion 1 remains NOT MET and 43/232 is unchanged; STATUS/ROADMAP/#2028 unchanged.
+
+**Evidence and disclosures.** The panel bytes, both sealed reports, the rebuilt replies, the classifier
+(`scripts/open_reply_panel_classify.py`, `--selftest`, `--panel` binding check) and its outputs are in
+`icloud:UOR-R4/results/deepseek/reply-panel-open-2026-10-09.tar` (760,832 B, md5
+`1740b21f181779221458bb8c32008f4f`); the restore command was run and round-trips at that md5. Two incidents
+are recorded rather than tidied: (1) one laptop `grade-replies` run against the local ollama judge started
+16:45 on 2026-10-09, before the prohibition on laptop grading reached this session, and was killed at 17:00
+— it wrote `attempt.json` and no `report.json`, and **no number here comes from it**; (2) an earlier
+extraction had been written inside another lab's worktree and was removed from
+`~/uor-r4-local/reply-panel-recon-found-20261009/` at 17:02 after verifying it as a duplicate of
+`icloud:…/panel-open-chat-29m-B-lr5e-4-report-root.tar`. Nothing of this session's remains outside its own
+worktree.
+
+Next: (1) repair criterion 1's reading — add deterministic row checks to the reply panel or state a
+tolerance for the judge — before any candidate is trained against it; (2) decide whether the open reply
+panel is worth attacking at all, given that its lever is corpus/knowledge/capacity and any future attempt
+needs a freshly sealed panel, because Step 0a read every failing row of this one.
+
 ## XOR/Hamming proposal overlaps existing geometry metrics; learning repair remains open — October 9
 
 The owner-requested [expert comparison](../labs/nemesis-xor-review-2026-10-09/README.md) reads both pages of *R4 XoR Hamming Distance* and traces the corresponding source on main. XOR/popcount and geometry-bound Hamming distance already exist; the proposal does not establish a new semantic metric, E8/icosian composition law, globally optimal route or a remedy for the protected-direction conflict recorded in #2084. Existing H4 antipodes have distance90/120 in the retained signature census, so the paper's full-bit complement cannot be substituted for geometric negation. KEEP the typed metric/transition-contract ideas as advisory; new mechanism and language benefit are NOT YET PROMOTED, with no model run, accepted-artifact change or milestone-status change.

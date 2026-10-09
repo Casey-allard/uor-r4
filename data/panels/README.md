@@ -543,3 +543,20 @@ an error.
 
 The copies in `~/uor-r4-local/ladder/panel/` are byte-identical to these files; see
 `MANIFEST.sha256`. The withdrawn v1 files stay there, marked withdrawn in its `README.txt`.
+**Path note (2026-10-09):** that ladder directory is no longer on the laptop. It is archived as
+`icloud:UOR-R4/results/deepseek/ladder.tar` (3,306,919,424 B, md5 `ed9456d63472b7a424fe6ca62d36baa8`;
+`~/.local/share/uor-r4/bin/cloud-store fetch ladder <dest>`), which is where the byte-identical copies
+and the withdrawn v1 files now live.
+
+## The open reply panel (232 requests) is not in this directory
+
+Acceptance criterion 1 of #2029 (`≥ 116/232 acceptable`) is measured on a different instrument: the
+open reply panel, `ladder/panel/everyday-32.json` (32 rows, sha256
+`945c0c97196d39db430b5821c8c30a888a3c719c6e701c218fc7a914b350b480`) plus `heldout-200-a.json`
+(`019cc6f6…d2c1`, 100 rows) and `heldout-200-b.json` (`5434cfd9…436c`, 100 rows). It has **no frozen
+row checks** — no checks file lists its `talk-*`/`do-*`/`ask-*`/`follow-*`/`heldout-*` ids — so its
+`acceptable` reading is the qwen2.5:7b judge alone, with no deterministic `check_pass` to be primary
+against, unlike every panel on this page. Its files are in the `ladder.tar` archive above and in
+`icloud:UOR-R4/results/deepseek/reply-panel-open-2026-10-09.tar`; the classification of its 189
+failures, which are diffuse, is in
+[docs/labs/open-reply-panel-2026-10-09](../../docs/labs/open-reply-panel-2026-10-09/README.md).

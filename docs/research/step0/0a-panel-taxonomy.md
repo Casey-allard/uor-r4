@@ -14,6 +14,16 @@ Both reports were graded by qwen2.5:7b on everyday-32 + heldout-200-a/b (greedy,
 failing when the grader did not judge it both fluent and relevant. Exact model, report and label hashes are in
 [`0a-panel-taxonomy/taxonomy.json`](0a-panel-taxonomy/taxonomy.json).
 
+**Path note (2026-10-09).** The ladder store `~/uor-r4-local/ladder/` no longer exists on the laptop: it is
+archived as `icloud:UOR-R4/results/deepseek/ladder.tar` (3,306,919,424 B, md5
+`ed9456d63472b7a424fe6ca62d36baa8`); restore it with
+`~/.local/share/uor-r4/bin/cloud-store fetch ladder <dest>` and the two report paths above reappear under
+`<dest>/ladder/grades/`. The sha256 values in the table are unchanged, and the panel files the reports graded
+are in the same archive under `ladder/panel/`. The two reports, the panel and a re-runnable classifier are
+also in `icloud:UOR-R4/results/deepseek/reply-panel-open-2026-10-09.tar`; see the
+[open reply panel diagnostic](../../labs/open-reply-panel-2026-10-09/README.md), which reproduces 43/232 and
+46/232 from these reports and confirms this taxonomy's diffusion finding on the grader's own verdict fields.
+
 ## Method
 
 - **Annotator:** Claude (Opus 5.5) read every failing row: the user turns, any earlier assistant turn and the
