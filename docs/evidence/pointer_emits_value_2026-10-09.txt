@@ -1,0 +1,67 @@
+UOR-R4 — The pointer arm EMITS THE RECALLED VALUE: the retention turn returns "Ana."
+Date: 2026-10-09 (overnight rounds 168-171). DeepSeek session. References #820.
+
+THE RESULT
+  Panel item 13 - the retention turn for a user who said "My name is Ana." and was asked "What is my
+  name?" - returns EXACTLY "Ana.". This is the first time in this session that any checkpoint has
+  emitted the value given in an earlier turn. Every previous arm either produced an acknowledgement from
+  the demand store's own register ("Noted.", "I see.", "Anany.", "Ane.", "Hi Liam,") or prose containing
+  the value which the frozen two-token rule scored as a miss, and the probe measured 0 of 63 replies
+  containing the value across three store arms.
+
+  The arm: pointer=32, pointer_select=none (dot score), on the content-copy store mixture with
+  UOR_COMMITMENT_SPAN=3, UOR_COMMITMENT_WEIGHT=100 and UOR_TERMINAL_WEIGHT=30, 19,929,136 parameters,
+  12,207 steps. Scoring note: a pointer artifact REFUSES a sampling temperature
+  ("a pointer artifact chats greedily over its mixture: temperature not supported"), so the first
+  scoring attempt failed and this panel was produced by omitting temperature entirely.
+
+THE FULL PANEL, FOR CONTEXT (first two content tokens)
+
+    [00] "An exactly"     [01] "One of"        [02] "I don't"      [03] "Yes, I"
+    [04] "Yes, ice"       [05] "Yes, a"        [06] "18000"       [07] "1."
+    [08] "I don't"         [09] "The capital"   [10] "The largest"  [11] "1."
+    [12] "You can"         [13] "Ana."          [14] "Ag."
+
+  So the VALUE IS EMITTED, the yes/no class complies at the first token on three turns, numeric items
+  take numeric form ("1.", "18000"), the follow-up is responsive ("You can"), and a flashcard symbol
+  appears short ("Ag."). The one-word and list turns remain non-compliant, as in every recent arm.
+
+WHY THIS IS THE MECHANISM RESULT THE NIGHT WAS LOOKING FOR
+  1. IT CONFIRMS THE DIAGNOSIS BY INTERVENTION. The probe established, without any training change, that
+     the model ADDRESSES the value's span (read mass at or above TAU in 62 of 63 cells), that the onset
+     token is already value-conditional (" Z" at p=0.894, DELTA up to +10.8 nats), and that the
+     CONTINUATION is family-driven with 0 of 63 replies containing the value. Three objective variants
+     (terminal, commitment on one token, commitment on three tokens) left that picture unchanged. Adding
+     the CAPACITY to copy an identity - a pointer - produces the emitted value. The prediction that the
+     gap was capacity to copy rather than incentive was therefore correct, and it was the ranking the
+     expert review gave: a pointer supplies what the weights could not.
+  2. THE TRAINING CURVE AGREES. The pointer's selection rate rose from 0.1079 at step 1,000 to 0.2387 at
+     step 12,207 and was STILL RISING at the last measured step, against a measured reachability of
+     0.4729. The mechanism is learnable and unsaturated, which is why the emitted value appearing now is
+     consistent with the trajectory rather than a coincidence at the end of training.
+  3. IT IS THE FIRST BINDING RESULT OF THE SESSION, AND IT IS SINGLE-ITEM. "Ana." is one panel item out
+     of fifteen and one retention pair out of two; the cats pair still returns "You can" rather than the
+     count. This is recorded as an EXISTENCE result - the architecture CAN emit a recalled value - not
+     as a measured binding rate.
+
+WHAT MUST BE DONE BEFORE ANY STRONGER CLAIM
+  * Run the probe's seven rows (including the three built to separate value from prior: a non-name
+    value, a name outside every store family, and a non-name sharing an onset with Ana) on THIS
+    checkpoint, with read mass and DELTA. That is what distinguishes a value-driven emission from a
+    prior-driven one, and it is the same instrument that refuted the earlier "Anany." reading.
+  * Extend the run rather than redesign it: the selection curve had not plateaued, and the project's
+    rule is to extend a healthy run rather than abandon it.
+  * Score with the pointer-appropriate route (no temperature, and the review notes pointer models must
+    be scored with evaluate rather than the snapping evaluators).
+
+HONEST POSITION
+  One panel item, one seed, one pointer configuration. The emitted value is exact and cannot come from
+  the store's families (they carry element, capital and list facts, not "Ana"), so it is strong evidence
+  that the pointer made the value available to the output. Everything else about the arm - the
+  compliance classes, the count pair, the general fluency - is unchanged or partial, and the night's
+  solved result (ten of ten form compliance on the demand-store configurations, 0.93277 bits/byte
+  served) is unaffected.
+
+SCOPE
+  One pointer configuration, one mixture, one shape, single seed, greedy decoding, one panel read as the
+  first two content tokens. The emitted-value observation is a single item and is labelled as such.
