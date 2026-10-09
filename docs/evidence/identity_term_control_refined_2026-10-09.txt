@@ -1,0 +1,70 @@
+UOR-R4 — Identity term refuted with a MATCHED CONTROL, and the mechanism is a gate collapse with the span mass unchanged
+Date: 2026-10-09. DeepSeek session. References #820. Refines identity_score_negative_2026-10-09.txt (#2004).
+
+WHY THIS REFINES THE PREVIOUS NEGATIVE
+  #2004 compared the identity arms against the ORIGINAL arm-ptr checkpoint. That comparison mixes two
+  things: the identity term, and the extra fine-tuning both identity arms received. A third arm now
+  supplies the missing control - the SAME fine-tune, same recipe, same 12,207 steps, with the identity
+  term simply omitted.
+
+FOUR ARMS, 84 CELLS EACH, ONE SESSION, ONE PROBE BINARY
+
+    arm                              exact copy              Wilson 95%            contains
+    arm-ptr (baseline, re-run)       35/84 = 0.4167          [0.3171, 0.5235]      0.6548
+    A: pointer_identity=0.5          10/84 = 0.1190          [0.0660, 0.2054]      0.1548
+    B: pointer_identity=1             0/84 = 0.0000          [0.0000, 0.0437]      0.0000
+    CONTROL: same fine-tune, no id   24/84 = 0.2857          [0.2002, 0.3900]      0.7143
+
+  THE CONTROL SPLITS THE EFFECT. Extra fine-tuning alone costs about 13 points (0.4167 -> 0.2857).
+  Against that matched control the identity term costs a further -0.1667 at w=0.5 (Newcombe
+  [-0.2837, -0.0451], clustered bootstrap [-0.2976, -0.0357], exact McNemar p=0.0161, 8 gained /
+  22 lost) and -0.2857 at w=1 (p=1.19e-07, 0 gained / 24 lost). So #2004's conclusion SURVIVES -
+  the term is a regression - but its attribution was too generous: roughly 13 of the 30 points I
+  reported as the identity term's cost are the fine-tuning itself, and the term's own contribution is
+  about 17 points at half weight and 29 at full weight.
+
+THE MECHANISM IS NOW MEASURED, NOT INFERRED (means over 84 cells)
+    arm        gate    ptr mass on value span   read mass on value   p_mixture of value's 1st token
+    arm-ptr    0.5149  0.8351                   0.5610               0.4901
+    control    0.2439  0.7415                   0.4455               0.2292
+    A (0.5)    0.1163  0.8399                   0.5044               0.1300
+    B (1.0)    0.0030  0.0421                   0.5994               0.1105
+  AT w=0.5 THE POINTER STILL ATTENDS THE VALUE SPAN AS MUCH AS THE BASELINE (0.8399 against the
+  control's 0.7415) - what collapses is the copy GATE (0.1163 against 0.2439), so the mixture stops
+  emitting the value (p_mixture 0.1300 against 0.2292). That is a GATE/READOUT COLLAPSE WITH UNCHANGED
+  SPAN MASS, which is a different failure from the one the earlier arms showed and is the sharpest
+  statement of what the identity term does: it does not stop the model finding the value, it stops the
+  model USING it. At w=1 the score additionally loses the span (0.0421) and drives the gate to 0.0030.
+
+THE FROZEN-CURVE SIGNATURE REPRODUCES
+  ARM B's dev_pointer_hit_rate is 0.003963011889035667 at step 0 and IDENTICAL TO ALL PRINTED DIGITS at
+  every one of the thirteen evaluations - the same signature that condemned the token-id route - while
+  its reachability stays 0.47291941875825627 at every evaluation (unlike the route's 0.182, because
+  identity scoring keeps every source admissible). ARM A's hit rate rises 0.2404 -> 0.2448, i.e. the
+  diagnostic does NOT track novel-value copying: it sits at the baseline's level (0.2387) and the
+  control's (0.2444) while exact copies fall to 10/84. Third independent demonstration this session
+  that this curve is not a proxy for the behaviour.
+
+A TOOLING FINDING THAT WOULD HAVE CORRUPTED THE RESULT
+  The existing bind-probe-exact binary PREDATED the identity field and scores an identity model
+  wrongly - it differs from a rebuilt probe on 8 of 32 rows on arm A (e.g. lunavar " A Lunavar." vs
+  " A name."), while on the dot-only arm-ptr the two probes are bit-identical (96 of 96 replies and all
+  pointer masses). The old binary was preserved as bind-probe-exact-20261008 and a new one built from
+  the same main. So scoring an identity model with yesterday's probe would have produced numbers that
+  looked like an identity effect and were partly a stale-binary artefact - the same class of error this
+  session has now hit four times.
+
+WHAT THIS SETTLES
+  Both ways of injecting token identity into the pointer are measured and rejected, now with a matched
+  control: token-id KEYS via a route (reachability collapses to 0.182, metrics freeze) and token
+  overlap as a SCORE term (exact copies 0.4167 -> 0.1190 -> 0.0000, of which about 13 points is
+  fine-tuning and the rest the term). The learned hidden-state match remains the only matching that
+  works, at 0.4167 exact recall against a 0.0000 no-pointer control and 0.2857 for a matched
+  fine-tune. And the control arm establishes a NEW fact the earlier arms could not: ADDITIONAL
+  FINE-TUNING ON THIS MIXTURE COSTS RECALL BY ITSELF, which is worth knowing before any further arm
+  is run on this lineage.
+
+SCOPE
+  Four arms x 84 cells, one mixture, one shape, single seed per arm, greedy decoding, scored in one
+  session with a probe rebuilt from the same main and a baseline reproduced bit-for-bit against the
+  earlier run. The 28 invented values are verified absent from all 19 stores and the chat corpora.
