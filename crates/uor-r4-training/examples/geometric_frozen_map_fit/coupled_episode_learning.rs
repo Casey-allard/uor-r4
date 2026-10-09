@@ -7,12 +7,16 @@ use super::*;
 use serde::Serialize;
 use uor_r4_integer::geometric_vocabulary_actions::GeneratePatchCache;
 use uor_r4_integer::h4_tables::H4Code;
-use uor_r4_training::geometric_generate_learning::vocabulary_marginal_loss_with_credit;
+use uor_r4_training::geometric_generate_learning::{
+    vocabulary_log_mass_margin_with_credit, vocabulary_marginal_loss_with_credit,
+};
 use uor_r4_training::geometric_occurrence_consumer::source_realizer::{
     CueAngularWeights, PrefixAngularWeights,
 };
 #[path = "gradient_vector_prefix.rs"]
 mod gradient_vector_prefix;
+#[path = "protected_joint_vector.rs"]
+mod protected_joint_vector;
 
 const PREFIX: &str = "prefix.coefficients";
 const GENERATE: &str = "generate.unary";
@@ -69,6 +73,7 @@ pub(super) enum PrefixTransaction {
     #[default]
     CoordinateAdjacent,
     GradientVectorPrefix,
+    ProtectedJointVector,
 }
 impl PrefixTransaction {
     fn legacy(&self) -> bool {
@@ -322,6 +327,19 @@ fn policy_for_modes(credit: DonorCredit, transaction: PrefixTransaction) -> Valu
         p["maximum_alternatives"] = json!(13444);
         p["vector_selection"] = json!("minimum feasible original-epoch current CE; exact tie earlier radius; compact best only and one exact selected restage before atomic swap");
         p["affected_scope"] = json!("union of all changed Prefix keys over complete physical aliases, including cancelling net deltas");
+    }
+    if transaction == PrefixTransaction::ProtectedJointVector {
+        p["prefix_transaction"] = json!(transaction);
+        p["protected_direction"] = protected_joint_vector::policy();
+        p["prefix"] = json!("joint protected1920 direction; originalm+eta*d; clamp/castf32/nativequantize; unchangedcodes retain originalfractional bits; actualdelta constraints and CE descent required");
+        p["generate"] = json!("same joint transaction as Prefix; no follow-on coordinate pass");
+        p["objective_graph_count_scope"] = json!("physical_backward_calls and prebackward_native_parity_graph_forwards and gradient_graph_forwards describe the31 CE graphs; protected380 and totals are separate");
+        p["rank"] = json!("joint1920 objective gradient and original380 winner/strongest-other margin Jacobians; no coordinate sweep");
+        p["maximum_alternatives"] = json!(4);
+        p["protected_margin_backward_calls"] = json!(380);
+        p["total_fresh_backward_calls"] = json!(411);
+        p["total_training_graph_forwards"] = json!(822);
+        p["affected_scope"] = json!("complete391 current candidate Prefix+Generate unary replacement; all physical aliases and original380 guards");
     }
     p
 }
@@ -680,6 +698,21 @@ fn graph_loss(
     donor: &mut shared::DonorCache,
     utility: Option<&DonorUtility>,
 ) -> Result<Tensor> {
+    graph_quantity(a, f, pool, row, p, pw, g, prepared, donor, utility, None)
+}
+fn graph_quantity(
+    a: &Args,
+    f: &shared::Frame,
+    pool: &shared::Pool,
+    row: usize,
+    p: &ContinuationParent,
+    pw: &PrefixAngularWeights,
+    g: &GenerateLearningWeights,
+    prepared: &uor_r4_training::geometric_generate_learning::PreparedGenerateLearning,
+    donor: &mut shared::DonorCache,
+    utility: Option<&DonorUtility>,
+    contrast: Option<(u32, u32)>,
+) -> Result<Tensor> {
     let d = g.device();
     let credit = pw.coefficient_credit(
         f.prefix_trace
@@ -758,18 +791,29 @@ fn graph_loss(
     )?;
     let softc = (&raw + &uc)?;
     let joinedc = (&hardc + (&softc - softc.detach())?)?;
-    let mut loss = vocabulary_marginal_loss_with_credit(
-        &pool.trace,
-        &joinedg,
-        Some(&joinedc),
-        f.target,
-        a.credit.policy(),
-    )?;
+    let mut loss = if let Some((winner, rival)) = contrast {
+        vocabulary_log_mass_margin_with_credit(
+            &pool.trace,
+            &joinedg,
+            Some(&joinedc),
+            winner,
+            rival,
+            a.credit.policy(),
+        )?
+    } else {
+        vocabulary_marginal_loss_with_credit(
+            &pool.trace,
+            &joinedg,
+            Some(&joinedc),
+            f.target,
+            a.credit.policy(),
+        )?
+    };
     if credit_mode(a) == DonorCredit::FullPoolUtility {
         let utility = utility.ok_or_else(|| bad("full-pool donor utility missing"))?;
         loss = (&loss + zero_forward_donor_loss(&raw, &utility.losses)?)?;
     }
-    Ok((loss * f.weight)?)
+    Ok((loss * if contrast.is_some() { 1.0 } else { f.weight })?)
 }
 
 fn gradients(
@@ -779,6 +823,7 @@ fn gradients(
     frames: &[shared::Frame],
     pools: &[shared::Pool],
     d: &Device,
+    protected: Option<&(Vec<shared::Frame>, Vec<shared::Pool>, Value)>,
 ) -> Result<(Vec<f32>, Vec<f32>, Vec<f32>, Vec<f32>)> {
     replay_require(
         frames.len() == 31 && pools.len() == 31,
@@ -925,6 +970,21 @@ fn gradients(
         &json!({"all_before_any_backward":true,"physical_frames":31,
         "raw_G_Copy_U_donor_post_full_alias_pool":true,"device":"cuda","captured_objective_encoder_calls":0,"gradient_context_backward_calls":0}),
     )?;
+    if let Some((guards, guard_pools, _)) = protected {
+        protected_joint_vector::margin_pass(
+            a,
+            start,
+            p,
+            guards,
+            guard_pools,
+            &active,
+            &g,
+            &prepared,
+            &pv,
+            &mut donor,
+            false,
+        )?;
+    }
     let mut ps = vec![0f32; COUNT];
     let mut gs = vec![0f32; COUNT];
     let mut terms = Vec::new();
@@ -972,6 +1032,21 @@ fn gradients(
         }
         terms.push(json!({"physical_index":i,"input_index":f.input,"position":f.position,"target":f.target,"weight":f.weight,"families":files}));
     }
+    if let Some((guards, guard_pools, _)) = protected {
+        protected_joint_vector::margin_pass(
+            a,
+            start,
+            p,
+            guards,
+            guard_pools,
+            &active,
+            &g,
+            &prepared,
+            &pv,
+            &mut donor,
+            true,
+        )?;
+    }
     let mut aggregate = Vec::new();
     for (name, values, master) in [(PREFIX, &ps, &pm), (GENERATE, &gs, &gm)] {
         replay_require(
@@ -1006,6 +1081,16 @@ fn gradients(
         receipt["full_pool_utility_sha256"] = json!(sha256_file(
             &a.out.join("coupled-full-pool-donor-utilities.json")
         )?);
+        fs::write(&leaf, serde_json::to_vec(&receipt)?)?;
+    }
+    if protected.is_some() {
+        let leaf = a.out.join("coupled-gradient-receipt.json");
+        let mut receipt = read(&leaf)?;
+        receipt["protected_margin_backward_calls"] = json!(380);
+        receipt["total_fresh_backward_calls"] = json!(411);
+        receipt["total_training_graph_forwards"] = json!(822);
+        receipt["protected_margin_receipt_sha256"] =
+            json!(sha256_file(&a.out.join("protected-margin-receipt.json"))?);
         fs::write(&leaf, serde_json::to_vec(&receipt)?)?;
     }
     Ok((pm, ps, gm, gs))
@@ -1874,6 +1959,12 @@ fn construct(
     red: &mut NativeVocabularyActions,
     ranked: &[Coordinate],
 ) -> Result<(Vec<f32>, Vec<f32>, Value, Value)> {
+    if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+        return protected_joint_vector::run(
+            a, start, p, frames, map, spec, pm, pg, gm, gg, caches, posts, donors, incidences,
+            legal, red,
+        );
+    }
     use std::io::Write as _;
     write(a, "coupled-coordinate-order.json", &json!(ranked))?;
     let baseline = generate::objective(frames, map, spec, caches, &generate::Patches::new())?;
@@ -2373,13 +2464,20 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
         + 48 * 1024 * 1024
         + 32 * 1024 * 1024
         + utility_report_bound;
+    let process_cap = if c.prefix_transaction == PrefixTransaction::ProtectedJointVector {
+        8
+    } else {
+        4
+    } * 1024
+        * 1024
+        * 1024u64;
     let v = json!({"stage":if c.retained_export.is_some(){"BEFORE_RETAINED_EXPORT_ADMISSION"}else if c.retained_mode(){"BEFORE_RETAINED_GRADIENT_ADMISSION_AND_FINITE_RESTART"}else{"BEFORE_ANY_BACKWARD"},"capacity":cap,"typed_guard_frame_bound":typed,
         "actual31_full_serialized_native_bytes":full,"numeric_upper_bound":numeric,"donor_utility_serialized_bound":utility_report_bound,"donor_utility_numeric_bound":utility_numeric_bound,"retained_export_copy_peak_bytes":retained_export_copy_peak,
         "retained_export_copy_projection":"full journal byte-copy buffer plus4MiB typed commitments/summary; alternatives ignored by typed decoder","numeric_cap":512*1024*1024u64,"vector_population_keyset_transient_bound":vector_population_transient,
-        "process_ram_projection_bytes":process,"process_ram_cap":4*1024*1024*1024u64,
+        "process_ram_projection_bytes":process,"process_ram_cap":process_cap,
         "report_upper_bound":report,"report_cap":a.maximum_report_bytes,"streamed_journal_reserve":journal,
         "native391_snapshot_max_measured_bytes":reload_max,"fresh_family_gradient_bytes":if c.retained_mode(){0}else{2*32*3840},"retained_family_gradient_bytes":if c.retained_mode(){2*32*3840}else{0},
-        "graph_lifetime":"31 sequential joint graphs; original377 authority dropped before graph; all device graph/prepared Generate dropped before380 guards",
+        "graph_lifetime":if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{"31 objective and380 protected sequential graphs; guardtypedtraces+compactpools coexist with parameters; device graph/prepared Generate dropped before constructor"}else{"31 sequential joint graphs; original377 authority dropped before graph; all device graph/prepared Generate dropped before380 guards"},
         "constructor_lifetime":"full Pool buffers consumed/dropped before incidence/staging; replacement row incidence only, no global CSR clone",
         "role_count":32,"physical_graph_count":31,"episode_length":15,"fresh_backward_calls_completed":0,
         "original_resource_receipt":old,"original_pregradient_receipt":oldpre});
@@ -2387,7 +2485,7 @@ fn pregradient_projection(a: &Args, c: &Config, frames: &[shared::Frame]) -> Res
     replay_require(
         cache <= CACHE_CAP as u64
             && numeric <= 512 * 1024 * 1024
-            && process <= 4 * 1024 * 1024 * 1024
+            && process <= process_cap
             && report + 1024 * 1024 < a.maximum_report_bytes,
         "coupled complete pregradient resource projection exceeded",
     )
@@ -2450,10 +2548,48 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let baseline_full = shared::objective_for_spec(&objectives, &objective_pools, &spec)?;
     write(a, "initial-original-objective.json", &baseline_full)?;
     pregradient_projection(a, c, &objectives)?;
+    let mut protected = if c.prefix_transaction == PrefixTransaction::ProtectedJointVector {
+        let guards =
+            prefix::prepare_generate_guards(a, &c.original_inputs, &original, &objectives, &spec)?;
+        for role in spec
+            .roles
+            .as_ref()
+            .ok_or_else(|| bad("protected explicit role specification absent"))?
+        {
+            if !role.task {
+                let reference = objectives
+                    .iter()
+                    .find(|f| f.input == role.input && f.position == role.position)
+                    .ok_or_else(|| bad("protected reference objective absent"))?;
+                replay_require(
+                    guards.0.iter().any(|f| {
+                        f.input == reference.input
+                            && f.position == reference.position
+                            && f.id == reference.id
+                            && f.prefix == reference.prefix
+                            && f.target == reference.target
+                    }),
+                    "protected original17 reference identity not covered by380",
+                )?;
+            }
+        }
+        protected_joint_vector::resource_projection(a, &guards.0, &guards.1)?;
+        Some(guards)
+    } else {
+        None
+    };
     let (pm, pg, gm, gg, inherited_learning) = if let Some(g) = c.gradient_authority() {
         retained_gradients(a, c, g, &objectives)?
     } else {
-        let (pm, pg, gm, gg) = gradients(a, start, &original, &objectives, &objective_pools, d)?;
+        let (pm, pg, gm, gg) = gradients(
+            a,
+            start,
+            &original,
+            &objectives,
+            &objective_pools,
+            d,
+            protected.as_ref(),
+        )?;
         (pm, pg, gm, gg, Value::Null)
     };
     let ranked = if c.retained_export.is_some() {
@@ -2474,8 +2610,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     for p in &mut objective_pools {
         generate::compact_pool(p);
     }
-    let (mut frames, mut pools, authority) =
-        prefix::prepare_generate_guards(a, &c.original_inputs, &original, &objectives, &spec)?;
+    let (mut frames, mut pools, authority) = if let Some(guards) = protected.take() {
+        guards
+    } else {
+        prefix::prepare_generate_guards(a, &c.original_inputs, &original, &objectives, &spec)?
+    };
     replay_require(
         frames.len() == GUARDS && pools.len() == GUARDS,
         "coupled guard population differs",
@@ -2514,7 +2653,10 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 == UNION,
         "coupled391 unique union differs",
     )?;
-    for f in &frames {
+    for f in &mut frames {
+        if c.prefix_transaction == PrefixTransaction::ProtectedJointVector {
+            f.prefix_trace = None;
+        }
         validated_prefix_keys(f.ids.len(), &f.cue_keys)?;
     }
     let rows=frames.iter().enumerate().map(|(i,f)|{
@@ -2701,8 +2843,10 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "construction_summary":construction,"inherited_learning":inherited_learning,"inherited_construction":inherited_construction,
         "new_constructor_calls":if c.retained_export.is_some(){0}else{1},"new_proposals":if c.retained_export.is_some(){0}else{construction["evaluated_alternatives"].as_u64().unwrap_or(0)},
         "constructor_restart_from_original":c.retained_gradient.is_some(),"export_completion_only":c.retained_export.is_some(),
-        "new_training_graph_forwards":if c.retained_mode(){0}else{62},
-        "new_backward_calls":if c.retained_mode(){0}else{31},
+        "new_training_graph_forwards":if c.retained_mode(){0}else if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{822}else{62},
+        "new_backward_calls":if c.retained_mode(){0}else if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{411}else{31},
+        "protected_margin_backward_calls":if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{380}else{0},
+        "total_fresh_training_backward_calls":if c.retained_mode(){0}else if c.prefix_transaction==PrefixTransaction::ProtectedJointVector{411}else{31},
         "new_gradient_context_encoder_calls":0,
         "prior_partial_alternatives_charged":c.gradient_authority().map(|g|g.inherited_partial_alternatives),
         "candidate_receipt":receipt,"all_original380_preserved":all_guards,
@@ -2901,14 +3045,32 @@ fn export_reload(
         receipt["fresh_adam"] = json!(false);
         receipt["optimizer_updates"] = json!(0);
         receipt["new_gradients"] = json!(1);
-        receipt["coefficient_backward_calls"] = json!(31);
+        receipt["coefficient_backward_calls"] = json!(if transaction_mode(a)
+            == PrefixTransaction::ProtectedJointVector
+        {
+            411
+        } else {
+            31
+        });
         let inherited = a
             .coupled_episode_learning
             .as_ref()
             .and_then(|c| c.gradient_authority());
         receipt["new_gradients"] = json!(if inherited.is_some() { 0 } else { 1 });
-        receipt["new_backward_calls"] = json!(if inherited.is_some() { 0 } else { 31 });
-        receipt["new_training_graph_forwards"] = json!(if inherited.is_some() { 0 } else { 62 });
+        receipt["new_backward_calls"] = json!(if inherited.is_some() {
+            0
+        } else if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+            411
+        } else {
+            31
+        });
+        receipt["new_training_graph_forwards"] = json!(if inherited.is_some() {
+            0
+        } else if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+            822
+        } else {
+            62
+        });
         receipt["inherited_learning_source_commit"] =
             json!(inherited.map(|g| &g.expected_learning_source_commit));
         let export_only = a
@@ -2927,6 +3089,8 @@ fn export_reload(
             "31 inherited completed joint backwards; all final codes inherited from completed constructor; zero new graphs/backwards/order/proposals/constructor"
         } else if inherited.is_some() {
             "31 inherited completed joint backwards, zero fresh graphs/backwards; original-seed finite constructor restart"
+        } else if transaction_mode(a) == PrefixTransaction::ProtectedJointVector {
+            "31 fresh task/reference CE backwards plus380 protected-margin backwards;411 total,822 graph forwards"
         } else {
             "31 fresh joint backwards"
         });
@@ -3199,87 +3363,97 @@ pub(super) fn authenticate_positive_artifact(
         }
     }
     let journal = read(&root.join("coupled-construction.json"))?;
-    let records = journal["coordinate_records"]
-        .as_array()
-        .ok_or_else(|| bad("coupled journal absent"))?;
-    replay_require(
-        records.len()
-            == (if pin.prefix_transaction.legacy() {
-                1920
-            } else {
-                960
-            })
-            && journal["summary"]["coordinates"]
+    if pin.prefix_transaction == PrefixTransaction::ProtectedJointVector {
+        protected_joint_vector::authenticate(root, &journal, &gradient, &a.checkpoint)?;
+    } else {
+        let records = journal["coordinate_records"]
+            .as_array()
+            .ok_or_else(|| bad("coupled journal absent"))?;
+        replay_require(
+            records.len()
                 == (if pin.prefix_transaction.legacy() {
                     1920
                 } else {
                     960
                 })
-            && journal["summary"]["revisited"] == 0
-            && journal["summary"]["maximum_alternatives"]
-                == (if pin.prefix_transaction.legacy() {
-                    14400
-                } else {
-                    13444
-                }),
-        "coupled finite once-only population differs",
-    )?;
-    if !pin.prefix_transaction.legacy() {
-        let ranked: Vec<Coordinate> =
-            serde_json::from_value(read(&root.join("coupled-coordinate-order.json"))?)?;
-        let population = read(&root.join("coupled-population.json"))?;
-        gradient_vector_prefix::authenticate(
-            &journal,
-            &ranked,
-            &population,
-            root,
-            &gradient,
-            &a.checkpoint,
+                && journal["summary"]["coordinates"]
+                    == (if pin.prefix_transaction.legacy() {
+                        1920
+                    } else {
+                        960
+                    })
+                && journal["summary"]["revisited"] == 0
+                && journal["summary"]["maximum_alternatives"]
+                    == (if pin.prefix_transaction.legacy() {
+                        14400
+                    } else {
+                        13444
+                    }),
+            "coupled finite once-only population differs",
         )?;
-        validate_inherited_transaction(pin.prefix_transaction, pin.prefix_transaction, &gradient)?;
-    }
-    let mut seen = BTreeSet::new();
-    let mut g_alternatives = 0usize;
-    for row in records {
-        let family = row["family"]
-            .as_str()
-            .ok_or_else(|| bad("coupled family absent"))?;
-        let index = shared::idx(&row["index"])?;
-        replay_require(
-            index < 960 && (family == PREFIX || family == GENERATE) && seen.insert((family, index)),
-            "coupled duplicate/out-of-domain coordinate",
-        )?;
-        if family == GENERATE {
-            let alternatives = row["alternatives"]
-                .as_array()
-                .ok_or_else(|| bad("coupled legal alternatives absent"))?;
-            let q = alternatives
-                .first()
-                .and_then(|x| x["incumbent_code"].as_i64())
-                .ok_or_else(|| bad("coupled incumbent code absent"))?;
-            let codes = alternatives
-                .iter()
-                .map(|r| {
-                    r["code"]
-                        .as_i64()
-                        .ok_or_else(|| bad("coupled proposed code absent"))
-                })
-                .collect::<Result<BTreeSet<_>>>()?;
-            replay_require(
-                alternatives.len() == 14
-                    && codes == (-7..=7).filter(|x| *x != q).collect()
-                    && alternatives
-                        .iter()
-                        .all(|r| r["incumbent_epoch"] == row["incumbent_epoch"]),
-                "coupled all14 same epoch differs",
+        if !pin.prefix_transaction.legacy() {
+            let ranked: Vec<Coordinate> =
+                serde_json::from_value(read(&root.join("coupled-coordinate-order.json"))?)?;
+            let population = read(&root.join("coupled-population.json"))?;
+            gradient_vector_prefix::authenticate(
+                &journal,
+                &ranked,
+                &population,
+                root,
+                &gradient,
+                &a.checkpoint,
             )?;
-            g_alternatives += 14;
+            validate_inherited_transaction(
+                pin.prefix_transaction,
+                pin.prefix_transaction,
+                &gradient,
+            )?;
         }
+        let mut seen = BTreeSet::new();
+        let mut g_alternatives = 0usize;
+        for row in records {
+            let family = row["family"]
+                .as_str()
+                .ok_or_else(|| bad("coupled family absent"))?;
+            let index = shared::idx(&row["index"])?;
+            replay_require(
+                index < 960
+                    && (family == PREFIX || family == GENERATE)
+                    && seen.insert((family, index)),
+                "coupled duplicate/out-of-domain coordinate",
+            )?;
+            if family == GENERATE {
+                let alternatives = row["alternatives"]
+                    .as_array()
+                    .ok_or_else(|| bad("coupled legal alternatives absent"))?;
+                let q = alternatives
+                    .first()
+                    .and_then(|x| x["incumbent_code"].as_i64())
+                    .ok_or_else(|| bad("coupled incumbent code absent"))?;
+                let codes = alternatives
+                    .iter()
+                    .map(|r| {
+                        r["code"]
+                            .as_i64()
+                            .ok_or_else(|| bad("coupled proposed code absent"))
+                    })
+                    .collect::<Result<BTreeSet<_>>>()?;
+                replay_require(
+                    alternatives.len() == 14
+                        && codes == (-7..=7).filter(|x| *x != q).collect()
+                        && alternatives
+                            .iter()
+                            .all(|r| r["incumbent_epoch"] == row["incumbent_epoch"]),
+                    "coupled all14 same epoch differs",
+                )?;
+                g_alternatives += 14;
+            }
+        }
+        replay_require(
+            g_alternatives == 13440,
+            "coupled complete Generate code population differs",
+        )?;
     }
-    replay_require(
-        g_alternatives == 13440,
-        "coupled complete Generate code population differs",
-    )?;
     drop(journal);
     let guards = read(&root.join("final-trajectory-guards.json"))?;
     replay_require(

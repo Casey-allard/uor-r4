@@ -1,3 +1,9 @@
+## Protected joint direction passes continuously but fails quantized screens — October 9
+
+The [protected joint constructor](../labs/protected-joint-construction-2026-10-09/README.md) integrates native pooled winner/rival margins with Prefix and Generate credit on the original coupled initializer. After 411 backwards / 822 training-graph forwards, the fixed 256-pass continuous direction passes all380 surrogate constraints, but the four quantized displacements violate104/170/98/93 respectively; all retain first-order CE descent and none reaches native proposal scoring. No update is committed: independently reloaded391 native states retain the original5/15 conditional winners,17 references and380 guards, with combined CE unchanged at5.111520730202647. **KEEP** the integration and diagnostic evidence; **REJECT** this candidate, with actual-nine/full512/fresh/multi-turn NOT_RUN_CONSTRUCTION_NEGATIVE and accepted8/512 unchanged. Execution setup failures are retained separately; this is not measured native winner loss or global infeasibility.
+
+**Next:** Attribute the four saved displacements from direction, original/destination master bits and Jacobians to rounding, clamping and fractional-bit preservation. Determine whether protection violations concentrate in particular coordinate contributions or reflect distributed discrete conflict before choosing a quantizer or transaction correction; no radius/pass sweep or weakened guards.
+
 ## 2026-10-09 — Accepted and completed-but-rejected replies are not separable without the judge; one canned reply is a quarter of the reading (deepseek, #2029)
 
 Supplement to Result 6, and the comparison Result 6 could not make: it profiled the failures and contrasted

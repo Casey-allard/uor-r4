@@ -549,7 +549,12 @@ fn prepare_trajectory_guards(
             // Keep only occurrence identity and U encoder receipts; numerical vectors live in typed fields.
             native = json!({"bank_trace":{"cue_bank":{"bank":{"candidates":native["bank_trace"]["cue_bank"]["bank"]["candidates"]}}},"continuation":{"state_codes":native["continuation"]["state_codes"],"query_tokens":native["continuation"]["query_tokens"],"actual_prefix_tokens":native["continuation"]["actual_prefix_tokens"]}});
             f.native = native;
-            f.prefix_trace = None;
+            if !a.coupled_episode_learning.as_ref().is_some_and(|c| {
+                c.prefix_transaction
+                    == super::coupled_episode_learning::PrefixTransaction::ProtectedJointVector
+            }) {
+                f.prefix_trace = None;
+            }
             guards.push(f);
             pools.push(compact_guard_pool(pool));
         }

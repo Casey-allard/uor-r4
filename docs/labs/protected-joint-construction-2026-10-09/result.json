@@ -1,0 +1,1261 @@
+{
+  "schema": "uor-r4.protected-joint-result/1",
+  "model_source": "2c31a22e6fbef3bd37dade8cbb7daae79f13876a",
+  "model_binary_sha256": "1c5af0fb13b4d957b5665037ca437486985a882260882dca5c07c82d4fdbc848",
+  "config_sha256": "8af92899f3aff976ed2acd030837767f9f65827c03b4ea3e559594f759d501b0",
+  "report_sha256": "b1d27f7b15e65d0aa8ea7e0a995b8bc76979610f97dbcb3055c8bbb434d0ac9b",
+  "manifest_sha256": "cdadd7c5cbbbdca2225a71006ab58f70129e8df9e015b92f35b19359028a7167",
+  "data_scope": {
+    "split": "exposed development, original coupled initializer with frozen U",
+    "episode": "development-diverse-length4-07-swap0-q0-forward-home",
+    "input_index": 245,
+    "conditional_positions": 15,
+    "reference_roles": 17,
+    "guard_rows": 380,
+    "native_reload_states": 391
+  },
+  "decision": {
+    "implementation": "KEEP",
+    "candidate": "REJECT",
+    "model": "NOT YET PROMOTED",
+    "actual9_full512_fresh_multiturn": "NOT_RUN_CONSTRUCTION_NEGATIVE"
+  },
+  "artifact": "icloud:UOR-R4/results/codex/codex-protected-joint-20261009.tar",
+  "baseline": {
+    "all_phase_winners": false,
+    "combined": 5.111520730202647,
+    "correct_reference_frames": 17,
+    "objective_masses": [
+      [
+        2147483648,
+        62080022341,
+        617
+      ],
+      [
+        2147483648,
+        75292522085,
+        2097
+      ],
+      [
+        2147483648,
+        31321010179,
+        315
+      ],
+      [
+        2148468319,
+        27641462769,
+        1057
+      ],
+      [
+        298710449,
+        16027151659,
+        307
+      ],
+      [
+        470319905,
+        33816314662,
+        91
+      ],
+      [
+        231413000,
+        61041394069,
+        1717
+      ],
+      [
+        24273087,
+        3983167254,
+        307
+      ],
+      [
+        55892519,
+        28579317778,
+        307
+      ],
+      [
+        185494285,
+        18816515488,
+        397
+      ],
+      [
+        94349882,
+        21041503246,
+        397
+      ],
+      [
+        2238692437,
+        80498209918,
+        397
+      ],
+      [
+        299787912,
+        11201321095,
+        307
+      ],
+      [
+        2837001,
+        23403478613,
+        2795
+      ],
+      [
+        60919422,
+        64357532809,
+        3329
+      ],
+      [
+        2147640262,
+        3142524890,
+        261
+      ],
+      [
+        2147615876,
+        2696282568,
+        92
+      ],
+      [
+        2147514946,
+        2408766146,
+        683
+      ],
+      [
+        2147524609,
+        2893822334,
+        3123
+      ],
+      [
+        2147520431,
+        2507570318,
+        261
+      ],
+      [
+        2147523835,
+        3745954815,
+        92
+      ],
+      [
+        2147639383,
+        3026979616,
+        683
+      ],
+      [
+        2150658138,
+        2390954195,
+        3123
+      ],
+      [
+        2147526577,
+        2212656928,
+        683
+      ],
+      [
+        2147486189,
+        2305235652,
+        3123
+      ],
+      [
+        2147686317,
+        3863061368,
+        261
+      ],
+      [
+        2147527215,
+        3122710179,
+        92
+      ],
+      [
+        2147549446,
+        2248217437,
+        683
+      ],
+      [
+        2147909369,
+        4134446021,
+        3123
+      ],
+      [
+        2147507314,
+        2262128559,
+        261
+      ],
+      [
+        2147509685,
+        3214368681,
+        92
+      ]
+    ],
+    "phases": [
+      {
+        "chosen": 617,
+        "position": 0,
+        "target": 617,
+        "target_mass": 2147483648,
+        "total_mass": 62080022341
+      },
+      {
+        "chosen": 2097,
+        "position": 1,
+        "target": 2097,
+        "target_mass": 2147483648,
+        "total_mass": 75292522085
+      },
+      {
+        "chosen": 315,
+        "position": 2,
+        "target": 315,
+        "target_mass": 2147483648,
+        "total_mass": 31321010179
+      },
+      {
+        "chosen": 1057,
+        "position": 3,
+        "target": 1057,
+        "target_mass": 2148468319,
+        "total_mass": 27641462769
+      },
+      {
+        "chosen": 307,
+        "position": 4,
+        "target": 267,
+        "target_mass": 298710449,
+        "total_mass": 16027151659
+      },
+      {
+        "chosen": 91,
+        "position": 5,
+        "target": 307,
+        "target_mass": 470319905,
+        "total_mass": 33816314662
+      },
+      {
+        "chosen": 1717,
+        "position": 6,
+        "target": 397,
+        "target_mass": 231413000,
+        "total_mass": 61041394069
+      },
+      {
+        "chosen": 307,
+        "position": 7,
+        "target": 324,
+        "target_mass": 24273087,
+        "total_mass": 3983167254
+      },
+      {
+        "chosen": 307,
+        "position": 8,
+        "target": 91,
+        "target_mass": 55892519,
+        "total_mass": 28579317778
+      },
+      {
+        "chosen": 397,
+        "position": 9,
+        "target": 2795,
+        "target_mass": 185494285,
+        "total_mass": 18816515488
+      },
+      {
+        "chosen": 397,
+        "position": 10,
+        "target": 770,
+        "target_mass": 94349882,
+        "total_mass": 21041503246
+      },
+      {
+        "chosen": 397,
+        "position": 11,
+        "target": 397,
+        "target_mass": 2238692437,
+        "total_mass": 80498209918
+      },
+      {
+        "chosen": 307,
+        "position": 12,
+        "target": 471,
+        "target_mass": 299787912,
+        "total_mass": 11201321095
+      },
+      {
+        "chosen": 2795,
+        "position": 13,
+        "target": 16,
+        "target_mass": 2837001,
+        "total_mass": 23403478613
+      },
+      {
+        "chosen": 3329,
+        "position": 14,
+        "target": 1,
+        "target_mass": 60919422,
+        "total_mass": 64357532809
+      }
+    ],
+    "reference": 0.40908709114276476,
+    "task": 4.702433639059882
+  },
+  "candidate": {
+    "all_phase_winners": false,
+    "combined": 5.111520730202647,
+    "correct_reference_frames": 17,
+    "objective_masses": [
+      [
+        2147483648,
+        62080022341,
+        617
+      ],
+      [
+        2147483648,
+        75292522085,
+        2097
+      ],
+      [
+        2147483648,
+        31321010179,
+        315
+      ],
+      [
+        2148468319,
+        27641462769,
+        1057
+      ],
+      [
+        298710449,
+        16027151659,
+        307
+      ],
+      [
+        470319905,
+        33816314662,
+        91
+      ],
+      [
+        231413000,
+        61041394069,
+        1717
+      ],
+      [
+        24273087,
+        3983167254,
+        307
+      ],
+      [
+        55892519,
+        28579317778,
+        307
+      ],
+      [
+        185494285,
+        18816515488,
+        397
+      ],
+      [
+        94349882,
+        21041503246,
+        397
+      ],
+      [
+        2238692437,
+        80498209918,
+        397
+      ],
+      [
+        299787912,
+        11201321095,
+        307
+      ],
+      [
+        2837001,
+        23403478613,
+        2795
+      ],
+      [
+        60919422,
+        64357532809,
+        3329
+      ],
+      [
+        2147640262,
+        3142524890,
+        261
+      ],
+      [
+        2147615876,
+        2696282568,
+        92
+      ],
+      [
+        2147514946,
+        2408766146,
+        683
+      ],
+      [
+        2147524609,
+        2893822334,
+        3123
+      ],
+      [
+        2147520431,
+        2507570318,
+        261
+      ],
+      [
+        2147523835,
+        3745954815,
+        92
+      ],
+      [
+        2147639383,
+        3026979616,
+        683
+      ],
+      [
+        2150658138,
+        2390954195,
+        3123
+      ],
+      [
+        2147526577,
+        2212656928,
+        683
+      ],
+      [
+        2147486189,
+        2305235652,
+        3123
+      ],
+      [
+        2147686317,
+        3863061368,
+        261
+      ],
+      [
+        2147527215,
+        3122710179,
+        92
+      ],
+      [
+        2147549446,
+        2248217437,
+        683
+      ],
+      [
+        2147909369,
+        4134446021,
+        3123
+      ],
+      [
+        2147507314,
+        2262128559,
+        261
+      ],
+      [
+        2147509685,
+        3214368681,
+        92
+      ]
+    ],
+    "phases": [
+      {
+        "chosen": 617,
+        "position": 0,
+        "target": 617,
+        "target_mass": 2147483648,
+        "total_mass": 62080022341
+      },
+      {
+        "chosen": 2097,
+        "position": 1,
+        "target": 2097,
+        "target_mass": 2147483648,
+        "total_mass": 75292522085
+      },
+      {
+        "chosen": 315,
+        "position": 2,
+        "target": 315,
+        "target_mass": 2147483648,
+        "total_mass": 31321010179
+      },
+      {
+        "chosen": 1057,
+        "position": 3,
+        "target": 1057,
+        "target_mass": 2148468319,
+        "total_mass": 27641462769
+      },
+      {
+        "chosen": 307,
+        "position": 4,
+        "target": 267,
+        "target_mass": 298710449,
+        "total_mass": 16027151659
+      },
+      {
+        "chosen": 91,
+        "position": 5,
+        "target": 307,
+        "target_mass": 470319905,
+        "total_mass": 33816314662
+      },
+      {
+        "chosen": 1717,
+        "position": 6,
+        "target": 397,
+        "target_mass": 231413000,
+        "total_mass": 61041394069
+      },
+      {
+        "chosen": 307,
+        "position": 7,
+        "target": 324,
+        "target_mass": 24273087,
+        "total_mass": 3983167254
+      },
+      {
+        "chosen": 307,
+        "position": 8,
+        "target": 91,
+        "target_mass": 55892519,
+        "total_mass": 28579317778
+      },
+      {
+        "chosen": 397,
+        "position": 9,
+        "target": 2795,
+        "target_mass": 185494285,
+        "total_mass": 18816515488
+      },
+      {
+        "chosen": 397,
+        "position": 10,
+        "target": 770,
+        "target_mass": 94349882,
+        "total_mass": 21041503246
+      },
+      {
+        "chosen": 397,
+        "position": 11,
+        "target": 397,
+        "target_mass": 2238692437,
+        "total_mass": 80498209918
+      },
+      {
+        "chosen": 307,
+        "position": 12,
+        "target": 471,
+        "target_mass": 299787912,
+        "total_mass": 11201321095
+      },
+      {
+        "chosen": 2795,
+        "position": 13,
+        "target": 16,
+        "target_mass": 2837001,
+        "total_mass": 23403478613
+      },
+      {
+        "chosen": 3329,
+        "position": 14,
+        "target": 1,
+        "target_mass": 60919422,
+        "total_mass": 64357532809
+      }
+    ],
+    "reference": 0.40908709114276476,
+    "task": 4.702433639059882
+  },
+  "audit": {
+    "status": "PASS_SAVED_ARITHMETIC",
+    "scope": "raw gradient identities and ordered objective f32 sums; mechanical native margins; approximate independent256-pass direction replay; exact hash-bound saved-displacement residual arithmetic, not full proposal or native-scoring authentication; no model rerun",
+    "report_sha256": "b1d27f7b15e65d0aa8ea7e0a995b8bc76979610f97dbcb3055c8bbb434d0ac9b",
+    "manifest_sha256": "cdadd7c5cbbbdca2225a71006ab58f70129e8df9e015b92f35b19359028a7167",
+    "source_commit": "2c31a22e6fbef3bd37dade8cbb7daae79f13876a",
+    "protected_rows": 380,
+    "zero_Jacobians": 0,
+    "objective_raw_files": 62,
+    "independent_direction_max_abs_error": 5.551115123125783e-17,
+    "independent_projection_passed": true,
+    "independent_projection_tolerance": 7.289455763387451e-11,
+    "independent_projection_minimum_residual": -8.323385157711722e-18,
+    "projection_norm": 0.7289455763387451,
+    "projection_tolerance": 7.289455763387452e-11,
+    "projection_minimum_residual": -9.45297151521291e-20,
+    "projection_violated_guards": 0,
+    "projection_passed": true,
+    "original_gradient_dot_projected_direction": -0.5257289477076608,
+    "trials": [
+      {
+        "radius": 1,
+        "eligible": false,
+        "CE_linear_delta": -0.3904020232602803,
+        "violated_guards": 104,
+        "minimum_residual": -0.0859307563015732,
+        "tolerance": 8.390576260759808e-11,
+        "native": {
+          "feasible": false,
+          "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+        }
+      },
+      {
+        "radius": 2,
+        "eligible": false,
+        "CE_linear_delta": -1.7598691103502957,
+        "violated_guards": 170,
+        "minimum_residual": -0.24989950356192644,
+        "tolerance": 2.5649595903008414e-10,
+        "native": {
+          "feasible": false,
+          "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+        }
+      },
+      {
+        "radius": 4,
+        "eligible": false,
+        "CE_linear_delta": -3.2053928920867762,
+        "violated_guards": 98,
+        "minimum_residual": -0.19887097624799924,
+        "tolerance": 4.6501392855798996e-10,
+        "native": {
+          "feasible": false,
+          "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+        }
+      },
+      {
+        "radius": 7,
+        "eligible": false,
+        "CE_linear_delta": -5.725063462181221,
+        "violated_guards": 93,
+        "minimum_residual": -0.19906274229866733,
+        "tolerance": 8.164198628746267e-10,
+        "native": {
+          "feasible": false,
+          "guard_status": "NOT_CHECKED_LINEAR_INELIGIBLE"
+        }
+      }
+    ],
+    "selected": {
+      "epoch_after": 0,
+      "incumbent_epoch": 0,
+      "status": "unchanged"
+    },
+    "final_gate": {
+      "actual_wholeanswer_EOS": "NOT_RUN_SEPARATE_QUALIFICATION",
+      "all15_conditional_winners": false,
+      "all17_references": true,
+      "all380_original_winners": true,
+      "passed": false,
+      "strict_combined_descent": false,
+      "strict_episode_descent": false
+    },
+    "baseline_objective": {
+      "all_phase_winners": false,
+      "combined": 5.111520730202647,
+      "correct_reference_frames": 17,
+      "objective_masses": [
+        [
+          2147483648,
+          62080022341,
+          617
+        ],
+        [
+          2147483648,
+          75292522085,
+          2097
+        ],
+        [
+          2147483648,
+          31321010179,
+          315
+        ],
+        [
+          2148468319,
+          27641462769,
+          1057
+        ],
+        [
+          298710449,
+          16027151659,
+          307
+        ],
+        [
+          470319905,
+          33816314662,
+          91
+        ],
+        [
+          231413000,
+          61041394069,
+          1717
+        ],
+        [
+          24273087,
+          3983167254,
+          307
+        ],
+        [
+          55892519,
+          28579317778,
+          307
+        ],
+        [
+          185494285,
+          18816515488,
+          397
+        ],
+        [
+          94349882,
+          21041503246,
+          397
+        ],
+        [
+          2238692437,
+          80498209918,
+          397
+        ],
+        [
+          299787912,
+          11201321095,
+          307
+        ],
+        [
+          2837001,
+          23403478613,
+          2795
+        ],
+        [
+          60919422,
+          64357532809,
+          3329
+        ],
+        [
+          2147640262,
+          3142524890,
+          261
+        ],
+        [
+          2147615876,
+          2696282568,
+          92
+        ],
+        [
+          2147514946,
+          2408766146,
+          683
+        ],
+        [
+          2147524609,
+          2893822334,
+          3123
+        ],
+        [
+          2147520431,
+          2507570318,
+          261
+        ],
+        [
+          2147523835,
+          3745954815,
+          92
+        ],
+        [
+          2147639383,
+          3026979616,
+          683
+        ],
+        [
+          2150658138,
+          2390954195,
+          3123
+        ],
+        [
+          2147526577,
+          2212656928,
+          683
+        ],
+        [
+          2147486189,
+          2305235652,
+          3123
+        ],
+        [
+          2147686317,
+          3863061368,
+          261
+        ],
+        [
+          2147527215,
+          3122710179,
+          92
+        ],
+        [
+          2147549446,
+          2248217437,
+          683
+        ],
+        [
+          2147909369,
+          4134446021,
+          3123
+        ],
+        [
+          2147507314,
+          2262128559,
+          261
+        ],
+        [
+          2147509685,
+          3214368681,
+          92
+        ]
+      ],
+      "phases": [
+        {
+          "chosen": 617,
+          "position": 0,
+          "target": 617,
+          "target_mass": 2147483648,
+          "total_mass": 62080022341
+        },
+        {
+          "chosen": 2097,
+          "position": 1,
+          "target": 2097,
+          "target_mass": 2147483648,
+          "total_mass": 75292522085
+        },
+        {
+          "chosen": 315,
+          "position": 2,
+          "target": 315,
+          "target_mass": 2147483648,
+          "total_mass": 31321010179
+        },
+        {
+          "chosen": 1057,
+          "position": 3,
+          "target": 1057,
+          "target_mass": 2148468319,
+          "total_mass": 27641462769
+        },
+        {
+          "chosen": 307,
+          "position": 4,
+          "target": 267,
+          "target_mass": 298710449,
+          "total_mass": 16027151659
+        },
+        {
+          "chosen": 91,
+          "position": 5,
+          "target": 307,
+          "target_mass": 470319905,
+          "total_mass": 33816314662
+        },
+        {
+          "chosen": 1717,
+          "position": 6,
+          "target": 397,
+          "target_mass": 231413000,
+          "total_mass": 61041394069
+        },
+        {
+          "chosen": 307,
+          "position": 7,
+          "target": 324,
+          "target_mass": 24273087,
+          "total_mass": 3983167254
+        },
+        {
+          "chosen": 307,
+          "position": 8,
+          "target": 91,
+          "target_mass": 55892519,
+          "total_mass": 28579317778
+        },
+        {
+          "chosen": 397,
+          "position": 9,
+          "target": 2795,
+          "target_mass": 185494285,
+          "total_mass": 18816515488
+        },
+        {
+          "chosen": 397,
+          "position": 10,
+          "target": 770,
+          "target_mass": 94349882,
+          "total_mass": 21041503246
+        },
+        {
+          "chosen": 397,
+          "position": 11,
+          "target": 397,
+          "target_mass": 2238692437,
+          "total_mass": 80498209918
+        },
+        {
+          "chosen": 307,
+          "position": 12,
+          "target": 471,
+          "target_mass": 299787912,
+          "total_mass": 11201321095
+        },
+        {
+          "chosen": 2795,
+          "position": 13,
+          "target": 16,
+          "target_mass": 2837001,
+          "total_mass": 23403478613
+        },
+        {
+          "chosen": 3329,
+          "position": 14,
+          "target": 1,
+          "target_mass": 60919422,
+          "total_mass": 64357532809
+        }
+      ],
+      "reference": 0.40908709114276476,
+      "task": 4.702433639059882
+    },
+    "candidate_objective": {
+      "all_phase_winners": false,
+      "combined": 5.111520730202647,
+      "correct_reference_frames": 17,
+      "objective_masses": [
+        [
+          2147483648,
+          62080022341,
+          617
+        ],
+        [
+          2147483648,
+          75292522085,
+          2097
+        ],
+        [
+          2147483648,
+          31321010179,
+          315
+        ],
+        [
+          2148468319,
+          27641462769,
+          1057
+        ],
+        [
+          298710449,
+          16027151659,
+          307
+        ],
+        [
+          470319905,
+          33816314662,
+          91
+        ],
+        [
+          231413000,
+          61041394069,
+          1717
+        ],
+        [
+          24273087,
+          3983167254,
+          307
+        ],
+        [
+          55892519,
+          28579317778,
+          307
+        ],
+        [
+          185494285,
+          18816515488,
+          397
+        ],
+        [
+          94349882,
+          21041503246,
+          397
+        ],
+        [
+          2238692437,
+          80498209918,
+          397
+        ],
+        [
+          299787912,
+          11201321095,
+          307
+        ],
+        [
+          2837001,
+          23403478613,
+          2795
+        ],
+        [
+          60919422,
+          64357532809,
+          3329
+        ],
+        [
+          2147640262,
+          3142524890,
+          261
+        ],
+        [
+          2147615876,
+          2696282568,
+          92
+        ],
+        [
+          2147514946,
+          2408766146,
+          683
+        ],
+        [
+          2147524609,
+          2893822334,
+          3123
+        ],
+        [
+          2147520431,
+          2507570318,
+          261
+        ],
+        [
+          2147523835,
+          3745954815,
+          92
+        ],
+        [
+          2147639383,
+          3026979616,
+          683
+        ],
+        [
+          2150658138,
+          2390954195,
+          3123
+        ],
+        [
+          2147526577,
+          2212656928,
+          683
+        ],
+        [
+          2147486189,
+          2305235652,
+          3123
+        ],
+        [
+          2147686317,
+          3863061368,
+          261
+        ],
+        [
+          2147527215,
+          3122710179,
+          92
+        ],
+        [
+          2147549446,
+          2248217437,
+          683
+        ],
+        [
+          2147909369,
+          4134446021,
+          3123
+        ],
+        [
+          2147507314,
+          2262128559,
+          261
+        ],
+        [
+          2147509685,
+          3214368681,
+          92
+        ]
+      ],
+      "phases": [
+        {
+          "chosen": 617,
+          "position": 0,
+          "target": 617,
+          "target_mass": 2147483648,
+          "total_mass": 62080022341
+        },
+        {
+          "chosen": 2097,
+          "position": 1,
+          "target": 2097,
+          "target_mass": 2147483648,
+          "total_mass": 75292522085
+        },
+        {
+          "chosen": 315,
+          "position": 2,
+          "target": 315,
+          "target_mass": 2147483648,
+          "total_mass": 31321010179
+        },
+        {
+          "chosen": 1057,
+          "position": 3,
+          "target": 1057,
+          "target_mass": 2148468319,
+          "total_mass": 27641462769
+        },
+        {
+          "chosen": 307,
+          "position": 4,
+          "target": 267,
+          "target_mass": 298710449,
+          "total_mass": 16027151659
+        },
+        {
+          "chosen": 91,
+          "position": 5,
+          "target": 307,
+          "target_mass": 470319905,
+          "total_mass": 33816314662
+        },
+        {
+          "chosen": 1717,
+          "position": 6,
+          "target": 397,
+          "target_mass": 231413000,
+          "total_mass": 61041394069
+        },
+        {
+          "chosen": 307,
+          "position": 7,
+          "target": 324,
+          "target_mass": 24273087,
+          "total_mass": 3983167254
+        },
+        {
+          "chosen": 307,
+          "position": 8,
+          "target": 91,
+          "target_mass": 55892519,
+          "total_mass": 28579317778
+        },
+        {
+          "chosen": 397,
+          "position": 9,
+          "target": 2795,
+          "target_mass": 185494285,
+          "total_mass": 18816515488
+        },
+        {
+          "chosen": 397,
+          "position": 10,
+          "target": 770,
+          "target_mass": 94349882,
+          "total_mass": 21041503246
+        },
+        {
+          "chosen": 397,
+          "position": 11,
+          "target": 397,
+          "target_mass": 2238692437,
+          "total_mass": 80498209918
+        },
+        {
+          "chosen": 307,
+          "position": 12,
+          "target": 471,
+          "target_mass": 299787912,
+          "total_mass": 11201321095
+        },
+        {
+          "chosen": 2795,
+          "position": 13,
+          "target": 16,
+          "target_mass": 2837001,
+          "total_mass": 23403478613
+        },
+        {
+          "chosen": 3329,
+          "position": 14,
+          "target": 1,
+          "target_mass": 60919422,
+          "total_mass": 64357532809
+        }
+      ],
+      "reference": 0.40908709114276476,
+      "task": 4.702433639059882
+    },
+    "seconds": 0.921227042
+  },
+  "retry_byte_comparison": {
+    "scope": "sealed failed attempt2 vs completed attempt3, same admitted initializer/config except fresh output/source binding and repaired decoder",
+    "files": 826,
+    "gradient_files": 444,
+    "initial_master_files": 2,
+    "native_mass_files": 380,
+    "equal": 826,
+    "mismatches": []
+  },
+  "download_verification": [
+    {
+      "root": "sol-protected-joint-20261009/runs/protected-joint-0001-attempt2",
+      "files": 1233,
+      "manifest_sha256": "748e5742b8775343756665be77a196a4088f2cf3eb91e91c2588a687a8e260ec",
+      "status": "PASS_EXACT_FILE_SET_AND_BLAKE3"
+    },
+    {
+      "root": "sol-protected-joint-20261009/runs/protected-joint-0001-attempt3",
+      "files": 1676,
+      "manifest_sha256": "cdadd7c5cbbbdca2225a71006ab58f70129e8df9e015b92f35b19359028a7167",
+      "status": "PASS_EXACT_FILE_SET_AND_BLAKE3"
+    },
+    {
+      "root": "sol-protected-joint-20261009/observations/protected-joint-0001-attempt1",
+      "files": 5,
+      "manifest_sha256": "70a215e9d8e36d9704ec13fe66bc5c24609823cd199a670875b4410616d062b3",
+      "status": "PASS_EXACT_FILE_SET_AND_BLAKE3"
+    },
+    {
+      "root": "sol-protected-joint-20261009/observations/protected-joint-0001-attempt2",
+      "files": 5,
+      "manifest_sha256": "9d263510e7860dac239abdea9150c9db52a56b54b986a593e1f352ed879e3b3d",
+      "status": "PASS_EXACT_FILE_SET_AND_BLAKE3"
+    },
+    {
+      "root": "sol-protected-joint-20261009/observations/protected-joint-0001-attempt3",
+      "files": 5,
+      "manifest_sha256": "39ad0262cc757f7b454712cb57b1fd7d977d27bb62f1a521ed7ab9a00ae73310",
+      "status": "PASS_EXACT_FILE_SET_AND_BLAKE3"
+    }
+  ],
+  "execution": {
+    "exit_code": 0,
+    "started_utc": "2026-10-09T22:51:46.699675+00:00",
+    "ended_utc": "2026-10-09T23:00:08.726167+00:00",
+    "elapsed_seconds": 502.0265340991318,
+    "children_max_rss_kib": 2782556,
+    "binary_sha256": "1c5af0fb13b4d957b5665037ca437486985a882260882dca5c07c82d4fdbc848",
+    "config_sha256": "8af92899f3aff976ed2acd030837767f9f65827c03b4ea3e559594f759d501b0",
+    "lane": "cuda-learning"
+  },
+  "failed_attempt2": {
+    "source": "09d6546c1aab77f5c75de74a89b758ba2bf8b2b5",
+    "status": "FAILED_AFTER411_BACKWARDS_BEFORE_PROPOSALS",
+    "report_sha256": "704a17dd8d6de02916f19ef61f94764a95965f3b09bbfaf78909ce55c683ab50",
+    "gradient_reader_fix": "1920finite derivatives rather than960bounded parameters"
+  },
+  "descriptor_correction": {
+    "affected_source": "2c31a22e6fbef3bd37dade8cbb7daae79f13876a",
+    "fields": [
+      "policy.prefix",
+      "policy.generate",
+      "candidate_receipt.gradient_scope",
+      "candidate_receipt.coefficient_backward_calls"
+    ],
+    "actual": "joint protected direction; no subsequent coordinate sweep;31objective+380margin=411backwards,822forwards",
+    "scope": "display/count metadata only, numerical behavior unchanged; old sealed result remains immutable and uses2c31binary; future policy equality remains strict"
+  }
+}

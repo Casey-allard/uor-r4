@@ -1,0 +1,146 @@
+{
+  "schema": "uor-r4.protected-joint-source-reviews/1",
+  "source_commit": "a75c22d36c58c680e36f258e78d7c4d61c472aea",
+  "scope": "source and authored tests only; execution separate",
+  "math": {
+    "status": "PASS_SOURCE_ONLY",
+    "source_commit": "a75c22d36c58c680e36f258e78d7c4d61c472aea",
+    "files": {
+      "protected_joint_vector.rs": "808b5258b4099f014ecb1acc3e38db41429f6620773c0570d1888c2c2dd1b096",
+      "coupled_episode_learning.rs": "1c50202ad42ff3c6590e80bd590ebb80c2a3e4a466288dff249a3917fdf5e509",
+      "prefix_fragment_learning.rs": "dac3bcbb134afe5cf716a3f4401d1ab724bc44009071f091996954306d3ddab0"
+    },
+    "review": [
+      "Unweighted original380 mechanical pooled margins, lowest-token rival ties, all aliases and margin-specific centered forced-donor utility; exclusive FullPoolUtility path",
+      "31 objective and380 protected preflight before first backward; missing/nonfinite family gradients rejected; raw Jacobians and original4096 token masses retained",
+      "Joint1920 f64 unit-row cyclic256 projection and continuous plus actual quantized residual checks at1e-10 times norm; actual CE linear descent required; fractional unchanged-code bits preserved",
+      "Four same-original-epoch joint trials, full391 native rescoring with current donor/post/Generate incidence, minimum feasible CE and earlier radius ties",
+      "Compact best retention; exact selected restage authority before atomic replacements; no follow-on coordinate sweep",
+      "Original17 identity coverage asserted in380; task/reference coalesced weights remain separate from unit guard margin quantities",
+      "Terminal/report counters822 forwards411 backwards and graph lifetime now consistent; explicit8GiB cap reported"
+    ],
+    "authored_test_review": [
+      "Later opposing constraint leaves detectable residual; zero/invalid Jacobian and scale/no-floor cases",
+      "Continuous feasible but quantized actual displacement infeasible",
+      "Fractional no-op bits and incompatible recovery modes",
+      "Two-row six-token-vocabulary native driver with donor/unary/incidence changes, late veto, no trial mutation and exact selected restage",
+      "Invalid batch domain rejection preserves incumbent cache domains"
+    ],
+    "limitations": [
+      "Source review only: no tests/builds/model/backward/proposal execution by reviewer",
+      "Native fixture is two rows, not an actual391 experiment",
+      "Cyclic finite search is not nearest-QP, convergence or global feasibility proof; margins are declared surrogate Jacobians",
+      "Native CE17/380 gate remains decisive; positive construction requires actual typed-answer/EOS qualification; no capability result implied"
+    ]
+  },
+  "adversarial": {
+    "status": "PASS_SOURCE_ONLY",
+    "source_commit": "a75c22d36c58c680e36f258e78d7c4d61c472aea",
+    "scope": "Read-only implementation and operational helper review; no build, test, model, gradient, reducer, fixture or audit execution by reviewer. Parent execution results remain separate.",
+    "files": {
+      "crates/uor-r4-training/examples/geometric_frozen_map_fit/coupled_episode_learning.rs": {
+        "sha256": "1c50202ad42ff3c6590e80bd590ebb80c2a3e4a466288dff249a3917fdf5e509",
+        "bytes": 180868
+      },
+      "crates/uor-r4-training/examples/geometric_frozen_map_fit/protected_joint_vector.rs": {
+        "sha256": "808b5258b4099f014ecb1acc3e38db41429f6620773c0570d1888c2c2dd1b096",
+        "bytes": 50212
+      },
+      "crates/uor-r4-training/examples/geometric_frozen_map_fit/prefix_fragment_learning.rs": {
+        "sha256": "dac3bcbb134afe5cf716a3f4401d1ab724bc44009071f091996954306d3ddab0",
+        "bytes": 140913
+      },
+      "docs/labs/protected-joint-construction-2026-10-09/prepare-actual9.py": {
+        "sha256": "b213d5e1eb705e77ffc3d99ee6eb561b03ad60db17355850f5800fa5a7349fe1",
+        "bytes": 14450
+      },
+      "docs/labs/protected-joint-construction-2026-10-09/admit-runtime.py": {
+        "sha256": "bf8b4c682883b074363dbaa1b866157edc73988ea53241279ac17d140c392a23",
+        "bytes": 1835
+      },
+      "docs/labs/protected-joint-construction-2026-10-09/build-runtime.py": {
+        "sha256": "19ec87b169b9f4486c7de370deefabf041324db54fb6d43d949a27dc450572fc",
+        "bytes": 2198
+      },
+      "docs/labs/protected-joint-construction-2026-10-09/run-protected-joint.py": {
+        "sha256": "10e9bab6b915774a3ccc8bae3bd9194266fdb2e9da5be2765afcfb08b34b206c",
+        "bytes": 6449
+      },
+      "docs/labs/protected-joint-construction-2026-10-09/verify-inputs.py": {
+        "sha256": "8e47b4ebb1670be62c29c8509729573b19c5c9efcac507a3dc09223b7f6539b3",
+        "bytes": 4279
+      },
+      "docs/labs/protected-joint-construction-2026-10-09/README.md": {
+        "sha256": "4c0833c755372c3a377aca6523e91bf949b9f54159c8fd024a8686f9012b7f66",
+        "bytes": 4875
+      }
+    },
+    "findings": [],
+    "verified_source_contracts": [
+      "Full-pool mechanical original winner/strongest rival with earliest-token ties and authenticated 4096 masses per guard",
+      "Guard cache namespace31+i and explicit unit margin weight; zero guard CE weight preserved",
+      "All31 objective and380 protected forwards before any backward;411 backwards and822 graph forwards honestly distinct",
+      "256 unit-L2 f64 cyclic passes and scale-relative residual tolerance without floor; actual quantized displacement and objective directional screen",
+      "Four original-epoch joint vectors; all391 coherent native replacements; nativeCE/17refs/380guards; exact selected restage before infallible ownership swaps; no follow-on Generate pass",
+      "Fresh protected mode and retained legacy modes cannot be relabeled; positive factory checks protected receipt/raw Jacobians and separate actual9 authority",
+      "Resource8GiB process cap explicitly covered by parent claim16GiB pod envelope and recorded before compute"
+    ],
+    "limitations": [
+      "Surrogate protection is not a convergence, nearest-projection or global feasibility proof",
+      "Two-row native production-driver fixture is not a391-frame learning or language result",
+      "Source-only helper admission is not measured runtime preservation or actual model qualification",
+      "Final native gates, independent391 reload and actual typed whole-answer/EOS qualification remain required"
+    ]
+  },
+  "saved_audit_helper_review": {
+    "reviewed_original_sha256": "e77a4067917f92e3fd1123d04c357a922ecbe1afb7c290cf9837508f24f76b97",
+    "findings": [
+      "raw objective finite/shape/status and ordered f32 sum were not checked",
+      "saved actual_delta replay is not full proposal authentication",
+      "approximate NumPy replay cannot override relative Rust screen near zero"
+    ],
+    "resolution": [
+      "add raw status/shape/finite and ordered f32 aggregate replay",
+      "explicit scope limits on saved displacement and no native-scoring authentication",
+      "report independent projection decision and residual/tolerance; remove cannot-alter claim"
+    ],
+    "corrected_helper_sha256": "8b6767b78865b9d04a98dd9b36a18398d6770e8ae297359586968b6ded8147a0",
+    "execution": "NOT_RUN"
+  },
+  "test_repair_delta_review": {
+    "source_commit": "09d6546c1aab77f5c75de74a89b758ba2bf8b2b5",
+    "reviewer": "emission_adversarial",
+    "status": "PASS_SOURCE_ONLY",
+    "delta": "three test-only type repairs; verified build path inventory retains actual UOR_BUILD_SOURCE_COMMIT; no production numerical policy change",
+    "protected_source_sha256": "f24c4a38c8198624087caf9728cf3f48fff479dd79bad1f87dbc4a8ba83db713",
+    "execution": "reviewer ran no tests or model"
+  },
+  "jacobian_reader_repair": {
+    "source_commit": "2c31a22e6fbef3bd37dade8cbb7daae79f13876a",
+    "reviewer": "emission_math",
+    "status": "PASS_SOURCE_ONLY",
+    "finding": "shared::floats is a960-parameter decoder with bounded parameter domain; protected raw derivatives require1920finite f32 without weight range",
+    "fix": "dedicated7680-byte little-endian finite decoder; unit test covers1920non-weight-range gradients,960values,truncation andNaN",
+    "policy_delta": "none; prior411backwards complete and preserved, no native proposal executed; fresh retry charged separately"
+  },
+  "audit_vector_repair": {
+    "head": "b24c93f75d7d129d130713cd4ffdd9361138b71e",
+    "file_sha256": "d9aad313ed2ba2b4f633a60a144df02c5bd7bb03759ca0808039f6101341dfc9",
+    "reviewer": "emission_adversarial",
+    "status": "PASS_SOURCE_ONLY",
+    "finding": "dot zip truncation and missing joint vector shape/finite checks",
+    "resolution": "require1920finite gradient/master/direction/actual_delta, reject unequal dot dimensions",
+    "execution": "none"
+  },
+  "outcome_review": {
+    "reviewer": "emission_adversarial",
+    "status": "PASS_BOUNDED_RESULT",
+    "artifact_source": "2c31a22e6fbef3bd37dade8cbb7daae79f13876a",
+    "findings": [
+      "continuous screen passes; four quantized violations104/170/98/93; none natively scored",
+      "826 compared files match retry; audit is saved arithmetic not independent native replica",
+      "legacy descriptors require explicit correction; keep historicalseal and strictpolicy equality"
+    ],
+    "execution": "reviewer read saved evidence only"
+  }
+}

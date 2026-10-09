@@ -1267,10 +1267,31 @@ def fig_native_input_access():
     fg.save()
 
 
+def fig_protected_joint_learning():
+    fg = Fig("protected-joint-learning.svg", "M2: learning with protected token competition",
+             "Offline joint Prefix and Generate learning uses native pooled token margins; native finite checks remain authoritative.",
+             ["Measured: continuous screen passes; all four quantized displacements fail. No native proposal scored.",
+              "No serving exception, extra source candidate or new geometric substrate is introduced."])
+    def box(x, y, w, title, lines, color):
+        fg.rect(x, y, w, 116, "#f6f9fc", color, 1.5, 10)
+        fg.text(x + 14, y + 27, title, 17, color, weight="bold")
+        for i, line in enumerate(lines):
+            fg.text(x + 14, y + 54 + 22*i, line, 14, INK)
+    box(40, 105, 430, "Task and reference objective", ["31 physical CE graphs; original role weights", "Prefix occurrence credit + factual Generate", "Complete detached physical-donor utility"], BLUE)
+    box(530, 105, 430, "Protected original winners", ["380 full-pool winner / strongest-rival margins", "Explicit unweighted Jacobians; frozen token pairs", "Margin-specific physical-donor utility"], PURPLE)
+    fg.arrow(255, 222, 350, 268, BLUE)
+    fg.arrow(745, 222, 650, 268, PURPLE)
+    box(190, 276, 620, "One joint direction in 1920 master coordinates", ["960 Prefix + 960 Generate unary; 256 fixed projection passes", "Check continuous and actual quantized displacement residuals", "Four common-scale radii: 1, 2, 4, 7; same original epoch"], GREEN)
+    fg.arrow(500, 393, 500, 426, GREEN)
+    box(40, 437, 920, "Native finite transaction and independent reload", ["Recompute coherent proposed Prefix + donor/post-state + Generate over all 391 rows", "Retain strict CE descent, all 17 references and 380 original winners; exact restage before commit", "All 15 conditional positions including EOS required before actual own-feedback qualification"], ORANGE)
+    fg.text(40, 594, "Source, Context, Cue, bridge, U and other Generate families remain frozen.", 15, MUTED)
+    fg.save()
+
+
 if __name__ == "__main__":
     figures = (fig_quaternion, fig_s3, fig_hopf, fig_600cell, fig_golden, fig_zeta, fig_primes,
                fig_next_token, fig_vsa, fig_connections,
-               fig_exact_lanes, fig_signed_binding, fig_hamming_read, fig_native_input_access)
+               fig_exact_lanes, fig_signed_binding, fig_hamming_read, fig_native_input_access, fig_protected_joint_learning)
     for fn in figures:
         fn()
     print("wrote", len(figures), "figures to", OUT)

@@ -46,9 +46,19 @@ surrogate Jacobian is CE(rival) minus CE(winner), including every Generate/Copy
 alias and the chosen clipped/raw score credit. The complete token mass table
 is checked against physical action subtotals. This is the [shared margin
 boundary](../../docs/labs/protected-margin-credit-2026-10-09/README.md) for the
-protected-direction successor; no existing runner automatically adopts it and
-no model improvement has been measured. Rival selection, protected Jacobians
-and finite direction construction still require explicit integration.
+opt-in [protected joint constructor](../../docs/labs/protected-joint-construction-2026-10-09/README.md).
+`coupled_episode_learning.prefix_transaction: "protected_joint_vector"` selects
+mechanical original winners and strongest other pooled tokens, computes explicit
+unweighted protected Jacobians and margin-specific donor credit, and forms one
+joint Prefix/Generate direction. It uses 256 fixed projection passes and four
+common-scale quarter-grid radii with actual-displacement checks, complete native
+staging and exact restaging before commit; no subsequent Generate sweep runs.
+It requires fresh `full_pool_utility` credit and rejects inherited gradients or
+exports. Defaults retain their historical behavior. Native acceptance and actual
+model qualification remain separate from this surrogate direction search. The
+original-parent run passes the continuous screen but rejects all four quantized
+displacements before native proposal scoring; it commits no update. The record
+retains the execution failures and the negative, without a response-gain claim.
 
 ## Complete-prefix native dialogue learning
 
