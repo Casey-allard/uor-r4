@@ -1884,6 +1884,12 @@ pub struct StackModel {
     /// ([`Self::set_pointer_copy_trace`]); off by default, and off means the
     /// decoder is the historical one bit for bit. Not saved.
     pointer_copy_trace: bool,
+    /// Serving-time span-extraction rule on the pointer branch
+    /// ([`Self::set_pointer_span_extract`]): `None`, the default, leaves every
+    /// reply exactly as the copy stop and the historical decoder left it. Not
+    /// saved. What the rule emitted over one reply travels with the reply
+    /// itself ([`crate::stack_dialogue::Reply::span_extract`]).
+    pointer_span_extract: Option<SpanExtract>,
 }
 
 impl StackModel {
@@ -1994,6 +2000,7 @@ impl StackModel {
             pointer_gate_floor: 0.0,
             pointer_copy_stop: None,
             pointer_copy_trace: false,
+            pointer_span_extract: None,
         })
     }
 
@@ -3486,6 +3493,40 @@ impl StackModel {
     /// ([`Self::set_pointer_copy_trace`]).
     pub fn pointer_copy_trace(&self) -> bool {
         self.pointer_copy_trace
+    }
+
+    /// Turn the serving-time span-extraction rule on: instead of deciding
+    /// where the reply ends, the reply is replaced by the span the pointer
+    /// itself locked onto, dropping the prefix the model emitted before it
+    /// locked ([`SpanExtract`], whose [`SpanExtractMode`] chooses which runs
+    /// may be extracted and whose [`SpanExtractAnchor`] says whether the
+    /// re-acquisition id is part of the span). `None`, the default, is the
+    /// copy-stop decoder bit for bit: no rule, no extra observation, no change
+    /// to any reply. Like the gate floor and the copy stop this is a read-out
+    /// change only, and it is not saved. A rule is refused on a model without
+    /// a pointer head, and one whose minimum emitted span is zero is refused
+    /// because a span of no ids is not a span.
+    pub fn set_pointer_span_extract(&mut self, rule: Option<SpanExtract>) -> Result<()> {
+        if let Some(rule) = rule {
+            if self.config.pointer.is_none() {
+                return Err(invalid(
+                    "the model has no pointer head to extract a span from",
+                ));
+            }
+            if rule.min_span < 1 {
+                return Err(invalid(
+                    "the span-extraction minimum span is zero ids, which is not a span",
+                ));
+            }
+        }
+        self.pointer_span_extract = rule;
+        Ok(())
+    }
+
+    /// The serving-time span-extraction rule, `None` when unset
+    /// ([`Self::set_pointer_span_extract`]).
+    pub fn pointer_span_extract(&self) -> Option<SpanExtract> {
+        self.pointer_span_extract
     }
 
     /// The source the pointer attends most at the last position of `ids` (the
@@ -9022,6 +9063,7 @@ impl StackModel {
             pointer_gate_floor: 0.0,
             pointer_copy_stop: None,
             pointer_copy_trace: false,
+            pointer_span_extract: None,
         };
         model.set_transport_snap(Self::saved_transport_snap(directory)?)?;
         model.set_read_identity_carry(Self::saved_read_identity_carry(directory)?)?;
@@ -15383,6 +15425,199 @@ pub struct CopyTraceStep {
     pub gate: f64,
     /// The head's own `sigmoid(gate logit)`, before any floor.
     pub raw_gate: f64,
+}
+
+/// Which runs a [`SpanExtract`] rule may act on
+/// ([`StackModel::set_pointer_span_extract`]).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpanExtractMode {
+    /// Act only on a pointer-locked run that opens AFTER the reply's first id.
+    /// A run that opens at the reply's first id has no surrounding prefix to
+    /// drop, and replacing such a reply by a shorter run would delete value
+    /// ids, so it is left alone. This is the serving-time reading of "drop the
+    /// template prefix the model emitted before it locked onto the span".
+    MidReply,
+    /// Act on any pointer-locked run, including one that opens at the reply's
+    /// first id. The broad control: it truncates a reply whose opening run is
+    /// shorter than the reply, which is why [`Self::MidReply`] exists.
+    AnyRun,
+}
+
+/// Whether the emitted span keeps the id at which the pointer re-acquired the
+/// region (the run's first window position).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SpanExtractAnchor {
+    /// The re-acquisition id opens the emitted span (the natural reading: the
+    /// span is exactly what the pointer locked onto).
+    Kept,
+    /// The re-acquisition id is dropped. Fitted to the five class-C cells of
+    /// the 2026-10-09 pointer panel, whose value starts one id after the
+    /// re-acquisition anchor; it is not a derived mechanism.
+    Dropped,
+}
+
+/// The serving-time span-extraction rule
+/// ([`StackModel::set_pointer_span_extract`]): instead of deciding where the
+/// reply ENDS, the reply is replaced by the span the pointer itself locked
+/// onto, dropping the prefix the model emitted before it locked. Read-out
+/// only: no training, no parameters, nothing serialized. [`SpanExtractMode`]
+/// and [`SpanExtractAnchor`] say which runs it acts on and whether the anchor
+/// id is part of the span.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct SpanExtract {
+    /// Which runs may be extracted.
+    pub mode: SpanExtractMode,
+    /// Whether the run's first id is kept in the emitted span.
+    pub anchor: SpanExtractAnchor,
+    /// The fewest ids the EMITTED span may have (after the anchor
+    /// convention). At least one: a span of no ids is not a span.
+    pub min_span: usize,
+}
+
+impl SpanExtract {
+    /// A rule with the given mode, anchor convention and minimum emitted span.
+    pub fn new(mode: SpanExtractMode, anchor: SpanExtractAnchor, min_span: usize) -> Self {
+        Self {
+            mode,
+            anchor,
+            min_span,
+        }
+    }
+
+    /// Mid-reply runs, anchor kept: the natural reading of "emit only the span
+    /// the pointer selected", and the headline instrument of the span-extract
+    /// round.
+    pub fn mid_reply_kept(min_span: usize) -> Self {
+        Self::new(SpanExtractMode::MidReply, SpanExtractAnchor::Kept, min_span)
+    }
+
+    /// Mid-reply runs, anchor dropped: the fitted variant, whose only
+    /// difference from [`Self::mid_reply_kept`] is the anchor id.
+    pub fn mid_reply_dropped(min_span: usize) -> Self {
+        Self::new(
+            SpanExtractMode::MidReply,
+            SpanExtractAnchor::Dropped,
+            min_span,
+        )
+    }
+
+    /// Any run, anchor kept: the broad control that isolates the structural
+    /// mid-reply gate.
+    pub fn any_run_kept(min_span: usize) -> Self {
+        Self::new(SpanExtractMode::AnyRun, SpanExtractAnchor::Kept, min_span)
+    }
+
+    /// The rule a probe flag names, `None` for `0` (off) and for an unknown
+    /// flag: `1` mid-reply kept (headline), `2` mid-reply dropped (fitted
+    /// variant), `3` any run kept (broad control).
+    pub fn from_flag(flag: u8, min_span: usize) -> Option<Self> {
+        match flag {
+            1 => Some(Self::mid_reply_kept(min_span)),
+            2 => Some(Self::mid_reply_dropped(min_span)),
+            3 => Some(Self::any_run_kept(min_span)),
+            _ => None,
+        }
+    }
+
+    /// The span this rule extracts from a reply's own trace, `None` when no
+    /// run qualifies and the reply must be left exactly as it was. The trace
+    /// is the decoder's per-step record of the pointer's own selection
+    /// ([`CopyTraceStep`]); a step is locked when the emitted id is the window
+    /// id at the selected source, and a run is a maximal sequence of locked
+    /// steps whose source advances by exactly one each step. The EOS id never
+    /// joins a run: the reply's text excludes it.
+    pub fn find(&self, trace: &[CopyTraceStep], eos: u32) -> Option<SpanExtractReport> {
+        if self.min_span < 1 || trace.is_empty() {
+            return None;
+        }
+        // (run_start_step, first_source, last_source), in trace order.
+        let mut runs: Vec<(usize, usize, usize)> = Vec::new();
+        let mut open: Option<(usize, usize, usize)> = None;
+        for (step, entry) in trace.iter().enumerate() {
+            // A step that is not locked - no selection, an emitted id that is
+            // not the window id at the source, or the EOS id - ENDS the open
+            // run; it is pushed before the run state is cleared.
+            let source = match entry.source {
+                Some(source) if entry.matches_source && entry.id != eos => source,
+                _ => {
+                    if let Some(run) = open.take() {
+                        runs.push(run);
+                    }
+                    continue;
+                }
+            };
+            match open {
+                Some((start, first, last)) if source == last + 1 => {
+                    open = Some((start, first, source));
+                }
+                _ => {
+                    if let Some(run) = open.take() {
+                        runs.push(run);
+                    }
+                    open = Some((step, source, source));
+                }
+            }
+        }
+        if let Some(run) = open.take() {
+            runs.push(run);
+        }
+        let mut best: Option<(usize, usize, usize, usize)> = None;
+        for (start_step, first, last) in runs {
+            if self.mode == SpanExtractMode::MidReply && start_step == 0 {
+                continue;
+            }
+            let emitted = match self.anchor {
+                SpanExtractAnchor::Kept => last - first + 1,
+                SpanExtractAnchor::Dropped => last - first,
+            };
+            if emitted < self.min_span {
+                continue;
+            }
+            // The longest emitted span wins; a tie keeps the earliest run.
+            if best.is_none_or(|(_, _, _, best_emitted)| emitted > best_emitted) {
+                best = Some((start_step, first, last, emitted));
+            }
+        }
+        best.map(
+            |(run_start_step, anchor, last, extracted)| SpanExtractReport {
+                window_index: match self.anchor {
+                    SpanExtractAnchor::Kept => anchor,
+                    SpanExtractAnchor::Dropped => anchor + 1,
+                },
+                anchor,
+                extracted,
+                run_start_step,
+                run_steps: last - anchor + 1,
+                dropped_prefix: run_start_step,
+            },
+        )
+    }
+}
+
+impl Default for SpanExtract {
+    /// The headline instrument at its default minimum span.
+    fn default() -> Self {
+        Self::mid_reply_kept(2)
+    }
+}
+
+/// What a [`SpanExtract`] rule emitted over one reply, reported by
+/// [`crate::stack_dialogue::Reply::span_extract`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SpanExtractReport {
+    /// The first window position of the emitted span.
+    pub window_index: usize,
+    /// The run's first window position, the id the pointer re-acquired the
+    /// region at. Equal to `window_index` when the anchor is kept.
+    pub anchor: usize,
+    /// How many ids the emitted span has.
+    pub extracted: usize,
+    /// The reply step the run opened at.
+    pub run_start_step: usize,
+    /// How many ids the whole locked run covers (anchor included).
+    pub run_steps: usize,
+    /// How many ids the reply had emitted before the run opened.
+    pub dropped_prefix: usize,
 }
 
 /// A copy-stop rule's state over one reply: the pointer's selection at the
@@ -27536,6 +27771,182 @@ mod tests {
             let ruled = greedy_reply_with_copy_stop(&model, &history, 8, 1, 3)?;
             assert_eq!(ruled.ids, ruled_ids, "gate bias {gate_bias}");
             assert_eq!(ruled.copy_stop, report, "gate bias {gate_bias}");
+        }
+        Ok(())
+    }
+
+    /// The span-extraction rule's own core: a pointer-locked run that opens
+    /// mid-reply is the span the rule emits, with the anchor id kept or
+    /// dropped, and nothing fires without such a run.
+    #[test]
+    fn the_span_extract_rule_takes_the_span_the_pointer_locked_onto() {
+        let base = CopyTraceStep {
+            step: 0,
+            id: 0,
+            source: None,
+            source_id: None,
+            matches_source: false,
+            attention: 0.0,
+            gate: 0.0,
+            raw_gate: 0.0,
+        };
+        let locked = |step: usize, id: u32, source: usize| CopyTraceStep {
+            step,
+            id,
+            source: Some(source),
+            source_id: Some(id),
+            matches_source: true,
+            attention: 0.9,
+            gate: 1.0,
+            raw_gate: 0.5,
+            ..base
+        };
+        // The class-C trace of natural/n_ithmar: two ids emitted from elsewhere
+        // (the second from another occurrence of the same id), then the pointer
+        // re-acquires window[6] and sweeps one window position per step to
+        // window[11], then EOS with no selection match.
+        let trace = vec![
+            locked(0, 2496, 4),
+            locked(1, 1412, 28),
+            locked(2, 435, 6),
+            locked(3, 427, 7),
+            locked(4, 74, 8),
+            locked(5, 79, 9),
+            locked(6, 291, 10),
+            locked(7, 16, 11),
+            CopyTraceStep {
+                step: 8,
+                id: 1,
+                source: Some(36),
+                source_id: Some(2496),
+                ..base
+            },
+        ];
+        let kept = SpanExtract::mid_reply_kept(2)
+            .find(&trace, 1)
+            .expect("the mid-reply run is a span");
+        assert_eq!(kept.run_start_step, 2);
+        assert_eq!(kept.anchor, 6);
+        assert_eq!(kept.window_index, 6);
+        assert_eq!(kept.run_steps, 6);
+        assert_eq!(kept.extracted, 6);
+        assert_eq!(kept.dropped_prefix, 2);
+        // The fitted variant drops the id the pointer re-acquired the region
+        // at, so the span starts one window position later and is one id
+        // shorter. Its only difference from `kept` is the anchor.
+        let dropped = SpanExtract::mid_reply_dropped(2)
+            .find(&trace, 1)
+            .expect("the same run, without its anchor");
+        assert_eq!(dropped.anchor, 6);
+        assert_eq!(dropped.window_index, 7);
+        assert_eq!(dropped.run_steps, 6);
+        assert_eq!(dropped.extracted, 5);
+        // The broad mode also sees a reply-start run only one id long here, so
+        // it picks the same mid-reply span.
+        assert_eq!(SpanExtract::any_run_kept(2).find(&trace, 1), Some(kept));
+        // A minimum span longer than the emitted span does not fire.
+        assert_eq!(SpanExtract::mid_reply_dropped(6).find(&trace, 1), None);
+        assert!(SpanExtract::mid_reply_kept(6).find(&trace, 1).is_some());
+
+        // A reply whose only run opens at its first id is left alone by the
+        // mid-reply mode and truncated by the broad control.
+        let reply_start = vec![locked(0, 500, 7), locked(1, 501, 8), locked(2, 502, 9)];
+        assert_eq!(SpanExtract::mid_reply_kept(2).find(&reply_start, 1), None);
+        let broad = SpanExtract::any_run_kept(2)
+            .find(&reply_start, 1)
+            .expect("the broad mode takes the reply-start run");
+        assert_eq!(broad.window_index, 7);
+        assert_eq!(broad.extracted, 3);
+        assert_eq!(broad.dropped_prefix, 0);
+
+        // A step with no selection, and a step that emits EOS, both break a
+        // run: an EOS id is never part of an emitted span.
+        let broken = vec![locked(0, 500, 7), base, locked(2, 502, 9)];
+        assert_eq!(SpanExtract::mid_reply_kept(2).find(&broken, 1), None);
+        assert_eq!(SpanExtract::any_run_kept(2).find(&broken, 1), None);
+        let eos_locked = vec![
+            locked(0, 500, 7),
+            CopyTraceStep {
+                step: 1,
+                id: 1,
+                source: Some(8),
+                source_id: Some(1),
+                ..base
+            },
+        ];
+        assert_eq!(SpanExtract::any_run_kept(2).find(&eos_locked, 1), None);
+    }
+
+    /// The default decoder is the historical one, bit for bit; the span rule
+    /// is off by default, refused without a pointer head, and refused with a
+    /// zero minimum span.
+    #[test]
+    fn the_span_extract_rule_is_off_by_default_and_refuses_a_non_span() -> Result<()> {
+        use crate::stack_dialogue::{greedy_reply, greedy_reply_with_copy_stop};
+        let mut model = toy_pointer(PointerConfig::new(16), 0.25, 0.0)?;
+        assert_eq!(model.pointer_span_extract(), None);
+        assert!(
+            model
+                .set_pointer_span_extract(Some(SpanExtract::mid_reply_kept(0)))
+                .is_err(),
+            "a zero minimum span is refused"
+        );
+        assert_eq!(model.pointer_span_extract(), None);
+        let history: Vec<u32> = vec![9, 5, 9, 5, 3, 9, 5];
+        let plain = greedy_reply(&model, &history, 12, 1)?;
+        let off = greedy_reply_with_copy_stop(&model, &history, 12, 1, 3)?;
+        assert_eq!(plain.ids, off.ids);
+        assert_eq!(plain.stop_record(), off.stop_record());
+        assert!(off.span_extract.is_none() && off.trace.is_empty());
+        // A model without a pointer head refuses the rule.
+        let mut config = tiny(StackArch::Geometric, "a", ReadScore::Dot, false);
+        config.vocab_size = 16;
+        config.pointer = None;
+        let mut headless = StackModel::new(config, &cpu())?;
+        assert!(headless
+            .set_pointer_span_extract(Some(SpanExtract::mid_reply_kept(2)))
+            .is_err());
+        Ok(())
+    }
+
+    /// With the rule on, the decoder emits exactly the span the rule finds in
+    /// the reply's own trace -- no more and no less -- for every mode.
+    #[test]
+    fn the_span_extract_decoder_emits_exactly_what_the_rule_finds() -> Result<()> {
+        use crate::stack_dialogue::greedy_reply_with_copy_stop;
+        for gate_bias in [0.0f32, 10.0] {
+            let mut model = toy_pointer(PointerConfig::new(16), 0.25, gate_bias)?;
+            let history: Vec<u32> = vec![9, 5, 9, 5, 3, 9, 5];
+            model.set_pointer_copy_stop(Some(CopyStop::identity(2)))?;
+            model.set_pointer_copy_trace(true);
+            let traced = greedy_reply_with_copy_stop(&model, &history, 12, 1, 3)?;
+            for rule in [
+                SpanExtract::mid_reply_kept(2),
+                SpanExtract::mid_reply_dropped(2),
+                SpanExtract::any_run_kept(2),
+            ] {
+                model.set_pointer_span_extract(Some(rule))?;
+                let ruled = greedy_reply_with_copy_stop(&model, &history, 12, 1, 3)?;
+                match rule.find(&traced.trace, 1) {
+                    None => {
+                        assert_eq!(ruled.ids, traced.ids, "gate bias {gate_bias}");
+                        assert_eq!(ruled.stop_record(), traced.stop_record());
+                        assert!(ruled.span_extract.is_none());
+                    }
+                    Some(report) => {
+                        assert_eq!(ruled.span_extract, Some(report));
+                        assert_eq!(ruled.ids.len(), report.extracted);
+                        assert!(!ruled.eos && ruled.cycle.is_none() && ruled.copy_stop.is_none());
+                        assert_eq!(
+                            ruled.stop_record(),
+                            serde_json::json!({"pointer_span": {
+                                "extracted": report.extracted,
+                                "window_index": report.window_index,
+                            }})
+                        );
+                    }
+                }
+            }
         }
         Ok(())
     }

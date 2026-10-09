@@ -1,0 +1,157 @@
+UOR-R4 — span extraction on the pointer panel: the NATURAL reading is a decisive NEGATIVE (0 of the 5 class-C cells recovered); a FITTED anchor-dropping variant reaches 77/84 = 0.9167, which is not significant and fires on a template span at floors 0.75/1.0. The +5/84 ceiling does not survive contact with the traces.
+Date: 2026-10-09. DeepSeek lab, session span-extract. References #2029 (language base), #2032 (served model).
+Pre-registration (frozen before any measurement, sha256 55469a43069a49a57b3ec83681e3a814b6f5a63f7dc77fc32f4fdc29b3cbb358 plus a dated addendum): docs/evidence/span-extraction-preregistration-2026-10-09.md.
+Follows docs/evidence/token_identity_stop_breakthrough_2026-10-09.txt (the 72/84 best) and docs/evidence/idstop_nonfiring_classification_2026-10-09.txt, whose "WHAT REMAINS UNKNOWN" item 1 proposed this instrument and its +5/84 = +6.0 % inferred ceiling.
+
+THE ANSWER IN ONE PARAGRAPH
+  In all five class-C cells the pointer does NOT lock onto the value's first token: it emits " My name" reading a different occurrence of " name" in the question, then RE-ACQUIRES the premise at window[6] - the copula " is" - and sweeps one window position per step to window[11]. The span the pointer actually locked onto is therefore window[6..11] = " is Ithmar.", one id BEFORE the value span [7..10], and it does not normalise to the value. Measured: the headline rule (mid-reply pointer-locked runs, anchor kept) fires on exactly those 5 cells at every floor and gains ZERO - 72/84 at floor 0.5, 72/84 at 0.75, 71/84 at 1.0, identical to the baselines, 0 cells gained, 0 lost. The only way to reach the value is to DROP the id at which the pointer re-acquired the region; that convention is fitted to these 5 cells after seeing their sealed traces, and it must be labelled fitted wherever its number appears. With it the fitted variant measures 77/84 = 0.9167 (+5 gained / 0 lost, exact McNemar p=0.0625, Newcombe 95 % [-0.0391, +0.1594]) - a better point estimate, NOT an improvement - and at floors 0.75 and 1.0 the fitted variant is +4 / 0 with one template firing per floor. So: the natural reading of "emit only the span the pointer selected" is closed as a negative, and the +5 ceiling quoted by the previous round is not reachable by it.
+
+SCOPE AND CONDITIONS (the same panel and protocol as the result it extends)
+  84 cells = 28 invented values x 3 conditions (natural/sure/noted), arm-ptr checkpoint
+  (term-weight/arm-ptr/model, 80 MB), protocol 2, greedy, max_new_tokens 40, device=cuda, one seed,
+  one session, ONE binary. Pod ajrklwvw9uwvzr (EU-RO-1, 2x RTX 4090, $1.78/h), volume
+  rfsx702p68 = uor-shared-EU-RO-1 (NON-canonical; pinned with UOR_POD_VOLUME_DCS=EU-RO-1); all
+  scoring on the laptop CPU. Driver crates/uor-r4-training/examples/bind-probe-exact.rs built from
+  the pod's checkout of main 819e46dfc + this round's patch (the patch applies cleanly to
+  origin/main 5c14e0471 and touches no file the intervening commits touched); binary sha256
+  f8bb8c47696d10f8d8c593df3761ce59f65967875bd11b49380d41bda19a8117.
+  33 generation runs: rule off at the 72/84 configuration (3), mode 1 at floors 0.5/0.75/1.0 (9),
+  mode 2 at floors 0.5/0.75/1.0 (9), mode 3 at floor 0.5 (3), default proof on three arms (9).
+  Warm-target build 26.25 s; the 27-run pre-registered set took 42 s; the 6 exploratory floor runs
+  took 10 s.
+
+THE RULE (read-out only, no training, no parameters, nothing serialized, default off)
+  Definitions, from the channels the driver already records: a step is LOCKED when the emitted id is
+  the window id at the pointer's own selected source (`matches_source`); a POINTER-LOCKED RUN is a
+  maximal sequence of consecutive locked steps whose source advances by exactly one each step; a run
+  that opens at the reply's first step OPENS AT THE REPLY START, otherwise MID-REPLY; the run's
+  SPAN is window[first..last], its POST-ANCHOR SPAN is window[first+1..last].
+  `pointer_span_extract=0|1|2|3` (default 0) with `pointer_span_min=N` (default 2, the minimum
+  number of EMITTED ids after the anchor convention):
+    1 = mid-reply runs, ANCHOR KEPT   -> the HEADLINE (the natural reading; the rule emits exactly
+        what the pointer locked onto);
+    2 = mid-reply runs, ANCHOR DROPPED -> the FITTED VARIANT;
+    3 = any run, anchor kept          -> the BROAD CONTROL (isolates the mid-reply gate).
+  When a run qualifies, the reply's ids become exactly its span (everything before the run and after
+  it is dropped), `reply_eos=false`, the stop record becomes `{"pointer_span": {...}}` and a
+  `span_extract` record field is written. When none qualifies the reply is unchanged, field for
+  field; with the rule off no field is added at all (the sealed record schema exactly). The rule
+  sees only the emitted ids, the window ids and the pointer's own per-step selection - never the
+  row's expected/forbid, the recorded span positions, the record id or any label. Edge cases: a step
+  with no selection is not locked; the EOS id never joins a run; a span shorter than `pointer_span_min`
+  does not fire. Library API: `StackModel::set_pointer_span_extract(Option<SpanExtract>)`,
+  `SpanExtract::{mid_reply_kept, mid_reply_dropped, any_run_kept, from_flag, find}`,
+  `Reply::span_extract`.
+
+MEASURED - THE HEADLINE (mode 1, anchor kept = the natural reading)
+  floor  baseline   exact   gained  lost  fired  template-disjoint firings
+  0.5    72/84      72/84   0       0     5/84   0
+  0.75   72/84      72/84   0       0     5/84   1   natural/n_drovik (win[23..25], emitted "\nAss")
+  1.0    71/84      71/84   0       0     5/84   1   natural/n_drovik (win[23..25], emitted "\nAss")
+  Floor 0.5: Wilson [0.7667, 0.9163], McNemar 0 vs 0 p=1.0, Newcombe [-0.1081, +0.1081].
+  The 5 cells it fires on, with their before/after replies (floor 0.5), all still NOT exact:
+    natural/n_ithmar  ' My name is Ithmar.' -> ' is Ithmar.'   span win[6..11]
+    sure/n_ithmar     ' My name is Ithmar.' -> ' is Ithmar.'   span win[6..11]
+    noted/n_ithmar    ' My name is Ithmar.' -> ' is Ithmar.'   span win[6..11]
+    sure/n_iyandel    ' My name is Iyandel.' -> ' is Iyandel.' span win[6..11]
+    sure/n_orvynn     ' My name is Orvynn.' -> ' is Orvynn.'   span win[6..12]
+  Firing anatomy at 0.5: fully inside the value span 0, starts in the value span 0, covers the value
+  span 5, partially overlapping 5, DISJOINT (reproduced the template) 0. At 0.75 and 1.0 the same 5
+  fire, 4 cover the value span, and ONE is DISJOINT - a template firing, which the pre-registration
+  (A5) makes a FAILURE and reports as such. VERDICT (A4, A5, A8): the headline instrument gains
+  nothing at any floor, and it fails the template-firing criterion at the two generalisation floors.
+  This is the decisive negative the pre-registration said would close the question.
+
+MEASURED - THE FITTED VARIANT (mode 2, anchor DROPPED). EVERY NUMBER IN THIS SECTION IS FITTED.
+  floor  baseline   exact        gained  lost  fired  template-disjoint
+  0.5    72/84      77/84 .9167  5       0     5/84   0
+  0.75   72/84      76/84 .9048  4       0     5/84   1
+  1.0    71/84      75/84 .8929  4       0     5/84   1
+  Floor 0.5: Wilson [0.8378, 0.9590], delta +5 = +6.0 %, exact McNemar 5 vs 0 p=0.0625, Newcombe
+  95 % [-0.0391, +0.1594] CONTAINS ZERO: a better point estimate, NOT an improvement (>= 6 net gained
+  would be needed on 84 cells). The 5 gained cells: natural/n_ithmar, sure/n_ithmar, noted/n_ithmar,
+  sure/n_iyandel, sure/n_orvynn; every one goes ' My name is X.' -> ' X.' (spans win[7..11] and, for
+  orvynn, win[7..12]); no cell goes exact -> not-exact. At 0.75/1.0 the same cells except
+  sure/n_orvynn are gained (sure/n_orvynn stays non-exact there), with one template firing per floor.
+  The fitted variant therefore improves the point estimate at all three floors with zero losses, but
+  it is not significant, it does not generalise cleanly (a template firing appears at two of the
+  three floors), and its one convention - dropping the re-acquisition anchor - is fitted to the same
+  five cells it recovers. It tells us a read-out could in principle recover these cells; it is not
+  evidence that span extraction works.
+
+MEASURED - THE BROAD CONTROL (mode 3, any run, anchor kept), floor 0.5
+  70/84 = 0.8333, Wilson [0.7395, 0.8980], delta -2, gained 0, lost 2 (natural/n_candrake,
+  natural/n_kelbrin), McNemar 0 vs 2 p=0.5, Newcombe [-0.1348, +0.0874]; fired 82/84; anatomy:
+  inside 26, starts in the value span 71, covers 54, partial 53, DISJOINT 3 (natural/n_therrick
+  win[26..27] " What is", noted/n_iyandel win[18..21] " Noted.", noted/n_therrick win[18..21]
+  " Noted."). The five currently-exact cells this control truncates, by name, as required by A8:
+  natural/n_candrake  ' Candrake.' -> ' Candr'    LOST
+  natural/n_kelbrin   ' Kelbrin.'  -> ' Kelbr'    LOST
+  natural/n_pellum    ' Pellum.'   -> ' Pellum'   still exact
+  noted/n_harrowen    ' Harrowen.' -> ' Harrowen' still exact
+  noted/n_pellum      ' Pellum.'   -> ' Pellum'   still exact
+  So removing the mid-reply gate destroys 2 exact cells and produces 3 template firings: the gate is
+  load-bearing, measured, not a convenience.
+
+WHY THE MID-REPLY GATE IS SAFE HERE (measured before the runs, from the sealed traces)
+  A structural scan of the sealed idstop3 traces found EXACTLY 5 of 84 cells with a mid-reply
+  pointer-locked run of at least 2 ids, and they are exactly the 5 class-C cells; their runs are
+  window[6..11] (four cells) and window[6..12] (orvynn). No currently-exact cell has a mid-reply run
+  of length >= 2 (four exact cells have length-1 mid-reply runs). The runs confirm it independently:
+  mode 1 and mode 2 fire on exactly those 5 cells at all three floors. A mid-reply-only rule
+  therefore cannot touch the other 79 cells by construction.
+
+EVIDENCE DISCIPLINE (all on the laptop CPU; the four sealed scorer scripts unchanged)
+  A1 DEFAULT PROVEN: the rule-off runs of all three arms x 3 conditions (9 files, 288 records) are
+     field-for-field identical to the sealed references -
+     `python3 scripts/idstop-compare-records.py <sealed=default> x9` -> SEALED-COMPARE PASS,
+     0 differing fields, 0 missing, 0 added records.
+  A2 PARSER CHECK FIRST: `python3 scripts/idstop-score.py check` -> PARSER-CHECK PASS, arm-ptr 35/84
+     with channels 0.5149/0.8351/0.5610/0.4901, arm-a-w05 10/84, arm-c-ctrl 24/84, run before any
+     new number was believed.
+  A3 IMPLEMENTATION WITNESS AT THE BASELINE: the rule-off run at the 72/84 configuration reproduces
+     the sealed idstop3 trace run field-for-field (3 files, 96 records, 0 differing fields,
+     SEALED-COMPARE PASS), 2x2 20/3/52/9 and 72/84.
+  REPLAY WITNESS: the offline replay of the rule over each record's own reply_trace (new script
+     scripts/idstop-span-extract.py, mode `replay`) reproduces the binary's decision on 84/84 cells
+     AND its reply ids on 84/84 cells, in every measured configuration: mode1-f0.5 (mid/kept),
+     mode2-f0.5 (mid/dropped), mode3-f0.5 (any/kept), mode1-f0.75, mode1-f1.0, mode2-f0.75,
+     mode2-f1.0. The cross-checks (a different rule replayed on the same file) disagree as they must,
+     so the check discriminates. "reply == the window slice the span names: OK" in all five files.
+  FOCUSED RUST TESTS: three new tests in `cargo test -p uor-r4-training --lib span_extract` pass
+     (rule semantics with the four combinations, default-off refusal, decoder-equals-rule).
+     They caught a real bug: the first build dropped a locked run that ended on a non-locked step, so
+     the first pod run fired 0/84 on a trace that plainly has a mid-reply run (binary 02d136cb...);
+     the fix is in this round's patch and every number above is from the fixed binary f8bb8c47....
+  Scorer scripts: the four scripts on main are UNCHANGED. One new script,
+     scripts/idstop-span-extract.py, holds the span/template classification, the replay and a strict
+     both-ways field comparison.
+
+WHAT THIS CLOSES AND WHAT IT DOES NOT
+  1. CLOSED (negative): span extraction in its natural reading does not recover the class-C cells.
+     The pointer's own lock starts at the copula " is", one id before the value, in all five cells.
+  2. The fitted variant's +5/84 and +4/84 are better point estimates only; none is significant, and
+     the template firing at floors 0.75/1.0 is a reported failure of the same criterion the headline
+     failed there.
+  3. The 4 class-A cells (value never emitted) remain untouched by any serving-time read-out, as the
+     classification said.
+  4. NOT measured: other panels, non-greedy decoding, other arms for the rule, any integer/D11 port
+     (export still refuses a pointer with an identity term).
+  5. INFERRED, not measured: that a read-out using an independent marker of where the value begins
+     (none was found in the pointer's own selection on this panel) is what would be needed; the
+     anchor's position carries no other signal - attention, floored gate and raw gate at the
+     re-acquisition step do not separate it from the value's first token in all five cells.
+
+ARTIFACTS
+  Pod, volume /workspace/uor-r4/deepseek/term-weight/bindprobe/span-extract/ (rfsx702p68):
+    bind-probe-exact-span            the binary, sha256 f8bb8c47696d10f8d8c593df3761ce59f65967875bd11b49380d41bda19a8117
+    off/         3 sealed-configuration rule-off runs
+    mode1/       9 runs (mid/kept, floors 0.5/0.75/1.0)
+    mode2/       9 runs (mid/dropped, floors 0.5/0.75/1.0; 0.75/1.0 exploratory)
+    mode3/       3 runs (any/kept, floor 0.5)
+    default/     9 runs (three arms, floor 0, every rule off)
+    build/binary.sha256
+  Git: the driver, the library read-out, the new scorer and this file (see the round's PR).
+  Reproduce: the four scripts as documented in the idstop3 evidence file, plus
+    python3 scripts/idstop-span-extract.py --work <mirror> score  mode1-f0.5 mode2-f0.5 mode3-f0.5
+    python3 scripts/idstop-span-extract.py --work <mirror> replay mode1-f0.5 mode2-f0.5 mode3-f0.5

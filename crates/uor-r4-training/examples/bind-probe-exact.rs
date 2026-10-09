@@ -9,6 +9,7 @@
 //!   [device=cpu|cuda|metal] [protocol=2] [max_new_tokens=40]
 //!   [pointer_gate_floor=F] [pointer_copy_stop=MIN_SPAN]
 //!   [pointer_copy_stop_identity=1] [copy_trace=1]
+//!   [pointer_span_extract=0|1|2|3] [pointer_span_min=N]
 //! ```
 //!
 //! `pointer_gate_floor=F` (default 0) is the serving-time copy-gate floor of
@@ -54,7 +55,7 @@ use uor_r4_tokenizer::ByteBpeTokenizer;
 use uor_r4_training::binding_probe::{
     disjoint, phrase_positions, token_byte_ranges, words, Evidence, SPAN_KINDS, TAU,
 };
-use uor_r4_training::geometric_stack::{CopyStop, StackModel};
+use uor_r4_training::geometric_stack::{CopyStop, SpanExtract, StackModel};
 use uor_r4_training::stack_dialogue::greedy_reply;
 
 type Error = Box<dyn std::error::Error>;
@@ -120,6 +121,8 @@ fn run() -> Result<(), Error> {
             "pointer_copy_stop",
             "pointer_copy_stop_identity",
             "copy_trace",
+            "pointer_span_extract",
+            "pointer_span_min",
         ],
     )?;
     let required = |key: &str| -> Result<String, Error> {
@@ -144,6 +147,10 @@ fn run() -> Result<(), Error> {
         .get("pointer_copy_stop_identity")
         .map_or(Ok(0), |v| v.parse())?;
     let copy_trace: u8 = args.get("copy_trace").map_or(Ok(0), |v| v.parse())?;
+    let span_extract: u8 = args
+        .get("pointer_span_extract")
+        .map_or(Ok(0), |v| v.parse())?;
+    let span_min: usize = args.get("pointer_span_min").map_or(Ok(2), |v| v.parse())?;
     let device_name = args.get("device").map(String::as_str).unwrap_or("cpu");
     let device: Device = uor_r4_training::baseline_protocol::device(device_name)?;
     candle_core::cuda::set_gemm_reduced_precision_f32(false);
@@ -162,6 +169,17 @@ fn run() -> Result<(), Error> {
             CopyStop::new(copy_stop_min_span)
         };
         model.set_pointer_copy_stop(Some(rule))?;
+    }
+    // `pointer_span_extract`: 0 off (the default), 1 mid-reply runs with the
+    // anchor kept (the headline), 2 mid-reply runs with the anchor dropped
+    // (the fitted variant), 3 any run with the anchor kept (the broad
+    // control). A rule is a read-out change only; flag 0 sets nothing and adds
+    // no field to any record, so a rule-off run is the sealed schema exactly.
+    if span_extract > 0 {
+        let rule = SpanExtract::from_flag(span_extract, span_min).ok_or(
+            "unknown pointer_span_extract mode (0 off, 1 mid/kept, 2 mid/dropped, 3 any/kept)",
+        )?;
+        model.set_pointer_span_extract(Some(rule))?;
     }
     let rows: Vec<Value> = serde_json::from_slice(&fs::read(&rows_path)?)?;
     let eos = protocol.eos_id;
@@ -310,6 +328,7 @@ fn run() -> Result<(), Error> {
         // The rule's own account of the span it stopped at, if it fired, and
         // the pointer's selection at every step when a trace was asked for.
         let copy_stop = reply.copy_stop;
+        let span_report = reply.span_extract;
         let trace_value = if copy_trace > 0 {
             serde_json::to_value(&reply.trace)?
         } else {
@@ -323,7 +342,7 @@ fn run() -> Result<(), Error> {
                 .filter(|&i| i != eos)
                 .collect::<Vec<u32>>(),
         );
-        records.push(json!({
+        let mut record = json!({
             "id": id,
             "turn1_reply": pinned,
             "turn1_ids": turn1_ids,
@@ -363,26 +382,47 @@ fn run() -> Result<(), Error> {
                 "gate": report.gate,
                 "raw_gate": report.raw_gate,
             })),
-        }));
+        });
+        // The field is written only when the rule is enabled, so a rule-off
+        // record is the sealed schema exactly, with nothing added.
+        if span_extract > 0 {
+            record["span_extract"] = span_report
+                .map(|report| {
+                    json!({
+                        "window_index": report.window_index,
+                        "anchor": report.anchor,
+                        "extracted": report.extracted,
+                        "run_start_step": report.run_start_step,
+                        "run_steps": report.run_steps,
+                        "dropped_prefix": report.dropped_prefix,
+                    })
+                })
+                .unwrap_or(Value::Null);
+        }
+        records.push(record);
     }
-    fs::write(
-        &out,
-        serde_json::to_vec_pretty(&json!({
-            "schema": "uor-r4.bind-probe-exact/1",
-            "model": model_dir.display().to_string(),
-            "parameters": model.parameter_count(),
-            "rows_path": rows_path.display().to_string(),
-            "tau": TAU,
-            "device": device_name,
-            "protocol": version,
-            "max_new_tokens": max_new_tokens,
-            "pointer_gate_floor": gate_floor,
-            "pointer_copy_stop": if copy_stop_min_span >= 2 { json!(copy_stop_min_span) } else { Value::Null },
-            "pointer_copy_stop_identity": if copy_stop_min_span >= 2 && copy_stop_identity > 0 { json!(1) } else { Value::Null },
-            "copy_trace": copy_trace > 0,
-            "records": records,
-        }))?,
-    )?;
+    let mut head = json!({
+        "schema": "uor-r4.bind-probe-exact/1",
+        "model": model_dir.display().to_string(),
+        "parameters": model.parameter_count(),
+        "rows_path": rows_path.display().to_string(),
+        "tau": TAU,
+        "device": device_name,
+        "protocol": version,
+        "max_new_tokens": max_new_tokens,
+        "pointer_gate_floor": gate_floor,
+        "pointer_copy_stop": if copy_stop_min_span >= 2 { json!(copy_stop_min_span) } else { Value::Null },
+        "pointer_copy_stop_identity": if copy_stop_min_span >= 2 && copy_stop_identity > 0 { json!(1) } else { Value::Null },
+        "copy_trace": copy_trace > 0,
+        "records": records,
+    });
+    // The rule is named in the head only when it was enabled, so a rule-off
+    // file keeps the sealed head as well as the sealed record schema.
+    if span_extract > 0 {
+        head["span_extract"] = json!(span_extract);
+        head["span_extract_min"] = json!(span_min);
+    }
+    fs::write(&out, serde_json::to_vec_pretty(&head)?)?;
     println!("{} rows -> {}", rows.len(), out.display());
     Ok(())
 }

@@ -330,6 +330,7 @@ fn greedy_reply_with_head(
         trace: Vec::new(),
         stopped_at: None,
         copy_stop: None,
+        span_extract: None,
     })
 }
 

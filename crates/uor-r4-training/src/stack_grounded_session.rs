@@ -1099,6 +1099,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
                 trace: Vec::new(),
                 stopped_at: None,
                 copy_stop: None,
+                span_extract: None,
             };
             self.validate_reply(&reply)?;
             let text_end = reply.ids.len() - usize::from(eos);
@@ -1705,6 +1706,7 @@ mod tests {
                     trace: Vec::new(),
                     stopped_at: None,
                     copy_stop: None,
+                    span_extract: None,
                 })
             })
             .expect("controlled leading-space reply");
@@ -1787,6 +1789,7 @@ mod tests {
                     trace: Vec::new(),
                     stopped_at: None,
                     copy_stop: None,
+                    span_extract: None,
                 })
             })
             .expect("legacy reply");
@@ -1822,6 +1825,7 @@ mod tests {
                     trace: Vec::new(),
                     stopped_at: None,
                     copy_stop: None,
+                    span_extract: None,
                 })
             })
             .expect("fixture turn")
@@ -2671,6 +2675,7 @@ mod tests {
                         trace: Vec::new(),
                         stopped_at: None,
                         copy_stop: None,
+                        span_extract: None,
                     })
                 })
                 .is_err()

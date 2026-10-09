@@ -34,7 +34,8 @@ use crate::dialogue_episodes::{
 };
 use crate::geometric_stack::{
     CopyStopReport, CopyStopRun, CopyTraceStep, PointerRowStats, ReadSupervisionGroup,
-    ReadSupervisionRow, ReadSupervisionTarget, StackModel, TargetScores,
+    ReadSupervisionRow, ReadSupervisionTarget, SpanExtract, SpanExtractAnchor, SpanExtractReport,
+    StackModel, TargetScores,
 };
 use crate::reference_eval::short_cycle_period_with;
 use crate::{invalid, Result};
@@ -758,9 +759,16 @@ pub struct Reply {
     /// historical decoder.
     pub stopped_at: Option<usize>,
     /// The pointer's own selection at every step of the reply, when the model
-    /// was asked for a copy trace ([`StackModel::set_pointer_copy_trace`]);
-    /// empty under the historical decoder.
+    /// was asked for a copy trace ([`StackModel::set_pointer_copy_trace`]) or
+    /// carries a span-extraction rule ([`StackModel::set_pointer_span_extract`],
+    /// which reads this trace); empty under the historical decoder.
     pub trace: Vec<CopyTraceStep>,
+    /// The span the serving-time span-extraction rule emitted, when one did
+    /// ([`StackModel::set_pointer_span_extract`]); `None` under the default
+    /// decoder, under the copy stop alone, and whenever no pointer-locked run
+    /// qualified. When it is `Some`, `ids` is exactly the emitted span and the
+    /// id that ends a reply (`eos`) is not part of it.
+    pub span_extract: Option<SpanExtractReport>,
 }
 
 impl Reply {
@@ -790,8 +798,15 @@ impl Reply {
     }
 
     /// How the reply stopped: `"eos"`, `{"short_cycle": period}`,
-    /// `{"pointer_copy": span}` or `"max_new_tokens"`.
+    /// `{"pointer_copy": span}`, `{"pointer_span": {...}}` or
+    /// `"max_new_tokens"`.
     pub fn stop_record(&self) -> Value {
+        if let Some(report) = self.span_extract {
+            return json!({"pointer_span": {
+                "extracted": report.extracted,
+                "window_index": report.window_index,
+            }});
+        }
         match (self.eos, self.cycle, self.copy_stop) {
             (true, _, _) => json!("eos"),
             (false, Some(period), _) => json!({"short_cycle": period}),
@@ -953,7 +968,10 @@ pub fn greedy_reply_with_copy_stop(
     eos: u32,
     cycle_repeats: usize,
 ) -> Result<Reply> {
-    let trace = model.pointer_copy_trace();
+    let span_extract = model.pointer_span_extract();
+    // The span rule reads the same per-step selection the trace records, so a
+    // model that asks for one gets the steps even when no trace was asked for.
+    let trace = model.pointer_copy_trace() || span_extract.is_some();
     if model.pointer_copy_stop().is_none() && !trace {
         return greedy_reply_plain(model, history, cap, eos, cycle_repeats);
     }
@@ -1003,6 +1021,7 @@ pub fn greedy_reply_with_copy_stop(
                     copy_stop: Some(report),
                     stopped_at: None,
                     trace: Vec::new(),
+                    span_extract: None,
                 })
         });
         if let Some(mut reply) = stopped {
@@ -1023,17 +1042,49 @@ pub fn greedy_reply_with_copy_stop(
                 step
             });
             reply.trace = steps;
+            apply_span_extract(&mut reply, span_extract, eos);
             return Ok(reply);
         }
     }
-    Ok(Reply {
+    let mut reply = Reply {
         ids,
         eos: false,
         cycle: None,
         copy_stop: None,
         stopped_at: Some(cap.saturating_sub(1)),
         trace: steps,
-    })
+        span_extract: None,
+    };
+    apply_span_extract(&mut reply, span_extract, eos);
+    Ok(reply)
+}
+
+/// Replace a decoded reply by the span its model's span-extraction rule
+/// selected ([`StackModel::set_pointer_span_extract`]), when one qualified.
+/// The reply's own trace is the rule's input, so the reply must come from
+/// [`greedy_reply_with_copy_stop`]. A rule that finds no run leaves the reply
+/// untouched, field for field: this is the only place a reply changes, and
+/// with no rule set it is never called.
+fn apply_span_extract(reply: &mut Reply, rule: Option<SpanExtract>, eos: u32) {
+    let Some(rule) = rule else {
+        return;
+    };
+    let Some(report) = rule.find(&reply.trace, eos) else {
+        return;
+    };
+    let run = &reply.trace[report.run_start_step..report.run_start_step + report.run_steps];
+    let skip = match rule.anchor {
+        SpanExtractAnchor::Kept => 0,
+        SpanExtractAnchor::Dropped => 1,
+    };
+    // The emitted span is exactly the ids the locked run emitted after the
+    // anchor, and each of them is the window id at its own selected source.
+    reply.ids = run[skip..].iter().map(|step| step.id).collect();
+    reply.eos = false;
+    reply.cycle = None;
+    reply.copy_stop = None;
+    reply.stopped_at = Some(report.run_start_step + report.run_steps - 1);
+    reply.span_extract = Some(report);
 }
 
 /// The historical greedy loop: the highest score (ties to the lower id) until
@@ -1074,6 +1125,7 @@ fn greedy_reply_plain(
         copy_stop: None,
         stopped_at: Some(cap.saturating_sub(1)),
         trace: Vec::new(),
+        span_extract: None,
     })
 }
 
