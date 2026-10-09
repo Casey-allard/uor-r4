@@ -1,0 +1,59 @@
+{
+  "archive_sha256": "cadca406a43c6f1b59ca064c36013ea161c0ce25af7c844691b474d5fa91ed3b",
+  "bytes": 56651,
+  "files": 10,
+  "scope": "Entire new analysis workspace off pod; large scientific inputs separately preserved by #2023 private-store receipts",
+  "members": [
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/attempt5/manifest.json",
+      "bytes": 467,
+      "sha256": "e9f606791729acd23f72fa15460a5047255854ddd43f97fc5296e41950e655ce"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/attempt5/report.json",
+      "bytes": 98938,
+      "sha256": "84c9ab92afd8ddc4790710c22bea60f90be742c60f228ef07875341ab059717f"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/attempt5/attempt.json",
+      "bytes": 332,
+      "sha256": "22305bce1ca40e2463302de4c1410977cc3a1277ad0562683df32ac570325f30"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/analyze_saved_attempt4.py",
+      "bytes": 11552,
+      "sha256": "a72f227762dbdf7d6f58a50308246d331a2be41ec23a228f81c2ea458ac39843"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/analyze_saved_attempt3.py",
+      "bytes": 10051,
+      "sha256": "d42bb00d61585941e5bdc2bec673086a0a346286002e4627bf7e336ee70b21f2"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/attempt3/report.json",
+      "bytes": 96157,
+      "sha256": "0f4bbe04e8c1feff664ee60afde0412b675f12e20e9b9ecef9faf32a8a06806a"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/analyze_saved_attempt2.py",
+      "bytes": 10094,
+      "sha256": "8887b9e33a99e93b61319d60061d9a713b79660c9953672ec871a2549d363497"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/analyze_saved_attempt1.py",
+      "bytes": 9639,
+      "sha256": "82d152fb2769cfe2efdee960dc97d9bb0b0f2aaa5c324e1bab7d45cd24547cf2"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/resource-ledger.json",
+      "bytes": 1383,
+      "sha256": "55865698fabe40a84131c75faf37b5159695ffd49e4305430876255f8dc13c72"
+    },
+    {
+      "path": "sol-coupled-residual-mechanism-20261009/analyze_saved.py",
+      "bytes": 11573,
+      "sha256": "29b4f2d73b590e3ac4f9bdafffe5b4980461534339de0312755136c05ab8f426"
+    }
+  ],
+  "complete_remote_member_sha256_comparison": "PASS"
+}

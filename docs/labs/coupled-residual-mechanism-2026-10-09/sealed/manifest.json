@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "blake3": "bc22a6b927fe6f62084be7235074716f5f1084296591dc5bf849b7fd1e8b8735",
+      "bytes": 332,
+      "path": "attempt.json"
+    },
+    {
+      "blake3": "1b34db76a405f1f44f1376e7f1a1e4263d8d89407f5ee46ce714e30b5a582170",
+      "bytes": 98938,
+      "path": "report.json"
+    }
+  ],
+  "root": "/workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/attempt5",
+  "schema": "uor-r4.report-manifest/1",
+  "sealed_at": "1791557088"
+}

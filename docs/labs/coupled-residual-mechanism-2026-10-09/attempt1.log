@@ -1,0 +1,13 @@
+# uor-pod job by=codex/sol-residual-20261009 pod=6m3tbmf40c27rk gpu=0 queued 2026-10-09T14:37:30Z
+# cmd: taskset -c 0,1 python3 /workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/analyze_saved.py /workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-export-completion-0001-attempt3 /workspace/uor-r4/codex/sol-intermediate-word-boundary/publications/runtime-76e10b53f7-attempt2/native-reached-prefix-attribution /workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/attempt1
+# start 2026-10-09T14:37:30Z (holding /root/gpu0.lock)
+Traceback (most recent call last):
+  File "/workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/analyze_saved.py", line 155, in <module>
+    if __name__=='__main__':main()
+                            ^^^^^^
+  File "/workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/analyze_saved.py", line 139, in main
+    require(current==journal['summary']['final']==report['candidate_objective'], 'journal selected endpoint matches native report')
+  File "/workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/analyze_saved.py", line 31, in require
+    raise ValueError(reason)
+ValueError: journal selected endpoint matches native report
+# exit=1 end=2026-10-09T14:37:50Z

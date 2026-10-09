@@ -1,5 +1,14 @@
 # Current UOR-R4 research state
 
+## Coupled residual attribution selects an interaction preflight — October 9
+
+The [saved residual diagnosis](../labs/coupled-residual-mechanism-2026-10-09/README.md) examines all 391 completed native snapshots and all 14,292 recorded alternatives without new model/gradient/proposal work. Positions 7, 8, 9, 10 and 13 never win in those alternatives at their original incumbent epochs. EOS wins 33 times: 26 fail strict combined CE descent, seven first-veto on original guard 299, zero reference failures; none are feasible. No recorded feasible alternative exceeds 9/15. This is a finite-pass boundary, not global infeasibility.
+
+The six current post states are unique among the 391 snapshots; copied targets and rivals have seven/eight distinct Prefix lanes. Shared-parameter capacity and Generate relative-key separation are unproven. The explicit source-bound score split shows EOS base Generate already favors EOS by 24,117,248 Q24, but frozen U contributes −25,165,824, leaving −1,048,576 against its Generate rival. Period is instead beaten by a Copy alias despite its favorable pairwise Generate gap. No residual winner changes due to clipping.
+
+Source review identifies existing ordered Generate pair coefficients, frozen by the Prefix/unary constructor, as a distinct possible shared interaction. **Next after verified delivery/cleanup:** use the saved artifact-bound pair-incidence and protected-sharing preflight specified in the linked report, including the exact incumbent state of EOS guard-299 vetoes. Do not launch pair learning from key distinctness alone or repeat the old pass. Original selection, complete episode and 17/380 protection remain; actual whole-answer improvement is NOT_RUN. Final saved analysis passes Rust claim/seal/verification in 17.6585 seconds at 295,880 KiB RSS; tool failures and cumulative costs are retained. Codex released its pod lease; the shared pod remains with DeepSeek's verified active job.
+
+
 ## Coupled saved constructor recovered; native reload and independent audit complete — October 9
 
 The [coupled export recovery record](../labs/coupled-export-recovery-2026-10-09/README.md) restores five retained learner paths from the source archive on main. Execution source `a6be8f699eef3841a1a4dd7a51faefc06d83dd7c` repairs exclusive Prefix publication: the generic intermediate is retained, the rebound artifact is saved to a fresh directory, and the strict library save contract remains unchanged. All 116 focused example tests and the optimized CUDA-feature build passed. This supersedes the earlier pending export/reload entry below.

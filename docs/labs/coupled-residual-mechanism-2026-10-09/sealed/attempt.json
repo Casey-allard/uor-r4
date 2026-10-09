@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "/workspace/uor-r4/codex/sol-prefix-margin-boundary/claim-report",
+    "/workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/attempt5"
+  ],
+  "claimed_at": "1791557070",
+  "pid": 139725,
+  "rule": "exclusively created before model work; never reused for a retry",
+  "schema": "uor-r4.report-attempt/1"
+}

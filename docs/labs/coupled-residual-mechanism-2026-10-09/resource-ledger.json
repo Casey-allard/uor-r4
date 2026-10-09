@@ -1,0 +1,32 @@
+{
+  "status": "ANALYSIS_COMPLETE_PENDING_MAIN",
+  "started_utc": "2026-10-09T14:37:27.294272+00:00",
+  "previous_ledger": "/workspace/uor-r4/codex/sol-coupled-episode-learning/resource-ledger.json",
+  "previous_cumulative_projected_seconds": 591270,
+  "increment_seconds": 3600,
+  "cumulative_projected_seconds": 594870,
+  "reason": "New saved residual feature and journal causal question after protected delivery; preparation analysis and delivery included",
+  "cpu_threads": 2,
+  "ram_bytes": 2147483648,
+  "new_storage_bytes": 134217728,
+  "stop_margin_bytes": 134217728,
+  "cumulative_new_retained_cap_bytes": 8498708480,
+  "storage_extension": 0,
+  "previous_actual_task_bytes": 3437579427,
+  "source_commit": "a9d5a916c",
+  "work_card": "https://github.com/UOR-Foundation/uor-r4/issues/820#issuecomment-6083040639",
+  "new_model_compute": false,
+  "legacy_local_ledger": "ABSENT_NO_RESET_USE_RETAINED_POD_LEDGER",
+  "own_lease": "RELEASED",
+  "final_analysis_seconds": 17.658458456397057,
+  "final_peak_rss_kib": 295880,
+  "attempts": {
+    "1": "FAILED_DERIVED_PHASE_SCHEMA_20S_JOB",
+    "2": "FAILED_LAUNCH_CWD_GIT_18S_JOB",
+    "3": "NUMERIC_PASS_18.3295S_PRE_REVIEW_UNSEALED",
+    "4": "SYNTAX_FAILURE_BEFORE_CLAIM",
+    "5": "PASS_RUST_CLAIM_SEAL_VERIFY_17.6585S"
+  },
+  "updated_utc": "2026-10-09T14:46:48.858253+00:00",
+  "elapsed_since_admission_seconds": 561.563981
+}

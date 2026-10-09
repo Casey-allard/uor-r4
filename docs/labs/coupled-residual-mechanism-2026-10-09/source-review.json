@@ -1,0 +1,36 @@
+{
+  "reviewer": "/root/emission_engineering",
+  "role": "source-only engineering review; no independent model execution",
+  "initial_findings": [
+    {
+      "finding": "native.generate_q24 includes U",
+      "disposition": "Separate Generate+U, frozen U and base Generate fields; source arithmetic and final table checked"
+    },
+    {
+      "finding": "Join saved native denominator directly to journal",
+      "disposition": "Final phase comparison now uses native_total_mass, not the journal value on both sides"
+    },
+    {
+      "finding": "Use normative Rust report output claim, seal and verify",
+      "disposition": "Attempt5 uses pinned existing Rust tools and terminal verification PASS"
+    }
+  ],
+  "next_mechanism_review": {
+    "scope": "Existing native factor_incidence_into API and Rust Generate pair training path; source inspection only",
+    "relative_key": "product[(inverse[state_lane] << 7) | prototypes[token*8+lane]]",
+    "pair_local_index": "edge*14400 + relative[left]*120 + relative[right]",
+    "native_factor_index": "960 + pair_local_index",
+    "required_checks": [
+      "actual ordered edge list and all legal IDs",
+      "unary versus pair signed key multiplicities",
+      "protected population sharing",
+      "guard299 exact identity and earlier incumbent donor state",
+      "separate original selected initializer from final negative endpoint"
+    ],
+    "limits": [
+      "No model, scoring, gradients, proposals or resource lease by reviewer",
+      "Distinct keys do not establish feasible all-pool correction",
+      "No automatic pair training authorization"
+    ]
+  }
+}

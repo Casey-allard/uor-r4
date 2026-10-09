@@ -1,0 +1,7 @@
+# uor-pod job by=codex/sol-residual-20261009 pod=6m3tbmf40c27rk gpu=0 queued 2026-10-09T14:44:07Z
+# cmd: taskset -c 0,1 python3 /workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/analyze_saved.py /workspace/uor-r4/codex/sol-coupled-episode-learning/runs/coupled-export-completion-0001-attempt3 /workspace/uor-r4/codex/sol-intermediate-word-boundary/publications/runtime-76e10b53f7-attempt2/native-reached-prefix-attribution /workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/attempt4
+# start 2026-10-09T14:44:07Z (holding /root/gpu0.lock)
+  File "/workspace/uor-r4/codex/sol-coupled-residual-mechanism-20261009/analyze_saved.py", line 137
+    key=str(alt['first_failure']['guard_index'])
+IndentationError: unexpected indent
+# exit=1 end=2026-10-09T14:44:07Z
