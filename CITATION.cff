@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software or its recorded results, please cite it as below."
+title: "UOR-R4 Geometric Language Model"
+type: software
+version: "pre-alpha"
+date-released: 2026-10-09
+license: MIT
+repository-code: "https://github.com/UOR-Foundation/uor-r4"
+url: "https://uor-foundation.github.io/uor-r4/"
+authors:
+  - family-names: Allard
+    given-names: Casey
+  - name: "UOR Foundation"
+keywords:
+  - language model
+  - geometric deep learning
+  - quaternion
+  - multiplier-free inference
+  - exact addressed memory
+  - Rust
+abstract: >-
+  UOR-R4 is an experimental autoregressive language model written in Rust that
+  asks whether geometry (R4/S3/H4 quaternion state and transport, prime
+  addressing, exact Z[phi] arithmetic and fixed zeta-zero phases) can replace a
+  transformer's run-time machinery. Training is offline Rust; serving uses
+  integer and table lookups with no floating point and no multiplier
+  instruction. The project is pre-alpha: no model holds a useful conversation
+  yet, and the repository records both positive and negative measured results.

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">UOR-R4 architecture overview</title>
+<desc id="d">Two separately built lines, a geometric-stack language model trained and exported to a lookup artifact, and a native geometric learner with an exact addressed store, are meant to join in one served model under the D11 rules (no float, no multiplier, no transformer). Served through a CLI, a local API and a WASM Studio. Both lines sit on a shared geometry layer. Status is marked on every box; the join is not done.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<rect x="0.5" y="0.5" width="1199" height="899" rx="16" fill="#FFFFFF" stroke="#D0D7DE"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start" >UOR-R4 Geometric Language Model: architecture</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start" >Pre-alpha, 9 Oct 2026. Two lines are built separately and meant to join as one served model (milestone M4, not done).</text>
+<text x="40" y="118" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start" >LINE A  Geometric stack LM</text>
+<text x="40" y="264" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start" >LINE B  Native geometric learner</text>
+<rect x="40" y="130" width="230" height="110" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Data &amp; tokenizer</text>
+<text x="54" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >byte-BPE (#1017), SmolLM /</text>
+<text x="54" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >SmolTalk / memory dialogue</text>
+<rect x="54" y="210" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.2" y="225" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="320" y="130" width="250" height="110" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="334" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Geometric-stack training</text>
+<text x="334" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >CUDA, bf16. 214M base dev NLL</text>
+<text x="334" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >2.073; 19.9M chat 0.933 BPB</text>
+<rect x="334" y="210" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="368.2" y="225" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="620" y="130" width="210" height="110" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="634" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Export (.lut)</text>
+<text x="634" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >UORLUT01, d11 oracle tests</text>
+<rect x="634" y="210" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="668.2" y="225" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M270,185 L320,185" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M570,185 L620,185" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="40" y="276" width="230" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="54" y="302" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Compiler</text>
+<text x="54" y="323" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >count-fitted H4 / zeta-phase</text>
+<text x="54" y="339" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >tables</text>
+<rect x="54" y="356" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="113.4" y="371" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="320" y="276" width="250" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="334" y="302" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Exact addressed store</text>
+<text x="334" y="323" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >durable memory, addressed</text>
+<text x="334" y="339" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >attention</text>
+<rect x="334" y="356" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="393.4" y="371" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="620" y="276" width="210" height="110" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="634" y="302" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Emitter</text>
+<text x="634" y="323" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >8 of 512 replies complete</text>
+<rect x="634" y="356" width="68" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="668.2" y="371" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<path d="M270,331 L320,331" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M570,331 L620,331" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="900" y="130" width="260" height="256" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="914" y="156" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >One served model</text>
+<text x="914" y="177" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >D11: no float, no multiplier, no</text>
+<text x="914" y="193" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >transformer. Today: the stack is</text>
+<text x="914" y="209" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >served; the native learner is</text>
+<text x="914" y="225" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >served separately. The join of A</text>
+<text x="914" y="241" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >and B is not done.</text>
+<rect x="914" y="356" width="68" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="948.2" y="371" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<path d="M830,185 L900,185" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M830,331 L900,331" fill="none" stroke="#424A53" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ah)"/>
+<text x="865" y="318" font-size="11.5" font-weight="700" fill="#424A53" text-anchor="middle" >join: M4</text>
+<path d="M1030,386 L1030,408 L985,408 L985,430" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1030,408 L615,408 L615,430" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M615,408 L230,408 L230,430" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="40" y="430" width="380" height="110" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="54" y="456" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >CLI: uor-chat --stack</text>
+<text x="54" y="477" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >serves the .lut stack (PR #2050); greedy only</text>
+<rect x="54" y="510" width="68" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="88.2" y="525" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<rect x="440" y="430" width="350" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="454" y="456" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Local API: r4-native-chat</text>
+<text x="454" y="477" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >native learner only</text>
+<rect x="454" y="510" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="513.4" y="525" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="810" y="430" width="350" height="110" rx="10" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
+<text x="824" y="456" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >WASM Studio (Pages)</text>
+<text x="824" y="477" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >runs the older R4G1 router, not the native or</text>
+<text x="824" y="493" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >stack model</text>
+<rect x="824" y="510" width="61" height="22" rx="11" fill="#57606A" stroke="#57606A" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="854.6" y="525" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">FROZEN</text>
+<rect x="40" y="560" width="1120" height="260" rx="14" fill="#F6F8FA" stroke="#D0D7DE"/>
+<text x="60" y="588" font-size="16" font-weight="700" fill="#1F2328" text-anchor="start" >Shared geometry layer</text>
+<text x="300" y="588" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >Priority is architectural; a measured advantage over a plain recurrence is not established.</text>
+<rect x="60" y="606" width="204" height="130" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="74" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Prime / UOR</text>
+<text x="74" y="651" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >addressing</text>
+<text x="74" y="672" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >where data lives; prime-</text>
+<text x="74" y="688" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >route memory port</text>
+<rect x="74" y="706" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="133.4" y="721" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="276" y="606" width="204" height="130" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="290" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Zeta phases</text>
+<text x="290" y="653" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >fixed positional phases;</text>
+<text x="290" y="669" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >line B tables</text>
+<rect x="290" y="706" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="349.4" y="721" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="492" y="606" width="204" height="130" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="506" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >R4/S3 quaternion</text>
+<text x="506" y="651" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >state</text>
+<text x="506" y="672" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >state and transport; the</text>
+<text x="506" y="688" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >stack recurrence</text>
+<rect x="506" y="706" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="540.2" y="721" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="708" y="606" width="204" height="130" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="722" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >H4 / icosian, E8 =</text>
+<text x="722" y="651" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >H4 ⊕ φH4</text>
+<text x="722" y="672" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >snap and codebook; optional</text>
+<text x="722" y="688" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >icosian snap</text>
+<rect x="722" y="706" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="781.4" y="721" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="924" y="606" width="204" height="130" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="938" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Exact Z[φ]</text>
+<text x="938" y="653" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >exact arithmetic; compiler</text>
+<text x="938" y="669" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >and native tables</text>
+<rect x="938" y="706" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="997.4" y="721" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<text x="60" y="764" font-size="12.5" font-weight="400" fill="#424A53" text-anchor="start" >Hopf S3 to S2 observation (fiber kept separately) and chirality / polarity are used by line B; see geometry-stack.svg.</text>
+<text x="60" y="790" font-size="12.5" font-weight="400" fill="#424A53" text-anchor="start" >Both lines read this layer; the stack uses quaternion transport and prime routing, line B uses H4 windows, zeta phases and Z[φ].</text>
+<line x1="40" y1="844" x2="1160" y2="844" stroke="#D0D7DE"/>
+<text x="40" y="864" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="start" >Status</text>
+<rect x="100" y="852" width="26" height="18" rx="4" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="134" y="865" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Working (served/trained)</text>
+<rect x="314.4" y="852" width="26" height="18" rx="4" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="348.4" y="865" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Built &amp; tested</text>
+<rect x="462.79999999999995" y="852" width="26" height="18" rx="4" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="496.79999999999995" y="865" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Partial / in progress</text>
+<rect x="657.4" y="852" width="26" height="18" rx="4" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="691.4" y="865" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Planned / not started</text>
+<rect x="852.0" y="852" width="26" height="18" rx="4" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
+<text x="886.0" y="865" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Frozen (historical contract)</text>
+</svg>

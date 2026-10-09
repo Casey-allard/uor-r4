@@ -1,70 +1,102 @@
-# Contributing to UOR-R4 Geometric Language Model
+# Contributing to UOR-R4
 
-New development follows the
-[owner-adopted immediate sequence](docs/integration/project-track.md#immediate-build-sequence).
-Read the [project map](docs/PROJECT_MAP.md) and [capability/direction assessment](docs/integration/model-direction-2026-09.md). Treat roadmap order as priority and evidence dependencies, not an automatic one-task stop. Use the existing
-task and consolidated issue owners; coordinate independent work when useful and
-preserve dated results. Reuse the
-[architecture/source audit](docs/integration/architecture-2026-09/README.md) before
-introducing a new mechanism; inspect its actual source and declared limitations.
+Welcome. UOR-R4 is an open research project (goal and status in the [README](README.md)).
+Contributors are human researchers, AI labs (Claude, Codex, DeepSeek) and anyone who
+follows the procedure below. This is the current, owner-approved workflow; [AGENTS.md](AGENTS.md)
+is the full rule set and wins on any conflict.
 
-Follow [AGENTS.md](AGENTS.md), the [native geometric AI plan](docs/integration/project-track.md)
-and the [current implementation](docs/integration/current-state.md). The stable
-machine policy is [agent-execution-policy.json](docs/integration/agent-execution-policy.json).
-Do not copy the current stage into another roadmap or restore old issue gates.
+## Principles
 
-## Build the native model
+- `origin/main` is the single source of truth. A branch or PR is a temporary delivery step,
+  not a research authority and not completion.
+- Honest evidence over impressive claims. State what was measured, on what, with what budget.
+  Keep negative results; they land as archive patches, not as standing branches.
+- Preserve unique source, artifacts and other contributors' active work.
 
-Use Rust for preparation, training, artifact construction and inference.
-Training may use floating point and matrix multiplication. The serving target
-executes learned geometric operators through bounded state, routes and
-integer/table lookup, with no serving matrix products, including lookup/add
-contractions, and no transformer backbone. Deterministic geometric address/page
-selection is allowed. Shared typed operators are current; expert gates remain a
-conditional later option requiring capability and complete M1 cost evidence.
+## For humans: start here
 
-Prime/ordered-n-let addresses, fixed zeta phases, R4/S3/H4 transport, exact
-`Z[phi]` and orientation state, typed paired-H4/icosian geometry and UOR identity
-are primary model mechanisms. Keep their architectural roles separate from
-measured predictive contribution. Preserve historical Python/dense references
-as evidence; add no Python model or product dependency.
+1. Read the [README](README.md), [STATUS.md](STATUS.md), then [docs/labs/README.md](docs/labs/README.md)
+   and the [project map](docs/PROJECT_MAP.md). Do not repeat a broad historical audit.
+2. Build and test (Rust 1.97.1 is pinned and selected by rustup):
+   ```sh
+   cargo build --release -p uor-r4-training --example geometric-stack
+   cargo test -p uor-r4-training --lib geometric_stack
+   cargo fmt --check
+   ```
+   Run focused tests for the path you change; there is no blanket full-suite requirement.
+3. Good first areas: milestone M6 (exact arithmetic in the stack, issue #2034), M5 (a laptop
+   energy and RAM measurement plan, #2033), M7 (API and WASM for the stack, #2035),
+   documentation and claim-wording fixes, and reading a negative result in
+   [docs/integration/current-state.md](docs/integration/current-state.md) to find a cause.
+4. Ask on the milestone issue before starting; comment what you will do.
 
-Both conversation/memory and coding/reasoning must earn alpha through actual
-model behavior. Implement small coherent steps in the native path. A request to
-complete a whole plan authorizes its necessary successive tasks; the historical
-one-task stop is not a default.
+## The workflow (every lab, agent and human)
 
-## Development and delivery
+1. **Refresh.** `git fetch origin`; read the milestone issue, the tracker
+   [#2028](https://github.com/UOR-Foundation/uor-r4/issues/2028) and recent PRs.
+2. **Claim.** On the milestone issue (#2029 to #2036): post a claim comment, add the label
+   `lab:claude`, `lab:codex` or `lab:deepseek` (humans: a comment suffices), and set
+   `status:in-progress`. Work ownership is a renewable claim, not a monopoly.
+3. **Report results** as short comments on the milestone issue: the numbers, the scope and the
+   merged PR. The tracker carries only milestone-level decisions. No heartbeats or work logs on
+   the tracker or milestones; leases go to the compute board
+   [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037), coordination to `codex/lab-state`.
+4. **Branch.** A short-lived branch (or worktree) per deliverable. No long-lived branches.
+   The only standing branch is `codex/lab-state`.
+5. **Check.** Compile and exercise the changed Rust path with focused tests (arithmetic,
+   causality, serialization, interfaces). Run actual generated behavior for a model change.
+   Run `python3 scripts/check_claim_wording.py` when editing capability claims. Do not treat
+   absent fixtures, unrun tests or the CI acknowledgement jobs as a pass: the `required-transport`
+   job executes no tests.
+6. **Open a protected PR.** Stage named paths only. Use `References #N`, not `Closes #N`, for
+   partial work. Post the checks you ran, at the exact head, on the PR.
+7. **Review.** An exact-head review (self-review is allowed) plus passing tests at that head.
+8. **Merge** through the merge queue. Never direct-push `main`, bypass protection, fabricate
+   checks or use admin merge.
+9. **Verify** on fresh `origin/main` that the merge commit and the delivered source match.
+   Completed, validated work must be merged into `main`; opening a PR is not completion.
+10. **Clean up.** Delete the branch and worktree, then run `scripts/storage/uor-hygiene --apply`.
+    Do not start the dependent successor while delivery is unfinished.
+11. **Record** outcome, retained artifacts, limitations and next action on the owning issue.
+    Close an issue only when its complete acceptance is met.
 
-1. Refresh `origin/main` and relevant live issue state; work in an isolated full
-   worktree. Preserve unrelated changes and unique research artifacts.
-2. Implement the next useful native behavior. Reuse existing geometry and
-   runtime parts before adding abstractions or another mechanism.
-3. Compile and exercise the changed path. Use focused tests for concrete
-   arithmetic, state, causal, serialization and interface risks.
-4. Deliver through a protected pull request with actual commands, outcomes,
-   limitations and the next action. Stage named files; do not push `main` or
-   bypass branch protection. Compatibility check names alone are not QA.
+## Data, artifacts and compute
 
-Typical checks are `cargo fmt --check`, `cargo check -p <touched-package>
---all-targets --offline` and `cargo test -p <touched-package> <focused-test>
---offline`. Choose relevant checks; this is not a blanket full-suite ladder.
-Broader checks run when the changed boundary or a release requires them.
+- Results and large artifacts go to iCloud with `cloud-store put <lab> <dir>` (MD5 round-trip),
+  then the local copy is trashed; `cloud-store fetch` restores. Local-only data lives in
+  gitignored paths. Keep 30 to 70 GB of disk free. Never commit models or corpora.
+- GPU work only through `scripts/pod/uor-pod`: run `uor-pod status` first, pass `--lab` and
+  `--session`, lease the GPUs you use, renew rather than stop a healthy run, release when done.
+  Caps for all labs together: at most 4 running pods and $8 per hour. Another session's GPU is
+  never yours. Never fall back to the laptop CPU for GPU work. Leases are tracked on
+  [#2037](https://github.com/UOR-Foundation/uor-r4/issues/2037); details in
+  [docs/labs/compute.md](docs/labs/compute.md).
+- Never read or print API keys. No new paid or external compute class without the owner.
 
-## Learning and resources
+## Claim wording and evidence
 
-Configure useful context, training and evaluation windows and CPU/thread,
-wall-time, RAM, new-storage and checkpoint limits. Account cumulatively across
-warmup, training, evaluation, retries and resumes. Diagnose and correct failures
-within the remaining authorized budget; there is no global 15-minute cutoff or
-one-retry quota. Stop/checkpoint at limits, avoid unchanged blind retries, and
-apply the standing local-extension authorization below before increasing a limit. External cost still requires separate explicit authorization.
+- Follow [docs/formal_vocabulary.md](docs/formal_vocabulary.md): distinguish proof, measured
+  behavior and hypothesis. Write "measured X on Y", not "X works".
+- No frontier, general-prose, general-reasoning or energy-savings claims. The model is pre-alpha.
+- Keep open development evaluation separate from final held-out evaluation. Preserve prior
+  results at their exact artifact, data, operator, control and budget.
+- Reject a repeat experiment without new causal evidence and a decision it can change
+  ([D9](docs/integration/DECISIONS.md#d9--prevent-experiment-loops-and-preserve-the-context-contract)).
 
-Open development evaluation is part of learning; final held-out evaluation
-follows design selection. Keep prior results at their exact scope, and report
-resource unavailability separately from model quality. Preserve proof, measured
-behavior and hypothesis distinctions without creating a proof dossier or new
-ledger for every edit.
+## For AI agents
 
+Read [AGENTS.md](AGENTS.md) first (the top section and "Resources, verification and delivery").
+Register and claim before mutating; heartbeat per the lab protocol ([docs/labs/protocol.md](docs/labs/protocol.md));
+kill only your own PIDs; never delete another session's files or leases; use Rust for all model
+code (no Python model implementation or dependency); report complete cost, including preparation
+and retries.
 
-**Standing owner authorization (2026-09-06):** necessary local model/time/storage allowance extensions are already authorized. Record the complete projection, reason, increment and updated cumulative limit before using each extension; retain cumulative charges and the 128 MiB storage stop margin. Do not ask the owner to approve the same class of necessary increase again. This authorizes neither destructive deletion nor paid/external compute, and does not require spending unused allowance.
+## Proposing a change to this workflow
+
+Open an issue labelled `workflow` describing the change and why it helps the project goal.
+The owner (or a council under D14) decides. Accepted changes land through a PR to AGENTS.md or
+this file, like any other change.
+
+## License
+
+By contributing you agree your contribution is licensed under the [MIT license](LICENSE).

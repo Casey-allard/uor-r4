@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 935" width="1200" height="935" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">UOR-R4 serving pipeline</title>
+<desc id="d">A UORLUT01 artifact loads into the uor-r4-integer D11 engine, which uses table reads, adds and shifts and is bit-exact with the float path on 3,072 targets. It is served by uor-chat --stack and uor-r4-stack generate. The native learner is served by r4-native-chat. The Pages Studio runs the older R4G1 router. Latency and energy per token, API and WASM for the stack, and grounded replies in the served model are not done.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<rect x="0.5" y="0.5" width="1199" height="934" rx="16" fill="#FFFFFF" stroke="#D0D7DE"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start" >Serving pipeline: what runs today</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start" >Under D11 served kernels use no floating point, no multiplier and no transformer.</text>
+<text x="40" y="116" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start" >STACK MODEL</text>
+<rect x="40" y="128" width="200" height="204" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="154" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >UORLUT01 artifact</text>
+<text x="54" y="175" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >schema uor-r4.lut-stack/1,</text>
+<text x="54" y="191" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >written by the exporter</text>
+<rect x="54" y="302" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.2" y="317" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="290" y="128" width="470" height="204" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="304" y="154" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >uor-r4-integer: D11 engine</text>
+<text x="304" y="174" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >table reads, adds and shifts; bit-exact vs float on 3,072 targets</text>
+<rect x="304" y="188" width="136" height="48" rx="8" fill="#FFFFFF" stroke="#007A5E"/>
+<text x="316" y="209" font-size="13" font-weight="700" fill="#1F2328" text-anchor="start" >format</text>
+<text x="316" y="226" font-size="11.5" font-weight="400" fill="#424A53" text-anchor="start" >load .lut</text>
+<rect x="452" y="188" width="136" height="48" rx="8" fill="#FFFFFF" stroke="#007A5E"/>
+<text x="464" y="209" font-size="13" font-weight="700" fill="#1F2328" text-anchor="start" >kernels</text>
+<text x="464" y="226" font-size="11.5" font-weight="400" fill="#424A53" text-anchor="start" >add / shift / table</text>
+<rect x="600" y="188" width="136" height="48" rx="8" fill="#FFFFFF" stroke="#007A5E"/>
+<text x="612" y="209" font-size="13" font-weight="700" fill="#1F2328" text-anchor="start" >session, chat</text>
+<text x="612" y="226" font-size="11.5" font-weight="400" fill="#424A53" text-anchor="start" >state, protocols</text>
+<rect x="304" y="300" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="338.2" y="315" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M240,230 L290,230" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="820" y="128" width="340" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="834" y="154" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >uor-r4-stack generate</text>
+<text x="834" y="175" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >runs a stack artifact</text>
+<rect x="834" y="194" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="868.2" y="209" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="820" y="236" width="340" height="96" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="834" y="262" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >uor-chat --stack ARTIFACT.lut</text>
+<text x="834" y="283" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >PR #2050; greedy only; J/token unmeasured</text>
+<rect x="834" y="302" width="68" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="868.2" y="317" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<path d="M760,161 L820,161" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M760,284 L820,284" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="290" y="346" width="870" height="52" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="6 5"/>
+<text x="304" y="368" font-size="12.5" font-weight="600" fill="#1F2328" text-anchor="start" >Gate: serving rules R1 to R5. No float, no multiplier, no transformer; at most 4-bit maps as adds, shifts and table reads.</text>
+<text x="304" y="387" font-size="12" font-weight="400" fill="#424A53" text-anchor="start" >Audits: scripts/serving_multiplier_check.py and scripts/audit_zero_matmul_serving.py</text>
+<text x="40" y="440" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start" >NATIVE LEARNER</text>
+<rect x="40" y="452" width="200" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="54" y="478" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Native artifact</text>
+<text x="54" y="499" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >compiled exact addressed</text>
+<text x="54" y="515" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >store</text>
+<rect x="54" y="532" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="113.4" y="547" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="290" y="452" width="330" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="304" y="478" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >native_geometric runtime</text>
+<text x="304" y="499" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >integer / table kernel; fitting is host work</text>
+<rect x="304" y="532" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="363.4" y="547" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="670" y="452" width="490" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="684" y="478" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >r4-native-chat</text>
+<text x="684" y="499" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >terminal adapter for an explicitly supplied native artifact; serves</text>
+<text x="684" y="515" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >line B only</text>
+<rect x="684" y="532" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="743.4" y="547" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<path d="M240,507 L290,507" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M620,507 L670,507" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<text x="40" y="594" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start" >PAGES STUDIO</text>
+<rect x="40" y="606" width="580" height="96" rx="10" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
+<text x="54" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Studio: root WASM + r4_worker.js</text>
+<text x="54" y="653" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >loads the schema-2 R4G1 bundle in the browser</text>
+<rect x="54" y="672" width="61" height="22" rx="11" fill="#57606A" stroke="#57606A" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="84.6" y="687" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">FROZEN</text>
+<rect x="670" y="606" width="490" height="96" rx="10" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
+<text x="684" y="632" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Older R4G1 router / scorer</text>
+<text x="684" y="653" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >not the native learner and not the stack model</text>
+<rect x="684" y="672" width="61" height="22" rx="11" fill="#57606A" stroke="#57606A" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="714.6" y="687" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">FROZEN</text>
+<path d="M620,654 L670,654" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<text x="40" y="740" font-size="14" font-weight="700" fill="#0072B2" text-anchor="start" >NOT DONE</text>
+<rect x="40" y="752" width="360" height="100" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="54" y="778" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >J/token on an M1 laptop</text>
+<text x="54" y="799" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >M5, unmeasured</text>
+<rect x="54" y="822" width="68" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="88.2" y="837" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="420" y="752" width="360" height="100" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="434" y="778" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >API / WASM for the stack</text>
+<text x="434" y="799" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >M7, local API only so far</text>
+<rect x="434" y="822" width="68" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="468.2" y="837" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<rect x="800" y="752" width="360" height="100" rx="10" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="814" y="778" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Grounded replies in a served model</text>
+<text x="814" y="799" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >M3 / M4, memory not joined to the stack</text>
+<rect x="814" y="822" width="68" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="848.2" y="837" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<line x1="40" y1="884" x2="1160" y2="884" stroke="#D0D7DE"/>
+<text x="40" y="904" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="start" >Status</text>
+<rect x="100" y="892" width="26" height="18" rx="4" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="134" y="905" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Working (served/trained)</text>
+<rect x="314.4" y="892" width="26" height="18" rx="4" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="348.4" y="905" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Built &amp; tested</text>
+<rect x="462.79999999999995" y="892" width="26" height="18" rx="4" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="496.79999999999995" y="905" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Partial / in progress</text>
+<rect x="657.4" y="892" width="26" height="18" rx="4" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="691.4" y="905" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Planned / not started</text>
+<rect x="852.0" y="892" width="26" height="18" rx="4" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
+<text x="886.0" y="905" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Frozen (historical contract)</text>
+</svg>

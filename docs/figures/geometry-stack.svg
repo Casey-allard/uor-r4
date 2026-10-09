@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 920" width="1200" height="920" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">UOR-R4 geometric primitives and their roles</title>
+<desc id="d">Seven geometric primitives from prime addressing to chirality and polarity, with the role each plays and whether it is implemented, used in a trained model and served. Quaternion state and transport is the only primitive trained and served in the stack. Measured predictive advantage over a plain recurrence is not established.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<rect x="0.5" y="0.5" width="1199" height="919" rx="16" fill="#FFFFFF" stroke="#D0D7DE"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start" >Geometric primitives: what each does and where it is used</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start" >Doc-level status from the 9 Oct 2026 source audit; a trained or served mark does not imply a measured advantage.</text>
+<text x="40" y="128" font-size="13" font-weight="700" fill="#1F2328" text-anchor="start" >Primitive</text>
+<text x="355" y="128" font-size="13" font-weight="700" fill="#1F2328" text-anchor="start" >Role</text>
+<text x="794" y="128" font-size="13" font-weight="700" fill="#1F2328" text-anchor="middle" >Implemented</text>
+<text x="919" y="128" font-size="13" font-weight="700" fill="#1F2328" text-anchor="middle" >In a trained model</text>
+<text x="1044" y="128" font-size="13" font-weight="700" fill="#1F2328" text-anchor="middle" >Served</text>
+<rect x="40" y="142" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
+<rect x="40" y="142" width="8" height="78" rx="4" fill="#0072B2" opacity="1.00"/>
+<text x="62" y="172" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Prime / UOR addressing</text>
+<text x="355" y="170" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >where data lives: prime-route memory port</text>
+<text x="355" y="187" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >and exact addressed store</text>
+<text x="62" y="198" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 1</text>
+<rect x="735" y="156" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="794.0" y="171" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="860" y="156" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="919.0" y="171" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<rect x="985" y="156" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="1044.0" y="171" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<text x="735" y="202" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >trained: memory-port evaluation instrument; served: native store</text>
+<rect x="40" y="230" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
+<rect x="40" y="230" width="8" height="78" rx="4" fill="#0072B2" opacity="0.90"/>
+<text x="62" y="260" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Zeta phases</text>
+<text x="355" y="258" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >fixed zero-phase positional features,</text>
+<text x="355" y="275" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >artifact-bound</text>
+<text x="62" y="286" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 2</text>
+<rect x="735" y="244" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="794.0" y="259" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="860" y="244" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="919.0" y="259" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<rect x="985" y="244" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="1044.0" y="259" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<text x="735" y="290" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >trained: line B tables; served: integer phase-step helper</text>
+<rect x="40" y="318" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
+<rect x="40" y="318" width="8" height="78" rx="4" fill="#0072B2" opacity="0.80"/>
+<text x="62" y="348" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >R4/S3 quaternion state</text>
+<text x="355" y="346" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >state and transport: the stack recurrence</text>
+<text x="355" y="363" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >h_t from unit quaternions</text>
+<text x="62" y="374" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 3</text>
+<rect x="735" y="332" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="794.0" y="347" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="860" y="332" width="118" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="919.0" y="347" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="985" y="332" width="118" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="1044.0" y="347" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<text x="735" y="378" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >the one primitive trained and served in the stack</text>
+<rect x="40" y="406" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
+<rect x="40" y="406" width="8" height="78" rx="4" fill="#0072B2" opacity="0.70"/>
+<text x="62" y="436" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >H4 / icosian, E8 = H4 ⊕ φH4</text>
+<text x="355" y="434" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >snap and codebook: optional 120-icosian</text>
+<text x="355" y="451" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >snap, paired-H4 tables</text>
+<text x="62" y="462" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 4</text>
+<rect x="735" y="420" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="794.0" y="435" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="860" y="420" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="919.0" y="435" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<rect x="985" y="420" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="1044.0" y="435" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<text x="735" y="466" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >snap optional; headline models not verified to use it</text>
+<rect x="40" y="494" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
+<rect x="40" y="494" width="8" height="78" rx="4" fill="#0072B2" opacity="0.60"/>
+<text x="62" y="524" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Exact Z[φ]</text>
+<text x="355" y="522" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >exact arithmetic for coefficients and</text>
+<text x="355" y="539" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >orientation</text>
+<text x="62" y="550" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 5</text>
+<rect x="735" y="508" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="794.0" y="523" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="860" y="508" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="919.0" y="523" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<rect x="985" y="508" width="118" height="22" rx="11" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="1044.0" y="523" font-size="11" font-weight="700" fill="#424A53" text-anchor="middle" letter-spacing="0.4">PLANNED</text>
+<text x="735" y="554" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >compiler and native tables; not in the stack kernels</text>
+<rect x="40" y="582" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
+<rect x="40" y="582" width="8" height="78" rx="4" fill="#0072B2" opacity="0.50"/>
+<text x="62" y="612" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Hopf S3 to S2 observation</text>
+<text x="355" y="610" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >observation with the fiber retained</text>
+<text x="355" y="627" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >separately</text>
+<text x="62" y="638" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 6</text>
+<rect x="735" y="596" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="794.0" y="611" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="860" y="596" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="919.0" y="611" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<rect x="985" y="596" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="1044.0" y="611" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<text x="735" y="642" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >line B only; integer projection helper</text>
+<rect x="40" y="670" width="1120" height="78" rx="10" fill="#F6F8FA" stroke="#D0D7DE"/>
+<rect x="40" y="670" width="8" height="78" rx="4" fill="#0072B2" opacity="0.40"/>
+<text x="62" y="700" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Chirality / polarity</text>
+<text x="355" y="698" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >orientation sign and cosine polarity</text>
+<text x="62" y="726" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >layer 7</text>
+<rect x="735" y="684" width="118" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="794.0" y="699" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<rect x="860" y="684" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="919.0" y="699" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<rect x="985" y="684" width="118" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="1044.0" y="699" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<text x="735" y="730" font-size="11.5" font-weight="400" fill="#57606A" text-anchor="start" >compiler and native paths; not in the stack kernels</text>
+<text x="40" y="780" font-size="12.5" font-weight="400" fill="#424A53" text-anchor="start" >Layers read top to bottom: addressing locates data, phases and quaternions carry state, the H4 codebook quantizes, Z[φ] keeps arithmetic exact,</text>
+<text x="40" y="798" font-size="12.5" font-weight="400" fill="#424A53" text-anchor="start" >Hopf observation and chirality read the result out. Only the quaternion recurrence is trained and served in the stack model.</text>
+<text x="40" y="826" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="start" >Not established: any measured predictive advantage of this geometry over a plain recurrence (AGENTS.md).</text>
+<line x1="40" y1="870" x2="1160" y2="870" stroke="#D0D7DE"/>
+<text x="40" y="890" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="start" >Status</text>
+<rect x="100" y="878" width="26" height="18" rx="4" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="134" y="891" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Working (served/trained)</text>
+<rect x="314.4" y="878" width="26" height="18" rx="4" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="348.4" y="891" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Built &amp; tested</text>
+<rect x="462.79999999999995" y="878" width="26" height="18" rx="4" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="496.79999999999995" y="891" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Partial / in progress</text>
+<rect x="657.4" y="878" width="26" height="18" rx="4" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="691.4" y="891" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Planned / not started</text>
+<rect x="852.0" y="878" width="26" height="18" rx="4" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
+<text x="886.0" y="891" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Frozen (historical contract)</text>
+</svg>

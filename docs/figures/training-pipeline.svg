@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">UOR-R4 training pipeline</title>
+<desc id="d">Data sources SmolLM-Corpus, SmolTalk, TinyStories and project memory-dialogue data go through prepare tools and a mixer, then the byte-BPE tokenizer, geometric-stack pretraining on GPU pods, dialogue fine-tuning, export to a lookup artifact with GPTQ at most 4 bits, and chat-grade panels. Status is marked on every step.</desc>
+<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#424A53"/></marker><pattern id="hP" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="9" height="9" fill="#FFF7E3"/><line x1="0" y1="0" x2="0" y2="9" stroke="#F1D79A" stroke-width="2.2"/></pattern><pattern id="hF" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#F0F2F4"/><path d="M0,0 L8,8 M8,0 L0,8" stroke="#D3D8DD" stroke-width="1"/></pattern></defs>
+<rect x="0.5" y="0.5" width="1199" height="899" rx="16" fill="#FFFFFF" stroke="#D0D7DE"/>
+<text x="40" y="52" font-size="26" font-weight="700" fill="#1F2328" text-anchor="start" >Training pipeline: from corpora to a graded chat model</text>
+<text x="40" y="80" font-size="14.5" font-weight="400" fill="#57606A" text-anchor="start" >Rust tools only. GPU pods are leased through uor-pod; every step is charged to the cumulative resource ledger.</text>
+<rect x="40" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<text x="54" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >SmolLM-Corpus</text>
+<text x="54" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: text</text>
+<rect x="325" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<text x="339" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >TinyStories</text>
+<text x="339" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: text</text>
+<rect x="610" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<text x="624" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >SmolTalk</text>
+<text x="624" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: chat</text>
+<rect x="895" y="110" width="265" height="64" rx="10" fill="#FFFFFF" stroke="#8C959F" stroke-width="1.5"/>
+<text x="909" y="138" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Project memory-dialogue data</text>
+<text x="909" y="160" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >input data: recall dialogues</text>
+<rect x="40" y="214" width="550" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="240" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >prepare-text-parquet</text>
+<text x="54" y="261" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >SmolLM-Corpus and TinyStories to token shards</text>
+<rect x="54" y="280" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.2" y="295" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="610" y="214" width="265" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="624" y="240" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >prepare-chat-parquet</text>
+<text x="624" y="261" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >SmolTalk to chat parquet</text>
+<rect x="624" y="280" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="658.2" y="295" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<rect x="895" y="214" width="265" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="909" y="240" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >dialogue-recall-corpus</text>
+<text x="909" y="261" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >memory-dialogue data</text>
+<rect x="909" y="280" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="943.2" y="295" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M172,174 L172,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M457,174 L457,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M742,174 L742,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1027,174 L1027,214" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="610" y="340" width="550" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="624" y="366" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >mix-chat-corpus</text>
+<text x="624" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >mixes chat and recall dialogues into one fine-tune corpus</text>
+<rect x="624" y="406" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="658.2" y="421" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M742,310 L742,340" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M1027,310 L1027,340" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="40" y="340" width="550" height="96" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="366" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Byte-BPE tokenizer (#1017)</text>
+<text x="54" y="387" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >one fixed tokenizer identity shared by every stage</text>
+<rect x="54" y="406" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.2" y="421" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M315,310 L315,340" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M610,388 L590,388" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="40" y="466" width="550" height="126" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="54" y="492" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Geometric-stack pretrain</text>
+<text x="54" y="513" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >CUDA, flash-style read, bf16 activations with f32 master weights; Runpod pods</text>
+<text x="54" y="529" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >via uor-pod lease. 214M Plan A base: dev NLL 2.073.</text>
+<rect x="54" y="562" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="88.2" y="577" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M315,436 L315,466" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="610" y="466" width="550" height="126" rx="10" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="624" y="492" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >dialogue-train fine-tune</text>
+<text x="624" y="513" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >chat fine-tune of the stack. 19.9M chat stack 0.933 BPB; code and arithmetic</text>
+<text x="624" y="529" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >answers are still wrong.</text>
+<rect x="624" y="562" width="68" height="22" rx="11" fill="#E69F00" stroke="#B87A00" stroke-width="1.5"/>
+<text x="658.2" y="577" font-size="11" font-weight="700" fill="#1F2328" text-anchor="middle" letter-spacing="0.4">PARTIAL</text>
+<path d="M590,529 L610,529" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<path d="M885,436 L885,466" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="610" y="632" width="550" height="110" rx="10" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="624" y="658" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >Export</text>
+<text x="624" y="679" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >stack_export to UORLUT01 (.lut), GPTQ at most 4-bit; d11-evaluate against the</text>
+<text x="624" y="695" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >float oracle</text>
+<rect x="624" y="712" width="68" height="22" rx="11" fill="#007A5E" stroke="#007A5E" stroke-width="1.5"/>
+<text x="658.2" y="727" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">WORKING</text>
+<path d="M885,592 L885,632" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<rect x="40" y="632" width="550" height="110" rx="10" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="54" y="658" font-size="15" font-weight="700" fill="#1F2328" text-anchor="start" >chat-grade panels</text>
+<text x="54" y="679" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >held-out panels with answer-oracle membership judging. No model yet passes the</text>
+<text x="54" y="695" font-size="12.5" font-weight="400" fill="#2B3138" text-anchor="start" >useful-conversation bar.</text>
+<rect x="54" y="712" width="119" height="22" rx="11" fill="#0072B2" stroke="#0072B2" stroke-width="1.5"/>
+<text x="113.4" y="727" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="0.4">BUILT &amp; TESTED</text>
+<path d="M610,687 L590,687" fill="none" stroke="#424A53" stroke-width="2" marker-end="url(#ah)"/>
+<text x="40" y="784" font-size="12.5" font-weight="400" fill="#57606A" text-anchor="start" >Side paths: cloud-store archives finished runs to iCloud; lab-runner records the cumulative ledger.</text>
+<line x1="40" y1="834" x2="1160" y2="834" stroke="#D0D7DE"/>
+<text x="40" y="854" font-size="12.5" font-weight="700" fill="#1F2328" text-anchor="start" >Status</text>
+<rect x="100" y="842" width="26" height="18" rx="4" fill="#E3F4EE" stroke="#007A5E" stroke-width="2.5"/>
+<text x="134" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Working (served/trained)</text>
+<rect x="314.4" y="842" width="26" height="18" rx="4" fill="#E4EFF8" stroke="#0072B2" stroke-width="1.75"/>
+<text x="348.4" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Built &amp; tested</text>
+<rect x="462.79999999999995" y="842" width="26" height="18" rx="4" fill="url(#hP)" stroke="#B87A00" stroke-width="2"/>
+<text x="496.79999999999995" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Partial / in progress</text>
+<rect x="657.4" y="842" width="26" height="18" rx="4" fill="#FFFFFF" stroke="#6E7781" stroke-width="1.75" stroke-dasharray="6 5"/>
+<text x="691.4" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Planned / not started</text>
+<rect x="852.0" y="842" width="26" height="18" rx="4" fill="url(#hF)" stroke="#57606A" stroke-width="2" stroke-dasharray="2 4"/>
+<text x="886.0" y="855" font-size="12.5" font-weight="400" fill="#1F2328" text-anchor="start" >Frozen (historical contract)</text>
+</svg>

@@ -19,9 +19,10 @@ Both lines join at M4, one model served under D11.
 
 ## Serving
 
-The D11 engine is bit-exact with the float path. `uor-chat` cannot yet serve the stack
-model, so the best chat model is not reachable through the shipped CLI. There is no Pages
-Studio deployment of the native model. Energy savings are unmeasured.
+The D11 engine is bit-exact with the float path. `uor-chat --stack <ARTIFACT.lut>` serves the
+geometric stack (PR #2050, merged 9 October 2026; greedy decoding only, and a measured bundle
+negative is recorded there). The Pages Studio still runs the older R4G1 router, not the native
+or stack model. Energy savings are unmeasured.
 
 ## Compute and labs
 
