@@ -39,6 +39,17 @@ rejects all four Prefix vectors under the unchanged protections. The subsequent
 Generate pass reaches 6/15 conditional positions; it is unselected and does not
 improve the accepted 8/512 complete-answer result.
 
+`geometric_generate_learning::vocabulary_log_mass_margin_with_credit` exposes
+an explicit pooled winner/rival comparison through the same admitted action
+probabilities as CE. Its forward is the native integer log-mass ratio; its
+surrogate Jacobian is CE(rival) minus CE(winner), including every Generate/Copy
+alias and the chosen clipped/raw score credit. The complete token mass table
+is checked against physical action subtotals. This is the [shared margin
+boundary](../../docs/labs/protected-margin-credit-2026-10-09/README.md) for the
+protected-direction successor; no existing runner automatically adopts it and
+no model improvement has been measured. Rival selection, protected Jacobians
+and finite direction construction still require explicit integration.
+
 ## Complete-prefix native dialogue learning
 
 `dialogue-prefix-fit` connects the strict retained R1d parameter import to exact

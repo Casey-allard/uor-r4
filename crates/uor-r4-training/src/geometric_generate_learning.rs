@@ -1100,6 +1100,7 @@ fn admitted_vocabulary_scores(
     let mut seen_copy = false;
     let mut summed_mass = 0u64;
     let mut target_action_mass = 0u64;
+    let mut token_subtotals = BTreeMap::<u32, (u64, u64)>::new();
     for (offset, action) in trace.actions.iter().enumerate() {
         if action.action_offset != offset
             || action.score_q24 != action.raw_score_q24.clamp(-(8 << 24), 8 << 24)
@@ -1115,6 +1116,14 @@ fn admitted_vocabulary_scores(
                 .checked_add(action.weight_q31)
                 .ok_or_else(|| invalid("Generate loss alias mass overflow"))?;
         }
+        let subtotals = token_subtotals.entry(action.token_id).or_default();
+        let subtotal = match action.action {
+            VocabularyAction::Generate { .. } => &mut subtotals.0,
+            VocabularyAction::Copy { .. } => &mut subtotals.1,
+        };
+        *subtotal = subtotal
+            .checked_add(action.weight_q31)
+            .ok_or_else(|| invalid("Vocabulary per-token mass overflow"))?;
         match action.action {
             VocabularyAction::Generate { token_id } => {
                 if seen_copy
@@ -1142,6 +1151,26 @@ fn admitted_vocabulary_scores(
             "Generate loss empty admission or denominator differs",
         ));
     }
+    // Authenticate the complete pooled token table, including tokens outside
+    // the requested loss/contrast. Totals alone cannot detect shifted aliases.
+    if trace.token_masses.len() != token_subtotals.len() {
+        return Err(invalid("Vocabulary token mass table shape differs"));
+    }
+    for (mass, (&id, &(generate, copy))) in trace.token_masses.iter().zip(&token_subtotals) {
+        let total = generate
+            .checked_add(copy)
+            .ok_or_else(|| invalid("Vocabulary token mass overflow"))?;
+        if mass.token_id != id
+            || mass.weight_q31 != total
+            || mass.generate_weight_q31 != generate
+            || mass.copy_weight_q31 != copy
+            || total == 0
+        {
+            return Err(invalid(
+                "Vocabulary token mass table/order/subtotals differ",
+            ));
+        }
+    }
     let generate = generate_raw.index_select(
         &Tensor::from_vec(
             generate_indices.clone(),
@@ -1151,8 +1180,12 @@ fn admitted_vocabulary_scores(
         0,
     )?;
     let combined = if copy_indices.is_empty() {
-        if copy_raw.is_some_and(|c| c.elem_count() != 0) {
-            return Err(invalid("Generate loss unexpected Copy scores"));
+        if copy_raw.is_some_and(|c| {
+            c.dims() != [0]
+                || c.dtype() != DType::F32
+                || !c.device().same_device(generate_raw.device())
+        }) {
+            return Err(invalid("Generate loss unexpected Copy scores/shape/device"));
         }
         generate
     } else {
@@ -1226,27 +1259,27 @@ pub fn vocabulary_marginal_loss_with_credit(
     target: u32,
     credit: VocabularyScoreAdjoint,
 ) -> Result<Tensor> {
-    let (combined, target_action_mass) =
-        admitted_vocabulary_scores(trace, generate_raw, copy_raw, target)?;
+    let probability = vocabulary_probability_credit(trace, generate_raw, copy_raw, target, credit)?;
+    Ok(anchored_token_probability(trace, &probability, target)?
+        .log()?
+        .neg()?)
+}
+
+/// Shared admitted physical-action softmax and clipped native-forward score
+/// anchor. The hard table and physical alias ordering are common to CE/margins.
+fn vocabulary_probability_credit(
+    trace: &VocabularyActionTrace,
+    generate_raw: &Tensor,
+    copy_raw: Option<&Tensor>,
+    admission_target: u32,
+    credit: VocabularyScoreAdjoint,
+) -> Result<Tensor> {
+    let (combined, _) =
+        admitted_vocabulary_scores(trace, generate_raw, copy_raw, admission_target)?;
     let bounded = combined.clamp(-8f32, 8f32)?;
-    // A single reduced status scalar is permitted and counted; never download
-    // the live CUDA score vector or its adjoints for validation.
+    // One reduced status scalar; no live CUDA score/adjoint vector download.
     if !combined.sqr()?.sum_all()?.to_scalar::<f32>()?.is_finite() {
         return Err(invalid("Generate marginal score status is nonfinite"));
-    }
-    let mass = trace
-        .token_masses
-        .iter()
-        .find(|m| m.token_id == target)
-        .ok_or_else(|| invalid("Generate target is not admitted by full legal pool"))?
-        .weight_q31;
-    let denominator = trace.summary.total_weight_q31;
-    if mass == 0 || denominator == 0 || mass > denominator || mass != target_action_mass {
-        return Err(invalid("Generate native target mass is invalid"));
-    }
-    let native_probability = (mass as f64 / denominator as f64) as f32;
-    if !native_probability.is_finite() || native_probability <= 0. {
-        return Err(invalid("Generate native probability cannot be represented"));
     }
     let hard_scores = Tensor::from_vec(
         trace
@@ -1262,20 +1295,102 @@ pub fn vocabulary_marginal_loss_with_credit(
         VocabularyScoreAdjoint::RawIdentity => &combined,
     };
     let scores = (&hard_scores + (credit_scores - credit_scores.detach())?)?;
-    let probability = candle_nn::ops::softmax(&scores, 0)?;
+    Ok(candle_nn::ops::softmax(&scores, 0)?)
+}
+
+fn native_token_probability(trace: &VocabularyActionTrace, token: u32) -> Result<(u64, f32)> {
+    let mass = trace
+        .token_masses
+        .iter()
+        .find(|m| m.token_id == token)
+        .ok_or_else(|| invalid("Vocabulary contrast/loss token is not admitted"))?
+        .weight_q31;
+    let denominator = trace.summary.total_weight_q31;
+    if mass == 0 || denominator == 0 || mass > denominator {
+        return Err(invalid("Vocabulary native token mass is invalid"));
+    }
+    let probability = (mass as f64 / denominator as f64) as f32;
+    if !probability.is_finite() || probability <= 0. {
+        return Err(invalid(
+            "Vocabulary native probability cannot be represented",
+        ));
+    }
+    Ok((mass, probability))
+}
+
+fn anchored_token_probability(
+    trace: &VocabularyActionTrace,
+    probability: &Tensor,
+    token: u32,
+) -> Result<Tensor> {
+    let (_, native_probability) = native_token_probability(trace, token)?;
     let mask = Tensor::from_vec(
         trace
             .actions
             .iter()
-            .map(|a| if a.token_id == target { 1f32 } else { 0f32 })
+            .map(|a| if a.token_id == token { 1f32 } else { 0f32 })
             .collect::<Vec<_>>(),
         trace.actions.len(),
-        generate_raw.device(),
+        probability.device(),
     )?;
     let soft_target = (probability * mask)?.sum_all()?;
-    let anchored = (Tensor::new(native_probability, generate_raw.device())?
-        + (&soft_target - soft_target.detach())?)?;
-    Ok(anchored.log()?.neg()?)
+    Ok((Tensor::new(native_probability, probability.device())?
+        + (&soft_target - soft_target.detach())?)?)
+}
+
+/// Offline pooled log-mass contrast, positive when `winner` has more native
+/// mass than `rival`. Callers choose both tokens explicitly; this API neither
+/// selects a rival nor adopts a protected objective in any learner.
+///
+/// Forward: ln(native winner mass / native rival mass), evaluated in f64 then
+/// cast once to f32. Adjoint: log of the two shared native-anchored pooled
+/// probabilities, so it equals CE(rival)'s Jacobian minus CE(winner)'s Jacobian.
+/// All Generate and physical Copy aliases participate in the same normalizer.
+/// In particular dmargin = dsoft_pw/native_pw - dsoft_pr/native_pr;
+/// unrelated-action terms need not cancel when table weights differ from exp.
+/// This surrogate Jacobian is not the derivative of integer table rounding.
+pub fn vocabulary_log_mass_margin(
+    trace: &VocabularyActionTrace,
+    generate_raw: &Tensor,
+    copy_raw: Option<&Tensor>,
+    winner: u32,
+    rival: u32,
+) -> Result<Tensor> {
+    vocabulary_log_mass_margin_with_credit(
+        trace,
+        generate_raw,
+        copy_raw,
+        winner,
+        rival,
+        VocabularyScoreAdjoint::Clipped,
+    )
+}
+
+/// Explicit score-adjoint policy; native forward is identical under both.
+pub fn vocabulary_log_mass_margin_with_credit(
+    trace: &VocabularyActionTrace,
+    generate_raw: &Tensor,
+    copy_raw: Option<&Tensor>,
+    winner: u32,
+    rival: u32,
+    credit: VocabularyScoreAdjoint,
+) -> Result<Tensor> {
+    if winner == rival {
+        return Err(invalid(
+            "Vocabulary log-mass margin requires distinct tokens",
+        ));
+    }
+    let probability = vocabulary_probability_credit(trace, generate_raw, copy_raw, winner, credit)?;
+    let (winner_mass, _) = native_token_probability(trace, winner)?;
+    let (rival_mass, _) = native_token_probability(trace, rival)?;
+    let native_margin = (winner_mass as f64 / rival_mass as f64).ln() as f32;
+    if !native_margin.is_finite() {
+        return Err(invalid("Vocabulary native log-mass margin is nonfinite"));
+    }
+    let winner_probability = anchored_token_probability(trace, &probability, winner)?;
+    let rival_probability = anchored_token_probability(trace, &probability, rival)?;
+    let surrogate = (winner_probability.log()? - rival_probability.log()?)?;
+    Ok((Tensor::new(native_margin, generate_raw.device())? + (&surrogate - surrogate.detach())?)?)
 }
 
 /// Prospective offline diagnostic only: no automatic weight, optimizer update,
@@ -1379,6 +1494,314 @@ mod tests {
             NativeVocabularyActions::new(binding()?, &exp).map_err(|e| invalid(e.to_string()))?;
         pool.reduce_trace(&vec![0; binding()?.vocab_size()], copy_tokens, copy_scores)
             .map_err(|e| invalid(e.to_string()))
+    }
+
+    #[test]
+    fn pooled_margin_native_anchor_and_all_alias_analytic_derivatives() -> Result<()> {
+        let trace = margin_fixture(&[4, 4, 5], &[0, 0, 0])?;
+        let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Var::zeros(3, DType::F32, &Device::Cpu)?;
+        let margin =
+            vocabulary_log_mass_margin(&trace, generate.as_tensor(), Some(copy.as_tensor()), 4, 5)?;
+        assert_eq!(
+            margin.to_scalar::<f32>()?.to_bits(),
+            ((3f64 / 2.).ln() as f32).to_bits()
+        );
+        let gradients = margin.backward()?;
+        let dg = grad(&gradients, generate.as_tensor())?;
+        let dc = grad(&gradients, copy.as_tensor())?;
+        for actual in [dg[4], dc[0], dc[1]] {
+            assert!((actual - 1. / 3.).abs() < 1e-6);
+        }
+        for actual in [dg[5], dc[2]] {
+            assert!((actual + 1. / 2.).abs() < 1e-6);
+        }
+        for (id, actual) in dg.iter().enumerate() {
+            if id != 4 && id != 5 {
+                assert!(actual.abs() < 1e-6);
+            }
+        }
+        // Each physical alias adds mass; collapsing duplicates changes forward.
+        let fewer = margin_fixture(&[4, 5], &[0, 0])?;
+        let fewer_copy = Tensor::zeros(2, DType::F32, &Device::Cpu)?;
+        assert_eq!(
+            vocabulary_log_mass_margin(&fewer, generate.as_tensor(), Some(&fewer_copy), 4, 5)?
+                .to_scalar::<f32>()?,
+            0.
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn pooled_margin_non_grid_anchor_is_ce_jacobian_difference() -> Result<()> {
+        let raw = [5_592_405i64, -2_396_745, 12_345_678];
+        let trace = margin_fixture(&[4, 5, 7], &raw)?;
+        let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Var::from_vec(
+            raw.iter()
+                .map(|q| (*q as f64 / Q24) as f32)
+                .collect::<Vec<_>>(),
+            3,
+            &Device::Cpu,
+        )?;
+        let mass = |id| {
+            trace
+                .token_masses
+                .iter()
+                .find(|m| m.token_id == id)
+                .map(|m| m.weight_q31)
+                .ok_or_else(|| invalid("test mass absent"))
+        };
+        let mw = mass(4)?;
+        let mr = mass(5)?;
+        let native = (mw as f64 / mr as f64).ln() as f32;
+        let continuous =
+            ((1. + (raw[0] as f64 / Q24).exp()) / (1. + (raw[1] as f64 / Q24).exp())).ln();
+        assert!((native as f64 - continuous).abs() > 1e-8);
+        for credit in [
+            VocabularyScoreAdjoint::Clipped,
+            VocabularyScoreAdjoint::RawIdentity,
+        ] {
+            let margin = vocabulary_log_mass_margin_with_credit(
+                &trace,
+                generate.as_tensor(),
+                Some(copy.as_tensor()),
+                4,
+                5,
+                credit,
+            )?;
+            assert_eq!(margin.to_scalar::<f32>()?.to_bits(), native.to_bits());
+            let ce_w = vocabulary_marginal_loss_with_credit(
+                &trace,
+                generate.as_tensor(),
+                Some(copy.as_tensor()),
+                4,
+                credit,
+            )?;
+            let ce_r = vocabulary_marginal_loss_with_credit(
+                &trace,
+                generate.as_tensor(),
+                Some(copy.as_tensor()),
+                5,
+                credit,
+            )?;
+            let reference = (&ce_r - &ce_w)?;
+            let mg = margin.backward()?;
+            let rg = reference.backward()?;
+            // Native LUT interpolation differs from the relaxed exp masses:
+            // even a token outside the contrast receives normalization credit.
+            let unrelated = grad(&mg, generate.as_tensor())?[3];
+            assert_ne!(unrelated, 0.);
+            for variable in [generate.as_tensor(), copy.as_tensor()] {
+                for (a, b) in grad(&mg, variable)?.iter().zip(grad(&rg, variable)?) {
+                    assert!((*a - b).abs() < 2e-7);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pooled_margin_clipping_policy_changes_only_credit() -> Result<()> {
+        let trace = margin_fixture(&[4, 5], &[9 << 24, -(9 << 24)])?;
+        let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Var::from_vec(vec![9f32, -9.], 2, &Device::Cpu)?;
+        let clipped =
+            vocabulary_log_mass_margin(&trace, generate.as_tensor(), Some(copy.as_tensor()), 4, 5)?;
+        let raw = vocabulary_log_mass_margin_with_credit(
+            &trace,
+            generate.as_tensor(),
+            Some(copy.as_tensor()),
+            4,
+            5,
+            VocabularyScoreAdjoint::RawIdentity,
+        )?;
+        assert_eq!(
+            clipped.to_scalar::<f32>()?.to_bits(),
+            raw.to_scalar::<f32>()?.to_bits()
+        );
+        assert_eq!(grad(&clipped.backward()?, copy.as_tensor())?, vec![0., 0.]);
+        let raw_gradient = grad(&raw.backward()?, copy.as_tensor())?;
+        assert!(raw_gradient[0] > 0. && raw_gradient[1] < 0.);
+        let dg = grad(&clipped.backward()?, generate.as_tensor())?;
+        assert!(dg[4] > 0. && dg[5] < 0.);
+        Ok(())
+    }
+
+    #[test]
+    fn factored_probability_preserves_legacy_ce_forward_and_jacobian() -> Result<()> {
+        let trace = margin_fixture(&[4, 4, 5], &[5_592_405, 9 << 24, -(9 << 24)])?;
+        let generate = Var::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Var::from_vec(vec![(5_592_405f64 / Q24) as f32, 9., -9.], 3, &Device::Cpu)?;
+        for credit in [
+            VocabularyScoreAdjoint::Clipped,
+            VocabularyScoreAdjoint::RawIdentity,
+        ] {
+            // Retained pre-factor CE arithmetic, including its operation order.
+            let (combined, target_action_mass) = admitted_vocabulary_scores(
+                &trace,
+                generate.as_tensor(),
+                Some(copy.as_tensor()),
+                4,
+            )?;
+            let bounded = combined.clamp(-8f32, 8f32)?;
+            let native_probability =
+                (target_action_mass as f64 / trace.summary.total_weight_q31 as f64) as f32;
+            let hard = Tensor::from_vec(
+                trace
+                    .actions
+                    .iter()
+                    .map(|a| (a.score_q24 as f64 / Q24) as f32)
+                    .collect::<Vec<_>>(),
+                trace.actions.len(),
+                &Device::Cpu,
+            )?;
+            let credit_scores = match credit {
+                VocabularyScoreAdjoint::Clipped => &bounded,
+                VocabularyScoreAdjoint::RawIdentity => &combined,
+            };
+            let scores = (&hard + (credit_scores - credit_scores.detach())?)?;
+            let probability = candle_nn::ops::softmax(&scores, 0)?;
+            let mask = Tensor::from_vec(
+                trace
+                    .actions
+                    .iter()
+                    .map(|a| if a.token_id == 4 { 1f32 } else { 0f32 })
+                    .collect::<Vec<_>>(),
+                trace.actions.len(),
+                &Device::Cpu,
+            )?;
+            let soft = (probability * mask)?.sum_all()?;
+            let anchored =
+                (Tensor::new(native_probability, &Device::Cpu)? + (&soft - soft.detach())?)?;
+            let legacy = anchored.log()?.neg()?;
+            let factored = vocabulary_marginal_loss_with_credit(
+                &trace,
+                generate.as_tensor(),
+                Some(copy.as_tensor()),
+                4,
+                credit,
+            )?;
+            assert_eq!(
+                legacy.to_scalar::<f32>()?.to_bits(),
+                factored.to_scalar::<f32>()?.to_bits()
+            );
+            let lg = legacy.backward()?;
+            let fg = factored.backward()?;
+            for variable in [generate.as_tensor(), copy.as_tensor()] {
+                assert_eq!(grad(&lg, variable)?, grad(&fg, variable)?);
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn pooled_margin_rejects_malformed_complete_token_masses() -> Result<()> {
+        let trace = margin_fixture(&[4, 4, 5], &[0, 0, 0])?;
+        let generate = Tensor::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Tensor::zeros(3, DType::F32, &Device::Cpu)?;
+        let reject = |t: &VocabularyActionTrace| -> Result<()> {
+            assert!(vocabulary_log_mass_margin(t, &generate, Some(&copy), 4, 5).is_err());
+            assert!(vocabulary_marginal_loss(t, &generate, Some(&copy), 4).is_err());
+            Ok(())
+        };
+        let mut malformed = trace.clone();
+        malformed
+            .token_masses
+            .push(malformed.token_masses[0].clone());
+        reject(&malformed)?;
+        let mut malformed = trace.clone();
+        malformed.token_masses.swap(0, 1);
+        reject(&malformed)?;
+        for id in [4, 5, 7] {
+            let i = trace
+                .token_masses
+                .iter()
+                .position(|m| m.token_id == id)
+                .ok_or_else(|| invalid("test mass missing"))?;
+            let mut malformed = trace.clone();
+            malformed.token_masses[i].weight_q31 += 1;
+            reject(&malformed)?;
+            let mut malformed = trace.clone();
+            malformed.token_masses[i].generate_weight_q31 += 1;
+            malformed.token_masses[i].copy_weight_q31 =
+                malformed.token_masses[i].copy_weight_q31.saturating_sub(1);
+            reject(&malformed)?;
+            let mut malformed = trace.clone();
+            malformed.token_masses[i].weight_q31 = 0;
+            reject(&malformed)?;
+        }
+        let mut malformed = trace.clone();
+        malformed.summary.total_weight_q31 += 1;
+        reject(&malformed)?;
+        let mut malformed = trace.clone();
+        malformed.actions[0].action_offset += 1;
+        reject(&malformed)?;
+        let mut malformed = trace.clone();
+        malformed.actions[0].score_q24 += 1;
+        reject(&malformed)?;
+        assert!(vocabulary_log_mass_margin(&trace, &generate, Some(&copy), 4, 4).is_err());
+        assert!(vocabulary_log_mass_margin(&trace, &generate, Some(&copy), 4, 1000).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn pooled_margin_rejects_score_shapes_and_nonfinite_graphs() -> Result<()> {
+        let trace = margin_fixture(&[4], &[0])?;
+        let generate = Tensor::zeros(binding()?.vocab_size(), DType::F32, &Device::Cpu)?;
+        let copy = Tensor::zeros(1, DType::F32, &Device::Cpu)?;
+        assert!(vocabulary_log_mass_margin(
+            &trace,
+            &generate.reshape((1, binding()?.vocab_size()))?,
+            Some(&copy),
+            4,
+            5
+        )
+        .is_err());
+        assert!(vocabulary_log_mass_margin(
+            &trace,
+            &generate.to_dtype(DType::F64)?,
+            Some(&copy),
+            4,
+            5
+        )
+        .is_err());
+        assert!(vocabulary_log_mass_margin(&trace, &generate, None, 4, 5).is_err());
+        assert!(
+            vocabulary_log_mass_margin(&trace, &generate, Some(&copy.reshape((1, 1))?), 4, 5)
+                .is_err()
+        );
+        assert!(vocabulary_log_mass_margin(
+            &trace,
+            &generate,
+            Some(&Tensor::new(f32::NAN, &Device::Cpu)?),
+            4,
+            5
+        )
+        .is_err());
+        for bad in [f32::NAN, f32::INFINITY] {
+            let invalid_copy = Tensor::from_vec(vec![bad], 1, &Device::Cpu)?;
+            assert!(
+                vocabulary_log_mass_margin(&trace, &generate, Some(&invalid_copy), 4, 5).is_err()
+            );
+            let mut values = vec![0f32; binding()?.vocab_size()];
+            values[4] = bad;
+            assert!(vocabulary_log_mass_margin(
+                &trace,
+                &Tensor::from_vec(values, binding()?.vocab_size(), &Device::Cpu)?,
+                Some(&copy),
+                4,
+                5
+            )
+            .is_err());
+        }
+        let without_copy = margin_fixture(&[], &[])?;
+        let malformed_empty = Tensor::zeros((1, 0), DType::F32, &Device::Cpu)?;
+        assert!(
+            vocabulary_log_mass_margin(&without_copy, &generate, Some(&malformed_empty), 4, 5)
+                .is_err()
+        );
+        Ok(())
     }
 
     #[test]
