@@ -1,0 +1,77 @@
+UOR-R4 — Token-identity copy stop: a NEW BEST 72/84 = 0.8571, and F=1.0 is recovered
+Date: 2026-10-09. DeepSeek session. References #820. Tracker #2029 (language base), #2032 (served model).
+
+WHY THIS INSTRUMENT
+  The run-length copy stop recovered +40 cells at F=1.0 but added EXACTLY ZERO at F=0.5, and the cause
+  was measured: the matched run lay inside the VALUE'S OWN SPAN on only 20 of 79 cells at F=1.0 - the
+  rest matched the PROMPT TEMPLATE ("User: My nam..."), because values tokenize to ~5-7 ids and a
+  run-length rule lands in the wrong place by coincidence. A stop keyed on TOKEN IDENTITY against the
+  span the pointer itself selected cannot fire on the template, so it is the right instrument for the
+  failure actually observed.
+
+THE RULE (pointer_copy_stop_identity=1, default 0 = bit-for-bit unchanged; read-out only, no training,
+no parameters, nothing serialized)
+  At each step the emitted id either (a) OPENS a span at the pointer's own argmax source, when the id
+  equals the window id there, or (b) reproduces the span's next window id. The first emitted id that is
+  not the span's next id ENDS the reply and is DROPPED, so the reply is exactly the ids the pointer
+  reproduced. The essential differences from the run-length rule are the strict open at the selected
+  source and DROPPING the id that leaves the span.
+
+THE RESULT (exact copies out of 84 = 28 invented values x 3 conditions)
+
+    arm        F=0.5            F=0.75           F=1.0
+    arm-ptr    49 -> 50 -> 72    16 -> 47 -> 72    6 -> 46 -> 71
+    arm-a-w05  59 -> 59 -> 62    42 -> 65 -> 70   26 -> 64 -> 70
+    arm-c-ctrl 52 -> 52 -> 61    11 -> 54 -> 65    7 -> 52 -> 63
+               (no stop / run-length stop / TOKEN-IDENTITY stop)
+
+  NEW BEST: arm-ptr at floor 0.5 with the identity stop = 72/84 = 0.8571, Wilson [0.7667, 0.9163].
+    vs the previous best 65/84 = 0.7738:  +7 cells, 9 gained / 2 lost, McNemar p=0.0654, Newcombe
+      [-0.1998, +0.0350] CONTAINS ZERO - a better point estimate, NOT significant at 95% on 84 cells.
+    vs the floor-0.5 plateau 59/84:        +13, 15 gained / 2 lost, p=0.00235, Newcombe
+      [-0.2752, -0.0291] - SIGNIFICANT.
+    vs the same floor with no stop (49/84): +23, 23 gained / 0 lost, p=2.4e-07 - SIGNIFICANT.
+
+  F=1.0 IS RECOVERED, which the run-length rule could not do: arm-ptr 6 -> 71 (+25 over the run-length
+  stop, 25 gained / 0 lost, p=2.98e-08); arm-a-w05 26 -> 70 (+6/0, p=0.031); arm-c-ctrl 7 -> 63
+  (+11/0, p=0.00098). And with the identity stop the FLOOR BECOMES NEARLY IRRELEVANT on arm-ptr:
+  72 / 72 / 71 across F = 0.5 / 0.75 / 1.0 - the stop, not the floor, now carries the termination.
+
+  min_span=3 WAS RUN and is not a different instrument: identical to min_span=2 everywhere except
+  arm-ptr at F=0.75 (48 vs 47).
+
+THE MECHANISM, MEASURED
+  Channels are unmoved by the rule (the floor still sets the mixture; the stop only moves where the
+  reply ends). The contrast that matters is at arm-ptr F=0.5: the RUN-LENGTH rule fires on 26 cells with
+  only 1 of them exact, while the IDENTITY rule fires on 23 with 20 exact and lands inside the value's
+  own span on 21. HONEST LIMIT: at F>=0.75 the rule fires on 61-82 of 84 cells and the fired span is
+  fully inside the value's span only about a quarter of the time (it usually starts at the value and
+  runs on into the template). So the mechanism is "end the reply at the end of the first span the
+  pointer sustains BY TOKEN IDENTITY", not "recognise the value" - the distinction matters for anyone
+  extending this.
+
+EVIDENCE DISCIPLINE
+  The default is PROVEN, not asserted: 288 records (3 arms x 3 conditions) identical field-for-field to
+  the sealed files with the restoration binary, and another 288 with the identity binary at rule-off and
+  floor-0 - 0 differing fields across 18 of 18 files. The new binary also reproduces the sealed RULED
+  runs bit-for-bit (9 files, 288 records, 0 differing fields). The parser self-check passed BEFORE any
+  new number: arm-ptr 35/84 with channels 0.5149/0.8351/0.5610/0.4901, arm-a-w05 10/84, arm-c-ctrl 24/84.
+  Four focused tests pass. A pre-registered offline prediction on the recorded F=1.0 traces (70/67/63)
+  matched measurement (71/70/63); the +1..+3 is explained by one convention difference (a step with no
+  pointer selection keeps the previous source in Rust, the simulation treated it as none) - inferred,
+  not separately measured.
+
+A BLOCKER FOUND AND FIXED ALONG THE WAY
+  Main could not compile cargo test -p uor-r4-training --lib: #2009 had merged only HALF the copy-stop
+  change (geometric_stack.rs carried CopyStop and tests importing greedy_reply_with_copy_stop, while
+  stack_dialogue.rs had zero occurrences of copy_stop). Cause, recorded because it is my error: when
+  landing #2009 I staged named paths only and excluded five files I judged to be another lab's work -
+  they were my own change's call sites. Fixed by landing those five files (#2040), verified locally by a
+  successful build and the three copy-stop tests passing.
+
+SCOPE
+  84 cells per arm per configuration, one seed per arm, one session, one binary, greedy decoding,
+  protocol 2, 40 tokens. NOT measured: any other panel, non-greedy decoding, other checkpoints, any
+  floor schedule, and any integer/D11 port - export still refuses a pointer with an identity term
+  ("no integer port"), so this remains an offline-capability result. The implementation is preserved on
+  the pod volume under bindprobe/idstop/ and is to be landed next.
