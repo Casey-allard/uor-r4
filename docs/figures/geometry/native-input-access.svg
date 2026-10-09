@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="900" height="630" role="img" aria-labelledby="t d" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title id="t">M2: input influence and explicit read access</title>
+<desc id="d">All admitted tokens update recurrent geometry; only Source occurrences enter the current bank read and Copy lists.</desc>
+<rect x="2" y="2" width="996" height="696" rx="22" fill="#ffffff" stroke="#d0d7de" stroke-width="1.5"/>
+<text x="40" y="56" font-size="27" font-weight="700" fill="#1f2933">M2: input influence and explicit read access</text>
+<rect x="40" y="102" width="265" height="98" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#0072B2" stroke-width="1.5" stroke-opacity="1"/>
+<text x="54" y="127" font-size="16" fill="#0072B2" fill-opacity="1" text-anchor="start" font-weight="bold">All supplied tokens</text>
+<text x="54" y="151" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Source + Context + full query</text>
+<text x="54" y="170" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">+ actual generated prefix</text>
+<text x="54" y="189" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Chronological; total cap 128</text>
+<rect x="362" y="102" width="275" height="98" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#009E73" stroke-width="1.5" stroke-opacity="1"/>
+<text x="376" y="127" font-size="16" fill="#009E73" fill-opacity="1" text-anchor="start" font-weight="bold">Geometric recurrent state</text>
+<text x="376" y="151" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Every admitted token is encoded</text>
+<text x="376" y="170" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Intermediate states retained</text>
+<text x="376" y="189" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Final state feeds native Generate</text>
+<rect x="695" y="102" width="265" height="98" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#7A4FA3" stroke-width="1.5" stroke-opacity="1"/>
+<text x="709" y="127" font-size="16" fill="#7A4FA3" fill-opacity="1" text-anchor="start" font-weight="bold">Query-specific paths</text>
+<text x="709" y="151" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Full query: H4 cue carrier</text>
+<text x="709" y="170" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Query + prefix: optional U</text>
+<text x="709" y="189" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">These affect native token scores</text>
+<line x1="306" y1="151" x2="349.4" y2="151" stroke="#0072B2" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="356,151 345,155.18 345,146.82" fill="#0072B2" fill-opacity="1"/>
+<text x="500" y="393" font-size="17" fill="#1f2933" fill-opacity="1" text-anchor="middle" font-weight="bold">Being encoded is different from being independently readable</text>
+<rect x="40" y="271" width="265" height="98" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#E69F00" stroke-width="1.5" stroke-opacity="1"/>
+<text x="54" y="296" font-size="16" fill="#E69F00" fill-opacity="1" text-anchor="start" font-weight="bold">Source occurrences only</text>
+<text x="54" y="320" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Record/version + exact offset</text>
+<text x="54" y="339" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Geometric comparison and weight</text>
+<text x="54" y="358" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Context/query-only positions absent</text>
+<rect x="362" y="271" width="275" height="98" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#E69F00" stroke-width="1.5" stroke-opacity="1"/>
+<text x="376" y="296" font-size="16" fill="#E69F00" fill-opacity="1" text-anchor="start" font-weight="bold">Current bank read</text>
+<text x="376" y="320" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Final query vs Source position</text>
+<text x="376" y="339" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Optional Source donor → bridge</text>
+<text x="376" y="358" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Same candidate set supplies Copy</text>
+<rect x="695" y="271" width="265" height="98" rx="10" fill="#f6f9fc" fill-opacity="1" stroke="#009E73" stroke-width="1.5" stroke-opacity="1"/>
+<text x="709" y="296" font-size="16" fill="#009E73" fill-opacity="1" text-anchor="start" font-weight="bold">Native next-token pool</text>
+<text x="709" y="320" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Generate scores + Copy aliases</text>
+<text x="709" y="339" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Optional U on declared channels</text>
+<text x="709" y="358" font-size="13" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">One pooled token decision</text>
+<line x1="306" y1="319" x2="349.4" y2="319" stroke="#E69F00" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="356,319 345,323.18 345,314.82" fill="#E69F00" fill-opacity="1"/>
+<line x1="638" y1="319" x2="683.4" y2="319" stroke="#E69F00" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="690,319 679,323.18 679,314.82" fill="#E69F00" fill-opacity="1"/>
+<line x1="499" y1="201" x2="499" y2="258.4" stroke="#009E73" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="499,265 494.82,254 503.18,254" fill="#009E73" fill-opacity="1"/>
+<line x1="827" y1="201" x2="827" y2="258.4" stroke="#7A4FA3" stroke-width="2.5" stroke-opacity="1" stroke-linecap="round"/>
+<polygon points="827,265 822.82,254 831.18,254" fill="#7A4FA3" fill-opacity="1"/>
+<path d="M 637 177 L 666 177 L 666 246 L 763 246 L 763 270" fill="none" fill-opacity="1" stroke="#009E73" stroke-width="2" stroke-opacity="1" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="40" y="411" width="920" height="94" rx="10" fill="#fff8ed" fill-opacity="1" stroke="#D55E00" stroke-width="1.5" stroke-opacity="1"/>
+<text x="60" y="439" font-size="18" fill="#D55E00" fill-opacity="1" text-anchor="start" font-weight="bold">Candidate consolidation: a separate read-only history role</text>
+<text x="60" y="465" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Retained input position + causal state can become a key without becoming a stored fact or Copy action.</text>
+<text x="60" y="488" font-size="14" fill="#1f2933" fill-opacity="1" text-anchor="start" font-weight="normal">Not integrated. First trace the actual parent's earliest-query intervention through consumed scores.</text>
+<text x="40" y="550" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">No claim that Source-only admission causes the current 8/512 result.</text>
+<text x="40" y="577" font-size="15" fill="#5f6b7a" fill-opacity="1" text-anchor="start" font-weight="normal">No change to Source provenance, accepted artifact, D11 target or native acceptance checks.</text>
+<text x="40" y="648" font-size="14" fill="#5f6b7a">Source/caller trace at main 65f2eb046; no new model run or language-performance claim.</text>
+<text x="40" y="669" font-size="14" fill="#5f6b7a">M1 all-position read is a separate path. A read-only history role is not yet integrated.</text>
+</svg>

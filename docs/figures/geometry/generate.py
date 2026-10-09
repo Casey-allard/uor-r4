@@ -1235,10 +1235,42 @@ def fig_hamming_read():
     fg.save()
 
 
+def fig_native_input_access():
+    fg = Fig("native-input-access.svg", "M2: input influence and explicit read access",
+             "All admitted tokens update recurrent geometry; only Source occurrences enter the current bank read and Copy lists.",
+             ["Source/caller trace at main 65f2eb046; no new model run or language-performance claim.",
+              "M1 all-position read is a separate path. A read-only history role is not yet integrated."])
+    def box(x, y, w, title, lines, color):
+        fg.rect(x, y, w, 98, "#f6f9fc", color, 1.5, 10)
+        fg.text(x + 14, y + 25, title, 16, color, weight="bold")
+        for i, line in enumerate(lines):
+            fg.text(x + 14, y + 49 + 19 * i, line, 13, INK)
+    box(40, 102, 265, "All supplied tokens", ["Source + Context + full query", "+ actual generated prefix", "Chronological; total cap 128"], BLUE)
+    box(362, 102, 275, "Geometric recurrent state", ["Every admitted token is encoded", "Intermediate states retained", "Final state feeds native Generate"], GREEN)
+    box(695, 102, 265, "Query-specific paths", ["Full query: H4 cue carrier", "Query + prefix: optional U", "These affect native token scores"], PURPLE)
+    fg.arrow(306, 151, 356, 151, BLUE)
+    fg.text(500, 393, "Being encoded is different from being independently readable", 17, INK, "middle", weight="bold")
+    box(40, 271, 265, "Source occurrences only", ["Record/version + exact offset", "Geometric comparison and weight", "Context/query-only positions absent"], ORANGE)
+    box(362, 271, 275, "Current bank read", ["Final query vs Source position", "Optional Source donor → bridge", "Same candidate set supplies Copy"], ORANGE)
+    box(695, 271, 265, "Native next-token pool", ["Generate scores + Copy aliases", "Optional U on declared channels", "One pooled token decision"], GREEN)
+    fg.arrow(306, 319, 356, 319, ORANGE)
+    fg.arrow(638, 319, 690, 319, ORANGE)
+    fg.arrow(499, 201, 499, 265, GREEN)
+    fg.arrow(827, 201, 827, 265, PURPLE)
+    fg.path("M 637 177 L 666 177 L 666 246 L 763 246 L 763 270", GREEN, 2)
+    fg.rect(40, 411, 920, 94, "#fff8ed", VERM, 1.5, 10)
+    fg.text(60, 439, "Candidate consolidation: a separate read-only history role", 18, VERM, weight="bold")
+    fg.text(60, 465, "Retained input position + causal state can become a key without becoming a stored fact or Copy action.", 14, INK)
+    fg.text(60, 488, "Not integrated. First trace the actual parent's earliest-query intervention through consumed scores.", 14, INK)
+    fg.text(40, 550, "No claim that Source-only admission causes the current 8/512 result.", 15, MUTED)
+    fg.text(40, 577, "No change to Source provenance, accepted artifact, D11 target or native acceptance checks.", 15, MUTED)
+    fg.save()
+
+
 if __name__ == "__main__":
     figures = (fig_quaternion, fig_s3, fig_hopf, fig_600cell, fig_golden, fig_zeta, fig_primes,
                fig_next_token, fig_vsa, fig_connections,
-               fig_exact_lanes, fig_signed_binding, fig_hamming_read)
+               fig_exact_lanes, fig_signed_binding, fig_hamming_read, fig_native_input_access)
     for fn in figures:
         fn()
     print("wrote", len(figures), "figures to", OUT)

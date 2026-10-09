@@ -314,6 +314,25 @@ e_a·e_b = ±e_{a⊕b}, with e_a·e_b = −e_b·e_a.
 - **Status:** arm D of the softmax-free read experiment. It will use the shared `BitCode` primitive.
 - **Source:** motivated by Mark (N3mesis)'s XOR/Hamming sketch.
 
+## Native bank input access (M2)
+
+<img src="figures/geometry/native-input-access.svg" width="100%" alt="Current M2 input path: all supplied context, query and actual prefix tokens update geometric state, but only Source occurrences enter the explicit read and Copy lists; read-only history access is not yet integrated.">
+
+The native bank generator is a separate caller from the stack's all-position read described below.
+It encodes every admitted Source/Context token, the full query and actual response prefix in order.
+The query also has its own H4 cue carrier and, when configured, a query-plus-prefix continuation field.
+However, its direct occurrence read compares the final query snapshot only against **Source** positions;
+those same candidates supply Copy IDs and optional bridge donors. Processing an early query token into
+state does not make that position an independently selectable key. The combined 128-token admission cap
+is specific to this reader and rejects overflow; it is not a project-wide context limit.
+
+A read-only history role could expose retained input positions without granting Source/Copy authority.
+It is **not yet integrated or qualified**, and source inspection does not establish that its absence
+causes the current language errors. The [caller trace and causal comparison](labs/input-access-trace-2026-10-09/README.md)
+keep input influence, explicit read access, donor selection and emission distinct. Existing H4 operators
+can support the comparison; no conversion to E8 is inherently required for this access boundary.
+The E1 and Hamming-rank mechanisms in section 11 remain separate pre-registered M1/M4 work.
+
 ## Life of one token
 
 Follow one byte-BPE token through the stack (text path):
