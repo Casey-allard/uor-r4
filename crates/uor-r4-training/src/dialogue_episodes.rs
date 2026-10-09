@@ -570,6 +570,11 @@ impl<'a> EpisodeIndex<'a> {
                 .extend(self.tokens[r..e].iter().map(|&token| u32::from(token)));
             let real_input_positions = episode.len() - 1;
             // Optional commitment-token weight (UOR_COMMITMENT_WEIGHT >= 1.0; default 1.0 = unchanged).
+            let commitment_span: usize = std::env::var("UOR_COMMITMENT_SPAN")
+                .ok()
+                .and_then(|value| value.parse::<usize>().ok())
+                .filter(|span| *span >= 1)
+                .unwrap_or(1);
             let commitment_weight: f32 = std::env::var("UOR_COMMITMENT_WEIGHT")
                 .ok()
                 .and_then(|value| value.parse::<f32>().ok())
@@ -599,7 +604,15 @@ impl<'a> EpisodeIndex<'a> {
                     // weighted separately by UOR_COMMITMENT_WEIGHT (default 1.0). Measured need: on the
                     // binding probe the failure sits at the answer's first token, where the mixture's
                     // response-slot prior outcompetes the context value.
-                    let commitment = position + 1 == prefix_positions;
+                    // The commitment region is the FIRST UOR_COMMITMENT_SPAN supervised positions of the
+                    // response (default 1 = the single commitment token, unchanged behaviour). The binding
+                    // probe measured why the span matters: the onset token becomes value-conditional while
+                    // the CONTINUATION stays family-driven, so the term has to cover the answer's first few
+                    // tokens rather than only its first.
+                    let commitment = {
+                        let offset = position + 1 - prefix_positions;
+                        supervised && offset < commitment_span
+                    };
                     let weight = if supervised {
                         if commitment {
                             commitment_weight
