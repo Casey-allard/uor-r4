@@ -25,6 +25,24 @@ CORRECTION 1: THE SERVED GAP HAS NO SNAP TERM
   scores 0.87755. The 0.05522 BPB gap is therefore entirely within free transport:
     weight rounding        0.0088 BPB   (the round-20 attribution's 0.0173756 nats)
     un-attributed integer  0.0464 BPB   (serving arithmetic: activations, norm, l2, tables)
+
+    CORRECTION NOTE, added 2026-10-09 (the line above is preserved as written; this is a dated record):
+    the 0.0464 BPB "un-attributed integer" figure is a CROSS-POSITION-SET SUBTRACTION ARTEFACT, not
+    serving arithmetic. It was obtained by differencing numbers measured on different position sets.
+    Re-measured on IDENTICAL positions with lut-evaluate reference=true, the serving path is within
+    0.4% of its own float model: at 64 windows / 24,576 targets float 1.796884, reference 1.800973,
+    integer 1.800973 BPB (quantisation 0.004089, engine -0.00000077 BPB); at 512 windows / 196,608
+    targets float 1.767493, reference 1.771344, integer 1.771342 BPB (quantisation 0.003841, engine
+    -0.0000043 nats). d11-evaluate agrees exactly: d11 = d10, d11_minus_d10 0.0, top-1 1.0,
+    max_abs_logit_difference 0.
+    What IS large is the MEASUREMENT's position sensitivity: per-window float spread 0.50 BPB at 64
+    windows, 64-window mean standard error 0.063 BPB, and the two window sets differ by 0.029 BPB on
+    the SAME model. So any BPB comparison between window counts is not interpretable without naming
+    the window count and the stream's own byte basis.
+    Evidence: docs/evidence/chat_served_gap_attribution_2026-10-09.txt and
+    docs/labs/chat-served-gap-attribution-2026-10-09/README.md. Independently reproduced at two
+    window sizes; the original refutation is in round 37.
+
   The 0.03578 BPB "transport snap" term in the published decomposition is the cost of
   snap-evaluate on the FLOAT model - a counterfactual branch - and is not a term the served
   artifact pays. The 0.01944 BPB "quantisation" figure is likewise invalid: it was computed as
