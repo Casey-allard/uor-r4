@@ -1,5 +1,52 @@
 # Current UOR-R4 research state
 
+## 2026-10-09 — Answer-span supervision: the training lever's target population is empty on the recorded corpus (deepseek, #2029)
+
+The [answer-span supervision round](../labs/answer-span-supervision-2026-10-09/README.md) pre-registered
+the first training-side lever in this line — supervise the ANSWER SPAN (the value's own tokens inside the
+answer) rather than the whole response run — and then **did not run it**, because recon on the pod
+measured that its target population does not exist in the corpus the arm checkpoints were trained on. The
+training store is `mixed-cp` = `chatstore` (label `chat`, 82,248,461 tokens) + `dcopy` (label `copy`,
+57,229 tokens); `dcopy` decodes to 1,006 documents and **2,012 supervised answer runs whose content is
+the value itself** (` cat, dog.`, ` 3.`, ` first.`, ` 2500.`, ` 25 metres.`; content tokens min 2 / mean
+4.35 / max 10; 1,386 of 2,012 a single word). **0 of 2,012** answer runs contain any of
+`is/are/was/were/my/your/the/that/did/does`, and the source contains **0** occurrences of `My name is`,
+`my name`, `name is` or `is called`; the chat source has **13** of 129,465 supervised responses starting
+` My| name| is`. So on this corpus the answer span IS the response run — the mask would zero
+approximately nothing — and the failing prefix is not supervised at all: re-read from the sealed trace
+(`natural/n_ithmar`), window ids 4..12 = ` My| name| is| It|h|m|ar|.` and the reply is exactly that plus
+EOS, i.e. three ids of the PROMPT read back through the copy channel, with the value's span starting at
+window[7]. The labels sidecar the round assumed (`binding_labels.json[l]`) exists nowhere on the volume,
+and the recorded arm recipe is not the round's brief (`qat=true` refuses a pointer head, so it cannot
+have produced these arms; arm-ptr was trained from scratch on the `mixed-cp` store — see the record for
+the exact argvs). No training run, no panel run, no new number; pod spend **$0.30** (10 min 5 s,
+released and deleted).
+
+**The training lever is closed as inapplicable to the recorded corpus, and the read-out line is declared
+FINISHED with it**: five instruments now measured — run-length stop 65/84, token-identity stop **72/84
+= 0.8571 [0.7667, 0.9163]** (the accepted best, arm-ptr, gate floor 0.5, against 49/84 for the same floor
+with no stop and 0/84 for the no-pointer control), span-open relaxation never built because its target
+population measured 0/84, span extraction a decisive negative in its natural reading (a fitted variant at
+77/84 = 0.9167, p=0.0625, Newcombe containing zero — a better point estimate, not an improvement), and
+now the training lever with an empty target population. What remains open is bounded and named: the 4
+class-A cells (the value is never emitted — a generator/EOS failure at floor 0.5 no serving-time rule can
+touch) and the 5 class-C cells (pointer onset selection). Neither is a supervision problem. The
+instrument (`answer_span_supervision=0|1`, default off, with its two focused tests) is preserved as
+**PAUSED / UNACTIVATED** in the branch archive, not as live machinery. Two pre-existing main defects are
+recorded separately: the `dialogue_episodes.rs:613` debug-build subtraction, repaired here (pristine-main
+baseline 798 passed / 14 failed → 811 passed / 3 pre-existing `joint_campaign` failures, untouched), and
+the owner's `Reply.span_extract` compile fix, which landed as #2066 (`fa786e4ef`) and is this branch's
+rebase base rather than a carried copy. STATUS/ROADMAP and the #2028 table are unchanged — no served
+model, BPB headline or milestone moved.
+
+**Next:** do not re-open the read-out or supervision lines on this panel. The 4 class-A cells are a
+generator/EOS failure and the 5 class-C cells are pointer onset selection; any further work there needs
+an independently measured marker of where the value begins, which this line has already failed to find in
+the pointer's own selection. If the training lever is ever revisited, it requires a corpus that actually
+carries `binding_labels.json[l]` for the supervised source (a `dialogue-recall-corpus binding_labels=1`
+store) — the archived patch applies cleanly to `fa786e4ef` and its INDEX row says plainly that it is
+inapplicable to the recorded corpus by measurement.
+
 ## Complete donor utility replaces the optional lane-state credit surrogate — October 9
 
 The [coupled credit correction](../labs/occurrence-joint-credit-2026-10-09/README.md) adds explicit `donor_credit: "full_pool_utility"` to the existing Prefix/Generate learner. It uses detached complete native forced-donor pool losses to credit the BASE Copy selector, replacing the indirect state-tangent path while retaining direct Copy and factual Generate gradients. A native two-lane pair fixture demonstrates the finite interaction omitted by the old target-score tangent; zero-forward, gradient isolation, physical alias/clipping and recovery checks pass. Historical configurations retain `state_tangent`. No serving rule or parameter family is added.

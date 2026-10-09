@@ -610,8 +610,10 @@ impl<'a> EpisodeIndex<'a> {
                     // the CONTINUATION stays family-driven, so the term has to cover the answer's first few
                     // tokens rather than only its first.
                     let commitment = {
-                        let offset = position + 1 - prefix_positions;
-                        supervised && offset < commitment_span
+                        // `supervised` first: the subtraction underflows for a
+                        // prefix position in a debug build, and `offset` is
+                        // only meaningful inside the supervised region.
+                        supervised && position + 1 - prefix_positions < commitment_span
                     };
                     let weight = if supervised {
                         if commitment {

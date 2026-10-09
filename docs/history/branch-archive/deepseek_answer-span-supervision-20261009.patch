@@ -1,0 +1,549 @@
+diff --git a/crates/uor-r4-training/examples/geometric-stack.rs b/crates/uor-r4-training/examples/geometric-stack.rs
+index 91c39d100..0e2037578 100644
+--- a/crates/uor-r4-training/examples/geometric-stack.rs
++++ b/crates/uor-r4-training/examples/geometric-stack.rs
+@@ -287,6 +287,19 @@
+ //! head with the most mass on the expected and the forbidden values together
+ //! (`StackModel::read_supervised_loss`). Needs `policy=full_prefix`, full
+ //! read admission and f32 precision.
++//! `answer_span_supervision=0|1` (`dialogue-train`, default 0 = off) reads the
++//! same labels but changes the LANGUAGE loss instead of the read: on a
++//! response whose answer carries a label, the response weights keep only the
++//! answer span - the input positions whose next token is a token of the
++//! answer's expected value, the labels' queries - and the response's
++//! terminating target, which keeps its weight so the run can still learn to
++//! stop. Every other supervised position of that response (the sentence around
++//! the value) gets weight 0, so the model is taught the value rather than the
++//! whole sentence it sits in. Rows without a label are untouched, as is every
++//! prefix and padding weight. It needs `read_binding_labels=` and
++//! `read_binding_source=` and `policy=full_prefix`, does not need the read
++//! term (`read_binding_supervision` may stay 0) and is a training change only:
++//! no new parameters, no serialization change, no serving change.
+ //! Each evaluation reports the pointer's mean gate and hit rate on the scored
+ //! targets (`dev_pointer_*` in the curve, `pointer` in the developments). The
+ //! pointer has no served representation for training (`qat=true` refuses
+@@ -4192,6 +4205,10 @@ struct DialogueSettings {
+     read_binding_source: Option<String>,
+     /// `read_binding_layer=L` (default: the last read layer).
+     read_binding_layer: Option<usize>,
++    /// `answer_span_supervision=0|1` (default 0, off): put the language loss
++    /// of a labelled response only on its answer span and its terminating
++    /// target ([`uor_r4_training::stack_dialogue::ReadBindingLabels::restrict_to_answer_spans`]).
++    answer_span_supervision: bool,
+ }
+ 
+ impl DialogueSettings {
+@@ -4243,6 +4260,11 @@ impl DialogueSettings {
+             record["read_binding_source"] = json!(self.read_binding_source);
+             record["read_binding_layer"] = json!(self.read_binding_layer);
+         }
++        if self.answer_span_supervision {
++            record["answer_span_supervision"] = json!(true);
++            record["read_binding_labels"] = json!(self.read_binding_labels);
++            record["read_binding_source"] = json!(self.read_binding_source);
++        }
+         record
+     }
+ 
+@@ -4296,6 +4318,11 @@ impl DialogueSettings {
+                 "layer": self.read_binding_layer,
+             });
+         }
++        if self.answer_span_supervision {
++            lineage["answer_span_supervision"] = json!({
++                "source": self.read_binding_source,
++            });
++        }
+         Ok(lineage)
+     }
+ }
+@@ -4336,7 +4363,8 @@ fn apply_read_lineage(
+ /// `read_binding_supervision=W`: finite and nonnegative; above 0 it needs
+ /// `read_binding_labels=` and `read_binding_source=`, `policy=full_prefix`,
+ /// no `select=` and f32 precision, and excludes copy-gate supervision.
+-/// Checked before anything is claimed.
++/// `answer_span_supervision=1` shares the labels but not the read term, so it
++/// admits them at weight 0. Checked before anything is claimed.
+ fn check_read_binding_supervision(s: &DialogueSettings) -> Result<()> {
+     let weight = s.read_binding_supervision;
+     if !(weight.is_finite() && weight >= 0.0) {
+@@ -4345,14 +4373,30 @@ fn check_read_binding_supervision(s: &DialogueSettings) -> Result<()> {
+         ));
+     }
+     if weight == 0.0 {
+-        if s.read_binding_labels.is_some()
+-            || s.read_binding_source.is_some()
+-            || s.read_binding_layer.is_some()
++        if s.read_binding_layer.is_some() {
++            return Err(invalid(
++                "read_binding_layer needs read_binding_supervision > 0",
++            ));
++        }
++        if (s.read_binding_labels.is_some() || s.read_binding_source.is_some())
++            && !s.answer_span_supervision
+         {
+             return Err(invalid(
+-                "read_binding_labels/source/layer need read_binding_supervision > 0",
++                "read_binding_labels/source need read_binding_supervision > 0 or \
++                 answer_span_supervision=1",
+             ));
+         }
++    }
++    if s.answer_span_supervision && (s.read_binding_labels.is_none() || s.read_binding_source.is_none())
++    {
++        return Err(invalid(
++            "answer_span_supervision needs read_binding_labels=DIR and read_binding_source=LABEL",
++        ));
++    }
++    if s.answer_span_supervision && s.policy != PrefixPolicy::FullPrefix {
++        return Err(invalid("answer_span_supervision needs policy=full_prefix"));
++    }
++    if weight == 0.0 {
+         return Ok(());
+     }
+     if s.read_binding_labels.is_none() || s.read_binding_source.is_none() {
+@@ -4521,6 +4565,7 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
+             "read_binding_labels",
+             "read_binding_source",
+             "read_binding_layer",
++            "answer_span_supervision",
+         ],
+     )?;
+     // Validate the A1 options before anything is claimed or loaded.
+@@ -4585,6 +4630,15 @@ fn dialogue_train_mode(arguments: &[String]) -> Result<()> {
+                     .map_err(|_| invalid(format!("invalid read_binding_layer={v}")))
+             })
+             .transpose()?,
++        answer_span_supervision: match args.optional("answer_span_supervision").as_deref() {
++            None | Some("0") => false,
++            Some("1") => true,
++            Some(other) => {
++                return Err(invalid(format!(
++                    "invalid answer_span_supervision={other} (0 or 1)"
++                )))
++            }
++        },
+     };
+     settings.precision = precision_arg(&args, &settings.device)?;
+     check_bf16_options(
+@@ -4845,26 +4899,33 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+     let (protocol, contract) = episode_contract_for(&tokenizer, vocab, config.context, s.protocol)?;
+     let train = train_split.index_for(contract, s.policy)?;
+     // Step 7d: read-binding labels and the supervised read layer (by
+-    // default the last read layer).
+-    let read_binding = if s.read_binding_supervision > 0.0 {
++    // default the last read layer). `answer_span_supervision` reads the same
++    // sidecar but supervises the language loss instead of the read, so it
++    // needs the labels and not a read layer.
++    let read_binding = if s.read_binding_supervision > 0.0 || s.answer_span_supervision {
+         let (Some(directory), Some(source)) = (&s.read_binding_labels, &s.read_binding_source)
+         else {
+             return Err(invalid(
+                 "read-binding supervision needs its labels and source",
+             ));
+         };
+-        let layer = match s.read_binding_layer {
+-            Some(layer) => layer,
+-            None => (0..config.layers())
+-                .rev()
+-                .find(|&l| config.pattern.as_bytes()[l] == b'a')
+-                .ok_or_else(|| invalid("read_binding_supervision needs a read layer"))?,
++        let layer = if s.read_binding_supervision > 0.0 {
++            let layer = match s.read_binding_layer {
++                Some(layer) => layer,
++                None => (0..config.layers())
++                    .rev()
++                    .find(|&l| config.pattern.as_bytes()[l] == b'a')
++                    .ok_or_else(|| invalid("read_binding_supervision needs a read layer"))?,
++            };
++            if layer >= config.layers() || config.pattern.as_bytes()[layer] != b'a' {
++                return Err(invalid(format!(
++                    "read_binding_layer={layer} is not a read layer of the model"
++                )));
++            }
++            Some(layer)
++        } else {
++            None
+         };
+-        if layer >= config.layers() || config.pattern.as_bytes()[layer] != b'a' {
+-            return Err(invalid(format!(
+-                "read_binding_layer={layer} is not a read layer of the model"
+-            )));
+-        }
+         Some((
+             uor_r4_training::stack_dialogue::ReadBindingLabels::load(
+                 directory,
+@@ -5035,6 +5096,10 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+     // masses, and the objective.
+     let mut window_binding = (0usize, 0usize, [0f64; 4]);
+     let mut binding_totals = (0usize, 0usize);
++    // Under answer-span supervision: labelled rows and the response weights
++    // kept and zeroed, for the window and for the whole run.
++    let mut window_answer_span = (0usize, 0usize, 0usize);
++    let mut answer_span_totals = (0usize, 0usize, 0usize);
+     // The served representation's work inside this process's updates.
+     let mut served_in_steps = ServedStatistics::default();
+     // This process's updates' seconds.
+@@ -5044,12 +5109,34 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+         let lr = cosine_rate(s.lr, s.warmup, s.min_lr, s.steps, progress.step);
+         let clock = Instant::now();
+         let ids = train.sample_ids(s.data_seed, progress.step as u64, s.batch)?;
+-        let batch = train.materialize(&ids, s.policy)?;
++        let mut batch = train.materialize(&ids, s.policy)?;
++        // The answer-span arm: on a labelled response the language loss keeps
++        // only the answer span (the value's own tokens) and the terminating
++        // target; the sentence around the value loses its weight. Rows without
++        // a label and every other weight are untouched.
++        if s.answer_span_supervision {
++            if let Some((labels, _)) = &read_binding {
++                let time = batch.time;
++                let mask = labels.restrict_to_answer_spans(&mut batch, time)?;
++                answer_span_totals.0 += mask.labelled_rows;
++                answer_span_totals.1 += mask.kept_weights;
++                answer_span_totals.2 += mask.zeroed_weights;
++                window_answer_span.0 += mask.labelled_rows;
++                window_answer_span.1 += mask.kept_weights;
++                window_answer_span.2 += mask.zeroed_weights;
++                if mask.labelled_rows == 0 && progress.step == 0 {
++                    return Err(invalid(
++                        "answer_span_supervision found no labelled response in the first \
++                         batch: check read_binding_source= against the training store",
++                    ));
++                }
++            }
++        }
+         let trimmed = trim(&batch);
+         let served_before = model.served_statistics()?;
+         let binding_target = match &read_binding {
+-            Some((labels, layer)) => labels.target(&batch, trimmed.time, *layer)?,
+-            None => None,
++            Some((labels, Some(layer))) => labels.target(&batch, trimmed.time, *layer)?,
++            _ => None,
+         };
+         let (loss, value) = if let Some(target) = &binding_target {
+             let parts = model.read_supervised_loss(
+@@ -5188,6 +5275,14 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+                 point["train_binding_objective"] = json!(window_binding.2[3] / n);
+                 window_binding = (0, 0, [0.0; 4]);
+             }
++            // Answer-span supervision: the window's labelled rows and response
++            // weights kept and zeroed (a measured count, not an assertion).
++            if s.answer_span_supervision {
++                point["train_answer_span_rows"] = json!(window_answer_span.0);
++                point["train_answer_span_kept"] = json!(window_answer_span.1);
++                point["train_answer_span_zeroed"] = json!(window_answer_span.2);
++                window_answer_span = (0, 0, 0);
++            }
+             if let Some((unsnapped, usage)) = &transport {
+                 point["dev_unsnapped_response_nll"] = unsnapped["response_mean_nll"].clone();
+                 point["dev_unsnapped_first_four_nll"] =
+@@ -5351,6 +5446,16 @@ fn dialogue_train(s: &DialogueSettings, args: &Args, out: &Path) -> Result<()> {
+             "scope": "Flock selection of the reads (sink at position 0, last WINDOW positions and the K best-scoring other sources per read row, by the shared crate::flock selector; unkept sources weigh and receive exactly 0; the NoRead slot stays outside the selection) applies to every read of the model and never to the pointer. The pointer head scores each source of the window with its own score (`pointer_score`: dot, or the fused read's Lorentz form with a learned scale) and softmaxes over the sources its own selection keeps (`pointer_select`: none keeps all, top:1 is the single-source pointer), copies the input tokens at the attended positions, and a gate g = sigmoid(w.h + b) (b starts at -2) mixes that with the ordinary distribution; when no kept source holds a target the mixture is (1 - g) softmax alone, with no floor. A dot pointer may add the token-identity term (`pointer_identity`: the multiset overlap of the 6 tokens before a source with the 6 before the query, mixed at that weight, no parameters and no integer port). `response_mean_nll`, the losses and the greedy replies are the mixture's. `pointer` diagnostics are over the scored dev targets. Neither a flock nor a pointer selection, route or identity term has a D11 port; `export` writes a pointer that keeps every source (both integer engines serve its mixture), and `qat=true` refuses a pointer. Offline float training only; not a served or quality result.",
+         });
+     }
++    if s.answer_span_supervision {
++        report["answer_span_supervision"] = json!({
++            "source": s.read_binding_source,
++            "labels": read_binding.as_ref().map(|(labels, _)| labels.record.clone()),
++            "labelled_rows_this_process": answer_span_totals.0,
++            "kept_weights_this_process": answer_span_totals.1,
++            "zeroed_weights_this_process": answer_span_totals.2,
++            "objective": "weighted language NLL over the sampled responses, with the response weights of a labelled answer restricted to its ANSWER SPAN: the input positions whose next token is a token of the answer's expected value (the read-binding labels' queries, read_binding_labels=DIR, read_binding_source=LABEL) plus the response's terminating target, which keeps its weight so the run can still learn to stop. Every other supervised position of a labelled response - the sentence around the value - carries weight 0. Rows without a label keep their materialized weights. Nothing else changes: no new parameters, no serialization change, no serving change. train_answer_span_{rows,kept,zeroed} in the curve are the window's counts (a measured count of what the mask did, not an assertion).",
++        });
++    }
+     fs::write(out.join("report.json"), serde_json::to_vec_pretty(&report)?)?;
+     Ok(())
+ }
+@@ -5942,7 +6047,7 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
+   [pointer_route=none|prime:WINDOW|prime-ranked:WINDOW|ngram:WINDOW|ngram-ranked:WINDOW] \\
+   [pointer_gate_supervision=0] \\
+   [read_binding_supervision=0 read_binding_labels=DIR read_binding_source=LABEL \\
+-   read_binding_layer=L] \\
++   read_binding_layer=L] [answer_span_supervision=0|1] \\
+   [seed=] [context=] [policy=] \\
+   [data_seed=] \\
+   [steps=] \\
+@@ -6015,6 +6120,18 @@ geometric-stack dialogue-train out=NEW_REPORT_ROOT tokenizer=TOKENIZER.json \\
+                          read_binding_source=LABEL its source label in the training store.
+                          Needs policy=full_prefix, no select= and precision=f32. The curve adds
+                          train_binding_{steps,rows,nll,bound_mass,competing_mass,objective}.
++  answer_span_supervision=0|1
++                         answer-span supervision (default 0: off, the run is unchanged). With 1,
++                         a response whose answer carries a read-binding label keeps its language
++                         loss only on the ANSWER SPAN - the input positions whose next token is a
++                         token of the answer's expected value - and on the response's terminating
++                         target, so the model is taught the value rather than the sentence around
++                         it. Every other supervised position of a labelled response gets weight
++                         0; rows without a label are untouched. Needs read_binding_labels=DIR,
++                         read_binding_source=LABEL and policy=full_prefix; read_binding_supervision
++                         may stay 0 (the two terms are independent). The curve adds
++                         train_answer_span_{rows,kept,zeroed} and the report an
++                         answer_span_supervision section with the run's totals.
+   protocol=1|2           the literal-role dialogue version of both corpora (default 1); 2 puts
+                          the space after a role marker into the message (m-world corpus
+                          protocol=2), so a reply's first word can be copied from context.
+diff --git a/crates/uor-r4-training/src/stack_dialogue.rs b/crates/uor-r4-training/src/stack_dialogue.rs
+index c3ba12c74..d86c4b896 100644
+--- a/crates/uor-r4-training/src/stack_dialogue.rs
++++ b/crates/uor-r4-training/src/stack_dialogue.rs
+@@ -307,6 +307,87 @@ impl ReadBindingLabels {
+     }
+ }
+ 
++/// What [`ReadBindingLabels::restrict_to_answer_spans`] changed in one batch.
++#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
++pub struct AnswerSpanMask {
++    /// Batch rows whose response carries a label and holds at least one answer
++    /// position inside this window.
++    pub labelled_rows: usize,
++    /// Response weights left at their materialized value: the answer span and
++    /// the response's terminating target.
++    pub kept_weights: usize,
++    /// Response weights zeroed: every other supervised position of a labelled
++    /// response.
++    pub zeroed_weights: usize,
++}
++
++impl ReadBindingLabels {
++    /// Restrict the language-loss weights of every labelled response to its
++    /// `answer` span: the positions whose next token is a token of the
++    /// answer's expected value (`queries`, the same positions the read-binding
++    /// loss supervises) plus the response's terminating target, which keeps its
++    /// weight so the run can still learn to stop. Every other supervised
++    /// position of a labelled response - the sentence around the value - is
++    /// zeroed. Rows without a label, and the prefix and padding of every row,
++    /// are untouched, so `time` must be the batch's own row stride.
++    pub fn restrict_to_answer_spans(
++        &self,
++        batch: &mut EpisodeBatch,
++        time: usize,
++    ) -> Result<AnswerSpanMask> {
++        if time != batch.time || batch.weights.len() != batch.rows.len() * time {
++            return Err(invalid("answer-span weights need the batch's own time"));
++        }
++        let mut mask = AnswerSpanMask::default();
++        for (row_index, row) in batch.rows.iter().enumerate() {
++            let Some(label) = self.by_response.get(&row.response_start) else {
++                continue;
++            };
++            if label
++                .queries
++                .iter()
++                .chain(&label.bound)
++                .chain(&label.competing)
++                .any(|&p| p < row.document_start)
++            {
++                return Err(invalid("a binding label points before its document"));
++            }
++            let terminal = row
++                .counts
++                .real_input_positions
++                .checked_sub(1)
++                .ok_or_else(|| invalid("an answer-span row has no terminal target"))?;
++            let mut keep = vec![false; time];
++            keep[terminal] = true;
++            let mut queries = 0usize;
++            for &query in &label.queries {
++                let query = query - row.document_start;
++                if query < row.counts.real_input_positions && query < time {
++                    keep[query] = true;
++                    queries += 1;
++                }
++            }
++            if queries == 0 {
++                continue;
++            }
++            mask.labelled_rows += 1;
++            let row_weights = &mut batch.weights[row_index * time..(row_index + 1) * time];
++            for (position, weight) in row_weights.iter_mut().enumerate() {
++                if *weight <= 0.0 {
++                    continue;
++                }
++                if keep[position] {
++                    mask.kept_weights += 1;
++                } else {
++                    *weight = 0.0;
++                    mask.zeroed_weights += 1;
++                }
++            }
++        }
++        Ok(mask)
++    }
++}
++
+ /// The literal-role protocol of `tokenizer` and the episode contract the
+ /// retained study builds from it, at its 256-ID context.
+ pub fn episode_contract(
+@@ -1567,4 +1648,172 @@ mod tests {
+         // EOS is checked first, as in the retained study.
+         assert_eq!(stop(&[1, 1, 1]), Some((true, None)));
+     }
++
++    /// Write the `binding_labels.json[l]` sidecar of `source` in `split`, with
++    /// `rows` = (response start, bound, competing, queries) in the source's own
++    /// positions, the way `dialogue-recall-corpus binding_labels=1` writes it.
++    fn write_labels(
++        directory: &Path,
++        split: &DialogueSplit,
++        source: &str,
++        rows: &[(usize, Vec<usize>, Vec<usize>, Vec<usize>)],
++    ) {
++        use sha2::Digest;
++        let range = split.source_range(source).unwrap();
++        let tokens = &split.reader.as_slice()[range.clone()];
++        let mut digest = sha2::Sha256::new();
++        for token in tokens {
++            digest.update(token.to_le_bytes());
++        }
++        let hex: String = digest
++            .finalize()
++            .iter()
++            .map(|byte| format!("{byte:02x}"))
++            .collect();
++        let mut lines = String::new();
++        for (start, bound, competing, queries) in rows {
++            lines.push_str(
++                &json!({"r": start, "b": bound, "c": competing, "q": queries}).to_string(),
++            );
++            lines.push('\n');
++        }
++        fs::write(directory.join("binding_labels.jsonl"), lines).unwrap();
++        fs::write(
++            directory.join("binding_labels.json"),
++            json!({
++                "schema": "uor-r4.read-binding-labels/1",
++                "tokens": tokens.len(),
++                "tokens_payload_sha256": hex,
++            })
++            .to_string(),
++        )
++        .unwrap();
++    }
++
++    /// The two source-local label rows of the test split: for each source, one
++    /// response whose answer's last two content tokens are its value, and the
++    /// position before the response ("bound") as the premise occurrence.
++    fn test_label_rows(split: &DialogueSplit, source: &str) -> Vec<(usize, Vec<usize>, Vec<usize>, Vec<usize>)> {
++        let range = split.source_range(source).unwrap();
++        let mut rows = Vec::new();
++        for start in range.start + 1..range.end {
++            if split.mask[start] == 1 && split.mask[start - 1] == 0 && rows.is_empty() {
++                let local = start - range.start;
++                let end = (start..range.end)
++                    .find(|&p| split.mask[p] == 0)
++                    .unwrap_or(range.end);
++                // `end - 1` is the terminating EOS, so the last two content
++                // tokens are predicted at `end - 4` and `end - 3`.
++                assert!(end - start >= 5, "a response with room for a value");
++                let queries = vec![end - 4 - range.start, end - 3 - range.start];
++                rows.push((local, vec![local - 1], vec![], queries));
++            }
++        }
++        assert_eq!(rows.len(), 1, "one labelled response per source");
++        rows
++    }
++
++    fn materialized_labelled_batch(
++        directory: &Path,
++    ) -> (DialogueSplit, EpisodeBatch, ReadBindingLabels) {
++        let tokenizer = tokenizer();
++        let split = split(directory, &tokenizer);
++        write_labels(directory, &split, "colors", &test_label_rows(&split, "colors"));
++        let labels = ReadBindingLabels::load(directory, &split, "colors").unwrap();
++        let (_, contract) = episode_contract(&tokenizer, split.vocab_size()).unwrap();
++        let index = split.index(contract).unwrap();
++        let batch = index
++            .materialize(&[0, 1], PrefixPolicy::FullPrefix)
++            .unwrap();
++        (split, batch, labels)
++    }
++
++    #[test]
++    fn answer_span_supervision_keeps_the_answer_and_the_terminal_target_only() {
++        let directory = std::env::temp_dir().join(format!(
++            "uor-r4-stack-answer-span-{}-{}",
++            std::process::id(),
++            line!()
++        ));
++        let _ = fs::remove_dir_all(&directory);
++        fs::create_dir_all(&directory).unwrap();
++        let (split, mut batch, labels) = materialized_labelled_batch(&directory);
++        let time = batch.time;
++        let before = batch.weights.clone();
++        let mask = labels.restrict_to_answer_spans(&mut batch, time).unwrap();
++        assert_eq!(mask.labelled_rows, 1, "one of the two sampled rows is labelled");
++        assert!(mask.kept_weights > 0 && mask.zeroed_weights > 0);
++
++        let range = split.source_range("colors").unwrap();
++        let row = batch
++            .rows
++            .iter()
++            .position(|row| split.mask[row.response_start] == 1 && row.response_start < range.end)
++            .unwrap();
++        let response_start = batch.rows[row].response_start;
++        let response_end = batch.rows[row].response_end;
++        let document_start = batch.rows[row].document_start;
++        let terminal = batch.rows[row].counts.real_input_positions - 1;
++        let response_tokens = response_end - response_start;
++        let queries = test_label_rows(&split, "colors")[0].3.clone();
++        let kept: Vec<usize> = queries.iter().map(|q| q + range.start - document_start).collect();
++        let weights = &batch.weights[row * time..(row + 1) * time];
++        for (position, &weight) in weights.iter().enumerate() {
++            let supervised = position + 1 >= batch.rows[row].counts.prefix_positions;
++            if !supervised {
++                assert_eq!(weight, 0.0, "prefix weight at {position}");
++                continue;
++            }
++            assert_eq!(
++                weight > 0.0,
++                kept.contains(&position) || position == terminal,
++                "weight at response position {position} (kept {kept:?}, terminal {terminal})"
++            );
++        }
++        // The counts are the mask's own accounting, and the terminal target and
++        // every query keep the value they were materialized with.
++        assert_eq!(mask.kept_weights, queries.len() + 1);
++        assert_eq!(mask.zeroed_weights, response_tokens - queries.len() - 1);
++        for &position in &kept {
++            assert_eq!(weights[position], before[row * time + position]);
++        }
++        assert_eq!(weights[terminal], before[row * time + terminal]);
++        // The unlabelled row is untouched, weight for weight.
++        let other = 1 - row;
++        assert_eq!(
++            &batch.weights[other * time..(other + 1) * time],
++            &before[other * time..(other + 1) * time]
++        );
++        // The answer span is a PROPER subset here: the sentence around it and
++        // the value's own neighbours lost their weight.
++        assert!(mask.zeroed_weights >= 2);
++        let _ = fs::remove_dir_all(&directory);
++    }
++
++    #[test]
++    fn answer_span_supervision_leaves_a_batch_without_labels_byte_identical() {
++        let directory = std::env::temp_dir().join(format!(
++            "uor-r4-stack-answer-span-none-{}-{}",
++            std::process::id(),
++            line!()
++        ));
++        let _ = fs::remove_dir_all(&directory);
++        fs::create_dir_all(&directory).unwrap();
++        let tokenizer = tokenizer();
++        let split = split(&directory, &tokenizer);
++        // Labels for the OTHER source: the sampled rows carry none.
++        write_labels(&directory, &split, "sounds", &test_label_rows(&split, "sounds"));
++        let labels = ReadBindingLabels::load(&directory, &split, "sounds").unwrap();
++        let (_, contract) = episode_contract(&tokenizer, split.vocab_size()).unwrap();
++        let index = split.index(contract).unwrap();
++        let mut batch = index
++            .materialize(&[0, 1], PrefixPolicy::FullPrefix)
++            .unwrap();
++        let before = batch.weights.clone();
++        let time = batch.time;
++        let mask = labels.restrict_to_answer_spans(&mut batch, time).unwrap();
++        assert_eq!(mask, AnswerSpanMask::default());
++        assert_eq!(batch.weights, before);
++        let _ = fs::remove_dir_all(&directory);
++    }
+ }

@@ -232,3 +232,29 @@ movement - use the bundle to restore.
 | Branch | Base already archived on main | Final tip | Disposition |
 |---|---|---|---|
 | [`codex/lab-state`](codex_lab-state.final-heartbeats.patch) | `669fc6dafb578a338560c446028d00e2e81a5692` | `d9eca2ab1d8240bd854e2ae92bf29f8f1781c765` | Two final heartbeat commits; no source/research changes. Complete 1,976-commit history retained in the independently restored [full bundle](../lab-state-20261009/lab-state.bundle). Standing branch retired. |
+
+## DeepSeek answer-span supervision instrument — paused, October 9
+
+The instrument behind the [answer-span supervision round](../../labs/answer-span-supervision-2026-10-09/README.md):
+`answer_span_supervision=0|1` (default 0 = off), which restricts a labelled response's language-loss
+weights to the answer span (the positions whose next token is a token of the answer's expected value)
+plus the response's terminating target. It is **PAUSED / UNACTIVATED**: the round measured that the
+recorded training corpus has no target population for it — 0 of 2,012 supervised answer runs in the
+`copy` source contain sentence scaffolding, so the answer span IS the response run there, and the failing
+prefix is a verbatim copy of the prompt, i.e. context rather than a supervised target. The intervention
+is **inapplicable to the recorded corpus by measurement**; do not reactivate it expecting a result.
+It becomes applicable only to a store that carries `binding_labels.json[l]` for the supervised source
+(a `dialogue-recall-corpus binding_labels=1` store).
+
+| Branch | Last commit | Commits | Lines not in main | Tip | Merge-base | Last subject |
+|---|---|---|---|---|---|---|
+| [`deepseek/answer-span-supervision`](deepseek_answer-span-supervision-20261009.patch) | 2026-10-09 | 1 | 0.82 of 289 | `d46bbd9e8` (local-only; the patch is the durable record) | `fa786e4ef` | Answer-span supervision instrument: keep the response loss on the value's own span plus the terminating target (paused) |
+
+The patch is `git diff fa786e4ef d46bbd9e8` of the two instrument paths only; the debug-underflow guard
+from the same branch landed separately as live source in the round's PR, and the owner's own
+`Reply.span_extract` compile fix (#2066, `fa786e4ef`) is the rebase base and is not carried here. It
+applies cleanly to `fa786e4ef` (`git apply --check` PASS) and its SHA-256 is
+`b380c8ca32aea92b789a4bd07d6e80fba6a115ddaef59693d7a4ebced3bc69e4`. Its two focused tests are in the
+patch (`cargo test -p uor-r4-training --lib answer_span`) and need the `dialogue_episodes.rs:613`
+debug-underflow guard that lands as live source in the round's PR — without it they panic in a debug
+build before reaching any assertion.
