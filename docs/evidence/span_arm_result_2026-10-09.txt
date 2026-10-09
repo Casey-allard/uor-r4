@@ -1,0 +1,64 @@
+UOR-R4 — Span weighting does not close the continuation gap: three objective variants tried, the mechanism is what remains
+Date: 2026-10-09 (overnight rounds 165-167). DeepSeek session. References #820.
+
+WHAT RAN
+  The objective half of the probe's recommendation: UOR_COMMITMENT_SPAN=3 (the response's first three
+  supervised positions take the commitment weight, the change merged as #1984) with
+  UOR_COMMITMENT_WEIGHT=100 and UOR_TERMINAL_WEIGHT=30, on the content-copy store mixture
+  (1,006 documents, turn-1 answers the premise's own token span, no acknowledgements), 19,929,136
+  parameters, policy=full_prefix, 12,207 steps, panel v2. Development response nll 4.7599 at step 2,000,
+  far above the earlier arms' 2.0-2.5, which is the expected signature of concentrating 100x weight on
+  three positions and is a dose indicator rather than a metric.
+
+RESULT
+
+    "Yes, there" / "No, there"     yes/no COMPLIES at the first token, both correct
+    "1."  "1."  "1."               numeric form on three items
+    "thirty."                      a spelled-out NUMBER WORD - two tokens, and in the demanded form
+    "India."                       a store-family surface in short form
+    "Hi Liam,"                     a greeting carrying a NAME
+    "I do" / "There are" / "The capital" / "The largestrams" / "Componse is"   do not comply
+
+  SO COMPLIANCE IS PARTIAL AND THE RETENTION ANSWER IS STILL NOT THE GIVEN VALUE. The name turn
+  produces a name-bearing greeting ("Hi Liam,") where the user's name was Ana - a name-shaped reply
+  that is not the value, which is the same onset-shaped failure the probe identified in the previous
+  arm ("Anany.", "Ane."). The count turn returns a number word ("thirty.") rather than the count.
+
+WHAT THREE OBJECTIVE VARIANTS TOGETHER ESTABLISH
+  1. WEIGHTING THE ANSWER REGION DOES NOT CLOSE THE CONTINUATION GAP. Three variants have now been run
+     on this mixture: terminal weighting (#1946, dose curve 20/60/100/200 on the earlier store),
+     commitment weighting on the first token (#1977, shown by the probe to be a REAL first-token lever
+     - the onset becomes value-conditional at p=0.894 with DELTA up to +10.8 nats), and now the same
+     weight extended to the first three positions (#1984). The probe's channels put the span at or
+     above TAU in 62 of 63 cells and the emitted value in 0 of 63; this arm does not change that
+     picture, and its name-bearing reply is again onset-shaped rather than value-shaped.
+  2. THE FAILURE IS THEREFORE IN WHAT THE MODEL DOES WITH A SPAN IT ALREADY ADDRESSES. Retrieval is
+     present, the onset responds to the value, and the continuation follows the training mixture's
+     taught surfaces ("India.", "Hi <name>", number words, store family fragments) rather than the
+     span. Expressing that as a weighting problem has now been tried three ways; the evidence says the
+     next candidate must change the MECHANISM rather than the loss weights.
+  3. THE CANDIDATES, IN THE ORDER THE EVIDENCE SUPPORTS THEM: (i) an explicit copy/pointer pathway -
+     ALL ARMS TO DATE ARE POINTERLESS, the serving stack already has a pointer mode, and the review
+     ranked a pointer below the weighting proposals precisely because it supplies the capacity to copy
+     rather than the incentive, which is now the thing that has been shown to be missing; (ii) a
+     constrained or two-token decoder that forces the answer to be drawn from the span; (iii) the
+     project's unused geometric span/address lane (geometric_address.rs, geometric_span.rs are
+     registered but consumed only by standalone examples, and the review's missing pieces are span
+     construction, question-to-span addressing, and a token-identity readout).
+  4. WHAT NOT TO DO, REINFORCED: no further weight tuning on this axis (three variants tried), no more
+     capacity (three sizes tried), no more dependency-carrying stores of the same design (four store
+     designs tried), and no selection on development nll (which here moved by 2x while the panel moved
+     by much less).
+
+HONEST POSITION
+  This arm is a NEGATIVE for the span-weighting hypothesis and is recorded as such. It is the fourth
+  route exhausted for binding and the third objective variant ruled out. Meanwhile the night's solved
+  result is unaffected: instruction-form compliance remains ten of ten with correct content on the
+  demand-store configurations, and the copy-store arms continue to show partial compliance (yes/no
+  correct, numeric forms, a number word, a name-bearing greeting) rather than the prose of the
+  pre-breakthrough arms.
+
+SCOPE
+  One span, one weight pair, one store, one shape, single seed, greedy decoding, one panel read as the
+  first two content tokens. Exact for this panel. The probe channels have NOT yet been run on this
+  checkpoint and are the obvious next measurement if the pointer route is to be compared fairly.
