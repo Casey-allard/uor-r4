@@ -15,7 +15,8 @@
 #   4. git gc --auto, and `uv cache prune` when uv is idle.
 # It never touches the main checkout's files, a dirty worktree, anything
 # written within IDLE_HOURS, ~/.local/share/uor-r4 (runner, ledger, tooling),
-# or a folder that is not in iCloud. It never empties the Trash.
+# a folder that is not in iCloud, ~/uor-r4-local/{bin,handoff,workspace}, or any
+# folder holding a .keep-local marker. It never empties the Trash.
 set -uo pipefail
 
 APPLY=0; [ "${1:-}" = "--apply" ] && APPLY=1
@@ -82,7 +83,8 @@ if [ -x "$CLOUD" ] && [ -d "$LOCAL" ]; then
   idx=$(mktemp); "$CLOUD" list > "$idx" 2>/dev/null || say "warn: cloud-store list failed; skipping local results"
   for d in "$LOCAL"/*/; do
     d=${d%/}; n=$(basename "$d")
-    case "$n" in bin|handoff) continue ;; esac   # helpers and handoff notes stay
+    case "$n" in bin|handoff|workspace) continue ;; esac   # helpers, handoff notes and the runner work area stay
+    [ -e "$d/.keep-local" ] && { say "keep   $d (.keep-local marker)"; continue; }
     up=$(awk -F'\t' -v n="$n" '$1==n{print $5}' "$idx" | tail -1)
     if [ -z "$up" ]; then say "keep   $d (not in iCloud: run cloud-store put <lab> $d)"; continue; fi
     newest=$(find "$d" -type f -exec stat -f '%m' {} + 2>/dev/null | sort -n | tail -1)
