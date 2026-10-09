@@ -47,8 +47,9 @@ uses, renews, releases or deletes another session's lease or files (including a
    caps below, waits for SSH, seeds a non-canonical volume, runs the bootstrap
    (toolchain, cached binaries + parity, reaper) and writes your lease. When the
    cap is reached it names any free GPUs to lease (exit 4). **Never fall back
-   to the laptop CPU because no GPU is free or the cap is reached; if no GPU is
-   free and the cap is reached, ask the owner or wait for a lease to expire.**
+   to the laptop CPU for GPU work because no GPU is free or the cap is reached; if no GPU is
+   free and the cap is reached, ask the owner or wait for a lease to expire.** CPU-only jobs are
+   different: run them on the owner's laptop, and rent the smallest pod only when they exceed it.
 5. **Renew every ≤ 30 minutes while working:**
    `uor-pod renew POD --lab L --session S [--hours H]`. A lease is a promise
    that the session is actively using the GPUs; expiry is automatic release.

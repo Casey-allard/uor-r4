@@ -110,7 +110,7 @@ correction; it is never silently replaced.
   [docs/labs/compute.md](docs/labs/compute.md).
 - Never put project data, builds or downloads in `/tmp` or `/private/tmp`; use gitignored paths
   inside your worktree (`/local/`, `target/`), so `uor-hygiene` and worktree removal reclaim them.
-- Never run model training, fine-tuning or grading on the laptop CPU; use `uor-pod`.
+- GPU work (geometric-stack training, CUDA evaluation) goes through `uor-pod`. **CPU-only work runs on the owner's laptop** (Ryzen-class workstation when available): the native prose learner (`train-native-prose`), data preparation, grading and other CPU-bound jobs. Rent a pod for CPU work only when it truly exceeds the local machine (RAM, disk or wall time), and then choose the smallest pod (one GPU, or a CPU-only offering) (owner, 9 October 2026). GPU work (geometric-stack training, CUDA evaluation) still goes through `uor-pod` and never falls back to the laptop CPU.
 - Never read or print API keys. No new paid or external compute class without the owner.
 
 ## Claim wording and evidence
