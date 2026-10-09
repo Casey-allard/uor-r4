@@ -34,7 +34,7 @@ model.
 
 | Milestone | Issue | Status | Latest result |
 | --- | --- | --- | --- |
-| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served |
+| M1 Language base | [#2029](https://github.com/UOR-Foundation/uor-r4/issues/2029) | in progress | 214M base dev NLL 2.073; 19.9M chat stack 0.933 BPB served at 64 windows (0.877550 float / 0.886838 served matched at 512 windows — [protocol-dependent](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)) |
 | M2 Grounded reply from exact memory | [#2030](https://github.com/UOR-Foundation/uor-r4/issues/2030) | in progress | 8/512 complete replies; gate 9/15 |
 | M3 Durable conversation memory | [#2031](https://github.com/UOR-Foundation/uor-r4/issues/2031) | in progress | Evaluator and session delivered (#1568, #1578); not qualified |
 | M4 One served model (D11 and CLI) | [#2032](https://github.com/UOR-Foundation/uor-r4/issues/2032) | in progress | D11 engine bit-exact; `uor-chat --stack` serves the stack (#2050, 9 Oct) |
@@ -153,7 +153,7 @@ accepted whole-answer performance stays 8/512.
 | Model | Parameters | Data, tokens | Compute | Key result |
 | --- | --- | --- | --- | --- |
 | 8M stack (L2 read) | ~8M | chat-v0-p2; token count not recorded | not recorded | 1.1199 BPB held-out; Kneser-Ney 5-gram 1.2803 BPB |
-| 19.9M chat stack | 19,929,136 | chat-v0-p2, 150M tokens, 12,207 steps | 1 x RTX 5090, 164k tok/s | 0.877 BPB float; 0.933 BPB served multiplier-free (11.9 MB) |
+| 19.9M chat stack | 19,929,136 | chat-v0-p2, 150M tokens, 12,207 steps | 1 x RTX 5090, 164k tok/s | 0.877550 BPB float / 0.886838 BPB served multiplier-free (11.9 MB), matched at 512 windows; the earlier 0.933 served was a 64-window number ([pinned protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md)) |
 | 20M / 29M ladder | 20M / 29M | 300M / 434M tokens | not recorded | Dev NLL 1.388 / 1.286 to 1.299 (like-for-like step) |
 | ~96M chat | ~96M | chat plus balanced curriculum | not recorded | Step 7d fine-tune: v4 memory panel 26/40 (`exact` check pass); open panel 20/232 acceptable |
 | 214M base (Step 8) | 214M (16 layers, width 1536, 24 heads) | 1.85B tokens: TinyStories 0.7, TinyDialogues 0.1, chat-v0-p2 0.2 | 2 x RTX 5090, about 12 h | TinyStories val NLL 1.032; the base itself has no recorded panel score — its Step 7d fine-tune (arm Q) scores v4 memory 31/40 (`exact` check pass; 27/40 acceptable) and open panel 36/232 acceptable |
@@ -208,7 +208,7 @@ Every row holds at its exact artifact, data, operator and budget.
 
 | Result | Value | Scope |
 | --- | --- | --- |
-| 19.9M chat stack | 0.877 BPB float, 0.933 BPB served multiplier-free | 11.9 MB artifact; lab chat evaluation |
+| 19.9M chat stack | 0.877550 BPB float / 0.886838 BPB served multiplier-free, matched at 512 windows (196,608 positions, byte basis 2.837427 B/token) | 11.9 MB artifact; lab chat evaluation; the earlier 0.933 served was a 64-window number, so the pair is quoted with its [pinned protocol](docs/labs/criterion2-protocol-pin-2026-10-09/README.md) |
 | Sealed 8M stack | 1.1199 BPB | Sealed report; Kneser-Ney 5-gram 1.2803 BPB |
 | 214M Plan A base | FineWeb dev NLL 2.90 to 2.073 | Open development split; rewrite and summarize usable, code and math wrong |
 | v4 memory panel (frozen `exact` check pass) | 31/40 at 214M, 26/40 at 96M | 40 memory rows of `conversational-v4*`; Step 7d fine-tunes, one seed; chat-grade `acceptable` is 27/40 at 214M |

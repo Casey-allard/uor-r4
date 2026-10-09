@@ -146,6 +146,21 @@ BPB from the stream's own byte basis, or it will not be reproducible.
    ([#2075](https://github.com/UOR-Foundation/uor-r4/pull/2075)); this record is about the
    non-pointer chat stack that does export.
 
+**Later note (2026-10-09), from the [protocol pin](../criterion2-protocol-pin-2026-10-09/README.md),
+which executed this record's named next step.** Limitation 1 is now exact rather than open: the
+recorded artifact's LUT `2ac4c306…` is **not recoverable** — the whole EU-RO-1 volume `rfsx702p68` was
+searched (every `*.lut` hashed, every file of its 11,891,652-byte size checked, the tree text-grepped
+for the digest and for the recorded nll `1.7250754982233047`) and all 604 cloud-store entries were read.
+What survives on that volume is the **independent retrain** of the recorded recipe
+(`chat-served2-20261008/model-a1` `cbef6906…` + its GPTQ export `721d4bdb…`), and it is the artifact
+behind the published 0.87755 float cell and the round-23 quantiser table. Limitation 2 is settled for
+that retrain: the 0.047 BPB "swing" was a protocol mismatch, not noise — **0.87755 is a 512-window float
+cell and 0.93277 is a 64-window served cell**, and on identical positions at 512 windows the matched
+pair is **float 0.877550 / reference 0.886838 / integer 0.886838 BPB** (quantisation 0.009288 BPB,
+engine 2.7e-7 BPB, 196,608 targets, byte basis 2.837427 B/token). The served column of one artifact
+moves **0.045935 BPB** between 64 and 512 windows, which is why the protocol must be pinned in the
+claim.
+
 ## Cost
 
 Zero pod spend, zero external compute. Laptop wall time **≈ 60 min**: release build 4 m 31 s

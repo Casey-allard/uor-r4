@@ -1,0 +1,228 @@
+UOR-R4 — Criterion 2's protocol pinned: the published float/served pair is a cross-window-count
+comparison, and the recorded artifact is gone
+Date: 2026-10-09. DeepSeek lab, session criterion2-pin. References #2029.
+
+THE QUESTION
+  The published position is "float 0.877 / served 0.933", and criterion 2 is "the same model
+  exports and serves under D11 at <= 0.90 BPB on the chat held-out stream". The previous round
+  separated quantisation, engine and model on identical positions for a DIFFERENT artifact and
+  left one named next step: restore the artifact that produced the published pair from the
+  EU-RO-1 volume rfsx702p68 and score it with lut-evaluate reference=true at a fixed, declared
+  window count, so the 0.877 float cell becomes a matched float/served pair.
+
+SCOPE
+  CPU-only integer/LUT evaluation of existing artifacts. No training, no export, no quantiser
+  change, no float generation. One pod, used ONLY to read the volume (no job ran on it).
+
+PART 1 — THE RECORDED ARTIFACT IS NOT RECOVERABLE, ESTABLISHED EXHAUSTIVELY
+  On pod 1t3jmb6m4c9q9s (EU-RO-1 pin UOR_POD_VOLUME_DCS=EU-RO-1, volume rfsx702p68 =
+  uor-shared-EU-RO-1, NON-canonical), read-only:
+
+  (a) every *.lut on /workspace hashed:
+      find /workspace -name "*.lut" -type f | while read f; do sha256sum "$f"; done | grep ^2ac4c306
+      -> no match.  The 11,891,652-byte LUTs present are:
+         chat-objective-20261008/export-r6/model.lut
+         chat-objective-20261008/export-r7/model.lut
+         chat-served2-20261008/export-a1/model.lut   sha256 721d4bdbd193c64edbb26069e15ed49c06844c4bd9e4557b83ea2b942b8a2a8a
+         chat-served2-20261008/export-a2/model.lut   sha256 cce47c83cc9b9fc764583735d88ed41cda41d9db9cea8ec26fc682b33f1a56de
+  (b) every file on /workspace of the recorded size:
+      find /workspace -type f -size 11891652c
+      -> exactly the four files above.  The recorded LUT is 11,891,652 bytes
+         (sha256 2ac4c3068551e56e3883880419e12f06bef8bc65cbabde59d00136953fe111af), so a bare
+         copy anywhere on the volume would have appeared here.
+  (c) the whole tree grepped for the recorded fused-float nll and for the digest string:
+      grep -rl --binary-files=without-match "1.7250754982233047" /workspace
+      -> /workspace/uor-r4/deepseek/term-weight/src/docs/evidence/chat_stack_served_d11_2026-10-08.txt
+         (a checked-in docs copy, not an artifact)
+      grep -rl "2ac4c306" /workspace/uor-r4/deepseek
+      -> term-weight/src/docs/integration/current-state.md,
+         term-weight/src/docs/evidence/serving_mode_audit_2026-10-08.txt,
+         term-weight/src/docs/evidence/chat_stack_served_d11_2026-10-08.txt
+         (three checked-in docs copies; no artifact, no report, no attempt.json)
+  (d) the cloud-store index, all 604 entries read: no chat-served* / chat-objective* object and
+      no 11,891,652-byte object.  The index contains the term-weight family (tw-arm-*, tw-export-*)
+      but neither the recorded run nor its retrain.
+
+  FINDING: the artifact that produced the round-10 published pair (LUT 2ac4c306..., model
+  "batch 32, lr 4e-4, warmup 500, chat-v0-p2 train only, 12,207 steps") is NOT on the EU-RO-1
+  volume, NOT in the local checkouts, NOT on the laptop and NOT in the 604-entry cloud-store
+  index.  It is unrecoverable by any route available to this session.  No re-export was
+  attempted (the round's instruction after the owner's redirect: no re-export, no training, no
+  quantiser work).
+
+PART 2 — WHAT THE VOLUME DOES HOLD: THE INDEPENDENT RETRAIN OF THE SAME RECIPE
+  Identities, all sha256-verified on the pod AND again after transfer on the laptop:
+
+    checkpoint  /workspace/uor-r4/deepseek/chat-served2-20261008/model-a1/model/model.safetensors
+                79,726,120 bytes
+                sha256 cbef6906c11cb260d4316c25ef99fd672ee9c147bffb5d644c5013e4b9ab0d8c
+                config: arch geometric, vocab 4096, width 512, heads 8, context 384,
+                pattern rrarrarr, read l2, rotation true, seed 1; 19,929,136 parameters
+                attempt.json: train=chat-data-control-20261008/data/chat-train.u16
+                (sha256 b5d3bf977a524d9e47c0c75592d0170a183271ddf0cf4d7b560e3ece7a54f184,
+                164,496,986 bytes), valid=.../heldout.u16, device=cuda, steps=12207, batch=32,
+                lr=0.0004, warmup=500, eval_windows=64, final_windows=512
+                run.log: 126,944 tokens/s; final nll 1.7259248365807245 at 196,608 targets
+    export      /workspace/uor-r4/deepseek/chat-served2-20261008/export-a1/model.lut
+                11,891,652 bytes
+                sha256 721d4bdbd193c64edbb26069e15ed49c06844c4bd9e4557b83ea2b942b8a2a8a
+                export.json: source = the checkpoint above; quantizer gptq,
+                calibration_positions 24576, damp 0.01, mlp padded 733 -> 736;
+                transport_snap null
+    stream      /workspace/uor-r4/deepseek/chat-data-control-20261008/data/heldout.u16
+                12,389,242 bytes
+                sha256 e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef
+    tokenizer   /workspace/uor-r4/deepseek/chat-data-control-20261008/data/tokenizer.json
+                109,457 bytes
+                sha256 d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89
+
+  The recorded run's own log reports 164,277 tokens/s on one RTX 5090; this checkpoint's run.log
+  reports 126,944 tokens/s.  It is an independent retrain of the same declared recipe (the
+  earlier current-state note says "an independent retrain reproduces the served nll to 2.1e-6").
+
+PART 3 — WHICH RUN PRODUCED WHICH PUBLISHED CELL
+  Recorded round 10 (chat_stack_served_d11_2026-10-08.txt, artifact 2ac4c306...):
+    fused float   nll 1.7250754982233047 @196,608 targets -> 0.877118 BPB  (published "0.8770")
+    d11 served    nll 1.8345338586523747 @24,576 targets  -> 0.932772 BPB  (published "0.93277")
+  Retrain (this volume, export 721d4bdb...):
+    fused float   nll 1.7259248122572899 @196,608 targets -> 0.877550 BPB  (published "0.87755"
+                  in quantiser_arm_verdict_2026-10-08.txt)
+    d11 served    nll 1.8345359993679817 @24,576 targets  -> 0.932773 BPB  (the same published
+                  "0.93277"; the two runs are 2.1407e-6 nats apart)
+
+  So the published "0.87755 float / 0.93277 served" pair mixes two runs AND two window counts:
+  0.87755 is the retrain's 512-window fused float, 0.93277 is a 64-window served number.  The
+  matched float cell measured below reproduces the published 0.87755 to five decimals
+  (0.877550), which is the identity evidence that the retrain is the artifact behind it.
+
+PART 4 — BYTE BASIS, VERIFIED ON THIS COPY NOT ASSUMED
+  python3 docs/labs/chat-served-gap-attribution-2026-10-09/make_lens.py \
+      local/c2p/data/tokenizer.json local/c2p/lens.u16 local/c2p/data/heldout.u16 64
+  {"path": "local/c2p/data/heldout.u16", "tokens": 6194589, "bytes": 17576697,
+   "bytes_per_token": 2.837427, "out_of_vocabulary": 0, "max_id": 4095, "vocab_slots": 4096}
+  -> the stream's own byte basis is reproduced exactly: 6,194,589 tokens / 17,576,697 bytes /
+     2.837427 B/token (the 64-byte UORT header excluded), matching the sealed-league basis.
+
+  SECOND BYTE BASIS, NAMED BECAUSE IT DIFFERS: the tool's own bits_per_byte divides by the byte
+  lengths of the SCORED TARGETS from lens.u16 (geometric-stack.rs:3617,3670).  On this 512-window
+  sample that is 556,319 bytes over 196,608 targets = 2.829585 B/token.  Every quoted BPB below
+  says which basis it is on; the published 0.877/0.933 figures are on 2.837427.
+
+PART 5 — COMMANDS, VERBATIM (paths elided to $C2P)
+  geometric-stack lut-evaluate artifact=$C2P/export-a1/model.lut model=$C2P/model-a1 \
+    valid=$C2P/data/heldout.u16 lens=$C2P/lens.u16 windows=512 threads=6 reference=true \
+    out=$C2P/out/lut-ref-512
+
+  geometric-stack d11-evaluate artifact=$C2P/export-a1/model.lut model=$C2P/model-a1 \
+    valid=$C2P/data/heldout.u16 lens=$C2P/lens.u16 windows=512 threads=6 out=$C2P/out/d11-512
+
+  Binary: release build of origin/main 36322f365, CARGO_TARGET_DIR inside this worktree
+  (gitignored local/target; no /tmp use).  Build 6 m 13 s.
+  Window rule (geometric-stack.rs:3614): stride = (tokens - context - 1)/windows,
+  starts = k*stride, 384 targets per window.  At 512 windows: starts 0 + k*12,098 (k=0..511),
+  last start 6,182,078.  Protocol string from the report: "evenly spaced windows of the
+  development tokens (train's evaluation rule), one fresh integer session per window, position
+  by position".
+
+PART 6 — THE MATCHED TRIPLE (COMPLETED RUN)
+  512 windows, 196,608 targets, artifact 721d4bdb..., stream e5f400b0..., one run:
+    schema uor-r4.geometric-stack-lut-evaluation/4
+    artifact_sha256 721d4bdbd193c64edbb26069e15ed49c06844c4bd9e4557b83ea2b942b8a2a8a
+    float_model sha256 cbef6906c11cb260d4316c25ef99fd672ee9c147bffb5d644c5013e4b9ab0d8c
+    valid sha256 e5f400b0e676791fd0458ce810163c5d2542adda80dccc8282f37d9ca8904cef
+    reference "the artifact's dequantized matrices, grid-code scalars and integer biases with
+    unit norm gains and its own head, in f32 (the float model's kernels)"
+    engine backend neon, threads 6, step_seconds 623.6931909789993,
+    loop_seconds 627.5184644569988, tokens_per_second 315.2319166598375
+
+    column      nll                 BPB (stream 2.837427)  tool bits_per_byte (2.829585)
+    float       1.7259248087073873  0.877550               0.8799818262665485
+    reference   1.7441922848672007  0.886838               0.8892957007478084
+    integer     1.7441928232301276  0.886838               0.8892959752380929
+
+    weight_rounding_nll         0.018267476159813317   = 0.009288 BPB stream basis
+                                                        = 0.009314 tool sample basis
+    integer_arithmetic_nll      5.383629269791376e-07  = 2.737e-07 BPB
+    integer_minus_float_nll     0.018268014522740295   = 0.009288 BPB (total)
+    top1_agreement (integer vs float) 0.9282023111979166
+
+  Per-window (512 windows), for the re-sampling error:
+    float      mean 1.7259248  sd 0.643633  se(mean) 0.028445 nats = 0.3273 / 0.014525 BPB
+    reference  mean 1.7441923  sd 0.646381  se(mean) 0.028566 nats
+    integer    mean 1.7441928  sd 0.646380  se(mean) 0.028566 nats = 0.014525 BPB
+    quantisation per window: mean 0.0182675, sd 0.012848, se 0.000568 nats = 0.000289 BPB
+
+PART 7 — THE D11 CHECK ON THIS ARTIFACT
+  The artifact's OWN recorded d11-evaluate (read from the volume, run 2026-10-08 at the recorded
+  protocol) is chat-served2-20261008/d11-a1/evaluation.json:
+    artifact sha256 721d4bdb..., argv windows=64 (24,576 targets)
+    d11 = d10 = 1.8345359993679817
+    d11_minus_d10_nll 0.0
+    max_abs_logit_difference 0
+    first_difference null
+    top1_agreement 1.0
+    per-window starts 0, 96784, 193568, ... (the same rule at windows=64)
+  -> D11 is exact against D10 on this artifact.
+  A d11-evaluate at 512 windows was started on the same artifact and stream and was KILLED when a
+  hygiene pass removed this worktree mid-run (see LIMITATIONS).  It is the one unverified cell of
+  this record and no number is claimed from it.  Its nll conversion on the stream basis would be
+  reported at 0.8868 (the integer column of the completed run is the same engine).
+
+PART 8 — THE WINDOW-COUNT SENSITIVITY (THE FINDING)
+  Same artifact (721d4bdb...), same stream (e5f400b0...), same multiplier-free engine:
+    64 windows  / 24,576 targets   integer nll 1.8345359993679817 -> 0.932773 BPB
+   512 windows  / 196,608 targets  integer nll 1.7441928232301276 -> 0.886838 BPB
+    difference 0.045935 BPB on identical bytes.
+  The published float cell (0.87755) is a 512-window number and the published served cell
+  (0.93277) is a 64-window number, so the published "pair" subtracts across window counts.  The
+  ignored window-count term (0.046 BPB) is larger than the whole 0.033 gap it was used to
+  measure.  This is the same class of error as the cross-position-set artefact annotated on
+  2026-10-08.
+
+PART 9 — CRITERION 2, HONESTLY
+  0.90 target.  At the recorded 64-window protocol the served cell is 0.932773, i.e. 0.032773
+  above (3.52 % relative; 0.41 % of the 8-bit/byte ceiling; 9.4 % of the distance to the KN-5
+  gate at 1.280275).  At the pinned 512-window protocol the matched served cell is 0.886838,
+  0.013162 BELOW the target - but that margin is smaller than the 512-window re-sampling se of
+  0.014525 BPB, and the same artifact is above the target at the protocol the criterion's served
+  figure was recorded at.  criterion 2 is NOT met, NOT claimed and NOT measurable at the
+  precision its threshold implies.  The serving path is exact to 2.7e-7 BPB and the entire
+  quantiser costs 0.009288 BPB on identical positions, so the lever is the float model, not the
+  export path.
+
+PART 10 — PINNED PROTOCOL PROPOSED FOR CRITERION 2
+  1 artifact: checkpoint and LUT path + sha256, named in the claim
+  2 stream: chat-v0-p2 held-out e5f400b0..., 6,194,589 tokens / 17,576,697 bytes after the
+    64-byte header
+  3 window count: 512 windows x 384 context = 196,608 targets, stride = (tokens-context-1)/windows,
+    one fresh integer session per window
+  4 byte basis: state it.  Stream constant 2.837427 B/token for comparability with published
+    numbers; the tool's per-target lens basis (2.829585 on this sample) when quoting
+    bits_per_byte
+  5 both columns from the same run: lut-evaluate reference=true (float, reference, integer on
+    identical positions) plus d11-evaluate at the same window count
+  6 position count and re-sampling se: a margin smaller than the se is not a result
+  On this protocol the retrain reads float 0.877550 / reference 0.886838 / integer 0.886838.
+
+LIMITATIONS
+  1. The recorded artifact 2ac4c306... is unrecoverable (PART 1).  Everything measured is its
+     independent retrain, 2.1e-6 nats from the recorded served nll and reproducing the published
+     0.87755 float cell to five decimals.  The original's matched pair is NOT inferred here.
+  2. One unverified cell: d11-evaluate at 512 windows (PART 7).  A hygiene pass removed this
+     worktree (branch deepseek/criterion2-pin-20261009 was pushed before the run, which is why
+     the completed run's numbers survived); the re-fetch was declined because the pod cap was
+     full (3 pods, $7.36/h of $8.00/h) and the check confirms rather than discovers.
+  3. One window draw: the 512-window number has se 0.0145 BPB.  No second window count was run;
+     the 64-window figure quoted is the artifact's own recorded run.
+  4. The retrain pair is not in the 604-entry cloud-store index and exists only on the
+     non-canonical EU-RO-1 volume; a cloud-store put of the pair is the named next step.
+  5. The raw report directory of the completed run was destroyed with the worktree; every field
+     above is transcribed from that report and the run is re-runnable from the identities given.
+  6. No training, no export, no quantiser tuning, no float generation.  The pod was read-only.
+
+COST
+  Pod 1t3jmb6m4c9q9s: up 2026-10-09T20:28:47Z, released 20:58:07Z, deleted 20:58:25Z,
+  uptime 1754 s at $0.89/h = $0.4336.  1 x RTX 4090, EU-RO-1, volume rfsx702p68, read-only,
+  ps clean at release.  A second pod attempt (re-fetch) was refused by the cap and cost nothing.
+  Laptop: release build 6 m 13 s; lut-evaluate 512 windows 16 m 30 s at 6 threads (engine step
+  623.7 s); the killed d11-evaluate contributed no number.

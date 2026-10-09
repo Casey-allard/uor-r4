@@ -32,6 +32,15 @@ THE SERVED GAP, FINAL FORM FOR THIS MODEL
   transport snap             +0.03578   (64.8 %)
   quantisation (GPTQ)        +0.01944   (35.2 %, of which 97 % is the weight matrices)
   served                     0.93277
+  ANNOTATION (2026-10-09, criterion2-pin): these two cells are NOT like-for-like and the
+  gap between them is not all snapping/quantisation. 0.87755 is a 512-window FLOAT number and
+  0.93277 is a 64-window SERVED number; on identical positions at 512 windows the matched pair
+  for this artifact is float 0.877550 / reference 0.886838 / integer 0.886838 BPB (quantisation
+  0.009288 BPB, engine 2.7e-7 BPB, 196,608 targets, byte basis 2.837427 B/token), i.e. the
+  served column moves 0.045935 BPB between the two window counts on identical bytes. The
+  artifact here is the RETRAIN (chat-served2-20261008, model cbef6906…, export 721d4bdb…); the
+  round-10 original (LUT 2ac4c306…) is unrecoverable. See
+  docs/labs/criterion2-protocol-pin-2026-10-09/README.md.
   The remaining recoverable term is the transport snap - a representation question, not an export
   setting - and the quantisation term is at the optimum of the two quantisers this repository has.
 

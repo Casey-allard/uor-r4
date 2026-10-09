@@ -13,6 +13,15 @@ THE RESULT
   snap       transport-snapped        nll 1.7975700236856937                         0.9138
   export     gptq (calibrated)       model.lut 11,891,652 bytes,
                                       sha256 2ac4c3068551e56e3883880419e12f06bef8bc65cbabde59d00136953fe111af
+  ANNOTATION (2026-10-09, criterion2-pin): this artifact is NOT recoverable. The EU-RO-1 volume
+  rfsx702p68 was searched exhaustively (every *.lut hashed, every file of its 11,891,652-byte
+  size checked, the tree text-grepped for this digest and for nll 1.7250754982233047) and all
+  604 cloud-store entries were read; only checked-in docs copies survive. What the volume holds
+  is the independent RETRAIN of this recipe (chat-served2-20261008/model-a1 cbef6906…, export
+  721d4bdb…), whose matched 512-window pair is float 0.877550 / served 0.886838 BPB. These two
+  rows are also not like-for-like: 0.8770 is a 512-window float and 0.93277 is a 64-window
+  served number (0.045935 BPB apart on identical bytes for the retrain). See
+  docs/labs/criterion2-protocol-pin-2026-10-09/README.md.
   d11        multiplier-free engine   d10 = d11 = 1.8345338586523747 (24,576 targets) 0.93277
                                       d11_minus_d10_nll 0.0, top1_agreement 1.0,
                                       max_abs_logit_difference 0

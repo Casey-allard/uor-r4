@@ -112,3 +112,24 @@ LIMITATIONS
      0.00883 is the comparable cell for its own artifact.
   4. criterion 2 is NOT claimed and no served-model movement is claimed. STATUS/ROADMAP/#2028
      are unchanged.
+
+LATER NOTE (2026-10-09, criterion2-pin) -- this record's named next step was executed; limitations
+1 and 2 are now settled for the surviving artifact.
+  * The recorded artifact's LUT 2ac4c306... is NOT recoverable.  The EU-RO-1 volume rfsx702p68
+    (uor-shared-EU-RO-1) was searched exhaustively: every *.lut hashed, every file of the exact
+    11,891,652-byte size checked, the whole /workspace tree text-grepped for the digest string and
+    for the recorded fused-float nll 1.7250754982233047, and all 604 cloud-store index entries read.
+    Only checked-in docs copies survive.  No re-export was run.
+  * What survives on that volume is the INDEPENDENT RETRAIN of the recorded recipe
+    (chat-served2-20261008/model-a1, sha256 cbef6906..., batch 32 / lr 4e-4 / warmup 500 / 12,207
+    steps / chat-v0-p2 train only) and its GPTQ export (export-a1/model.lut, sha256 721d4bdb...).
+    It is the artifact behind the published 0.87755 float cell and the round-23 quantiser table.
+  * Matched at a declared 512 windows / 196,608 targets on stream e5f400b0..., own byte basis
+    2.837427 B/token: float 0.877550 / reference 0.886838 / integer 0.886838 BPB;
+    quantisation 0.009288 BPB; engine 2.7e-7 BPB.
+  * Limitation 2's unresolved swing is a protocol mismatch, not noise: 0.87755 is a 512-window
+    FLOAT cell and 0.93277 is a 64-window SERVED cell, and the same artifact's served column is
+    0.932773 (64 w) vs 0.886838 (512 w) -- 0.045935 BPB on identical bytes.
+  * criterion 2 is still NOT met and NOT claimed; see
+    docs/labs/criterion2-protocol-pin-2026-10-09/README.md and
+    docs/evidence/criterion2_protocol_pin_2026-10-09.txt.
