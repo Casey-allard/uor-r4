@@ -1,0 +1,62 @@
+================================================================================
+DEEPSEEK BRANCH ARCHIVE — 2026-10-09
+Six branches held work that was not on origin/main. This archive preserves it.
+================================================================================
+
+WHY THESE SIX, AND WHY THE OBVIOUS CHECK WAS WRONG
+  The deepseek remote held 146 branches. An ancestry test (git merge-base --is-ancestor) reports 141
+  of them unmerged, and a content diff reports almost all as differing. BOTH ARE WRONG: deliveries here
+  are squash-merged, so a branch tip is never an ancestor of main even when its content is fully
+  present, and a diff against a branch cut from an older main shows every unrelated change since.
+  THE CORRECT INSTRUMENT IS PATCH-ID COMPARISON (git cherry), which compares what a commit DOES. On
+  that basis only SIX branches carried work not already on main. The wrong instrument would have had
+  us re-merge 141 already-delivered branches - the "do not promote it by merging it" failure.
+
+THE SIX (each patch is the branch's own changes since its merge base)
+  branch                unmerged commits   content
+  aa-dispatch           2                  arithmetic reachability probe; arithmetic oracle finding
+  bf16-phase2b-gate     3                  frozen Phase 2b flash-read gate and handoff
+  d20-control           2                  parameter-matched control arm (mqar-bench)
+  d20-run               4                  D20 s2 pre-registration, run report, INCONCLUSIVE verdict
+  entry-ceiling         4                  entry-ceiling mode, prediction-control panel, rank controls
+  entry-isolation       2                  entry-only loss scope; retraction of a diagnosis
+  NOTE: d20-run CONTAINS d20-control's commit, so those two overlap deliberately.
+
+STATUS: RETAINED, NOT ACTIVATED. The patches are an archive for restoration, not a merge of code into
+the live tree; nothing here is promoted by being stored. Apply with `git apply` when a successor needs
+one.
+
+================================================================================
+RESTORATION — USE THE BUNDLE, AND IT IS VERIFIED
+================================================================================
+The patch files are a readable per-branch record, but they are NOT reliably applicable: a test on
+2026-10-09 applied 0 of 6 as plain patches and 1 of 6 with a three-way apply, because the branches were
+cut from older merge bases, main has moved since, and some content is already on main.
+
+The bundle is the reliable form and it is stored in ICLOUD, not in this repository, because it is about
+115 MB and carries the complete object closure of the six branches - which is exactly what makes it
+independent of repository history.
+
+  iCloud object:  icloud:UOR-R4/results/deepseek/ds-bundle-icloud.tar
+  tar size:       120814080 bytes
+  tar md5:        3d6233391fa48623e18589e2778d326a
+  bundle inside:  deepseek-branches-20261009.bundle
+  bundle md5:     14d17ccd22f1ee196e1479866823be4f
+
+Restore:
+  cloud-store fetch ds-bundle-icloud <dest>
+  git bundle verify <dest>/ds-bundle-icloud/deepseek-branches-20261009.bundle
+      -> "The bundle records a complete history."
+  git fetch <dest>/ds-bundle-icloud/deepseek-branches-20261009.bundle \
+      'refs/remotes/origin/deepseek/*:refs/heads/restored/*'
+
+VERIFIED 2026-10-09 in a scratch clone: all six branches restored, tips matching the originals
+(entry-isolation 1d98faaea, d20-run d5172e7f6, aa-dispatch, bf16-phase2b-gate, d20-control,
+entry-ceiling).
+
+A previous revision of this archive put the 115 MB bundle on a branch as split parts. That is
+superseded: GitHub rejects files above 100 MB, two-part storage invites reassembly mistakes, and the
+project's own storage decision puts bulk material in iCloud with main holding the index. Main holds the
+index, the patches and the identities; iCloud holds the bytes.
+
+References #820

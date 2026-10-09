@@ -1,0 +1,265 @@
+diff --git a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+index 2cb86b1b5..004b403f8 100644
+--- a/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
++++ b/crates/uor-r4-training/examples/geometric-frozen-map-fit.rs
+@@ -51,6 +51,7 @@ enum Mode {
+     Admission,
+     Fit,
+     PredictionControl,
++    EntryCeiling,
+ }
+ #[derive(Clone, Copy, Debug, Deserialize, serde::Serialize)]
+ #[serde(deny_unknown_fields)]
+@@ -2186,6 +2187,169 @@ fn control_entry_diagnostics(
+     Ok(v)
+ }
+ 
++/// Zero-update entry-position ceiling over every development row.
++///
++/// The same target-free native forward as the control diagnostic, run over the
++/// whole panel and reported twice: once with the physical Copy channel present
++/// (the live mixed pool) and once with it removed (the Generate-only pool).
++/// Labels are read only after each forward, so this is a capability bound on
++/// the frozen artifact: not a fit, not a selection, not a serving change.
++fn entry_ceiling_panel(
++    a: &Args,
++    l: &Loaded,
++    model: &IntegerRealizer,
++    g: &NativeGeometricGenerate,
++    bridge: &NativeGeometricReadStateBridge,
++    eps: &[Episode],
++) -> Result<Value> {
++    use uor_r4_integer::h4_tables::H4Code;
++    let mut pool = NativeVocabularyActions::new(model.binding().clone(), &l.exp)?;
++    let mut only = NativeVocabularyActions::new(model.binding().clone(), &l.exp)?;
++    let mut rows = Vec::new();
++    let (mut full_correct, mut generate_only_correct) = (0usize, 0usize);
++    let (mut full_copy_dominated, mut gold_in_copy) = (0usize, 0usize);
++    let mut gold_ranks: Vec<u64> = Vec::new();
++    let mut next_gold_ranks: Vec<u64> = Vec::new();
++    let mut gold_mass_fraction: Vec<f64> = Vec::new();
++    for (index, e) in eps.iter().enumerate() {
++        // Complete target-free native bank selection first. Labels cannot choose
++        // a source occurrence, frame, route, state or vocabulary candidate.
++        let native = native_step(model, g, Some(bridge), &mut pool, e, &[], &l.cue, &l.prefix)?;
++        let state: Vec<u8> = serde_json::from_value(native["retained_state_codes"].clone())?;
++        let state = state
++            .into_iter()
++            .map(H4Code::try_from)
++            .collect::<std::result::Result<Vec<_>, _>>()?;
++        let mut scores = vec![0i64; g.vocab_size()];
++        g.score_into(&state, &mut scores, &mut GenerateReadCounts::default())?;
++        let ids: Vec<u32> = serde_json::from_value(native["copy_token_ids"].clone())?;
++        let copies: Vec<i64> = serde_json::from_value(native["copy_raw_scores_q24"].clone())?;
++        let full = pool.reduce_trace(&scores, &ids, &copies)?;
++        let generate_only = only.reduce_trace(&scores, &[], &[])?;
++        let gold = e.target[0];
++        let full_chosen = full.summary.chosen_token_id;
++        let only_chosen = generate_only.summary.chosen_token_id;
++        // Where the answer sits in the fully ordered emission, so "the emission
++        // cannot do it" and "the emission nearly does it" are distinguishable.
++        let mut ordered = generate_only
++            .token_masses
++            .iter()
++            .map(|m| (m.token_id, m.weight_q31))
++            .collect::<Vec<_>>();
++        ordered.sort_by(|x, y| y.1.cmp(&x.1).then_with(|| x.0.cmp(&y.0)));
++        let gold_rank = ordered
++            .iter()
++            .position(|m| m.0 == gold)
++            .map(|position| position as u64 + 1);
++        gold_ranks.push(gold_rank.unwrap_or(ordered.len() as u64 + 1));
++        // The same read one token later, after observing the correct first
++        // token. This separates "the boundary state carries nothing" from "the
++        // emission cannot rank at all": the continuation is given its prefix,
++        // while the entry position has to select the answer from the query.
++        if e.target.len() > 1 {
++            let native_next = native_step(
++                model,
++                g,
++                Some(bridge),
++                &mut pool,
++                e,
++                &[gold],
++                &l.cue,
++                &l.prefix,
++            )?;
++            let state_next: Vec<u8> =
++                serde_json::from_value(native_next["retained_state_codes"].clone())?;
++            let state_next = state_next
++                .into_iter()
++                .map(H4Code::try_from)
++                .collect::<std::result::Result<Vec<_>, _>>()?;
++            let mut scores_next = vec![0i64; g.vocab_size()];
++            g.score_into(
++                &state_next,
++                &mut scores_next,
++                &mut GenerateReadCounts::default(),
++            )?;
++            let only_next = only.reduce_trace(&scores_next, &[], &[])?;
++            let gold_next = e.target[1];
++            let mut ordered_next = only_next
++                .token_masses
++                .iter()
++                .map(|m| (m.token_id, m.weight_q31))
++                .collect::<Vec<_>>();
++            ordered_next.sort_by(|x, y| y.1.cmp(&x.1).then_with(|| x.0.cmp(&y.0)));
++            next_gold_ranks.push(
++                ordered_next
++                    .iter()
++                    .position(|m| m.0 == gold_next)
++                    .map(|position| position as u64 + 1)
++                    .unwrap_or(ordered_next.len() as u64 + 1),
++            );
++        }
++        gold_mass_fraction.push(
++            ordered
++                .iter()
++                .find(|m| m.0 == gold)
++                .map(|m| m.1 as f64 / generate_only.summary.total_weight_q31.max(1) as f64)
++                .unwrap_or(0.),
++        );
++        full_correct += usize::from(full_chosen == gold);
++        generate_only_correct += usize::from(only_chosen == gold);
++        full_copy_dominated += usize::from(
++            full.summary.chosen_copy_weight_q31 > full.summary.chosen_generate_weight_q31,
++        );
++        gold_in_copy += usize::from(ids.contains(&gold));
++        rows.push(
++            json!({"index":index,"id":e.packet.id,"gold_entry_label_only":gold,
++            "full_chosen":full_chosen,"generate_only_chosen":only_chosen,
++            "full_correct":full_chosen==gold,"generate_only_correct":only_chosen==gold,
++            "gold_in_copy_candidates":ids.contains(&gold),"copy_candidates":ids.len(),
++            "gold_generate_rank":gold_rank,
++            "full_summary":full.summary,"generate_only_summary":generate_only.summary}),
++        );
++    }
++    let mut ranks = gold_ranks.clone();
++    let mut next_ranks = next_gold_ranks.clone();
++    let mut fractions = gold_mass_fraction.clone();
++    ranks.sort_unstable();
++    next_ranks.sort_unstable();
++    fractions.sort_by(|x, y| x.partial_cmp(y).unwrap_or(std::cmp::Ordering::Equal));
++    let pick = |v: &[u64], q: f64| -> u64 {
++        if v.is_empty() {
++            0
++        } else {
++            v[((v.len() as f64 - 1.) * q).round() as usize]
++        }
++    };
++    let pick_fraction = |v: &[f64], q: f64| -> f64 {
++        if v.is_empty() {
++            0.
++        } else {
++            v[((v.len() as f64 - 1.) * q).round() as usize]
++        }
++    };
++    let v = json!({"rows":eps.len(),
++        "full_pool_entry_correct":full_correct,
++        "generate_only_entry_correct":generate_only_correct,
++        "full_pool_winners_copy_dominated":full_copy_dominated,
++        "rows_with_gold_in_copy_candidates":gold_in_copy,
++        "generate_only_gold_rank_min":ranks.first().copied().unwrap_or(0),
++        "generate_only_gold_rank_median":pick(&ranks, 0.5),
++        "generate_only_gold_rank_p90":pick(&ranks, 0.9),
++        "generate_only_gold_rank_max":ranks.last().copied().unwrap_or(0),
++        "generate_only_gold_mass_fraction_median":pick_fraction(&fractions, 0.5),
++        "next_token_gold_rank_median":pick(&next_ranks, 0.5),
++        "next_token_gold_rank_p90":pick(&next_ranks, 0.9),
++        "next_token_gold_rank_max":next_ranks.last().copied().unwrap_or(0),
++        "next_token_rows":next_ranks.len(),
++        "generate_actions":eps
++            .first()
++            .map_or(0, |_| only.legal_token_ids().len()),
++        "row_records":rows,
++        "scope":"zero-update entry ceiling: target-free native forward, mixed pool versus Generate-only pool, labels read after forward; gold rank is its position in the fully ordered emission; a capability bound on one artifact, not a fit and not held-out language evidence"});
++    write(a, "entry-ceiling.json", &v)?;
++    Ok(v)
++}
++
+ fn control_crossings(
+     a: &Args,
+     initial: &NativeGeometricGenerate,
+@@ -2483,6 +2647,28 @@ fn run_prediction_control(
+     write(a, "zero-update-admission.json", &admission)?;
+     // Initial entry replay precedes any optimizer construction or update.
+     control_entry_diagnostics(a, l, &model, &g, &b, &eps, 0)?;
++    // The eight control cases are a selected subset. Measure the same artifact's
++    // entry decision on the whole panel it was drawn from, mixed pool versus
++    // Generate-only pool, so "works on the eight" and "works on the panel" are
++    // separate numbers rather than one number and an assumption. At the declared
++    // zero-update recomposition the artifact measured here is the recomposed one.
++    let panel_ceiling = {
++        let public = NativeVocabularyActions::new(l.integer.binding().clone(), &l.exp)?;
++        let legal = public
++            .legal_token_ids()
++            .iter()
++            .copied()
++            .collect::<BTreeSet<_>>();
++        let panel = load_panel(
++            &a.development_inputs,
++            &a.development_labels,
++            &l.integer,
++            &l.tokenizer,
++            &legal,
++            512,
++        )?;
++        entry_ceiling_panel(a, l, &model, &g, &b, &panel)?
++    };
+     let initial_eval = evaluate(
+         a,
+         "prediction-0000",
+@@ -2599,7 +2785,7 @@ fn run_prediction_control(
+         json!({"schema":"uor-r4.geometric-prediction-control/1","status":"COMPLETED","mode":"prediction_control",
+         "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"updates":limit,"rates":rates,"native_pool_backend":"host",
+         "resume":resume,"trainable":a.prediction_control_trainable,"source_routing_scope":"Potential updates may change selected physical Source and transported state; no fixed-coordinate claim","original_indices":CONTROL_INDICES,"training_row_draws":limit*8,"target_position_draws":limit*84,
+-        "initial_receipt":initial_receipt,"final_receipt":final_receipt,"blocks":blocks,
++        "initial_receipt":initial_receipt,"final_receipt":final_receipt,"blocks":blocks,"panel_ceiling_step0":panel_ceiling,
+         "native_prediction_control_win":win,"elapsed_seconds":start.elapsed().as_secs_f64(),
+         "scope":"construction learning control on8 retained cases; complete accepted own-prefix replies+EOS and four source-swap pairs required; no generalization/chat/attention qualification; initial diagnostic0 can be run before choosing prospective control rates"}),
+     )
+@@ -2704,6 +2890,23 @@ fn run(a: &Args, start: Instant) -> Result<Value> {
+             "scope":"zero-update authenticated categorical restart admission; no learning verdict"}),
+         );
+     }
++    if a.mode == Mode::EntryCeiling {
++        let ceiling = entry_ceiling_panel(
++            a,
++            &l,
++            &initial_native,
++            &initial_generate,
++            &initial_bridge,
++            &dev,
++        )?;
++        return Ok(
++            json!({"schema":"uor-r4.geometric-frozen-map-fit/1","status":"COMPLETED","mode":"entry_ceiling",
++            "updates":0,"credit":a.credit.name(),"read_state_pullback":a.read_state_pullback.name(),"order_seed":a.seed,
++            "checkpoint_receipt_sha256":CP_RECEIPT_SHA,"ceiling":ceiling,"initial_metrics":initial_metrics,
++            "elapsed_seconds":start.elapsed().as_secs_f64(),
++            "scope":"zero-update entry-position ceiling with the physical Copy channel removed; labels read only after the target-free forward; no fit and no serving change"}),
++        );
++    }
+     let gp = l.generate.parameters();
+     let (prototype, coefficients): (BTreeMap<_, _>, BTreeMap<_, _>) = gp
+         .into_iter()
+@@ -2963,6 +3166,20 @@ mod tests {
+         Ok(())
+     }
+     #[test]
++    fn entry_ceiling_mode_is_a_distinct_zero_update_configuration() -> Result<()> {
++        let config = json!({"mode":"entry_ceiling","credit":"clipped","seed":1001,
++            "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",
++            "training_inputs":"input","training_labels":"labels","development_inputs":"input",
++            "development_labels":"labels","maximum_seconds":3600,"maximum_report_bytes":1073741824,"out":"new"});
++        let a: Args = serde_json::from_value(config.clone())?;
++        assert!(a.mode == Mode::EntryCeiling);
++        // The ceiling is a zero-update bound, so it must not be reachable through
++        // the fit or control modes, and it must not imply a declared dose.
++        assert!(a.mode != Mode::Fit && a.mode != Mode::Admission);
++        assert!(serde_json::from_value::<Args>(config).is_ok());
++        Ok(())
++    }
++    #[test]
+     fn loss_scope_and_dose_default_to_the_retained_campaign() -> Result<()> {
+         let config = json!({"mode":"fit","credit":"clipped","seed":1001,
+             "checkpoint":"cp","saved_fit":"fit","categorical":"cat","parent_config":"parent",

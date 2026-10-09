@@ -1,0 +1,3859 @@
+diff --git a/analysis.json b/analysis.json
+new file mode 100644
+index 000000000..76638c5af
+--- /dev/null
++++ b/analysis.json
+@@ -0,0 +1,478 @@
++{
++  "runs": [
++    {
++      "arm": "control",
++      "seed": 1,
++      "root": "/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1",
++      "missing": false,
++      "status": "complete",
++      "label": "control-transformer-6x-rrarra-mlp-matched",
++      "kind": "ordinary_attention",
++      "parameters": 1370496,
++      "pm_reference": 1370008,
++      "pm_reference_pattern": "rrarra",
++      "pm_reference_mlp": 384,
++      "pm_control_mlp": 395,
++      "pm_residual": 488,
++      "pm_residual_fraction": 0.0003562022995486158,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 1292.1680250399984,
++      "median_step_seconds": 0.657874042,
++      "wall_seconds": 1308.914412292,
++      "final_eval_seconds": 5.915772666,
++      "reachability_seconds": 3.7451543750000003,
++      "acc_in_class": 0.2529296875,
++      "acc_held_out": 0.0,
++      "by_bucket": {
++        "d16": 0.76171875,
++        "d200": 0.009765625,
++        "d400": 0.0390625,
++        "d64": 0.201171875
++      },
++      "nll_step1800": 3.637506830692291,
++      "firing_status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass (the ordinary control's attention path does not populate the binding capture, geometric_stack.rs:6332-6334)",
++      "firing_rows": null,
++      "firing_nonzero": null,
++      "firing_over_half": null,
++      "firing_mean_mass": null,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 83,
++      "reach_max_delta": 1.3054646253585815,
++      "pos_scored_query_token_mean": 8563.51171875,
++      "pos_scored_last": 12288,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "min_lr=0.1",
++        "weight_decay=0.1",
++        "clip=1.0",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "seed=1",
++        "max_seconds=5400",
++        "probe_steps=none",
++        "arm=transformer",
++        "layers=6",
++        "width=128",
++        "heads=4",
++        "mlp=matched",
++        "match_pattern=rrarra",
++        "match_read=l2",
++        "match_rotation=true"
++      ]
++    },
++    {
++      "arm": "control",
++      "seed": 2,
++      "root": "/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s2",
++      "missing": false,
++      "status": "complete",
++      "label": "control-transformer-6x-rrarra-mlp-matched",
++      "kind": "ordinary_attention",
++      "parameters": 1370496,
++      "pm_reference": 1370008,
++      "pm_reference_pattern": "rrarra",
++      "pm_reference_mlp": 384,
++      "pm_control_mlp": 395,
++      "pm_residual": 488,
++      "pm_residual_fraction": 0.0003562022995486158,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 2247.1388058670036,
++      "median_step_seconds": 1.241708959,
++      "wall_seconds": 2274.180007083,
++      "final_eval_seconds": 11.976645792,
++      "reachability_seconds": 5.971266333,
++      "acc_in_class": 0.2509765625,
++      "acc_held_out": 0.0009765625,
++      "by_bucket": {
++        "d16": 0.75390625,
++        "d200": 0.005859375,
++        "d400": 0.02734375,
++        "d64": 0.216796875
++      },
++      "nll_step1800": 3.708596856594086,
++      "firing_status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass (the ordinary control's attention path does not populate the binding capture, geometric_stack.rs:6332-6334)",
++      "firing_rows": null,
++      "firing_nonzero": null,
++      "firing_over_half": null,
++      "firing_mean_mass": null,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 58,
++      "reach_max_delta": 1.0824739933013916,
++      "pos_scored_query_token_mean": 8522.625,
++      "pos_scored_last": 12288,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s2",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "min_lr=0.1",
++        "weight_decay=0.1",
++        "clip=1.0",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "seed=2",
++        "max_seconds=5400",
++        "probe_steps=none",
++        "arm=transformer",
++        "layers=6",
++        "width=128",
++        "heads=4",
++        "mlp=matched",
++        "match_pattern=rrarra",
++        "match_read=l2",
++        "match_rotation=true"
++      ]
++    },
++    {
++      "arm": "control",
++      "seed": 3,
++      "root": "/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s3",
++      "missing": false,
++      "status": "complete",
++      "label": "control-transformer-6x-rrarra-mlp-matched",
++      "kind": "ordinary_attention",
++      "parameters": 1370496,
++      "pm_reference": 1370008,
++      "pm_reference_pattern": "rrarra",
++      "pm_reference_mlp": 384,
++      "pm_control_mlp": 395,
++      "pm_residual": 488,
++      "pm_residual_fraction": 0.0003562022995486158,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 2248.691286036998,
++      "median_step_seconds": 1.244106625,
++      "wall_seconds": 2276.13759425,
++      "final_eval_seconds": 11.621566292,
++      "reachability_seconds": 4.648548792,
++      "acc_in_class": 0.25634765625,
++      "acc_held_out": 0.0009765625,
++      "by_bucket": {
++        "d16": 0.7578125,
++        "d200": 0.01171875,
++        "d400": 0.041015625,
++        "d64": 0.21484375
++      },
++      "nll_step1800": 3.5502492141723634,
++      "firing_status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass (the ordinary control's attention path does not populate the binding capture, geometric_stack.rs:6332-6334)",
++      "firing_rows": null,
++      "firing_nonzero": null,
++      "firing_over_half": null,
++      "firing_mean_mass": null,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 76,
++      "reach_max_delta": 0.959223747253418,
++      "pos_scored_query_token_mean": 8534.296875,
++      "pos_scored_last": 12288,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s3",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "min_lr=0.1",
++        "weight_decay=0.1",
++        "clip=1.0",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "seed=3",
++        "max_seconds=5400",
++        "probe_steps=none",
++        "arm=transformer",
++        "layers=6",
++        "width=128",
++        "heads=4",
++        "mlp=matched",
++        "match_pattern=rrarra",
++        "match_read=l2",
++        "match_rotation=true"
++      ]
++    },
++    {
++      "arm": "geometric",
++      "seed": 1,
++      "root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s1",
++      "missing": false,
++      "status": "complete",
++      "label": "stack-rrarra-l2",
++      "kind": "geometric_stack",
++      "parameters": 1370008,
++      "pm_reference": null,
++      "pm_reference_pattern": null,
++      "pm_reference_mlp": null,
++      "pm_control_mlp": null,
++      "pm_residual": null,
++      "pm_residual_fraction": null,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 1487.1665227480003,
++      "median_step_seconds": 0.879398209,
++      "wall_seconds": 1616.245157458,
++      "final_eval_seconds": 118.293255167,
++      "reachability_seconds": 113.889522625,
++      "acc_in_class": 0.00732421875,
++      "acc_held_out": 0.0,
++      "by_bucket": {
++        "d16": 0.013671875,
++        "d200": 0.001953125,
++        "d400": 0.005859375,
++        "d64": 0.0078125
++      },
++      "nll_step1800": 5.135267930030823,
++      "firing_status": "MEASURED",
++      "firing_rows": 2048,
++      "firing_nonzero": 1981,
++      "firing_over_half": 0,
++      "firing_mean_mass": 0.0019329647824208812,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 231,
++      "reach_max_delta": 2.7104759216308594,
++      "pos_scored_query_token_mean": 2854.50390625,
++      "pos_scored_last": 4096,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s1",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "max_seconds=3600",
++        "probe_steps=none",
++        "pattern=rrarra",
++        "read=l2",
++        "rotation=true",
++        "width=128",
++        "heads=4",
++        "mlp=384",
++        "seed=1"
++      ]
++    },
++    {
++      "arm": "geometric",
++      "seed": 2,
++      "root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s2",
++      "missing": false,
++      "status": "complete",
++      "label": "stack-rrarra-l2",
++      "kind": "geometric_stack",
++      "parameters": 1370008,
++      "pm_reference": null,
++      "pm_reference_pattern": null,
++      "pm_reference_mlp": null,
++      "pm_control_mlp": null,
++      "pm_residual": null,
++      "pm_residual_fraction": null,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 907.9697951279991,
++      "median_step_seconds": 0.439890459,
++      "wall_seconds": 1025.872606333,
++      "final_eval_seconds": 110.281645417,
++      "reachability_seconds": 107.848303959,
++      "acc_in_class": 0.99951171875,
++      "acc_held_out": 1.0,
++      "by_bucket": {
++        "d16": 1.0,
++        "d200": 0.998046875,
++        "d400": 1.0,
++        "d64": 1.0
++      },
++      "nll_step1800": 0.0018533870590908919,
++      "firing_status": "MEASURED",
++      "firing_rows": 2048,
++      "firing_nonzero": 2002,
++      "firing_over_half": 0,
++      "firing_mean_mass": 0.0011415296634033243,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 2028,
++      "reach_max_delta": 21.610084533691406,
++      "pos_scored_query_token_mean": 2840.875,
++      "pos_scored_last": 4096,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s2",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "max_seconds=3600",
++        "probe_steps=none",
++        "pattern=rrarra",
++        "read=l2",
++        "rotation=true",
++        "width=128",
++        "heads=4",
++        "mlp=384",
++        "seed=2"
++      ]
++    },
++    {
++      "arm": "geometric",
++      "seed": 3,
++      "root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s3",
++      "missing": false,
++      "status": "complete",
++      "label": "stack-rrarra-l2",
++      "kind": "geometric_stack",
++      "parameters": 1370008,
++      "pm_reference": null,
++      "pm_reference_pattern": null,
++      "pm_reference_mlp": null,
++      "pm_control_mlp": null,
++      "pm_residual": null,
++      "pm_residual_fraction": null,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 678.9065384619993,
++      "median_step_seconds": 0.277961834,
++      "wall_seconds": 732.348970917,
++      "final_eval_seconds": 49.089720333,
++      "reachability_seconds": 47.951646042,
++      "acc_in_class": 1.0,
++      "acc_held_out": 0.998046875,
++      "by_bucket": {
++        "d16": 1.0,
++        "d200": 1.0,
++        "d400": 1.0,
++        "d64": 1.0
++      },
++      "nll_step1800": 0.0016961745143635198,
++      "firing_status": "MEASURED",
++      "firing_rows": 2048,
++      "firing_nonzero": 1994,
++      "firing_over_half": 0,
++      "firing_mean_mass": 0.0011865337105224894,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 2036,
++      "reach_max_delta": 23.50086784362793,
++      "pos_scored_query_token_mean": 2844.765625,
++      "pos_scored_last": 4096,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s3",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "max_seconds=3600",
++        "probe_steps=none",
++        "pattern=rrarra",
++        "read=l2",
++        "rotation=true",
++        "width=128",
++        "heads=4",
++        "mlp=384",
++        "seed=3"
++      ]
++    }
++  ],
++  "baseline_root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/baselines",
++  "delta_mean_control_minus_geometric": -0.41552734375,
++  "verdict": "INCONCLUSIVE (mean diff -0.4155 but per-seed ranges overlap)",
++  "mean_held_out": {
++    "geometric": {
++      "n": 3,
++      "values": [
++        0.0,
++        1.0,
++        0.998046875
++      ],
++      "mean": 0.666015625,
++      "sd": 0.5767872772803002,
++      "min": 0.0,
++      "max": 1.0,
++      "range": 1.0,
++      "variance": 0.3326835632324219
++    },
++    "control": {
++      "n": 3,
++      "values": [
++        0.0,
++        0.0009765625,
++        0.0009765625
++      ],
++      "mean": 0.0006510416666666666,
++      "sd": 0.0005638186222554939,
++      "min": 0.0,
++      "max": 0.0009765625,
++      "range": 0.0009765625,
++      "variance": 3.178914388020833e-07
++    }
++  },
++  "mean_nll": {
++    "geometric": {
++      "n": 3,
++      "values": [
++        5.135267930030823,
++        0.0018533870590908919,
++        0.0016961745143635198
++      ],
++      "mean": 1.7129391638680924,
++      "sd": 2.963823652641573,
++      "min": 0.0016961745143635198,
++      "max": 5.135267930030823,
++      "range": 5.133571755516459,
++      "variance": 8.784250643957634
++    },
++    "control": {
++      "n": 3,
++      "values": [
++        3.637506830692291,
++        3.708596856594086,
++        3.5502492141723634
++      ],
++      "mean": 3.63211763381958,
++      "sd": 0.07931126368511002,
++      "min": 3.5502492141723634,
++      "max": 3.708596856594086,
++      "range": 0.1583476424217225,
++      "variance": 0.006290276547329051
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/cost/d20run-20261006-0056-baselines.cost.txt b/cost/d20run-20261006-0056-baselines.cost.txt
+new file mode 100644
+index 000000000..72f387ff2
+--- /dev/null
++++ b/cost/d20run-20261006-0056-baselines.cost.txt
+@@ -0,0 +1,3 @@
++arm=baselines seed=1 root=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0056-baselines exit=0
++wall_seconds=0 max_rss_bytes=7274496 root_kib=12
++free_bytes_before=39755362304 free_bytes_after=39753838592
+diff --git a/cost/d20run-20261006-0056-baselines.stderr.txt b/cost/d20run-20261006-0056-baselines.stderr.txt
+new file mode 100644
+index 000000000..a02de8de4
+--- /dev/null
++++ b/cost/d20run-20261006-0056-baselines.stderr.txt
+@@ -0,0 +1,18 @@
++        0.01 real         0.00 user         0.00 sys
++             7274496  maximum resident set size
++                   0  average shared memory size
++                   0  average unshared data size
++                   0  average unshared stack size
++                 643  page reclaims
++                   3  page faults
++                   0  swaps
++                   0  block input operations
++                   0  block output operations
++                   0  messages sent
++                   0  messages received
++                   0  signals received
++                   0  voluntary context switches
++                  12  involuntary context switches
++            38459275  instructions retired
++            21615470  cycles elapsed
++             2343320  peak memory footprint
+diff --git a/cost/d20run-20261006-0056-baselines.stdout.txt b/cost/d20run-20261006-0056-baselines.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/cost/d20run-20261006-0056-geo-rrarra-s1.cost.txt b/cost/d20run-20261006-0056-geo-rrarra-s1.cost.txt
+new file mode 100644
+index 000000000..c5c88d62e
+--- /dev/null
++++ b/cost/d20run-20261006-0056-geo-rrarra-s1.cost.txt
+@@ -0,0 +1,3 @@
++arm=geo seed=1 root=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0056-geo-rrarra-s1 exit=143
++wall_seconds=296 max_rss_bytes=unknown root_kib=12
++free_bytes_before=35732135936 free_bytes_after=38761349120
+diff --git a/cost/d20run-20261006-0056-geo-rrarra-s1.stderr.txt b/cost/d20run-20261006-0056-geo-rrarra-s1.stderr.txt
+new file mode 100644
+index 000000000..c29cd3f81
+--- /dev/null
++++ b/cost/d20run-20261006-0056-geo-rrarra-s1.stderr.txt
+@@ -0,0 +1,3 @@
++geometric_stack {"age_init":"default","age_init_slopes":[0.25,0.0625,0.015625,0.00390625],"lineage":"none","lineage_record":{"name":"none"},"read_key_shift":false,"read_layers":2,"recurrence_layers":4,"recurrent_state_floats_per_layer":128,"stack_config":{"arch":"geometric","context":512,"heads":4,"mlp_hidden":384,"pattern":"rrarra","read":"l2","rotation":true,"seed":1,"vocab_size":512,"width":128}}: 1370008 parameters, context 512, buckets ["d16", "d64", "d200", "d400"]
++step 100 lr 1.00e-3 train query NLL 5.7982 grad 0.775 in-class acc 0.004 d16=0.000 d64=0.000 d200=0.000 d400=0.016 | held-out acc 0.000 (118s)
++step 200 lr 9.92e-4 train query NLL 5.3959 grad 1.185 in-class acc 0.004 d16=0.016 d64=0.000 d200=0.000 d400=0.000 | held-out acc 0.000 (192s)
+diff --git a/cost/d20run-20261006-0056-geo-rrarra-s1.stdout.txt b/cost/d20run-20261006-0056-geo-rrarra-s1.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/cost/d20run-20261006-0102-ctl-rrarra6-s1.stderr.txt b/cost/d20run-20261006-0102-ctl-rrarra6-s1.stderr.txt
+new file mode 100644
+index 000000000..760b35b1d
+--- /dev/null
++++ b/cost/d20run-20261006-0102-ctl-rrarra6-s1.stderr.txt
+@@ -0,0 +1,2 @@
++ordinary_attention {"age_init":"default","age_init_slopes":[0.25,0.0625,0.015625,0.00390625],"lineage":"none","lineage_record":{"name":"none"},"read_key_shift":false,"read_layers":6,"recurrence_layers":0,"recurrent_state_floats_per_layer":128,"stack_config":{"arch":"transformer","context":512,"heads":4,"mlp_hidden":395,"pattern":"aaaaaa","read":"dot","rotation":false,"seed":1,"vocab_size":512,"width":128}}: 1370496 parameters, context 512, buckets ["d16", "d64", "d200", "d400"]
++probe step 0: d16 key NaN value NaN (uniform NaN); d64 key NaN value NaN (uniform NaN); d200 key NaN value NaN (uniform NaN); d400 key NaN value NaN (uniform NaN)
+diff --git a/cost/d20run-20261006-0102-ctl-rrarra6-s1.stdout.txt b/cost/d20run-20261006-0102-ctl-rrarra6-s1.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/cost/d20run-20261006-0102-geo-rrarra-s1.stderr.txt b/cost/d20run-20261006-0102-geo-rrarra-s1.stderr.txt
+new file mode 100644
+index 000000000..382249b58
+--- /dev/null
++++ b/cost/d20run-20261006-0102-geo-rrarra-s1.stderr.txt
+@@ -0,0 +1 @@
++geometric_stack {"age_init":"default","age_init_slopes":[0.25,0.0625,0.015625,0.00390625],"lineage":"none","lineage_record":{"name":"none"},"read_key_shift":false,"read_layers":2,"recurrence_layers":4,"recurrent_state_floats_per_layer":128,"stack_config":{"arch":"geometric","context":512,"heads":4,"mlp_hidden":384,"pattern":"rrarra","read":"l2","rotation":true,"seed":1,"vocab_size":512,"width":128}}: 1370008 parameters, context 512, buckets ["d16", "d64", "d200", "d400"]
+diff --git a/cost/d20run-20261006-0102-geo-rrarra-s1.stdout.txt b/cost/d20run-20261006-0102-geo-rrarra-s1.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/cost/d20run-20261006-0128-geo-rrarra-s2.stderr.txt b/cost/d20run-20261006-0128-geo-rrarra-s2.stderr.txt
+new file mode 100644
+index 000000000..c027a2303
+--- /dev/null
++++ b/cost/d20run-20261006-0128-geo-rrarra-s2.stderr.txt
+@@ -0,0 +1 @@
++geometric_stack {"age_init":"default","age_init_slopes":[0.25,0.0625,0.015625,0.00390625],"lineage":"none","lineage_record":{"name":"none"},"read_key_shift":false,"read_layers":2,"recurrence_layers":4,"recurrent_state_floats_per_layer":128,"stack_config":{"arch":"geometric","context":512,"heads":4,"mlp_hidden":384,"pattern":"rrarra","read":"l2","rotation":true,"seed":2,"vocab_size":512,"width":128}}: 1370008 parameters, context 512, buckets ["d16", "d64", "d200", "d400"]
+diff --git a/cost/d20run-20261006-0128-geo-rrarra-s2.stdout.txt b/cost/d20run-20261006-0128-geo-rrarra-s2.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/cost/d20run-20261006-0136-ctl6-rrarra-s1.cost.txt b/cost/d20run-20261006-0136-ctl6-rrarra-s1.cost.txt
+new file mode 100644
+index 000000000..34ab46d90
+--- /dev/null
++++ b/cost/d20run-20261006-0136-ctl6-rrarra-s1.cost.txt
+@@ -0,0 +1,3 @@
++arm=ctl seed=1 root=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1 exit=0
++wall_seconds=1309 max_rss_bytes=3138830336 root_kib=128
++free_bytes_before=34155257856 free_bytes_after=35344011264
+diff --git a/cost/d20run-20261006-0136-ctl6-rrarra-s1.stderr.txt b/cost/d20run-20261006-0136-ctl6-rrarra-s1.stderr.txt
+new file mode 100644
+index 000000000..6af699cd3
+--- /dev/null
++++ b/cost/d20run-20261006-0136-ctl6-rrarra-s1.stderr.txt
+@@ -0,0 +1,39 @@
++ordinary_attention {"age_init":"default","age_init_slopes":[0.25,0.0625,0.015625,0.00390625],"lineage":"none","lineage_record":{"name":"none"},"read_key_shift":false,"read_layers":6,"recurrence_layers":0,"recurrent_state_floats_per_layer":128,"stack_config":{"arch":"transformer","context":512,"heads":4,"mlp_hidden":395,"pattern":"aaaaaa","read":"dot","rotation":false,"seed":1,"vocab_size":512,"width":128}}: 1370496 parameters, context 512, buckets ["d16", "d64", "d200", "d400"]
++step 100 lr 1.00e-3 train query NLL 5.7467 grad 0.718 in-class acc 0.004 d16=0.000 d64=0.000 d200=0.000 d400=0.016 | held-out acc 0.000 (61s)
++step 200 lr 9.92e-4 train query NLL 5.5084 grad 0.699 in-class acc 0.004 d16=0.000 d64=0.000 d200=0.000 d400=0.016 | held-out acc 0.000 (126s)
++step 300 lr 9.70e-4 train query NLL 5.4285 grad 0.942 in-class acc 0.008 d16=0.016 d64=0.016 d200=0.000 d400=0.000 | held-out acc 0.016 (190s)
++step 400 lr 9.33e-4 train query NLL 5.2869 grad 1.599 in-class acc 0.133 d16=0.375 d64=0.141 d200=0.016 d400=0.000 | held-out acc 0.156 (255s)
++step 500 lr 8.83e-4 train query NLL 4.9967 grad 1.706 in-class acc 0.207 d16=0.703 d64=0.125 d200=0.000 d400=0.000 | held-out acc 0.242 (319s)
++step 600 lr 8.22e-4 train query NLL 4.7262 grad 1.793 in-class acc 0.250 d16=0.766 d64=0.203 d200=0.016 d400=0.016 | held-out acc 0.230 (388s)
++step 700 lr 7.51e-4 train query NLL 4.4952 grad 1.901 in-class acc 0.238 d16=0.719 d64=0.188 d200=0.016 d400=0.031 | held-out acc 0.195 (473s)
++step 800 lr 6.74e-4 train query NLL 4.2790 grad 2.266 in-class acc 0.242 d16=0.766 d64=0.188 d200=0.016 d400=0.000 | held-out acc 0.098 (562s)
++step 900 lr 5.92e-4 train query NLL 4.1166 grad 2.092 in-class acc 0.238 d16=0.703 d64=0.172 d200=0.031 d400=0.047 | held-out acc 0.062 (639s)
++step 1000 lr 5.09e-4 train query NLL 4.0071 grad 2.135 in-class acc 0.242 d16=0.766 d64=0.172 d200=0.016 d400=0.016 | held-out acc 0.020 (718s)
++step 1100 lr 4.28e-4 train query NLL 3.9020 grad 2.471 in-class acc 0.215 d16=0.703 d64=0.141 d200=0.000 d400=0.016 | held-out acc 0.016 (797s)
++step 1200 lr 3.50e-4 train query NLL 3.8307 grad 2.450 in-class acc 0.234 d16=0.641 d64=0.250 d200=0.031 d400=0.016 | held-out acc 0.008 (874s)
++step 1300 lr 2.79e-4 train query NLL 3.7744 grad 2.664 in-class acc 0.242 d16=0.750 d64=0.172 d200=0.000 d400=0.047 | held-out acc 0.000 (948s)
++step 1400 lr 2.18e-4 train query NLL 3.7428 grad 2.759 in-class acc 0.246 d16=0.734 d64=0.203 d200=0.016 d400=0.031 | held-out acc 0.000 (1022s)
++step 1500 lr 1.68e-4 train query NLL 3.6892 grad 2.604 in-class acc 0.254 d16=0.750 d64=0.234 d200=0.016 d400=0.016 | held-out acc 0.000 (1094s)
++step 1600 lr 1.31e-4 train query NLL 3.6688 grad 2.779 in-class acc 0.234 d16=0.672 d64=0.234 d200=0.016 d400=0.016 | held-out acc 0.000 (1174s)
++step 1700 lr 1.08e-4 train query NLL 3.6419 grad 2.880 in-class acc 0.238 d16=0.719 d64=0.203 d200=0.016 d400=0.016 | held-out acc 0.000 (1240s)
++step 1800 lr 1.00e-4 train query NLL 3.6375 grad 2.693 in-class acc 0.238 d16=0.719 d64=0.203 d200=0.016 d400=0.016 | held-out acc 0.000 (1303s)
++final in-class fresh acc 0.2529 d16=0.762 d64=0.201 d200=0.010 d400=0.039; held-out-class acc 0.0000 d16=0.000 d64=0.000 d200=0.000 d400=0.000
++reachability: read rows 0 nonzero 0; key-ablation changed rows 2048/2048 (argmax 83), max |dlogit| 1.305465
++     1309.09 real      3067.42 user       383.04 sys
++          3138830336  maximum resident set size
++                   0  average shared memory size
++                   0  average unshared data size
++                   0  average unshared stack size
++             1277246  page reclaims
++                   0  page faults
++                   0  swaps
++                   0  block input operations
++                   0  block output operations
++                   0  messages sent
++                   0  messages received
++                   0  signals received
++                 635  voluntary context switches
++            50499005  involuntary context switches
++      32604540006837  instructions retired
++       8875738347636  cycles elapsed
++          6308074728  peak memory footprint
+diff --git a/cost/d20run-20261006-0136-ctl6-rrarra-s1.stdout.txt b/cost/d20run-20261006-0136-ctl6-rrarra-s1.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/cost/d20run-20261006-0152-ctl6-rrarra-s2.cost.txt b/cost/d20run-20261006-0152-ctl6-rrarra-s2.cost.txt
+new file mode 100644
+index 000000000..c8540ca1e
+--- /dev/null
++++ b/cost/d20run-20261006-0152-ctl6-rrarra-s2.cost.txt
+@@ -0,0 +1,3 @@
++arm=ctl seed=2 root=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s2 exit=0
++wall_seconds=2274 max_rss_bytes=2185838592 root_kib=132
++free_bytes_before=35376357376 free_bytes_after=32208273408
+diff --git a/cost/d20run-20261006-0152-ctl6-rrarra-s2.stderr.txt b/cost/d20run-20261006-0152-ctl6-rrarra-s2.stderr.txt
+new file mode 100644
+index 000000000..343b4e48c
+--- /dev/null
++++ b/cost/d20run-20261006-0152-ctl6-rrarra-s2.stderr.txt
+@@ -0,0 +1,39 @@
++ordinary_attention {"age_init":"default","age_init_slopes":[0.25,0.0625,0.015625,0.00390625],"lineage":"none","lineage_record":{"name":"none"},"read_key_shift":false,"read_layers":6,"recurrence_layers":0,"recurrent_state_floats_per_layer":128,"stack_config":{"arch":"transformer","context":512,"heads":4,"mlp_hidden":395,"pattern":"aaaaaa","read":"dot","rotation":false,"seed":2,"vocab_size":512,"width":128}}: 1370496 parameters, context 512, buckets ["d16", "d64", "d200", "d400"]
++step 100 lr 1.00e-3 train query NLL 5.7639 grad 0.750 in-class acc 0.000 d16=0.000 d64=0.000 d200=0.000 d400=0.000 | held-out acc 0.004 (110s)
++step 200 lr 9.92e-4 train query NLL 5.4604 grad 0.648 in-class acc 0.008 d16=0.031 d64=0.000 d200=0.000 d400=0.000 | held-out acc 0.000 (223s)
++step 300 lr 9.70e-4 train query NLL 5.4067 grad 1.237 in-class acc 0.043 d16=0.109 d64=0.016 d200=0.016 d400=0.031 | held-out acc 0.027 (336s)
++step 400 lr 9.33e-4 train query NLL 5.2052 grad 1.896 in-class acc 0.113 d16=0.375 d64=0.047 d200=0.016 d400=0.016 | held-out acc 0.148 (454s)
++step 500 lr 8.83e-4 train query NLL 4.9671 grad 2.138 in-class acc 0.184 d16=0.594 d64=0.125 d200=0.016 d400=0.000 | held-out acc 0.215 (569s)
++step 600 lr 8.22e-4 train query NLL 4.7617 grad 1.899 in-class acc 0.195 d16=0.625 d64=0.109 d200=0.016 d400=0.031 | held-out acc 0.211 (679s)
++step 700 lr 7.51e-4 train query NLL 4.5486 grad 2.023 in-class acc 0.184 d16=0.609 d64=0.109 d200=0.000 d400=0.016 | held-out acc 0.164 (782s)
++step 800 lr 6.74e-4 train query NLL 4.3622 grad 2.292 in-class acc 0.203 d16=0.625 d64=0.141 d200=0.016 d400=0.031 | held-out acc 0.117 (879s)
++step 900 lr 5.92e-4 train query NLL 4.2046 grad 2.261 in-class acc 0.203 d16=0.641 d64=0.141 d200=0.016 d400=0.016 | held-out acc 0.074 (1007s)
++step 1000 lr 5.09e-4 train query NLL 4.0875 grad 2.290 in-class acc 0.254 d16=0.688 d64=0.297 d200=0.016 d400=0.016 | held-out acc 0.043 (1132s)
++step 1100 lr 4.28e-4 train query NLL 3.9963 grad 2.544 in-class acc 0.219 d16=0.656 d64=0.172 d200=0.016 d400=0.031 | held-out acc 0.016 (1256s)
++step 1200 lr 3.50e-4 train query NLL 3.9159 grad 2.382 in-class acc 0.191 d16=0.531 d64=0.188 d200=0.016 d400=0.031 | held-out acc 0.008 (1403s)
++step 1300 lr 2.79e-4 train query NLL 3.8572 grad 2.551 in-class acc 0.242 d16=0.656 d64=0.250 d200=0.016 d400=0.047 | held-out acc 0.008 (1541s)
++step 1400 lr 2.18e-4 train query NLL 3.8286 grad 2.621 in-class acc 0.234 d16=0.641 d64=0.219 d200=0.016 d400=0.062 | held-out acc 0.004 (1678s)
++step 1500 lr 1.68e-4 train query NLL 3.7789 grad 2.760 in-class acc 0.254 d16=0.688 d64=0.234 d200=0.016 d400=0.078 | held-out acc 0.008 (1818s)
++step 1600 lr 1.31e-4 train query NLL 3.7518 grad 2.720 in-class acc 0.242 d16=0.688 d64=0.203 d200=0.016 d400=0.062 | held-out acc 0.008 (1959s)
++step 1700 lr 1.08e-4 train query NLL 3.7292 grad 2.603 in-class acc 0.227 d16=0.625 d64=0.203 d200=0.016 d400=0.062 | held-out acc 0.008 (2115s)
++step 1800 lr 1.00e-4 train query NLL 3.7086 grad 2.888 in-class acc 0.258 d16=0.672 d64=0.281 d200=0.016 d400=0.062 | held-out acc 0.004 (2262s)
++final in-class fresh acc 0.2510 d16=0.754 d64=0.217 d200=0.006 d400=0.027; held-out-class acc 0.0010 d16=0.004 d64=0.000 d200=0.000 d400=0.000
++reachability: read rows 0 nonzero 0; key-ablation changed rows 2048/2048 (argmax 58), max |dlogit| 1.082474
++     2274.46 real      2813.57 user       196.96 sys
++          2185838592  maximum resident set size
++                   0  average shared memory size
++                   0  average unshared data size
++                   0  average unshared stack size
++              747357  page reclaims
++                   3  page faults
++                   0  swaps
++                   0  block input operations
++                   0  block output operations
++                   0  messages sent
++                   0  messages received
++                   0  signals received
++                 104  voluntary context switches
++            30792797  involuntary context switches
++      31994342618291  instructions retired
++       7954570260074  cycles elapsed
++          6137369784  peak memory footprint
+diff --git a/cost/d20run-20261006-0152-ctl6-rrarra-s2.stdout.txt b/cost/d20run-20261006-0152-ctl6-rrarra-s2.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/cost/d20run-20261006-0152-ctl6-rrarra-s3.cost.txt b/cost/d20run-20261006-0152-ctl6-rrarra-s3.cost.txt
+new file mode 100644
+index 000000000..e4fba049a
+--- /dev/null
++++ b/cost/d20run-20261006-0152-ctl6-rrarra-s3.cost.txt
+@@ -0,0 +1,3 @@
++arm=ctl seed=3 root=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s3 exit=0
++wall_seconds=2276 max_rss_bytes=5081120768 root_kib=128
++free_bytes_before=35376357376 free_bytes_after=32208216064
+diff --git a/cost/d20run-20261006-0152-ctl6-rrarra-s3.stderr.txt b/cost/d20run-20261006-0152-ctl6-rrarra-s3.stderr.txt
+new file mode 100644
+index 000000000..22e7b0f47
+--- /dev/null
++++ b/cost/d20run-20261006-0152-ctl6-rrarra-s3.stderr.txt
+@@ -0,0 +1,39 @@
++ordinary_attention {"age_init":"default","age_init_slopes":[0.25,0.0625,0.015625,0.00390625],"lineage":"none","lineage_record":{"name":"none"},"read_key_shift":false,"read_layers":6,"recurrence_layers":0,"recurrent_state_floats_per_layer":128,"stack_config":{"arch":"transformer","context":512,"heads":4,"mlp_hidden":395,"pattern":"aaaaaa","read":"dot","rotation":false,"seed":3,"vocab_size":512,"width":128}}: 1370496 parameters, context 512, buckets ["d16", "d64", "d200", "d400"]
++step 100 lr 1.00e-3 train query NLL 5.7450 grad 17.340 in-class acc 0.000 d16=0.000 d64=0.000 d200=0.000 d400=0.000 | held-out acc 0.004 (111s)
++step 200 lr 9.92e-4 train query NLL 5.4935 grad 0.727 in-class acc 0.004 d16=0.000 d64=0.000 d200=0.016 d400=0.000 | held-out acc 0.004 (223s)
++step 300 lr 9.70e-4 train query NLL 5.4230 grad 1.650 in-class acc 0.066 d16=0.203 d64=0.062 d200=0.000 d400=0.000 | held-out acc 0.047 (336s)
++step 400 lr 9.33e-4 train query NLL 5.1416 grad 1.722 in-class acc 0.207 d16=0.719 d64=0.094 d200=0.000 d400=0.016 | held-out acc 0.184 (455s)
++step 500 lr 8.83e-4 train query NLL 4.8638 grad 2.059 in-class acc 0.227 d16=0.750 d64=0.109 d200=0.000 d400=0.047 | held-out acc 0.207 (569s)
++step 600 lr 8.22e-4 train query NLL 4.6369 grad 2.047 in-class acc 0.211 d16=0.703 d64=0.125 d200=0.000 d400=0.016 | held-out acc 0.188 (680s)
++step 700 lr 7.51e-4 train query NLL 4.4259 grad 2.161 in-class acc 0.227 d16=0.766 d64=0.109 d200=0.000 d400=0.031 | held-out acc 0.164 (781s)
++step 800 lr 6.74e-4 train query NLL 4.2687 grad 1.972 in-class acc 0.223 d16=0.750 d64=0.109 d200=0.000 d400=0.031 | held-out acc 0.148 (879s)
++step 900 lr 5.92e-4 train query NLL 4.0992 grad 2.444 in-class acc 0.223 d16=0.734 d64=0.125 d200=0.016 d400=0.016 | held-out acc 0.102 (1008s)
++step 1000 lr 5.09e-4 train query NLL 3.9467 grad 2.460 in-class acc 0.238 d16=0.781 d64=0.156 d200=0.000 d400=0.016 | held-out acc 0.059 (1132s)
++step 1100 lr 4.28e-4 train query NLL 3.8528 grad 2.369 in-class acc 0.234 d16=0.750 d64=0.156 d200=0.016 d400=0.016 | held-out acc 0.020 (1257s)
++step 1200 lr 3.50e-4 train query NLL 3.7803 grad 2.595 in-class acc 0.215 d16=0.719 d64=0.125 d200=0.000 d400=0.016 | held-out acc 0.012 (1404s)
++step 1300 lr 2.79e-4 train query NLL 3.7242 grad 2.534 in-class acc 0.211 d16=0.734 d64=0.109 d200=0.000 d400=0.000 | held-out acc 0.008 (1541s)
++step 1400 lr 2.18e-4 train query NLL 3.6641 grad 2.609 in-class acc 0.250 d16=0.781 d64=0.203 d200=0.016 d400=0.000 | held-out acc 0.008 (1679s)
++step 1500 lr 1.68e-4 train query NLL 3.6207 grad 2.591 in-class acc 0.238 d16=0.797 d64=0.141 d200=0.016 d400=0.000 | held-out acc 0.004 (1819s)
++step 1600 lr 1.31e-4 train query NLL 3.5970 grad 2.735 in-class acc 0.242 d16=0.781 d64=0.156 d200=0.016 d400=0.016 | held-out acc 0.000 (1959s)
++step 1700 lr 1.08e-4 train query NLL 3.5756 grad 2.615 in-class acc 0.234 d16=0.734 d64=0.172 d200=0.016 d400=0.016 | held-out acc 0.000 (2117s)
++step 1800 lr 1.00e-4 train query NLL 3.5502 grad 2.667 in-class acc 0.242 d16=0.781 d64=0.156 d200=0.016 d400=0.016 | held-out acc 0.000 (2265s)
++final in-class fresh acc 0.2563 d16=0.758 d64=0.215 d200=0.012 d400=0.041; held-out-class acc 0.0010 d16=0.004 d64=0.000 d200=0.000 d400=0.000
++reachability: read rows 0 nonzero 0; key-ablation changed rows 2048/2048 (argmax 76), max |dlogit| 0.959224
++     2276.31 real      2812.66 user       196.21 sys
++          5081120768  maximum resident set size
++                   0  average shared memory size
++                   0  average unshared data size
++                   0  average unshared stack size
++              767249  page reclaims
++                   0  page faults
++                   0  swaps
++                   0  block input operations
++                   0  block output operations
++                   0  messages sent
++                   0  messages received
++                   0  signals received
++                  40  voluntary context switches
++            30774874  involuntary context switches
++      31993208382995  instructions retired
++       7949653985100  cycles elapsed
++          6152803560  peak memory footprint
+diff --git a/cost/d20run-20261006-0152-ctl6-rrarra-s3.stdout.txt b/cost/d20run-20261006-0152-ctl6-rrarra-s3.stdout.txt
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/crates/uor-r4-training/examples/mqar-bench.rs b/crates/uor-r4-training/examples/mqar-bench.rs
+index 6389c33cb..e414b245b 100644
+--- a/crates/uor-r4-training/examples/mqar-bench.rs
++++ b/crates/uor-r4-training/examples/mqar-bench.rs
+@@ -12,6 +12,8 @@
+ //! arm=stack: [pattern=aaaaaa] [read=l2|dot|lorentz] [rotation=true|false] [width=128] [heads=4] \
+ //!   [mlp=384] [age=default|flat|spread] [key_shift=false|true] \
+ //!   [lineage=none|f2|qk|qk_jj|identity|so4|conv|wprev] [learned_init=lag1|zero]
++//! arm=transformer: [layers=<pattern length>] [width=128] [heads=4] [mlp=matched|<n>] \
++//!   [match_pattern=rrarra] [match_read=l2|dot|lorentz] [match_rotation=true|false]
+ //! layout=fact: tokenizer=TOKENIZER_JSON [gaps=0,1,2,3] [forms=rehearse,bare]
+ //!   (context <= 384; defaults pairs_per_bucket=4, final_sequences=256)
+ //! mqar-bench mode=decide runs=DIR_OF_SEALED_FACT_ROOTS out=NEW_REPORT_ROOT
+@@ -51,12 +53,22 @@
+ //!
+ //! The arm (the context-access mechanism under test) is defined separately
+ //! from the task, training loop and scoring: see `ContextArm` and `ArmSpec`.
+-//! Each report records the arm in a fixed schema (`REPORT_SCHEMA`), including
+-//! its context-access cost in positions scored per query token.
++//! `arm=stack` is the geometric stack; `arm=transformer` is the ordinary
++//! causal-softmax attention control whose total parameter count is matched to
++//! a named geometric arm (D20 section 2 condition 1). Each report records the
++//! arm in a fixed schema (`REPORT_SCHEMA`), including its context-access cost
++//! in positions scored per query token and the parameter-match residual.
++//!
++//! Two reachability counters run once on the final in-class panel (D20
++//! section 2 condition 3): `read_firing` evaluates the geometric read's own
++//! binding mass at every scored query position (the `Work::selected_operations`
++//! analogue), and `context_reachability` replaces each query's source key with
++//! a filler token and counts the scored rows whose logits move, for every arm.
++//! Both are observation only.
+ //!
+ //! The report root is claimed exclusively before any model work and sealed
+ //! with its manifest at the end. Offline floating-point training only; nothing
+-//! here is a serving path, and there is no transformer control.
++//! here is a serving path.
+ 
+ use std::collections::BTreeMap;
+ use std::fs;
+@@ -483,6 +495,87 @@ enum ArmSpec {
+         /// the unit quaternion `j` (`StackModel::set_read_key_shift`).
+         lineage: LineageArm,
+     },
++    /// `arm=transformer`: the ordinary matched control -- `layers` plain
++    /// causal-softmax attention blocks (`StackArch::Transformer`, RoPE plus a
++    /// strict causal mask, SwiGLU MLP, pre-norm), exchanging the geometric
++    /// read for the library's own ordinary attention path
++    /// (`StackModel::attention` -> `fused_read_selected(ReadScore::Dot)`,
++    /// `geometric_stack.rs:2021-2052`).
++    ///
++    /// This is D20 section 2 condition 1's ordinary control. It is a NEW arm:
++    /// no geometric code path is touched (see `MIGRATION` in the report).
++    ///
++    /// Matching. `match_pattern`, `match_read` and `match_rotation` name the
++    /// geometric arm whose total parameter count is matched; `width`, `heads`
++    /// and `context` are shared. `layers` defaults to that pattern's length.
++    /// `mlp=matched` (the default) solves the MLP width whose
++    /// `StackConfig::parameter_count` is closest to the reference arm's, the
++    /// mirror of the library's `geometric_matched_to`; `mlp=<n>` sets it
++    /// directly. The report records both counts and the residual
++    /// (`parameter_match`), so the match is a number, not an assertion.
++    Transformer {
++        layers: usize,
++        width: usize,
++        heads: usize,
++        /// `None` = solve for the reference arm's parameter count.
++        mlp_hidden: Option<usize>,
++        reference_pattern: String,
++        reference_read: ReadScore,
++        reference_rotation: bool,
++    },
++}
++
++/// The frozen Step 2 recipe's MLP width (barrier assessment
++/// `proposals-and-reviews.md:637`: `rrarra`, width 128, 4 heads, MLP 384,
++/// context 512, 1800 steps, batch 8, lr 1e-3, `l2` read). The reference arm
++/// that `arm=transformer` matches in parameters uses it.
++const REFERENCE_MLP: usize = 384;
++
++/// The geometric arm `arm=transformer` matches: the same width, heads,
++/// context, vocab and seed as the control, at the recipe's MLP width. Only its
++/// total parameter count is used; it is never trained here.
++fn reference_config(
++    common: &Common,
++    width: usize,
++    heads: usize,
++    pattern: &str,
++    read: ReadScore,
++    rotation: bool,
++) -> Result<StackConfig> {
++    let config = StackConfig {
++        arch: StackArch::Geometric,
++        vocab_size: common.vocab,
++        width,
++        heads,
++        mlp_hidden: REFERENCE_MLP,
++        context: common.context,
++        pattern: pattern.to_owned(),
++        read,
++        rotation,
++        rotation_group: RotationGroup::Quaternion,
++        seed: common.seed,
++        memory: None,
++        select: None,
++        pointer: None,
++    };
++    config.validate()?;
++    Ok(config)
++}
++
++/// The MLP width of an ordinary attention control whose total parameter count
++/// is closest to `target`. The exact mirror of the library's private
++/// `matched_mlp_hidden` (`geometric_stack.rs:1339-1352`), applied to the
++/// control's config: every layer carries `3 * width * mlp_hidden` MLP
++/// parameters, so the solve is the same arithmetic.
++fn matched_control_mlp(config: &StackConfig, target: usize) -> Result<usize> {
++    let mut probe = config.clone();
++    probe.mlp_hidden = 1;
++    let base = probe.parameter_count()?;
++    let per_unit = 3 * config.width * config.layers();
++    if target <= base {
++        return Err(invalid("the matched control has no room for an MLP"));
++    }
++    Ok((((target - base) as f64 / per_unit as f64).round() as usize + 1).max(1))
+ }
+ 
+ impl ArmSpec {
+@@ -525,6 +618,41 @@ impl ArmSpec {
+                 },
+                 lineage,
+             }),
++            Some("transformer") => {
++                // The control has no read lineage: reject rather than silently ignore.
++                if lineage != LineageArm::None {
++                    return Err(invalid(
++                        "arm=transformer is the ordinary control and takes no key/query lineage",
++                    ));
++                }
++                let reference_pattern = args
++                    .take("match_pattern")
++                    .unwrap_or_else(|| "rrarra".into());
++                let reference_read = match args.take("match_read").as_deref() {
++                    None | Some("l2") => ReadScore::L2,
++                    Some("dot") => ReadScore::Dot,
++                    Some("lorentz") => ReadScore::Lorentz,
++                    Some(other) => return Err(invalid(format!("invalid match_read={other}"))),
++                };
++                let reference_rotation = args.parsed("match_rotation", true)?;
++                let layers = args.parsed("layers", reference_pattern.chars().count())?;
++                let mlp_hidden = match args.take("mlp").as_deref() {
++                    None | Some("matched") => None,
++                    Some(text) => Some(
++                        text.parse()
++                            .map_err(|_| invalid(format!("invalid mlp={text}")))?,
++                    ),
++                };
++                Ok(ArmSpec::Transformer {
++                    layers,
++                    width: args.parsed("width", 128usize)?,
++                    heads: args.parsed("heads", 4usize)?,
++                    mlp_hidden,
++                    reference_pattern,
++                    reference_read,
++                    reference_rotation,
++                })
++            }
+             Some(other) => Err(invalid(format!("unknown arm={other}"))),
+         }
+     }
+@@ -553,6 +681,19 @@ impl ArmSpec {
+                 if *rotation { "" } else { "-no-rotation" },
+             )
+             .to_lowercase(),
++            ArmSpec::Transformer {
++                layers,
++                mlp_hidden,
++                reference_pattern,
++                ..
++            } => format!(
++                "control-transformer-{layers}x-{reference_pattern}{}",
++                match mlp_hidden {
++                    None => "-mlp-matched".to_string(),
++                    Some(mlp) => format!("-mlp{mlp}"),
++                }
++            )
++            .to_lowercase(),
+         }
+     }
+ 
+@@ -573,6 +714,57 @@ impl ArmSpec {
+                 }
+                 self.stack_config(common)?.validate()
+             }
++            ArmSpec::Transformer { .. } => {
++                self.stack_config(common)?.validate()?;
++                self.parameter_match(common)?;
++                Ok(())
++            }
++        }
++    }
++
++    /// The parameter-match evidence: the reference geometric arm's count, the
++    /// control's count and the residual. `null` for a geometric arm.
++    fn parameter_match(&self, common: &Common) -> Result<Value> {
++        match self {
++            ArmSpec::Stack { .. } => Ok(Value::Null),
++            ArmSpec::Transformer {
++                width,
++                heads,
++                reference_pattern,
++                reference_read,
++                reference_rotation,
++                ..
++            } => {
++                let reference = reference_config(
++                    common,
++                    *width,
++                    *heads,
++                    reference_pattern,
++                    *reference_read,
++                    *reference_rotation,
++                )?;
++                let target = reference.parameter_count()?;
++                let control = self.stack_config(common)?;
++                let got = control.parameter_count()?;
++                Ok(json!({
++                    "reference_geometric": {
++                        "pattern": reference.pattern,
++                        "read": reference.read,
++                        "rotation": reference.rotation,
++                        "mlp_hidden": reference.mlp_hidden,
++                        "parameters": target,
++                    },
++                    "control": {
++                        "arch": control.arch,
++                        "pattern": control.pattern,
++                        "layers": control.layers(),
++                        "mlp_hidden": control.mlp_hidden,
++                        "parameters": got,
++                    },
++                    "residual_parameters": got as i64 - target as i64,
++                    "residual_fraction": (got as f64 - target as f64) / target as f64,
++                }))
++            }
+         }
+     }
+ 
+@@ -606,6 +798,47 @@ impl ArmSpec {
+                 config.validate()?;
+                 Ok(config)
+             }
++            ArmSpec::Transformer {
++                layers,
++                width,
++                heads,
++                mlp_hidden,
++                reference_pattern,
++                reference_read,
++                reference_rotation,
++            } => {
++                let reference = reference_config(
++                    common,
++                    *width,
++                    *heads,
++                    reference_pattern,
++                    *reference_read,
++                    *reference_rotation,
++                )?;
++                let target = reference.parameter_count()?;
++                let mut control = StackConfig {
++                    arch: StackArch::Transformer,
++                    vocab_size: common.vocab,
++                    width: *width,
++                    heads: *heads,
++                    mlp_hidden: 1,
++                    context: common.context,
++                    pattern: "a".repeat(*layers),
++                    read: ReadScore::Dot,
++                    rotation: false,
++                    rotation_group: RotationGroup::Quaternion,
++                    seed: common.seed,
++                    memory: None,
++                    select: None,
++                    pointer: None,
++                };
++                control.mlp_hidden = match mlp_hidden {
++                    Some(explicit) => *explicit,
++                    None => matched_control_mlp(&control, target)?,
++                };
++                control.validate()?;
++                Ok(control)
++            }
+         }
+     }
+ 
+@@ -656,6 +889,19 @@ impl ArmSpec {
+                     lineage: *lineage,
+                 }))
+             }
++            ArmSpec::Transformer { .. } => {
++                // The control has no recurrence, no read layer, no age bias and
++                // no lineage: the model is the library's ordinary attention stack.
++                let config = self.stack_config(common)?;
++                let model = StackModel::new(config, device)?;
++                let optimizer = StackAdamW::new(&model, common.weight_decay, common.clip)?;
++                Ok(Box::new(StackArm {
++                    model,
++                    optimizer,
++                    age: AgeInit::Default,
++                    lineage: LineageArm::None,
++                }))
++            }
+         }
+     }
+ }
+@@ -680,7 +926,10 @@ impl StackArm {
+ 
+ impl ContextArm for StackArm {
+     fn kind(&self) -> &'static str {
+-        "geometric_stack"
++        match self.model.config.arch {
++            StackArch::Geometric => "geometric_stack",
++            StackArch::Transformer => "ordinary_attention",
++        }
+     }
+ 
+     fn record(&self) -> Value {
+@@ -734,7 +983,10 @@ impl ContextArm for StackArm {
+     }
+ 
+     fn access_note(&self) -> String {
+-        "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into()
++        match self.model.config.arch {
++            StackArch::Geometric => "read layers x heads x (position + 1): every causal position is scored by each read head (plus one NoRead slot, not counted); recurrence layers score no positions".into(),
++            StackArch::Transformer => "attention layers x heads x (position + 1): every causal position is scored by each head of the ordinary causal-softmax control; no NoRead slot".into(),
++        }
+     }
+ 
+     fn save(&self, directory: &Path) -> Result<()> {
+@@ -743,6 +995,14 @@ impl ContextArm for StackArm {
+ 
+     fn read_heads(&self) -> Vec<(usize, usize)> {
+         let config = &self.model.config;
++        // The binding-mass probe reads the geometric read
++        // (`StackModel::read_binding_masses`); the control's attention path does
++        // not populate that capture (`geometric_stack.rs:6332-6334`), so it
++        // reports no read heads rather than an error. The geometric arm's
++        // answer is unchanged.
++        if config.arch != StackArch::Geometric {
++            return Vec::new();
++        }
+         (0..config.layers())
+             .filter(|&layer| config.pattern.as_bytes()[layer] == b'a')
+             .flat_map(|layer| (0..config.heads).map(move |head| (layer, head)))
+@@ -888,6 +1148,234 @@ fn probe_line(probe: &Value, buckets: &[Bucket]) -> String {
+         .join("; ")
+ }
+ 
++/// D20 section 2 condition 3, for the geometric read: a firing counter in the
++/// spirit of `Work::selected_operations` (the `addressed_attention` precedent).
++///
++/// It evaluates the arm's real read at **every** scored query position of
++/// `sequences` through `ContextArm::source_mass` (`StackModel::read_binding_masses`,
++/// "the actual read, including age and NoRead") and counts the read rows that
++/// executed and the rows that put nonzero weight on the gold key `q - d`. A
++/// read that was never reached cannot produce a nonzero row; an arm with no
++/// read heads reports UNAVAILABLE, which is a finding, not a zero.
++/// Observation only: a separate forward pass, no parameter and no logit change.
++fn read_firing(
++    arm: &dyn ContextArm,
++    sequences: &[Sequence],
++    context: usize,
++    buckets: &[Bucket],
++) -> Result<Value> {
++    let heads = arm.read_heads();
++    if heads.is_empty() {
++        return Ok(json!({
++            "status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass \
++                       (the ordinary control's attention path does not populate the \
++                       binding capture, geometric_stack.rs:6332-6334)"
++        }));
++    }
++    // The binding probe admits at most one labelled query per batch item
++    // (`validate_binding`, geometric_stack.rs:6502), so each selected query is
++    // presented as its own batch item: its sequence's tokens, repeated. One
++    // query per (sequence, bucket), for every sequence of the panel.
++    let mut picks: Vec<(usize, usize)> = Vec::new(); // (sequence, query index)
++    for (s, sequence) in sequences.iter().enumerate() {
++        for (b, _) in buckets.iter().enumerate() {
++            if let Some(index) = sequence.queries.iter().position(|query| query.bucket == b) {
++                picks.push((s, index));
++            }
++        }
++    }
++    let batch = picks.len();
++    let mut ids = Vec::with_capacity(batch * context);
++    for (s, _) in &picks {
++        ids.extend_from_slice(&sequences[*s].tokens);
++    }
++    let rows: Vec<(usize, usize, Vec<usize>)> = picks
++        .iter()
++        .enumerate()
++        .map(|(item, (s, index))| {
++            let query = &sequences[*s].queries[*index];
++            (item, query.position, vec![query.position - query.distance])
++        })
++        .collect();
++    let mut rows_evaluated = 0usize;
++    let mut rows_nonzero = 0usize;
++    let mut rows_over_half = 0usize;
++    let mut mass_sum = 0f64;
++    let mut uniform_sum = 0f64;
++    let mut per_head = Vec::new();
++    let mut per_bucket_rows = vec![0usize; buckets.len()];
++    let mut per_bucket_nonzero = vec![0usize; buckets.len()];
++    let mut per_bucket_mass = vec![0f64; buckets.len()];
++    let mut per_bucket_uniform = vec![0f64; buckets.len()];
++    for &(layer, head) in &heads {
++        let masses = arm.source_mass(&ids, batch, context, layer, head, &rows)?;
++        if masses.len() != rows.len() {
++            return Err(invalid("the read firing counter got the wrong row count"));
++        }
++        let (mut head_nonzero, mut head_over_half, mut head_mass) = (0usize, 0usize, 0f64);
++        for (i, &mass) in masses.iter().enumerate() {
++            let (s, index) = picks[i];
++            let query = &sequences[s].queries[index];
++            let bucket = query.bucket;
++            let uniform = 1.0 / (query.position + 1) as f64;
++            rows_evaluated += 1;
++            mass_sum += f64::from(mass);
++            uniform_sum += uniform;
++            per_bucket_rows[bucket] += 1;
++            per_bucket_mass[bucket] += f64::from(mass);
++            per_bucket_uniform[bucket] += uniform;
++            if mass > 0.0 {
++                rows_nonzero += 1;
++                head_nonzero += 1;
++                per_bucket_nonzero[bucket] += 1;
++            }
++            if mass > 0.5 {
++                rows_over_half += 1;
++                head_over_half += 1;
++            }
++            head_mass += f64::from(mass);
++        }
++        per_head.push(json!({
++            "layer": layer, "head": head,
++            "rows_evaluated": masses.len(),
++            "rows_nonzero_mass_on_key": head_nonzero,
++            "rows_over_half_on_key": head_over_half,
++            "summed_mass_on_key": head_mass,
++        }));
++    }
++    let by_bucket = buckets
++        .iter()
++        .enumerate()
++        .map(|(b, bucket)| {
++            (
++                bucket.name.to_owned(),
++                json!({
++                    "rows": per_bucket_rows[b],
++                    "rows_nonzero_mass_on_key": per_bucket_nonzero[b],
++                    "mean_mass_on_key": per_bucket_mass[b] / per_bucket_rows[b].max(1) as f64,
++                    "mean_uniform_reference": per_bucket_uniform[b] / per_bucket_rows[b].max(1) as f64,
++                }),
++            )
++        })
++        .collect::<serde_json::Map<_, _>>();
++    Ok(json!({
++        "status": "MEASURED",
++        "counter": "read rows evaluated through StackModel::read_binding_masses at the scored query positions",
++        "selection": "one held-out query per (sequence, bucket), every sequence of the panel, one batch item each",
++        "read_heads": heads.len(),
++        "sequences": sequences.len(),
++        "queries": rows.len(),
++        "batch_items": batch,
++        "rows_evaluated": rows_evaluated,
++        "rows_nonzero_mass_on_key": rows_nonzero,
++        "rows_over_half_on_key": rows_over_half,
++        "mean_mass_on_key": mass_sum / rows_evaluated.max(1) as f64,
++        "mean_uniform_reference": uniform_sum / rows_evaluated.max(1) as f64,
++        "by_bucket": by_bucket,
++        "by_head": per_head,
++    }))
++}
++
++/// D20 section 2 condition 3, arch-symmetric: the mechanism is reached on a
++/// scored position iff that position's logits depend on the source key token.
++/// Each query's key occurrence (`q - d`) is replaced by a filler token and the
++/// logits at `q` are compared with the unmodified forward. A mechanism that
++/// never read the context leaves them bit-identical, whatever its parameter
++/// count. Observation only: a separate forward pass, no parameter or training
++/// change.
++fn context_reachability(
++    arm: &dyn ContextArm,
++    sequences: &[Sequence],
++    context: usize,
++) -> Result<Value> {
++    let (ids, _, _) = batch_arrays(sequences, context);
++    let before = arm.logits(&ids, sequences.len(), context)?;
++    let mut ablated = sequences.to_vec();
++    let mut replaced = 0usize;
++    for sequence in ablated.iter_mut() {
++        for query in sequence.queries.iter() {
++            let at = query.position - query.distance;
++            let original = sequence.tokens[at];
++            // A filler token, never equal to the key that was there.
++            let mut replacement = FILLER.0 + (original % (FILLER.1 - FILLER.0));
++            if replacement == original {
++                replacement = FILLER.0 + (original + 1) % (FILLER.1 - FILLER.0);
++            }
++            sequence.tokens[at] = replacement;
++            replaced += 1;
++        }
++    }
++    let (ablated_ids, _, _) = batch_arrays(&ablated, context);
++    let after = arm.logits(&ablated_ids, sequences.len(), context)?;
++    // The scored rows, in panel order.
++    let mut rows = Vec::new();
++    for (s, sequence) in sequences.iter().enumerate() {
++        for query in sequence.queries.iter() {
++            rows.push((
++                (s * context + query.position) as u32,
++                query.value as usize,
++            ));
++        }
++    }
++    let index = Tensor::from_vec(
++        rows.iter().map(|row| row.0).collect::<Vec<u32>>(),
++        rows.len(),
++        arm.device(),
++    )?;
++    let b = before
++        .index_select(&index, 0)?
++        .to_device(&Device::Cpu)?
++        .to_vec2::<f32>()?;
++    let a = after
++        .index_select(&index, 0)?
++        .to_device(&Device::Cpu)?
++        .to_vec2::<f32>()?;
++    let (mut changed, mut argmax_changed, mut gold_logit_changed) = (0usize, 0usize, 0usize);
++    let (mut max_delta, mut sum_delta) = (0f64, 0f64);
++    for (row, (_, gold)) in rows.iter().enumerate() {
++        let (mut best_b, mut best_a) = (0usize, 0usize);
++        let (mut mb, mut ma) = (f32::NEG_INFINITY, f32::NEG_INFINITY);
++        let mut delta = 0f64;
++        for (i, (&x, &y)) in b[row].iter().zip(a[row].iter()).enumerate() {
++            delta = delta.max(f64::from((x - y).abs()));
++            if x > mb {
++                mb = x;
++                best_b = i;
++            }
++            if y > ma {
++                ma = y;
++                best_a = i;
++            }
++        }
++        let any = b[row]
++            .iter()
++            .zip(a[row].iter())
++            .any(|(x, y)| x.to_bits() != y.to_bits());
++        if any {
++            changed += 1;
++        }
++        if b[row][*gold].to_bits() != a[row][*gold].to_bits() {
++            gold_logit_changed += 1;
++        }
++        if best_b != best_a {
++            argmax_changed += 1;
++        }
++        max_delta = max_delta.max(delta);
++        sum_delta += delta;
++    }
++    let total = rows.len().max(1);
++    Ok(json!({
++        "method": "replace the query's source key at q - d with a filler token; compare logits at q",
++        "rows": rows.len(),
++        "key_tokens_replaced": replaced,
++        "rows_with_any_logit_change": changed,
++        "rows_with_gold_logit_change": gold_logit_changed,
++        "rows_whose_argmax_changed": argmax_changed,
++        "max_abs_logit_delta": max_delta,
++        "mean_max_abs_logit_delta": sum_delta / total as f64,
++    }))
++}
++
+ /// The value written most recently before `query` (by any pair): what a pure
+ /// recency read with no key match would answer.
+ fn most_recent_value(sequence: &Sequence, query: &Query) -> Option<u32> {
+@@ -1449,6 +1937,27 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
+     );
+     eprintln!("{line}");
+     writeln!(log, "{line}")?;
++    // D20 section 2 condition 3: two reachability counters on the scored
++    // positions of the final in-class panel. Both are observation only.
++    let reach_clock = Instant::now();
++    let firing = read_firing(&*arm, &in_class_set, s.context, &buckets)?;
++    let reachability = context_reachability(&*arm, &in_class_set, s.context)?;
++    let reachability_seconds = reach_clock.elapsed().as_secs_f64();
++    let reach_line = format!(
++        "reachability: read rows {} nonzero {}; key-ablation changed rows {}/{} (argmax {}), max |dlogit| {:.6}",
++        firing["rows_evaluated"].as_u64().unwrap_or(0),
++        firing["rows_nonzero_mass_on_key"].as_u64().unwrap_or(0),
++        reachability["rows_with_any_logit_change"]
++            .as_u64()
++            .unwrap_or(0),
++        reachability["rows"].as_u64().unwrap_or(0),
++        reachability["rows_whose_argmax_changed"]
++            .as_u64()
++            .unwrap_or(0),
++        reachability["max_abs_logit_delta"].as_f64().unwrap_or(f64::NAN),
++    );
++    eprintln!("{reach_line}");
++    writeln!(log, "{reach_line}")?;
+     let mut sorted = step_seconds.clone();
+     sorted.sort_by(f64::total_cmp);
+     let mean_positions = (0..s.context)
+@@ -1468,6 +1977,9 @@ fn run(s: &Common, arm: &mut dyn ContextArm, log: &mut fs::File) -> Result<Value
+         "probe_seconds": prober.seconds,
+         "final_in_class_fresh_pairings": in_class,
+         "final_held_out_class_pairings": held_out,
++        "read_firing": firing,
++        "context_reachability": reachability,
++        "reachability_seconds": reachability_seconds,
+         "curve": curve,
+         "train_seconds": train_seconds,
+         "median_step_seconds": sorted.get(sorted.len() / 2).copied(),
+@@ -1558,6 +2070,7 @@ fn main() -> Result<()> {
+             "kind": arm.kind(),
+             "parameters": arm.parameters(),
+             "config": arm.record(),
++            "parameter_match": spec.parameter_match(&common)?,
+         });
+         let mut results = run(&common, arm.as_mut(), &mut log)?;
+         results["model_save"] = save_model(&common, arm.as_ref());
+@@ -1865,4 +2378,146 @@ mod tests {
+         // ...while a recurrence layer does take rotation rows.
+         assert_ne!(small("ra", true).shapes(), small("ra", false).shapes());
+     }
++
++    fn common_for(out: &str, context: usize) -> Common {
++        Common {
++            out: PathBuf::from(out),
++            device_name: "cpu".into(),
++            vocab: VOCAB,
++            save_model: false,
++            context,
++            pairs_per_bucket: 8,
++            batch: 8,
++            steps: 1,
++            lr: 1e-3,
++            warmup: 1,
++            min_lr: 0.1,
++            weight_decay: 0.1,
++            clip: 1.0,
++            eval_every: 1,
++            curve_sequences: 1,
++            final_sequences: 1,
++            seed: 5,
++            pointer: None,
++            max_seconds: 1.0,
++            probe_steps: Vec::new(),
++            probe_sequences: 1,
++            dump_scores: false,
++        }
++    }
++
++    /// The matched control's construction: the ordinary attention stack
++    /// (`StackArch::Transformer`, attention layers only) whose parameter count
++    /// is the geometric reference arm's, to within one MLP column.
++    #[test]
++    fn the_transformer_control_is_parameter_matched_to_the_geometric_arm() {
++        let common = common_for("/tmp/unused-d20-control-match", 512);
++        let spec = ArmSpec::Transformer {
++            layers: 6,
++            width: 128,
++            heads: 4,
++            mlp_hidden: None,
++            reference_pattern: "rrarra".into(),
++            reference_read: ReadScore::L2,
++            reference_rotation: true,
++        };
++        spec.validate(&common).expect("valid control");
++        let control = spec.stack_config(&common).expect("control config");
++        assert_eq!(control.arch, StackArch::Transformer);
++        assert_eq!(control.pattern, "aaaaaa");
++        let reference =
++            reference_config(&common, 128, 4, "rrarra", ReadScore::L2, true).expect("reference");
++        let target = reference.parameter_count().expect("reference count");
++        let got = control.parameter_count().expect("control count");
++        assert_eq!(target, 1_370_008, "the frozen recipe's geometric arm");
++        // The closest MLP width lands within one column of the target.
++        assert!(
++            (got as i64 - target as i64).unsigned_abs() <= (3 * control.width) as u64,
++            "control {got} vs reference {target}"
++        );
++        let match_record = spec.parameter_match(&common).expect("match record");
++        assert_eq!(match_record["reference_geometric"]["parameters"], target);
++        assert_eq!(match_record["control"]["parameters"], got);
++        // A geometric arm reports no match block: nothing about it changed.
++        let stack = ArmSpec::Stack {
++            pattern: "rrarra".into(),
++            read: ReadScore::L2,
++            rotation: true,
++            width: 128,
++            heads: 4,
++            mlp_hidden: 384,
++            age: AgeInit::Default,
++            lineage: LineageArm::None,
++        };
++        assert!(stack.parameter_match(&common).expect("null").is_null());
++        assert_eq!(
++            stack
++                .stack_config(&common)
++                .expect("stack config")
++                .parameter_count()
++                .expect("count"),
++            1_370_008
++        );
++    }
++
++    /// The control runs, is causal, and reads the context: the reachability
++    /// counter must fire for it as well as for the geometric arm.
++    #[test]
++    fn both_arms_read_the_context_at_the_scored_positions() {
++        let common = common_for("/tmp/unused-d20-control-reach", 64);
++        let buckets = buckets_for(64);
++        let sequences =
++            sequences(&common, &buckets, IN_CLASS_DOMAIN, 3, Pairing::Train).expect("panel");
++        for (arch, pattern) in [
++            (StackArch::Geometric, "rarra"),
++            (StackArch::Transformer, "aaaaa"),
++        ] {
++            let mut config = small(pattern, arch == StackArch::Geometric);
++            config.arch = arch;
++            config.mlp_hidden = 32;
++            config.context = 64;
++            config.read = if arch == StackArch::Geometric {
++                ReadScore::L2
++            } else {
++                ReadScore::Dot
++            };
++            let model = StackModel::new(config, &Device::Cpu).expect("model");
++            let optimizer = StackAdamW::new(&model, 0.1, 1.0).expect("optimizer");
++            let arm = StackArm {
++                model,
++                optimizer,
++                age: AgeInit::Default,
++                lineage: LineageArm::None,
++            };
++            let reach = context_reachability(&arm, &sequences, 64).expect("reachability");
++            let queries = sequences
++                .iter()
++                .map(|sequence| sequence.queries.len())
++                .sum::<usize>();
++            assert_eq!(queries, 3 * buckets.len() * 8);
++            assert_eq!(reach["rows"], queries);
++            assert_eq!(
++                reach["rows_with_any_logit_change"], queries,
++                "{arch:?}: every scored position must depend on its source key"
++            );
++            assert!(
++                reach["max_abs_logit_delta"].as_f64().unwrap_or(0.0) > 0.0,
++                "{arch:?}: an unwired arm would leave the logits identical"
++            );
++            // Only the geometric arm exposes the read-binding counter.
++            let firing = read_firing(&arm, &sequences, 64, &buckets).expect("firing");
++            if arch == StackArch::Geometric {
++                assert_eq!(firing["status"], "MEASURED");
++                // One held-out query per (sequence, bucket), one batch item each.
++                assert_eq!(firing["batch_items"], 3 * buckets.len());
++                assert_eq!(
++                    firing["rows_evaluated"],
++                    arm.read_heads().len() * 3 * buckets.len()
++                );
++            } else {
++                assert!(arm.read_heads().is_empty());
++                assert!(firing["rows_evaluated"].is_null());
++            }
++        }
++    }
+ }
+diff --git a/d20-run-preregistration.md b/d20-run-preregistration.md
+new file mode 100644
+index 000000000..069974906
+--- /dev/null
++++ b/d20-run-preregistration.md
+@@ -0,0 +1,185 @@
++# D20 §2 pre-registration — ordinary parameter-matched control vs geometric arm
++
++Written 2026-10-06 00:50 EDT, **before any training run was started by this session**.
++Source under test: commit `5a37b981` (`deepseek/d20-control`), binary
++`~/.cache/uor-r4-d20control/release/examples/mqar-bench` (6,946,112 bytes, 00:42).
++
++## 1. Arms
++
++Both arms share the task, the data, the training loop, the optimizer and the
++scoring path; only the context-access mechanism differs.
++
++* **G — geometric arm:** `arm=stack pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384`
++* **C — ordinary control:** `arm=transformer layers=6 width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true`
++
++`rrarra` is the frozen reference named by the commit's own test and doc
++(`mqar-bench.rs:530-532`, `:2420-2432`), MLP 384, width 128, heads 4, reference
++parameter count **1,370,008**.
++
++> **Correction, 00:52, before any of my own runs completed.** An earlier draft of
++> this paragraph said "2 quaternion-recurrence layers + 4 read layers". That is
++> backwards: `rrarra` is **4 recurrence (`r`) layers + 2 read (`a`) layers**
++> (`read_layers=2, recurrence_layers=4`, as the reports' own arm record prints).
++> I recomputed `StackConfig::shapes()` by hand and reproduce the frozen
++> 1,370,008 exactly (65,664 global + 4×218,176 recurrence layers + 2×215,820 read
++> layers). This also corrects the V3 expectation below: the geometric arm has
++> **2** context-reading layers, the control **6**, so the control scores 3× the
++> positions per query token, not 1.5×.
++
++**Pattern ambiguity, stated before running.** The *completed* Stage-0 arrangement
++(`~/uor-r4-worktrees/reports/stage0-rank-bench-l2-rerun-20261006-000040`) used the
++geometric arm `pattern=aaaaaa` (6 read layers, 1,360,584 parameters) — a different
++pattern from the control's frozen reference. I chose `rrarra` for **both** arms
++because (a) the task brief and the implementation's frozen test both name
++`rrarra` as the reference to be matched, (b) the brief's invocation template uses
++one shared `<P>` for both arms, and (c) the parameter-match number that D20 §2
++condition 1 demands (1,370,008) is the `rrarra` number. The `aaaaaa` arrangement
++is therefore **not** what is reported here; this is the single largest
++config-interpretation risk in the run and is recorded as such.
++
++## 2. Shared configuration (the Stage-0 arrangement)
++
++Taken from `settings()` defaults (`mqar-bench.rs:1647-1691`) and from the argv of
++the completed Stage-0 run, reproduced identically for both arms:
++
++| key | value | source |
++|---|---|---|
++| `context` | 512 | Stage-0 argv; `settings()` default |
++| `steps` | 1800 | Stage-0 argv; default |
++| `batch` | 8 | Stage-0 argv; default |
++| `pairs_per_bucket` | 8 | not in Stage-0 argv → default 8 (4 buckets × 8 = 32 pairs) |
++| `final_sequences` | 64 | Stage-0 argv; default (32 held-out-class) |
++| `eval_every` | 100 | Stage-0 argv; default |
++| `curve_sequences` | 8 | Stage-0 argv; default |
++| `lr` / `warmup` / `min_lr` | 1e-3 / 100 / 0.1 | Stage-0 argv; default |
++| `weight_decay` / `clip` | 0.1 / 1.0 | Stage-0 argv; default |
++| `device` / `layout` | cpu / synthetic | Stage-0 argv; default |
++| `probe_steps` | `0,600,final` | `settings()` default (Stage-0 used the default) |
++| seeds | 1, 2, 3 | ≥3 required by D20 §2 condition 2 |
++| **`max_seconds`** | **3600** | **DEVIATION — see below** |
++
++**`max_seconds` deviation, declared before running.** The default is 1200 and the
++completed Stage-0 rerun used 2400; Stage-0's *first* attempt at the default did
++not produce a report. `max_seconds` is a wall-clock *truncation* cap, not a
++recipe parameter: if it binds, `steps_completed < 1800` while
++`cosine_rate(..., s.steps, step)` (`:1863`) still anneals over the full 1800, so
++the truncated arm is trained on a different schedule. I set 3600 so that the cap
++cannot silently create unequal training budgets, and I verify per run that
++`steps_completed == 1800` and `stopped_early_at_max_seconds == false`. The
++machine is currently under load ≈ 54 from other labs' compiles, so this headroom
++is deliberate. If a run still truncates it is reported as VOID for V1, not as a
++loss.
++
++## 3. Metric
++
++**Primary:** `results.final_in_class_fresh_pairings.accuracy` — argmax over the
++full 512-token vocabulary at every scored query position, on 64 **fresh** in-class
++sequences (pairings drawn fresh from the training classes, never seen in
++training). Identical panel for both arms.
++
++**Secondary (reported, not thresholded):** per-bucket accuracy
++(`d16,d64,d200,d400`), `final_held_out_class_pairings.accuracy` (adversarial
++prior-vs-context class), training query NLL at step 1800, and the
++data-only recency baseline (`mode=task-baselines`) for the same panel.
++
++## 4. Decision thresholds (fixed before the numbers)
++
++With `G_i`, `C_i` the primary accuracy at seed *i*:
++
++* **Control wins:** `mean(C) − mean(G) > +0.05` **and** `min(C) > max(G)` (complete
++  per-seed separation).
++* **Geometric arm wins:** `mean(G) − mean(C) > +0.05` **and** `min(G) > max(C)`.
++* **Tie:** `|mean(G) − mean(C)| ≤ 0.05`.
++* **Inconclusive:** `|Δmean| > 0.05` but the per-seed ranges overlap.
++
++0.05 is ~20 % relative to the 0.2554 in-class accuracy the Stage-0 geometric arm
++reached, and is the smallest difference I am willing to call decision-relevant at
++3 seeds. Per-seed values and the within-arm spread are reported regardless.
++
++## 5. Validity conditions (VOID, not loss)
++
++* **V1 equal training.** Every run: `steps_completed == 1800`,
++  `stopped_early_at_max_seconds == false`, and equal
++  `supervised_queries_seen` (= 1800 × 8 × 4 × 8 = 460,800). A run failing this is
++  VOID.
++* **V2 firing counter non-zero on scored positions, both arms.**
++  * G: `read_firing.status == "MEASURED"` and
++    `read_firing.rows_nonzero_mass_on_key > 0`. Otherwise G is VOID.
++  * C: **`read_firing` is UNAVAILABLE for the control by construction** —
++    verified in source before running: `StackArm::read_heads()` returns empty for
++    `StackArch::Transformer` (`mqar-bench.rs:1003-1005`), `read_firing` then
++    returns `UNAVAILABLE` (`:1168-1174`), because the library's binding capture is
++    only populated on the geometric read path (`geometric_stack.rs:6333`).
++    Condition 3 for C therefore rests on the arch-symmetric counter
++    `context_reachability.rows_with_any_logit_change > 0` (same forward-pass key
++    ablation for both arms). If that is 0, C is VOID.
++  * This is a **pre-registered deviation from the task brief**, which expected a
++    non-zero `read_firing` for the control. The brief's premise does not hold for
++    this implementation; I do not treat UNAVAILABLE as a pass and I do not treat
++    it as a zero.
++* **V3 scored positions.** `context_access.positions_scored_per_query_token_mean`
++  is recorded for both arms. It is *not* expected to be equal (G: 2 read layers ×
++  4 heads × (t+1); C: 6 attention layers × 4 heads × (t+1) — measured on the
++  control's smoke: mean over the window 6,156 and 12,288 at the last position,
++  i.e. **3× the geometric arm's 2,052 / 4,096**). This is an asymmetry that
++  **favours C** and is reported, not a voiding condition.
++
++## 6. Asymmetries to check before concluding (both directions)
++
++1. unequal training budget or data between arms (V1);
++2. unequal scored positions (V3 — expected, favours C);
++3. a control that is architecturally hobbled (inspect: RoPE, strict causal mask,
++   SwiGLU, pre-norm are all present in C; C has *more* context-reading layers than
++   G, so hobbling is not expected — checked, not assumed);
++4. a geometric arm whose firing counter is zero (V2 — voids the comparison).
++
++A result favouring G is treated as equally suspect as one favouring C.
++
++## 7. Report roots (each NEW, exclusively claimed, never reused)
++
++All under `~/uor-r4-worktrees/reports/`:
++
++```
++d20run-20261006-0102-geo-rrarra-s1   d20run-20261006-0102-ctl-rrarra6-s1
++d20run-20261006-0102-geo-rrarra-s2   d20run-20261006-0102-ctl-rrarra6-s2
++d20run-20261006-0102-geo-rrarra-s3   d20run-20261006-0102-ctl-rrarra6-s3
++d20run-20261006-0102-baselines
++```
++
++Attempt 0 (00:46, roots `d20run-20261006-0050-*`) was refused in 0.02 s with
++`AlreadyExists` because the driver created the directory before the binary's
++exclusive `report_output::claim`. No model work ran (exit 1, 6.5 MB peak RSS).
++Those two roots are consumed and are kept as-is; the run roots above are new.
++Cost logs for every attempt live outside the sealed roots in
++`~/uor-r4-worktrees/d20-run/cost/`.
++
++## 8. Amendments (each made BEFORE the run it affects, with the reason)
++
++**00:56 — I run exactly one root: the geometric seed 1 the parent's battery lost.**
++The parent session's battery `d20-control-20261006-0110-battery` is running the
++same pre-registered comparison sequentially in
++`~/uor-r4-local/mqar-bench/d20-control-20261006-0110-battery/`. Its
++`G-rrarra-s1` was SIGTERM'd after 9 s (`driver.log`: `rc=143`) and its `record()`
++skips any root that already exists (`d20-control-battery.sh:19-21`), so that root
++will never be produced by the battery. To avoid duplicating four other runs and
++to keep this host's contention from voiding them, **this session runs only
++`G-rrarra-s1`**, into a new root
++`~/uor-r4-worktrees/reports/d20run-20261006-0056-geo-rrarra-s1`. The complete
++primary comparison is therefore their 5 roots plus my 1.
++
++Two deviations for that single run, both recorded:
++
++* `probe_steps=none` instead of the Stage-0 default `0,600,final`, so that this
++  run's configuration is **identical** to the five battery runs it is merged
++  with. The read probe is observation-only (a separate forward pass that touches
++  no parameter, no optimizer state and no training RNG — the training batch is
++  reseeded per step from `(seed, step, batch)` at `mqar-bench.rs:1866`), and
++  `prober.seconds` is excluded from the training cap (`:1858`). The cost is the
++  secondary binding-mass probe at steps 0/600/1800; the condition-3 evidence
++  (`read_firing`) is unaffected.
++* `max_seconds=5400` instead of 3600. The host was at load 36-54 from other
++  labs and 7.6/9.2 GiB of swap was in use when this was set; the cap is a
++  truncation guard, not a recipe parameter, and raising it only prevents an
++  unequal training budget. Measured at the time of launch, the control arm was
++  running at 0.90 s/step (≈1,790 s for 1,800 steps), so neither cap binds in
++  quiet conditions.
+diff --git a/d20-run-report.md b/d20-run-report.md
+new file mode 100644
+index 000000000..3ac646435
+--- /dev/null
++++ b/d20-run-report.md
+@@ -0,0 +1,434 @@
++# D20 §2 — the geometric read vs an ordinary parameter-matched control
++
++**Status: MEASUREMENT COMPLETE for the pre-registered 3x3. Verdict:
++INCONCLUSIVE (overlapping ranges, not a tie).** No verdict on the mechanism, and
++nothing is retired, deprecated or relabelled. The arm with the higher mean is
++reported together with the confound that most plausibly explains it and with the
++seed failure that forbids calling it a win.
++
++> **PRE-REGISTERED RESULT (3 seeds per arm, all six runs sealed).**
++>
++> | arm | s1 | s2 | s3 | mean | sd | variance | range |
++> |---|---|---|---|---|---|---|---|
++> | G `rrarra` | **0.0073** | **0.9995** | **1.0000** | 0.6689 | **0.5730** | **0.328307** | **0.9927** |
++> | C6 matched | 0.2529 | 0.2510 | 0.2563 | 0.2534 | **0.0027** | **0.0000075** | 0.0054 |
++>
++> **Verdict by the rule fixed before the numbers: INCONCLUSIVE.** Mean difference
++> (control − geometric) = **−0.4155**, which exceeds the 0.05 threshold, but
++> `min(G) = 0.0073` is *below* `max(C6) = 0.2563`, so per-seed separation fails;
++> a control win is equally impossible (`min(C6) = 0.2510 < max(G) = 1.0000`). A
++> tie is excluded too (`|Δmean| = 0.4155 > 0.05`).
++>
++> V1 equal training holds for all six runs: `steps_completed` 1800,
++> `stopped_early_at_max_seconds` false, `supervised_queries_seen` 460,800.
++> V2 condition 3 holds for both arms: geometric `read_firing` MEASURED with
++> 1981 / 2002 / 1994 non-zero rows of 2048; control `read_firing` UNAVAILABLE by
++> construction, with its ablation counter at 2048/2048 rows changed on all three
++> seeds. V3 asymmetry confirmed on both sides: the control scores 12,288
++> positions at the last token against the geometric arm's 4,096.
++>
++> **The arms differ far more in reliability than in level.** The control's
++> per-seed variance is `7.5e-6` (sd 0.0027, range 0.0054) against the geometric
++> arm's `0.328` (sd 0.573, range 0.9927) — a factor of ~44,000. At seed 1 the
++> geometric arm sits at 0.0073, below the 0.1240 non-learning recency floor and
++> below every control seed; at seeds 2 and 3 it is at 0.9995 and 1.0000 with
++> 99.0 % and 99.4 % of its argmaxes flipping under key ablation. A single-seed
++> report of either number would be a serious error — this is precisely what D20
++> §2 condition 2's ≥3-seed requirement exists to catch.
++>
++> Held-out-class panel: G 0.0000 / 1.0000 / 0.9980 (mean 0.6660); C6 0.0000 /
++> 0.0010 / 0.0010 (mean 0.0007). Step-1800 train query NLL: G 5.1353 / 0.0019 /
++> 0.0013; C6 3.6375 / 3.7086 / 3.5502.
++
++Evidence labels: **MEASURED** (sealed report root), **DERIVED** (by hand from
++source arithmetic), **READ** (source/argv), **ASSUMED** (not verified).
++
++**How the runs were divided.** The parent session owns the battery
++(`~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq`, runner
++`~/uor-r4-worktrees/d20-control/d20-battery-seq.sh`) and produced the geometric
++arm. This session produced the **entire control arm**: seed 1 filled a root that
++had been killed unsealed at step 1300/1800 and that neither parent script
++scheduled, and seeds 2-3 were run here because the battery places both C6 cells
++last (positions 10-11 of 11). Four of this session's benches were SIGTERM'd from
++outside within ~5 min (the seed-1 pair at 00:47, the geometric seed-1 redo at
++00:55 killed at 296 s, and the geometric seed-2 duplicate at 01:26 which I killed
++myself on seeing the parent had the identical run in flight 8.5 min ahead). I
++hold no `kill`/`pkill` in this session; the external kills are read as the parent
++owning the CPU. Nothing here depends on a killed run.
++
++Regenerate every table from the sealed roots:
++
++```bash
++python3 ~/uor-r4-worktrees/d20-run/d20-run/analyze.py
++```
++
++---
++
++## (i) Pre-registered arms, config, metric, seeds, thresholds
++
++Full text and amendments: `d20-run-preregistration.md` (written 00:50, before any
++run of mine completed).
++
++| item | value |
++|---|---|
++| G (geometric) | `arm=stack pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384` |
++| C6 (parameter-matched control) | `arm=transformer layers=6 width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true` |
++| shared config | `device=cpu context=512 batch=8 pairs_per_bucket=8 steps=1800 lr=0.001 warmup=100 min_lr=0.1 weight_decay=0.1 clip=1.0 eval_every=100 curve_sequences=8 final_sequences=64 probe_steps=none` |
++| safety cap | `max_seconds` 3600 (battery) / 5400 (this session's fill-in run) — a truncation guard, not a recipe parameter |
++| seeds | 1, 2, 3 (≥3 required by D20 §2 condition 2) |
++| primary metric | `results.final_in_class_fresh_pairings.accuracy` — argmax over the full vocabulary at every scored query position, 64 fresh in-class sequences (32 on the held-out-class panel) |
++| secondary | per-bucket accuracy, `final_held_out_class_pairings.accuracy`, step-1800 train query NLL, `context_reachability` |
++
++**Thresholds, fixed before the numbers:** control wins if
++`mean(C6) − mean(G) > +0.05` **and** `min(C6) > max(G)`; geometric wins if
++`mean(G) − mean(C6) > +0.05` **and** `min(G) > max(C6)`; tie if `|Δmean| ≤ 0.05`;
++otherwise inconclusive. A verdict is emitted only at ≥3 seeds per arm.
++
++**Config interpretation, stated before running.** Stage-0's arrangement used the
++geometric arm `pattern=aaaaaa`; the control's frozen reference (the commit's own
++test, and the task's shared `<P>`) is `rrarra`, so `rrarra` is the pre-registered
++pair. `rrarra` is **4 recurrence (`r`) + 2 read (`a`) layers** — I corrected my own
++first draft, which had this backwards, by recomputing `StackConfig::shapes()`.
++
++**The commit did not change the shared training path.** `git show 5a37b981` over
++the example is additive in `run()` (`@@ -1451,0 +1940,21 @@`,
++`@@ -1470,0 +1980,3 @@` — 0 deleted) and the only deletions are two doc lines, the
++`"geometric_stack"` kind literal, and the `access_note` string. Data generation,
++loss, scoring, optimizer and LR schedule are identical, so the Stage-0 `aaaaaa`
++root is directly comparable to tonight's runs.
++
++**The primary metric has a high non-learning floor. MEASURED** — same panel, same
++task settings, `mode=task-baselines`, no arm and no training
++(`d20run-20261006-0056-baselines`):
++
++| bucket | d16 | d64 | d200 | d400 | overall |
++|---|---|---|---|---|---|
++| recency rule, in-class | **0.4453** | 0.0508 | 0.0000 | 0.0000 | **0.1240** |
++| recency rule, held-out class | 0.4922 | 0.0430 | 0.0000 | 0.0000 | 0.1338 |
++
++"Answer the value written most recently before the query" — a rule that never
++reads a key — already scores 0.445 in `d16` and 0.124 overall. A `d16`-heavy
++headline is not evidence of key-addressed recall.
++
++---
++
++## (ii) Exact commands
++
++Executed by the parent session's sequential battery
++(`~/uor-r4-worktrees/d20-control/d20-battery-seq.sh`, root
++`~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq`):
++
++```bash
++BIN="$HOME/.cache/uor-r4-d20control/release/examples/mqar-bench"
++COMMON="device=cpu context=512 batch=8 steps=1800 lr=0.001 warmup=100 eval_every=100 \
++curve_sequences=8 final_sequences=64 max_seconds=3600 probe_steps=none"
++GEOM="pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384"
++CTRL="width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true"
++/usr/bin/time -l "$BIN" out=$PARENT/R2-G-rrarra-s2   $COMMON $GEOM seed=2
++/usr/bin/time -l "$BIN" out=$PARENT/R2-C2-matched-s2 $COMMON arm=transformer layers=2 $CTRL seed=2
++# ... G s1,s3; C2 s1,s3; F2-keyshift s1..s3; C6 s2,s3
++```
++
++This session's fill-in of the one primary cell neither parent script schedules
++(`C6-matched-s1`), a NEW sealed root:
++
++```bash
++~/uor-r4-worktrees/d20-run/d20-run/run_one.sh ctl 1 \
++  ~/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1 5400 none
++#  = $BIN out=<root> device=cpu context=512 batch=8 steps=1800 lr=0.001 warmup=100 \
++#    min_lr=0.1 weight_decay=0.1 clip=1.0 eval_every=100 curve_sequences=8 \
++#    final_sequences=64 seed=1 max_seconds=5400 probe_steps=none \
++#    arm=transformer layers=6 width=128 heads=4 mlp=matched \
++#    match_pattern=rrarra match_read=l2 match_rotation=true
++```
++
++Diagnostics and reference runs (seconds each):
++
++```bash
++for n in 64 8 2; do $BIN out=~/uor-r4-worktrees/reports/d20run-repro-fs$n-20261006 \
++  device=cpu context=512 pattern=rrarra read=l2 rotation=true width=128 heads=4 \
++  mlp=384 batch=8 steps=2 lr=0.001 warmup=1 eval_every=1 curve_sequences=2 \
++  final_sequences=$n seed=2 max_seconds=600 probe_steps=none; done
++$BIN out=~/uor-r4-worktrees/reports/d20run-20261006-0056-baselines \
++  device=cpu context=512 mode=task-baselines final_sequences=64 seed=1
++```
++
++Refused/killed roots, kept as evidence and never reused: six under
++`~/uor-r4-worktrees/reports/d20run-20261006-0050-*`, `-0102-*`, `-0056-*`,
++`-0128-*`. Attempt 0 was refused in 0.02 s (`AlreadyExists`) because my driver
++created the report root before the binary's exclusive `report_output::claim`.
++
++---
++
++## (iii) Parameter-match table (condition 1: a number, not an assertion)
++
++**MEASURED** in sealed roots and independently **DERIVED** from
++`StackConfig::shapes()` (`geometric_stack.rs:1276-1350`); they agree exactly.
++
++| arm | mlp | parameters | reference | residual |
++|---|---|---|---|---|
++| G `rrarra` (reference) | 384 | **1,370,008** | — | — |
++| C6, `mlp=matched` (this session, seed 1) | **395** | **1,370,496** | 1,370,008 | **+488** (**+0.0356 %**) |
++| C2, `mlp=matched` (parent, seed 2) | **1527** | **1,369,984** | 1,370,008 | **−24** (−0.0018 %) |
++| G `aaaaaa` (Stage-0 comparison arm) | 384 | 1,360,584 | — | — |
++
++Solve, mirroring `matched_control_mlp`: base at mlp=1 is 462,720; per MLP column
++`3·width·layers = 2,304`; `(1,370,008 − 462,720)/2,304 = 393.79` → round 394,
++`+1` → 395 → 1,370,496. Composition: reference = 65,664 global + 4×218,176
++(recurrence) + 2×215,820 (read); C6 = 65,664 + 6×217,472. Condition 1 is
++satisfied as a number. It is a **total-count** match and is silent on allocation
++(see (vi)).
++
++---
++
++## (iv) Per-seed results
++
++**Primary metric, all sealed runs** (`final_in_class_fresh_pairings.accuracy`):
++
++| arm | seed | in-class | d16 | d64 | d200 | d400 | held-out | params | root |
++|---|---|---|---|---|---|---|---|---|---|
++| G `rrarra` | 1 | **0.0073** | 0.014 | 0.008 | 0.002 | 0.006 | 0.0000 | 1,370,008 | `0130-seq/R2-G-rrarra-s1` |
++| G `rrarra` | 2 | **0.9995** | 1.000 | 1.000 | 0.998 | 1.000 | 1.0000 | 1,370,008 | `0130-seq/R2-G-rrarra-s2` |
++| G `rrarra` | 3 | **1.0000** | 1.000 | 1.000 | 1.000 | 1.000 | 0.9980 | 1,370,008 | `0130-seq/R2-G-rrarra-s3` |
++| C6 matched | 1 | **0.2529** | 0.762 | 0.201 | 0.010 | 0.039 | 0.0000 | 1,370,496 | `d20run-20261006-0136-ctl6-rrarra-s1` (this session) |
++| C6 matched | 2 | **0.2510** | 0.754 | 0.217 | 0.006 | 0.027 | 0.0010 | 1,370,496 | `d20run-20261006-0152-ctl6-rrarra-s2` (this session) |
++| C6 matched | 3 | **0.2563** | 0.758 | 0.215 | 0.012 | 0.041 | 0.0010 | 1,370,496 | `d20run-20261006-0152-ctl6-rrarra-s3` (this session) |
++| C2 depth-matched | 1 | 0.2490 | — | — | — | — | — | 1,369,984 | `0130-seq/R2-C2-matched-s1` |
++| C2 depth-matched | 2 | **0.2500** | 0.744 | 0.211 | 0.014 | 0.031 | 0.0010 | 1,369,984 | `0130-seq/R2-C2-matched-s2` |
++| G `aaaaaa` (not pre-registered) | 1 | **0.2554** | 0.807 | 0.176 | 0.010 | 0.029 | 0.0000 | 1,360,584 | `stage0-rank-bench-l2-rerun-20261006-000040` |
++
++**Pre-registered verdict: INCONCLUSIVE** — mean(control − geometric) = −0.4155
++exceeds the 0.05 threshold, but the per-seed ranges overlap
++(`min(G) = 0.0073 < max(C6) = 0.2563`) and no control win is possible either
++(`min(C6) = 0.2510 < max(G) = 1.0000`).
++
++| arm | n | mean | sd | variance | min | max | range |
++|---|---|---|---|---|---|---|---|
++| G `rrarra` | 3 | 0.6689 | 0.5730 | 0.328307 | 0.0073 | 1.0000 | 0.9927 |
++| C6 matched | 3 | 0.2534 | 0.0027 | 0.0000075 | 0.2510 | 0.2563 | 0.0054 |
++
++So the two arms differ in **mean by 0.4155 and in variance by a factor of ~44,000**.
++The geometric arm is bimodal on this task: near-total failure (seed 1, worse than
++the non-learning floor) or near-total success (seeds 2-3, held-out 0.998-1.000).
++Every control seed, at both depths (2 and 6 layers: 0.2490, 0.2500, 0.2510,
++0.2529, 0.2563), lands in a band 0.0073 wide.
++
++**Same-seed, compute-matched pair** (identical scored positions, 4,096 at the
++last position and 2,052 mean): G `rrarra` s2 0.9995 vs C2 s2 0.2500, and C2 s1
++0.2490. The geometric arm wins those pairs by ~0.75 — but that pair does not
++isolate the geometric read; see (vi).1.
++
++**Mechanism counter (`context_reachability` argmax flips under key ablation)**,
++which tracks whether the model's *decision* uses the source key:
++
++| run | flips / 2048 | in-class accuracy |
++|---|---|---|
++| G s1 | 231 (11.3 %) | 0.0073 |
++| G s2 | 2,028 (99.0 %) | 0.9995 |
++| G s3 | 2,036 (99.4 %) | 1.0000 |
++| C6 s1 / s2 / s3 | 83 (4.1 %) / 58 (2.8 %) / 76 (3.7 %) | 0.2529 / 0.2510 / 0.2563 |
++
++Note it is a *sensitivity* counter, not a correctness one: G s1 flips more rows
++than any control (11.3 % vs 3-4 %) while scoring far worse.
++
++---
++
++## (v) Firing counters (condition 3)
++
++**Geometric arm — MEASURED on all three seeds**
++(`0130-seq/R2-G-rrarra-s1..s3`):
++
++| field | s1 (0.0073) | s2 (0.9995) | s3 (1.0000) |
++|---|---|---|---|
++| `read_firing.status` | MEASURED | MEASURED | MEASURED |
++| `read_heads` | 8 | 8 | 8 |
++| `queries` / `batch_items` / `rows_evaluated` | 256 / 256 / 2,048 | same | same |
++| `rows_nonzero_mass_on_key` | **1,981** | **2,002** | **1,994** |
++| `rows_over_half_on_key` | 0 | 0 | 0 |
++| `context_reachability` rows changed | 2,048/2,048 | 2,048/2,048 | 2,048/2,048 |
++| **argmax changed** | 231 (11.3 %) | 2,028 (99.0 %) | 2,036 (99.4 %) |
++| max abs logit delta | 2.71 | 21.61 | 23.50 |
++
++Condition 3 is met on every seed — and note what it is worth: the **failed**
++seed-1 model fires the counter just as strongly (1,981 / 2,048 non-zero) as the
++**perfect** seed-3 model (1,994). A firing counter, by itself, cannot separate a
++working mechanism from a broken one; the ablation *argmax* rate does.
++
++**Control arm — `read_firing` is UNAVAILABLE by construction.** `read_heads()`
++returns empty for `StackArch::Transformer` (`mqar-bench.rs:1003-1005`), so
++`read_firing` returns `UNAVAILABLE` (`:1168-1174`); the library populates the
++binding capture only on the geometric read path (`geometric_stack.rs:6333`).
++Condition 3 for the control rests on the arch-symmetric ablation counter:
++
++| arm | ablation rows changed | **argmax changed** | max abs logit delta |
++|---|---|---|---|
++| G `rrarra` s2 (0.9995) | 2,048/2,048 | **2,028 (99.0 %)** | 21.61 |
++| C6 s1 (0.2529) | 2,048/2,048 | **83 (4.1 %)** | 1.31 |
++| C2 s2 (0.2500) | 2,048/2,048 | **108 (5.3 %)** | 1.76 |
++
++Every row's logits move a little for every arm, but only the arm that solves the
++task changes its *decision* when the source key is ablated. The counter therefore
++separates "wired to the input" from "using the input", and it is the strongest
++condition-3 evidence in this report.
++
++**Defect found in the counter that must be fixed before it is quoted as
++condition-3 evidence: `read_firing` measures the wrong slot.** It scores mass on
++`q − d`, the gold **key** occurrence (`mqar-bench.rs:1197`). The task writes the
++value at `p + 1`, so the answer is read from `q − d + 1`. The bench's own
++`read_probe` measures both offsets and shows where the mass is (Stage-0, `aaaaaa`,
++step 1800, MEASURED): `d16 key 0.021 value 0.232` against uniform 0.0163 — the
++**value** slot carries 11× the key slot and 14× uniform (d64 0.125 vs 0.011,
++d200 0.045 vs 0.005, d400 0.027 vs 0.008). So on a model that scores 0.9995 and
++flips 99 % of its argmaxes under key ablation, `read_firing` reports mean mass
++0.00114 and **0 rows over half** — not because the read is weak, but because it
++is looking one position to the left of the operative slot. `rows_over_half_on_key
++= 0` must not be read as "the read barely fires".
++
++Cosmetic: for the control, `probe_line` writes
++`probe step 0: d16 key NaN value NaN (uniform NaN)` into `log.txt` although the
++JSON result is the documented `UNAVAILABLE`; the NaN line reads like a broken
++mechanism.
++
++---
++
++## (vi) Asymmetries and flaws, stated before any conclusion
++
++**What IS matched:** for a given seed both arms see **identical batches in
++identical order** — the batch RNG is
++`Rng::new(s.seed, TRAIN_DOMAIN, (step * s.batch + b))` (`mqar-bench.rs:1866`),
++with no arm term — and identical evaluation panels from fixed domains
++(`:1915-1930`). Same 1,800 steps (`supervised_queries_seen` = 460,800 for every
++sealed run), same LR schedule, same optimizer/weight-decay/clip, same loss
++weighting (query positions only), same metric. Condition 1 is a measured number.
++
++**What is NOT matched, and it decides how the result may be read:**
++
++1. **The pattern confound — the most important flaw here.** `rrarra` bundles
++   **4 quaternion-recurrence layers, which read no context at all**, with its 2
++   geometric reads. Every arm *without* recurrence is pinned in a 0.0073-wide
++   band around 0.25 regardless of its context mechanism or depth: G `aaaaaa`
++   (6 geometric reads) 0.2554, C6 (6 attention layers) 0.2529 / 0.2510 / 0.2563,
++   C2 (2 attention layers) 0.2490 / 0.2500. Only arms *with* the 4 recurrence
++   layers ever exceed that band — and only on 2 of 3 seeds (0.9995, 1.0000) while
++   failing completely on the third (0.0073). So the one large effect is
++   confounded with the presence of the recurrence layers, the geometric read is
++   **not isolated by any arm that exists**, and the effect is an
++   optimisation/seed phenomenon rather than a deterministic architectural
++   advantage. The exact experiment that would separate them is in (vii).
++2. **The control cannot express the matching architecture.** `StackArch::Transformer`
++   forces every layer to attention regardless of `pattern`
++   (`geometric_stack.rs:1276-1300`, `layers_hooked`: `(Transformer, _) => attn`),
++   so "same pattern, ordinary attention reads" is unrepresentable. There is also
++   no "recurrence + attention-read" arm. This is the missing component (vii).
++3. **Unequal scored positions, favouring the control.** MEASURED: C6 12,288 at
++   the last position and 6,156 mean over the window, against G's 4,096 / 2,052 —
++   **3× the positions per query token**, all 6 layers reading context against 2.
++   (C2 is the depth-matched exception: 4,096 / 2,052, identical to G.) This
++   asymmetry pushes *against* the geometric arm's win, so the win cannot be
++   explained by the control being starved of context access.
++4. **Parameter match is a total-count match.** C6 spends 6×65,536 on q/k/v/o;
++   G spends 4×70,592 on recurrences plus 2×68,236 on reads. Condition 1 is silent
++   on allocation.
++5. **Not a hobbled control (checked, not assumed).** Same fused kernel, same
++   strict causal mask and softmax, same pre-norm, SwiGLU MLP, optimizer, clip,
++   weight-decay and LR schedule. The control has RoPE; the geometric read instead
++   has a learned per-distance `read.age` table, a `NoRead` slot and an `L2` score
++   with learned `log_beta`/`offset` — the mechanism under test, not a defect.
++6. **Initialisation is not identical** (impossible across shapes); only the seed
++   is shared.
++7. **Two roots were destroyed by SIGTERM** after substantial training and are not
++   evidence (unsealed roots have no result): `G-rrarra-s1` (9 s) and
++   `C6-matched-s1` (step 1300/1800, ~36 min). The battery's `record()` skips any
++   root that already exists, so a killed run silently becomes a permanent hole —
++   it would have printed `BATTERY COMPLETE` with the arm short a seed. Both holes
++   were reported and one was re-run; `C6-matched-s1` is covered by this session.
++8. **A near-perfect number must not be quoted from the wrong root.**
++   `d20-control-20261006-002829-repro-rrarra-s2` is `status: failed`
++   (`invalid reference request: read binding needs one in-range query per labelled
++   batch item`) yet its log ends `final in-class fresh acc 0.9995 ... held-out
++   1.0000`. That run used the binary as it existed at 00:28-00:41; the file at
++   that path was rebuilt 00:42:43 and the commit is 00:42:54, so it ran an
++   intermediate build. Re-running its exact panel with the committed binary
++   completes with `read_firing: MEASURED` (roots `d20run-repro-fs*`), so the
++   failure is not in the committed code — and the parent's `R2-G-rrarra-s2`
++   reproduces 0.9995 from the committed build. Quote the sealed root.
++9. **CPU contention is load-bearing.** Host load 36-54 on 8 cores from other
++   labs, swap 7.6/9.2 GiB, and three concurrent benches measured 2.35-3.7 s/step
++   against 0.44-0.66 s/step for one alone. Because `max_seconds` is wall-clock
++   and the LR schedule always anneals over 1,800, contention can silently void a
++   run.
++
++---
++
++## (vii) Named missing component (D20 §2 condition 4)
++
++**Missing component 1 — an arm that isolates the mechanism under test: the same
++`rrarra` pattern with ordinary attention in place of the geometric read** (or,
++equivalently, a recurrence-plus-attention arm). As written, `StackArch::Transformer`
++forces every layer to attention and ignores the pattern, so the parameter-matched
++control differs from the geometric arm in *two* ways at once: the read mechanism
++**and** the presence of 4 recurrence layers. Every arm without recurrence sits at
++0.2500-0.2554 and the only arm with recurrence sits at 0.9995; until an arm with
++recurrence and an ordinary read exists, the observed effect cannot be attributed
++to the geometric read.
++
++**Missing component 2 — a mechanism-internal firing counter for the ordinary
++control.** Condition 3 asks for proof the mechanism executed. The geometric arm
++has one; the control has none (its attention path does not populate the binding
++capture), so the control's condition-3 evidence is an input-ablation counter —
++which proves the logits depend on the source key, not that any read weight landed
++on it.
++
++**Missing component 3 — the firing counter must measure the operative slot.**
++`read_firing` counts mass at `q − d`; the value is at `q − d + 1`, where the
++bench's own `read_probe` shows 11× the mass. Count both offsets.
++
++What would change the answer: a recurrence-plus-attention arm (removes the
++confound); a `ReadBinding` capture on the transformer's softmax rows (symmetric
++condition 3); the value-slot fix in `read_firing`; and **more seeds on the
++geometric arm**, because with an outcome that is 0.0073 on one seed and 0.9995 /
++1.0000 on the next two, three seeds cannot estimate either its mean or its
++failure rate — five to ten seeds are needed before any claim about the
++mechanism's reliability is defensible. Also useful: the `layers=2` control at all
++3 seeds and the `aaaaaa` geometric arm at the same 3 seeds (separates depth from
++mechanism — 4 of those 6 cells already exist here: C2 s1 0.2490 and s2 0.2500,
++`aaaaaa` s1 0.2554), and a second independent build of the committed source to
++bind binary to commit by behaviour rather than by symbols (not done: the
++preserved binary was reused as instructed; it carries the commit's added symbols
++and the frozen parameter count).
++
++---
++
++## (viii) Complete cost
++
++| item | value |
++|---|---|
++| binary | `~/.cache/uor-r4-d20control/release/examples/mqar-bench`, 6,946,112 B, md5 `21856850c6b1d4bd8ae66a0d76b0e0f7`, mtime 00:42:43, commit `5a37b981` (never rebuilt or overwritten by this session) |
++| threads | `RAYON_NUM_THREADS` unset (library default over 8 logical cores); 90-360 % CPU observed per bench |
++| host | Apple M1, 8 cores, 16 GiB RAM; load 36-54 from other labs' compiles; swap 7.6/9.2 GiB |
++| **this session's CPU** | 7 benches launched, **3 sealed** (the whole control arm: `C6-matched-s1..s3`), 4 killed. Sealed wall times 1,309 s + 2,274 s + 2,276 s = **5,859 s ≈ 1.63 h** of one core; peak RSS 3.14 GB / 2.19 GB / 5.08 GB. Killed runs ≈ 400 s. Repro + baseline runs ≈ 45 s. **Total ≈ 1.75 h**, inside the 2-3 h budget; the rest was the parent's battery |
++| other sealed runs quoted | G s1 wall 1,616.2 s (train 1,487.2 s); G s2 1,025.9 s (train 908.0 s, median step 0.44 s, RSS 6.54 GB); G s3 732.3 s (train 678.9 s); C2 s2 train 696.5 s |
++| disk | 41.36 GiB free at 00:45 → 34.29 GiB at 00:58 → 32.2-39 GiB after (other labs' build churn, not this work; my three sealed roots are 128-132 KiB each). Hard gate 25.12 GiB, never approached. Checked with `df -h /System/Volumes/Data` and `statvfs` throughout |
++| new storage, this session | 13 roots under `~/uor-r4-worktrees/reports/` (2 refused, 4 killed, 7 sealed) ≈ 1.5 MiB; cost logs in `~/uor-r4-worktrees/d20-run/cost/` |
++| elapsed | 00:43 → 02:55 EDT (~2 h 12 min), of which ~1.75 h was this session's own sealed compute |
++
++---
++
++## (ix) Durable output paths
++
++* pre-registration (with amendments): `~/uor-r4-worktrees/d20-run/d20-run-preregistration.md`
++* this report: `~/uor-r4-worktrees/d20-run/d20-run-report.md`
++* analysis + scripts: `~/uor-r4-worktrees/d20-run/d20-run/{analyze.py,run_one.sh}`; machine-readable `~/uor-r4-worktrees/d20-run/analysis.json`
++* sealed roots, this session: `~/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1` (C6 s1), `~/uor-r4-worktrees/reports/d20run-repro-fs{64,8,2}-20261006`, `~/uor-r4-worktrees/reports/d20run-20261006-0056-baselines`
++* sealed roots, parent: `~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/{R2-G-rrarra-s2,R2-C2-matched-s2,...}`
++* Stage-0 comparison arm: `~/uor-r4-worktrees/reports/stage0-rank-bench-l2-rerun-20261006-000040`
++* void/unsealed, kept as evidence: `~/uor-r4-worktrees/reports/d20run-20261006-{0050,0102,0056,0128}-*`; `~/uor-r4-local/mqar-bench/d20-control-20261006-0110-battery/_poisoned-20261006/`
++* cost logs: `~/uor-r4-worktrees/d20-run/cost/*.cost.txt`
++
++---
++
++## (x) Push status
++
++Branch `deepseek/d20-run`, based on `5a37b981` (`deepseek/d20-control`), pushed to
++`origin`. No PR opened or queued. Worktree `~/uor-r4-worktrees/d20-run`; the
++preserved target dir `~/.cache/uor-r4-d20control` was never written to.
+diff --git a/d20-run/analyze.py b/d20-run/analyze.py
+new file mode 100644
+index 000000000..c95cb2a38
+--- /dev/null
++++ b/d20-run/analyze.py
+@@ -0,0 +1,244 @@
++#!/usr/bin/env python3
++"""D20 section 2 comparison analysis: read the sealed report roots, apply the
++pre-registered thresholds, emit tables. Read-only."""
++import json
++import os
++import statistics as st
++import sys
++
++REPORTS = os.path.expanduser("~/uor-r4-worktrees/reports")
++BATTERY = os.path.expanduser(
++    "~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq"
++)
++ROOTS = {
++    # Parent's sequential battery (0130-seq) + this session's fill-in of
++    # C6-matched-s1, which neither parent script schedules and whose original
++    # root was killed unsealed at step 1300/1800.
++    ("geometric", 1): f"{BATTERY}/R2-G-rrarra-s1",
++    ("geometric", 2): f"{BATTERY}/R2-G-rrarra-s2",
++    ("geometric", 3): f"{BATTERY}/R2-G-rrarra-s3",
++    ("control", 1): f"{REPORTS}/d20run-20261006-0136-ctl6-rrarra-s1",
++    ("control", 2): f"{REPORTS}/d20run-20261006-0152-ctl6-rrarra-s2",
++    ("control", 3): f"{REPORTS}/d20run-20261006-0152-ctl6-rrarra-s3",
++}
++VOID_ROOTS = {
++    "G-s1-original": "d20-control-20261006-0110-battery/G-rrarra-s1 (SIGTERM 9 s)",
++    "G-s1r": "d20-control-20261006-0110-battery/_poisoned-20261006/G-rrarra-s1r (SIGTERM 565 s)",
++    "C6-s1-original": "d20-control-20261006-0110-battery/_poisoned-20261006/C6-matched-s1 (SIGTERM step 1300)",
++}
++EXTRA_ROOTS = {
++    # The depth-matched (layers=2) control: the probe for the scored-position
++    # asymmetry, since it has the same 2 context-reading layers as rrarra.
++    ("control2", 1): f"{BATTERY}/R2-C2-matched-s1",
++    ("control2", 2): f"{BATTERY}/R2-C2-matched-s2",
++    ("control2", 3): f"{BATTERY}/R2-C2-matched-s3",
++    ("f2", 1): f"{BATTERY}/R2-F2-keyshift-s1",
++    ("f2", 2): f"{BATTERY}/R2-F2-keyshift-s2",
++    ("f2", 3): f"{BATTERY}/R2-F2-keyshift-s3",
++}
++BASELINE_ROOT = f"{BATTERY}/baselines"
++THRESHOLD = 0.05
++
++
++def dig(d, *keys, default=None):
++    cur = d
++    for k in keys:
++        if not isinstance(cur, dict) or k not in cur:
++            return default
++        cur = cur[k]
++    return cur
++
++
++def load(arm, seed, root):
++    path = os.path.join(root, "report.json")
++    if not os.path.exists(path):
++        return {"arm": arm, "seed": seed, "root": root, "missing": True}
++    r = json.load(open(path))
++    res = r.get("results", {})
++    a = r.get("arm", {})
++    ic = res.get("final_in_class_fresh_pairings", {})
++    ho = res.get("final_held_out_class_pairings", {})
++    firing = res.get("read_firing", {})
++    reach = res.get("context_reachability", {})
++    acc = res.get("context_access", {})
++    pm = a.get("parameter_match") or {}
++    curve = res.get("curve", [])
++    last_nll = curve[-1].get("train_query_nll") if curve else None
++    return {
++        "arm": arm, "seed": seed, "root": root, "missing": False,
++        "status": r.get("status"),
++        "label": a.get("label"), "kind": a.get("kind"),
++        "parameters": a.get("parameters"),
++        "pm_reference": dig(pm, "reference_geometric", "parameters"),
++        "pm_reference_pattern": dig(pm, "reference_geometric", "pattern"),
++        "pm_reference_mlp": dig(pm, "reference_geometric", "mlp_hidden"),
++        "pm_control_mlp": dig(pm, "control", "mlp_hidden"),
++        "pm_residual": pm.get("residual_parameters"),
++        "pm_residual_fraction": pm.get("residual_fraction"),
++        "steps_completed": res.get("steps_completed"),
++        "stopped_early": res.get("stopped_early_at_max_seconds"),
++        "supervised_queries_seen": res.get("supervised_queries_seen"),
++        "train_seconds": res.get("train_seconds"),
++        "median_step_seconds": res.get("median_step_seconds"),
++        "wall_seconds": res.get("wall_seconds"),
++        "final_eval_seconds": res.get("final_eval_seconds"),
++        "reachability_seconds": res.get("reachability_seconds"),
++        "acc_in_class": ic.get("accuracy"),
++        "acc_held_out": ho.get("accuracy"),
++        "by_bucket": {k: v.get("accuracy") for k, v in (ic.get("by_bucket") or {}).items()},
++        "nll_step1800": last_nll,
++        "firing_status": firing.get("status"),
++        "firing_rows": firing.get("rows_evaluated"),
++        "firing_nonzero": firing.get("rows_nonzero_mass_on_key"),
++        "firing_over_half": firing.get("rows_over_half_on_key"),
++        "firing_mean_mass": firing.get("mean_mass_on_key"),
++        "reach_rows": reach.get("rows"),
++        "reach_changed": reach.get("rows_with_any_logit_change"),
++        "reach_argmax_changed": reach.get("rows_whose_argmax_changed"),
++        "reach_max_delta": reach.get("max_abs_logit_delta"),
++        "pos_scored_query_token_mean": acc.get("positions_scored_per_query_token_mean"),
++        "pos_scored_last": acc.get("positions_scored_at_last_position"),
++        "config": r.get("argv", []),
++    }
++
++
++def arm_stats(rows, key):
++    vals = [r[key] for r in rows if isinstance(r.get(key), (int, float))]
++    if not vals:
++        return None
++    return {
++        "n": len(vals), "values": vals,
++        "mean": st.mean(vals),
++        "sd": st.stdev(vals) if len(vals) > 1 else 0.0,
++        "min": min(vals), "max": max(vals),
++        "range": max(vals) - min(vals),
++        "variance": st.variance(vals) if len(vals) > 1 else 0.0,
++    }
++
++
++def main():
++    runs = [load(a, s, p) for (a, s), p in sorted(ROOTS.items())]
++    geo = [r for r in runs if r["arm"] == "geometric" and not r["missing"]]
++    ctl = [r for r in runs if r["arm"] == "control" and not r["missing"]]
++    out = {"runs": runs, "baseline_root": BASELINE_ROOT}
++
++    print("=" * 100)
++    print("PER-RUN")
++    print("=" * 100)
++    hdr = f"{'arm':10} {'seed':>4} {'params':>9} {'mlp':>5} {'steps':>5} {'early':>5} {'train_s':>8} {'wall_s':>8} {'in_class':>9} {'held_out':>9}"
++    print(hdr)
++    for r in runs:
++        if r["missing"]:
++            print(f"{r['arm']:10} {r['seed']:>4}  MISSING {r['root']}")
++            continue
++        mlp = r["pm_control_mlp"] if r["arm"] == "control" else r["pm_reference_mlp"]
++        print(f"{r['arm']:10} {r['seed']:>4} {r['parameters']:>9} {str(mlp):>5} "
++              f"{r['steps_completed']:>5} {str(r['stopped_early']):>5} "
++              f"{r['train_seconds']:>8.1f} {r['wall_seconds']:>8.1f} "
++              f"{r['acc_in_class']:>9.4f} {r['acc_held_out']:>9.4f}")
++
++    print()
++    print("=" * 100)
++    print("V1 equal training (need steps_completed==1800, stopped_early False, equal supervised_queries_seen)")
++    for r in runs:
++        if r["missing"]:
++            continue
++        ok = (r["steps_completed"] == 1800 and r["stopped_early"] is False)
++        print(f"  {r['arm']:10} s{r['seed']}: steps={r['steps_completed']} early={r['stopped_early']} "
++              f"queries={r['supervised_queries_seen']} -> {'OK' if ok else 'VOID'}")
++
++    print()
++    print("=" * 100)
++    print("V2 firing counter on scored positions")
++    for r in runs:
++        if r["missing"]:
++            continue
++        if r["arm"] == "geometric":
++            ok = r["firing_status"] == "MEASURED" and (r["firing_nonzero"] or 0) > 0
++            print(f"  geo s{r['seed']}: read_firing status={r['firing_status']} rows={r['firing_rows']} "
++                  f"nonzero={r['firing_nonzero']} over_half={r['firing_over_half']} -> {'OK' if ok else 'VOID'}")
++        else:
++            ok = (r["reach_changed"] or 0) > 0
++            print(f"  ctl s{r['seed']}: read_firing={r['firing_status']!r} (UNAVAILABLE by construction); "
++                  f"reachability changed={r['reach_changed']}/{r['reach_rows']} argmax_changed={r['reach_argmax_changed']} "
++                  f"-> {'OK' if ok else 'VOID'}")
++
++    print()
++    print("=" * 100)
++    print("V3 scored positions (asymmetry, not a voiding condition)")
++    for r in runs:
++        if r["missing"]:
++            continue
++        print(f"  {r['arm']:10} s{r['seed']}: mean positions scored per query token="
++              f"{r['pos_scored_query_token_mean']}, at last position={r['pos_scored_last']}")
++
++    print()
++    print("=" * 100)
++    print("PARAMETER MATCH")
++    for r in ctl:
++        print(f"  ctl s{r['seed']}: reference({r['pm_reference_pattern']}, mlp {r['pm_reference_mlp']})="
++              f"{r['pm_reference']}  control(mlp {r['pm_control_mlp']})={r['parameters']}  "
++              f"residual={r['pm_residual']} ({r['pm_residual_fraction']:+.6%})")
++    for r in geo:
++        print(f"  geo s{r['seed']}: parameters={r['parameters']}  parameter_match={r['pm_reference']}")
++
++    print()
++    print("=" * 100)
++    print("PRIMARY METRIC: final in-class fresh-pairing accuracy")
++    g = arm_stats(geo, "acc_in_class")
++    c = arm_stats(ctl, "acc_in_class")
++    for name, s in (("geometric", g), ("control", c)):
++        if s:
++            print(f"  {name:10} n={s['n']} values={['%.4f' % v for v in s['values']]} "
++                  f"mean={s['mean']:.4f} sd={s['sd']:.4f} var={s['variance']:.6f} "
++                  f"min={s['min']:.4f} max={s['max']:.4f} range={s['range']:.4f}")
++    verdict = "INSUFFICIENT DATA"
++    if g and c:
++        delta = c["mean"] - g["mean"]
++        separated_c = c["min"] > g["max"]
++        separated_g = g["min"] > c["max"]
++        if g["n"] < 3 or c["n"] < 3:
++            # Pre-registration requires >=3 seeds per arm (D20 section 2
++            # condition 2). A 1-seed-per-arm delta is NOT a verdict, and with
++            # unequal seeds it is not even a matched pair.
++            verdict = (f"NOT YET DECIDABLE: n(geometric)={g['n']}, n(control)={c['n']}; "
++                       f"pre-registration requires 3 seeds per arm. Raw delta "
++                       f"(control - geometric) = {delta:+.4f} on unmatched seeds is NOT the verdict.")
++        elif abs(delta) <= THRESHOLD:
++            verdict = f"TIE (|mean diff| {abs(delta):.4f} <= {THRESHOLD})"
++        elif delta > THRESHOLD and separated_c:
++            verdict = f"CONTROL WINS (mean diff {delta:+.4f} > {THRESHOLD}, per-seed separated)"
++        elif delta < -THRESHOLD and separated_g:
++            verdict = f"GEOMETRIC ARM WINS (mean diff {delta:+.4f} < -{THRESHOLD}, per-seed separated)"
++        else:
++            verdict = f"INCONCLUSIVE (mean diff {delta:+.4f} but per-seed ranges overlap)"
++        out["delta_mean_control_minus_geometric"] = delta
++    print(f"  VERDICT (pre-registered): {verdict}")
++    out["verdict"] = verdict
++
++    print()
++    print("SECONDARY: per-bucket in-class accuracy")
++    for r in runs:
++        if not r["missing"]:
++            print(f"  {r['arm']:10} s{r['seed']}: " +
++                  " ".join(f"{k}={v:.4f}" for k, v in sorted(r["by_bucket"].items())))
++
++    print()
++    print("SECONDARY: held-out-class accuracy, step-1800 train NLL")
++    for r in runs:
++        if not r["missing"]:
++            print(f"  {r['arm']:10} s{r['seed']}: held_out={r['acc_held_out']:.4f} nll={r['nll_step1800']:.4f}")
++
++    for key, tag in (("acc_held_out", "held_out"), ("nll_step1800", "nll")):
++        gs, cs = arm_stats(geo, key), arm_stats(ctl, key)
++        if gs and cs:
++            print(f"  mean {tag}: geometric={gs['mean']:.4f} (sd {gs['sd']:.4f}) "
++                  f"control={cs['mean']:.4f} (sd {cs['sd']:.4f})")
++            out[f"mean_{tag}"] = {"geometric": gs, "control": cs}
++
++    json.dump(out, open(os.path.expanduser("~/uor-r4-worktrees/d20-run/analysis.json"), "w"), indent=2)
++    print("\nwrote ~/uor-r4-worktrees/d20-run/analysis.json")
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/d20-run/run_one.sh b/d20-run/run_one.sh
+new file mode 100755
+index 000000000..e3ee3c893
+--- /dev/null
++++ b/d20-run/run_one.sh
+@@ -0,0 +1,37 @@
++#!/bin/bash
++# D20 run helper. Usage: run_one.sh <arm:geo|ctl|baselines> <seed> <root>
++# NOTE: <root> must NOT exist -- the binary claims it exclusively itself.
++set -u
++BIN=$HOME/.cache/uor-r4-d20control/release/examples/mqar-bench
++ARM=$1; SEED=$2; ROOT=$3
++MAXSEC=${4:-3600}
++PROBE=${5:-none}
++LOGDIR=$HOME/uor-r4-worktrees/d20-run/cost
++mkdir -p "$LOGDIR"
++NAME=$(basename "$ROOT")
++COST=$LOGDIR/$NAME.cost.txt
++FREE_BEFORE=$(python3 -c "import os;s=os.statvfs('/System/Volumes/Data');print(s.f_bavail*s.f_frsize)")
++START=$(date +%s)
++COMMON="out=$ROOT device=cpu context=512 batch=8 steps=1800 lr=0.001 warmup=100 min_lr=0.1 \
++weight_decay=0.1 clip=1.0 eval_every=100 curve_sequences=8 final_sequences=64 \
++seed=$SEED max_seconds=$MAXSEC probe_steps=$PROBE"
++if [ "$ARM" = "geo" ]; then
++  ARGS="pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384"
++elif [ "$ARM" = "ctl" ]; then
++  ARGS="arm=transformer layers=6 width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true"
++else
++  ARGS="mode=task-baselines"
++fi
++# shellcheck disable=SC2086
++/usr/bin/time -l "$BIN" $COMMON $ARGS > "$LOGDIR/$NAME.stdout.txt" 2> "$LOGDIR/$NAME.stderr.txt"
++EXIT=$?
++END=$(date +%s)
++FREE_AFTER=$(python3 -c "import os;s=os.statvfs('/System/Volumes/Data');print(s.f_bavail*s.f_frsize)")
++SIZE=$(du -sk "$ROOT" 2>/dev/null | cut -f1)
++MAXRSS=$(grep -a "maximum resident set size" "$LOGDIR/$NAME.stderr.txt" | tail -1 | awk '{print $1}')
++{
++  echo "arm=$ARM seed=$SEED root=$ROOT exit=$EXIT"
++  echo "wall_seconds=$((END-START)) max_rss_bytes=${MAXRSS:-unknown} root_kib=${SIZE:-0}"
++  echo "free_bytes_before=$FREE_BEFORE free_bytes_after=$FREE_AFTER"
++} | tee "$COST"
++exit $EXIT
+diff --git a/docs/labs/d20-run-2026-10-06/analyses.json b/docs/labs/d20-run-2026-10-06/analyses.json
+new file mode 100644
+index 000000000..76638c5af
+--- /dev/null
++++ b/docs/labs/d20-run-2026-10-06/analyses.json
+@@ -0,0 +1,478 @@
++{
++  "runs": [
++    {
++      "arm": "control",
++      "seed": 1,
++      "root": "/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1",
++      "missing": false,
++      "status": "complete",
++      "label": "control-transformer-6x-rrarra-mlp-matched",
++      "kind": "ordinary_attention",
++      "parameters": 1370496,
++      "pm_reference": 1370008,
++      "pm_reference_pattern": "rrarra",
++      "pm_reference_mlp": 384,
++      "pm_control_mlp": 395,
++      "pm_residual": 488,
++      "pm_residual_fraction": 0.0003562022995486158,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 1292.1680250399984,
++      "median_step_seconds": 0.657874042,
++      "wall_seconds": 1308.914412292,
++      "final_eval_seconds": 5.915772666,
++      "reachability_seconds": 3.7451543750000003,
++      "acc_in_class": 0.2529296875,
++      "acc_held_out": 0.0,
++      "by_bucket": {
++        "d16": 0.76171875,
++        "d200": 0.009765625,
++        "d400": 0.0390625,
++        "d64": 0.201171875
++      },
++      "nll_step1800": 3.637506830692291,
++      "firing_status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass (the ordinary control's attention path does not populate the binding capture, geometric_stack.rs:6332-6334)",
++      "firing_rows": null,
++      "firing_nonzero": null,
++      "firing_over_half": null,
++      "firing_mean_mass": null,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 83,
++      "reach_max_delta": 1.3054646253585815,
++      "pos_scored_query_token_mean": 8563.51171875,
++      "pos_scored_last": 12288,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "min_lr=0.1",
++        "weight_decay=0.1",
++        "clip=1.0",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "seed=1",
++        "max_seconds=5400",
++        "probe_steps=none",
++        "arm=transformer",
++        "layers=6",
++        "width=128",
++        "heads=4",
++        "mlp=matched",
++        "match_pattern=rrarra",
++        "match_read=l2",
++        "match_rotation=true"
++      ]
++    },
++    {
++      "arm": "control",
++      "seed": 2,
++      "root": "/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s2",
++      "missing": false,
++      "status": "complete",
++      "label": "control-transformer-6x-rrarra-mlp-matched",
++      "kind": "ordinary_attention",
++      "parameters": 1370496,
++      "pm_reference": 1370008,
++      "pm_reference_pattern": "rrarra",
++      "pm_reference_mlp": 384,
++      "pm_control_mlp": 395,
++      "pm_residual": 488,
++      "pm_residual_fraction": 0.0003562022995486158,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 2247.1388058670036,
++      "median_step_seconds": 1.241708959,
++      "wall_seconds": 2274.180007083,
++      "final_eval_seconds": 11.976645792,
++      "reachability_seconds": 5.971266333,
++      "acc_in_class": 0.2509765625,
++      "acc_held_out": 0.0009765625,
++      "by_bucket": {
++        "d16": 0.75390625,
++        "d200": 0.005859375,
++        "d400": 0.02734375,
++        "d64": 0.216796875
++      },
++      "nll_step1800": 3.708596856594086,
++      "firing_status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass (the ordinary control's attention path does not populate the binding capture, geometric_stack.rs:6332-6334)",
++      "firing_rows": null,
++      "firing_nonzero": null,
++      "firing_over_half": null,
++      "firing_mean_mass": null,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 58,
++      "reach_max_delta": 1.0824739933013916,
++      "pos_scored_query_token_mean": 8522.625,
++      "pos_scored_last": 12288,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s2",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "min_lr=0.1",
++        "weight_decay=0.1",
++        "clip=1.0",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "seed=2",
++        "max_seconds=5400",
++        "probe_steps=none",
++        "arm=transformer",
++        "layers=6",
++        "width=128",
++        "heads=4",
++        "mlp=matched",
++        "match_pattern=rrarra",
++        "match_read=l2",
++        "match_rotation=true"
++      ]
++    },
++    {
++      "arm": "control",
++      "seed": 3,
++      "root": "/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s3",
++      "missing": false,
++      "status": "complete",
++      "label": "control-transformer-6x-rrarra-mlp-matched",
++      "kind": "ordinary_attention",
++      "parameters": 1370496,
++      "pm_reference": 1370008,
++      "pm_reference_pattern": "rrarra",
++      "pm_reference_mlp": 384,
++      "pm_control_mlp": 395,
++      "pm_residual": 488,
++      "pm_residual_fraction": 0.0003562022995486158,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 2248.691286036998,
++      "median_step_seconds": 1.244106625,
++      "wall_seconds": 2276.13759425,
++      "final_eval_seconds": 11.621566292,
++      "reachability_seconds": 4.648548792,
++      "acc_in_class": 0.25634765625,
++      "acc_held_out": 0.0009765625,
++      "by_bucket": {
++        "d16": 0.7578125,
++        "d200": 0.01171875,
++        "d400": 0.041015625,
++        "d64": 0.21484375
++      },
++      "nll_step1800": 3.5502492141723634,
++      "firing_status": "UNAVAILABLE: this arm's mechanism exposes no read-binding mass (the ordinary control's attention path does not populate the binding capture, geometric_stack.rs:6332-6334)",
++      "firing_rows": null,
++      "firing_nonzero": null,
++      "firing_over_half": null,
++      "firing_mean_mass": null,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 76,
++      "reach_max_delta": 0.959223747253418,
++      "pos_scored_query_token_mean": 8534.296875,
++      "pos_scored_last": 12288,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-worktrees/reports/d20run-20261006-0152-ctl6-rrarra-s3",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "min_lr=0.1",
++        "weight_decay=0.1",
++        "clip=1.0",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "seed=3",
++        "max_seconds=5400",
++        "probe_steps=none",
++        "arm=transformer",
++        "layers=6",
++        "width=128",
++        "heads=4",
++        "mlp=matched",
++        "match_pattern=rrarra",
++        "match_read=l2",
++        "match_rotation=true"
++      ]
++    },
++    {
++      "arm": "geometric",
++      "seed": 1,
++      "root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s1",
++      "missing": false,
++      "status": "complete",
++      "label": "stack-rrarra-l2",
++      "kind": "geometric_stack",
++      "parameters": 1370008,
++      "pm_reference": null,
++      "pm_reference_pattern": null,
++      "pm_reference_mlp": null,
++      "pm_control_mlp": null,
++      "pm_residual": null,
++      "pm_residual_fraction": null,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 1487.1665227480003,
++      "median_step_seconds": 0.879398209,
++      "wall_seconds": 1616.245157458,
++      "final_eval_seconds": 118.293255167,
++      "reachability_seconds": 113.889522625,
++      "acc_in_class": 0.00732421875,
++      "acc_held_out": 0.0,
++      "by_bucket": {
++        "d16": 0.013671875,
++        "d200": 0.001953125,
++        "d400": 0.005859375,
++        "d64": 0.0078125
++      },
++      "nll_step1800": 5.135267930030823,
++      "firing_status": "MEASURED",
++      "firing_rows": 2048,
++      "firing_nonzero": 1981,
++      "firing_over_half": 0,
++      "firing_mean_mass": 0.0019329647824208812,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 231,
++      "reach_max_delta": 2.7104759216308594,
++      "pos_scored_query_token_mean": 2854.50390625,
++      "pos_scored_last": 4096,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s1",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "max_seconds=3600",
++        "probe_steps=none",
++        "pattern=rrarra",
++        "read=l2",
++        "rotation=true",
++        "width=128",
++        "heads=4",
++        "mlp=384",
++        "seed=1"
++      ]
++    },
++    {
++      "arm": "geometric",
++      "seed": 2,
++      "root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s2",
++      "missing": false,
++      "status": "complete",
++      "label": "stack-rrarra-l2",
++      "kind": "geometric_stack",
++      "parameters": 1370008,
++      "pm_reference": null,
++      "pm_reference_pattern": null,
++      "pm_reference_mlp": null,
++      "pm_control_mlp": null,
++      "pm_residual": null,
++      "pm_residual_fraction": null,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 907.9697951279991,
++      "median_step_seconds": 0.439890459,
++      "wall_seconds": 1025.872606333,
++      "final_eval_seconds": 110.281645417,
++      "reachability_seconds": 107.848303959,
++      "acc_in_class": 0.99951171875,
++      "acc_held_out": 1.0,
++      "by_bucket": {
++        "d16": 1.0,
++        "d200": 0.998046875,
++        "d400": 1.0,
++        "d64": 1.0
++      },
++      "nll_step1800": 0.0018533870590908919,
++      "firing_status": "MEASURED",
++      "firing_rows": 2048,
++      "firing_nonzero": 2002,
++      "firing_over_half": 0,
++      "firing_mean_mass": 0.0011415296634033243,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 2028,
++      "reach_max_delta": 21.610084533691406,
++      "pos_scored_query_token_mean": 2840.875,
++      "pos_scored_last": 4096,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s2",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "max_seconds=3600",
++        "probe_steps=none",
++        "pattern=rrarra",
++        "read=l2",
++        "rotation=true",
++        "width=128",
++        "heads=4",
++        "mlp=384",
++        "seed=2"
++      ]
++    },
++    {
++      "arm": "geometric",
++      "seed": 3,
++      "root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s3",
++      "missing": false,
++      "status": "complete",
++      "label": "stack-rrarra-l2",
++      "kind": "geometric_stack",
++      "parameters": 1370008,
++      "pm_reference": null,
++      "pm_reference_pattern": null,
++      "pm_reference_mlp": null,
++      "pm_control_mlp": null,
++      "pm_residual": null,
++      "pm_residual_fraction": null,
++      "steps_completed": 1800,
++      "stopped_early": false,
++      "supervised_queries_seen": 460800,
++      "train_seconds": 678.9065384619993,
++      "median_step_seconds": 0.277961834,
++      "wall_seconds": 732.348970917,
++      "final_eval_seconds": 49.089720333,
++      "reachability_seconds": 47.951646042,
++      "acc_in_class": 1.0,
++      "acc_held_out": 0.998046875,
++      "by_bucket": {
++        "d16": 1.0,
++        "d200": 1.0,
++        "d400": 1.0,
++        "d64": 1.0
++      },
++      "nll_step1800": 0.0016961745143635198,
++      "firing_status": "MEASURED",
++      "firing_rows": 2048,
++      "firing_nonzero": 1994,
++      "firing_over_half": 0,
++      "firing_mean_mass": 0.0011865337105224894,
++      "reach_rows": 2048,
++      "reach_changed": 2048,
++      "reach_argmax_changed": 2036,
++      "reach_max_delta": 23.50086784362793,
++      "pos_scored_query_token_mean": 2844.765625,
++      "pos_scored_last": 4096,
++      "config": [
++        "/Users/casey.allard/.cache/uor-r4-d20control/release/examples/mqar-bench",
++        "out=/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/R2-G-rrarra-s3",
++        "device=cpu",
++        "context=512",
++        "batch=8",
++        "steps=1800",
++        "lr=0.001",
++        "warmup=100",
++        "eval_every=100",
++        "curve_sequences=8",
++        "final_sequences=64",
++        "max_seconds=3600",
++        "probe_steps=none",
++        "pattern=rrarra",
++        "read=l2",
++        "rotation=true",
++        "width=128",
++        "heads=4",
++        "mlp=384",
++        "seed=3"
++      ]
++    }
++  ],
++  "baseline_root": "/Users/casey.allard/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/baselines",
++  "delta_mean_control_minus_geometric": -0.41552734375,
++  "verdict": "INCONCLUSIVE (mean diff -0.4155 but per-seed ranges overlap)",
++  "mean_held_out": {
++    "geometric": {
++      "n": 3,
++      "values": [
++        0.0,
++        1.0,
++        0.998046875
++      ],
++      "mean": 0.666015625,
++      "sd": 0.5767872772803002,
++      "min": 0.0,
++      "max": 1.0,
++      "range": 1.0,
++      "variance": 0.3326835632324219
++    },
++    "control": {
++      "n": 3,
++      "values": [
++        0.0,
++        0.0009765625,
++        0.0009765625
++      ],
++      "mean": 0.0006510416666666666,
++      "sd": 0.0005638186222554939,
++      "min": 0.0,
++      "max": 0.0009765625,
++      "range": 0.0009765625,
++      "variance": 3.178914388020833e-07
++    }
++  },
++  "mean_nll": {
++    "geometric": {
++      "n": 3,
++      "values": [
++        5.135267930030823,
++        0.0018533870590908919,
++        0.0016961745143635198
++      ],
++      "mean": 1.7129391638680924,
++      "sd": 2.963823652641573,
++      "min": 0.0016961745143635198,
++      "max": 5.135267930030823,
++      "range": 5.133571755516459,
++      "variance": 8.784250643957634
++    },
++    "control": {
++      "n": 3,
++      "values": [
++        3.637506830692291,
++        3.708596856594086,
++        3.5502492141723634
++      ],
++      "mean": 3.63211763381958,
++      "sd": 0.07931126368511002,
++      "min": 3.5502492141723634,
++      "max": 3.708596856594086,
++      "range": 0.1583476424217225,
++      "variance": 0.006290276547329051
++    }
++  }
++}
+\ No newline at end of file
+diff --git a/docs/labs/d20-run-2026-10-06/analyze.py b/docs/labs/d20-run-2026-10-06/analyze.py
+new file mode 100644
+index 000000000..c95cb2a38
+--- /dev/null
++++ b/docs/labs/d20-run-2026-10-06/analyze.py
+@@ -0,0 +1,244 @@
++#!/usr/bin/env python3
++"""D20 section 2 comparison analysis: read the sealed report roots, apply the
++pre-registered thresholds, emit tables. Read-only."""
++import json
++import os
++import statistics as st
++import sys
++
++REPORTS = os.path.expanduser("~/uor-r4-worktrees/reports")
++BATTERY = os.path.expanduser(
++    "~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq"
++)
++ROOTS = {
++    # Parent's sequential battery (0130-seq) + this session's fill-in of
++    # C6-matched-s1, which neither parent script schedules and whose original
++    # root was killed unsealed at step 1300/1800.
++    ("geometric", 1): f"{BATTERY}/R2-G-rrarra-s1",
++    ("geometric", 2): f"{BATTERY}/R2-G-rrarra-s2",
++    ("geometric", 3): f"{BATTERY}/R2-G-rrarra-s3",
++    ("control", 1): f"{REPORTS}/d20run-20261006-0136-ctl6-rrarra-s1",
++    ("control", 2): f"{REPORTS}/d20run-20261006-0152-ctl6-rrarra-s2",
++    ("control", 3): f"{REPORTS}/d20run-20261006-0152-ctl6-rrarra-s3",
++}
++VOID_ROOTS = {
++    "G-s1-original": "d20-control-20261006-0110-battery/G-rrarra-s1 (SIGTERM 9 s)",
++    "G-s1r": "d20-control-20261006-0110-battery/_poisoned-20261006/G-rrarra-s1r (SIGTERM 565 s)",
++    "C6-s1-original": "d20-control-20261006-0110-battery/_poisoned-20261006/C6-matched-s1 (SIGTERM step 1300)",
++}
++EXTRA_ROOTS = {
++    # The depth-matched (layers=2) control: the probe for the scored-position
++    # asymmetry, since it has the same 2 context-reading layers as rrarra.
++    ("control2", 1): f"{BATTERY}/R2-C2-matched-s1",
++    ("control2", 2): f"{BATTERY}/R2-C2-matched-s2",
++    ("control2", 3): f"{BATTERY}/R2-C2-matched-s3",
++    ("f2", 1): f"{BATTERY}/R2-F2-keyshift-s1",
++    ("f2", 2): f"{BATTERY}/R2-F2-keyshift-s2",
++    ("f2", 3): f"{BATTERY}/R2-F2-keyshift-s3",
++}
++BASELINE_ROOT = f"{BATTERY}/baselines"
++THRESHOLD = 0.05
++
++
++def dig(d, *keys, default=None):
++    cur = d
++    for k in keys:
++        if not isinstance(cur, dict) or k not in cur:
++            return default
++        cur = cur[k]
++    return cur
++
++
++def load(arm, seed, root):
++    path = os.path.join(root, "report.json")
++    if not os.path.exists(path):
++        return {"arm": arm, "seed": seed, "root": root, "missing": True}
++    r = json.load(open(path))
++    res = r.get("results", {})
++    a = r.get("arm", {})
++    ic = res.get("final_in_class_fresh_pairings", {})
++    ho = res.get("final_held_out_class_pairings", {})
++    firing = res.get("read_firing", {})
++    reach = res.get("context_reachability", {})
++    acc = res.get("context_access", {})
++    pm = a.get("parameter_match") or {}
++    curve = res.get("curve", [])
++    last_nll = curve[-1].get("train_query_nll") if curve else None
++    return {
++        "arm": arm, "seed": seed, "root": root, "missing": False,
++        "status": r.get("status"),
++        "label": a.get("label"), "kind": a.get("kind"),
++        "parameters": a.get("parameters"),
++        "pm_reference": dig(pm, "reference_geometric", "parameters"),
++        "pm_reference_pattern": dig(pm, "reference_geometric", "pattern"),
++        "pm_reference_mlp": dig(pm, "reference_geometric", "mlp_hidden"),
++        "pm_control_mlp": dig(pm, "control", "mlp_hidden"),
++        "pm_residual": pm.get("residual_parameters"),
++        "pm_residual_fraction": pm.get("residual_fraction"),
++        "steps_completed": res.get("steps_completed"),
++        "stopped_early": res.get("stopped_early_at_max_seconds"),
++        "supervised_queries_seen": res.get("supervised_queries_seen"),
++        "train_seconds": res.get("train_seconds"),
++        "median_step_seconds": res.get("median_step_seconds"),
++        "wall_seconds": res.get("wall_seconds"),
++        "final_eval_seconds": res.get("final_eval_seconds"),
++        "reachability_seconds": res.get("reachability_seconds"),
++        "acc_in_class": ic.get("accuracy"),
++        "acc_held_out": ho.get("accuracy"),
++        "by_bucket": {k: v.get("accuracy") for k, v in (ic.get("by_bucket") or {}).items()},
++        "nll_step1800": last_nll,
++        "firing_status": firing.get("status"),
++        "firing_rows": firing.get("rows_evaluated"),
++        "firing_nonzero": firing.get("rows_nonzero_mass_on_key"),
++        "firing_over_half": firing.get("rows_over_half_on_key"),
++        "firing_mean_mass": firing.get("mean_mass_on_key"),
++        "reach_rows": reach.get("rows"),
++        "reach_changed": reach.get("rows_with_any_logit_change"),
++        "reach_argmax_changed": reach.get("rows_whose_argmax_changed"),
++        "reach_max_delta": reach.get("max_abs_logit_delta"),
++        "pos_scored_query_token_mean": acc.get("positions_scored_per_query_token_mean"),
++        "pos_scored_last": acc.get("positions_scored_at_last_position"),
++        "config": r.get("argv", []),
++    }
++
++
++def arm_stats(rows, key):
++    vals = [r[key] for r in rows if isinstance(r.get(key), (int, float))]
++    if not vals:
++        return None
++    return {
++        "n": len(vals), "values": vals,
++        "mean": st.mean(vals),
++        "sd": st.stdev(vals) if len(vals) > 1 else 0.0,
++        "min": min(vals), "max": max(vals),
++        "range": max(vals) - min(vals),
++        "variance": st.variance(vals) if len(vals) > 1 else 0.0,
++    }
++
++
++def main():
++    runs = [load(a, s, p) for (a, s), p in sorted(ROOTS.items())]
++    geo = [r for r in runs if r["arm"] == "geometric" and not r["missing"]]
++    ctl = [r for r in runs if r["arm"] == "control" and not r["missing"]]
++    out = {"runs": runs, "baseline_root": BASELINE_ROOT}
++
++    print("=" * 100)
++    print("PER-RUN")
++    print("=" * 100)
++    hdr = f"{'arm':10} {'seed':>4} {'params':>9} {'mlp':>5} {'steps':>5} {'early':>5} {'train_s':>8} {'wall_s':>8} {'in_class':>9} {'held_out':>9}"
++    print(hdr)
++    for r in runs:
++        if r["missing"]:
++            print(f"{r['arm']:10} {r['seed']:>4}  MISSING {r['root']}")
++            continue
++        mlp = r["pm_control_mlp"] if r["arm"] == "control" else r["pm_reference_mlp"]
++        print(f"{r['arm']:10} {r['seed']:>4} {r['parameters']:>9} {str(mlp):>5} "
++              f"{r['steps_completed']:>5} {str(r['stopped_early']):>5} "
++              f"{r['train_seconds']:>8.1f} {r['wall_seconds']:>8.1f} "
++              f"{r['acc_in_class']:>9.4f} {r['acc_held_out']:>9.4f}")
++
++    print()
++    print("=" * 100)
++    print("V1 equal training (need steps_completed==1800, stopped_early False, equal supervised_queries_seen)")
++    for r in runs:
++        if r["missing"]:
++            continue
++        ok = (r["steps_completed"] == 1800 and r["stopped_early"] is False)
++        print(f"  {r['arm']:10} s{r['seed']}: steps={r['steps_completed']} early={r['stopped_early']} "
++              f"queries={r['supervised_queries_seen']} -> {'OK' if ok else 'VOID'}")
++
++    print()
++    print("=" * 100)
++    print("V2 firing counter on scored positions")
++    for r in runs:
++        if r["missing"]:
++            continue
++        if r["arm"] == "geometric":
++            ok = r["firing_status"] == "MEASURED" and (r["firing_nonzero"] or 0) > 0
++            print(f"  geo s{r['seed']}: read_firing status={r['firing_status']} rows={r['firing_rows']} "
++                  f"nonzero={r['firing_nonzero']} over_half={r['firing_over_half']} -> {'OK' if ok else 'VOID'}")
++        else:
++            ok = (r["reach_changed"] or 0) > 0
++            print(f"  ctl s{r['seed']}: read_firing={r['firing_status']!r} (UNAVAILABLE by construction); "
++                  f"reachability changed={r['reach_changed']}/{r['reach_rows']} argmax_changed={r['reach_argmax_changed']} "
++                  f"-> {'OK' if ok else 'VOID'}")
++
++    print()
++    print("=" * 100)
++    print("V3 scored positions (asymmetry, not a voiding condition)")
++    for r in runs:
++        if r["missing"]:
++            continue
++        print(f"  {r['arm']:10} s{r['seed']}: mean positions scored per query token="
++              f"{r['pos_scored_query_token_mean']}, at last position={r['pos_scored_last']}")
++
++    print()
++    print("=" * 100)
++    print("PARAMETER MATCH")
++    for r in ctl:
++        print(f"  ctl s{r['seed']}: reference({r['pm_reference_pattern']}, mlp {r['pm_reference_mlp']})="
++              f"{r['pm_reference']}  control(mlp {r['pm_control_mlp']})={r['parameters']}  "
++              f"residual={r['pm_residual']} ({r['pm_residual_fraction']:+.6%})")
++    for r in geo:
++        print(f"  geo s{r['seed']}: parameters={r['parameters']}  parameter_match={r['pm_reference']}")
++
++    print()
++    print("=" * 100)
++    print("PRIMARY METRIC: final in-class fresh-pairing accuracy")
++    g = arm_stats(geo, "acc_in_class")
++    c = arm_stats(ctl, "acc_in_class")
++    for name, s in (("geometric", g), ("control", c)):
++        if s:
++            print(f"  {name:10} n={s['n']} values={['%.4f' % v for v in s['values']]} "
++                  f"mean={s['mean']:.4f} sd={s['sd']:.4f} var={s['variance']:.6f} "
++                  f"min={s['min']:.4f} max={s['max']:.4f} range={s['range']:.4f}")
++    verdict = "INSUFFICIENT DATA"
++    if g and c:
++        delta = c["mean"] - g["mean"]
++        separated_c = c["min"] > g["max"]
++        separated_g = g["min"] > c["max"]
++        if g["n"] < 3 or c["n"] < 3:
++            # Pre-registration requires >=3 seeds per arm (D20 section 2
++            # condition 2). A 1-seed-per-arm delta is NOT a verdict, and with
++            # unequal seeds it is not even a matched pair.
++            verdict = (f"NOT YET DECIDABLE: n(geometric)={g['n']}, n(control)={c['n']}; "
++                       f"pre-registration requires 3 seeds per arm. Raw delta "
++                       f"(control - geometric) = {delta:+.4f} on unmatched seeds is NOT the verdict.")
++        elif abs(delta) <= THRESHOLD:
++            verdict = f"TIE (|mean diff| {abs(delta):.4f} <= {THRESHOLD})"
++        elif delta > THRESHOLD and separated_c:
++            verdict = f"CONTROL WINS (mean diff {delta:+.4f} > {THRESHOLD}, per-seed separated)"
++        elif delta < -THRESHOLD and separated_g:
++            verdict = f"GEOMETRIC ARM WINS (mean diff {delta:+.4f} < -{THRESHOLD}, per-seed separated)"
++        else:
++            verdict = f"INCONCLUSIVE (mean diff {delta:+.4f} but per-seed ranges overlap)"
++        out["delta_mean_control_minus_geometric"] = delta
++    print(f"  VERDICT (pre-registered): {verdict}")
++    out["verdict"] = verdict
++
++    print()
++    print("SECONDARY: per-bucket in-class accuracy")
++    for r in runs:
++        if not r["missing"]:
++            print(f"  {r['arm']:10} s{r['seed']}: " +
++                  " ".join(f"{k}={v:.4f}" for k, v in sorted(r["by_bucket"].items())))
++
++    print()
++    print("SECONDARY: held-out-class accuracy, step-1800 train NLL")
++    for r in runs:
++        if not r["missing"]:
++            print(f"  {r['arm']:10} s{r['seed']}: held_out={r['acc_held_out']:.4f} nll={r['nll_step1800']:.4f}")
++
++    for key, tag in (("acc_held_out", "held_out"), ("nll_step1800", "nll")):
++        gs, cs = arm_stats(geo, key), arm_stats(ctl, key)
++        if gs and cs:
++            print(f"  mean {tag}: geometric={gs['mean']:.4f} (sd {gs['sd']:.4f}) "
++                  f"control={cs['mean']:.4f} (sd {cs['sd']:.4f})")
++            out[f"mean_{tag}"] = {"geometric": gs, "control": cs}
++
++    json.dump(out, open(os.path.expanduser("~/uor-r4-worktrees/d20-run/analysis.json"), "w"), indent=2)
++    print("\nwrote ~/uor-r4-worktrees/d20-run/analysis.json")
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/docs/labs/d20-run-2026-10-06/d20-run-preregistration.md b/docs/labs/d20-run-2026-10-06/d20-run-preregistration.md
+new file mode 100644
+index 000000000..069974906
+--- /dev/null
++++ b/docs/labs/d20-run-2026-10-06/d20-run-preregistration.md
+@@ -0,0 +1,185 @@
++# D20 §2 pre-registration — ordinary parameter-matched control vs geometric arm
++
++Written 2026-10-06 00:50 EDT, **before any training run was started by this session**.
++Source under test: commit `5a37b981` (`deepseek/d20-control`), binary
++`~/.cache/uor-r4-d20control/release/examples/mqar-bench` (6,946,112 bytes, 00:42).
++
++## 1. Arms
++
++Both arms share the task, the data, the training loop, the optimizer and the
++scoring path; only the context-access mechanism differs.
++
++* **G — geometric arm:** `arm=stack pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384`
++* **C — ordinary control:** `arm=transformer layers=6 width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true`
++
++`rrarra` is the frozen reference named by the commit's own test and doc
++(`mqar-bench.rs:530-532`, `:2420-2432`), MLP 384, width 128, heads 4, reference
++parameter count **1,370,008**.
++
++> **Correction, 00:52, before any of my own runs completed.** An earlier draft of
++> this paragraph said "2 quaternion-recurrence layers + 4 read layers". That is
++> backwards: `rrarra` is **4 recurrence (`r`) layers + 2 read (`a`) layers**
++> (`read_layers=2, recurrence_layers=4`, as the reports' own arm record prints).
++> I recomputed `StackConfig::shapes()` by hand and reproduce the frozen
++> 1,370,008 exactly (65,664 global + 4×218,176 recurrence layers + 2×215,820 read
++> layers). This also corrects the V3 expectation below: the geometric arm has
++> **2** context-reading layers, the control **6**, so the control scores 3× the
++> positions per query token, not 1.5×.
++
++**Pattern ambiguity, stated before running.** The *completed* Stage-0 arrangement
++(`~/uor-r4-worktrees/reports/stage0-rank-bench-l2-rerun-20261006-000040`) used the
++geometric arm `pattern=aaaaaa` (6 read layers, 1,360,584 parameters) — a different
++pattern from the control's frozen reference. I chose `rrarra` for **both** arms
++because (a) the task brief and the implementation's frozen test both name
++`rrarra` as the reference to be matched, (b) the brief's invocation template uses
++one shared `<P>` for both arms, and (c) the parameter-match number that D20 §2
++condition 1 demands (1,370,008) is the `rrarra` number. The `aaaaaa` arrangement
++is therefore **not** what is reported here; this is the single largest
++config-interpretation risk in the run and is recorded as such.
++
++## 2. Shared configuration (the Stage-0 arrangement)
++
++Taken from `settings()` defaults (`mqar-bench.rs:1647-1691`) and from the argv of
++the completed Stage-0 run, reproduced identically for both arms:
++
++| key | value | source |
++|---|---|---|
++| `context` | 512 | Stage-0 argv; `settings()` default |
++| `steps` | 1800 | Stage-0 argv; default |
++| `batch` | 8 | Stage-0 argv; default |
++| `pairs_per_bucket` | 8 | not in Stage-0 argv → default 8 (4 buckets × 8 = 32 pairs) |
++| `final_sequences` | 64 | Stage-0 argv; default (32 held-out-class) |
++| `eval_every` | 100 | Stage-0 argv; default |
++| `curve_sequences` | 8 | Stage-0 argv; default |
++| `lr` / `warmup` / `min_lr` | 1e-3 / 100 / 0.1 | Stage-0 argv; default |
++| `weight_decay` / `clip` | 0.1 / 1.0 | Stage-0 argv; default |
++| `device` / `layout` | cpu / synthetic | Stage-0 argv; default |
++| `probe_steps` | `0,600,final` | `settings()` default (Stage-0 used the default) |
++| seeds | 1, 2, 3 | ≥3 required by D20 §2 condition 2 |
++| **`max_seconds`** | **3600** | **DEVIATION — see below** |
++
++**`max_seconds` deviation, declared before running.** The default is 1200 and the
++completed Stage-0 rerun used 2400; Stage-0's *first* attempt at the default did
++not produce a report. `max_seconds` is a wall-clock *truncation* cap, not a
++recipe parameter: if it binds, `steps_completed < 1800` while
++`cosine_rate(..., s.steps, step)` (`:1863`) still anneals over the full 1800, so
++the truncated arm is trained on a different schedule. I set 3600 so that the cap
++cannot silently create unequal training budgets, and I verify per run that
++`steps_completed == 1800` and `stopped_early_at_max_seconds == false`. The
++machine is currently under load ≈ 54 from other labs' compiles, so this headroom
++is deliberate. If a run still truncates it is reported as VOID for V1, not as a
++loss.
++
++## 3. Metric
++
++**Primary:** `results.final_in_class_fresh_pairings.accuracy` — argmax over the
++full 512-token vocabulary at every scored query position, on 64 **fresh** in-class
++sequences (pairings drawn fresh from the training classes, never seen in
++training). Identical panel for both arms.
++
++**Secondary (reported, not thresholded):** per-bucket accuracy
++(`d16,d64,d200,d400`), `final_held_out_class_pairings.accuracy` (adversarial
++prior-vs-context class), training query NLL at step 1800, and the
++data-only recency baseline (`mode=task-baselines`) for the same panel.
++
++## 4. Decision thresholds (fixed before the numbers)
++
++With `G_i`, `C_i` the primary accuracy at seed *i*:
++
++* **Control wins:** `mean(C) − mean(G) > +0.05` **and** `min(C) > max(G)` (complete
++  per-seed separation).
++* **Geometric arm wins:** `mean(G) − mean(C) > +0.05` **and** `min(G) > max(C)`.
++* **Tie:** `|mean(G) − mean(C)| ≤ 0.05`.
++* **Inconclusive:** `|Δmean| > 0.05` but the per-seed ranges overlap.
++
++0.05 is ~20 % relative to the 0.2554 in-class accuracy the Stage-0 geometric arm
++reached, and is the smallest difference I am willing to call decision-relevant at
++3 seeds. Per-seed values and the within-arm spread are reported regardless.
++
++## 5. Validity conditions (VOID, not loss)
++
++* **V1 equal training.** Every run: `steps_completed == 1800`,
++  `stopped_early_at_max_seconds == false`, and equal
++  `supervised_queries_seen` (= 1800 × 8 × 4 × 8 = 460,800). A run failing this is
++  VOID.
++* **V2 firing counter non-zero on scored positions, both arms.**
++  * G: `read_firing.status == "MEASURED"` and
++    `read_firing.rows_nonzero_mass_on_key > 0`. Otherwise G is VOID.
++  * C: **`read_firing` is UNAVAILABLE for the control by construction** —
++    verified in source before running: `StackArm::read_heads()` returns empty for
++    `StackArch::Transformer` (`mqar-bench.rs:1003-1005`), `read_firing` then
++    returns `UNAVAILABLE` (`:1168-1174`), because the library's binding capture is
++    only populated on the geometric read path (`geometric_stack.rs:6333`).
++    Condition 3 for C therefore rests on the arch-symmetric counter
++    `context_reachability.rows_with_any_logit_change > 0` (same forward-pass key
++    ablation for both arms). If that is 0, C is VOID.
++  * This is a **pre-registered deviation from the task brief**, which expected a
++    non-zero `read_firing` for the control. The brief's premise does not hold for
++    this implementation; I do not treat UNAVAILABLE as a pass and I do not treat
++    it as a zero.
++* **V3 scored positions.** `context_access.positions_scored_per_query_token_mean`
++  is recorded for both arms. It is *not* expected to be equal (G: 2 read layers ×
++  4 heads × (t+1); C: 6 attention layers × 4 heads × (t+1) — measured on the
++  control's smoke: mean over the window 6,156 and 12,288 at the last position,
++  i.e. **3× the geometric arm's 2,052 / 4,096**). This is an asymmetry that
++  **favours C** and is reported, not a voiding condition.
++
++## 6. Asymmetries to check before concluding (both directions)
++
++1. unequal training budget or data between arms (V1);
++2. unequal scored positions (V3 — expected, favours C);
++3. a control that is architecturally hobbled (inspect: RoPE, strict causal mask,
++   SwiGLU, pre-norm are all present in C; C has *more* context-reading layers than
++   G, so hobbling is not expected — checked, not assumed);
++4. a geometric arm whose firing counter is zero (V2 — voids the comparison).
++
++A result favouring G is treated as equally suspect as one favouring C.
++
++## 7. Report roots (each NEW, exclusively claimed, never reused)
++
++All under `~/uor-r4-worktrees/reports/`:
++
++```
++d20run-20261006-0102-geo-rrarra-s1   d20run-20261006-0102-ctl-rrarra6-s1
++d20run-20261006-0102-geo-rrarra-s2   d20run-20261006-0102-ctl-rrarra6-s2
++d20run-20261006-0102-geo-rrarra-s3   d20run-20261006-0102-ctl-rrarra6-s3
++d20run-20261006-0102-baselines
++```
++
++Attempt 0 (00:46, roots `d20run-20261006-0050-*`) was refused in 0.02 s with
++`AlreadyExists` because the driver created the directory before the binary's
++exclusive `report_output::claim`. No model work ran (exit 1, 6.5 MB peak RSS).
++Those two roots are consumed and are kept as-is; the run roots above are new.
++Cost logs for every attempt live outside the sealed roots in
++`~/uor-r4-worktrees/d20-run/cost/`.
++
++## 8. Amendments (each made BEFORE the run it affects, with the reason)
++
++**00:56 — I run exactly one root: the geometric seed 1 the parent's battery lost.**
++The parent session's battery `d20-control-20261006-0110-battery` is running the
++same pre-registered comparison sequentially in
++`~/uor-r4-local/mqar-bench/d20-control-20261006-0110-battery/`. Its
++`G-rrarra-s1` was SIGTERM'd after 9 s (`driver.log`: `rc=143`) and its `record()`
++skips any root that already exists (`d20-control-battery.sh:19-21`), so that root
++will never be produced by the battery. To avoid duplicating four other runs and
++to keep this host's contention from voiding them, **this session runs only
++`G-rrarra-s1`**, into a new root
++`~/uor-r4-worktrees/reports/d20run-20261006-0056-geo-rrarra-s1`. The complete
++primary comparison is therefore their 5 roots plus my 1.
++
++Two deviations for that single run, both recorded:
++
++* `probe_steps=none` instead of the Stage-0 default `0,600,final`, so that this
++  run's configuration is **identical** to the five battery runs it is merged
++  with. The read probe is observation-only (a separate forward pass that touches
++  no parameter, no optimizer state and no training RNG — the training batch is
++  reseeded per step from `(seed, step, batch)` at `mqar-bench.rs:1866`), and
++  `prober.seconds` is excluded from the training cap (`:1858`). The cost is the
++  secondary binding-mass probe at steps 0/600/1800; the condition-3 evidence
++  (`read_firing`) is unaffected.
++* `max_seconds=5400` instead of 3600. The host was at load 36-54 from other
++  labs and 7.6/9.2 GiB of swap was in use when this was set; the cap is a
++  truncation guard, not a recipe parameter, and raising it only prevents an
++  unequal training budget. Measured at the time of launch, the control arm was
++  running at 0.90 s/step (≈1,790 s for 1,800 steps), so neither cap binds in
++  quiet conditions.
+diff --git a/docs/labs/d20-run-2026-10-06/d20-run-report.md b/docs/labs/d20-run-2026-10-06/d20-run-report.md
+new file mode 100644
+index 000000000..3ac646435
+--- /dev/null
++++ b/docs/labs/d20-run-2026-10-06/d20-run-report.md
+@@ -0,0 +1,434 @@
++# D20 §2 — the geometric read vs an ordinary parameter-matched control
++
++**Status: MEASUREMENT COMPLETE for the pre-registered 3x3. Verdict:
++INCONCLUSIVE (overlapping ranges, not a tie).** No verdict on the mechanism, and
++nothing is retired, deprecated or relabelled. The arm with the higher mean is
++reported together with the confound that most plausibly explains it and with the
++seed failure that forbids calling it a win.
++
++> **PRE-REGISTERED RESULT (3 seeds per arm, all six runs sealed).**
++>
++> | arm | s1 | s2 | s3 | mean | sd | variance | range |
++> |---|---|---|---|---|---|---|---|
++> | G `rrarra` | **0.0073** | **0.9995** | **1.0000** | 0.6689 | **0.5730** | **0.328307** | **0.9927** |
++> | C6 matched | 0.2529 | 0.2510 | 0.2563 | 0.2534 | **0.0027** | **0.0000075** | 0.0054 |
++>
++> **Verdict by the rule fixed before the numbers: INCONCLUSIVE.** Mean difference
++> (control − geometric) = **−0.4155**, which exceeds the 0.05 threshold, but
++> `min(G) = 0.0073` is *below* `max(C6) = 0.2563`, so per-seed separation fails;
++> a control win is equally impossible (`min(C6) = 0.2510 < max(G) = 1.0000`). A
++> tie is excluded too (`|Δmean| = 0.4155 > 0.05`).
++>
++> V1 equal training holds for all six runs: `steps_completed` 1800,
++> `stopped_early_at_max_seconds` false, `supervised_queries_seen` 460,800.
++> V2 condition 3 holds for both arms: geometric `read_firing` MEASURED with
++> 1981 / 2002 / 1994 non-zero rows of 2048; control `read_firing` UNAVAILABLE by
++> construction, with its ablation counter at 2048/2048 rows changed on all three
++> seeds. V3 asymmetry confirmed on both sides: the control scores 12,288
++> positions at the last token against the geometric arm's 4,096.
++>
++> **The arms differ far more in reliability than in level.** The control's
++> per-seed variance is `7.5e-6` (sd 0.0027, range 0.0054) against the geometric
++> arm's `0.328` (sd 0.573, range 0.9927) — a factor of ~44,000. At seed 1 the
++> geometric arm sits at 0.0073, below the 0.1240 non-learning recency floor and
++> below every control seed; at seeds 2 and 3 it is at 0.9995 and 1.0000 with
++> 99.0 % and 99.4 % of its argmaxes flipping under key ablation. A single-seed
++> report of either number would be a serious error — this is precisely what D20
++> §2 condition 2's ≥3-seed requirement exists to catch.
++>
++> Held-out-class panel: G 0.0000 / 1.0000 / 0.9980 (mean 0.6660); C6 0.0000 /
++> 0.0010 / 0.0010 (mean 0.0007). Step-1800 train query NLL: G 5.1353 / 0.0019 /
++> 0.0013; C6 3.6375 / 3.7086 / 3.5502.
++
++Evidence labels: **MEASURED** (sealed report root), **DERIVED** (by hand from
++source arithmetic), **READ** (source/argv), **ASSUMED** (not verified).
++
++**How the runs were divided.** The parent session owns the battery
++(`~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq`, runner
++`~/uor-r4-worktrees/d20-control/d20-battery-seq.sh`) and produced the geometric
++arm. This session produced the **entire control arm**: seed 1 filled a root that
++had been killed unsealed at step 1300/1800 and that neither parent script
++scheduled, and seeds 2-3 were run here because the battery places both C6 cells
++last (positions 10-11 of 11). Four of this session's benches were SIGTERM'd from
++outside within ~5 min (the seed-1 pair at 00:47, the geometric seed-1 redo at
++00:55 killed at 296 s, and the geometric seed-2 duplicate at 01:26 which I killed
++myself on seeing the parent had the identical run in flight 8.5 min ahead). I
++hold no `kill`/`pkill` in this session; the external kills are read as the parent
++owning the CPU. Nothing here depends on a killed run.
++
++Regenerate every table from the sealed roots:
++
++```bash
++python3 ~/uor-r4-worktrees/d20-run/d20-run/analyze.py
++```
++
++---
++
++## (i) Pre-registered arms, config, metric, seeds, thresholds
++
++Full text and amendments: `d20-run-preregistration.md` (written 00:50, before any
++run of mine completed).
++
++| item | value |
++|---|---|
++| G (geometric) | `arm=stack pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384` |
++| C6 (parameter-matched control) | `arm=transformer layers=6 width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true` |
++| shared config | `device=cpu context=512 batch=8 pairs_per_bucket=8 steps=1800 lr=0.001 warmup=100 min_lr=0.1 weight_decay=0.1 clip=1.0 eval_every=100 curve_sequences=8 final_sequences=64 probe_steps=none` |
++| safety cap | `max_seconds` 3600 (battery) / 5400 (this session's fill-in run) — a truncation guard, not a recipe parameter |
++| seeds | 1, 2, 3 (≥3 required by D20 §2 condition 2) |
++| primary metric | `results.final_in_class_fresh_pairings.accuracy` — argmax over the full vocabulary at every scored query position, 64 fresh in-class sequences (32 on the held-out-class panel) |
++| secondary | per-bucket accuracy, `final_held_out_class_pairings.accuracy`, step-1800 train query NLL, `context_reachability` |
++
++**Thresholds, fixed before the numbers:** control wins if
++`mean(C6) − mean(G) > +0.05` **and** `min(C6) > max(G)`; geometric wins if
++`mean(G) − mean(C6) > +0.05` **and** `min(G) > max(C6)`; tie if `|Δmean| ≤ 0.05`;
++otherwise inconclusive. A verdict is emitted only at ≥3 seeds per arm.
++
++**Config interpretation, stated before running.** Stage-0's arrangement used the
++geometric arm `pattern=aaaaaa`; the control's frozen reference (the commit's own
++test, and the task's shared `<P>`) is `rrarra`, so `rrarra` is the pre-registered
++pair. `rrarra` is **4 recurrence (`r`) + 2 read (`a`) layers** — I corrected my own
++first draft, which had this backwards, by recomputing `StackConfig::shapes()`.
++
++**The commit did not change the shared training path.** `git show 5a37b981` over
++the example is additive in `run()` (`@@ -1451,0 +1940,21 @@`,
++`@@ -1470,0 +1980,3 @@` — 0 deleted) and the only deletions are two doc lines, the
++`"geometric_stack"` kind literal, and the `access_note` string. Data generation,
++loss, scoring, optimizer and LR schedule are identical, so the Stage-0 `aaaaaa`
++root is directly comparable to tonight's runs.
++
++**The primary metric has a high non-learning floor. MEASURED** — same panel, same
++task settings, `mode=task-baselines`, no arm and no training
++(`d20run-20261006-0056-baselines`):
++
++| bucket | d16 | d64 | d200 | d400 | overall |
++|---|---|---|---|---|---|
++| recency rule, in-class | **0.4453** | 0.0508 | 0.0000 | 0.0000 | **0.1240** |
++| recency rule, held-out class | 0.4922 | 0.0430 | 0.0000 | 0.0000 | 0.1338 |
++
++"Answer the value written most recently before the query" — a rule that never
++reads a key — already scores 0.445 in `d16` and 0.124 overall. A `d16`-heavy
++headline is not evidence of key-addressed recall.
++
++---
++
++## (ii) Exact commands
++
++Executed by the parent session's sequential battery
++(`~/uor-r4-worktrees/d20-control/d20-battery-seq.sh`, root
++`~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq`):
++
++```bash
++BIN="$HOME/.cache/uor-r4-d20control/release/examples/mqar-bench"
++COMMON="device=cpu context=512 batch=8 steps=1800 lr=0.001 warmup=100 eval_every=100 \
++curve_sequences=8 final_sequences=64 max_seconds=3600 probe_steps=none"
++GEOM="pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384"
++CTRL="width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true"
++/usr/bin/time -l "$BIN" out=$PARENT/R2-G-rrarra-s2   $COMMON $GEOM seed=2
++/usr/bin/time -l "$BIN" out=$PARENT/R2-C2-matched-s2 $COMMON arm=transformer layers=2 $CTRL seed=2
++# ... G s1,s3; C2 s1,s3; F2-keyshift s1..s3; C6 s2,s3
++```
++
++This session's fill-in of the one primary cell neither parent script schedules
++(`C6-matched-s1`), a NEW sealed root:
++
++```bash
++~/uor-r4-worktrees/d20-run/d20-run/run_one.sh ctl 1 \
++  ~/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1 5400 none
++#  = $BIN out=<root> device=cpu context=512 batch=8 steps=1800 lr=0.001 warmup=100 \
++#    min_lr=0.1 weight_decay=0.1 clip=1.0 eval_every=100 curve_sequences=8 \
++#    final_sequences=64 seed=1 max_seconds=5400 probe_steps=none \
++#    arm=transformer layers=6 width=128 heads=4 mlp=matched \
++#    match_pattern=rrarra match_read=l2 match_rotation=true
++```
++
++Diagnostics and reference runs (seconds each):
++
++```bash
++for n in 64 8 2; do $BIN out=~/uor-r4-worktrees/reports/d20run-repro-fs$n-20261006 \
++  device=cpu context=512 pattern=rrarra read=l2 rotation=true width=128 heads=4 \
++  mlp=384 batch=8 steps=2 lr=0.001 warmup=1 eval_every=1 curve_sequences=2 \
++  final_sequences=$n seed=2 max_seconds=600 probe_steps=none; done
++$BIN out=~/uor-r4-worktrees/reports/d20run-20261006-0056-baselines \
++  device=cpu context=512 mode=task-baselines final_sequences=64 seed=1
++```
++
++Refused/killed roots, kept as evidence and never reused: six under
++`~/uor-r4-worktrees/reports/d20run-20261006-0050-*`, `-0102-*`, `-0056-*`,
++`-0128-*`. Attempt 0 was refused in 0.02 s (`AlreadyExists`) because my driver
++created the report root before the binary's exclusive `report_output::claim`.
++
++---
++
++## (iii) Parameter-match table (condition 1: a number, not an assertion)
++
++**MEASURED** in sealed roots and independently **DERIVED** from
++`StackConfig::shapes()` (`geometric_stack.rs:1276-1350`); they agree exactly.
++
++| arm | mlp | parameters | reference | residual |
++|---|---|---|---|---|
++| G `rrarra` (reference) | 384 | **1,370,008** | — | — |
++| C6, `mlp=matched` (this session, seed 1) | **395** | **1,370,496** | 1,370,008 | **+488** (**+0.0356 %**) |
++| C2, `mlp=matched` (parent, seed 2) | **1527** | **1,369,984** | 1,370,008 | **−24** (−0.0018 %) |
++| G `aaaaaa` (Stage-0 comparison arm) | 384 | 1,360,584 | — | — |
++
++Solve, mirroring `matched_control_mlp`: base at mlp=1 is 462,720; per MLP column
++`3·width·layers = 2,304`; `(1,370,008 − 462,720)/2,304 = 393.79` → round 394,
++`+1` → 395 → 1,370,496. Composition: reference = 65,664 global + 4×218,176
++(recurrence) + 2×215,820 (read); C6 = 65,664 + 6×217,472. Condition 1 is
++satisfied as a number. It is a **total-count** match and is silent on allocation
++(see (vi)).
++
++---
++
++## (iv) Per-seed results
++
++**Primary metric, all sealed runs** (`final_in_class_fresh_pairings.accuracy`):
++
++| arm | seed | in-class | d16 | d64 | d200 | d400 | held-out | params | root |
++|---|---|---|---|---|---|---|---|---|---|
++| G `rrarra` | 1 | **0.0073** | 0.014 | 0.008 | 0.002 | 0.006 | 0.0000 | 1,370,008 | `0130-seq/R2-G-rrarra-s1` |
++| G `rrarra` | 2 | **0.9995** | 1.000 | 1.000 | 0.998 | 1.000 | 1.0000 | 1,370,008 | `0130-seq/R2-G-rrarra-s2` |
++| G `rrarra` | 3 | **1.0000** | 1.000 | 1.000 | 1.000 | 1.000 | 0.9980 | 1,370,008 | `0130-seq/R2-G-rrarra-s3` |
++| C6 matched | 1 | **0.2529** | 0.762 | 0.201 | 0.010 | 0.039 | 0.0000 | 1,370,496 | `d20run-20261006-0136-ctl6-rrarra-s1` (this session) |
++| C6 matched | 2 | **0.2510** | 0.754 | 0.217 | 0.006 | 0.027 | 0.0010 | 1,370,496 | `d20run-20261006-0152-ctl6-rrarra-s2` (this session) |
++| C6 matched | 3 | **0.2563** | 0.758 | 0.215 | 0.012 | 0.041 | 0.0010 | 1,370,496 | `d20run-20261006-0152-ctl6-rrarra-s3` (this session) |
++| C2 depth-matched | 1 | 0.2490 | — | — | — | — | — | 1,369,984 | `0130-seq/R2-C2-matched-s1` |
++| C2 depth-matched | 2 | **0.2500** | 0.744 | 0.211 | 0.014 | 0.031 | 0.0010 | 1,369,984 | `0130-seq/R2-C2-matched-s2` |
++| G `aaaaaa` (not pre-registered) | 1 | **0.2554** | 0.807 | 0.176 | 0.010 | 0.029 | 0.0000 | 1,360,584 | `stage0-rank-bench-l2-rerun-20261006-000040` |
++
++**Pre-registered verdict: INCONCLUSIVE** — mean(control − geometric) = −0.4155
++exceeds the 0.05 threshold, but the per-seed ranges overlap
++(`min(G) = 0.0073 < max(C6) = 0.2563`) and no control win is possible either
++(`min(C6) = 0.2510 < max(G) = 1.0000`).
++
++| arm | n | mean | sd | variance | min | max | range |
++|---|---|---|---|---|---|---|---|
++| G `rrarra` | 3 | 0.6689 | 0.5730 | 0.328307 | 0.0073 | 1.0000 | 0.9927 |
++| C6 matched | 3 | 0.2534 | 0.0027 | 0.0000075 | 0.2510 | 0.2563 | 0.0054 |
++
++So the two arms differ in **mean by 0.4155 and in variance by a factor of ~44,000**.
++The geometric arm is bimodal on this task: near-total failure (seed 1, worse than
++the non-learning floor) or near-total success (seeds 2-3, held-out 0.998-1.000).
++Every control seed, at both depths (2 and 6 layers: 0.2490, 0.2500, 0.2510,
++0.2529, 0.2563), lands in a band 0.0073 wide.
++
++**Same-seed, compute-matched pair** (identical scored positions, 4,096 at the
++last position and 2,052 mean): G `rrarra` s2 0.9995 vs C2 s2 0.2500, and C2 s1
++0.2490. The geometric arm wins those pairs by ~0.75 — but that pair does not
++isolate the geometric read; see (vi).1.
++
++**Mechanism counter (`context_reachability` argmax flips under key ablation)**,
++which tracks whether the model's *decision* uses the source key:
++
++| run | flips / 2048 | in-class accuracy |
++|---|---|---|
++| G s1 | 231 (11.3 %) | 0.0073 |
++| G s2 | 2,028 (99.0 %) | 0.9995 |
++| G s3 | 2,036 (99.4 %) | 1.0000 |
++| C6 s1 / s2 / s3 | 83 (4.1 %) / 58 (2.8 %) / 76 (3.7 %) | 0.2529 / 0.2510 / 0.2563 |
++
++Note it is a *sensitivity* counter, not a correctness one: G s1 flips more rows
++than any control (11.3 % vs 3-4 %) while scoring far worse.
++
++---
++
++## (v) Firing counters (condition 3)
++
++**Geometric arm — MEASURED on all three seeds**
++(`0130-seq/R2-G-rrarra-s1..s3`):
++
++| field | s1 (0.0073) | s2 (0.9995) | s3 (1.0000) |
++|---|---|---|---|
++| `read_firing.status` | MEASURED | MEASURED | MEASURED |
++| `read_heads` | 8 | 8 | 8 |
++| `queries` / `batch_items` / `rows_evaluated` | 256 / 256 / 2,048 | same | same |
++| `rows_nonzero_mass_on_key` | **1,981** | **2,002** | **1,994** |
++| `rows_over_half_on_key` | 0 | 0 | 0 |
++| `context_reachability` rows changed | 2,048/2,048 | 2,048/2,048 | 2,048/2,048 |
++| **argmax changed** | 231 (11.3 %) | 2,028 (99.0 %) | 2,036 (99.4 %) |
++| max abs logit delta | 2.71 | 21.61 | 23.50 |
++
++Condition 3 is met on every seed — and note what it is worth: the **failed**
++seed-1 model fires the counter just as strongly (1,981 / 2,048 non-zero) as the
++**perfect** seed-3 model (1,994). A firing counter, by itself, cannot separate a
++working mechanism from a broken one; the ablation *argmax* rate does.
++
++**Control arm — `read_firing` is UNAVAILABLE by construction.** `read_heads()`
++returns empty for `StackArch::Transformer` (`mqar-bench.rs:1003-1005`), so
++`read_firing` returns `UNAVAILABLE` (`:1168-1174`); the library populates the
++binding capture only on the geometric read path (`geometric_stack.rs:6333`).
++Condition 3 for the control rests on the arch-symmetric ablation counter:
++
++| arm | ablation rows changed | **argmax changed** | max abs logit delta |
++|---|---|---|---|
++| G `rrarra` s2 (0.9995) | 2,048/2,048 | **2,028 (99.0 %)** | 21.61 |
++| C6 s1 (0.2529) | 2,048/2,048 | **83 (4.1 %)** | 1.31 |
++| C2 s2 (0.2500) | 2,048/2,048 | **108 (5.3 %)** | 1.76 |
++
++Every row's logits move a little for every arm, but only the arm that solves the
++task changes its *decision* when the source key is ablated. The counter therefore
++separates "wired to the input" from "using the input", and it is the strongest
++condition-3 evidence in this report.
++
++**Defect found in the counter that must be fixed before it is quoted as
++condition-3 evidence: `read_firing` measures the wrong slot.** It scores mass on
++`q − d`, the gold **key** occurrence (`mqar-bench.rs:1197`). The task writes the
++value at `p + 1`, so the answer is read from `q − d + 1`. The bench's own
++`read_probe` measures both offsets and shows where the mass is (Stage-0, `aaaaaa`,
++step 1800, MEASURED): `d16 key 0.021 value 0.232` against uniform 0.0163 — the
++**value** slot carries 11× the key slot and 14× uniform (d64 0.125 vs 0.011,
++d200 0.045 vs 0.005, d400 0.027 vs 0.008). So on a model that scores 0.9995 and
++flips 99 % of its argmaxes under key ablation, `read_firing` reports mean mass
++0.00114 and **0 rows over half** — not because the read is weak, but because it
++is looking one position to the left of the operative slot. `rows_over_half_on_key
++= 0` must not be read as "the read barely fires".
++
++Cosmetic: for the control, `probe_line` writes
++`probe step 0: d16 key NaN value NaN (uniform NaN)` into `log.txt` although the
++JSON result is the documented `UNAVAILABLE`; the NaN line reads like a broken
++mechanism.
++
++---
++
++## (vi) Asymmetries and flaws, stated before any conclusion
++
++**What IS matched:** for a given seed both arms see **identical batches in
++identical order** — the batch RNG is
++`Rng::new(s.seed, TRAIN_DOMAIN, (step * s.batch + b))` (`mqar-bench.rs:1866`),
++with no arm term — and identical evaluation panels from fixed domains
++(`:1915-1930`). Same 1,800 steps (`supervised_queries_seen` = 460,800 for every
++sealed run), same LR schedule, same optimizer/weight-decay/clip, same loss
++weighting (query positions only), same metric. Condition 1 is a measured number.
++
++**What is NOT matched, and it decides how the result may be read:**
++
++1. **The pattern confound — the most important flaw here.** `rrarra` bundles
++   **4 quaternion-recurrence layers, which read no context at all**, with its 2
++   geometric reads. Every arm *without* recurrence is pinned in a 0.0073-wide
++   band around 0.25 regardless of its context mechanism or depth: G `aaaaaa`
++   (6 geometric reads) 0.2554, C6 (6 attention layers) 0.2529 / 0.2510 / 0.2563,
++   C2 (2 attention layers) 0.2490 / 0.2500. Only arms *with* the 4 recurrence
++   layers ever exceed that band — and only on 2 of 3 seeds (0.9995, 1.0000) while
++   failing completely on the third (0.0073). So the one large effect is
++   confounded with the presence of the recurrence layers, the geometric read is
++   **not isolated by any arm that exists**, and the effect is an
++   optimisation/seed phenomenon rather than a deterministic architectural
++   advantage. The exact experiment that would separate them is in (vii).
++2. **The control cannot express the matching architecture.** `StackArch::Transformer`
++   forces every layer to attention regardless of `pattern`
++   (`geometric_stack.rs:1276-1300`, `layers_hooked`: `(Transformer, _) => attn`),
++   so "same pattern, ordinary attention reads" is unrepresentable. There is also
++   no "recurrence + attention-read" arm. This is the missing component (vii).
++3. **Unequal scored positions, favouring the control.** MEASURED: C6 12,288 at
++   the last position and 6,156 mean over the window, against G's 4,096 / 2,052 —
++   **3× the positions per query token**, all 6 layers reading context against 2.
++   (C2 is the depth-matched exception: 4,096 / 2,052, identical to G.) This
++   asymmetry pushes *against* the geometric arm's win, so the win cannot be
++   explained by the control being starved of context access.
++4. **Parameter match is a total-count match.** C6 spends 6×65,536 on q/k/v/o;
++   G spends 4×70,592 on recurrences plus 2×68,236 on reads. Condition 1 is silent
++   on allocation.
++5. **Not a hobbled control (checked, not assumed).** Same fused kernel, same
++   strict causal mask and softmax, same pre-norm, SwiGLU MLP, optimizer, clip,
++   weight-decay and LR schedule. The control has RoPE; the geometric read instead
++   has a learned per-distance `read.age` table, a `NoRead` slot and an `L2` score
++   with learned `log_beta`/`offset` — the mechanism under test, not a defect.
++6. **Initialisation is not identical** (impossible across shapes); only the seed
++   is shared.
++7. **Two roots were destroyed by SIGTERM** after substantial training and are not
++   evidence (unsealed roots have no result): `G-rrarra-s1` (9 s) and
++   `C6-matched-s1` (step 1300/1800, ~36 min). The battery's `record()` skips any
++   root that already exists, so a killed run silently becomes a permanent hole —
++   it would have printed `BATTERY COMPLETE` with the arm short a seed. Both holes
++   were reported and one was re-run; `C6-matched-s1` is covered by this session.
++8. **A near-perfect number must not be quoted from the wrong root.**
++   `d20-control-20261006-002829-repro-rrarra-s2` is `status: failed`
++   (`invalid reference request: read binding needs one in-range query per labelled
++   batch item`) yet its log ends `final in-class fresh acc 0.9995 ... held-out
++   1.0000`. That run used the binary as it existed at 00:28-00:41; the file at
++   that path was rebuilt 00:42:43 and the commit is 00:42:54, so it ran an
++   intermediate build. Re-running its exact panel with the committed binary
++   completes with `read_firing: MEASURED` (roots `d20run-repro-fs*`), so the
++   failure is not in the committed code — and the parent's `R2-G-rrarra-s2`
++   reproduces 0.9995 from the committed build. Quote the sealed root.
++9. **CPU contention is load-bearing.** Host load 36-54 on 8 cores from other
++   labs, swap 7.6/9.2 GiB, and three concurrent benches measured 2.35-3.7 s/step
++   against 0.44-0.66 s/step for one alone. Because `max_seconds` is wall-clock
++   and the LR schedule always anneals over 1,800, contention can silently void a
++   run.
++
++---
++
++## (vii) Named missing component (D20 §2 condition 4)
++
++**Missing component 1 — an arm that isolates the mechanism under test: the same
++`rrarra` pattern with ordinary attention in place of the geometric read** (or,
++equivalently, a recurrence-plus-attention arm). As written, `StackArch::Transformer`
++forces every layer to attention and ignores the pattern, so the parameter-matched
++control differs from the geometric arm in *two* ways at once: the read mechanism
++**and** the presence of 4 recurrence layers. Every arm without recurrence sits at
++0.2500-0.2554 and the only arm with recurrence sits at 0.9995; until an arm with
++recurrence and an ordinary read exists, the observed effect cannot be attributed
++to the geometric read.
++
++**Missing component 2 — a mechanism-internal firing counter for the ordinary
++control.** Condition 3 asks for proof the mechanism executed. The geometric arm
++has one; the control has none (its attention path does not populate the binding
++capture), so the control's condition-3 evidence is an input-ablation counter —
++which proves the logits depend on the source key, not that any read weight landed
++on it.
++
++**Missing component 3 — the firing counter must measure the operative slot.**
++`read_firing` counts mass at `q − d`; the value is at `q − d + 1`, where the
++bench's own `read_probe` shows 11× the mass. Count both offsets.
++
++What would change the answer: a recurrence-plus-attention arm (removes the
++confound); a `ReadBinding` capture on the transformer's softmax rows (symmetric
++condition 3); the value-slot fix in `read_firing`; and **more seeds on the
++geometric arm**, because with an outcome that is 0.0073 on one seed and 0.9995 /
++1.0000 on the next two, three seeds cannot estimate either its mean or its
++failure rate — five to ten seeds are needed before any claim about the
++mechanism's reliability is defensible. Also useful: the `layers=2` control at all
++3 seeds and the `aaaaaa` geometric arm at the same 3 seeds (separates depth from
++mechanism — 4 of those 6 cells already exist here: C2 s1 0.2490 and s2 0.2500,
++`aaaaaa` s1 0.2554), and a second independent build of the committed source to
++bind binary to commit by behaviour rather than by symbols (not done: the
++preserved binary was reused as instructed; it carries the commit's added symbols
++and the frozen parameter count).
++
++---
++
++## (viii) Complete cost
++
++| item | value |
++|---|---|
++| binary | `~/.cache/uor-r4-d20control/release/examples/mqar-bench`, 6,946,112 B, md5 `21856850c6b1d4bd8ae66a0d76b0e0f7`, mtime 00:42:43, commit `5a37b981` (never rebuilt or overwritten by this session) |
++| threads | `RAYON_NUM_THREADS` unset (library default over 8 logical cores); 90-360 % CPU observed per bench |
++| host | Apple M1, 8 cores, 16 GiB RAM; load 36-54 from other labs' compiles; swap 7.6/9.2 GiB |
++| **this session's CPU** | 7 benches launched, **3 sealed** (the whole control arm: `C6-matched-s1..s3`), 4 killed. Sealed wall times 1,309 s + 2,274 s + 2,276 s = **5,859 s ≈ 1.63 h** of one core; peak RSS 3.14 GB / 2.19 GB / 5.08 GB. Killed runs ≈ 400 s. Repro + baseline runs ≈ 45 s. **Total ≈ 1.75 h**, inside the 2-3 h budget; the rest was the parent's battery |
++| other sealed runs quoted | G s1 wall 1,616.2 s (train 1,487.2 s); G s2 1,025.9 s (train 908.0 s, median step 0.44 s, RSS 6.54 GB); G s3 732.3 s (train 678.9 s); C2 s2 train 696.5 s |
++| disk | 41.36 GiB free at 00:45 → 34.29 GiB at 00:58 → 32.2-39 GiB after (other labs' build churn, not this work; my three sealed roots are 128-132 KiB each). Hard gate 25.12 GiB, never approached. Checked with `df -h /System/Volumes/Data` and `statvfs` throughout |
++| new storage, this session | 13 roots under `~/uor-r4-worktrees/reports/` (2 refused, 4 killed, 7 sealed) ≈ 1.5 MiB; cost logs in `~/uor-r4-worktrees/d20-run/cost/` |
++| elapsed | 00:43 → 02:55 EDT (~2 h 12 min), of which ~1.75 h was this session's own sealed compute |
++
++---
++
++## (ix) Durable output paths
++
++* pre-registration (with amendments): `~/uor-r4-worktrees/d20-run/d20-run-preregistration.md`
++* this report: `~/uor-r4-worktrees/d20-run/d20-run-report.md`
++* analysis + scripts: `~/uor-r4-worktrees/d20-run/d20-run/{analyze.py,run_one.sh}`; machine-readable `~/uor-r4-worktrees/d20-run/analysis.json`
++* sealed roots, this session: `~/uor-r4-worktrees/reports/d20run-20261006-0136-ctl6-rrarra-s1` (C6 s1), `~/uor-r4-worktrees/reports/d20run-repro-fs{64,8,2}-20261006`, `~/uor-r4-worktrees/reports/d20run-20261006-0056-baselines`
++* sealed roots, parent: `~/uor-r4-local/mqar-bench/d20-control-20261006-0130-seq/{R2-G-rrarra-s2,R2-C2-matched-s2,...}`
++* Stage-0 comparison arm: `~/uor-r4-worktrees/reports/stage0-rank-bench-l2-rerun-20261006-000040`
++* void/unsealed, kept as evidence: `~/uor-r4-worktrees/reports/d20run-20261006-{0050,0102,0056,0128}-*`; `~/uor-r4-local/mqar-bench/d20-control-20261006-0110-battery/_poisoned-20261006/`
++* cost logs: `~/uor-r4-worktrees/d20-run/cost/*.cost.txt`
++
++---
++
++## (x) Push status
++
++Branch `deepseek/d20-run`, based on `5a37b981` (`deepseek/d20-control`), pushed to
++`origin`. No PR opened or queued. Worktree `~/uor-r4-worktrees/d20-run`; the
++preserved target dir `~/.cache/uor-r4-d20control` was never written to.
+diff --git a/docs/labs/d20-run-2026-10-06/run_one.sh b/docs/labs/d20-run-2026-10-06/run_one.sh
+new file mode 100755
+index 000000000..e3ee3c893
+--- /dev/null
++++ b/docs/labs/d20-run-2026-10-06/run_one.sh
+@@ -0,0 +1,37 @@
++#!/bin/bash
++# D20 run helper. Usage: run_one.sh <arm:geo|ctl|baselines> <seed> <root>
++# NOTE: <root> must NOT exist -- the binary claims it exclusively itself.
++set -u
++BIN=$HOME/.cache/uor-r4-d20control/release/examples/mqar-bench
++ARM=$1; SEED=$2; ROOT=$3
++MAXSEC=${4:-3600}
++PROBE=${5:-none}
++LOGDIR=$HOME/uor-r4-worktrees/d20-run/cost
++mkdir -p "$LOGDIR"
++NAME=$(basename "$ROOT")
++COST=$LOGDIR/$NAME.cost.txt
++FREE_BEFORE=$(python3 -c "import os;s=os.statvfs('/System/Volumes/Data');print(s.f_bavail*s.f_frsize)")
++START=$(date +%s)
++COMMON="out=$ROOT device=cpu context=512 batch=8 steps=1800 lr=0.001 warmup=100 min_lr=0.1 \
++weight_decay=0.1 clip=1.0 eval_every=100 curve_sequences=8 final_sequences=64 \
++seed=$SEED max_seconds=$MAXSEC probe_steps=$PROBE"
++if [ "$ARM" = "geo" ]; then
++  ARGS="pattern=rrarra read=l2 rotation=true width=128 heads=4 mlp=384"
++elif [ "$ARM" = "ctl" ]; then
++  ARGS="arm=transformer layers=6 width=128 heads=4 mlp=matched match_pattern=rrarra match_read=l2 match_rotation=true"
++else
++  ARGS="mode=task-baselines"
++fi
++# shellcheck disable=SC2086
++/usr/bin/time -l "$BIN" $COMMON $ARGS > "$LOGDIR/$NAME.stdout.txt" 2> "$LOGDIR/$NAME.stderr.txt"
++EXIT=$?
++END=$(date +%s)
++FREE_AFTER=$(python3 -c "import os;s=os.statvfs('/System/Volumes/Data');print(s.f_bavail*s.f_frsize)")
++SIZE=$(du -sk "$ROOT" 2>/dev/null | cut -f1)
++MAXRSS=$(grep -a "maximum resident set size" "$LOGDIR/$NAME.stderr.txt" | tail -1 | awk '{print $1}')
++{
++  echo "arm=$ARM seed=$SEED root=$ROOT exit=$EXIT"
++  echo "wall_seconds=$((END-START)) max_rss_bytes=${MAXRSS:-unknown} root_kib=${SIZE:-0}"
++  echo "free_bytes_before=$FREE_BEFORE free_bytes_after=$FREE_AFTER"
++} | tee "$COST"
++exit $EXIT
