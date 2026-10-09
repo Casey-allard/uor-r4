@@ -62,6 +62,7 @@ enum EndpointKind {
     UnselectedPrefixFragment,
     UnselectedPrefixTrajectory,
     SelectedOriginalTrajectorySupplement,
+    SelectedOriginalCanonicalConditional,
 }
 #[derive(Clone, Copy, Deserialize, serde::Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -159,7 +160,16 @@ fn validate_frames(frames: &[FrameRequest], kind: EndpointKind) -> Result<()> {
             "illegal/duplicate frame request",
         )?;
     }
-    if kind == EndpointKind::UnselectedPrefixTrajectory {
+    if kind == EndpointKind::SelectedOriginalCanonicalConditional {
+        require(
+            frames.len() == 1
+                && frames[0]
+                    .expected_saved_row_sha256
+                    .as_ref()
+                    .is_some_and(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit())),
+            "conditional training witness requires one pinned generic frame",
+        )?;
+    } else if kind == EndpointKind::UnselectedPrefixTrajectory {
         require(
             frames.len() == 1,
             "trajectory first-divergence capture requires exactly one frame",
@@ -486,7 +496,11 @@ fn admit_paths(c: &mut Config) -> Result<()> {
             "qualification path invalid",
         )?;
     }
-    let (cache_cap, report_cap) = if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+    let (cache_cap, report_cap) = if matches!(
+        c.endpoint_kind,
+        EndpointKind::UnselectedPrefixTrajectory
+            | EndpointKind::SelectedOriginalCanonicalConditional
+    ) {
         (64 * 1024 * 1024, 64 * 1024 * 1024)
     } else if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate {
         (256 * 1024 * 1024, 128 * 1024 * 1024)
@@ -614,9 +628,45 @@ fn check_saved(
     )?;
     Ok(())
 }
+fn check_saved_canonical(
+    step: &uor_r4_core::native_geometric::learner::native_bank_generate::NativeBankGenerateStep,
+    saved: &Value,
+    position: usize,
+) -> Result<()> {
+    let n = &saved["canonical"][position]["native"];
+    let u = step
+        .continuation
+        .as_ref()
+        .ok_or_else(|| bad("conditional U missing"))?;
+    require(
+        n["pool"]["summary"] == serde_json::to_value(&step.actions.summary)?
+            && n["generate_raw_scores_sha256"]
+                == hash(&serde_json::to_vec(&step.generate_raw_scores_q24)?)
+            && n["post_state_codes"]
+                == json!(step
+                    .post_state
+                    .iter()
+                    .map(|x| x.index())
+                    .collect::<Vec<_>>())
+            && n["copy_token_ids"] == json!(step.copy_token_ids)
+            && n["continuation"]["state_codes"]
+                == json!(u.state_codes.iter().map(|x| x.index()).collect::<Vec<_>>())
+            && n["continuation"]["delta_scores_q24_sha256"]
+                == hash(&serde_json::to_vec(&u.delta_scores_q24)?)
+            && n["continuation"]["query_tokens"] == u.query_tokens
+            && n["continuation"]["actual_prefix_tokens"] == u.actual_prefix_tokens
+            && n["continuation"]["encoding_coefficient_reads"] == u.encoding_coefficient_reads
+            && n["continuation"]["field_counts"] == serde_json::to_value(&u.counts)?
+            && n["continuation"]["delta_scores"] == u.delta_scores_q24.len()
+            && n["continuation"]["minimum_delta_q24"] == json!(u.delta_scores_q24.iter().min())
+            && n["continuation"]["maximum_delta_q24"] == json!(u.delta_scores_q24.iter().max()),
+        "conditional original native parity differs",
+    )
+}
 fn report_schema(kind: EndpointKind) -> &'static str {
     if kind == EndpointKind::SelectedReadoutIntermediate
         || kind == EndpointKind::SelectedOriginalTrajectorySupplement
+        || kind == EndpointKind::SelectedOriginalCanonicalConditional
         || is_prefix_candidate(kind)
     {
         "uor-r4.native-reached-prefix-attribution/3"
@@ -657,6 +707,7 @@ fn authenticate_endpoint(report: &Value, receipt: &Value, kind: EndpointKind) ->
     )?;
     if kind == EndpointKind::SelectedReadoutIntermediate
         || kind == EndpointKind::SelectedOriginalTrajectorySupplement
+        || kind == EndpointKind::SelectedOriginalCanonicalConditional
     {
         require(
             report["mode"] == "readout_intermediate_candidate"
@@ -723,6 +774,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     }
     if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
         || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
+        || c.endpoint_kind == EndpointKind::SelectedOriginalCanonicalConditional
     {
         require(
             c.expected_report_sha256
@@ -789,7 +841,11 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     } else {
         None
     };
-    if c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement {
+    if matches!(
+        c.endpoint_kind,
+        EndpointKind::SelectedOriginalTrajectorySupplement
+            | EndpointKind::SelectedOriginalCanonicalConditional
+    ) {
         require(
             file_hash(&cp.join("prefix/prefix-q4.bin"))?
                 == "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a"
@@ -945,17 +1001,21 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         )?;
         if qualification.is_some() {
             authenticate_actual_prefix(&saved, &request.expected_actual_prefix_ids, position)?;
-        } else {
+        } else if c.endpoint_kind != EndpointKind::SelectedOriginalCanonicalConditional {
             authenticate_reached_prefix(&saved, &request.expected_actual_prefix_ids, position)?;
         }
         let bank = generator.admit_bank(snapshot(packet)?)?;
         let step = generator.step(&bank, &request.expected_actual_prefix_ids)?;
-        check_saved(
-            &step,
-            &saved,
-            position,
-            is_prefix_candidate(c.endpoint_kind),
-        )?;
+        if c.endpoint_kind == EndpointKind::SelectedOriginalCanonicalConditional {
+            check_saved_canonical(&step, &saved, position)?;
+        } else {
+            check_saved(
+                &step,
+                &saved,
+                position,
+                is_prefix_candidate(c.endpoint_kind),
+            )?;
+        }
         let replay = reducer.reduce_trace(
             &step.generate_raw_scores_q24,
             &step.copy_token_ids,
@@ -1069,6 +1129,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             )?;
             if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
                 || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
+                || c.endpoint_kind == EndpointKind::SelectedOriginalCanonicalConditional
                 || is_prefix_candidate(c.endpoint_kind)
             {
                 u_factors.push(json!([u_relative, u_coefficients, u_total]));
@@ -1080,6 +1141,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         }
         let (generate_only, undo_u_copy) = if qualification.is_some()
             || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
+            || c.endpoint_kind == EndpointKind::SelectedOriginalCanonicalConditional
         {
             (json!("NOT_RUN"), json!("NOT_RUN"))
         } else {
@@ -1108,6 +1170,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
           "saved_actual":saved["generation"][position],"saved_canonical_native":saved["canonical"][position]["native"],"controls":{"generate_only":generate_only,"copy_u_removed":undo_u_copy},"control_scope":"savedvector reducer diagnostics; not servingoptions or generatedcounterfactuals","expected_record_query_role":"NOT_LOADED: separately authenticated reference joined posthoc by reader; never inferred from ID/target/bridge donor"});
         if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
             || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
+            || c.endpoint_kind == EndpointKind::SelectedOriginalCanonicalConditional
             || is_prefix_candidate(c.endpoint_kind)
         {
             frame["schema"] = json!("uor-r4.native-reached-prefix-frame/3");
@@ -1128,6 +1191,16 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             frame["endpoint_admission"]=json!("UNSELECTED_PREFIX_CANDIDATE; diagnostic capture only; failed cheap qualification retained");
             frame["saved_canonical_native"] = json!("NOT_RUN");
             frame["control_scope"]=json!("NOT_RUN: causal question is original versus candidate same actual prefix, not serving ablation");
+        }
+        if c.endpoint_kind == EndpointKind::SelectedOriginalCanonicalConditional {
+            frame["endpoint_admission"] = json!(
+                "selected original parent; generic canonical-conditional training witness only"
+            );
+            frame["control_scope"] =
+                json!("NOT_RUN: missing ordered-phase training witness, not serving ablation");
+            frame["request_role_scope"]=json!("one owner-declared canonical-conditional prefix; model receives no target; canonical prefix authorization after capture; not actual ownfeedback");
+            frame["prefix_authority"]=json!("CANONICAL_CONDITIONAL_TRAINING; configured prefix may be label-derived before execution; label file/target array accessed after capture");
+            frame["saved_actual"] = json!("NOT_APPLICABLE: conditional prefix, not actual rollout");
         }
         if c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement {
             frame["endpoint_admission"] =
@@ -1191,6 +1264,34 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             "posthoclabel ID differs",
         )?;
         let mut annotation = json!({"input_index":request.input_index,"position":request.position,"request":request,"authority":labels["cases"][request.input_index],"saved_canonical_target_ids":saved["canonical_target_ids_labels_only"],"current_target_label_only":if qualification.is_some(){saved["canonical_target_ids_labels_only"][request.position].clone()} else {saved["canonical"][request.position]["target_label_only"].clone()},"attached_after_all_captures":true,"expected_record_query_role":"NOT_LOADED: external authenticated posthoc authority"});
+        if c.endpoint_kind == EndpointKind::SelectedOriginalCanonicalConditional {
+            let canonical: Vec<u32> =
+                serde_json::from_value(saved["canonical_target_ids_labels_only"].clone())?;
+            require(
+                canonical.get(..request.position)
+                    == Some(request.expected_actual_prefix_ids.as_slice()),
+                "postcapture conditional prefix differs from canonical training authority",
+            )?;
+            let captured = read(&c.output.join(format!(
+                "frame-{:04}-position-{:02}.json",
+                request.input_index, request.position
+            )))?;
+            let target = &saved["canonical"][request.position]["target_label_only"];
+            let mass = captured["pool"]["token_masses"]
+                .as_array()
+                .ok_or_else(|| bad("conditional masses absent"))?
+                .iter()
+                .find(|m| m["token_id"] == *target)
+                .ok_or_else(|| bad("conditional target mass absent"))?;
+            require(
+                mass["weight_q31"] == saved["canonical"][request.position]["native_target_mass"]
+                    && captured["pool"]["summary"]["total_weight_q31"]
+                        == saved["canonical"][request.position]["native_denominator"],
+                "postcapture conditional target mass/denominator differs",
+            )?;
+            annotation["canonical_target_mass_parity"] = json!({"target":target,"native_target_mass":mass["weight_q31"],"native_denominator":captured["pool"]["summary"]["total_weight_q31"],"checked_after_all_captures":true});
+            annotation["prefix_authority"] = json!("CANONICAL_CONDITIONAL_TRAINING; owner-declared label-derived prefix, not actual ownfeedback; checked after target-free step");
+        }
         if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
             annotation["actual_first_divergence"] = authorize_first_divergence(&saved, request)?;
         }
@@ -1203,7 +1304,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         written,
     )?;
     Ok(
-        json!({"schema":report_schema(c.endpoint_kind),"status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":"production native bank generator; exact admittedframes at authenticated saved actualprefixes; full Copy+Generate reducer","source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"endpoint_kind":c.endpoint_kind,"qualification_authority":if qualification.is_some(){json!({"root":c.qualification_root,"report_sha256":qualification_pins(c.endpoint_kind).0,"manifest_sha256":qualification_pins(c.endpoint_kind).1,"candidate_selected":false,"controls":"NOT_RUN"})}else{Value::Null},"frame_count":frames.len(),"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role authority joined separately posthoc; no generated counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
+        json!({"schema":report_schema(c.endpoint_kind),"status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":if c.endpoint_kind==EndpointKind::SelectedOriginalCanonicalConditional {"production native bank generator; owner-declared canonical conditional training prefix; full Copy+Generate reducer; not actual ownfeedback"}else{"production native bank generator; exact admittedframes at authenticated saved actualprefixes; full Copy+Generate reducer"},"source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"endpoint_kind":c.endpoint_kind,"qualification_authority":if qualification.is_some(){json!({"root":c.qualification_root,"report_sha256":qualification_pins(c.endpoint_kind).0,"manifest_sha256":qualification_pins(c.endpoint_kind).1,"candidate_selected":false,"controls":"NOT_RUN"})}else{Value::Null},"frame_count":frames.len(),"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role authority joined separately posthoc; no generated counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
     )
 }
 fn earliest_physical_max(scores: &[i64]) -> Result<usize> {
@@ -1310,6 +1411,34 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn canonical_conditional_request_is_generic_and_pinned() -> Result<()> {
+        let mut f = FrameRequest {
+            input_index: 7,
+            position: 2,
+            expected_id: "generic-training-row".into(),
+            expected_saved_row_sha256: Some("a".repeat(64)),
+            expected_actual_prefix_ids: vec![9, 10],
+            role: FrameRole::FactualFailure,
+        };
+        validate_frames(
+            &[f.clone()],
+            EndpointKind::SelectedOriginalCanonicalConditional,
+        )?;
+        f.expected_saved_row_sha256 = None;
+        assert!(validate_frames(
+            &[f.clone()],
+            EndpointKind::SelectedOriginalCanonicalConditional
+        )
+        .is_err());
+        f.expected_saved_row_sha256 = Some("a".repeat(64));
+        assert!(validate_frames(
+            &[f.clone(), f],
+            EndpointKind::SelectedOriginalCanonicalConditional
+        )
+        .is_err());
+        Ok(())
+    }
     #[test]
     fn original_trajectory_supplement_binds_both_missing_correct_prefixes() -> Result<()> {
         let mk = |i, prefix: Vec<u32>, sha: &str| FrameRequest {

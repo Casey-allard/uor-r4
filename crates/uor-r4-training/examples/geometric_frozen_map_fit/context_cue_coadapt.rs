@@ -458,6 +458,89 @@ fn mass(p: &Pool, target: u32) -> Result<(u64, u64)> {
     replay_require(m > 0 && m <= d, "Cue masses invalid")?;
     Ok((m, d))
 }
+#[derive(Clone, serde::Serialize)]
+pub(super) struct ObjectiveSpec {
+    pub(super) tasks: Vec<(usize, usize)>,
+    pub(super) references: usize,
+}
+impl ObjectiveSpec {
+    pub(super) fn is_task(&self, f: &Frame) -> bool {
+        self.tasks.contains(&(f.input, f.position))
+    }
+}
+pub(super) fn objective_for_spec(
+    frames: &[Frame],
+    pools: &[Pool],
+    spec: &ObjectiveSpec,
+) -> Result<Value> {
+    replay_require(
+        frames.len() == pools.len() && spec.tasks.len() == 3 && spec.references == 17,
+        "joint objective shape differs",
+    )?;
+    let mut task = 0.;
+    let mut reference = 0.;
+    let mut violations = Vec::new();
+    let mut phases = Vec::new();
+    let mut rows = Vec::new();
+    let mut refs = 0;
+    for (f, p) in frames.iter().zip(pools) {
+        let (m, d) = mass(p, f.target)?;
+        let ce = -(m as f64 / d as f64).ln() * f.weight;
+        let role = if spec.is_task(f) {
+            task += ce;
+            "task_phase"
+        } else {
+            reference += ce;
+            refs += 1;
+            if p.trace.summary.chosen_token_id != f.target {
+                violations.push(json!({"input_index":f.input,"position":f.position,"id":f.id,"target":f.target,"chosen":p.trace.summary.chosen_token_id}));
+            }
+            "reference"
+        };
+        let row = json!({"input_index":f.input,"position":f.position,"id":f.id,"target":f.target,"weight":f.weight,"role":role,"weighted_ce":ce,"target_mass":m,"total_mass":d,"pool":p.trace.summary,"donor":p.donor,
+            "generate_sha256":sha256_bytes(&p.generate.iter().flat_map(|x|x.to_le_bytes()).collect::<Vec<_>>()),"copy_sha256":sha256_bytes(&p.copy.iter().flat_map(|x|x.to_le_bytes()).collect::<Vec<_>>())});
+        if role == "task_phase" {
+            phases.push(row.clone());
+        }
+        rows.push(row);
+    }
+    replay_require(
+        refs == spec.references
+            && phases.len() == spec.tasks.len()
+            && phases
+                .iter()
+                .map(|r| (r["input_index"].as_u64(), r["position"].as_u64()))
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                == 3,
+        "joint objective role coverage differs",
+    )?;
+    Ok(
+        json!({"combined":task+reference,"task":task,"reference":reference,"correct_reference_frames":refs-violations.len(),"original_reference_violations":violations,"phases":phases,"all_phase_winners":phases.iter().all(|r|r["pool"]["chosen_token_id"]==r["target"]),"terms":rows}),
+    )
+}
+pub(super) fn joint_gate(b: &Value, v: &Value) -> Result<Value> {
+    let strict = |key: &str| -> Result<bool> {
+        let before = b[key]
+            .as_f64()
+            .ok_or_else(|| bad("joint baseline CE absent"))?;
+        let after = v[key]
+            .as_f64()
+            .ok_or_else(|| bad("joint current CE absent"))?;
+        replay_require(
+            before.is_finite() && after.is_finite(),
+            "joint CE nonfinite",
+        )?;
+        Ok(after < before - 1e-10 * (1. + before.abs()))
+    };
+    let combined = strict("combined")?;
+    let task = strict("task")?;
+    let refs = v["correct_reference_frames"] == 17;
+    let phases = v["all_phase_winners"] == true;
+    Ok(
+        json!({"finite_joint_positive":combined&&task&&refs&&phases,"combined_ce_descent":combined,"word_conditional_ce_descent":task,"all3_phase_winners":phases,"all17_reference_winners":refs,"strict_ce_tolerance":"1e-10*(1+abs(original_CE))","scope":"teacher-forced ordered word; actual wholeanswer/EOS separate"}),
+    )
+}
 pub(super) fn objective(frames: &[Frame], pools: &[Pool]) -> Result<Value> {
     replay_require(frames.len() == pools.len(), "Cue objective length differs")?;
     let mut task = 0.;
@@ -847,6 +930,20 @@ pub(super) fn gradient(
     pools: &[Pool],
     cache: &mut DonorCache,
 ) -> Result<Vec<f32>> {
+    gradient_for_spec(a, start, frames, p, cw, g, parent, pools, cache, None)
+}
+pub(super) fn gradient_for_spec(
+    a: &Args,
+    start: Instant,
+    frames: &[Frame],
+    p: &ContinuationParent,
+    cw: &ActiveCredit,
+    g: &GenerateLearningWeights,
+    parent: &[f32],
+    pools: &[Pool],
+    cache: &mut DonorCache,
+    spec: Option<&ObjectiveSpec>,
+) -> Result<Vec<f32>> {
     let d = g.device();
     let prepared = g.prepare_native()?;
     let var = cw
@@ -899,7 +996,7 @@ pub(super) fn gradient(
     write(
         a,
         "gradient-forward-parity.json",
-        &json!({"positions":18,"active_family":cw.name(),"all_before_backward":true,"native_fullpool_parity":true,"context_encoder_calls":0,"context_backward_calls":0,"device":if d.is_cpu(){"cpu"}else{"cuda"}}),
+        &json!({"positions":frames.len(),"active_family":cw.name(),"all_before_backward":true,"native_fullpool_parity":true,"context_encoder_calls":0,"context_backward_calls":0,"device":if d.is_cpu(){"cpu"}else{"cuda"}}),
     )?;
     let mut sum = vec![0f32; 960];
     let mut perterm = Vec::new();
@@ -989,7 +1086,11 @@ pub(super) fn gradient(
     }
     replay_require(
         (weighted
-            - objective(frames, pools)?["combined"]
+            - if let Some(spec) = spec {
+                objective_for_spec(frames, pools, spec)?
+            } else {
+                objective(frames, pools)?
+            }["combined"]
                 .as_f64()
                 .ok_or_else(|| bad("Cue CE absent"))?)
         .abs()
@@ -1005,7 +1106,7 @@ pub(super) fn gradient(
     write(
         a,
         &format!("{}-gradient-receipt.json", cw.label()),
-        &json!({"shape":[960],"active_names":[cw.name()],"bytes":bytes.len(),"sha256":sha256_bytes(&bytes),"file":format!("{}-gradient.f32le",cw.label()),"per_term":perterm,"weighted_graph_ce":weighted,"new_gradients":1,"context_gradient":"NOT_RUN","surrogate":format!("native anchored direct {} gather plus existing detached soft-selector state contrast; local conditional utility, not hard argmax derivative",cw.label())}),
+        &json!({"shape":[960],"active_names":[cw.name()],"bytes":bytes.len(),"sha256":sha256_bytes(&bytes),"file":format!("{}-gradient.f32le",cw.label()),"per_term":perterm,"weighted_graph_ce":weighted,"objective_terms":frames.len(),"coefficient_backward_calls":frames.len(),"objective_spec":spec,"new_gradients":1,"context_gradient":"NOT_RUN","surrogate":format!("native anchored direct {} gather plus existing detached soft-selector state contrast; local conditional utility, not hard argmax derivative",cw.label())}),
     )?;
     Ok(sum)
 }
@@ -1734,6 +1835,20 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn joint_word_gate_requires_word_and_combined_descent() -> Result<()> {
+        let b = json!({"combined":4.,"task":2.});
+        let mut v = json!({"combined":3.,"task":2.1,"correct_reference_frames":17,"all_phase_winners":true});
+        assert_eq!(joint_gate(&b, &v)?["finite_joint_positive"], false);
+        v["task"] = json!(1.5);
+        assert_eq!(joint_gate(&b, &v)?["finite_joint_positive"], true);
+        v["all_phase_winners"] = json!(false);
+        assert_eq!(joint_gate(&b, &v)?["finite_joint_positive"], false);
+        v["all_phase_winners"] = json!(true);
+        v["correct_reference_frames"] = json!(16);
+        assert_eq!(joint_gate(&b, &v)?["finite_joint_positive"], false);
+        Ok(())
+    }
     #[test]
     fn cue_fractional_ranking_and_saturation() -> Result<()> {
         let mut m = vec![0.; 960];

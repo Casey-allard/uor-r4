@@ -14,6 +14,24 @@ pub(super) struct Config {
     pub retained_probe_root: PathBuf,
     #[serde(default)]
     pub trajectory: Option<TrajectoryConfig>,
+    #[serde(default)]
+    pub joint: Option<JointConfig>,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct WitnessRoot {
+    pub root: PathBuf,
+    pub expected_report_sha256: String,
+    pub expected_manifest_sha256: String,
+}
+#[derive(Clone, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct JointConfig {
+    pub p5_capture: WitnessRoot,
+    pub p6_conditional_capture: WitnessRoot,
+    pub retained_supplement_root: PathBuf,
+    pub expected_supplement_report_sha256: String,
+    pub expected_supplement_manifest_sha256: String,
 }
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -46,6 +64,34 @@ pub(super) fn validate_settings(a: &Args) -> Result<()> {
                 && !a.categorical_action_only,
             "Prefix fragment requires exclusive original-parent one-pass joint mode",
         )?;
+        replay_require(
+            !(c.joint.is_some() && c.trajectory.is_some()),
+            "joint fresh credit excludes reused-gradient trajectory mode",
+        )?;
+        if let Some(j) = &c.joint {
+            for w in [&j.p5_capture, &j.p6_conditional_capture] {
+                replay_require(
+                    [&w.expected_report_sha256, &w.expected_manifest_sha256]
+                        .iter()
+                        .all(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit())),
+                    "joint witness hashes invalid",
+                )?;
+            }
+            replay_require(
+                j.p5_capture.expected_report_sha256
+                    == "166d286646411902257e5bb543cfc254248044e99d3290067e0cb6ce39b3d490"
+                    && j.p5_capture.expected_manifest_sha256
+                        == "68a71b01c5543f8b22d70e5abe2fc671b5dc867fff78e971219ed2fdd8389eff",
+                "joint p5 recorded witness differs",
+            )?;
+            replay_require(
+                j.expected_supplement_report_sha256
+                    == "0eddd892d5c1a188ee9816856853b672722c3f74ccd67a0f49cbb3e016b8a5d4"
+                    && j.expected_supplement_manifest_sha256
+                        == "5ae8d12f32ee68b2d1a7d82626305cc8fa0e30be1b118f89291b8ac116dad45d",
+                "joint supplement differs",
+            )?;
+        }
         if let Some(t) = &c.trajectory {
             replay_require(
                 t.expected_supplement_report_sha256
@@ -59,7 +105,7 @@ pub(super) fn validate_settings(a: &Args) -> Result<()> {
             fs::canonicalize(&a.checkpoint)?
                 == fs::canonicalize(c.retained_intermediate_root.join("checkpoint-0001"))?
                 && a.maximum_report_bytes
-                    <= if c.trajectory.is_some() {
+                    <= if c.trajectory.is_some() || c.joint.is_some() {
                         512 * 1024 * 1024
                     } else {
                         256 * 1024 * 1024
@@ -119,6 +165,11 @@ fn correct_prefix_terms(raw: &Value, index: usize, id: &str) -> Result<Vec<Value
         )?;
     }
     Ok(ids.iter().zip(&targets).enumerate().take_while(|(_, (a,b))|a==b).map(|(position,(_,target))|json!({"index":index,"position":position,"id":id,"target":target,"actual_prefix_ids":&ids[..position]})).collect())
+}
+fn guard_cache_index(objective_count: usize, guard_index: usize) -> Result<usize> {
+    objective_count
+        .checked_add(guard_index)
+        .ok_or_else(|| bad("objective/guard cache namespace overflow"))
 }
 fn guard_digest(frames: &[shared::Frame], pools: &[shared::Pool]) -> Result<String> {
     replay_require(
@@ -187,6 +238,7 @@ fn prepare_trajectory_guards(
     c: &Config,
     tc: &TrajectoryConfig,
     frames: &[shared::Frame],
+    objective_spec: Option<&shared::ObjectiveSpec>,
     p: &ContinuationParent,
     parent: &[f32],
     cache: &mut shared::DonorCache,
@@ -233,7 +285,9 @@ fn prepare_trajectory_guards(
     }
     let mut additions = BTreeMap::new();
     for f in frames {
-        if !saved.contains_key(&(f.input, f.position)) && !(f.input == 245 && f.position == 4) {
+        if !saved.contains_key(&(f.input, f.position))
+            && !objective_spec.map_or(f.input == 245 && f.position == 4, |spec| spec.is_task(f))
+        {
             replay_require(
                 additions
                     .insert((f.input, f.position), f.native.clone())
@@ -391,7 +445,15 @@ fn prepare_trajectory_guards(
                     == shared::dec::<Vec<u32>>(&episodes["cases"][input]["query_ids"])?,
                 "guard query packet differs",
             )?;
-            let pool = shared::score(18 + guards.len(), &f, parent, parent, p, cache, reducer)?;
+            let pool = shared::score(
+                guard_cache_index(frames.len(), guards.len())?,
+                &f,
+                parent,
+                parent,
+                p,
+                cache,
+                reducer,
+            )?;
             replay_require(
                 json!(pool.generate) == native["generate_q24"]
                     && json!(pool.copy) == native["copy_q24"]
@@ -424,6 +486,413 @@ fn prepare_trajectory_guards(
     Ok((guards, pools, receipt))
 }
 
+fn joint_policy() -> Value {
+    json!({"schema":"uor-r4.prefix-joint-fragment-learning/1","active_family":NAME,"initialization":"ORIGINAL selected Source9f/Cue/Prefix c2e8 actual fractional masters/G4248/U82ae","objective":"three canonical-conditional ordered taskphases each1/3 +17 original references each1/17; zero-weight380guards","gradient":"fresh20 streamed backwards/one weighted aggregate960; direct Prefix gather and detached conditionaldonor local surrogate; only Prefix extracted/proposed, frozen Generate graph carries autodiff","construction":"one frozen960 actualfractional-master adjacent nativeQ4 pass; strictcurrent20CE+17refs+all380 original winners everyaccept","final":"strict ORIGINAL20combined and three-phase word CE descent +all3phasewinners +17refs +380guards; actualtypedwholeanswer/EOS and8retention separate","strict_ce_tolerance":"1e-10*(1+abs(current_or_original_CE))","optimizer_updates":0,"selected_model":false,"serving_changes":false})
+}
+fn mode_objective(
+    f: &[shared::Frame],
+    p: &[shared::Pool],
+    s: Option<&shared::ObjectiveSpec>,
+) -> Result<Value> {
+    if let Some(s) = s {
+        shared::objective_for_spec(f, p, s)
+    } else {
+        shared::objective(f, p)
+    }
+}
+fn mode_gate(b: &Value, v: &Value, s: Option<&shared::ObjectiveSpec>) -> Result<Value> {
+    if s.is_some() {
+        shared::joint_gate(b, v)
+    } else {
+        shared::gate(b, v)
+    }
+}
+fn witness_frame(w: &WitnessRoot, input: usize, position: usize) -> Result<(Value, Value)> {
+    let report = shared::sealed(
+        &w.root,
+        &w.expected_report_sha256,
+        &w.expected_manifest_sha256,
+    )?;
+    replay_require(
+        report["status"] == "COMPLETED"
+            && report["source_binding"]["metadata_sha256"] == shared::SOURCE
+            && report["generate_sha256"] == shared::G_SHA
+            && report["continuation_sha256"] == shared::U_SHA,
+        "joint witness artifact epoch differs",
+    )?;
+    let matches = report["frames"]
+        .as_array()
+        .ok_or_else(|| bad("joint witness frame list absent"))?
+        .iter()
+        .filter(|r| r["input_index"] == input && r["position"] == position)
+        .collect::<Vec<_>>();
+    replay_require(
+        matches.len() == 1,
+        "joint witness identity coverage differs",
+    )?;
+    let row = matches[0];
+    let leaf = row["file"]
+        .as_str()
+        .ok_or_else(|| bad("joint witness file absent"))?;
+    replay_require(
+        Path::new(leaf).components().count() == 1,
+        "joint witness leaf invalid",
+    )?;
+    let file = w.root.join(leaf);
+    replay_require(
+        sha256_file(&file)?
+            == row["sha256"]
+                .as_str()
+                .ok_or_else(|| bad("joint witness hash absent"))?,
+        "joint raw witness hash differs",
+    )?;
+    let v = read(&file)?;
+    replay_require(
+        v["capture_target_free"] == true
+            && v["label_access_before_capture"] == false
+            && v["input_index"] == input
+            && v["position"] == position,
+        "joint targetfree frame authority differs",
+    )?;
+    Ok((v, report))
+}
+fn replace_head_adjustment(score: i64, old: i64, new: i64) -> Result<i64> {
+    score
+        .checked_sub(old)
+        .and_then(|x| x.checked_add(new))
+        .ok_or_else(|| bad("derived bank score overflow"))
+}
+fn original_phase_native(
+    a: &Args,
+    j: &JointConfig,
+    p: &ContinuationParent,
+    active: &PrefixAngularWeights,
+    parent: &[f32],
+    position: usize,
+) -> Result<Value> {
+    let w = if position == 5 {
+        &j.p5_capture
+    } else {
+        &j.p6_conditional_capture
+    };
+    let (mut v, report) = witness_frame(w, 245, position)?;
+    replay_require(
+        report["endpoint_kind"]
+            == if position == 5 {
+                "unselected_prefix_trajectory"
+            } else {
+                "selected_original_canonical_conditional"
+            },
+        "joint phase capture scope differs",
+    )?;
+    let raw = read(
+        &a.checkpoint
+            .parent()
+            .ok_or_else(|| bad("parent root absent"))?
+            .join("development-0001-row-0245.json"),
+    )?;
+    let prefix: Vec<u32> = shared::dec(&raw["canonical_target_ids_labels_only"])?;
+    replay_require(
+        v["id"] == raw["id"]
+            && v["actual_prefix_ids"] == json!(&prefix[..position])
+            && (position == 5
+                || v["saved_canonical_native"] == raw["canonical"][position]["native"]),
+        "joint canonical phase prefix/authority differs",
+    )?;
+    if position == 5 {
+        // Finite reconstruction only: the saved Context feature states are unaffected by Prefix coefficients.
+        replay_require(
+            parent.len() == 960 && parent.iter().all(|x| x.is_finite()),
+            "derived original Prefix masters invalid",
+        )?;
+        let q = parent
+            .iter()
+            .map(|x| (*x * 4.).round().clamp(-7., 7.) as i8)
+            .collect::<Vec<_>>();
+        let ng = NativeGeometricGenerate::from_bytes(&p.generate, p.integer.binding())?;
+        let bins: Vec<Vec<u8>> = shared::dec(&v["bank_trace"]["prefix"]["angular_indices"])?;
+        let relative: Vec<Vec<u8>> = shared::dec(&v["bank_trace"]["prefix"]["relative_roots"])?;
+        let response: Vec<u8> = shared::dec(&v["bank_trace"]["prefix"]["response"]["states"])?;
+        let source_indices: Vec<usize> =
+            shared::dec(&v["bank_trace"]["prefix"]["candidate_source_indices"])?;
+        let offsets: Vec<usize> = shared::dec(&v["bank_trace"]["prefix"]["candidate_offsets"])?;
+        let ids: Vec<u32> = shared::dec(&v["copy_ids"])?;
+        replay_require(
+            bins.len() == 8
+                && relative.len() == 8
+                && response.len() == 8
+                && source_indices.len() == ids.len()
+                && offsets.len() == ids.len()
+                && bins.iter().all(|r| r.len() == ids.len()),
+            "derived Prefix feature shape differs",
+        )?;
+        let oldheads: Vec<Vec<i64>> = shared::dec(&v["bank_trace"]["prefix"]["copy_q24"])?;
+        let mut heads = vec![vec![0i64; ids.len()]; 2];
+        for k in 0..ids.len() {
+            let states: Vec<u8> = shared::dec(
+                &v["bank_trace"]["prefix"]["sources"][source_indices[k]]["states_before"]
+                    [offsets[k]],
+            )?;
+            replay_require(states.len() == 8, "derived Prefix source width differs")?;
+            for l in 0..8 {
+                let r = ng
+                    .algebra()
+                    .compose(ng.algebra().inverse(response[l])?, states[l])?;
+                replay_require(
+                    r == relative[l][k] && r == bins[l][k] && bins[l][k] < 120,
+                    "derived directed Prefix relative/bin differs",
+                )?;
+                heads[l / 4][k] = heads[l / 4][k]
+                    .checked_add(i64::from(q[l * 120 + usize::from(bins[l][k])]) << 22)
+                    .ok_or_else(|| bad("derived Prefix head overflow"))?;
+            }
+        }
+        replay_require(
+            oldheads.len() == 2 && oldheads.iter().all(|h| h.len() == ids.len()),
+            "derived old Prefix heads differ",
+        )?;
+        let exp = p
+            .exp
+            .chunks_exact(4)
+            .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+            .collect::<Vec<_>>();
+        let mut head_reducer =
+            uor_r4_integer::geometric_read::NativeGeometricRead::new(128, 1, &exp)?;
+        for h in 0..2 {
+            let head = &mut v["bank_trace"]["cue_bank"]["bank"]["heads"][h];
+            let mut scores: Vec<i64> = shared::dec(&head["scores_q24"])?;
+            replay_require(scores.len() == ids.len(), "derived bank head width differs")?;
+            for k in 0..ids.len() {
+                scores[k] = replace_head_adjustment(scores[k], oldheads[h][k], heads[h][k])?;
+            }
+            let no_read = head["no_read_q24"]
+                .as_i64()
+                .ok_or_else(|| bad("derived no-read score absent"))?;
+            let reduction =
+                head_reducer.reduce(&scores, &vec![0; ids.len()], no_read, &vec![0; ids.len()])?;
+            head["weights_q31"] = json!(reduction.occurrence_weights_q31);
+            head["total_weight_q31"] = json!(reduction.total_weight_q31);
+            head["no_read_weight_q31"] = json!(reduction.no_read_weight_q31);
+            head["scores_q24"] = json!(scores);
+        }
+        let bank = &v["bank_trace"]["cue_bank"]["bank"];
+        let bank_scores = bank["heads"]
+            .as_array()
+            .ok_or_else(|| bad("derived bank heads absent"))?
+            .iter()
+            .map(|h| shared::dec::<Vec<i64>>(&h["scores_q24"]))
+            .collect::<Result<Vec<_>>>()?;
+        let period: Vec<i64> = shared::dec(&bank["period_q24"])?;
+        let no_read = bank["heads"]
+            .as_array()
+            .ok_or_else(|| bad("derived bank heads absent"))?
+            .iter()
+            .map(|h| {
+                h["no_read_q24"]
+                    .as_i64()
+                    .ok_or_else(|| bad("derived no-read absent"))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        replay_require(
+            bank_scores.len() == 2 && period.len() == 2 && no_read.len() == 2,
+            "derived source action head dimensions differ",
+        )?;
+        let hs = (0..2)
+            .map(
+                |h| uor_r4_integer::geometric_source_actions::ActionHeadScores {
+                    copy_q24: &bank_scores[h],
+                    period_q24: period[h],
+                    stop_q24: no_read[h],
+                },
+            )
+            .collect::<Vec<_>>();
+        let mut action_reducer =
+            uor_r4_integer::geometric_source_actions::NativeSourceActions::new(
+                p.integer.binding().clone(),
+                2,
+                &exp,
+            )?;
+        v["bank_trace"]["cue_bank"]["bank"]["actions"] = json!(action_reducer.reduce(&ids, &hs)?);
+        v["bank_trace"]["prefix"]["copy_q24"] = json!(heads);
+        v["bank_trace"]["prefix"]["metadata"] =
+            read(&a.checkpoint.join("prefix/native-metadata.json"))?;
+        replay_require(
+            v["bank_trace"]["prefix"]["metadata"]["potential_packed_sha256"]
+                == sha256_bytes(&active.packed_coefficients()?),
+            "derived Prefix native metadata hash differs",
+        )?;
+        let u: Vec<i64> = shared::dec(&v["continuation"]["delta_scores_q24"])?;
+        let base = (0..ids.len())
+            .map(|k| {
+                v["bank_trace"]["cue_bank"]["bank"]["heads"]
+                    .as_array()
+                    .ok_or_else(|| bad("derived heads absent"))?
+                    .iter()
+                    .try_fold(0i64, |s, h| {
+                        s.checked_add(
+                            h["scores_q24"][k]
+                                .as_i64()
+                                .ok_or_else(|| bad("derived score absent"))?,
+                        )
+                        .ok_or_else(|| bad("derived head sum overflow"))
+                    })
+            })
+            .collect::<Result<Vec<_>>>()?;
+        v["base_copy_q24"] = json!(base);
+        v["copy_q24"] = json!(base
+            .iter()
+            .zip(&ids)
+            .map(|(b, id)| b
+                .checked_add(u[*id as usize])
+                .ok_or_else(|| bad("derived Copy U overflow")))
+            .collect::<Result<Vec<_>>>()?);
+        let target = raw["canonical"][position]["target_label_only"]
+            .as_u64()
+            .ok_or_else(|| bad("phase target absent"))? as u32;
+        let f = shared::parse_saved_native_frame(
+            245,
+            position,
+            raw["id"]
+                .as_str()
+                .ok_or_else(|| bad("phase ID absent"))?
+                .into(),
+            prefix[..position].to_vec(),
+            target,
+            1. / 3.,
+            &v,
+            p,
+            true,
+        )?;
+        let mut cache = shared::DonorCache::new(p);
+        let mut reducer = NativeVocabularyActions::new(p.integer.binding().clone(), &p.exp)?;
+        let pool = shared::score(0, &f, parent, parent, p, &mut cache, &mut reducer)?;
+        // Rebuild bridge from the actual earliest BASE physical donor, not a saved Generate shortcut.
+        let bridge = NativeGeometricReadStateBridge::from_bytes(&p.bridge, p.integer.binding())?;
+        let mut post = vec![uor_r4_integer::h4_tables::H4Code::IDENTITY; 8];
+        let mut actions = post.clone();
+        let mut scores = vec![0; 960];
+        let mut counts = BridgeReadCounts::default();
+        bridge.apply_into(
+            &f.query,
+            &f.sources[pool.donor],
+            &mut post,
+            &mut actions,
+            &mut scores,
+            &mut counts,
+        )?;
+        v["bridge"]["selected_ordinal"] = json!(pool.donor);
+        v["bridge"]["selected_candidate"] =
+            v["bank_trace"]["cue_bank"]["bank"]["candidates"][pool.donor].clone();
+        v["bridge"]["source_state"] = json!(f.sources[pool.donor]
+            .iter()
+            .map(|x| x.index())
+            .collect::<Vec<_>>());
+        v["bridge"]["action_codes"] = json!(actions.iter().map(|x| x.index()).collect::<Vec<_>>());
+        v["bridge"]["action_scores_q24"] = json!(scores);
+        v["bridge"]["counts"] = json!(counts);
+        v["post_state"] = json!(post.iter().map(|x| x.index()).collect::<Vec<_>>());
+        v["generate_q24"] = json!(pool.generate);
+        v["copy_q24"] = json!(pool.copy);
+        v["pool"] = json!(pool.trace);
+        v["base_generate_q24"] = json!(pool
+            .generate
+            .iter()
+            .zip(&u)
+            .map(|(g, u)| g - u)
+            .collect::<Vec<_>>());
+        v["original_derivation"] = json!({"scope":"DERIVED_FROM_CAPTURE_AND_ORIGINAL_PACKED_PREFIX; no Context encoder or native step","capture_root":w.root,"capture_report_sha256":w.expected_report_sha256,"all8_prefix_lanes_inverted":true,"heads_and_occurrence_weights_rebuilt":true,"candidate_factors":"unchanged Generate/U artifact arithmetic, independently compared to original canonical authority"});
+    }
+    let n = &raw["canonical"][position]["native"];
+    let g: Vec<i64> = shared::dec(&v["generate_q24"])?;
+    let u: Vec<i64> = shared::dec(&v["continuation"]["delta_scores_q24"])?;
+    replay_require(
+        v["pool"]["summary"] == n["pool"]["summary"]
+            && v["post_state"] == n["post_state_codes"]
+            && v["copy_ids"] == n["copy_token_ids"]
+            && sha256_bytes(&serde_json::to_vec(&g)?)
+                == n["generate_raw_scores_sha256"]
+                    .as_str()
+                    .ok_or_else(|| bad("canonical G digest absent"))?
+            && v["continuation"]["state_codes"] == n["continuation"]["state_codes"]
+            && sha256_bytes(&serde_json::to_vec(&u)?)
+                == n["continuation"]["delta_scores_q24_sha256"]
+                    .as_str()
+                    .ok_or_else(|| bad("canonical U digest absent"))?,
+        "derived/original conditional complete canonical parity differs",
+    )?;
+    let target = raw["canonical"][position]["target_label_only"]
+        .as_u64()
+        .ok_or_else(|| bad("canonical target absent"))? as u32;
+    let targetmass = v["pool"]["token_masses"]
+        .as_array()
+        .ok_or_else(|| bad("phase masses absent"))?
+        .iter()
+        .find(|x| x["token_id"] == target)
+        .ok_or_else(|| bad("phase target mass absent"))?;
+    replay_require(
+        targetmass["weight_q31"] == raw["canonical"][position]["native_target_mass"]
+            && v["pool"]["summary"]["total_weight_q31"]
+                == raw["canonical"][position]["native_denominator"],
+        "phase canonical exact target mass/denominator differs",
+    )?;
+    write(a, &format!("original-joint-phase-{position:02}.json"), &v)?;
+    Ok(v)
+}
+fn prepare_joint_phases(
+    a: &Args,
+    j: &JointConfig,
+    p: &ContinuationParent,
+    active: &PrefixAngularWeights,
+    parent: &[f32],
+    frames: &mut Vec<shared::Frame>,
+) -> Result<()> {
+    for f in frames.iter_mut() {
+        f.weight = if f.input == 245 && f.position == 4 {
+            1. / 3.
+        } else {
+            1. / 17.
+        };
+    }
+    let raw = read(
+        &a.checkpoint
+            .parent()
+            .ok_or_else(|| bad("parent root absent"))?
+            .join("development-0001-row-0245.json"),
+    )?;
+    let canonical: Vec<u32> = shared::dec(&raw["canonical_target_ids_labels_only"])?;
+    for position in [5, 6] {
+        let native = original_phase_native(a, j, p, active, parent, position)?;
+        let target = canonical[position];
+        frames.push(shared::parse_saved_native_frame(
+            245,
+            position,
+            raw["id"]
+                .as_str()
+                .ok_or_else(|| bad("task ID absent"))?
+                .into(),
+            canonical[..position].to_vec(),
+            target,
+            1. / 3.,
+            &native,
+            p,
+            true,
+        )?);
+    }
+    frames.sort_by_key(|f| {
+        if f.input == 245 && (4..=6).contains(&f.position) {
+            (0, f.position)
+        } else {
+            (1, f.input * 32 + f.position)
+        }
+    });
+    replay_require(frames.len() == 20, "joint20 coverage differs")?;
+    write(
+        a,
+        "joint-objective-authority.json",
+        &json!({"tasks":[{"input_index":245,"position":4,"target":267,"weight":1./3.},{"input_index":245,"position":5,"target":307,"weight":1./3.},{"input_index":245,"position":6,"target":397,"weight":1./3.}],"references":17,"reference_weight":1./17.,"scope":"canonical conditional teacher-forced development; not actual original ownfeedback","p5_witness":j.p5_capture,"p6_witness":j.p6_conditional_capture,"ordered_terms":frames.iter().map(|f|json!({"input_index":f.input,"position":f.position,"id":f.id,"target":f.target,"weight":f.weight,"prefix":f.prefix})).collect::<Vec<_>>()}),
+    )?;
+    Ok(())
+}
 pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     validate_settings(a)?;
     let c = a
@@ -504,12 +973,37 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         }),
         "Prefix original master receipt differs",
     )?;
+    let joint_spec = c.joint.as_ref().map(|_| shared::ObjectiveSpec {
+        tasks: vec![(245, 4), (245, 5), (245, 6)],
+        references: 17,
+    });
+    let guard_config = c.trajectory.clone().or_else(|| {
+        c.joint.as_ref().map(|j| TrajectoryConfig {
+            retained_prefix_learning_root: PathBuf::new(),
+            retained_supplement_root: j.retained_supplement_root.clone(),
+            expected_supplement_report_sha256: j.expected_supplement_report_sha256.clone(),
+            expected_supplement_manifest_sha256: j.expected_supplement_manifest_sha256.clone(),
+        })
+    });
+    let guarded = guard_config.is_some();
+    if joint_spec.is_some() {
+        replay_require(
+            sha256_file(&a.checkpoint.join("prefix/prefix-q4.bin"))?
+                == "c2e8ec992996055450f77237ec64730c28b2e7cd53f9ae49cdb7a28128236d0a"
+                && sha256_file(&a.checkpoint.join("prefix/prefix-source-f32.bin"))?
+                    == "1e47a7dff9134d393043a2313a7da50ea234d1b1ae7888d895e3604855ac0fe3",
+            "joint original Prefix payload/master differs",
+        )?;
+    }
     let seed = shared::Config {
         retained_intermediate_root: c.retained_intermediate_root.clone(),
         retained_probe_root: c.retained_probe_root.clone(),
         retained_finite_root: c.retained_probe_root.clone(),
     };
-    let (mut frames, baseline) = shared::prepare_frames(a, &seed, &original, &original, true)?;
+    let (mut frames, mut baseline) = shared::prepare_frames(a, &seed, &original, &original, true)?;
+    if let Some(j) = &c.joint {
+        prepare_joint_phases(a, j, &original, &active, &parent, &mut frames)?;
+    }
     let ng = NativeGeometricGenerate::from_bytes(&original.generate, original.integer.binding())?;
     let field = NativeContinuationField::from_bytes(
         &fs::read(a.checkpoint.join("continuation-field.bin"))?,
@@ -542,7 +1036,12 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     let saved_bytes = frames.iter().try_fold(0u64, |s, f| {
         Ok::<_, Box<dyn std::error::Error>>(s + serde_json::to_vec(&f.native)?.len() as u64)
     })?;
-    let numerical = saved_bytes * 3 + shared::CACHE_LIMIT as u64 + 64 * 1024 * 1024;
+    let active_cache_limit = if guarded {
+        128 * 1024 * 1024
+    } else {
+        shared::CACHE_LIMIT
+    };
+    let numerical = saved_bytes * 3 + active_cache_limit as u64 + 64 * 1024 * 1024;
     let projected = size(&a.checkpoint)? + saved_bytes + 48 * 1024 * 1024;
     replay_require(
         numerical <= 512 * 1024 * 1024 && projected + 1048576 < a.maximum_report_bytes,
@@ -552,10 +1051,10 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         a,
         "resource-projection.json",
         &json!({"numerical_upper_bound_bytes":numerical,"report_projection_bytes":projected,
-  "numeric_cap":536870912,"report_cap":a.maximum_report_bytes,"process_ram_cap":4294967296u64,"temporary_cap":536870912,
-  "threads":2,"donor_cache_cap":shared::CACHE_LIMIT,"scope":"saved nativeframes/rawvectors/stagedpools/cache; model/autodiff tensors charged separately to process RAM"}),
+  "numeric_cap":536870912,"report_cap":a.maximum_report_bytes,"process_ram_cap":4294967296u64,"temporary_cap":if joint_spec.is_some(){268435456}else{536870912},
+  "threads":2,"donor_cache_cap":active_cache_limit,"scope":"saved nativeframes/rawvectors/stagedpools/cache; model/autodiff tensors charged separately to process RAM"}),
     )?;
-    let mut cache = if c.trajectory.is_some() {
+    let mut cache = if guarded {
         shared::DonorCache::with_limit(&original, 128 * 1024 * 1024)?
     } else {
         shared::DonorCache::new(&original)
@@ -567,15 +1066,43 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         .enumerate()
         .map(|(i, f)| shared::score(i, f, &parent, &parent, &original, &mut cache, &mut reducer))
         .collect::<Result<Vec<_>>>()?;
-    let initial = shared::objective(&frames, &pools)?;
+    let initial = mode_objective(&frames, &pools, joint_spec.as_ref())?;
+    if joint_spec.is_some() {
+        baseline = initial.clone();
+    }
     replay_require(
         initial == baseline && initial["correct_reference_frames"] == 17,
         "Prefix ORIGINAL native initial objective differs",
     )?;
     write(a, "initial-original-objective.json", &initial)?;
+    // Fresh joint hard parity and twenty streamed backwards finish before compact
+    // objective authorities coexist with the full380 guard population.
+    let fresh_joint_gradient = if joint_spec.is_some() {
+        let g = GenerateLearningWeights::from_native(original.integer.binding().clone(), &ng, d)?;
+        restore(
+            &a.checkpoint.join("generate-source"),
+            &read(&a.checkpoint.join("generate-source/metadata.json"))?["parameters"],
+            &g.parameters(),
+            d,
+        )?;
+        Some(shared::gradient_for_spec(
+            a,
+            start,
+            &frames,
+            &original,
+            &shared::ActiveCredit::Prefix(&active),
+            &g,
+            &parent,
+            &pools,
+            &mut cache,
+            joint_spec.as_ref(),
+        )?)
+    } else {
+        None
+    };
     // Check complete original objective hard pools before discarding duplicate
     // action-record JSON; retain the typed full traces for final task reload.
-    if c.trajectory.is_some() {
+    if guarded {
         for (f, pool) in frames.iter().zip(&pools) {
             replay_require(
                 json!(pool.generate) == f.native["generate_q24"]
@@ -596,12 +1123,13 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         Ok::<_, Box<dyn std::error::Error>>(sum + serde_json::to_vec(&f.native)?.len() as u64)
     })?;
 
-    let (guard_frames, mut guard_pools, guard_authority) = if let Some(tc) = &c.trajectory {
+    let (guard_frames, mut guard_pools, guard_authority) = if let Some(tc) = &guard_config {
         prepare_trajectory_guards(
             a,
             c,
             tc,
             &frames,
+            joint_spec.as_ref(),
             &original,
             &parent,
             &mut cache,
@@ -612,7 +1140,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
     };
     let incidence = guard_incidence(&guard_frames)?;
     let mut guard_state_digest = guard_digest(&guard_frames, &guard_pools)?;
-    if c.trajectory.is_some() {
+    if guarded {
         let pool_bytes = pools_numeric_bytes(&guard_pools);
         let typed_frames = guard_frames
             .iter()
@@ -642,7 +1170,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         write(
             a,
             "trajectory-resource-projection.json",
-            &json!({"actual_retained_guard_pool_bytes":pool_bytes,"typed_guard_frame_bound":typed_frames,"original_serialized_guard_native_bytes":original_native,"numeric_upper_bound":numerical,"report_projection_bytes":projection,"donor_cache_cap":cache.limit,"owner_donor_cache_cap":268435456,"original_objective_serialized_bytes_before_omission":saved_bytes,"retained_objective_serialized_bytes_after_omission":retained_objective_bytes,"objective_typed_pool_bytes":pools_numeric_bytes(&pools),"metadata_allocator_margin":33554432,"original18_full_raw_pool_parity_before_omission":true,"original377_complete_raw_summary_mass_parity_before_retention":true,"numeric_pass":numerical<=536870912,"report_pass":projection+1048576<a.maximum_report_bytes,"numeric_cap":536870912,"report_cap":a.maximum_report_bytes,"process_ram_cap":4294967296u64,"temporary_cap":536870912,"export_projection_margin_per_guard":327680,"scope":"coexisting current/staged380 numericalpools, slim retainedframe authority, cache/metadata/allocator margin; no autodiff tensors in trajectorymode"}),
+            &json!({"actual_retained_guard_pool_bytes":pool_bytes,"typed_guard_frame_bound":typed_frames,"original_serialized_guard_native_bytes":original_native,"numeric_upper_bound":numerical,"report_projection_bytes":projection,"donor_cache_cap":cache.limit,"owner_donor_cache_cap":268435456,"original_objective_serialized_bytes_before_omission":saved_bytes,"retained_objective_serialized_bytes_after_omission":retained_objective_bytes,"objective_typed_pool_bytes":pools_numeric_bytes(&pools),"metadata_allocator_margin":33554432,"original18_full_raw_pool_parity_before_omission":joint_spec.is_none(),"objective_terms_full_raw_pool_parity_before_omission":frames.len(),"fresh_joint_backwards_completed_before_guard_coexistence":joint_spec.is_some(),"original377_complete_raw_summary_mass_parity_before_retention":true,"numeric_pass":numerical<=536870912,"report_pass":projection+1048576<a.maximum_report_bytes,"numeric_cap":536870912,"report_cap":a.maximum_report_bytes,"process_ram_cap":4294967296u64,"temporary_cap":if joint_spec.is_some(){268435456}else{536870912},"export_projection_margin_per_guard":327680,"scope":if joint_spec.is_some(){"twenty streamed backwards completed; coexisting current/staged380 pools, compact20frame authorities, cache; no retained Generate gradient graphs; tensors separately charged RAM"}else{"coexisting current/staged380 numericalpools, slim retainedframe authority, cache/metadata/allocator margin; no autodiff tensors in trajectorymode"}}),
         )?;
         replay_require(
             numerical <= 512 * 1024 * 1024 && projection + 1048576 < a.maximum_report_bytes,
@@ -655,7 +1183,9 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             &json!({"coordinates":960,"guard_rows":380,"coordinate_rows":incidence,"semantics":"unique affected guard indices from every physical candidate's eight unmasked Prefix keys; duplicate physical multiplicity retained by staged_base"}),
         )?;
     }
-    let gradients = if let Some(tc) = &c.trajectory {
+    let gradients = if let Some(g) = fresh_joint_gradient {
+        g
+    } else if let Some(tc) = &c.trajectory {
         let old = shared::sealed(
             &tc.retained_prefix_learning_root,
             CANDIDATE_REPORT,
@@ -724,7 +1254,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             &g.parameters(),
             d,
         )?;
-        shared::gradient(
+        shared::gradient_for_spec(
             a,
             start,
             &frames,
@@ -734,6 +1264,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
             &parent,
             &pools,
             &mut cache,
+            joint_spec.as_ref(),
         )?
     };
     let ranking = shared::ranking(&parent, &gradients)?;
@@ -756,7 +1287,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         shared::progress(a, start)?;
         if m.status != "eligible" {
             trials.push(json!({"order":order,"move":m,"status":m.status,"current":value,"staged":"NOT_RUN",
-    "native_effect":"no code displacement; existing18 full pools reused","original_gate":shared::gate(&baseline,&value)?,"trajectory_guard":{"population":guard_frames.len(),"affected_guard_indices":[],"checked_affected":0,"accepted_guard_digest_before":guard_state_digest,"accepted_guard_digest_after":guard_state_digest,"unchanged_no_native_code_displacement":true}}));
+    "native_effect":if joint_spec.is_some(){"no code displacement; current20 full pools reused"}else{"no code displacement; existing18 full pools reused"},"original_gate":mode_gate(&baseline,&value,joint_spec.as_ref())?,"trajectory_guard":{"population":guard_frames.len(),"affected_guard_indices":[],"checked_affected":0,"accepted_guard_digest_before":guard_state_digest,"accepted_guard_digest_after":guard_state_digest,"unchanged_no_native_code_displacement":true}}));
             continue;
         }
         let before = value.clone();
@@ -777,11 +1308,11 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 )
             })
             .collect::<Result<Vec<_>>>()?;
-        let next = shared::objective(&frames, &staged)?;
+        let next = mode_objective(&frames, &staged, joint_spec.as_ref())?;
         let affected = &incidence[m.index];
         let staged_guards = stage_affected(affected, |i| {
             shared::score(
-                18 + i,
+                guard_cache_index(frames.len(), i)?,
                 &guard_frames[i],
                 &parent,
                 &proposed,
@@ -800,10 +1331,10 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         let accept = objective_gate && first_failure.is_none();
         let guard_trial = json!({"population":guard_frames.len(),"affected_guard_indices":affected,"checked_affected":staged_guards.len(),"unaffected_reused":guard_frames.len()-affected.len(),"first_failure":first_failure,
             "staged_affected_digest":sha256_bytes(&serde_json::to_vec(&staged_guards.iter().map(|(i,p)|compact_guard_row(&guard_frames[*i],p,*i)).collect::<Result<Vec<_>>>()?)?), "staged_digest_scope":"ordered complete affectedguard compact rows; reader independently reconstructs; no fullvector repetition",
-            "accepted_guard_digest_before":guard_state_digest,"all_original380_winners":c.trajectory.is_some() && first_failure.is_none()});
+            "accepted_guard_digest_before":guard_state_digest,"all_original380_winners":guarded && first_failure.is_none()});
         trials.push(json!({"order":order,"move":m,"status":if accept{"accepted"}else{"rejected"},"before":before,"staged":next,
-   "native_all18_checked":true,"strict_current_ce_and_all17_original_winners":objective_gate,"trajectory_guard":guard_trial,
-   "original_task_probability_improved":shared::improved(&baseline,&next)?,"original_gate":shared::gate(&baseline,&next)?}));
+   "native_all18_checked":joint_spec.is_none(),"native_objective_terms_checked":frames.len(),"strict_current_ce_and_all17_original_winners":objective_gate,"trajectory_guard":guard_trial,
+   "original_task_probability_improved":if joint_spec.is_some(){Value::String("NOT_APPLICABLE: joint word CE gate".into())}else{json!(shared::improved(&baseline,&next)?)},"original_gate":mode_gate(&baseline,&next,joint_spec.as_ref())?}));
         if accept {
             for (i, pool) in staged_guards {
                 guard_pools[i] = pool;
@@ -824,7 +1355,7 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         &json!({"coordinates":960,"accepted":accepted,"trials":trials,"initial":initial,
   "final_objective":value,"frozen_order":true,"revisited_coordinates":0,"cache_peak_bytes":cache.peak,
   "donor_recomputations":cache.calls,"cache_identity":{"source_binding":cache.source_binding,"generate_sha256":cache.generate_sha256,"bridge_sha256":cache.bridge_sha256},
-  "cache_key":"physical ordinal/frame/occurrence state within immutable Source/G/bridge epoch","accepted_guard":if c.trajectory.is_some(){"all380 original correct-prefix winners plus17 objective reference winners on every accepted transaction"}else{"all17 original winners on every accepted transaction"},"protected_population":guard_frames.len(),"final_guard_digest":guard_state_digest,"donor_cache_cap":cache.limit}),
+  "cache_key":"physical ordinal/frame/occurrence state within immutable Source/G/bridge epoch","accepted_guard":if guarded{"all380 original correct-prefix winners plus17 objective reference winners on every accepted transaction"}else{"all17 original winners on every accepted transaction"},"protected_population":guard_frames.len(),"final_guard_digest":guard_state_digest,"donor_cache_cap":cache.limit}),
     )?;
     let params = active.parameters();
     let saved = np::snapshot(&params)?;
@@ -867,14 +1398,23 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 == fs::read(a.checkpoint.join("cue/cue-source-f32.bin"))?,
             "Prefix frozen Cue f32 bits changed",
         )?;
-        if c.trajectory.is_some() {
-            receipt["mode"] = json!("prefix_trajectory_learning");
-            receipt["new_gradients"] = json!(0);
-            receipt["coefficient_backward_calls"] = json!(0);
-            receipt["credit_scope"]=json!("reused original18 Prefix-only gradient/rank; no new backward or optimizer; native380 hardtrajectoryguard");
-            receipt["policy"] = trajectory_policy();
-            receipt["inherited_gradient_credit"] = receipt["credit"].clone();
-            receipt["credit"] = json!({"new_backward_calls":0,"authority":"reused-prefix-gradient.json","selection":"identical authenticated original960 order and actual initial masters; prior accepted statuses are not authority"});
+        if guarded {
+            if joint_spec.is_some() {
+                receipt["mode"] = json!("prefix_joint_fragment_learning");
+                receipt["new_gradients"] = json!(1);
+                receipt["coefficient_backward_calls"] = json!(frames.len());
+                receipt["credit_scope"]=json!("fresh20 weighted Prefix-only extracted gradients; frozen Generate graph/direct gather + detached donor surrogate; native380 trajectory guards; one960 pass");
+                receipt["policy"] = joint_policy();
+                receipt["credit"] = json!({"new_backward_calls":frames.len(),"authority":"prefix-gradient-receipt.json","selection":"fresh joint aggregate960 actual fractional-master adjacent displacement order; no old gradient/ranking reuse"});
+            } else {
+                receipt["mode"] = json!("prefix_trajectory_learning");
+                receipt["new_gradients"] = json!(0);
+                receipt["coefficient_backward_calls"] = json!(0);
+                receipt["credit_scope"]=json!("reused original18 Prefix-only gradient/rank; no new backward or optimizer; native380 hardtrajectoryguard");
+                receipt["policy"] = trajectory_policy();
+                receipt["inherited_gradient_credit"] = receipt["credit"].clone();
+                receipt["credit"] = json!({"new_backward_calls":0,"authority":"reused-prefix-gradient.json","selection":"identical authenticated original960 order and actual initial masters; prior accepted statuses are not authority"});
+            }
             let encoded_receipt = serde_json::to_vec_pretty(&receipt)?;
             for leaf in [
                 "checkpoint-0001/receipt.json",
@@ -883,17 +1423,19 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
                 fs::write(a.out.join(leaf), &encoded_receipt)?;
             }
             shared::reload_guard_candidate(a, &cp, &u, &guard_frames, &guard_pools)?;
-            let task_index = frames
-                .iter()
-                .position(|f| f.input == 245 && f.position == 4)
-                .ok_or_else(|| bad("trajectory task missing"))?;
-            shared::reload_candidate(
-                a,
-                &cp,
-                &u,
-                &frames[task_index..task_index + 1],
-                &pools[task_index..task_index + 1],
-            )?;
+            for (i, f) in frames.iter().enumerate().filter(|(_, f)| {
+                joint_spec
+                    .as_ref()
+                    .map_or(f.input == 245 && f.position == 4, |s| s.is_task(f))
+            }) {
+                shared::reload_candidate(
+                    a,
+                    &cp,
+                    &u,
+                    std::slice::from_ref(f),
+                    std::slice::from_ref(&pools[i]),
+                )?;
+            }
         } else {
             shared::reload_candidate(a, &cp, &u, &frames, &pools)?;
         }
@@ -904,20 +1446,24 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         "Prefix original master bits not restored",
     )?;
     let receipt = result?;
-    let final_gate = shared::gate(&baseline, &value)?;
+    let final_gate = mode_gate(&baseline, &value, joint_spec.as_ref())?;
     let task = value["terms"]
         .as_array()
         .ok_or_else(|| bad("Prefix final terms absent"))?
         .iter()
         .find(|x| x["input_index"] == 245 && x["position"] == 4)
         .ok_or_else(|| bad("Prefix task term absent"))?;
-    let corrected = task["pool"]["chosen_token_id"] == 267;
+    let corrected = if joint_spec.is_some() {
+        value["all_phase_winners"] == true
+    } else {
+        task["pool"]["chosen_token_id"] == 267
+    };
     write(a, "final-objective.json", &value)?;
     let all_trajectory_preserved = guard_frames
         .iter()
         .zip(&guard_pools)
         .all(|(f, p)| f.target == p.trace.summary.chosen_token_id);
-    if c.trajectory.is_some() {
+    if guarded {
         write(
             a,
             "final-trajectory-guards.json",
@@ -925,12 +1471,12 @@ pub(super) fn run(a: &Args, start: Instant, d: &Device) -> Result<Value> {
         )?;
     }
     Ok(
-        json!({"schema":if c.trajectory.is_some(){"uor-r4.prefix-trajectory-learning/1"}else{"uor-r4.prefix-fragment-learning/1"},"status":"COMPLETED","mode":if c.trajectory.is_some(){"prefix_trajectory_learning"}else{"prefix_fragment_learning"},"policy":if c.trajectory.is_some(){trajectory_policy()}else{policy()},
+        json!({"schema":if joint_spec.is_some(){"uor-r4.prefix-joint-fragment-learning/1"}else if c.trajectory.is_some(){"uor-r4.prefix-trajectory-learning/1"}else{"uor-r4.prefix-fragment-learning/1"},"status":"COMPLETED","mode":if joint_spec.is_some(){"prefix_joint_fragment_learning"}else if c.trajectory.is_some(){"prefix_trajectory_learning"}else{"prefix_fragment_learning"},"policy":if joint_spec.is_some(){joint_policy()}else if c.trajectory.is_some(){trajectory_policy()}else{policy()},
  "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"baseline_objective":baseline,"initial_original":initial,"candidate_objective":value,
- "final_gate":final_gate,"finite_prefix_positive":final_gate["finite_joint_positive"],"actual_fragment_corrected":corrected,
- "qualified_fragment":final_gate["finite_joint_positive"]==true && corrected && all_trajectory_preserved,"all_original380_preserved":c.trajectory.is_some() && all_trajectory_preserved,"protected_population":guard_frames.len(),"selected_model":false,"useful_candidate":false,
- "candidate_receipt":receipt,"parent_master_bits_restored":true,"new_prefix_gradients":if c.trajectory.is_some(){0}else{1},"prefix_backward_calls":if c.trajectory.is_some(){0}else{18},
- "new_context_gradients":0,"new_cue_gradients":0,"optimizer_updates":0,"candidate_native_steps":if c.trajectory.is_some(){381}else{18},"baseline_encoder_calls":0,"execution_lane":if c.trajectory.is_some(){"host native integer construction/reload; CPU parameter storage only for coherent artifact export; no CUDA initialization, autodiff forward/backward or accelerator training"}else{"CUDA Prefix-only coefficient gradient then native integer construction"},
+ "final_gate":final_gate,"finite_prefix_positive":final_gate["finite_joint_positive"],"objective_spec":joint_spec,"teacher_forced_joint_word":c.joint.is_some(),"actual_fragment_corrected":corrected,"all3_phase_targets_correct":if joint_spec.is_some(){json!(corrected)}else{Value::String("NOT_APPLICABLE".into())},
+ "qualified_fragment":final_gate["finite_joint_positive"]==true && corrected && all_trajectory_preserved,"all_original380_preserved":guarded && all_trajectory_preserved,"protected_population":guard_frames.len(),"selected_model":false,"useful_candidate":false,
+ "candidate_receipt":receipt,"parent_master_bits_restored":true,"new_prefix_gradients":if c.trajectory.is_some(){0}else{1},"prefix_backward_calls":if c.trajectory.is_some(){0}else{frames.len()},
+ "new_context_gradients":0,"new_cue_gradients":0,"optimizer_updates":0,"candidate_native_steps":if joint_spec.is_some(){383}else if c.trajectory.is_some(){381}else{18},"baseline_encoder_calls":0,"execution_lane":if c.trajectory.is_some(){"host native integer construction/reload; CPU parameter storage only for coherent artifact export; no CUDA initialization, autodiff forward/backward or accelerator training"}else{"CUDA Prefix-only coefficient gradient then native integer construction; frozen Generate graph autodiff, only Prefix gradients extracted"},
  "autoregressive_rollout":"NOT_RUN; parent admits cheap actual-artifact ownprefix/multiturn/original8 only after construction gate"}),
     )
 }
@@ -947,6 +1493,8 @@ pub(super) struct ArtifactConfig {
     pub retained_intermediate_root: PathBuf,
     #[serde(default)]
     pub trajectory_candidate: Option<TrajectoryArtifactAuthority>,
+    #[serde(default)]
+    pub joint_candidate: Option<TrajectoryArtifactAuthority>,
 }
 #[derive(Clone, Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -971,7 +1519,15 @@ fn validate_trajectory_artifact_authority(c: &TrajectoryArtifactAuthority) -> Re
 }
 pub(super) fn validate_artifact_settings(a: &Args) -> Result<()> {
     if let Some(c) = &a.prefix_artifact_check {
-        if let Some(t) = &c.trajectory_candidate {
+        replay_require(
+            !(c.trajectory_candidate.is_some() && c.joint_candidate.is_some()),
+            "cheap artifact endpoint modes exclusive",
+        )?;
+        if let Some(t) = c
+            .joint_candidate
+            .as_ref()
+            .or(c.trajectory_candidate.as_ref())
+        {
             validate_trajectory_artifact_authority(t)?;
         }
         replay_require(
@@ -1040,7 +1596,11 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         .prefix_artifact_check
         .as_ref()
         .ok_or_else(|| bad("Prefix artifact config absent"))?;
-    let (report_pin, seal_pin, packed_pin, master_pin) = if let Some(t) = &c.trajectory_candidate {
+    let (report_pin, seal_pin, packed_pin, master_pin) = if let Some(t) = c
+        .joint_candidate
+        .as_ref()
+        .or(c.trajectory_candidate.as_ref())
+    {
         validate_trajectory_artifact_authority(t)?;
         (
             t.expected_report_sha256.as_str(),
@@ -1057,6 +1617,49 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
         )
     };
     let report = shared::sealed(&c.retained_candidate_root, report_pin, seal_pin)?;
+    if c.joint_candidate.is_some() {
+        let gradient = read(
+            &c.retained_candidate_root
+                .join("prefix-gradient-receipt.json"),
+        )?;
+        let guard = read(
+            &c.retained_candidate_root
+                .join("final-trajectory-guards.json"),
+        )?;
+        let objective = read(
+            &c.retained_candidate_root
+                .join("joint-objective-authority.json"),
+        )?;
+        replay_require(
+            report["mode"] == "prefix_joint_fragment_learning"
+                && report["all_original380_preserved"] == true
+                && report["protected_population"] == 380
+                && report["new_prefix_gradients"] == 1
+                && report["prefix_backward_calls"] == 20
+                && report["candidate_native_steps"] == 383
+                && report["candidate_objective"]["all_phase_winners"] == true
+                && report["selected_model"] == false
+                && gradient["per_term"].as_array().is_some_and(|rows| {
+                    rows.len() == 20
+                        && rows.iter().all(|r| {
+                            r["status"] == "PRESENT"
+                                && r["bytes"] == 3840
+                                && r["missing_gradient_filled_zero"] == false
+                        })
+                })
+                && gradient["active_names"] == json!([NAME])
+                && guard["guards"] == 380
+                && guard["all_original_winners"] == true
+                && objective["tasks"].as_array().is_some_and(|r| r.len() == 3)
+                && guard["terms"].as_array().is_some_and(|rows| {
+                    rows.len() == 380
+                        && rows
+                            .iter()
+                            .all(|r| r["chosen"] == r["required_original_winner"])
+                }),
+            "joint candidate freshcredit/phase/completeguard authority differs",
+        )?;
+    }
     if c.trajectory_candidate.is_some() {
         let gradient = read(
             &c.retained_candidate_root
@@ -1103,7 +1706,9 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     )?;
     replay_require(
         report["mode"]
-            == if c.trajectory_candidate.is_some() {
+            == if c.joint_candidate.is_some() {
+                "prefix_joint_fragment_learning"
+            } else if c.trajectory_candidate.is_some() {
                 "prefix_trajectory_learning"
             } else {
                 "prefix_fragment_learning"
@@ -1277,6 +1882,16 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
     let boundary_witness = json!({"actual_prefix_comparable":comparable_prefix,
       "position4_target267":if !comparable_prefix {json!("NO_COMPARABLE_ACTUAL_PREFIX")} else if ids.len()<=4 {json!("NOT_REACHED")} else {json!(ids[4]==267)},
       "authority":"posthoc specific boundary witness; typed-oracle full reply acceptance does not require canonical tokenization"});
+    let joint_word_witness = if c.joint_candidate.is_some() {
+        let canonical: Vec<u32> = shared::dec(&old_task["canonical_target_ids_labels_only"])?;
+        json!({"phases":(4..=6).map(|position| {
+            let comparable=ids.len()>=position&&canonical.len()>position&&ids[..position]==canonical[..position];
+            json!({"position":position,"canonical_target_label_only":canonical.get(position),"actual_prefix_comparable":comparable,
+                "actual_target":if !comparable {json!("NO_COMPARABLE_ACTUAL_PREFIX")}else if ids.len()<=position {json!("NOT_REACHED")}else{json!(ids[position]==canonical[position])}})
+        }).collect::<Vec<_>>(),"scope":"posthoc token-boundary witnesses only; typed wholeanswer/EOS is qualification primary; no extra canonical inference"})
+    } else {
+        json!("NOT_APPLICABLE")
+    };
     write(
         a,
         "cheap-ownprefix-qualification.json",
@@ -1284,7 +1899,7 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
   "task245_actual_prefix_to_position4_matches_parent":ids.len()>=4 && old_ids.len()>=4 && ids[..4]==old_ids[..4],
   "task245_actual_position4_target267":new_fragment,"task245_original_complete":task_original["complete"],"task245_candidate_complete":task["complete"],
   "original_indices":retained,"evaluation_indices":indices,"evaluation":evaluation,"parent_task_row_sha256":task_original["row_sha256"],
-  "candidate_task_row_sha256":task["row_sha256"],"task245_boundary_witness":boundary_witness,"multiturn":"UNAVAILABLE_FOR_THIS_NATIVE_SOURCE_GENERATE_U_EPOCH",
+  "candidate_task_row_sha256":task["row_sha256"],"task245_boundary_witness":boundary_witness,"joint_word_boundary_witness":joint_word_witness,"multiturn":"UNAVAILABLE_FOR_THIS_NATIVE_SOURCE_GENERATE_U_EPOCH",
   "full512":"NOT_RUN","canonical":"NOT_RUN","qualification_scope":"9 exposed actual ownprefix rows only; no continuous conversation/durable memory/transfer qualification"}),
     )?;
     Ok(
@@ -1292,7 +1907,7 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
   "source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"candidate_producer_source":report["source_commit"],
   "candidate_report_sha256":report_pin,"candidate_manifest_sha256":seal_pin,
   "retained_original8":retained_all,"task245_complete_eos":complete_task,"task245_actual_position4_target267":new_fragment,
-  "qualification_positive":retained_all && complete_task,"task245_boundary_witness":boundary_witness,"actual_ownprefix_rows":9,"evaluation":evaluation,
+  "qualification_positive":retained_all && complete_task,"task245_boundary_witness":boundary_witness,"joint_word_boundary_witness":joint_word_witness,"actual_ownprefix_rows":9,"evaluation":evaluation,
   "gradient_calls":0,"optimizer_updates":0,"construction_passes":0,"fixed18_evaluation":"NOT_RUN","canonical":"NOT_RUN","full512":"NOT_RUN",
   "multiturn":"UNAVAILABLE_FOR_THIS_NATIVE_SOURCE_GENERATE_U_EPOCH","selected_model":false,"useful_candidate":false,
   "execution_lane":"host native integer generator from independently loaded fixed artifact; no CUDA model/gradient load",
@@ -1304,6 +1919,47 @@ pub(super) fn run_artifact_check(a: &Args, start: Instant) -> Result<Value> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn original_prefix_head_reconstruction_keeps_frozen_other_terms() -> Result<()> {
+        let fixed = -1234567i64;
+        let candidate = 3i64 << 22;
+        let original = -2i64 << 22;
+        assert_eq!(
+            replace_head_adjustment(fixed + candidate, candidate, original)?,
+            fixed + original
+        );
+        assert_eq!(
+            replace_head_adjustment(fixed + candidate, candidate, candidate)?,
+            fixed + candidate
+        );
+        assert!(replace_head_adjustment(i64::MAX, -1, 0).is_err());
+        Ok(())
+    }
+    #[test]
+    fn joint_guard_cache_namespace_cannot_overlap_objective() -> Result<()> {
+        let guard_keys = (0..380)
+            .map(|i| guard_cache_index(20, i))
+            .collect::<Result<BTreeSet<_>>>()?;
+        assert!(guard_keys.is_disjoint(&(0..20).collect()));
+        assert_eq!(guard_cache_index(20, 379)?, 399);
+        assert!(guard_cache_index(usize::MAX, 1).is_err());
+        Ok(())
+    }
+    #[test]
+    fn joint_spec_does_not_inherit_single_phase_probability_gate() -> Result<()> {
+        let spec = shared::ObjectiveSpec {
+            tasks: vec![(245, 4), (245, 5), (245, 6)],
+            references: 17,
+        };
+        let b = json!({"combined":4.,"task":2.,"task_target_mass":99,"task_total_mass":100});
+        let v = json!({"combined":3.,"task":1.,"correct_reference_frames":17,"all_phase_winners":true,"task_target_mass":1,"task_total_mass":100});
+        assert_eq!(
+            mode_gate(&b, &v, Some(&spec))?["finite_joint_positive"],
+            true
+        );
+        assert!(shared::improved(&b, &v)? == false);
+        Ok(())
+    }
     #[test]
     fn trajectory_csr_collapses_rows_but_keeps_physical_alias_multiplicity() -> Result<()> {
         let row = vec![

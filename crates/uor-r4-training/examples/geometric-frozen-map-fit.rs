@@ -830,6 +830,18 @@ fn args() -> Result<(Args, Vec<u8>)> {
                 ]
             }),
     )
+    .chain(
+        a.prefix_fragment_learning
+            .iter()
+            .filter_map(|c| c.joint.as_ref())
+            .flat_map(|j| {
+                [
+                    &j.p5_capture.root,
+                    &j.p6_conditional_capture.root,
+                    &j.retained_supplement_root,
+                ]
+            }),
+    )
     .chain(a.context_cue_coadapt.iter().flat_map(|c| {
         [
             &c.retained_intermediate_root,

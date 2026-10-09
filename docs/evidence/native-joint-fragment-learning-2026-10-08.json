@@ -1,0 +1,911 @@
+{
+  "schema": "uor-r4.native-joint-fragment-learning-evidence/1",
+  "status": "MEASURED_UNSELECTED_COMPLETE_ANSWER_NEGATIVE",
+  "owning_issue": 820,
+  "source_commit": "58bd97109605dbf5dad974f1c530dc30b674a8b8",
+  "source_files": [
+    {
+      "bytes": 78261,
+      "path": "crates/uor-r4-core/examples/native-reached-prefix-attribution.rs",
+      "sha256": "bbdf82e270e6babcc249cd0185d60f7dab979572970ab043d1d1aafa623e25be"
+    },
+    {
+      "bytes": 321816,
+      "path": "crates/uor-r4-training/examples/geometric-frozen-map-fit.rs",
+      "sha256": "741629d1a5cb6904242180583ce35128c2b7c3f571d7fdffdaf5737b93f23b14"
+    },
+    {
+      "bytes": 78681,
+      "path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/context_cue_coadapt.rs",
+      "sha256": "d0ea3b4e5be40a49dafe5a6eb38c505464ebec9de74bee226888d427467d6204"
+    },
+    {
+      "bytes": 101630,
+      "path": "crates/uor-r4-training/examples/geometric_frozen_map_fit/prefix_fragment_learning.rs",
+      "sha256": "7f26a8a59fd157bfb6c3de116eb577401c43599668df40e184a8a7d540c8a340"
+    }
+  ],
+  "runtime": {
+    "revision": "b0ccc95e1650019c22c037bdb59bc273813ba2c0",
+    "prefix": "codex/sol-joint-fragment-learning/runtime-58bd971096-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "b34545085cf56a569bb8db1b8bbedb3fba98842f1085e65725ceacb2efa62ca9",
+        "bytes": 2868
+      },
+      "checkpoint.md": {
+        "sha256": "ef07c3c31f7fc0b63cd8cbbf9b420a0b1217f8e992ad19829215aa74d81bf179",
+        "bytes": 416
+      },
+      "checks.log": {
+        "sha256": "9740414216b641b2e75ea1eea84e7062c613fc95a1959c1df9b2369130e76387",
+        "bytes": 21580
+      },
+      "checks.sh": {
+        "sha256": "43c1d8f5a845cc050a4a96e572ce99c306f28279cc1664299b6c695558b0a68d",
+        "bytes": 1664
+      },
+      "conditional-config.json": {
+        "sha256": "f4973eac5633cb2a8927adeff247aa1b772a7a7e936c8c76ce9fa630990a397a",
+        "bytes": 1855
+      },
+      "core-conditional-adversarial-review.json": {
+        "sha256": "879f7a094fe2a2e3db0cbc6add586fcd729663fa28237cbd77400907b97be885",
+        "bytes": 3349
+      },
+      "core-conditional-math-review.json": {
+        "sha256": "4255f8c49815f0384f1fb25f9e10bcda1c4d492e0b855203a0faa214345083bb",
+        "bytes": 2157
+      },
+      "design-adversarial-review.json": {
+        "sha256": "b135735b205f4b87262df2ad013d903953f44287af5d860fe6c17ebde3c267c6",
+        "bytes": 3452
+      },
+      "design-math-review.json": {
+        "sha256": "6a6adb320d5a52fc3b5eb4646af69f10ab5422bc63a04c9db8a6dc83bec0309b",
+        "bytes": 5596
+      },
+      "engineering-plan.json": {
+        "sha256": "5cb69413e23e84675cf06c6d55b2700b718c98bf93311b5e5020e004cbd85abf",
+        "bytes": 10112
+      },
+      "geometric-frozen-map-fit": {
+        "sha256": "62e2ae250603ed001128414eed2c45553c7b25a7ad29435a433d351cd1dcebb2",
+        "bytes": 34689680
+      },
+      "identity.json": {
+        "sha256": "61002171670f76a3c01eb02980c7b4b1e11f3a55882a2becb643b0f293f6d204",
+        "bytes": 406
+      },
+      "implementation-packet.json": {
+        "sha256": "937074fdb5307983d98aa2750ed4a7e9422ce3207caa68d30d9d1666af4d766c",
+        "bytes": 14179
+      },
+      "joint-source-adversarial-review.json": {
+        "sha256": "1e6963c91f35c81ea7be9ab8ac947455193b91ea6f1f27563f6779db7425f77d",
+        "bytes": 5135
+      },
+      "joint-source-math-review.json": {
+        "sha256": "320154bee683b9bb5610c1843fb0199d32e1c0fb280d385b6515cda49aca6d78",
+        "bytes": 5926
+      },
+      "native-reached-prefix-attribution": {
+        "sha256": "04c4e03c1bf487b228d8d42f9e83b07848d0f2e9629be4c07489b42d4b133d22",
+        "bytes": 3335936
+      },
+      "prospective-adversarial-review.json": {
+        "sha256": "ee938cb97c4722251243fcbae22c3e6830f32a010d7319800913412feeec3c5b",
+        "bytes": 5120
+      },
+      "resource-ledger.json": {
+        "sha256": "3bf6371af2174287341695b1d3abfb9af7b13b9018011f8d66fb63f3ad165d73",
+        "bytes": 1491
+      },
+      "saved-recovery-math.json": {
+        "sha256": "3066cd9778016daf591f60a4723007e66b329cc1f4557b4ccb3c124d39451d38",
+        "bytes": 10378
+      },
+      "source.tar.gz": {
+        "sha256": "aea60d3c89544e4e9f018c6651a85802e0f3c81a0be61f335cdf6280bb97af83",
+        "bytes": 99762180
+      },
+      "supervise.py": {
+        "sha256": "393532acefc51e80d52952f3a1a367785523fade6a755b16439ffc902d836115",
+        "bytes": 3740
+      },
+      "work-card.md": {
+        "sha256": "559e7b528367f1977e8c3812cf0dadc792936170dc86db2891498a6eed99a91b",
+        "bytes": 3037
+      }
+    },
+    "seconds": 33.25835059583187,
+    "completed_utc": "2026-10-09T02:39:54.578036+00:00"
+  },
+  "pregradient": {
+    "revision": "c6f99978ca486b59bdcdc115710d2d598bed5ac3",
+    "prefix": "codex/sol-joint-fragment-learning/pregradient-addendum-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "a63c4022ef2a81c2fe4afe7f8bf2c0b0d1d47a9bde245c1d816c116c0f6a0c74",
+        "bytes": 1117
+      },
+      "conditional-witness.tar.gz": {
+        "sha256": "606532017859592292bc605de9c5c90edda358868d11bb554eb4e282a05ecb4b",
+        "bytes": 370487
+      },
+      "joint-config.json": {
+        "sha256": "6e5b4b19c138d9fc856fda1802c94700b2902ed39e8124c2b978c475faa86a4a",
+        "bytes": 3538
+      },
+      "joint-source-adversarial-review.json": {
+        "sha256": "1e6963c91f35c81ea7be9ab8ac947455193b91ea6f1f27563f6779db7425f77d",
+        "bytes": 5135
+      },
+      "joint-source-math-review.json": {
+        "sha256": "320154bee683b9bb5610c1843fb0199d32e1c0fb280d385b6515cda49aca6d78",
+        "bytes": 5926
+      },
+      "p6-rust-verification.json": {
+        "sha256": "fe86563baf824ad10061f5588f8e649e4c1ed13235aa1422fd43114656e9fca7",
+        "bytes": 1158
+      },
+      "pregradient-resource-projection.json": {
+        "sha256": "ae7574ef234feacdc6230804bf5090cac76e478b0b9009d24d272b9c0607a564",
+        "bytes": 3032
+      },
+      "resource-ledger.json": {
+        "sha256": "44eb43047bf1ebb1e5095078701f70b4c490dafc90e02ce87aeb3a58ceb356d8",
+        "bytes": 6090
+      },
+      "runtime-upload.json": {
+        "sha256": "dde29e6fcb87fe376d0c3e8b3e3fe12eda33cf7dbaa0679ec1c2451d552c64f3",
+        "bytes": 3455
+      }
+    },
+    "seconds": 9.958037815988064,
+    "completed_utc": "2026-10-09T02:54:04.322266+00:00"
+  },
+  "configuration_sha256": "6e5b4b19c138d9fc856fda1802c94700b2902ed39e8124c2b978c475faa86a4a",
+  "report_verification": {
+    "status": "PASS",
+    "seconds": 2.0758542604744434,
+    "report_sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+    "manifest_sha256": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706",
+    "config_sha256": "4ebb529e58d3cdd09fba1d50bbc62d04bde4ac7e819aef840ebda37420cd64f5",
+    "packed_sha256": "7f7de09a8f8a9902bb4d7778ec78f1c31a834cd0201a9562887ae14ecb34d7a9",
+    "master_sha256": "6df8f9e4b0e08986720d33729897bfcc6c33f525b7a0de5a861a3f2d06ee9061"
+  },
+  "cheap_verification": {
+    "status": "PASS",
+    "seconds": 0.11904673278331757,
+    "report_sha256": "b8b7a88dcccc00092ff53fa8ee8e64e9d29c1ca013f4067ccc57269ae5530486",
+    "manifest_sha256": "e71a75b223986e540440b7475fbc6c7b060dba716e8237c5231cb3c169187844",
+    "execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T02:57:31.283283+00:00",
+      "ended_utc": "2026-10-09T02:57:51.347874+00:00",
+      "elapsed_seconds": 20.064617671072483,
+      "children_max_rss_kib": 404948,
+      "binary_sha256": "62e2ae250603ed001128414eed2c45553c7b25a7ad29435a433d351cd1dcebb2",
+      "config_sha256": "4ebb529e58d3cdd09fba1d50bbc62d04bde4ac7e819aef840ebda37420cd64f5",
+      "lane": "cpu-artifact"
+    }
+  },
+  "initialization": "Original selected Source9f/Prefixc2e8 actual master1e47/Generate4248/U82ae; no negative parent adoption",
+  "causal_change": "Fresh joint ordered three-phase word credit, each1/3 plus17 references each1/17; one streamed20-backward aggregatePrefix960 replaces old18 single leading fragment objective. Existing features/operators and serving unchanged.",
+  "gradient_receipt_sha256": "703e2f368ee7950bad57116da68e6e5a4fb113087ceefabcca8655d90f82ce12",
+  "gradient_sha256": "74e884fa65b47dab7955c7bbeea2b239631ed65b78be0340133d2626dfc40d7a",
+  "objective": {
+    "baseline_combined_ce": 5.020071718491739,
+    "candidate_combined_ce": 3.016548696676182,
+    "baseline_word_ce": 4.610984627348974,
+    "candidate_word_ce": 2.800196179500142,
+    "baseline_reference_ce": 0.40908709114276476,
+    "candidate_reference_ce": 0.21635251717603982,
+    "phase_targets": [
+      267,
+      307,
+      397
+    ],
+    "all_phase_winners": true,
+    "original_references": 17,
+    "original_correct_prefix_guards": 380,
+    "all_guards_preserved": true
+  },
+  "construction": {
+    "coordinates": 960,
+    "counts": {
+      "rejected": 155,
+      "accepted": 403,
+      "zero_gradient": 402
+    },
+    "new_backward_calls": 20,
+    "new_aggregate_gradients": 1,
+    "optimizer_updates": 0,
+    "reranks": 0,
+    "revisits": 0,
+    "candidate_native_reloads": 383,
+    "source_encoder_repeats": 0,
+    "frozen": "Source/Context/Potential/Cue/Generate/U/bridges; only existingPrefixcoefficients change"
+  },
+  "cheap": {
+    "actual_rows": 9,
+    "retained_original_complete_eos": 8,
+    "task_complete": false,
+    "task_eos": false,
+    "first_divergence_position": 7,
+    "desired_label": 324,
+    "actual_token": 307,
+    "actual_ids": [
+      617,
+      2097,
+      315,
+      1057,
+      267,
+      307,
+      397,
+      307,
+      2795,
+      267,
+      770,
+      397,
+      307,
+      267,
+      2394,
+      91,
+      267,
+      1074,
+      397,
+      471,
+      2903,
+      397,
+      324,
+      307,
+      770,
+      397,
+      267,
+      267,
+      471,
+      307,
+      91,
+      324
+    ],
+    "decoded": " You live in warm birchirond b orchir b platey b greenchard trumpch beir orch b bardiry be",
+    "raw_sha256": "b1ee8aca81a0b736da90d1342079799df79c72788fa41c4c90c18da4bd1a3bd5",
+    "teacher_forced_and_actual_word_match": true,
+    "selection": "UNSELECTED"
+  },
+  "scope": {
+    "full512": "NOT_RUN",
+    "final_fresh": "NOT_RUN",
+    "canonical_extra_evaluation": "NOT_RUN",
+    "multiturn": "UNAVAILABLE_FOR_THIS_NATIVE_SOURCE_GENERATE_U_EPOCH",
+    "general_language": "NOT_ESTABLISHED",
+    "geometry_advantage": "NOT_ESTABLISHED"
+  },
+  "resource": {
+    "projection": {
+      "status": "PREGRADIENT_COMPLETE_PLANNING_PROJECTION",
+      "created_utc": "2026-10-09T02:53:28.239141+00:00",
+      "source_commit": "58bd97109605dbf5dad974f1c530dc30b674a8b8",
+      "joint_config_sha256": "6e5b4b19c138d9fc856fda1802c94700b2902ed39e8124c2b978c475faa86a4a",
+      "prior_projection_sha256": "d995eca5ae46b48c14853016bafd2a14741014276a2930ab6a9f536b281b46e2",
+      "prior_projection": {
+        "actual_retained_guard_pool_bytes": 62484576,
+        "donor_cache_cap": 134217728,
+        "export_projection_margin_per_guard": 327680,
+        "metadata_allocator_margin": 33554432,
+        "numeric_cap": 536870912,
+        "numeric_pass": true,
+        "numeric_upper_bound": 389596264,
+        "objective_typed_pool_bytes": 7099200,
+        "original18_full_raw_pool_parity_before_omission": true,
+        "original377_complete_raw_summary_mass_parity_before_retention": true,
+        "original_objective_serialized_bytes_before_omission": 19397412,
+        "original_serialized_guard_native_bytes": 190469197,
+        "owner_donor_cache_cap": 268435456,
+        "process_ram_cap": 4294967296,
+        "report_cap": 536870912,
+        "report_pass": true,
+        "report_projection_bytes": 459297873,
+        "retained_objective_serialized_bytes_after_omission": 8613359,
+        "scope": "coexisting current/staged380 numericalpools, slim retainedframe authority, cache/metadata/allocator margin; no autodiff tensors in trajectorymode",
+        "temporary_cap": 536870912,
+        "typed_guard_frame_bound": 20848880
+      },
+      "new_objective_terms": 20,
+      "original_guard_count": 380,
+      "native_export_reload_count": 383,
+      "cpu_threads": 2,
+      "numeric_bytes": 430147296,
+      "numeric_cap_bytes": 536870912,
+      "report_bytes": 483767693,
+      "report_cap_bytes": 536870912,
+      "process_ram_bytes": 3124068352,
+      "process_ram_cap_bytes": 4294967296,
+      "gpu_bytes": 1428160512,
+      "gpu_note": "Prior measured fresh18 peak786MiB plus512MiB allocator reserve and64MiB additional20term storage; GPU0 RTX4090 24GiB. Only Prefix960 leaf survives gradient block; Generate graphs/cache leave scope before380 guards. RAM is planning from prior measured host380 peak, not guaranteed RSS.",
+      "temporary_cap_bytes": 268435456,
+      "retained_projection_bytes": 2430599168,
+      "retained_cap_bytes": 2684354560,
+      "retained_components_mib": {
+        "current_root": 302,
+        "model_report": 512,
+        "archive_and_fresh_verify": 1056,
+        "cheap_qualification": 256,
+        "saved_arithmetic": 64,
+        "delivery": 64,
+        "other_margin": 64
+      },
+      "stop_margin_bytes": 134217728,
+      "duration_projection_seconds": 10800,
+      "continuous_cost_from": "2026-10-09T02:01:56Z",
+      "cumulative_projected_seconds": 558870,
+      "increment": 0,
+      "scope": "Complete preparation/checks/capture/fresh20gradient/one960pass/all380guards/383reloads/cheap9wholeanswer-EOS/savedarithmetic/review/privatepreservation/protectedmerge; no full512 or repeated18 admitted. Healthy run estimates extend under standing owner authorization; disk floor and owner spend caps remain.",
+      "p6_verification_sha256": "fe86563baf824ad10061f5588f8e649e4c1ed13235aa1422fd43114656e9fca7"
+    },
+    "learning_execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T02:54:32.675685+00:00",
+      "ended_utc": "2026-10-09T02:56:42.957102+00:00",
+      "elapsed_seconds": 130.28143977373838,
+      "children_max_rss_kib": 2641524,
+      "binary_sha256": "62e2ae250603ed001128414eed2c45553c7b25a7ad29435a433d351cd1dcebb2",
+      "config_sha256": "6e5b4b19c138d9fc856fda1802c94700b2902ed39e8124c2b978c475faa86a4a",
+      "lane": "cuda-learning"
+    },
+    "cheap_execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T02:57:31.283283+00:00",
+      "ended_utc": "2026-10-09T02:57:51.347874+00:00",
+      "elapsed_seconds": 20.064617671072483,
+      "children_max_rss_kib": 404948,
+      "binary_sha256": "62e2ae250603ed001128414eed2c45553c7b25a7ad29435a433d351cd1dcebb2",
+      "config_sha256": "4ebb529e58d3cdd09fba1d50bbc62d04bde4ac7e819aef840ebda37420cd64f5",
+      "lane": "cpu-artifact"
+    },
+    "local": "POD_ONLY"
+  },
+  "checks": {
+    "status": "PASS",
+    "head": "58bd97109605dbf5dad974f1c530dc30b674a8b8",
+    "tests_training": 91,
+    "tests_core": 16,
+    "log": "20261009T023346Z-sol-prototype-20261008-gpu0.log",
+    "log_sha256": "9740414216b641b2e75ea1eea84e7062c613fc95a1959c1df9b2369130e76387",
+    "native_binary_sha256": "04c4e03c1bf487b228d8d42f9e83b07848d0f2e9629be4c07489b42d4b133d22",
+    "training_binary_sha256": "62e2ae250603ed001128414eed2c45553c7b25a7ad29435a433d351cd1dcebb2"
+  },
+  "independent_saved_arithmetic": {
+    "status": "PASS",
+    "reader_runtime": {
+      "revision": "c24b0835b27b62ab3ef823946fd25d99c3c43e3b",
+      "prefix": "codex/sol-joint-fragment-learning/reader-runtime-7c7030e5-attempt1",
+      "all_fresh_download_verified": true,
+      "files": {
+        "SHA256-manifest.json": {
+          "sha256": "12692f7d1dac0d9917a831ce5282137c8eaaba6e03d47d8b2c1a3e925c2ab1e5",
+          "bytes": 1019
+        },
+        "authenticated-prefix-credit-module.py": {
+          "sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+          "bytes": 37590
+        },
+        "authenticated-prefix-fragment-audit.py": {
+          "sha256": "e104064ebb4118406e384ae02a484d27216163d907186f922c4935bde0938e31",
+          "bytes": 21747
+        },
+        "cheap-rust-verification.json": {
+          "sha256": "5fca0055fadbb14c86cc4c0b2e79b17589b40bb7b26bdbc937e5fad010d535cb",
+          "bytes": 667
+        },
+        "joint-independent-reader.py": {
+          "sha256": "7c7030e5ecd90780c6ed24fe19afbafb6d98e8194345d5576dfbb8a7689a0d46",
+          "bytes": 41020
+        },
+        "joint-rust-verification.json": {
+          "sha256": "0831695f95ae7efa9becdb496d9be6b0854a83c485eb1c114a76dfb1015306ea",
+          "bytes": 493
+        },
+        "pregradient-resource-projection.json": {
+          "sha256": "ae7574ef234feacdc6230804bf5090cac76e478b0b9009d24d272b9c0607a564",
+          "bytes": 3032
+        },
+        "reader-adversarial-review.json": {
+          "sha256": "fb94bf966f21045b25c5c49b1386ffab74d91f8686318cbb44e723fee62f414a",
+          "bytes": 3215
+        }
+      },
+      "seconds": 5.92034637928009,
+      "completed_utc": "2026-10-09T03:05:55.546650+00:00"
+    },
+    "verification": {
+      "status": "PASS",
+      "seconds": 0.037201303988695145,
+      "result_sha256": "25e70162aaafc0398b1ece92ac5a73c6c57bd7f71f292cb1b47a36334b55bb1d",
+      "manifest_sha256": "6cdc1b1872e6a9b15a085bfe29fd7f495d141b6fbd2bad0a4ffde5c3cd71ccf7",
+      "execution": {
+        "status": "PASS",
+        "exit_code": 0,
+        "elapsed_seconds": 468.8973037675023,
+        "max_rss_kib": 1067808,
+        "reader_sha256": "7c7030e5ecd90780c6ed24fe19afbafb6d98e8194345d5576dfbb8a7689a0d46",
+        "completed_utc": "2026-10-09T03:14:15.723825+00:00",
+        "scope": "Independent saved20 rawgradient/order960 guarded transactions380 and383 reload algebra; saved9 typedwholeanswer/EOS. No encoder/backward/native inference/newgradient/proposals."
+      }
+    },
+    "measured": {
+      "schema": "uor-r4.prefix-joint-fragment-independent-audit/1",
+      "status": "PASS",
+      "source": "58bd97109605dbf5dad974f1c530dc30b674a8b8",
+      "report_sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+      "reader_sha256": "7c7030e5ecd90780c6ed24fe19afbafb6d98e8194345d5576dfbb8a7689a0d46",
+      "import_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+      "fresh_gradient_terms": 20,
+      "ranked_coordinates": 960,
+      "protected_population": 380,
+      "reloaded_unique_frames": 383,
+      "accepted": 403,
+      "scored_pool_evaluations": 26060,
+      "additional_snapshot_fullpool_validations": 782,
+      "cache_entry_cap_each": 1024,
+      "peak_rss_bytes": 1093435392,
+      "final_gate": {
+        "finite_joint_positive": true,
+        "combined_ce_descent": true,
+        "word_conditional_ce_descent": true,
+        "all3_phase_winners": true,
+        "all17_reference_winners": true,
+        "strict_ce_tolerance": "1e-10*(1+abs(original_CE))",
+        "scope": "teacher-forced ordered word; actual wholeanswer/EOS separate"
+      },
+      "fragment_corrected": true,
+      "elapsed_seconds": 468.50964176282287,
+      "scope": "Independent saved integer algebra/fullpool/physical incidence/fresh saved rawgradient/rank/transaction/export and383 snapshot audit. No encoder/backward/newgradient/proposal/native or autoregressive execution. In-RAM restoration only producer receipt. Complete BLAKE3 seals verified separately by Rust. Separately authenticated saved actual9 typed membership/EOS and emitted chains; no rerun."
+    },
+    "limitations": "Saved finite arithmetic and output consistency; no independent encoder/autodiff/AR rerun; in-RAM restoration remains producer receipt; complete BLAKE3 separately verified by Rust."
+  },
+  "protected_delivery": "PENDING at this source snapshot; actual protected merge and fresh origin/main source/tree verification are required and recorded on owning issue820 and private closure receipt.",
+  "next_dependency": "After actual protected delivery, authenticate saved original canonical position7 authority and reuse a complete full witness if present. Recover only a missing target-free candidate full witness; invert original Prefix changes only if full canonical parity succeeds. Compare physical progression incidence, donor-conditioned Generate, U and full alias pools to decide sequence/episode identity versus local competition. No p7 single-token loss append, repeated dose/pass, cursor or automatic full512.",
+  "reviews": {
+    "result-math-review.json": {
+      "actual_independent_audit": {
+        "accepted": 403,
+        "actual_Rust_complete_file_verify_seconds": 0.037201303988695145,
+        "additional_full_snapshot_validations": 782,
+        "elapsed_supervised_seconds": 468.8973037675023,
+        "frozen_coordinates": 960,
+        "full_pool_evaluations": 26060,
+        "manifest_sha256": "6cdc1b1872e6a9b15a085bfe29fd7f495d141b6fbd2bad0a4ffde5c3cd71ccf7",
+        "reader_sha256": "7c7030e5ecd90780c6ed24fe19afbafb6d98e8194345d5576dfbb8a7689a0d46",
+        "rss_kib": 1067808,
+        "source": "58bd97109605dbf5dad974f1c530dc30b674a8b8",
+        "status": "PASS",
+        "unique_native_reload_frames": 383,
+        "weighted_fresh_gradient_terms": 20,
+        "zero_weight_original_guards": 380
+      },
+      "exact_used_inputs": {
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/audit-rust-verification.json": {
+          "bytes": 706,
+          "sha256": "219045a9c710c6e1e689b2f2c7e6fad2d858b4cd74da0c5e6b75e3eb0a964d0f"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/audits/attempt1/execution.json": {
+          "bytes": 440,
+          "sha256": "433d2fa5f873c8c991d6713fda9f7355ccb166b37d5ca523eccd3b71b30419fc"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/audits/attempt1/manifest.json": {
+          "bytes": 904,
+          "sha256": "6cdc1b1872e6a9b15a085bfe29fd7f495d141b6fbd2bad0a4ffde5c3cd71ccf7"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/audits/attempt1/result.json": {
+          "bytes": 6432,
+          "sha256": "25e70162aaafc0398b1ece92ac5a73c6c57bd7f71f292cb1b47a36334b55bb1d"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/implementation-packet.json": {
+          "bytes": 14179,
+          "sha256": "937074fdb5307983d98aa2750ed4a7e9422ce3207caa68d30d9d1666af4d766c"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/joint-independent-reader.py": {
+          "bytes": 41020,
+          "sha256": "7c7030e5ecd90780c6ed24fe19afbafb6d98e8194345d5576dfbb8a7689a0d46"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0008.json": {
+          "bytes": 39401,
+          "sha256": "b1ee8aca81a0b736da90d1342079799df79c72788fa41c4c90c18da4bd1a3bd5"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/qualifications/ownfeedback-0001-attempt1/manifest.json": {
+          "bytes": 2767,
+          "sha256": "e71a75b223986e540440b7475fbc6c7b060dba716e8237c5231cb3c169187844"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/qualifications/ownfeedback-0001-attempt1/report.json": {
+          "bytes": 7527,
+          "sha256": "b8b7a88dcccc00092ff53fa8ee8e64e9d29c1ca013f4067ccc57269ae5530486"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/reader-adversarial-review.json": {
+          "bytes": 3215,
+          "sha256": "fb94bf966f21045b25c5c49b1386ffab74d91f8686318cbb44e723fee62f414a"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/joint-fragment-0001-attempt1/manifest.json": {
+          "bytes": 80917,
+          "sha256": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706"
+        },
+        "/workspace/uor-r4/codex/sol-joint-fragment-learning/runs/joint-fragment-0001-attempt1/report.json": {
+          "bytes": 102804,
+          "sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8"
+        }
+      },
+      "fixed_objective": {
+        "baseline_combined_ce": 5.020071718491739,
+        "baseline_reference_ce": 0.40908709114276476,
+        "baseline_word_ce": 4.610984627348974,
+        "candidate_combined_ce": 3.016548696676182,
+        "candidate_reference_ce": 0.21635251717603982,
+        "candidate_word_ce": 2.800196179500142,
+        "final_gate": {
+          "all17_reference_winners": true,
+          "all3_phase_winners": true,
+          "combined_ce_descent": true,
+          "finite_joint_positive": true,
+          "scope": "teacher-forced ordered word; actual wholeanswer/EOS separate",
+          "strict_ce_tolerance": "1e-10*(1+abs(original_CE))",
+          "word_conditional_ce_descent": true
+        },
+        "guards_weight": 0,
+        "phase_receipts": [
+          {
+            "donor": 7,
+            "position": 4,
+            "target": 267,
+            "target_mass": 2150760253,
+            "total_mass": 24480002964,
+            "weighted_ce": 0.8106783976801167
+          },
+          {
+            "donor": 8,
+            "position": 5,
+            "target": 307,
+            "target_mass": 2156997901,
+            "total_mass": 23340078011,
+            "weighted_ce": 0.7938181916435625
+          },
+          {
+            "donor": 9,
+            "position": 6,
+            "target": 397,
+            "target_mass": 2160203478,
+            "total_mass": 78046218070,
+            "weighted_ce": 1.1956995901764627
+          }
+        ],
+        "phase_weight": "1/3 each",
+        "reference_weight": "1/17 each",
+        "references": 17,
+        "three_task_phases": [
+          [
+            245,
+            4,
+            267
+          ],
+          [
+            245,
+            5,
+            307
+          ],
+          [
+            245,
+            6,
+            397
+          ]
+        ]
+      },
+      "interpretation": {
+        "actual_first_divergence": {
+          "actual_prefix_ids": [
+            617,
+            2097,
+            315,
+            1057,
+            267,
+            307,
+            397
+          ],
+          "actual_token": 307,
+          "canonical_target_label_only": 324,
+          "position": 7
+        },
+        "actual_original8_complete_typed_EOS_retained": true,
+        "actual_task_complete_typed_EOS": false,
+        "actual_task_eos": false,
+        "actual_task_output_length": 32,
+        "actual_three_ordered_fragment_targets_reached": true,
+        "all17_reference_winners_preserved": true,
+        "all380_original_winners_preserved": true,
+        "conclusion": "Fresh joint phase credit corrected the ordered b/ir/ch conditional winners and those exact phases occurred under actual emitted feedback, while the complete answer remained incorrect and nonterminating. Original8 retention and finite original380 preservation do not cover the newly reached position7, which was not an original-correct guard or one of the three loss phases.",
+        "finite_construction_positive": true,
+        "qualification_positive": false,
+        "selected_model": false,
+        "useful_candidate": false
+      },
+      "limitations": [
+        "Independent saved finite arithmetic, raw-gradient aggregation/order and exported payload checks do not independently replicate the encoder, backward derivative, detached donor surrogate or actual autoregressive execution.",
+        "The native full-pool snapshots are authenticated measured outputs; the reader reconstructs finite algebra from their saved states.",
+        "In-RAM parent restoration is a producer receipt, not independent live memory observation.",
+        "Actual9 evaluation is exposed development evidence; full512, held-out transfer and multiturn are NOT_RUN or UNAVAILABLE as declared.",
+        "Protected delivery remains pending at receipt creation; no successor compute is admitted before actual merge."
+      ],
+      "new_work_performed_by_this_review": "Read only declared saved JSON/hash receipts and wrote this unique review. No reducer/model/encoder/gradient/audit re-execution.",
+      "next_causal_discriminator_after_protected_merge_only": {
+        "action_boundary": "If independent progression distinctions exist but the target offset remains undercredited at an untrained subsequent boundary, a prospective shared sequence/continuation objective covering that declared boundary and preserving the original generic population is justified. It must use fresh credit for a materially changed objective, rather than reusing this20 gradient, extending the same pass, or rescuing a posthoc intermediate. If distinctions coincide or another channel dominates, review that measured consumption/credit boundary before choosing more Prefix learning. No fit is admitted by this review.",
+        "decisive_saved_outputs": "Compare original versus candidate at the identical conditional prefix, including direct Prefix displacement by physical occurrence, target aliases versus every actual rival alias, earliest BASE donor and derived Generate, shared U, clip status, and mixed original/candidate Generate-Copy controls. Attribute improvement or regression only relative to the measured original conditional winner; an original wrong winner is not a newly caused loss.",
+        "first_dependency": "Recover original selected canonical position7 authority and any complete native witness from the authenticated lineage; current20 and380 snapshots do not by themselves supply this newly reached full pool. Inspect saved existing files before admitting any capture.",
+        "minimal_missing_witness": "A target-free candidate full position7 frame, with saved actual-prefix/summary/U parity, all physical occurrence/version/offset identities, all8 unmasked Prefix keys and per-head BASECopy scores, earliest BASE donor, bridge/post-state, all4096 BASEGenerate/U/Generate and physical Copy vectors. Original reconstruction is permissible only if frozen Source/Cue/Context/G/U and Prefix inversion independently reproduce the original canonical post/Gdigest/U/CopyIDs/summary/target mass; otherwise mark original matched decomposition UNAVAILABLE and seek the specifically missing authority.",
+        "not_supported": "No cursor, token-specific serving branch, next-coordinate search, repeated dose/seed/order, global representation or capacity retirement, guaranteed sequence fix, general conversation/memory or energy claim.",
+        "question": "At the newly actually reached position7 with prefix [617,2097,315,1057,267,307,397], is desired324 versus emitted307 a preexisting conditional competition or a Prefix-induced change, and is the decisive obstruction physical occurrence progression, donor-conditioned Generate, or the fixed U/full-alias competition?"
+      },
+      "review_role": "Saved-result and receipt interpretation; no re-execution",
+      "schema": "uor-r4.prefix-joint-fragment-result-math-review/1",
+      "source_commit": "58bd97109605dbf5dad974f1c530dc30b674a8b8",
+      "source_file_sha256": {
+        "core": "bbdf82e270e6babcc249cd0185d60f7dab979572970ab043d1d1aafa623e25be",
+        "main": "741629d1a5cb6904242180583ce35128c2b7c3f571d7fdffdaf5737b93f23b14",
+        "prefix": "7f26a8a59fd157bfb6c3de116eb577401c43599668df40e184a8a7d540c8a340",
+        "shared": "d0ea3b4e5be40a49dafe5a6eb38c505464ebec9de74bee226888d427467d6204"
+      },
+      "status": "PASS"
+    },
+    "result-adversarial-review.json": {
+      "status": "PASS_SAVED_RESULT_REVIEW",
+      "created_utc": "2026-10-09T03:02:54.754824+00:00",
+      "source_commit": "58bd97109605dbf5dad974f1c530dc30b674a8b8",
+      "used_files": {
+        "runs/joint-fragment-0001-attempt1/report.json": {
+          "sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+          "bytes": 102804
+        },
+        "runs/joint-fragment-0001-attempt1/prefix-construction.json": {
+          "sha256": "dee60d6d8a3e090f94657d8a489df160f96b1a62303ab7338c83056d03f8ec7b",
+          "bytes": 35849564
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-qualification.json": {
+          "sha256": "7aea87e35a4bd4ea141ab88fa4845c3afd6dc2560aa9293e79928ee73ae00ec8",
+          "bytes": 4642
+        },
+        "observations/joint-fragment-0001-attempt1/execution.json": {
+          "sha256": "070cdf970f17b249f129282147f6e7239e50bb50130a632bf2daafd13bf984f0",
+          "bytes": 402
+        },
+        "joint-rust-verification.json": {
+          "sha256": "0831695f95ae7efa9becdb496d9be6b0854a83c485eb1c114a76dfb1015306ea",
+          "bytes": 493
+        },
+        "pregradient-resource-projection.json": {
+          "sha256": "ae7574ef234feacdc6230804bf5090cac76e478b0b9009d24d272b9c0607a564",
+          "bytes": 3032
+        },
+        "pregradient-upload.json": {
+          "sha256": "4568bc51f819fee234057fe6c76fcbe549cd5d4761cd4d268196dcf42c7bc9c1",
+          "bytes": 1602
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0000.json": {
+          "sha256": "593e1e8f509e4dce11a3fe504b74673809cf63667bffbb8da5193674060136f6",
+          "bytes": 13190
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0001.json": {
+          "sha256": "54a9901a529d7c9b7ccf6417f85eccbe968de08e6c77575990cc42ff4c39e68f",
+          "bytes": 12023
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0002.json": {
+          "sha256": "256b997ac9140203f684e5f0c8e0993ba42992cda02642c44db8e9003b3b32ad",
+          "bytes": 13177
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0003.json": {
+          "sha256": "a666bb0c06d639a573ee0e664e78932ab9b2a2d8b5bc70498abf1ae311b4b923",
+          "bytes": 12022
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0004.json": {
+          "sha256": "2e4361c131a4551fac151ddaf2873bd89fc91122de92e958ecbcb1f77963bab3",
+          "bytes": 12025
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0005.json": {
+          "sha256": "656f134341ec7f6b48c7020fd512e979a8d1e23a9e81a2a82085237b8af26698",
+          "bytes": 13183
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0006.json": {
+          "sha256": "1e8736bbf559e807aee730e57f2c28ab480ad289822e246704837ec896cc47b6",
+          "bytes": 12022
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0007.json": {
+          "sha256": "bae97c9bec651852065ee451e47341b777c87274ceeb04d4a3720782aabefe0b",
+          "bytes": 13197
+        },
+        "qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0008.json": {
+          "sha256": "b1ee8aca81a0b736da90d1342079799df79c72788fa41c4c90c18da4bd1a3bd5",
+          "bytes": 39401
+        },
+        "audits/attempt1/result.json": {
+          "sha256": "25e70162aaafc0398b1ece92ac5a73c6c57bd7f71f292cb1b47a36334b55bb1d",
+          "bytes": 6432
+        },
+        "audits/attempt1/execution.json": {
+          "sha256": "433d2fa5f873c8c991d6713fda9f7355ccb166b37d5ca523eccd3b71b30419fc",
+          "bytes": 440
+        },
+        "audits/attempt1/manifest.json": {
+          "sha256": "6cdc1b1872e6a9b15a085bfe29fd7f495d141b6fbd2bad0a4ffde5c3cd71ccf7",
+          "bytes": 904
+        },
+        "audit-rust-verification.json": {
+          "sha256": "219045a9c710c6e1e689b2f2c7e6fad2d858b4cd74da0c5e6b75e3eb0a964d0f",
+          "bytes": 706
+        }
+      },
+      "scope": "Saved report/provenance and nine persisted actual row consistency only. No native scoring, reducer, encoder, gradient, training, audit-reader execution or inference performed by reviewer. Actual Rust full-file verification is separately reported by parent, not independently repeated here.",
+      "independent_arithmetic_audit": "PASS_ACTUAL_SINGLE_SAVED_EXECUTION",
+      "evidence": {
+        "fresh_prefix_backward_calls": 20,
+        "native_reload_steps": 383,
+        "baseline_combined_ce": 5.020071718491739,
+        "candidate_combined_ce": 3.016548696676182,
+        "baseline_word_ce": 4.610984627348974,
+        "candidate_word_ce": 2.800196179500142,
+        "final_gate": {
+          "all17_reference_winners": true,
+          "all3_phase_winners": true,
+          "combined_ce_descent": true,
+          "finite_joint_positive": true,
+          "scope": "teacher-forced ordered word; actual wholeanswer/EOS separate",
+          "strict_ce_tolerance": "1e-10*(1+abs(original_CE))",
+          "word_conditional_ce_descent": true
+        },
+        "all_original380_preserved": true,
+        "retained_complete_original8": true,
+        "task_first_error": {
+          "position": 7,
+          "desired": 324,
+          "actual": 307,
+          "correct_prefix": [
+            617,
+            2097,
+            315,
+            1057,
+            267,
+            307,
+            397
+          ],
+          "generated_length": 32,
+          "eos": false
+        },
+        "selected_model": false,
+        "useful_candidate": false,
+        "pregradient_projection_and_fresh_private_verify_before_launch": true,
+        "actual_execution": {
+          "exit_code": 0,
+          "started_utc": "2026-10-09T02:54:32.675685+00:00",
+          "ended_utc": "2026-10-09T02:56:42.957102+00:00",
+          "elapsed_seconds": 130.28143977373838,
+          "children_max_rss_kib": 2641524,
+          "binary_sha256": "62e2ae250603ed001128414eed2c45553c7b25a7ad29435a433d351cd1dcebb2",
+          "config_sha256": "6e5b4b19c138d9fc856fda1802c94700b2902ed39e8124c2b978c475faa86a4a",
+          "lane": "cuda-learning"
+        },
+        "separate_rust_verification": {
+          "status": "PASS",
+          "seconds": 2.0758542604744434,
+          "report_sha256": "f9fb7f9b6733082d29a9065e8eb2712a3b0a614c230be16892ba03ca37952ef8",
+          "manifest_sha256": "f7d8e706576c65bcf1f24dbd4baa62ed646449b2dad9326ef392de21e99d5706",
+          "config_sha256": "4ebb529e58d3cdd09fba1d50bbc62d04bde4ac7e819aef840ebda37420cd64f5",
+          "packed_sha256": "7f7de09a8f8a9902bb4d7778ec78f1c31a834cd0201a9562887ae14ecb34d7a9",
+          "master_sha256": "6df8f9e4b0e08986720d33729897bfcc6c33f525b7a0de5a861a3f2d06ee9061"
+        }
+      },
+      "claim_boundaries": [
+        "Three conditional phase winners and actual first seven correct tokens establish finite ordered-fragment progress, not complete reply or sequence-level qualification.",
+        "Position6 baseline was canonical conditional input; actual candidate reaches it after earlier successes, but full sequence remains wrong.",
+        "Actual single independent saved arithmetic audit confirms20 weighted raw terms/960 ranks and transactional proposals/380 guards/383 reloads. No independent encoder/backward or autoregressive execution.",
+        "No general chat, heldout, transfer, capacity, geometric advantage or energy claim; full512 NOT_RUN.",
+        "Candidate unselected; protected delivery still pending."
+      ],
+      "successor_recommendation": {
+        "status": "PROSPECTIVE_ONLY_AFTER_ACTUAL_MERGE",
+        "question": "Does the trained phase-conditioned Prefix readout encode ordered source-span progress or only three local token competitions? Determine whether the next actual boundary loses episode/sequence identity, rather than treating another missing label as the mechanism.",
+        "minimal_evidence": "Reuse existing saved original/candidate trajectories and phase native states, Prefix relative-key incidence, physical source occurrence identity and donor/U evidence. Recover any missing full actual next-boundary witness only if necessary, then compare phase states and ordered source-span progression without another gradient or dose.",
+        "distinct_decisions": [
+          "Evidence of identity/phase aliasing or lack of ordered span signal justifies a generic episode/sequence-credit mechanism question with prospectively frozen whole-answer criteria.",
+          "If source-span identity remains distinguishable but coefficients fail competition, diagnose that bounded scoring question; do not infer representation incapacity.",
+          "If evidence remains unresolved, no repeated pass or p7 single-token append is admitted."
+        ],
+        "prohibited_inferences": [
+          "No cursor or row/token-specific serving rule.",
+          "No automatic full512 campaign.",
+          "No promotion of negative ownfeedback candidate."
+        ]
+      },
+      "audit_addendum": {
+        "created_utc": "2026-10-09T03:15:50.151505+00:00",
+        "superseded_pending_review": {
+          "file": "result-adversarial-review-before-audit.json",
+          "sha256": "0106af90f8c82b5b58c2b0e05677521376877458354b251c8c609de43cfa63db",
+          "bytes": 7725
+        },
+        "result_sha256": "25e70162aaafc0398b1ece92ac5a73c6c57bd7f71f292cb1b47a36334b55bb1d",
+        "manifest_sha256": "6cdc1b1872e6a9b15a085bfe29fd7f495d141b6fbd2bad0a4ffde5c3cd71ccf7",
+        "execution": {
+          "status": "PASS",
+          "exit_code": 0,
+          "elapsed_seconds": 468.8973037675023,
+          "max_rss_kib": 1067808,
+          "reader_sha256": "7c7030e5ecd90780c6ed24fe19afbafb6d98e8194345d5576dfbb8a7689a0d46",
+          "completed_utc": "2026-10-09T03:14:15.723825+00:00",
+          "scope": "Independent saved20 rawgradient/order960 guarded transactions380 and383 reload algebra; saved9 typedwholeanswer/EOS. No encoder/backward/native inference/newgradient/proposals."
+        },
+        "rust_verification": {
+          "status": "PASS",
+          "seconds": 0.037201303988695145,
+          "result_sha256": "25e70162aaafc0398b1ece92ac5a73c6c57bd7f71f292cb1b47a36334b55bb1d",
+          "manifest_sha256": "6cdc1b1872e6a9b15a085bfe29fd7f495d141b6fbd2bad0a4ffde5c3cd71ccf7",
+          "execution": {
+            "status": "PASS",
+            "exit_code": 0,
+            "elapsed_seconds": 468.8973037675023,
+            "max_rss_kib": 1067808,
+            "reader_sha256": "7c7030e5ecd90780c6ed24fe19afbafb6d98e8194345d5576dfbb8a7689a0d46",
+            "completed_utc": "2026-10-09T03:14:15.723825+00:00",
+            "scope": "Independent saved20 rawgradient/order960 guarded transactions380 and383 reload algebra; saved9 typedwholeanswer/EOS. No encoder/backward/native inference/newgradient/proposals."
+          }
+        },
+        "confirmed_counts": {
+          "fresh_gradient_terms": 20,
+          "ranked_coordinates": 960,
+          "protected_population": 380,
+          "reloaded_unique_frames": 383,
+          "accepted": 403,
+          "scored_pool_evaluations": 26060,
+          "additional_snapshot_fullpool_validations": 782
+        },
+        "actual_qualification": {
+          "report_sha256": "b8b7a88dcccc00092ff53fa8ee8e64e9d29c1ca013f4067ccc57269ae5530486",
+          "retained_original8": true,
+          "task_complete_eos": false,
+          "qualification_positive": false,
+          "actual_first_canonical_divergence": {
+            "position": 7,
+            "actual_prefix_ids": [
+              617,
+              2097,
+              315,
+              1057,
+              267,
+              307,
+              397
+            ],
+            "actual_token": 307,
+            "canonical_target_label_only": 324
+          },
+          "scope": "saved own-emitted prefix/typed membership/EOS evidence; no independent encoder/AR execution"
+        },
+        "scope": "Read saved result/execution/verification and match exact evidence identities only; no audit arithmetic or model rerun. Existing negative qualification, unselected status and prospective successor boundaries unchanged. Delivery remains pending."
+      }
+    }
+  },
+  "preservation": {
+    "revision": "1df1128a33e601d69ca6fe46f1ce69191e882d45",
+    "prefix": "codex/sol-joint-fragment-learning/complete-attempt1",
+    "all_fresh_download_verified": true,
+    "files": {
+      "SHA256-manifest.json": {
+        "sha256": "e93594a5074f9dd0b98560fac9f32c1503b8a1189d50a7eedf19eed22545bba9",
+        "bytes": 135
+      },
+      "evidence.tar.gz": {
+        "sha256": "770306a29ce9435851af580034c45df0f94230e6801c39e34e78ad283b363943",
+        "bytes": 43339995
+      }
+    },
+    "seconds": 47.23660020530224,
+    "completed_utc": "2026-10-09T03:17:47.754952+00:00"
+  }
+}
