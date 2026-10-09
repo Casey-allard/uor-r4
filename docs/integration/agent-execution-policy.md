@@ -188,8 +188,10 @@ support for a concrete design question.
 Both conversation/memory and coding/reasoning are alpha goals. Continue within
 the owner's authorized objective, including necessary successive tasks when the
 whole plan is requested. An old one-task stop or historical blocker does not
-shrink that authorization. Use an isolated full worktree, coordinate file
-ownership and deliver through protected pull requests.
+shrink that authorization. Coordinate file ownership and deliver through protected pull requests. A separate
+branch or isolated worktree is optional for development. Verify each deliverable
+on fresh origin/main and clear its redundant workspace and delivery branches
+before starting its successor (owner direction, October 9).
 
 ## Learning and budget
 

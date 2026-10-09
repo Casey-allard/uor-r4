@@ -71,9 +71,12 @@ an accidental large write.
 
 Cleanup operates by manifest: canonical path, volume identity, bytes/class,
 owner, last use, live process handles, Git status/upstream/merge state, unique
-artifacts, and reconstruction source. Post a **two-hour notice** on #820 and the
-affected board before removing lab-owned regenerable caches or clean merged
-worktrees. After the notice, revalidate inactivity and scope. Use normal
+artifacts, and reconstruction source. Post a **two-hour notice** on #820 and the affected board before routine
+cleanup without current owner authorization. The owner’s October 9 request
+authorizes immediate verified cleanup of redundant Codex workspaces and branches
+after their work is reconciled into main; it does not authorize deleting another
+lab’s active or unique work. Revalidate inactivity and scope immediately before
+cleanup. Use normal
 `git worktree remove`, without `--force`, only for proven clean/merged worktrees;
 preserve ignored unique material first. Delete only the identified regenerable
 class. Do not prune worktree metadata while recovery mapping is unresolved.

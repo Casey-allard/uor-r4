@@ -1,5 +1,19 @@
 # AGENTS.md — UOR-R4 Geometric Language Model
 
+> **Owner direction, October 9 — main consolidation and workspace cleanup:**
+> `origin/main` is the shared source of truth for every participant. Finish and
+> verify the protected merge of each deliverable before starting its successor,
+> then clear its redundant local workspace and delivery branches. Branches are
+> temporary transport for protected delivery, not alternate research authorities.
+> A separate branch or isolated worktree is not mandatory for development; use
+> one only where concurrent ownership or protected delivery requires it. Preserve
+> unique source, accepted and negative evidence, and other labs’ active work
+> before cleanup. Reconcile older unmerged work into main with explicit retained,
+> superseded, unfinished or validated status; do not promote it by merging it.
+> Work retained rather than activated lands as indexed source patches or a
+> restorable source bundle on main. The sole standing branch exception is
+> `codex/lab-state`, the operational coordination record with no research work.
+
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
 > for the owner-authorized continuation; other historical lab assignments are
@@ -9,22 +23,6 @@
 > is advisory; use the documented manual fallback when deployment is unverified.
 > Scientific integrity, D11/D5, unique-material preservation, live job ownership
 > and resource admission remain. See [D19](docs/integration/DECISIONS.md#d19--grounded-conversation-and-durable-memory-first).
-
-> **Owner direction, October 9 — `origin/main` is the single source of truth.**
-> All work is merged into `main` before anything else starts. A branch is only
-> the transport for one pull request (main's ruleset requires a PR) and is
-> deleted as soon as that PR merges, normally in the same session. Do not keep
-> long-lived lab, director, review, evidence, merge-train or stacked branches:
-> review a PR in a throwaway worktree and delete it afterwards. Work that will
-> not land as code (negative, superseded or abandoned) still lands in `main`,
-> as a patch plus an index row in
-> [docs/history/branch-archive/](docs/history/branch-archive/INDEX.md), so
-> nothing exists only on a branch. After each merge: verify it on fresh
-> `origin/main`, delete the branch on GitHub and locally, remove the worktree
-> and clear used local outputs (iCloud via `cloud-store put`). Never start new
-> work while your own completed work is unmerged. The one standing exception
-> is the `codex/lab-state` coordination record, which holds no research work.
-> This overrides any older text below that asks to preserve branches.
 
 **Owner clarification, September 19:** D0-b, D1 and D2 in [DECISIONS.md](docs/integration/DECISIONS.md) are owner-approved. D0-b supersedes the old blanket prohibition on additive mathematical linear maps. Offline Rust training may use matrix multiplication. The [takeover review](docs/integration/takeover-review-2026-09-19.md) and latest current-state entry reconcile the three model paths and the next bounded task; dated experiment instructions do not override them.
 
@@ -40,7 +38,7 @@ Read [README](README.md) → [STATUS](STATUS.md) → [lab entry](docs/labs/READM
 
 Register and claim work before mutation; heartbeat every five minutes, use twenty-minute leases and checkpoint recoverable source/jobs/artifacts at least every thirty minutes and before quota/compaction/disconnect. Expiry means suspect: verify worker liveness before takeover. Use the admitted runner only after its deployment is verified; adapter/manual/UNVERIFIED status must be explicit. Check live recovery issue #1520 before affected SSD work. Resource admission limits jobs, not the number of labs. Publish completed work and the next dependency on GitHub continuously, using protected PRs and exact-head independent review. README remains a curated research overview, not the running journal.
 
-Refresh `origin/main`, the relevant live issues/PRs, artifact identities and cumulative resource/storage receipts. Use an isolated full worktree. Preserve the owner's original checkout and all unique research/artifacts. Reuse the [source audit](docs/integration/architecture-2026-09/README.md) and inspect the particular mechanism source; do not repeat the broad audit for routine development. Coordinate independent subtasks with explicit file ownership when useful.
+Refresh `origin/main`, the relevant live issues/PRs, artifact identities and cumulative resource/storage receipts. Choose a workspace that respects current file ownership; an isolated worktree is optional. Preserve the owner's original checkout and all unique research/artifacts. Reuse the [source audit](docs/integration/architecture-2026-09/README.md) and inspect the particular mechanism source; do not repeat the broad audit for routine development. Coordinate independent subtasks with explicit file ownership when useful.
 
 ## Native geometric AI agent policy
 
@@ -67,8 +65,8 @@ invariants still apply to the runtime where they are declared.
   actual source when adopting a mechanism.
 - Continue within the owner's authorized objective. A request for the whole
   plan permits its necessary successive tasks; do not stop after one historical
-  issue by default. Use an isolated full worktree, coordinate independent
-  subtasks, preserve user material and deliver through protected pull requests.
+  issue by default. Coordinate independent subtasks, preserve user material and deliver through
+  protected pull requests; a separate worktree is optional.
 - Configure context/training/evaluation windows and wall-time, RAM, new-storage,
   thread and checkpoint limits for the available machine. Charge cumulative
   work across preparation, training, evaluation, retries and resumes. Diagnose,

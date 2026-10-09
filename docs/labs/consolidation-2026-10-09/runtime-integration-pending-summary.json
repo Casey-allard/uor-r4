@@ -1,0 +1,367 @@
+{
+  "schema": "codex-consolidation-runtime-pending-summary/1",
+  "main": "b7541b9f91bd37069ed4994088ae338a50314a24",
+  "input_sha256": "fdbf88cf075b066fed51df5864e50d6b31e698f7064a40a727742c899dea0dbc",
+  "full_inventory": "branch-runtime-integration-inventory.json",
+  "full_inventory_sha256": "5d32bfcdc2ed795728b995e7d8a67f653eeb8257bf513d9eef0cacf0e4ec02b2",
+  "heads": 67,
+  "heads_with_nonempty_delta": 65,
+  "heads_with_absent_rust_file": 32,
+  "branch_file_occurrence_counts": {
+    "exact_same_current_blob": 252,
+    "differing_current_blob": 438,
+    "absent_on_main": 357
+  },
+  "unique_absent_paths": 143,
+  "unique_absent_rust_paths": 59,
+  "priority_pending": [
+    {
+      "branch": "codex/native-device-alias-20261007",
+      "head": "336ff6c0e807bebd40c29247b0c6c202bdc328ab",
+      "prs": [
+        [
+          1841,
+          "OPEN",
+          "336ff6c0e807bebd40c29247b0c6c202bdc328ab"
+        ]
+      ],
+      "finding": "PR1841 remains OPEN in supplied reconciliation. New CUDA native alias reducer module absent from currentmain; named device paths absent in same currentfiles. Runtime integration genuinely pending, not satisfied by preserving ancestry.",
+      "files": [
+        {
+          "path": "crates/uor-r4-training/examples/geometric-frozen-map-fit.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "d0302a7aa58247b783e29d6f71b673044cfc81ba",
+          "main_blob": "82f83ad6217e508692050c246590bdd7211e5f93",
+          "added_function_names_absent_in_current_same_file": [
+            "copy_token_ids",
+            "copy_scores",
+            "states",
+            "bridge",
+            "trace_for_admission",
+            "generate_scores_for_admission",
+            "native_target_mass_and_total",
+            "loss_with_credit",
+            "compare_native_bank_gradients"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/src/geometric_bank_generate.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "9b41a0195b00a729a0f7b6745407748b77bb0cb1",
+          "main_blob": "f0ef1f8f6b5bb7bce72649bb671962955b314496",
+          "added_function_names_absent_in_current_same_file": [
+            "actions",
+            "generate",
+            "final_state_codes",
+            "causal_token_ids",
+            "credit_scope",
+            "read_state_bridge",
+            "action_trace",
+            "prepare_bank_state",
+            "prepare_no_source_state",
+            "finish_host",
+            "forward_bank_device",
+            "forward_no_source_device",
+            "admit_device_pool",
+            "finish_device"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/src/geometric_generate_learning.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "276cad1043b470dba9bffce43e4eb626e53c835e",
+          "main_blob": "7c2056cf9ba41babde7b51bf1492221beff461a9",
+          "added_function_names_absent_in_current_same_file": [
+            "forward_prepared_state_choices_device",
+            "vocabulary_marginal_loss_device_with_credit",
+            "generate_device_scores_explicitly_reject_cpu",
+            "generate_device_scores_preserve_hard_forward_and_choice_gradients"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/src/geometric_vocabulary_actions_cuda.rs",
+          "classification": "absent_on_main",
+          "branch_blob": "5c5858642cae01f6e138128288048338d096b279",
+          "main_blob": null,
+          "added_function_names_absent_in_current_same_file": [
+            "storage",
+            "cuda_required",
+            "binding",
+            "exp",
+            "native_alias_cuda_exact_full_trace_edges_and_repeated_calls",
+            "native_alias_cuda_admission_and_device_loss_credit_parity",
+            "wrap_i",
+            "wrap_f",
+            "new",
+            "device",
+            "reduce",
+            "legal_generate_count",
+            "copy_count",
+            "action_token_ids",
+            "hard_action_scores",
+            "raw_action_scores",
+            "action_weights_q31",
+            "token_masses_q31",
+            "generate_masses_q31",
+            "legal_generate_ids",
+            "target_mask",
+            "admit_target",
+            "target_mass",
+            "native_probability",
+            "summary",
+            "trace"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/src/lib.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "b2f9bc9543266abe77ba118e08fe38838b0a08be",
+          "main_blob": "8ccf7ead991fbb78e15b3a492b2a5afecddfee9f",
+          "added_function_names_absent_in_current_same_file": []
+        },
+        {
+          "path": "crates/uor-r4-training/src/native_geometric_cuda_kernels.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "1e510aef2d1ca1641efbe1d18e1e9260e01b7da7",
+          "main_blob": "d6f0051970406fccf449c85497a2876bc2125c8f",
+          "added_function_names_absent_in_current_same_file": []
+        }
+      ]
+    },
+    {
+      "branch": "codex/attention-integer-lorentz-20261001",
+      "head": "1cf9b83b99852a45fed68c9b3ddb4fa56bc0abe5",
+      "prs": [],
+      "finding": "No PR in supplied reconciliation; absent integer Lorentz module/example and absent replay methods require explicit integration or retirement decision.",
+      "files": [
+        {
+          "path": "crates/uor-r4-integer/src/stack/lorentz_distance.rs",
+          "classification": "absent_on_main",
+          "branch_blob": "323cbd45565c9bf0807f45d33d330d14a691631a",
+          "main_blob": null,
+          "added_function_names_absent_in_current_same_file": [
+            "fmt",
+            "coordinates",
+            "lift_q32",
+            "new",
+            "width",
+            "validate_width",
+            "evaluate",
+            "lookup",
+            "grid",
+            "table",
+            "lorentz_distance_preserves_zero_directions_radii_and_units",
+            "lorentz_distance_matches_existing_kernel_at_bounds_and_cancellation",
+            "lorentz_distance_table_grid_and_interpolation_match_declared_policy",
+            "lorentz_distance_rejects_bad_tables_widths_and_cross_width_cached_vectors"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-integer/src/stack/mod.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "bd8c2163ddf31a80f948a547cbd4cee7379dab24",
+          "main_blob": "e42b658204b379231da67dab2ad823db487fbe0d",
+          "added_function_names_absent_in_current_same_file": []
+        },
+        {
+          "path": "crates/uor-r4-training/examples/attention-integer-lorentz.rs",
+          "classification": "absent_on_main",
+          "branch_blob": "8bde1a05baa2e8677b4e7a3528ed69504ce11243",
+          "main_blob": null,
+          "added_function_names_absent_in_current_same_file": [
+            "invalid",
+            "gate",
+            "export_gate",
+            "row",
+            "rows",
+            "components",
+            "export_matrix",
+            "export_components",
+            "quantize",
+            "score_rows",
+            "float_projection",
+            "max_error",
+            "export_table",
+            "reader_dot",
+            "reader_distance",
+            "distance_inputs",
+            "score_panel",
+            "run",
+            "main"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/src/geometric_stack.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "c8c2e445d4e87ee33f7040cab8fbb2e8a8286b72",
+          "main_blob": "e28f50d1450b0abefd18fb842aeded27cdcb3281",
+          "added_function_names_absent_in_current_same_file": [
+            "validate_distance_replay",
+            "forward_read_distance_replay",
+            "read_binding_masses_distance_replay",
+            "fused_read_selected_with_distances",
+            "read_distance_replay_matches_float_geometry_and_refuses_backward"
+          ]
+        }
+      ]
+    },
+    {
+      "branch": "codex/categorical-bank-parity-record-20261007",
+      "head": "686abd9e36fa0457b9c7e4bf12815a1fec1b8569",
+      "prs": [],
+      "finding": "New parity example absent; existing shared files differ and new function names there are present. This is missing diagnostic harness, not proof whole categorical pullback is missing.",
+      "files": [
+        {
+          "path": "crates/uor-r4-training/examples/geometric-categorical-bank-parity.rs",
+          "classification": "absent_on_main",
+          "branch_blob": "3ae6194dd2986dfd207521c2427d892f01e1ed0a",
+          "main_blob": null,
+          "added_function_names_absent_in_current_same_file": [
+            "policy",
+            "name",
+            "frame",
+            "segments",
+            "base_len",
+            "has_source",
+            "causal_no_source",
+            "bad",
+            "read",
+            "size",
+            "write",
+            "deadline",
+            "seal_for",
+            "args",
+            "cuda",
+            "cue_payload",
+            "prefix_payload",
+            "load_panel",
+            "prefix_clone",
+            "restore",
+            "identities",
+            "earliest_raw_copy_max",
+            "native_step",
+            "authenticate",
+            "load",
+            "active",
+            "bank_snapshot",
+            "compare_independent",
+            "compare_saved",
+            "context_gradient_receipt",
+            "parity_run",
+            "main"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/src/geometric_bank_generate.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "05b1322feb51c7ca7989fd4d18a5a4c7f6c6b60c",
+          "main_blob": "f0ef1f8f6b5bb7bce72649bb671962955b314496",
+          "added_function_names_absent_in_current_same_file": []
+        },
+        {
+          "path": "crates/uor-r4-training/src/geometric_read_state_bridge.rs",
+          "classification": "differing_current_blob",
+          "branch_blob": "d91e8acebb54362e0d50b6d37896fa8214aa0135",
+          "main_blob": "9bc6b19edb2b8812abaf0ac71d89ea55852fea46",
+          "added_function_names_absent_in_current_same_file": []
+        }
+      ]
+    },
+    {
+      "branch": "codex/native-trained-route-capacity-20261007",
+      "head": "50aeb167408c90380fe7ad27afd018ec2c2fc9b8",
+      "prs": [],
+      "finding": "No PR in supplied reconciliation; three offline capacity/certificate/codec examples absent. Preserve diagnostic evidence separately from current-serving claims.",
+      "files": [
+        {
+          "path": "crates/uor-r4-training/examples/native-entry-route-capacity.rs",
+          "classification": "absent_on_main",
+          "branch_blob": "b91a1794769823738996dc8b33df954107bdd178",
+          "main_blob": null,
+          "added_function_names_absent_in_current_same_file": [
+            "bad",
+            "bytes",
+            "hash",
+            "file_hash",
+            "read",
+            "write",
+            "expected_string",
+            "snapshot",
+            "compare_token_masses",
+            "reconstruct_token_masses",
+            "compare_step",
+            "checked_hash",
+            "codes",
+            "h4_codes",
+            "valid_digest",
+            "admit_config",
+            "admit_receipt",
+            "output_bytes",
+            "write_bounded",
+            "run",
+            "admit_paths",
+            "main",
+            "independent_alias_fold_keeps_duplicates_holes_clipping_and_fraction",
+            "factual_pool_parity_rejects_hidden_alias_decomposition_change",
+            "trained_admission_requires_exact_final_receipt_and_digest_shape",
+            "parity_paths_protect_sealed_input_ancestors_and_preserve_missing_parents"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/examples/native-entry-route-capacity/certificate.rs",
+          "classification": "absent_on_main",
+          "branch_blob": "aecf682e4b38529fb79b2d3d153bb2e6f5c55f40",
+          "main_blob": null,
+          "added_function_names_absent_in_current_same_file": [
+            "fmt",
+            "certify_generate_dominance",
+            "descending",
+            "lower_id_tie_is_certificate_higher_id_tie_is_unresolved",
+            "clipping_equalizes_and_sparse_holes_cannot_compete",
+            "plateaus_do_not_supply_higher_id_strict_proof",
+            "native_weight",
+            "aligned_strict_certificate_covers_native_floor_interiors",
+            "rejects_invalid_admission_without_claiming_viability"
+          ]
+        },
+        {
+          "path": "crates/uor-r4-training/examples/native-entry-route-capacity/score_codec.rs",
+          "classification": "absent_on_main",
+          "branch_blob": "d4bc4e16ebe29a542cd525bc960fb27cf0f3df44",
+          "main_blob": null,
+          "added_function_names_absent_in_current_same_file": [
+            "bad",
+            "hash",
+            "encode",
+            "decode",
+            "new",
+            "lookup",
+            "insert",
+            "read",
+            "finish",
+            "record",
+            "codec_roundtrip_signed_bounds_and_rejects_lossy_inputs",
+            "cache_deduplicates_exact_states_preserves_seek_and_rejects_mismatch"
+          ]
+        }
+      ]
+    }
+  ],
+  "unavailable": [
+    {
+      "branch": "codex/lab-state",
+      "head": "a447c5db812d7c5434b39222bdfe0351a883953b",
+      "prs": [],
+      "status": "UNAVAILABLE_NO_COMMON_MERGE_BASE",
+      "stderr": ""
+    }
+  ],
+  "claim_boundary": "History-preservation merge makes old commits reachable without adopting their runtime trees. It must not be described as integrating every branch implementation. Blob differences and missing names are triage only; semantic supersession is not inferred. Supplied PR records were not freshly fetched by this subtask.",
+  "local_unique_tails_to_preserve": [
+    "chat-v0-phase-a modified post-epoch-eval.sh plus11 value-faith JSON",
+    "d19-emitter-eval scripts/launch-wide.sh",
+    "distance-curriculum synthetic-memory-corpus-wide.rs",
+    "primarycheckout8 token-optimizer artifacts",
+    "entry-isolation foreigndirty8 files: owner coordination required"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "uor-r4.codex-source-consolidation/1",
+  "bytes": 5298343,
+  "sha256": "4ecd4204ac68e7b39ed59ec40a146b657f2f7c28a0e2f7befed446b3f93657ef",
+  "bundle_head": "e860abaf00987a2dd5ed31c9b8ef1ac1b5abd61d HEAD",
+  "base_main": "aa5129137afc86057dea68628b6e19451975e81e",
+  "head_bindings": 1197,
+  "pack_strict_validation": "PASS",
+  "prerequisite_validation": "PASS",
+  "runtime_integration": "PENDING_EXPLICIT_INVENTORY",
+  "queue_method": "SQUASH"
+}

@@ -217,7 +217,10 @@
   "workspace": {
     "base": "refreshed_origin_main",
     "preserve_user_and_unique_evidence": true,
-    "type": "isolated_full_git_worktree"
+    "type": "ownership_coordinated_main_based_workspace",
+    "isolated_worktree_required": false,
+    "successor_requires_verified_main_merge": true,
+    "cleanup_after_verified_delivery": true
   },
   "organization": {
     "authority": "docs/labs/protocol.md",

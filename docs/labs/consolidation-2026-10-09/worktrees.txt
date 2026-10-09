@@ -1,0 +1,47 @@
+worktree /Users/casey.allard/uor-r4
+HEAD b7541b9f91bd37069ed4994088ae338a50314a24
+branch refs/heads/main
+
+worktree /Users/casey.allard/.codex/worktrees/astra-joint-credit/uor-r4
+HEAD c65157b33ac1026ee7fc21b085193e8870bda15f
+branch refs/heads/codex/sol-cue-consumption-boundary-20261008
+
+worktree /Users/casey.allard/uor-r4-phasebind
+HEAD 5e5c436c340922811b04b8b519e03bb86256016e
+detached
+
+worktree /Users/casey.allard/uor-r4/.worktrees/bf16-phase1
+HEAD 44608ba283741905a3b2905a964370671665d6e5
+branch refs/heads/codex/bf16-phase1
+
+worktree /Users/casey.allard/uor-r4/.worktrees/bf16-phase2a
+HEAD b2a149945081c9686a7b136a4c029a2c2e9425ae
+branch refs/heads/codex/bf16-phase2a-chunked-recurrence
+
+worktree /Users/casey.allard/uor-r4/.worktrees/bf16-phase2b
+HEAD f917318e344390f36e62a967cef7fcc7209f1dec
+branch refs/heads/codex/bf16-phase2b-flash-read
+
+worktree /Users/casey.allard/uor-r4/.worktrees/chat-v0-phase-a
+HEAD fe28b849a85c2577b097edbfc9e785c6c6aea9f0
+branch refs/heads/codex/post-epoch-eval-20261002
+
+worktree /Users/casey.allard/uor-r4/.worktrees/claude-d11-chat
+HEAD 75998b9193901845c687d923537d7c90a24104fa
+detached
+
+worktree /Users/casey.allard/uor-r4/.worktrees/d19-emitter-eval
+HEAD 46ba5a42dc7b0bb66f6ebaee5b0f4ade18113712
+branch refs/heads/codex/compiler-word-spans
+
+worktree /Users/casey.allard/uor-r4/.worktrees/delta-rule-memory
+HEAD 00efb6900df23ced83e3a0e3d8fb2259f513a6a6
+branch refs/heads/codex/delta-rule-memory
+
+worktree /Users/casey.allard/uor-r4/.worktrees/distance-curriculum
+HEAD cd4dd380deaa8d02cc4008eb69aefa14b150efeb
+branch refs/heads/codex/distance-curriculum
+
+worktree /Users/casey.allard/uor-r4/.worktrees/entry-isolation
+HEAD b7541b9f91bd37069ed4994088ae338a50314a24
+branch refs/heads/deepseek/gate-floor-impl

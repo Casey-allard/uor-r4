@@ -1,5 +1,16 @@
 # Shared autonomous lab protocol
 
+> **Owner direction, October 9 — main consolidation and workspace cleanup:**
+> `origin/main` is the shared source of truth for every participant. Finish and
+> verify the protected merge of each deliverable before starting its successor,
+> then clear its redundant local workspace and delivery branches. Branches are
+> temporary transport for protected delivery, not alternate research authorities.
+> A separate branch or isolated worktree is not mandatory for development; use
+> one only where concurrent ownership or protected delivery requires it. Preserve
+> unique source, accepted and negative evidence, and other labs’ active work
+> before cleanup. Reconcile older unmerged work into main with explicit retained,
+> superseded, unfinished or validated status; do not promote it by merging it.
+
 > **Current owner direction, October 1 — D19:** grounded conversation and durable
 > memory lead the active canonical plan. Codex rejoins Claude and OpenCode–DeepSeek
 > for the owner-authorized continuation; other historical lab assignments are
@@ -43,10 +54,13 @@ For every claim record issue, dependency IDs, branch/worktree, owned paths,
 artifact inputs, deliverable, next checkpoint, reviewer need and host reservation.
 Only one active claim owns a given mutating task/overlapping path set. Resolve
 collisions through the coordination record; independent readers need no write
-claim. Work in a full isolated worktree based on refreshed main, never the owner
-checkout. Name a branch `<lab>/<topic>`; it lives only until its PR merges, then
-the branch and worktree are deleted. All work, including negative results,
-lands in `main` (see the October 9 rule in [AGENTS.md](../../AGENTS.md)).
+Start from refreshed main and respect exclusive file ownership. A separate
+worktree is optional. Use a temporary branch when protected delivery requires
+it; name it `<lab>/<topic>` (Codex defaults to `codex/`). All work, including
+negative, superseded and unfinished retained source, lands in main with explicit
+status. Verify the actual merge, preserve unique material, then delete redundant
+branches and workspaces before starting the next task. The live `codex/lab-state`
+coordination record is the standing operational exception.
 
 ## Work loop, leases and recovery
 
@@ -65,7 +79,8 @@ lands in `main` (see the October 9 rule in [AGENTS.md](../../AGENTS.md)).
    non-author review. A merged negative is useful delivery without promotion.
 6. Drive the approved head through protected delivery, verify the delivered
    patch, update the owning issue and changed current-state pointers, release
-   the claim, and take the next ready task.
+   the claim, remove redundant delivery branches and workspace after preservation,
+   and only then take the next ready task.
 
 While actively working, refresh the lab/work heartbeat every **5 minutes**.
 Claims have a **20-minute** lease; publish a recoverable checkpoint at least
