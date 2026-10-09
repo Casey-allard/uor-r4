@@ -1,0 +1,1247 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 25f90a7a4..335651d83 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -11,6 +11,11 @@ name: ci
+ # logprobs); on Linux it is expected to skip (checkpoint download is best-effort)
+ # or fail on platform drift — the canonical deterministic compile mode (Phase 2)
+ # is what makes it a true cross-platform gate.
++#
++# GATE C REGRESSION: The Gate C trend is tracked per commit on a small corpus
++# slice. It fails if top-1 drops > 2 points or bits/token worsens > 0.1 vs the
++# pinned record in `scripts/check_gate_c_regression.py`. The trend JSON is
++# uploaded as a `gate-c-trend` artifact.
+ 
+ on:
+   push:
+@@ -92,6 +97,17 @@ jobs:
+         run: TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
+         continue-on-error: true
+ 
++      - name: Gate C trend tracking (Issue #77)
++        run: |
++          python3 scripts/check_gate_c_regression.py trend_output/score_report.json
++
++      - name: Upload Gate C trend JSON
++        uses: actions/upload-artifact@v4
++        if: always()
++        with:
++          name: gate-c-trend
++          path: trend_output/score_report.json
++
+   wasm:
+     name: wasm-pack build (dashboard facade, deploy.yml parity)
+     runs-on: ubuntu-latest
+diff --git a/.gitignore b/.gitignore
+index e9f465b56..833f62e74 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -8,3 +8,4 @@ manifold_cache_rust.json
+ uor_standards/
+ crates/uor-r4-graph-format/fuzz/target/
+ pkg/
++trend_output/
+diff --git a/crates/uor-r4-core/src/transformerless/certify.rs b/crates/uor-r4-core/src/transformerless/certify.rs
+index 4c31a81ef..cfdd21e3c 100644
+--- a/crates/uor-r4-core/src/transformerless/certify.rs
++++ b/crates/uor-r4-core/src/transformerless/certify.rs
+@@ -38,7 +38,7 @@ fn build_prefix_store(
+             continue;
+         }
+         let code = code_plain(art, rot, c, i);
+-        for k_idx in 0..3 {
++        for k_idx in 0..c.top_tokens[i].len() {
+             let tok = c.top_tokens[i][k_idx];
+             let weight = c.top_weights[i][k_idx];
+             if weight > 0 {
+@@ -365,7 +365,7 @@ fn build_store_generic(
+         if c.story[i] >= cut {
+             continue;
+         }
+-        for k_idx in 0..3 {
++        for k_idx in 0..c.top_tokens[i].len() {
+             let tok = c.top_tokens[i][k_idx];
+             let weight = c.top_weights[i][k_idx];
+             if weight > 0 {
+diff --git a/crates/uor-r4-core/src/transformerless/compiler.rs b/crates/uor-r4-core/src/transformerless/compiler.rs
+index 96d1ab025..30767fe66 100644
+--- a/crates/uor-r4-core/src/transformerless/compiler.rs
++++ b/crates/uor-r4-core/src/transformerless/compiler.rs
+@@ -61,8 +61,8 @@ pub struct Corpus {
+     pub input: Vec<u32>,
+     pub next: Vec<u32>,
+     pub t_argmax: Vec<u32>,
+-    pub top_tokens: Vec<[u32; 3]>,
+-    pub top_weights: Vec<[u32; 3]>,
++    pub top_tokens: Vec<[u32; 8]>,
++    pub top_weights: Vec<[u32; 8]>,
+     pub span_start: Vec<u32>,
+     pub span_end: Vec<u32>,
+     pub byte_start: Vec<u32>,
+@@ -90,7 +90,9 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
+     let n = u64::from_le_bytes(meta[0..8].try_into().unwrap()) as usize;
+     let stories = u64::from_le_bytes(meta[8..16].try_into().unwrap());
+     let rb = std::fs::read(rp).ok()?;
+-    let record_size = if rb.len() == n * 48 {
++    let record_size = if rb.len() == n * 88 {
++        88usize
++    } else if rb.len() == n * 48 {
+         48usize
+     } else if rb.len() == n * 32 {
+         32usize
+@@ -100,7 +102,7 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
+         return None;
+     };
+     let is_legacy = record_size == 12;
+-    let has_anchors = record_size == 48;
++    let has_anchors = record_size == 48 || record_size == 88;
+     let mut story = Vec::with_capacity(n);
+     let mut next = Vec::with_capacity(n);
+     let mut t_argmax = Vec::with_capacity(n);
+@@ -124,8 +126,8 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
+             let lp = f32::from_le_bytes(rb[o + 8..o + 12].try_into().unwrap());
+             let next_prob = (lp.exp() * 100.0).clamp(0.0, 100.0) as u32;
+ 
+-            let mut tokens_val = [0u32; 3];
+-            let mut weights_val = [0u32; 3];
++            let mut tokens_val = [0u32; 8];
++            let mut weights_val = [0u32; 8];
+             tokens_val[0] = argmax;
+             if nxt == argmax {
+                 weights_val[0] = next_prob.max(50);
+@@ -142,11 +144,13 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
+             story.push(story_id);
+             let nxt = u32::from_le_bytes(rb[o + 4..o + 8].try_into().unwrap());
+             next.push(nxt);
+-            let mut tokens_val = [0u32; 3];
+-            let mut weights_val = [0u32; 3];
+-            for j in 0..3 {
++            let mut tokens_val = [0u32; 8];
++            let mut weights_val = [0u32; 8];
++            let k_count = if record_size == 88 { 8 } else { 3 };
++            let wt_base_offset = 8 + k_count * 4;
++            for j in 0..k_count {
+                 let offset_tok = o + 8 + j * 4;
+-                let offset_wt = o + 20 + j * 4;
++                let offset_wt = o + wt_base_offset + j * 4;
+                 tokens_val[j] =
+                     u32::from_le_bytes(rb[offset_tok..offset_tok + 4].try_into().unwrap());
+                 weights_val[j] =
+@@ -156,10 +160,23 @@ pub fn load_corpus_from(mp: &str, rp: &str) -> Option<Corpus> {
+             top_tokens.push(tokens_val);
+             top_weights.push(weights_val);
+             if has_anchors {
+-                span_start.push(u32::from_le_bytes(rb[o + 32..o + 36].try_into().unwrap()));
+-                span_end.push(u32::from_le_bytes(rb[o + 36..o + 40].try_into().unwrap()));
+-                byte_start.push(u32::from_le_bytes(rb[o + 40..o + 44].try_into().unwrap()));
+-                byte_end.push(u32::from_le_bytes(rb[o + 44..o + 48].try_into().unwrap()));
++                let anchor_offset = o + 8 + k_count * 8;
++                span_start.push(u32::from_le_bytes(
++                    rb[anchor_offset..anchor_offset + 4].try_into().unwrap(),
++                ));
++                span_end.push(u32::from_le_bytes(
++                    rb[anchor_offset + 4..anchor_offset + 8].try_into().unwrap(),
++                ));
++                byte_start.push(u32::from_le_bytes(
++                    rb[anchor_offset + 8..anchor_offset + 12]
++                        .try_into()
++                        .unwrap(),
++                ));
++                byte_end.push(u32::from_le_bytes(
++                    rb[anchor_offset + 12..anchor_offset + 16]
++                        .try_into()
++                        .unwrap(),
++                ));
+                 continue;
+             }
+         }
+@@ -270,6 +287,64 @@ pub fn softmax_top3_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 3
+     (next, top_tokens_idx, top_weights_val)
+ }
+ 
++pub fn softmax_top8_sample(logits: &mut [f32], rng: &mut u64) -> (usize, [u32; 8], [u32; 8]) {
++    let mut mx = f32::NEG_INFINITY;
++    for &p in logits.iter() {
++        if p > mx {
++            mx = p;
++        }
++    }
++    let mut sum = 0.0f32;
++    for p in logits.iter_mut() {
++        *p = (*p - mx).exp();
++        sum += *p;
++    }
++    for p in logits.iter_mut() {
++        *p /= sum;
++    }
++
++    let mut top_candidates: Vec<(usize, f32)> =
++        logits.iter().enumerate().map(|(i, &p)| (i, p)).collect();
++    top_candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
++
++    let mut top_tokens_idx = [0u32; 8];
++    let mut top_weights_val = [0u32; 8];
++
++    let mut sum_top8 = 0.0f32;
++    for i in 0..8 {
++        if i < top_candidates.len() {
++            sum_top8 += top_candidates[i].1;
++        }
++    }
++    if sum_top8 > 1e-9 {
++        let mut accumulated = 0;
++        for i in 0..8 {
++            if i < top_candidates.len() {
++                top_tokens_idx[i] = top_candidates[i].0 as u32;
++                let w = ((top_candidates[i].1 / sum_top8) * 100.0).round() as u32;
++                top_weights_val[i] = w;
++                accumulated += w;
++            }
++        }
++        if accumulated != 100 && top_weights_val[0] > 0 {
++            let diff = 100i32 - accumulated as i32;
++            top_weights_val[0] = (top_weights_val[0] as i32 + diff).max(0) as u32;
++        }
++    }
++
++    let u = (xorshift(rng) >> 40) as f32 / (1u64 << 24) as f32;
++    let mut cdf = 0.0f32;
++    let mut next = logits.len() - 1;
++    for (i, &p) in logits.iter().enumerate() {
++        cdf += p;
++        if u < cdf {
++            next = i;
++            break;
++        }
++    }
++    (next, top_tokens_idx, top_weights_val)
++}
++
+ /// Tokenizer-neutral byte anchors of one sampled token within its story.
+ /// Without per-token byte lengths the anchors are the v3 "unknown" value
+ /// (u32::MAX), matching the v2 backfill semantics on load.
+@@ -317,6 +392,35 @@ pub fn encode_v3_record(
+     record
+ }
+ 
++/// Encode one v4 corpus/observation record (88 bytes):
++///   story u32 | next u32 | top_tokens [u32; 8] | top_weights [u32; 8]
++///   | span_start u32 | span_end u32 | byte_start u32 | byte_end u32
++pub fn encode_v4_record(
++    story: u32,
++    next: u32,
++    top_tokens: &[u32; 8],
++    top_weights: &[u32; 8],
++    span: (u32, u32),
++    bytes: (u32, u32),
++) -> [u8; 88] {
++    let (span_start, span_end) = span;
++    let (byte_start, byte_end) = bytes;
++    let mut record = [0u8; 88];
++    record[0..4].copy_from_slice(&story.to_le_bytes());
++    record[4..8].copy_from_slice(&next.to_le_bytes());
++    for i in 0..8 {
++        let offset_tok = 8 + i * 4;
++        let offset_wt = 40 + i * 4;
++        record[offset_tok..offset_tok + 4].copy_from_slice(&top_tokens[i].to_le_bytes());
++        record[offset_wt..offset_wt + 4].copy_from_slice(&top_weights[i].to_le_bytes());
++    }
++    record[72..76].copy_from_slice(&span_start.to_le_bytes());
++    record[76..80].copy_from_slice(&span_end.to_le_bytes());
++    record[80..84].copy_from_slice(&byte_start.to_le_bytes());
++    record[84..88].copy_from_slice(&byte_end.to_le_bytes());
++    record
++}
++
+ /// Generate (or extend, resumably) the teacher-labeled corpus. Whole-story
+ /// chunking keeps the stream deterministic under any budget chunking.
+ #[cfg(not(target_arch = "wasm32"))]
+diff --git a/crates/uor-r4-core/src/transformerless/observe.rs b/crates/uor-r4-core/src/transformerless/observe.rs
+index 2dea56f7a..a315b21eb 100644
+--- a/crates/uor-r4-core/src/transformerless/observe.rs
++++ b/crates/uor-r4-core/src/transformerless/observe.rs
+@@ -32,10 +32,10 @@ use std::fs;
+ use std::io::{self, BufWriter, Read, Write};
+ use std::path::{Path, PathBuf};
+ 
+-/// Observation record width: the v3 corpus record layout (story, next,
+-/// top-3 tokens, top-3 weights, span, byte anchors) — see
+-/// [`compiler::encode_v3_record`].
+-pub const RECORD_SIZE: usize = 48;
++/// Observation record width: the v4 corpus record layout (story, next,
++/// top-8 tokens, top-8 weights, span, byte anchors) — see
++/// [`compiler::encode_v4_record`].
++pub const RECORD_SIZE: usize = 88;
+ 
+ /// Maximum shard fan-out accepted by [`ObservationShardWriter`]: shard
+ /// files are held open during a pass, so the writer caps the fan-out at
+@@ -543,7 +543,7 @@ pub fn observe_sharded(
+             progress.set(n as usize);
+             oracle.step(token, pos, &mut logits);
+             let (next, top_tokens, top_weights) =
+-                compiler::softmax_top3_sample(&mut logits, &mut rng);
++                compiler::softmax_top8_sample(&mut logits, &mut rng);
+             window.push(token as u32);
+             if window.len() > compiler::WINDOW {
+                 window.remove(0);
+@@ -554,7 +554,7 @@ pub fn observe_sharded(
+             let span_end = span_start.saturating_add(1);
+             let (byte_start, byte_end) =
+                 compiler::byte_anchors(token_byte_lengths, story_byte_offset, next);
+-            let record = compiler::encode_v3_record(
++            let record = compiler::encode_v4_record(
+                 stories as u32,
+                 next as u32,
+                 &top_tokens,
+diff --git a/crates/uor-r4-core/src/transformerless/observe_text.rs b/crates/uor-r4-core/src/transformerless/observe_text.rs
+index 747480c9a..756a2c2f3 100644
+--- a/crates/uor-r4-core/src/transformerless/observe_text.rs
++++ b/crates/uor-r4-core/src/transformerless/observe_text.rs
+@@ -661,7 +661,7 @@ pub fn observe_text_corpus(
+             let token = tokens[pos];
+             oracle.step(token as usize, pos, &mut logits);
+             let (_sampled, top_tokens, top_weights) =
+-                compiler::softmax_top3_sample(&mut logits, &mut checkpoint.rng);
++                compiler::softmax_top8_sample(&mut logits, &mut checkpoint.rng);
+             let next = tokens[pos + 1];
+             window.push(token);
+             if window.len() > compiler::WINDOW {
+@@ -673,7 +673,7 @@ pub fn observe_text_corpus(
+             let span_end = span_start.saturating_add(1);
+             let (byte_start, byte_end) =
+                 compiler::byte_anchors(token_byte_lengths, story_byte_offset, next as usize);
+-            let record = compiler::encode_v3_record(
++            let record = compiler::encode_v4_record(
+                 story,
+                 next,
+                 &top_tokens,
+@@ -886,7 +886,7 @@ mod tests {
+                 let token = tokens[pos];
+                 oracle.step(token as usize, pos, &mut logits);
+                 let (_sampled, top_tokens, top_weights) =
+-                    compiler::softmax_top3_sample(&mut logits, &mut rng);
++                    compiler::softmax_top8_sample(&mut logits, &mut rng);
+                 let next = tokens[pos + 1];
+                 window.push(token);
+                 if window.len() > compiler::WINDOW {
+@@ -895,7 +895,7 @@ mod tests {
+                 let shard = shard_of(&sample_id(&window), SHARD_BITS);
+                 let (byte_start, byte_end) =
+                     compiler::byte_anchors(token_byte_lengths, offset, next as usize);
+-                let record = compiler::encode_v3_record(
++                let record = compiler::encode_v4_record(
+                     ordinal as u32,
+                     next,
+                     &top_tokens,
+@@ -1400,8 +1400,8 @@ mod tests {
+             .count();
+         assert_eq!(long_records, FAKE_SEQ_LEN);
+         for record in merged.chunks_exact(RECORD_SIZE) {
+-            assert_eq!(&record[40..44], &u32::MAX.to_le_bytes());
+-            assert_eq!(&record[44..48], &u32::MAX.to_le_bytes());
++            assert_eq!(&record[80..84], &u32::MAX.to_le_bytes());
++            assert_eq!(&record[84..88], &u32::MAX.to_le_bytes());
+         }
+         // The same replication check holds on the unknown-anchor path.
+         let expected = expected_merged(&[("9", LONG_TEXT), ("10", "ab")], &tokenizer, None);
+@@ -1459,7 +1459,7 @@ mod tests {
+         for (index, record) in expected.concat().chunks_exact(RECORD_SIZE).enumerate() {
+             let story = u32::from_le_bytes(record[0..4].try_into().unwrap());
+             let next = u32::from_le_bytes(record[4..8].try_into().unwrap());
+-            let byte_start = u32::from_le_bytes(record[40..44].try_into().unwrap());
++            let byte_start = u32::from_le_bytes(record[80..84].try_into().unwrap());
+             assert_eq!(corpus.story[index], story);
+             assert_eq!(corpus.next[index], next);
+             assert_eq!(corpus.byte_start[index], byte_start);
+diff --git a/crates/uor-r4-core/src/transformerless/resolution_status.rs b/crates/uor-r4-core/src/transformerless/resolution_status.rs
+index d9bac553d..c3ae4faea 100644
+--- a/crates/uor-r4-core/src/transformerless/resolution_status.rs
++++ b/crates/uor-r4-core/src/transformerless/resolution_status.rs
+@@ -59,6 +59,20 @@ pub struct FallbackPolicy {
+     pub contradictory_action: FallbackAction,
+ }
+ 
++impl FallbackAction {
++    pub fn from_u8(val: u8) -> Self {
++        match val {
++            0 => FallbackAction::Continue,
++            1 => FallbackAction::Widen,
++            2 => FallbackAction::ConsultExact,
++            3 => FallbackAction::CertifiedFallback,
++            4 => FallbackAction::Abstain,
++            5 => FallbackAction::BasePrior,
++            _ => FallbackAction::Abstain,
++        }
++    }
++}
++
+ impl Default for FallbackPolicy {
+     /// Default policy per Decision D4: consult EXCT for Supported/Boundary, and abstain on BackedOff/Novel/Contradictory.
+     fn default() -> Self {
+@@ -82,4 +96,14 @@ impl FallbackPolicy {
+             ResolutionStatus::Contradictory => self.contradictory_action.clone(),
+         }
+     }
++
++    pub fn from_bytes(bytes: [u8; 5]) -> Self {
++        FallbackPolicy {
++            supported_action: FallbackAction::from_u8(bytes[0]),
++            boundary_action: FallbackAction::from_u8(bytes[1]),
++            backed_off_action: FallbackAction::from_u8(bytes[2]),
++            novel_action: FallbackAction::from_u8(bytes[3]),
++            contradictory_action: FallbackAction::from_u8(bytes[4]),
++        }
++    }
+ }
+diff --git a/crates/uor-r4-core/src/transformerless/runtime.rs b/crates/uor-r4-core/src/transformerless/runtime.rs
+index 03fd559df..7b840174d 100644
+--- a/crates/uor-r4-core/src/transformerless/runtime.rs
++++ b/crates/uor-r4-core/src/transformerless/runtime.rs
+@@ -719,7 +719,7 @@ pub fn build_store(art: &Compiled, c: &Corpus) -> (Store, Vec<[u8; STAGES]>) {
+         if c.story[i] >= cut {
+             continue;
+         }
+-        for k_idx in 0..3 {
++        for k_idx in 0..c.top_tokens[i].len() {
+             let tok = c.top_tokens[i][k_idx];
+             let weight = c.top_weights[i][k_idx];
+             if weight > 0 {
+diff --git a/crates/uor-r4-core/src/transformerless/scenarios.rs b/crates/uor-r4-core/src/transformerless/scenarios.rs
+index 709fac654..60098590e 100644
+--- a/crates/uor-r4-core/src/transformerless/scenarios.rs
++++ b/crates/uor-r4-core/src/transformerless/scenarios.rs
+@@ -358,8 +358,8 @@ fn as_corpus(tokens: &[u32], t_argmax: &[u32]) -> Corpus {
+             nx
+         },
+         t_argmax: t_argmax.to_vec(),
+-        top_tokens: vec![[0u32; 3]; n],
+-        top_weights: vec![[0u32; 3]; n],
++        top_tokens: vec![[0u32; 8]; n],
++        top_weights: vec![[0u32; 8]; n],
+         span_start: (0..n).map(|idx| idx as u32).collect(),
+         span_end: (0..n).map(|idx| idx as u32 + 1).collect(),
+         byte_start: vec![u32::MAX; n],
+diff --git a/crates/uor-r4-core/src/transformerless/score.rs b/crates/uor-r4-core/src/transformerless/score.rs
+index 7380e0f08..793a7b986 100644
+--- a/crates/uor-r4-core/src/transformerless/score.rs
++++ b/crates/uor-r4-core/src/transformerless/score.rs
+@@ -431,7 +431,7 @@ pub fn compile_emissions(
+                 continue;
+             };
+             let dist = &mut evidence[top1 as usize];
+-            for k_idx in 0..3 {
++            for k_idx in 0..corpus.top_tokens[i].len() {
+                 let token = corpus.top_tokens[i][k_idx];
+                 let weight = corpus.top_weights[i][k_idx];
+                 if weight > 0 {
+@@ -1096,10 +1096,115 @@ pub struct GateCOutcome {
+     pub rule12_per_status: Rule12PerStatus,
+     pub win_loss: WinLossReport,
+     pub candidate_recall: CandidateRecall,
++    pub repetition_rate_rule12: f64,
++    pub repetition_rate_baseline: f64,
+     pub witness_replays: usize,
+     pub witness_replay_failures: usize,
+ }
+ 
++fn generate_greedy_repetition_rate(
++    scorer: &GraphScorer,
++    artifacts: &compiler::Compiled,
++    rotations: &[usize; compiler::WINDOW + 1],
++    seed: &[u32],
++    tokens_to_generate: usize,
++) -> f64 {
++    let mut window = [0u32; compiler::WINDOW];
++    let mut recent_tokens = std::collections::VecDeque::with_capacity(32);
++    let seed_len = seed.len();
++
++    let w_len = seed_len.min(compiler::WINDOW);
++    window[..w_len].copy_from_slice(&seed[seed_len - w_len..]);
++
++    let r_len = seed_len.min(32);
++    for &t in &seed[seed_len - r_len..] {
++        recent_tokens.push_back(t);
++    }
++
++    let mut recent_array = [0u32; 32];
++    let mut duplicate_count = 0;
++
++    for _ in 0..tokens_to_generate {
++        let bundle = runtime::bundle_window_plain(artifacts, rotations, &window[..w_len]);
++        let sig = runtime::sig_plain(artifacts, &bundle);
++
++        let recent_len = recent_tokens.len();
++        for (i, &t) in recent_tokens.iter().enumerate() {
++            recent_array[i] = t;
++        }
++        let outcome = scorer
++            .score_candidates(&sig, &recent_array[..recent_len])
++            .unwrap();
++        let token = outcome.selected;
++
++        if recent_tokens.contains(&token) {
++            duplicate_count += 1;
++        }
++
++        if w_len < compiler::WINDOW {
++            window[w_len] = token;
++        } else {
++            window.copy_within(1.., 0);
++            window[compiler::WINDOW - 1] = token;
++        }
++
++        if recent_tokens.len() == 32 {
++            recent_tokens.pop_front();
++        }
++        recent_tokens.push_back(token);
++    }
++
++    duplicate_count as f64 / tokens_to_generate as f64
++}
++
++fn baseline_greedy_repetition_rate(
++    store: &Store,
++    artifacts: &compiler::Compiled,
++    rotations: &[usize; compiler::WINDOW + 1],
++    seed: &[u32],
++    tokens_to_generate: usize,
++) -> f64 {
++    let mut window = [0u32; compiler::WINDOW];
++    let mut recent_tokens = std::collections::VecDeque::with_capacity(32);
++    let seed_len = seed.len();
++
++    let w_len = seed_len.min(compiler::WINDOW);
++    window[..w_len].copy_from_slice(&seed[seed_len - w_len..]);
++
++    let r_len = seed_len.min(32);
++    for &t in &seed[seed_len - r_len..] {
++        recent_tokens.push_back(t);
++    }
++
++    let mut duplicate_count = 0;
++
++    for _ in 0..tokens_to_generate {
++        let bundle = runtime::bundle_window_plain(artifacts, rotations, &window[..w_len]);
++        let sig = runtime::sig_plain(artifacts, &bundle);
++        let code = runtime::assign_plain(artifacts, &sig);
++        let p = runtime::predict_witness_plain(store, &code);
++        let token = p.token;
++
++        if recent_tokens.contains(&token) {
++            duplicate_count += 1;
++        }
++
++        if w_len < compiler::WINDOW {
++            window[w_len] = token;
++        } else {
++            window.copy_within(1.., 0);
++            window[compiler::WINDOW - 1] = token;
++        }
++
++        if recent_tokens.len() == 32 {
++            recent_tokens.pop_front();
++        }
++        recent_tokens.push_back(token);
++    }
++
++    duplicate_count as f64 / tokens_to_generate as f64
++}
++
+ fn accumulate_win_loss(win_loss: &mut WinLoss, scorer_hit: bool, other_hit: bool) {
+     match (scorer_hit, other_hit) {
+         (true, true) => win_loss.both_correct += 1,
+@@ -1176,10 +1281,10 @@ pub fn evaluate_gate_c(
+         let code = runtime::assign_plain(artifacts, &observation.sig);
+ 
+         let legacy = scorer_with_exct.score_candidates_legacy(&observation.sig)?;
+-        let rule1 = scorer_no_exct.score_candidates(&observation.sig)?;
+-        let rule12 = scorer_with_exct.score_candidates(&observation.sig)?;
+-        let rule1_no_f = scorer_no_exct_no_f.score_candidates(&observation.sig)?;
+-        let rule12_no_f = scorer_with_exct_no_f.score_candidates(&observation.sig)?;
++        let rule1 = scorer_no_exct.score_candidates(&observation.sig, &[])?;
++        let rule12 = scorer_with_exct.score_candidates(&observation.sig, &[])?;
++        let rule1_no_f = scorer_no_exct_no_f.score_candidates(&observation.sig, &[])?;
++        let rule12_no_f = scorer_with_exct_no_f.score_candidates(&observation.sig, &[])?;
+         let baseline = runtime::predict_witness_plain(store, &code);
+ 
+         let legacy_hit = legacy.selected == teacher_argmax;
+@@ -1303,6 +1408,35 @@ pub fn evaluate_gate_c(
+         rule12_top1: recall_rule12_top1 as f64 / nf,
+         rule12_top3: recall_rule12_top3 as f64 / nf,
+     };
++
++    let rotations = runtime::derive_rotations();
++    let mut graph_rep_sum = 0.0;
++    let mut baseline_rep_sum = 0.0;
++    let mut probe_count = 0;
++
++    for obs in held_out.iter() {
++        let pos = obs.position as usize;
++        if pos >= 32 && corpus.story[pos] == corpus.story[pos - 32] {
++            let seed = &corpus.input[pos - 32..pos];
++            graph_rep_sum +=
++                generate_greedy_repetition_rate(&scorer_with_exct, artifacts, &rotations, seed, 64);
++            baseline_rep_sum +=
++                baseline_greedy_repetition_rate(store, artifacts, &rotations, seed, 64);
++            probe_count += 1;
++            if probe_count == 5 {
++                break;
++            }
++        }
++    }
++
++    if probe_count > 0 {
++        outcome.repetition_rate_rule12 = graph_rep_sum / probe_count as f64;
++        outcome.repetition_rate_baseline = baseline_rep_sum / probe_count as f64;
++    } else {
++        outcome.repetition_rate_rule12 = 0.0;
++        outcome.repetition_rate_baseline = 0.0;
++    }
++
+     Ok(outcome)
+ }
+ 
+@@ -1359,6 +1493,8 @@ pub struct ScoreReportGraph {
+     pub emission_list_entries: u32,
+     pub exct_bytes: u32,
+     pub artifact_bytes: usize,
++    pub graph_repetition_rate: f64,
++    pub baseline_repetition_rate: f64,
+ }
+ 
+ #[derive(Debug, Clone, Serialize)]
+@@ -1404,6 +1540,8 @@ pub fn build_score_report(
+             emission_list_entries: info.emission_list_entries,
+             exct_bytes: info.exct_bytes,
+             artifact_bytes: info.artifact_bytes,
++            graph_repetition_rate: gate_c.repetition_rate_rule12,
++            baseline_repetition_rate: gate_c.repetition_rate_baseline,
+         },
+         gate_c,
+         quantization: ScoreReportQuantization {
+diff --git a/crates/uor-r4-core/src/transformerless/score_runtime.rs b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+index 591c1f6fe..fe95e1312 100644
+--- a/crates/uor-r4-core/src/transformerless/score_runtime.rs
++++ b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+@@ -633,6 +633,7 @@ pub struct GraphScorer {
+     /// 71.52 → 17.73 with ΔT off) and the EXCT-precedence path is
+     /// F-invariant. Re-enable only with a measured per-token ΔT design.
+     f_emissions: bool,
++    pub fallback_policy: crate::transformerless::resolution_status::FallbackPolicy,
+ }
+ 
+ impl GraphScorer {
+@@ -660,6 +661,9 @@ impl GraphScorer {
+         let view = GraphView::parse(r4g1).map_err(|e| format!("invalid R4G1: {e}"))?;
+         view.verify_cids().map_err(|e| format!("bad CIDs: {e}"))?;
+         let head = view.head().ok_or("artifact carries no HEAD section")?;
++        let fallback_policy = crate::transformerless::resolution_status::FallbackPolicy::from_bytes(
++            head.fallback_policies(),
++        );
+         let graph_cid = view.header().artifact_cid.0;
+         let regions = regions_from_view(&view)?;
+         let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(0);
+@@ -791,6 +795,7 @@ impl GraphScorer {
+             exct_top_x,
+             pop: runtime::derive_popcount_table(),
+             f_emissions: false,
++            fallback_policy,
+         })
+     }
+ 
+@@ -824,7 +829,11 @@ impl GraphScorer {
+     /// tie-break; emit the bounded witness. The arithmetic of this
+     /// function is integer-only. Legacy raw TLS1 EXCT has a delimited
+     /// certifier-side float fallback; deployed RX1 EXCT is already quantized.
+-    pub fn score_candidates(&self, sig: &[u8; SIG_BYTES]) -> Result<ScoreOutcome, String> {
++    pub fn score_candidates(
++        &self,
++        sig: &[u8; SIG_BYTES],
++        recent_tokens: &[u32],
++    ) -> Result<ScoreOutcome, String> {
+         let mut k = OpKernel::default();
+ 
+         // Active cloud A: top-M memberships at each depth — exactly the
+@@ -1054,14 +1063,20 @@ impl GraphScorer {
+         // Final per-candidate scores: apply the baked root prior and the
+         // folded token-independent transition edge weight (module docs:
+         // ΔT(m,v) = w_m + ΔE(m,v)); canonicalize contribution order.
++        // Also apply bounded integer repetition control via recent_tokens.
+         let mut ranked_candidates: Vec<(u32, ScoreQ, Vec<Contribution>)> =
+             Vec::with_capacity(candidates.len());
+         for (token, (residual, mut contributions)) in candidates {
+             let with_offset = residual.saturating_add(transition_offset);
+             k.adds += 1;
+             let base = self.root_score(token);
+-            let score = base.saturating_add(with_offset);
++            let mut score = base.saturating_add(with_offset);
+             k.adds += 1;
++            if recent_tokens.contains(&token) {
++                // ~-30 nats suppression penalty for repetition control
++                score = score.saturating_add(ScoreQ::from_raw(-2_000_000));
++                k.adds += 1;
++            }
+             contributions.sort_by_key(|c| c.id);
+             ranked_candidates.push((token, score, contributions));
+         }
+@@ -1573,6 +1588,18 @@ impl GraphScorer {
+         sig: &[u8; SIG_BYTES],
+         top_m: usize,
+         state: &mut StepState,
++    ) -> Result<StepOutcome, String> {
++        self.score_step_with_recent(sig, top_m, state, &[])
++    }
++
++    /// Deployed scoring step with the bounded repetition penalty applied to
++    /// candidates present in `recent_tokens`.
++    pub fn score_step_with_recent(
++        &self,
++        sig: &[u8; SIG_BYTES],
++        top_m: usize,
++        state: &mut StepState,
++        recent_tokens: &[u32],
+     ) -> Result<StepOutcome, String> {
+         if top_m == 0 || top_m > state.max_top_m {
+             return Err(format!(
+@@ -1740,13 +1767,21 @@ impl GraphScorer {
+             .root_score(best)
+             .saturating_add(ScoreQ::from_raw(state.residuals[best as usize]));
+         k.adds += 1;
++        if recent_tokens.contains(&best) {
++            best_score = best_score.saturating_add(ScoreQ::from_raw(-2_000_000));
++            k.adds += 1;
++        }
+         for &token in state.touched.iter().skip(1) {
+             k.candidate_scans += 1;
+             k.compares += 1;
+-            let score = self
++            let mut score = self
+                 .root_score(token)
+                 .saturating_add(ScoreQ::from_raw(state.residuals[token as usize]));
+             k.adds += 1;
++            if recent_tokens.contains(&token) {
++                score = score.saturating_add(ScoreQ::from_raw(-2_000_000));
++                k.adds += 1;
++            }
+             if score > best_score || (score == best_score && token < best) {
+                 best = token;
+                 best_score = score;
+@@ -1886,7 +1921,7 @@ pub fn verify_witness_replay(
+         return Err(ReplayError::GraphCidMismatch);
+     }
+     let outcome = scorer
+-        .score_candidates(&witness.input_sig)
++        .score_candidates(&witness.input_sig, &[])
+         .map_err(ReplayError::Artifact)?;
+     let recomputed = &outcome.witness;
+ 
+diff --git a/crates/uor-r4-core/tests/cover.rs b/crates/uor-r4-core/tests/cover.rs
+index 4e364ec14..5ee2a1bdc 100644
+--- a/crates/uor-r4-core/tests/cover.rs
++++ b/crates/uor-r4-core/tests/cover.rs
+@@ -734,8 +734,8 @@ fn context_window_respects_story_boundaries_and_width() {
+         input: (0..12).collect(),
+         next: vec![0; 12],
+         t_argmax: vec![0; 12],
+-        top_tokens: vec![[0; 3]; 12],
+-        top_weights: vec![[0; 3]; 12],
++        top_tokens: vec![[0; 8]; 12],
++        top_weights: vec![[0; 8]; 12],
+         span_start: vec![0; 12],
+         span_end: vec![0; 12],
+         byte_start: vec![0; 12],
+@@ -766,8 +766,8 @@ fn split_positions_applies_the_80_20_story_cut() {
+         input: (0..10).collect(),
+         next: vec![0; 10],
+         t_argmax: vec![0; 10],
+-        top_tokens: vec![[0; 3]; 10],
+-        top_weights: vec![[0; 3]; 10],
++        top_tokens: vec![[0; 8]; 10],
++        top_weights: vec![[0; 8]; 10],
+         span_start: vec![0; 10],
+         span_end: vec![0; 10],
+         byte_start: vec![0; 10],
+diff --git a/crates/uor-r4-core/tests/cover_sweep.rs b/crates/uor-r4-core/tests/cover_sweep.rs
+index 06a4ce2f2..7b7306abe 100644
+--- a/crates/uor-r4-core/tests/cover_sweep.rs
++++ b/crates/uor-r4-core/tests/cover_sweep.rs
+@@ -104,8 +104,8 @@ fn synthetic_corpus() -> (Vec<Observation>, Corpus) {
+             });
+             next.push(next_token);
+             t_argmax.push(next_token);
+-            top_tokens.push([next_token, 0, 0]);
+-            top_weights.push([100, 0, 0]);
++            top_tokens.push([next_token, 0, 0, 0, 0, 0, 0, 0]);
++            top_weights.push([100, 0, 0, 0, 0, 0, 0, 0]);
+             observations.push(Observation {
+                 position,
+                 sample: blake3::hash(&position.to_le_bytes()).into(),
+diff --git a/crates/uor-r4-core/tests/deterministic_rebuild_test.rs b/crates/uor-r4-core/tests/deterministic_rebuild_test.rs
+index cb4f67abc..f0280d70f 100644
+--- a/crates/uor-r4-core/tests/deterministic_rebuild_test.rs
++++ b/crates/uor-r4-core/tests/deterministic_rebuild_test.rs
+@@ -69,8 +69,8 @@ fn test_deterministic_transition_graph_rebuild() {
+         input: vec![100, 200, 100, 200, 100, 300],
+         next: vec![200, 100, 200, 100, 300, 400],
+         t_argmax: vec![200, 100, 200, 100, 300, 400],
+-        top_tokens: vec![[200, 0, 0]; 6],
+-        top_weights: vec![[100, 0, 0]; 6],
++        top_tokens: vec![[200, 0, 0, 0, 0, 0, 0, 0]; 6],
++        top_weights: vec![[100, 0, 0, 0, 0, 0, 0, 0]; 6],
+         span_start: vec![0, 1, 2, 3, 4, 5],
+         span_end: vec![1, 2, 3, 4, 5, 6],
+         byte_start: vec![u32::MAX; 6],
+diff --git a/crates/uor-r4-core/tests/hierarchical_compiler.rs b/crates/uor-r4-core/tests/hierarchical_compiler.rs
+index 7bfe069a7..8db5fdd7f 100644
+--- a/crates/uor-r4-core/tests/hierarchical_compiler.rs
++++ b/crates/uor-r4-core/tests/hierarchical_compiler.rs
+@@ -26,8 +26,8 @@ fn test_induce_hierarchical_codes() {
+         input: vec![1u32; n],
+         next,
+         t_argmax: vec![0u32; n],
+-        top_tokens: vec![[0u32; 3]; n],
+-        top_weights: vec![[0u32; 3]; n],
++        top_tokens: vec![[0u32; 8]; n],
++        top_weights: vec![[0u32; 8]; n],
+         span_start: (0..n).map(|idx| idx as u32).collect(),
+         span_end: (0..n).map(|idx| idx as u32 + 1).collect(),
+         byte_start: vec![u32::MAX; n],
+diff --git a/crates/uor-r4-core/tests/observation_anchors.rs b/crates/uor-r4-core/tests/observation_anchors.rs
+index 2d9b7732d..fd8d06427 100644
+--- a/crates/uor-r4-core/tests/observation_anchors.rs
++++ b/crates/uor-r4-core/tests/observation_anchors.rs
+@@ -54,6 +54,41 @@ fn load_corpus_v3_preserves_span_and_byte_anchors() {
+     assert_eq!(corpus.byte_end, vec![3, 5]);
+ }
+ 
++#[test]
++fn load_corpus_v4_preserves_span_and_byte_anchors() {
++    let meta = unique_path("anchors-v4.meta");
++    let recs = unique_path("anchors-v4.records");
++    write_meta(&meta, 2, 1);
++    let mut bytes = Vec::new();
++    for (next, span_start, span_end, byte_start, byte_end) in [
++        (11u32, 0u32, 1u32, 0u32, 3u32),
++        (12u32, 1u32, 2u32, 3u32, 5u32),
++    ] {
++        let mut record = [0u8; 88];
++        record[0..4].copy_from_slice(&7u32.to_le_bytes());
++        record[4..8].copy_from_slice(&next.to_le_bytes());
++        record[8..12].copy_from_slice(&next.to_le_bytes());
++        record[40..44].copy_from_slice(&100u32.to_le_bytes());
++        record[72..76].copy_from_slice(&span_start.to_le_bytes());
++        record[76..80].copy_from_slice(&span_end.to_le_bytes());
++        record[80..84].copy_from_slice(&byte_start.to_le_bytes());
++        record[84..88].copy_from_slice(&byte_end.to_le_bytes());
++        bytes.extend_from_slice(&record);
++    }
++    std::fs::write(&recs, bytes).expect("write recs");
++
++    let corpus = load_corpus_from(
++        meta.to_str().expect("meta path utf-8"),
++        recs.to_str().expect("records path utf-8"),
++    )
++    .expect("load corpus");
++
++    assert_eq!(corpus.span_start, vec![0, 1]);
++    assert_eq!(corpus.span_end, vec![1, 2]);
++    assert_eq!(corpus.byte_start, vec![0, 3]);
++    assert_eq!(corpus.byte_end, vec![3, 5]);
++}
++
+ #[test]
+ fn load_corpus_v2_backfills_token_spans_and_unknown_bytes() {
+     let meta = unique_path("anchors-v2.meta");
+diff --git a/crates/uor-r4-core/tests/score.rs b/crates/uor-r4-core/tests/score.rs
+index 444ec29b2..3a734d6c0 100644
+--- a/crates/uor-r4-core/tests/score.rs
++++ b/crates/uor-r4-core/tests/score.rs
+@@ -116,8 +116,8 @@ fn synthetic_corpus() -> (Vec<Observation>, Corpus) {
+             });
+             next.push(next_token);
+             t_argmax.push(next_token);
+-            top_tokens.push([next_token, 0, 0]);
+-            top_weights.push([100, 0, 0]);
++            top_tokens.push([next_token, 0, 0, 0, 0, 0, 0, 0]);
++            top_weights.push([100, 0, 0, 0, 0, 0, 0, 0]);
+             observations.push(Observation {
+                 position,
+                 sample: blake3::hash(&position.to_le_bytes()).into(),
+@@ -357,7 +357,9 @@ fn hand_computed_scores_match_the_scorer_exactly() {
+     scorer.set_f_emissions(true);
+     // Context signature all zeros: region 1 at distance 0 (within its
+     // radius 4), region 2 at distance 288 (out of range) — A = {region 0}.
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     // Only the selected covered refinement chain contributes residuals;
+     // predicted-node emissions contribute candidates but do not stack a
+     // sibling branch onto the active chain:
+@@ -412,7 +414,9 @@ fn canonical_tie_break_prefers_the_lowest_token_id() {
+     // (distance 0) and region 1 out of range; F is empty (no forward
+     // edges from node 2), so candidates come from region 2's emissions
+     // and the root prior.
+-    let outcome = scorer.score_candidates(&[0xFF; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0xFF; SIG_BYTES], &[])
++        .expect("scores");
+     // S(20) = 200 + 2000 = 2200; S(30) = 300 + 100 = 400;
+     // S(10) = 100; S(40) = 50 → selected 20, and the scan kept the
+     // first (lowest-token) candidate on every strict `>`.
+@@ -428,7 +432,9 @@ fn exct_probe_contributes_exact_context_residuals() {
+     let scorer =
+         GraphScorer::from_artifact(&bytes, Some(&tla), 64, 64).expect("EXCT scorer builds");
+     assert!(scorer.has_exct());
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     let probe = outcome.witness.exct.clone().expect("EXCT probe recorded");
+     assert_eq!(probe.level, 0, "only level 0 is populated in the toy store");
+     assert!(probe.key.is_empty());
+@@ -555,7 +561,9 @@ fn rule1_chain_telescopes_and_sibling_emissions_do_not_stack() {
+     c_sig[0] = 0x01; // distance 1 from the all-zeros context
+     let (bytes, _tla) = chain_artifact([0x00; SIG_BYTES], c_sig);
+     let scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer builds");
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     // Active: A (depth 1, margin 300), B and C (depth 2, margins 300 and
+     // 299). The deepest-chain tie between B and C breaks to the higher
+     // margin — B — so only the [A, B] chain applies:
+@@ -604,7 +612,9 @@ fn rule1_chain_selection_tie_breaks_by_margin_then_lowest_region_id() {
+     // lowest region id wins.
+     let (bytes, _tla) = chain_artifact([0x00; SIG_BYTES], [0x00; SIG_BYTES]);
+     let scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer builds");
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     assert_eq!(
+         outcome.witness.chain,
+         vec![1, 2],
+@@ -616,7 +626,9 @@ fn rule1_chain_selection_tie_breaks_by_margin_then_lowest_region_id() {
+     b_sig[0] = 0x03; // distance 2 from the all-zeros context
+     let (bytes, _tla) = chain_artifact(b_sig, [0x00; SIG_BYTES]);
+     let scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer builds");
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     assert_eq!(outcome.witness.chain, vec![1, 3], "higher margin wins");
+     // S(20) = B(20) + ΔE(C,20) = 60 + 5000 = 5060: C's chain applies.
+     assert_eq!(outcome.selected, 20);
+@@ -631,7 +643,9 @@ fn rule2_exct_precedence_overrides_the_graph_with_sufficient_support() {
+     let (bytes, tla, _store) =
+         hand_artifact_with_store([(20u32, 5u32), (10, 1)].into_iter().collect());
+     let scorer = GraphScorer::from_artifact(&bytes, Some(&tla), 64, 64).expect("EXCT scorer");
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     assert_eq!(outcome.witness.status, ScoreStatus::ExactContext);
+     assert_eq!(
+         outcome.selected, 20,
+@@ -668,7 +682,9 @@ fn rule1_used_when_exct_support_is_below_min() {
+     let (bytes, tla, _store) = hand_artifact_with_store([(20u32, 4u32)].into_iter().collect());
+     let mut scorer = GraphScorer::from_artifact(&bytes, Some(&tla), 64, 64).expect("EXCT scorer");
+     scorer.set_f_emissions(true);
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     assert_eq!(outcome.witness.status, ScoreStatus::Graph);
+     let probe = outcome.witness.exct.clone().expect("probe recorded");
+     assert_eq!(probe.total, 4);
+@@ -703,7 +719,7 @@ fn novel_status_when_no_covered_chain_exists() {
+     for byte in sig.iter_mut().take(18) {
+         *byte = 0xFF;
+     }
+-    let outcome = scorer.score_candidates(&sig).expect("scores");
++    let outcome = scorer.score_candidates(&sig, &[]).expect("scores");
+     assert_eq!(outcome.witness.status, ScoreStatus::Novel);
+     assert!(outcome.witness.chain.is_empty());
+     assert_eq!(
+@@ -793,7 +809,9 @@ fn theorem_10_duplicate_contribution_id_is_rejected() {
+     let (bytes, tla, _store) = hand_artifact();
+     let mut scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer");
+     scorer.set_f_emissions(true);
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+ 
+     // A duplicated contribution id in the witness is rejected.
+     let mut tampered = outcome.witness.clone();
+@@ -866,7 +884,9 @@ fn theorem_10_overlapping_active_and_predicted_counts_emission_once() {
+     .expect("emit");
+     let mut scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer");
+     scorer.set_f_emissions(true);
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+     // Node 1 is both active and predicted.
+     assert_eq!(outcome.witness.predicted, vec![1]);
+     // S(10) = B(10) + ΔE(1,10) + w = 100 + 5 + 7 = 112 — the emission
+@@ -890,7 +910,9 @@ fn theorem_6_witness_replays_bit_exact_and_tampering_is_rejected() {
+     let (bytes, _tla, _artifacts, _store, _corpus, held_out) = synthetic_scored_artifact();
+     let scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer");
+     for observation in held_out.iter().take(8) {
+-        let outcome = scorer.score_candidates(&observation.sig).expect("scores");
++        let outcome = scorer
++            .score_candidates(&observation.sig, &[])
++            .expect("scores");
+         // Bit-exact independent replay.
+         verify_witness_replay(&bytes, None, &outcome.witness, 64, 64).expect("replay");
+         // A flipped contribution value is rejected.
+@@ -1635,7 +1657,9 @@ fn rx1_baked_residuals_match_probe_time_quantization() {
+     let scorer =
+         GraphScorer::from_artifact(&bytes, Some(&tla), 64, 64).expect("deployed RX1 scorer");
+     assert!(scorer.has_exct());
+-    let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
++    let outcome = scorer
++        .score_candidates(&[0x00; SIG_BYTES], &[])
++        .expect("scores");
+ 
+     // The hand store {10: 3, 20: 1, 50: 2} (total 6) clears the support
+     // gate, so Rule 2 fires and every admitted candidate's score is the
+diff --git a/crates/uor-r4-core/tests/transitions_test.rs b/crates/uor-r4-core/tests/transitions_test.rs
+index 9f71c6c78..22a25f8a2 100644
+--- a/crates/uor-r4-core/tests/transitions_test.rs
++++ b/crates/uor-r4-core/tests/transitions_test.rs
+@@ -40,8 +40,8 @@ fn test_compile_transitions_from_synthetic_corpus() {
+         input: vec![100, 200, 100, 200, 100, 300],
+         next: vec![200, 100, 200, 100, 300, 400],
+         t_argmax: vec![200, 100, 200, 100, 300, 400],
+-        top_tokens: vec![[200, 0, 0]; 6],
+-        top_weights: vec![[100, 0, 0]; 6],
++        top_tokens: vec![[200, 0, 0, 0, 0, 0, 0, 0]; 6],
++        top_weights: vec![[100, 0, 0, 0, 0, 0, 0, 0]; 6],
+         span_start: vec![0, 1, 2, 3, 4, 5],
+         span_end: vec![1, 2, 3, 4, 5, 6],
+         byte_start: vec![u32::MAX; 6],
+@@ -80,8 +80,8 @@ fn test_bounded_transitions_per_node() {
+         input: vec![10, 10, 10, 10],
+         next: vec![20, 30, 40, 50],
+         t_argmax: vec![20, 30, 40, 50],
+-        top_tokens: vec![[0; 3]; 4],
+-        top_weights: vec![[0; 3]; 4],
++        top_tokens: vec![[0; 8]; 4],
++        top_weights: vec![[0; 8]; 4],
+         span_start: vec![0, 1, 2, 3],
+         span_end: vec![1, 2, 3, 4],
+         byte_start: vec![u32::MAX; 4],
+diff --git a/scripts/check_gate_c_regression.py b/scripts/check_gate_c_regression.py
+new file mode 100755
+index 000000000..cb61e57c6
+--- /dev/null
++++ b/scripts/check_gate_c_regression.py
+@@ -0,0 +1,54 @@
++#!/usr/bin/env python3
++import sys
++import json
++
++# Pinned previous record (Gate C Rule 1+2 on the small corpus test fixture)
++# Determined from trend_output/score_report.json on main.
++PINNED_TOP1_AGREEMENT = 0.317  # ~31.7%
++PINNED_BITS_PER_TOKEN = 9.86   # 9.86 bits/token
++
++# Regression Thresholds
++MAX_TOP1_DROP = 0.02           # fail if top-1 drops > 2 points (0.02)
++MAX_BPT_WORSEN = 0.1           # fail if bits/token worsens (increases) > 0.1
++
++def main():
++    if len(sys.argv) < 2:
++        print("Usage: check_gate_c_regression.py <path/to/score_report.json>")
++        sys.exit(1)
++
++    report_path = sys.argv[1]
++    with open(report_path, 'r') as f:
++        report = json.load(f)
++    
++    rule12 = report.get('gate_c', {}).get('rule12_precedence')
++    if not rule12:
++        print("Error: 'rule12_precedence' metrics not found in the report.")
++        sys.exit(1)
++        
++    top1 = rule12.get('top1_agreement', 0.0)
++    bpt = rule12.get('bits_per_token', 0.0)
++    
++    print(f"Gate C (Rule 1+2) Current: top-1={top1:.4f} ({top1*100:.1f}%), bits/token={bpt:.4f}")
++    print(f"Gate C (Rule 1+2) Pinned : top-1={PINNED_TOP1_AGREEMENT:.4f} ({PINNED_TOP1_AGREEMENT*100:.1f}%), bits/token={PINNED_BITS_PER_TOKEN:.4f}")
++    
++    failed = False
++    
++    if top1 < (PINNED_TOP1_AGREEMENT - MAX_TOP1_DROP):
++        print(f"🚨 REGRESSION ALARM: top-1 agreement dropped by more than {MAX_TOP1_DROP*100:.1f} points!")
++        print(f"   Delta: {(top1 - PINNED_TOP1_AGREEMENT)*100:.2f} points")
++        failed = True
++        
++    if bpt > (PINNED_BITS_PER_TOKEN + MAX_BPT_WORSEN):
++        print(f"🚨 REGRESSION ALARM: bits/token worsened by more than {MAX_BPT_WORSEN:.2f}!")
++        print(f"   Delta: {bpt - PINNED_BITS_PER_TOKEN:+.4f} bits/token")
++        failed = True
++        
++    if failed:
++        print("Gate C regression check FAILED.")
++        sys.exit(1)
++    else:
++        print("Gate C regression check PASSED.")
++        sys.exit(0)
++
++if __name__ == '__main__':
++    main()
+diff --git a/src/r4g1.rs b/src/r4g1.rs
+index 5c830a4c6..d34c4d16e 100644
+--- a/src/r4g1.rs
++++ b/src/r4g1.rs
+@@ -336,17 +336,25 @@ impl R4g1State {
+     /// with legacy TLS1 exact-context evidence stay on the reference
+     /// scorer (the deployed step requires residualized RX1 evidence);
+     /// that path ignores the width — widening is unavailable there.
+-    fn score_sig(&self, sig: &[u8; SIG_BYTES], top_m: usize) -> Result<ScoredProbe, String> {
++    fn score_sig(
++        &self,
++        sig: &[u8; SIG_BYTES],
++        top_m: usize,
++        recent_tokens: &[u32],
++    ) -> Result<ScoredProbe, String> {
+         if self.step_supported {
+-            let outcome = self
+-                .scorer
+-                .score_step(sig, top_m, &mut self.step.borrow_mut())?;
++            let outcome = self.scorer.score_step_with_recent(
++                sig,
++                top_m,
++                &mut self.step.borrow_mut(),
++                recent_tokens,
++            )?;
+             Ok(ScoredProbe {
+                 token: outcome.selected,
+                 status: outcome.status,
+             })
+         } else {
+-            let outcome = self.scorer.score_candidates(sig)?;
++            let outcome = self.scorer.score_candidates(sig, recent_tokens)?;
+             Ok(ScoredProbe {
+                 token: outcome.selected,
+                 status: outcome.witness.status,
+@@ -362,9 +370,17 @@ impl R4g1State {
+     pub fn predict_signature_status(
+         &self,
+         sig: &[u8; SIG_BYTES],
++    ) -> Result<PredictDecision, String> {
++        self.predict_signature_status_with_recent(sig, &[])
++    }
++
++    fn predict_signature_status_with_recent(
++        &self,
++        sig: &[u8; SIG_BYTES],
++        recent_tokens: &[u32],
+     ) -> Result<PredictDecision, String> {
+         self.bump(|c| c.predicts += 1);
+-        let first = self.score_sig(sig, TOP_M)?;
++        let first = self.score_sig(sig, TOP_M, recent_tokens)?;
+         match self.policy.action(first.status.into()) {
+             StatusAction::Serve => {
+                 self.bump(|c| c.serves += 1);
+@@ -402,7 +418,7 @@ impl R4g1State {
+                     }));
+                 }
+                 self.bump(|c| c.widen_attempts += 1);
+-                let second = self.score_sig(sig, WIDENED_TOP_M)?;
++                let second = self.score_sig(sig, WIDENED_TOP_M, recent_tokens)?;
+                 if second.status == ScoreStatus::Novel {
+                     self.novel_seen.borrow_mut().insert(sig);
+                 }
+@@ -427,7 +443,7 @@ impl R4g1State {
+     /// Score one token window through the D4 policy.
+     pub fn predict_window_status(&self, window: &[u32]) -> Result<PredictDecision, String> {
+         self.check_window(window)?;
+-        self.predict_signature_status(&self.derive_sig(window))
++        self.predict_signature_status_with_recent(&self.derive_sig(window), window)
+     }
+ 
+     /// Generate a greedy continuation with per-step policy decisions:
+diff --git a/src/server.rs b/src/server.rs
+index 7d0298e15..e357f7a82 100644
+--- a/src/server.rs
++++ b/src/server.rs
+@@ -488,7 +488,7 @@ fn generate_r4g1_text(
+         // On an abstention no text is produced: the tokens generated before
+         // the abstaining step are dropped rather than served, so an
+         // out-of-distribution prompt never surfaces partial output.
+-        let byte_count = if outcome.abstained || outcome.count == 0 {
++        let bytes_written = if outcome.abstained || outcome.count == 0 {
+             0
+         } else {
+             state
+@@ -498,7 +498,7 @@ fn generate_r4g1_text(
+                 })?
+         };
+         (
+-            byte_count,
++            bytes_written,
+             outcome.status,
+             outcome.widened,
+             outcome.abstained,
+diff --git a/tests/status_policy.rs b/tests/status_policy.rs
+index 0704e23d5..c067d7e17 100644
+--- a/tests/status_policy.rs
++++ b/tests/status_policy.rs
+@@ -103,7 +103,11 @@ fn deployed_step_matches_the_reference_scorer_exactly() {
+     let scorer = fixture.reference_scorer();
+     let mut step_state = scorer.step_state(WIDENED_TOP_M).expect("step state");
+     for sig in [fixture.covered_sig, fixture.graph_sig, fixture.ood_sig] {
+-        let reference = scorer.score_candidates(&sig).expect("reference");
++        let reference = scorer.score_candidates(&sig, &[]).expect("reference");
++        let recent = [reference.selected];
++        let penalized_reference = scorer
++            .score_candidates(&sig, &recent)
++            .expect("penalized reference");
+         for top_m in [TOP_M, WIDENED_TOP_M] {
+             let step = scorer
+                 .score_step(&sig, top_m, &mut step_state)
+@@ -118,6 +122,17 @@ fn deployed_step_matches_the_reference_scorer_exactly() {
+                 step.candidate_count, reference.witness.candidate_count,
+                 "top_m {top_m}"
+             );
++            let penalized_step = scorer
++                .score_step_with_recent(&sig, top_m, &mut step_state, &recent)
++                .expect("penalized step");
++            assert_eq!(
++                penalized_step.selected, penalized_reference.selected,
++                "penalized top_m {top_m}"
++            );
++            assert_eq!(
++                penalized_step.selected_score, penalized_reference.selected_score,
++                "penalized top_m {top_m}"
++            );
+         }
+     }
+ }
+diff --git a/tests/status_policy_common/mod.rs b/tests/status_policy_common/mod.rs
+index 29c4a22c6..a09aebc2e 100644
+--- a/tests/status_policy_common/mod.rs
++++ b/tests/status_policy_common/mod.rs
+@@ -293,7 +293,7 @@ pub fn find_window_by_status(fixture: &ProbeFixture, want: ScoreStatus) -> Vec<u
+     for t in 0..64u32 {
+         let window = vec![t];
+         let sig = window_sig(fixture, &window);
+-        let outcome = scorer.score_candidates(&sig).expect("scores");
++        let outcome = scorer.score_candidates(&sig, &[]).expect("scores");
+         if outcome.witness.status == want {
+             return window;
+         }
+@@ -302,7 +302,7 @@ pub fn find_window_by_status(fixture: &ProbeFixture, want: ScoreStatus) -> Vec<u
+         for t2 in 0..64u32 {
+             let window = vec![t1, t2];
+             let sig = window_sig(fixture, &window);
+-            let outcome = scorer.score_candidates(&sig).expect("scores");
++            let outcome = scorer.score_candidates(&sig, &[]).expect("scores");
+             if outcome.witness.status == want {
+                 return window;
+             }

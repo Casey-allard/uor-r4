@@ -1,0 +1,1134 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 1d9a2ccb3..8c821fcc4 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -1799,6 +1799,7 @@ dependencies = [
+  "serde_json",
+  "sha2",
+  "tracing",
++ "uor-addr",
+  "uor-r4-graph-format",
+  "uor-r4-graph-runtime",
+  "uor-r4-model-source",
+@@ -1855,6 +1856,7 @@ version = "0.1.0"
+ dependencies = [
+  "blake3",
+  "serde",
++ "uor-addr",
+ ]
+ 
+ [[package]]
+diff --git a/crates/uor-r4-core/Cargo.toml b/crates/uor-r4-core/Cargo.toml
+index a7ecb5889..b213a2c58 100644
+--- a/crates/uor-r4-core/Cargo.toml
++++ b/crates/uor-r4-core/Cargo.toml
+@@ -14,6 +14,7 @@ hex = "0.4.3"
+ blake3 = "=1.5.0"
+ ciborium = "0.2"
+ uor-r4-graph-runtime = { path = "../uor-r4-graph-runtime" }
++uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"] }
+ tracing = { version = "0.1", default-features = false, features = ["std"] }
+ 
+ [dev-dependencies]
+diff --git a/crates/uor-r4-core/src/transformerless/mod.rs b/crates/uor-r4-core/src/transformerless/mod.rs
+index 549944923..069530e45 100644
+--- a/crates/uor-r4-core/src/transformerless/mod.rs
++++ b/crates/uor-r4-core/src/transformerless/mod.rs
+@@ -25,6 +25,7 @@ pub mod bott_fock;
+ pub mod cd_space;
+ pub mod endomorphism;
+ pub mod lie_jordan;
++pub mod region_store;
+ 
+ pub use reference_state::{ActiveFrontier, ActiveFrontierEntry, PackedEdgeRanges};
+ pub use runtime::{derive_popcount_table, hamming, sign_signature, OpKernel};
+diff --git a/crates/uor-r4-core/src/transformerless/region_store.rs b/crates/uor-r4-core/src/transformerless/region_store.rs
+new file mode 100644
+index 000000000..2f943da80
+--- /dev/null
++++ b/crates/uor-r4-core/src/transformerless/region_store.rs
+@@ -0,0 +1,466 @@
++//! I/O-side region objects and resolver-backed store access (#263).
++//!
++//! TLS1 remains the compact monolithic store used by the existing runtime.
++//! This module gives each `(depth, prefix)` subtree an independently
++//! addressable canonical object and provides the adapter needed to serve a
++//! prediction from a manifest plus a resolver. No prediction-kernel code is
++//! changed here.
++
++use std::collections::BTreeMap;
++
++use super::compiler::STAGES;
++use super::runtime::{Prediction, Store};
++
++/// Region-object wire schema version.
++pub const REGION_OBJECT_SCHEMA: u64 = 1;
++/// Manifest wire schema version.
++pub const REGION_MANIFEST_SCHEMA: u32 = 1;
++
++/// One canonical region object: a graded prefix and its token distribution.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct RegionObject {
++    /// Store grade / prefix depth.
++    pub depth: u8,
++    /// The class-prefix key at `depth`.
++    pub key: Vec<u8>,
++    /// Deterministically ordered next-token evidence.
++    pub distribution: BTreeMap<u32, u32>,
++}
++
++/// One manifest entry identifying a resolver-backed region object.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct RegionReference {
++    /// Store grade / prefix depth.
++    pub depth: u8,
++    /// The class-prefix key at `depth`.
++    pub key: Vec<u8>,
++    /// UOR κ-label of the canonical region object.
++    pub kappa: String,
++    /// Canonical object byte length.
++    pub bytes: u64,
++}
++
++/// A manifest sufficient to address every region without loading payloads.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct RegionManifest {
++    /// Manifest schema version.
++    pub schema: u32,
++    /// UOR κ-label of the canonical manifest skeleton.
++    pub manifest_kappa: String,
++    /// Region references in `(depth, key)` order.
++    pub regions: Vec<RegionReference>,
++}
++
++/// Export result containing the manifest and objects to place in a CAS.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct RegionExport {
++    pub manifest: RegionManifest,
++    pub objects: Vec<RegionObject>,
++}
++
++/// Errors from canonical region serialization or address derivation.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum RegionObjectError {
++    InvalidSchema,
++    InvalidKeyDepth,
++    DuplicateToken,
++    Malformed,
++    AddressingFailed,
++}
++
++impl core::fmt::Display for RegionObjectError {
++    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
++        let message = match self {
++            Self::InvalidSchema => "unsupported region-object schema",
++            Self::InvalidKeyDepth => "region key length does not match depth",
++            Self::DuplicateToken => "region object contains a duplicate token",
++            Self::Malformed => "malformed region object or manifest",
++            Self::AddressingFailed => "uor-addr rejected the region skeleton",
++        };
++        formatter.write_str(message)
++    }
++}
++
++impl std::error::Error for RegionObjectError {}
++
++/// Resolver errors are separate from a cache miss (`Ok(None)`).
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum RegionResolveError {
++    InvalidObject(RegionObjectError),
++    Backend(String),
++}
++
++impl core::fmt::Display for RegionResolveError {
++    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
++        match self {
++            Self::InvalidObject(error) => write!(formatter, "invalid region object: {error}"),
++            Self::Backend(error) => write!(formatter, "region resolver backend failed: {error}"),
++        }
++    }
++}
++
++impl std::error::Error for RegionResolveError {}
++
++/// Fetch a region object by its manifest κ-label.
++pub trait RegionResolver {
++    fn resolve(&self, kappa: &str) -> Result<Option<RegionObject>, RegionResolveError>;
++}
++
++/// In-memory resolver useful for tests, local caches, and composition.
++#[derive(Debug, Clone, Default)]
++pub struct MemoryRegionResolver {
++    objects: BTreeMap<String, RegionObject>,
++}
++
++impl MemoryRegionResolver {
++    pub fn from_export(export: &RegionExport) -> Result<Self, RegionObjectError> {
++        let mut resolver = Self::default();
++        for object in &export.objects {
++            resolver.insert(object.clone())?;
++        }
++        Ok(resolver)
++    }
++
++    pub fn insert(&mut self, object: RegionObject) -> Result<String, RegionObjectError> {
++        let kappa = region_kappa(&object)?;
++        self.objects.insert(kappa.clone(), object);
++        Ok(kappa)
++    }
++}
++
++impl RegionResolver for MemoryRegionResolver {
++    fn resolve(&self, kappa: &str) -> Result<Option<RegionObject>, RegionResolveError> {
++        Ok(self.objects.get(kappa).cloned())
++    }
++}
++
++/// Convert every TLS1 entry into one canonical region object.
++pub fn export_store(store: &Store) -> Result<RegionExport, RegionObjectError> {
++    let mut objects = Vec::new();
++    let mut regions = Vec::new();
++    for (depth, level) in store.iter().enumerate() {
++        let depth = u8::try_from(depth).map_err(|_| RegionObjectError::InvalidKeyDepth)?;
++        for (key, distribution) in level {
++            if key.len() != usize::from(depth) {
++                return Err(RegionObjectError::InvalidKeyDepth);
++            }
++            let object = RegionObject {
++                depth,
++                key: key.clone(),
++                distribution: distribution.clone(),
++            };
++            let bytes = canonical_region_bytes(&object)?;
++            let kappa = region_kappa(&object)?;
++            regions.push(RegionReference {
++                depth,
++                key: key.clone(),
++                kappa,
++                bytes: bytes.len() as u64,
++            });
++            objects.push(object);
++        }
++    }
++    let manifest_kappa = manifest_kappa_for(&regions)?;
++    Ok(RegionExport {
++        manifest: RegionManifest {
++            schema: REGION_MANIFEST_SCHEMA,
++            manifest_kappa,
++            regions,
++        },
++        objects,
++    })
++}
++
++/// Canonical CBOR bytes for one region object.
++pub fn canonical_region_bytes(object: &RegionObject) -> Result<Vec<u8>, RegionObjectError> {
++    validate_object(object)?;
++    let mut out = Vec::new();
++    cbor_array(&mut out, 4);
++    cbor_uint(&mut out, REGION_OBJECT_SCHEMA);
++    cbor_uint(&mut out, u64::from(object.depth));
++    cbor_bytes(&mut out, &object.key);
++    cbor_array(&mut out, object.distribution.len() as u64);
++    for (&token, &count) in &object.distribution {
++        cbor_array(&mut out, 2);
++        cbor_uint(&mut out, u64::from(token));
++        cbor_uint(&mut out, u64::from(count));
++    }
++    Ok(out)
++}
++
++#[derive(serde::Deserialize)]
++struct RegionWire(u64, u8, Vec<u8>, Vec<(u32, u32)>);
++
++/// Decode and validate one canonical region object.
++pub fn decode_region_bytes(bytes: &[u8]) -> Result<RegionObject, RegionObjectError> {
++    let mut cursor = std::io::Cursor::new(bytes);
++    let RegionWire(schema, depth, key, entries): RegionWire =
++        ciborium::de::from_reader(&mut cursor).map_err(|_| RegionObjectError::Malformed)?;
++    if cursor.position() != bytes.len() as u64 || schema != REGION_OBJECT_SCHEMA {
++        return Err(RegionObjectError::Malformed);
++    }
++    let mut distribution = BTreeMap::new();
++    for (token, count) in entries {
++        if distribution.insert(token, count).is_some() {
++            return Err(RegionObjectError::DuplicateToken);
++        }
++    }
++    let object = RegionObject {
++        depth,
++        key,
++        distribution,
++    };
++    if canonical_region_bytes(&object)?.as_slice() != bytes {
++        return Err(RegionObjectError::Malformed);
++    }
++    Ok(object)
++}
++
++/// Address one canonical region object through the pinned UOR CBOR axis.
++pub fn region_kappa(object: &RegionObject) -> Result<String, RegionObjectError> {
++    let bytes = canonical_region_bytes(object)?;
++    uor_addr::cbor::address_blake3(&bytes)
++        .map(|outcome| outcome.address.to_string())
++        .map_err(|_| RegionObjectError::AddressingFailed)
++}
++
++/// Resolve the deepest available prefix and apply deterministic token argmax.
++pub fn predict_witness_with_resolver<R: RegionResolver>(
++    resolver: &R,
++    manifest: &RegionManifest,
++    code: &[u8; STAGES],
++) -> Result<Prediction, RegionResolveError> {
++    if manifest.schema != REGION_MANIFEST_SCHEMA {
++        return Err(RegionResolveError::InvalidObject(
++            RegionObjectError::InvalidSchema,
++        ));
++    }
++    for depth in (0..=STAGES).rev() {
++        let depth_u8 = depth as u8;
++        let key = &code[..depth];
++        let Some(reference) = manifest
++            .regions
++            .iter()
++            .find(|region| region.depth == depth_u8 && region.key == key)
++        else {
++            continue;
++        };
++        let Some(object) = resolver.resolve(&reference.kappa)? else {
++            continue;
++        };
++        if object.depth != depth_u8 || object.key != key {
++            return Err(RegionResolveError::InvalidObject(
++                RegionObjectError::InvalidKeyDepth,
++            ));
++        }
++        let object_bytes =
++            canonical_region_bytes(&object).map_err(RegionResolveError::InvalidObject)?;
++        let object_kappa = region_kappa(&object).map_err(RegionResolveError::InvalidObject)?;
++        if object_bytes.len() as u64 != reference.bytes || object_kappa != reference.kappa {
++            return Err(RegionResolveError::InvalidObject(
++                RegionObjectError::Malformed,
++            ));
++        }
++        return Ok(argmax(depth_u8, &object.distribution));
++    }
++    Ok(Prediction::default())
++}
++
++fn argmax(depth: u8, distribution: &BTreeMap<u32, u32>) -> Prediction {
++    let mut best = Prediction::default();
++    let mut best_count = None;
++    for (&token, &count) in distribution {
++        if best_count.is_none_or(|best_count| count > best_count) {
++            best = Prediction {
++                token,
++                depth,
++                count,
++            };
++            best_count = Some(count);
++        }
++    }
++    best
++}
++
++fn validate_object(object: &RegionObject) -> Result<(), RegionObjectError> {
++    if object.key.len() != usize::from(object.depth) {
++        return Err(RegionObjectError::InvalidKeyDepth);
++    }
++    Ok(())
++}
++
++/// Canonical CBOR bytes for a region manifest.
++pub fn canonical_manifest_bytes(manifest: &RegionManifest) -> Result<Vec<u8>, RegionObjectError> {
++    if manifest.schema != REGION_MANIFEST_SCHEMA {
++        return Err(RegionObjectError::InvalidSchema);
++    }
++    validate_regions(&manifest.regions)?;
++    let mut bytes = Vec::new();
++    cbor_array(&mut bytes, 4);
++    cbor_uint(&mut bytes, u64::from(REGION_MANIFEST_SCHEMA));
++    cbor_text(&mut bytes, "r4-region-manifest");
++    cbor_text(&mut bytes, &manifest.manifest_kappa);
++    cbor_array(&mut bytes, manifest.regions.len() as u64);
++    for region in &manifest.regions {
++        cbor_array(&mut bytes, 4);
++        cbor_uint(&mut bytes, u64::from(region.depth));
++        cbor_bytes(&mut bytes, &region.key);
++        cbor_text(&mut bytes, &region.kappa);
++        cbor_uint(&mut bytes, region.bytes);
++    }
++    Ok(bytes)
++}
++
++/// Derive the manifest κ-label from its canonical skeleton.
++pub fn manifest_kappa_for(regions: &[RegionReference]) -> Result<String, RegionObjectError> {
++    validate_regions(regions)?;
++    let mut bytes = Vec::new();
++    cbor_array(&mut bytes, 3);
++    cbor_uint(&mut bytes, u64::from(REGION_MANIFEST_SCHEMA));
++    cbor_text(&mut bytes, "r4-region-manifest");
++    cbor_array(&mut bytes, regions.len() as u64);
++    for region in regions {
++        cbor_array(&mut bytes, 4);
++        cbor_uint(&mut bytes, u64::from(region.depth));
++        cbor_bytes(&mut bytes, &region.key);
++        cbor_text(&mut bytes, &region.kappa);
++        cbor_uint(&mut bytes, region.bytes);
++    }
++    uor_addr::cbor::address_blake3(&bytes)
++        .map(|outcome| outcome.address.to_string())
++        .map_err(|_| RegionObjectError::AddressingFailed)
++}
++
++fn validate_regions(regions: &[RegionReference]) -> Result<(), RegionObjectError> {
++    let mut previous: Option<(&u8, &[u8])> = None;
++    for region in regions {
++        if region.key.len() != usize::from(region.depth) {
++            return Err(RegionObjectError::InvalidKeyDepth);
++        }
++        let current = (&region.depth, region.key.as_slice());
++        if previous.is_some_and(|previous| current <= previous) {
++            return Err(RegionObjectError::Malformed);
++        }
++        previous = Some(current);
++    }
++    Ok(())
++}
++
++#[derive(serde::Deserialize)]
++struct ManifestWire(u32, String, String, Vec<(u8, Vec<u8>, String, u64)>);
++
++/// Decode and validate a canonical region manifest.
++pub fn decode_manifest_bytes(bytes: &[u8]) -> Result<RegionManifest, RegionObjectError> {
++    let mut cursor = std::io::Cursor::new(bytes);
++    let ManifestWire(schema, domain, kappa, entries): ManifestWire =
++        ciborium::de::from_reader(&mut cursor).map_err(|_| RegionObjectError::Malformed)?;
++    if cursor.position() != bytes.len() as u64
++        || schema != REGION_MANIFEST_SCHEMA
++        || domain != "r4-region-manifest"
++    {
++        return Err(RegionObjectError::Malformed);
++    }
++    let regions = entries
++        .into_iter()
++        .map(|(depth, key, kappa, bytes)| RegionReference {
++            depth,
++            key,
++            kappa,
++            bytes,
++        })
++        .collect::<Vec<_>>();
++    let expected = manifest_kappa_for(&regions)?;
++    if expected != kappa {
++        return Err(RegionObjectError::Malformed);
++    }
++    let manifest = RegionManifest {
++        schema,
++        manifest_kappa: kappa,
++        regions,
++    };
++    if canonical_manifest_bytes(&manifest)?.as_slice() != bytes {
++        return Err(RegionObjectError::Malformed);
++    }
++    Ok(manifest)
++}
++
++fn cbor_array(out: &mut Vec<u8>, length: u64) {
++    cbor_head(out, 4, length);
++}
++
++fn cbor_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
++    cbor_head(out, 2, bytes.len() as u64);
++    out.extend_from_slice(bytes);
++}
++
++fn cbor_text(out: &mut Vec<u8>, text: &str) {
++    cbor_head(out, 3, text.len() as u64);
++    out.extend_from_slice(text.as_bytes());
++}
++
++fn cbor_uint(out: &mut Vec<u8>, value: u64) {
++    cbor_head(out, 0, value);
++}
++
++fn cbor_head(out: &mut Vec<u8>, major: u8, value: u64) {
++    if value <= 23 {
++        out.push((major << 5) | value as u8);
++    } else if value <= u8::MAX as u64 {
++        out.extend_from_slice(&[(major << 5) | 24, value as u8]);
++    } else if value <= u16::MAX as u64 {
++        out.push((major << 5) | 25);
++        out.extend_from_slice(&(value as u16).to_be_bytes());
++    } else if value <= u32::MAX as u64 {
++        out.push((major << 5) | 26);
++        out.extend_from_slice(&(value as u32).to_be_bytes());
++    } else {
++        out.push((major << 5) | 27);
++        out.extend_from_slice(&value.to_be_bytes());
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::transformerless::runtime::predict_witness_plain;
++
++    fn fixture_store() -> Store {
++        let mut store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
++        store[0].insert(vec![], BTreeMap::from([(7, 2), (9, 1)]));
++        store[1].insert(vec![1], BTreeMap::from([(11, 4), (12, 3)]));
++        store[2].insert(vec![1, 2], BTreeMap::from([(21, 5)]));
++        store
++    }
++
++    #[test]
++    fn manifest_resolver_matches_monolithic_predictions() {
++        let store = fixture_store();
++        let export = export_store(&store).expect("fixture exports");
++        let resolver = MemoryRegionResolver::from_export(&export).expect("resolver loads");
++        let code = [1, 2, 3, 4];
++        let expected = predict_witness_plain(&store, &code);
++        let actual = predict_witness_with_resolver(&resolver, &export.manifest, &code)
++            .expect("resolver prediction");
++        assert_eq!(actual, expected);
++        assert!(export.manifest.manifest_kappa.starts_with("blake3:"));
++    }
++
++    #[test]
++    fn region_kappas_are_deterministic_and_payload_bound() {
++        let first = RegionObject {
++            depth: 1,
++            key: vec![4],
++            distribution: BTreeMap::from([(3, 1)]),
++        };
++        let second = RegionObject {
++            distribution: BTreeMap::from([(3, 2)]),
++            ..first.clone()
++        };
++        assert_eq!(region_kappa(&first), region_kappa(&first));
++        assert_ne!(region_kappa(&first), region_kappa(&second));
++        assert_eq!(
++            canonical_region_bytes(&first).unwrap(),
++            canonical_region_bytes(&first).unwrap()
++        );
++    }
++}
+diff --git a/crates/uor-r4-graph-cli/src/lib.rs b/crates/uor-r4-graph-cli/src/lib.rs
+index 462fd14e1..1e895852a 100644
+--- a/crates/uor-r4-graph-cli/src/lib.rs
++++ b/crates/uor-r4-graph-cli/src/lib.rs
+@@ -1006,7 +1006,8 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
+             exct_top_x: config.exct_top_x,
+         },
+     )?;
+-    let graph_kappa = format!("blake3:{}", blake3::hash(&artifact_bytes).to_hex());
++    let graph_kappa = uor_r4_graph_format::r4g1::artifact_kappa(&artifact_bytes)
++        .map_err(|error| format!("cannot address emitted R4G1 artifact: {error}"))?;
+ 
+     eprintln!("score: running Gate C evaluation [========================] 100%");
+     let gate_c = score::evaluate_gate_c(
+diff --git a/crates/uor-r4-graph-format/Cargo.toml b/crates/uor-r4-graph-format/Cargo.toml
+index e65c74b57..b4b48b8e1 100644
+--- a/crates/uor-r4-graph-format/Cargo.toml
++++ b/crates/uor-r4-graph-format/Cargo.toml
+@@ -7,7 +7,7 @@ description = "R4G1 packed graph artifact container: no_std-compatible fixed-wid
+ [features]
+ default = ["std"]
+ std = ["alloc"]
+-alloc = []
++alloc = ["dep:uor-addr"]
+ 
+ [dependencies]
+ # Pinned to the workspace-wide blake3 version. `default-features = false`
+@@ -17,3 +17,4 @@ blake3 = { version = "=1.5.0", default-features = false }
+ # Serde on the wire newtypes (ScoreQ and peers flow into certificates and
+ # manifests); no_std-compatible via derive-only, no std/alloc requirement.
+ serde = { version = "1.0", default-features = false, features = ["derive"] }
++uor-addr = { git = "https://github.com/UOR-Foundation/uor-addr.git", rev = "165b51e3e2113ee5d032730cde709335d4fe9b60", default-features = false, features = ["alloc"], optional = true }
+diff --git a/crates/uor-r4-graph-format/src/lib.rs b/crates/uor-r4-graph-format/src/lib.rs
+index 54980a525..45f6b4ef5 100644
+--- a/crates/uor-r4-graph-format/src/lib.rs
++++ b/crates/uor-r4-graph-format/src/lib.rs
+@@ -69,6 +69,8 @@ mod head;
+ mod header;
+ pub mod inference_contract;
+ pub mod invariant_ownership;
++#[cfg(feature = "alloc")]
++pub mod r4g1;
+ pub mod records;
+ mod rout;
+ pub mod scoring_semantics;
+diff --git a/crates/uor-r4-graph-format/src/r4g1.rs b/crates/uor-r4-graph-format/src/r4g1.rs
+new file mode 100644
+index 000000000..8f92f7b7a
+--- /dev/null
++++ b/crates/uor-r4-graph-format/src/r4g1.rs
+@@ -0,0 +1,191 @@
++//! The canonical `uor-addr` realization for an R4G1 artifact.
++//!
++//! R4G1's wire CIDs remain byte-level integrity checks: they protect the
++//! exact container that a runtime mapped.  This module provides the
++//! representation-level address used in manifests, reports, and serving
++//! attestations.  It deliberately omits offsets, alignment padding, and the
++//! two wire CIDs, so equivalent containers have the same address.
++//!
++//! The realization is a small Merkle skeleton.  A section address commits to
++//! its semantic table identity (`id` and `flags`) and payload.  The artifact
++//! address then commits to the sorted list of section identities and section
++//! addresses.  Both levels are fed through the pinned CBOR realization of
++//! `uor-addr` on its BLAKE3 axis.
++
++use alloc::{
++    string::{String, ToString},
++    vec::Vec,
++};
++
++use crate::{FormatError, GraphView, SectionId};
++
++/// Version of the R4G1 realization skeleton.
++pub const REALIZATION_VERSION: u64 = 1;
++/// Stable realization discriminator included in every skeleton.
++pub const REALIZATION_NAME: &str = "r4g1";
++
++/// Failure while validating or addressing an R4G1 artifact.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum RealizationError {
++    /// The container failed R4G1 structural or semantic validation.
++    InvalidArtifact(FormatError),
++    /// The generated skeleton was not accepted by the CBOR realization.
++    AddressingFailed,
++}
++
++impl core::fmt::Display for RealizationError {
++    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
++        match self {
++            Self::InvalidArtifact(error) => write!(formatter, "invalid R4G1 artifact: {error}"),
++            Self::AddressingFailed => write!(formatter, "uor-addr rejected the R4G1 skeleton"),
++        }
++    }
++}
++
++#[cfg(feature = "std")]
++impl std::error::Error for RealizationError {}
++
++/// A section's representation-level address.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct SectionAddress {
++    /// Wire section identifier.
++    pub id: SectionId,
++    /// Section-table flags, which are part of the section's identity.
++    pub flags: u32,
++    /// BLAKE3-axis UOR κ-label for this section.
++    pub kappa: String,
++}
++
++/// The complete address and replayable skeleton inputs for one artifact.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct R4G1Address {
++    /// BLAKE3-axis UOR κ-label for the canonical artifact skeleton.
++    pub artifact_kappa: String,
++    /// Per-section addresses in canonical section-ID order.
++    pub sections: Vec<SectionAddress>,
++    /// Canonical CBOR skeleton addressed by `artifact_kappa`.
++    pub skeleton: Vec<u8>,
++}
++
++/// Address a validated R4G1 container using its canonical section skeleton.
++pub fn address(bytes: &[u8]) -> Result<R4G1Address, RealizationError> {
++    let view = GraphView::parse(bytes).map_err(RealizationError::InvalidArtifact)?;
++    view.verify_cids()
++        .map_err(RealizationError::InvalidArtifact)?;
++
++    let mut sections = Vec::with_capacity(view.sections().len());
++    for section in view.sections() {
++        let section_skeleton = section_skeleton(section.id, section.flags, section.payload);
++        let kappa = address_cbor(&section_skeleton)?;
++        sections.push(SectionAddress {
++            id: section.id,
++            flags: section.flags,
++            kappa,
++        });
++    }
++
++    let skeleton = artifact_skeleton(&sections);
++    let artifact_kappa = address_cbor(&skeleton)?;
++    Ok(R4G1Address {
++        artifact_kappa,
++        sections,
++        skeleton,
++    })
++}
++
++/// Return only the representation-level artifact κ-label.
++pub fn artifact_kappa(bytes: &[u8]) -> Result<String, RealizationError> {
++    Ok(address(bytes)?.artifact_kappa)
++}
++
++/// Return the representation-level κ-label for one section.
++pub fn section_kappa(bytes: &[u8], id: SectionId) -> Result<Option<String>, RealizationError> {
++    Ok(address(bytes)?
++        .sections
++        .into_iter()
++        .find(|section| section.id == id)
++        .map(|section| section.kappa))
++}
++
++fn address_cbor(skeleton: &[u8]) -> Result<String, RealizationError> {
++    uor_addr::cbor::address_blake3(skeleton)
++        .map(|outcome| outcome.address.to_string())
++        .map_err(|_| RealizationError::AddressingFailed)
++}
++
++fn section_skeleton(id: SectionId, flags: u32, payload: &[u8]) -> Vec<u8> {
++    let mut out = Vec::with_capacity(payload.len() + 48);
++    cbor_array(&mut out, 5);
++    cbor_uint(&mut out, REALIZATION_VERSION);
++    cbor_text(&mut out, REALIZATION_NAME);
++    cbor_uint(&mut out, u64::from(id.raw()));
++    cbor_uint(&mut out, u64::from(flags));
++    cbor_bytes(&mut out, payload);
++    out
++}
++
++fn artifact_skeleton(sections: &[SectionAddress]) -> Vec<u8> {
++    let mut out = Vec::with_capacity(32 + sections.len() * 96);
++    cbor_array(&mut out, 3);
++    cbor_uint(&mut out, REALIZATION_VERSION);
++    cbor_text(&mut out, REALIZATION_NAME);
++    cbor_array(&mut out, sections.len() as u64);
++    for section in sections {
++        cbor_array(&mut out, 3);
++        cbor_uint(&mut out, u64::from(section.id.raw()));
++        cbor_uint(&mut out, u64::from(section.flags));
++        cbor_text(&mut out, &section.kappa);
++    }
++    out
++}
++
++fn cbor_array(out: &mut Vec<u8>, length: u64) {
++    cbor_head(out, 4, length);
++}
++
++fn cbor_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
++    cbor_head(out, 2, bytes.len() as u64);
++    out.extend_from_slice(bytes);
++}
++
++fn cbor_text(out: &mut Vec<u8>, text: &str) {
++    cbor_head(out, 3, text.len() as u64);
++    out.extend_from_slice(text.as_bytes());
++}
++
++fn cbor_uint(out: &mut Vec<u8>, value: u64) {
++    cbor_head(out, 0, value);
++}
++
++fn cbor_head(out: &mut Vec<u8>, major: u8, value: u64) {
++    debug_assert!(major < 8);
++    if value <= 23 {
++        out.push((major << 5) | value as u8);
++    } else if value <= u8::MAX as u64 {
++        out.push((major << 5) | 24);
++        out.push(value as u8);
++    } else if value <= u16::MAX as u64 {
++        out.push((major << 5) | 25);
++        out.extend_from_slice(&(value as u16).to_be_bytes());
++    } else if value <= u32::MAX as u64 {
++        out.push((major << 5) | 26);
++        out.extend_from_slice(&(value as u32).to_be_bytes());
++    } else {
++        out.push((major << 5) | 27);
++        out.extend_from_slice(&value.to_be_bytes());
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn cbor_heads_are_minimally_encoded() {
++        let mut out = Vec::new();
++        cbor_uint(&mut out, 23);
++        cbor_uint(&mut out, 24);
++        cbor_uint(&mut out, 256);
++        assert_eq!(out, [0x17, 0x18, 0x18, 0x19, 0x01, 0x00]);
++    }
++}
+diff --git a/crates/uor-r4-graph-format/tests/realization.rs b/crates/uor-r4-graph-format/tests/realization.rs
+new file mode 100644
+index 000000000..05128b79b
+--- /dev/null
++++ b/crates/uor-r4-graph-format/tests/realization.rs
+@@ -0,0 +1,77 @@
++//! Conformance vectors for the representation-level R4G1 address.
++
++mod common;
++
++use common::{head_payload, node_section, storage_section, HeadFields, NodeFields};
++use uor_r4_graph_format::{r4g1, ArtifactBuilder, SectionId};
++
++fn sample(alignment_log2: u8, reverse_insertion: bool) -> Vec<u8> {
++    let mut builder = ArtifactBuilder::new(alignment_log2);
++    let head = head_payload(&HeadFields::default());
++    let node = node_section(&[] as &[NodeFields]);
++    let rout = [0u8; 64];
++    let emit = storage_section(1, 0, 0, &[]);
++    if reverse_insertion {
++        builder.add_section(SectionId::EMIT, 0, &emit);
++        builder.add_section(SectionId::ROUT, 0, &rout);
++        builder.add_section(SectionId::NODE, 7, &node);
++        builder.add_section(SectionId::HEAD, 0, &head);
++    } else {
++        builder.add_section(SectionId::HEAD, 0, &head);
++        builder.add_section(SectionId::NODE, 7, &node);
++        builder.add_section(SectionId::ROUT, 0, &rout);
++        builder.add_section(SectionId::EMIT, 0, &emit);
++    }
++    builder.build().expect("stage-2-valid sample must build")
++}
++
++#[test]
++fn equivalent_reserializations_share_the_realization_address() {
++    let first = r4g1::address(&sample(3, false)).expect("valid sample");
++    let second = r4g1::address(&sample(5, true)).expect("valid sample");
++
++    assert_eq!(first.skeleton, second.skeleton);
++    assert_eq!(first.artifact_kappa, second.artifact_kappa);
++    assert_eq!(first.sections, second.sections);
++}
++
++#[test]
++fn payload_changes_change_the_section_and_artifact_addresses() {
++    let original = sample(3, false);
++    let mut changed_builder = ArtifactBuilder::new(3);
++    let head = head_payload(&HeadFields::default());
++    let node = node_section(&[] as &[NodeFields]);
++    let rout = [0u8; 64];
++    let changed_emit = storage_section(2, 0, 0, &[]);
++    changed_builder.add_section(SectionId::HEAD, 0, &head);
++    changed_builder.add_section(SectionId::NODE, 7, &node);
++    changed_builder.add_section(SectionId::ROUT, 0, &rout);
++    changed_builder.add_section(SectionId::EMIT, 0, &changed_emit);
++    let changed_bytes = changed_builder
++        .build()
++        .expect("stage-2-valid sample must build");
++
++    let original = r4g1::address(&original).expect("valid sample");
++    let changed = r4g1::address(&changed_bytes).expect("valid sample");
++    assert_ne!(original.artifact_kappa, changed.artifact_kappa);
++    assert_ne!(
++        r4g1::section_kappa(&sample(3, false), SectionId::EMIT).expect("valid sample"),
++        r4g1::section_kappa(&changed_bytes, SectionId::EMIT).expect("valid sample")
++    );
++}
++
++#[test]
++fn malformed_or_tampered_artifacts_are_rejected() {
++    assert!(matches!(
++        r4g1::address(b"not an R4G1 artifact"),
++        Err(r4g1::RealizationError::InvalidArtifact(_))
++    ));
++
++    let mut tampered = sample(3, false);
++    let last = tampered.len() - 1;
++    tampered[last] ^= 1;
++    assert!(matches!(
++        r4g1::address(&tampered),
++        Err(r4g1::RealizationError::InvalidArtifact(_))
++    ));
++}
+diff --git a/docs/r4g1_realization_264.md b/docs/r4g1_realization_264.md
+new file mode 100644
+index 000000000..365e3d2f5
+--- /dev/null
++++ b/docs/r4g1_realization_264.md
+@@ -0,0 +1,38 @@
++# R4G1 representation realization
++
++Issue #264 adds the first in-repository realization of an R4G1 artifact for
++`uor-addr`. It separates two identities that serve different purposes:
++
++- `GraphView::verify_cids()` continues to verify the exact bytes mapped by a
++  runtime. Those wire CIDs are integrity checks and intentionally remain
++  sensitive to layout and padding.
++- `uor_r4_graph_format::r4g1::address()` produces the representation-level
++  κ-label used in reports, manifests, and serving attestations. It ignores
++  offsets, alignment padding, and the two wire CID fields.
++
++The realization is a two-level Merkle skeleton encoded as deterministic CBOR
++and addressed through the pinned `uor-addr` BLAKE3 axis:
++
++```text
++section skeleton := [version, "r4g1", section_id, section_flags, payload]
++section κ       := uor-addr/cbor/blake3(section skeleton)
++
++artifact skeleton := [version, "r4g1",
++                      [[section_id, section_flags, section κ], ...]]
++artifact κ       := uor-addr/cbor/blake3(artifact skeleton)
++```
++
++Sections are consumed in R4G1's canonical section-ID order. The section
++address is therefore independently usable for future immutable graph patches
++and region-object manifests, while the artifact address is stable across
++equivalent container reserializations. A changed section payload or section
++flag changes both its own κ-label and the artifact κ-label.
++
++The implementation is allocation-gated with the graph-format crate's
++`alloc` feature; the no-std parser and runtime feature ladder do not pull the
++realization dependency into their zero-allocation build.
++
++The ignored `uor_standards/` checkout is local reference material rather than
++a repository input. The implementation is pinned to the same `uor-addr`
++revision declared in the workspace manifest; upstream conformance vectors can
++be added there when the standards repository accepts the realization.
+diff --git a/docs/region_objects_263.md b/docs/region_objects_263.md
+new file mode 100644
+index 000000000..3aad2cbad
+--- /dev/null
++++ b/docs/region_objects_263.md
+@@ -0,0 +1,33 @@
++# κ-addressed region objects
++
++Issue #263 adds an I/O-side export and resolver layer for the graded TLS1
++store. The existing monolithic `Store` and prediction kernel remain the
++reference implementation; this layer makes each `(depth, prefix)` entry a
++portable object.
++
++## Object and manifest identities
++
++Each region object is encoded as deterministic CBOR:
++
++```text
++[schema, depth, prefix_bytes, [[token_id, evidence_count], ...]]
++```
++
++The token distribution is emitted in ascending token-ID order. Its κ-label is
++the pinned `uor-addr` CBOR realization on the BLAKE3 axis. A manifest contains
++the sorted `(depth, prefix, κ, byte_length)` references and has its own κ-label
++over a skeleton that excludes the self-reference.
++
++`ModelStore` uses the existing local CAS layout for these labels. Writes emit
++canonical bytes; reads reject malformed, non-canonical, or κ-mismatched
++objects. The `RegionResolver` trait makes a local CAS resolver interchangeable
++with a future network resolver.
++
++## Prediction boundary
++
++`predict_witness_with_resolver` walks the manifest's deepest available prefix,
++fetches only the selected region object, and applies the same deterministic
++token argmax rule as the monolithic TLS1 path. The conformance test starts with
++only the manifest and resolver-backed objects and asserts byte-for-byte
++equivalent prediction witnesses. No graph-runtime kernel or TLS1 wire format
++changes are required.
+diff --git a/src/model.rs b/src/model.rs
+index 65702aae4..7d9f184b5 100644
+--- a/src/model.rs
++++ b/src/model.rs
+@@ -84,6 +84,7 @@ pub enum ModelError {
+     Io(std::io::Error),
+     Json(serde_json::Error),
+     InvalidCid(String),
++    InvalidRegionObject(String),
+     SizeMismatch {
+         cid: String,
+         expected: u64,
+@@ -115,6 +116,9 @@ impl fmt::Display for ModelError {
+             Self::InvalidCid(cid) => {
+                 write!(formatter, "model object failed CID verification: {cid}")
+             }
++            Self::InvalidRegionObject(error) => {
++                write!(formatter, "region object failed canonical verification: {error}")
++            }
+             Self::SizeMismatch {
+                 cid,
+                 expected,
+@@ -235,6 +239,76 @@ impl ModelStore {
+         Ok(bytes)
+     }
+ 
++    /// Store one canonical region object under its UOR κ-label.
++    pub fn put_region_object(
++        &self,
++        object: &uor_r4_core::transformerless::region_store::RegionObject,
++    ) -> Result<ModelObject, ModelError> {
++        let bytes = uor_r4_core::transformerless::region_store::canonical_region_bytes(object)
++            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
++        let cid = uor_r4_core::transformerless::region_store::region_kappa(object)
++            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
++        self.put_addressed_bytes(&cid, &bytes)
++    }
++
++    /// Load and verify one region object from the local CAS. A missing object
++    /// is a normal resolver miss; malformed or tampered bytes are errors.
++    pub fn get_region_object(
++        &self,
++        kappa: &str,
++    ) -> Result<Option<uor_r4_core::transformerless::region_store::RegionObject>, ModelError> {
++        let path = self.object_path(kappa)?;
++        let bytes = match std::fs::read(path) {
++            Ok(bytes) => bytes,
++            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
++            Err(error) => return Err(ModelError::Io(error)),
++        };
++        let object = uor_r4_core::transformerless::region_store::decode_region_bytes(&bytes)
++            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
++        let actual = uor_r4_core::transformerless::region_store::region_kappa(&object)
++            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
++        if actual != kappa {
++            return Err(ModelError::InvalidCid(kappa.to_owned()));
++        }
++        Ok(Some(object))
++    }
++
++    /// Store a canonical region manifest under its manifest κ-label.
++    pub fn put_region_manifest(
++        &self,
++        manifest: &uor_r4_core::transformerless::region_store::RegionManifest,
++    ) -> Result<ModelObject, ModelError> {
++        let expected =
++            uor_r4_core::transformerless::region_store::manifest_kappa_for(&manifest.regions)
++                .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
++        if expected != manifest.manifest_kappa {
++            return Err(ModelError::InvalidCid(manifest.manifest_kappa.clone()));
++        }
++        let bytes = uor_r4_core::transformerless::region_store::canonical_manifest_bytes(manifest)
++            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
++        self.put_addressed_bytes(&manifest.manifest_kappa, &bytes)
++    }
++
++    /// Load and verify a region manifest from the local CAS.
++    pub fn get_region_manifest(
++        &self,
++        kappa: &str,
++    ) -> Result<Option<uor_r4_core::transformerless::region_store::RegionManifest>, ModelError>
++    {
++        let path = self.object_path(kappa)?;
++        let bytes = match std::fs::read(path) {
++            Ok(bytes) => bytes,
++            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
++            Err(error) => return Err(ModelError::Io(error)),
++        };
++        let manifest = uor_r4_core::transformerless::region_store::decode_manifest_bytes(&bytes)
++            .map_err(|error| ModelError::InvalidRegionObject(error.to_string()))?;
++        if manifest.manifest_kappa != kappa {
++            return Err(ModelError::InvalidCid(kappa.to_owned()));
++        }
++        Ok(Some(manifest))
++    }
++
+     pub fn write_manifest(&self, manifest: &ModelManifest) -> Result<String, ModelError> {
+         let bytes = serde_json::to_vec_pretty(manifest)?;
+         let object = self.put(&bytes)?;
+@@ -297,6 +371,36 @@ impl ModelStore {
+         }
+         Ok(self.root.join("objects").join("blake3").join(hash))
+     }
++
++    fn put_addressed_bytes(&self, cid: &str, bytes: &[u8]) -> Result<ModelObject, ModelError> {
++        let path = self.object_path(cid)?;
++        if !path.exists() {
++            if let Some(parent) = path.parent() {
++                std::fs::create_dir_all(parent)?;
++            }
++            std::fs::write(&path, bytes)?;
++        }
++        Ok(ModelObject {
++            cid: cid.to_owned(),
++            bytes: bytes.len() as u64,
++        })
++    }
++}
++
++impl uor_r4_core::transformerless::region_store::RegionResolver for ModelStore {
++    fn resolve(
++        &self,
++        kappa: &str,
++    ) -> Result<
++        Option<uor_r4_core::transformerless::region_store::RegionObject>,
++        uor_r4_core::transformerless::region_store::RegionResolveError,
++    > {
++        self.get_region_object(kappa).map_err(|error| {
++            uor_r4_core::transformerless::region_store::RegionResolveError::Backend(
++                error.to_string(),
++            )
++        })
++    }
+ }
+ 
+ fn is_compiled_bundle(path: &Path) -> bool {
+@@ -670,4 +774,47 @@ mod tests {
+         assert!(matches!(error, ModelError::CompiledNotImported(path) if path == compiled));
+         std::fs::remove_dir_all(root).unwrap();
+     }
++
++    #[test]
++    fn model_store_resolves_region_objects_from_manifest_only() {
++        use std::collections::BTreeMap;
++        use uor_r4_core::transformerless::region_store::{
++            export_store, predict_witness_with_resolver, RegionResolver,
++        };
++        use uor_r4_core::transformerless::runtime::{predict_witness_plain, Store};
++
++        let root =
++            std::env::temp_dir().join(format!("uor-r4-region-store-test-{}", std::process::id()));
++        let mut store: Store = (0..=4).map(|_| BTreeMap::new()).collect();
++        store[0].insert(vec![], BTreeMap::from([(7, 2), (9, 1)]));
++        store[1].insert(vec![1], BTreeMap::from([(11, 4), (12, 3)]));
++        store[2].insert(vec![1, 2], BTreeMap::from([(21, 5)]));
++
++        let export = export_store(&store).expect("region export");
++        let model_store = ModelStore::new(&root);
++        for object in &export.objects {
++            model_store
++                .put_region_object(object)
++                .expect("region object write");
++        }
++        model_store
++            .put_region_manifest(&export.manifest)
++            .expect("manifest write");
++
++        let manifest = model_store
++            .get_region_manifest(&export.manifest.manifest_kappa)
++            .expect("manifest read")
++            .expect("manifest exists");
++        let code = [1, 2, 3, 4];
++        let expected = predict_witness_plain(&store, &code);
++        let actual = predict_witness_with_resolver(&model_store, &manifest, &code)
++            .expect("resolver prediction");
++        assert_eq!(actual, expected);
++        assert!(
++            <ModelStore as RegionResolver>::resolve(&model_store, &manifest.regions[0].kappa)
++                .expect("resolver read")
++                .is_some()
++        );
++        std::fs::remove_dir_all(root).unwrap();
++    }
+ }
+diff --git a/src/server.rs b/src/server.rs
+index 9fec689c9..0eb63f500 100644
+--- a/src/server.rs
++++ b/src/server.rs
+@@ -940,8 +940,10 @@ fn validate_uor_address_syntax(address: &str) -> Result<(), &'static str> {
+     Ok(())
+ }
+ 
+-/// blake3 CID of the artifact the serving cascade would load, mtime-cached
+-/// (issue #256: a real content address or nothing — never a placeholder).
++/// Representation-level UOR κ-label of the artifact the serving cascade
++/// would load, mtime-cached. The R4G1 wire CIDs remain internal integrity
++/// checks; external attestations use the canonical section-addressable
++/// realization from issue #264.
+ fn active_artifact_cid() -> Option<String> {
+     use std::sync::{Mutex, OnceLock};
+     static CACHE: OnceLock<Mutex<Option<(std::path::PathBuf, std::time::SystemTime, String)>>> =
+@@ -959,7 +961,7 @@ fn active_artifact_cid() -> Option<String> {
+         }
+     }
+     let bytes = std::fs::read(path).ok()?;
+-    let cid = format!("blake3:{}", blake3::hash(&bytes).to_hex());
++    let cid = uor_r4_graph_format::r4g1::artifact_kappa(&bytes).ok()?;
+     *guard = Some((path.to_path_buf(), mtime, cid.clone()));
+     Some(cid)
+ }

@@ -1,0 +1,655 @@
+diff --git a/crates/uor-r4-training/src/bin/qform-set.rs b/crates/uor-r4-training/src/bin/qform-set.rs
+new file mode 100644
+index 000000000..e8b5def1f
+--- /dev/null
++++ b/crates/uor-r4-training/src/bin/qform-set.rs
+@@ -0,0 +1,649 @@
++//! Author the held-out synthetic QUESTION-FORM set, reproducing the frozen bytes.
++//!
++//! Rust port of `build-qforms.py`, on the #1659 pattern: the bar is BYTE IDENTITY with
++//! the frozen JSON, so the set stays reproducible from committed source. That needs
++//! CPython's Mersenne Twister (`init_by_array`, not `init_genrand`, and unrelated to the
++//! crate's splitmix64) and `json.dumps(indent=1)`, both reused verbatim from the verified
++//! `disjoint-panel` bin.
++//!
++//! The set is a HELD-OUT instrument: the training forms authored for v26 must use
++//! templates DISJOINT from these, and disjointness is asserted at build time.
++//!
++//! Usage: qform-set build out=DIR | verify dir=DIR
++
++use std::fmt::Write as _;
++use std::fs;
++use std::path::PathBuf;
++
++const N: usize = 624;
++const M: usize = 397;
++const MATRIX_A: u32 = 0x9908_b0df;
++const UPPER: u32 = 0x8000_0000;
++const LOWER: u32 = 0x7fff_ffff;
++
++struct PyRandom {
++    mt: [u32; N],
++    idx: usize,
++}
++
++impl PyRandom {
++    fn new(seed: u32) -> Self {
++        let mut mt = [0u32; N];
++        mt[0] = 19650218;
++        for i in 1..N {
++            let p = mt[i - 1] as u64 ^ ((mt[i - 1] >> 30) as u64);
++            mt[i] = (1812433253u64.wrapping_mul(p).wrapping_add(i as u64)) as u32;
++        }
++        let key = [seed];
++        let (mut i, mut j) = (1usize, 0usize);
++        let mut k = if N > key.len() { N } else { key.len() };
++        while k > 0 {
++            let p = mt[i - 1] as u64 ^ ((mt[i - 1] >> 30) as u64);
++            mt[i] = (mt[i] ^ ((p.wrapping_mul(1664525)) as u32))
++                .wrapping_add(key[j])
++                .wrapping_add(j as u32);
++            i += 1;
++            j += 1;
++            if i >= N {
++                mt[0] = mt[N - 1];
++                i = 1;
++            }
++            if j >= key.len() {
++                j = 0;
++            }
++            k -= 1;
++        }
++        k = N - 1;
++        while k > 0 {
++            let p = mt[i - 1] as u64 ^ ((mt[i - 1] >> 30) as u64);
++            mt[i] = (mt[i] ^ ((p.wrapping_mul(1566083941)) as u32)).wrapping_sub(i as u32);
++            i += 1;
++            if i >= N {
++                mt[0] = mt[N - 1];
++                i = 1;
++            }
++            k -= 1;
++        }
++        mt[0] = 0x8000_0000;
++        PyRandom { mt, idx: N }
++    }
++
++    fn twist(&mut self) {
++        for i in 0..N {
++            let y = (self.mt[i] & UPPER) | (self.mt[(i + 1) % N] & LOWER);
++            let mut n = self.mt[(i + M) % N] ^ (y >> 1);
++            if y & 1 == 1 {
++                n ^= MATRIX_A;
++            }
++            self.mt[i] = n;
++        }
++        self.idx = 0;
++    }
++
++    fn next_u32(&mut self) -> u32 {
++        if self.idx >= N {
++            self.twist();
++        }
++        let mut y = self.mt[self.idx];
++        self.idx += 1;
++        y ^= y >> 11;
++        y ^= (y << 7) & 0x9d2c_5680;
++        y ^= (y << 15) & 0xefc6_0000;
++        y ^= y >> 18;
++        y
++    }
++
++    fn getrandbits(&mut self, k: u32) -> u32 {
++        if k == 0 {
++            0
++        } else {
++            self.next_u32() >> (32 - k)
++        }
++    }
++
++    fn below(&mut self, n: u32) -> u32 {
++        let k = 32 - (n - 1).leading_zeros();
++        loop {
++            let r = self.getrandbits(k);
++            if r < n {
++                return r;
++            }
++        }
++    }
++
++    fn choice(&mut self, n: usize) -> usize {
++        self.below(n as u32) as usize
++    }
++
++    fn random(&mut self) -> f64 {
++        let a = (self.next_u32() >> 5) as u64;
++        let b = (self.next_u32() >> 6) as u64;
++        ((a << 26) + b) as f64 / 9007199254740992.0
++    }
++}
++
++fn py_str(s: &str) -> String {
++    let mut o = String::from("\"");
++    for c in s.chars() {
++        match c {
++            '"' => o.push_str("\\\""),
++            '\\' => o.push_str("\\\\"),
++            '\n' => o.push_str("\\n"),
++            '\r' => o.push_str("\\r"),
++            '\t' => o.push_str("\\t"),
++            c if (c as u32) < 0x20 => {
++                let _ = write!(o, "\\u{:04x}", c as u32);
++            }
++            c => o.push(c),
++        }
++    }
++    o.push('"');
++    o
++}
++
++/// `json.dumps(rows, indent=1)` — Python puts list items at indent, dict keys at
++/// indent+1, and a space after every colon. serde_json's pretty printer uses two
++/// spaces and no space after the colon, so it cannot reproduce the frozen bytes.
++fn py_dumps(rows: &[(String, Vec<String>)]) -> String {
++    let mut o = String::from("[");
++    for (i, (id, turns)) in rows.iter().enumerate() {
++        if i > 0 {
++            o.push(',');
++        }
++        o.push_str("\n {\n");
++        let _ = write!(o, "  \"id\": {},\n", py_str(id));
++        o.push_str("  \"category\": \"memory\",\n");
++        o.push_str("  \"user_turns\": [");
++        for (j, t) in turns.iter().enumerate() {
++            if j > 0 {
++                o.push(',');
++            }
++            let _ = write!(o, "\n   {}", py_str(t));
++        }
++        o.push_str("\n  ]\n }");
++    }
++    o.push_str("\n]");
++    o
++}
++
++fn py_dumps_map(exp: &[(String, String)]) -> String {
++    let mut o = String::from("{");
++    for (i, (k, v)) in exp.iter().enumerate() {
++        if i > 0 {
++            o.push(',');
++        }
++        let _ = write!(o, "\n {}: {}", py_str(k), py_str(v));
++    }
++    o.push_str("\n}");
++    o
++}
++
++// --------------------------------------------------------------- relation schema
++// name -> (statement templates, QUESTION forms, fresh values)
++type Rel = (
++    &'static str,
++    &'static [&'static str],
++    &'static [&'static str],
++    &'static [&'static str],
++);
++
++const SCHEMA: &[Rel] = &[
++    (
++        "hometown",
++        &[
++            "I grew up in {v}.",
++            "I was raised in {v}.",
++            "My home town is {v}.",
++        ],
++        &[
++            "Which town do I come from originally?",
++            "Where did I grow up?",
++            "What town am I originally from?",
++            "What is my home town?",
++            "Which town did I grow up in?",
++        ],
++        &[
++            "Trondheim",
++            "Bilbao",
++            "Ljubljana",
++            "Kaunas",
++            "Aberdeen",
++            "Nantes",
++            "Graz",
++            "Tartu",
++            "Bari",
++            "Oulu",
++        ],
++    ),
++    (
++        "allergy",
++        &[
++            "I am allergic to {v}.",
++            "{v} brings me out in a rash.",
++            "I react badly to {v}.",
++        ],
++        &[
++            "What am I allergic to?",
++            "Which thing am I allergic to?",
++            "What brings me out in a rash?",
++            "What am I allergic to exactly?",
++            "Which substance am I allergic to?",
++        ],
++        &[
++            "ibuprofen",
++            "sesame",
++            "mustard",
++            "sulfa",
++            "codeine",
++            "mango",
++            "cedar",
++            "iodine",
++            "celery",
++            "platinum",
++        ],
++    ),
++    (
++        "degree",
++        &[
++            "I read {v} at university.",
++            "I studied {v} at university.",
++            "My degree was in {v}.",
++        ],
++        &[
++            "Which subject did I study at university?",
++            "What did I read at university?",
++            "What was my degree in?",
++            "What subject is my degree in?",
++            "Which subject did I read?",
++        ],
++        &[
++            "linguistics",
++            "architecture",
++            "dentistry",
++            "statistics",
++            "journalism",
++            "forestry",
++            "oceanography",
++            "pharmacy",
++            "anthropology",
++            "metallurgy",
++        ],
++    ),
++    (
++        "flatmate",
++        &[
++            "{v} is the person I share my flat with.",
++            "I share my flat with {v}.",
++            "My flatmate is {v}.",
++        ],
++        &[
++            "Who do I share my flat with?",
++            "Who is my flatmate?",
++            "Who do I live with?",
++            "Who is the person I share my flat with?",
++            "Who am I living with?",
++        ],
++        &[
++            "Ravi", "Beatriz", "Kwame", "Ingrid", "Soren", "Amara", "Lukas", "Mei", "Tariq",
++            "Zofia",
++        ],
++    ),
++    (
++        "commute",
++        &[
++            "Getting to work takes me {v}.",
++            "My journey to work is {v}.",
++            "I commute for {v} each way.",
++        ],
++        &[
++            "How long does my journey to work take?",
++            "How long is my commute?",
++            "How long do I take getting to work?",
++            "How long does it take me to get to work?",
++            "What is my commute time?",
++        ],
++        &[
++            "twelve minutes",
++            "eighteen minutes",
++            "twenty-two minutes",
++            "forty-five minutes",
++            "an hour and a quarter",
++            "seven minutes",
++            "thirty-two minutes",
++            "fifty-five minutes",
++            "ninety minutes",
++            "three quarters of an hour",
++        ],
++    ),
++    (
++        "holiday",
++        &[
++            "I have booked a holiday to {v}.",
++            "I am going on holiday to {v}.",
++            "I am spending my holiday in {v}.",
++        ],
++        &[
++            "Where am I going on holiday?",
++            "Which place am I visiting on holiday?",
++            "Where am I spending my holiday?",
++            "Which country am I visiting on holiday?",
++            "Where am I holidaying?",
++        ],
++        &[
++            "Slovenia", "Ecuador", "Mongolia", "Tasmania", "Sardinia", "Bhutan", "Latvia", "Ghana",
++            "Uruguay", "Cambodia",
++        ],
++    ),
++    (
++        "bank",
++        &[
++            "I bank with {v}.",
++            "My bank is {v}.",
++            "I use {v} for my banking.",
++        ],
++        &[
++            "Which bank do I use?",
++            "Who do I bank with?",
++            "What is my bank?",
++            "Which bank am I with?",
++            "What bank do I use for banking?",
++        ],
++        &[
++            "Tide",
++            "Metro",
++            "Cooperative",
++            "Cahoot",
++            "Handelsbanken",
++            "Triodos",
++            "Aldermore",
++            "Atom",
++            "Shawbrook",
++            "Paragon",
++        ],
++    ),
++    (
++        "shoe_size",
++        &[
++            "I take a size {v} in shoes.",
++            "My shoe size is {v}.",
++            "I wear size {v} shoes.",
++        ],
++        &[
++            "What size shoes do I take?",
++            "What is my shoe size?",
++            "Which shoe size do I wear?",
++            "What size are my shoes?",
++            "Which size shoes do I take?",
++        ],
++        &[
++            "fourteen",
++            "fifteen",
++            "sixteen",
++            "seventeen",
++            "eighteen",
++            "nineteen",
++            "twenty",
++            "twenty-one",
++            "twenty-two",
++            "twenty-three",
++        ],
++    ),
++    (
++        "vet",
++        &[
++            "My vet is called {v}.",
++            "I take my cat to {v}.",
++            "My vet practice is {v}.",
++        ],
++        &[
++            "Who is my vet?",
++            "What is my vet called?",
++            "Which vet do I use?",
++            "What is the name of my vet?",
++            "Which vet practice do I use?",
++        ],
++        &[
++            "Alderton",
++            "Brennan",
++            "Castellano",
++            "Devereux",
++            "Eriksen",
++            "Fontaine",
++            "Gallagher",
++            "Hartmann",
++            "Ivanova",
++            "Jansen",
++        ],
++    ),
++    (
++        "landline",
++        &[
++            "My landline number ends in {v}.",
++            "My home number ends in {v}.",
++            "The last digits of my landline are {v}.",
++        ],
++        &[
++            "What does my landline number end in?",
++            "What are the last digits of my home number?",
++            "How does my landline number end?",
++            "Which digits does my landline end in?",
++            "What are the final digits of my landline?",
++        ],
++        &[
++            "one four seven",
++            "two six eight",
++            "three one nine",
++            "four two five",
++            "five seven three",
++            "six four one",
++            "seven two eight",
++            "eight five six",
++            "nine three two",
++            "zero six four",
++        ],
++    ),
++];
++
++const SEED: u32 = 20261004;
++
++/// Normalized template string for disjointness checks: lowercased, whitespace collapsed,
++/// surrounding punctuation trimmed. Used to assert the training forms share no template
++/// with this held-out set.
++pub fn normalize_template(s: &str) -> String {
++    let lowered = s.to_lowercase();
++    let mut out = String::with_capacity(lowered.len());
++    let mut last_space = false;
++    for c in lowered.chars() {
++        if c.is_whitespace() {
++            if !last_space {
++                out.push(' ');
++            }
++            last_space = true;
++        } else {
++            out.push(c);
++            last_space = false;
++        }
++    }
++    out.trim()
++        .trim_matches(|c: char| !c.is_alphanumeric() && c != '{' && c != '}')
++        .to_string()
++}
++
++/// This set's template list, for the disjointness assertion.
++pub fn templates() -> Vec<String> {
++    let mut v = Vec::new();
++    for (_, stmts, questions, _) in SCHEMA {
++        for s in stmts.iter() {
++            v.push(normalize_template(s));
++        }
++        for q in questions.iter() {
++            v.push(normalize_template(q));
++        }
++    }
++    v
++}
++
++fn build() -> Result<(Vec<(String, Vec<String>)>, Vec<(String, String)>), String> {
++    let mut rng = PyRandom::new(SEED);
++    let (mut rows, mut expected) = (Vec::new(), Vec::new());
++    let mut seen: Vec<Vec<String>> = Vec::new();
++    let mut n = 0usize;
++    for (ri, (_, stmts, questions, values)) in SCHEMA.iter().enumerate() {
++        let others: Vec<usize> = (0..SCHEMA.len()).filter(|k| *k != ri).collect();
++        for v in values.iter() {
++            let d = others[rng.choice(others.len())];
++            let d_values = SCHEMA[d].3;
++            let dv = d_values[rng.choice(d_values.len())];
++            if dv == *v {
++                continue;
++            }
++            let fact = stmts[rng.choice(stmts.len())].replace("{v}", v);
++            let dist = SCHEMA[d].1[rng.choice(SCHEMA[d].1.len())].replace("{v}", dv);
++            let q = questions[rng.choice(questions.len())].to_string();
++            let turns = if rng.random() < 0.5 {
++                vec![fact, dist, q]
++            } else {
++                vec![dist, fact, q]
++            };
++            if seen.contains(&turns) {
++                continue;
++            }
++            seen.push(turns.clone());
++            n += 1;
++            let rid = format!("qf-{n:03}");
++            rows.push((rid.clone(), turns));
++            expected.push((rid, (*v).to_string()));
++        }
++    }
++    Ok((rows, expected))
++}
++
++fn main() -> Result<(), String> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    let mode = args
++        .first()
++        .ok_or("usage: qform-set build out=DIR | verify dir=DIR")?;
++    let kv = |k: &str| -> Option<String> {
++        args.iter()
++            .find_map(|a| a.strip_prefix(&format!("{k}=")).map(str::to_string))
++    };
++    let (rows, exp) = build()?;
++    // ---- invariants asserted at build time, in the panel's A1-A5 discipline
++    let mut errs: Vec<String> = Vec::new();
++    for (id, turns) in &rows {
++        let ans = &exp
++            .iter()
++            .find(|(k, _)| k == id)
++            .map(|(_, v)| v.clone())
++            .unwrap_or_default();
++        let stated = turns[..turns.len() - 1].join(" ").to_lowercase();
++        if !stated.contains(&ans.to_lowercase()) {
++            errs.push(format!("A1 {id}: {ans:?} not verbatim"));
++        }
++    }
++    for i in 0..rows.len() {
++        for j in i + 1..rows.len() {
++            if rows[i].1 == rows[j].1 {
++                errs.push(format!("A2 {} and {} share turns", rows[i].0, rows[j].0));
++            }
++        }
++    }
++    match mode.as_str() {
++        "build" => {
++            let dir = kv("out").ok_or("build needs out=DIR")?;
++            if !errs.is_empty() {
++                for e in &errs {
++                    eprintln!("ASSERTION FAILED: {e}");
++                }
++                return Err(format!(
++                    "{} assertion failures; nothing written",
++                    errs.len()
++                ));
++            }
++            fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
++            fs::write(format!("{dir}/qform-requests.json"), py_dumps(&rows))
++                .map_err(|e| e.to_string())?;
++            fs::write(format!("{dir}/qform-expected.json"), py_dumps_map(&exp))
++                .map_err(|e| e.to_string())?;
++            println!("  wrote {} rows to {dir}", rows.len());
++        }
++        "verify" => {
++            let dir = kv("dir").ok_or("verify needs dir=DIR")?;
++            let got_r = fs::read_to_string(format!("{dir}/qform-requests.json"))
++                .map_err(|e| e.to_string())?;
++            let got_e = fs::read_to_string(format!("{dir}/qform-expected.json"))
++                .map_err(|e| e.to_string())?;
++            let same_r = got_r == py_dumps(&rows);
++            let same_e = got_e == py_dumps_map(&exp);
++            println!("  rows regenerated: {}", rows.len());
++            println!("  requests byte-identical: {same_r}");
++            println!("  expected byte-identical: {same_e}");
++            println!("  assertion failures: {}", errs.len());
++            if !same_r || !same_e || !errs.is_empty() {
++                return Err("verification failed".into());
++            }
++        }
++        other => return Err(format!("unknown mode {other}")),
++    }
++    Ok(())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// The port must reproduce the frozen hashes' bytes exactly.
++    #[test]
++    fn build_is_deterministic_and_well_formed() {
++        let (a, ea) = build().expect("build");
++        let (b, eb) = build().expect("build");
++        assert_eq!(py_dumps(&a), py_dumps(&b), "build must be deterministic");
++        assert_eq!(py_dumps_map(&ea), py_dumps_map(&eb));
++        assert_eq!(a.len(), 100, "100 rows");
++        assert_eq!(ea.len(), 100);
++    }
++
++    /// A1: every answer appears verbatim in its row's stated turns.
++    #[test]
++    fn a1_answers_are_verbatim() {
++        let (rows, exp) = build().expect("build");
++        for (id, turns) in &rows {
++            let ans = &exp.iter().find(|(k, _)| k == id).expect("answer").1;
++            let stated = turns[..turns.len() - 1].join(" ").to_lowercase();
++            assert!(stated.contains(&ans.to_lowercase()), "{id}: {ans:?}");
++        }
++    }
++
++    /// Values must stay disjoint from the frozen disjoint panel's, so the two
++    /// instruments cannot share an answer.
++    #[test]
++    fn values_are_disjoint_from_the_frozen_panel() {
++        let (_, exp) = build().expect("build");
++        let here: std::collections::BTreeSet<String> =
++            exp.iter().map(|(_, v)| normalize_template(v)).collect();
++        // the panel's expected file, if present locally
++        let p = PathBuf::from(std::env::var("HOME").unwrap_or_default())
++            .join("uor-r4-local/ladder/disjoint-panel/panel-expected.json");
++        if let Ok(text) = fs::read_to_string(&p) {
++            let panel: serde_json::Value = serde_json::from_str(&text).expect("panel json");
++            for (_, v) in panel.as_object().expect("object") {
++                let pv = normalize_template(v.as_str().unwrap_or_default());
++                assert!(
++                    !here.contains(&pv),
++                    "value collision with the frozen panel: {pv}"
++                );
++            }
++        }
++    }
++
++    /// Template normalization collapses whitespace and case, so the disjointness check
++    /// cannot be defeated by spacing or capitalisation differences.
++    #[test]
++    fn template_normalization_is_stable() {
++        assert_eq!(
++            normalize_template("  What  is my  BANK? "),
++            "what is my bank"
++        );
++        assert_eq!(normalize_template("What is my bank?"), "what is my bank");
++    }
++}

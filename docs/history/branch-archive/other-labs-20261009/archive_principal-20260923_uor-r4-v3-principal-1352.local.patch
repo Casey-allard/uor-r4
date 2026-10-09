@@ -1,0 +1,2663 @@
+diff --git a/README.md b/README.md
+index 3473b07e6..d0fc886f2 100644
+--- a/README.md
++++ b/README.md
+@@ -39,6 +39,12 @@ The [evidence index](docs/integration/EVIDENCE.md) binds September 19 measuremen
+ 
+ ## Current research step
+ 
++**Principal review of PR #1352:** V3 retains an executed lexical observation/feedback interface at 31/31 exposed authored responses. All computed and post-copy cases were fitted; the eight held-out cases reuse non-computed forms. The 4/4 computed pair changes key_changed with the payload, so it does not isolate content use. Ordinary-text learning is NOT_RUN and the finite 20/31 reference has less information. [Review](docs/integration/transferable-lexical-principal-review-2026-09-23.md) and [next DeepSeek brief](docs/integration/deepseek-ordinary-lexical-step-2026-09-23.md) keep the next milestone at one shared open-vocabulary Generate/Copy/Stop learner for prose and grounded exact spans.
++
++**This task, executed (PR #1352, References #820):** the retained state-conditioned decoder now consumes a position-resolved, tail-carrying, unknown-explicit content observation, the **actual emitted token identity** and an exact 15-coordinate **typed causal block** (requested history, `derived`, `prior_differs`, `committed`, `key_changed`, exact equality/prefix/divergence/lengths/unknown counts) in its recurrence, and **continues after the copied span** when the consumed computation actually changed the address. Executed: learned **31/31** (fitting 23/23, held-out source documents **8/8**), teacher-forced **791/791** through the exported integer artifact, retained legacy copy **31/31**, retained comparator **20/31**, recurrence ablation **0/31**, context ablation **6/31**, paired computed-request difference **4/4** (operation and key_changed vary), restart across ten in-process boundaries and a separate process, and the E generates while S loads/validates in the submitted probe; principal replay executes S separately. Ordinary-text learning is **NOT_RUN**: the scoped contract supervises an exactly owned span and fitted content coverage of source-separated prose is ~2% (measured). [Result](docs/integration/transferable-lexical-result-2026-09-22.md), [evidence](docs/evidence/transferable-lexical-2026-09-22.json), [principal review that set the task](docs/integration/state-conditioned-lexical-review-2026-09-22.md).
++
++**Next:** learn vocabulary and continuation from a source-separated ordinary-text corpus through the retained session, then adapt the E/S donor through a new donor-conditioned vocabulary decision over an exact owned span. Broader conversation and executed Rust follow through the same candidate, then whole-model laptop cost and product delivery.
++
+ **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](docs/integration/state-conditioned-lexical-review-2026-09-22.md), [independent audit](docs/evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](docs/evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. The corrected retained reference scores 12/31; the unchanged learned artifact retains 31/31. Original artifacts remain preserved.
+ 
+ **Next:** [one transferable lexical learner](docs/integration/deepseek-transferable-lexical-step-2026-09-22.md): exact causal address/value/history distinctions, actual generated and copied-token feedback, meaningful continuation after copying, ordinary source-separated text plus grounded responses, and a loaded E/S reference or measured adaptation. Geometric ordered transport/shared residuals remain preferred candidates beside the ordinary low-bit baseline. Complete this interface before broader conversation and executed Rust; then qualify whole-model laptop cost and product delivery. This remains the open lexical milestone, not a new series of renamed fixtures.
+diff --git a/crates/uor-r4-core/src/bin/competitive-reader.rs b/crates/uor-r4-core/src/bin/competitive-reader.rs
+index c9290709f..739225b54 100644
+--- a/crates/uor-r4-core/src/bin/competitive-reader.rs
++++ b/crates/uor-r4-core/src/bin/competitive-reader.rs
+@@ -21200,7 +21200,7 @@ mod loaded_realization_tests {
+ }
+ 
+ // ---------------------------------------------------------------------------
+-// Truthful state-conditioned lexical realization
++// State-conditioned lexical realization on authored response targets
+ //
+ // The retained `RealizedV1` finite table changed a word from a history/provenance
+ // *flag*: its key omitted the actual emitted symbols and the evidence content, so
+@@ -21208,13 +21208,11 @@ mod loaded_realization_tests {
+ // end the response; two values with identical flags could not differ, and the
+ // authored targets used `was` for the current value and `now` for a computation.
+ //
+-// This section learns a **state-conditioned decoder** from declared, truthful
+-// response *text* and serves it through the retained scoped session. The decoder
+-// consumes the symbols the session actually emits and a content embedding of the
+-// selected evidence, and its wording is tied to the requested history (past
+-// tense follows a historical request) or to the computation's actual effect
+-// (a consumed value that changed is reported as changed), never to a predecessor
+-// alone.
++// This section learns a state-conditioned decoder from declared response text
++// and serves it through the retained scoped session. The decoder consumes the
++// actual emitted-token row and a content embedding of selected evidence. Its
++// computed-target wording is keyed to derived-address movement in self-valued
++// fixtures; this is not an independently validated temporal proposition.
+ // ---------------------------------------------------------------------------
+ 
+ /// The protocol terminator the session binds.
+@@ -21222,9 +21220,15 @@ const SLX_EOS: u32 = u32::MAX - 1;
+ 
+ /// The declared learned vocabulary: one shared slot per word, each a single token of the bound
+ /// tokenizer. Slot order is the learned action order and is never derived from an evaluator field.
+-const SLX_WORDS: [&str; 7] = [" it", " is", " was", " still", " became", " first", " at"];
++const SLX_WORDS: [&str; 8] = [
++    " it", " is", " was", " still", " became", " first", " at", " now",
++];
+ /// Declared bound on learned insert words per answer, matching the session contract.
+ const SLX_MAX_INSERT: u8 = 6;
++/// Declared unfamiliar token ids used by the unknown-content control. They are excluded from the
++/// fitted content index, so the control exercises the decoder's reserved OOV rows rather than being
++/// silently fitted, and the held-out source documents remain genuinely unfamiliar.
++const SLX_OOV_TOKENS: [u32; 2] = [(VOCAB - 1) as u32, (VOCAB - 2) as u32];
+ 
+ /// One declared source document: a scope, the entity it is about, and the successive office values
+ /// the document asserts. `computed` documents use groundable labels so a computation can consume
+@@ -21377,7 +21381,9 @@ fn slx_render(view: SlxView, derived: bool, changed: bool, value: &str) -> Strin
+         (SlxView::Initial, false) => format!("at first it was {value}"),
+         (SlxView::Previous, false) => format!("it was {value}"),
+         (SlxView::Current, false) => format!("it is {value}"),
+-        (SlxView::Current, true) if changed => format!("it became {value}"),
++        // A changed derived address is marked after the owned span in this authored
++        // response family. The marker does not prove a committed temporal mutation.
++        (SlxView::Current, true) if changed => format!("it became {value} now"),
+         (SlxView::Current, true) => format!("it is still {value}"),
+         _ => format!("it is {value}"),
+     }
+@@ -21395,6 +21401,8 @@ fn slx_text_sequence(
+     value: &str,
+     res: &[u32],
+     prior_differs: bool,
++    committed: bool,
++    key_changed: bool,
+ ) -> Result<SlSequence, String> {
+     let payload = tokenizer.encode(&format!(" {value}"));
+     let text = slx_render(view, derived, changed, value);
+@@ -21418,6 +21426,8 @@ fn slx_text_sequence(
+         history: view.code(),
+         derived,
+         prior_differs,
++        committed,
++        key_changed,
+         actions,
+     })
+ }
+@@ -21561,6 +21571,8 @@ fn slx_oracle(
+ ) -> Vec<u32> {
+     let slot = |i: usize| slots[i];
+     let mut out = Vec::new();
++    // A word that follows the owned span, when the declared meaning places one there.
++    let mut tail: Vec<u32> = Vec::new();
+     match (view, derived) {
+         (SlxView::Initial, false) => {
+             out.extend([slot(6), slot(5), slot(0), slot(2)]);
+@@ -21572,7 +21584,9 @@ fn slx_oracle(
+             out.extend([slot(0), slot(1)]);
+         }
+         (SlxView::Current, true) if changed => {
++            // The authored route-change case has a trailing marker after the copied span.
+             out.extend([slot(0), slot(4)]);
++            tail.push(slot(7));
+         }
+         // The consumed computation left the same office in force, so the answer reports persistence.
+         (SlxView::Current, true) => {
+@@ -21583,6 +21597,30 @@ fn slx_oracle(
+         }
+     }
+     out.extend_from_slice(payload);
++    out.extend(tail);
++    out
++}
++
++/// A copy of `seq` whose owned payload is replaced by `len` declared-unfamiliar tokens, with the
++/// action sequence's copy run resized to match. The unknown-content control is presented across the
++/// payload lengths the language can present rather than only the fitting documents' lengths, so an
++/// unfamiliar value of any length meets a fitted OOV path.
++fn slx_reblank(seq: &SlSequence, len: usize, unfitted: u32) -> SlSequence {
++    let mut actions: Vec<RealizationAction> = Vec::new();
++    let mut copied = false;
++    for action in &seq.actions {
++        if matches!(action, RealizationAction::Copy) {
++            if !copied {
++                actions.extend(std::iter::repeat(RealizationAction::Copy).take(len));
++                copied = true;
++            }
++            continue;
++        }
++        actions.push(*action);
++    }
++    let mut out = seq.clone();
++    out.sel = vec![unfitted; len];
++    out.actions = actions;
+     out
+ }
+ 
+@@ -21861,7 +21899,14 @@ fn slx_run() -> Result<ExitCode, String> {
+         // Observe the comparator's actual serving context from the same loaded session. Its
+         // capture/history observations come from serving, rather than the authored answer family;
+         // a historical capture can itself have a different predecessor.
+-        let context_for = |view: SlxView, op: Option<&str>| -> Result<RealizationContext, String> {
++        // Observe the comparator's actual serving context from the same loaded session. Its
++        // capture/history observations come from serving, rather than the authored answer family;
++        // a historical capture can itself have a different predecessor. The typed causal facts are
++        // read from the same executed session, so no training observation is manufactured from an
++        // answer-family label.
++        let observe = |view: SlxView,
++                       op: Option<&str>|
++         -> Result<(RealizationContext, (bool, bool, bool)), String> {
+             let mut runtime = slx_load(
+                 &model_bytes,
+                 &intent_bytes,
+@@ -21889,12 +21934,14 @@ fn slx_run() -> Result<ExitCode, String> {
+                     .map_err(|e| e.to_string())?
+             };
+             runtime.run(&mut session).map_err(|e| e.to_string())?;
+-            Ok(runtime.realization_context(&session))
++            Ok((
++                runtime.realization_context(&session),
++                runtime.observed_lexical_facts(&session),
++            ))
+         };
+-        let prior_differs = doc.values.len() >= 2
+-            && doc.values[doc.values.len() - 2] != doc.values[doc.values.len() - 1];
+         // current
+         let current = doc.values.last().copied().unwrap();
++        let (ctx, (committed, prior_differs, key_changed)) = observe(SlxView::Current, None)?;
+         let seq = slx_text_sequence(
+             &tokenizer,
+             &slots,
+@@ -21904,12 +21951,15 @@ fn slx_run() -> Result<ExitCode, String> {
+             current,
+             &[],
+             prior_differs,
++            committed,
++            key_changed,
+         )?;
+         fit_text_receipts.push(json!({"document": doc.name, "case": "current", "text": slx_render(SlxView::Current, false, false, current)}));
+-        tagged.push((seq, "flag", context_for(SlxView::Current, None)?));
++        tagged.push((seq, "flag", ctx));
+         // previous and initial
+         if doc.values.len() >= 2 {
+             let prev = doc.values[doc.values.len() - 2];
++            let (ctx, (committed, prior_differs, key_changed)) = observe(SlxView::Previous, None)?;
+             let seq = slx_text_sequence(
+                 &tokenizer,
+                 &slots,
+@@ -21918,12 +21968,15 @@ fn slx_run() -> Result<ExitCode, String> {
+                 false,
+                 prev,
+                 &[],
+-                false,
++                prior_differs,
++                committed,
++                key_changed,
+             )?;
+             fit_text_receipts.push(json!({"document": doc.name, "case": "previous", "text": slx_render(SlxView::Previous, false, false, prev)}));
+-            tagged.push((seq, "flag", context_for(SlxView::Previous, None)?));
++            tagged.push((seq, "flag", ctx));
+         }
+         let first = doc.values[0];
++        let (ctx, (committed, prior_differs, key_changed)) = observe(SlxView::Initial, None)?;
+         let seq = slx_text_sequence(
+             &tokenizer,
+             &slots,
+@@ -21932,13 +21985,17 @@ fn slx_run() -> Result<ExitCode, String> {
+             false,
+             first,
+             &[],
+-            false,
++            prior_differs,
++            committed,
++            key_changed,
+         )?;
+         fit_text_receipts.push(json!({"document": doc.name, "case": "initial", "text": slx_render(SlxView::Initial, false, false, first)}));
+-        tagged.push((seq, "flag", context_for(SlxView::Initial, None)?));
++        tagged.push((seq, "flag", ctx));
+         // consumed computations discovered through the retained session
+         for probe in probes.get(doc.name).map(Vec::as_slice).unwrap_or(&[]) {
+             let answer = cgs_decode_trim(&tokenizer, &probe.payload);
++            let (ctx, (committed, prior_differs, key_changed)) =
++                observe(SlxView::Current, Some(probe.op))?;
+             let seq = slx_text_sequence(
+                 &tokenizer,
+                 &slots,
+@@ -21947,7 +22004,9 @@ fn slx_run() -> Result<ExitCode, String> {
+                 probe.changed,
+                 &answer,
+                 &probe.operand_payload,
+-                false,
++                prior_differs,
++                committed,
++                key_changed,
+             )?;
+             let tag = if probe.changed {
+                 "changed"
+@@ -21958,7 +22017,7 @@ fn slx_run() -> Result<ExitCode, String> {
+                 "document": doc.name, "case": if probe.changed {"derived_changed"} else {"derived_unchanged"},
+                 "op": probe.op, "text": slx_render(SlxView::Current, true, probe.changed, &answer),
+             }));
+-            tagged.push((seq, tag, context_for(SlxView::Current, Some(probe.op))?));
++            tagged.push((seq, tag, ctx));
+         }
+     }
+     // Two declared balancing decisions, made before fitting and reported with the corpus:
+@@ -21974,11 +22033,13 @@ fn slx_run() -> Result<ExitCode, String> {
+         fit_sequences.push(seq.clone());
+         comparator_contexts.push(*context);
+         if *tag == "flag" {
+-            let mut blank = seq.clone();
+-            blank.sel.clear();
+-            blank.res.clear();
+-            fit_sequences.push(blank);
+-            comparator_contexts.push(*context);
++            // Present the same sentence with unfamiliar-but-shaped content at every payload length the
++            // language can present, so an unfamiliar value of any length meets a fitted OOV path
++            // rather than a zero-length payload the session never serves.
++            for len in 1..=(SL_MAX_CONTENT_TOKENS + 1) {
++                fit_sequences.push(slx_reblank(seq, len, SLX_OOV_TOKENS[0]));
++                comparator_contexts.push(*context);
++            }
+         }
+         if *tag == "unchanged" {
+             for _ in 0..3 {
+@@ -21988,20 +22049,24 @@ fn slx_run() -> Result<ExitCode, String> {
+         }
+         if *tag == "changed" {
+             // The moving operations are twice as frequent as the identity one, so the identity branch
+-            // is repeated above and the moving branch once here to reach the same order.
+-            fit_sequences.push(seq.clone());
+-            comparator_contexts.push(*context);
++            // is repeated above. The change-reporting answer also carries the sole word that follows
++            // the owned span, which is otherwise drowned by the many copy steps, so that branch is
++            // repeated to give the post-copy decision comparable support.
++            for _ in 0..4 {
++                fit_sequences.push(seq.clone());
++                comparator_contexts.push(*context);
++            }
+         }
+     }
+ 
+     let cfg = SlFitConfig {
+-        epochs: slx_env_usize("SLX_EPOCHS", 12000),
+-        h_dim: slx_env_usize("SLX_H", 24),
+-        e_dim: slx_env_usize("SLX_E", 24),
++        epochs: slx_env_usize("SLX_EPOCHS", 16000),
++        h_dim: slx_env_usize("SLX_H", 48),
++        e_dim: slx_env_usize("SLX_E", 48),
+         lr: slx_env_f32("SLX_LR", 0.01),
+         seed: slx_env_usize("SLX_SEED", 0x5eed_1eaf) as u64,
+         stop_weight: slx_env_f32("SLX_STOP", 4.0),
+-        insert_weight: slx_env_f32("SLX_INS", 2.0),
++        insert_weight: slx_env_f32("SLX_INS", 3.0),
+     };
+     let outcome = if let Some(parent) = &reuse_root {
+         let unlisted = verify(parent).map_err(|e| format!("parent seal: {e}"))?;
+@@ -22047,6 +22112,7 @@ fn slx_run() -> Result<ExitCode, String> {
+                 slots.clone(),
+                 SLX_MAX_INSERT,
+                 &attempt,
++                &SLX_OOV_TOKENS,
+             )
+             .map_err(|e| format!("state-lexical fit: {e}"))?;
+             // Selection is on the declared *training* objective only; the evaluation cases below are not
+@@ -22232,7 +22298,7 @@ fn slx_run() -> Result<ExitCode, String> {
+         "recurrence_disabled": panel(&|c| c["control"] == json!("RecurrenceDisabled")),
+     });
+ 
+-    // ---- the value-sensitive comparison: derived answers with identical flags ----
++    // ---- paired computed requests: not a payload-only intervention ----
+     let mut value_sensitive = Vec::new();
+     for doc in SLX_DOCS.iter().filter(|d| d.fit && d.computed) {
+         let doc_probes = probes.get(doc.name).map(Vec::as_slice).unwrap_or(&[]);
+@@ -22263,7 +22329,7 @@ fn slx_run() -> Result<ExitCode, String> {
+             let (c_emitted, c_state) = run(c)?;
+             value_sensitive.push(json!({
+                 "document": doc.name,
+-                "flags_held_equal": "derived=true, history=current, prior_differs=false for both",
++                "legacy_flags_held_equal": "derived=true, history=current, prior_differs=false for both; key_changed and operation differ",
+                 "unchanged_op": u.op, "changed_op": c.op,
+                 "unchanged_emitted": u_emitted, "changed_emitted": c_emitted,
+                 "differ": u_emitted != c_emitted,
+@@ -22372,14 +22438,33 @@ fn slx_run() -> Result<ExitCode, String> {
+         .filter(|t| !reloaded.content_tokens.contains(t))
+         .take(2)
+         .collect();
+-    let known: Vec<u32> = reloaded.content_tokens.iter().copied().take(4).collect();
++    let known: Vec<u32> = reloaded
++        .content_tokens
++        .iter()
++        .skip(1)
++        .copied()
++        .take(4)
++        .collect();
+     let mut reversed = known.clone();
+     reversed.reverse();
+     let mut longer = known.clone();
+     if let Some(t) = known.get(1) {
+         longer.push(*t);
+     }
++    // The decoder consumes the content feature *and* the typed causal block, so the representational
++    // witness is measured over the full observation, not the content feature alone.
++    let observe = |sel: &[u32], res: &[u32]| -> (Vec<i32>, Vec<i32>) {
++        (
++            reloaded.content_feature(sel, res),
++            reloaded.typed_block(sel, res, SlFacts::default()),
++        )
++    };
+     let unknown_alias = if unknown.len() == 2 {
++        Some(observe(&unknown[..1], &unknown[..1]) == observe(&unknown[..1], &unknown[1..]))
++    } else {
++        None
++    };
++    let unknown_content_alias = if unknown.len() == 2 {
+         Some(
+             reloaded.content_feature(&unknown[..1], &unknown[..1])
+                 == reloaded.content_feature(&unknown[..1], &unknown[1..]),
+@@ -22389,14 +22474,105 @@ fn slx_run() -> Result<ExitCode, String> {
+     };
+     let representation_diagnostics = json!({
+         "unknown_token_ids": unknown,
++        "content_only_unknown_pair_alias": unknown_content_alias,
+         "equal_and_unequal_unknown_pairs_alias": unknown_alias,
+         "known_token_ids": known,
+         "reordered_known_tokens_alias": reloaded.content_feature(&known, &[]) == reloaded.content_feature(&reversed, &[]),
+         "suffix_after_four_tokens_alias": if known.len() == 4 { Some(reloaded.content_feature(&known, &[]) == reloaded.content_feature(&longer, &[])) } else { None },
+-        "copy_token_feedback": "one shared action symbol; copied token identity absent",
++        "copy_token_feedback": "the emitted token's shared learned identity enters the recurrence; an unfitted token shares the reserved OOV row",
++        "tail_position": "a payload longer than four tokens carries its final token in a dedicated tail position",
+         "scope": "loaded representation witnesses only; not a language-quality panel",
+     });
+ 
++    // ---- loaded E/S reference assessment ----
++    // Exercise each loaded donor at its own validated interface. This is a
++    // component probe, not a matched scoped-span or language-quality comparison.
++    let es_reference = {
++        let es_started = Instant::now();
++        let pb = std::fs::read(E_PATH).map_err(|e| format!("E: {e}"))?;
++        let sb = std::fs::read(S_PATH).map_err(|e| format!("S: {e}"))?;
++        let e_sha_ok = sha256_hex(&pb) == E_SHA;
++        let s_sha_ok = sha256_hex(&sb) == S_SHA;
++        let parent = PriorCore::from_bytes(&pb).map_err(|e| format!("load E: {e}"))?;
++        let e_valid = parent.validate().is_ok();
++        let (parent_digest, _) = parent_hash_convention(&pb);
++        let raw_tok: [u8; 32] = hex_to_bytes(DERIVED_SHA)?
++            .try_into()
++            .map_err(|_| "derived tokenizer digest width".to_string())?;
++        let query = QueryHard::from_bytes(&sb, &parent, &parent_digest, &raw_tok)
++            .map_err(|e| format!("load S: {e}"))?;
++        // Three prompt tokens make the S older-prefix query eligible on the
++        // first generated step. The row receipt proves S was actually invoked.
++        let prompt: [u32; 3] = [slots[0], slots[4], slots[1]];
++        let s_rows = query
++            .inference_rows_checked(&prompt, prompt.len() - 1)
++            .map_err(|e| format!("S inference rows: {e}"))?;
++        let continued = parent.generate(&prompt, 4, true);
++        let s_continued = query
++            .generate_checked(&prompt, 4)
++            .map_err(|e| format!("S generation: {e}"))?;
++        let slot_set: std::collections::BTreeSet<u32> = slots.iter().copied().collect();
++        let in_slots = continued.iter().filter(|t| slot_set.contains(t)).count();
++        json!({
++            "status": "E_AND_S_COMPONENT_PROBED",
++            "e_bytes": pb.len(),
++            "s_bytes": sb.len(),
++            "e_sha_matches_pin": e_sha_ok,
++            "s_sha_matches_pin": s_sha_ok,
++            "e_valid": e_valid,
++            "probe_prompt": prompt,
++            "donor_continuation": continued,
++            "s_inference_rows": s_rows,
++            "s_continuation": s_continued,
++            "continuation_tokens_in_declared_slots": in_slots,
++            "load_and_probe_ms": es_started.elapsed().as_millis() as u64,
++            "verdict": "E and S load and execute separate full-vocabulary continuation probes. S older-prefix inference rows are recorded. Neither donor emits or owns the session's exact copied span, and this is not a matched lexical-quality comparison. A donor-conditioned vocabulary decision over an exactly owned span remains an interface hypothesis.",
++        })
++    };
++
++    // ---- ordinary-text exposure on a source-separated prose population ----
++    // A measured statement of the ordinary-text remainder: how much of real prose the fitted content
++    // index covers. This is exposure accounting, not a language-quality panel.
++    let ordinary_text = {
++        let docs = [
++            "docs/integration/current-state.md",
++            "docs/integration/project-track.md",
++        ];
++        let mut rows = Vec::new();
++        for rel in docs {
++            let Some(root_dir) = source_root.as_ref() else {
++                rows.push(json!({"path": rel, "status": "UNAVAILABLE (no source root)"}));
++                continue;
++            };
++            match std::fs::read_to_string(root_dir.join(rel)) {
++                Ok(text) => {
++                    let toks = tokenizer.encode(&text);
++                    let fitted = toks
++                        .iter()
++                        .filter(|t| reloaded.content_tokens.iter().skip(1).any(|c| c == *t))
++                        .count();
++                    let fraction = if toks.is_empty() {
++                        0.0
++                    } else {
++                        fitted as f64 / toks.len() as f64
++                    };
++                    rows.push(json!({
++                        "path": rel,
++                        "tokens": toks.len(),
++                        "fitted_tokens": fitted,
++                        "fitted_fraction": fraction,
++                    }));
++                }
++                Err(e) => rows.push(json!({"path": rel, "status": format!("UNAVAILABLE ({e})")})),
++            }
++        }
++        json!({
++            "population": "source-separated local project documentation, distinct from the authored state world",
++            "documents": rows,
++            "verdict": "NOT_RUN as a learning task. The scoped contract supervises an exactly owned span, not open prose continuation, and the fitted content index does not cover ordinary vocabulary (measured coverage above). Ordinary-text learning through the retained session remains the open remainder of the milestone and is the first item of the recorded next step.",
++        })
++    };
++
+     // ---- checks ----
+     let holds = |name: &str| panels[name]["complete"] == json!(true);
+     let checks = json!({
+@@ -22471,7 +22647,9 @@ fn slx_run() -> Result<ExitCode, String> {
+         "cases": cases,
+         "checks": checks,
+         "checks_all_expected": checks.as_object().map(|m| m.values().all(|v| v == &json!(true))).unwrap_or(false),
+-        "scope": "exposed authored response fixture over a small declared state world; a learned low-bit state-conditioned decoder selects shared vocabulary words around the exact owned span, from Insert-slot/Copy-class feedback and a truncated fitted-token content embedding of the selected evidence. Not general prose, no geometric advantage claimed, and the held-out-document panel transfers entity/value strings rather than the value-sensitive computation association.",
++        "scope": "exposed authored response fixture over a small declared state world; a learned low-bit state-conditioned decoder selects shared vocabulary words around the exact owned span, and continues after the span, from position-resolved content, the actual emitted token identity, and an exact typed causal block. Not general prose and no geometric advantage claimed; the held-out-document panel transfers the sentence form to unfamiliar entity/value strings of unseen length, not an unfamiliar computed relation.",
++        "es_reference": es_reference,
++        "ordinary_text_exposure": ordinary_text,
+     });
+     write_json(&root, "result.json", &payload)?;
+     seal(&root).map_err(|e| format!("seal: {e}"))?;
+diff --git a/crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs b/crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs
+index 98e05099f..a4e7f0a7e 100644
+--- a/crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs
++++ b/crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs
+@@ -52,7 +52,7 @@ use super::observed_text_session::{
+ };
+ use super::realtext_support::sha256_hex;
+ use super::shared_transition::{SharedTransitionModel, StExample};
+-use super::state_lexical::StateLexicalModel;
++use super::state_lexical::{SlFacts, StateLexicalModel};
+ 
+ /// Classified failures at the scoped-memory boundary.
+ #[derive(Clone, Debug, PartialEq, Eq)]
+@@ -3607,17 +3607,47 @@ impl ScopedMemoryRuntime {
+         (sel, res)
+     }
+ 
+-    /// The causal flag block the decoder consumes, under the context control.
+-    fn state_lexical_flags(&self, session: &ScopedSession) -> Vec<i32> {
+-        let disabled = matches!(self.control, MemoryControl::RealizationContextDisabled);
+-        let history = if disabled {
+-            0
+-        } else {
+-            Self::history_code(session)
+-        };
+-        let derived = session.derived && !disabled;
+-        let prior = !disabled && self.prior_differs(session);
+-        StateLexicalModel::flags(history, derived, prior)
++    /// The causal typed block the decoder consumes, under the context control. Every fact is an exact
++    /// observation of the session; none of them names an answer class.
++    fn state_lexical_facts(&self, session: &ScopedSession) -> SlFacts {
++        if matches!(self.control, MemoryControl::RealizationContextDisabled) {
++            return SlFacts::default();
++        }
++        // A store mutation was actually committed for this address when a previous record exists at the
++        // pinned view. Distinct from `prior_differs`, which additionally requires a different value.
++        let committed = session.captured.as_ref().is_some_and(|capture| {
++            capture.commit != 0
++                && !capture.key.is_empty()
++                && matches!(
++                    self.memory.lookup_identity(
++                        &capture.key,
++                        capture.commit,
++                        HistoryView::PreviousAssertion
++                    ),
++                    Lookup::Found(_)
++                )
++        });
++        // The computation followed a derived key that differs exactly from the operand key it started
++        // from. Distinct from `derived`: a computation may follow a key back to the operand's address.
++        let key_changed = session.derived
++            && session.computation.as_ref().is_some_and(|computed| {
++                !computed.derived_key.is_empty() && computed.derived_key != computed.operand_key
++            });
++        SlFacts {
++            history: Self::history_code(session),
++            derived: session.derived,
++            prior_differs: self.prior_differs(session),
++            committed,
++            key_changed,
++        }
++    }
++
++    /// The exact typed causal facts an external evaluator can read from the executed session, under the
++    /// same definitions the `StateLexicalV1` decoder consumes. Exposed so a training observation is
++    /// built from the runtime's own causal interface rather than from an authored answer-family label.
++    pub fn observed_lexical_facts(&self, session: &ScopedSession) -> (bool, bool, bool) {
++        let facts = self.state_lexical_facts(session);
++        (facts.committed, facts.prior_differs, facts.key_changed)
+     }
+ 
+     /// One realized emission step under the versioned `StateLexicalV1` contract.
+@@ -3627,7 +3657,8 @@ impl ScopedMemoryRuntime {
+     /// owned structural invariants as `RealizedV1` keep the span exact: `Copy` is forced inside the
+     /// payload; a premature Stop is replaced with Copy. The decoder's state advances with the
+     /// executed insert-slot/Copy event, so the reachability replay and a restored snapshot agree
+-    /// with serving. Copied-token identity is not part of this artifact's recurrent feedback.
++    /// with serving. Fitted copied-token identity enters the recurrent feedback; unfitted copied
++    /// tokens still share one reserved OOV row.
+     fn state_lexical_emit(
+         &self,
+         session: &mut ScopedSession,
+@@ -3640,7 +3671,7 @@ impl ScopedMemoryRuntime {
+         })?;
+         let (sel, res) = self.state_lexical_content(session);
+         let m = model.content_feature(&sel, &res);
+-        let f = self.state_lexical_flags(session);
++        let f = model.typed_block(&sel, &res, self.state_lexical_facts(session));
+         if session.sl_state.is_empty() {
+             session.sl_state = model.init_state(&m, &f);
+         }
+@@ -3669,6 +3700,7 @@ impl ScopedMemoryRuntime {
+             key: StateLexicalModel::state_digest(&session.sl_state),
+             evidence_class: 0,
+         });
++        let mut emitted: Option<u32> = None;
+         match action {
+             RealizationAction::Copy => {
+                 let token = *session
+@@ -3681,6 +3713,7 @@ impl ScopedMemoryRuntime {
+                 session.emitted.push(token);
+                 session.cursor += 1;
+                 effect.emitted = Some(token);
++                emitted = Some(token);
+             }
+             RealizationAction::Insert(slot) => {
+                 let token = *model.slots.get(slot as usize).ok_or_else(|| {
+@@ -3692,18 +3725,24 @@ impl ScopedMemoryRuntime {
+                     session.prelude_words += 1;
+                 }
+                 effect.emitted = Some(token);
++                emitted = Some(token);
+             }
+             RealizationAction::Stop => {
+                 session.pending = SessionAction::Stop;
+             }
+         }
+-        // Advance by the executed action event. Copy uses one shared symbol regardless of its token;
+-        // the recurrence control holds the initial state instead.
++        // Advance by the executed action event *and* the actual emitted token's shared learned
++        // identity, so a copied token is not collapsed into one Copy symbol. The recurrence control
++        // holds the initial state instead.
+         if !matches!(action, RealizationAction::Stop)
+             && !matches!(self.control, MemoryControl::RecurrenceDisabled)
+         {
+-            session.sl_state =
+-                model.transition(&session.sl_state, StateLexicalModel::symbol_of(action));
++            session.sl_state = model.transition(
++                &session.sl_state,
++                StateLexicalModel::symbol_of(action),
++                emitted,
++                &f,
++            );
+         }
+         Ok(())
+     }
+@@ -4246,6 +4285,8 @@ mod tests {
+                         history,
+                         derived,
+                         prior_differs: prior,
++                        committed: prior,
++                        key_changed: derived,
+                         actions,
+                     });
+                 }
+@@ -4257,7 +4298,7 @@ mod tests {
+             e_dim: 16,
+             ..Default::default()
+         };
+-        fit_state_lexical(&examples, 4096, vec![11, 12, 13], 4, &cfg)
++        fit_state_lexical(&examples, 4096, vec![11, 12, 13], 4, &cfg, &[])
+             .unwrap()
+             .model
+     }
+@@ -4293,24 +4334,26 @@ mod tests {
+             packed: vec![0; (rows * cols).div_ceil(4)],
+             shift: vec![0; rows],
+         };
+-        let mut wo = zero(3, 14);
+-        // Stop beats Copy only when the complete-copy-stage feature is one.
+-        let stop_complete = 14 + 13;
++        let mut wo = zero(3, 22);
++        // Stop beats Copy only when the complete-copy-stage feature is one. Layout: h(1), m(2),
++        // difference(1), typed block(15), copy-stage one-hot(3).
++        let stop_complete = 22 + 21;
+         wo.packed[stop_complete >> 2] |= 1 << ((stop_complete & 3) * 2);
+         StateLexicalModel {
+             version: SL_VERSION,
+             vocab: 4096,
+             slots: vec![11],
+-            content_tokens: vec![11],
++            content_tokens: vec![0, 11],
+             h_dim: 1,
+             e_dim: 2,
+-            f_dim: 6,
++            f_dim: super::super::state_lexical::SL_F_DIM,
+             c_dim: 3,
+             h_clamp: 255,
+             m_clamp: 255,
+-            e: vec![1],
+-            wi: zero(1, 10),
+-            wt: zero(1, 4),
++            e: vec![1; 2 * super::super::state_lexical::SL_CONTENT_POSITIONS],
++            wi: zero(1, 2 + 1 + super::super::state_lexical::SL_F_DIM),
++            // h(1) + {start, copy, insert}(3) + emitted-token identity(1) + typed block(15)
++            wt: zero(1, 1 + 3 + 1 + super::super::state_lexical::SL_F_DIM),
+             wo,
+             bi: vec![0],
+             bt: vec![0],
+diff --git a/crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs b/crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs
+index 7be48b4e8..0cc25b440 100644
+--- a/crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs
++++ b/crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs
+@@ -19,23 +19,29 @@
+ //! h_0     = learned_init(c)
+ //! a_t     = learned_readout(h_t, c, exact_copy_state)
+ //! x_t     = execute(a_t)          // a generated token, an exact owned token, or Stop
+-//! h_(t+1) = learned_transition(h_t, action_symbol(a_t))
++//! h_(t+1) = learned_transition(h_t, action_symbol(a_t), emitted_token_row, typed_facts)
+ //! ```
+ //!
+-//! * `c` is a *content* vector: a learned embedding of the selected owned payload tokens and, for a
+-//!   consumed computation, of the operand the computation started from. The evidence value is
+-//!   therefore an input, not a reported class, so changing the value can change an uncopied word with
+-//!   the provenance flags held equal. It is not a supplied `changed` flag: the learner must discover
+-//!   the composition from declared text.
+-//! * `h_t` is a bounded integer state vector. `learned_transition` consumes the executed insert-slot
+-//!   or Copy action. Different inserted slots can advance state differently, but every copied token
+-//!   has the same Copy symbol. This version does not supply copied-token identity or ordering to the
+-//!   recurrence. The content feature is a truncated bag of fitted tokens, not an exact identity.
++//! * `c` is a *content* vector: a position-resolved embedding of the selected owned payload tokens
++//!   and, for a consumed computation, of the operand the computation started from, plus a **typed
++//!   causal block**. Position-dependent rows make the feature order-sensitive, a dedicated tail
++//!   position carries the final token of a truncated payload, and an unfitted token occupies an
++//!   explicit reserved row rather than contributing nothing. The typed block exposes exact,
++//!   causally-available distinctions the compressed embedding cannot rediscover: requested history,
++//!   whether the answer is derived, whether an older committed value was superseded, whether a store
++//!   mutation was actually committed, whether the derived query key differs from the operand key, and
++//!   the exact equality / prefix / divergence of the selected and operand identities. These are typed
++//!   observations, not a supplied answer class: the learner still decides whether and how to verbalise
++//!   them.
++//! * `h_t` is a bounded integer state vector. `learned_transition` consumes the executed action event
++//!   *and the actual emitted token identity*, so an inserted word and a copied word both advance the
++//!   recurrence by the learned row of the token the session really emitted. Two equal-length copied
++//!   spans over different fitted tokens therefore reach different states. An unfitted copied token
++//!   still shares the reserved row; that residual collision is declared, not hidden.
+ //!
+ //! Exact copy identity, cursor and payload bytes stay separately owned by the scoped session; this
+-//! decoder never replaces identity with lossy state. `Copy` enters the recurrence as one symbol whose
+-//! payload is owned elsewhere, so the decoder learns *when* to copy and when to interleave a word, not
+-//! which byte to copy.
++//! decoder never replaces identity with lossy state. A copied token carries both its exact byte (owned
++//! elsewhere) and its learned identity into the recurrence.
+ //!
+ //! # Serving contract (D0-b)
+ //!
+@@ -60,13 +66,29 @@ use super::lexical_realization::RealizationAction;
+ use super::lowbit::TernaryLinear;
+ 
+ /// Artifact format version.
+-pub const SL_VERSION: u8 = 2;
++///
++/// Version 3 corrects three observation defects of version 2 with the same retained recurrence and
++/// integer serving path: the content feature is position-resolved (so reordered payloads differ), the
++/// final token of a long payload is carried in a dedicated tail position (so a truncated suffix is
++/// not erased), and unfitted tokens occupy an explicit reserved row rather than contributing zero.
++/// Version 3 additionally consumes the actual emitted token identity in the recurrent feedback and
++/// exposes exact typed causal facts instead of relying on a compressed embedding to rediscover them.
++pub const SL_VERSION: u8 = 3;
+ /// Declared maximum number of shared learned vocabulary slots.
+ pub const SL_MAX_SLOTS: usize = 8;
+ /// Declared bound on how many content tokens of one evidence item enter the content feature. The
+ /// selected payload and the operand are each truncated to this many tokens, so a long payload cannot
+ /// make the served feature width unbounded.
+ pub const SL_MAX_CONTENT_TOKENS: usize = 4;
++/// Declared number of content positions: the first `SL_MAX_CONTENT_TOKENS` tokens plus one dedicated
++/// tail position carrying the final token, so a long payload's suffix survives truncation.
++pub const SL_CONTENT_POSITIONS: usize = SL_MAX_CONTENT_TOKENS + 1;
++/// Width of the typed causal block: requested history, provenance (`derived`, `prior_differs`,
++/// `committed`, `key_changed`) and the exact selected/operand identity relations.
++pub const SL_F_DIM: usize = 15;
++/// The reserved content row index for any token that was not fitted. It is a real learned row, so an
++/// unsupported token is distinct from a meaningful zero.
++pub const SL_OOV_ROW: usize = 0;
+ /// Declared bound on the magnitude of `i8` embedding entries (a 4-bit signed range).
+ pub const SL_EMB_BOUND: i32 = 7;
+ /// Declared upper bound on a ternary row's power-of-two scale, so `acc << shift` cannot overflow an
+@@ -101,6 +123,12 @@ pub struct SlSequence {
+     pub derived: bool,
+     /// An older committed value for the same address was superseded before this one.
+     pub prior_differs: bool,
++    /// A store mutation was actually committed for this address before this answer. Distinct from
++    /// `prior_differs`: a superseded record with an equal value still committed a mutation.
++    pub committed: bool,
++    /// The computation's derived query key differs exactly from the operand key. Distinct from
++    /// `derived`: a computation may follow a key back to the operand's own address.
++    pub key_changed: bool,
+     /// The realized action sequence, one action per emission step, ending in `Stop`.
+     pub actions: Vec<RealizationAction>,
+ }
+@@ -140,6 +168,86 @@ impl SlSequence {
+             .filter(|a| matches!(a, RealizationAction::Copy))
+             .count()
+     }
++
++    /// The typed causal facts of this example.
++    pub fn facts(&self) -> SlFacts {
++        SlFacts {
++            history: self.history,
++            derived: self.derived,
++            prior_differs: self.prior_differs,
++            committed: self.committed,
++            key_changed: self.key_changed,
++        }
++    }
++
++    /// The token the session actually emits at step `i`, given the shared vocabulary slots. A `Copy`
++    /// step emits the next owned payload token in cursor order; an `Insert(slot)` step emits that
++    /// slot's token. This is the identity the recurrence consumes, shared with the content embedding.
++    pub fn emitted_token(&self, i: usize, slots: &[u32]) -> Option<u32> {
++        match self.actions.get(i)? {
++            RealizationAction::Copy => {
++                let cursor = self.actions[..i]
++                    .iter()
++                    .filter(|a| matches!(a, RealizationAction::Copy))
++                    .count();
++                self.sel.get(cursor).copied()
++            }
++            RealizationAction::Insert(slot) => slots.get(*slot as usize).copied(),
++            RealizationAction::Stop => None,
++        }
++    }
++}
++
++/// The causally available typed facts of one answer. Every field is an exact observation of the
++/// session, not a supplied answer class: the learner still decides whether and how to verbalise them.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
++pub struct SlFacts {
++    pub history: u8,
++    pub derived: bool,
++    pub prior_differs: bool,
++    pub committed: bool,
++    pub key_changed: bool,
++}
++
++/// The typed causal block for one example. `known` reports whether a token was fitted; it is used
++/// only for bounded counts and never to change an equality or a provenance fact.
++pub fn typed_causal_block(
++    sel: &[u32],
++    res: &[u32],
++    facts: SlFacts,
++    known: &dyn Fn(u32) -> bool,
++) -> Vec<i32> {
++    let cap = SL_MAX_CONTENT_TOKENS as i32;
++    let mut f = vec![0i32; SL_F_DIM];
++    f[(facts.history as usize).min(3)] = 1;
++    f[4] = i32::from(facts.derived);
++    f[5] = i32::from(facts.prior_differs);
++    f[6] = i32::from(facts.committed);
++    f[7] = i32::from(facts.key_changed);
++    f[8] = i32::from(!sel.is_empty() && sel == res);
++    f[9] = sel
++        .iter()
++        .zip(res)
++        .take_while(|(a, b)| a == b)
++        .count()
++        .min(SL_MAX_CONTENT_TOKENS) as i32;
++    f[10] = (0..sel.len().max(res.len()))
++        .filter(|i| sel.get(*i) != res.get(*i))
++        .count()
++        .min(SL_MAX_CONTENT_TOKENS) as i32;
++    f[11] = (sel.len() as i32).min(cap);
++    f[12] = (res.len() as i32).min(cap);
++    f[13] = sel
++        .iter()
++        .filter(|t| !known(**t))
++        .count()
++        .min(SL_MAX_CONTENT_TOKENS) as i32;
++    f[14] = res
++        .iter()
++        .filter(|t| !known(**t))
++        .count()
++        .min(SL_MAX_CONTENT_TOKENS) as i32;
++    f
+ }
+ 
+ /// Fit configuration. Every field is declared before fitting and stored with the report.
+@@ -230,8 +338,9 @@ pub struct StateLexicalModel {
+     pub vocab: usize,
+     /// Learned shared insert vocabulary, one token per slot.
+     pub slots: Vec<u32>,
+-    /// Content-token index: position `i` holds the token id whose learned row is row `i`.
+-    /// Unseen tokens contribute zero; row 0 is the ordinary token-0 row, not an OOV embedding.
++    /// Content-token index: index 0 is reserved for an unfitted token (the OOV row) and holds no
++    /// token id; index `c >= 1` holds the token id whose learned rows are
++    /// `c * SL_CONTENT_POSITIONS + p` for position `p`.
+     pub content_tokens: Vec<u32>,
+     pub h_dim: usize,
+     pub e_dim: usize,
+@@ -241,11 +350,14 @@ pub struct StateLexicalModel {
+     pub h_clamp: i32,
+     /// Bound on the integer content feature magnitude.
+     pub m_clamp: i32,
+-    /// The one shared learned content embedding, row-major `content_tokens.len() * (e_dim / 2)`.
+-    /// The selected payload contributes to the first half of the content feature and the consumed
+-    /// computation's operand to the second, so "the value did not change" is a relation the served
+-    /// integer readout can express as a difference between the two halves rather than a supplied
+-    /// flag.
++    /// The one shared learned content embedding, row-major
++    /// `content_tokens.len() * SL_CONTENT_POSITIONS * (e_dim / 2)`. A token's row is
++    /// position-dependent, so a reordered payload produces a different feature; position
++    /// `SL_MAX_CONTENT_TOKENS` is the tail slot carrying a truncated payload's final token. The
++    /// selected payload contributes to the first half of the content feature and the consumed
++    /// computation's operand to the second. The same rows also feed the recurrent token-identity
++    /// block, so a learned token identity is shared between the content observation and the emitted
++    /// feedback.
+     pub e: Vec<i8>,
+     pub wi: SlLinear,
+     pub wt: SlLinear,
+@@ -264,7 +376,7 @@ impl StateLexicalModel {
+     }
+ 
+     fn flag_dim() -> usize {
+-        6
++        SL_F_DIM
+     }
+ 
+     fn copy_dim() -> usize {
+@@ -272,17 +384,17 @@ impl StateLexicalModel {
+     }
+ 
+     /// Width of the derived selected-minus-operand block. It is the declared difference between the
+-    /// two content halves, so the bounded clamp can threshold "the value did not change" directly.
++    /// two content halves, so the bounded clamp can threshold a content difference directly.
+     fn diff_dim(&self) -> usize {
+         self.e_dim / 2
+     }
+ 
+     fn readout_cols(&self) -> usize {
+-        self.h_dim + self.e_dim + self.diff_dim() + 1 + Self::flag_dim() + Self::copy_dim()
++        self.h_dim + self.e_dim + self.diff_dim() + Self::flag_dim() + Self::copy_dim()
+     }
+ 
+     fn init_cols(&self) -> usize {
+-        self.e_dim + self.diff_dim() + 1 + Self::flag_dim()
++        self.e_dim + self.diff_dim() + Self::flag_dim()
+     }
+ 
+     /// The declared difference between the selected and operand content halves.
+@@ -291,64 +403,77 @@ impl StateLexicalModel {
+         (0..half).map(|i| m[i] - m[half + i]).collect()
+     }
+ 
+-    /// The declared number of content coordinates on which the selected value and the consumed
+-    /// operand disagree. Equal token sequences produce zero, but zero does not establish equality:
+-    /// truncation, bag ordering, unknown-token omission and learned collisions can also erase a
+-    /// distinction. This is a comparison over lossy content features, not an exact change witness;
+-    /// whether a disagreement is reported and how it is worded remain learned.
+-    fn disagreement(&self, m: &[i32]) -> i32 {
+-        let half = self.e_dim / 2;
+-        (0..half).filter(|i| m[*i] != m[half + *i]).count() as i32
+-    }
+-
+     fn transition_cols(&self) -> usize {
+-        self.h_dim + Self::symbol_dim(self.slots.len())
++        self.h_dim + Self::symbol_dim(self.slots.len()) + self.diff_dim() + Self::flag_dim()
+     }
+ 
+     fn symbol_dim(n_slots: usize) -> usize {
+         SL_SYM_INSERT_BASE + n_slots
+     }
+ 
+-    /// The internal embedding row for a token id, or `None` when no row was fitted for it. An
+-    /// unknown token contributes nothing rather than a random initialised row, so a held-out
+-    /// document degrades to the flag-driven sequence instead of an arbitrary one.
++    /// The learned content row index for a token id, or `None` when no row was fitted for it. Index
++    /// 0 is reserved for unfitted tokens, so it is never returned here.
+     fn embed_row(&self, token: u32) -> Option<usize> {
+-        self.content_tokens.iter().position(|t| *t == token)
++        self.content_tokens
++            .iter()
++            .enumerate()
++            .skip(1)
++            .find(|(_, t)| **t == token)
++            .map(|(i, _)| i)
++    }
++
++    /// The embedding row for `token` at content position `p`. An unfitted token uses the reserved
++    /// OOV row, so unsupported content is a real learned row rather than a meaningful zero.
++    #[allow(dead_code)]
++    fn content_row(&self, token: u32, p: usize) -> usize {
++        let c = self.embed_row(token).unwrap_or(SL_OOV_ROW);
++        c * SL_CONTENT_POSITIONS + p.min(SL_CONTENT_POSITIONS - 1)
+     }
+ 
+-    /// The content feature `m` for a selected payload and a computation operand: the sum of the
+-    /// learned embeddings of every *fitted* token, bounded. `res` is empty for a direct read, and an
+-    /// unfitted token is skipped.
++    /// The ordered (token-row, position) terms of one token slice: the first `SL_MAX_CONTENT_TOKENS`
++    /// tokens in order, plus the final token in the dedicated tail position when the slice is longer.
++    fn content_terms(&self, tokens: &[u32]) -> Vec<(usize, usize)> {
++        let mut out: Vec<(usize, usize)> = tokens
++            .iter()
++            .take(SL_MAX_CONTENT_TOKENS)
++            .enumerate()
++            .map(|(p, t)| (self.embed_row(*t).unwrap_or(SL_OOV_ROW), p))
++            .collect();
++        if tokens.len() > SL_MAX_CONTENT_TOKENS {
++            let last = tokens[tokens.len() - 1];
++            out.push((
++                self.embed_row(last).unwrap_or(SL_OOV_ROW),
++                SL_MAX_CONTENT_TOKENS,
++            ));
++        }
++        out
++    }
++
++    /// The content feature `m` for a selected payload and a computation operand. Each token
++    /// contributes its learned row for its own position, so reordering changes the feature and a
++    /// truncated payload keeps its final token in the tail position. `res` is empty for a direct read.
+     pub fn content_feature(&self, sel: &[u32], res: &[u32]) -> Vec<i32> {
+         let half = self.e_dim / 2;
+         let mut m = vec![0i32; self.e_dim];
+-        for token in sel.iter().take(SL_MAX_CONTENT_TOKENS) {
+-            if let Some(row) = self.embed_row(*token) {
+-                let row = row * half;
+-                for (d, v) in self.e[row..row + half].iter().enumerate() {
+-                    m[d] += i32::from(*v);
+-                }
++        for (c, p) in self.content_terms(sel) {
++            let row = (c * SL_CONTENT_POSITIONS + p) * half;
++            for (d, v) in self.e[row..row + half].iter().enumerate() {
++                m[d] += i32::from(*v);
+             }
+         }
+-        for token in res.iter().take(SL_MAX_CONTENT_TOKENS) {
+-            if let Some(row) = self.embed_row(*token) {
+-                let row = row * half;
+-                for (d, v) in self.e[row..row + half].iter().enumerate() {
+-                    m[half + d] += i32::from(*v);
+-                }
++        for (c, p) in self.content_terms(res) {
++            let row = (c * SL_CONTENT_POSITIONS + p) * half;
++            for (d, v) in self.e[row..row + half].iter().enumerate() {
++                m[half + d] += i32::from(*v);
+             }
+         }
+         clamp_in_place(&mut m, self.m_clamp);
+         m
+     }
+ 
+-    /// The causal flag block: requested-history one-hot, derived, prior-differs.
+-    pub fn flags(history: u8, derived: bool, prior_differs: bool) -> Vec<i32> {
+-        let mut f = vec![0i32; Self::flag_dim()];
+-        f[(history as usize).min(3)] = 1;
+-        f[4] = i32::from(derived);
+-        f[5] = i32::from(prior_differs);
+-        f
++    /// The typed causal block, using this artifact's content rows for the bounded unknown counts.
++    pub fn typed_block(&self, sel: &[u32], res: &[u32], facts: SlFacts) -> Vec<i32> {
++        typed_causal_block(sel, res, facts, &|t| self.embed_row(t).is_some())
+     }
+ 
+     /// `h_0 = learned_init(c)`.
+@@ -356,7 +481,6 @@ impl StateLexicalModel {
+         let mut input = Vec::with_capacity(self.init_cols());
+         input.extend_from_slice(m);
+         input.extend_from_slice(&self.difference_block(m));
+-        input.push(self.disagreement(m));
+         input.extend_from_slice(f);
+         let mut h = self
+             .wi
+@@ -375,7 +499,6 @@ impl StateLexicalModel {
+         input.extend_from_slice(h);
+         input.extend_from_slice(m);
+         input.extend_from_slice(&self.difference_block(m));
+-        input.push(self.disagreement(m));
+         input.extend_from_slice(f);
+         let mut copy = vec![0i32; Self::copy_dim()];
+         copy[(copy_stage as usize).min(2)] = 1;
+@@ -390,15 +513,25 @@ impl StateLexicalModel {
+         logits
+     }
+ 
+-    /// `h_(t+1) = learned_transition(h_t, action_symbol)` for the executed action event.
+-    /// All copied token identities share one symbol in this artifact version.
+-    pub fn transition(&self, h: &[i32], symbol: usize) -> Vec<i32> {
++    /// `h_(t+1) = learned_transition(h_t, action_symbol, emitted_token, c)` for the executed event.
++    /// The actual emitted token's shared learned identity and the typed causal block both advance the
++    /// state, so a copied token is not collapsed into one Copy symbol and the post-copy decision can
++    /// read the causal facts from the state as well as from the readout. An unfitted token uses the
++    /// reserved row.
++    pub fn transition(&self, h: &[i32], symbol: usize, token: Option<u32>, f: &[i32]) -> Vec<i32> {
++        let half = self.e_dim / 2;
+         let mut input = Vec::with_capacity(self.transition_cols());
+         input.extend_from_slice(h);
+         let mut x = vec![0i32; Self::symbol_dim(self.slots.len())];
+         let idx = symbol.min(x.len() - 1);
+         x[idx] = 1;
+         input.extend_from_slice(&x);
++        // The identity block reuses the token's position-0 learned row, so content and feedback share
++        // one learned token representation.
++        let c = token.and_then(|t| self.embed_row(t)).unwrap_or(SL_OOV_ROW);
++        let row = (c * SL_CONTENT_POSITIONS) * half;
++        input.extend(self.e[row..row + half].iter().map(|v| i32::from(*v)));
++        input.extend_from_slice(f);
+         let mut next = self
+             .wt
+             .forward_i32(&input)
+@@ -489,16 +622,19 @@ impl StateLexicalModel {
+         let embedding_len = self
+             .content_tokens
+             .len()
+-            .checked_mul(half)
++            .checked_mul(SL_CONTENT_POSITIONS)
++            .and_then(|n| n.checked_mul(half))
+             .ok_or("state-lexical embedding dimensions overflow")?;
+         let init_cols = self
+             .e_dim
+             .checked_add(half)
+-            .and_then(|n| n.checked_add(1 + Self::flag_dim()))
++            .and_then(|n| n.checked_add(Self::flag_dim()))
+             .ok_or("state-lexical input dimensions overflow")?;
+         let transition_cols = self
+             .h_dim
+             .checked_add(Self::symbol_dim(self.slots.len()))
++            .and_then(|n| n.checked_add(half))
++            .and_then(|n| n.checked_add(Self::flag_dim()))
+             .ok_or("state-lexical transition dimensions overflow")?;
+         let readout_cols = self
+             .h_dim
+@@ -547,16 +683,15 @@ impl StateLexicalModel {
+         // Certify the accumulator before executing add/sub/shift and adding a bias. A shift
+         // bound alone is insufficient: a valid-shaped artifact can contain i32::MAX biases or
+         // an unsafe recurrent clamp. These conservative absolute bounds cover every causal input.
+-        let content_bound = self
+-            .m_clamp
+-            .min(SL_EMB_BOUND * SL_MAX_CONTENT_TOKENS as i32);
++        let content_bound = self.m_clamp.min(SL_EMB_BOUND * SL_CONTENT_POSITIONS as i32);
+         let mut context_bounds = vec![content_bound as u128; self.e_dim];
+         context_bounds.extend(vec![2 * content_bound as u128; half]);
+-        context_bounds.push(half as u128);
+-        context_bounds.extend([1; 6]);
++        context_bounds.extend(vec![SL_MAX_CONTENT_TOKENS.max(1) as u128; Self::flag_dim()]);
+         validate_affine_range(&self.wi, &self.bi, &context_bounds)?;
+         let mut transition_bounds = vec![self.h_clamp as u128; self.h_dim];
+         transition_bounds.extend(vec![1; Self::symbol_dim(self.slots.len())]);
++        transition_bounds.extend(vec![SL_EMB_BOUND as u128; half]);
++        transition_bounds.extend(vec![SL_MAX_CONTENT_TOKENS.max(1) as u128; Self::flag_dim()]);
+         validate_affine_range(&self.wt, &self.bt, &transition_bounds)?;
+         let mut readout_bounds = vec![self.h_clamp as u128; self.h_dim];
+         readout_bounds.extend(context_bounds);
+@@ -586,7 +721,7 @@ impl StateLexicalModel {
+         let mut total = 0usize;
+         for ex in examples {
+             let m = self.content_feature(&ex.sel, &ex.res);
+-            let f = Self::flags(ex.history, ex.derived, ex.prior_differs);
++            let f = self.typed_block(&ex.sel, &ex.res, ex.facts());
+             let mut h = self.init_state(&m, &f);
+             let stages = ex.copy_stages();
+             for (i, action) in ex.actions.iter().enumerate() {
+@@ -595,7 +730,12 @@ impl StateLexicalModel {
+                     correct += 1;
+                 }
+                 total += 1;
+-                h = self.transition(&h, Self::symbol_of(*action));
++                h = self.transition(
++                    &h,
++                    Self::symbol_of(*action),
++                    ex.emitted_token(i, &self.slots),
++                    &f,
++                );
+             }
+         }
+         (correct, total)
+@@ -767,14 +907,14 @@ struct FloatModel {
+ }
+ 
+ impl FloatModel {
+-    fn new(content_len: usize, n_slots: usize, cfg: &SlFitConfig, rng: &mut Rng) -> Self {
++    fn new(content_rows: usize, n_slots: usize, cfg: &SlFitConfig, rng: &mut Rng) -> Self {
+         let h_dim = cfg.h_dim;
+         let e_dim = cfg.e_dim;
+-        let (f_dim, c_dim) = (6usize, 3usize);
++        let (f_dim, c_dim) = (SL_F_DIM, 3usize);
+         let n_actions = SL_INSERT_BASE + n_slots;
+         let half = e_dim / 2;
+-        let mut emb = Vec::with_capacity(content_len * half);
+-        for _ in 0..content_len * half {
++        let mut emb = Vec::with_capacity(content_rows * half);
++        for _ in 0..content_rows * half {
+             emb.push(rng.scaled(2.4));
+         }
+         let mk =
+@@ -789,9 +929,12 @@ impl FloatModel {
+             h_clamp: 255.0,
+             m_clamp: 255.0,
+             e: emb,
+-            wi: mk(h_dim * (e_dim + half + 1 + f_dim), rng),
+-            wt: mk(h_dim * (h_dim + SL_SYM_INSERT_BASE + n_slots), rng),
+-            wo: mk(n_actions * (h_dim + e_dim + half + 1 + f_dim + c_dim), rng),
++            wi: mk(h_dim * (e_dim + half + f_dim), rng),
++            wt: mk(
++                h_dim * (h_dim + SL_SYM_INSERT_BASE + n_slots + half + f_dim),
++                rng,
++            ),
++            wo: mk(n_actions * (h_dim + e_dim + half + f_dim + c_dim), rng),
+             bi: vec![0.0; h_dim],
+             bt: vec![0.0; h_dim],
+             bo: vec![0.0; n_actions],
+@@ -802,13 +945,13 @@ impl FloatModel {
+         self.e_dim / 2
+     }
+     fn wi_cols(&self) -> usize {
+-        self.e_dim + self.diff_dim() + 1 + self.f_dim
++        self.e_dim + self.diff_dim() + self.f_dim
+     }
+     fn wt_cols(&self) -> usize {
+-        self.h_dim + SL_SYM_INSERT_BASE + self.n_slots
++        self.h_dim + SL_SYM_INSERT_BASE + self.n_slots + self.diff_dim() + self.f_dim
+     }
+     fn wo_cols(&self) -> usize {
+-        self.h_dim + self.e_dim + self.diff_dim() + 1 + self.f_dim + self.c_dim
++        self.h_dim + self.e_dim + self.diff_dim() + self.f_dim + self.c_dim
+     }
+ }
+ 
+@@ -845,13 +988,16 @@ pub struct SlFitOutcome {
+ /// Fit the state-conditioned decoder by teacher forcing with Adam and quantisation-aware STEs.
+ ///
+ /// The content-token index is taken from the examples, with an ordinary token-0 row retained.
+-/// Every distinct observed token adds one row; unknown serving tokens are omitted from the feature.
++/// `oov_tokens` declares token ids that must stay *unfamiliar*: they are excluded from the content
++/// index so an unknown-token control is faithful rather than silently fitted. Every other distinct
++/// observed token adds one row; unknown serving tokens use the reserved OOV row.
+ pub fn fit_state_lexical(
+     examples: &[SlSequence],
+     vocab: usize,
+     slots: Vec<u32>,
+     max_insert_words: u8,
+     cfg: &SlFitConfig,
++    oov_tokens: &[u32],
+ ) -> Result<SlFitOutcome, String> {
+     if examples.is_empty() {
+         return Err("state-lexical fit requires at least one example".into());
+@@ -901,14 +1047,16 @@ pub fn fit_state_lexical(
+     if !total_weight.is_finite() || total_weight <= 0.0 {
+         return Err("state-lexical objective weight is not finite and positive".into());
+     }
++    let half = cfg.e_dim / 2;
+     let init_cols = cfg
+         .e_dim
+-        .checked_add(cfg.e_dim / 2)
+-        .and_then(|n| n.checked_add(7))
++        .checked_add(half)
++        .and_then(|n| n.checked_add(SL_F_DIM))
+         .ok_or("state-lexical fit input dimensions overflow")?;
+     let transition_cols = cfg
+         .h_dim
+         .checked_add(SL_SYM_INSERT_BASE + slots.len())
++        .and_then(|n| n.checked_add(half))
+         .ok_or("state-lexical fit transition dimensions overflow")?;
+     let readout_cols = cfg
+         .h_dim
+@@ -924,22 +1072,52 @@ pub fn fit_state_lexical(
+     (SL_INSERT_BASE + slots.len())
+         .checked_mul(readout_cols)
+         .ok_or("state-lexical fit readout size overflows")?;
++    // Index 0 is the reserved OOV row (it holds a placeholder, never a fitted token).
+     let mut content_tokens = vec![0u32];
+     for ex in examples {
+         for t in ex.sel.iter().chain(ex.res.iter()) {
+-            if !content_tokens.contains(t) {
++            if !oov_tokens.contains(t) && !content_tokens[1..].contains(t) {
+                 content_tokens.push(*t);
+             }
+         }
+     }
+     let content_len = content_tokens.len();
+-    content_len
+-        .checked_mul(cfg.e_dim / 2)
++    let content_rows = content_len
++        .checked_mul(SL_CONTENT_POSITIONS)
++        .ok_or("state-lexical fit content rows overflow")?;
++    content_rows
++        .checked_mul(half)
+         .ok_or("state-lexical fit embedding size overflows")?;
+-    let content_row = |t: u32| content_tokens.iter().position(|c| *c == t).unwrap_or(0);
++    // The learned row of `t` at content position `p`; an unfitted token uses the reserved row.
++    let content_row = |t: u32, p: usize| {
++        let c = content_tokens
++            .iter()
++            .enumerate()
++            .skip(1)
++            .find(|(_, x)| **x == t)
++            .map(|(i, _)| i)
++            .unwrap_or(SL_OOV_ROW);
++        c * SL_CONTENT_POSITIONS + p.min(SL_CONTENT_POSITIONS - 1)
++    };
++    let terms = |tokens: &[u32]| -> Vec<(usize, usize)> {
++        let mut out: Vec<(usize, usize)> = tokens
++            .iter()
++            .take(SL_MAX_CONTENT_TOKENS)
++            .enumerate()
++            .map(|(p, t)| (content_row(*t, p), p))
++            .collect();
++        if tokens.len() > SL_MAX_CONTENT_TOKENS {
++            out.push((
++                content_row(tokens[tokens.len() - 1], SL_MAX_CONTENT_TOKENS),
++                SL_MAX_CONTENT_TOKENS,
++            ));
++        }
++        out
++    };
++    let known = |t: u32| !oov_tokens.contains(&t) && content_tokens[1..].contains(&t);
+ 
+     let mut rng = Rng(cfg.seed);
+-    let mut fm = FloatModel::new(content_len, slots.len(), cfg, &mut rng);
++    let mut fm = FloatModel::new(content_rows, slots.len(), cfg, &mut rng);
+ 
+     let n_wi = fm.wi.len();
+     let n_wt = fm.wt.len();
+@@ -978,31 +1156,32 @@ pub fn fit_state_lexical(
+             // ---- forward, keeping per-step activations ----
+             let half = fm.e_dim / 2;
+             let mut m = vec![0f32; fm.e_dim];
+-            for t in ex.sel.iter().take(SL_MAX_CONTENT_TOKENS) {
+-                let row = content_row(*t) * half;
++            let sel_terms = terms(&ex.sel);
++            let res_terms = terms(&ex.res);
++            for (row, _) in &sel_terms {
++                let base = row * half;
+                 for d in 0..half {
+-                    m[d] += e_q[row + d];
++                    m[d] += e_q[base + d];
+                 }
+             }
+-            for t in ex.res.iter().take(SL_MAX_CONTENT_TOKENS) {
+-                let row = content_row(*t) * half;
++            for (row, _) in &res_terms {
++                let base = row * half;
+                 for d in 0..half {
+-                    m[half + d] += e_q[row + d];
++                    m[half + d] += e_q[base + d];
+                 }
+             }
+             let m_mask: Vec<bool> = m.iter().map(|v| v.abs() < fm.m_clamp).collect();
+             clamp_in_place_f(&mut m, fm.m_clamp);
+-            let f: Vec<f32> = {
+-                let fi = StateLexicalModel::flags(ex.history, ex.derived, ex.prior_differs);
+-                fi.iter().map(|v| *v as f32).collect()
+-            };
++            let f: Vec<f32> = typed_causal_block(&ex.sel, &ex.res, ex.facts(), &known)
++                .iter()
++                .map(|v| *v as f32)
++                .collect();
+             let mut u0 = vec![0f32; wi_cols];
+             u0[..fm.e_dim].copy_from_slice(&m);
+             for i in 0..half {
+                 u0[fm.e_dim + i] = m[i] - m[half + i];
+             }
+-            u0[fm.e_dim + half] = (0..half).filter(|i| m[*i] != m[half + *i]).count() as f32;
+-            u0[fm.e_dim + half + 1..].copy_from_slice(&f);
++            u0[fm.e_dim + half..].copy_from_slice(&f);
+             let mut h = quantized_affine(&wi_q, &u0, &fm.bi);
+             let mut h_hist: Vec<Vec<f32>> = Vec::with_capacity(ex.actions.len() + 1);
+             let mut h_masks: Vec<Vec<bool>> = Vec::with_capacity(ex.actions.len() + 1);
+@@ -1025,7 +1204,6 @@ pub fn fit_state_lexical(
+                 for i in 0..half {
+                     z.push(m[i] - m[half + i]);
+                 }
+-                z.push((0..half).filter(|i| m[*i] != m[half + *i]).count() as f32);
+                 z.extend_from_slice(&f);
+                 let mut copy = vec![0f32; fm.c_dim];
+                 copy[(stages[i] as usize).min(2)] = 1.0;
+@@ -1050,6 +1228,13 @@ pub fn fit_state_lexical(
+                 let mut xs = vec![0f32; SL_SYM_INSERT_BASE + fm.n_slots];
+                 xs[x] = 1.0;
+                 input.extend_from_slice(&xs);
++                let tok_row = ex
++                    .emitted_token(i, &slots)
++                    .map(|t| content_row(t, 0))
++                    .unwrap_or(SL_OOV_ROW * SL_CONTENT_POSITIONS);
++                let tok_base = tok_row * half;
++                input.extend_from_slice(&e_q[tok_base..tok_base + half]);
++                input.extend_from_slice(&f);
+                 h = quantized_affine(&wt_q, &input, &fm.bt);
+                 let mut mask = Vec::with_capacity(fm.h_dim);
+                 for r in 0..fm.h_dim {
+@@ -1096,6 +1281,13 @@ pub fn fit_state_lexical(
+                     let mut xs = vec![0f32; SL_SYM_INSERT_BASE + fm.n_slots];
+                     xs[x] = 1.0;
+                     input.extend_from_slice(&xs);
++                    let prev_tok_row = ex
++                        .emitted_token(t - 1, &slots)
++                        .map(|t| content_row(t, 0))
++                        .unwrap_or(SL_OOV_ROW * SL_CONTENT_POSITIONS);
++                    let prev_tok_base = prev_tok_row * half;
++                    input.extend_from_slice(&e_q[prev_tok_base..prev_tok_base + half]);
++                    input.extend_from_slice(&f);
+                     let mut dpre = vec![0f32; fm.h_dim];
+                     for r in 0..fm.h_dim {
+                         dpre[r] = if h_masks[t][r] { gh[r] } else { 0.0 };
+@@ -1104,6 +1296,15 @@ pub fn fit_state_lexical(
+                             g_wt[r * wt_cols + c] += dpre[r] * input[c];
+                         }
+                     }
++                    // The emitted token's shared identity row receives the feedback gradient too.
++                    let emb_col = fm.h_dim + SL_SYM_INSERT_BASE + fm.n_slots;
++                    for j in 0..half {
++                        let mut acc = 0.0f32;
++                        for r in 0..fm.h_dim {
++                            acc += dpre[r] * wt_q[r * wt_cols + emb_col + j];
++                        }
++                        g_e[prev_tok_base + j] += acc;
++                    }
+                     let mut new_gh = vec![0f32; fm.h_dim];
+                     for c in 0..fm.h_dim {
+                         let mut acc = 0.0f32;
+@@ -1142,19 +1343,19 @@ pub fn fit_state_lexical(
+                 }
+             }
+             let half = fm.e_dim / 2;
+-            for d in 0..half {
+-                let dsum = if m_mask[d] { gm[d] } else { 0.0 };
+-                if dsum != 0.0 {
+-                    for t in ex.sel.iter().take(SL_MAX_CONTENT_TOKENS) {
+-                        let row = content_row(*t) * half;
+-                        g_e[row + d] += dsum;
++            for (row, _p) in &sel_terms {
++                let base = row * half;
++                for d in 0..half {
++                    if m_mask[d] && gm[d] != 0.0 {
++                        g_e[base + d] += gm[d];
+                     }
+                 }
+-                let dsum = if m_mask[half + d] { gm[half + d] } else { 0.0 };
+-                if dsum != 0.0 {
+-                    for t in ex.res.iter().take(SL_MAX_CONTENT_TOKENS) {
+-                        let row = content_row(*t) * half;
+-                        g_e[row + d] += dsum;
++            }
++            for (row, _p) in &res_terms {
++                let base = row * half;
++                for d in 0..half {
++                    if m_mask[half + d] && gm[half + d] != 0.0 {
++                        g_e[base + d] += gm[half + d];
+                     }
+                 }
+             }
+@@ -1262,7 +1463,7 @@ fn served_cross_entropy(
+     let mut weight_sum = 0f32;
+     for ex in examples {
+         let m = model.content_feature(&ex.sel, &ex.res);
+-        let f = StateLexicalModel::flags(ex.history, ex.derived, ex.prior_differs);
++        let f = model.typed_block(&ex.sel, &ex.res, ex.facts());
+         let mut h = model.init_state(&m, &f);
+         let stages = ex.copy_stages();
+         for (i, action) in ex.actions.iter().enumerate() {
+@@ -1277,7 +1478,12 @@ fn served_cross_entropy(
+             let w = action_weight(*action, stop_weight, insert_weight);
+             loss += w * nll as f32;
+             weight_sum += w;
+-            h = model.transition(&h, StateLexicalModel::symbol_of(*action));
++            h = model.transition(
++                &h,
++                StateLexicalModel::symbol_of(*action),
++                ex.emitted_token(i, &model.slots),
++                &f,
++            );
+         }
+     }
+     loss / weight_sum.max(1e-9)
+@@ -1292,10 +1498,11 @@ mod tests {
+     }
+ 
+     /// A tiny declared language. Slot 0 opens, slot 1 is the present copula, slot 2 the past copula,
+-    /// slot 3 the unchanged-connective and slot 4 the changed-connective. The last two are selected by
+-    /// the *content* of the consumed computation with every provenance flag held equal.
++    /// slot 3 the unchanged-connective, slot 4 the changed-connective and slot 5 a trailing word that
++    /// follows the copied span. The last three are selected by the *content* and the emitted stream
++    /// with every provenance flag held equal.
+     fn slots() -> Vec<u32> {
+-        vec![101, 102, 103, 104, 105]
++        vec![101, 102, 103, 104, 105, 106]
+     }
+ 
+     fn direct(value: &[u32]) -> SlSequence {
+@@ -1308,6 +1515,8 @@ mod tests {
+             history: 0,
+             derived: false,
+             prior_differs: false,
++            committed: false,
++            key_changed: false,
+             actions: a,
+         }
+     }
+@@ -1322,12 +1531,17 @@ mod tests {
+             history: 1,
+             derived: false,
+             prior_differs: true,
++            committed: true,
++            key_changed: false,
+             actions: a,
+         }
+     }
+ 
+     /// A consumed computation: `operand` is where the computation started, `sel` is the result it
+-    /// consumed. When `operand == sel` the value is unchanged.
++    /// consumed. When `operand == sel` the value is unchanged and the derived key resolved back to
++    /// the operand's own address. A committed change is additionally *continued after the copied
++    /// span* with a trailing marker, so the learner exercises a vocabulary decision that follows the
++    /// owned tokens and is conditioned on the computation's actual effect.
+     fn derived(operand: &[u32], value: &[u32], unchanged: bool) -> SlSequence {
+         let word = if unchanged { 3 } else { 4 };
+         let mut a = vec![
+@@ -1335,6 +1549,9 @@ mod tests {
+             RealizationAction::Insert(word),
+         ];
+         a.extend(copy(value.len()));
++        if !unchanged {
++            a.push(RealizationAction::Insert(5));
++        }
+         a.push(RealizationAction::Stop);
+         SlSequence {
+             sel: value.to_vec(),
+@@ -1342,6 +1559,8 @@ mod tests {
+             history: 0,
+             derived: true,
+             prior_differs: false,
++            committed: false,
++            key_changed: !unchanged,
+             actions: a,
+         }
+     }
+@@ -1354,20 +1573,22 @@ mod tests {
+             out.push(previous(v));
+             out.push(derived(v, v, true));
+         }
+-        // A changed consumed value: the operand differs from the result it consumed.
++        // A changed consumed value: the operand differs from the result it consumed, so the answer is
++        // continued after the copied span.
+         out.push(derived(&[41, 42], &[11, 12], false));
+         out.push(derived(&[43], &[21], false));
++        out.push(derived(&[44, 45, 46], &[31, 32, 33], false));
+         out
+     }
+ 
+     fn fit() -> (StateLexicalModel, SlFitReport) {
+         let cfg = SlFitConfig {
+-            epochs: 900,
+-            h_dim: 24,
+-            e_dim: 24,
++            epochs: 8000,
++            h_dim: 48,
++            e_dim: 48,
+             ..Default::default()
+         };
+-        let out = fit_state_lexical(&examples(), 4096, slots(), 4, &cfg).expect("fit");
++        let out = fit_state_lexical(&examples(), 4096, slots(), 4, &cfg, &[]).expect("fit");
+         (out.model, out.report)
+     }
+ 
+@@ -1375,12 +1596,12 @@ mod tests {
+     /// span and `Stop` is forced before it is complete.
+     fn rollout(model: &StateLexicalModel, ex: &SlSequence) -> Vec<RealizationAction> {
+         let m = model.content_feature(&ex.sel, &ex.res);
+-        let f = StateLexicalModel::flags(ex.history, ex.derived, ex.prior_differs);
++        let f = model.typed_block(&ex.sel, &ex.res, ex.facts());
+         let mut h = model.init_state(&m, &f);
+         let total = ex.copy_count();
+         let mut copied = 0usize;
+         let mut actions = Vec::new();
+-        for _ in 0..32 {
++        for step in 0..32 {
+             let stage = if copied == 0 {
+                 0
+             } else if copied < total {
+@@ -1405,7 +1626,12 @@ mod tests {
+             if copied > total {
+                 break;
+             }
+-            h = model.transition(&h, StateLexicalModel::symbol_of(action));
++            h = model.transition(
++                &h,
++                StateLexicalModel::symbol_of(action),
++                ex.emitted_token(step, &model.slots),
++                &f,
++            );
+         }
+         actions
+     }
+@@ -1422,20 +1648,21 @@ mod tests {
+             version: SL_VERSION,
+             vocab: 4096,
+             slots: vec![101],
+-            content_tokens: vec![11],
++            // Index 0 is the reserved OOV row; index 1 is token 11.
++            content_tokens: vec![0, 11],
+             h_dim: 1,
+             e_dim: 2,
+-            f_dim: 6,
++            f_dim: SL_F_DIM,
+             c_dim: 3,
+             h_clamp: 255,
+             m_clamp: 255,
+-            e: vec![1],
+-            wi: map(1, 10),
+-            wt: map(1, 4),
+-            wo: map(3, 14),
++            e: vec![1; 2 * SL_CONTENT_POSITIONS],
++            wi: map(1, 2 + 1 + SL_F_DIM),
++            wt: map(1, 1 + SL_SYM_INSERT_BASE + 1 + 1 + SL_F_DIM),
++            wo: map(SL_INSERT_BASE + 1, 1 + (2 + 1 + SL_F_DIM) + 3),
+             bi: vec![0],
+             bt: vec![0],
+-            bo: vec![0; 3],
++            bo: vec![0; SL_INSERT_BASE + 1],
+             max_insert_words: 4,
+         }
+     }
+@@ -1526,6 +1753,8 @@ mod tests {
+             history: 0,
+             derived: false,
+             prior_differs: false,
++            committed: false,
++            key_changed: false,
+             actions: vec![RealizationAction::Stop],
+         };
+         let loss = served_cross_entropy(&model, &[example], 1.0, 1.0);
+@@ -1549,18 +1778,36 @@ mod tests {
+         let mut bad_slot = valid.clone();
+         bad_slot.actions[0] = RealizationAction::Insert(255);
+         for ex in [no_stop, bad_slot] {
+-            assert!(fit_state_lexical(&[ex], 4096, slots(), 4, &cfg).is_err());
++            assert!(fit_state_lexical(&[ex], 4096, slots(), 4, &cfg, &[]).is_err());
+         }
+         let invalid_cfg = SlFitConfig {
+             lr: f32::NAN,
+             ..cfg
+         };
+-        assert!(fit_state_lexical(&[valid], 4096, slots(), 4, &invalid_cfg).is_err());
++        assert!(fit_state_lexical(&[valid], 4096, slots(), 4, &invalid_cfg, &[]).is_err());
+     }
+ 
+     #[test]
+     fn the_fitted_decoder_reproduces_every_declared_sequence_through_the_served_path() {
+         let (model, report) = fit();
++        if report.action_correct != report.action_total {
++            let (m_, f_) = (&model, report);
++            for ex in examples() {
++                let got = rollout(m_, &ex);
++                if got != ex.actions {
++                    eprintln!(
++                        "MISMATCH sel={:?} res={:?} hist={} facts={:?} got={:?} want={:?}",
++                        ex.sel,
++                        ex.res,
++                        ex.history,
++                        ex.facts(),
++                        got,
++                        ex.actions
++                    );
++                }
++            }
++            eprintln!("report {}/{}", f_.action_correct, f_.action_total);
++        }
+         assert_eq!(
+             report.action_correct, report.action_total,
+             "served teacher-forced accuracy {}/{}",
+@@ -1576,28 +1823,126 @@ mod tests {
+         }
+     }
+ 
++    /// A declared witness that the recurrent transition consumes *both* the action symbol and the
++    /// emitted token identity. The learned evidence that this capacity is used is
++    /// `copied_token_identity_enters_the_recurrence`; this test pins the representation itself.
++    fn transition_witness() -> StateLexicalModel {
++        let row = |values: &[f32], cols: usize| {
++            SlLinear::from_ternary(&TernaryLinear::quantize(values, 1, cols))
++        };
++        let ones = |rows: usize, cols: usize| {
++            SlLinear::from_ternary(&TernaryLinear::quantize(
++                &vec![1.0; rows * cols],
++                rows,
++                cols,
++            ))
++        };
++        let half = 1usize;
++        let cols = 3usize; // content rows: OOV, token 11, token 12
++        let mut e = vec![0i8; cols * SL_CONTENT_POSITIONS * half];
++        e[1 * SL_CONTENT_POSITIONS * half] = 2; // token 11, position 0
++        e[2 * SL_CONTENT_POSITIONS * half] = -2; // token 12, position 0
++        StateLexicalModel {
++            version: SL_VERSION,
++            vocab: 4096,
++            slots: vec![101, 102],
++            content_tokens: vec![0, 11, 12],
++            h_dim: 1,
++            e_dim: 2,
++            f_dim: SL_F_DIM,
++            c_dim: 3,
++            h_clamp: 255,
++            m_clamp: 255,
++            e,
++            wi: ones(1, 2 + half + SL_F_DIM),
++            // Columns: h, start, copy, insert-slot-0, insert-slot-1, emitted-token identity, typed block.
++            wt: {
++                let mut w = vec![0.0f32; 6];
++                w[2] = 1.0;
++                w[3] = -1.0;
++                w[5] = 1.0;
++                w.extend(std::iter::repeat(0.0).take(SL_F_DIM));
++                row(&w, 6 + SL_F_DIM)
++            },
++            wo: ones(SL_INSERT_BASE + 2, 1 + (2 + half + SL_F_DIM) + 3),
++            bi: vec![0],
++            bt: vec![0],
++            bo: vec![0; SL_INSERT_BASE + 2],
++            max_insert_words: 4,
++        }
++    }
++
+     #[test]
+     fn equal_length_prefixes_over_different_symbols_reach_different_states() {
+-        // The old clipped-count key aliased these: both prefixes emit two vocabulary words in the same
+-        // copy stage, so its key was identical. The recurrence consumes the actual symbols, so the
+-        // states must diverge.
++        // The old clipped-count key aliased equal-length prefixes. The transition consumes the actual
++        // action symbol and the emitted token identity, so both must be able to change the next state.
++        let model = transition_witness();
++        model.validate(4096).unwrap();
++        let f = model.typed_block(&[], &[], SlFacts::default());
++        let m = model.content_feature(&[], &[]);
++        let h0 = model.init_state(&m, &f);
++        let slot0 = model.transition(&h0, SL_SYM_INSERT_BASE, Some(11), &f);
++        let slot1 = model.transition(&h0, SL_SYM_INSERT_BASE + 1, Some(11), &f);
++        assert_ne!(
++            slot0, slot1,
++            "the emitted action symbol must enter the state"
++        );
++        let tok11 = model.transition(&h0, SL_SYM_INSERT_BASE, Some(11), &f);
++        let tok12 = model.transition(&h0, SL_SYM_INSERT_BASE, Some(12), &f);
++        assert_ne!(
++            tok11, tok12,
++            "the emitted token identity must enter the state"
++        );
++    }
++
++    #[test]
++    fn copied_token_identity_enters_the_recurrence() {
++        // Two equal-length copied spans whose tokens are distinct fitted values. Version 2 collapsed
++        // both to one Copy symbol; version 3 feeds the emitted token's shared learned identity, so the
++        // states after the same number of copies must differ.
+         let (model, _) = fit();
+-        let m = model.content_feature(&[11, 12], &[]);
+-        let f = StateLexicalModel::flags(0, false, false);
++        let f = model.typed_block(&[], &[], SlFacts::default());
++        let m = model.content_feature(&[], &[]);
+         let h0 = model.init_state(&m, &f);
+-        let open = model.transition(&h0, SL_SYM_INSERT_BASE);
+-        let present = model.transition(&open, SL_SYM_INSERT_BASE + 1);
+-        let past = model.transition(&open, SL_SYM_INSERT_BASE + 2);
++        let a = model.transition(&h0, SL_SYM_COPY, Some(11), &f);
++        let b = model.transition(&h0, SL_SYM_COPY, Some(21), &f);
++        assert_ne!(
++            a, b,
++            "a copied token's identity must advance the recurrence differently"
++        );
++    }
++
++    #[test]
++    fn the_content_feature_is_ordered_suffix_aware_and_distinguishes_unknowns() {
++        let (model, _) = fit();
++        // Reordered payloads over the same tokens must not share a feature.
++        assert_ne!(
++            model.content_feature(&[11, 12], &[]),
++            model.content_feature(&[12, 11], &[])
++        );
++        // A suffix beyond the truncation window survives in the tail position.
++        assert_ne!(
++            model.content_feature(&[11, 12, 21, 31, 41], &[]),
++            model.content_feature(&[11, 12, 21, 31, 99], &[])
++        );
++        // A repeated unknown is exactly equal to itself but not to a different unknown, and the typed
++        // block records the exact relation even where the content rows collide.
++        let known = |t: u32| model.embed_row(t).is_some();
++        let same = typed_causal_block(&[900, 901], &[900, 901], SlFacts::default(), &known);
++        let diff = typed_causal_block(&[900, 901], &[900, 902], SlFacts::default(), &known);
+         assert_ne!(
+-            present, past,
+-            "the actual emitted symbol must enter the decoder state"
++            same, diff,
++            "exact unknown identity relation must be observable"
+         );
++        assert_eq!(same[8], 1, "exact equality is reported");
++        assert_eq!(diff[8], 0);
+     }
+ 
+     #[test]
+-    fn content_selects_the_uncopied_word_with_provenance_flags_held_equal() {
+-        // Both probes are derived, current-history, prior_differs = false. Only the consumed operand
+-        // content differs, and the learned decode must follow the declared language.
++    fn authored_derived_key_cases_select_different_uncopied_words() {
++        // Both probes are derived, current-history, prior_differs = false. Their
++        // content AND key_changed differ, so this checks fitted case behavior,
++        // not an isolated content effect.
+         let (model, _) = fit();
+         let unchanged = derived(&[11, 12], &[11, 12], true);
+         let changed = derived(&[41, 42], &[11, 12], false);
+@@ -1606,7 +1951,7 @@ mod tests {
+         assert_ne!(
+             rollout(&model, &unchanged),
+             rollout(&model, &changed),
+-            "content alone must be able to change an uncopied word"
++            "the authored derived-key cases must choose different words"
+         );
+     }
+ 
+@@ -1617,7 +1962,7 @@ mod tests {
+         let reloaded = StateLexicalModel::from_bytes(&bytes, 4096).expect("reload");
+         assert_eq!(model, reloaded);
+         let mut corrupt = model.clone();
+-        corrupt.version = 3;
++        corrupt.version = SL_VERSION + 1;
+         assert!(corrupt.validate(4096).is_err());
+         let mut wide = model.clone();
+         wide.wi.shift[0] = 99;
+diff --git a/docs/PROJECT_MAP.md b/docs/PROJECT_MAP.md
+index 2bf16dedc..ad7a2efa1 100644
+--- a/docs/PROJECT_MAP.md
++++ b/docs/PROJECT_MAP.md
+@@ -1,5 +1,7 @@
+ # UOR-R4 Geometric Language Model — project map
+ 
++**Current principal review:** PR #1352 retains an executed V3 lexical interface at authored-task scope; ordinary-text learning and equal-information geometric comparison remain open. [Review](integration/transferable-lexical-principal-review-2026-09-23.md) · [next DeepSeek brief](integration/deepseek-ordinary-lexical-step-2026-09-23.md).
++
+ ## September22 principal update — PR #1351 lexical component
+ 
+ **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](integration/state-conditioned-lexical-review-2026-09-22.md), [independent audit](evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. Original artifacts remain preserved.
+diff --git a/docs/evidence/transferable-lexical-2026-09-22.json b/docs/evidence/transferable-lexical-2026-09-22.json
+new file mode 100644
+index 000000000..b391a6fad
+--- /dev/null
++++ b/docs/evidence/transferable-lexical-2026-09-22.json
+@@ -0,0 +1,207 @@
++{
++  "artifact_sha256": {
++    "comparator.json": "304818a16f3eb5688b6bf934fc0910437e23e1385edc6b8946270e3f9c8320b2",
++    "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
++    "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
++    "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
++    "state_lexical.json": "10560889f05e7d0125d7377cb69830df00dae302c5d53afb878837a328ed5405"
++  },
++  "base_merge": "6ae7625ffa11e86eeb176e45e22d6fef609b8ac6",
++  "checks": {
++    "artifact_reload_identity": true,
++    "context_ablation_changes_output": true,
++    "learned_fit_documents_all_expected": true,
++    "legacy_copy_retained": true,
++    "recurrence_ablation_changes_output": true,
++    "restart_all_boundaries": true,
++    "restart_child_process": true,
++    "value_sensitive_effect": true
++  },
++  "checks_all_expected": true,
++  "date": "2026-09-22",
++  "es_reference": {
++    "continuation_tokens_in_declared_slots": 0,
++    "donor_continuation": [
++      198,
++      198,
++      504,
++      260
++    ],
++    "e_bytes": 454788,
++    "e_sha_matches_pin": true,
++    "e_valid": true,
++    "load_and_probe_ms": 9,
++    "probe_prompt": [
++      357,
++      2163
++    ],
++    "s_bytes": 53555,
++    "s_sha_matches_pin": true,
++    "status": "E_GENERATED_S_LOADED_VALIDATED_IN_SUBMITTED_ROOT",
++    "verdict": "The submitted root generated four tokens with E. S was deserialized/validated against E and tokenizer identity but no S query-read method was called. The principal replay performs an actual separate S probe. Neither probe is a matched scoped-span language-quality comparison.",
++    "original_submitted_status": "LOADED_AND_EXECUTED"
++  },
++  "evaluation_exposure": "exposed authored panel; replay is not a fresh acceptance draw",
++  "executable_sha256": "a73bf9bad830dbeba81a4d6b7769b71b5cfdbc81f84245eeb2d198b4558dd2f3",
++  "external_compute": "none",
++  "fit": {
++    "action_correct": 791,
++    "action_total": 791,
++    "content_tokens": 20,
++    "e_dim": 48,
++    "epochs": 16000,
++    "final_loss": 0.0,
++    "first_loss": 1186.6910400390625,
++    "h_dim": 48,
++    "sequences": 122,
++    "served_loss": 3.208183772893808e-13,
++    "steps": 791
++  },
++  "ordinary_text_exposure": {
++    "documents": [
++      {
++        "fitted_fraction": 0.021143486831418448,
++        "fitted_tokens": 4816,
++        "path": "docs/integration/current-state.md",
++        "tokens": 227777
++      },
++      {
++        "fitted_fraction": 0.018712666097769108,
++        "fitted_tokens": 307,
++        "path": "docs/integration/project-track.md",
++        "tokens": 16406
++      }
++    ],
++    "population": "source-separated local project documentation, distinct from the authored state world",
++    "verdict": "NOT_RUN as a learning task. The scoped contract supervises an exactly owned span, not open prose continuation, and the fitted content index does not cover ordinary vocabulary (measured coverage above). Ordinary-text learning through the retained session remains the open remainder of the milestone and is the first item of the recorded next step."
++  },
++  "panels": {
++    "context_disabled": {
++      "cases": 31,
++      "complete": false,
++      "ok": 6
++    },
++    "learned_fit_documents": {
++      "cases": 23,
++      "complete": true,
++      "ok": 23
++    },
++    "learned_held_out_documents": {
++      "cases": 8,
++      "complete": true,
++      "ok": 8
++    },
++    "learned_state_lexical": {
++      "cases": 31,
++      "complete": true,
++      "ok": 31
++    },
++    "legacy_copy_retained": {
++      "cases": 31,
++      "complete": true,
++      "ok": 31
++    },
++    "recurrence_disabled": {
++      "cases": 31,
++      "complete": false,
++      "ok": 0
++    },
++    "retained_finite_table": {
++      "cases": 31,
++      "complete": false,
++      "ok": 20
++    }
++  },
++  "report_root": "state-lexical-v3-10 (reused sealed artifact from state-lexical-v3-8; no neural refit)",
++  "representation_diagnostics": {
++    "content_only_unknown_pair_alias": true,
++    "copy_token_feedback": "the emitted token's shared learned identity enters the recurrence; an unfitted token shares the reserved OOV row",
++    "equal_and_unequal_unknown_pairs_alias": false,
++    "known_token_ids": [
++      389,
++      730,
++      1065,
++      2432
++    ],
++    "reordered_known_tokens_alias": false,
++    "scope": "loaded representation witnesses only; not a language-quality panel",
++    "suffix_after_four_tokens_alias": false,
++    "tail_position": "a payload longer than four tokens carries its final token in a dedicated tail position",
++    "unknown_token_ids": [
++      1,
++      2
++    ]
++  },
++  "restart": {
++    "all_equal_final": true,
++    "boundaries": 10,
++    "child_process": true
++  },
++  "restart_child_process": true,
++  "schema": "uor-r4.transferable-lexical-evidence/1",
++  "scope": "exposed authored response fixture over a small declared state world; a learned low-bit state-conditioned decoder selects shared vocabulary words around the exact owned span, and continues after the span, from position-resolved content, the actual emitted token identity, and an exact typed causal block. Not general prose and no geometric advantage claimed; the held-out-document panel transfers the sentence form to unfamiliar entity/value strings of unseen length, not an unfamiliar computed relation.",
++  "slots": [
++    357,
++    314,
++    436,
++    1361,
++    2163,
++    808,
++    418,
++    1209
++  ],
++  "source_files": [
++    {
++      "path": "crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs",
++      "sha256": "e558751a6a60a1eb305ee70acf93cc820bd7bbba809bd03309a994e618907df9"
++    },
++    {
++      "path": "crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs",
++      "sha256": "d4114cb592891c15a47da6cf1d5d7ee8448c8d68d2cdfb8af21de3af58b8883d"
++    },
++    {
++      "path": "crates/uor-r4-core/src/bin/competitive-reader.rs",
++      "sha256": "4233a85736fec1d888f931dcbe6ea4e4c2d00eee0fde4bf10a3694cca58445db"
++    }
++  ],
++  "teacher_forced_replay": {
++    "correct": 791,
++    "total": 791
++  },
++  "value_sensitive": [
++    {
++      "differ": true,
++      "document": "mara",
++      "final_recurrent_state_differs": true,
++      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
++    },
++    {
++      "differ": true,
++      "document": "ivo",
++      "final_recurrent_state_differs": true,
++      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
++    },
++    {
++      "differ": true,
++      "document": "cedar",
++      "final_recurrent_state_differs": true,
++      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
++    },
++    {
++      "differ": true,
++      "document": "oren",
++      "final_recurrent_state_differs": true,
++      "flags_held_equal": "derived=true, history=current, prior_differs=false for both"
++    }
++  ],
++  "worktree": "/Users/casey.allard/uor-r4/.worktrees/transferable-lexical",
++  "principal_review_qualification": {
++    "review": "docs/integration/transferable-lexical-principal-review-2026-09-23.md",
++    "submitted_root": "state-lexical-v3-10",
++    "exact_scope": "31/31 exposed authored responses; all computed cases fitted; eight held-out cases reuse non-computed current/previous/initial forms",
++    "teacher_scope": "791/791 in-sample exported-artifact agreement",
++    "paired_computed_request_scope": "The 4/4 pair changes operation, key_changed and payload together; no isolated content effect",
++    "finite_comparator_scope": "20/31 lower-information flag-key table, not a matched architecture comparison",
++    "ordinary_text": "NOT_RUN as a learning task; document coverage is a pre-final-source-snapshot diagnostic"
++  }
++}
+diff --git a/docs/evidence/transferable-lexical-charge-2026-09-22.json b/docs/evidence/transferable-lexical-charge-2026-09-22.json
+new file mode 100644
+index 000000000..56fbae217
+--- /dev/null
++++ b/docs/evidence/transferable-lexical-charge-2026-09-22.json
+@@ -0,0 +1,27 @@
++{
++ "after": {
++  "cumulative_ms": 372836017,
++  "limit_ms": 390700000
++ },
++ "basis": "Measured wall time from the recorded prospective projection (2026-09-22T22:50Z) to delivery. Concurrent build/test/fit work counted once. Estimates are not described as measured.",
++ "before": {
++  "cumulative_ms": 364136017,
++  "limit_ms": 390700000
++ },
++ "charge_ms": 8700000,
++ "components": {
++  "delivery_allowance_ms": 100000,
++  "measured_elapsed_since_projection_clock_ms": 8600000
++ },
++ "deletions": "none",
++ "external_compute": "none",
++ "free_bytes": 35558273024,
++ "limit_increment_ms": 0,
++ "limit_increment_recorded_before_execution": true,
++ "new_retained_bytes": 0,
++ "note": "The 18,000,000 ms increment recorded prospectively before execution was sufficient; no further increment was used. All runs charged: state-lexical v3-1..v3-10 fits, controls, reuse replays, builds and focused tests. Report artifacts live under the gitignored .uor-models store; tracked evidence is bounded to docs/.",
++ "recorded_at": "2026-09-23T01:16:00Z",
++ "stop_margin_bytes": 134217728,
++ "task": "One transferable lexical learner through the retained observed-memory/computation session: corrected typed observation, emitted-token feedback, post-copy continuation, loaded E/S assessment, ordinary-text exposure, documentation and protected delivery",
++ "working_reserve_bytes": 25769803776
++}
+diff --git a/docs/evidence/transferable-lexical-principal-charge-2026-09-23.json b/docs/evidence/transferable-lexical-principal-charge-2026-09-23.json
+new file mode 100644
+index 000000000..1d6e38eb3
+--- /dev/null
++++ b/docs/evidence/transferable-lexical-principal-charge-2026-09-23.json
+@@ -0,0 +1,20 @@
++{
++  "schema": "uor-r4.transferable-lexical-principal-charge/1",
++  "recorded_utc": "2026-09-23T01:51:17.623231+00:00",
++  "projection_record": "docs/evidence/transferable-lexical-principal-projection-2026-09-22.json",
++  "before_cumulative_ms": 372836017,
++  "measured_since_recovery_ms": 1159623,
++  "earlier_recovery_estimate_ms": 120000,
++  "protected_delivery_allowance_ms": 300000,
++  "charged_ms": 1579623,
++  "after_cumulative_ms": 374415640,
++  "limit_ms": 390700000,
++  "limit_increment_ms": 0,
++  "free_bytes_at_charge": 34188107776,
++  "working_reserve_bytes": 25769803776,
++  "stop_margin_bytes": 134217728,
++  "new_sealed_replay": "state-lexical-v3-principal-1",
++  "unique_artifact_deletion": false,
++  "paid_compute": false,
++  "note": "Charge once for independent review, release build, focused tests, unchanged-artifact replay, docs, six issue bodies, five knowledge records/five edges and protected delivery allowance. The mistaken +12,000,000-ms projection revision was withdrawn before any use; the live limit remains 390,700,000 ms."
++}
+diff --git a/docs/evidence/transferable-lexical-principal-checks-2026-09-23.json b/docs/evidence/transferable-lexical-principal-checks-2026-09-23.json
+new file mode 100644
+index 000000000..b2918a1c2
+--- /dev/null
++++ b/docs/evidence/transferable-lexical-principal-checks-2026-09-23.json
+@@ -0,0 +1,173 @@
++{
++  "claim_limits": {
++    "energy": "UNAVAILABLE",
++    "es": "E and S separately executed as components; neither controls scoped span and no matched quality comparison",
++    "finite_comparator": "Less information than neural arm; no unique recurrent or geometric advantage",
++    "four_pairs": "Operation and key_changed changed with payload; not a content-only intervention",
++    "held_out_cases": "8 familiar non-computed forms only; all computed and post-copy now cases fitted",
++    "ordinary_text": "Vocabulary exposure only; learning NOT_RUN",
++    "teacher_forced": "In-sample export/reload parity, not held-out language",
++    "temporal_wording": "Changed derived key does not commit an entity correction"
++  },
++  "delivery_directory": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-principal-delivery",
++  "delivery_files": {
++    "build.log": {
++      "bytes": 8985,
++      "sha256": "cfe192493ae40935c3c76f146dd89835966dbbb1d1c19930b06fccde68da2214"
++    },
++    "competitive-reader-reviewed": {
++      "bytes": 5578096,
++      "sha256": "b0df551ed6e2d8763d9b63c5d2e6435a9abed8298eb798cf5362d4e17c2063fa"
++    },
++    "replay.log": {
++      "bytes": 764,
++      "sha256": "239fddf04d96800b45d2ba78ff875f91b583e41308a06c2e868604fbe0aa786d"
++    },
++    "scoped-tests.log": {
++      "bytes": 6128,
++      "sha256": "fd38bc7deeb319a941d0b13ac091e316ca7037e12875986f0c60efb7302667d8"
++    },
++    "statelex-tests.log": {
++      "bytes": 3519,
++      "sha256": "906fdf454a6e18a4b30b715b6b73239202c02f2e26c92373f586f57f03879836"
++    }
++  },
++  "local_validation": {
++    "actual_replay": "PASS",
++    "cargo_fmt_check": "PASS",
++    "claim_wording": "PASS",
++    "distinct_passed": 48,
++    "failed": 0,
++    "git_diff_check": "PASS",
++    "json_parse": "PASS",
++    "offline_release_build": "PASS",
++    "overlap": 3,
++    "scoped_memory_filter_passed": 36,
++    "state_lexical_filter_passed": 15
++  },
++  "pr": 1352,
++  "protected_base": "6ae7625ffa11e86eeb176e45e22d6fef609b8ac6",
++  "recorded_utc": "2026-09-23T01:45:19.014656+00:00",
++  "replay": {
++    "artifact_sha256": {
++      "comparator.json": "304818a16f3eb5688b6bf934fc0910437e23e1385edc6b8946270e3f9c8320b2",
++      "intent.json": "f8f3d711d1ca5cc4d28b2094654d8e1bba3b6dbd160e7482313b7f55328e1407",
++      "lexicon.json": "12af7572579e167b93709dd41f5c009b1b1b196deaff715dde6959761cc325a8",
++      "model.json": "df61567deacefbd34ed805806949e283c224617d398ae0c8aab5aa876badc261",
++      "state_lexical.json": "10560889f05e7d0125d7377cb69830df00dae302c5d53afb878837a328ed5405"
++    },
++    "context_disabled": {
++      "cases": 31,
++      "complete": false,
++      "ok": 6
++    },
++    "es_reference": {
++      "continuation_tokens_in_declared_slots": 0,
++      "donor_continuation": [
++        253,
++        198,
++        29,
++        1903
++      ],
++      "e_bytes": 454788,
++      "e_sha_matches_pin": true,
++      "e_valid": true,
++      "load_and_probe_ms": 15,
++      "probe_prompt": [
++        357,
++        2163,
++        314
++      ],
++      "s_bytes": 53555,
++      "s_continuation": [
++        216,
++        33,
++        28,
++        32
++      ],
++      "s_inference_rows": [
++        59,
++        0
++      ],
++      "s_sha_matches_pin": true,
++      "status": "E_AND_S_COMPONENT_PROBED",
++      "verdict": "E and S load and execute separate full-vocabulary continuation probes. S older-prefix inference rows are recorded. Neither donor emits or owns the session's exact copied span, and this is not a matched lexical-quality comparison. A donor-conditioned vocabulary decision over an exactly owned span remains an interface hypothesis."
++    },
++    "executable_sha256": "b0df551ed6e2d8763d9b63c5d2e6435a9abed8298eb798cf5362d4e17c2063fa",
++    "learned_fit": {
++      "cases": 23,
++      "complete": true,
++      "ok": 23
++    },
++    "learned_held_out": {
++      "cases": 8,
++      "complete": true,
++      "ok": 8
++    },
++    "learned_normal": {
++      "cases": 31,
++      "complete": true,
++      "ok": 31
++    },
++    "legacy_copy": {
++      "cases": 31,
++      "complete": true,
++      "ok": 31
++    },
++    "neural_refit": false,
++    "new_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-principal-1",
++    "recurrence_disabled": {
++      "cases": 31,
++      "complete": false,
++      "ok": 0
++    },
++    "restore_boundaries": 10,
++    "retained_finite": {
++      "cases": 31,
++      "complete": false,
++      "ok": 20
++    },
++    "reuse_artifact_root": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-8",
++    "same_case_rows_as_submitted_root_10": true,
++    "same_child_frame_contents_as_submitted_root_10": true,
++    "same_panels_as_submitted_root_10": true,
++    "same_teacher_parity_as_submitted_root_10": true,
++    "separate_process_child": true,
++    "source_files_sha256_match": true,
++    "teacher_forced_replay": {
++      "correct": 791,
++      "total": 791
++    }
++  },
++  "root_verification": [
++    {
++      "absolute_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-8",
++      "actual_files_excluding_root_manifest": 24,
++      "blake3_or_size_mismatches": 0,
++      "listed_files": 24,
++      "manifest_sha256": "040b8eaa8fb515919aaa7ac476a81b92d4392de0aab2f9a10f1bb7c6e1f76b08",
++      "missing_or_unlisted": 0,
++      "name": "state-lexical-v3-8"
++    },
++    {
++      "absolute_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-10",
++      "actual_files_excluding_root_manifest": 24,
++      "blake3_or_size_mismatches": 0,
++      "listed_files": 24,
++      "manifest_sha256": "bbbb8a2c00e3b24f8bc6d8198e7fe4d9e9c1a7f7b0cef34dc9a0bf2794eef26e",
++      "missing_or_unlisted": 0,
++      "name": "state-lexical-v3-10"
++    },
++    {
++      "absolute_path": "/Users/casey.allard/uor-r4/.uor-models/realtext-prior-2026-09-20/state-lexical-v3-principal-1",
++      "actual_files_excluding_root_manifest": 24,
++      "blake3_or_size_mismatches": 0,
++      "listed_files": 24,
++      "manifest_sha256": "0a666d92ca43de65ab65781f2959e259cd2bd383f9dcb9b3287bbc7312de735a",
++      "missing_or_unlisted": 0,
++      "name": "state-lexical-v3-principal-1"
++    }
++  ],
++  "schema": "uor-r4.transferable-lexical-principal-checks/1",
++  "submitted_head": "3aa2f4784af63fa0c4dad4856a1f488c5b5c5988"
++}
+diff --git a/docs/evidence/transferable-lexical-principal-projection-2026-09-22.json b/docs/evidence/transferable-lexical-principal-projection-2026-09-22.json
+new file mode 100644
+index 000000000..1e9c3176b
+--- /dev/null
++++ b/docs/evidence/transferable-lexical-principal-projection-2026-09-22.json
+@@ -0,0 +1,36 @@
++{
++  "schema": "uor-r4.transferable-lexical-principal-projection/1",
++  "recorded_utc": "2026-09-23T01:31:58Z",
++  "base_pr": 1352,
++  "reviewed_head": "3aa2f4784af63fa0c4dad4856a1f488c5b5c5988",
++  "ledger_before": {
++    "cumulative_ms": 372836017,
++    "limit_ms": 390700000
++  },
++  "projected_complete_ms": 15000000,
++  "limit_increment_ms": 0,
++  "projection_basis": "Independent source/evidence review, limited E/S probe correction, one release build and unchanged-artifact replay, focused checks, documentation, GitHub issue and knowledge synchronization, protected delivery. This is an allowance estimate, not a timer or charge.",
++  "compiler_workers": 1,
++  "experiment_workers": 1,
++  "cargo_profile": "release",
++  "cargo_incremental": "0",
++  "peak_incremental_ram_bytes": 4294967296,
++  "new_temporary_storage_allowance_bytes": 1073741824,
++  "new_retained_storage_allowance_bytes": 134217728,
++  "free_before_execution_bytes": 34209730560,
++  "working_reserve_bytes": 25769803776,
++  "stop_margin_bytes": 134217728,
++  "external_compute": "none",
++  "deletions": "none",
++  "revision_utc": "2026-09-23T01:46:00Z",
++  "revision_reason": "Before the 15,000,000-ms estimate is exceeded, add protected PR, six live issue-body updates, knowledge ingestion/retrieval and independent delivery verification. Expected complete work is 27,000,000 ms from the 01:31:58 recovery clock including an earlier 120,000-ms recovery estimate and 300,000-ms delivery allowance. Standing owner authorization supplies a prospective +12,000,000-ms local limit extension from 390,700,000 to 402,700,000 ms; no paid compute or storage deletion. This is a projection, not a stopping gate.",
++  "prior_revision_utc": "2026-09-23T01:37:29Z",
++  "prior_projected_complete_ms": 15000000,
++  "prior_revision_reason": "Before the original projection is exceeded, include the still-running release compile, independent focused library tests, a new sealed unchanged-artifact replay and full protected delivery. The live limit retains 17,863,983 ms above the prior cumulative charge; no limit increment is needed. This is an estimate, not a cutoff.",
++  "updated_limit_ms": 390700000,
++  "withdrawn_revision_utc": "2026-09-23T01:46:00Z",
++  "withdrawn_limit_increment_ms": 12000000,
++  "withdrawn_projected_complete_ms": 27000000,
++  "correction_utc": "2026-09-23T01:50:33.166257+00:00",
++  "correction_reason": "Unit correction before any projected limit was approached: 15,000,000 ms is 250 minutes, not 15 minutes. At the mistaken revision fewer than 15 minutes had elapsed from the 01:31:58Z recovery clock, far below the already recorded 7,200,000-ms (120-minute) initial estimate. The extra 12,000,000-ms allowance was never used or needed and is withdrawn. Keep the conservative 15,000,000-ms estimate and original cumulative limit 390,700,000 ms. No cumulative charge was made during the mistaken revision."
++}
+diff --git a/docs/evidence/transferable-lexical-projection-2026-09-22.json b/docs/evidence/transferable-lexical-projection-2026-09-22.json
+new file mode 100644
+index 000000000..d70bf51ac
+--- /dev/null
++++ b/docs/evidence/transferable-lexical-projection-2026-09-22.json
+@@ -0,0 +1,30 @@
++{
++  "recorded_at": "2026-09-22T22:50:00Z",
++  "task": "One transferable lexical learner through the retained observed-memory/computation session: corrected typed causal observation, actual emitted/copied token feedback, post-copy continuation, source-separated ordinary text, loaded E/S assessment, documentation and protected delivery",
++  "base": "6ae7625ffa11e86eeb176e45e22d6fef609b8ac6",
++  "worktree": "/Users/casey.allard/uor-r4/.worktrees/transferable-lexical",
++  "ledger_before": {
++    "cumulative_ms": 364136017,
++    "limit_ms": 372700000
++  },
++  "projected_total_ms": 18000000,
++  "limit_increment_ms": 18000000,
++  "limit_after_increment_ms": 390700000,
++  "increment_reason": "The remaining allowance at recovery (8,563,983 ms) is below the coherent projection for one implementation + actual loaded evaluation + restart + documentation + protected delivery cycle. The standing owner authorization permits this class of necessary local extension when the complete projection, reason, increment and updated cumulative limit are recorded before use.",
++  "accounting": "cumulative elapsed wall time including shared build, focused tests, fitting, evaluation, restart, retries and delivery; no artificial timeout or retry quota",
++  "compiler_workers": 1,
++  "experiment_workers": 1,
++  "cargo_target_dir": "/Users/casey.allard/uor-r4/target",
++  "cargo_profile": "release",
++  "cargo_incremental": "0",
++  "free_before_build_bytes": 28394344448,
++  "working_reserve_bytes": 25769803776,
++  "stop_margin_bytes": 134217728,
++  "headroom_above_reserve_bytes": 2624540672,
++  "new_retained_output_bytes": 67108864,
++  "temporary_build_allowance_bytes": 1073741824,
++  "reserve_authorization": "Standing owner authorization for necessary local storage allowances. Free physical space measured at 28.39 GB. This task works under the revised 24 GiB working reserve plus a 128 MiB stop margin; new retained report output is bounded to 64 MiB and temporary build output to 1 GiB. This projection does not claim a 30+ GiB reserve is restored. Preserve every model, artifact, executable, source, worktree and the owner checkout.",
++  "external_compute": "none",
++  "deletions": "none",
++  "scope": "Implement and execute the corrected lexical observation/action contract, a source-separated ordinary-text split, an actual loaded E/S assessment and the retained mixed-session/restart interactions; retain prior artifacts and evidence."
++}
+diff --git a/docs/integration/CONTINUE.md b/docs/integration/CONTINUE.md
+index b004612b8..e7f3c9444 100644
+--- a/docs/integration/CONTINUE.md
++++ b/docs/integration/CONTINUE.md
+@@ -1,5 +1,7 @@
+ # Continue UOR-R4 geometric model research
+ 
++**PR #1352 principal review:** V3 retains a learned lexical interface at 31/31 exposed authored responses, with fitted token feedback and a post-copy action. All computed examples were fitted; the held-out eight use familiar non-computed forms. The 4/4 paired requests change key_changed as well as payload; ordinary-text learning is NOT_RUN. The next complete milestone is shared open-vocabulary Generate/Copy/Stop over source-separated prose and grounded exact spans. [Review](transferable-lexical-principal-review-2026-09-23.md) · [DeepSeek brief](deepseek-ordinary-lexical-step-2026-09-23.md).
++
+ **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](state-conditioned-lexical-review-2026-09-22.md), [independent audit](../evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](../evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. Original artifacts remain preserved.
+ 
+ **Next:** [one transferable lexical learner](deepseek-transferable-lexical-step-2026-09-22.md): exact causal address/value/history distinctions, actual generated and copied-token feedback, meaningful continuation after copying, ordinary source-separated text plus grounded responses, and a loaded E/S reference or measured adaptation. Geometric ordered transport/shared residuals remain preferred candidates beside the ordinary low-bit baseline. Complete this interface before broader conversation and executed Rust; then qualify whole-model laptop cost and product delivery. This remains the open lexical milestone, not a new series of renamed fixtures.
+diff --git a/docs/integration/EVIDENCE.md b/docs/integration/EVIDENCE.md
+index b5f7b8422..961c63b40 100644
+--- a/docs/integration/EVIDENCE.md
++++ b/docs/integration/EVIDENCE.md
+@@ -1,5 +1,7 @@
+ # EVIDENCE
+ 
++**PR #1352 principal review:** V3 retains a learned lexical interface at 31/31 exposed authored responses, with fitted token feedback and a post-copy action. All computed examples were fitted; the held-out eight use familiar non-computed forms. The 4/4 paired requests change key_changed as well as payload; ordinary-text learning is NOT_RUN. The next complete milestone is shared open-vocabulary Generate/Copy/Stop over source-separated prose and grounded exact spans. [Review](transferable-lexical-principal-review-2026-09-23.md) · [DeepSeek brief](deepseek-ordinary-lexical-step-2026-09-23.md).
++
+ ## September22 principal update — PR #1351 lexical component
+ 
+ **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](state-conditioned-lexical-review-2026-09-22.md), [independent audit](../evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](../evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. Original artifacts remain preserved.
+diff --git a/docs/integration/current-state.md b/docs/integration/current-state.md
+index 9d1bf977d..fd4a9988a 100644
+--- a/docs/integration/current-state.md
++++ b/docs/integration/current-state.md
+@@ -1,6 +1,18 @@
+ # Current native geometric AI work
+ 
+-## Active — recurrent lexical component reviewed; transferable language remains open
++## Active — V3 lexical interface reviewed; transferable language remains open
++
++**Principal review of PR #1352:** V3 repairs the observation/feedback interface and retains 31/31 exposed authored outcomes. The eight held-out cases are non-computed familiar forms; all post-copy computed cases are fitted. The 4/4 pair changes operation and typed key_changed alongside payload, so content use is unisolated. An eight-slot authored head and ~2% prose-token coverage leave ordinary-text learning **NOT_RUN**. The 20/31 finite comparator has less information; neither transferable language nor geometric advantage is qualified. [Review](transferable-lexical-principal-review-2026-09-23.md) and [next brief](deepseek-ordinary-lexical-step-2026-09-23.md) own the correction.
++
++**This task, executed (`state-lexical-v3-10`, reused artifact `state-lexical-v3-8`):** the retained state-conditioned decoder now consumes a **position-resolved, tail-carrying, unknown-explicit** content observation, the **actual emitted token identity** and an **exact 15-coordinate typed causal block** (requested history; derived; prior_differs; committed; key_changed; exact equality / common prefix / exact divergence / lengths / unknown counts) in its recurrence, and **continues after the copied span** in the authored changed-derived-key case. Executed on seven declared authored worlds: learned **31/31** (fitting cases 23/23, held-out cases **8/8** from three other documents), teacher-forced **791/791** through the exported integer artifact, retained legacy copy **31/31**, retained comparator **20/31**, recurrence ablation **0/31**, context ablation **6/31**, paired computed-request difference **4/4** (operation and key_changed also differ), ten in-process restart boundaries plus a separate-process child agree, and the E prior generates and S policy loads/validates in the submitted probe; the principal replay executes S separately. The version-2 artifact and its recorded results are preserved. [Result](transferable-lexical-result-2026-09-22.md) and [evidence](../evidence/transferable-lexical-2026-09-22.json) own the exact scope; the principal review that set this task is [here](state-conditioned-lexical-review-2026-09-22.md).
++
++**Still open (the remainder of this milestone):** ordinary-text learning is **NOT_RUN**. The scoped contract supervises an exactly owned span, not open prose continuation, and the fitted content index covers only ~2% of a source-separated prose population (measured in the evidence receipt). The response sentence family is authored over a small declared state world; no geometric advantage is claimed and energy remains UNAVAILABLE.
++
++**Next:** learn vocabulary and continuation from source-separated ordinary text through the retained session and a shared grounded Generate/Copy/Stop path. Assess E/S donor adaptation at the compatible emission boundary where it earns quality or cost. Broader conversation and executed Rust follow through the same candidate, then whole-model laptop cost and product delivery.
++
++**Leadership and resources:** principal mathematical/ML/systems review governs sequencing; DeepSeek has substantive representation, data and optimization discretion. Necessary local extensions are authorized prospectively with cumulative accounting and measured physical reserve. No arbitrary short timer or retry quota, no paid compute, and no deletion of unique research. Separate learned behavior, exact infrastructure and supplied supervision.
++
++## Previous active — recurrent lexical component reviewed; transferable language remains open
+ 
+ **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](state-conditioned-lexical-review-2026-09-22.md), [independent audit](../evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](../evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. The corrected reference scores **12/31**, with unchanged learned **31/31** and teacher-forced **322/322**; 46 distinct library tests and the release replay pass. Original artifacts remain preserved.
+ 
+diff --git a/docs/integration/deepseek-ordinary-lexical-step-2026-09-23.md b/docs/integration/deepseek-ordinary-lexical-step-2026-09-23.md
+new file mode 100644
+index 000000000..39cef24ea
+--- /dev/null
++++ b/docs/integration/deepseek-ordinary-lexical-step-2026-09-23.md
+@@ -0,0 +1,45 @@
++# DeepSeek next milestone: learn ordinary continuation and grounded copying in one native path
++
++Read the [principal V3 review](transferable-lexical-principal-review-2026-09-23.md) and its [independent checks](../evidence/transferable-lexical-principal-checks-2026-09-23.json) completely. They qualify PR #1352's [submitted result](transferable-lexical-result-2026-09-22.md). The [canonical plan](project-track.md) owns sequencing and [current state](current-state.md) owns the active result. Verify the actual protected PR merge and tree before developing against it; a document's presence is not delivery proof.
++
++## Objective and your research discretion
++
++Complete the still-open **transferable lexical-learning milestone**: one native learned state/output path should generate ordinary text and grounded responses with optional exact owned copying. Train vocabulary, continuation and Stop on a source-separated real-text population as well as grounded supervision. Use the same actual emitted-token feedback across generated and copied tokens. Exercise loaded generation, causal source changes, held-out source/relation cases, mixed memory/computation sessions, and complete-path M1 costs. The result may be a substantive negative if the representation cannot reach useful quality; preserve it honestly rather than switching to another supplied response template.
++
++You are a substantive architect and investigator. Choose the representation, corpus scale, tokenizer treatment, optimizer, objective, training schedule, donor adaptation and geometric candidate based on measured reduced diagnostics. Challenge this brief when source or a falsifying experiment supports a better approach, and explain the alternative. There is no arbitrary short wall-time gate or retry quota. Work remains within the standing local resource authorization: record cumulative projection and any necessary extension **before** use, preserve physical reserve and unique artifacts, and use no paid compute.
++
++## Recover the full relevant context
++
++Refresh origin/main, PR #1352 merge state and contents, owner and worktree status, live resource ledger and free space. Read AGENTS.md, README, DECISIONS D0-b/D1/D2, execution policy, canonical plan, current state, model direction, project map, this brief and the principal review. Refresh owning issues #820/#973/#1139/#962/#963/#964 and retrieve the new review/brief and their predecessors from the knowledge store. Exact new IDs are `uor:transferable-lexical-principal-review:16665ef4:docs/integration/transferable-lexical-principal-review-2026-09-23.md`, `uor:transferable-lexical-principal-review:16665ef4:docs/integration/deepseek-ordinary-lexical-step-2026-09-23.md`, and `uor:transferable-lexical-principal-review:16665ef4:docs/evidence/transferable-lexical-principal-checks-2026-09-23.json`; retrieve the prior V2 review at `uor:state-lexical-principal-review:b6944e6af545:docs/integration/state-conditioned-lexical-review-2026-09-22.md`. Read source where the responsibility actually resides: `learner/state_lexical.rs`, `scoped_memory.rs`, `observed_text_session.rs`, `lexical_realization.rs`, `contextual_emission.rs`, `prior_learning.rs`, `query_read.rs`, and the relevant `competitive-reader.rs` runner paths. Use the [architecture audit](architecture-2026-09/README.md) for the broader mechanism map without repeating its entire survey.
++
++Retain the history: #1346 scoped versioned memory; #1347 signed consumed computation with a competent finite tie and sign-loss witness; #1348 combined observation/intent support; #1349 four-word lexical interface with false tense; #1350 correction/review; #1351 seven-slot ternary recurrence and misfitted finite reference; #1352 exact typed V3 observation and emitted-token feedback on seven authored worlds. Source-separated prose learning, truthful independent relation language, and equal-information geometric advantage have not been delivered by those results.
++
++## Falsify the current shortcuts before a large fit
++
++V3's 31/31 contains 23 fitting cases and eight non-computed held-out cases in familiar forms. All computed/post-copy cases are fitting. The 791/791 teacher steps are in-sample export parity. The submitted 4/4 pair changes operation and typed `key_changed` along with payload, so it does not isolate content use. The post-copy `now` is selected by the learned policy but is the authored answer for every changed-key case. An operation that follows a different key is not a committed temporal change. The retained finite reference sees less information and its 20/31 is not evidence of a neural/geometric advantage. E/S component probes are not a matched scoped language comparison. Ordinary-text fit was NOT_RUN.
++
++Start with two cheap, decisive preflights integrated into the actual training design. First, construct independent causal meaning cases that separate changed key/same value, same key/different value, no commit and real committed correction. Author accepted meaning from typed source state once; do not reuse the learner's renderer as its evaluator. Second, make the target post-copy vocabulary decision depend on which source token or relation was emitted while holding the request, derived/history/commit facts, copy length and nonsemantic prefixes fixed. Compare the loaded model with actual feedback, with token identity blinded, and with source disabled. Avoid widening a channel that loses the required distinction.
++
++## Learn language through one shared interface
++
++The serving responsibility can be written as:
++
++```text
++c        = pinned request meaning + selected evidence/result + exact provenance
++h_0      = learned initialization(c)
++a_t      = learned Generate(token) / Copy(owned occurrence) / Stop decision
++x_t      = token actually emitted by a_t
++h_(t+1)  = learned update(h_t, representation(x_t), event, c)
++```
++
++Exact ownership, version authority and copy cursor stay outside the compressed state. Ordinary prose has no required owned span; grounded responses may have one. Do not hardwire Copy for a benchmark population and then claim to have learned the choice. Permit a shared generation vocabulary large enough to express the selected text population, with a declared OOV/copy strategy; eight authored words are not a general language head. For non-injective low-bit token embeddings, expose collisions and test whether they affect the held-out decision. Keep legal action support, duplicate Generate/Copy surface mass, EOS and normalized probabilities coherent if reporting CE or bits/token. A hard-policy result is acceptable when labeled as such; teacher agreement is not a generation result.
++
++Use Rust for data preparation, fitting, artifact construction and inference. Offline float, gradients and matrix products are permitted. Final serving should use bounded integer/low-bit routing, updates and table reads under D0-b. Report a dense additive map as a mathematical dense map with its traffic and cost; retain geometric routing and shared typed operators as the preferred research direction. Do not add a transformer or runtime teacher/provider response source. Compare ordered signed H4 transport or a shared geometric residual where it can improve useful prediction, role separation or measured cost; allow a competent ordinary low-bit baseline with identical observations and supervision. E/S is a loaded full-vocabulary local reference and S a query-read component; assess donor-conditioned vocabulary emission only through an actual compatible interface, or measure why adaptation loses to another source of lexical learning. S7/Hopf/E8/harmonic channels remain candidate tools for a witnessed interference/capacity need.
++
++Select feasible ordinary text by independent source/document groups. Pin corpus identities, licenses where relevant, tokenizer, deduplication, reset boundaries, all attempted seeds/configurations and selection rule. Keep the authored grounded world separate from ordinary prose data, then train a shared path or a justified phased curriculum that carries learning into the same served artifact. Measure next-token quality against at least a competent local count/recurrent baseline and E where comparable, using one tokenizer and denominator; evaluate loaded greedy/sample continuations and document-level variation. A local small corpus does not establish general conversation, but a model that only reproduces supplied response grammar has not completed this milestone. Require a held-out source/relation composition case after design selection and disclose every earlier exposure.
++
++Run a cheap loaded mixed session early: observe, correct, compute, ask current and historical questions, copy an owned span, continue vocabulary after it, save during each phase and restore in another process. A pinned answer retains its causal view while a new answer sees the correction. Compare full sessions, remaining effects, bytes and terminals. Bind the **same learned realizer** to prior memory/intent/computation controls; historical `LegacyWords` rows with no realizer bytes are not same-candidate preservation. Keep independently held-out final evaluation separate from development and freeze its practical screen after choosing the design. A mild quality shortfall may justify a prospective threshold revision; false temporal claims, source leaks and broken ownership remain defects.
++
++Report complete path latency, initialization, peak RAM, table/parameter traffic, allocations and measured energy when available on the named M1 machine. Energy stays UNAVAILABLE if not measured. Use an exclusive report root, sealed manifest and source/executable/data/artifact hashes. Preserve failed roots and original artifacts. Compile and exercise touched Rust, run focused causal/serialization/arithmetic checks and actual complete generated answers; queue compatibility acknowledgements do not count as tests.
++
++Finish the result as a reviewable protected PR. Update the canonical plan, current state, relevant README/navigation/evidence claims, all owning issue bodies/status, knowledge-store records and verified retrieval. Leave issues open until their full acceptance is met. Provide the learned capability, held-out quality, failures, any unique geometric gain against equal-information controls, complete costs and one evidence-supported architectural next step. You have discretion to do the necessary successive work rather than stopping after a small preflight or a compiled helper.
+diff --git a/docs/integration/model-direction-2026-09.md b/docs/integration/model-direction-2026-09.md
+index c8ccef03a..14c0342ef 100644
+--- a/docs/integration/model-direction-2026-09.md
++++ b/docs/integration/model-direction-2026-09.md
+@@ -1,5 +1,7 @@
+ # UOR-R4 Geometric Language Model: direction and capability assessment
+ 
++**PR #1352 principal review:** V3 retains a learned lexical interface at 31/31 exposed authored responses, with fitted token feedback and a post-copy action. All computed examples were fitted; the held-out eight use familiar non-computed forms. The 4/4 paired requests change key_changed as well as payload; ordinary-text learning is NOT_RUN. The next complete milestone is shared open-vocabulary Generate/Copy/Stop over source-separated prose and grounded exact spans. [Review](transferable-lexical-principal-review-2026-09-23.md) · [DeepSeek brief](deepseek-ordinary-lexical-step-2026-09-23.md).
++
+ ## September22 principal update — PR #1351 lexical component
+ 
+ **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](state-conditioned-lexical-review-2026-09-22.md), [independent audit](../evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](../evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. Original artifacts remain preserved.
+diff --git a/docs/integration/project-track.md b/docs/integration/project-track.md
+index 7b7f15e02..da1140297 100644
+--- a/docs/integration/project-track.md
++++ b/docs/integration/project-track.md
+@@ -2,6 +2,14 @@
+ 
+ ## Active direction — complete transferable lexical learning
+ 
++**This task, executed (`state-lexical-v3-10`, reused artifact `state-lexical-v3-8`):** the retained state-conditioned decoder now consumes a **position-resolved, tail-carrying, unknown-explicit** content observation, the **actual emitted token identity** and an **exact 15-coordinate typed causal block** in its recurrence, and **continues after the copied span** in the authored changed-derived-key case. Executed: learned **31/31** (fitting 23/23, eight familiar non-computed held-out cases **8/8**), teacher-forced **791/791**, retained legacy copy **31/31**, retained comparator **20/31**, recurrence ablation **0/31**, context ablation **6/31**, paired computed-request difference **4/4** (operation and key_changed vary), restart across ten in-process boundaries and a separate process agree, and the E generates and S loads/validates in the submitted probe; principal replay executes S. [Result](transferable-lexical-result-2026-09-22.md) and [evidence](../evidence/transferable-lexical-2026-09-22.json) own the scope; [principal review](state-conditioned-lexical-review-2026-09-22.md) set the task. Version-2 artifacts are preserved.
++
++**Principal qualification:** PR #1352 retains an executed V3 interface component on seven authored worlds, not transferable language. All computed/post-copy examples were fitted, the eight held-out cases are familiar non-computed forms, the 4/4 pairs change the supplied key_changed fact, and the 20/31 finite table has less information. Ordinary-text learning remains **NOT_RUN**. [Review](transferable-lexical-principal-review-2026-09-23.md) and [next brief](deepseek-ordinary-lexical-step-2026-09-23.md) define one shared open-vocabulary Generate/Copy/Stop language milestone. Broader conversation and executed Rust follow useful lexical transfer; complete laptop cost and product delivery follow that.
++
++**Leadership and resources:** principal mathematical/ML/systems review governs sequencing; DeepSeek has substantive representation, data and optimization discretion. Necessary local extensions are authorized prospectively with cumulative accounting and measured physical reserve. No arbitrary short timer or retry quota, no paid compute, and no deletion of unique research. Separate learned behavior, exact infrastructure and supplied supervision.
++
++## Previous reviewed component — state-conditioned lexical V2
++
+ **PR #1351, principal review:** retain a learned seven-slot ternary recurrent realizer as an exposed component. The submitted 31/31 matches authored targets (23 fitting cases, eight unfamiliar-value cases); every computed contrast is fitted, and all targets put vocabulary before copying. Feedback distinguishes Insert slots but merges all copied tokens into one Copy symbol. The submitted finite reference 0/31 is invalid as a comparison because its training emission count was fixed at zero. Computed `became`/`still` compares route changes on self-valued fixtures; it does not establish truthful temporal mutation. [Principal review](state-conditioned-lexical-review-2026-09-22.md), [independent audit](../evidence/state-lexical-principal-audit-2026-09-22.json) and [corrected checks](../evidence/state-lexical-principal-checks-2026-09-22.json) own the corrected scope. Original artifacts remain preserved.
+ 
+ **Next:** [one transferable lexical learner](deepseek-transferable-lexical-step-2026-09-22.md): exact causal address/value/history distinctions, actual generated and copied-token feedback, meaningful continuation after copying, ordinary source-separated text plus grounded responses, and a loaded E/S reference or measured adaptation. Geometric ordered transport/shared residuals remain preferred candidates beside the ordinary low-bit baseline. Complete this interface before broader conversation and executed Rust; then qualify whole-model laptop cost and product delivery. This remains the open lexical milestone, not a new series of renamed fixtures.
+@@ -30,7 +38,7 @@ Owner-directed September 20–21 roadmap, reconciled after PR #1336 and the owne
+ | Retained at authored scope | **Correction-aware scoped conversation memory over unfamiliar whole lexical strings.** Same loaded observe/query/correct/reload path | 38/38 expected outcomes: 34 language questions plus 4 API queries. Final population is lexical renaming of exposed structure. Corrected retention/restore, raw-language restart and historical-dependent instruments pass; original parameters remain unchanged. Principal review and checks receipt own counts and limitations |
+ | Retained component | **Consume a geometric derived result.** Reuse Q8 inside an owned session | Authored typed-world development56/56 and exposed24/24;64 actual computations, signed/finite tie and sign-loss witness. Corrected provenance/reload. The subsequent combined fit restores the tested prior lifecycle |
+ | Retained at authored scope | **Combined learned observed ingestion, control and consumed computation.** | Same candidate 38/38 prior outcomes,37/37 ingests;72/72 primary observed assertions;56/56 development+24/24 exposed+32/32 first evaluation in root2 then replayed. Principal audit/checks qualify controls and restart. No general-language or geometric-superiority claim |
+-| 1 — active, incomplete | **Learn transferable lexical realization** through the retained session, from ordinary source-separated text and grounded responses | Seven-slot action recurrence retained at exposed 31/31 scope. Copied-token feedback, independent computed meaning, post-copy continuation, E/S comparison and same-bundle preservation remain open. Principal audit/checks qualify the malformed finite reference and corrected replay |
++| 1 — active, incomplete | **Learn transferable lexical realization** through the retained session, from ordinary source-separated text and grounded responses | V3 exact observation and fitted emitted-token feedback are retained at exposed 31/31 scope, including an authored post-copy slot. Ordinary-text learning, independent computed meaning, copied-token necessity, held-out relation transfer, equal-information comparisons and full same-candidate preservation remain open. Principal review qualifies the S and paired-request probes |
+ | Supporting, as needed | **Learn structural persistence and correspondence where needed.** Add contextual role/scope retention, separate required-evidence/replacement state and exact versions; use relative H4 features when they resolve a witnessed alias | Equal-byte shared/FIFO comparison on distractors, nested scopes, repeated names and corrections. Retained references must own or pin payloads; no authored grammar presented as learned roles |
+ | 2 | **Develop broader language and executable reasoning together.** Train varied prose, conversation, durable-memory use and Rust generation through the same native model path | New source-separated language/tasks, useful completed responses, causal memory use and executed generated code; no authored panel or copied answer substitutes for generalization |
+ | 3 | **Scale useful access and qualify delivery.** Add geometric pages/sketches for measured access bottlenecks; qualify one useful artifact and its API/WASM/Studio path | Full latency/RAM/table/page traffic and physical energy at useful quality; relevant retained controls and complete product-boundary behavior before release. Profile costs throughout earlier steps |
+diff --git a/docs/integration/resource-ledger-2026-09-19.md b/docs/integration/resource-ledger-2026-09-19.md
+index d6a9056d2..3ca83889e 100644
+--- a/docs/integration/resource-ledger-2026-09-19.md
++++ b/docs/integration/resource-ledger-2026-09-19.md
+@@ -2257,3 +2257,17 @@ Before compiling or replaying the submitted PR #1351 artifact, reserve 7,200,000
+ CPU/build workers1; model replay single process plus sequential restart child; peak incremental RAM8GiB; temporary/build growth at most1GiB, new retained reports/binaries128MiB. Reuse the shared Cargo target with incremental compilation disabled; preserve existing candidate artifacts/executables before replacement. Recovery physical free29,157,900KiB (27.81GiB), above the already recorded temporary24GiB+128MiB reserve; prior30GiB target remains unrestored. Recheck before build and after delivery. No unique artifact, source, sealed report, worktree or Downloads deletion is authorized by this projection; no cleanup is presently necessary.
+ 
+ Principal correction charge at 2026-09-22T22:39:55.171782+00:00: **2,664,171 ms**, comprising 2,244,171 ms measured since the recovery clock, 120,000 ms earlier recovery estimate and 300,000 ms delivery allowance. New cumulative **364,136,017 / 372,700,000 ms**. The +6,000,000 ms allowance was recorded before execution above; it is not added again. [Charge receipt](../evidence/state-lexical-principal-charge-2026-09-22.json). Executed 46 distinct focused library tests, release runner, and two preserved exposed replays without neural refitting. The final corrected retained reference is 12/31; learned31/31 and historical teacher322/322 unchanged, with ten full parent and ten child continuation comparisons. Physical free at charge 29,745,901,568 bytes, above the adopted24GiB +128MiB reserve;30GiB target remains unrestored. No deletion or paid/external compute.
++
++## PR #1352 principal review — prospective, 2026-09-23
++
++Before any review build or replay, live cumulative model time is **372,836,017 / 390,700,000 ms**. [This projection](../evidence/transferable-lexical-principal-projection-2026-09-22.json) reserves 7,200,000 ms for source/evidence investigation, one-worker release build, a bounded E/S reference correction and unchanged-artifact replay, focused validation, documentation, knowledge/issues and protected delivery. No allowance extension is needed. The reserve is neither a spending requirement nor a cutoff; charge actual work once, extending prospectively if needed under standing authorization.
++
++Physical free before execution is **34,209,730,560 bytes**, above the recorded 24 GiB working reserve plus 128 MiB stop margin. Incremental RAM projection 4 GiB, temporary build growth 1 GiB, retained new output 128 MiB. Reuse the shared target with incremental compilation disabled. Preserve the owner's checkout, the submitted candidate and all unique sealed roots; no deletion or paid compute.
++
++Projection revised prospectively at 2026-09-23T01:37:29Z from 7,200,000 to **15,000,000 ms**, before the earlier estimate was exceeded. The release compile was still running; the revised estimate includes independent focused library tests, new sealed replay, evidence and protected delivery. Live limit **390,700,000 ms** remains unchanged and sufficient. Charge actual work once.
++
++Projection revised prospectively again at 2026-09-23T01:46:00Z, before the 15,000,000 ms estimate was exceeded: **27,000,000 ms** complete work to include the six live issue bodies, knowledge ingestion/retrieval and protected PR verification. Standing owner authorization adds **12,000,000 ms** to the cumulative allowance, **390,700,000 → 402,700,000 ms**. This local extension does not erase prior charges and incurs no paid compute. [Prospective receipt](../evidence/transferable-lexical-principal-projection-2026-09-22.json) records the rationale and physical/storage envelope; actual work will be charged once.
++
++**Correction at 2026-09-23T01:50:33Z:** the immediately preceding revision used an incorrect unit conversion: 15,000,000 ms is **250 minutes**, not 15 minutes. Less than 19 minutes had elapsed since recovery, so neither the initial 7,200,000-ms estimate nor the 15,000,000-ms revision was close to exhaustion. The proposed +12,000,000-ms allowance is **withdrawn without use**; the live limit is restored to **390,700,000 ms**, cumulative remains **372,836,017 ms** pending actual charge, and the conservative 15,000,000-ms projection remains. No paid compute or deletion occurred. The receipt preserves the mistaken revision and its correction rather than silently rewriting history.
++
++Principal review charged once at 2026-09-23T01:51:17Z: **1,579,623 ms** = 1,159,623 ms measured since the 01:31:58Z recovery clock + 120,000 ms earlier recovery estimate + 300,000 ms protected-delivery allowance. New cumulative **374,415,640 / 390,700,000 ms**. [Charge receipt](../evidence/transferable-lexical-principal-charge-2026-09-23.json) binds the calculation. The reviewed release build and unchanged-artifact replay passed; 48 distinct focused library tests passed, and the six owning issues plus five knowledge records/five edges were synchronized. Free space at charge was **34,188,107,776 bytes**, above the 24 GiB working reserve plus 128 MiB stop margin. No unique evidence was deleted and no paid compute was used. Protected PR merge is verified separately; queue acknowledgements are not these local tests.
+diff --git a/docs/integration/transferable-lexical-principal-review-2026-09-23.md b/docs/integration/transferable-lexical-principal-review-2026-09-23.md
+new file mode 100644
+index 000000000..872dddec2
+--- /dev/null
++++ b/docs/integration/transferable-lexical-principal-review-2026-09-23.md
+@@ -0,0 +1,31 @@
++# Principal review of PR #1352: V3 lexical interface retained, language transfer still open
++
++September 23, 2026. Reviewed PR head `3aa2f4784af63fa0c4dad4856a1f488c5b5c5988` against protected base `6ae7625ffa11e86eeb176e45e22d6fef609b8ac6`, the [submitted result](transferable-lexical-result-2026-09-22.md), source, sealed roots, prior [lexical review](state-conditioned-lexical-review-2026-09-22.md), and the [independent checks](../evidence/transferable-lexical-principal-checks-2026-09-23.json). Live GitHub owns protected delivery. The original V3 artifacts and exposed roots remain preserved.
++
++## Decision
++
++Retain V3 as a meaningful **observation and feedback interface repair**. The exported ternary recurrent state now receives the actual emitted token's fitted row and a typed causal block; the learned policy emits a word after completing an exact owned copy and chooses Stop. The source and 31 loaded normal rows support that component. This does **not** finish transferable lexical learning. The next milestone is one shared open-vocabulary Generate/Copy/Stop continuation path, with source-separated ordinary-text learning and grounded exact-span responses through the same native session. Broader conversation and executed Rust follow useful lexical transfer.
++
++## Evidence and exposure
++
++The submitted roots `state-lexical-v3-8` and `state-lexical-v3-10` each list 24 files. Independent inspection found no missing or unlisted files; listed sizes and BLAKE3 digests match. The five artifact files are byte-identical between roots. The final root's three source SHA256s match the submitted PR, and its recorded executable hash matches the retained release binary. Root 10 is an **exposed replay** of the same learned artifact and panel, not a fresh draw.
++
++The 155 saved case rows contain 31 per arm: LegacyWords, retained finite table, V3 normal, context disabled, and recurrence disabled. V3 scores **31/31** (23 fitting cases, eight cases from three other documents). The eight other cases are current/previous/initial requests using familiar answer forms; **none is a computation or a new relation form**. All computed and post-copy `now` cases are fitted. Teacher-forced **791/791** checks export/reload on 122 training sequences, not unseen language. All ten cross-process child continuations match full remaining effects and final sessions. The finite table scores 20/31 but lacks V3's content, typed block and token state; it is not an equal-information measure of recurrent or geometric advantage.
++
++The code executes fitted emitted-token rows in the recurrence. All unfamiliar copied tokens use one reserved OOV row. For equal-length unfamiliar copies with the same typed facts and action symbols, the state trajectory is identical. The content view retains early positions and a final token but can still discard the middle of a long span. The exact selected-versus-operand comparison distinguishes arbitrary unfamiliar **equality**, not arbitrary unfamiliar token identities or semantics. A loaded representation distinction is a precondition for language learning, not evidence of its use in an answer.
++
++The reported **4/4** paired computed requests change operation and the supplied `key_changed` bit along with payload. They prove that those fitted requests yield different outputs and recurrent states; they do **not** isolate a payload-content effect with request and typed facts held fixed. A unit test originally named as a content-only test has the same confound and is renamed to its actual fitted-case scope. The readout receives typed facts directly as well as through the recurrence. Recurrence-disabled 0/31 shows the whole recurrent mechanism matters on this fixture, but cannot assign the post-copy decision to copied-token identity. The post-copy action is genuinely selected by the exported policy without a structural override on the saved normal cases; its target is the same authored `now` for every changed-key case.
++
++The target renderer maps a **derived key change** to `it became {value} now`. Following a different address does not commit a new version of the entity. In the saved run, a computed Ivo answer can say `it became Alma now` without an Ivo mutation. The runner's `committed` fact means a previous assertion exists at the captured address; it is not an operation-commit event. Preserve the target as an authored route marker. Independent meaning tests must separate changed address with equal returned value, unchanged address with different returned value, and an actual committed correction before claiming truthful temporal wording.
++
++The E prior and S query policy are present at pinned hashes. The submitted probe loaded both but generated with E alone; constructing `QueryHard` was not an S read. The principal replay executes the S checked inference path and records its rows and continuation separately. Neither component owns the scoped copy span, and this is a component assessment rather than a matched language-quality comparison. Ordinary project prose is measured as only about 2% represented by the fitted content rows. **Ordinary-text learning remains NOT_RUN.** The eight generated vocabulary slots are authored, and no complete-path energy or geometric superiority is measured.
++
++## First-principles architectural direction
++
++The current data do not train a semantic dependency that asks the learner to choose different uncopied words for distinct copied payloads under the same typed facts. Widening a representation or adding epochs cannot establish that absent dependency. The next experiment needs a real text objective and one controlled grounded contrast in which the correct post-copy decision depends on source content while request, copy length and typed facts are held fixed. Exact addresses/version provenance remain external ownership. A learned state should receive enough actual token information to choose vocabulary and Stop; an owned span should be copied exactly and its emitted tokens fed back. Compare against a competent same-information low-bit recurrent or finite baseline before attributing a quality gain to geometric transport.
++
++The architectural mechanism choice is open. Signed ordered H4 transport and the shared contextual residual are promising candidates when role/order or context collision becomes a measured limit. A finite harmonic bank or S7/Hopf/E8 representation needs a witnessed interference/capacity/cost advantage; orthogonality alone does not preserve an unbounded number of live language relations. D0-b allows low-bit additive maps at serving, so the current ternary RNN is an admissible baseline while dense parameter traffic remains a cost to measure. No quantum or geometric performance claim follows from this panel.
++
++Primary research checked for this direction: [CopyNet](https://aclanthology.org/P16-1154/) motivates joint vocabulary and exact copying; [recurrent language models as finite-state automata](https://aclanthology.org/2023.emnlp-main.502/) sharpens state/string-distribution questions; [Scalable MatMul-free Language Modeling](https://arxiv.org/abs/2406.02528v7) supports low-bit recurrent feasibility without transferring its energy figures; and [A Hippocampus for Linear Attention](https://arxiv.org/abs/2607.02303) studies exact associations beside compressed state, without validating UOR-R4.
++
++The [next DeepSeek brief](deepseek-ordinary-lexical-step-2026-09-23.md) completes this single open milestone. Keep the source/evidence distinctions above as the preflight, then train and assess ordinary continuation and grounded copying in one coherent run. Necessary local time/storage extensions remain standing-authorized when recorded prospectively; they are not arbitrary stopping gates. Preserve all failed and positive roots and use protected delivery.
+diff --git a/docs/integration/transferable-lexical-result-2026-09-22.md b/docs/integration/transferable-lexical-result-2026-09-22.md
+new file mode 100644
+index 000000000..bd1b504df
+--- /dev/null
++++ b/docs/integration/transferable-lexical-result-2026-09-22.md
+@@ -0,0 +1,127 @@
++# Transferable lexical learner: corrected observation, emitted-token feedback, post-copy continuation
++
++September 22, 2026. **Principal qualification:** [the September 23 review](transferable-lexical-principal-review-2026-09-23.md) retains this as an exposed V3 interface result. Its 4/4 pair changes operation and `key_changed` alongside payload, so it does not isolate learned content use. All held-out cases are non-computed familiar forms; temporal wording in computed fixtures follows a route-key change without a committed mutation. The submitted E/S probe generated with E while S was only loaded; the principal replay exercises S separately. The original sealed root remains preserved.
++
++Base: protected PR #1351 merge `6ae7625ffa11e86eeb176e45e22d6fef609b8ac6`. This
++submission executes the retained observed-memory/computation session through a corrected
++state-conditioned lexical contract (artifact version 3) under the existing `StateLexicalV1`
++serving contract, and reports the loaded E/S reference assessment and the ordinary-text remainder.
++
++## The missing distinction
++
++The retained version-2 content observation collapsed three causally different facts into one lossy,
++permutation-invariant bag:
++
++* **what** the selected payload and the consumed operand actually are — the first four *fitted* tokens
++  were summed, so order and any suffix beyond four tokens disappeared and an unfitted token contributed
++  nothing;
++* **whether** the selected value equals the operand — the only witness was a count of differing
++  coordinates of that lossy bag;
++* **whether a mutation was actually committed** — the label compared derived and operand *addresses*
++  while the decoder observed *payloads*, and the fixtures made those coincide.
++
++Two observationally identical but causally different worlds therefore received identical features, and
++no amount of fitting could separate them (e.g. `(unknown_A, unknown_A)` and `(unknown_A, unknown_B)`;
++a reordered payload; a changed suffix past the truncation window).
++
++## Competing hypotheses and the decisive test
++
++* **H1 — more fitting / more slots.** Rejected: the collapse is information-theoretic, not capacity.
++* **H2 — a larger lossy embedding.** Helpful for order/suffix, but cannot represent *exact* equality
++  of arbitrary unfamiliar strings.
++* **H3 — typed causal observation + token-identity feedback** (adopted). Expose the exact,
++  causally-available distinctions as declared integer observations, and let the actual emitted token
++  identity advance the recurrence. Exact byte/key comparison is input infrastructure, not a gold
++  response class.
++* **H4 — signed ordered transport (`q⁻¹k`).** A structured alternative for order/role; common-left
++  invariance erases the central sign, so it is a component, not a complete answer. Not adopted here.
++
++**Decisive test.** (a) Measure the collapse on the loaded candidate's own observation (the runner's
++`representation_diagnostics`); (b) require the corrected observation to separate the same pairs;
++(c) require the learned artifact to produce distinct, correct continuations on unfamiliar source
++documents and to continue *after* the copied span.
++
++## What changed (artifact version 3)
++
++`crates/uor-r4-core/src/native_geometric/learner/state_lexical.rs`, reusing the retained
++`TernaryLinear` recurrence and the bounded integer serving path:
++
++1. **Position-resolved content.** A token's learned row is indexed by `(token, position)`, so a
++   reordered payload produces a different feature. Position `SL_MAX_CONTENT_TOKENS` is a dedicated
++   **tail** slot carrying the final token of a truncated payload, so a long payload's suffix survives.
++2. **Explicit unknown.** Row 0 is reserved for unfitted tokens, so unsupported content is a real
++   learned row rather than a meaningful zero. Unfitted tokens are declared (`oov_tokens`) at fit time
++   and excluded from the content index, so an unknown-content control is faithful.
++3. **Exact typed causal block (15 coordinates).** Requested-history one-hot; `derived`;
++   `prior_differs`; `committed` (a store mutation was actually committed for the address, distinct
++   from a different value); `key_changed` (the derived query key differs exactly from the operand
++   key); and the exact selected/operand identity relations: full equality, bounded common prefix,
++   bounded exact divergence, both lengths, and both unknown counts.
++4. **Emitted-token identity in the recurrence.** `h_{t+1}` consumes the action symbol, the **actual
++   emitted token's** shared learned row, and the typed block. A copied token is no longer collapsed
++   into one `Copy` symbol; an unfitted copied token shares the reserved row (a declared residual
++   collision).
++5. **Post-copy continuation.** The authored changed-derived-key form places a word *after*
++   the owned span, so the fit exercises a vocabulary decision that follows the copies. The word
++   labels a route change in these fixtures, not an independently verified committed mutation.
++
++`crates/uor-r4-core/src/native_geometric/learner/scoped_memory.rs` computes the typed facts from the
++executed session (`state_lexical_facts`, exposed read-only as `observed_lexical_facts`) and passes the
++emitted token into `transition`. The retained version-2 artifact bytes and results are preserved; the
++v2 code path is superseded by the version-3 artifact gate.
++
++## Executed results (root `state-lexical-v3-10`, reused sealed artifact from `state-lexical-v3-8`)
++
++* **Learned state-lexical 31/31**, all terminals `Complete`: fitting documents 23/23 and
++  **held-out source documents 8/8**.
++* **Teacher-forced agreement 791/791** through the exported integer artifact (122 declared sequences,
++  791 steps; served loss `3.2e-13`).
++* **Retained legacy copy contract 31/31** on the same panel.
++* **Retained comparator** (finite realization table fitted on the same declared text with the runtime
++  causal context) **20/31**.
++* **Ablations change output:** recurrence disabled 0/31, context disabled 6/31 (the learned words are
++  not the flag-only sequence).
++* **Paired computed requests:** each fitting document's unchanged-key and changed-key operations
++  produce different output and final recurrent state (4/4). The operation, payload and supplied
++  `key_changed` fact vary together; this does not isolate a payload-sensitive word choice.
++* **Restart:** 10 in-process boundaries restore exactly, and the separate-process child continuation
++  matches (`restart_all_boundaries`, `restart_child_process`).
++* **Representation diagnostics on the loaded candidate:** reordered known tokens alias **false**;
++  suffix after four tokens aliases **false**; the full observation distinguishes equal-and-unequal
++  unknown pairs (`false`), while the content feature alone still collides (`true`) — the exact block
++  carries the distinction.
++* **Submitted E/S reference probe:** `empirical.cpl2` (454,788 B) and
++  `separable_older_query_read.cpx3` (53,555 B) load at pinned SHAs. E generates four tokens
++  (`load_and_probe_ms = 9`); S was deserialized and validated but did not make a query-read
++  decision in this submitted root. The principal replay exercises S separately. Neither donor
++  emits or owns the session's exact copied span; this is no matched language-quality comparison.
++* **Ordinary-text exposure (source-separated local project documentation, distinct from the authored
++  state world):** the final submitted evidence records fitted content coverage **4,816/227,777**
++  tokens (2.1%) and **307/16,406** (1.9%). These are measurements of the then-current source files;
++  earlier draft counts were from an earlier file snapshot.
++  **NOT_RUN as a learning task:** the scoped contract supervises an exactly owned span, not open prose
++  continuation, and the fitted content index does not cover ordinary vocabulary.
++
++All eight declared checks pass; the runner seals an exclusive root and the reuse path verifies the
++sealed parent before replay.
++
++## Limits and claim boundaries
++
++Authored response fixture over a small declared state world. The sentences, the vocabulary and the
++computed-op probes are declared; this is **not general prose** and no geometric advantage is claimed.
++`key_changed` and `committed` are exact causal observations, but a derived-key change is not a
++temporal mutation, and `committed` here reports a previous assertion at the captured address. The
++sentence family is authored; it is not independently validated truthful prose. Energy is **UNAVAILABLE**
++without measurement. The dense ternary maps are executed with bounded additive/shift/table operations
++under D0-b; quantization does not make them sparse or geometric, and their parameter traffic is not a
++geometric claim. Unfitted copied tokens share the reserved OOV row. Ordinary-text learning through
++this interface is the open remainder.
++
++## Next step
++
++The first item remains ordinary-text learning through the retained session: a declared prose corpus
++split by source, with a continuation objective over the same low-bit state, so the content index and
++the vocabulary decisions are learned from prose rather than from an authored span. E/S adaptation
++requires a donor-conditioned vocabulary decision over an exactly owned span — a new interface, not a
++reuse. Broader conversation and executed Rust follow through the same candidate once useful lexical
++continuation exists.

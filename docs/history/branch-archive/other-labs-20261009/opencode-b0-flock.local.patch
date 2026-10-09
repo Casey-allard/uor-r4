@@ -1,0 +1,2425 @@
+diff --git a/crates/uor-r4-training/examples/kappa-conversion.rs b/crates/uor-r4-training/examples/kappa-conversion.rs
+index 88a36f51e..71b2f393c 100644
+--- a/crates/uor-r4-training/examples/kappa-conversion.rs
++++ b/crates/uor-r4-training/examples/kappa-conversion.rs
+@@ -10,6 +10,8 @@
+ //! kappa-conversion mode=tokenize model=DIR text=IN.txt out=OUT.u16
+ //! kappa-conversion mode=probe model=DIR tokens=X.u16 out=NEW_ROOT
+ //!     [score=intrinsic|key_norm] [batch=1] [time=256] [windows=4] [t_grid=1e-8,1e-6,...,3]
++//!     # or training-free flock attention, exactly one arm per invocation:
++//!     [flock=1|7|16|64] [weights=softmax|rank] [seed=9001] [held_out_tokens=N]
+ //! kappa-conversion mode=drive model=DIR tokens=X.u16 out=NEW_ROOT
+ //!     [teacher=DIR] [batch=1] [time=256] [windows=16] [t_grid=0.1,1] [cost_layers=all|0,4,...]
+ //! kappa-conversion mode=train student=DIR train=X.u16 valid=Y.u16 out=NEW_ROOT
+@@ -35,8 +37,17 @@
+ //! the first-order gain at `t = 1` (`-sum_h g_h`) exceeds the measured zero-shot
+ //! cost at `t = 1`.
+ //!
++//! `probe flock=K` runs the dense baseline plus exactly one training-free flock
++//! arm on the same windows: sink (position 0) + the 64 nearest causal positions
++//! + the exact top-`K` of the rest by Lorentz rank, weighting the support either
++//! by the checkpoint's own softmax (`weights=softmax`) or by the fixed normalized
++//! rank table `w_i = 1/(i+1)` (`weights=rank`, no exponentials). Ranking lifts
++//! each head's post-RoPE q/k as `x_L = (sqrt(1+|x|^2), x)` and orders by
++//! `-q0 k0 + q . k` (monotone; no `arcosh`). No weights change. With
++//! `seed`/`held_out_tokens` the window starts are counter-drawn from the final
++//! `held_out_tokens` of the token file and recorded.
++//!
+ //! `train` minimizes KL(teacher || student) when `teacher=` is given (the
+-//! teacher runs the Dot score) and next-token loss on `train=` otherwise.
+ //! `score=dot` is the matched plain control and `*_linear` the matched
+ //! first-order control (dot plus the fixed quartic feature, free coefficient).
+ //! `anneal_t` raises a floor on every head's curvature linearly to `t = T`
+@@ -51,7 +62,9 @@
+ use std::collections::{BTreeMap, BTreeSet, HashMap};
+ use std::fs;
+ use std::path::{Path, PathBuf};
+-use std::time::Instant;
++use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
++use std::sync::Arc;
++use std::time::{Duration, Instant};
+ 
+ use candle_core::backprop::GradStore;
+ use candle_core::{Device, Tensor};
+@@ -60,7 +73,8 @@ use uor_r4_core::report_output;
+ use uor_r4_core::transformerless::hf_bpe::HfBpeTokenizer;
+ use uor_r4_training::joint_optimizer::{AdamConfig, NamedAdamW};
+ use uor_r4_training::kappa_llama::{
+-    distillation_kl, load_checkpoint, max_abs_difference, mean_key_sq, next_token_nll, Checkpoint,
++    distillation_kl, held_out_starts, load_checkpoint, max_abs_difference, mean_key_sq,
++    next_token_nll, rank_table, Checkpoint, FlockSpec, FlockStats, FlockWeights,
+     HeadStatisticsAccumulator, KappaLlama, ScoreKind, Trainable, LAMBDA, LOG_BETA, LOG_EPS,
+     NORM_SCALE,
+ };
+@@ -299,13 +313,49 @@ struct ProbeSettings {
+     time: usize,
+     windows: usize,
+     grid: Vec<f64>,
++    flock: Option<usize>,
++    flock_weights: FlockWeights,
++    seed: Option<u64>,
++    held_out_tokens: Option<usize>,
+ }
+ 
+ fn probe_settings(args: &Args) -> Result<ProbeSettings> {
++    let flock = match args.text("flock") {
++        None => None,
++        Some(text) => {
++            let k: usize = text
++                .parse()
++                .map_err(|_| invalid(format!("flock must be a positive integer, not {text}")))?;
++            if !matches!(k, 1 | 7 | 16 | 64) {
++                return Err(invalid("flock k must be one of 1, 7, 16, 64"));
++            }
++            Some(k)
++        }
++    };
+     let score = ScoreKind::parse(args.text("score").unwrap_or("intrinsic"))?;
+-    if !score.is_curved() {
++    if flock.is_none() && !score.is_curved() {
+         return Err(invalid(
+-            "probe compares a curved score (intrinsic or key_norm) with dot",
++            "probe compares a curved score (intrinsic or key_norm) with dot, or takes flock=K",
++        ));
++    }
++    let flock_weights = FlockWeights::parse(args.text("weights").unwrap_or("softmax"))?;
++    let seed: Option<u64> = match args.text("seed") {
++        None => None,
++        Some(text) => Some(
++            text.parse()
++                .map_err(|_| invalid(format!("seed must be an integer, not {text}")))?,
++        ),
++    };
++    let held_out_tokens: Option<usize> = match args.text("held_out_tokens") {
++        None => None,
++        Some(text) => Some(
++            text.parse()
++                .map_err(|_| invalid(format!("held_out_tokens must be an integer, not {text}")))?,
++        ),
++    };
++    if seed.is_some() != held_out_tokens.is_some() {
++        return Err(invalid(
++            "seed and held_out_tokens are given together (the held-out split is drawn from the token file tail)",
+         ));
+     }
+     let settings = ProbeSettings {
+@@ -317,6 +367,10 @@ fn probe_settings(args: &Args) -> Result<ProbeSettings> {
+         time: args.number("time", 256)?,
+         windows: args.number("windows", 4)?,
+         grid: args.list("t_grid", "1e-8,1e-6,1e-4,1e-3,1e-2,0.1,0.3,1,3")?,
++        flock,
++        flock_weights,
++        seed,
++        held_out_tokens,
+     };
+     if settings.batch == 0 || settings.time < 2 || settings.windows == 0 {
+         return Err(invalid("batch and windows must be positive and time >= 2"));
+@@ -325,6 +379,176 @@ fn probe_settings(args: &Args) -> Result<ProbeSettings> {
+ }
+ 
+ fn probe(settings: &ProbeSettings, out: &Path) -> Result<()> {
++    if let Some(k) = settings.flock {
++        return probe_flock(settings, k, out);
++    }
++    probe_curved(settings, out)
++}
++
++/// Peak resident set of this process, sampled from `/bin/ps` while a run is live.
++fn resident_bytes() -> Option<u64> {
++    let process = std::process::id().to_string();
++    let output = std::process::Command::new("/bin/ps")
++        .args(["-o", "rss=", "-p", &process])
++        .output()
++        .ok()?;
++    if !output.status.success() {
++        return None;
++    }
++    let text = String::from_utf8(output.stdout).ok()?;
++    text.split_whitespace()
++        .next()?
++        .parse::<u64>()
++        .ok()?
++        .checked_mul(1024)
++}
++
++/// Sample RSS every 100 ms until the returned flag is set; join for the peak.
++fn rss_sampler() -> (Arc<AtomicBool>, Arc<AtomicU64>, std::thread::JoinHandle<()>) {
++    let stop = Arc::new(AtomicBool::new(false));
++    let peak = Arc::new(AtomicU64::new(0));
++    let thread_stop = Arc::clone(&stop);
++    let thread_peak = Arc::clone(&peak);
++    let handle = std::thread::spawn(move || {
++        while !thread_stop.load(Ordering::Relaxed) {
++            if let Some(bytes) = resident_bytes() {
++                thread_peak.fetch_max(bytes, Ordering::Relaxed);
++            }
++            std::thread::sleep(Duration::from_millis(100));
++        }
++    });
++    (stop, peak, handle)
++}
++
++/// Dense baseline plus exactly one training-free flock arm over the same windows.
++fn probe_flock(settings: &ProbeSettings, k: usize, out: &Path) -> Result<()> {
++    let started = Instant::now();
++    let (stop, peak, sampler) = rss_sampler();
++    let device = &settings.device;
++    let checkpoint = load_checkpoint(&settings.model, device)?;
++    let weights_sha256 = checkpoint.weights_sha256.clone();
++    let tokens = read_tokens(&settings.tokens, checkpoint.shape.vocab)?;
++    let tokens_sha256 = uor_r4_training::sha256_file(&settings.tokens)?;
++    let starts = match (settings.seed, settings.held_out_tokens) {
++        (Some(seed), Some(held_out)) => held_out_starts(
++            tokens.len(),
++            settings.time,
++            settings.windows,
++            held_out,
++            seed,
++        )?,
++        _ => evenly_spaced(tokens.len(), settings.time, settings.windows)?,
++    };
++    let chunks = chunks(&tokens, &starts, settings.time, settings.batch);
++    let dot = KappaLlama::new(
++        clone_checkpoint(&checkpoint),
++        ScoreKind::Dot,
++        0.0,
++        Trainable::Scalars,
++        device,
++    )?;
++    let spec = FlockSpec {
++        k,
++        window: 64,
++        weights: settings.flock_weights,
++    };
++    let mut flock = KappaLlama::new(checkpoint, ScoreKind::Dot, 0.0, Trainable::Scalars, device)?;
++    flock.set_flock(Some(spec))?;
++    let share = 1.0 / chunks.len() as f64;
++    let (mut dot_nll, mut flock_nll, mut agree) = (0.0, 0.0, 0.0);
++    let mut stats = FlockStats::default();
++    for (inputs, targets, n) in &chunks {
++        let reference = dot.forward(inputs, *n, settings.time, true)?;
++        dot_nll += scalar(&next_token_nll(&reference, targets)?)? * share;
++        let logits = flock.forward(inputs, *n, settings.time, true)?;
++        flock_nll += scalar(&next_token_nll(&logits, targets)?)? * share;
++        let same = logits
++            .argmax(2)?
++            .eq(&reference.argmax(2)?)?
++            .to_dtype(candle_core::DType::F32)?
++            .mean_all()?;
++        agree += scalar(&same)? * share;
++        stats.add(&flock.take_flock_stats());
++    }
++    stop.store(true, Ordering::Relaxed);
++    sampler
++        .join()
++        .map_err(|_| invalid("rss sampler panicked"))?;
++    let peak_rss = peak.load(Ordering::Relaxed);
++    let after = uor_r4_training::sha256_file(&settings.model.join("model.safetensors"))?;
++    let weights_unchanged = after == weights_sha256;
++    let table = match settings.flock_weights {
++        FlockWeights::Rank => Some(rank_table(1 + spec.window + k)),
++        FlockWeights::Softmax => None,
++    };
++    let table_sha256 = table.as_ref().map(|values| {
++        let bytes: Vec<u8> = values.iter().flat_map(|w| w.to_le_bytes()).collect();
++        uor_r4_training::sha256_bytes(&bytes)
++    });
++    let dense_bits = dot_nll / std::f64::consts::LN_2;
++    let report = json!({
++        "schema": "uor-r4.kappa-conversion-probe/2",
++        "mode": "flock",
++        "identity": {
++            "model": settings.model,
++            "weights_sha256": weights_sha256,
++            "tokens": settings.tokens,
++            "tokens_sha256": tokens_sha256,
++            "shape": flock.shape(),
++        },
++        "flock": {
++            "k": k,
++            "window": spec.window,
++            "weights": settings.flock_weights,
++            "weight_rule": "arm B: w_i = 1/(i+1) normalized over the selected support, i the Lorentz-rank position; arm A: the checkpoint softmax over the same support",
++            "weight_table": table,
++            "weight_table_sha256": table_sha256,
++            "weight_table_scope": "nominal maximum support (1 + window + k); per-row support is shorter at short prefixes",
++            "raw_rank_scale": "unnormalized a_i = 1/(i+1) via uor_r4_training::flock::raw_rank_weights, the B2 hybrid scale; not the normalized table above",
++        },
++        "batch": settings.batch,
++        "time": settings.time,
++        "windows": settings.windows,
++        "seed": settings.seed,
++        "held_out_tokens": settings.held_out_tokens,
++        "window_starts": starts,
++        "dot_nll": dot_nll,
++        "flock_nll": flock_nll,
++        "delta_nll": flock_nll - dot_nll,
++        "top1_agreement": agree,
++        "support": {
++            "queries": stats.queries,
++            "mean_selected": stats.mean_selected(),
++            "sink_share": stats.sink_share(),
++            "window_share": stats.window_share(),
++            "top_k_share": stats.top_k_share(),
++            "candidates_scanned": stats.candidates_scanned,
++            "short_prefix_rows": stats.short_prefix,
++            "top_k_short_rows": stats.top_k_short,
++            "cutoff_tie_rows": stats.cutoff_ties,
++            "selector": uor_r4_training::flock::FLOCK_SELECTOR_VERSION,
++        },
++        "weights_sha256": after,
++        "weights_unchanged": weights_unchanged,
++        "peak_rss_bytes": peak_rss,
++        "g2_crosscheck": {
++            "dense_bits_per_token": dense_bits,
++            "external_reference_bits_per_token": 3.8425,
++            "delta_bits_per_token": dense_bits - 3.8425,
++            "reference": "docs/transformerless/EXTERNAL_REFEREE_300.md: 596 held-out articles / 71,714 target tokens, first 128 tokens per article, HF tokenizer, no BOS/chat template; a different pipeline",
++        },
++        "seconds": started.elapsed().as_secs_f64(),
++    });
++    fs::write(out.join("probe.json"), serde_json::to_vec_pretty(&report)?)?;
++    if !weights_unchanged {
++        return Err(invalid(
++            "the checkpoint weights file changed during the flock probe",
++        ));
++    }
++    Ok(())
++}
++
++fn probe_curved(settings: &ProbeSettings, out: &Path) -> Result<()> {
+     let started = Instant::now();
+     let device = &settings.device;
+     let checkpoint = load_checkpoint(&settings.model, device)?;
+diff --git a/crates/uor-r4-training/src/flock.rs b/crates/uor-r4-training/src/flock.rs
+new file mode 100644
+index 000000000..cabea5e8e
+--- /dev/null
++++ b/crates/uor-r4-training/src/flock.rs
+@@ -0,0 +1,758 @@
++//! The shared causal flock selector: one pure rule for read/support selection.
++//!
++//! Flock attention keeps, for each query row, a **sink**, a **local window** and
++//! the **exact top-k** of the remaining causally visible positions. This module
++//! owns that rule once, for every consumer:
++//!
++//! - the B0 training-free probe over a checkpoint's own scores (the candle
++//!   adapter in [`crate::kappa_llama`]);
++//! - Claude/Lab 1's A1 retrieval read/support semantics;
++//! - the Codex B2 harmonic + flock hybrid, which needs the deduplicated causal
++//!   support in descending Lorentz rank with explicit **unnormalized** weights;
++//! - the model-source `score_and_normalize` seam and the later D11 port.
++//!
++//! # Contract
++//!
++//! - **One selection rule.** [`flock_select`] takes one query row's rank scores
++//!   (positions `0..=query`; a monotone rank score such as the Minkowski
++//!   product `-q0 k0 + q . k`, which needs no `arcosh`), the general selection
++//!   parameters [`FlockSelect`] `{ sink, window, k }`, and returns a
++//!   [`FlockSelection`].
++//! - **Deduplicated support.** The support is the *set* `{sink} ∪ window ∪
++//!   top-k`. The window is the `window` nearest preceding positions; the sink
++//!   takes precedence if it falls inside that range, so no position appears
++//!   twice.
++//! - **Deterministic order.** Selection entries are ordered by descending rank
++//!   score with ties broken to the **lowest position**. The same inputs always
++//!   produce the same selection.
++//! - **Arms stay distinct.** [`FlockWeights::Softmax`] is the checkpoint's own
++//!   softmax restricted to the kept set (arm S). [`FlockWeights::Rank`] is the
++//!   normalized rank table `w_i ∝ 1/(i + 1)` (arm R, no exponentials). The
++//!   **raw, unnormalized** scale `a_i = 1/(i + 1)` is exported separately by
++//!   [`raw_rank_weights`] / [`FlockSelection::raw_rank_weights`] for the B2
++//!   hybrid correction `N += Σ(a − h)v`, `Z += Σ(a − h)`; it is not the
++//!   within-support normalized probability. No denominator clamp is applied
++//!   here.
++//! - **Honest cost.** [`FlockScan::candidates_scanned`] counts every rest
++//!   position the exact selector compared. Selecting `k` values does **not**
++//!   establish `O(k)` search; an index (B1) must account for its own build,
++//!   scan and recall separately.
++//!
++//! The B0 pre-registration fixes `sink = 0`, `window = 64` and
++//! `k ∈ {1, 7, 16, 64}`; [`FlockSpec`] carries those choices plus the weight
++//! arm, and [`FlockSpec::select`] materializes the sink-at-zero selection.
++//!
++//! This module has no tensor dependency: rows are plain `&[f32]` slices, so the
++//! same logic is usable offline and in a later bounded integer/table runtime.
++
++use serde::{Deserialize, Serialize};
++
++use crate::{invalid, Result};
++
++/// Version tag for artifacts that bind the selection semantics.
++pub const FLOCK_SELECTOR_VERSION: &str = "flock-selector-v1";
++
++/// How flock attention weights its selected support.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
++#[serde(rename_all = "snake_case")]
++pub enum FlockWeights {
++    /// Arm S: the checkpoint's own softmax, restricted to the selected support.
++    Softmax,
++    /// Arm R: normalized fixed rank-indexed weights `w_i = 1 / (i + 1)`, where
++    /// `i` is the rank position inside the selection. No exponentials.
++    Rank,
++}
++
++impl FlockWeights {
++    pub fn parse(text: &str) -> Result<Self> {
++        match text {
++            "softmax" => Ok(Self::Softmax),
++            "rank" => Ok(Self::Rank),
++            _ => Err(invalid(format!(
++                "weights must be softmax or rank, not {text}"
++            ))),
++        }
++    }
++}
++
++/// The B0 pre-registered flock configuration: sink at position zero, a local
++/// window and an exact top-k, with one weight arm.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
++pub struct FlockSpec {
++    /// Exact top-k keys by rank score from the non-sink, non-window past.
++    pub k: usize,
++    /// Nearest preceding positions always included.
++    pub window: usize,
++    /// Which weight arm to use.
++    pub weights: FlockWeights,
++}
++
++impl FlockSpec {
++    /// The pre-registered selection rule: the sink is position zero.
++    pub fn select(&self) -> FlockSelect {
++        FlockSelect {
++            sink: 0,
++            window: self.window,
++            k: self.k,
++        }
++    }
++}
++
++/// General selection parameters for one query row.
++///
++/// The B0 probe uses `sink = 0`; retrieval readers may anchor the sink at their
++/// own address without changing the rest of the rule.
++#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
++pub struct FlockSelect {
++    /// Always-selected anchor position (B0 uses zero).
++    pub sink: usize,
++    /// Nearest preceding positions always included.
++    pub window: usize,
++    /// Exact top-k of the remaining causally visible positions.
++    pub k: usize,
++}
++
++/// Role of a selected key inside the flock support.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub enum FlockSlot {
++    /// The sink position, always included.
++    Sink,
++    /// One of the nearest `window` causally visible positions.
++    Window,
++    /// An exact top-k key outside the sink and window.
++    TopK,
++}
++
++/// One selected position and the slot that admitted it.
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub struct FlockEntry {
++    pub position: usize,
++    pub slot: FlockSlot,
++}
++
++/// Exact cost accounting for one query row.
++#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
++pub struct FlockScan {
++    /// Causally visible positions (`query + 1`).
++    pub visible: usize,
++    /// Kept entries whose slot is [`FlockSlot::Sink`] (zero or one).
++    pub sink_kept: usize,
++    /// Kept entries whose slot is [`FlockSlot::Window`].
++    pub window_kept: usize,
++    /// Kept entries whose slot is [`FlockSlot::TopK`].
++    pub top_k_kept: usize,
++    /// Rest positions the exact selector compared for the top-k. This is a full
++    /// scan of the non-window prefix; it is not evidence of `O(k)` search.
++    pub candidates_scanned: usize,
++    /// The whole visible prefix fits inside the nominal window
++    /// (`query + 1 <= window`), so the window already reaches the sequence
++    /// start; the sink is the only kept position outside it unless the prefix
++    /// is a single position.
++    pub short_prefix: bool,
++    /// Fewer than `k` rest candidates existed.
++    pub top_k_short: bool,
++    /// The k-th and (k+1)-th rest candidates have equal rank scores, so the
++    /// top-k boundary is a tie (resolved deterministically by position).
++    pub cutoff_ties: bool,
++}
++
++/// The deduplicated support of one query row, in canonical rank order.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub struct FlockSelection {
++    /// Kept entries ordered by descending rank score; ties break to the lowest
++    /// position.
++    pub entries: Vec<FlockEntry>,
++    /// Exact counters for this row.
++    pub scan: FlockScan,
++}
++
++impl FlockSelection {
++    pub fn len(&self) -> usize {
++        self.entries.len()
++    }
++
++    pub fn is_empty(&self) -> bool {
++        self.entries.is_empty()
++    }
++
++    /// Kept positions in canonical (descending rank) order.
++    pub fn positions(&self) -> impl Iterator<Item = usize> + '_ {
++        self.entries.iter().map(|entry| entry.position)
++    }
++
++    /// Raw unnormalized rank weights `a_i = 1/(i + 1)` aligned with `entries`.
++    ///
++    /// This is the B2 hybrid scale: it is deliberately **not** normalized over
++    /// the support.
++    pub fn raw_rank_weights(&self) -> Vec<f32> {
++        raw_rank_weights(self.entries.len())
++    }
++
++    /// The within-support normalized rank table (arm R) aligned with `entries`.
++    pub fn normalized_rank_weights(&self) -> Vec<f32> {
++        rank_table(self.entries.len())
++    }
++}
++
++/// Accumulated support-selection statistics over a probe or evaluation run.
++#[derive(Clone, Copy, Debug, Default, PartialEq)]
++pub struct FlockStats {
++    pub queries: u64,
++    pub selected: u64,
++    pub sink: u64,
++    pub window: u64,
++    pub top_k: u64,
++    /// Sum of [`FlockScan::candidates_scanned`] over recorded rows.
++    pub candidates_scanned: u64,
++    /// Recorded rows whose prefix fits inside the nominal window.
++    pub short_prefix: u64,
++    /// Recorded rows with fewer than `k` rest candidates.
++    pub top_k_short: u64,
++    /// Recorded rows whose top-k boundary is a tie.
++    pub cutoff_ties: u64,
++}
++
++impl FlockStats {
++    pub fn add(&mut self, other: &FlockStats) {
++        self.queries += other.queries;
++        self.selected += other.selected;
++        self.sink += other.sink;
++        self.window += other.window;
++        self.top_k += other.top_k;
++        self.candidates_scanned += other.candidates_scanned;
++        self.short_prefix += other.short_prefix;
++        self.top_k_short += other.top_k_short;
++        self.cutoff_ties += other.cutoff_ties;
++    }
++
++    /// Accumulate one row's exact counter record.
++    pub fn record(&mut self, scan: &FlockScan) {
++        self.queries += 1;
++        self.selected += (scan.sink_kept + scan.window_kept + scan.top_k_kept) as u64;
++        self.sink += scan.sink_kept as u64;
++        self.window += scan.window_kept as u64;
++        self.top_k += scan.top_k_kept as u64;
++        self.candidates_scanned += scan.candidates_scanned as u64;
++        if scan.short_prefix {
++            self.short_prefix += 1;
++        }
++        if scan.top_k_short {
++            self.top_k_short += 1;
++        }
++        if scan.cutoff_ties {
++            self.cutoff_ties += 1;
++        }
++    }
++
++    pub fn mean_selected(&self) -> f64 {
++        if self.queries == 0 {
++            return 0.0;
++        }
++        self.selected as f64 / self.queries as f64
++    }
++
++    fn share(&self, part: u64) -> f64 {
++        if self.selected == 0 {
++            return 0.0;
++        }
++        part as f64 / self.selected as f64
++    }
++
++    pub fn sink_share(&self) -> f64 {
++        self.share(self.sink)
++    }
++
++    pub fn window_share(&self) -> f64 {
++        self.share(self.window)
++    }
++
++    pub fn top_k_share(&self) -> f64 {
++        self.share(self.top_k)
++    }
++}
++
++/// Raw unnormalized rank weights `a_i = 1 / (i + 1)` for `count` entries.
++///
++/// These are the B2 hybrid weights as written: the fixed scale is the raw
++/// reciprocal rank, not its within-support normalized probability.
++pub fn raw_rank_weights(count: usize) -> Vec<f32> {
++    (0..count)
++        .map(|rank| (1.0f64 / (rank as f64 + 1.0)) as f32)
++        .collect()
++}
++
++/// Normalized fixed rank table `w_i ∝ 1 / (i + 1)` over `count` entries.
++///
++/// This is arm R's within-support weight vector (it sums to one up to f32
++/// rounding); [`raw_rank_weights`] is the unnormalized hybrid scale.
++pub fn rank_table(count: usize) -> Vec<f32> {
++    let raw: Vec<f64> = (0..count).map(|i| 1.0 / (i as f64 + 1.0)).collect();
++    let sum: f64 = raw.iter().sum();
++    raw.iter().map(|w| (w / sum) as f32).collect()
++}
++
++/// The exact deduplicated flock support for one query row.
++///
++/// `rank_scores[i]` is the monotone rank score of position `i` (positions
++/// `0..=query`, all causally visible). A higher score ranks nearer. The support
++/// is `{sink} ∪ window ∪ top-k`: the sink is always kept, the window keeps the
++/// `window` nearest preceding positions, and the exact top-`k` of the rest is
++/// kept. Entries are returned in descending rank order with ties broken to the
++/// lowest position; `entries` never repeats a position.
++///
++/// Exact scan only: the top-k is found by comparing every rest position, and
++/// [`FlockScan::candidates_scanned`] records that cost. No approximation and no
++/// index are used here.
++pub fn flock_select(
++    rank_scores: &[f32],
++    query: usize,
++    select: FlockSelect,
++) -> Result<FlockSelection> {
++    if rank_scores.len() != query + 1 {
++        return Err(invalid(format!(
++            "flock row has {} scores for query {query}",
++            rank_scores.len()
++        )));
++    }
++    if select.window == 0 {
++        return Err(invalid("flock window must be positive"));
++    }
++    if select.k == 0 {
++        return Err(invalid("flock k must be positive"));
++    }
++    if select.sink > query {
++        return Err(invalid("flock sink must be causally visible"));
++    }
++    if rank_scores.iter().any(|score| !score.is_finite()) {
++        return Err(invalid("flock rank scores must be finite"));
++    }
++
++    let window_start = (query + 1).saturating_sub(select.window);
++    let mut slots: Vec<Option<FlockSlot>> = vec![None; query + 1];
++    for slot in slots[window_start..=query].iter_mut() {
++        *slot = Some(FlockSlot::Window);
++    }
++    // The sink is always kept; when it lies inside the window span the sink
++    // slot wins so the position appears exactly once.
++    slots[select.sink] = Some(FlockSlot::Sink);
++
++    let mut rest: Vec<usize> = (0..window_start)
++        .filter(|&position| slots[position].is_none())
++        .collect();
++    rest.sort_by(|&a, &b| {
++        rank_scores[b]
++            .total_cmp(&rank_scores[a])
++            .then_with(|| a.cmp(&b))
++    });
++    let candidates_scanned = rest.len();
++    let top_k_short = candidates_scanned < select.k;
++    let cutoff_ties = candidates_scanned > select.k
++        && rank_scores[rest[select.k - 1]] == rank_scores[rest[select.k]];
++    for &position in rest.iter().take(select.k) {
++        slots[position] = Some(FlockSlot::TopK);
++    }
++
++    let mut entries: Vec<FlockEntry> = slots
++        .iter()
++        .enumerate()
++        .filter_map(|(position, slot)| slot.map(|slot| FlockEntry { position, slot }))
++        .collect();
++    entries.sort_by(|a, b| {
++        rank_scores[b.position]
++            .total_cmp(&rank_scores[a.position])
++            .then_with(|| a.position.cmp(&b.position))
++    });
++
++    let mut scan = FlockScan {
++        visible: query + 1,
++        candidates_scanned,
++        short_prefix: query + 1 <= select.window,
++        top_k_short,
++        cutoff_ties,
++        ..FlockScan::default()
++    };
++    for entry in &entries {
++        match entry.slot {
++            FlockSlot::Sink => scan.sink_kept += 1,
++            FlockSlot::Window => scan.window_kept += 1,
++            FlockSlot::TopK => scan.top_k_kept += 1,
++        }
++    }
++
++    Ok(FlockSelection { entries, scan })
++}
++
++/// Arm S: softmax over the kept set, as a dense row of length `scores.len()`.
++///
++/// `scores` are the host model's own scores for positions `0..=query` (for the
++/// B0 probe, the checkpoint's scaled dot product). Off-support entries are
++/// exactly zero; the kept entries are the stable softmax over the support.
++pub fn softmax_over_support(scores: &[f32], selection: &FlockSelection) -> Result<Vec<f32>> {
++    if selection.entries.is_empty() {
++        return Err(invalid("flock support is empty"));
++    }
++    let mut weights = vec![0f32; scores.len()];
++    let mut maximum = f32::NEG_INFINITY;
++    for entry in &selection.entries {
++        let value = *scores
++            .get(entry.position)
++            .ok_or_else(|| invalid("flock support position is outside the score row"))?;
++        if !value.is_finite() {
++            return Err(invalid("flock score row must be finite"));
++        }
++        maximum = maximum.max(value);
++    }
++    let mut sum = 0f64;
++    for entry in &selection.entries {
++        let weight = f64::from((scores[entry.position] - maximum).exp());
++        weights[entry.position] = weight as f32;
++        sum += weight;
++    }
++    if !(sum > 0.0) {
++        return Err(invalid("flock softmax support has zero mass"));
++    }
++    for entry in &selection.entries {
++        weights[entry.position] = (f64::from(weights[entry.position]) / sum) as f32;
++    }
++    Ok(weights)
++}
++
++/// One query row's selection and dense weights for the chosen arm.
++pub struct FlockRowWeights {
++    /// The deduplicated support in canonical rank order.
++    pub selection: FlockSelection,
++    /// Dense weights over `0..=query`; zero outside the support.
++    pub weights: Vec<f32>,
++}
++
++/// Select one query row and compute its arm weights.
++///
++/// `rank_scores` orders the candidates (a monotone rank score); `model_scores`
++/// supplies arm S's softmax values and is required to have the same length.
++/// Arm R ignores `model_scores` but the shape check still applies, so both
++/// callers can compute the two rows once.
++pub fn flock_row_weights(
++    rank_scores: &[f32],
++    model_scores: &[f32],
++    query: usize,
++    spec: &FlockSpec,
++) -> Result<FlockRowWeights> {
++    if model_scores.len() != rank_scores.len() {
++        return Err(invalid("flock rank and model score rows differ in length"));
++    }
++    let selection = flock_select(rank_scores, query, spec.select())?;
++    let weights = match spec.weights {
++        FlockWeights::Softmax => softmax_over_support(model_scores, &selection)?,
++        FlockWeights::Rank => {
++            let table = rank_table(selection.entries.len());
++            let mut weights = vec![0f32; rank_scores.len()];
++            for (rank, entry) in selection.entries.iter().enumerate() {
++                weights[entry.position] = table[rank];
++            }
++            weights
++        }
++    };
++    Ok(FlockRowWeights { selection, weights })
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    fn select_scores(scores: &[f32], query: usize, k: usize, window: usize) -> FlockSelection {
++        flock_select(scores, query, FlockSelect { sink: 0, window, k }).expect("selection")
++    }
++
++    fn positions(selection: &FlockSelection) -> Vec<usize> {
++        selection.positions().collect()
++    }
++
++    #[test]
++    fn selects_sink_window_and_topk_deduplicated_in_rank_order() {
++        let scores = [0.0f32, 1.0, 2.0, 9.0, 3.0, 8.0, 4.0, 5.0, 6.0, 7.0, 0.5];
++        let selection = select_scores(&scores, 10, 2, 4);
++        // Membership: sink 0, window 7..=10, top-2 of {1..=6} = {3, 5}.
++        assert_eq!(positions(&selection), vec![3, 5, 9, 8, 7, 10, 0]);
++        assert_eq!(
++            selection
++                .entries
++                .iter()
++                .map(|entry| entry.slot)
++                .collect::<Vec<_>>(),
++            vec![
++                FlockSlot::TopK,
++                FlockSlot::TopK,
++                FlockSlot::Window,
++                FlockSlot::Window,
++                FlockSlot::Window,
++                FlockSlot::Window,
++                FlockSlot::Sink,
++            ]
++        );
++        let scan = selection.scan;
++        assert_eq!(scan.visible, 11);
++        assert_eq!(scan.sink_kept, 1);
++        assert_eq!(scan.window_kept, 4);
++        assert_eq!(scan.top_k_kept, 2);
++        assert_eq!(scan.candidates_scanned, 6);
++        assert!(!scan.short_prefix);
++        assert!(!scan.top_k_short);
++        assert!(!scan.cutoff_ties);
++    }
++
++    #[test]
++    fn first_position_selects_only_the_sink() {
++        let scores = [0.5f32];
++        let selection = select_scores(&scores, 0, 7, 64);
++        assert_eq!(positions(&selection), vec![0]);
++        assert_eq!(selection.entries[0].slot, FlockSlot::Sink);
++        assert!(selection.scan.short_prefix);
++        assert!(selection.scan.top_k_short);
++        assert_eq!(selection.scan.candidates_scanned, 0);
++        assert_eq!(selection.scan.window_kept, 0);
++    }
++
++    #[test]
++    fn window_at_least_the_prefix_keeps_each_position_once() {
++        let scores = [3.0f32, 1.0, 2.0, 0.5];
++        let selection = select_scores(&scores, 3, 2, 64);
++        // Window spans 0..=3; the sink at 0 wins its slot, so 0 is not repeated.
++        assert_eq!(positions(&selection), vec![0, 2, 1, 3]);
++        assert_eq!(
++            selection.entries[0].slot,
++            FlockSlot::Sink,
++            "the sink ranks first here because it has the highest score"
++        );
++        assert_eq!(selection.scan.sink_kept, 1);
++        assert_eq!(selection.scan.window_kept, 3);
++        assert_eq!(selection.scan.top_k_kept, 0);
++        assert!(selection.scan.short_prefix);
++        assert!(selection.scan.top_k_short);
++        assert_eq!(selection.scan.candidates_scanned, 0);
++    }
++
++    #[test]
++    fn ties_break_to_the_lowest_position_and_the_cutoff_tie_is_counted() {
++        // Candidates outside window: positions 0..=4 with equal scores 7.0 at
++        // positions 1 and 4; k = 1 keeps the lower position.
++        let scores = [1.0f32, 7.0, 2.0, 3.0, 7.0, 0.0];
++        let selection = select_scores(&scores, 5, 1, 1);
++        // Window is position 5; rest is {1, 2, 3, 4}; top-1 keeps position 1.
++        assert_eq!(positions(&selection), vec![1, 0, 5]);
++        assert_eq!(selection.entries[0].slot, FlockSlot::TopK);
++        assert_eq!(selection.entries[0].position, 1);
++        assert!(selection.scan.cutoff_ties, "7.0 at rank 1 ties rank 2");
++
++        // k = 2 keeps both equal-score candidates, tie ordering by position.
++        let selection = select_scores(&scores, 5, 2, 1);
++        let kept: Vec<usize> = selection.positions().take(2).collect();
++        assert_eq!(kept, vec![1, 4]);
++    }
++
++    #[test]
++    fn equal_scores_order_by_position_everywhere() {
++        let scores = [2.0f32, 2.0, 2.0, 2.0, 2.0];
++        let selection = select_scores(&scores, 4, 3, 1);
++        // Window is 4; sink is 0; rest is 1..=3; all scores equal, so the
++        // canonical order is pure position order.
++        assert_eq!(positions(&selection), vec![0, 1, 2, 3, 4]);
++        let slots: Vec<FlockSlot> = selection.entries.iter().map(|e| e.slot).collect();
++        assert_eq!(
++            slots,
++            vec![
++                FlockSlot::Sink,
++                FlockSlot::TopK,
++                FlockSlot::TopK,
++                FlockSlot::TopK,
++                FlockSlot::Window,
++            ]
++        );
++    }
++
++    #[test]
++    fn general_sink_is_deduplicated_against_the_window() {
++        let scores = [5.0f32, 1.0, 2.0, 3.0];
++        let selection = flock_select(
++            &scores,
++            3,
++            FlockSelect {
++                sink: 2,
++                window: 4,
++                k: 2,
++            },
++        )
++        .expect("selection");
++        let kept: Vec<usize> = selection.positions().collect();
++        assert_eq!(kept.len(), 4, "each position appears exactly once");
++        assert_eq!(kept, vec![0, 3, 2, 1]);
++        let sink_entry = selection
++            .entries
++            .iter()
++            .find(|entry| entry.position == 2)
++            .expect("sink entry");
++        assert_eq!(sink_entry.slot, FlockSlot::Sink);
++        assert_eq!(selection.scan.top_k_kept, 0);
++        assert_eq!(selection.scan.candidates_scanned, 0);
++    }
++
++    #[test]
++    fn rejects_malformed_rows() {
++        let scores = [1.0f32, 2.0, 3.0];
++        assert!(flock_select(
++            &scores,
++            2,
++            FlockSelect {
++                sink: 0,
++                window: 0,
++                k: 1
++            }
++        )
++        .is_err());
++        assert!(flock_select(
++            &scores,
++            2,
++            FlockSelect {
++                sink: 0,
++                window: 1,
++                k: 0
++            }
++        )
++        .is_err());
++        assert!(flock_select(
++            &scores,
++            1,
++            FlockSelect {
++                sink: 0,
++                window: 1,
++                k: 1
++            }
++        )
++        .is_err());
++        assert!(
++            flock_select(
++                &scores,
++                1,
++                FlockSelect {
++                    sink: 2,
++                    window: 1,
++                    k: 1
++                }
++            )
++            .is_err(),
++            "a sink beyond the query is not causally visible"
++        );
++        assert!(
++            flock_select(
++                &[f32::NAN, 1.0],
++                1,
++                FlockSelect {
++                    sink: 0,
++                    window: 1,
++                    k: 1
++                }
++            )
++            .is_err(),
++            "non-finite rank scores are rejected"
++        );
++    }
++
++    #[test]
++    fn raw_weights_are_exact_reciprocals_and_normalized_table_sums_to_one() {
++        let raw = raw_rank_weights(4);
++        assert_eq!(raw, vec![1.0, 0.5, 1.0 / 3.0, 0.25]);
++        let table = rank_table(4);
++        let sum: f64 = table.iter().map(|w| f64::from(*w)).sum();
++        assert!((sum - 1.0).abs() < 1e-6, "table summed to {sum}");
++        for pair in table.windows(2) {
++            assert!(pair[0] > pair[1], "rank table must be strictly decreasing");
++        }
++    }
++
++    #[test]
++    fn softmax_over_support_matches_the_dense_softmax_restricted_to_it() {
++        let scores = [0.5f32, -1.0, 2.0, 0.25, 1.5, -0.75, 0.0, 0.9];
++        let selection = select_scores(&scores, 7, 3, 2);
++        let weights = softmax_over_support(&scores, &selection).expect("weights");
++        assert_eq!(weights.len(), scores.len());
++        for (position, weight) in weights.iter().enumerate() {
++            let kept = selection
++                .entries
++                .iter()
++                .any(|entry| entry.position == position);
++            if kept {
++                assert!(*weight > 0.0, "kept position {position} must have mass");
++            } else {
++                assert_eq!(*weight, 0.0, "position {position} is outside the support");
++            }
++        }
++        let total: f64 = weights.iter().map(|w| f64::from(*w)).sum();
++        assert!((total - 1.0).abs() < 1e-6, "support mass {total}");
++        // The dense softmax renormalized over the support must agree.
++        let maximum = selection
++            .entries
++            .iter()
++            .map(|entry| scores[entry.position])
++            .fold(f32::NEG_INFINITY, f32::max);
++        let dense: Vec<f64> = scores
++            .iter()
++            .map(|score| f64::from((score - maximum).exp()))
++            .collect();
++        let support_mass: f64 = selection
++            .entries
++            .iter()
++            .map(|entry| dense[entry.position])
++            .sum();
++        for entry in &selection.entries {
++            let expected = (dense[entry.position] / support_mass) as f32;
++            let got = weights[entry.position];
++            assert!(
++                (f64::from(got) - f64::from(expected)).abs() < 1e-6,
++                "position {}: {got} vs {expected}",
++                entry.position
++            );
++        }
++    }
++
++    #[test]
++    fn selection_and_weights_are_deterministic() {
++        let scores = [0.1f32, 0.9, 0.5, 0.7, 0.3, 0.8, 0.2];
++        let model = [0.2f32, 0.4, 0.6, 0.8, 1.0, 0.9, 0.7];
++        let spec = FlockSpec {
++            k: 3,
++            window: 2,
++            weights: FlockWeights::Rank,
++        };
++        let first = flock_row_weights(&scores, &model, 6, &spec).expect("first");
++        for _ in 0..10 {
++            let again = flock_row_weights(&scores, &model, 6, &spec).expect("again");
++            assert_eq!(again.selection, first.selection);
++            assert_eq!(again.weights, first.weights);
++        }
++    }
++
++    #[test]
++    fn rank_arm_support_is_zero_outside_and_strictly_ranked_inside() {
++        let scores = [0.1f32, 0.9, 0.5, 0.7, 0.3, 0.8, 0.2];
++        let model = [0.0f32; 7];
++        let spec = FlockSpec {
++            k: 2,
++            window: 2,
++            weights: FlockWeights::Rank,
++        };
++        let row = flock_row_weights(&scores, &model, 6, &spec).expect("row");
++        let kept: Vec<usize> = row.selection.positions().collect();
++        for (position, weight) in row.weights.iter().enumerate() {
++            if kept.contains(&position) {
++                assert!(*weight > 0.0, "kept position {position}");
++            } else {
++                assert_eq!(*weight, 0.0, "position {position} is outside");
++            }
++        }
++        let ranked: Vec<f32> = kept.iter().map(|position| row.weights[*position]).collect();
++        for pair in ranked.windows(2) {
++            assert!(pair[0] > pair[1], "arm R weights must strictly decrease");
++        }
++        let total: f64 = ranked.iter().map(|w| f64::from(*w)).sum();
++        assert!((total - 1.0).abs() < 1e-6);
++    }
++}
+diff --git a/crates/uor-r4-training/src/flock_transport.rs b/crates/uor-r4-training/src/flock_transport.rs
+new file mode 100644
+index 000000000..b3fee65c9
+--- /dev/null
++++ b/crates/uor-r4-training/src/flock_transport.rs
+@@ -0,0 +1,757 @@
++//! Model-source `score_and_normalize` flock transport and its G1a plumbing.
++//!
++//! [`FlockCausalAttentionTransport`] implements the model-source
++//! [`CausalAttentionTransport`](uor_r4_model_source::attention::CausalAttentionTransport)
++//! seam with identity frame hooks and flock weights at the score hook. It is
++//! the B0 arm host for the amended G1a subset: the coordinate transport,
++//! RoPE, residuals, MLP and head remain the model-source decoder's, and the
++//! only difference from
++//! [`DenseIdentityTransport`] is
++//! [`score_and_normalize`](uor_r4_model_source::attention::CausalAttentionTransport::score_and_normalize).
++//!
++//! Scores are computed from the post-RoPE query and the packed causal key
++//! prefix exactly as the pure selector expects: rank scores are the Minkowski
++//! product `-q0 k0 + q . k` (monotone, no `arcosh`) and model scores are the
++//! checkpoint's scaled dot product `q . k / sqrt(width)`. The selector itself
++//! stays in [`crate::flock`]; this module only lifts rows and fills the
++//! weight vector.
++//!
++//! Status: **implemented, NOT RUN.** The focused tests below either need no
++//! model (pure row/weight checks and fail-closed shape checks) or are the
++//! `#[ignore]`d G1a subset, which requires the pinned SmolLM2 checkpoint and
++//! the u16 token file. No Cargo or model work is authorized while the recovery
++//! hold (#1520) is in force.
++
++use std::result::Result as StdResult;
++
++use uor_r4_model_source::attention::{
++    CausalAttentionHeadContext, CausalAttentionSourceContext, CausalAttentionTransport,
++};
++
++use crate::flock::{
++    flock_row_weights, FlockSpec, FlockStats, FlockWeights, FLOCK_SELECTOR_VERSION,
++};
++use crate::{invalid, Result};
++
++/// Dense same-path baseline: identity frame hooks and the model-source default
++/// stable-softmax score hook.
++pub struct DenseIdentityTransport;
++
++impl CausalAttentionTransport for DenseIdentityTransport {
++    fn policy_identity(&self) -> &str {
++        "dense-identity-transport/1"
++    }
++
++    fn begin_position(&mut self, _token: usize, _position: usize) {}
++
++    fn transform_query(
++        &mut self,
++        _context: CausalAttentionHeadContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++
++    fn transport_key(
++        &mut self,
++        _context: CausalAttentionSourceContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++
++    fn transport_value(
++        &mut self,
++        _context: CausalAttentionSourceContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++
++    fn output_to_model_frame(
++        &mut self,
++        _context: CausalAttentionHeadContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++}
++
++/// The Lorentz rank row and the host model score row for one query over a
++/// packed causal prefix.
++///
++/// `packed_keys` holds one `query.len()`-wide row per causally visible source
++/// position `0..=query_position`. Rank scores are the Minkowski product
++/// `-q0 k0 + q . k` of the lifted vectors `(sqrt(1 + |x|^2), x)`; model scores
++/// are `q . k / sqrt(width)`. Higher rank scores rank nearer.
++pub fn flock_row_scores(
++    query: &[f32],
++    packed_keys: &[f32],
++    query_position: usize,
++) -> Result<(Vec<f32>, Vec<f32>)> {
++    let width = query.len();
++    if width == 0 {
++        return Err(invalid("flock transport query row is empty"));
++    }
++    let visible = query_position + 1;
++    if packed_keys.len() != visible * width {
++        return Err(invalid(format!(
++            "flock transport needs {} packed keys for {} visible rows of width {width}, got {}",
++            visible * width,
++            visible,
++            packed_keys.len()
++        )));
++    }
++    if query.iter().any(|v| !v.is_finite()) || packed_keys.iter().any(|v| !v.is_finite()) {
++        return Err(invalid("flock transport scores must be finite"));
++    }
++    let q0 = (1.0 + query.iter().map(|v| v * v).sum::<f32>()).sqrt();
++    let inverse_scale = 1.0 / (width as f32).sqrt();
++    let mut rank_row = Vec::with_capacity(visible);
++    let mut model_row = Vec::with_capacity(visible);
++    for source in 0..visible {
++        let row = &packed_keys[source * width..(source + 1) * width];
++        let k0 = (1.0 + row.iter().map(|v| v * v).sum::<f32>()).sqrt();
++        let dot: f32 = query.iter().zip(row).map(|(a, b)| a * b).sum();
++        rank_row.push(dot - q0 * k0);
++        model_row.push(dot * inverse_scale);
++    }
++    Ok((rank_row, model_row))
++}
++
++/// Flock attention at the model-source score hook.
++///
++/// Identity frame hooks; [`FlockSpec`] selects the support and weight arm. Any
++/// internal shape or selector fault is recorded in `fault` and surfaced
++/// through [`CausalAttentionTransport::status`], so the decoder step fails
++/// closed instead of scoring a partial row.
++pub struct FlockCausalAttentionTransport {
++    spec: FlockSpec,
++    stats: FlockStats,
++    fault: Option<String>,
++    width: Option<usize>,
++}
++
++impl FlockCausalAttentionTransport {
++    pub fn new(spec: FlockSpec) -> Result<Self> {
++        if spec.k == 0 {
++            return Err(invalid("flock transport k must be positive"));
++        }
++        if spec.window == 0 {
++            return Err(invalid("flock transport window must be positive"));
++        }
++        Ok(Self {
++            spec,
++            stats: FlockStats::default(),
++            fault: None,
++            width: None,
++        })
++    }
++
++    pub fn spec(&self) -> &FlockSpec {
++        &self.spec
++    }
++
++    pub fn stats(&self) -> &FlockStats {
++        &self.stats
++    }
++
++    /// Supports collected since the previous call, for the harness report.
++    pub fn take_stats(&mut self) -> FlockStats {
++        std::mem::take(&mut self.stats)
++    }
++
++    fn fail(&mut self, message: impl Into<String>) {
++        if self.fault.is_none() {
++            self.fault = Some(message.into());
++        }
++    }
++
++    fn weights_for(
++        &mut self,
++        query: &[f32],
++        packed_keys: &[f32],
++        query_position: usize,
++    ) -> Result<Vec<f32>> {
++        let (rank_row, model_row) = flock_row_scores(query, packed_keys, query_position)?;
++        let weighted = flock_row_weights(&rank_row, &model_row, query_position, &self.spec)?;
++        self.stats.record(&weighted.selection.scan);
++        Ok(weighted.weights)
++    }
++}
++
++impl CausalAttentionTransport for FlockCausalAttentionTransport {
++    fn policy_identity(&self) -> &str {
++        "flock-causal-attention-transport/1"
++    }
++
++    fn status(&self) -> StdResult<(), String> {
++        match &self.fault {
++            Some(fault) => Err(fault.clone()),
++            None => Ok(()),
++        }
++    }
++
++    fn implementation_evidence(&self) -> StdResult<Option<String>, String> {
++        Ok(Some(
++            serde_json::json!({
++                "selector": FLOCK_SELECTOR_VERSION,
++                "k": self.spec.k,
++                "window": self.spec.window,
++                "weights": match self.spec.weights {
++                    FlockWeights::Softmax => "softmax",
++                    FlockWeights::Rank => "rank",
++                },
++                "stats": {
++                    "queries": self.stats.queries,
++                    "selected": self.stats.selected,
++                    "sink": self.stats.sink,
++                    "window": self.stats.window,
++                    "top_k": self.stats.top_k,
++                    "candidates_scanned": self.stats.candidates_scanned,
++                    "short_prefix": self.stats.short_prefix,
++                    "top_k_short": self.stats.top_k_short,
++                    "cutoff_ties": self.stats.cutoff_ties,
++                },
++            })
++            .to_string(),
++        ))
++    }
++
++    fn begin_position(&mut self, _token: usize, _position: usize) {}
++
++    fn transform_query(
++        &mut self,
++        _context: CausalAttentionHeadContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++
++    fn transport_key(
++        &mut self,
++        _context: CausalAttentionSourceContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++
++    fn transport_value(
++        &mut self,
++        _context: CausalAttentionSourceContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++
++    fn score_and_normalize(
++        &mut self,
++        context: CausalAttentionHeadContext,
++        query: &[f32],
++        packed_keys: &[f32],
++        output_weights: &mut [f32],
++        _canonical_math: bool,
++    ) {
++        if self.fault.is_some() {
++            return;
++        }
++        let width = query.len();
++        match self.width {
++            None => self.width = Some(width),
++            Some(seen) if seen != width => {
++                self.fail(format!(
++                    "flock transport head width changed from {seen} to {width}"
++                ));
++                return;
++            }
++            Some(_) => {}
++        }
++        if output_weights.len() != context.query_position + 1 {
++            self.fail(format!(
++                "flock transport weight row has {} slots for query position {}",
++                output_weights.len(),
++                context.query_position
++            ));
++            return;
++        }
++        match self.weights_for(query, packed_keys, context.query_position) {
++            Ok(weights) => output_weights.copy_from_slice(&weights),
++            Err(error) => self.fail(format!("flock transport selector: {error}")),
++        }
++    }
++
++    fn output_to_model_frame(
++        &mut self,
++        _context: CausalAttentionHeadContext,
++        input: &[f32],
++        output: &mut [f32],
++    ) {
++        output.copy_from_slice(input);
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::flock::{flock_select, raw_rank_weights, FlockSelect};
++    use crate::kappa_llama::held_out_starts;
++    use std::path::{Path, PathBuf};
++
++    fn query_row() -> Vec<f32> {
++        vec![1.0, -0.5, 0.25, 2.0]
++    }
++
++    fn key_rows(visible: usize) -> Vec<f32> {
++        let mut keys = Vec::with_capacity(visible * 4);
++        for source in 0..visible {
++            for lane in 0..4 {
++                keys.push((source as f32) * 0.2 + (lane as f32) * 0.1 - 0.7);
++            }
++        }
++        keys
++    }
++
++    #[test]
++    fn flock_rows_match_the_selector_inputs_and_weights() {
++        let query = query_row();
++        let keys = key_rows(5);
++        let (rank_row, model_row) = flock_row_scores(&query, &keys, 4).expect("rows");
++        assert_eq!(rank_row.len(), 5);
++        assert_eq!(model_row.len(), 5);
++        for source in 0..5usize {
++            let row = &keys[source * 4..(source + 1) * 4];
++            let q0 = (1.0 + query.iter().map(|v| v * v).sum::<f32>()).sqrt();
++            let k0 = (1.0 + row.iter().map(|v| v * v).sum::<f32>()).sqrt();
++            let dot: f32 = query.iter().zip(row).map(|(a, b)| a * b).sum();
++            assert_eq!(rank_row[source], dot - q0 * k0);
++            assert_eq!(model_row[source], dot / 2.0);
++        }
++
++        let spec = FlockSpec {
++            k: 1,
++            window: 2,
++            weights: FlockWeights::Rank,
++        };
++        let expected = flock_row_weights(&rank_row, &model_row, 4, &spec).expect("weights");
++        let mut transport = FlockCausalAttentionTransport::new(spec).expect("transport");
++        let mut output = vec![0f32; 5];
++        transport.score_and_normalize(
++            CausalAttentionHeadContext {
++                layer: 3,
++                head: 1,
++                query_position: 4,
++            },
++            &query,
++            &keys,
++            &mut output,
++            false,
++        );
++        assert!(transport.status().is_ok(), "{:?}", transport.status());
++        assert_eq!(output, expected.weights);
++        assert_eq!(transport.stats().queries, 1);
++        assert_eq!(transport.stats().selected, expected.selection.len() as u64);
++        assert_eq!(
++            transport.stats().candidates_scanned,
++            expected.selection.scan.candidates_scanned as u64
++        );
++    }
++
++    #[test]
++    fn rank_arm_matches_the_normalized_table_convention() {
++        let query = query_row();
++        let keys = key_rows(4);
++        let (rank_row, model_row) = flock_row_scores(&query, &keys, 3).expect("rows");
++        let spec = FlockSpec {
++            k: 2,
++            window: 1,
++            weights: FlockWeights::Rank,
++        };
++        let selection = flock_select(
++            &rank_row,
++            3,
++            FlockSelect {
++                sink: 0,
++                window: spec.window,
++                k: spec.k,
++            },
++        )
++        .expect("selection");
++        let mut transport = FlockCausalAttentionTransport::new(spec).expect("transport");
++        let mut output = vec![0f32; 4];
++        transport.score_and_normalize(
++            CausalAttentionHeadContext {
++                layer: 0,
++                head: 0,
++                query_position: 3,
++            },
++            &query,
++            &keys,
++            &mut output,
++            false,
++        );
++        assert!(transport.status().is_ok(), "{:?}", transport.status());
++        let total: f64 = output.iter().map(|value| f64::from(*value)).sum();
++        assert!(
++            (total - 1.0).abs() < 1e-6,
++            "arm R normalizes to one: {total}"
++        );
++        let raw = raw_rank_weights(selection.len());
++        assert_eq!(raw[0], 1.0);
++        assert!((raw[1] - 0.5).abs() < 1e-6);
++        for entry in &selection.entries {
++            assert!(
++                output[entry.position] > 0.0,
++                "kept position {} must carry weight",
++                entry.position
++            );
++        }
++        let first = selection.entries[0].position;
++        for entry in &selection.entries[1..] {
++            assert!(
++                output[first] > output[entry.position],
++                "rank 0 must carry the largest weight"
++            );
++        }
++    }
++
++    #[test]
++    fn transport_fails_closed_on_shape_mismatch() {
++        let mut transport = FlockCausalAttentionTransport::new(FlockSpec {
++            k: 1,
++            window: 1,
++            weights: FlockWeights::Softmax,
++        })
++        .expect("transport");
++        let query = query_row();
++        let short_keys = key_rows(2);
++        let mut output = vec![0f32; 2];
++        transport.score_and_normalize(
++            CausalAttentionHeadContext {
++                layer: 0,
++                head: 0,
++                query_position: 2,
++            },
++            &query,
++            &short_keys,
++            &mut output,
++            false,
++        );
++        assert!(transport.status().is_err(), "a short row must fail closed");
++        let evidence = transport
++            .implementation_evidence()
++            .expect("evidence")
++            .expect("some");
++        assert!(evidence.contains(FLOCK_SELECTOR_VERSION));
++    }
++
++    fn env_usize(name: &str, default: usize) -> usize {
++        match std::env::var(name) {
++            Ok(value) => value
++                .parse()
++                .unwrap_or_else(|_| panic!("{name} is an integer")),
++            Err(_) => default,
++        }
++    }
++
++    fn env_csv(name: &str, default: &str) -> Vec<String> {
++        std::env::var(name)
++            .unwrap_or_else(|_| default.to_owned())
++            .split(',')
++            .map(|item| item.trim().to_owned())
++            .filter(|item| !item.is_empty())
++            .collect()
++    }
++
++    fn read_u16_tokens(path: &Path) -> Vec<u16> {
++        let bytes = std::fs::read(path).unwrap_or_else(|error| panic!("tokens: {error}"));
++        assert!(
++            bytes.len().is_multiple_of(2),
++            "token file is little-endian u16"
++        );
++        bytes
++            .chunks_exact(2)
++            .map(|pair| u16::from_le_bytes([pair[0], pair[1]]))
++            .collect()
++    }
++
++    fn argmax(row: &[f32]) -> usize {
++        row.iter()
++            .enumerate()
++            .max_by(|a, b| a.1.total_cmp(b.1))
++            .map(|(index, _)| index)
++            .expect("a nonempty logit row")
++    }
++
++    fn next_token_logprob(logits: &[f32], target: usize) -> f64 {
++        let maximum = logits
++            .iter()
++            .fold(f64::NEG_INFINITY, |best, &value| best.max(f64::from(value)));
++        let sum: f64 = logits
++            .iter()
++            .map(|&value| (f64::from(value) - maximum).exp())
++            .sum();
++        f64::from(logits[target]) - maximum - sum.ln()
++    }
++
++    /// G1a subset through the model-source seam: the dense identity transport
++    /// must reproduce `step_state`, then the flock arms report their NLL gap.
++    #[test]
++    #[ignore = "needs the pinned SmolLM2 checkpoint and u16 token file: UOR_B0_MODEL=/path UOR_B0_TOKENS=/path/x.u16 UOR_B0_HELD_OUT=N [UOR_B0_TIME=512] [UOR_B0_WINDOWS=4] [UOR_B0_SEED=9001] [UOR_B0_K=7,64] [UOR_B0_WEIGHTS=softmax,rank] [UOR_B0_G1A_ROOT=/fresh/root] cargo test -p uor-r4-training --release --offline --lib g1a_subset -- --ignored --nocapture"]
++    fn g1a_subset_dense_and_flock_through_the_model_source_seam() {
++        use uor_r4_model_source::attention::CausalAttentionLayerSelection;
++        use uor_r4_model_source::{HuggingFaceLlamaOracle, TeacherExecutionConfig};
++
++        let started = std::time::Instant::now();
++        let model_dir = PathBuf::from(
++            std::env::var("UOR_B0_MODEL")
++                .expect("set UOR_B0_MODEL to the SmolLM2-135M-Instruct directory"),
++        );
++        let token_path = PathBuf::from(
++            std::env::var("UOR_B0_TOKENS").expect("set UOR_B0_TOKENS to the pinned u16 file"),
++        );
++        let held_out: usize = std::env::var("UOR_B0_HELD_OUT")
++            .expect("set UOR_B0_HELD_OUT to the held-out token count")
++            .parse()
++            .expect("UOR_B0_HELD_OUT is a token count");
++        let time = env_usize("UOR_B0_TIME", 512);
++        let windows = env_usize("UOR_B0_WINDOWS", 4);
++        let seed = env_usize("UOR_B0_SEED", 9001) as u64;
++        let ks: Vec<usize> = env_csv("UOR_B0_K", "7,64")
++            .iter()
++            .map(|value| value.parse().expect("UOR_B0_K entries are integers"))
++            .collect();
++        let weight_arms: Vec<FlockWeights> = env_csv("UOR_B0_WEIGHTS", "softmax,rank")
++            .iter()
++            .map(|value| FlockWeights::parse(value).expect("UOR_B0_WEIGHTS entries"))
++            .collect();
++        let root = std::env::var("UOR_B0_G1A_ROOT").ok().map(PathBuf::from);
++
++        let tokens = read_u16_tokens(&token_path);
++        let starts = held_out_starts(tokens.len(), 2048, windows, held_out, seed)
++            .expect("held-out starts (the pinned draw uses 2048-token windows)");
++        if let Some(root) = &root {
++            uor_r4_core::report_output::claim(root).expect("claim the g1a report root");
++        }
++
++        let oracle = HuggingFaceLlamaOracle::load_with_sequence_length_and_execution(
++            &model_dir,
++            time,
++            TeacherExecutionConfig::available_parallelism(),
++        )
++        .map_err(|error| invalid(format!("oracle: {error}")))
++        .expect("exact oracle");
++        let vocab = oracle.cfg().vocab;
++        let weights_sha =
++            crate::sha256_file(&model_dir.join("model.safetensors")).expect("weights sha");
++        let tokens_sha = crate::sha256_file(&token_path).expect("tokens sha");
++
++        let mut arm_labels: Vec<String> = vec!["dense".to_owned()];
++        for &k in &ks {
++            for &weight in &weight_arms {
++                arm_labels.push(format!(
++                    "flock-k{k}-{}",
++                    match weight {
++                        FlockWeights::Softmax => "softmax",
++                        FlockWeights::Rank => "rank",
++                    }
++                ));
++            }
++        }
++        let mut arm_nll_totals = vec![0f64; arm_labels.len()];
++        let mut window_reports = Vec::new();
++        let mut positions = 0usize;
++        let mut dense_agreement = 0usize;
++        let mut dense_bitwise_mismatches = 0u64;
++        let mut maximum_logit_delta = 0f64;
++        let mut plain_nll_total = 0f64;
++
++        for (window_index, &start) in starts.iter().enumerate() {
++            let token_window = &tokens[start..start + time];
++            let targets = &tokens[start + 1..start + time + 1];
++            let mut sessions = Vec::new();
++            sessions.push((
++                "dense".to_owned(),
++                oracle
++                    .new_causal_attention_transport_session(
++                        Box::new(DenseIdentityTransport),
++                        CausalAttentionLayerSelection::All,
++                        time,
++                    )
++                    .expect("dense transport session"),
++            ));
++            for &k in &ks {
++                for &weight in &weight_arms {
++                    let spec = FlockSpec {
++                        k,
++                        window: 64,
++                        weights: weight,
++                    };
++                    sessions.push((
++                        format!(
++                            "flock-k{k}-{}",
++                            match weight {
++                                FlockWeights::Softmax => "softmax",
++                                FlockWeights::Rank => "rank",
++                            }
++                        ),
++                        oracle
++                            .new_causal_attention_transport_session(
++                                Box::new(
++                                    FlockCausalAttentionTransport::new(spec)
++                                        .expect("flock transport"),
++                                ),
++                                CausalAttentionLayerSelection::All,
++                                time,
++                            )
++                            .expect("flock transport session"),
++                    ));
++                }
++            }
++            let mut state = oracle.new_state_bounded(time).expect("bounded state");
++            let mut plain_logits = vec![0f32; vocab];
++            let mut transport_logits = vec![0f32; vocab];
++            let mut window_nll = vec![0f64; sessions.len()];
++            for (position, &token) in token_window.iter().enumerate() {
++                let target = targets[position] as usize;
++                oracle
++                    .step_state(&mut state, token as usize, position, &mut plain_logits)
++                    .expect("plain decoder step");
++                plain_nll_total += next_token_logprob(&plain_logits, target);
++                for (index, (_, session)) in sessions.iter_mut().enumerate() {
++                    oracle
++                        .step_causal_attention_transport(
++                            session,
++                            token as usize,
++                            position,
++                            &mut transport_logits,
++                        )
++                        .expect("transport decoder step");
++                    window_nll[index] += next_token_logprob(&transport_logits, target);
++                    if index == 0 {
++                        if argmax(&plain_logits) == argmax(&transport_logits) {
++                            dense_agreement += 1;
++                        }
++                        for (reference, transported) in
++                            plain_logits.iter().zip(transport_logits.iter())
++                        {
++                            let delta = (f64::from(*reference) - f64::from(*transported)).abs();
++                            maximum_logit_delta = maximum_logit_delta.max(delta);
++                            if delta != 0.0 {
++                                dense_bitwise_mismatches += 1;
++                            }
++                        }
++                    }
++                }
++                positions += 1;
++            }
++            let mut evidence = Vec::new();
++            for (index, (label, session)) in sessions.iter().enumerate() {
++                arm_nll_totals[index] += window_nll[index];
++                if index > 0 {
++                    let value = session
++                        .transport_implementation_evidence()
++                        .expect("transport evidence")
++                        .map(|raw| serde_json::from_str::<serde_json::Value>(&raw).expect("json"))
++                        .expect("flock sessions carry evidence");
++                    evidence.push(serde_json::json!({ "arm": label, "evidence": value }));
++                }
++            }
++            window_reports.push(serde_json::json!({
++                "window": window_index,
++                "start": start,
++                "arm_nll": arm_labels
++                    .iter()
++                    .zip(window_nll.iter())
++                    .map(|(label, nll)| serde_json::json!({ "arm": label, "nll": nll }))
++                    .collect::<Vec<_>>(),
++                "flock_evidence": evidence,
++            }));
++            eprintln!(
++                "G1a window {window_index}/{} start={start} done at {:.0}s",
++                starts.len(),
++                started.elapsed().as_secs_f64()
++            );
++        }
++
++        let plain_nll = plain_nll_total / positions as f64;
++        let dense_nll = arm_nll_totals[0] / positions as f64;
++        let dense_delta = (plain_nll - dense_nll).abs();
++        let arm_summary: Vec<serde_json::Value> = arm_labels
++            .iter()
++            .zip(arm_nll_totals.iter())
++            .map(|(label, total)| {
++                let nll = total / positions as f64;
++                serde_json::json!({
++                    "arm": label,
++                    "nll": nll,
++                    "delta_vs_dense": nll - dense_nll,
++                })
++            })
++            .collect();
++        let report = serde_json::json!({
++            "schema": "uor-r4.b0-g1a-transport/1",
++            "selector": FLOCK_SELECTOR_VERSION,
++            "identity": {
++                "model": model_dir.display().to_string(),
++                "weights_sha256": weights_sha,
++                "tokens": token_path.display().to_string(),
++                "tokens_sha256": tokens_sha,
++                "time": time,
++                "draw_time": 2048,
++                "windows": windows,
++                "seed": seed,
++                "held_out_tokens": held_out,
++                "window_starts": starts,
++            },
++            "gate": {
++                "positions": positions,
++                "argmax_agreement": dense_agreement,
++                "max_abs_logit_delta": maximum_logit_delta,
++                "bitwise_mismatched_logits": dense_bitwise_mismatches,
++                "plain_nll": plain_nll,
++                "dense_transport_nll": dense_nll,
++                "abs_nll_delta": dense_delta,
++            },
++            "arms": arm_summary,
++            "windows": window_reports,
++            "status": "executed",
++        });
++        match &root {
++            Some(root) => {
++                std::fs::write(
++                    root.join("g1a.json"),
++                    serde_json::to_vec_pretty(&report).expect("serialize"),
++                )
++                .expect("write g1a.json");
++                uor_r4_core::report_output::seal(root).expect("seal the g1a root");
++                let unlisted = uor_r4_core::report_output::verify(root).expect("verify");
++                assert!(unlisted.is_empty(), "unlisted files: {unlisted:?}");
++            }
++            None => {
++                eprintln!(
++                    "{}",
++                    serde_json::to_string_pretty(&report).expect("serialize")
++                );
++            }
++        }
++        assert_eq!(
++            dense_agreement, positions,
++            "the dense transport must agree with step_state on every argmax"
++        );
++        assert!(
++            maximum_logit_delta <= 1e-4,
++            "dense |delta logit| {maximum_logit_delta} exceeds 1e-4"
++        );
++        assert!(
++            dense_delta <= 1e-4,
++            "dense NLL differs from step_state by {dense_delta} nats"
++        );
++    }
++}
+diff --git a/crates/uor-r4-training/src/kappa_llama.rs b/crates/uor-r4-training/src/kappa_llama.rs
+index ba593a93b..6f2bdc618 100644
+--- a/crates/uor-r4-training/src/kappa_llama.rs
++++ b/crates/uor-r4-training/src/kappa_llama.rs
+@@ -35,6 +35,7 @@
+ //! Every head also carries a learnable log inverse temperature (`log_beta`), in
+ //! every score kind, so a `Dot` control has the same non-curvature freedom.
+ 
++use std::cell::RefCell;
+ use std::collections::{BTreeMap, BTreeSet};
+ use std::fs;
+ use std::path::Path;
+@@ -46,6 +47,12 @@ use serde_json::Value;
+ 
+ use crate::{invalid, Result};
+ 
++pub use crate::flock::{
++    flock_row_weights, flock_select, rank_table, raw_rank_weights, softmax_over_support,
++    FlockEntry, FlockScan, FlockSelect, FlockSelection, FlockSlot, FlockSpec, FlockStats,
++    FlockWeights, FLOCK_SELECTOR_VERSION,
++};
++
+ /// Name of the per-head log curvature scale (`kappa = exp(2 log_eps)`).
+ pub const LOG_EPS: &str = "curvature.log_eps";
+ /// Name of the per-head log inverse temperature.
+@@ -98,6 +105,101 @@ impl ScoreKind {
+     }
+ }
+ 
++/// Flock attention probabilities `(batch, heads, time, time)`, training-free.
++///
++/// Keys are lifted to the Lorentz model as `x_L = (sqrt(1 + |x|^2), x)` and
++/// ranked by the Minkowski product `-q0 k0 + q . k`, which is monotone
++/// (`-cosh d`); **no `arcosh` is evaluated**. The `sqrt` is the ordinary f32
++/// tensor square root. The support and both weight arms come from the shared
++/// pure selector in [`crate::flock`]; this adapter only lifts the rows and
++/// writes the dense probability tensor.
++pub fn flock_probabilities(
++    query: &Tensor,
++    key: &Tensor,
++    spec: FlockSpec,
++    stats: &mut FlockStats,
++) -> Result<Tensor> {
++    if spec.k == 0 {
++        return Err(invalid("flock k must be positive"));
++    }
++    let (batch, heads, time, head_dim) = query.dims4()?;
++    if key.dims4()? != (batch, heads, time, head_dim) {
++        return Err(invalid("flock query and key shapes differ"));
++    }
++    let key_t = key.transpose(2, 3)?.contiguous()?;
++    let dot = query.matmul(&key_t)?;
++    let q0 = query.sqr()?.sum_keepdim(3)?.affine(1.0, 1.0)?.sqrt()?;
++    let k0 = key.sqr()?.sum_keepdim(3)?.affine(1.0, 1.0)?.sqrt()?;
++    let k0_t = k0.transpose(2, 3)?.contiguous()?;
++    // -q0 k0 + q . k
++    let lorentz = dot.sub(&q0.matmul(&k0_t)?)?;
++    // Arm S scores: the checkpoint's own scaled dot product.
++    let scaled = dot.affine(1.0 / (head_dim as f64).sqrt(), 0.0)?;
++    let cpu = Device::Cpu;
++    let lorentz = lorentz.to_device(&cpu)?.flatten_all()?.to_vec1::<f32>()?;
++    let scaled = scaled.to_device(&cpu)?.flatten_all()?.to_vec1::<f32>()?;
++    let mut probability = vec![0f32; batch * heads * time * time];
++    for row in 0..batch * heads {
++        let matrix = row * time * time;
++        for position in 0..time {
++            let base = matrix + position * time;
++            let rank_row = &lorentz[base..base + position + 1];
++            let model_row = &scaled[base..base + position + 1];
++            let weighted = flock_row_weights(rank_row, model_row, position, &spec)?;
++            stats.record(&weighted.selection.scan);
++            probability[base..base + position + 1].copy_from_slice(&weighted.weights);
++        }
++    }
++    Ok(Tensor::from_vec(
++        probability,
++        (batch, heads, time, time),
++        query.device(),
++    )?)
++}
++
++/// Counter-based window sampler (SplitMix64), shared by the probe and the G1a
++/// exactness test so both draw identical held-out windows.
++pub struct WindowSampler(u64);
++
++impl WindowSampler {
++    pub fn new(seed: u64) -> Self {
++        Self(seed)
++    }
++
++    pub fn next(&mut self) -> u64 {
++        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
++        let mut z = self.0;
++        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
++        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
++        z ^ (z >> 31)
++    }
++}
++
++/// `count` counter-seeded window starts inside the final `held_out` tokens.
++/// Held-out windows are drawn at runtime and never tuned on.
++pub fn held_out_starts(
++    len: usize,
++    time: usize,
++    count: usize,
++    held_out: usize,
++    seed: u64,
++) -> Result<Vec<usize>> {
++    if count == 0 {
++        return Err(invalid("window count must be positive"));
++    }
++    if held_out > len || held_out < time + 2 {
++        return Err(invalid(format!(
++            "held-out region of {held_out} tokens cannot hold windows of {time} from {len} tokens"
++        )));
++    }
++    let origin = len - held_out;
++    let span = held_out - time - 1;
++    let mut sampler = WindowSampler::new(seed);
++    Ok((0..count)
++        .map(|_| origin + (sampler.next() % span as u64) as usize)
++        .collect())
++}
++
+ /// Where a weight map reads its input (see [`KappaLlama::forward_with_capture`]).
+ #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+ pub enum Site {
+@@ -503,6 +605,8 @@ pub struct KappaLlama {
+     frozen: BTreeMap<String, Tensor>,
+     variables: BTreeMap<String, Var>,
+     device: Device,
++    flock: Option<FlockSpec>,
++    flock_stats: RefCell<FlockStats>,
+ }
+ 
+ impl KappaLlama {
+@@ -570,9 +674,33 @@ impl KappaLlama {
+             frozen,
+             variables,
+             device: device.clone(),
++            flock: None,
++            flock_stats: RefCell::new(FlockStats::default()),
+         })
+     }
+ 
++    /// Enable (or clear) training-free flock attention on the checkpoint's own
++    /// dot scores. The model's weights are never modified.
++    pub fn set_flock(&mut self, flock: Option<FlockSpec>) -> Result<()> {
++        if let Some(spec) = flock {
++            if self.score != ScoreKind::Dot {
++                return Err(invalid(
++                    "flock attention is defined on the checkpoint's own (dot) scores",
++                ));
++            }
++            if spec.k == 0 || spec.window == 0 {
++                return Err(invalid("flock k and window must be positive"));
++            }
++        }
++        self.flock = flock;
++        Ok(())
++    }
++
++    /// Supports collected since the previous call, for the probe report.
++    pub fn take_flock_stats(&self) -> FlockStats {
++        self.flock_stats.replace(FlockStats::default())
++    }
++
+     pub fn shape(&self) -> &LlamaShape {
+         &self.shape
+     }
+@@ -751,9 +879,19 @@ impl KappaLlama {
+                 LayerCurvature::Flat
+             };
+             let log_beta = self.layer_scalars(LOG_BETA, layer, detached)?;
+-            let scores = head_scores(self.score, &query, &key, curvature, &log_beta)?;
+-            let masked = mask.where_cond(&excluded, &scores)?;
+-            let probability = candle_nn::ops::softmax(&masked, 3)?;
++            let probability = if let Some(spec) = self.flock {
++                if !detached {
++                    return Err(invalid(
++                        "flock attention is a detached measurement path (its support is not differentiable)",
++                    ));
++                }
++                let mut stats = self.flock_stats.borrow_mut();
++                flock_probabilities(&query, &key, spec, &mut stats)?
++            } else {
++                let scores = head_scores(self.score, &query, &key, curvature, &log_beta)?;
++                let masked = mask.where_cond(&excluded, &scores)?;
++                candle_nn::ops::softmax(&masked, 3)?
++            };
+             probe(layer, &query, &key, &probability)?;
+             let attended = probability
+                 .matmul(&value)?
+@@ -1445,4 +1583,385 @@ mod tests {
+         );
+         assert!(after < 0.1 * before, "KL {before} -> {after}");
+     }
++
++    fn flock_model(k: usize, window: usize, weights: FlockWeights) -> KappaLlama {
++        let mut model = model(ScoreKind::Dot, 0.0, Trainable::Scalars);
++        model
++            .set_flock(Some(FlockSpec { k, window, weights }))
++            .expect("flock");
++        model
++    }
++
++    #[test]
++    fn flock_top1_is_the_exact_copy_pointer() {
++        let device = Device::Cpu;
++        let time = 12usize;
++        let head_dim = 4usize;
++        let query: Vec<f32> = vec![1.0, 2.0, 3.0, 4.0];
++        let mut key = vec![0f32; time * head_dim];
++        for position in 0..time {
++            for lane in 0..head_dim {
++                key[position * head_dim + lane] = 0.25 + 0.1 * position as f32 + lane as f32;
++            }
++        }
++        key[3 * head_dim..4 * head_dim].copy_from_slice(&query);
++        let repeated: Vec<f32> = (0..time).flat_map(|_| query.clone()).collect();
++        let query = Tensor::from_vec(repeated, (1, 1, time, head_dim), &device).expect("q");
++        let key = Tensor::from_vec(key, (1, 1, time, head_dim), &device).expect("k");
++        let spec = FlockSpec {
++            k: 1,
++            window: 2,
++            weights: FlockWeights::Rank,
++        };
++        let mut stats = FlockStats::default();
++        let probability = flock_probabilities(&query, &key, spec, &mut stats).expect("flock");
++        let row = probability
++            .narrow(2, time - 1, 1)
++            .expect("row")
++            .flatten_all()
++            .expect("flat")
++            .to_vec1::<f32>()
++            .expect("vec");
++        let selected: Vec<usize> = row
++            .iter()
++            .enumerate()
++            .filter(|(_, value)| **value > 0.0)
++            .map(|(index, _)| index)
++            .collect();
++        assert_eq!(
++            selected,
++            vec![0, 3, 10, 11],
++            "the support must be sink + window + the top-1 copy pointer: {row:?}"
++        );
++        let top = row
++            .iter()
++            .enumerate()
++            .max_by(|a, b| a.1.total_cmp(b.1))
++            .map(|(index, _)| index)
++            .expect("argmax");
++        assert_eq!(top, 3, "the copy pointer must be rank 0: {row:?}");
++        assert!(row.iter().all(|value| value.is_finite() && *value >= 0.0));
++    }
++
++    #[test]
++    fn lorentz_rank_matches_the_acosh_distance_reference() {
++        let query: Vec<f32> = vec![0.7, -0.4, 1.3, 0.2, -0.9];
++        let mut rows = Vec::new();
++        for position in 0..9usize {
++            rows.push(vec![
++                0.1 * position as f32 - 0.3,
++                0.2 - 0.05 * position as f32,
++                0.4 + 0.03 * position as f32,
++                -0.6 + 0.07 * position as f32,
++                0.25 * position as f32 - 0.5,
++            ]);
++        }
++        let lorentz: Vec<f32> = rows
++            .iter()
++            .map(|k| {
++                let q2: f32 = query.iter().map(|v| v * v).sum();
++                let k2: f32 = k.iter().map(|v| v * v).sum();
++                let dot: f32 = query.iter().zip(k).map(|(a, b)| a * b).sum();
++                -(1.0 + q2).sqrt() * (1.0 + k2).sqrt() + dot
++            })
++            .collect();
++        let selection = flock_select(
++            &lorentz,
++            8,
++            FlockSelect {
++                sink: 0,
++                window: 1,
++                k: 8,
++            },
++        )
++        .expect("selection");
++        let ranked: Vec<usize> = selection
++            .entries
++            .iter()
++            .filter(|entry| entry.slot == FlockSlot::TopK)
++            .map(|entry| entry.position)
++            .collect();
++        // Reference: true hyperbolic distance d = arcosh(q0 k0 - q . k).
++        let distance = |k: &[f32]| -> f64 {
++            let q2: f64 = query.iter().map(|v| (v * v) as f64).sum();
++            let k2: f64 = k.iter().map(|v| (v * v) as f64).sum();
++            let dot: f64 = query
++                .iter()
++                .zip(k)
++                .map(|(a, b)| (*a as f64) * (*b as f64))
++                .sum();
++            (((1.0 + q2).sqrt() * (1.0 + k2).sqrt() - dot).max(1.0)).acosh()
++        };
++        let mut reference: Vec<usize> = (1..=7).collect();
++        reference.sort_by(|&a, &b| distance(&rows[a]).total_cmp(&distance(&rows[b])));
++        assert_eq!(
++            ranked, reference,
++            "the Minkowski ranking must agree with the true distance ordering"
++        );
++    }
++
++    #[test]
++    fn flock_softmax_over_full_support_matches_dense() {
++        let dense = model(ScoreKind::Dot, 0.0, Trainable::Scalars);
++        let flock = flock_model(64, 64, FlockWeights::Softmax);
++        let tokens = ids(1, 8);
++        let reference = dense.forward(&tokens, 1, 8, true).expect("dense");
++        let logits = flock.forward(&tokens, 1, 8, true).expect("flock");
++        let difference = max_abs_difference(&logits, &reference).expect("diff");
++        assert!(
++            difference <= 1e-4,
++            "full-support softmax differs by {difference}"
++        );
++    }
++
++    #[test]
++    fn flock_attention_is_deterministic_and_leaves_weights_unchanged() {
++        for weights in [FlockWeights::Softmax, FlockWeights::Rank] {
++            let flock = flock_model(3, 4, weights);
++            let frozen_before: Vec<(String, Vec<f32>)> = flock
++                .frozen
++                .iter()
++                .map(|(name, tensor)| {
++                    (
++                        name.clone(),
++                        tensor.flatten_all().expect("flat").to_vec1().expect("vec"),
++                    )
++                })
++                .collect();
++            let variables_before: Vec<(String, Vec<f32>)> = flock
++                .variables
++                .iter()
++                .map(|(name, var)| {
++                    (
++                        name.clone(),
++                        var.as_tensor()
++                            .flatten_all()
++                            .expect("flat")
++                            .to_vec1()
++                            .expect("vec"),
++                    )
++                })
++                .collect();
++            let tokens = ids(2, 10);
++            let first = flock.forward(&tokens, 2, 10, true).expect("first");
++            let second = flock.forward(&tokens, 2, 10, true).expect("second");
++            assert_eq!(
++                first
++                    .flatten_all()
++                    .expect("flat")
++                    .to_vec1::<f32>()
++                    .expect("vec"),
++                second
++                    .flatten_all()
++                    .expect("flat")
++                    .to_vec1::<f32>()
++                    .expect("vec"),
++                "{weights:?} forward is not deterministic"
++            );
++            let frozen_after: Vec<(String, Vec<f32>)> = flock
++                .frozen
++                .iter()
++                .map(|(name, tensor)| {
++                    (
++                        name.clone(),
++                        tensor.flatten_all().expect("flat").to_vec1().expect("vec"),
++                    )
++                })
++                .collect();
++            let variables_after: Vec<(String, Vec<f32>)> = flock
++                .variables
++                .iter()
++                .map(|(name, var)| {
++                    (
++                        name.clone(),
++                        var.as_tensor()
++                            .flatten_all()
++                            .expect("flat")
++                            .to_vec1()
++                            .expect("vec"),
++                    )
++                })
++                .collect();
++            assert_eq!(
++                frozen_before, frozen_after,
++                "{weights:?} changed frozen weights"
++            );
++            assert_eq!(
++                variables_before, variables_after,
++                "{weights:?} changed trainable weights"
++            );
++            assert!(
++                !flock.variables.contains_key(LOG_EPS),
++                "a flock run must not create curvature parameters"
++            );
++            let stats = flock.take_flock_stats();
++            assert_eq!(stats.queries, 2 * 2 * 2 * 4 * 10);
++            assert!(stats.mean_selected() > 1.0);
++            assert!(
++                (stats.sink_share() + stats.window_share() + stats.top_k_share() - 1.0).abs()
++                    < 1e-9
++            );
++        }
++    }
++
++    #[test]
++    fn flock_requires_dot_scores_and_a_detached_forward() {
++        let mut curved = model(ScoreKind::Intrinsic, -1.0, Trainable::Scalars);
++        assert!(curved
++            .set_flock(Some(FlockSpec {
++                k: 7,
++                window: 64,
++                weights: FlockWeights::Rank,
++            }))
++            .is_err());
++        let mut dot = model(ScoreKind::Dot, 0.0, Trainable::Scalars);
++        dot.set_flock(Some(FlockSpec {
++            k: 7,
++            window: 64,
++            weights: FlockWeights::Rank,
++        }))
++        .expect("flock");
++        assert!(dot.forward(&ids(1, 4), 1, 4, false).is_err());
++        assert!(dot.forward(&ids(1, 4), 1, 4, true).is_ok());
++    }
++
++    #[test]
++    #[ignore = "needs the pinned SmolLM2 checkpoint and u16 token file: UOR_B0_MODEL=/path UOR_B0_TOKENS=/path/x.u16 UOR_B0_HELD_OUT=1200000 cargo test -p uor-r4-training --release --offline --lib g1a -- --ignored --nocapture; the exact oracle takes about two hours over 4x512 positions on 8 cores (the default), or set UOR_B0_ORACLE_WORKERS=1 for one worker"]
++    fn g1a_dense_path_matches_the_exact_f32_oracle() {
++        use uor_r4_model_source::{BehaviorSource, HuggingFaceLlamaOracle, TeacherExecutionConfig};
++
++        let model_dir = std::env::var("UOR_B0_MODEL")
++            .expect("set UOR_B0_MODEL to the SmolLM2-135M-Instruct directory");
++        let token_path = std::path::PathBuf::from(
++            std::env::var("UOR_B0_TOKENS").expect("set UOR_B0_TOKENS to the pinned u16 file"),
++        );
++        let held_out: usize = std::env::var("UOR_B0_HELD_OUT")
++            .expect("set UOR_B0_HELD_OUT to the held-out token count")
++            .parse()
++            .expect("UOR_B0_HELD_OUT is a token count");
++        let device = Device::Cpu;
++        let checkpoint = load_checkpoint(Path::new(&model_dir), &device).expect("checkpoint");
++        let vocab = checkpoint.shape.vocab;
++        let weights_sha = checkpoint.weights_sha256.clone();
++        let tokens = read_u16_tokens(&token_path, vocab).expect("tokens");
++        let window = 512usize;
++        let starts = held_out_starts(tokens.len(), 2048, 4, held_out, 9001).expect("starts");
++        let model = KappaLlama::new(checkpoint, ScoreKind::Dot, 0.0, Trainable::Scalars, &device)
++            .expect("model");
++        let execution = match std::env::var("UOR_B0_ORACLE_WORKERS").as_deref() {
++            Ok(fixed) if fixed != "available" => TeacherExecutionConfig::fixed_workers(
++                std::num::NonZeroUsize::new(fixed.parse().expect("UOR_B0_ORACLE_WORKERS"))
++                    .expect("nonzero"),
++            ),
++            _ => TeacherExecutionConfig::available_parallelism(),
++        };
++        let mut oracle = HuggingFaceLlamaOracle::load_with_sequence_length_and_execution(
++            &model_dir, window, execution,
++        )
++        .map_err(|error| invalid(format!("oracle: {error}")))
++        .expect("oracle");
++        let started = std::time::Instant::now();
++        let mut maximum = 0f64;
++        let mut agreement = 0usize;
++        let mut positions = 0usize;
++        let mut candle_total = 0f64;
++        let mut oracle_total = 0f64;
++        for (window_index, &start) in starts.iter().enumerate() {
++            let inputs = &tokens[start..start + window];
++            let targets = &tokens[start + 1..start + window + 1];
++            let logits = model
++                .forward(inputs, 1, window, true)
++                .expect("dense forward")
++                .reshape((window, vocab))
++                .expect("rows")
++                .to_vec2::<f32>()
++                .expect("logits");
++            eprintln!(
++                "G1a window {window_index} start={start}: candle forward done at {:.0}s",
++                started.elapsed().as_secs_f64()
++            );
++            let mut reference = vec![0f32; vocab];
++            for (position, &token) in inputs.iter().enumerate() {
++                oracle.step(token as usize, position, &mut reference);
++                let row = &logits[position];
++                let candle_top1 = row
++                    .iter()
++                    .enumerate()
++                    .max_by(|a, b| a.1.total_cmp(b.1))
++                    .map(|(index, _)| index)
++                    .expect("candle top1");
++                let oracle_top1 = reference
++                    .iter()
++                    .enumerate()
++                    .max_by(|a, b| a.1.total_cmp(b.1))
++                    .map(|(index, _)| index)
++                    .expect("oracle top1");
++                if candle_top1 == oracle_top1 {
++                    agreement += 1;
++                }
++                for (a, b) in row.iter().zip(&reference) {
++                    maximum = maximum.max((f64::from(*a) - f64::from(*b)).abs());
++                }
++                let target = targets[position] as usize;
++                candle_total += logprob_nll(row, target);
++                oracle_total += logprob_nll(&reference, target);
++                positions += 1;
++                if positions % 64 == 0 {
++                    eprintln!(
++                        "G1a position {positions}: {:.0}s elapsed, max_abs_logit_delta={maximum}, agreement={agreement}",
++                        started.elapsed().as_secs_f64()
++                    );
++                }
++            }
++            eprintln!(
++                "G1a window {window_index}/{} start={start} done: positions={positions} agreement={agreement} max_abs_logit_delta={maximum} at {:.0}s",
++                starts.len(),
++                started.elapsed().as_secs_f64()
++            );
++        }
++        let candle_nll = candle_total / positions as f64;
++        let oracle_nll = oracle_total / positions as f64;
++        eprintln!(
++            "G1a: starts={starts:?} window_starts_sha256={} weights={weights_sha} positions={positions} \
++             argmax_agreement={agreement}/{positions} max_abs_logit_delta={maximum} \
++             candle_nll={candle_nll} oracle_nll={oracle_nll} delta={}",
++            crate::sha256_file(&token_path).expect("token sha"),
++            (candle_nll - oracle_nll).abs()
++        );
++        assert_eq!(
++            agreement, positions,
++            "every argmax must agree with the exact oracle"
++        );
++        assert!(maximum <= 1e-4, "max |delta logit| {maximum} exceeds 1e-4");
++        assert!(
++            (candle_nll - oracle_nll).abs() <= 1e-4,
++            "NLL differs by more than 1e-4 nats: candle {candle_nll}, oracle {oracle_nll}"
++        );
++    }
++
++    fn logprob_nll(logits: &[f32], target: usize) -> f64 {
++        let maximum = logits
++            .iter()
++            .fold(f64::NEG_INFINITY, |best, &value| best.max(f64::from(value)));
++        let sum: f64 = logits
++            .iter()
++            .map(|&value| (f64::from(value) - maximum).exp())
++            .sum();
++        -(f64::from(logits[target]) - maximum - sum.ln())
++    }
++
++    fn read_u16_tokens(path: &Path, vocab: usize) -> Result<Vec<u32>> {
++        let bytes = fs::read(path)?;
++        if bytes.len() % 2 != 0 {
++            return Err(invalid("token file is not u16"));
++        }
++        let tokens: Vec<u32> = bytes
++            .chunks_exact(2)
++            .map(|b| u32::from(u16::from_le_bytes([b[0], b[1]])))
++            .collect();
++        if tokens.iter().any(|&t| t as usize >= vocab) {
++            return Err(invalid("token file has an out-of-vocabulary token"));
++        }
++        Ok(tokens)
++    }
+ }
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index 2ed534f59..c4e9fd24e 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -19,6 +19,8 @@ pub mod dialogue_episodes;
+ pub mod dialogue_learning;
+ pub mod dialogue_rounding;
+ pub mod dialogue_rounding_artifact;
++pub mod flock;
++pub mod flock_transport;
+ pub mod geometric_read;
+ pub mod geometric_stack;
+ pub mod joint_admission;
+@@ -142,6 +144,12 @@ pub fn sha256_file(path: &Path) -> Result<String> {
+     Ok(hex::encode(digest.finalize()))
+ }
+ 
++pub fn sha256_bytes(bytes: &[u8]) -> String {
++    let mut digest = Sha256::new();
++    digest.update(bytes);
++    hex::encode(digest.finalize())
++}
++
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ pub struct ReferenceConfig {
+     pub vocab_size: usize,

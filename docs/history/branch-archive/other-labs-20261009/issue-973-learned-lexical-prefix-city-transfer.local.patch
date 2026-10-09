@@ -1,0 +1,680 @@
+diff --git a/.agents/skills/uor-research-architect/SKILL.md b/.agents/skills/uor-research-architect/SKILL.md
+new file mode 100644
+index 000000000..f6ab2b43f
+--- /dev/null
++++ b/.agents/skills/uor-research-architect/SKILL.md
+@@ -0,0 +1,43 @@
++---
++name: uor-research-architect
++description: >-
++  Lead AI Research Architect workflow for UOR-R4: executing native geometric LM training,
++  running focused verification tests, checking resource ledgers, and recording BLAKE3 empirical receipts.
++---
++
++# UOR-R4 Research Architect Workflow
++
++Use this skill when developing, training, benchmarking, or validating native geometric LM components in UOR-R4 under owner-directed recovery mode `#973`.
++
++## 1. Preflight Verification & Resource Audit
++
++Before executing any build or training cycle:
++1. **Check Storage Margin:**
++   Verify accounted storage does not violate the active cap (+128 MiB stop margin):
++   ```bash
++   # Verify current storage against the approved cap (4,445,962,240 bytes)
++   git status
++   ```
++2. **Project Model Time:**
++   Ensure projected training and test execution stays well within the remaining model budget (852.938 seconds remaining of 1,800s).
++
++## 2. Focused Development Checks
++
++Adhere to the focused verification policy in `AGENTS.md`:
++* **Formatting:** `cargo fmt --check`
++* **Typecheck Touched Package:** `cargo check -p <touched-package> --all-targets --offline`
++* **Focused Unit Test:** `cargo test -p <touched-package> <focused-test> --offline`
++* **Zero-Allocation Verification:** For `uor-r4-graph-runtime`, verify `#![no_std]` and zero-allocation proofs in `uor-r4-proof-model`.
++
++## 3. Empirical Sealing & Receipt Protocol
++
++When a training or verification run completes:
++1. Compute and record BLAKE3 hashes for all generated model artifacts and test outputs:
++   ```bash
++   b3sum path/to/model.json
++   ```
++2. Update the corresponding issue record in `docs/` and `docs/integration/current-state.md` with:
++   - Exact input/output CID
++   - Number of training examples and validation outcomes
++   - Exact elapsed wall time and peak memory consumption
++3. If a negative result is observed, preserve the artifact and mark the outcome truthfully (never delete or retroactively adjust criteria).
+diff --git a/crates/uor-r4-core/examples/native_geometric_value_probe.rs b/crates/uor-r4-core/examples/native_geometric_value_probe.rs
+index d9788230a..f0f4617f7 100644
+--- a/crates/uor-r4-core/examples/native_geometric_value_probe.rs
++++ b/crates/uor-r4-core/examples/native_geometric_value_probe.rs
+@@ -525,6 +525,35 @@ fn append_word_copy_cases(source: &mut Source) -> ProbeResult<()> {
+             source.fit.push(word_copy_case("fit", context, index, name));
+         }
+     }
++    let city_pairs = [
++        ["Paris", "Tokyo"],
++        ["Rome", "Berlin"],
++        ["Kyoto", "Delhi"],
++        ["Cairo", "Madrid"],
++    ];
++    for (pair, cities) in city_pairs.iter().enumerate() {
++        let [first, distractor, resident] = if pair % 2 == 0 {
++            ["ada", "cyra", "ben"]
++        } else {
++            ["dara", "finn", "eli"]
++        };
++        let first_coins = 11 + pair as i64 * 5;
++        let distractor_coins = 301 + pair as i64;
++        for (variant, city) in cities.iter().enumerate() {
++            source.fit.push(Case {
++                id: format!("word-copy/fit/city-pair-{pair}-var-{variant}"),
++                family: "prose".into(),
++                task: "city_transfer".into(),
++                world: 400_000 + pair * 2 + variant,
++                pair_id: format!("word-copy/fit/city-pair-{pair}"),
++                variant,
++                prompt: format!(
++                    "User: {first} has {first_coins} coins. {distractor} has {distractor_coins} coins.\nUser: {resident} lives in {city}.\nUser: What city does {resident} live in?\nAssistant:"
++                ),
++                response: format!(" {city}.\n"),
++            });
++        }
++    }
+     for (pair, names) in [
+         ["input", "count"],
+         ["payload", "argument"],
+@@ -553,7 +582,7 @@ fn append_word_copy_cases(source: &mut Source) -> ProbeResult<()> {
+         });
+     }
+     source.schema = WORD_COPY_SOURCE_SCHEMA.into();
+-    source.scope.push_str(" Source /3 preserves every /2 fit and development case and appends 32 construction parameter-name cases, 12 OPEN parameter-transfer cases, and the two already observed city failures. Parameter variants change retained rank, add a misleading comment, or duplicate the spelling; the target alone does not identify which equal-spelling occurrence was selected. Construction names differ from transfer names. These are development feedback, not final held-out qualification. The city responses begin with a space and remain a boundary diagnostic for first-position copying.");
++    source.scope.push_str(" Source /3 preserves every /2 fit and development case and appends 32 construction parameter-name cases, 8 construction city cases, 12 OPEN parameter-transfer cases, and the two already observed city failures. Parameter variants change retained rank, add a misleading comment, or duplicate the spelling; the target alone does not identify which equal-spelling occurrence was selected. Construction names differ from transfer names. These are development feedback, not final held-out qualification. The city responses begin with a space and test the learned lexical-prefix-to-copy transition.");
+     Ok(())
+ }
+ 
+@@ -1109,7 +1138,7 @@ mod tests {
+         let original_development = serde_json::to_vec(&source.development).unwrap();
+         append_word_copy_cases(&mut source).unwrap();
+         validate_source(&source).unwrap();
+-        assert_eq!(source.fit.len(), 224);
++        assert_eq!(source.fit.len(), 232);
+         assert_eq!(source.development.len(), 46);
+         assert_eq!(
+             original_fit,
+@@ -1119,13 +1148,20 @@ mod tests {
+             original_development,
+             serde_json::to_vec(&source.development[..32]).unwrap()
+         );
+-        let fit_names: BTreeSet<_> = source.fit[192..]
++        let fit_names: BTreeSet<_> = source.fit[192..224]
+             .iter()
+             .map(|case| case.response.lines().next().unwrap())
+             .collect();
+         for case in &source.development[32..44] {
+             assert!(!fit_names.contains(case.response.lines().next().unwrap()));
+         }
++        let fit_cities: BTreeSet<_> = source.fit[224..]
++            .iter()
++            .map(|case| case.response.trim())
++            .collect();
++        for case in &source.development[44..46] {
++            assert!(!fit_cities.contains(case.response.trim()));
++        }
+         assert!(append_word_copy_cases(&mut source).is_err());
+     }
+ 
+diff --git a/crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs b/crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs
+index 8f0a4da92..09bc20108 100644
+--- a/crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs
++++ b/crates/uor-r4-core/src/native_geometric/word_copy_runtime.rs
+@@ -16,11 +16,12 @@ pub(super) fn eligible(entry: &ResponseEntryState, values: &ValueState, control:
+     enabled(control)
+         && super::response_entry_runtime::eligible(values, control)
+         && values.pending.is_none()
+-        && !entry.active
+-        && entry.steps == 0
++        && entry.steps < RESPONSE_ENTRY_STEPS
+         && entry.seen == values.seen
+         && entry.boundary.is_some_and(|anchor| {
+-            anchor.at_seen == values.seen && anchor.at_seen == values.started_at
++            anchor.at_seen == values.started_at
++                && ((!entry.active && entry.steps == 0 && anchor.at_seen == values.seen)
++                    || (entry.active && entry.steps > 0))
+         })
+         && values
+             .lexemes
+@@ -108,6 +109,7 @@ pub(super) fn context(
+ pub(super) fn features(
+     model: &Model,
+     values: &ValueState,
++    entry: &ResponseEntryState,
+     context: &WordCopyContext,
+     index: usize,
+     control: Control,
+@@ -186,6 +188,14 @@ pub(super) fn features(
+             .phase_subtractions
+             .saturating_add((PHASE_CHANNELS + PHASE_CHANNELS) as u64);
+     }
++    add(20, u64::from(entry.steps), u64::from(entry.active));
++    let last_prime = model
++        .geometry
++        .tokens
++        .get(entry.last as usize)
++        .map_or(0, |t| t.prime);
++    work.selector.metadata_reads = work.selector.metadata_reads.saturating_add(1);
++    add(21, u64::from(last_prime), 0);
+     (features, len)
+ }
+ 
+@@ -283,10 +293,13 @@ impl WordCopyState {
+         if anchor.at_seen != values.started_at {
+             return absent;
+         }
+-        let Some(steps) = entry.steps.checked_sub(word.len) else {
++        let Some(word_end_step) = self.start_step.checked_add(word.len) else {
++            return absent;
++        };
++        let Some(steps) = entry.steps.checked_sub(word_end_step) else {
+             return absent;
+         };
+-        let Some(final_seen) = anchor.at_seen.checked_add(u64::from(word.len)) else {
++        let Some(final_seen) = anchor.at_seen.checked_add(u64::from(word_end_step)) else {
+             return absent;
+         };
+         let Some(sequence) = final_seen.checked_sub(1) else {
+@@ -386,7 +399,10 @@ impl WordCopyState {
+             return lexical;
+         };
+         let mut chosen = None;
+-        if eligible(entry, values, control) {
++        if self.origin.is_none()
++            && matches!(self.progress, WordCopyProgress::Idle)
++            && eligible(entry, values, control)
++        {
+             let context = context(model, values, control, work);
+             let mut threshold = lexical
+                 .map_or(0, |candidate| candidate.score - baseline.score)
+@@ -401,7 +417,8 @@ impl WordCopyState {
+                     work.bound_rejections = work.bound_rejections.saturating_add(1);
+                     continue;
+                 }
+-                let (features, len) = features(model, values, &context, index, control, work);
++                let (features, len) =
++                    features(model, values, entry, &context, index, control, work);
+                 let increment = score(head, &features[..len], work);
+                 work.selector.candidate_evaluations =
+                     work.selector.candidate_evaluations.saturating_add(1);
+@@ -574,6 +591,7 @@ impl WordCopyState {
+             work.selector.commits = work.selector.commits.saturating_add(1);
+             if decision.action == WordCopyAction::Start {
+                 self.origin = Some(decision.word_index);
++                self.start_step = decision.step;
+                 work.word_record_reads = work.word_record_reads.saturating_add(1);
+                 let len = values.lexemes.as_ref().map_or(0, |words| {
+                     words.queries[usize::from(decision.word_index)].len
+diff --git a/crates/uor-r4-core/src/native_geometric/word_copy_tests.rs b/crates/uor-r4-core/src/native_geometric/word_copy_tests.rs
+index 000fec522..a81e67a7f 100644
+--- a/crates/uor-r4-core/src/native_geometric/word_copy_tests.rs
++++ b/crates/uor-r4-core/src/native_geometric/word_copy_tests.rs
+@@ -576,3 +576,77 @@ fn native_word_copy_preserves_parent_and_respects_typed_precedence_and_controls(
+         assert!(word.len < RESPONSE_ENTRY_STEPS);
+     }
+ }
++
++#[test]
++fn native_word_copy_learned_lexical_prefix_to_copy_transition() {
++    let (parent, _) = fixture::fitted();
++    let prompt = "left = 13; right = 4; alpha ignored; reply:";
++    let mut sess = prefix(parent, prompt, Control::Full);
++    let pred = sess.predict(parent).unwrap();
++    eprintln!(
++        "parent predict token: {} (expected space is 34)",
++        pred.token
++    );
++    let mut examples = Vec::new();
++    for (index, name) in ["alpha", "bravo", "cedar", "delta"].into_iter().enumerate() {
++        examples.push(ValueExample {
++            id: format!("prefix-copy-fit-{index}"),
++            prompt: format!("left = 13; right = 4; {name} ignored; reply:"),
++            response: format!(" {name}.\n"),
++        });
++    }
++    examples.push(ValueExample {
++        id: "prefix-copy-fit-abstain".into(),
++        prompt: "left = 13; right = 4; value ignored; reply:".into(),
++        response: " Unknown.\n".into(),
++    });
++
++    let mut baseline = parent.clone();
++    baseline.response_entry = None;
++    baseline.refresh_identity().unwrap();
++
++    let (entry_model, _) = baseline
++        .fit_response_entry(&examples, ResponseEntryFitConfig::default())
++        .unwrap();
++
++    let (model, report) = entry_model
++        .fit_response_entry_copy_completed_word(&examples, ResponseEntryFitConfig::default())
++        .unwrap();
++
++    eprintln!(
++        "REPORT: copy_targets={}, reachable={}, no_copy={}, unreachable={}, upstream={}",
++        report.copy_targets,
++        report.reachable_copy_targets,
++        report.no_copy_targets,
++        report.unreachable_targets,
++        report.upstream_failures
++    );
++    assert_eq!(report.copy_targets, 4);
++    assert_eq!(report.reachable_copy_targets, 4);
++    assert_eq!(report.no_copy_targets, 1);
++    assert_eq!(report.selected_copies, 4);
++    assert_eq!(report.committed_complete_copies, 4);
++
++    let prompt = "left = 13; right = 4; alpha ignored; reply:";
++    let mut session = prefix(&model, prompt, Control::Full);
++
++    // Step 0: predicts prefix (' ')
++    let first = session.predict(&model).unwrap();
++    assert_eq!(first.token, u32::from(b' ') + 2);
++    session.observe(&model, first.token).unwrap();
++
++    // Step 1: at step 1 with space observed, word copy triggers
++    let second = session.predict(&model).unwrap();
++    let decision = session
++        .word_copy_decision()
++        .expect("word copy starts at step 1");
++    assert_eq!(decision.action, WordCopyAction::Start);
++    assert_eq!(decision.step, 1);
++    assert_eq!(second.token, u32::from(b'a') + 2);
++    session.observe(&model, second.token).unwrap();
++    assert_eq!(session.word_copy.as_ref().unwrap().start_step, 1);
++
++    // Full generation produces exact answer with prefix
++    let generated = model.generate(prompt, 32, Control::Full).unwrap();
++    assert_eq!(std::str::from_utf8(&generated.bytes).unwrap(), " alpha.\n");
++}
+diff --git a/crates/uor-r4-core/src/native_geometric/word_copy_training.rs b/crates/uor-r4-core/src/native_geometric/word_copy_training.rs
+index c3b6f5b0b..6a23d7ddc 100644
+--- a/crates/uor-r4-core/src/native_geometric/word_copy_training.rs
++++ b/crates/uor-r4-core/src/native_geometric/word_copy_training.rs
+@@ -64,40 +64,52 @@ struct Alternative {
+     features: Vec<usize>,
+     correct: bool,
+ }
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++struct TargetSpan {
++    start: usize,
++    len: usize,
++}
++
+ struct Example {
+     document: usize,
+     alternatives: Vec<Alternative>,
+     baseline_score: f64,
+     baseline_correct: bool,
+-    prefix_len: Option<usize>,
++    target: Option<TargetSpan>,
+ }
+ 
+ fn identifier_byte(byte: u8) -> bool {
+     byte.is_ascii_alphanumeric() || byte == b'_'
+ }
+ 
+-fn target_prefix(response: &str) -> Option<usize> {
++fn target_span(response: &str) -> Option<TargetSpan> {
+     let bytes = response.as_bytes();
++    let mut start = 0;
++    while start < bytes.len() && bytes[start].is_ascii_whitespace() {
++        start += 1;
++    }
+     if !bytes
+-        .first()
++        .get(start)
+         .is_some_and(|byte| byte.is_ascii_alphabetic() || *byte == b'_')
+     {
+         return None;
+     }
+-    let len = bytes
++    let len = bytes[start..]
+         .iter()
+         .take_while(|&&byte| identifier_byte(byte))
+         .count();
+-    // The source scanner rejects an entire run containing non-ASCII bytes;
+-    // do not label its shorter ASCII prefix as a complete retained word.
+-    (!bytes.get(len).is_some_and(|byte| !byte.is_ascii())).then_some(len)
++    let total = start.saturating_add(len);
++    (!bytes.get(total).is_some_and(|byte| !byte.is_ascii())).then_some(TargetSpan { start, len })
+ }
+ 
+-fn matches_target(word: &WordAtom, response: &str) -> bool {
++fn matches_target(word: &WordAtom, response: &str, target: Option<TargetSpan>) -> bool {
++    let Some(target) = target else {
++        return false;
++    };
+     let len = usize::from(word.len);
+     len != 0
+-        && target_prefix(response) == Some(len)
+-        && response.as_bytes().starts_with(&word.bytes[..len])
++        && target.len == len
++        && response.as_bytes().get(target.start..target.start + len) == Some(&word.bytes[..len])
+ }
+ 
+ fn response_session(model: &Model, prompt: &str) -> Result<Session> {
+@@ -439,11 +451,126 @@ impl Model {
+                 }
+                 continue;
+             }
+-            let prefix = target_prefix(&document.response);
+-            copy_targets += usize::from(prefix.is_some());
+-            no_copy_targets += usize::from(prefix.is_none());
++            let span = target_span(&document.response);
+             let mut session = response_session(&model, &document.prompt)?;
+             session.predict(&model)?;
++            let values = session
++                .values
++                .as_ref()
++                .ok_or_else(|| Error("copy fit typed state missing".into()))?;
++            let words = values
++                .lexemes
++                .as_ref()
++                .ok_or_else(|| Error("copy fit word state missing".into()))?;
++            let is_in_prompt = span.is_some_and(|s| {
++                words.queries[..words.query_len.min(WORD_QUERY)]
++                    .iter()
++                    .any(|w| {
++                        let wlen = usize::from(w.len);
++                        wlen != 0
++                            && s.len == wlen
++                            && document.response.as_bytes().get(s.start..s.start + s.len)
++                                == Some(&w.bytes[..wlen])
++                    })
++            });
++            if span.is_some_and(|s| s.start == 0) && !is_in_prompt {
++                copy_targets += 1;
++                unreachable_targets += 1;
++                continue;
++            }
++            let target = if is_in_prompt { span } else { None };
++            copy_targets += usize::from(target.is_some());
++            no_copy_targets += usize::from(target.is_none());
++            if let Some(target) = target {
++                if target.start > 0 {
++                    let values = session
++                        .values
++                        .as_ref()
++                        .ok_or_else(|| Error("copy fit typed state missing".into()))?;
++                    let entry = session
++                        .response_entry
++                        .as_ref()
++                        .ok_or_else(|| Error("copy fit entry state missing".into()))?;
++                    if word_copy_runtime::eligible(entry, values, Control::Full) {
++                        let mut lexical = *entry;
++                        let threshold = lexical
++                            .offer(
++                                &model,
++                                values,
++                                Candidate {
++                                    token: BOS,
++                                    score: 0,
++                                },
++                                Control::Full,
++                                &mut CompletionWork::default(),
++                            )
++                            .map_or(0, |candidate| candidate.score);
++                        let context = word_copy_runtime::context(
++                            &model,
++                            values,
++                            Control::Full,
++                            &mut WordCopyWork::default(),
++                        );
++                        let mut alternatives = Vec::new();
++                        let words = values
++                            .lexemes
++                            .as_ref()
++                            .ok_or_else(|| Error("copy fit word state missing".into()))?;
++                        for word_index in 0..words.query_len.min(WORD_QUERY) {
++                            let word = words.queries[word_index];
++                            if word.len == 0
++                                || usize::from(word.len) + 1
++                                    > usize::from(RESPONSE_ENTRY_STEPS - entry.steps)
++                            {
++                                continue;
++                            }
++                            let (features, len) = word_copy_runtime::features(
++                                &model,
++                                values,
++                                entry,
++                                &context,
++                                word_index,
++                                Control::Full,
++                                &mut WordCopyWork::default(),
++                            );
++                            let mut indices = Vec::with_capacity(len);
++                            for feature in &features[..len] {
++                                let known = registry.get(feature).copied();
++                                let feature_index = if known.is_some() {
++                                    known
++                                } else if weights.len() < WORD_COPY_ROWS {
++                                    let next = weights.len();
++                                    registry.insert(*feature, next);
++                                    weights.push(if feature.kind == 0 { -2.0 } else { 0.0 });
++                                    Some(next)
++                                } else {
++                                    dropped_feature_events += 1;
++                                    None
++                                };
++                                if let Some(feature_index) = feature_index {
++                                    indices.push(feature_index);
++                                }
++                            }
++                            alternatives.push(Alternative {
++                                features: indices,
++                                correct: false,
++                            });
++                        }
++                        examples.push(Example {
++                            document: index,
++                            alternatives,
++                            baseline_score: threshold as f64 / 256.0,
++                            baseline_correct: true,
++                            target: None,
++                        });
++                    }
++                    let prefix_tokens = model.encode(&document.response[..target.start])?;
++                    for &token in &prefix_tokens {
++                        session.predict(&model)?;
++                        session.observe(&model, token)?;
++                    }
++                }
++            }
+             let values = session
+                 .values
+                 .as_ref()
+@@ -456,9 +583,15 @@ impl Model {
+                 upstream_failures += 1;
+                 continue;
+             }
+-            let positions = if let Some(prefix_len) = prefix {
+-                prefix_len
+-                    .saturating_add(model.encode(&document.response[prefix_len..])?.len())
++            let positions = if let Some(target) = target {
++                target
++                    .len
++                    .saturating_add(target.start)
++                    .saturating_add(
++                        model
++                            .encode(&document.response[target.start + target.len..])?
++                            .len(),
++                    )
+                     .saturating_add(1)
+             } else {
+                 1
+@@ -498,14 +631,17 @@ impl Model {
+                 .ok_or_else(|| Error("copy fit word state missing".into()))?;
+             for word_index in 0..words.query_len.min(WORD_QUERY) {
+                 let word = words.queries[word_index];
+-                if word.len == 0 || usize::from(word.len) + 1 > usize::from(RESPONSE_ENTRY_STEPS) {
++                if word.len == 0
++                    || usize::from(word.len) + 1 > usize::from(RESPONSE_ENTRY_STEPS - entry.steps)
++                {
+                     continue;
+                 }
+-                let correct = matches_target(&word, &document.response);
++                let correct = matches_target(&word, &document.response, target);
+                 reachable |= correct;
+                 let (features, len) = word_copy_runtime::features(
+                     &model,
+                     values,
++                    entry,
+                     &context,
+                     word_index,
+                     Control::Full,
+@@ -534,7 +670,7 @@ impl Model {
+                     correct,
+                 });
+             }
+-            if prefix.is_some() && !reachable {
++            if target.is_some() && !reachable {
+                 unreachable_targets += 1;
+                 continue;
+             }
+@@ -543,8 +679,8 @@ impl Model {
+                 document: index,
+                 alternatives,
+                 baseline_score: threshold as f64 / 256.0,
+-                baseline_correct: prefix.is_none(),
+-                prefix_len: prefix,
++                baseline_correct: target.is_none(),
++                target,
+             });
+         }
+         if examples.is_empty() || !examples.iter().any(|example| !example.baseline_correct) {
+@@ -588,8 +724,8 @@ impl Model {
+         for example in &examples {
+             let document = &documents[example.document];
+             let mut session = response_session(&model, &document.prompt)?;
+-            let first = session.predict(&model)?;
+-            let Some(prefix_len) = example.prefix_len else {
++            let Some(target) = example.target else {
++                session.predict(&model)?;
+                 false_copies += usize::from(
+                     session
+                         .word_copy_decision()
+@@ -597,6 +733,14 @@ impl Model {
+                 );
+                 continue;
+             };
++            if target.start > 0 {
++                let prefix_tokens = model.encode(&document.response[..target.start])?;
++                for &token in &prefix_tokens {
++                    session.predict(&model)?;
++                    session.observe(&model, token)?;
++                }
++            }
++            let first = session.predict(&model)?;
+             let selected = session.word_copy_decision().is_some_and(|decision| {
+                 decision.action == WordCopyAction::Start
+                     && session
+@@ -608,19 +752,19 @@ impl Model {
+                                 && matches_target(
+                                     &words.queries[usize::from(decision.word_index)],
+                                     &document.response,
++                                    Some(target),
+                                 )
+                         })
+             });
+-            if !selected || first.token != u32::from(document.response.as_bytes()[0]) + 2 {
++            if !selected || first.token != u32::from(document.response.as_bytes()[target.start]) + 2
++            {
+                 copy_rollout_failures += 1;
+                 continue;
+             }
+             selected_copies += 1;
+             let mut complete = true;
+-            for (byte_index, &byte) in document.response.as_bytes()[..prefix_len]
+-                .iter()
+-                .enumerate()
+-            {
++            for byte_index in 0..target.len {
++                let byte = document.response.as_bytes()[target.start + byte_index];
+                 let prediction = if byte_index == 0 {
+                     first.clone()
+                 } else {
+@@ -642,7 +786,7 @@ impl Model {
+                 continue;
+             }
+             committed_complete_copies += 1;
+-            let mut targets = model.encode(&document.response[prefix_len..])?;
++            let mut targets = model.encode(&document.response[target.start + target.len..])?;
+             targets.push(EOS);
+             for target in targets {
+                 let baseline = session.predict(&model)?.token;
+@@ -730,6 +874,15 @@ impl Model {
+         for example in &examples {
+             let document = &documents[example.document];
+             let mut session = response_session(&model, &document.prompt)?;
++            if let Some(target) = example.target {
++                if target.start > 0 {
++                    let prefix_tokens = model.encode(&document.response[..target.start])?;
++                    for &token in &prefix_tokens {
++                        session.predict(&model)?;
++                        session.observe(&model, token)?;
++                    }
++                }
++            }
+             session.predict(&model)?;
+             let selected = session
+                 .word_copy_decision()
+@@ -747,6 +900,7 @@ impl Model {
+                                 && matches_target(
+                                     &words.queries[usize::from(decision.word_index)],
+                                     &document.response,
++                                    example.target,
+                                 )
+                         }),
+                 );
+@@ -914,7 +1068,7 @@ mod tests {
+             }],
+             baseline_score: 2000.0,
+             baseline_correct: false,
+-            prefix_len: Some(1),
++            target: Some(TargetSpan { start: 0, len: 1 }),
+         };
+         let (correct, loss) = measure(&[copy_target], &[0.0]).unwrap();
+         assert_eq!(correct, 0);
+@@ -928,7 +1082,7 @@ mod tests {
+             }],
+             baseline_score: 0.0,
+             baseline_correct: true,
+-            prefix_len: None,
++            target: None,
+         };
+         let (correct, loss) = measure(&[no_copy_target], &[2000.0]).unwrap();
+         assert_eq!(correct, 0);
+diff --git a/crates/uor-r4-core/src/native_geometric/word_copy_types.rs b/crates/uor-r4-core/src/native_geometric/word_copy_types.rs
+index 42047aec8..ba2770ad2 100644
+--- a/crates/uor-r4-core/src/native_geometric/word_copy_types.rs
++++ b/crates/uor-r4-core/src/native_geometric/word_copy_types.rs
+@@ -3,7 +3,7 @@ use super::value_types::{ValueFeature, ValueRow};
+ use super::*;
+ 
+ pub(super) const RESPONSE_COPY_SCHEMA: &str = "uor-r4.native-response-entry/2";
+-pub(super) const WORD_COPY_FEATURES: usize = 20;
++pub(super) const WORD_COPY_FEATURES: usize = 24;
+ pub(super) const WORD_COPY_ROWS: usize = 4096;
+ pub(super) const WORD_COPY_DICTIONARY: usize = 256;
+ 
+@@ -95,6 +95,8 @@ pub(super) struct WordCopyState {
+     /// Immutable selected first-entry occurrence until the entry ends.
+     pub origin: Option<u8>,
+     pub progress: WordCopyProgress,
++    #[serde(default)]
++    pub start_step: u8,
+     #[serde(skip)]
+     pub pending: Option<WordCopyDecision>,
+ }

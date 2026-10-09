@@ -1,0 +1,138 @@
+diff --git a/.config/nextest.toml b/.config/nextest.toml
+new file mode 100644
+index 000000000..518069700
+--- /dev/null
++++ b/.config/nextest.toml
+@@ -0,0 +1,14 @@
++# nextest configuration for uor-r4.
++#
++# The `bdd` integration test uses the cucumber custom harness (harness = false
++# in Cargo.toml), which does not implement the --list interface that nextest
++# requires to enumerate tests.  Exclude it here so nextest does not attempt to
++# list its tests; the CI workflow runs `cargo test --test bdd` as a separate
++# step to keep the BDD scenarios exercised.
++#
++# `binary_id` is a nextest filter-expression predicate that matches a specific
++# test binary by "<package-name>::<test-name>" (see nextest.rs/docs/filter-expressions).
++# Binary-level predicates are evaluated before nextest tries to list tests, so
++# the excluded binary is never invoked with --list.
++[profile.default]
++default-filter = "not binary_id(uor-r4-wasm-router::bdd)"
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 2d726c780..8268fceee 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -11,6 +11,11 @@ name: ci
+ # logprobs); on Linux it is expected to skip (checkpoint download is best-effort)
+ # or fail on platform drift — the canonical deterministic compile mode (Phase 2)
+ # is what makes it a true cross-platform gate.
++#
++# GATE C REGRESSION: The Gate C trend is tracked per commit on a small corpus
++# slice. It fails if top-1 drops > 2 points or bits/token worsens > 0.1 vs the
++# pinned record in `scripts/check_gate_c_regression.py`. The trend JSON is
++# uploaded as a `gate-c-trend` artifact.
+ 
+ on:
+   push:
+@@ -59,6 +64,9 @@ jobs:
+       - name: cargo nextest run --workspace
+         run: cargo nextest run --workspace
+ 
++      - name: cargo test --test bdd (cucumber; harness=false, not nextest-compatible)
++        run: cargo test --test bdd
++
+       - name: cargo test --doc
+         run: cargo test --doc --workspace
+ 
+@@ -88,6 +96,22 @@ jobs:
+         run: TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
+         continue-on-error: true
+ 
++      - name: Gate C trend tracking (Issue #77)
++        run: |
++          cargo run --release --bin r4 -- transformerless score \
++            --corpus-meta crates/uor-r4-core/tests/fixtures/c_meta.bin \
++            --corpus-recs crates/uor-r4-core/tests/fixtures/c_recs.bin \
++            --artifacts crates/uor-r4-core/tests/fixtures/tless_artifacts.bin \
++            --out trend_output
++          ./scripts/check_gate_c_regression.py trend_output/score_report.json
++
++      - name: Upload Gate C trend JSON
++        uses: actions/upload-artifact@v4
++        if: always()
++        with:
++          name: gate-c-trend
++          path: trend_output/score_report.json
++
+   wasm:
+     name: wasm-pack build (dashboard facade, deploy.yml parity)
+     runs-on: ubuntu-latest
+diff --git a/.gitignore b/.gitignore
+index e9f465b56..833f62e74 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -8,3 +8,4 @@ manifold_cache_rust.json
+ uor_standards/
+ crates/uor-r4-graph-format/fuzz/target/
+ pkg/
++trend_output/
+diff --git a/scripts/check_gate_c_regression.py b/scripts/check_gate_c_regression.py
+new file mode 100755
+index 000000000..cb61e57c6
+--- /dev/null
++++ b/scripts/check_gate_c_regression.py
+@@ -0,0 +1,54 @@
++#!/usr/bin/env python3
++import sys
++import json
++
++# Pinned previous record (Gate C Rule 1+2 on the small corpus test fixture)
++# Determined from trend_output/score_report.json on main.
++PINNED_TOP1_AGREEMENT = 0.317  # ~31.7%
++PINNED_BITS_PER_TOKEN = 9.86   # 9.86 bits/token
++
++# Regression Thresholds
++MAX_TOP1_DROP = 0.02           # fail if top-1 drops > 2 points (0.02)
++MAX_BPT_WORSEN = 0.1           # fail if bits/token worsens (increases) > 0.1
++
++def main():
++    if len(sys.argv) < 2:
++        print("Usage: check_gate_c_regression.py <path/to/score_report.json>")
++        sys.exit(1)
++
++    report_path = sys.argv[1]
++    with open(report_path, 'r') as f:
++        report = json.load(f)
++    
++    rule12 = report.get('gate_c', {}).get('rule12_precedence')
++    if not rule12:
++        print("Error: 'rule12_precedence' metrics not found in the report.")
++        sys.exit(1)
++        
++    top1 = rule12.get('top1_agreement', 0.0)
++    bpt = rule12.get('bits_per_token', 0.0)
++    
++    print(f"Gate C (Rule 1+2) Current: top-1={top1:.4f} ({top1*100:.1f}%), bits/token={bpt:.4f}")
++    print(f"Gate C (Rule 1+2) Pinned : top-1={PINNED_TOP1_AGREEMENT:.4f} ({PINNED_TOP1_AGREEMENT*100:.1f}%), bits/token={PINNED_BITS_PER_TOKEN:.4f}")
++    
++    failed = False
++    
++    if top1 < (PINNED_TOP1_AGREEMENT - MAX_TOP1_DROP):
++        print(f"🚨 REGRESSION ALARM: top-1 agreement dropped by more than {MAX_TOP1_DROP*100:.1f} points!")
++        print(f"   Delta: {(top1 - PINNED_TOP1_AGREEMENT)*100:.2f} points")
++        failed = True
++        
++    if bpt > (PINNED_BITS_PER_TOKEN + MAX_BPT_WORSEN):
++        print(f"🚨 REGRESSION ALARM: bits/token worsened by more than {MAX_BPT_WORSEN:.2f}!")
++        print(f"   Delta: {bpt - PINNED_BITS_PER_TOKEN:+.4f} bits/token")
++        failed = True
++        
++    if failed:
++        print("Gate C regression check FAILED.")
++        sys.exit(1)
++    else:
++        print("Gate C regression check PASSED.")
++        sys.exit(0)
++
++if __name__ == '__main__':
++    main()

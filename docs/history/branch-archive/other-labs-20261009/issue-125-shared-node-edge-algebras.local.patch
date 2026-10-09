@@ -1,0 +1,617 @@
+diff --git a/crates/uor-r4-graph-format/src/edge_algebras.rs b/crates/uor-r4-graph-format/src/edge_algebras.rs
+new file mode 100644
+index 000000000..61ac42260
+--- /dev/null
++++ b/crates/uor-r4-graph-format/src/edge_algebras.rs
+@@ -0,0 +1,444 @@
++//! Multi-Edge Algebras over Shared Node Space
++//!
++//! Specification & Source: `docs/hologram_formal_analysis_direction.md` PDF §§4, 9;
++//! `docs/formal_vocabulary.md` §3; GitHub Issue #125.
++//!
++//! This module unifies 9 typed edge algebras over a single canonical node identity:
++//! 1. `Semantic` (0): Similarity / co-occurrence (Undirected, symmetric, cycles allowed)
++//! 2. `Causal` (1): Directed state prerequisite (Directed, DAG acyclic enforced)
++//! 3. `Temporal` (2): Sequential state transition (Directed, forward sequence)
++//! 4. `Constraint` (3): Incompatibility / invariant violation (Forbidden pair)
++//! 5. `GoalProgress` (4): Distance-to-goal delta (Directed payload)
++//! 6. `Evidence` (5): Provenance link to corpus source (Directed: Node -> Corpus Record)
++//! 7. `Refinement` (6): Hierarchical parent-to-child abstraction (Directed: Parent -> Child)
++//! 8. `Forward` (7): Predictive forward token/state emission candidate
++//! 9. `Reverse` (8): Evidential predecessor / backtracking candidate
++//!
++//! This design preserves bounded degree, zero-allocation runtime parsing, and
++//! eliminates duplicate node identities across multi-algebra graphs.
++
++#[cfg(feature = "alloc")]
++use alloc::{vec, vec::Vec};
++use core::fmt;
++
++use crate::NodeId;
++
++/// Total number of supported edge kinds in the unified graph algebra.
++pub const EDGE_KIND_COUNT: usize = 9;
++
++/// Discriminants for the 9 unified edge kinds.
++#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
++#[repr(u8)]
++pub enum EdgeKind {
++    /// 0: Similarity / co-occurrence
++    Semantic = 0,
++    /// 1: Directed state prerequisite (DAG enforced)
++    Causal = 1,
++    /// 2: Sequential state transition
++    Temporal = 2,
++    /// 3: Incompatibility / invariant violation
++    Constraint = 3,
++    /// 4: Distance-to-goal delta
++    GoalProgress = 4,
++    /// 5: Provenance & corpus source link
++    Evidence = 5,
++    /// 6: Hierarchical parent-to-child abstraction
++    Refinement = 6,
++    /// 7: Predictive forward token/state emission candidate
++    Forward = 7,
++    /// 8: Evidential predecessor / backtracking candidate
++    Reverse = 8,
++}
++
++impl EdgeKind {
++    /// Try parsing a `u8` discriminant into an `EdgeKind`.
++    pub fn from_u8(value: u8) -> Result<Self, FormatValidationError> {
++        match value {
++            0 => Ok(Self::Semantic),
++            1 => Ok(Self::Causal),
++            2 => Ok(Self::Temporal),
++            3 => Ok(Self::Constraint),
++            4 => Ok(Self::GoalProgress),
++            5 => Ok(Self::Evidence),
++            6 => Ok(Self::Refinement),
++            7 => Ok(Self::Forward),
++            8 => Ok(Self::Reverse),
++            other => Err(FormatValidationError::UnknownEdgeKind {
++                discriminant: other,
++            }),
++        }
++    }
++
++    /// Return whether this edge kind is directed by default.
++    pub fn is_directed(&self) -> bool {
++        match self {
++            Self::Semantic => false,
++            Self::Causal
++            | Self::Temporal
++            | Self::Constraint
++            | Self::GoalProgress
++            | Self::Evidence
++            | Self::Refinement
++            | Self::Forward
++            | Self::Reverse => true,
++        }
++    }
++
++    /// Return whether this edge kind allows cycles.
++    pub fn allows_cycles(&self) -> bool {
++        match self {
++            Self::Causal => false, // Causal chains must be DAGs
++            _ => true,
++        }
++    }
++
++    /// Human-readable label for the edge algebra.
++    pub fn label(&self) -> &'static str {
++        match self {
++            Self::Semantic => "Semantic",
++            Self::Causal => "Causal",
++            Self::Temporal => "Temporal",
++            Self::Constraint => "Constraint",
++            Self::GoalProgress => "GoalProgress",
++            Self::Evidence => "Evidence",
++            Self::Refinement => "Refinement",
++            Self::Forward => "Forward",
++            Self::Reverse => "Reverse",
++        }
++    }
++}
++
++/// Errors occurring during edge algebra validation or packed graph verification.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum FormatValidationError {
++    /// Discriminant does not correspond to a recognized EdgeKind.
++    UnknownEdgeKind { discriminant: u8 },
++    /// Edge endpoints reference a NodeId outside valid graph node range.
++    DanglingNodeReference { node: NodeId, max_nodes: u32 },
++    /// A causal edge created a cycle violating the DAG requirement.
++    CausalCycleDetected { src: NodeId, dst: NodeId },
++    /// Forward and reverse adjacency indices are inconsistent.
++    InconsistentAdjacency { src: NodeId, dst: NodeId, kind: u8 },
++    /// Duplicate edge contribution ID detected for same pair and algebra.
++    DuplicateContributionId {
++        src: NodeId,
++        dst: NodeId,
++        contribution_id: u64,
++    },
++}
++
++impl fmt::Display for FormatValidationError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::UnknownEdgeKind { discriminant } => {
++                write!(f, "Unknown mandatory edge discriminant: {discriminant}")
++            }
++            Self::DanglingNodeReference { node, max_nodes } => {
++                write!(
++                    f,
++                    "Dangling node reference NodeId({node:?}) exceeds node count {max_nodes}"
++                )
++            }
++            Self::CausalCycleDetected { src, dst } => {
++                write!(
++                    f,
++                    "Causal cycle detected between NodeId({src:?}) and NodeId({dst:?})"
++                )
++            }
++            Self::InconsistentAdjacency { src, dst, kind } => {
++                write!(
++                    f,
++                    "Inconsistent forward/reverse adjacency for edge ({src:?}, {dst:?}) kind {kind}"
++                )
++            }
++            Self::DuplicateContributionId {
++                src,
++                dst,
++                contribution_id,
++            } => {
++                write!(
++                    f,
++                    "Duplicate evidence contribution ID {contribution_id} between NodeId({src:?}) and NodeId({dst:?})"
++                )
++            }
++        }
++    }
++}
++
++#[cfg(feature = "std")]
++impl std::error::Error for FormatValidationError {}
++
++/// Fixed 16-byte packed multi-edge structure for R4G1 artifacts (zero-allocation).
++#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
++#[repr(C)]
++pub struct PackedMultiEdge {
++    /// Source node index (4 bytes).
++    pub src_node: u32,
++    /// Destination node index (4 bytes).
++    pub dst_node: u32,
++    /// EdgeKind discriminant u8 (1 byte).
++    pub kind: u8,
++    /// Edge flags (1 byte: bit 0 = directed, bit 1 = verified).
++    pub flags: u8,
++    /// Fixed-point weight $Q8.8$ (2 bytes).
++    pub weight_q88: i16,
++    /// Short 32-bit evidence contribution ID to prevent double counting (4 bytes).
++    pub contribution_id: u32,
++}
++
++impl PackedMultiEdge {
++    pub const PACKED_LEN: usize = 16;
++
++    /// Create a new packed multi-edge.
++    pub fn new(src: u32, dst: u32, kind: EdgeKind, weight_q88: i16, contribution_id: u32) -> Self {
++        let flags = if kind.is_directed() {
++            0b0000_0001
++        } else {
++            0b0000_0000
++        };
++        Self {
++            src_node: src,
++            dst_node: dst,
++            kind: kind as u8,
++            flags,
++            weight_q88,
++            contribution_id,
++        }
++    }
++
++    /// Parse `PackedMultiEdge` from a 16-byte slice.
++    pub fn from_bytes(bytes: &[u8; 16]) -> Self {
++        let src_node = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
++        let dst_node = u32::from_le_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
++        let kind = bytes[8];
++        let flags = bytes[9];
++        let weight_q88 = i16::from_le_bytes([bytes[10], bytes[11]]);
++        let contribution_id = u32::from_le_bytes([bytes[12], bytes[13], bytes[14], bytes[15]]);
++
++        Self {
++            src_node,
++            dst_node,
++            kind,
++            flags,
++            weight_q88,
++            contribution_id,
++        }
++    }
++
++    /// Convert `PackedMultiEdge` into 16 byte array.
++    pub fn to_bytes(&self) -> [u8; 16] {
++        let mut bytes = [0u8; 16];
++        bytes[0..4].copy_from_slice(&self.src_node.to_le_bytes());
++        bytes[4..8].copy_from_slice(&self.dst_node.to_le_bytes());
++        bytes[8] = self.kind;
++        bytes[9] = self.flags;
++        bytes[10..12].copy_from_slice(&self.weight_q88.to_le_bytes());
++        bytes[12..16].copy_from_slice(&self.contribution_id.to_le_bytes());
++        bytes
++    }
++
++    /// Validate the edge fields against node bounds.
++    pub fn validate(&self, max_nodes: u32) -> Result<EdgeKind, FormatValidationError> {
++        let edge_kind = EdgeKind::from_u8(self.kind)?;
++        if self.src_node >= max_nodes {
++            return Err(FormatValidationError::DanglingNodeReference {
++                node: NodeId(self.src_node),
++                max_nodes,
++            });
++        }
++        if self.dst_node >= max_nodes {
++            return Err(FormatValidationError::DanglingNodeReference {
++                node: NodeId(self.dst_node),
++                max_nodes,
++            });
++        }
++        Ok(edge_kind)
++    }
++}
++
++/// In-memory graph container managing multi-edge algebras over a shared node space (requires `alloc`).
++#[cfg(feature = "alloc")]
++#[derive(Debug, Clone, Default)]
++pub struct SharedNodeGraph {
++    pub node_count: u32,
++    pub edges: Vec<PackedMultiEdge>,
++}
++
++#[cfg(feature = "alloc")]
++impl SharedNodeGraph {
++    pub fn new(node_count: u32) -> Self {
++        Self {
++            node_count,
++            edges: Vec::new(),
++        }
++    }
++
++    /// Add a typed edge between `src` and `dst` with edge kind and contribution ID.
++    pub fn add_edge(
++        &mut self,
++        src: u32,
++        dst: u32,
++        kind: EdgeKind,
++        weight_q88: i16,
++        contribution_id: u32,
++    ) -> Result<(), FormatValidationError> {
++        let edge = PackedMultiEdge::new(src, dst, kind, weight_q88, contribution_id);
++        edge.validate(self.node_count)?;
++        self.edges.push(edge);
++        Ok(())
++    }
++
++    /// Get all edges matching a specific `EdgeKind`.
++    pub fn edges_by_kind(&self, kind: EdgeKind) -> Vec<&PackedMultiEdge> {
++        let discriminant = kind as u8;
++        self.edges
++            .iter()
++            .filter(|e| e.kind == discriminant)
++            .collect()
++    }
++
++    /// Get outgoing edges from a specific node across all edge kinds.
++    pub fn outgoing_edges(&self, src: u32) -> Vec<&PackedMultiEdge> {
++        self.edges.iter().filter(|e| e.src_node == src).collect()
++    }
++
++    /// Get incoming edges to a specific node across all edge kinds.
++    pub fn incoming_edges(&self, dst: u32) -> Vec<&PackedMultiEdge> {
++        self.edges.iter().filter(|e| e.dst_node == dst).collect()
++    }
++
++    /// Validate complete graph consistency (dangling nodes, DAG for causal edges, no duplicate contribution IDs).
++    pub fn validate(&self) -> Result<(), FormatValidationError> {
++        let mut seen_contributions = Vec::new();
++
++        for edge in &self.edges {
++            edge.validate(self.node_count)?;
++
++            // Double counting check
++            let key = (
++                edge.src_node,
++                edge.dst_node,
++                edge.kind,
++                edge.contribution_id,
++            );
++            if seen_contributions.contains(&key) {
++                return Err(FormatValidationError::DuplicateContributionId {
++                    src: NodeId(edge.src_node),
++                    dst: NodeId(edge.dst_node),
++                    contribution_id: edge.contribution_id as u64,
++                });
++            }
++            seen_contributions.push(key);
++        }
++
++        // Validate Causal DAG property (no cycles in Causal edges)
++        self.validate_causal_dag()?;
++
++        Ok(())
++    }
++
++    /// Verify that Causal edges form a Directed Acyclic Graph (DAG).
++    fn validate_causal_dag(&self) -> Result<(), FormatValidationError> {
++        let causal_edges = self.edges_by_kind(EdgeKind::Causal);
++        if causal_edges.is_empty() {
++            return Ok(());
++        }
++
++        // Kahn's algorithm for cycle detection
++        let mut in_degree = vec![0u32; self.node_count as usize];
++        let mut adj = vec![Vec::new(); self.node_count as usize];
++
++        for edge in &causal_edges {
++            adj[edge.src_node as usize].push(edge.dst_node);
++            in_degree[edge.dst_node as usize] += 1;
++        }
++
++        let mut queue: Vec<u32> = (0..self.node_count)
++            .filter(|&i| in_degree[i as usize] == 0)
++            .collect();
++
++        let mut visited_count = 0;
++        while let Some(u) = queue.pop() {
++            visited_count += 1;
++            for &v in &adj[u as usize] {
++                in_degree[v as usize] -= 1;
++                if in_degree[v as usize] == 0 {
++                    queue.push(v);
++                }
++            }
++        }
++
++        // If visited count < node count, a cycle exists among nodes with in_degree > 0
++        if visited_count < self.node_count {
++            if let Some(first_causal) = causal_edges.first() {
++                return Err(FormatValidationError::CausalCycleDetected {
++                    src: NodeId(first_causal.src_node),
++                    dst: NodeId(first_causal.dst_node),
++                });
++            }
++        }
++
++        Ok(())
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn test_edge_kind_from_u8_all_9_kinds() {
++        for i in 0..9 {
++            let kind = EdgeKind::from_u8(i).unwrap();
++            assert_eq!(kind as u8, i);
++        }
++        assert!(EdgeKind::from_u8(9).is_err());
++    }
++
++    #[test]
++    fn test_packed_multi_edge_roundtrip_bytes() {
++        let edge = PackedMultiEdge::new(12, 34, EdgeKind::Causal, 256, 9999);
++        let bytes = edge.to_bytes();
++        let decoded = PackedMultiEdge::from_bytes(&bytes);
++
++        assert_eq!(decoded.src_node, 12);
++        assert_eq!(decoded.dst_node, 34);
++        assert_eq!(decoded.kind, EdgeKind::Causal as u8);
++        assert_eq!(decoded.weight_q88, 256);
++        assert_eq!(decoded.contribution_id, 9999);
++    }
++
++    #[cfg(feature = "alloc")]
++    #[test]
++    fn test_shared_node_graph_multi_edge_traversal() {
++        let mut graph = SharedNodeGraph::new(5);
++
++        // Node 0 connected to Node 1 via Semantic, Causal, and Evidence edges
++        graph.add_edge(0, 1, EdgeKind::Semantic, 100, 101).unwrap();
++        graph.add_edge(0, 1, EdgeKind::Causal, 200, 102).unwrap();
++        graph.add_edge(0, 1, EdgeKind::Evidence, 300, 103).unwrap();
++
++        assert_eq!(graph.outgoing_edges(0).len(), 3);
++        assert_eq!(graph.edges_by_kind(EdgeKind::Semantic).len(), 1);
++        assert_eq!(graph.edges_by_kind(EdgeKind::Causal).len(), 1);
++        assert_eq!(graph.edges_by_kind(EdgeKind::Evidence).len(), 1);
++        assert!(graph.validate().is_ok());
++    }
++
++    #[cfg(feature = "alloc")]
++    #[test]
++    fn test_causal_dag_cycle_rejection() {
++        let mut graph = SharedNodeGraph::new(3);
++
++        // 0 -> 1 -> 2 -> 0 (Causal cycle)
++        graph.add_edge(0, 1, EdgeKind::Causal, 1, 1).unwrap();
++        graph.add_edge(1, 2, EdgeKind::Causal, 1, 2).unwrap();
++        graph.add_edge(2, 0, EdgeKind::Causal, 1, 3).unwrap();
++
++        let err = graph.validate().unwrap_err();
++        assert!(matches!(
++            err,
++            FormatValidationError::CausalCycleDetected { .. }
++        ));
++    }
++}
+diff --git a/crates/uor-r4-graph-format/src/lib.rs b/crates/uor-r4-graph-format/src/lib.rs
+index 831306e23..1201a2e72 100644
+--- a/crates/uor-r4-graph-format/src/lib.rs
++++ b/crates/uor-r4-graph-format/src/lib.rs
+@@ -64,6 +64,7 @@
+ extern crate alloc;
+ 
+ mod code;
++pub mod edge_algebras;
+ mod error;
+ mod head;
+ mod header;
+diff --git a/features/suites/multi_edge_algebras.feature b/features/suites/multi_edge_algebras.feature
+new file mode 100644
+index 000000000..a3065150f
+--- /dev/null
++++ b/features/suites/multi_edge_algebras.feature
+@@ -0,0 +1,24 @@
++@status:enforced
++Feature: Shared node space with multi-edge algebras
++  A single canonical node identity can participate in multiple edge algebras (semantic, causal, temporal, constraint, goal-progress, evidence, refinement, forward, reverse) without node duplication.
++
++  Scenario: Register multiple edge algebras on shared node identities
++    Given a shared node graph with 5 canonical node identities
++    When edges of kind Semantic, Causal, and Evidence are added between node 0 and node 1
++    Then node 0 has 3 outgoing edges
++    And the graph contains 1 edge for each of the 3 edge kinds
++
++  Scenario: Pack and unpack multi-edge structures into 16-byte binary layouts
++    Given a packed multi-edge between node 12 and node 34 with kind Causal and weight 256
++    When the multi-edge is serialized to 16 bytes and deserialized
++    Then the deserialized multi-edge preserves source node 12, destination node 34, kind Causal, and weight 256
++
++  Scenario: Reject causal cycles violating the Directed Acyclic Graph (DAG) requirement
++    Given a shared node graph with 3 nodes
++    When a causal cycle 0 -> 1 -> 2 -> 0 is added
++    Then graph validation fails with a causal cycle error
++
++  Scenario: Reject dangling node references outside graph capacity
++    Given a packed multi-edge referencing destination node 99 in a graph of size 10
++    When the multi-edge is validated against the node capacity
++    Then validation fails with a dangling node reference error
+diff --git a/tests/bdd.rs b/tests/bdd.rs
+index defb6ed85..8e9134d28 100644
+--- a/tests/bdd.rs
++++ b/tests/bdd.rs
+@@ -50,6 +50,11 @@ struct R4g1World {
+     u8_a: u8,
+     u8_b: u8,
+     u8_res: u8,
++    // Multi-Edge Algebra fields (#125)
++    shared_graph: Option<uor_r4_graph_format::edge_algebras::SharedNodeGraph>,
++    packed_edge: Option<uor_r4_graph_format::edge_algebras::PackedMultiEdge>,
++    deserialized_edge: Option<uor_r4_graph_format::edge_algebras::PackedMultiEdge>,
++    edge_val_error: Option<uor_r4_graph_format::edge_algebras::FormatValidationError>,
+ }
+ 
+ #[given("the R4G1 runtime returned the browser's repetitive hello response")]
+@@ -472,6 +477,108 @@ fn u8_kernel_zero_floats(_w: &mut R4g1World) {
+     assert!(!kernel_code.contains(" * ") && !kernel_code.contains(" / "));
+ }
+ 
++// =========================================================================
++// Multi-Edge Algebra BDD Steps (#125)
++// =========================================================================
++use uor_r4_graph_format::edge_algebras::{
++    EdgeKind, FormatValidationError, PackedMultiEdge, SharedNodeGraph,
++};
++
++#[given("a shared node graph with 5 canonical node identities")]
++fn bdd_shared_node_graph_5(w: &mut R4g1World) {
++    w.shared_graph = Some(SharedNodeGraph::new(5));
++}
++
++#[when("edges of kind Semantic, Causal, and Evidence are added between node 0 and node 1")]
++fn bdd_add_3_edge_kinds(w: &mut R4g1World) {
++    let graph = w.shared_graph.as_mut().expect("graph");
++    graph.add_edge(0, 1, EdgeKind::Semantic, 100, 1).unwrap();
++    graph.add_edge(0, 1, EdgeKind::Causal, 200, 2).unwrap();
++    graph.add_edge(0, 1, EdgeKind::Evidence, 300, 3).unwrap();
++}
++
++#[then("node 0 has 3 outgoing edges")]
++fn bdd_outgoing_edges_count(w: &mut R4g1World) {
++    let graph = w.shared_graph.as_ref().expect("graph");
++    assert_eq!(graph.outgoing_edges(0).len(), 3);
++}
++
++#[then("the graph contains 1 edge for each of the 3 edge kinds")]
++fn bdd_edge_kinds_count(w: &mut R4g1World) {
++    let graph = w.shared_graph.as_ref().expect("graph");
++    assert_eq!(graph.edges_by_kind(EdgeKind::Semantic).len(), 1);
++    assert_eq!(graph.edges_by_kind(EdgeKind::Causal).len(), 1);
++    assert_eq!(graph.edges_by_kind(EdgeKind::Evidence).len(), 1);
++}
++
++#[given("a packed multi-edge between node 12 and node 34 with kind Causal and weight 256")]
++fn bdd_packed_multi_edge_setup(w: &mut R4g1World) {
++    w.packed_edge = Some(PackedMultiEdge::new(12, 34, EdgeKind::Causal, 256, 9999));
++}
++
++#[when("the multi-edge is serialized to 16 bytes and deserialized")]
++fn bdd_serialize_deserialize_edge(w: &mut R4g1World) {
++    let edge = w.packed_edge.as_ref().expect("edge");
++    let bytes = edge.to_bytes();
++    w.deserialized_edge = Some(PackedMultiEdge::from_bytes(&bytes));
++}
++
++#[then("the deserialized multi-edge preserves source node 12, destination node 34, kind Causal, and weight 256")]
++fn bdd_deserialized_edge_check(w: &mut R4g1World) {
++    let edge = w.deserialized_edge.as_ref().expect("deserialized edge");
++    assert_eq!(edge.src_node, 12);
++    assert_eq!(edge.dst_node, 34);
++    assert_eq!(edge.kind, EdgeKind::Causal as u8);
++    assert_eq!(edge.weight_q88, 256);
++}
++
++#[given("a shared node graph with 3 nodes")]
++fn bdd_shared_node_graph_3(w: &mut R4g1World) {
++    w.shared_graph = Some(SharedNodeGraph::new(3));
++}
++
++#[when("a causal cycle 0 -> 1 -> 2 -> 0 is added")]
++fn bdd_add_causal_cycle(w: &mut R4g1World) {
++    let graph = w.shared_graph.as_mut().expect("graph");
++    graph.add_edge(0, 1, EdgeKind::Causal, 1, 1).unwrap();
++    graph.add_edge(1, 2, EdgeKind::Causal, 1, 2).unwrap();
++    graph.add_edge(2, 0, EdgeKind::Causal, 1, 3).unwrap();
++    if let Err(e) = graph.validate() {
++        w.edge_val_error = Some(e);
++    }
++}
++
++#[then("graph validation fails with a causal cycle error")]
++fn bdd_causal_cycle_error_check(w: &mut R4g1World) {
++    let err = w.edge_val_error.as_ref().expect("validation error");
++    assert!(matches!(
++        err,
++        FormatValidationError::CausalCycleDetected { .. }
++    ));
++}
++
++#[given("a packed multi-edge referencing destination node 99 in a graph of size 10")]
++fn bdd_dangling_edge_setup(w: &mut R4g1World) {
++    w.packed_edge = Some(PackedMultiEdge::new(0, 99, EdgeKind::Semantic, 1, 1));
++}
++
++#[when("the multi-edge is validated against the node capacity")]
++fn bdd_validate_dangling_edge(w: &mut R4g1World) {
++    let edge = w.packed_edge.as_ref().expect("edge");
++    if let Err(e) = edge.validate(10) {
++        w.edge_val_error = Some(e);
++    }
++}
++
++#[then("validation fails with a dangling node reference error")]
++fn bdd_dangling_node_error_check(w: &mut R4g1World) {
++    let err = w.edge_val_error.as_ref().expect("validation error");
++    assert!(matches!(
++        err,
++        FormatValidationError::DanglingNodeReference { .. }
++    ));
++}
++
+ #[tokio::main]
+ async fn main() {
+     R4g1World::cucumber()

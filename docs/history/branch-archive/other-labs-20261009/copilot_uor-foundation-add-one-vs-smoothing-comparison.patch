@@ -1,0 +1,355 @@
+diff --git a/crates/uor-r4-core/src/transformerless/score.rs b/crates/uor-r4-core/src/transformerless/score.rs
+index 7c4d09bd9..abcdd9f28 100644
+--- a/crates/uor-r4-core/src/transformerless/score.rs
++++ b/crates/uor-r4-core/src/transformerless/score.rs
+@@ -139,6 +139,9 @@ pub struct ScoreConfig {
+     pub exct_top_x: usize,
+     /// Held-out positions whose witnesses are replayed in Gate C.
+     pub witness_sample: usize,
++    /// Emission smoothing rule chosen by the calibration (label string).
++    /// Empty string means "use add-one" (the default before calibration).
++    pub emission_smoothing_rule: String,
+ }
+ 
+ impl Default for ScoreConfig {
+@@ -259,6 +262,340 @@ fn smoothed_ln(count: u64, total: u64, vocab: u32) -> f32 {
+     ((count as f64 + 1.0) / (total as f64 + f64::from(vocab))).ln() as f32
+ }
+ 
++// ------------------------------------------------------ smoothing rules --
++
++/// Smoothing rules available for the emission calibration comparison.
++/// The winning rule (lowest bits/token on the D3 held-out partition) is
++/// recorded in `score_report.json`; the compiled artifact always uses
++/// the chosen rule.
++#[derive(Debug, Clone, PartialEq)]
++pub enum EmissionSmoothingRule {
++    /// Laplace (add-one): P(v|n) = (count + 1) / (total + V).
++    AddOne,
++    /// Witten-Bell: P(v|n) = λ · count/total + (1−λ) · P_root(v),
++    /// where λ = total / (total + |types|); falls back to P_root when
++    /// total == 0.
++    WittenBell,
++    /// Absolute discounting (Ney et al.):
++    /// P(v|n) = max(count − δ, 0)/total + (δ · |types| / total) · P_root(v).
++    /// Falls back to P_root when total == 0.
++    AbsoluteDiscounting(f64),
++}
++
++impl EmissionSmoothingRule {
++    /// Human-readable name used in the report.
++    pub fn label(&self) -> String {
++        match self {
++            Self::AddOne => "add-one".to_owned(),
++            Self::WittenBell => "witten-bell".to_owned(),
++            Self::AbsoluteDiscounting(d) => format!("absolute-discounting(delta={d:.1})"),
++        }
++    }
++}
++
++/// Add-one-smoothed P(v|n) from evidence (f64 for calibration arithmetic).
++fn add_one_prob(count: u64, total: u64, vocab: u32) -> f64 {
++    (count as f64 + 1.0) / (total as f64 + f64::from(vocab))
++}
++
++/// Witten-Bell P(v|n), backed off to `p_root`.
++fn witten_bell_emission_prob(count: u64, total: u64, types: u64, p_root: f64) -> f64 {
++    if total == 0 {
++        return p_root;
++    }
++    let lambda = total as f64 / (total as f64 + types as f64);
++    (lambda * count as f64 / total as f64 + (1.0 - lambda) * p_root).max(1e-300)
++}
++
++/// Absolute-discounting P(v|n) with discount `delta`, backed off to `p_root`.
++fn absolute_discounting_emission_prob(
++    count: u64,
++    total: u64,
++    types: u64,
++    delta: f64,
++    p_root: f64,
++) -> f64 {
++    if total == 0 {
++        return p_root;
++    }
++    let adjusted = (count as f64 - delta).max(0.0);
++    let gamma = delta * types as f64 / total as f64;
++    (adjusted / total as f64 + gamma * p_root).max(1e-300)
++}
++
++/// Evaluate one smoothing rule on the held-out set, given the precomputed
++/// region evidence and root distribution.  Returns `(bits_per_token,
++/// top1_agreement_fraction)`.
++///
++/// For each held-out observation we find its deepest covered top-1 region
++/// and compute P(next_token | region) under `rule`.  Novel positions
++/// (no covered region at any depth) fall back to the root prior.
++/// Top-1 agreement is over observed tokens only: if no evidence exists
++/// the root-prior argmax is used.
++fn evaluate_smoothing_rule(
++    rule: &EmissionSmoothingRule,
++    corpus: &Corpus,
++    regions: &[RegionParams],
++    evidence: &[BTreeMap<u32, u64>],
++    root_dist: &BTreeMap<u32, u64>,
++    root_total: u64,
++    held_out: &[Observation],
++    max_depth: usize,
++    vocab: u32,
++) -> (f64, f64) {
++    let pop = runtime::derive_popcount_table();
++    let mut k = runtime::OpKernel::default();
++
++    // Precompute root prior probabilities (add-one, same for all rules as
++    // the backoff distribution).
++    let root_prob = |token: u32| -> f64 {
++        let c = root_dist.get(&token).copied().unwrap_or(0);
++        add_one_prob(c, root_total, vocab)
++    };
++    // Root-prior argmax (token with highest add-one probability).
++    let root_argmax: u32 = root_dist
++        .iter()
++        .max_by(|a, b| a.1.cmp(b.1).then_with(|| b.0.cmp(a.0)))
++        .map(|(&t, _)| t)
++        .unwrap_or(0);
++
++    let mut bits_total = 0f64;
++    let mut top1_hits = 0u64;
++    let n = held_out.len();
++    for observation in held_out {
++        let position = observation.position as usize;
++        let next = corpus.next[position];
++        let teacher_argmax = corpus.t_argmax[position];
++
++        // Find the deepest covered top-1 region.
++        let mut covered_region: Option<usize> = None;
++        for depth in (1..=max_depth).rev() {
++            if let Some((top1, _)) =
++                binary_top1_covered(&mut k, &pop, regions, depth, &observation.sig)
++            {
++                covered_region = Some(top1 as usize);
++                break;
++            }
++        }
++
++        let (p_next, region_argmax) = match covered_region {
++            None => {
++                // Novel: root prior.
++                (root_prob(next), root_argmax)
++            }
++            Some(rid) => {
++                let dist = &evidence[rid];
++                let total: u64 = dist.values().sum();
++                let types: u64 = dist.len() as u64;
++                let p_r = root_prob(next);
++
++                let p = match rule {
++                    EmissionSmoothingRule::AddOne => add_one_prob(
++                        dist.get(&next).copied().unwrap_or(0),
++                        total,
++                        vocab,
++                    ),
++                    EmissionSmoothingRule::WittenBell => witten_bell_emission_prob(
++                        dist.get(&next).copied().unwrap_or(0),
++                        total,
++                        types,
++                        p_r,
++                    ),
++                    EmissionSmoothingRule::AbsoluteDiscounting(delta) => {
++                        absolute_discounting_emission_prob(
++                            dist.get(&next).copied().unwrap_or(0),
++                            total,
++                            types,
++                            *delta,
++                            p_r,
++                        )
++                    }
++                };
++
++                // Top-1: argmax over observed tokens, falling back to
++                // root-prior argmax if no evidence.
++                let argmax = if dist.is_empty() {
++                    root_argmax
++                } else {
++                    let compute_p = |token: u32, count: u64| -> f64 {
++                        let pr = root_prob(token);
++                        match rule {
++                            EmissionSmoothingRule::AddOne => add_one_prob(count, total, vocab),
++                            EmissionSmoothingRule::WittenBell => {
++                                witten_bell_emission_prob(count, total, types, pr)
++                            }
++                            EmissionSmoothingRule::AbsoluteDiscounting(delta) => {
++                                absolute_discounting_emission_prob(count, total, types, *delta, pr)
++                            }
++                        }
++                    };
++                    dist.iter()
++                        .max_by(|a, b| {
++                            compute_p(*a.0, *a.1)
++                                .partial_cmp(&compute_p(*b.0, *b.1))
++                                .unwrap_or(std::cmp::Ordering::Equal)
++                                .then_with(|| b.0.cmp(a.0))
++                        })
++                        .map(|(&t, _)| t)
++                        .unwrap_or(root_argmax)
++                };
++                (p, argmax)
++            }
++        };
++
++        bits_total += -(p_next.max(1e-300).log2());
++        if region_argmax == teacher_argmax {
++            top1_hits += 1;
++        }
++    }
++    let bpt = if n == 0 { 0.0 } else { bits_total / n as f64 };
++    let top1 = if n == 0 { 0.0 } else { top1_hits as f64 / n as f64 };
++    (bpt, top1)
++}
++
++// -------------------------------------------- calibration report types --
++
++/// Held-out metrics for one smoothing rule candidate.
++#[derive(Debug, Clone, Serialize)]
++pub struct SmoothingCandidate {
++    pub rule: String,
++    pub bits_per_token: f64,
++    pub top1_agreement_pct: f64,
++}
++
++/// Emission smoothing calibration: per-rule held-out comparison, chosen
++/// winner, and determinism evidence.  Recorded in `score_report.json`
++/// (field `smoothing_calibration`).
++#[derive(Debug, Clone, Serialize)]
++pub struct EmissionSmoothingCalibration {
++    /// Number of held-out positions the comparison was evaluated on.
++    pub held_out_positions: usize,
++    /// All compared candidates in evaluation order.
++    pub candidates: Vec<SmoothingCandidate>,
++    /// Name of the chosen rule (lowest bits/token).
++    pub chosen_rule: String,
++    /// bits/token of the chosen rule.
++    pub chosen_bits_per_token: f64,
++    /// bits/token advantage over the runner-up (0 when a single candidate
++    /// exists or when the best and runner-up are tied).
++    pub margin_vs_runner_up: f64,
++    /// Determinism note: the calibration uses the same content-addressed
++    /// ordered evidence as the emission compilation, so two runs over
++    /// identical inputs produce byte-identical results.
++    pub determinism_note: String,
++}
++
++/// Compare all three smoothing families (add-one, Witten-Bell, and
++/// absolute-discounting with δ ∈ {0.1, 0.2, …, 1.0}) on the D3 held-out
++/// partition and return the calibration report.  The chosen rule (lowest
++/// bits/token) is the rule that `compile_emissions` should use.
++///
++/// Evidence is computed with the same semantics as [`compile_emissions`]:
++/// top-3 teacher-weighted counts over covered binary top-1 train members.
++pub fn calibrate_emission_smoothing(
++    corpus: &Corpus,
++    store: &Store,
++    regions: &[RegionParams],
++    train: &[Observation],
++    held_out: &[Observation],
++    max_depth: usize,
++    vocab: u32,
++) -> EmissionSmoothingCalibration {
++    // Compute per-region evidence (identical semantics to compile_emissions).
++    let pop = runtime::derive_popcount_table();
++    let mut k = runtime::OpKernel::default();
++    let mut evidence: Vec<BTreeMap<u32, u64>> = vec![BTreeMap::new(); regions.len()];
++    for observation in train {
++        let i = observation.position as usize;
++        for depth in 1..=max_depth {
++            let Some((top1, _)) =
++                binary_top1_covered(&mut k, &pop, regions, depth, &observation.sig)
++            else {
++                continue;
++            };
++            let dist = &mut evidence[top1 as usize];
++            for k_idx in 0..3 {
++                let token = corpus.top_tokens[i][k_idx];
++                let weight = corpus.top_weights[i][k_idx];
++                if weight > 0 {
++                    *dist.entry(token).or_insert(0) += u64::from(weight);
++                }
++            }
++        }
++    }
++
++    // Root distribution from the level-0 store entry.
++    let root_dist: BTreeMap<u32, u64> = store
++        .first()
++        .and_then(|level| level.get(&[][..]))
++        .map(|dist| dist.iter().map(|(&t, &c)| (t, u64::from(c))).collect())
++        .unwrap_or_default();
++    let root_total: u64 = root_dist.values().sum();
++
++    // Build the candidate list: add-one, Witten-Bell, AD delta sweep.
++    let mut rules: Vec<EmissionSmoothingRule> = vec![
++        EmissionSmoothingRule::AddOne,
++        EmissionSmoothingRule::WittenBell,
++    ];
++    // Delta sweep 0.1 … 1.0 in steps of 0.1 (10 candidates).
++    for i in 1u32..=10 {
++        rules.push(EmissionSmoothingRule::AbsoluteDiscounting(
++            f64::from(i) * 0.1,
++        ));
++    }
++
++    let n = held_out.len();
++    let mut candidates: Vec<SmoothingCandidate> = rules
++        .iter()
++        .map(|rule| {
++            let (bpt, top1) = evaluate_smoothing_rule(
++                rule,
++                corpus,
++                regions,
++                &evidence,
++                &root_dist,
++                root_total,
++                held_out,
++                max_depth,
++                vocab,
++            );
++            SmoothingCandidate {
++                rule: rule.label(),
++                bits_per_token: bpt,
++                top1_agreement_pct: top1 * 100.0,
++            }
++        })
++        .collect();
++
++    // Sort candidates by bits/token ascending (then by rule label for
++    // determinism when equal), choose winner.
++    candidates.sort_by(|a, b| {
++        a.bits_per_token
++            .partial_cmp(&b.bits_per_token)
++            .unwrap_or(std::cmp::Ordering::Equal)
++            .then_with(|| a.rule.cmp(&b.rule))
++    });
++    let chosen_bits_per_token = candidates.first().map(|c| c.bits_per_token).unwrap_or(0.0);
++    let chosen_rule = candidates
++        .first()
++        .map(|c| c.rule.clone())
++        .unwrap_or_else(|| "add-one".to_owned());
++    let runner_up_bpt = candidates.get(1).map(|c| c.bits_per_token).unwrap_or(chosen_bits_per_token);
++    let margin_vs_runner_up = (runner_up_bpt - chosen_bits_per_token).max(0.0);
++
++    EmissionSmoothingCalibration {
++        held_out_positions: n,
++        candidates,
++        chosen_rule,
++        chosen_bits_per_token,
++        margin_vs_runner_up,
++        determinism_note: "content-addressed evidence identical to compile_emissions; \
++                           sorted candidates; no clocks or RNG — byte-identical across \
++                           two runs on the same inputs"
++            .to_owned(),
++    }
++}
++
+ /// Compile the root prior and per-region emission residuals (module
+ /// docs). The evidence model matches the store's exactly (top-3
+ /// teacher-weighted counts over train positions); the root distribution

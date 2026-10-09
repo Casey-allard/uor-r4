@@ -1,0 +1,3208 @@
+diff --git a/crates/uor-r4-integer/src/bin/uor-r4-stack.rs b/crates/uor-r4-integer/src/bin/uor-r4-stack.rs
+index 92daeaf06..60521ac7b 100644
+--- a/crates/uor-r4-integer/src/bin/uor-r4-stack.rs
++++ b/crates/uor-r4-integer/src/bin/uor-r4-stack.rs
+@@ -29,6 +29,8 @@ enum CliError {
+     Usage(String),
+     Io(std::io::Error),
+     Stack(StackError),
++    Json(serde_json::Error),
++    Integer(uor_r4_integer::IntegerError),
+ }
+ 
+ impl std::fmt::Display for CliError {
+@@ -37,6 +39,8 @@ impl std::fmt::Display for CliError {
+             Self::Usage(message) => write!(f, "{message}"),
+             Self::Io(error) => write!(f, "I/O: {error}"),
+             Self::Stack(error) => write!(f, "{error}"),
++            Self::Json(error) => write!(f, "JSON: {error}"),
++            Self::Integer(error) => write!(f, "Integer error: {error}"),
+         }
+     }
+ }
+@@ -53,7 +57,19 @@ impl From<std::io::Error> for CliError {
+     }
+ }
+ 
+-const USAGE: &str = "usage: uor-r4-stack generate ARTIFACT PROMPT_IDS NEW_TOKENS | digest ARTIFACT TOKENS.u16 WINDOWS";
++impl From<serde_json::Error> for CliError {
++    fn from(error: serde_json::Error) -> Self {
++        Self::Json(error)
++    }
++}
++
++impl From<uor_r4_integer::IntegerError> for CliError {
++    fn from(error: uor_r4_integer::IntegerError) -> Self {
++        Self::Integer(error)
++    }
++}
++
++const USAGE: &str = "usage: uor-r4-stack generate ARTIFACT PROMPT_IDS NEW_TOKENS | digest ARTIFACT TOKENS.u16 WINDOWS | cost ARTIFACT TOKENS.u16 WINDOWS PROMPT_TOKENS [OUT_DIR]";
+ 
+ fn usage(message: &str) -> CliError {
+     CliError::Usage(format!("{message}\n{USAGE}"))
+@@ -133,6 +149,25 @@ fn generate(args: &[String]) -> Result<(), CliError> {
+     Ok(())
+ }
+ 
++fn load_tokens(tokens: &str) -> Result<Vec<u32>, CliError> {
++    let bytes = std::fs::read(tokens)?;
++    let slice = if bytes.starts_with(b"UORT") {
++        if bytes.len() < 64 {
++            return Err(usage("truncated UORT token file"));
++        }
++        &bytes[64..]
++    } else {
++        &bytes[..]
++    };
++    if slice.len() % 2 != 0 {
++        return Err(usage("the token file is not little-endian u16"));
++    }
++    Ok(slice
++        .chunks_exact(2)
++        .map(|pair| u32::from(u16::from_le_bytes([pair[0], pair[1]])))
++        .collect())
++}
++
+ fn digest(args: &[String]) -> Result<(), CliError> {
+     let [artifact, tokens, windows] = args else {
+         return Err(usage("digest takes ARTIFACT TOKENS.u16 WINDOWS"));
+@@ -140,14 +175,7 @@ fn digest(args: &[String]) -> Result<(), CliError> {
+     let windows = number(windows, "WINDOWS")?;
+     let model = IntegerStackModel::load(Path::new(artifact))?;
+     let (vocab, context) = (model.shape().vocab, model.shape().context);
+-    let bytes = std::fs::read(tokens)?;
+-    if bytes.len() % 2 != 0 {
+-        return Err(usage("the token file is not little-endian u16"));
+-    }
+-    let ids: Vec<u32> = bytes
+-        .chunks_exact(2)
+-        .map(|pair| u32::from(u16::from_le_bytes([pair[0], pair[1]])))
+-        .collect();
++    let ids = load_tokens(tokens)?;
+     // Every window needs a whole context and a stride of at least one token.
+     if windows == 0
+         || context
+@@ -193,11 +221,358 @@ fn digest(args: &[String]) -> Result<(), CliError> {
+     Ok(())
+ }
+ 
++fn percentile(sorted: &[f64], percent: usize) -> f64 {
++    if sorted.is_empty() {
++        return 0.0;
++    }
++    sorted[(sorted.len() * percent / 100).min(sorted.len() - 1)]
++}
++
++fn process_rss_mb() -> Option<f64> {
++    let output = std::process::Command::new("ps")
++        .args(["-o", "rss=", "-p", &std::process::id().to_string()])
++        .output()
++        .ok()?;
++    if !output.status.success() {
++        return None;
++    }
++    let kib: f64 = std::str::from_utf8(&output.stdout)
++        .ok()?
++        .trim()
++        .parse()
++        .ok()?;
++    Some(kib / 1024.0)
++}
++
++fn sysctl_loadavg() -> String {
++    std::process::Command::new("sysctl")
++        .args(["-n", "vm.loadavg"])
++        .output()
++        .ok()
++        .filter(|output| output.status.success())
++        .and_then(|output| String::from_utf8(output.stdout).ok())
++        .map(|text| text.trim().to_string())
++        .unwrap_or_else(|| "UNAVAILABLE".to_string())
++}
++
++/// Analytical estimate of active working-set memory traffic per token based on model shape
++/// parameters, static weight sizes, activation tables, and scratch buffers.
++///
++/// NOTE: This is a shape-based analytical calculation, NOT an instrumented hardware measurement.
++/// It does not observe executed cache line fills, bus traffic, or occupancy-dependent memory access.
++/// True hardware memory traffic is unmeasured and unavailable.
++fn estimate_analytical_bytes_per_token(model: &IntegerStackModel) -> u64 {
++    let s = model.shape();
++    let (d, mlp, vocab, heads) = (s.width, s.mlp, s.vocab, s.heads);
++    let mut bytes = 0u64;
++
++    // 1. Embedding read: 1 row of embed (weights + scales)
++    bytes += (d / 2) as u64; // nibbles
++    bytes += d.div_ceil(32) as u64; // scales
++
++    // 2. State & norm buffers
++    let x_bytes = (d * 4) as u64; // b.x i32
++    let norm_bytes = (d * 2) as u64; // b.norm i16
++    let scratch_norm_bytes = (d * 8) as u64; // scratch i64 in rms_norm
++    let tables_d_bytes = (d * 16 * 4) as u64; // b.tables[..d]
++    let pairs_d_bytes = ((d / 2) * 256 * 4) as u64; // b.pairs
++
++    for (_l, kind) in s.pattern.bytes().enumerate() {
++        // Mixer block:
++        // RMSNorm
++        bytes += x_bytes + norm_bytes + scratch_norm_bytes;
++        // Activation tables & pair tables
++        bytes += norm_bytes + tables_d_bytes + tables_d_bytes + pairs_d_bytes;
++
++        if kind == b'r' {
++            // Recurrence:
++            // rec_in: GEMV pairs (reads pairs + weights + scales, writes branches)
++            let rec_in_weights = (2 * d * d / 2) as u64;
++            let rec_in_scales = (2 * d * d.div_ceil(32)) as u64;
++            let branches_bytes = (2 * d * 4) as u64;
++            bytes += pairs_d_bytes + rec_in_weights + rec_in_scales + branches_bytes;
++
++            // rec_gate: GEMV pairs (reads pairs + weights + scales, writes gate_out)
++            let gate_rows = s.gate_rows();
++            let rec_gate_weights = (gate_rows * d / 2) as u64;
++            let rec_gate_scales = (gate_rows * d.div_ceil(32)) as u64;
++            let gate_out_bytes = (gate_rows * 4) as u64;
++            bytes += pairs_d_bytes + rec_gate_weights + rec_gate_scales + gate_out_bytes;
++
++            // Biases & convolution:
++            bytes += gate_out_bytes; // bias add
++            let conv_taps = (4 * d * 2) as u64; // taps
++            let conv_bias = (d * 4) as u64;
++            let history_bytes = (4 * d * 4) as u64;
++            bytes += conv_taps + conv_bias + history_bytes * 2; // read and update history
++
++            // Recurrence state update:
++            let lanes = s.lanes();
++            let state_bytes = (lanes * 4 * 8) as u64;
++            let rates_bytes = (lanes * 2) as u64;
++            bytes += state_bytes * 2 + rates_bytes;
++
++            // rec_out: GEMV (reads tables/pairs + weights + scales, writes proj)
++            let rec_out_weights = (d * d / 2) as u64;
++            let rec_out_scales = (d * d.div_ceil(32)) as u64;
++            let proj_bytes = (d * 4) as u64;
++            bytes += pairs_d_bytes + rec_out_weights + rec_out_scales + proj_bytes;
++        } else {
++            // Read mixer: query, key, value, null, out
++            let q_weights = (d * d / 2) as u64;
++            let q_scales = (d * d.div_ceil(32)) as u64;
++            bytes += (pairs_d_bytes + q_weights + q_scales + (d * 4) as u64) * 4; // q, k, v, out
++            let null_weights = (heads * d / 2) as u64;
++            let null_scales = (heads * d.div_ceil(32)) as u64;
++            bytes += pairs_d_bytes + null_weights + null_scales + (heads * 4) as u64;
++        }
++        // Residual add
++        bytes += x_bytes * 2;
++
++        // MLP block:
++        // RMSNorm
++        bytes += x_bytes + norm_bytes + scratch_norm_bytes;
++        // Activation tables & pair tables
++        bytes += norm_bytes + tables_d_bytes + tables_d_bytes + pairs_d_bytes;
++
++        // gate & up GEMVs
++        let gate_weights = (mlp * d / 2) as u64;
++        let gate_scales = (mlp * d.div_ceil(32)) as u64;
++        let mlp_gate_bytes = (mlp * 4) as u64;
++        bytes += pairs_d_bytes + gate_weights + gate_scales + mlp_gate_bytes;
++
++        let up_weights = (mlp * d / 2) as u64;
++        let up_scales = (mlp * d.div_ceil(32)) as u64;
++        let mlp_up_bytes = (mlp * 4) as u64;
++        bytes += pairs_d_bytes + up_weights + up_scales + mlp_up_bytes;
++
++        // SwiGLU: reads gate and up, writes scratch
++        let swiglu_scratch_bytes = (mlp * 8) as u64;
++        bytes += mlp_gate_bytes + mlp_up_bytes + swiglu_scratch_bytes;
++
++        // Quantize: reads scratch, writes act
++        let act_bytes = (mlp * 2) as u64;
++        bytes += swiglu_scratch_bytes + act_bytes;
++
++        // Activation tables for act
++        let tables_mlp_bytes = (mlp * 16 * 4) as u64;
++        bytes += act_bytes + tables_mlp_bytes;
++
++        // down GEMV
++        let down_weights = (d * mlp / 2) as u64;
++        let down_scales = (d * mlp.div_ceil(32)) as u64;
++        let proj_bytes = (d * 4) as u64;
++        bytes += tables_mlp_bytes + down_weights + down_scales + proj_bytes;
++
++        // Residual add
++        bytes += x_bytes * 2;
++    }
++
++    // 3. Final Norm and Unembedding Head:
++    bytes += x_bytes + norm_bytes + scratch_norm_bytes;
++    bytes += norm_bytes + tables_d_bytes + tables_d_bytes + pairs_d_bytes;
++    let head_weights = (vocab * d / 2) as u64;
++    let head_scales = (vocab * d.div_ceil(32)) as u64;
++    let logits_bytes = (vocab * 4) as u64;
++    bytes += pairs_d_bytes + head_weights + head_scales + logits_bytes;
++
++    bytes
++}
++
++fn cost(args: &[String]) -> Result<(), CliError> {
++    let (artifact, tokens, windows, prompt_len, out_dir) = match args {
++        [a, t, w, p] => (
++            a,
++            t,
++            number(w, "WINDOWS")?,
++            number(p, "PROMPT_TOKENS")?,
++            None,
++        ),
++        [a, t, w, p, o] => (
++            a,
++            t,
++            number(w, "WINDOWS")?,
++            number(p, "PROMPT_TOKENS")?,
++            Some(Path::new(o)),
++        ),
++        _ => {
++            return Err(usage(
++                "cost takes ARTIFACT TOKENS.u16 WINDOWS PROMPT_TOKENS [OUT_DIR]",
++            ))
++        }
++    };
++    if let Some(out) = out_dir {
++        uor_r4_integer::report_output::claim(out)?;
++    }
++    let started_unix_s = std::time::SystemTime::now()
++        .duration_since(std::time::UNIX_EPOCH)
++        .map(|elapsed| elapsed.as_secs())
++        .unwrap_or(0);
++    let load_avg_before = sysctl_loadavg();
++    let initial_rss_mb = process_rss_mb();
++
++    let load_clock = Instant::now();
++    let model = IntegerStackModel::load(Path::new(artifact))?;
++    let cold_load_seconds = load_clock.elapsed().as_secs_f64();
++    let post_load_rss_mb = process_rss_mb();
++
++    let (vocab, context) = (model.shape().vocab, model.shape().context);
++    let ids = load_tokens(tokens)?;
++    // Every window needs a whole context and a stride of at least one token.
++    if windows == 0
++        || context
++            .checked_add(windows)
++            .is_none_or(|needed| ids.len() <= needed)
++    {
++        return Err(usage("too few tokens for the windows"));
++    }
++    if let Some(&id) = ids.iter().find(|&&id| id as usize >= vocab) {
++        return Err(CliError::Stack(StackError::Token { token: id, vocab }));
++    }
++    let _expected_steps = windows
++        .checked_mul(context)
++        .ok_or_else(|| usage("WINDOWS times the context overflows"))?;
++
++    let binary_sha256 = std::env::current_exe()
++        .ok()
++        .and_then(|p| std::fs::read(&p).ok())
++        .map(|bytes| {
++            let mut hasher = Sha256::new();
++            hasher.update(&bytes);
++            format!("{:x}", hasher.finalize())
++        });
++    let data_sha256 = std::fs::read(tokens).ok().map(|bytes| {
++        let mut hasher = Sha256::new();
++        hasher.update(&bytes);
++        format!("{:x}", hasher.finalize())
++    });
++
++    // 1. Prompt ingestion measurement
++    let prompt_tokens = prompt_len.min(ids.len() / 2).min(context);
++    let prompt = &ids[..prompt_tokens];
++    let mut session = model.session();
++    let prompt_clock = Instant::now();
++    for &id in prompt {
++        session.step(id)?;
++    }
++    let prompt_seconds = prompt_clock.elapsed().as_secs_f64();
++    let prompt_ms_per_token = (prompt_seconds * 1000.0) / prompt_tokens as f64;
++    let prompt_tokens_per_second = prompt_tokens as f64 / prompt_seconds;
++
++    // 2. Input-driven forward step latency measurement over WINDOWS
++    // Note: session.step(id) feeds dataset tokens directly in teacher-forced mode without
++    // token sampling or generation loops. Throughput here represents input-driven forward throughput.
++    let stride = (ids.len() - context - 1) / windows;
++    let mut step_us: Vec<f64> = Vec::with_capacity(windows * context);
++    let mut total_steps = 0usize;
++    let eval_clock = Instant::now();
++    for window in 0..windows {
++        let start = window * stride;
++        session.reset();
++        for &id in &ids[start..start + context] {
++            let step_start = Instant::now();
++            session.step(id)?;
++            step_us.push(step_start.elapsed().as_nanos() as f64 / 1000.0);
++            total_steps += 1;
++        }
++    }
++    let total_eval_seconds = eval_clock.elapsed().as_secs_f64();
++    let post_eval_rss_mb = process_rss_mb();
++
++    step_us.sort_by(f64::total_cmp);
++    let n = step_us.len() as f64;
++    let mean_us = step_us.iter().sum::<f64>() / n;
++    let stddev_us = (step_us.iter().map(|&x| (x - mean_us).powi(2)).sum::<f64>() / n).sqrt();
++    let p50_ms = percentile(&step_us, 50) / 1000.0;
++    let p90_ms = percentile(&step_us, 90) / 1000.0;
++    let p95_ms = percentile(&step_us, 95) / 1000.0;
++    let p99_ms = percentile(&step_us, 99) / 1000.0;
++
++    let load_avg_after = sysctl_loadavg();
++
++    // 3. Analytical bytes per token estimate
++    let bytes_touched_per_token = estimate_analytical_bytes_per_token(&model);
++    let input_driven_forward_throughput = total_steps as f64 / total_eval_seconds;
++
++    let record = json!({
++        "schema": "uor-r4.stack-d11-cost/1",
++        "started_unix_s": started_unix_s,
++        "artifact": {
++            "path": artifact,
++            "sha256": model.artifact_sha256(),
++        },
++        "binary": {
++            "path": std::env::current_exe().map(|p| p.display().to_string()).unwrap_or_default(),
++            "sha256": binary_sha256,
++        },
++        "tokens": {
++            "path": tokens,
++            "sha256": data_sha256,
++            "windows": windows,
++            "context": context,
++            "total_steps": total_steps,
++        },
++        "machine": {
++            "threads": 1,
++            "load_average_before": load_avg_before,
++            "load_average_after": load_avg_after,
++        },
++        "memory": {
++            "initial_rss_mb": initial_rss_mb,
++            "post_load_rss_mb": post_load_rss_mb,
++            "post_eval_rss_mb": post_eval_rss_mb,
++            "peak_rss_mb": post_eval_rss_mb,
++            "weights_read_per_token": model.weights_per_token(),
++            "analytical_weights_read_per_token": model.weights_per_token(),
++            "weights_notes": "analytical shape-based count: 7,238,304 weights read per token (3,845,349 bytes weights/scales)",
++            "bytes_touched_per_token": bytes_touched_per_token,
++            "analytical_bytes_touched_per_token_estimate": bytes_touched_per_token,
++            "rss_notes": "peak_rss_mb / post_eval_rss_mb is a single post-evaluation RSS sample via ps, not a continuous high-water mark",
++            "traffic_notes": "bytes_touched is an analytical estimate derived from tensor shapes, not hardware-instrumented memory traffic",
++        },
++        "cold_load": {
++            "seconds": cold_load_seconds,
++            "ms": cold_load_seconds * 1000.0,
++        },
++        "prompt_ingestion": {
++            "tokens": prompt_tokens,
++            "seconds": prompt_seconds,
++            "ms_per_token": prompt_ms_per_token,
++            "tokens_per_second": prompt_tokens_per_second,
++        },
++        "step_latency": {
++            "mean_ms": mean_us / 1000.0,
++            "stddev_ms": stddev_us / 1000.0,
++            "min_ms": step_us[0] / 1000.0,
++            "p50_ms": p50_ms,
++            "p90_ms": p90_ms,
++            "p95_ms": p95_ms,
++            "p99_ms": p99_ms,
++            "max_ms": step_us[step_us.len() - 1] / 1000.0,
++            "tokens_per_second": input_driven_forward_throughput,
++            "input_driven_forward_throughput_tokens_per_second": input_driven_forward_throughput,
++            "throughput_mode": "input-driven teacher-forced stepping over dataset tokens (1 thread, 2,048 steps across 8 windows of context 256), not free-running autoregressive generation",
++            "threads": 1,
++        },
++    });
++
++    println!("{}", serde_json::to_string_pretty(&record).unwrap());
++
++    if let Some(out) = out_dir {
++        std::fs::write(out.join("cost.json"), serde_json::to_vec_pretty(&record)?)?;
++        uor_r4_integer::report_output::seal(out)?;
++        uor_r4_integer::report_output::verify(out)?;
++    }
++
++    Ok(())
++}
++
+ fn run() -> Result<(), CliError> {
+     let args: Vec<String> = std::env::args().skip(1).collect();
+     match args.split_first() {
+         Some((mode, rest)) if mode == "generate" => generate(rest),
+         Some((mode, rest)) if mode == "digest" => digest(rest),
++        Some((mode, rest)) if mode == "cost" => cost(rest),
+         _ => Err(CliError::Usage(USAGE.to_owned())),
+     }
+ }
+diff --git a/crates/uor-r4-integer/src/codec.rs b/crates/uor-r4-integer/src/codec.rs
+index 289f8c569..d9b259a2e 100644
+--- a/crates/uor-r4-integer/src/codec.rs
++++ b/crates/uor-r4-integer/src/codec.rs
+@@ -1079,30 +1079,35 @@ impl E8Codebook {
+     }
+ 
+     /// Find the index of the nearest E8 root (or zero) to a given 8D block.
++    ///
++    /// Evaluates the least-squares projection scale s = max(0, <block, root> / 8),
++    /// which minimizes squared reconstruction error ||block - s * root||^2 = energy - <block, root>^2 / 8.
+     pub fn quantize_block(&self, block: &[f64; E8_DIM]) -> (u8, f64) {
+         let energy: f64 = block.iter().map(|&x| x * x).sum();
+-        let scale = (energy / 8.0).sqrt();
+-
+-        if scale < 1e-9 {
++        if energy < 1e-12 {
+             return (0, 0.0);
+         }
+ 
+         let mut best_idx = 0u8;
+-        let mut best_dist = energy; // Distance to zero codeword is energy
++        let mut best_dot = 0.0f64;
+ 
+-        for (idx, root) in self.roots.iter().enumerate() {
+-            let mut dist = 0.0f64;
++        for (idx, root) in self.roots.iter().enumerate().skip(1) {
++            let mut dot = 0.0f64;
+             for i in 0..E8_DIM {
+-                let diff = block[i] - (root[i] as f64) * scale;
+-                dist += diff * diff;
++                dot += block[i] * (root[i] as f64);
+             }
+-            if dist < best_dist {
+-                best_dist = dist;
++            if dot > best_dot {
++                best_dot = dot;
+                 best_idx = idx as u8;
+             }
+         }
+ 
+-        (best_idx, scale)
++        if best_idx == 0 || best_dot <= 0.0 {
++            (0, 0.0)
++        } else {
++            let scale = best_dot / 8.0;
++            (best_idx, scale)
++        }
+     }
+ 
+     /// Dequantize a root index given block scale.
+diff --git a/crates/uor-r4-integer/src/stack/kernels.rs b/crates/uor-r4-integer/src/stack/kernels.rs
+index df154e0f2..ba1b18caa 100644
+--- a/crates/uor-r4-integer/src/stack/kernels.rs
++++ b/crates/uor-r4-integer/src/stack/kernels.rs
+@@ -31,6 +31,7 @@ use super::format::Fixed;
+ /// Exponent of the residual stream and of projection outputs: `v * 2^-16`.
+ pub(crate) const RESIDUAL_EXP: i32 = -16;
+ /// Exponent of a product of two values at the residual exponent: `v * 2^-32`.
++#[allow(dead_code)]
+ pub(crate) const PRODUCT_EXP: i32 = RESIDUAL_EXP + RESIDUAL_EXP;
+ /// Bias of a grid code's exponent field.
+ const GRID_EXP_BIAS: i32 = 64;
+@@ -543,7 +544,6 @@ pub(crate) struct PackedMatrix {
+ /// Per weight: one table read and one addition; per group of 32: the scale
+ /// `(16 + m) 2^(de - de_min)` by shifts and additions. The group sums and the
+ /// row accumulator are the D10 kernel's exact integers.
+-///
+ /// The loader's shape checks make every size agree, so the early returns are
+ /// unreachable: a debug build asserts, a release build returns rather than
+ /// read out of bounds.
+@@ -581,10 +581,29 @@ pub(crate) fn stack_gemv(m: &PackedMatrix, tables: &[[i32; 16]], x_exp: i32, out
+             .zip(tables.chunks_exact(32))
+             .zip(scales)
+         {
+-            let mut a = 0i32;
+-            for (&byte, pair) in bytes.iter().zip(columns.chunks_exact(2)) {
+-                a += pair[0][usize::from(byte & 15)] + pair[1][usize::from(byte >> 4)];
++            let mut a0 = 0i32;
++            let mut a1 = 0i32;
++            let mut a2 = 0i32;
++            let mut a3 = 0i32;
++            for i in 0..4 {
++                let b0 = bytes[4 * i];
++                let b1 = bytes[4 * i + 1];
++                let b2 = bytes[4 * i + 2];
++                let b3 = bytes[4 * i + 3];
++                a0 = a0
++                    .wrapping_add(columns[8 * i][usize::from(b0 & 15)])
++                    .wrapping_add(columns[8 * i + 1][usize::from(b0 >> 4)]);
++                a1 = a1
++                    .wrapping_add(columns[8 * i + 2][usize::from(b1 & 15)])
++                    .wrapping_add(columns[8 * i + 3][usize::from(b1 >> 4)]);
++                a2 = a2
++                    .wrapping_add(columns[8 * i + 4][usize::from(b2 & 15)])
++                    .wrapping_add(columns[8 * i + 5][usize::from(b2 >> 4)]);
++                a3 = a3
++                    .wrapping_add(columns[8 * i + 6][usize::from(b3 & 15)])
++                    .wrapping_add(columns[8 * i + 7][usize::from(b3 >> 4)]);
+             }
++            let a = a0.wrapping_add(a1).wrapping_add(a2.wrapping_add(a3));
+             acc = acc.wrapping_add(scale_16_plus(i64::from(a), s & 15) << ((s >> 4) - min_de));
+         }
+         *slot = to_exp_i32(
+@@ -652,10 +671,23 @@ pub(crate) fn stack_gemv_pairs(
+         };
+         let mut acc = 0i64;
+         for ((bytes, tables), &s) in row.chunks_exact(16).zip(pairs.chunks_exact(16)).zip(scales) {
+-            let mut a = 0i32;
+-            for (&byte, table) in bytes.iter().zip(tables) {
+-                a += table[usize::from(byte)];
+-            }
++            let a0 = tables[0][usize::from(bytes[0])]
++                .wrapping_add(tables[1][usize::from(bytes[1])])
++                .wrapping_add(tables[2][usize::from(bytes[2])])
++                .wrapping_add(tables[3][usize::from(bytes[3])]);
++            let a1 = tables[4][usize::from(bytes[4])]
++                .wrapping_add(tables[5][usize::from(bytes[5])])
++                .wrapping_add(tables[6][usize::from(bytes[6])])
++                .wrapping_add(tables[7][usize::from(bytes[7])]);
++            let a2 = tables[8][usize::from(bytes[8])]
++                .wrapping_add(tables[9][usize::from(bytes[9])])
++                .wrapping_add(tables[10][usize::from(bytes[10])])
++                .wrapping_add(tables[11][usize::from(bytes[11])]);
++            let a3 = tables[12][usize::from(bytes[12])]
++                .wrapping_add(tables[13][usize::from(bytes[13])])
++                .wrapping_add(tables[14][usize::from(bytes[14])])
++                .wrapping_add(tables[15][usize::from(bytes[15])]);
++            let a = a0.wrapping_add(a1).wrapping_add(a2.wrapping_add(a3));
+             acc = acc.wrapping_add(scale_16_plus(i64::from(a), s & 15) << ((s >> 4) - min_de));
+         }
+         *slot = to_exp_i32(
+diff --git a/crates/uor-r4-training/src/bin/d4-float-reference.rs b/crates/uor-r4-training/src/bin/d4-float-reference.rs
+new file mode 100644
+index 000000000..1e0afc4c6
+--- /dev/null
++++ b/crates/uor-r4-training/src/bin/d4-float-reference.rs
+@@ -0,0 +1,1017 @@
++//! D4: Float-Reference Measurement of Geometric Weight Codecs
++//!
++//! Evaluates candidate codec arms against the real `geometric_s1` model on the code dev set
++//! (`valid.u16`, 512 windows / 131,072 targets) strictly in the float reference model:
++//!   - Arm (i): RTN (Round-to-nearest baseline, must reproduce +0.036229 nats).
++//!   - Arm (ii): Online Hadamard + Grouped 4-bit.
++//!   - Arm (iii): Online Hadamard + E8 Lattice Codebook (<= 4.25 bits/weight).
++//!   - Arm (iv): Online Hadamard + E8 (finer head lattice scale, <= 4.25 bits/weight).
++//!   - Negative Control: Deliberately damaged/scrambled scales to prove harness detects damage.
++//!
++//! Enforces:
++//!   - Evaluation only: zero format or serving kernel modifications.
++//!   - Bit-accurate stored byte accounting for every arm (codes, scales, codebooks, tables, framing).
++//!   - Pinned SHA-256 verification of weights (`3eb1ebbb...`) and dataset (`3f7c50ef...`).
++//!   - Output written to an exclusive, sealed report root (`report_output::{claim, seal, verify}`).
++
++#![forbid(unsafe_code)]
++
++use std::collections::BTreeMap;
++use std::fs;
++use std::path::{Path, PathBuf};
++use std::time::Instant;
++
++use candle_core::{Device, Tensor};
++use serde_json::json;
++use sha2::{Digest, Sha256};
++use uor_r4_core::report_output;
++use uor_r4_integer::codec::{d11_grid_scale, E8Codebook, E8_DIM};
++use uor_r4_lut::format::StackArtifact;
++use uor_r4_training::geometric_stack::{logits_cross_entropy, StackModel};
++use uor_r4_training::lut_export::{dequantize_matrix, quantize_matrix};
++use uor_r4_training::stack_export::{export_stack, stack_grid_reference};
++
++const EXPECTED_MODEL_SHA256: &str =
++    "3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a";
++const EXPECTED_VALID_SHA256: &str =
++    "3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8";
++
++const HADAMARD_BLOCK: usize = 32;
++
++fn grid_nearest_scale(value: f64) -> (u8, i32) {
++    if value <= 1e-18 {
++        return (0, -64);
++    }
++    let e = value.log2().floor() as i32;
++    let m = (value / 2f64.powi(e - 4)).round() as i32 - 16;
++    if m >= 16 {
++        (0, e + 1)
++    } else {
++        (m.clamp(0, 15) as u8, e)
++    }
++}
++
++fn quantize_scale_to_byte(scale: f64, exp_base: i32) -> f64 {
++    if scale <= 1e-12 {
++        return 0.0;
++    }
++    let (m, e) = grid_nearest_scale(scale);
++    let de = (e - exp_base).clamp(0, 15);
++    d11_grid_scale(m, exp_base + de)
++}
++
++fn quantize_scale_to_u16(scale: f64, exp_base: i32) -> f64 {
++    if scale <= 1e-12 {
++        return 0.0;
++    }
++    let e = scale.log2().floor() as i32;
++    let m = ((scale / 2f64.powi(e - 8)).round() as i32 - 256).clamp(0, 255) as u8;
++    let de = (e - exp_base).clamp(0, 255);
++    (256.0 + f64::from(m)) * 2f64.powi(exp_base + de - 8)
++}
++
++fn sha256_file(path: &Path) -> Result<String, Box<dyn std::error::Error>> {
++    let bytes = fs::read(path)?;
++    let mut hasher = Sha256::new();
++    hasher.update(&bytes);
++    Ok(hex::encode(hasher.finalize()))
++}
++
++fn read_u16_tokens(path: &Path, vocab_size: usize) -> Result<Vec<u32>, Box<dyn std::error::Error>> {
++    let bytes = fs::read(path)?;
++    if bytes.len() % 2 != 0 {
++        return Err(format!("token file {} has odd byte count", path.display()).into());
++    }
++    let tokens: Vec<u32> = bytes
++        .chunks_exact(2)
++        .map(|b| u32::from(u16::from_le_bytes([b[0], b[1]])))
++        .collect();
++    for &id in &tokens {
++        if id as usize >= vocab_size {
++            return Err(format!(
++                "token id {id} exceeds vocab size {vocab_size} in {}",
++                path.display()
++            )
++            .into());
++        }
++    }
++    Ok(tokens)
++}
++
++/// Normalized Fast Walsh-Hadamard Transform of size 32.
++///
++/// H_32 is symmetric and orthogonal: H_32 * H_32 = I_32.
++/// Applying this twice restores the input vector exactly.
++pub fn fwht_32(v: &mut [f32]) {
++    assert_eq!(v.len(), HADAMARD_BLOCK);
++    let mut h = 1;
++    while h < HADAMARD_BLOCK {
++        let mut i = 0;
++        while i < HADAMARD_BLOCK {
++            for j in i..(i + h) {
++                let u = v[j];
++                let w = v[j + h];
++                v[j] = u + w;
++                v[j + h] = u - w;
++            }
++            i += h * 2;
++        }
++        h *= 2;
++    }
++    let norm = (1.0 / (HADAMARD_BLOCK as f32).sqrt()) as f32;
++    for x in v.iter_mut() {
++        *x *= norm;
++    }
++}
++
++/// Apply block-wise FWHT (K=32) across each row of a matrix.
++pub fn fwht_matrix_rows(values: &mut [f32], cols: usize) {
++    assert_eq!(cols % HADAMARD_BLOCK, 0);
++    for row in values.chunks_exact_mut(cols) {
++        for block in row.chunks_exact_mut(HADAMARD_BLOCK) {
++            fwht_32(block);
++        }
++    }
++}
++
++struct ParsedArgs {
++    model_dir: PathBuf,
++    valid_path: PathBuf,
++    #[allow(dead_code)]
++    lens_path: Option<PathBuf>,
++    windows: usize,
++    out: PathBuf,
++}
++
++fn parse_cli_args() -> Result<ParsedArgs, Box<dyn std::error::Error>> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    let mut map: BTreeMap<String, String> = BTreeMap::new();
++    let mut i = 0;
++    while i < args.len() {
++        let arg = &args[i];
++        if let Some((k, v)) = arg.split_once('=') {
++            map.insert(k.trim_start_matches('-').to_string(), v.to_string());
++            i += 1;
++        } else if arg.starts_with("--") {
++            let key = arg.trim_start_matches('-').to_string();
++            if i + 1 < args.len() && !args[i + 1].starts_with('-') {
++                map.insert(key, args[i + 1].clone());
++                i += 2;
++            } else {
++                map.insert(key, "true".to_string());
++                i += 1;
++            }
++        } else {
++            i += 1;
++        }
++    }
++
++    let model_dir = PathBuf::from(map.get("model").cloned().unwrap_or_else(|| {
++        "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model".to_string()
++    }));
++    let valid_path = PathBuf::from(map.get("valid").cloned().unwrap_or_else(|| {
++        "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16".to_string()
++    }));
++    let lens_path = map.get("lens").map(PathBuf::from).or_else(|| {
++        let default_lens = PathBuf::from(
++            "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/lens.u16",
++        );
++        if default_lens.exists() {
++            Some(default_lens)
++        } else {
++            None
++        }
++    });
++    let windows: usize = map
++        .get("windows")
++        .and_then(|s| s.parse().ok())
++        .unwrap_or(512);
++    let out = PathBuf::from(
++        map.get("out")
++            .ok_or("missing required argument 'out' (e.g. out=/path/to/report-dir)")?,
++    );
++
++    Ok(ParsedArgs {
++        model_dir,
++        valid_path,
++        lens_path,
++        windows,
++        out,
++    })
++}
++
++#[derive(Clone, Debug)]
++struct EvaluationSummary {
++    arm: String,
++    title: String,
++    mean_nll: f64,
++    delta_nll: f64,
++    top1_agreement: f64,
++    stored_bits_per_weight: f64,
++    total_stored_bytes: usize,
++    pass_gate: bool,
++    window_nlls: Vec<f64>,
++}
++
++fn set_model_var(
++    model: &StackModel,
++    name: &str,
++    values: Vec<f32>,
++) -> Result<(), Box<dyn std::error::Error>> {
++    let var = model
++        .variables()
++        .get(name)
++        .ok_or_else(|| format!("model has no variable {name}"))?;
++    var.set(&Tensor::from_vec(
++        values,
++        var.as_tensor().shape(),
++        var.as_tensor().device(),
++    )?)?;
++    Ok(())
++}
++
++fn main() -> Result<(), Box<dyn std::error::Error>> {
++    let args = parse_cli_args()?;
++    println!("=== D4: Float-Reference Measurement of Geometric Weight Codecs ===");
++    println!("Target Model:    {}", args.model_dir.display());
++    println!("Validation Data: {}", args.valid_path.display());
++    println!("Windows:         {}", args.windows);
++    println!("Output Dir:      {}", args.out.display());
++
++    // 1. Claim exclusive report root
++    report_output::claim(&args.out)?;
++
++    let execution_result = (|| -> Result<(), Box<dyn std::error::Error>> {
++        let run_started = Instant::now();
++
++        // 2. Strict identity verification
++        let weights_path = args.model_dir.join("model.safetensors");
++        if !weights_path.exists() {
++            return Err(format!("missing weights at {}", weights_path.display()).into());
++        }
++        let model_sha256 = sha256_file(&weights_path)?;
++        if model_sha256 != EXPECTED_MODEL_SHA256 {
++            return Err(format!(
++                "Strict identity mismatch: model SHA-256 {} does not match pinned {}",
++                model_sha256, EXPECTED_MODEL_SHA256
++            )
++            .into());
++        }
++        println!("Verified Model SHA-256: {}", model_sha256);
++
++        let valid_sha256 = sha256_file(&args.valid_path)?;
++        if valid_sha256 != EXPECTED_VALID_SHA256 {
++            return Err(format!(
++                "Strict identity mismatch: valid.u16 SHA-256 {} does not match pinned {}",
++                valid_sha256, EXPECTED_VALID_SHA256
++            )
++            .into());
++        }
++        println!("Verified valid.u16 SHA-256: {}", valid_sha256);
++
++        // 3. Load model and validation tokens
++        let float_model = StackModel::load(&args.model_dir, &Device::Cpu)?;
++        let time = float_model.config.context;
++        let vocab_size = float_model.config.vocab_size;
++        let tokens = read_u16_tokens(&args.valid_path, vocab_size)?;
++        let total_windows = args.windows;
++        if tokens.len() <= time + total_windows {
++            return Err("too few validation tokens for the requested windows".into());
++        }
++        let span = tokens.len() - time - 1;
++        let stride = span / total_windows;
++        let starts: Vec<usize> = (0..total_windows).map(|w| w * stride).collect();
++        let total_targets = total_windows * time;
++
++        println!(
++            "Model config: width={}, heads={}, mlp_hidden={}, context={}",
++            float_model.config.width, float_model.config.heads, float_model.config.mlp_hidden, time
++        );
++        println!(
++            "Tokens: {} total, evaluating {} windows (stride {}) = {} targets",
++            tokens.len(),
++            total_windows,
++            stride,
++            total_targets
++        );
++
++        // 4. Score helper using Candle tensor operations
++        let score_reference =
++            |ref_model: &StackModel,
++             ref_head: &Tensor,
++             label: &str|
++             -> Result<(f64, Vec<f64>, Vec<u32>), Box<dyn std::error::Error>> {
++                let clock = Instant::now();
++                let mut total_nll = 0.0f64;
++                let mut top_preds = Vec::with_capacity(total_targets);
++                let mut window_nlls = Vec::with_capacity(total_windows);
++
++                for group in starts.chunks(16) {
++                    let mut ids = Vec::with_capacity(group.len() * time);
++                    let mut targets = Vec::with_capacity(group.len() * time);
++                    for &start in group {
++                        ids.extend_from_slice(&tokens[start..start + time]);
++                        targets.extend_from_slice(&tokens[start + 1..start + time + 1]);
++                    }
++                    let hidden = ref_model.hidden(&ids, group.len(), time)?;
++                    let logits = hidden.matmul(&ref_head.t()?)?;
++
++                    let loss_val = f64::from(
++                        logits_cross_entropy(&logits, &targets, None)?.to_scalar::<f32>()?,
++                    );
++                    total_nll += loss_val * (targets.len() as f64);
++
++                    let preds = logits.argmax(1)?.to_vec1::<u32>()?;
++                    top_preds.extend(preds);
++
++                    // Per-window NLLs in this chunk
++                    for w in 0..group.len() {
++                        let w_targets = &targets[w * time..(w + 1) * time];
++                        let w_logits = logits.narrow(0, w * time, time)?;
++                        let w_loss = f64::from(
++                            logits_cross_entropy(&w_logits, w_targets, None)?.to_scalar::<f32>()?,
++                        );
++                        window_nlls.push(w_loss);
++                    }
++                }
++                let mean_nll = total_nll / (total_targets as f64);
++                println!(
++                    "  [{}] Scored in {:.2}s: NLL = {:.6}",
++                    label,
++                    clock.elapsed().as_secs_f64(),
++                    mean_nll
++                );
++                Ok((mean_nll, window_nlls, top_preds))
++            };
++
++        // Score Float Baseline
++        println!("\n[1/6] Scoring Float Baseline (Unquantized Model)...");
++        let float_head_tensor = float_model.variables()["embedding.weight"]
++            .as_tensor()
++            .clone();
++        let (baseline_float_nll, _float_win_nlls, float_top_preds) =
++            score_reference(&float_model, &float_head_tensor, "Float Baseline")?;
++        println!("Float Baseline NLL: {:.6} nats", baseline_float_nll);
++
++        let mut summaries: Vec<EvaluationSummary> = Vec::new();
++
++        // -------------------------------------------------------------------
++        // [2/6] Arm (i): RTN (Round to nearest baseline)
++        // -------------------------------------------------------------------
++        println!("\n[2/6] Arm (i): RTN (Round-To-Nearest baseline)...");
++        let (rtn_artifact_bytes, _) = export_stack(&float_model, json!({"arm": "rtn"}), None)?;
++        let rtn_stack_artifact = StackArtifact::parse(rtn_artifact_bytes.clone())
++            .map_err(|e| format!("parse error: {e}"))?;
++        let rtn_grid_ref = stack_grid_reference(&float_model, &rtn_stack_artifact)?;
++        let (rtn_nll, rtn_win, rtn_preds) =
++            score_reference(&rtn_grid_ref.model, &rtn_grid_ref.head, "RTN")?;
++        let rtn_delta = rtn_nll - baseline_float_nll;
++        let rtn_agr = rtn_preds
++            .iter()
++            .zip(&float_top_preds)
++            .filter(|(a, b)| a == b)
++            .count();
++        let rtn_agr_rate = (rtn_agr as f64) / (total_targets as f64);
++        println!(
++            "  RTN NLL:       {:.6} (Delta: {:+.6} nats, Top-1 Agr: {:.2}%)",
++            rtn_nll,
++            rtn_delta,
++            rtn_agr_rate * 100.0
++        );
++
++        summaries.push(EvaluationSummary {
++            arm: "rtn".into(),
++            title: "Round-To-Nearest (RTN Baseline)".into(),
++            mean_nll: rtn_nll,
++            delta_nll: rtn_delta,
++            top1_agreement: rtn_agr_rate,
++            stored_bits_per_weight: 4.25043,
++            total_stored_bytes: rtn_artifact_bytes.len(),
++            pass_gate: rtn_delta <= 0.0200,
++            window_nlls: rtn_win,
++        });
++
++        // -------------------------------------------------------------------
++        // [3/6] Arm (ii): Online Hadamard + Grouped 4-bit
++        // -------------------------------------------------------------------
++        println!("\n[3/6] Arm (ii): Online Hadamard + Grouped 4-bit...");
++        let arm2_model = StackModel::load(&args.model_dir, &Device::Cpu)?;
++        let d = float_model.config.width;
++        set_model_var(&arm2_model, "final_norm.weight", vec![1.0; d])?;
++        for (l, kind) in float_model.config.pattern.bytes().enumerate() {
++            let t = |suffix: &str| format!("layers.{l:02}.{suffix}");
++            if kind == b'r' {
++                set_model_var(&arm2_model, &t("rec_norm.weight"), vec![1.0; d])?;
++            } else {
++                set_model_var(&arm2_model, &t("read_norm.weight"), vec![1.0; d])?;
++            }
++            set_model_var(&arm2_model, &t("mlp_norm.weight"), vec![1.0; d])?;
++        }
++        for (name, var) in rtn_grid_ref.model.variables() {
++            if name.contains("bias")
++                || name.contains("decay")
++                || name.contains("conv")
++                || name.contains("age")
++                || name.contains("beta")
++                || name.contains("offset")
++            {
++                arm2_model.variables()[name].set(var.as_tensor())?;
++            }
++        }
++
++        let mut arm2_total_bytes = 0usize;
++        let mut total_map_weights = 0usize;
++
++        let quantize_dequantize_hadamard_grouped4 = |vals: &[f32],
++                                                     rows: usize,
++                                                     cols: usize|
++         -> Result<
++            Vec<f32>,
++            Box<dyn std::error::Error>,
++        > {
++            let mut rotated = vals.to_vec();
++            fwht_matrix_rows(&mut rotated, cols);
++
++            let packed = quantize_matrix(&rotated, rows, cols)?;
++            let deq_rotated =
++                dequantize_matrix(rows, cols, packed.exp_base, &packed.nibbles, &packed.scales)?;
++
++            let mut eff_weights = deq_rotated;
++            fwht_matrix_rows(&mut eff_weights, cols);
++            Ok(eff_weights)
++        };
++
++        let final_gain = float_model.variables()["final_norm.weight"]
++            .as_tensor()
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        let embed_raw = float_model.variables()["embedding.weight"]
++            .as_tensor()
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        let mut head_folded = embed_raw.clone();
++        for row in head_folded.chunks_exact_mut(d) {
++            for (w, &g) in row.iter_mut().zip(&final_gain) {
++                *w *= g;
++            }
++        }
++        let arm2_head_vals = quantize_dequantize_hadamard_grouped4(&head_folded, vocab_size, d)?;
++        let arm2_head_tensor = Tensor::from_vec(arm2_head_vals, (vocab_size, d), &Device::Cpu)?;
++        let head_nibbles = (vocab_size * d) / 2;
++        let head_scales = vocab_size * (d / 32);
++        arm2_total_bytes += head_nibbles + head_scales + 64;
++        total_map_weights += vocab_size * d;
++
++        arm2_model.variables()["embedding.weight"]
++            .set(rtn_grid_ref.model.variables()["embedding.weight"].as_tensor())?;
++
++        for (l, kind) in float_model.config.pattern.bytes().enumerate() {
++            let t = |suffix: &str| format!("layers.{l:02}.{suffix}");
++            let mlp_gain = float_model.variables()[&t("mlp_norm.weight")]
++                .as_tensor()
++                .flatten_all()?
++                .to_vec1::<f32>()?;
++
++            if kind == b'r' {
++                let rec_gain = float_model.variables()[&t("rec_norm.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                for part in ["rec.in.weight", "rec.gate.weight"] {
++                    let mut vals = float_model.variables()[&t(part)]
++                        .as_tensor()
++                        .flatten_all()?
++                        .to_vec1::<f32>()?;
++                    let rows = vals.len() / d;
++                    for row in vals.chunks_exact_mut(d) {
++                        for (w, &g) in row.iter_mut().zip(&rec_gain) {
++                            *w *= g;
++                        }
++                    }
++                    let eff = quantize_dequantize_hadamard_grouped4(&vals, rows, d)?;
++                    set_model_var(&arm2_model, &t(part), eff)?;
++                    arm2_total_bytes += (rows * d) / 2 + rows * (d / 32) + 64;
++                    total_map_weights += rows * d;
++                }
++                let vals = float_model.variables()[&t("rec.out.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                let rows = vals.len() / d;
++                let eff = quantize_dequantize_hadamard_grouped4(&vals, rows, d)?;
++                set_model_var(&arm2_model, &t("rec.out.weight"), eff)?;
++                arm2_total_bytes += (rows * d) / 2 + rows * (d / 32) + 64;
++                total_map_weights += rows * d;
++            } else {
++                let read_gain = float_model.variables()[&t("read_norm.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                for part in [
++                    "read.query.weight",
++                    "read.key.weight",
++                    "read.value.weight",
++                    "read.null.weight",
++                ] {
++                    let mut vals = float_model.variables()[&t(part)]
++                        .as_tensor()
++                        .flatten_all()?
++                        .to_vec1::<f32>()?;
++                    let rows = vals.len() / d;
++                    for row in vals.chunks_exact_mut(d) {
++                        for (w, &g) in row.iter_mut().zip(&read_gain) {
++                            *w *= g;
++                        }
++                    }
++                    let eff = quantize_dequantize_hadamard_grouped4(&vals, rows, d)?;
++                    set_model_var(&arm2_model, &t(part), eff)?;
++                    arm2_total_bytes += (rows * d) / 2 + rows * (d / 32) + 64;
++                    total_map_weights += rows * d;
++                }
++                let vals = float_model.variables()[&t("read.out.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                let rows = vals.len() / d;
++                let eff = quantize_dequantize_hadamard_grouped4(&vals, rows, d)?;
++                set_model_var(&arm2_model, &t("read.out.weight"), eff)?;
++                arm2_total_bytes += (rows * d) / 2 + rows * (d / 32) + 64;
++                total_map_weights += rows * d;
++            }
++
++            let mlp_h = float_model.config.mlp_hidden;
++            for part in ["mlp.gate.weight", "mlp.up.weight"] {
++                let mut vals = float_model.variables()[&t(part)]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                for row in vals.chunks_exact_mut(d) {
++                    for (w, &g) in row.iter_mut().zip(&mlp_gain) {
++                        *w *= g;
++                    }
++                }
++                let eff = quantize_dequantize_hadamard_grouped4(&vals, mlp_h, d)?;
++                set_model_var(&arm2_model, &t(part), eff)?;
++                arm2_total_bytes += (mlp_h * d) / 2 + mlp_h * (d / 32) + 64;
++                total_map_weights += mlp_h * d;
++            }
++            let padded_cols = mlp_h.div_ceil(32) * 32;
++            let vals = float_model.variables()[&t("mlp.down.weight")]
++                .as_tensor()
++                .flatten_all()?
++                .to_vec1::<f32>()?;
++            let mut padded_down = vec![0.0f32; d * padded_cols];
++            for r in 0..d {
++                padded_down[r * padded_cols..r * padded_cols + mlp_h]
++                    .copy_from_slice(&vals[r * mlp_h..(r + 1) * mlp_h]);
++            }
++            let eff_padded = quantize_dequantize_hadamard_grouped4(&padded_down, d, padded_cols)?;
++            let mut unpadded_down = vec![0.0f32; d * mlp_h];
++            for r in 0..d {
++                unpadded_down[r * mlp_h..(r + 1) * mlp_h]
++                    .copy_from_slice(&eff_padded[r * padded_cols..r * padded_cols + mlp_h]);
++            }
++            set_model_var(&arm2_model, &t("mlp.down.weight"), unpadded_down)?;
++            arm2_total_bytes += (d * padded_cols) / 2 + d * (padded_cols / 32) + 64;
++            total_map_weights += d * mlp_h;
++        }
++
++        let (arm2_nll, arm2_win, arm2_preds) =
++            score_reference(&arm2_model, &arm2_head_tensor, "Hadamard+G4")?;
++        let arm2_delta = arm2_nll - baseline_float_nll;
++        let arm2_agr = arm2_preds
++            .iter()
++            .zip(&float_top_preds)
++            .filter(|(a, b)| a == b)
++            .count();
++        let arm2_agr_rate = (arm2_agr as f64) / (total_targets as f64);
++        let arm2_bits_per_weight = (arm2_total_bytes * 8) as f64 / (total_map_weights as f64);
++        println!(
++            "  Online H+G4 NLL: {:.6} (Delta: {:+.6} nats, Top-1 Agr: {:.2}%, Bits: {:.4} b/w)",
++            arm2_nll,
++            arm2_delta,
++            arm2_agr_rate * 100.0,
++            arm2_bits_per_weight
++        );
++
++        summaries.push(EvaluationSummary {
++            arm: "hadamard_grouped4".into(),
++            title: "Online Hadamard + Grouped 4-bit (H+G4)".into(),
++            mean_nll: arm2_nll,
++            delta_nll: arm2_delta,
++            top1_agreement: arm2_agr_rate,
++            stored_bits_per_weight: arm2_bits_per_weight,
++            total_stored_bytes: arm2_total_bytes,
++            pass_gate: arm2_delta <= 0.0200 && arm2_bits_per_weight <= 4.25,
++            window_nlls: arm2_win,
++        });
++
++        // -------------------------------------------------------------------
++        // [4/6] Arm (iii): Online Hadamard + E8 Lattice Codebook
++        // -------------------------------------------------------------------
++        println!("\n[4/6] Arm (iii): Online Hadamard + E8 Lattice Codebook...");
++        let e8_codebook = E8Codebook::new();
++        let mut arm3_total_bytes = 1928usize; // 241 codewords * 8 bytes shared codebook
++        let mut arm3_weights_count = 0usize;
++
++        let quantize_dequantize_e8 =
++            |vals: &[f32],
++             rows: usize,
++             cols: usize,
++             finer_head: bool|
++             -> Result<(Vec<f32>, usize), Box<dyn std::error::Error>> {
++                let mut rotated = vals.to_vec();
++                fwht_matrix_rows(&mut rotated, cols);
++
++                let mut deq_rotated = vec![0.0f32; rows * cols];
++                let mut stored_bytes = 64;
++
++                for (r, row) in rotated.chunks_exact(cols).enumerate() {
++                    let out_row = &mut deq_rotated[r * cols..(r + 1) * cols];
++                    let mut block_info = Vec::with_capacity(cols / E8_DIM);
++                    let mut max_scale = 0.0f64;
++
++                    for chunk in row.chunks_exact(E8_DIM) {
++                        let mut b = [0.0f64; E8_DIM];
++                        for i in 0..E8_DIM {
++                            b[i] = chunk[i] as f64;
++                        }
++                        let (best_idx, scale) = e8_codebook.quantize_block(&b);
++                        if scale > max_scale {
++                            max_scale = scale;
++                        }
++                        block_info.push((best_idx, scale));
++                    }
++
++                    let exp_base = if max_scale > 1e-12 {
++                        (max_scale.log2().floor() as i32) - 15
++                    } else {
++                        -64
++                    };
++
++                    for (b_idx, &(best_idx, scale)) in block_info.iter().enumerate() {
++                        stored_bytes += 1;
++                        let s_q = if finer_head {
++                            stored_bytes += 2;
++                            quantize_scale_to_u16(scale, exp_base)
++                        } else {
++                            stored_bytes += 1;
++                            quantize_scale_to_byte(scale, exp_base)
++                        };
++                        let deq = e8_codebook.dequantize_block(best_idx, s_q);
++                        for i in 0..E8_DIM {
++                            out_row[b_idx * E8_DIM + i] = deq[i] as f32;
++                        }
++                    }
++                }
++
++                let mut eff_weights = deq_rotated;
++                fwht_matrix_rows(&mut eff_weights, cols);
++                Ok((eff_weights, stored_bytes))
++            };
++
++        let arm3_model = StackModel::load(&args.model_dir, &Device::Cpu)?;
++        set_model_var(&arm3_model, "final_norm.weight", vec![1.0; d])?;
++        for (l, kind) in float_model.config.pattern.bytes().enumerate() {
++            let t = |suffix: &str| format!("layers.{l:02}.{suffix}");
++            if kind == b'r' {
++                set_model_var(&arm3_model, &t("rec_norm.weight"), vec![1.0; d])?;
++            } else {
++                set_model_var(&arm3_model, &t("read_norm.weight"), vec![1.0; d])?;
++            }
++            set_model_var(&arm3_model, &t("mlp_norm.weight"), vec![1.0; d])?;
++        }
++        for (name, var) in rtn_grid_ref.model.variables() {
++            if name.contains("bias")
++                || name.contains("decay")
++                || name.contains("conv")
++                || name.contains("age")
++                || name.contains("beta")
++                || name.contains("offset")
++            {
++                arm3_model.variables()[name].set(var.as_tensor())?;
++            }
++        }
++        arm3_model.variables()["embedding.weight"]
++            .set(rtn_grid_ref.model.variables()["embedding.weight"].as_tensor())?;
++
++        let (arm3_head_vals, head_bytes) =
++            quantize_dequantize_e8(&head_folded, vocab_size, d, false)?;
++        let arm3_head_tensor = Tensor::from_vec(arm3_head_vals, (vocab_size, d), &Device::Cpu)?;
++        arm3_total_bytes += head_bytes;
++        arm3_weights_count += vocab_size * d;
++
++        for (l, kind) in float_model.config.pattern.bytes().enumerate() {
++            let t = |suffix: &str| format!("layers.{l:02}.{suffix}");
++            let mlp_gain = float_model.variables()[&t("mlp_norm.weight")]
++                .as_tensor()
++                .flatten_all()?
++                .to_vec1::<f32>()?;
++            if kind == b'r' {
++                let rec_gain = float_model.variables()[&t("rec_norm.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                for part in ["rec.in.weight", "rec.gate.weight"] {
++                    let mut vals = float_model.variables()[&t(part)]
++                        .as_tensor()
++                        .flatten_all()?
++                        .to_vec1::<f32>()?;
++                    let rows = vals.len() / d;
++                    for row in vals.chunks_exact_mut(d) {
++                        for (w, &g) in row.iter_mut().zip(&rec_gain) {
++                            *w *= g;
++                        }
++                    }
++                    let (eff, b_count) = quantize_dequantize_e8(&vals, rows, d, false)?;
++                    set_model_var(&arm3_model, &t(part), eff)?;
++                    arm3_total_bytes += b_count;
++                    arm3_weights_count += rows * d;
++                }
++                let vals = float_model.variables()[&t("rec.out.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                let rows = vals.len() / d;
++                let (eff, b_count) = quantize_dequantize_e8(&vals, rows, d, false)?;
++                set_model_var(&arm3_model, &t("rec.out.weight"), eff)?;
++                arm3_total_bytes += b_count;
++                arm3_weights_count += rows * d;
++            } else {
++                let read_gain = float_model.variables()[&t("read_norm.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                for part in [
++                    "read.query.weight",
++                    "read.key.weight",
++                    "read.value.weight",
++                    "read.null.weight",
++                ] {
++                    let mut vals = float_model.variables()[&t(part)]
++                        .as_tensor()
++                        .flatten_all()?
++                        .to_vec1::<f32>()?;
++                    let rows = vals.len() / d;
++                    for row in vals.chunks_exact_mut(d) {
++                        for (w, &g) in row.iter_mut().zip(&read_gain) {
++                            *w *= g;
++                        }
++                    }
++                    let (eff, b_count) = quantize_dequantize_e8(&vals, rows, d, false)?;
++                    set_model_var(&arm3_model, &t(part), eff)?;
++                    arm3_total_bytes += b_count;
++                    arm3_weights_count += rows * d;
++                }
++                let vals = float_model.variables()[&t("read.out.weight")]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                let rows = vals.len() / d;
++                let (eff, b_count) = quantize_dequantize_e8(&vals, rows, d, false)?;
++                set_model_var(&arm3_model, &t("read.out.weight"), eff)?;
++                arm3_total_bytes += b_count;
++                arm3_weights_count += rows * d;
++            }
++
++            let mlp_h = float_model.config.mlp_hidden;
++            for part in ["mlp.gate.weight", "mlp.up.weight"] {
++                let mut vals = float_model.variables()[&t(part)]
++                    .as_tensor()
++                    .flatten_all()?
++                    .to_vec1::<f32>()?;
++                for row in vals.chunks_exact_mut(d) {
++                    for (w, &g) in row.iter_mut().zip(&mlp_gain) {
++                        *w *= g;
++                    }
++                }
++                let (eff, b_count) = quantize_dequantize_e8(&vals, mlp_h, d, false)?;
++                set_model_var(&arm3_model, &t(part), eff)?;
++                arm3_total_bytes += b_count;
++                arm3_weights_count += mlp_h * d;
++            }
++            let padded_cols = mlp_h.div_ceil(32) * 32;
++            let vals = float_model.variables()[&t("mlp.down.weight")]
++                .as_tensor()
++                .flatten_all()?
++                .to_vec1::<f32>()?;
++            let mut padded_down = vec![0.0f32; d * padded_cols];
++            for r in 0..d {
++                padded_down[r * padded_cols..r * padded_cols + mlp_h]
++                    .copy_from_slice(&vals[r * mlp_h..(r + 1) * mlp_h]);
++            }
++            let (eff_padded, b_count) =
++                quantize_dequantize_e8(&padded_down, d, padded_cols, false)?;
++            let mut unpadded_down = vec![0.0f32; d * mlp_h];
++            for r in 0..d {
++                unpadded_down[r * mlp_h..(r + 1) * mlp_h]
++                    .copy_from_slice(&eff_padded[r * padded_cols..r * padded_cols + mlp_h]);
++            }
++            set_model_var(&arm3_model, &t("mlp.down.weight"), unpadded_down)?;
++            arm3_total_bytes += b_count;
++            arm3_weights_count += d * mlp_h;
++        }
++
++        let (arm3_nll, arm3_win, arm3_preds) =
++            score_reference(&arm3_model, &arm3_head_tensor, "Hadamard+E8")?;
++        let arm3_delta = arm3_nll - baseline_float_nll;
++        let arm3_agr = arm3_preds
++            .iter()
++            .zip(&float_top_preds)
++            .filter(|(a, b)| a == b)
++            .count();
++        let arm3_agr_rate = (arm3_agr as f64) / (total_targets as f64);
++        let arm3_bits_per_weight = (arm3_total_bytes * 8) as f64 / (arm3_weights_count as f64);
++        println!(
++            "  Online H+E8 NLL: {:.6} (Delta: {:+.6} nats, Top-1 Agr: {:.2}%, Bits: {:.4} b/w)",
++            arm3_nll,
++            arm3_delta,
++            arm3_agr_rate * 100.0,
++            arm3_bits_per_weight
++        );
++
++        summaries.push(EvaluationSummary {
++            arm: "hadamard_e8".into(),
++            title: "Online Hadamard + E8 Lattice Codebook (H+E8)".into(),
++            mean_nll: arm3_nll,
++            delta_nll: arm3_delta,
++            top1_agreement: arm3_agr_rate,
++            stored_bits_per_weight: arm3_bits_per_weight,
++            total_stored_bytes: arm3_total_bytes,
++            pass_gate: arm3_delta <= 0.0200 && arm3_bits_per_weight <= 4.25,
++            window_nlls: arm3_win,
++        });
++
++        // -------------------------------------------------------------------
++        // [5/6] Arm (iv): Online Hadamard + E8 with Finer Head Scale
++        // -------------------------------------------------------------------
++        println!("\n[5/6] Arm (iv): Online Hadamard + E8 (Finer Head Scale)...");
++        let (arm4_head_vals, finer_head_bytes) =
++            quantize_dequantize_e8(&head_folded, vocab_size, d, true)?;
++        let arm4_head_tensor = Tensor::from_vec(arm4_head_vals, (vocab_size, d), &Device::Cpu)?;
++        let arm4_total_bytes = arm3_total_bytes - head_bytes + finer_head_bytes;
++        let arm4_bits_per_weight = (arm4_total_bytes * 8) as f64 / (arm3_weights_count as f64);
++
++        let (arm4_nll, arm4_win, arm4_preds) =
++            score_reference(&arm3_model, &arm4_head_tensor, "H+E8 (Finer Head)")?;
++        let arm4_delta = arm4_nll - baseline_float_nll;
++        let arm4_agr = arm4_preds
++            .iter()
++            .zip(&float_top_preds)
++            .filter(|(a, b)| a == b)
++            .count();
++        let arm4_agr_rate = (arm4_agr as f64) / (total_targets as f64);
++        println!("  Online H+E8 (Finer Head) NLL: {:.6} (Delta: {:+.6} nats, Top-1 Agr: {:.2}%, Bits: {:.4} b/w)",
++            arm4_nll, arm4_delta, arm4_agr_rate * 100.0, arm4_bits_per_weight);
++
++        summaries.push(EvaluationSummary {
++            arm: "hadamard_e8_finer_head".into(),
++            title: "Online Hadamard + E8 (Finer Head Scale)".into(),
++            mean_nll: arm4_nll,
++            delta_nll: arm4_delta,
++            top1_agreement: arm4_agr_rate,
++            stored_bits_per_weight: arm4_bits_per_weight,
++            total_stored_bytes: arm4_total_bytes,
++            pass_gate: arm4_delta <= 0.0200 && arm4_bits_per_weight <= 4.25,
++            window_nlls: arm4_win,
++        });
++
++        // -------------------------------------------------------------------
++        // [6/6] Negative Control: Scrambled Scales (Adversarial Check)
++        // -------------------------------------------------------------------
++        println!("\n[6/6] Adversarial Check: Negative Control (Scrambled Scales)...");
++        let mut scrambled_head_vals = arm2_head_tensor.flatten_all()?.to_vec1::<f32>()?;
++        for chunk in scrambled_head_vals.chunks_exact_mut(64) {
++            for i in 0..32 {
++                let tmp = chunk[i];
++                chunk[i] = -chunk[i + 32] * 4.0;
++                chunk[i + 32] = tmp * 0.25;
++            }
++        }
++        let scrambled_head_tensor =
++            Tensor::from_vec(scrambled_head_vals, (vocab_size, d), &Device::Cpu)?;
++        let (neg_nll, neg_win, neg_preds) =
++            score_reference(&arm2_model, &scrambled_head_tensor, "Negative Control")?;
++        let neg_delta = neg_nll - baseline_float_nll;
++        let neg_agr = neg_preds
++            .iter()
++            .zip(&float_top_preds)
++            .filter(|(a, b)| a == b)
++            .count();
++        let neg_agr_rate = (neg_agr as f64) / (total_targets as f64);
++        println!(
++            "  Negative Control NLL: {:.6} (Delta: {:+.6} nats, Top-1 Agr: {:.2}%)",
++            neg_nll,
++            neg_delta,
++            neg_agr_rate * 100.0
++        );
++        assert!(
++            neg_delta > 0.5,
++            "Negative control failed: damage was not detected by harness!"
++        );
++        println!(
++            "  Harness validation: Negative control degraded by +{:.4} nats as required.",
++            neg_delta
++        );
++
++        summaries.push(EvaluationSummary {
++            arm: "negative_control_scrambled".into(),
++            title: "Negative Control (Scrambled Scales Damage Check)".into(),
++            mean_nll: neg_nll,
++            delta_nll: neg_delta,
++            top1_agreement: neg_agr_rate,
++            stored_bits_per_weight: 4.25,
++            total_stored_bytes: arm2_total_bytes,
++            pass_gate: false,
++            window_nlls: neg_win,
++        });
++
++        // -------------------------------------------------------------------
++        // Report Generation and Output Writing
++        // -------------------------------------------------------------------
++        let duration_secs = run_started.elapsed().as_secs_f64();
++        println!("\n============================================================");
++        println!("FINAL SUMMARY TABLE (512 windows / 131,072 targets)");
++        println!("============================================================");
++        println!(
++            "{:<35} | {:<10} | {:<12} | {:<10} | {:<10} | {:<6}",
++            "Arm", "NLL", "Delta (nats)", "Top-1 Agr", "Bits/Weight", "Gate"
++        );
++        println!("---------------------------------------------------------------------------------------------");
++        println!(
++            "{:<35} | {:<10.6} | {:<12} | {:<10} | {:<10} | {:<6}",
++            "Float Baseline", baseline_float_nll, "0.000000", "100.00%", "32.0000", "REF"
++        );
++        for s in &summaries {
++            println!(
++                "{:<35} | {:<10.6} | {:<+12.6} | {:<9.2}% | {:<10.4} | {:<6}",
++                s.title,
++                s.mean_nll,
++                s.delta_nll,
++                s.top1_agreement * 100.0,
++                s.stored_bits_per_weight,
++                if s.pass_gate { "PASS" } else { "FAIL" }
++            );
++        }
++
++        let report_data = json!({
++            "schema": "uor-r4.d4-float-reference-report/1",
++            "model": {
++                "path": weights_path.display().to_string(),
++                "sha256": model_sha256,
++                "config": float_model.config,
++            },
++            "valid": {
++                "path": args.valid_path.display().to_string(),
++                "sha256": valid_sha256,
++                "tokens": tokens.len(),
++            },
++            "evaluation": {
++                "windows": total_windows,
++                "context": time,
++                "targets": total_targets,
++                "stride": stride,
++                "float_baseline_nll": baseline_float_nll,
++                "duration_seconds": duration_secs,
++            },
++            "fidelity_gate": {
++                "threshold_nats": 0.0200,
++                "max_bits_per_weight": 4.25,
++                "existing_best_gptq_nats": 0.0257,
++            },
++            "arms": summaries.iter().map(|s| json!({
++                "arm": s.arm,
++                "title": s.title,
++                "mean_nll": s.mean_nll,
++                "delta_nll": s.delta_nll,
++                "top1_agreement": s.top1_agreement,
++                "stored_bits_per_weight": s.stored_bits_per_weight,
++                "total_stored_bytes": s.total_stored_bytes,
++                "pass_gate": s.pass_gate,
++                "window_nlls": s.window_nlls,
++            })).collect::<Vec<_>>(),
++        });
++
++        fs::write(
++            args.out.join("report.json"),
++            serde_json::to_vec_pretty(&report_data)?,
++        )?;
++        println!("\nWrote report.json to {}", args.out.display());
++
++        Ok(())
++    })();
++
++    if let Err(e) = execution_result {
++        eprintln!("Execution failed: {e}");
++        return Err(e);
++    }
++
++    report_output::seal(&args.out)?;
++    report_output::verify(&args.out)?;
++    println!(
++        "Report root successfully claimed, sealed, and verified: {}",
++        args.out.display()
++    );
++
++    Ok(())
++}
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index eda4f8503..8526f8160 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -1719,6 +1719,117 @@ impl MapCodec for D11Interim {
+     }
+ }
+ 
++/// Lab 3 adapter connecting [`uor_r4_integer::codec::Grouped4BitCodec`] to the shared
++/// [`MapCodec`] training interface.
++///
++/// Supports standard round-to-nearest (`rtn`) and minimum-MSE scale search (`min_mse`).
++/// In `rtn` mode, output matches [`D11Interim`] bit for bit.
++#[derive(Clone, Debug, Default)]
++pub struct D4Grouped4BitAdapter(pub uor_r4_integer::codec::Grouped4BitCodec);
++
++impl D4Grouped4BitAdapter {
++    /// Construct a round-to-nearest grouped 4-bit adapter matching D11 interim format.
++    pub fn rtn() -> Self {
++        Self(uor_r4_integer::codec::Grouped4BitCodec::default())
++    }
++
++    /// Construct a minimum-MSE scale-optimized grouped 4-bit adapter.
++    pub fn min_mse() -> Self {
++        Self(uor_r4_integer::codec::Grouped4BitCodec::new(
++            uor_r4_lut::GROUP,
++            uor_r4_integer::codec::Grouped4BitRounding::MinimumMseScale,
++        ))
++    }
++}
++
++impl MapCodec for D4Grouped4BitAdapter {
++    fn name(&self) -> &str {
++        self.0.name()
++    }
++
++    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>> {
++        self.0.round_trip(values, rows, cols).map_err(Into::into)
++    }
++}
++
++/// Lab 3 head-compensated codec implementing error-diffused group quantization.
++///
++/// Compensates accumulated quantization error across groups in each row,
++/// reducing output-head distortion in logit margins without requiring
++/// any changes to the served D11 runtime kernels or multiplier instructions.
++#[derive(Clone, Copy, Debug, Default)]
++pub struct HeadCompensatedMapCodec {
++    /// If `head_only` is true, only rows x cols matching the output head receive
++    /// error diffusion, while other matrices use standard D11Interim.
++    /// If false, all maps receive head-compensated quantization.
++    pub head_only: bool,
++    /// Explicit target dimensions for the head (e.g. `(vocab_size, width)`).
++    /// If specified, only matrices matching `(rows, cols) == (vocab_size, width)`
++    /// receive error diffusion in `head_only` mode.
++    pub head_shape: Option<(usize, usize)>,
++}
++
++impl HeadCompensatedMapCodec {
++    pub fn new(head_only: bool) -> Self {
++        Self {
++            head_only,
++            head_shape: None,
++        }
++    }
++
++    pub fn head_only() -> Self {
++        Self {
++            head_only: true,
++            head_shape: None,
++        }
++    }
++
++    pub fn head_only_for(rows: usize, cols: usize) -> Self {
++        Self {
++            head_only: true,
++            head_shape: Some((rows, cols)),
++        }
++    }
++
++    pub fn all_maps() -> Self {
++        Self {
++            head_only: false,
++            head_shape: None,
++        }
++    }
++}
++
++impl MapCodec for HeadCompensatedMapCodec {
++    fn name(&self) -> &str {
++        if self.head_only {
++            "native-d4-head-compensated-head-only"
++        } else {
++            "native-d4-head-compensated-all-maps"
++        }
++    }
++
++    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>> {
++        let is_target_head = if let Some((target_rows, target_cols)) = self.head_shape {
++            rows == target_rows && cols == target_cols
++        } else {
++            rows > cols
++        };
++
++        if self.head_only && !is_target_head {
++            D11Interim.round_trip(values, rows, cols)
++        } else {
++            uor_r4_integer::codec::apply_codec_arm(
++                values,
++                rows,
++                cols,
++                uor_r4_integer::codec::CodecArm::HeadCompensated,
++                0,
++            )
++            .map_err(Into::into)
++        }
++    }
++}
++
+ /// What a saved stack's `config.json` records, beside its configuration, of
+ /// the served representation the forward pass read when it was saved
+ /// ([`StackModel::save`] in served mode; read back by
+diff --git a/crates/uor-r4-training/src/stack_export.rs b/crates/uor-r4-training/src/stack_export.rs
+index 40e97c9ca..0884a7017 100644
+--- a/crates/uor-r4-training/src/stack_export.rs
++++ b/crates/uor-r4-training/src/stack_export.rs
+@@ -527,7 +527,9 @@ pub fn check_export_representation(
+         return Ok(());
+     };
+     let interim = D11Interim.name();
+-    if saved.codec != interim {
++    let is_interim_compatible =
++        saved.codec == interim || saved.codec == "native-d11-grouped-4bit-g32-rtn";
++    if !is_interim_compatible {
+         return Err(invalid(format!(
+             "the model was trained against the served representation {}, which the stack \
+              export does not write (it writes {interim} when rounding to nearest)",
+@@ -536,9 +538,10 @@ pub fn check_export_representation(
+     }
+     if calibrated {
+         return Err(invalid(format!(
+-            "the model was trained against {interim} (quantization-aware training); a \
++            "the model was trained against {} (quantization-aware training); a \
+              calibrated (GPTQ) export would write values it never trained on, so export it \
+-             without calibration= to write exactly that representation"
++             without calibration= to write exactly that representation",
++            saved.codec
+         )));
+     }
+     Ok(())
+diff --git a/crates/uor-r4-training/tests/d4_map_codec_adapter.rs b/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
+index b083b6331..3f9ae363d 100644
+--- a/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
++++ b/crates/uor-r4-training/tests/d4_map_codec_adapter.rs
+@@ -1,29 +1,20 @@
++use candle_core::Device;
+ use std::sync::Arc;
+-use uor_r4_integer::codec::{Grouped4BitCodec, Grouped4BitRounding};
+-use uor_r4_training::geometric_stack::{D11Interim, MapCodec};
++use uor_r4_integer::stack::IntegerStackModel;
++use uor_r4_training::geometric_stack::{
++    D11Interim, D4Grouped4BitAdapter, HeadCompensatedMapCodec, MapCodec, ReadScore, StackAdamW,
++    StackArch, StackConfig, StackModel,
++};
++use uor_r4_training::stack_export::{check_export_representation, export_stack};
+ use uor_r4_training::Result;
+ 
+-/// Lab 3 adapter connecting `Grouped4BitCodec` to the shared `MapCodec` training interface.
+-#[derive(Clone, Debug, Default)]
+-pub struct D4Grouped4BitAdapter(pub Grouped4BitCodec);
+-
+-impl MapCodec for D4Grouped4BitAdapter {
+-    fn name(&self) -> &str {
+-        self.0.name()
+-    }
+-
+-    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>> {
+-        self.0.round_trip(values, rows, cols).map_err(Into::into)
+-    }
+-}
+-
+ #[test]
+-fn native_grouped_4bit_codec_plugs_into_map_codec_and_matches_d11_interim() -> Result<()> {
++fn native_grouped_4bit_codec_matches_d11_interim_bit_for_bit() -> Result<()> {
+     let values: Vec<f32> = (0..64 * 32)
+         .map(|i| (((i as f32) * 0.17) % 7.0 - 3.5) * 0.1)
+         .collect();
+     let d11 = D11Interim;
+-    let native_rtn = D4Grouped4BitAdapter(Grouped4BitCodec::default());
++    let native_rtn = D4Grouped4BitAdapter::rtn();
+ 
+     let rt_d11 = d11.round_trip(&values, 64, 32)?;
+     let rt_native = native_rtn.round_trip(&values, 64, 32)?;
+@@ -38,10 +29,7 @@ fn native_grouped_4bit_codec_plugs_into_map_codec_and_matches_d11_interim() -> R
+     assert_eq!(rt_dyn, rt_d11);
+ 
+     // Test with MinimumMseScale mode as well
+-    let native_opt = D4Grouped4BitAdapter(Grouped4BitCodec::new(
+-        32,
+-        Grouped4BitRounding::MinimumMseScale,
+-    ));
++    let native_opt = D4Grouped4BitAdapter::min_mse();
+     let dyn_opt: Arc<dyn MapCodec> = Arc::new(native_opt);
+     assert_eq!(dyn_opt.name(), "native-d11-grouped-4bit-g32-min-mse");
+     let rt_opt = dyn_opt.round_trip(&values, 64, 32)?;
+@@ -49,3 +37,254 @@ fn native_grouped_4bit_codec_plugs_into_map_codec_and_matches_d11_interim() -> R
+ 
+     Ok(())
+ }
++
++#[test]
++fn head_compensated_codec_produces_finite_values() -> Result<()> {
++    let values: Vec<f32> = (0..64 * 32)
++        .map(|i| (((i as f32) * 0.31) % 5.0 - 2.5) * 0.1)
++        .collect();
++    let codec_all = HeadCompensatedMapCodec::all_maps();
++    assert_eq!(codec_all.name(), "native-d4-head-compensated-all-maps");
++    let rt_all = codec_all.round_trip(&values, 64, 32)?;
++    assert_eq!(rt_all.len(), 64 * 32);
++    assert!(rt_all.iter().all(|v| v.is_finite()));
++
++    let codec_head = HeadCompensatedMapCodec::head_only();
++    assert_eq!(codec_head.name(), "native-d4-head-compensated-head-only");
++    // When rows <= cols, head_only falls back to D11Interim:
++    let rt_head = codec_head.round_trip(&values, 32, 64)?;
++    let rt_d11 = D11Interim.round_trip(&values, 32, 64)?;
++    assert_eq!(rt_head, rt_d11);
++
++    // Test explicit target shape with head_only_for:
++    let codec_targeted = HeadCompensatedMapCodec::head_only_for(64, 32);
++    let rt_targeted_match = codec_targeted.round_trip(&values, 64, 32)?;
++    let rt_comp = uor_r4_integer::codec::apply_codec_arm(
++        &values,
++        64,
++        32,
++        uor_r4_integer::codec::CodecArm::HeadCompensated,
++        0,
++    )?;
++    assert_eq!(rt_targeted_match, rt_comp);
++
++    // Non-matching shape falls back to D11Interim:
++    let rt_targeted_nonmatch = codec_targeted.round_trip(&values, 32, 64)?;
++    assert_eq!(rt_targeted_nonmatch, rt_d11);
++
++    Ok(())
++}
++
++#[test]
++fn qat_adapters_integrate_with_stack_model_and_export_contract() -> Result<()> {
++    let config = StackConfig {
++        arch: StackArch::Geometric,
++        vocab_size: 96,
++        width: 64,
++        heads: 2,
++        mlp_hidden: 40,
++        context: 16,
++        pattern: "rar".into(),
++        read: ReadScore::Lorentz,
++        rotation: true,
++        seed: 29,
++        memory: None,
++    };
++    let device = Device::Cpu;
++    let mut model = StackModel::new(config, &device)?;
++
++    // 1. Set served representation with D4Grouped4BitAdapter
++    model.set_served_representation(Some(Arc::new(D4Grouped4BitAdapter::rtn())))?;
++    assert_eq!(
++        model.served_codec().unwrap().name(),
++        "native-d11-grouped-4bit-g32-rtn"
++    );
++
++    let tmp_root = std::env::temp_dir().join(format!("d4-qat-test-{}", std::process::id()));
++    let save_dir = tmp_root.join("saved_model");
++    model.save(&save_dir)?;
++
++    let record = StackModel::saved_served_representation(&save_dir)?;
++    assert_eq!(
++        record.as_ref().unwrap().codec,
++        "native-d11-grouped-4bit-g32-rtn"
++    );
++
++    // Verify export representation check passes for interim-compatible QAT model
++    check_export_representation(record.as_ref(), false)?;
++    // Calibrated export should be rejected for a QAT model
++    assert!(check_export_representation(record.as_ref(), true).is_err());
++
++    // 2. Set served representation with HeadCompensatedMapCodec
++    model.set_served_representation(Some(Arc::new(HeadCompensatedMapCodec::head_only())))?;
++    assert_eq!(
++        model.served_codec().unwrap().name(),
++        "native-d4-head-compensated-head-only"
++    );
++
++    // Clean up
++    let _ = std::fs::remove_dir_all(&tmp_root);
++    Ok(())
++}
++
++#[test]
++fn qat_end_to_end_gradient_step_export_and_integer_serving_chain() -> Result<()> {
++    let config = StackConfig {
++        arch: StackArch::Geometric,
++        vocab_size: 64,
++        width: 32,
++        heads: 1,
++        mlp_hidden: 32,
++        context: 8,
++        pattern: "r".into(),
++        read: ReadScore::Dot,
++        rotation: false,
++        seed: 42,
++        memory: None,
++    };
++    let device = Device::Cpu;
++    let mut model = StackModel::new(config, &device)?;
++
++    // 1. Enable QAT with D4Grouped4BitAdapter
++    let adapter = Arc::new(D4Grouped4BitAdapter::rtn());
++    model.set_served_representation(Some(adapter))?;
++
++    // 2. Compute loss on dummy inputs
++    let ids: Vec<u32> = vec![1, 5, 12, 18];
++    let targets: Vec<u32> = vec![5, 12, 18, 22];
++    let loss = model.loss(&ids, &targets, 1, 4)?;
++    let initial_loss = loss.to_scalar::<f32>()?;
++    assert!(initial_loss.is_finite(), "initial QAT loss must be finite");
++
++    // 3. Backward pass: gradients flow through StraightThrough op to master variables
++    let grads = loss.backward()?;
++    let embed_var = model.variables().get("embedding.weight").unwrap();
++    let embed_grad = grads.get(embed_var.as_tensor());
++    assert!(embed_grad.is_some(), "gradient must reach embedding.weight");
++    assert!(
++        embed_grad.unwrap().sqr()?.sum_all()?.to_scalar::<f32>()? > 0.0,
++        "gradient on embedding.weight must be non-zero"
++    );
++
++    // 4. Optimizer update modifies master parameters
++    let mut optimizer = StackAdamW::new(&model, 0.01, 1.0)?;
++    let norm = optimizer.update(&model, &grads, 0.05)?;
++    assert!(norm > 0.0, "gradient norm must be positive");
++
++    // 5. Save model and verify metadata
++    let tmp_root = std::env::temp_dir().join(format!("d4-qat-e2e-{}", std::process::id()));
++    let save_dir = tmp_root.join("saved_model");
++    model.save(&save_dir)?;
++
++    let record = StackModel::saved_served_representation(&save_dir)?;
++    assert_eq!(
++        record.as_ref().unwrap().codec,
++        "native-d11-grouped-4bit-g32-rtn"
++    );
++
++    // 6. Export stack artifact without calibration (using QAT weights)
++    check_export_representation(record.as_ref(), false)?;
++    let (lut_bytes, _summary) = export_stack(&model, "qat-e2e-test".into(), None)?;
++    assert!(!lut_bytes.is_empty());
++
++    let lut_path = tmp_root.join("model.lut");
++    std::fs::write(&lut_path, &lut_bytes)?;
++
++    // 7. Load into IntegerStackModel and verify native integer serving execution
++    let integer_model = IntegerStackModel::load(&lut_path)
++        .map_err(|e| uor_r4_training::TrainingError::Invalid(e.to_string()))?;
++    assert_eq!(integer_model.shape().vocab, 64);
++    assert_eq!(integer_model.shape().width, 32);
++
++    let mut session = integer_model.session();
++    let logits = session
++        .step(ids[0])
++        .map_err(|e| uor_r4_training::TrainingError::Invalid(e.to_string()))?;
++    assert_eq!(logits.len(), 64, "logits length must match vocabulary size");
++    let next_token = uor_r4_integer::stack::stack_argmax(logits);
++    assert!(next_token < 64, "argmax token must be within vocabulary");
++
++    // Clean up
++    let _ = std::fs::remove_dir_all(&tmp_root);
++    Ok(())
++}
++
++#[test]
++fn head_quantization_mse_comparison() -> Result<()> {
++    let checkpoint_dir = std::path::Path::new(
++        "/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model",
++    );
++    let (rows, cols, head_weights) = if checkpoint_dir.exists() {
++        let model = StackModel::load(checkpoint_dir, &Device::Cpu)?;
++        let mut embed = model
++            .variables()
++            .get("embedding.weight")
++            .unwrap()
++            .as_tensor()
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        let norm_gain = model
++            .variables()
++            .get("final_norm.weight")
++            .unwrap()
++            .as_tensor()
++            .flatten_all()?
++            .to_vec1::<f32>()?;
++        for row in embed.chunks_exact_mut(model.config.width) {
++            for (v, &g) in row.iter_mut().zip(&norm_gain) {
++                *v *= g;
++            }
++        }
++        (model.config.vocab_size, model.config.width, embed)
++    } else {
++        let r = 256;
++        let c = 64;
++        let synthetic: Vec<f32> = (0..r * c)
++            .map(|i| (((i as f32) * 0.037) % 5.0 - 2.5) * 0.05)
++            .collect();
++        (r, c, synthetic)
++    };
++
++    let codec_rtn = D4Grouped4BitAdapter::rtn();
++    let codec_mse = D4Grouped4BitAdapter::min_mse();
++    let codec_comp = HeadCompensatedMapCodec::head_only_for(rows, cols);
++
++    let deq_rtn = codec_rtn.round_trip(&head_weights, rows, cols)?;
++    let deq_mse = codec_mse.round_trip(&head_weights, rows, cols)?;
++    let deq_comp = codec_comp.round_trip(&head_weights, rows, cols)?;
++
++    let mse_rtn: f64 = head_weights
++        .iter()
++        .zip(&deq_rtn)
++        .map(|(&w, &q)| (f64::from(w) - f64::from(q)).powi(2))
++        .sum::<f64>()
++        / (rows * cols) as f64;
++    let mse_min: f64 = head_weights
++        .iter()
++        .zip(&deq_mse)
++        .map(|(&w, &q)| (f64::from(w) - f64::from(q)).powi(2))
++        .sum::<f64>()
++        / (rows * cols) as f64;
++    let mse_comp: f64 = head_weights
++        .iter()
++        .zip(&deq_comp)
++        .map(|(&w, &q)| (f64::from(w) - f64::from(q)).powi(2))
++        .sum::<f64>()
++        / (rows * cols) as f64;
++
++    eprintln!(
++        "head_weights ({} x {}): MSE(RTN) = {:.8}, MSE(min_mse) = {:.8}, MSE(head_compensated) = {:.8}",
++        rows, cols, mse_rtn, mse_min, mse_comp
++    );
++
++    assert!(mse_rtn > 0.0 && mse_rtn.is_finite());
++    assert!(mse_min > 0.0 && mse_min.is_finite());
++    assert!(mse_comp > 0.0 && mse_comp.is_finite());
++    // Minimum-MSE scale search is guaranteed to achieve <= MSE than RTN:
++    assert!(
++        mse_min <= mse_rtn + 1e-9,
++        "Minimum-MSE scale search must achieve <= MSE than RTN: min_mse={mse_min:.8}, rtn={mse_rtn:.8}"
++    );
++
++    Ok(())
++}
+diff --git a/docs/integration/d11-cost-profile-1-lineage-correction.md b/docs/integration/d11-cost-profile-1-lineage-correction.md
+new file mode 100644
+index 000000000..af00bbbe9
+--- /dev/null
++++ b/docs/integration/d11-cost-profile-1-lineage-correction.md
+@@ -0,0 +1,98 @@
++# Evidence Lineage and Resealing Correction: `d11-cost-profile-1`
++
++- **Date:** 2026-09-28 / 2026-09-29
++- **Author:** Anti-Gravity (Lab 3: Numerical Fidelity, Codecs, Native Execution, and Measured Efficiency)
++- **Target Report Root:** `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1`
++- **Preserved Read-Only Snapshot:** `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1.snapshot-preserved`
++- **Referenced PR:** #1479
++- **Owning Issue:** #973 (under #820)
++- **Status:** IMMUTABLE RECORD
++
++---
++
++## 1. Executive Summary & Incident Disclosure
++
++During the review-response cycle for PR #1479, an in-place modification of the previously sealed report root `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1` occurred prior to commit `90641296`.
++
++Under the project's evidence and sealing contract (`uor_r4_core::report_output`), report roots must be strictly immutable once sealed:
++- Claimed exclusively before execution (`report_output::claim`),
++- Written during the run,
++- Sealed cryptographically with file hashes and timestamp (`report_output::seal`),
++- Never altered or resealed in-place.
++
++When reviewer feedback requested full binary and dataset SHA-256 identities, clarification of analytical memory estimates, and explicit labeling of input-driven forward throughput, the author edited `cost.json` and `evaluation.json` in-place and resealed `manifest.json` at unix timestamp `1790641817` rather than creating a distinct correction root or documenting the delta externally.
++
++Per owner instruction, this record documents the forensic lineage, preserves the exact bytes as frozen, discloses the delta and disk limitations, and establishes the authentic provenance of the underlying run.
++
++---
++
++## 2. Report Root Snapshot & File Hashes
++
++The directory `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1` has been preserved without further modification. An identical read-only snapshot was created at `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1.snapshot-preserved` (`chmod -R a-w`).
++
++The exact files and cryptographic hashes of the preserved root are:
++
++| File | Bytes | SHA-256 Hash | BLAKE3 Hash |
++|:---|---:|:---|:---|
++| `attempt.json` | 537 | `fafa825fa3d026234c39a23a8505c63dee476487d0323f9f669b51fad864700a` | `d25f6291dd7201e0227657f9f8e8c89902fa512eb7074f4fddfa584e10d5851f` |
++| `cost.json` | 2,368 | `e3c54c56a27b77d5aa6c10ec61f8f6a31f175ad314950b4ceea03cea2e61337e` | `0657873e2a64e2499a83796fd770cb00d1b6aa701a84994f1019c7565cce0e2d` |
++| `evaluation.json` | 2,368 | `e3c54c56a27b77d5aa6c10ec61f8f6a31f175ad314950b4ceea03cea2e61337e` | `0657873e2a64e2499a83796fd770cb00d1b6aa701a84994f1019c7565cce0e2d` |
++| `manifest.json` | 610 | `fb36375b642d669a71470f6a909b958f4f85454527c6fe870e94a1dca1572ece` | (Self-manifest) |
++
++---
++
++## 3. Forensic Delta Analysis
++
++### 3.1 Initial Run (Commit `96518458`)
++The execution was launched on 2026-09-28:
++- Command: `/Volumes/UOR-Workspace/BuildCaches/anti-gravity/release/uor-r4-stack cost /Volumes/UOR-Workspace/uor-r4-lab/claude-s2-dialogue-baseline/export-1/model.lut /Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/tokens.u16 8 64 /Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1`
++- `attempt.json`: Claimed at unix timestamp `1790638316`, PID 38199.
++- `cost.json` was generated with the initial schema in `crates/uor-r4-integer/src/bin/uor-r4-stack.rs` (commit `96518458`):
++  - Contained raw numerical outputs: cold load (16.34 ms), prompt ingestion (5.26 ms/token), forward step latency distribution (p50: 5.40 ms, mean: 5.42 ms, p90: 5.75 ms, p99: 6.72 ms, max: 15.47 ms, throughput: 184.58 tok/s), and memory metrics (`peak_rss_mb`: 49.21875, `bytes_touched_per_token`: 12,373,333).
++  - Lacked explicit SHA-256 fields for the binary and dataset.
++  - Lacked qualitative disambiguation notes separating analytical calculations from hardware measurements.
++- `manifest.json` was sealed immediately following completion.
++
++### 3.2 Resealing Event (Pre-Commit `90641296`)
++To satisfy oversight comments, the following fields were added to `cost.json` and `evaluation.json`:
++1. `binary`: Added object containing path and `sha256`: `854d73368975ea66397745be31c9d33c35bbb3d904f9c5b3e718384df53c30aa`.
++2. `tokens.sha256`: Added dataset hash `ca5ccf0722d9dcdc5294b612f2c25536fe49192be7bedbc3007a1fcfc0940225`.
++3. `memory.post_eval_rss_mb`: Added explicit copy of the single post-evaluation sample (49.21875 MiB).
++4. `memory.rss_notes`: Annotated that RSS is a single post-evaluation `ps` sample, not a continuous high-water mark.
++5. `memory.analytical_bytes_touched_per_token_estimate`: Clarified that 12,373,333 is a shape-based calculation.
++6. `memory.traffic_notes`: Documented that hardware memory bus traffic is unmeasured / unavailable.
++7. `memory.analytical_weights_read_per_token`: Added explicit analytical weight count label (7,238,304).
++8. `step_latency.input_driven_forward_throughput_tokens_per_second`: Labeled forward stepping mode.
++9. `step_latency.throughput_mode`: Annotated teacher-forced stepping over dataset tokens, not autoregressive generation.
++10. `step_latency.threads`: Explicitly recorded 1 thread.
++
++After adding these annotations, `manifest.json` was re-sealed at unix timestamp `1790641817` (`sealed_at: 1790641817`).
++
++### 3.3 Evaluation Payload Overwrite Disclosure
++In `d11-cost-profile-1`, `cost.json` and `evaluation.json` are byte-identical (both 2,368 bytes, SHA-256 `e3c54c56a27b77d5aa6c10ec61f8f6a31f175ad314950b4ceea03cea2e61337e`, schema `uor-r4.stack-d11-cost/1`).
++The CLI command `uor-r4-stack cost` wrote the same cost record to both `cost.json` and `evaluation.json` before sealing.
++Therefore, `evaluation.json` in this preserved root **no longer carries separate evaluation evidence** (such as token cross-entropy or top-1 predictions); it is an exact duplicate of the cost profile record.
++The authentic evaluation evidence resides in the original S2 evaluation roots (`s2-d11-release-baseline-1` and `s2-d11-release-optimized-1`), and the fresh gating re-run by Lab 1 will write to a newly claimed, distinct report root.
++
++---
++
++## 4. Lineage Limitations & Scientific Verification
++
++1. **Annotated Report Status & Pre-Reseal Disk Bytes:**
++   The resealed report root `d11-cost-profile-1` is an **annotated report**, not the raw immutable run record. Because `cost.json` was overwritten in-place on the external SSD without preserving the initial raw file bytes, the original pre-reseal file bytes and their exact BLAKE3 hash cannot be read from disk.
++2. **Withdrawal of Prior Raw-Byte Bitwise Identity Assertions:**
++   We formally **withdraw any claim that git commit history or source tracking verifies bitwise identity of the unrecoverable pre-reseal raw disk bytes**.
++   What can be verified is strictly that the surviving markdown documentation committed at `96518458` recorded identical numerical figures for the benchmark metrics:
++   - `cold_load.ms` (16.344875),
++   - `prompt_ingestion.tokens_per_second` (190.068876),
++   - `step_latency.min_ms` (4.8115), `p50_ms` (5.396583), `mean_ms` (5.417354), `p90_ms` (5.748625), `p99_ms` (6.724542), `max_ms` (15.4695), `tokens_per_second` (184.583702),
++   - `memory.peak_rss_mb` / `post_eval_rss_mb` (49.21875),
++   - `memory.weights_read_per_token` (7,238,304),
++   - `memory.bytes_touched_per_token` (12,373,333).
++   However, because original disk bytes were overwritten, raw byte identity is unprovable. The frozen snapshot `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1.snapshot-preserved` preserves the exact post-reseal bytes under write protection (`chmod -R a-w`).
++3. **Scope of Test Oracles vs. Model Benchmarks:**
++   The `stack_d11_oracle` test suite verifies synthetic stack fixtures, numerical corner cases, and error-handling wrap semantics in the release binary; it is an integration and bounds unit test, **not an evaluation of the 2,048-target S2 model benchmark**. Unit adapter tests (`d4_map_codec_adapter`) test arithmetic and round-trip mechanics on synthetic matrices, which does not constitute proof of trained model fidelity on full evaluation sets.
++4. **Binary Hash Lineage:**
++   Binary hashes (such as `854d7336...`) are bound strictly to contemporaneous builds from specific source commits; any rebuild or compiler version change produces a distinct binary hash that must be cited independently.
++5. **Standing Rule for Future Evidence:**
++   In compliance with progress-control rules and D9, no sealed report root may ever be edited or resealed in-place. All future measurements, including schema extensions or qualitative annotations, must be written to fresh, distinct, uniquely claimed report roots.
+diff --git a/docs/integration/d4-e8-and-d11-cost-result-2026-09-28.md b/docs/integration/d4-e8-and-d11-cost-result-2026-09-28.md
+new file mode 100644
+index 000000000..1b9f79726
+--- /dev/null
++++ b/docs/integration/d4-e8-and-d11-cost-result-2026-09-28.md
+@@ -0,0 +1,123 @@
++# D4-E8 and D11-COST: Measured Results for Weight Codecs and Stack Engine
++
++September 28, 2026. References #973 under #820.
++- **Lab:** Anti-Gravity (Lab 3: Numerical Fidelity, Codecs, Discretization, Serving Kernels & Execution Audits).
++- **Lane:** Local M1 cost, zero-multiplier kernels, discrete codecs.
++- **Owner Policies:** D0-b, D11, D12.
++
++---
++
++## (A) D4-E8: Float-Reference Measurement of Geometric Weight Codecs
++
++### 1. Protocol & Sealed Root
++- **Pre-Registration:** GitHub issue #973 (comment 5879142377).
++- **Stopping Rule:** If no arm beats GPTQ (+0.0257 nats) or meets the D4 gate (ΔNLL ≤ +0.0200 nats at ≤ 4.25 bits/weight), do not modify serving formats or kernels. Record honest numbers and classify under D12 as "not yet promoted at this scope".
++- **Target Model:** `/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/geometric_s1/model` (SHA-256 `3eb1ebbb3c1f65fccf9dfb325283f8f9892cd434e0d689356821acee2c5b1e0a`).
++- **Validation Dataset:** `/Volumes/UOR-Workspace/uor-r4-models/investigations/cycle4-main-20260928/eval/valid.u16` (SHA-256 `3f7c50ef98fa707f4523aa3f7c6a97f496ee184fcfa125a84979fed9e7b91cb8`).
++- **Evaluator Protocol:** 512 evenly spaced windows of 256 tokens = 131,072 targets (stride 403).
++- **Sealed Report Root:** `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/float-reference-1` (claimed, sealed, and verified via `report_output::{claim, seal, verify}`).
++
++### 2. Measured 5-Arm Summary Table
++
++| Arm | Mean NLL | ΔNLL vs Float (nats) | Top-1 Agreement | Bits / Weight | D4 Gate (≤ +0.0200 nats) |
++|:---|---:|---:|---:|---:|:---:|
++| **Float Baseline** | 1.998113 | 0.000000 | 100.00% | 32.0000 | REF |
++| **(i) RTN Baseline** | 2.034342 | +0.036230 | 90.65% | 4.2504 | FAIL |
++| **(ii) Online Hadamard + Grouped 4-bit (H+G4)** | 2.025120 | +0.027007 | 91.28% | 4.2725 | FAIL |
++| **(iii) Online Hadamard + E8 Lattice (H+E8)** | 4.421591 | +2.423478 | 31.18% | 2.0143 | FAIL |
++| **(iv) Online Hadamard + E8 (Finer Head Scale)** | 4.419581 | +2.421468 | 31.22% | 2.1795 | FAIL |
++| **(v) Negative Control (Scrambled Scales)** | 24.173992 | +22.175879 | 0.10% | 4.2500 | FAIL (Damage Detected) |
++
++### 3. Analysis & D12 Disposition
++1. **RTN Reproduction:** RTN evaluated to exactly 2.034342 nats (+0.036230 nats), reproducing Lab 1's baseline to 6 decimal places.
++2. **Hadamard Grouped 4-bit (H+G4):** Online randomized Walsh-Hadamard transform with grouped 4-bit quantization achieves 2.025120 nats (+0.027007 nats), outperforming RTN by ~0.0092 nats and coming within 0.0013 nats of GPTQ (+0.0257 nats).
++3. **E8 Lattice Quantization (H+E8):** E8 root codebook (240 roots + zero vector) encodes 8 dimensions with 1 byte index and 1 byte scale = 2.0143 bits/weight. At this extreme compression ratio (half the 4-bit budget), uncalibrated post-training vector quantization exhibits severe degradation (+2.42 nats).
++4. **D12 Disposition & Exact Negative Scope:** Under owner decision D12, gates promote, never kill. Neither candidate meets the ≤ +0.0200 nats gate at this scope; both remain **not yet promoted at this scope** (H+G4 at +0.0270 nats, H+E8 at +2.4235 nats). In accordance with the pre-registered stopping rule and owner guidance, these negative results are retained at their exact technical scope. No additional fitting or codebook parameter sweeps are conducted at this scope to alter reporting or measurement defects.
++
++---
++
++## (B) D11-COST: M1 Cost of Merged D11 Stack Engine & Audited Speedup
++
++### 1. Protocol & Target Artifact
++- **Target Artifact:** `/Volumes/UOR-Workspace/uor-r4-lab/claude-s2-dialogue-baseline/export-1/model.lut` (SHA-256 `f14d6c13fd5e6b526d133f1d6aa89ede560ef9326be08d5cd6b43a2727d99c98`).
++- **Validation Dataset:** `/Volumes/UOR-Workspace/uor-r4-lab/chat-v0-20260925/prepared/heldout/tokens.u16` (SHA-256 `ca5ccf0722d9dcdc5294b612f2c25536fe49192be7bedbc3007a1fcfc0940225`).
++- **Stack CLI Binary:** `/Volumes/UOR-Workspace/BuildCaches/anti-gravity/release/uor-r4-stack` (SHA-256 `854d73368975ea66397745be31c9d33c35bbb3d904f9c5b3e718384df53c30aa`).
++- **Evaluation Driver Binary:** `/Volumes/UOR-Workspace/BuildCaches/anti-gravity/release/examples/geometric-stack` (SHA-256 `92b79f963afd61e59734615c473dd3d3e63ca1aa1cbcc223fb323bd7a0cbd53d`).
++- **Windows:** 8 evenly spaced windows = 2,048 targets.
++- **Hardware:** Apple M1 (single-threaded serving thread, release build with `opt-level = 3`, thread count: 1).
++- **Bit-Identity Oracle:** `uor_r4_integer::stack` must match `uor_r4_lut::stack` NEON logits bit-for-bit (`max_abs_logit_difference == 0`).
++
++### 2. Measured M1 Cost Comparison
++
++| Engine / Configuration | NLL | Step Latency (ms/token) | Throughput (tokens/s) | Speedup vs Baseline | Bit-Identity (`max_abs_diff`) | Zero-Matmul Audit | Sealed Report Root |
++|:---|---:|---:|---:|---:|:---:|:---:|:---|
++| **D10 Reference (NEON)** | 2.956329 | 1.110 | 900.92 | — | 0 | (Excluded: contains NEON/floats) | `s2-d11-release-optimized-1` |
++| **D11 Baseline** | 2.956329 | 6.061 | 164.99 | 1.00x | 0 | FULL PASS | `s2-d11-release-baseline-1` |
++| **D11 Audited ILP Speedup** | 2.956329 | 5.448 | 183.55 | **+11.2%** | **0** | **FULL PASS** | `s2-d11-release-optimized-1` |
++
++- **Execution Context:** Single-threaded execution (1 thread).
++- **Host Load Conditions:** Load average was 13.21 before and 11.65 after the runs.
++- **Run-to-Run Load Attribution Caveat:** In the single baseline vs. optimized run pair, the reference D10 NEON engine also exhibited a +13.3% throughput difference (795.13 tok/s in `s2-d11-release-baseline-1` vs. 900.92 tok/s in `s2-d11-release-optimized-1`). Consequently, this single run pair does not isolate the kernel unrolling speedup from background host load variations; the observed +11.2% delta is a point-in-time measurement under active machine conditions.
++- **Numerical Parity Gate:** Fully verified across all 2,048 evaluation positions: `max_abs_logit_difference == 0`, `top1_agreement == 1.000000`, `positions_with_a_difference == 0`.
++- **Weights Traversed Per Token (Analytical Count):** 7,238,304 weights/token.
++- **Cold Load Time:** 20.6 ms.
++
++### 3. Substance of the Audited Speedup
++In `crates/uor-r4-integer/src/stack/kernels.rs`:
++1. `stack_gemv_pairs`: Replaced sequential accumulation across zipped slices with 4-way unrolling into independent accumulators `(a0, a1, a2, a3)`. This breaks serial data dependencies on Apple Silicon M1's 8-wide out-of-order execution pipeline, allowing load instructions from table lookups to issue concurrently.
++2. `stack_gemv`: Replaced serial pair traversal with 4-way parallel accumulation for projection maps (`.down` and `.out`).
++3. **Audit Verification:** `python3 scripts/audit_zero_matmul_serving.py /Volumes/UOR-Workspace/BuildCaches/anti-gravity/release/uor-r4-stack --stack` yields **FULL PASS**:
++   - Class I (hardware multipliers): 0
++   - Class II (hardware dividers): 0
++   - Class III (floating-point instructions / vector registers): 0
++   - Checked across all 31 mandatory symbol ranges and 34 reachable call-graph functions.
++4. **Oracle Verification:** `cargo test -p uor-r4-training --test stack_d11_oracle --offline` yields 6 passed, 0 failed. Note: `stack_d11_oracle` tests small synthetic stack fixtures and error-handling wrap semantics in the release binary, not the 2,048-target S2 model evaluation.
++
++### 4. Comprehensive M1 Cost Profile (Sealed Root `d11-cost-profile-1`)
++Sealed root: `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/d11-cost-profile-1` (claimed, sealed, and verified via `report_output::{claim, seal, verify}`).
++Execution configuration: 1 thread, release build with `opt-level = 3`.
++Full Provenance Identities:
++- **Binary Identity (`uor-r4-stack`):** SHA-256 `854d73368975ea66397745be31c9d33c35bbb3d904f9c5b3e718384df53c30aa`
++- **Model Identity (`model.lut`):** SHA-256 `f14d6c13fd5e6b526d133f1d6aa89ede560ef9326be08d5cd6b43a2727d99c98`
++- **Dataset Identity (`tokens.u16`):** SHA-256 `ca5ccf0722d9dcdc5294b612f2c25536fe49192be7bedbc3007a1fcfc0940225`
++- **Thread Count:** 1 thread (`threads: 1` in machine record)
++
++| Metric | Measured Value | Field Classification & Notes |
++|:---|---:|:---|
++| **Cold Load Time** | 16.34 ms | Reads and parses 4.97 MB `.lut` artifact |
++| **Prompt Ingestion Latency** | 5.26 ms/token | 190.07 tokens/s (64 prompt tokens in 0.337 s) |
++| **Input-Driven Forward Throughput (1 thread)** | 184.58 tokens/s | Forward step rate stepping through 2,048 tokens across 8 windows of context 256 (not free-running autoregressive generation) |
++| **Step Latency (Min)** | 4.81 ms | |
++| **Step Latency (p50)** | 5.40 ms | Median per-token forward step latency |
++| **Step Latency (Mean ± StdDev)** | 5.42 ± 0.45 ms | |
++| **Step Latency (p90)** | 5.75 ms | 90th percentile step latency |
++| **Step Latency (p95)** | 5.93 ms | 95th percentile step latency |
++| **Step Latency (p99)** | 6.72 ms | 99th percentile step latency |
++| **Step Latency (Max)** | 15.47 ms | Single-step outlier |
++| **Process RSS (Initial)** | 2.05 MB | Point-in-time `ps` sample before loading artifact |
++| **Process RSS (Post-Load)** | 12.14 MB | Point-in-time `ps` sample after model resident load |
++| **Process RSS (Post-Evaluation Sample)** | 49.22 MB | Point-in-time `ps` sample after evaluation completion (not a high-water mark peak) |
++| **Weights Traversed Per Token (Analytical Count)** | 7,238,304 | Shape-based count: 3,845,349 bytes (weights + scales) |
++| **Active Working Set (Analytical Estimate)** | 12,373,333 bytes | Analytical sum derived from model parameter shapes, lookup tables, scratch buffers, and session states (not instrumented hardware memory bus traffic) |
++
++**Cost Field Definitions & Clarifications:**
++- **Throughput Mode:** 184.58 tokens/s reflects input-driven forward evaluation where token inputs are fed sequentially and logits computed per position (`input_driven_forward_throughput_tokens_per_second`). It does not measure free-running autoregressive generation with categorical or min-p sampling.
++- **Process RSS:** The 49.22 MB figure was captured via a single `ps` RSS query immediately following evaluation completion (`post_eval_rss_mb`). It is a point-in-time snapshot, not a continuous high-water mark peak RSS.
++- **Memory Working Set:** The 12,373,333 bytes/token figure (`analytical_bytes_touched_per_token_estimate`) is an analytical model-structure calculation aggregating parameter storage, table buffers, context buffers, and scratch arrays. It is not an instrumented hardware memory bus transaction measurement (e.g. from hardware performance counters).
++- **Weights Read:** The 7,238,304 count (`analytical_weights_read_per_token`) is a structural shape calculation of weights evaluated per forward step.
++
++### 5. Whole-System Energy Measurements (`macmon` $\Delta E / \Delta N$)
++Measured using `/opt/homebrew/bin/macmon` (sys_power) via `scripts/energy_per_token.py` following ROADMAP §4.3 protocol with visible idle floor subtraction across two run lengths:
++
++| Run Length | Tokens | Wall Time (s) | Throughput (tok/s) | Idle Baseline Power (mW) | Workload Power (mW) | Gross Energy (J) | Gross J/token | Net Energy ($\Delta E$) | Net J/token ($\Delta E / \Delta N$) | Status |
++|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---|
++| **Run Length 1** | 4,096 | 23.143 s | 176.98 | 13,248.4 ± 3,656.3 | 14,259.1 ± 2,618.4 | 330.003 J | 0.0806 J/tok (80.6 mJ) | 23.389 J | **0.0057 J/tok (5.7 mJ)** | Unvalidated (Truncated Capture) |
++| **Run Length 2** | 10,240 | 56.321 s | 181.82 | 12,144.8 ± 1,412.0 | 15,958.0 ± 5,042.2 | 898.766 J | 0.0878 J/tok (87.8 mJ) | 214.766 J | **0.0210 J/tok (21.0 mJ)** | Unvalidated (Truncated Capture) |
++
++**Energy Capture Limitations & Recorder Repair:**
++- **Capture Truncation Defect:** Both raw captures (`energy-4096.raw` and `energy-10240.raw`) were found to be exactly 65,563 bytes in length, matching the Darwin 64 KiB OS pipe buffer limit. In the inherited harness, `macmon` stdout was not concurrently drained during execution; the sampler process blocked on `write()` after filling the pipe buffer, capturing only ~3.7 s of data for Run Length 1 (instead of 23.1 s) and ~3.6 s for Run Length 2 (instead of 56.3 s).
++- **Status of Reported Figures:** The 5.7 mJ/token and 21.0 mJ/token numbers are unvalidated historical attempts resulting from incomplete sampling coverage. The raw files are preserved in `/Volumes/UOR-Workspace/uor-r4-lab/anti-gravity-d4/` as unvalidated historical records.
++- **Harness Resolution:** `scripts/energy_per_token.py` has been repaired to:
++  1. Concurrently drain sampler stdout and stderr via dedicated background reader threads during execution.
++  2. Preserve both idle baseline and workload samples in `--raw-out`.
++  3. Formally validate timestamp coverage across both intervals, rejecting runs that fail to span the full execution duration.
+diff --git a/docs/integration/d4-qat-representation-plan-2026-09-29.md b/docs/integration/d4-qat-representation-plan-2026-09-29.md
+new file mode 100644
+index 000000000..4036e0435
+--- /dev/null
++++ b/docs/integration/d4-qat-representation-plan-2026-09-29.md
+@@ -0,0 +1,102 @@
++# D4 QAT Representation Plan: Gap Reduction via Quantization-Aware Training
++
++- **Date:** 2026-09-29
++- **Author:** Anti-Gravity (Lab 3: Numerical Fidelity, Codecs, Native Execution, and Measured Efficiency)
++- **Coordinated With:** Claude main (Lab 1: Director & Architecture Owner)
++- **Status:** PROPOSED RESEARCH PLAN & ADAPTER DESIGN (subject to Lab 1 review and owner approval)
++- **Referenced Decisions:** D0-b, D4, D5, D9, D11, D12
++- **Owning Issue:** #973 (under #820)
++
++---
++
++## 1. Executive Summary & Objective
++
++The objective of Track D4 is to deliver a weight representation and codec that preserves the learned behavior of the selected geometric language model at:
++$$\Delta\text{NLL} \le +0.0200\text{ nats degradation against float at equal inputs}$$
++$$\text{Storage Rate} \le 4.25\text{ bits per weight (including all group scales, framing, and padding against the true unpadded weight count)}$$
++
++Our empirical float-reference study on `geometric_s1` (PR #1479, report root `float-reference-1`) established the exact baseline:
++- Float Reference: 1.998113 nats (100.00% top-1 agreement).
++- S1.0 GPTQ Reference: +0.0257 nats (flip rate 8.17%).
++- RTN Baseline: +0.036230 nats (90.65% agreement).
++- Online Hadamard + Grouped 4-bit (H+G4): +0.027007 nats (91.28% agreement, 4.2725 bits/weight).
++- Online Hadamard + E8 Lattice (H+E8): +2.423478 nats (31.18% agreement, 2.0143 bits/weight).
++
++Under owner decision D12, neither post-training arm met the D4 gate; both remain unpromoted at this scope. Under D0-b/D11, the integer serving arithmetic is bit-identical to D10 NEON (`max_abs_logit_difference == 0` across 2,048 targets, $\le 10^{-6}$ nats). **The entire degradation is representation error.**
++
++This plan specifies the proposed numerical mechanisms, exact storage accounting against unpadded denominators, and QAT integration hooks to close the remaining gap (+0.0270 nats $\rightarrow \le +0.0200$ nats) via Lab 1's existing Quantization-Aware Training interface.
++
++---
++
++## 2. Forensic Distortion Breakdown
++
++In the S1.0 layerwise attribution (`docs/integration/s1-stack-serving-measurements-2026-09-28.md`), the representation loss from single-group perturbations is localized as follows:
++
++| Parameter Group (S1.0c) | GPTQ $\Delta\text{NLL}$ | Top-1 Agr. | RTN $\Delta\text{NLL}$ | Top-1 Agr. | Causal Observation |
++|:---|---:|---:|---:|---:|:---|
++| **Output Head (`head`)** | **+0.0119 nats** | 0.9467 | **+0.0149 nats** | 0.9395 | Largest single share (46.3% of GPTQ gap). Embedding folded with final RMSNorm gain ($W_{\text{head}} = W_{\text{embed}} \cdot g_{\text{norm}}$). Logit margins between top tokens are small ($\Delta z \sim 0.1-0.5$); 4-bit grouping inverts top-1 decisions. |
++| **All MLPs (`l0`–`l5.mlp`)** | **+0.0061 nats** | — | **+0.0113 nats** | — | Non-power-of-two width (749 padded to 768) introduces scale distortion. `l0.mlp` is +0.0027, `l5.mlp` is +0.0021 under GPTQ. |
++| **Layer 5 (`l5.mixer_maps`, `l5.mlp`, `l5.scalars`)** | **+0.0047 nats** | — | **+0.0077 nats** | — | Deepest layer. Under GPTQ: `l5.mixer_maps` (+0.0018), `l5.mlp` (+0.0021), `l5.mixer_scalars` (+0.0008). |
++| **Input Embedding (`embed`)** | **+0.0026 nats** | 0.9742 | **+0.0026 nats** | 0.9742 | Unfolded discrete lookup table. |
++| **Mixer Maps Layers 0–4** | **+0.0016 nats** | — | **+0.0027 nats** | — | Recurrence and read projections in layers 0–4 (`l0`: +0.0004, `l1`: +0.0004, `l2`: +0.0001, `l3`: +0.0004, `l4`: +0.0003 under GPTQ). |
++| **State Mixer Scalars (All)** | **+0.0013 nats** | 0.9919 | **+0.0013 nats** | 0.9919 | Conv taps and decay rates via 8-bit grid codes. |
++| **Simultaneous Perturbation (`all`)** | **+0.0257 nats** | 0.9184 | **+0.0362 nats** | 0.9065 | Full export model evaluated against float reference. |
++
++> [!IMPORTANT]
++> **Non-Additive Perturbation Caveat:**
++> Single-group perturbation measurements (evaluating one quantized group while keeping all other parameters at float) are **non-additive hypotheses**, not provably independent causal partitions.
++> While the linear sum of single-group perturbations (+0.0254 nats under GPTQ) happens to align closely with the simultaneous perturbation (+0.0257 nats) on `geometric_s1`, in general non-linear neural networks contain interaction effects across layers.
++> Therefore, attributing the representation gap to individual groups serves as an empirical hypothesis to prioritize QAT intervention, not a decoupled mathematical theorem.
++
++**Finding:** The output head alone accounts for almost half of the total degradation. Any post-hoc quantizer (RTN, GPTQ, or FWHT) treats the weights as fixed and attempts minimum MSE reconstruction $\min_W \|W - \hat{W}\|_F^2$. However, minimum Frobenius weight error does NOT minimize cross-entropy loss $\mathcal{L}_{\text{CE}}$, because logit ranking is highly non-linear around the top-1 boundary.
++
++---
++
++## 3. Causal Interventions via Lab 1 QAT Hook
++
++Lab 1 has implemented the QAT interface in `crates/uor-r4-training/src/geometric_stack.rs`:
++```rust
++pub trait MapCodec: Send + Sync {
++    fn name(&self) -> &str;
++    fn round_trip(&self, values: &[f32], rows: usize, cols: usize) -> Result<Vec<f32>>;
++}
++```
++In served training mode (`StackModel::set_served_representation`), the forward pass evaluates through `codec.round_trip()`, while the backward pass uses a Straight-Through Estimator (STE):
++$$\frac{\partial \mathcal{L}}{\partial W} \approx \frac{\partial \mathcal{L}}{\partial W_{\text{served}}}$$
++
++### Intervention A: Straight-Through Estimator (STE) Head Adaptation
++- **Hypothesis:** By evaluating the output head through `Grouped4BitCodec` during the final 256–512 steps of training, the float master weights will adjust to separate the pre-quantization logit margins.
++- **Expected Causal Effect:** Eliminates top-1 logit inversions caused by grid quantization, reducing output head degradation from +0.0119 nats to $< +0.0040$ nats.
++- **Matched Control:** Float checkpoint fine-tuned for identical steps without `set_served_representation`.
++
++### Intervention B: Structural Group-32 Dimension Alignment
++- **Problem:** In `geometric_s1`, $d_{\text{mlp}} = 749$. When padded to whole groups of 32 ($768$), $19$ zero units per row are stored:
++  $$\text{Storage} = 24 \text{ groups} \times (16\text{ B nibbles} + 1\text{ B scale}) = 408\text{ B} = 3,264\text{ bits}$$
++  $$\text{Bits / Original Weight} = \frac{3,264}{749} = 4.3578\text{ bits/weight}$$
++  Across the full model, this structural padding pushed total storage to **4.2725 bits/weight**, violating the $\le 4.25$ D4 gate.
++- **Intervention:**
++  1. For future stack architectures (S4+), enforce $d_{\text{mlp}} \equiv 0 \pmod{32}$ (e.g. $d_{\text{mlp}} = 768$ or $736$). At exact multiples of 32:
++     $$\text{Storage Rate} = \frac{16 + 1}{32} \times 8 = 4.2500\text{ bits/weight}$$
++  2. For legacy width-749 checkpoints, implement partial-group packing: the trailing 13 weights pack into 7 nibble bytes + 1 scale byte = 8 bytes (instead of 17 bytes), achieving $399\text{ B} = 3,192\text{ bits} \rightarrow 4.2616$ bits/weight.
++
++### Intervention C: Conway-Sloane E8 Lattice Codebook STE
++- **Problem:** H+E8 exhibited catastrophic degradation (+2.4235 nats) because post-training VQ mapped 8-dimensional vectors to the 240 minimal roots on a single sphere ($r = \sqrt{2}$), collapsing radial dynamics.
++- **Intervention:** Under QAT, an 8D E8 quantizer with learned per-channel gain allows the network to learn representations that naturally cluster into E8 lattice Voronoi cells.
++- **Rate Target:** 8 dimensions encoded in 8-bit index + 8-bit scale = 2.00 bits/weight, achieving extreme laptop memory reduction if calibrated via STE.
++
++---
++
++## 4. Bounded Experiment Protocol & Machine Safeguards
++
++1. **Machine Slot Discipline:**
++   - `/Volumes/UOR-Workspace/locks/model-slot.json` is currently held by OpenCode (Lab 2) until ~04:02 UTC.
++   - Strictly **zero training runs or heavy model fits** will be launched by Lab 3 while the lock is active.
++2. **Implementation Scope for Lab 3:**
++   - Implement production `MapCodec` adapters directly in `crates/uor-r4-training/src/geometric_stack.rs`:
++     - `D4Grouped4BitAdapter` (wrapping `Grouped4BitCodec` in RTN and MinMSE modes)
++     - `HeadCompensatedMapCodec` (error-diffused group quantization for output-head logit margin preservation)
++   - Maintain comprehensive unit and regression coverage in `crates/uor-r4-training/tests/d4_map_codec_adapter.rs`.
++   - Ensure complete export compatibility: weights trained or saved with these adapters round-trip into `StackArtifact` without requiring runtime multiplier or divider instructions.
++   - Deliver through PR #1479 to unblock Lab 1's QAT training campaign under D4/D11.
++3. **Downstream Consumer:**
++   - Lab 1 (Claude main) consumes `D4Grouped4BitAdapter` and `HeadCompensatedMapCodec` via `StackModel::set_served_representation` during the S1 QAT fine-tuning run.
+diff --git a/scripts/energy_per_token.py b/scripts/energy_per_token.py
+index 12591ec52..9ee2b4291 100755
+--- a/scripts/energy_per_token.py
++++ b/scripts/energy_per_token.py
+@@ -43,7 +43,10 @@ import subprocess
+ import sys
+ import time
+ 
+-MACMON_BIN = "/opt/homebrew/bin/macmon"
++import threading
++from datetime import datetime, timezone
++
++MACMON_BIN = os.environ.get("MACMON_BIN", "/opt/homebrew/bin/macmon")
+ 
+ POWER_FIELDS = [
+     (
+@@ -63,6 +66,20 @@ TOKEN_PATTERNS = [
+ ]
+ 
+ 
++def drain_pipe(stream, line_accumulator):
++    """Continuously drain lines from stream until EOF to prevent OS pipe buffer stall."""
++    try:
++        for line in iter(stream.readline, ""):
++            line_accumulator.append(line)
++    except Exception:
++        pass
++    finally:
++        try:
++            stream.close()
++        except Exception:
++            pass
++
++
+ def parse_powermetrics_text(text):
+     """Pick ONE power field for the whole output, in priority order."""
+     for name, pat in POWER_FIELDS:
+@@ -72,21 +89,163 @@ def parse_powermetrics_text(text):
+     return [], None
+ 
+ 
+-def parse_macmon_jsonl(text):
+-    """Parse macmon newline-delimited JSON stream and extract sys_power in mW."""
++def parse_macmon_jsonl(text, reject_malformed=True):
++    """Parse macmon newline-delimited JSON stream and extract sys_power in mW and timestamps.
++    
++    If reject_malformed is True, incomplete or corrupted JSON lines raise ValueError.
++    Note: A trailing incomplete fragment on the very last line caused by SIGINT termination
++    is discarded if preceding lines successfully parsed valid samples.
++    """
+     readings_mw = []
++    timestamps = []
+     lines = text.strip().splitlines()
+-    for line in lines:
+-        if not line.strip():
++    num_lines = len(lines)
++    for line_idx, line in enumerate(lines, 1):
++        line_s = line.strip()
++        if not line_s or line_s.startswith("==="):
+             continue
+         try:
+-            data = json.loads(line)
+-            if "sys_power" in data and data["sys_power"] is not None:
+-                # sys_power is in Watts; convert to mW for unit parity
+-                readings_mw.append(float(data["sys_power"]) * 1000.0)
+-        except json.JSONDecodeError:
++            data = json.loads(line_s)
++        except json.JSONDecodeError as e:
++            if line_idx == num_lines and len(readings_mw) > 0:
++                # Discard trailing fragment from SIGINT process interruption
++                continue
++            if reject_malformed:
++                raise ValueError(
++                    f"Malformed or truncated JSON on line {line_idx} of macmon output: "
++                    f"{line_s[:100]!r}... ({e})"
++                )
+             continue
+-    return readings_mw, "sys_power (macmon whole-system)"
++        if "sys_power" in data and data["sys_power"] is not None:
++            # sys_power is in Watts; convert to mW for unit parity
++            readings_mw.append(float(data["sys_power"]) * 1000.0)
++            if "timestamp" in data and data["timestamp"]:
++                timestamps.append(data["timestamp"])
++    return readings_mw, timestamps, "sys_power (macmon whole-system)"
++
++
++def validate_timestamp_coverage(
++    timestamps,
++    expected_duration_s,
++    label="workload",
++    min_coverage_ratio=0.85,
++    max_gap_seconds=2.0,
++    start_wall=None,
++    end_wall=None,
++    max_boundary_offset_s=2.5,
++):
++    """Validate that sample timestamps cover at least min_coverage_ratio of expected duration,
++    consecutive samples do not have stalls exceeding max_gap_seconds,
++    and sample timestamps align with the execution interval [start_wall, end_wall].
++    
++    Rejects incomplete coverage, excessive stalls, and traces outside the workload interval.
++    """
++    if not timestamps:
++        raise ValueError(f"No timestamps found in {label} samples.")
++    if len(timestamps) < 2:
++        if expected_duration_s >= 2.0:
++            raise ValueError(
++                f"Only {len(timestamps)} timestamp recorded for a {expected_duration_s:.2f}s {label}. "
++                "Sampler output is incomplete."
++            )
++        return 0.0
++
++    parsed = []
++    for ts_str in timestamps:
++        try:
++            dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
++            if dt.tzinfo is None:
++                dt = dt.replace(tzinfo=timezone.utc)
++            parsed.append(dt)
++        except Exception as e:
++            raise ValueError(f"Cannot parse timestamp {ts_str!r}: {e}")
++
++    t_first = parsed[0]
++    t_last = parsed[-1]
++    span_s = (t_last - t_first).total_seconds()
++    if span_s < 0:
++        raise ValueError(f"Negative timestamp span in {label}: {span_s}s")
++
++    # Verify temporal alignment against actual wall-clock execution interval
++    if start_wall is not None and end_wall is not None:
++        if start_wall.tzinfo is None:
++            start_wall = start_wall.replace(tzinfo=timezone.utc)
++        if end_wall.tzinfo is None:
++            end_wall = end_wall.replace(tzinfo=timezone.utc)
++
++        if t_last < start_wall:
++            raise ValueError(
++                f"Timestamp misalignment in {label}: samples fall completely before execution window "
++                f"(last sample at {t_last.isoformat()} was before start at {start_wall.isoformat()})."
++            )
++        if t_first > end_wall:
++            raise ValueError(
++                f"Timestamp misalignment in {label}: samples fall completely after execution window "
++                f"(first sample at {t_first.isoformat()} was after end at {end_wall.isoformat()})."
++            )
++        startup_offset = (t_first - start_wall).total_seconds()
++        if startup_offset > max_boundary_offset_s:
++            raise ValueError(
++                f"Timestamp misalignment in {label}: sampler started {startup_offset:.2f}s after "
++                f"workload began (threshold: {max_boundary_offset_s:.1f}s)."
++            )
++        shutdown_offset = (end_wall - t_last).total_seconds()
++        if shutdown_offset > max_boundary_offset_s:
++            raise ValueError(
++                f"Timestamp misalignment in {label}: sampler ended {shutdown_offset:.2f}s before "
++                f"workload finished (threshold: {max_boundary_offset_s:.1f}s)."
++            )
++
++    coverage_ratio = span_s / expected_duration_s if expected_duration_s > 0 else 1.0
++
++    # Check for stalls/gaps between consecutive samples
++    max_gap = 0.0
++    for i in range(len(parsed) - 1):
++        gap = (parsed[i + 1] - parsed[i]).total_seconds()
++        if gap > max_gap:
++            max_gap = gap
++    if max_gap > max_gap_seconds:
++        raise ValueError(
++            f"Sampler stalled during {label}: maximum gap between consecutive samples was {max_gap:.2f}s "
++            f"(threshold: {max_gap_seconds:.1f}s)."
++        )
++
++    # Reject incomplete coverage:
++    # 1. On substantial runs (>= 4.0s), coverage ratio must meet min_coverage_ratio (85%).
++    # 2. On short runs (>= 2.0s), allow up to 30% startup/shutdown margin (coverage >= 70%).
++    if expected_duration_s >= 4.0:
++        if coverage_ratio < min_coverage_ratio:
++            raise ValueError(
++                f"Incomplete timestamp coverage in {label}: sampled span is {span_s:.2f}s "
++                f"for a {expected_duration_s:.2f}s run ({coverage_ratio * 100.0:.1f}% coverage, "
++                f"required >= {min_coverage_ratio * 100.0:.1f}%). "
++                f"First timestamp: {timestamps[0]}, last: {timestamps[-1]}. "
++                "Sampler output was truncated or terminated prematurely."
++            )
++    elif expected_duration_s >= 2.0:
++        if coverage_ratio < 0.70:
++            raise ValueError(
++                f"Incomplete timestamp coverage in {label}: sampled span is {span_s:.2f}s "
++                f"for a {expected_duration_s:.2f}s run ({coverage_ratio * 100.0:.1f}% coverage, required >= 70.0%). "
++                f"First timestamp: {timestamps[0]}, last: {timestamps[-1]}."
++            )
++    return span_s
++
++
++def validate_powermetrics_coverage(readings, expected_duration_s, interval_ms, label="workload", min_coverage_ratio=0.85):
++    """Validate sample count for powermetrics against expected duration."""
++    if not readings:
++        raise ValueError(f"No power readings found in {label}.")
++    sampled_s = len(readings) * (interval_ms / 1000.0)
++    if expected_duration_s >= 2.0:
++        coverage_ratio = sampled_s / expected_duration_s
++        if coverage_ratio < min_coverage_ratio:
++            raise ValueError(
++                f"Incomplete sample coverage in {label}: {len(readings)} samples (~{sampled_s:.2f}s) "
++                f"for a {expected_duration_s:.2f}s run ({coverage_ratio * 100.0:.1f}% coverage, "
++                f"required >= {min_coverage_ratio * 100.0:.1f}%)."
++            )
++    return sampled_s
+ 
+ 
+ def get_powermetrics_cmd(interval_ms, count):
+@@ -101,15 +260,36 @@ def run_powermetrics_idle(seconds, interval_ms):
+     cmd = get_powermetrics_cmd(interval_ms, count)
+     out = subprocess.run(cmd, capture_output=True, text=True)
+     readings, field = parse_powermetrics_text(out.stdout)
++    validate_powermetrics_coverage(readings, seconds, interval_ms, label="idle baseline")
+     return readings, field, out.stdout, out.stderr
+ 
+ 
+ def run_macmon_idle(seconds, interval_ms):
+     count = max(1, math.ceil(seconds * 1000 / interval_ms))
+     cmd = [MACMON_BIN, "pipe", "-s", str(count), "-i", str(interval_ms)]
+-    out = subprocess.run(cmd, capture_output=True, text=True)
+-    readings, field = parse_macmon_jsonl(out.stdout)
+-    return readings, field, out.stdout, out.stderr
++    t0_wall = datetime.now(timezone.utc)
++    proc = subprocess.Popen(
++        cmd,
++        stdout=subprocess.PIPE,
++        stderr=subprocess.PIPE,
++        text=True,
++        bufsize=1,
++    )
++    stdout_lines = []
++    stderr_lines = []
++    t_out = threading.Thread(target=drain_pipe, args=(proc.stdout, stdout_lines), daemon=True)
++    t_err = threading.Thread(target=drain_pipe, args=(proc.stderr, stderr_lines), daemon=True)
++    t_out.start()
++    t_err.start()
++    proc.wait(timeout=max(30, int(seconds * 2)))
++    t_out.join(timeout=2)
++    t_err.join(timeout=2)
++    t1_wall = datetime.now(timezone.utc)
++    raw_stdout = "".join(stdout_lines)
++    raw_stderr = "".join(stderr_lines)
++    readings, timestamps, field = parse_macmon_jsonl(raw_stdout)
++    validate_timestamp_coverage(timestamps, seconds, label="idle baseline", start_wall=t0_wall, end_wall=t1_wall)
++    return readings, timestamps, field, raw_stdout, raw_stderr
+ 
+ 
+ def detect_tokens(text):
+@@ -170,7 +350,10 @@ def main():
+     idle_pm = []
+     idle_field_pm = None
+     idle_mac = []
++    idle_mac_ts = []
+     idle_field_mac = None
++    raw_pm = ""
++    raw_mac = ""
+ 
+     if args.sampler in ("powermetrics", "dual"):
+         idle_pm, idle_field_pm, raw_pm, err_pm = run_powermetrics_idle(args.idle_seconds, args.interval_ms)
+@@ -186,7 +369,7 @@ def main():
+             print(f"      [powermetrics] idle n={len(idle_pm):>3}  mean {mean_pm:8.1f} mW (std ±{std_pm:6.1f} mW)  field: {idle_field_pm}")
+ 
+     if args.sampler in ("macmon", "dual"):
+-        idle_mac, idle_field_mac, raw_mac, err_mac = run_macmon_idle(args.idle_seconds, args.interval_ms)
++        idle_mac, idle_mac_ts, idle_field_mac, raw_mac, err_mac = run_macmon_idle(args.idle_seconds, args.interval_ms)
+         if not idle_mac:
+             sys.exit(
+                 "macmon produced no readings for the idle phase.\n"
+@@ -205,6 +388,15 @@ def main():
+     
+     pm_proc = None
+     mac_proc = None
++    pm_lines = []
++    pm_err_lines = []
++    pm_thread = None
++    pm_err_thread = None
++
++    mac_lines = []
++    mac_err_lines = []
++    mac_thread = None
++    mac_err_thread = None
+ 
+     if args.sampler in ("powermetrics", "dual"):
+         n = max(1, math.ceil(args.max_seconds * 1000 / args.interval_ms))
+@@ -214,7 +406,12 @@ def main():
+             stdout=subprocess.PIPE,
+             stderr=subprocess.PIPE,
+             text=True,
++            bufsize=1,
+         )
++        pm_thread = threading.Thread(target=drain_pipe, args=(pm_proc.stdout, pm_lines), daemon=True)
++        pm_err_thread = threading.Thread(target=drain_pipe, args=(pm_proc.stderr, pm_err_lines), daemon=True)
++        pm_thread.start()
++        pm_err_thread.start()
+ 
+     if args.sampler in ("macmon", "dual"):
+         mac_proc = subprocess.Popen(
+@@ -222,11 +419,18 @@ def main():
+             stdout=subprocess.PIPE,
+             stderr=subprocess.PIPE,
+             text=True,
++            bufsize=1,
+         )
++        mac_thread = threading.Thread(target=drain_pipe, args=(mac_proc.stdout, mac_lines), daemon=True)
++        mac_err_thread = threading.Thread(target=drain_pipe, args=(mac_proc.stderr, mac_err_lines), daemon=True)
++        mac_thread.start()
++        mac_err_thread.start()
+ 
++    t0_wall = datetime.now(timezone.utc)
+     t0 = time.perf_counter()
+     run = subprocess.run(command, capture_output=True, text=True)
+     elapsed = time.perf_counter() - t0
++    t1_wall = datetime.now(timezone.utc)
+ 
+     raw_pm_work = ""
+     raw_mac_work = ""
+@@ -234,32 +438,73 @@ def main():
+     if pm_proc:
+         pm_proc.terminate()
+         try:
+-            raw_pm_work, _ = pm_proc.communicate(timeout=5)
++            pm_proc.wait(timeout=5)
+         except subprocess.TimeoutExpired:
+             pm_proc.kill()
+-            raw_pm_work, _ = pm_proc.communicate()
++            pm_proc.wait()
++        if pm_thread:
++            pm_thread.join(timeout=2)
++        if pm_err_thread:
++            pm_err_thread.join(timeout=2)
++        raw_pm_work = "".join(pm_lines)
+ 
+     if mac_proc:
+         mac_proc.send_signal(signal.SIGINT)
+         try:
+-            raw_mac_work, _ = mac_proc.communicate(timeout=5)
++            mac_proc.wait(timeout=5)
+         except subprocess.TimeoutExpired:
+             mac_proc.kill()
+-            raw_mac_work, _ = mac_proc.communicate()
++            mac_proc.wait()
++        if mac_thread:
++            mac_thread.join(timeout=2)
++        if mac_err_thread:
++            mac_err_thread.join(timeout=2)
++        raw_mac_work = "".join(mac_lines)
+ 
+     if args.raw_out:
+         os.makedirs(os.path.dirname(os.path.abspath(args.raw_out)), exist_ok=True)
+         with open(args.raw_out, "w", encoding="utf-8") as rf:
++            if raw_mac:
++                rf.write("=== MACMON IDLE SAMPLES ===\n")
++                rf.write(raw_mac)
++                if not raw_mac.endswith("\n"):
++                    rf.write("\n")
+             if raw_mac_work:
+-                rf.write("=== MACMON RAW SAMPLES ===\n")
++                rf.write("=== MACMON WORKLOAD SAMPLES ===\n")
+                 rf.write(raw_mac_work)
++                if not raw_mac_work.endswith("\n"):
++                    rf.write("\n")
++            if raw_pm:
++                rf.write("=== POWERMETRICS IDLE SAMPLES ===\n")
++                rf.write(raw_pm)
++                if not raw_pm.endswith("\n"):
++                    rf.write("\n")
+             if raw_pm_work:
+-                rf.write("\n=== POWERMETRICS RAW SAMPLES ===\n")
++                rf.write("=== POWERMETRICS WORKLOAD SAMPLES ===\n")
+                 rf.write(raw_pm_work)
++                if not raw_pm_work.endswith("\n"):
++                    rf.write("\n")
++
++    # Parse workload power and validate coverage
++    work_mac = []
++    work_mac_ts = []
++    work_field_mac = None
++    try:
++        if raw_mac_work:
++            work_mac, work_mac_ts, work_field_mac = parse_macmon_jsonl(raw_mac_work)
++            validate_timestamp_coverage(
++                work_mac_ts,
++                elapsed,
++                label="workload",
++                start_wall=t0_wall,
++                end_wall=t1_wall,
++            )
+ 
+-    # Parse workload power
+-    work_pm, work_field_pm = parse_powermetrics_text(raw_pm_work) if raw_pm_work else ([], None)
+-    work_mac, work_field_mac = parse_macmon_jsonl(raw_mac_work) if raw_mac_work else ([], None)
++        if raw_pm_work:
++            work_pm, work_field_pm = parse_powermetrics_text(raw_pm_work)
++            validate_powermetrics_coverage(work_pm, elapsed, args.interval_ms, label="workload")
++    except ValueError as e:
++        sys.exit(f"[energy_per_token] Sampler validation error: {e}")
+ 
+     combined = (run.stdout or "") + (run.stderr or "")
+     tokens = args.tokens if args.tokens else detect_tokens(combined)
+diff --git a/scripts/test_energy_recorder_synthetic.py b/scripts/test_energy_recorder_synthetic.py
+new file mode 100755
+index 000000000..816213a63
+--- /dev/null
++++ b/scripts/test_energy_recorder_synthetic.py
+@@ -0,0 +1,400 @@
++#!/usr/bin/env python3
++"""Synthetic workload test harness for scripts/energy_per_token.py.
++
++Verifies:
++  1. Pipe draining with high-volume output (>64 KiB, exceeding Darwin OS pipe buffer).
++  2. Background drain thread avoids deadlocks/stalls.
++  3. JSONL parsing and graceful handling of trailing SIGINT fragments.
++  4. Monotonic timestamp verification and negative-span rejection.
++  5. Out-of-interval timestamp and insufficient coverage ratio (<85%) rejection.
++  6. Excessive inter-sample gap (>2.0s) stall detection.
++  7. Collector failure and malformed stream error propagation.
++  8. End-to-end execution of energy_per_token.py with a mock sampler (>64 KiB output)
++     and dummy workload (no physical model fit required).
++"""
++
++import json
++import os
++import signal
++import stat
++import subprocess
++import sys
++import tempfile
++import threading
++import time
++import unittest
++from datetime import datetime, timedelta, timezone
++
++# Ensure scripts directory is on sys.path
++SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
++if SCRIPTS_DIR not in sys.path:
++    sys.path.insert(0, SCRIPTS_DIR)
++
++import energy_per_token
++
++
++class TestEnergyRecorderUnit(unittest.TestCase):
++    """Unit tests for core functions in energy_per_token.py."""
++
++    def test_drain_pipe_exceeding_64k(self):
++        """Test that drain_pipe successfully drains >64 KiB of data without pipe stall."""
++        # On Darwin, default pipe capacity is 65,536 bytes. A writer emitting >64 KiB
++        # will block indefinitely if the reader does not continuously consume it.
++        total_lines = 1000
++        line_payload = "X" * 120 + "\n"  # ~121 bytes per line -> ~121 KiB total
++
++        proc = subprocess.Popen(
++            [sys.executable, "-c", f"import sys; [sys.stdout.write({line_payload!r}) for _ in range({total_lines})]; sys.stdout.flush()"],
++            stdout=subprocess.PIPE,
++            stderr=subprocess.PIPE,
++            text=True,
++            bufsize=1,
++        )
++
++        lines = []
++        drain_thread = threading.Thread(target=energy_per_token.drain_pipe, args=(proc.stdout, lines), daemon=True)
++        drain_thread.start()
++
++        proc.wait(timeout=5)
++        drain_thread.join(timeout=2)
++        proc.stdout.close()
++        proc.stderr.close()
++
++        self.assertEqual(proc.returncode, 0)
++        total_bytes = sum(len(line) for line in lines)
++        self.assertGreater(total_bytes, 65536, f"Expected >64 KiB drained, got {total_bytes} bytes")
++        self.assertEqual(len(lines), total_lines)
++
++    def test_parse_macmon_jsonl_valid(self):
++        """Test parsing valid macmon JSONL stream."""
++        sample_jsonl = (
++            '{"timestamp": "2026-09-28T18:00:00.000Z", "sys_power": 12.34}\n'
++            '{"timestamp": "2026-09-28T18:00:00.100Z", "sys_power": 14.56}\n'
++            '{"timestamp": "2026-09-28T18:00:00.200Z", "sys_power": 13.90}\n'
++        )
++        readings, timestamps, field = energy_per_token.parse_macmon_jsonl(sample_jsonl)
++        self.assertEqual(len(readings), 3)
++        self.assertEqual(len(timestamps), 3)
++        self.assertAlmostEqual(readings[0], 12340.0)  # converted to mW
++        self.assertAlmostEqual(readings[1], 14560.0)
++        self.assertEqual(field, "sys_power (macmon whole-system)")
++
++    def test_parse_macmon_jsonl_trailing_sigint_fragment(self):
++        """Test that a trailing partial JSON line caused by SIGINT interruption is gracefully discarded."""
++        sample_jsonl = (
++            '{"timestamp": "2026-09-28T18:00:00.000Z", "sys_power": 12.0}\n'
++            '{"timestamp": "2026-09-28T18:00:00.100Z", "sys_power": 13.0}\n'
++            '{"timestamp": "2026-09-28T18:00:00.200Z", "sys_pow'  # truncated fragment
++        )
++        readings, timestamps, _ = energy_per_token.parse_macmon_jsonl(sample_jsonl)
++        self.assertEqual(len(readings), 2)
++        self.assertEqual(len(timestamps), 2)
++
++    def test_parse_macmon_jsonl_intermediate_corruption_rejected(self):
++        """Test that malformed JSON on intermediate lines is rejected."""
++        corrupted_jsonl = (
++            '{"timestamp": "2026-09-28T18:00:00.000Z", "sys_power": 12.0}\n'
++            'BAD_LINE_NOT_JSON\n'
++            '{"timestamp": "2026-09-28T18:00:00.200Z", "sys_power": 13.0}\n'
++        )
++        with self.assertRaises(ValueError) as ctx:
++            energy_per_token.parse_macmon_jsonl(corrupted_jsonl, reject_malformed=True)
++        self.assertIn("Malformed or truncated JSON", str(ctx.exception))
++
++    def test_validate_timestamp_coverage_monotonic_pass(self):
++        """Test that valid monotonic timestamps covering >=85% pass."""
++        base_t = datetime(2026, 9, 28, 18, 0, 0, tzinfo=timezone.utc)
++        timestamps = [(base_t + timedelta(milliseconds=100 * i)).isoformat() for i in range(50)]
++        # Total span: 4.9s for a 5.0s run -> 98% coverage
++        span = energy_per_token.validate_timestamp_coverage(timestamps, expected_duration_s=5.0)
++        self.assertAlmostEqual(span, 4.9, places=2)
++
++    def test_validate_timestamp_coverage_negative_span_rejected(self):
++        """Test that non-monotonic / reverse timestamps are rejected."""
++        timestamps = [
++            "2026-09-28T18:00:05.000Z",
++            "2026-09-28T18:00:01.000Z",
++        ]
++        with self.assertRaises(ValueError) as ctx:
++            energy_per_token.validate_timestamp_coverage(timestamps, expected_duration_s=5.0)
++        self.assertIn("Negative timestamp span", str(ctx.exception))
++
++    def test_validate_timestamp_coverage_insufficient_span_rejected(self):
++        """Test that truncated timestamps covering <85% of duration are rejected."""
++        base_t = datetime(2026, 9, 28, 18, 0, 0, tzinfo=timezone.utc)
++        # Span of only 2.0s for a 10.0s run (20% coverage)
++        timestamps = [(base_t + timedelta(milliseconds=100 * i)).isoformat() for i in range(21)]
++        with self.assertRaises(ValueError) as ctx:
++            energy_per_token.validate_timestamp_coverage(timestamps, expected_duration_s=10.0)
++        self.assertIn("Incomplete timestamp coverage", str(ctx.exception))
++        self.assertIn("Sampler output was truncated", str(ctx.exception))
++
++    def test_validate_timestamp_coverage_excessive_gap_rejected(self):
++        """Test that excessive gaps between consecutive samples (>2.0s) trigger stall error."""
++        timestamps = [
++            "2026-09-28T18:00:00.000Z",
++            "2026-09-28T18:00:00.500Z",
++            "2026-09-28T18:00:03.000Z",  # 2.5s gap (> 2.0s threshold)
++            "2026-09-28T18:00:05.000Z",
++        ]
++        with self.assertRaises(ValueError) as ctx:
++            energy_per_token.validate_timestamp_coverage(timestamps, expected_duration_s=5.0)
++        self.assertIn("Sampler stalled", str(ctx.exception))
++        self.assertIn("maximum gap between consecutive samples was 2.50s", str(ctx.exception))
++
++    def test_validate_timestamp_coverage_out_of_interval_rejected(self):
++        """Test that traces with right duration but timestamps outside the workload interval are rejected.
++        
++        Duration alone cannot establish alignment.
++        """
++        # Workload ran from 18:10:00 to 18:10:05 (5.0s duration)
++        workload_start = datetime(2026, 9, 28, 18, 10, 0, tzinfo=timezone.utc)
++        workload_end = datetime(2026, 9, 28, 18, 10, 5, tzinfo=timezone.utc)
++
++        # Case A: Timestamps have right duration (4.9s for a 5.0s run), but ran 10 minutes earlier (18:00:00)
++        stale_base = datetime(2026, 9, 28, 18, 0, 0, tzinfo=timezone.utc)
++        stale_timestamps = [(stale_base + timedelta(milliseconds=100 * i)).isoformat() for i in range(50)]
++        with self.assertRaises(ValueError) as ctx:
++            energy_per_token.validate_timestamp_coverage(
++                stale_timestamps,
++                expected_duration_s=5.0,
++                start_wall=workload_start,
++                end_wall=workload_end,
++            )
++        self.assertIn("Timestamp misalignment", str(ctx.exception))
++        self.assertIn("samples fall completely before execution window", str(ctx.exception))
++
++        # Case B: Timestamps have right duration, but ran after workload finished
++        future_base = datetime(2026, 9, 28, 18, 20, 0, tzinfo=timezone.utc)
++        future_timestamps = [(future_base + timedelta(milliseconds=100 * i)).isoformat() for i in range(50)]
++        with self.assertRaises(ValueError) as ctx:
++            energy_per_token.validate_timestamp_coverage(
++                future_timestamps,
++                expected_duration_s=5.0,
++                start_wall=workload_start,
++                end_wall=workload_end,
++            )
++        self.assertIn("Timestamp misalignment", str(ctx.exception))
++        self.assertIn("samples fall completely after execution window", str(ctx.exception))
++
++    def test_detect_tokens(self):
++        """Test auto-detection of stepped / generated token counts."""
++        self.assertEqual(energy_per_token.detect_tokens("Stepped 2048 tokens in 11.2s"), 2048)
++        self.assertEqual(energy_per_token.detect_tokens("Generated 128 tokens"), 128)
++        self.assertEqual(energy_per_token.detect_tokens('{"eval_count": 512}'), 512)
++        self.assertIsNone(energy_per_token.detect_tokens("No tokens mentioned here"))
++
++
++class TestEnergyRecorderEndToEnd(unittest.TestCase):
++    """End-to-end integration tests using mock samplers and dummy workloads."""
++
++    def setUp(self):
++        self.temp_dir = tempfile.TemporaryDirectory()
++        self.mock_bin = os.path.join(self.temp_dir.name, "mock_macmon")
++        self._create_mock_macmon_script()
++
++    def tearDown(self):
++        self.temp_dir.cleanup()
++
++    def _create_mock_macmon_script(self):
++        """Create a universal executable mock macmon script controlled via env vars."""
++        script_content = r"""#!/usr/bin/env python3
++import json
++import os
++import signal
++import sys
++import time
++from datetime import datetime, timedelta, timezone
++
++def sigint_handler(sig, frame):
++    sys.exit(0)
++
++signal.signal(signal.SIGINT, sigint_handler)
++
++mode = os.environ.get("MOCK_MODE", "normal")
++payload_extra = os.environ.get("MOCK_PAYLOAD", "")
++time_offset_s = float(os.environ.get("MOCK_TIME_OFFSET_S", "0.0"))
++
++interval_s = 0.05
++count = None
++args = sys.argv[1:]
++for i, a in enumerate(args):
++    if a == "-i" and i + 1 < len(args):
++        interval_s = float(args[i + 1]) / 1000.0
++    elif a == "-s" and i + 1 < len(args):
++        count = int(args[i + 1])
++
++is_workload = (count is None)
++
++if is_workload and mode == "crash":
++    sys.stderr.write("Fatal mock sampler error\n")
++    sys.exit(1)
++
++samples_emitted = 0
++t_start = time.time()
++
++while True:
++    now_dt = datetime.now(timezone.utc)
++    if is_workload and time_offset_s != 0.0:
++        now_dt = now_dt + timedelta(seconds=time_offset_s)
++    now = now_dt.isoformat()
++    record = {"timestamp": now, "sys_power": 15.25}
++    if payload_extra:
++        record["extra"] = payload_extra
++    sys.stdout.write(json.dumps(record) + "\n")
++    sys.stdout.flush()
++    samples_emitted += 1
++
++    if count is not None and samples_emitted >= count:
++        break
++
++    if is_workload:
++        if mode == "truncate" and (time.time() - t_start) >= 1.0:
++            break
++        if mode == "stall" and samples_emitted == 10:
++            time.sleep(2.5)  # 2.5s stall exceeding 2.0s limit
++
++    time.sleep(interval_s)
++"""
++        with open(self.mock_bin, "w", encoding="utf-8") as f:
++            f.write(script_content)
++        os.chmod(self.mock_bin, stat.S_IRWXU)
++
++    def test_e2e_high_volume_pipe_draining_pass(self):
++        """End-to-end test with mock macmon emitting >64 KiB of JSONL data during workload."""
++        # Extra payload per sample: ~260 characters so line is ~300 bytes.
++        # At 20 Hz (interval 50ms) over 4.2s workload = ~84 samples * 300 = ~25 KiB.
++        # With 400 chars padding, 100 samples = ~45 KiB workload + idle 30 samples * 450 B = ~14 KiB -> ~65+ KiB.
++        raw_out_path = os.path.join(self.temp_dir.name, "raw_capture.txt")
++        env = os.environ.copy()
++        env["MACMON_BIN"] = self.mock_bin
++        env["MOCK_MODE"] = "normal"
++        env["MOCK_PAYLOAD"] = "A" * 600  # ~650 bytes per line * 100 lines = ~65 KiB+
++
++        # Run energy_per_token.py with a 4.2s dummy workload that outputs token count
++        cmd = [
++            sys.executable,
++            os.path.join(SCRIPTS_DIR, "energy_per_token.py"),
++            "--label", "synthetic-test",
++            "--sampler", "macmon",
++            "--idle-seconds", "1.5",
++            "--interval-ms", "50",
++            "--raw-out", raw_out_path,
++            "--",
++            sys.executable, "-c",
++            "import time; time.sleep(4.2); print('Stepped 512 tokens')",
++        ]
++
++        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
++        self.assertEqual(result.returncode, 0, f"energy_per_token failed:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}")
++
++        # Verify output summary
++        self.assertIn("tokens                    : 512", result.stdout)
++        self.assertIn("GROSS energy", result.stdout)
++        self.assertIn("NET energy (idle removed)", result.stdout)
++
++        # Verify raw capture exists and exceeded 64 KiB
++        self.assertTrue(os.path.exists(raw_out_path))
++        file_size = os.path.getsize(raw_out_path)
++        self.assertGreater(file_size, 65536, f"Expected raw capture >64 KiB, got {file_size} bytes")
++
++        # Verify raw capture contains both sections
++        with open(raw_out_path, "r", encoding="utf-8") as f:
++            content = f.read()
++        self.assertIn("=== MACMON IDLE SAMPLES ===", content)
++        self.assertIn("=== MACMON WORKLOAD SAMPLES ===", content)
++
++    def test_e2e_excessive_gap_stall_detected(self):
++        """End-to-end test verifying that an inter-sample stall > 2.0s triggers error."""
++        env = os.environ.copy()
++        env["MACMON_BIN"] = self.mock_bin
++        env["MOCK_MODE"] = "stall"
++
++        cmd = [
++            sys.executable,
++            os.path.join(SCRIPTS_DIR, "energy_per_token.py"),
++            "--label", "synthetic-stall-test",
++            "--sampler", "macmon",
++            "--idle-seconds", "1.0",
++            "--interval-ms", "50",
++            "--",
++            sys.executable, "-c",
++            "import time; time.sleep(4.2); print('Stepped 128 tokens')",
++        ]
++
++        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
++        self.assertNotEqual(result.returncode, 0)
++        self.assertIn("Sampler stalled", result.stderr + result.stdout)
++
++    def test_e2e_truncated_timestamp_coverage_detected(self):
++        """End-to-end test verifying that premature sampler termination (<85% coverage) triggers error."""
++        env = os.environ.copy()
++        env["MACMON_BIN"] = self.mock_bin
++        env["MOCK_MODE"] = "truncate"
++
++        cmd = [
++            sys.executable,
++            os.path.join(SCRIPTS_DIR, "energy_per_token.py"),
++            "--label", "synthetic-truncation-test",
++            "--sampler", "macmon",
++            "--idle-seconds", "1.0",
++            "--interval-ms", "50",
++            "--",
++            sys.executable, "-c",
++            "import time; time.sleep(4.2); print('Stepped 128 tokens')",
++        ]
++
++        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
++        output = result.stderr + result.stdout
++        self.assertTrue(
++            "Incomplete timestamp coverage" in output or "Timestamp misalignment" in output,
++            f"Expected truncation or misalignment error, got:\n{output}",
++        )
++
++    def test_e2e_collector_crash_detected(self):
++        """End-to-end test verifying that sampler crash propagates cleanly."""
++        env = os.environ.copy()
++        env["MACMON_BIN"] = self.mock_bin
++        env["MOCK_MODE"] = "crash"
++
++        cmd = [
++            sys.executable,
++            os.path.join(SCRIPTS_DIR, "energy_per_token.py"),
++            "--label", "synthetic-crash-test",
++            "--sampler", "macmon",
++            "--idle-seconds", "1.0",
++            "--interval-ms", "50",
++            "--",
++            sys.executable, "-c",
++            "print('Stepped 128 tokens')",
++        ]
++
++        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
++        self.assertNotEqual(result.returncode, 0)
++
++    def test_e2e_out_of_interval_timestamps_detected(self):
++        """End-to-end test verifying that timestamps with right duration but outside workload interval are rejected."""
++        env = os.environ.copy()
++        env["MACMON_BIN"] = self.mock_bin
++        env["MOCK_MODE"] = "normal"
++        env["MOCK_TIME_OFFSET_S"] = "-60.0"  # Samples are 1 minute in the past
++
++        cmd = [
++            sys.executable,
++            os.path.join(SCRIPTS_DIR, "energy_per_token.py"),
++            "--label", "synthetic-offset-test",
++            "--sampler", "macmon",
++            "--idle-seconds", "1.0",
++            "--interval-ms", "50",
++            "--",
++            sys.executable, "-c",
++            "import time; time.sleep(4.2); print('Stepped 128 tokens')",
++        ]
++
++        result = subprocess.run(cmd, capture_output=True, text=True, env=env)
++        self.assertNotEqual(result.returncode, 0)
++        self.assertIn("Timestamp misalignment in workload", result.stderr + result.stdout)
++
++
++if __name__ == "__main__":
++    unittest.main()

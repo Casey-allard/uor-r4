@@ -1,0 +1,500 @@
+diff --git a/crates/uor-r4-core/src/transformerless/command.rs b/crates/uor-r4-core/src/transformerless/command.rs
+index a695f6ba3..ef3dd1f4e 100644
+--- a/crates/uor-r4-core/src/transformerless/command.rs
++++ b/crates/uor-r4-core/src/transformerless/command.rs
+@@ -690,6 +690,7 @@ pub fn score_command(args: &[String]) -> Result<(), String> {
+     };
+     row("graph (no EXCT)", &gate_c.graph_no_exct);
+     row("graph (with EXCT)", &gate_c.graph_with_exct);
++    row("graph (legacy Σ-cloud)", &gate_c.graph_legacy);
+     row("TLA3 store baseline", &gate_c.tla3_baseline);
+     println!(
+         "  witness replay: {}/{} ok",
+diff --git a/crates/uor-r4-core/src/transformerless/score.rs b/crates/uor-r4-core/src/transformerless/score.rs
+index 5472db9b2..81f16f701 100644
+--- a/crates/uor-r4-core/src/transformerless/score.rs
++++ b/crates/uor-r4-core/src/transformerless/score.rs
+@@ -814,6 +814,10 @@ pub struct GateCOutcome {
+     pub graph_no_exct: GateCMetrics,
+     pub graph_with_exct: GateCMetrics,
+     pub tla3_baseline: GateCMetrics,
++    /// Legacy Σ-over-cloud formula (issue #64, for side-by-side comparison).
++    /// Empty when the scorer does not carry EMIT data (should not happen
++    /// in practice; Gate C always builds from a fully-emitted artifact).
++    pub graph_legacy: GateCMetrics,
+     /// Candidate-set recall is reported separately from selected-token
+     /// agreement. A low value means the scorer cannot recover the teacher
+     /// token regardless of how its weights are tuned.
+@@ -858,9 +862,11 @@ pub fn evaluate_gate_c(
+     let mut bits_no_exct = 0f64;
+     let mut bits_with_exct = 0f64;
+     let mut bits_baseline = 0f64;
++    let mut bits_legacy = 0f64;
+     let mut hits_no_exct = 0u64;
+     let mut hits_with_exct = 0u64;
+     let mut hits_baseline = 0u64;
++    let mut hits_legacy = 0u64;
+     let mut candidate_top1_no_exct = 0u64;
+     let mut candidate_top3_no_exct = 0u64;
+     let mut candidate_top1_with_exct = 0u64;
+@@ -873,6 +879,7 @@ pub fn evaluate_gate_c(
+ 
+         let no_exct = scorer_no_exct.score_candidates(&observation.sig)?;
+         let with_exct = scorer_with_exct.score_candidates(&observation.sig)?;
++        let legacy = scorer_no_exct.score_candidates_legacy(&observation.sig)?;
+         let baseline = runtime::predict_witness_plain(store, &code);
+ 
+         let contains = |candidates: &[(u32, ScoreQ)], token: u32| {
+@@ -903,11 +910,15 @@ pub fn evaluate_gate_c(
+         if with_exct.selected == teacher_argmax {
+             hits_with_exct += 1;
+         }
++        if legacy.selected == teacher_argmax {
++            hits_legacy += 1;
++        }
+         if baseline.token == teacher_argmax {
+             hits_baseline += 1;
+         }
+         bits_no_exct += outcome_bits(&scorer_no_exct, &no_exct.candidates, next);
+         bits_with_exct += outcome_bits(&scorer_with_exct, &with_exct.candidates, next);
++        bits_legacy += outcome_bits(&scorer_no_exct, &legacy.candidates, next);
+         bits_baseline += -witten_bell_probability(store, &code, next).log2();
+ 
+         if index < config.witness_sample {
+@@ -945,6 +956,11 @@ pub fn evaluate_gate_c(
+         top1_agreement: hits_baseline as f64 / nf,
+         bits_per_token: bits_baseline / nf,
+     };
++    outcome.graph_legacy = GateCMetrics {
++        positions: n,
++        top1_agreement: hits_legacy as f64 / nf,
++        bits_per_token: bits_legacy / nf,
++    };
+     outcome.candidate_recall = CandidateRecall {
+         graph_no_exct_top1: candidate_top1_no_exct as f64 / nf,
+         graph_no_exct_top3: candidate_top3_no_exct as f64 / nf,
+diff --git a/crates/uor-r4-core/src/transformerless/score_runtime.rs b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+index 8b69cf49f..0af8ef2ed 100644
+--- a/crates/uor-r4-core/src/transformerless/score_runtime.rs
++++ b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+@@ -988,6 +988,244 @@ impl GraphScorer {
+             witness,
+         })
+     }
++
++    /// The original Σ-over-cloud scoring formula, retained for the Gate C
++    /// side-by-side comparison only. This is **not** the shipping semantics;
++    /// use [`GraphScorer::score_candidates`] for all production paths.
++    ///
++    /// The old formula applied emission residuals from **every** member of
++    /// the active cloud A, summing correlated sibling-subtree distributions:
++    ///
++    /// ```text
++    /// S(v) = B(v) + Σ_{n ∈ A} ΔE(n,v) + transition_offset + ΔX(X,v)
++    /// ```
++    ///
++    /// This causes the pathological high-confidence selection of one token
++    /// that appears in many sibling emission lists (issue #64: one token
++    /// accumulated +91.7 nats from 13 sibling-subtree emission lists and won
++    /// 98% of probed positions). The chain-telescoped Rule 1 in
++    /// [`GraphScorer::score_candidates`] fixes this by restricting ΔE to the
++    /// deepest covered refinement chain.
++    ///
++    /// The return type is the same [`ScoreOutcome`] for direct metric
++    /// comparison; the witness status is always [`ScoreStatus::Graph`] or
++    /// [`ScoreStatus::Novel`] (no EXCT precedence gate; the old formula
++    /// included ΔX unconditionally).
++    pub fn score_candidates_legacy(&self, sig: &[u8; SIG_BYTES]) -> Result<ScoreOutcome, String> {
++        let mut k = OpKernel::default();
++
++        // Active cloud A: top-M memberships at each depth (identical to
++        // score_candidates — the cloud computation is unchanged).
++        let mut active: Vec<ActiveRegion> = Vec::new();
++        for depth in 1..=self.max_depth {
++            for (region, dist) in binary_memberships(&mut k, &self.pop, &self.regions, depth, sig) {
++                let radius = u32::from(self.regions[region as usize].radius);
++                if dist > radius {
++                    continue;
++                }
++                let margin = radius as i64 - dist as i64;
++                active.push(ActiveRegion {
++                    region,
++                    depth: depth as u8,
++                    distance: dist as u16,
++                    margin: margin.clamp(i16::MIN as i64, i16::MAX as i64) as i16,
++                });
++            }
++        }
++        active.sort_by_key(|a| a.region);
++
++        // Predicted cloud F: union of E_f targets of the active regions
++        // (identical to score_candidates).
++        let active_nodes: BTreeSet<u32> = active.iter().map(|a| a.region + 1).collect();
++        let mut best_edge: BTreeMap<u32, EdgeUse> = BTreeMap::new();
++        for &node in &active_nodes {
++            if let Some(edges) = self.forward_by_src.get(&node) {
++                for edge in edges {
++                    k.table_reads += 1;
++                    let better = match best_edge.get(&edge.dst) {
++                        None => true,
++                        Some(current) => {
++                            k.compares += 1;
++                            (edge.score_q, std::cmp::Reverse(edge.edge_id))
++                                > (current.score_q, std::cmp::Reverse(current.edge_id))
++                        }
++                    };
++                    if better {
++                        best_edge.insert(edge.dst, *edge);
++                    }
++                }
++            }
++        }
++        let predicted: Vec<u32> = best_edge.keys().copied().collect();
++        let edges_applied: Vec<EdgeUse> = best_edge.values().copied().collect();
++        let mut transition_offset = ScoreQ::ZERO;
++        for edge in &edges_applied {
++            transition_offset = transition_offset.saturating_add(edge.score_q);
++            k.adds += 1;
++        }
++
++        // OLD formula: ALL active nodes plus predicted nodes contribute
++        // candidate tokens AND all active nodes contribute residual scores.
++        // This is the double-counting path: sibling regions at the same depth
++        // sharing a refinement parent each apply their ΔE independently,
++        // causing the pathological stacking (issue #64).
++        let mut contributing: BTreeSet<u32> = active_nodes.clone();
++        for &node in &predicted {
++            contributing.insert(node);
++        }
++        let mut candidates: BTreeMap<u32, (ScoreQ, Vec<Contribution>)> = BTreeMap::new();
++        for &node in &contributing {
++            let emissions = &self.emissions[(node - 1) as usize];
++            for (&token, &value) in emissions {
++                k.candidate_scans += 1;
++                k.table_reads += 1;
++                let entry = candidates
++                    .entry(token)
++                    .or_insert_with(|| (ScoreQ::ZERO, Vec::new()));
++                if entry.1.is_empty() {
++                    entry.1.push(Contribution {
++                        id: ContributionId::RootPrior { token },
++                        value: self.root_score(token),
++                    });
++                }
++                // Old formula: every active node contributes ΔE (no chain
++                // restriction). Predicted nodes are included in contributing
++                // for candidate generation only (same as new formula).
++                if active_nodes.contains(&node) {
++                    entry.0 = entry.0.saturating_add(value);
++                    k.adds += 1;
++                    entry.1.push(Contribution {
++                        id: ContributionId::Emission { node, token },
++                        value,
++                    });
++                }
++            }
++        }
++        // Root prior top-B tokens join the candidate set.
++        for &token in &self.root_top {
++            k.table_reads += 1;
++            let entry = candidates
++                .entry(token)
++                .or_insert_with(|| (ScoreQ::ZERO, Vec::new()));
++            if entry.1.is_empty() {
++                entry.1.push(Contribution {
++                    id: ContributionId::RootPrior { token },
++                    value: self.root_score(token),
++                });
++            }
++        }
++
++        // EXCT: identical computation to score_candidates, but EXCT is
++        // applied unconditionally (no D4 precedence gate in the old formula).
++        let mut exct_probe: Option<ExctProbe> = None;
++        let mut exact_residuals: Vec<(u32, ScoreQ)> = Vec::new();
++        if let (Some(store), Some(art)) = (&self.store, &self.artifacts) {
++            let code = runtime::assign_plain(art, sig);
++            for level in (0..=STAGES).rev() {
++                if let Some(dist) = store[level].get(&code[..level]) {
++                    let total: u32 = dist.values().sum();
++                    let mut ranked: Vec<(u32, u32)> = dist.iter().map(|(&t, &c)| (t, c)).collect();
++                    ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
++                    let supported = total >= EXCT_SUPPORT_MIN;
++                    let mut admitted = 0u32;
++                    if supported {
++                        for &(token, count) in ranked.iter().take(self.exct_top_x) {
++                            k.table_reads += 1;
++                            let value = quantize_exct(count, total, self.vocab)
++                                .saturating_sub(self.root_score(token));
++                            exact_residuals.push((token, value));
++                            admitted += 1;
++                        }
++                    }
++                    exct_probe = Some(ExctProbe {
++                        level: level as u8,
++                        key: code[..level].to_vec(),
++                        total,
++                        admitted,
++                    });
++                    break;
++                }
++            }
++        }
++        // Old formula: add EXCT residuals to the existing candidate set
++        // unconditionally (no D4 precedence clearing).
++        for (token, value) in exact_residuals {
++            let entry = candidates
++                .entry(token)
++                .or_insert_with(|| (ScoreQ::ZERO, Vec::new()));
++            if entry.1.is_empty() {
++                entry.1.push(Contribution {
++                    id: ContributionId::RootPrior { token },
++                    value: self.root_score(token),
++                });
++            }
++            entry.0 = entry.0.saturating_add(value);
++            entry.1.push(Contribution {
++                id: ContributionId::ExactContext { token },
++                value,
++            });
++        }
++
++        // Final scores: root prior + accumulated residuals + transition offset.
++        let mut ranked_candidates: Vec<(u32, ScoreQ, Vec<Contribution>)> =
++            Vec::with_capacity(candidates.len());
++        for (token, (residual, mut contributions)) in candidates {
++            let with_offset = residual.saturating_add(transition_offset);
++            k.adds += 1;
++            let base = self.root_score(token);
++            let score = base.saturating_add(with_offset);
++            k.adds += 1;
++            contributions.sort_by_key(|c| c.id);
++            ranked_candidates.push((token, score, contributions));
++        }
++        if ranked_candidates.is_empty() {
++            return Err("legacy scoring produced an empty candidate set".to_owned());
++        }
++
++        // Canonical argmax: highest score, then the lowest token id.
++        let mut best_index = 0usize;
++        for (index, &(_, score, _)) in ranked_candidates.iter().enumerate() {
++            k.candidate_scans += 1;
++            k.compares += 1;
++            if score > ranked_candidates[best_index].1 {
++                best_index = index;
++            }
++        }
++        let (selected, selected_score, _) = ranked_candidates[best_index];
++        let selected_contributions = ranked_candidates[best_index].2.clone();
++        let candidate_count = ranked_candidates.len() as u32;
++        let candidates_out: Vec<(u32, ScoreQ)> = ranked_candidates
++            .into_iter()
++            .map(|(token, score, _)| (token, score))
++            .collect();
++
++        let witness = ScoreWitness {
++            graph_cid: self.graph_cid,
++            input_sig: *sig,
++            status: if active.is_empty() {
++                ScoreStatus::Novel
++            } else {
++                ScoreStatus::Graph
++            },
++            active,
++            chain: Vec::new(), // no chain concept in the legacy formula
++            predicted,
++            edges_applied,
++            transition_offset,
++            exct: exct_probe,
++            selected,
++            selected_score,
++            selected_contributions,
++            candidate_count,
++            census: k,
++        };
++        Ok(ScoreOutcome {
++            selected,
++            selected_score,
++            candidates: candidates_out,
++            witness,
++        })
++    }
+ }
+ 
+ /// Rejection reasons of the independent witness-replay verifier
+diff --git a/crates/uor-r4-core/tests/score.rs b/crates/uor-r4-core/tests/score.rs
+index 52b9c9e3f..9e4eb7a50 100644
+--- a/crates/uor-r4-core/tests/score.rs
++++ b/crates/uor-r4-core/tests/score.rs
+@@ -604,6 +604,125 @@ fn theorem_10_overlapping_active_and_predicted_counts_emission_once() {
+     verify_witness_replay(&bytes, None, &outcome.witness, 64, 64).expect("replay");
+ }
+ 
++/// Two sibling depth-1 regions that are both active for the same context
++/// demonstrate the double-counting flaw in the legacy Σ-over-cloud formula.
++/// The chain-telescoped formula (Rule 1) selects one chain and prevents
++/// the stacking, correcting the selection back to the right token.
++#[test]
++fn legacy_formula_double_counts_sibling_regions_new_formula_does_not() {
++    // Both regions are close to context [0x00; SIG_BYTES].
++    // Region 1 (node 1): distance 0, margin 4.
++    // Region 2 (node 2): distance 1 (bit 0 flipped), margin 3.
++    let mut sig2 = [0x00u8; SIG_BYTES];
++    sig2[0] = 0x80; // one bit set → Hamming distance 1
++
++    let regions = vec![
++        RegionParams {
++            node: 1,
++            depth: 1,
++            radius: 4,
++            sig: [0x00; SIG_BYTES],
++            parent: None,
++        },
++        RegionParams {
++            node: 2,
++            depth: 1,
++            radius: 4,
++            sig: sig2,
++            parent: None,
++        },
++    ];
++    let structural = vec![
++        StructuralEdge {
++            src: 0,
++            kind: 0,
++            dst: 1,
++            score_q: ScoreQ::ZERO,
++        },
++        StructuralEdge {
++            src: 0,
++            kind: 0,
++            dst: 2,
++            score_q: ScoreQ::ZERO,
++        },
++    ];
++    // No forward transitions: the effect is purely from emission residuals.
++    let transitions: Vec<TransitionEdge> = Vec::new();
++    // Token 10: B(10) = 10; ΔE(1,10) = 60; ΔE(2,10) = 60.
++    // Token 20: B(20) = 100 (root-only candidate).
++    // Under the correct chain-telescoped formula token 20 wins (70 < 100);
++    // under the legacy Σ-over-cloud formula token 10 wins (130 > 100).
++    let emissions = EmissionTables {
++        root_prior: [(10u32, 10i32), (20u32, 100i32)]
++            .into_iter()
++            .map(|(t, s)| (t, ScoreQ::from_raw(s)))
++            .collect(),
++        root_floor: ScoreQ::from_raw(-7000),
++        root_total: 110,
++        region_lists: vec![
++            vec![(10, ScoreQ::from_raw(60))], // region 1
++            vec![(10, ScoreQ::from_raw(60))], // region 2 — identical residual
++        ],
++    };
++    let artifacts = synthetic_compiled();
++    let artifact_container = compiler::artifact_bytes(&artifacts);
++    let store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
++    let tls1 = runtime::store_bytes(&store);
++    let (bytes, _) = score::emit_scored_r4g1(
++        &artifact_container,
++        (b"sibling-test-m", b"sibling-test-r"),
++        64,
++        &score::ScoredGraphSections {
++            regions: &regions,
++            structural: &structural,
++            transitions: &transitions,
++            emissions: &emissions,
++            exct_tls1: &tls1,
++        },
++    )
++    .expect("emit");
++
++    let scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer");
++    let context = [0x00u8; SIG_BYTES];
++
++    // Chain-telescoped (new formula): both regions are active but only the
++    // selected chain (region 1, margin 4 > 3) contributes ΔE.
++    // S(10) = B(10) + ΔE(1,10) = 10 + 60 = 70 < 100 = B(20) → token 20 wins.
++    let new_outcome = scorer.score_candidates(&context).expect("new scores");
++    assert_eq!(
++        new_outcome.selected, 20,
++        "chain-telescoped: token 20 wins; no sibling stacking"
++    );
++    // Exactly one emission contribution (from the selected chain only).
++    let emission_count = new_outcome
++        .witness
++        .selected_contributions
++        .iter()
++        .filter(|c| matches!(c.id, ContributionId::Emission { .. }))
++        .count();
++    assert_eq!(emission_count, 0, "token 20 has no emission contributions");
++
++    // Legacy (Σ-over-cloud): both active regions contribute ΔE.
++    // S(10) = B(10) + ΔE(1,10) + ΔE(2,10) = 10 + 60 + 60 = 130 > 100 → token 10 wins.
++    let legacy_outcome = scorer
++        .score_candidates_legacy(&context)
++        .expect("legacy scores");
++    assert_eq!(
++        legacy_outcome.selected, 10,
++        "legacy Σ-over-cloud: token 10 wins due to double-counting"
++    );
++    let legacy_emission_count = legacy_outcome
++        .witness
++        .selected_contributions
++        .iter()
++        .filter(|c| matches!(c.id, ContributionId::Emission { .. }))
++        .count();
++    assert_eq!(
++        legacy_emission_count, 2,
++        "legacy: both sibling emissions stack onto token 10"
++    );
++}
++
+ // ------------------------------------------------------------ Theorem 6 --
+ 
+ #[test]
+diff --git a/docs/r4_graph_compiler_implementation_plan.md b/docs/r4_graph_compiler_implementation_plan.md
+index f01914061..429a41833 100644
+--- a/docs/r4_graph_compiler_implementation_plan.md
++++ b/docs/r4_graph_compiler_implementation_plan.md
+@@ -608,7 +608,7 @@ The table is the source content.
+ |---|---|
+ | Semantic collapse (geometry kept, prediction lost) | joint objective + held-out residual certification (Phase 2–3); Gate C |
+ | Graph explosion from overlaps | support/gain thresholds, bounded memberships, sparse materialization, byte penalty in J(C) |
+-| Double counting across memberships | **CONFIRMED 2026-07-22, not hypothetical**: literal Σ-over-cloud S(v) stacked correlated sibling-subtree residuals (one token won 98% of 2,000 probes at +91.7 nats; Gate C 0.3% vs 31.7% baseline). Root+residual decomposition alone does NOT prevent cross-sibling correlation when M>1 overlapping memberships share a refinement parent. Redesign candidates (M.V.G. checkpoint input): chain-telescoped residual application, cloud-size normalization, bounding/dropping F emissions, D4 EXCT precedence. Tracked as a Phase-4 follow-up issue |
++| Double counting across memberships | **RESOLVED 2026-07-23 (issue #64)**: chain-telescoped Rule 1 (`score_candidates` in `score_runtime.rs`) restricts ΔE to the single deepest covered refinement chain — correlated sibling emissions can no longer stack. D4 EXCT precedence (Rule 2) gates out graph residuals when exact-context evidence is strong. Legacy Σ-over-cloud formula retained as `score_candidates_legacy` for Gate C side-by-side comparison only (test `legacy_formula_double_counts_sibling_regions_new_formula_does_not` demonstrates the contrast). Re-run `r4 transformerless score` on a recompiled fixture graph to measure the new formula's Gate C numbers. |
+ | Poor long-range behavior | Phase 8 multi-timescale states; long-context suites |
+ | Boolean approximation error | shortlist + exact verifier + fallback; recall certification (Gate H) |
+ | SIMD unsafety/nondeterminism | safe scalar norm; isolated adapters; equivalence tests; disable flag |
+diff --git a/docs/transformerless/BASELINE.md b/docs/transformerless/BASELINE.md
+index edb4a13aa..7aac70ffd 100644
+--- a/docs/transformerless/BASELINE.md
++++ b/docs/transformerless/BASELINE.md
+@@ -58,6 +58,7 @@ formally committed. Full text: plan §2.
+ | HF-path evaluation tooling | exists | landed | PR #41 (`evaluate-report`); issue #34 closed |
+ | **Gate C harness (Phase 4)** | TLA3 store baseline 31.7% / 11.88 bits-token | fresh, 2026-07-22 | `r4 transformerless score`, fixture corpus, 30,036 held-out positions — reproduces the P2 agreement anchor; bits/token is the scorer's own accounting, not the P2 WB metric |
+ | **Gate C: graph formula v1 (Σ-over-cloud)** | **0.3% / 70.47 bits-token** | fresh, unfavorable | correlated sibling-subtree residual stacking (issue #64, redesign in flight) |
++| **Gate C: graph formula v2 (chain-telescoped + EXCT precedence)** | measured on re-compile | pending | issue #64 redesign implemented; re-run `r4 transformerless score` on the fixture corpus after recompiling the graph artifact |
+ 
+ Important: the cited certificate belongs to the legacy llama2.c stories15M teacher, **not** to
+ the current default SmolLM2-135M-Instruct compile. The Gate C harness reproduces its 31.7%
+@@ -129,6 +130,20 @@ Pass conditions for the Phase-5 minimum viable graph, all on the declared distri
+ 
+ Missing target 1–2 or 4 ⇒ stop or redesign. Missing 3/5/6 ⇒ redesign discussion.
+ 
++### 4.1 Canonical bits/token definition (issue #65 Chain 4, item 13)
++
++Two bits/token figures appear in this document; they are distinct metrics and both are reported:
++
++| Metric | Definition | Where reported | Current value |
++|---|---|---|---|
++| **Gate C bits/token** | Scorer's own accounting: for each held-out position the scorer scores all candidates; bits/token = −log₂(P_scorer(next_token)) where P_scorer comes from the scored candidate distribution. The scorer's candidate set may not include the held-out token (→ floor probability). This is the metric used in `evaluate_gate_c` and the `score_report.json`. | Gate C table (§3.1 above), `score_report.json`, `r4 transformerless score` output | 11.88 (TLA3 baseline), 70.47 (graph formula v1) |
++| **Witten-Bell (WB) bits/token** | Full-vocabulary probability under the Witten-Bell smoothed graded store, as in the P2 certificate and `evaluate-report`. Computed over the full vocabulary, not just the candidate set. This is the metric cited in PROOF.md. | `instruction-eval.json`, `evaluate-report` command | 6.54 (P2 WB, legacy llama2.c teacher) |
++
++**Decision**: the Gate C bits/token (scorer accounting) is the normative quality metric for the
++graph path because it measures what the scorer would actually select, not the WB smoothing floor.
++Target M.V.G. §4 item 2 ("bits/token ≤ HF-path baseline − 0.3") uses the **Gate C bits/token**.
++The WB figure is retained in certificates for research continuity but is NOT the gating metric.
++
+ ## 5. Threat-model note (backlog #22)
+ 
+ Full adversarial model: `docs/transformerless/THREAT_MODEL.md`. Headline threats: crafted region

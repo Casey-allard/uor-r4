@@ -1,0 +1,375 @@
+diff --git a/crates/uor-r4-core/src/transformerless/score_runtime.rs b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+index 8b69cf49f..5b9170ed3 100644
+--- a/crates/uor-r4-core/src/transformerless/score_runtime.rs
++++ b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+@@ -8,7 +8,7 @@
+ //!     when the deepest-populated-prefix EXCT probe resolves with total
+ //!     evidence ≥ EXCT_SUPPORT_MIN — exact-context evidence dominates and
+ //!     graph residuals are skipped entirely (status ExactContext).
+-//! Rule 1 (chain-telescoped):   S_graph(v) = T_selected(v) + ΔT-offset
++//! Rule 1 (chain-telescoped):   S_graph(v) = T_selected(v)
+ //!     with T_r(v) = B(v) + Σ_{n ∈ chain(r)} ΔE(n,v) over the covered
+ //!     refinement chain of the selected active region (status Graph, or
+ //!     Novel when no active region has a covered chain at all).
+@@ -61,11 +61,11 @@
+ //! - **Predicted cloud F**: the union of E_f edge targets of the active
+ //!   regions. Each predicted region m keeps its single best incoming
+ //!   edge (highest `score_q`, ties to the lowest canonical edge id).
+-//!   Under Rule 1 the token-independent edge-weight part is folded into
+-//!   the scalar `transition_offset = Σ_m w(n_m→m)` added to every
+-//!   candidate once (the witness records the applied edges and the
+-//!   offset); F emission lists generate candidates but contribute no
+-//!   residuals.
++//!   Under Rule 1, transition-edge scores are not added to token scores
++//!   (issue #66 F-emissions ablation under the fixed scorer: zeroing the
++//!   ΔT offset left top-1 unchanged and improved no-EXCT bits/token on
++//!   the fixture held-out set). F emission lists generate candidates but
++//!   contribute no residuals.
+ //! - **Candidates**: the union of the emission lists of A ∪ F ∪ chain,
+ //!   the root prior's top-`root_top_b` tokens (precomputed at
+ //!   construction), and — under Rule 2 only — the EXCT probe's
+@@ -105,7 +105,7 @@
+ //! [`GraphScorer::score_candidates`] emits a bounded [`ScoreWitness`]:
+ //! graph CID, input code, the status (which rule fired), the selected
+ //! covered chain (empty under ExactContext/Novel), active regions +
+-//! margins, predicted cloud, applied transition edges + folded offset,
++//! margins, predicted cloud, applied transition edges + zero offset,
+ //! the EXCT probe record (when consulted), the selected token with its
+ //! full contribution list and score, the candidate count, and the op
+ //! census. [`verify_witness_replay`] rebuilds a fresh scorer **from the
+@@ -418,9 +418,7 @@ fn quantize_exct(count: u32, total: u32, vocab: u32) -> ScoreQ {
+ // END COMPILER-SIDE FLOAT QUANTIZATION -----------------------------------
+ 
+ /// Canonical identity of one score contribution (Theorem 10): no id may
+-/// appear twice in one candidate's contribution list. The transition
+-/// edge-weight contributions are folded into the scalar offset and
+-/// witnessed once per applied edge (see module docs).
++/// appear twice in one candidate's contribution list.
+ #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+ pub enum ContributionId {
+     /// Root prior B(v) — exactly one per candidate.
+@@ -480,12 +478,11 @@ pub enum ScoreStatus {
+     /// skipped entirely.
+     ExactContext,
+     /// Rule 1 fired with a non-empty selected covered chain:
+-    /// `S(v) = B(v) + Σ_{chain} ΔE + ΔT-offset`.
++    /// `S(v) = B(v) + Σ_{chain} ΔE`.
+     Graph,
+     /// Rule 1 fired but no active region has a covered chain (every
+-    /// membership is the nearest-region fallback floor): the score is
+-    /// the root prior plus the folded transition offset, and the context
+-    /// is outside every calibrated radius.
++    /// membership is the nearest-region fallback floor): the score is the
++    /// root prior, and the context is outside every calibrated radius.
+     Novel,
+ }
+ 
+@@ -511,7 +508,9 @@ pub struct ScoreWitness {
+     pub predicted: Vec<u32>,
+     /// Applied transition edges (ascending edge id).
+     pub edges_applied: Vec<EdgeUse>,
+-    /// Σ of the applied edge weights (the folded ΔT edge part).
++    /// Kept for witness schema stability; under issue-#66 policy this is
++    /// always zero (transition-edge scores are not applied to token
++    /// scores).
+     pub transition_offset: ScoreQ,
+     /// The EXCT probe, when exact-context evidence was consulted.
+     pub exct: Option<ExctProbe>,
+@@ -794,10 +793,6 @@ impl GraphScorer {
+         let mut predicted: Vec<u32> = best_edge.keys().copied().collect();
+         let mut edges_applied: Vec<EdgeUse> = best_edge.values().copied().collect();
+         let mut transition_offset = ScoreQ::ZERO;
+-        for edge in &edges_applied {
+-            transition_offset = transition_offset.saturating_add(edge.score_q);
+-            k.adds += 1;
+-        }
+ 
+         // Candidate accumulation: active and predicted nodes contribute
+         // candidate tokens, but only the selected covered chain contributes
+@@ -923,16 +918,13 @@ impl GraphScorer {
+             }
+         }
+ 
+-        // Final per-candidate scores: apply the baked root prior and the
+-        // folded token-independent transition edge weight (module docs:
+-        // ΔT(m,v) = w_m + ΔE(m,v)); canonicalize contribution order.
++        // Final per-candidate scores: apply the baked root prior to the
++        // chain residual sum; canonicalize contribution order.
+         let mut ranked_candidates: Vec<(u32, ScoreQ, Vec<Contribution>)> =
+             Vec::with_capacity(candidates.len());
+         for (token, (residual, mut contributions)) in candidates {
+-            let with_offset = residual.saturating_add(transition_offset);
+-            k.adds += 1;
+             let base = self.root_score(token);
+-            let score = base.saturating_add(with_offset);
++            let score = base.saturating_add(residual);
+             k.adds += 1;
+             contributions.sort_by_key(|c| c.id);
+             ranked_candidates.push((token, score, contributions));
+diff --git a/crates/uor-r4-core/tests/score.rs b/crates/uor-r4-core/tests/score.rs
+index 52b9c9e3f..d9be1137e 100644
+--- a/crates/uor-r4-core/tests/score.rs
++++ b/crates/uor-r4-core/tests/score.rs
+@@ -351,11 +351,11 @@ fn hand_computed_scores_match_the_scorer_exactly() {
+     // Only the selected covered refinement chain contributes residuals;
+     // predicted-node emissions contribute candidates but do not stack a
+     // sibling branch onto the active chain:
+-    //   S(10) = 100 + 1000 +    0 + 42 = 1142
+-    //   S(20) = 200 + (-500) +    0 + 42 = -258
+-    //   S(30) = 300 +    0 +    0 + 42 =  342
+-    //   S(40) =  50 +    0 +    0 + 42 =   92
+-    let expected: Vec<(u32, i32)> = vec![(10, 1142), (20, -258), (30, 342), (40, 92)];
++    //   S(10) = 100 + 1000 +    0 = 1100
++    //   S(20) = 200 + (-500) +    0 = -300
++    //   S(30) = 300 +    0 +    0 =  300
++    //   S(40) =  50 +    0 +    0 =   50
++    let expected: Vec<(u32, i32)> = vec![(10, 1100), (20, -300), (30, 300), (40, 50)];
+     let got: Vec<(u32, i32)> = outcome
+         .candidates
+         .iter()
+@@ -363,7 +363,7 @@ fn hand_computed_scores_match_the_scorer_exactly() {
+         .collect();
+     assert_eq!(got, expected, "integer S(v) per candidate");
+     assert_eq!(outcome.selected, 10);
+-    assert_eq!(outcome.selected_score, ScoreQ::from_raw(1142));
++    assert_eq!(outcome.selected_score, ScoreQ::from_raw(1100));
+ 
+     let witness = &outcome.witness;
+     assert_eq!(witness.active.len(), 1);
+@@ -372,7 +372,7 @@ fn hand_computed_scores_match_the_scorer_exactly() {
+     assert_eq!(witness.chain, vec![1]);
+     assert_eq!(witness.predicted, vec![2]);
+     assert_eq!(witness.edges_applied.len(), 1);
+-    assert_eq!(witness.transition_offset, ScoreQ::from_raw(42));
++    assert_eq!(witness.transition_offset, ScoreQ::ZERO);
+     assert!(witness.exct.is_none());
+     assert_eq!(witness.candidate_count, 4);
+     assert_eq!(
+@@ -396,8 +396,7 @@ fn canonical_tie_break_prefers_the_lowest_token_id() {
+     // Two candidates with equal scores: the lower token id wins.
+     let (bytes, _tla, _store) = hand_artifact();
+     let scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer builds");
+-    // Craft a tie by construction: token 10 and token 20 both score
+-    // 1142 vs 1742 above; instead assert the tie rule directly over a
++    // Craft a tie by construction; assert the tie rule directly over a
+     // hand-checked scan: with the all-FF signature, region 2 is active
+     // (distance 0) and region 1 out of range; F is empty (no forward
+     // edges from node 2), so candidates come from region 2's emissions
+@@ -590,10 +589,11 @@ fn theorem_10_overlapping_active_and_predicted_counts_emission_once() {
+     let outcome = scorer.score_candidates(&[0x00; SIG_BYTES]).expect("scores");
+     // Node 1 is both active and predicted.
+     assert_eq!(outcome.witness.predicted, vec![1]);
+-    // S(10) = B(10) + ΔE(1,10) + w = 100 + 5 + 7 = 112 — the emission
+-    // entry is counted exactly once despite the overlap.
++    // S(10) = B(10) + ΔE(1,10) = 100 + 5 = 105 — transition-edge scores
++    // are dropped from token scoring, and the emission entry is counted
++    // exactly once despite the active+predicted overlap.
+     assert_eq!(outcome.selected, 10);
+-    assert_eq!(outcome.selected_score, ScoreQ::from_raw(112));
++    assert_eq!(outcome.selected_score, ScoreQ::from_raw(105));
+     let emission_contributions = outcome
+         .witness
+         .selected_contributions
+@@ -1142,3 +1142,163 @@ fn fixture_corpus_end_to_end() {
+     .expect("fixture emit");
+     assert_eq!(bytes, bytes2, "canonical serializer reproduces the bytes");
+ }
++
++/// Fixture-only F-emissions (ΔT offset) ablation under the fixed
++/// chain-telescoped scorer: compare Gate C with compiled transition
++/// weights vs the same graph with all forward-edge weights zeroed.
++/// Run with
++/// `cargo test -p uor-r4-core --release --test score fixture_f_emissions_ablation -- --ignored --nocapture`.
++#[test]
++#[ignore = "release-only fixture workload"]
++fn fixture_f_emissions_ablation() {
++    let dir = env!("CARGO_MANIFEST_DIR");
++    let artifact_container =
++        std::fs::read(format!("{dir}/tests/fixtures/tless_artifacts.bin")).expect("fixture TLA5");
++    let artifacts = compiler::parse_artifacts(&artifact_container).expect("fixture parses");
++    let meta_bytes = std::fs::read(format!("{dir}/tests/fixtures/c_meta.bin")).expect("meta");
++    let recs_bytes = std::fs::read(format!("{dir}/tests/fixtures/c_recs.bin")).expect("recs");
++    let corpus = compiler::load_corpus_from(
++        &format!("{dir}/tests/fixtures/c_meta.bin"),
++        &format!("{dir}/tests/fixtures/c_recs.bin"),
++    )
++    .expect("fixture corpus loads");
++    let artifact_kappa = format!("blake3:{}", blake3::hash(&artifact_container).to_hex());
++    let corpus_kappa = {
++        let mut h = blake3::Hasher::new();
++        h.update(&meta_bytes);
++        h.update(&recs_bytes);
++        format!("blake3:{}", h.finalize().to_hex())
++    };
++
++    let config = ScoreConfig::default();
++    let (train_pos, held_out_pos) = cover::split_positions(&corpus);
++    let train = cover::build_observations(&artifacts, &corpus, &train_pos);
++    let held_out = cover::build_observations(&artifacts, &corpus, &held_out_pos);
++    let induced = cover::induce_cover(
++        &train,
++        &CoverConfig::default(),
++        &artifact_kappa,
++        &corpus_kappa,
++    )
++    .expect("fixture induction");
++    let reference = cover::ReferenceClassifier::freeze(&induced.cover);
++    let cover_edges = cover::build_edges(&induced.cover, &reference, &train);
++    let regions = score::regions_from_cover(&induced.cover);
++    let structural = score::structural_from_cover(&cover_edges);
++    let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(1);
++    let (store, _) = runtime::build_store(&artifacts, &corpus);
++    let tls1 = runtime::store_bytes(&store);
++    let transitions = score::compile_transitions(
++        &corpus,
++        &regions,
++        &train,
++        max_depth,
++        config.transition_out_degree,
++    );
++    let vocab = (artifacts.token_codes.len() / STAGES) as u32;
++    let emissions =
++        score::compile_emissions(&corpus, &store, &regions, &train, max_depth, vocab, &config);
++    let (bytes_enabled, _) = score::emit_scored_r4g1(
++        &artifact_container,
++        (&meta_bytes, &recs_bytes),
++        vocab,
++        &score::ScoredGraphSections {
++            regions: &regions,
++            structural: &structural,
++            transitions: &transitions,
++            emissions: &emissions,
++            exct_tls1: &tls1,
++        },
++    )
++    .expect("fixture emit (enabled)");
++    let mut transitions_zeroed = transitions.clone();
++    for edge in &mut transitions_zeroed {
++        edge.score = ScoreQ::ZERO;
++    }
++    let (bytes_zeroed, _) = score::emit_scored_r4g1(
++        &artifact_container,
++        (&meta_bytes, &recs_bytes),
++        vocab,
++        &score::ScoredGraphSections {
++            regions: &regions,
++            structural: &structural,
++            transitions: &transitions_zeroed,
++            emissions: &emissions,
++            exct_tls1: &tls1,
++        },
++    )
++    .expect("fixture emit (zeroed)");
++
++    let enabled = score::evaluate_gate_c(
++        &bytes_enabled,
++        &artifact_container,
++        &artifacts,
++        &store,
++        &corpus,
++        &held_out,
++        &config,
++    )
++    .expect("gate C (enabled)");
++    let zeroed = score::evaluate_gate_c(
++        &bytes_zeroed,
++        &artifact_container,
++        &artifacts,
++        &store,
++        &corpus,
++        &held_out,
++        &config,
++    )
++    .expect("gate C (zeroed)");
++
++    println!(
++        "fixture F-emissions ablation ({} held-out positions):",
++        held_out.len()
++    );
++    println!(
++        "  {:<22} {:>14} {:>12}",
++        "variant/scorer", "top-1 agree", "bits/token"
++    );
++    let row = |name: &str, m: &score::GateCMetrics| {
++        println!(
++            "  {:<22} {:>13.2}% {:>12.4}",
++            name,
++            100.0 * m.top1_agreement,
++            m.bits_per_token
++        );
++    };
++    row("enabled / no EXCT", &enabled.graph_no_exct);
++    row("enabled / with EXCT", &enabled.graph_with_exct);
++    row("zeroed / no EXCT", &zeroed.graph_no_exct);
++    row("zeroed / with EXCT", &zeroed.graph_with_exct);
++    println!(
++        "  Δ(enabled-zeroed) no EXCT:   agree {:+.2} pp | bits {:+.4}",
++        100.0 * (enabled.graph_no_exct.top1_agreement - zeroed.graph_no_exct.top1_agreement),
++        enabled.graph_no_exct.bits_per_token - zeroed.graph_no_exct.bits_per_token
++    );
++    println!(
++        "  Δ(enabled-zeroed) with EXCT: agree {:+.2} pp | bits {:+.4}",
++        100.0 * (enabled.graph_with_exct.top1_agreement - zeroed.graph_with_exct.top1_agreement),
++        enabled.graph_with_exct.bits_per_token - zeroed.graph_with_exct.bits_per_token
++    );
++
++    let mut top = transitions.clone();
++    top.sort_by(|a, b| {
++        b.count
++            .cmp(&a.count)
++            .then_with(|| a.src.cmp(&b.src))
++            .then_with(|| a.dst.cmp(&b.dst))
++    });
++    println!("  top transition edges by corpus count (spot-check sample):");
++    for edge in top.into_iter().take(8) {
++        println!(
++            "    src {:>4} -> dst {:>4} | count {:>6} | score_q {:>8}",
++            edge.src,
++            edge.dst,
++            edge.count,
++            edge.score.raw()
++        );
++    }
++
++    assert_eq!(enabled.witness_replay_failures, 0);
++    assert_eq!(zeroed.witness_replay_failures, 0);
++}
+diff --git a/docs/transformerless/BASELINE.md b/docs/transformerless/BASELINE.md
+index edb4a13aa..ace5e0472 100644
+--- a/docs/transformerless/BASELINE.md
++++ b/docs/transformerless/BASELINE.md
+@@ -58,12 +58,34 @@ formally committed. Full text: plan §2.
+ | HF-path evaluation tooling | exists | landed | PR #41 (`evaluate-report`); issue #34 closed |
+ | **Gate C harness (Phase 4)** | TLA3 store baseline 31.7% / 11.88 bits-token | fresh, 2026-07-22 | `r4 transformerless score`, fixture corpus, 30,036 held-out positions — reproduces the P2 agreement anchor; bits/token is the scorer's own accounting, not the P2 WB metric |
+ | **Gate C: graph formula v1 (Σ-over-cloud)** | **0.3% / 70.47 bits-token** | fresh, unfavorable | correlated sibling-subtree residual stacking (issue #64, redesign in flight) |
++| **Gate C (fixed scorer) F-emissions ablation (#66)** | **Decision: drop ΔT offset** | fresh, 2026-07-23 | `cargo test -p uor-r4-core --release --test score fixture_f_emissions_ablation -- --ignored --nocapture`; enabled vs zeroed are now identical by construction under the dropped-offset policy |
+ 
+ Important: the cited certificate belongs to the legacy llama2.c stories15M teacher, **not** to
+ the current default SmolLM2-135M-Instruct compile. The Gate C harness reproduces its 31.7%
+ agreement anchor on the fixture corpus; HF-path certificates for the SmolLM2 compile are
+ producible via the PR #41 tooling on the D3 distribution (§2).
+ 
++#### F-emissions ablation decision (issue #66; fixed scorer after #64)
++
++Held-out D3 (n=30,036), same artifact inputs and split; only transition-edge
++weights differ (`enabled` = compiled scores, `zeroed` = all forward-edge
++`score_q = 0`):
++
++| Variant | top-1 agreement | bits/token |
++|---|---:|---:|
++| enabled / no EXCT | 1.22% | 16.7075 |
++| enabled / with EXCT | 11.29% | 11.1683 |
++| zeroed / no EXCT | 1.22% | 16.7075 |
++| zeroed / with EXCT | 11.29% | 11.1683 |
++
++Δ(enabled−zeroed): no EXCT **+0.00 pp** / **+0.0000 bits**; with EXCT
++**+0.00 pp** / **+0.0000 bits**.
++
++Decision: **drop ΔT offset from scoring** (keep transition edges for predicted
++cloud candidate generation only). The scorer policy now sets
++`transition_offset = 0` in Rule 1; witness `transition_offset` is retained as a
++schema field and stays zero.
++
+ ### 3.2 Artifact sizes (fresh, 2026-07-21, `.uor-models/compiled/smollm2-135m-instruct/`)
+ 
+ | File | Bytes | Note |

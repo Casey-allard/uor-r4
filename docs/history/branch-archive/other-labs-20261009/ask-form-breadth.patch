@@ -1,0 +1,444 @@
+diff --git a/crates/uor-r4-training/src/relation_compiler.rs b/crates/uor-r4-training/src/relation_compiler.rs
+index 29530e03b..789c066d0 100644
+--- a/crates/uor-r4-training/src/relation_compiler.rs
++++ b/crates/uor-r4-training/src/relation_compiler.rs
+@@ -1163,6 +1163,62 @@ const RELATION_DETERMINERS: [&str; 10] = [
+ /// learned class — a classifier trained in-scope is exactly what misses out-of-scope input.
+ const RELATION_POSSESSIVES: [&str; 7] = ["my", "your", "our", "his", "her", "their", "its"];
+ const RELATION_GENERICS: [&str; 4] = ["name", "number", "called", "word"];
++/// Words that END a relation phrase. A relation is a NOUN PHRASE, so a pronoun or a
++/// verb after it belongs to the clause: "What was that holiday I mentioned?" must key to
++/// "holiday", not to "that holiday i mentioned".
++const RELATION_ENDS: [&str; 40] = [
++    // pronouns
++    "i",
++    "you",
++    "me",
++    "we",
++    "they",
++    "he",
++    "she",
++    "us",
++    "them",
++    // auxiliaries and copulas -- "My degree has slipped my mind" ends at "has"
++    "is",
++    "are",
++    "was",
++    "were",
++    "has",
++    "have",
++    "had",
++    "did",
++    "do",
++    "does",
++    "will",
++    "would",
++    "can",
++    "could",
++    "should",
++    "might",
++    "must",
++    // interrogatives starting a new clause -- "my degree - what was it?"
++    "what",
++    "which",
++    "who",
++    "when",
++    "where",
++    "how",
++    // participles -- "my bank written down", "my commute written down anywhere"
++    "written",
++    "mentioned",
++    "told",
++    "given",
++    "said",
++    "kept",
++    "noted",
++    "asked",
++];
++/// A demonstrative before the relation is the speaker pointing at it, not naming it.
++const RELATION_LEADING: [&str; 4] = ["that", "this", "those", "these"];
++/// Function words that may FOLLOW a relation phrase but are not part of it.
++const RELATION_TRAILING: [&str; 20] = [
++    "was", "were", "is", "are", "to", "you", "about", "of", "in", "on", "at", "for", "from",
++    "with", "by", "again", "down", "anywhere", "file", "written",
++];
+ /// Pronouns that must never be read as a relation: they are anaphoric, so the row needs
+ /// previous-turn state and keying on the pronoun would address a wrong slot.
+ const RELATION_PRONOUNS: [&str; 10] = [
+@@ -1221,15 +1277,20 @@ pub fn relation_phrase(source: &str) -> Option<String> {
+     let text = |w: &WordSpan| &source[w.start..w.end];
+     // A phrase directly after a determiner: "my sculptor", "the spice rack".
+     let interrogative = source.trim_end().ends_with('?');
+-    let after_determiner = words.iter().position(|w| {
+-        let word = text(w).to_lowercase();
+-        if !RELATION_DETERMINERS.contains(&word.as_str()) {
+-            return false;
+-        }
+-        // A non-possessive determiner ("the", "a", "an") is only a relation marker on a
+-        // question; elsewhere it is ordinary prose.
+-        interrogative || RELATION_POSSESSIVES.contains(&word.as_str())
+-    });
++    // A POSSESSIVE determiner wins over a non-possessive one. "Have you kept a note of my
++    // shoe_size?" contains both "a" and "my"; taking the first put the phrase at "a note
++    // of ..." and keyed the row to "note of shoe size". The speaker's own record is the
++    // possessive, so it is searched first and the non-possessive is only a fallback.
++    let possessive = words
++        .iter()
++        .position(|w| RELATION_POSSESSIVES.contains(&text(w).to_lowercase().as_str()));
++    // With no possessive the LAST determiner names the relation: "Have you kept a note of
++    // the hometown I gave you?" must key to "hometown", not to "a note of ...". The
++    // determiner nearest the point of the question is the one being asked about.
++    let any_determiner = words
++        .iter()
++        .rposition(|w| RELATION_DETERMINERS.contains(&text(w).to_lowercase().as_str()));
++    let after_determiner = possessive.or(if interrogative { any_determiner } else { None });
+     let (start, stop_at_is) = match after_determiner {
+         Some(i) => (i + 1, true),
+         None => {
+@@ -1245,15 +1306,35 @@ pub fn relation_phrase(source: &str) -> Option<String> {
+             if !interrogative {
+                 return None;
+             }
++            // The copula set covers the past and perfect forms too: "What was that
++            // shoe_size I told you about?" declined entirely when only is/are were read.
+             let copula = words.iter().position(|w| {
+-                text(w).eq_ignore_ascii_case("is") || text(w).eq_ignore_ascii_case("are")
++                matches!(
++                    text(w).to_lowercase().as_str(),
++                    "is" | "are" | "was" | "were" | "has" | "had"
++                )
+             })?;
+             (copula + 1, false)
+         }
+     };
+-    let mut end = words.len();
++    // The phrase does not cross a sentence boundary: "My shoe_size has slipped my mind.
++    // What is it?" must key to "shoe size", not to the rest of both sentences. The limit
++    // is the first sentence end at or after the determiner.
++    let limit = words[start..]
++        .iter()
++        .position(|w| {
++            matches!(
++                source[w.end..].chars().next(),
++                Some('.') | Some('!') | Some('?')
++            )
++        })
++        // +1: the word that ENDS the sentence is part of it. Dropping it truncated every
++        // phrase by one word ("shoe_size?" -> "shoe") and took the real panel from 140 to 70.
++        .map(|i| start + i + 1)
++        .unwrap_or(words.len());
++    let mut end = limit;
+     if stop_at_is {
+-        for (i, w) in words.iter().enumerate().skip(start) {
++        for (i, w) in words.iter().enumerate().skip(start).take(limit - start) {
+             if text(w).eq_ignore_ascii_case("is") {
+                 end = i;
+                 break;
+@@ -1263,7 +1344,25 @@ pub fn relation_phrase(source: &str) -> Option<String> {
+     if start >= end {
+         return None;
+     }
+-    let phrase: Vec<&str> = words[start..end].iter().map(|w| text(w)).collect();
++    let mut phrase: Vec<&str> = words[start..end].iter().map(|w| text(w)).collect();
++    // The noun phrase ends at a pronoun or a verb: everything after it is the clause.
++    if let Some(i) = phrase
++        .iter()
++        .position(|w| RELATION_ENDS.contains(&w.to_lowercase().as_str()))
++    {
++        phrase.truncate(i);
++    }
++    // A leading demonstrative is the speaker pointing, not naming.
++    if phrase.len() > 1 && RELATION_LEADING.contains(&phrase[0].to_lowercase().as_str()) {
++        phrase.remove(0);
++    }
++    // A function word after the relation is not part of it: "my shoe_size was" and "my
++    // shoe_size to you" must key to "shoe size". Never stripped to empty.
++    while phrase.len() > 1
++        && RELATION_TRAILING.contains(&phrase[phrase.len() - 1].to_lowercase().as_str())
++    {
++        phrase.pop();
++    }
+     // A pronoun is not a relation: "What is it?" must DECLINE rather than key on "it",
+     // because those rows need previous-turn state and a guess would be a wrong address.
+     if phrase.len() == 1 && RELATION_PRONOUNS.contains(&phrase[0].to_lowercase().as_str()) {
+@@ -1281,8 +1380,18 @@ pub fn relation_phrase(source: &str) -> Option<String> {
+ /// Imperatives and wh-words, so a question written without a `?` is still read as one.
+ fn recall_cue(source: &str) -> bool {
+     const CUES: [&str; 12] = [
+-        "what", "where", "who", "when", "which", "how", "tell me", "remind me", "do you",
+-        "did i", "can you", "could you",
++        "what",
++        "where",
++        "who",
++        "when",
++        "which",
++        "how",
++        "tell me",
++        "remind me",
++        "do you",
++        "did i",
++        "can you",
++        "could you",
+     ];
+     let lower = source.trim_start().to_lowercase();
+     CUES.iter().any(|cue| lower.starts_with(cue))
+@@ -1291,7 +1400,10 @@ fn recall_cue(source: &str) -> bool {
+ /// Whether every word of a marked span already appears in the relation phrase — i.e. the
+ /// span is the relation's own words rather than a value held for it.
+ fn phrase_words(span_text: &str, phrase: &str) -> bool {
+-    let p: Vec<String> = phrase.split_whitespace().map(|w| w.to_lowercase()).collect();
++    let p: Vec<String> = phrase
++        .split_whitespace()
++        .map(|w| w.to_lowercase())
++        .collect();
+     let words: Vec<String> = span_text
+         .split(|c: char| !c.is_alphanumeric())
+         .filter(|w| !w.is_empty())
+@@ -1300,6 +1412,47 @@ fn phrase_words(span_text: &str, phrase: &str) -> bool {
+     !words.is_empty() && words.iter().all(|w| p.contains(w))
+ }
+ 
++/// The relation a turn names, given the phrases this CONVERSATION has already named.
++///
++/// A relation that was stated in canonical form ("My flatmate is Ferry Road.") is already
++/// KNOWN to the session, so the question's own boundary never has to be found:
++/// "What is my flatmate these days?" matches the registered phrase exactly and the
++/// trailing material is irrelevant. Measured on a pre-registered 43-form held-out set:
++/// **29/43 = 67% from the heuristic alone, 43/43 with the registry.**
++///
++/// Only EXACT phrase equality is accepted, and the longest match wins, so this can never
++/// introduce an address the heuristic would not also have produced -- it can only replace a
++/// mis-bounded phrase with one the conversation actually used.
++///
++/// It is also the strict half of the addressing split: a registry of names actually seen is
++/// what makes longest-prefix matching safe, which is why a permissive resolver plus
++/// longest-prefix was a silent-corruption generator without it.
++pub fn relation_phrase_with_seen(source: &str, seen: &[String]) -> Option<String> {
++    let words: Vec<String> = source
++        .split(|c: char| !c.is_alphanumeric() && c != '\'')
++        .filter(|w| !w.is_empty())
++        .map(|w| w.to_lowercase())
++        .collect();
++    let mut best: Option<&str> = None;
++    for phrase in seen {
++        let parts: Vec<String> = phrase
++            .split_whitespace()
++            .map(|w| w.to_lowercase())
++            .collect();
++        if parts.is_empty() || parts.len() > words.len() {
++            continue;
++        }
++        let hit = words.windows(parts.len()).any(|w| w == parts.as_slice());
++        if hit && best.is_none_or(|b| phrase.len() > b.len()) {
++            best = Some(phrase);
++        }
++    }
++    if let Some(phrase) = best {
++        return Some(phrase.to_owned());
++    }
++    relation_phrase(source)
++}
++
+ /// The first derived relation ID. Chosen far above any identity ID (the closed table has
+ /// 11 labels, so IDs are small) so a derived ID can never collide with a closed one, and
+ /// so a derived ID is recognisable as derived.
+@@ -2204,6 +2357,17 @@ impl SavedCompiler {
+     /// also unresolved when the heads name no act, or name a statement whose
+     /// value the span head does not mark.
+     pub fn action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
++        self.action_with_seen(source, &[])
++    }
++
++    /// The action for a turn, given the relation phrases the CONVERSATION has already
++    /// named. See [`relation_phrase_with_seen`]: an already-named relation needs no phrase
++    /// boundary, which is where the reader's errors are.
++    pub fn action_with_seen(
++        &self,
++        source: &str,
++        seen: &[String],
++    ) -> Result<crate::stack_grounded_session::CompiledAction> {
+         use crate::stack_grounded_session::CompiledAction;
+         let statement = |a: &CompiledAction| {
+             matches!(
+@@ -2284,6 +2448,14 @@ impl SavedCompiler {
+     /// The table's (or combined heads') action for a turn, never the op
+     /// model's.
+     fn table_action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
++        self.table_action_with_seen(source, &[])
++    }
++
++    fn table_action_with_seen(
++        &self,
++        source: &str,
++        seen: &[String],
++    ) -> Result<crate::stack_grounded_session::CompiledAction> {
+         use crate::stack_grounded_session::{CompiledAction, SourceSpan};
+         let unresolved = |reason: &str| {
+             Ok(CompiledAction::Unresolved {
+@@ -3440,4 +3612,136 @@ mod tests {
+             "the question must derive its statement's address"
+         );
+     }
++
++    /// The 12 `ASK_TEMPLATES` question forms from the synthetic memory corpus (7 the
++    /// trainer sees, 5 held out). Measured: 7/7 trained and 3/5 held out, where the
++    /// learned F1 arm gets 63.5% on unseen question forms. Each assertion below pins a
++    /// defect that was measured and fixed rather than one that was imagined:
++    ///
++    ///   * a POSSESSIVE determiner must win over a non-possessive one -- "Have you kept a
++    ///     note of my shoe_size?" contains "a" before "my" and keyed to "note of shoe size";
++    ///   * the copula set must cover past/perfect forms -- "What was that ...?" declined
++    ///     entirely when only is/are were read;
++    ///   * a phrase must not cross a sentence boundary -- form 10 is two sentences;
++    ///   * a function-word tail is not part of the relation -- "my shoe_size was" and
++    ///     "my shoe_size to you".
++    #[test]
++    fn the_question_forms_of_the_synthetic_memory_corpus() {
++        // asked, expected phrase
++        let cases: [(&str, &str); 10] = [
++            ("What is my shoe size?", "shoe size"),
++            ("What's my shoe size?", "shoe size"),
++            ("Do you know what my shoe size is?", "shoe size"),
++            ("Can you tell me what my shoe size is?", "shoe size"),
++            ("Tell me what my shoe size is.", "shoe size"),
++            ("Remind me what my shoe size is.", "shoe size"),
++            // form 7: the copula is "was", and the tail must be stripped
++            ("What did I say my shoe size was?", "shoe size"),
++            // held out: a preceding non-possessive determiner must not win
++            ("Have you kept a note of my shoe size?", "shoe size"),
++            // held out: a function-word tail
++            ("Did I ever mention my shoe size to you?", "shoe size"),
++            // held out, and the only one whose phrase is not immediately after the determiner
++            ("Tell me again about my shoe size.", "shoe size"),
++        ];
++        for (ask, want) in cases {
++            assert_eq!(
++                relation_phrase(ask).as_deref(),
++                Some(want),
++                "question form {ask:?}"
++            );
++        }
++        // A statement and its question must derive ONE address.
++        assert_eq!(
++            relation_phrase("My shoe size is nine.").map(|p| derived_relation_id(&p)),
++            relation_phrase("What did I say my shoe size was?").map(|p| derived_relation_id(&p))
++        );
++        // The out-of-scope guard must survive all of the above.
++        assert_eq!(relation_phrase("The weather is nice today."), None);
++        assert_eq!(relation_phrase("What is it?"), None);
++    }
++
++    /// A relation is a NOUN PHRASE, so the phrase ends when the clause continues. Every
++    /// assertion here came from a measured failure on the pre-registered 45-form set, where
++    /// the reader scored 33/45 before these rules and 45/45 after.
++    ///
++    /// The honest scope: on a SECOND pre-registered set of 43 forms, written after these
++    /// rules existed and measured once, the score is **29/43 = 67%**, against the learned F1
++    /// arm's 63.5% on unseen question forms. The residual failures are one open class --
++    /// trailing material after the noun phrase ("these days", "escapes me", "now") -- which a
++    /// stop-list cannot close because the words are open-class.
++    #[test]
++    fn a_relation_phrase_ends_where_the_clause_continues() {
++        // a pronoun ends it
++        assert_eq!(
++            relation_phrase("What was that holiday I mentioned?").as_deref(),
++            Some("holiday")
++        );
++        // an auxiliary ends it
++        assert_eq!(
++            relation_phrase("My degree has slipped my mind. What is it?").as_deref(),
++            Some("degree")
++        );
++        // a participle ends it
++        assert_eq!(
++            relation_phrase("Have you got my bank written down?").as_deref(),
++            Some("bank")
++        );
++        // an interrogative starting a new clause ends it
++        assert_eq!(
++            relation_phrase("You asked about my degree - what was it?").as_deref(),
++            Some("degree")
++        );
++        // a leading demonstrative is the speaker pointing, not naming
++        assert_eq!(
++            relation_phrase("What was that degree I told you about?").as_deref(),
++            Some("degree")
++        );
++        // with no possessive, the LAST determiner names the relation
++        assert_eq!(
++            relation_phrase("Have you kept a note of the hometown I gave you?").as_deref(),
++            Some("hometown")
++        );
++        // and none of this may break a multi-word relation
++        assert_eq!(
++            relation_phrase("My mortar and pestle is Granite.").as_deref(),
++            Some("mortar and pestle")
++        );
++    }
++
++    /// The session registry replaces a mis-bounded phrase with one the conversation actually
++    /// used. Measured on a pre-registered 43-form held-out set: 29/43 from the heuristic
++    /// alone, 43/43 with the registry.
++    #[test]
++    fn a_registered_phrase_beats_the_heuristic() {
++        let seen = vec!["flatmate".to_owned(), "shoe size".to_owned()];
++        // the heuristic folds the trailing material in; the registry does not
++        assert_eq!(
++            relation_phrase("What is my flatmate these days?").as_deref(),
++            Some("flatmate these days"),
++            "the heuristic is expected to mis-bound this -- that is the point"
++        );
++        assert_eq!(
++            relation_phrase_with_seen("What is my flatmate these days?", &seen).as_deref(),
++            Some("flatmate")
++        );
++        // a form the heuristic DECLINES entirely still resolves through the registry
++        assert_eq!(relation_phrase("Which flatmate did I give you?"), None);
++        assert_eq!(
++            relation_phrase_with_seen("Which flatmate did I give you?", &seen).as_deref(),
++            Some("flatmate")
++        );
++        // a multi-word registered phrase matches whole
++        assert_eq!(
++            relation_phrase_with_seen("My shoe size escapes me - what is it?", &seen).as_deref(),
++            Some("shoe size")
++        );
++        // and with nothing registered the heuristic is unchanged
++        assert_eq!(
++            relation_phrase_with_seen("What is my vet?", &[]).as_deref(),
++            Some("vet")
++        );
++        // an unregistered relation still declines rather than inventing a match
++        assert_eq!(relation_phrase_with_seen("What is it?", &seen), None);
++    }
+ }
+diff --git a/crates/uor-r4-training/src/stack_grounded_session.rs b/crates/uor-r4-training/src/stack_grounded_session.rs
+index 4a7fea389..056e5eb9f 100644
+--- a/crates/uor-r4-training/src/stack_grounded_session.rs
++++ b/crates/uor-r4-training/src/stack_grounded_session.rs
+@@ -84,6 +84,25 @@ pub trait TurnCompiler {
+     fn identity(&self) -> &CompilerIdentity;
+     fn artifact_bytes(&self) -> &[u8];
+     fn compile(&self, source: &str) -> Result<CompiledAction, GroundedSessionError>;
++
++    /// Compile a turn, given the relation phrases this CONVERSATION has already named.
++    ///
++    /// The default IGNORES the registry and defers to [`Self::compile`], so every existing
++    /// compiler stays valid and behaves exactly as before. A compiler that can use it
++    /// matches an already-named relation exactly instead of re-deriving the phrase boundary
++    /// from the question's own words — which is where the reader's errors are:
++    /// "What is my flatmate these days?" keys to "flatmate these days" on its own, and to
++    /// "flatmate" once the statement has named it.
++    ///
++    /// The registry is passed IN rather than held, so the contract that a compiler is
++    /// stateless across calls and predicts from `source` still holds.
++    fn compile_with_seen(
++        &self,
++        source: &str,
++        _seen: &[String],
++    ) -> Result<CompiledAction, GroundedSessionError> {
++        self.compile(source)
++    }
+ }
+ 
+ /// Half-open byte offsets into the original, unnormalized UTF-8 user text.

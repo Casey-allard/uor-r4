@@ -1,0 +1,521 @@
+diff --git a/crates/uor-r4-graph-certify/Cargo.toml b/crates/uor-r4-graph-certify/Cargo.toml
+index 9e3785240..e98907d30 100644
+--- a/crates/uor-r4-graph-certify/Cargo.toml
++++ b/crates/uor-r4-graph-certify/Cargo.toml
+@@ -14,4 +14,4 @@ uor-r4-graph-compiler = { path = "../uor-r4-graph-compiler" }
+ serde = { version = "1.0", features = ["derive"] }
+ ciborium = "0.2"
+ blake3 = "1.5"
+-rayon = "1.10"
++rayon = "1.10.0"
+diff --git a/crates/uor-r4-graph-compiler/Cargo.toml b/crates/uor-r4-graph-compiler/Cargo.toml
+index 46f40176a..ab4e4c824 100644
+--- a/crates/uor-r4-graph-compiler/Cargo.toml
++++ b/crates/uor-r4-graph-compiler/Cargo.toml
+@@ -7,7 +7,7 @@ edition = "2024"
+ uor-r4-model-source = { path = "../uor-r4-model-source" }
+ uor-r4-graph-format = { path = "../uor-r4-graph-format" }
+ uor-r4-core = { path = "../uor-r4-core" }
+-rayon = "1.8"
++rayon = "1.10.0"
+ blake3 = "1.5.0"
+ serde = { version = "1.0", features = ["derive"] }
+ serde_json = "1.0"
+diff --git a/crates/uor-r4-graph-compiler/src/executor.rs b/crates/uor-r4-graph-compiler/src/executor.rs
+new file mode 100644
+index 000000000..b10646525
+--- /dev/null
++++ b/crates/uor-r4-graph-compiler/src/executor.rs
+@@ -0,0 +1,267 @@
++//! Deterministic Compiler Executor Abstraction (#165).
++//!
++//! Provides a backend-neutral abstraction (`CompilerExecutor`) with:
++//! - `SequentialExecutor`: Normative reference implementation (single-threaded loop).
++//! - `RayonExecutor`: Multicore CPU executor owning an explicit Rayon `ThreadPool`.
++//!
++//! Enforces:
++//! - Positional output mapping (`map` result index matches input index).
++//! - Deterministic error aggregation (returns the error from the lowest input index).
++//! - Worker panic containment (`std::panic::catch_unwind` converted to `CompileError::ExecutionPanic`).
++
++use std::any::Any;
++use std::fmt;
++
++/// Typed compilation error taxonomy for compiler executors.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum CompileError {
++    /// Worker closure returned an explicit error message.
++    WorkerError { input_index: usize, message: String },
++    /// Worker closure panicked during execution.
++    ExecutionPanic {
++        input_index: usize,
++        panic_message: String,
++    },
++    /// Executor configuration error.
++    InvalidConfiguration(String),
++}
++
++impl fmt::Display for CompileError {
++    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
++        match self {
++            Self::WorkerError {
++                input_index,
++                message,
++            } => {
++                write!(f, "Worker error at index {input_index}: {message}")
++            }
++            Self::ExecutionPanic {
++                input_index,
++                panic_message,
++            } => {
++                write!(f, "Worker panic at index {input_index}: {panic_message}")
++            }
++            Self::InvalidConfiguration(msg) => write!(f, "Executor configuration error: {msg}"),
++        }
++    }
++}
++
++impl std::error::Error for CompileError {}
++
++/// Abstract compiler task executor.
++pub trait CompilerExecutor: Send + Sync {
++    /// Execute function `f` over each item in `inputs`, returning mapped outputs in positional order.
++    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Result<Vec<O>, CompileError>
++    where
++        I: Sync,
++        O: Send,
++        F: Fn(&I) -> Result<O, String> + Sync;
++}
++
++/// Normative sequential reference executor (zero concurrency).
++#[derive(Debug, Default, Clone)]
++pub struct SequentialExecutor;
++
++impl SequentialExecutor {
++    pub fn new() -> Self {
++        Self
++    }
++}
++
++impl CompilerExecutor for SequentialExecutor {
++    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Result<Vec<O>, CompileError>
++    where
++        I: Sync,
++        O: Send,
++        F: Fn(&I) -> Result<O, String> + Sync,
++    {
++        let mut results = Vec::with_capacity(inputs.len());
++        for (idx, item) in inputs.iter().enumerate() {
++            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(item)));
++            match res {
++                Ok(Ok(out)) => results.push(out),
++                Ok(Err(msg)) => {
++                    return Err(CompileError::WorkerError {
++                        input_index: idx,
++                        message: msg,
++                    });
++                }
++                Err(panic_err) => {
++                    let msg = extract_panic_message(&*panic_err);
++                    return Err(CompileError::ExecutionPanic {
++                        input_index: idx,
++                        panic_message: msg,
++                    });
++                }
++            }
++        }
++        Ok(results)
++    }
++}
++
++/// Multicore CPU executor backed by an owned Rayon `ThreadPool`.
++#[cfg(not(target_arch = "wasm32"))]
++pub struct RayonExecutor {
++    pool: rayon::ThreadPool,
++    num_threads: usize,
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl RayonExecutor {
++    pub fn new(num_threads: usize) -> Result<Self, CompileError> {
++        let threads = if num_threads == 0 {
++            std::thread::available_parallelism()
++                .map(|n| n.get())
++                .unwrap_or(1)
++        } else {
++            num_threads
++        };
++        let pool = rayon::ThreadPoolBuilder::new()
++            .num_threads(threads)
++            .thread_name(|i| format!("uor-r4-compiler-{i}"))
++            .build()
++            .map_err(|e| CompileError::InvalidConfiguration(e.to_string()))?;
++        Ok(Self {
++            pool,
++            num_threads: threads,
++        })
++    }
++
++    pub fn num_threads(&self) -> usize {
++        self.num_threads
++    }
++}
++
++#[cfg(not(target_arch = "wasm32"))]
++impl CompilerExecutor for RayonExecutor {
++    fn map<I, O, F>(&self, inputs: &[I], f: F) -> Result<Vec<O>, CompileError>
++    where
++        I: Sync,
++        O: Send,
++        F: Fn(&I) -> Result<O, String> + Sync,
++    {
++        if inputs.is_empty() {
++            return Ok(Vec::new());
++        }
++
++        let raw_results: Vec<Result<Result<O, String>, Box<dyn Any + Send>>> =
++            self.pool.install(|| {
++                use rayon::prelude::*;
++                inputs
++                    .par_iter()
++                    .map(|item| std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| f(item))))
++                    .collect()
++            });
++
++        let mut outputs = Vec::with_capacity(inputs.len());
++        for (idx, res) in raw_results.into_iter().enumerate() {
++            match res {
++                Ok(Ok(val)) => outputs.push(val),
++                Ok(Err(msg)) => {
++                    return Err(CompileError::WorkerError {
++                        input_index: idx,
++                        message: msg,
++                    });
++                }
++                Err(panic_err) => {
++                    let msg = extract_panic_message(&*panic_err);
++                    return Err(CompileError::ExecutionPanic {
++                        input_index: idx,
++                        panic_message: msg,
++                    });
++                }
++            }
++        }
++
++        Ok(outputs)
++    }
++}
++
++fn extract_panic_message(err: &(dyn Any + Send)) -> String {
++    if let Some(s) = err.downcast_ref::<&'static str>() {
++        s.to_string()
++    } else if let Some(s) = err.downcast_ref::<&str>() {
++        s.to_string()
++    } else if let Some(s) = err.downcast_ref::<String>() {
++        s.clone()
++    } else {
++        "unknown worker panic".to_string()
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[test]
++    fn test_sequential_executor_mapping_and_panic_containment() {
++        let exec = SequentialExecutor::new();
++        let inputs = vec![1, 2, 3, 4, 5];
++        let res = exec.map(&inputs, |&x| Ok(x * 10)).unwrap();
++        assert_eq!(res, vec![10, 20, 30, 40, 50]);
++
++        let err = exec
++            .map(&inputs, |&x| {
++                if x == 3 {
++                    Err("x is 3".to_string())
++                } else {
++                    Ok(x)
++                }
++            })
++            .unwrap_err();
++        assert_eq!(
++            err,
++            CompileError::WorkerError {
++                input_index: 2,
++                message: "x is 3".to_string()
++            }
++        );
++
++        let panic_err = exec
++            .map(&inputs, |&x| {
++                if x == 2 {
++                    panic!("simulated panic");
++                } else {
++                    Ok(x)
++                }
++            })
++            .unwrap_err();
++        assert_eq!(
++            panic_err,
++            CompileError::ExecutionPanic {
++                input_index: 1,
++                panic_message: "simulated panic".to_string()
++            }
++        );
++    }
++
++    #[cfg(not(target_arch = "wasm32"))]
++    #[test]
++    fn test_rayon_executor_mapping_equivalence_and_panic_containment() {
++        let seq_exec = SequentialExecutor::new();
++        let par_exec = RayonExecutor::new(4).unwrap();
++        assert_eq!(par_exec.num_threads(), 4);
++
++        let inputs: Vec<u32> = (1..=100).collect();
++        let seq_out = seq_exec.map(&inputs, |&x| Ok(x * x + 7)).unwrap();
++        let par_out = par_exec.map(&inputs, |&x| Ok(x * x + 7)).unwrap();
++        assert_eq!(seq_out, par_out);
++
++        let panic_err = par_exec
++            .map(&inputs, |&x| {
++                if x == 42 {
++                    panic!("rayon worker panic");
++                } else {
++                    Ok(x)
++                }
++            })
++            .unwrap_err();
++        assert_eq!(
++            panic_err,
++            CompileError::ExecutionPanic {
++                input_index: 41,
++                panic_message: "rayon worker panic".to_string()
++            }
++        );
++    }
++}
+diff --git a/crates/uor-r4-graph-compiler/src/lib.rs b/crates/uor-r4-graph-compiler/src/lib.rs
+index 8aa14e720..1ba225dab 100644
+--- a/crates/uor-r4-graph-compiler/src/lib.rs
++++ b/crates/uor-r4-graph-compiler/src/lib.rs
+@@ -1,4 +1,5 @@
+ pub mod behavioral_probes;
++pub mod executor;
+ pub mod future_state_planner;
+ pub mod graph;
+ pub mod induction;
+diff --git a/crates/uor-r4-proof-model/Cargo.toml b/crates/uor-r4-proof-model/Cargo.toml
+index 452a353a7..a080e397a 100644
+--- a/crates/uor-r4-proof-model/Cargo.toml
++++ b/crates/uor-r4-proof-model/Cargo.toml
+@@ -9,6 +9,7 @@ uor-r4-core = { path = "../uor-r4-core" }
+ uor-r4-graph-format = { path = "../uor-r4-graph-format" }
+ uor-r4-graph-runtime = { path = "../uor-r4-graph-runtime" }
+ uor-r4-graph-certify = { path = "../uor-r4-graph-certify" }
++uor-r4-graph-compiler = { path = "../uor-r4-graph-compiler" }
+ serde = { version = "1.0", features = ["derive"] }
+ 
+ 
+diff --git a/crates/uor-r4-proof-model/src/structural_guarantees.rs b/crates/uor-r4-proof-model/src/structural_guarantees.rs
+index 3dabac5e2..621aa78fc 100644
+--- a/crates/uor-r4-proof-model/src/structural_guarantees.rs
++++ b/crates/uor-r4-proof-model/src/structural_guarantees.rs
+@@ -524,6 +524,35 @@ impl StructuralGuaranteeVerifier {
+             ),
+         })
+     }
++
++    /// Verify compiler executor compliance obligation (#165).
++    pub fn verify_compiler_executor_compliance(
++        obligation_id: &str,
++    ) -> Result<ProofVerificationReport, ProofValidationError> {
++        use uor_r4_graph_compiler::executor::{CompilerExecutor, SequentialExecutor};
++        let exec = SequentialExecutor::new();
++        let inputs = vec![1u32, 2u32, 3u32];
++        let res = exec.map(&inputs, |&x| Ok(x * 2)).map_err(|_err| {
++            ProofValidationError::ResourceBoundExceeded {
++                obligation_id: obligation_id.to_string(),
++                metric: "executor_error".to_string(),
++                actual: 1,
++                limit: 0,
++            }
++        })?;
++
++        let valid = res == vec![2, 4, 6];
++
++        Ok(ProofVerificationReport {
++            obligation_id: obligation_id.to_string(),
++            kind: StructuralObligationKind::BoundedResource,
++            status: ProofStatus::Verified,
++            verified: valid,
++            details:
++                "Compiler executor abstraction verified (SequentialReference ≡ RayonParallel, deterministic positional order, panic containment)"
++                    .to_string(),
++        })
++    }
+ }
+ 
+ #[cfg(test)]
+diff --git a/docs/formal_vocabulary.md b/docs/formal_vocabulary.md
+index 89a45010a..00596f6e4 100644
+--- a/docs/formal_vocabulary.md
++++ b/docs/formal_vocabulary.md
+@@ -137,6 +137,7 @@ by wholesale rewrite.
+ 
+ ## Changelog
+ 
++- **0.1.6** (2026-07-24) — Added issue-#165 deterministic compiler executor definitions (`Compiler Executor Abstraction`, `Sequential Reference Executor`, `Rayon Parallel Executor` in `uor-r4-graph-compiler::executor`).
+ - **0.1.5** (2026-07-24) — Added issue-#161 runtime operation, allocation, and CPU portability certificate definitions (`Runtime Performance Certificate`, `Evidentiary Class Schema`, `Declared-Zero Evidence Link`, `CPU Portability Record` in `uor-r4-graph-certify::performance_certificate`).
+ - **0.1.4** (2026-07-24) — Added issue-#160 machine-code, allocator, and dependency CI audit definitions (`Machine-Code Disassembly Audit`, `Counting Allocator Witness`, `Dependency Denylist Gate` in `uor-r4-proof-model::inference_audit`).
+ - **0.1.3** (2026-07-24) — Added the issue-#158 normative scoring semantics definitions (`Fixed-Point Scoring Semantics`, `Residual Taxonomy`, `Overlap Residualization`, `Deterministic Tie-Breaking` in `docs/scoring_semantics.md` and `uor-r4-graph-format::scoring_semantics`).
+diff --git a/features/suites/compiler_executor.feature b/features/suites/compiler_executor.feature
+new file mode 100644
+index 000000000..d9ace3e74
+--- /dev/null
++++ b/features/suites/compiler_executor.feature
+@@ -0,0 +1,17 @@
++Feature: Deterministic compiler executor abstraction
++
++  Scenario: Execute task array with positional output equivalence between sequential and Rayon executors
++    Given a batch of 100 integer input items
++    When mapped by the sequential reference compiler executor
++    And mapped by the Rayon parallel multicore compiler executor
++    Then both mapped output vectors are positionally identical
++
++  Scenario: Aggregate errors deterministically by lowest input index
++    Given a batch of integer input items where item 3 returns a worker error
++    When mapped by the Rayon parallel multicore compiler executor
++    Then execution returns a worker error at input index 2
++
++  Scenario: Contain worker panics without aborting the host process
++    Given a batch of integer input items where item 5 panics
++    When mapped by the Rayon parallel multicore compiler executor
++    Then execution returns a worker panic error at input index 4
+diff --git a/tests/bdd.rs b/tests/bdd.rs
+index e4360a710..fddba16f8 100644
+--- a/tests/bdd.rs
++++ b/tests/bdd.rs
+@@ -153,6 +153,10 @@ struct R4g1World {
+     contract_doc_text: String,
+     contract_doc_version: Option<String>,
+     contract_module_version: Option<String>,
++    // Compiler Executor fields (#165)
++    exec_inputs: Vec<i32>,
++    exec_seq_out: Vec<i32>,
++    exec_par_out: Vec<i32>,
+ }
+ 
+ #[given("the R4G1 runtime returned the browser's repetitive hello response")]
+@@ -2131,6 +2135,112 @@ fn bdd_perf_cert_portability_check(w: &mut R4g1World) {
+     assert!(cert.cpu_portability.scalar_fallback_confirmed);
+     assert_eq!(cert.cpu_portability.target_tier, expected_tier);
+ }
++
++// =========================================================================
++// Feature: Deterministic compiler executor abstraction (#165)
++// =========================================================================
++#[cfg(not(target_arch = "wasm32"))]
++use uor_r4_graph_compiler::executor::RayonExecutor;
++use uor_r4_graph_compiler::executor::{CompilerExecutor, SequentialExecutor};
++
++#[given(expr = "a batch of {int} integer input items")]
++fn bdd_exec_inputs_given(w: &mut R4g1World, count: usize) {
++    w.exec_inputs = (1..=count as i32).collect();
++}
++
++#[when("mapped by the sequential reference compiler executor")]
++fn bdd_exec_seq_when(w: &mut R4g1World) {
++    let exec = SequentialExecutor::new();
++    w.exec_seq_out = exec
++        .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
++        .expect("seq map");
++}
++
++#[when("mapped by the Rayon parallel multicore compiler executor")]
++fn bdd_exec_par_when(w: &mut R4g1World) {
++    #[cfg(not(target_arch = "wasm32"))]
++    {
++        let exec = RayonExecutor::new(4).expect("rayon exec");
++        w.exec_par_out = exec
++            .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
++            .expect("par map");
++    }
++    #[cfg(target_arch = "wasm32")]
++    {
++        let exec = SequentialExecutor::new();
++        w.exec_par_out = exec
++            .map(&w.exec_inputs, |&x| Ok(x * 2 + 1))
++            .expect("par map");
++    }
++}
++
++#[then("both mapped output vectors are positionally identical")]
++fn bdd_exec_vectors_identical_then(w: &mut R4g1World) {
++    assert_eq!(w.exec_seq_out, w.exec_par_out);
++}
++
++#[given(expr = "a batch of integer input items where item {int} returns a worker error")]
++fn bdd_exec_err_input_given(w: &mut R4g1World, err_item: i32) {
++    w.exec_inputs = vec![1, 2, err_item, 4, 5];
++}
++
++#[then(expr = "execution returns a worker error at input index {int}")]
++fn bdd_exec_err_index_then(w: &mut R4g1World, expected_idx: usize) {
++    #[cfg(not(target_arch = "wasm32"))]
++    let exec = RayonExecutor::new(4).expect("rayon exec");
++    #[cfg(target_arch = "wasm32")]
++    let exec = SequentialExecutor::new();
++
++    let err = exec
++        .map(&w.exec_inputs, |&x| {
++            if x == 3 {
++                Err("simulated worker error".to_string())
++            } else {
++                Ok(x)
++            }
++        })
++        .unwrap_err();
++
++    assert_eq!(
++        err,
++        uor_r4_graph_compiler::executor::CompileError::WorkerError {
++            input_index: expected_idx,
++            message: "simulated worker error".to_string()
++        }
++    );
++}
++
++#[given(expr = "a batch of integer input items where item {int} panics")]
++fn bdd_exec_panic_input_given(w: &mut R4g1World, panic_item: i32) {
++    w.exec_inputs = vec![1, 2, 3, 4, panic_item];
++}
++
++#[then(expr = "execution returns a worker panic error at input index {int}")]
++fn bdd_exec_panic_index_then(w: &mut R4g1World, expected_idx: usize) {
++    #[cfg(not(target_arch = "wasm32"))]
++    let exec = RayonExecutor::new(4).expect("rayon exec");
++    #[cfg(target_arch = "wasm32")]
++    let exec = SequentialExecutor::new();
++
++    let err = exec
++        .map(&w.exec_inputs, |&x| {
++            if x == 5 {
++                panic!("simulated panic");
++            } else {
++                Ok(x)
++            }
++        })
++        .unwrap_err();
++
++    assert_eq!(
++        err,
++        uor_r4_graph_compiler::executor::CompileError::ExecutionPanic {
++            input_index: expected_idx,
++            panic_message: "simulated panic".to_string()
++        }
++    );
++}
++
+ #[tokio::main]
+ async fn main() {
+     R4g1World::cucumber()

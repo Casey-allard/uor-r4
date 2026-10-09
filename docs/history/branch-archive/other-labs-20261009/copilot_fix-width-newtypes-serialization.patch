@@ -1,0 +1,376 @@
+diff --git a/crates/uor-r4-router/src/lib.rs b/crates/uor-r4-router/src/lib.rs
+index 5c30c1943..0fb0a781b 100644
+--- a/crates/uor-r4-router/src/lib.rs
++++ b/crates/uor-r4-router/src/lib.rs
+@@ -263,7 +263,7 @@ pub struct UorR4Router {
+     #[serde(default)]
+     active_streams: HashMap<String, ThoughtStream>,
+     #[serde(default)]
+-    expert_active_counts: Vec<usize>, // Changed to Vec for clean serde support
++    expert_active_counts: Vec<u32>, // Changed to Vec for clean serde support
+     #[serde(default)]
+     connection_drift: f64,
+     #[serde(default)]
+@@ -575,7 +575,7 @@ impl UorR4Router {
+     }
+ 
+     /// Returns the active counts for the 64 experts
+-    pub fn get_expert_counts(&self) -> Vec<usize> {
++    pub fn get_expert_counts(&self) -> Vec<u32> {
+         self.expert_active_counts.clone()
+     }
+ 
+@@ -861,7 +861,7 @@ impl UorR4Router {
+         #[derive(Serialize)]
+         struct MapPoint {
+             sentence: String,
+-            window_index: usize,
++            window_index: u32,
+             u: f64,
+             v: f64,
+             v_4d: Vec<f64>,
+@@ -882,7 +882,7 @@ impl UorR4Router {
+                     let prime_product_val: i64 = item.prime_product.parse().unwrap_or(1);
+                     points.push(MapPoint {
+                         sentence: item.sentence.chars().take(120).collect(),
+-                        window_index: win_idx,
++                        window_index: win_idx as u32,
+                         u: item.u,
+                         v: item.v,
+                         v_4d: item.v_4d.clone(),
+@@ -1342,7 +1342,7 @@ impl UorR4Router {
+         let attestation = generate_uor_attestation(&payload);
+ 
+         let routed = RoutedResult {
+-            window_index: routed_idx,
++            window_index: routed_idx as u32,
+             scale_x: scale_x_for_window(routed_idx),
+             metrics: MetricsResult {
+                 sigma_q,
+@@ -1352,7 +1352,7 @@ impl UorR4Router {
+                 deficit_angle,
+             },
+             eigenvalues: vec![0.05, 0.03, 0.01, 0.005, 0.002, 0.0, 0.0, 0.0],
+-            active_range: vec![active_range[0], active_range[1]],
++            active_range: vec![active_range[0] as u32, active_range[1] as u32],
+             state_vector: routed_slice.to_vec(),
+             qimc: QimcResult {
+                 identity: identity_meta.identity.clone(),
+@@ -1362,10 +1362,10 @@ impl UorR4Router {
+                 identity_uor_hash_algorithm: identity_meta.identity_uor_hash_algorithm.clone(),
+                 uor_control: UorControlPlanInfo {
+                     entropy_bias: uor_control.entropy_bias,
+-                    hopf_chi_bins: uor_control.hopf_chi_bins,
++                    hopf_chi_bins: uor_control.hopf_chi_bins as u32,
+                 },
+-                prime: qimc_prime,
+-                index: qimc_index,
++                prime: qimc_prime as u32,
++                index: qimc_index as u32,
+             },
+             hopf: HopfResult {
+                 rho1: hopf_components["rho1"],
+@@ -1375,8 +1375,8 @@ impl UorR4Router {
+                 alpha: hopf_components["alpha"],
+                 transported_alpha: hopf_components["transported_alpha"],
+                 phase_transport_lambda: uor_control.phase_transport_lambda,
+-                hopf_chi_bins: uor_control.hopf_chi_bins,
+-                sector_id,
++                hopf_chi_bins: uor_control.hopf_chi_bins as u32,
++                sector_id: sector_id as u32,
+                 subspace_norms: SubspaceNorms {
+                     act: active_state_refined[0..128]
+                         .iter()
+@@ -1409,7 +1409,7 @@ impl UorR4Router {
+             let slice = &active_state_refined[(r.axis as usize - 1) * 32..r.axis as usize * 32];
+             let (_s_q, _s_kl, _l_v, k_v, d_a) = state_metrics_from_weights(slice);
+             routes_output.push(RouteInfo {
+-                window_index: r.axis as usize,
++                window_index: r.axis,
+                 scale_x: scale_x_for_window(r.axis as usize),
+                 routing_score: r.score as f64,
+                 kappa: if r.axis as usize == routed_idx {
+@@ -1423,7 +1423,7 @@ impl UorR4Router {
+                     std::f64::consts::PI
+                 },
+                 state_vector: slice.to_vec(),
+-                active_range: vec![(r.axis as usize - 1) * 32, r.axis as usize * 32],
++                active_range: vec![(r.axis - 1) * 32, r.axis * 32],
+             });
+         }
+ 
+@@ -1447,13 +1447,13 @@ impl UorR4Router {
+ 
+         let routing_data = self.route_query_to_manifold_internal(s_clean, identity, None);
+         let best = routing_data.routed;
+-        let idx_win = best.window_index;
++        let idx_win = best.window_index as usize;
+ 
+         let prime_product = self.get_sentence_prime_product(&words);
+ 
+         let mut state_vector = vec![0.0; 512];
+-        let s_idx = best.active_range[0];
+-        let e_idx = best.active_range[1];
++        let s_idx = best.active_range[0] as usize;
++        let e_idx = best.active_range[1] as usize;
+         state_vector[s_idx..e_idx].copy_from_slice(&best.state_vector[..e_idx - s_idx]);
+ 
+         let (u, v) = self.get_sentence_projection(&state_vector, idx_win);
+@@ -1551,10 +1551,10 @@ impl UorR4Router {
+         let mut query_projections = HashMap::new();
+         for r in &routing_data.all_routes {
+             let mut full_state = vec![0.0; 512];
+-            let start = r.active_range[0];
+-            let end = r.active_range[1];
++            let start = r.active_range[0] as usize;
++            let end = r.active_range[1] as usize;
+             full_state[start..end].copy_from_slice(&r.state_vector[..end - start]);
+-            query_projections.insert(r.window_index, full_state);
++            query_projections.insert(r.window_index as usize, full_state);
+         }
+ 
+         let all_windows: std::collections::HashSet<usize> = scoped_index
+@@ -1602,7 +1602,7 @@ impl UorR4Router {
+                 scored.push(ResonanceResult {
+                     sentence: item.sentence.clone(),
+                     relevance,
+-                    window_index: win_idx,
++                    window_index: win_idx as u32,
+                     kappa: item.kappa,
+                     deficit_angle: item.deficit_angle,
+                 });
+@@ -1709,7 +1709,7 @@ impl UorR4Router {
+                     scored.push(ResonanceResult {
+                         sentence: item.sentence.clone(),
+                         relevance: sim * 100.0,
+-                        window_index: id % 16 + 1,
++                        window_index: (id % 16 + 1) as u32,
+                         kappa: item.kappa,
+                         deficit_angle: item.deficit_angle,
+                     });
+@@ -1845,7 +1845,7 @@ impl UorR4Router {
+         let mut s_local = state_vector.to_vec();
+ 
+         let mut accumulated_delta = 0.0;
+-        let mut prev_stratum = 0;
++        let mut prev_stratum: i32 = 0;
+         let mut prev_state_bin = vec![false; 512];
+         let mut prev_state_vec = vec![0.0; 512];
+ 
+@@ -1998,8 +1998,8 @@ impl UorR4Router {
+             let r_data = self.route_query_to_manifold_internal("", identity, Some(&s_local));
+             let routed = r_data.routed;
+ 
+-            let s_idx = routed.active_range[0];
+-            let e_idx = routed.active_range[1];
++            let s_idx = routed.active_range[0] as usize;
++            let e_idx = routed.active_range[1] as usize;
+             let mut state_vec = vec![0.0; 512];
+             state_vec[s_idx..e_idx].copy_from_slice(&routed.state_vector[..e_idx - s_idx]);
+ 
+@@ -2040,7 +2040,7 @@ impl UorR4Router {
+                     }
+                 }
+                 cascade_len = max_run;
+-                catastrophe = (stratum as i32 - prev_stratum as i32).abs() >= 15;
++                catastrophe = (stratum - prev_stratum).abs() >= 15;
+ 
+                 let mut dist_e_sq = 0.0;
+                 let mut dist_h = 0;
+@@ -2064,8 +2064,8 @@ impl UorR4Router {
+                 let s_refl = if stratum < prev_stratum { 1 } else { 0 };
+                 let k_rot = ((winding_number * 8.0).round() as i32).rem_euclid(8) as usize;
+                 dihedral = DihedralInfo {
+-                    s: s_refl,
+-                    k: k_rot,
++                    s: s_refl as u32,
++                    k: k_rot as u32,
+                     label: format!("{}r^{}", if s_refl == 1 { "s" } else { "" }, k_rot),
+                 };
+             }
+@@ -2100,7 +2100,7 @@ impl UorR4Router {
+             };
+ 
+             trajectory.push(TrajectoryStep {
+-                step: step_idx + 1,
++                step: (step_idx + 1) as u32,
+                 word: next_word.clone(),
+                 window_index: routed.window_index,
+                 scale_x: routed.scale_x,
+@@ -2111,8 +2111,8 @@ impl UorR4Router {
+                 hopf: routed.hopf,
+                 r4_projection: r4_proj,
+                 quantum: QuantumMetrics {
+-                    stratum,
+-                    cascade_length: cascade_len,
++                    stratum: stratum as u32,
++                    cascade_length: cascade_len as u32,
+                     catastrophe,
+                     winding_number,
+                     commutator_curvature: commutator_curv,
+@@ -2163,11 +2163,11 @@ pub struct RoutingData {
+ 
+ #[derive(Serialize, Deserialize, Clone)]
+ pub struct RoutedResult {
+-    pub window_index: usize,
++    pub window_index: u32,
+     pub scale_x: f64,
+     pub metrics: MetricsResult,
+     pub eigenvalues: Vec<f64>,
+-    pub active_range: Vec<usize>,
++    pub active_range: Vec<u32>,
+     pub state_vector: Vec<f64>,
+     pub qimc: QimcResult,
+     pub hopf: HopfResult,
+@@ -2192,14 +2192,14 @@ pub struct QimcResult {
+     pub identity_uor_digest: String,
+     pub identity_uor_hash_algorithm: String,
+     pub uor_control: UorControlPlanInfo,
+-    pub prime: usize,
+-    pub index: usize,
++    pub prime: u32,
++    pub index: u32,
+ }
+ 
+ #[derive(Serialize, Deserialize, Clone)]
+ pub struct UorControlPlanInfo {
+     pub entropy_bias: f64,
+-    pub hopf_chi_bins: usize,
++    pub hopf_chi_bins: u32,
+ }
+ 
+ #[derive(Serialize, Deserialize, Clone)]
+@@ -2211,8 +2211,8 @@ pub struct HopfResult {
+     pub alpha: f64,
+     pub transported_alpha: f64,
+     pub phase_transport_lambda: f64,
+-    pub hopf_chi_bins: usize,
+-    pub sector_id: usize,
++    pub hopf_chi_bins: u32,
++    pub sector_id: u32,
+     pub subspace_norms: SubspaceNorms,
+ }
+ 
+@@ -2226,29 +2226,29 @@ pub struct SubspaceNorms {
+ 
+ #[derive(Serialize, Deserialize, Clone)]
+ pub struct RouteInfo {
+-    pub window_index: usize,
++    pub window_index: u32,
+     pub scale_x: f64,
+     pub routing_score: f64,
+     pub kappa: f64,
+     pub deficit_angle: f64,
+     pub state_vector: Vec<f64>,
+-    pub active_range: Vec<usize>,
++    pub active_range: Vec<u32>,
+ }
+ 
+ #[derive(Serialize, Deserialize, Debug, Clone)]
+ pub struct ResonanceResult {
+     pub sentence: String,
+     pub relevance: f64,
+-    pub window_index: usize,
++    pub window_index: u32,
+     pub kappa: f64,
+     pub deficit_angle: f64,
+ }
+ 
+ #[derive(Serialize, Deserialize)]
+ pub struct TrajectoryStep {
+-    pub step: usize,
++    pub step: u32,
+     pub word: String,
+-    pub window_index: usize,
++    pub window_index: u32,
+     pub scale_x: f64,
+     pub deficit_angle: f64,
+     pub kappa: f64,
+@@ -2275,8 +2275,8 @@ pub struct Projection3D {
+ 
+ #[derive(Serialize, Deserialize)]
+ pub struct QuantumMetrics {
+-    pub stratum: usize,
+-    pub cascade_length: usize,
++    pub stratum: u32,
++    pub cascade_length: u32,
+     pub catastrophe: bool,
+     pub winding_number: f64,
+     pub commutator_curvature: f64,
+@@ -2285,8 +2285,8 @@ pub struct QuantumMetrics {
+ 
+ #[derive(Serialize, Deserialize)]
+ pub struct DihedralInfo {
+-    pub s: usize,
+-    pub k: usize,
++    pub s: u32,
++    pub k: u32,
+     pub label: String,
+ }
+ 
+@@ -2400,7 +2400,7 @@ impl UorR4Router {
+         #[derive(Serialize)]
+         struct MapPoint {
+             sentence: String,
+-            window_index: usize,
++            window_index: u32,
+             u: f64,
+             v: f64,
+             v_4d: Vec<f64>,
+@@ -2421,7 +2421,7 @@ impl UorR4Router {
+                     let prime_product_val: i64 = item.prime_product.parse().unwrap_or(1);
+                     points.push(MapPoint {
+                         sentence: item.sentence.chars().take(120).collect(),
+-                        window_index: win_idx,
++                        window_index: win_idx as u32,
+                         u: item.u,
+                         v: item.v,
+                         v_4d: item.v_4d.clone(),
+diff --git a/src/server.rs b/src/server.rs
+index 02676ceb7..bc04a2163 100644
+--- a/src/server.rs
++++ b/src/server.rs
+@@ -41,7 +41,7 @@ struct ResetPayload {
+     identity: Option<String>,
+ }
+ 
+-fn get_window_theme(win_idx: usize) -> &'static str {
++fn get_window_theme(win_idx: u32) -> &'static str {
+     match win_idx {
+         1 => "Origins & Foundations",
+         2 => "Duality & Polarity",
+@@ -751,8 +751,10 @@ fn handle_connection(
+ 
+         // Project the evolved brain state to 2D for the map path tracing
+         let active_state = router_guard.get_brain_state_native(&identity);
+-        let (u, v) = router_guard
+-            .get_sentence_projection_native(&active_state, routing_data.routed.window_index);
++        let (u, v) = router_guard.get_sentence_projection_native(
++            &active_state,
++            routing_data.routed.window_index as usize,
++        );
+         let v_4d = router_guard.get_state_4d_projection_native(&active_state);
+ 
+         let theme = get_window_theme(routing_data.routed.window_index);
+@@ -1250,8 +1252,10 @@ fn handle_connection(
+             .clone()
+             .expect("No sysinfo routing data generated");
+         let active_state = router_guard.get_brain_state_native(identity);
+-        let (u, v) = router_guard
+-            .get_sentence_projection_native(&active_state, routing_data.routed.window_index);
++        let (u, v) = router_guard.get_sentence_projection_native(
++            &active_state,
++            routing_data.routed.window_index as usize,
++        );
+         let v_4d = router_guard.get_state_4d_projection_native(&active_state);
+         let kappa = routing_data.routed.metrics.kappa;
+         let theta_d = routing_data.routed.metrics.deficit_angle;
+@@ -1476,7 +1480,7 @@ fn autotune(kappa: f64, theta_d: f64, uor_bias: f64) -> (f64, f64) {
+ struct CliAnswer {
+     text: String,
+     mode: String,
+-    window_index: usize,
++    window_index: u32,
+     kappa: f64,
+     theta_d: f64,
+     fingerprint_hex: String,

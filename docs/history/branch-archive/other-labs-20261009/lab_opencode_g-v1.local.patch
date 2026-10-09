@@ -1,0 +1,1461 @@
+diff --git a/crates/uor-r4-training/examples/aerm-probe.rs b/crates/uor-r4-training/examples/aerm-probe.rs
+index 7758ad031..a2a5ddf74 100644
+--- a/crates/uor-r4-training/examples/aerm-probe.rs
++++ b/crates/uor-r4-training/examples/aerm-probe.rs
+@@ -1,6 +1,10 @@
+-//! D2 (whole-project synthesis §4): architectural exact relational memory in
+-//! the recurrence-primary stack against the same stack with an equal-size MLP
+-//! and no store (`uor_r4_training::stack_aerm`).
++//! D2/G v1 (whole-project synthesis §3 M1, §4 D2): architectural exact
++//! relational memory in the recurrence-primary stack against the same stack
++//! with an equal-size MLP and no store (`uor_r4_training::stack_aerm`).
++//!
++//! G v1 replaces D2's trigger-gated read with the always-on, address-driven
++//! dual-register read (`stack_aerm`'s G v1 read policy). Everything else —
++//! data, schedule, seeds, evaluation and the control — is D2's.
+ //!
+ //! ```text
+ //! aerm-probe run out=NEW_REPORT_ROOT text=TRAIN.u16 dev=DEV.u16 tokenizer=TOKENIZER.json \
+@@ -8,7 +12,7 @@
+ //!   [heads=4] [mlp=384] [pattern=rrar] [context=256] [split=2] [steps=1500] [batch=16] \
+ //!   [lr=0.003] [warmup=100] [weight_decay=0.1] [clip=1] [tag_weight=1] [trigger_weight=1] \
+ //!   [trigger_positive=5] [dev_windows=512] [eval_episodes=512] [free_episodes=32] [verify=256]
+-//! aerm-probe summarize out=NEW_REPORT_ROOT roots=ROOT,ROOT,...
++//! aerm-probe summarize out=NEW_REPORT_ROOT roots=ROOT,ROOT,... [gates=g1|d2]
+ //! ```
+ //!
+ //! `run` claims its report root before building anything, verifies `verify`
+@@ -16,8 +20,11 @@
+ //! protocol encoder, trains each arm with each seed on identical data, and
+ //! evaluates development text NLL, fresh relation dialogues (training
+ //! templates and names), held-out-template dialogues and free-running answers.
+-//! `summarize` applies the pre-registered D2 gates to sealed run roots. Set
+-//! RAYON_NUM_THREADS to bound the threads.
++//! `summarize` applies the pre-registered gate set to sealed run roots:
++//! `gates=g1` is Lab 1's five-part G v1 acceptance (held-out Updated ≥ 0.90 in
++//! every seed, an equal-parameter control, text NLL within 0.05, the failure
++//! trace reported, sealed roots); `gates=d2` reproduces D2's original gates.
++//! Set RAYON_NUM_THREADS to bound the threads.
+ 
+ use std::collections::BTreeMap;
+ use std::fs;
+@@ -38,10 +45,14 @@ use uor_r4_training::stack_aerm::{
+ use uor_r4_training::stack_tracking::Rng;
+ use uor_r4_training::{sha256_file, Result, TrainingError};
+ 
+-/// Pre-registered D2 gates (synthesis §4).
++/// Pre-registered D2 gates (synthesis §4) and the G v1 acceptance gates
++/// (Lab 1's 17:33 UTC assignment).
+ const GATE_ACCURACY: f64 = 0.90;
+ const GATE_MARGIN: f64 = 0.30;
+ const GATE_TEXT: f64 = 0.05;
++/// The equal-parameter control's total may differ from the memory arm's by at
++/// most this fraction (the MLP widening rounds to whole units).
++const GATE_PARAMETER_TOLERANCE: f64 = 0.0005;
+ const DIALOGUE_SEED: u64 = 9_001;
+ const HELD_SEED: u64 = 9_002;
+ const FREE_SEED: u64 = 9_003;
+@@ -304,6 +315,7 @@ fn run(args: &Args, out: &Path) -> Result<()> {
+             let run = json!({
+                 "arm": arm,
+                 "seed": seed,
++                "read_policy": "always_on_address_driven",
+                 "stack": config,
+                 "split": split,
+                 "train": train_config,
+@@ -330,7 +342,8 @@ fn run(args: &Args, out: &Path) -> Result<()> {
+         }
+     }
+     let summary = json!({
+-        "schema": "uor-r4.d2-aerm-probe/1",
++        "schema": "uor-r4.g1-aerm-probe/1",
++        "read_policy": "always_on_address_driven",
+         "arms": arms,
+         "seeds": seeds,
+         "stack_template": template,
+@@ -387,44 +400,102 @@ fn summarize(args: &Args, out: &Path) -> Result<()> {
+         .collect::<std::collections::BTreeSet<_>>()
+         .into_iter()
+         .collect();
++    let gates = args.0.get("gates").map(String::as_str).unwrap_or("g1");
++    if !matches!(gates, "g1" | "d2") {
++        return Err(invalid(format!("gates is g1 or d2, got {gates}")));
++    }
+     let mut rows = Vec::new();
+     let mut all_pass = !seeds.is_empty();
+-    for seed in &seeds {
+-        let aerm = runs.get(&("aerm".to_owned(), *seed));
+-        let control = runs.get(&("control".to_owned(), *seed));
+-        let (Some(aerm), Some(control)) = (aerm, control) else {
+-            all_pass = false;
+-            rows.push(json!({"seed": seed, "complete": false}));
+-            continue;
+-        };
+-        let a = accuracy(aerm, "dialogues", "Updated");
+-        let c = accuracy(control, "dialogues", "Updated");
+-        let text_delta = aerm["text"]["dev_nll"]
+-            .as_f64()
+-            .zip(control["text"]["dev_nll"].as_f64())
+-            .map(|(a, c)| a - c);
+-        let accuracy_pass = a.is_some_and(|a| a >= GATE_ACCURACY);
+-        let margin = a.zip(c).map(|(a, c)| a - c);
+-        let margin_pass = margin.is_some_and(|m| m >= GATE_MARGIN);
+-        let text_pass = text_delta.is_some_and(|d| d <= GATE_TEXT);
+-        let pass = accuracy_pass && margin_pass && text_pass;
+-        all_pass &= pass;
+-        rows.push(json!({
+-            "seed": seed, "complete": true,
+-            "aerm_updated": a, "control_updated": c, "margin": margin,
+-            "aerm_text_nll": aerm["text"]["dev_nll"], "control_text_nll": control["text"]["dev_nll"],
+-            "text_delta": text_delta,
+-            "accuracy_pass": accuracy_pass, "margin_pass": margin_pass, "text_pass": text_pass, "pass": pass,
+-        }));
+-    }
+-    let summary = json!({
+-        "schema": "uor-r4.d2-aerm-probe-summary/1",
+-        "gates": {"aerm_updated_accuracy_at_least": GATE_ACCURACY, "margin_over_control_at_least": GATE_MARGIN,
+-                  "text_nll_delta_at_most": GATE_TEXT, "every_seed": true},
+-        "roots": identities,
+-        "seeds": rows,
+-        "outcome": if all_pass { "PASS" } else { "FAIL" },
+-    });
++    let summary = if gates == "g1" {
++        for seed in &seeds {
++            let aerm = runs.get(&("aerm".to_owned(), *seed));
++            let control = runs.get(&("control".to_owned(), *seed));
++            let (Some(aerm), Some(control)) = (aerm, control) else {
++                all_pass = false;
++                rows.push(json!({"seed": seed, "complete": false}));
++                continue;
++            };
++            let held = accuracy(aerm, "held_out", "Updated");
++            let fresh = accuracy(aerm, "dialogues", "Updated");
++            let control_fresh = accuracy(control, "dialogues", "Updated");
++            let aerm_total = aerm["parameters"]["total"].as_f64();
++            let control_total = control["parameters"]["total"].as_f64();
++            let text_delta = aerm["text"]["dev_nll"]
++                .as_f64()
++                .zip(control["text"]["dev_nll"].as_f64())
++                .map(|(a, c)| a - c);
++            let held_pass = held.is_some_and(|h| h >= GATE_ACCURACY);
++            let text_pass = text_delta.is_some_and(|d| d <= GATE_TEXT);
++            let parameters_pass = aerm_total.zip(control_total).is_some_and(|(a, c)| {
++                (a - c).abs() / a.max(c).max(1.0) <= GATE_PARAMETER_TOLERANCE
++            });
++            let pass = held_pass && text_pass && parameters_pass;
++            all_pass &= pass;
++            rows.push(json!({
++                "seed": seed, "complete": true,
++                "held_out_updated": held,
++                "held_out_first": accuracy(aerm, "held_out", "First"),
++                "control_held_out_updated": accuracy(control, "held_out", "Updated"),
++                "in_distribution_updated": fresh, "control_updated": control_fresh,
++                "margin": fresh.zip(control_fresh).map(|(a, c)| a - c),
++                "aerm_total_parameters": aerm_total, "control_total_parameters": control_total,
++                "aerm_text_nll": aerm["text"]["dev_nll"], "control_text_nll": control["text"]["dev_nll"],
++                "text_delta": text_delta,
++                "trace": aerm["held_out"]["trace"], "read_events": aerm["held_out"]["read_events"],
++                "held_out_pass": held_pass, "text_pass": text_pass,
++                "parameters_pass": parameters_pass, "pass": pass,
++            }));
++        }
++        json!({
++            "schema": "uor-r4.g1-aerm-gate-summary/1",
++            "gates": {
++                "held_out_updated_accuracy_at_least": GATE_ACCURACY,
++                "text_nll_delta_at_most": GATE_TEXT,
++                "parameter_relative_tolerance": GATE_PARAMETER_TOLERANCE,
++                "every_seed": true,
++            },
++            "roots": identities,
++            "seeds": rows,
++            "outcome": if all_pass { "PASS" } else { "FAIL" },
++        })
++    } else {
++        for seed in &seeds {
++            let aerm = runs.get(&("aerm".to_owned(), *seed));
++            let control = runs.get(&("control".to_owned(), *seed));
++            let (Some(aerm), Some(control)) = (aerm, control) else {
++                all_pass = false;
++                rows.push(json!({"seed": seed, "complete": false}));
++                continue;
++            };
++            let a = accuracy(aerm, "dialogues", "Updated");
++            let c = accuracy(control, "dialogues", "Updated");
++            let text_delta = aerm["text"]["dev_nll"]
++                .as_f64()
++                .zip(control["text"]["dev_nll"].as_f64())
++                .map(|(a, c)| a - c);
++            let accuracy_pass = a.is_some_and(|a| a >= GATE_ACCURACY);
++            let margin = a.zip(c).map(|(a, c)| a - c);
++            let margin_pass = margin.is_some_and(|m| m >= GATE_MARGIN);
++            let text_pass = text_delta.is_some_and(|d| d <= GATE_TEXT);
++            let pass = accuracy_pass && margin_pass && text_pass;
++            all_pass &= pass;
++            rows.push(json!({
++                "seed": seed, "complete": true,
++                "aerm_updated": a, "control_updated": c, "margin": margin,
++                "aerm_text_nll": aerm["text"]["dev_nll"], "control_text_nll": control["text"]["dev_nll"],
++                "text_delta": text_delta,
++                "accuracy_pass": accuracy_pass, "margin_pass": margin_pass, "text_pass": text_pass, "pass": pass,
++            }));
++        }
++        json!({
++            "schema": "uor-r4.d2-aerm-probe-summary/1",
++            "gates": {"aerm_updated_accuracy_at_least": GATE_ACCURACY, "margin_over_control_at_least": GATE_MARGIN,
++                      "text_nll_delta_at_most": GATE_TEXT, "every_seed": true},
++            "roots": identities,
++            "seeds": rows,
++            "outcome": if all_pass { "PASS" } else { "FAIL" },
++        })
++    };
+     println!("{}", serde_json::to_string_pretty(&summary)?);
+     fs::write(
+         out.join("summary.json"),
+@@ -480,7 +551,7 @@ fn main() -> Result<()> {
+             finish(&out, result)
+         }
+         "summarize" => {
+-            let args = Args::parse(rest, &["out", "roots"])?;
++            let args = Args::parse(rest, &["out", "roots", "gates"])?;
+             let out = PathBuf::from(args.required("out")?);
+             report_output::claim(&out)?;
+             let result = summarize(&args, &out);
+diff --git a/crates/uor-r4-training/src/stack_aerm.rs b/crates/uor-r4-training/src/stack_aerm.rs
+index ec256b691..5c0c0c2f6 100644
+--- a/crates/uor-r4-training/src/stack_aerm.rs
++++ b/crates/uor-r4-training/src/stack_aerm.rs
+@@ -1,5 +1,5 @@
+-//! D2: architectural exact relational memory (AERM) inside the
+-//! recurrence-primary geometric stack (whole-project synthesis §3 M1, §4 D2).
++//! Architectural exact relational memory (AERM) inside the recurrence-primary
++//! geometric stack (whole-project synthesis §3 M1, §4 D2; G v1 read policy).
+ //!
+ //! The stack is split after `split` layers. Two learned heads read the
+ //! RMS-normalised residual stream there: a per-token role tag (entity,
+@@ -7,21 +7,33 @@
+ //! current value, read the previous value). An exact integer store sits
+ //! between the two halves:
+ //!
+-//! - a trigger closes the open clause: the latest tagged entity, relation and
+-//!   value tokens since the previous trigger or end of turn;
++//! - a write or the end of a turn closes the open clause: the latest tagged
++//!   entity, relation and value tokens since the previous close;
+ //! - a write stores `(entity, relation) -> value`. A hit on an existing key
+ //!   overwrites it, keeps the previous distinct value and increments the
+ //!   version: version order, never a score, decides the current value;
+ //! - a read looks the key up and sets a register `(status, value)` that holds
+-//!   until the next read. The statuses are None, Hit, Absent and Evicted.
++//!   until the next read of that register. The statuses are None, Hit, Absent
++//!   and Evicted.
+ //!
+-//! The register re-enters the residual stream through a zero-initialised status
+-//! embedding and value projection, and adds a zero-initialised copy boost to
+-//! the value token's logit, so the branch starts silent. Training drives the
+-//! store from the gold tags and triggers (teacher forcing) and trains the heads
+-//! with auxiliary cross-entropies: no gradient passes through the discrete
+-//! store. Evaluation drives the store from the model's own tags and triggers
+-//! only.
++//! **G v1 read policy (always-on, address-driven).** Reads are no longer a
++//! learned per-token fire decision. Whenever the tag stream yields an entity or
++//! relation label and both are defined, the store is read twice at that
++//! position — the current value and the previous distinct value — and **two**
++//! registers update. Reads never close the clause; writes (`TRIGGER_WRITE`,
++//! still the learned trigger) and `eos` close it. The trigger head and its gold
++//! loss are unchanged; only the simulator's read policy changed from D2's
++//! `TRIGGER_READ`/`TRIGGER_READ_PREVIOUS` gating. The failed D2 decision was
++//! surface-dependent (a fire at the end of the user turn); address completion
++//! occurs at the entity/relation token, which every phrasing contains.
++//!
++//! Both registers re-enter the residual stream through zero-initialised status
++//! embeddings and value projections, and each adds a zero-initialised copy
++//! boost to its value token's logit, so the branch starts silent. Training
++//! drives the store from the gold tags and write triggers (teacher forcing) and
++//! trains the heads with auxiliary cross-entropies: no gradient passes through
++//! the discrete store. Evaluation drives the store from the model's own tags
++//! and triggers only.
+ //!
+ //! The control arm has the same heads and auxiliary losses, a widened MLP of
+ //! about equal parameter count, and no store.
+@@ -214,12 +226,29 @@ pub struct ReadEvent {
+ pub struct Simulation {
+     pub status: Vec<u32>,
+     pub value: Vec<u32>,
++    pub status_previous: Vec<u32>,
++    pub value_previous: Vec<u32>,
+     pub reads: Vec<ReadEvent>,
+     pub store: RelationStore,
+ }
+ 
++/// The model's own registers for one padded batch, row-major, plus the number
++/// of read events its tag stream produced.
++#[derive(Clone, Debug, Default)]
++pub struct Registers {
++    pub status: Vec<u32>,
++    pub value: Vec<u32>,
++    pub status_previous: Vec<u32>,
++    pub value_previous: Vec<u32>,
++    pub read_events: usize,
++}
++
+ /// Runs the store over one sequence from its per-token tags and triggers.
+ /// `eos` also closes the open clause (a turn boundary).
++///
++/// G v1 read policy: an entity or relation label with a complete address reads
++/// both registers at that position; the read trigger classes no longer decide
++/// reads and never close the clause.
+ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Result<Simulation> {
+     if tags.len() != tokens.len() || triggers.len() != tokens.len() {
+         return Err(invalid("one tag and one trigger per token"));
+@@ -227,8 +256,11 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
+     let mut store = RelationStore::new();
+     let (mut entity, mut relation, mut value) = (None, None, None);
+     let mut register = (STATUS_NONE, 0u32);
++    let mut previous = (STATUS_NONE, 0u32);
+     let mut status = Vec::with_capacity(tokens.len());
+     let mut values = Vec::with_capacity(tokens.len());
++    let mut status_previous = Vec::with_capacity(tokens.len());
++    let mut values_previous = Vec::with_capacity(tokens.len());
+     let mut reads = Vec::new();
+     for (position, ((&token, &tag), &trigger)) in tokens.iter().zip(tags).zip(triggers).enumerate()
+     {
+@@ -239,31 +271,35 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
+             TAG_VALUE => value = Some(token),
+             _ => return Err(invalid("tag outside the tag set")),
+         }
++        if matches!(tag, TAG_ENTITY | TAG_RELATION) {
++            if let (Some(e), Some(r)) = (entity, relation) {
++                register = store.read(e, r, false);
++                previous = store.read(e, r, true);
++                reads.push(ReadEvent {
++                    position,
++                    key: Some((e, r)),
++                    previous: false,
++                    status: register.0,
++                    value: register.1,
++                });
++                reads.push(ReadEvent {
++                    position,
++                    key: Some((e, r)),
++                    previous: true,
++                    status: previous.0,
++                    value: previous.1,
++                });
++            }
++        }
+         let mut close = token == eos;
+         match trigger {
+-            TRIGGER_NONE => {}
++            TRIGGER_NONE | TRIGGER_READ | TRIGGER_READ_PREVIOUS => {}
+             TRIGGER_WRITE => {
+                 if let (Some(e), Some(r), Some(v)) = (entity, relation, value) {
+                     store.write(e, r, v);
+                 }
+                 close = true;
+             }
+-            TRIGGER_READ | TRIGGER_READ_PREVIOUS => {
+-                let previous = trigger == TRIGGER_READ_PREVIOUS;
+-                let key = entity.zip(relation);
+-                register = match key {
+-                    Some((e, r)) => store.read(e, r, previous),
+-                    None => (STATUS_ABSENT, 0),
+-                };
+-                reads.push(ReadEvent {
+-                    position,
+-                    key,
+-                    previous,
+-                    status: register.0,
+-                    value: register.1,
+-                });
+-                close = true;
+-            }
+             _ => return Err(invalid("trigger outside the trigger set")),
+         }
+         if close {
+@@ -271,10 +307,14 @@ pub fn simulate(tokens: &[u32], tags: &[u32], triggers: &[u32], eos: u32) -> Res
+         }
+         status.push(register.0);
+         values.push(register.1);
++        status_previous.push(previous.0);
++        values_previous.push(previous.1);
+     }
+     Ok(Simulation {
+         status,
+         value: values,
++        status_previous,
++        value_previous: values_previous,
+         reads,
+         store,
+     })
+@@ -1244,9 +1284,12 @@ pub struct DialogueBatch {
+     pub real: Vec<f32>,
+     pub tags: Vec<u32>,
+     pub triggers: Vec<u32>,
+-    /// Gold registers (teacher forcing).
++    /// Gold registers (teacher forcing) for both the current and previous
++    /// registers.
+     pub status: Vec<u32>,
+     pub value: Vec<u32>,
++    pub status_previous: Vec<u32>,
++    pub value_previous: Vec<u32>,
+ }
+ 
+ impl RelationWorld {
+@@ -1281,6 +1324,8 @@ impl RelationWorld {
+             triggers: vec![TRIGGER_NONE; rows],
+             status: vec![STATUS_NONE; rows],
+             value: vec![0; rows],
++            status_previous: vec![STATUS_NONE; rows],
++            value_previous: vec![0; rows],
+         };
+         for (b, episode) in episodes.iter().enumerate() {
+             let n = episode.tokens.len();
+@@ -1304,6 +1349,8 @@ impl RelationWorld {
+                 out.triggers[row] = episode.triggers[t];
+                 out.status[row] = gold.status[t];
+                 out.value[row] = gold.value[t];
++                out.status_previous[row] = gold.status_previous[t];
++                out.value_previous[row] = gold.value_previous[t];
+             }
+         }
+         out.episodes = episodes;
+@@ -1335,13 +1382,92 @@ fn zeros_var(shape: &[usize], device: &Device) -> Result<Var> {
+     )?)?)
+ }
+ 
+-/// The memory branch: status embedding, value projection and copy boost.
++/// The memory branch: one status embedding, value projection and copy boost per
++/// register (current and previous).
+ struct MemoryBranch {
+     status: Var,
+     projection: Var,
+     copy_weight: Var,
+     copy_bias: Var,
+     copy_scale: Var,
++    status_previous: Var,
++    projection_previous: Var,
++    copy_weight_previous: Var,
++    copy_bias_previous: Var,
++    copy_scale_previous: Var,
++}
++
++impl MemoryBranch {
++    fn registers_side(
++        &self,
++        embedding: &Tensor,
++        batch: usize,
++        time: usize,
++        width: usize,
++        status: &[u32],
++        value: &[u32],
++        previous: bool,
++    ) -> Result<Tensor> {
++        let rows = status.len();
++        let device = embedding.device();
++        let (status_var, projection) = if previous {
++            (&self.status_previous, &self.projection_previous)
++        } else {
++            (&self.status, &self.projection)
++        };
++        let hit: Vec<f32> = status
++            .iter()
++            .map(|&s| if s == STATUS_HIT { 1.0 } else { 0.0 })
++            .collect();
++        let hit = Tensor::from_vec(hit, (rows, 1), device)?;
++        let status_index = Tensor::from_vec(status.to_vec(), rows, device)?;
++        let value_index = Tensor::from_vec(value.to_vec(), rows, device)?;
++        let value_rows = embedding
++            .index_select(&value_index, 0)?
++            .broadcast_mul(&hit)?;
++        Ok(status_var
++            .as_tensor()
++            .index_select(&status_index, 0)?
++            .add(&value_rows.matmul(&projection.as_tensor().t()?)?)?
++            .reshape((batch, time, width))?)
++    }
++
++    fn copy_boost(
++        &self,
++        out: &Tensor,
++        status: &[u32],
++        value: &[u32],
++        vocab: u32,
++        previous: bool,
++    ) -> Result<Tensor> {
++        let rows = status.len();
++        let device = out.device();
++        let (weight, bias, scale) = if previous {
++            (
++                &self.copy_weight_previous,
++                &self.copy_bias_previous,
++                &self.copy_scale_previous,
++            )
++        } else {
++            (&self.copy_weight, &self.copy_bias, &self.copy_scale)
++        };
++        let hit: Vec<f32> = status
++            .iter()
++            .map(|&s| if s == STATUS_HIT { 1.0 } else { 0.0 })
++            .collect();
++        let hit = Tensor::from_vec(hit, (rows, 1), device)?;
++        let value_index = Tensor::from_vec(value.to_vec(), rows, device)?;
++        let gate = candle_nn::ops::sigmoid(
++            &out.matmul(weight.as_tensor())?
++                .broadcast_add(bias.as_tensor())?,
++        )?;
++        let boost = gate.broadcast_mul(scale.as_tensor())?.broadcast_mul(&hit)?;
++        let onehot = value_index
++            .unsqueeze(1)?
++            .broadcast_eq(&Tensor::arange(0u32, vocab, device)?.unsqueeze(0)?)?
++            .to_dtype(DType::F32)?;
++        Ok(onehot.broadcast_mul(&boost)?)
++    }
+ }
+ 
+ /// The stack split after `split` layers, with tag and trigger heads there and,
+@@ -1384,6 +1510,11 @@ impl AermModel {
+                 copy_weight: zeros_var(&[width, 1], device)?,
+                 copy_bias: zeros_var(&[1], device)?,
+                 copy_scale: zeros_var(&[1], device)?,
++                status_previous: zeros_var(&[STATUSES, width], device)?,
++                projection_previous: zeros_var(&[width, width], device)?,
++                copy_weight_previous: zeros_var(&[width, 1], device)?,
++                copy_bias_previous: zeros_var(&[1], device)?,
++                copy_scale_previous: zeros_var(&[1], device)?,
+             })
+         } else {
+             None
+@@ -1415,6 +1546,11 @@ impl AermModel {
+                 + m.copy_weight.elem_count()
+                 + m.copy_bias.elem_count()
+                 + m.copy_scale.elem_count()
++                + m.status_previous.elem_count()
++                + m.projection_previous.elem_count()
++                + m.copy_weight_previous.elem_count()
++                + m.copy_bias_previous.elem_count()
++                + m.copy_scale_previous.elem_count()
+         });
+         (self.stack.parameter_count(), heads, memory)
+     }
+@@ -1432,6 +1568,11 @@ impl AermModel {
+             plain.push(m.copy_weight.clone());
+             plain.push(m.copy_bias.clone());
+             plain.push(m.copy_scale.clone());
++            decayed.push(m.status_previous.clone());
++            decayed.push(m.projection_previous.clone());
++            plain.push(m.copy_weight_previous.clone());
++            plain.push(m.copy_bias_previous.clone());
++            plain.push(m.copy_scale_previous.clone());
+         }
+         (decayed, plain)
+     }
+@@ -1458,66 +1599,67 @@ impl AermModel {
+     }
+ 
+     /// Next-token logits `[batch * time, vocabulary]` from the bottom's residual
+-    /// stream and the per-position registers (ignored without a memory branch).
+-    pub fn top(&self, hidden: &Tensor, status: &[u32], value: &[u32]) -> Result<Tensor> {
++    /// stream and the per-position register pairs (ignored without a memory
++    /// branch).
++    pub fn top(
++        &self,
++        hidden: &Tensor,
++        status: &[u32],
++        value: &[u32],
++        status_previous: &[u32],
++        value_previous: &[u32],
++    ) -> Result<Tensor> {
+         let (batch, time, width) = hidden.dims3()?;
+         let rows = batch * time;
+-        let device = self.stack.device();
+         let layers = self.stack.config.layers();
+         let Some(m) = &self.memory else {
+             let x = self.stack.run_layers(hidden.clone(), self.split..layers)?;
+             return self.stack.head(&self.stack.finish(x)?);
+         };
+-        if status.len() != rows || value.len() != rows {
++        if status.len() != rows
++            || value.len() != rows
++            || status_previous.len() != rows
++            || value_previous.len() != rows
++        {
+             return Err(invalid("one register per position"));
+         }
+-        if status.iter().any(|&s| s as usize >= STATUSES)
++        if status
++            .iter()
++            .chain(status_previous)
++            .any(|&s| s as usize >= STATUSES)
+             || value
+                 .iter()
++                .chain(value_previous)
+                 .any(|&v| v as usize >= self.stack.config.vocab_size)
+         {
+             return Err(invalid("register outside the status set or vocabulary"));
+         }
+-        let hit: Vec<f32> = status
+-            .iter()
+-            .map(|&s| if s == STATUS_HIT { 1.0 } else { 0.0 })
+-            .collect();
+-        let hit = Tensor::from_vec(hit, (rows, 1), device)?;
+-        let status_index = Tensor::from_vec(status.to_vec(), rows, device)?;
+-        let value_index = Tensor::from_vec(value.to_vec(), rows, device)?;
+         let embedding = self
+             .stack
+             .variables()
+             .get("embedding.weight")
+             .ok_or_else(|| invalid("the stack has no embedding"))?
+             .as_tensor();
+-        let value_rows = embedding
+-            .index_select(&value_index, 0)?
+-            .broadcast_mul(&hit)?;
+-        let side = m
+-            .status
+-            .as_tensor()
+-            .index_select(&status_index, 0)?
+-            .add(&value_rows.matmul(&m.projection.as_tensor().t()?)?)?
+-            .reshape((batch, time, width))?;
+-        let x = self
+-            .stack
+-            .run_layers(hidden.add(&side)?, self.split..layers)?;
++        let side_current = m.registers_side(embedding, batch, time, width, status, value, false)?;
++        let side_previous = m.registers_side(
++            embedding,
++            batch,
++            time,
++            width,
++            status_previous,
++            value_previous,
++            true,
++        )?;
++        let x = self.stack.run_layers(
++            hidden.add(&side_current.add(&side_previous)?)?,
++            self.split..layers,
++        )?;
+         let out = self.stack.finish(x)?;
+         let logits = self.stack.head(&out)?;
+-        let gate = candle_nn::ops::sigmoid(
+-            &out.matmul(m.copy_weight.as_tensor())?
+-                .broadcast_add(m.copy_bias.as_tensor())?,
+-        )?;
+-        let boost = gate
+-            .broadcast_mul(m.copy_scale.as_tensor())?
+-            .broadcast_mul(&hit)?;
+         let vocab = self.stack.config.vocab_size as u32;
+-        let onehot = value_index
+-            .unsqueeze(1)?
+-            .broadcast_eq(&Tensor::arange(0u32, vocab, device)?.unsqueeze(0)?)?
+-            .to_dtype(DType::F32)?;
+-        Ok(logits.add(&onehot.broadcast_mul(&boost)?)?)
++        let boost_current = m.copy_boost(&out, status, value, vocab, false)?;
++        let boost_previous = m.copy_boost(&out, status_previous, value_previous, vocab, true)?;
++        Ok(logits.add(&boost_current)?.add(&boost_previous)?)
+     }
+ }
+ 
+@@ -1526,7 +1668,8 @@ fn argmax_rows(logits: &Tensor) -> Result<Vec<u32>> {
+     Ok(logits.detach().argmax(D::Minus1)?.to_vec1::<u32>()?)
+ }
+ 
+-/// Registers from the model's own tags and triggers, one sequence at a time.
++/// Registers from the model's own tags and write triggers, one sequence at a
++/// time.
+ pub fn model_registers(
+     ids: &[u32],
+     tags: &[u32],
+@@ -1534,9 +1677,14 @@ pub fn model_registers(
+     batch: usize,
+     time: usize,
+     eos: u32,
+-) -> Result<(Vec<u32>, Vec<u32>)> {
+-    let mut status = Vec::with_capacity(batch * time);
+-    let mut value = Vec::with_capacity(batch * time);
++) -> Result<Registers> {
++    let mut out = Registers {
++        status: Vec::with_capacity(batch * time),
++        value: Vec::with_capacity(batch * time),
++        status_previous: Vec::with_capacity(batch * time),
++        value_previous: Vec::with_capacity(batch * time),
++        read_events: 0,
++    };
+     for b in 0..batch {
+         let range = b * time..(b + 1) * time;
+         let simulation = simulate(
+@@ -1545,10 +1693,13 @@ pub fn model_registers(
+             &triggers[range],
+             eos,
+         )?;
+-        status.extend(simulation.status);
+-        value.extend(simulation.value);
++        out.read_events += simulation.reads.len();
++        out.status.extend(simulation.status);
++        out.value.extend(simulation.value);
++        out.status_previous.extend(simulation.status_previous);
++        out.value_previous.extend(simulation.value_previous);
+     }
+-    Ok((status, value))
++    Ok(out)
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -1680,14 +1831,26 @@ pub fn train_aerm(
+         // Text.
+         let (ids, targets) = text_batch(text, &mut rng, batch, context)?;
+         let bottom = model.bottom(&ids, batch, context)?;
+-        let logits = model.top(&bottom.hidden, &silent_status, &silent_value)?;
++        let logits = model.top(
++            &bottom.hidden,
++            &silent_status,
++            &silent_value,
++            &silent_status,
++            &silent_value,
++        )?;
+         let text_loss = logits_cross_entropy(&logits, &targets, None)?;
+         let text_tag = head_loss(&bottom.tags, &text_tags, &text_ones)?;
+         let text_trigger = head_loss(&bottom.triggers, &text_triggers, &text_ones)?;
+         // Dialogues.
+         let dialogues = world.batch(&mut rng, batch, context, false)?;
+         let bottom = model.bottom(&dialogues.ids, batch, context)?;
+-        let logits = model.top(&bottom.hidden, &dialogues.status, &dialogues.value)?;
++        let logits = model.top(
++            &bottom.hidden,
++            &dialogues.status,
++            &dialogues.value,
++            &dialogues.status_previous,
++            &dialogues.value_previous,
++        )?;
+         let dialogue_loss =
+             logits_cross_entropy(&logits, &dialogues.targets, Some(&dialogues.response))?;
+         let tag_loss = head_loss(&bottom.tags, &dialogues.tags, &dialogues.real)?;
+@@ -1761,6 +1924,9 @@ pub struct DialogueEvaluation {
+     pub tag_accuracy: f64,
+     /// `[gold][predicted]` trigger counts over real positions.
+     pub trigger_confusion: [[usize; TRIGGERS]; TRIGGERS],
++    /// Model read events over the evaluated episodes (two per completed
++    /// address).
++    pub read_events: usize,
+     pub trace: BTreeMap<String, usize>,
+     /// The last query of the first episodes: gold and teacher-forced predictions.
+     pub examples: Vec<QueryExample>,
+@@ -1771,8 +1937,9 @@ pub struct QueryExample {
+     pub class: QueryClass,
+     pub gold_answer: Vec<u32>,
+     pub predicted_answer: Vec<u32>,
+-    pub register: (u32, u32),
+-    pub gold_register: (u32, u32),
++    /// `(status, value, status_previous, value_previous)`.
++    pub register: (u32, u32, u32, u32),
++    pub gold_register: (u32, u32, u32, u32),
+ }
+ 
+ impl DialogueEvaluation {
+@@ -1817,14 +1984,22 @@ pub fn evaluate_dialogues(
+                 result.trigger_confusion[data.triggers[row] as usize][triggers[row] as usize] += 1;
+             }
+         }
+-        let (status, value) =
+-            model_registers(&data.ids, &tags, &triggers, size, context, world.eos)?;
+-        let predicted = argmax_rows(&model.top(&bottom.hidden, &status, &value)?)?;
++        let registers = model_registers(&data.ids, &tags, &triggers, size, context, world.eos)?;
++        result.read_events += registers.read_events;
++        let predicted = argmax_rows(&model.top(
++            &bottom.hidden,
++            &registers.status,
++            &registers.value,
++            &registers.status_previous,
++            &registers.value_previous,
++        )?)?;
+         let oracle = if model.has_memory() {
+             Some(argmax_rows(&model.top(
+                 &bottom.hidden,
+                 &data.status,
+                 &data.value,
++                &data.status_previous,
++                &data.value_previous,
+             )?)?)
+         } else {
+             None
+@@ -1864,8 +2039,18 @@ pub fn evaluate_dialogues(
+                     trap.oracle_correct += usize::from(oracle_correct);
+                 }
+                 let check = slot_row.unwrap_or(query.answer_start - 1);
+-                let register = (status[base + check], value[base + check]);
+-                let gold_register = (data.status[base + check], data.value[base + check]);
++                let register = (
++                    registers.status[base + check],
++                    registers.value[base + check],
++                    registers.status_previous[base + check],
++                    registers.value_previous[base + check],
++                );
++                let gold_register = (
++                    data.status[base + check],
++                    data.value[base + check],
++                    data.status_previous[base + check],
++                    data.value_previous[base + check],
++                );
+                 if model.has_memory() && !correct {
+                     let class = trace(
+                         episode,
+@@ -1900,8 +2085,8 @@ fn trace(
+     query: &Query,
+     tags: &[u32],
+     triggers: &[u32],
+-    register: (u32, u32),
+-    gold_register: (u32, u32),
++    register: (u32, u32, u32, u32),
++    gold_register: (u32, u32, u32, u32),
+     eos: u32,
+ ) -> Result<TraceClass> {
+     if register == gold_register {
+@@ -1977,8 +2162,16 @@ pub fn text_nll(
+         let tags = argmax_rows(&bottom.tags)?;
+         let triggers = argmax_rows(&bottom.triggers)?;
+         fired += triggers.iter().filter(|&&t| t != TRIGGER_NONE).count();
+-        let (status, value) = model_registers(&ids, &tags, &triggers, chunk.len(), context, eos)?;
+-        let logits = model.top(&bottom.hidden, &status, &value)?.detach();
++        let registers = model_registers(&ids, &tags, &triggers, chunk.len(), context, eos)?;
++        let logits = model
++            .top(
++                &bottom.hidden,
++                &registers.status,
++                &registers.value,
++                &registers.status_previous,
++                &registers.value_previous,
++            )?
++            .detach();
+         let loss = logits_cross_entropy(&logits, &targets, None)?;
+         total += f64::from(loss.to_scalar::<f32>()?) * ids.len() as f64;
+         count += ids.len();
+@@ -2020,8 +2213,14 @@ pub fn free_running(
+             let bottom = model.bottom(&ids, 1, time)?;
+             let tags = argmax_rows(&bottom.tags)?;
+             let triggers = argmax_rows(&bottom.triggers)?;
+-            let (status, value) = model_registers(&ids, &tags, &triggers, 1, time, world.eos)?;
+-            let logits = model.top(&bottom.hidden, &status, &value)?;
++            let registers = model_registers(&ids, &tags, &triggers, 1, time, world.eos)?;
++            let logits = model.top(
++                &bottom.hidden,
++                &registers.status,
++                &registers.value,
++                &registers.status_previous,
++                &registers.value_previous,
++            )?;
+             let next = argmax_rows(&logits.narrow(0, time - 1, 1)?)?[0];
+             generated.push(next);
+             ids.push(next);
+@@ -2163,18 +2362,29 @@ mod tests {
+             let gold = simulate(&episode.tokens, &episode.tags, &episode.triggers, 1)?;
+             for query in &episode.queries {
+                 *classes.entry(query.class).or_insert(0) += 1;
+-                let register = (
+-                    gold.status[query.answer_start - 1],
+-                    gold.value[query.answer_start - 1],
+-                );
++                let check = query.answer_start - 1;
+                 match query.value {
+                     Some(value) => {
+-                        assert_eq!(register, (STATUS_HIT, value));
++                        // Previous-value queries are answered by the previous
++                        // register; every other class by the current register.
++                        let (status, register_value) = if query.class == QueryClass::Previous {
++                            (gold.status_previous[check], gold.value_previous[check])
++                        } else {
++                            (gold.status[check], gold.value[check])
++                        };
++                        assert_eq!((status, register_value), (STATUS_HIT, value));
+                         let slot = query.value_position.expect("value slot");
+                         assert_eq!(episode.tokens[slot], value);
+                         assert_eq!(episode.response_mask[slot], 1);
+                     }
+-                    None => assert_ne!(register.0, STATUS_HIT),
++                    None if query.class == QueryClass::PreviousAbsent => {
++                        assert_eq!(gold.status[check], STATUS_HIT);
++                        assert_ne!(gold.status_previous[check], STATUS_HIT);
++                    }
++                    None => {
++                        assert_ne!(gold.status[check], STATUS_HIT);
++                        assert_ne!(gold.status_previous[check], STATUS_HIT);
++                    }
+                 }
+                 assert_eq!(episode.tokens[query.answer_end], 1);
+             }
+@@ -2195,6 +2405,170 @@ mod tests {
+         Ok(())
+     }
+ 
++    #[test]
++    fn an_address_tag_reads_without_any_read_trigger() -> Result<()> {
++        // Turn 1 writes (entity 10, relation 20) = 30. Turn 2 queries the same
++        // key. No token carries a read trigger in either turn, and the write
++        // still sees a complete clause: the read neither needs a trigger nor
++        // closes the clause.
++        let eos = 1u32;
++        let tokens = vec![0u32, 10, 20, 30, 40, eos, 10, 20, 41, eos];
++        let tags = vec![
++            TAG_OTHER,
++            TAG_ENTITY,
++            TAG_RELATION,
++            TAG_VALUE,
++            TAG_OTHER,
++            TAG_OTHER,
++            TAG_ENTITY,
++            TAG_RELATION,
++            TAG_OTHER,
++            TAG_OTHER,
++        ];
++        let triggers = vec![
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_WRITE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++        ];
++        let simulation = simulate(&tokens, &tags, &triggers, eos)?;
++        assert_eq!(
++            simulation.store.record(10, 20).map(|r| r.value),
++            Some(30),
++            "the write after the read still saw the open clause"
++        );
++        // The read fired at the relation tag of turn 2 with no trigger.
++        assert_eq!(simulation.reads.len(), 4);
++        let read = simulation
++            .reads
++            .iter()
++            .find(|r| r.position == 7 && !r.previous)
++            .expect("current read at the held-out address tag");
++        assert_eq!(read.key, Some((10, 20)));
++        assert_eq!((read.status, read.value), (STATUS_HIT, 30));
++        // The register persists to the end of the query turn.
++        assert_eq!(
++            (simulation.status[9], simulation.value[9]),
++            (STATUS_HIT, 30)
++        );
++        Ok(())
++    }
++
++    #[test]
++    fn different_trailing_phrases_do_not_change_the_read() -> Result<()> {
++        // The D2 failure: a trigger learned at the end of the training query
++        // template never fired on a held-out ending. The address tags are the
++        // same in both endings, so the always-on read must be identical.
++        let eos = 1u32;
++        let prefix = vec![0u32, 10, 20, 30, 40, eos];
++        let prefix_tags = vec![
++            TAG_OTHER,
++            TAG_ENTITY,
++            TAG_RELATION,
++            TAG_VALUE,
++            TAG_OTHER,
++            TAG_OTHER,
++        ];
++        let prefix_triggers = vec![
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_NONE,
++            TRIGGER_WRITE,
++            TRIGGER_NONE,
++        ];
++        let run = |query: &[u32], query_tags: &[u32]| -> Result<Simulation> {
++            let mut tokens = prefix.clone();
++            tokens.extend_from_slice(query);
++            let mut tags = prefix_tags.clone();
++            tags.extend_from_slice(query_tags);
++            let mut triggers = prefix_triggers.clone();
++            triggers.extend(std::iter::repeat_n(TRIGGER_NONE, query.len()));
++            simulate(&tokens, &tags, &triggers, eos)
++        };
++        let train = run(
++            &[10, 20, 41, eos],
++            &[TAG_ENTITY, TAG_RELATION, TAG_OTHER, TAG_OTHER],
++        )?;
++        let held = run(
++            &[20, 50, 10, 60, 61, 42, eos],
++            &[
++                TAG_RELATION,
++                TAG_OTHER,
++                TAG_ENTITY,
++                TAG_OTHER,
++                TAG_OTHER,
++                TAG_OTHER,
++                TAG_OTHER,
++            ],
++        )?;
++        let last = |s: &Simulation| (s.status[s.status.len() - 1], s.value[s.status.len() - 1]);
++        assert_eq!(last(&train), (STATUS_HIT, 30));
++        assert_eq!(last(&held), (STATUS_HIT, 30));
++        assert!(held.reads.iter().any(|r| r.key == Some((10, 20))));
++        Ok(())
++    }
++
++    #[test]
++    fn the_previous_register_follows_updates_and_reassertions() -> Result<()> {
++        let eos = 1u32;
++        let turn = |value: u32| -> (Vec<u32>, Vec<u32>, Vec<u32>) {
++            (
++                vec![10, 20, value, 40],
++                vec![TAG_ENTITY, TAG_RELATION, TAG_VALUE, TAG_OTHER],
++                vec![TRIGGER_NONE, TRIGGER_NONE, TRIGGER_NONE, TRIGGER_WRITE],
++            )
++        };
++        let mut tokens = vec![0u32];
++        let mut tags = vec![TAG_OTHER];
++        let mut triggers = vec![TRIGGER_NONE];
++        for value in [30, 31, 31] {
++            let (t, g, r) = turn(value);
++            tokens.extend(t);
++            tags.extend(g);
++            triggers.extend(r);
++            tokens.push(eos);
++            tags.push(TAG_OTHER);
++            triggers.push(TRIGGER_NONE);
++        }
++        tokens.extend([10, 20, eos]);
++        tags.extend([TAG_ENTITY, TAG_RELATION, TAG_OTHER]);
++        triggers.extend([TRIGGER_NONE, TRIGGER_NONE, TRIGGER_NONE]);
++        let simulation = simulate(&tokens, &tags, &triggers, eos)?;
++        let last = simulation.status.len() - 1;
++        assert_eq!(
++            (simulation.status[last], simulation.value[last]),
++            (STATUS_HIT, 31)
++        );
++        assert_eq!(
++            (
++                simulation.status_previous[last],
++                simulation.value_previous[last]
++            ),
++            (STATUS_HIT, 30),
++            "the same-value reassertion kept the previous distinct value"
++        );
++        Ok(())
++    }
++
++    #[test]
++    fn untagged_text_is_register_silent() -> Result<()> {
++        let tokens: Vec<u32> = (0..64).collect();
++        let tags = vec![TAG_OTHER; tokens.len()];
++        let triggers = vec![TRIGGER_NONE; tokens.len()];
++        let simulation = simulate(&tokens, &tags, &triggers, 1)?;
++        assert!(simulation.reads.is_empty());
++        assert!(simulation.status.iter().all(|&s| s == STATUS_NONE));
++        assert!(simulation.status_previous.iter().all(|&s| s == STATUS_NONE));
++        Ok(())
++    }
++
+     #[test]
+     fn many_episodes_never_evict_their_facts() -> Result<()> {
+         // D2's first attempt stopped after about 3,000 training episodes when
+@@ -2232,7 +2606,7 @@ mod tests {
+         let status: Vec<u32> = (0..32).map(|i| (i % 4) as u32).collect();
+         let value: Vec<u32> = (0..32).map(|i| (i * 13 % 400) as u32).collect();
+         let split = model
+-            .top(&bottom.hidden, &status, &value)?
++            .top(&bottom.hidden, &status, &value, &status, &value)?
+             .to_vec2::<f32>()?;
+         for (a, b) in reference.iter().flatten().zip(split.iter().flatten()) {
+             assert!((a - b).abs() < 1e-5, "{a} vs {b}");
+@@ -2261,7 +2635,13 @@ mod tests {
+         let mut rng = Rng::new(3);
+         let data = world.batch(&mut rng, 2, 256, false)?;
+         let bottom = model.bottom(&data.ids, 2, 256)?;
+-        let logits = model.top(&bottom.hidden, &data.status, &data.value)?;
++        let logits = model.top(
++            &bottom.hidden,
++            &data.status,
++            &data.value,
++            &data.status_previous,
++            &data.value_previous,
++        )?;
+         let loss = logits_cross_entropy(&logits, &data.targets, Some(&data.response))?;
+         let grads = loss.backward()?;
+         let m = model.memory.as_ref().expect("memory branch");
+@@ -2269,6 +2649,9 @@ mod tests {
+             ("status", &m.status),
+             ("projection", &m.projection),
+             ("scale", &m.copy_scale),
++            ("status_previous", &m.status_previous),
++            ("projection_previous", &m.projection_previous),
++            ("scale_previous", &m.copy_scale_previous),
+         ] {
+             let grad = grads.get(var.as_tensor()).expect("gradient");
+             let norm = grad.sqr()?.sum_all()?.to_scalar::<f32>()?;
+diff --git a/docs/evidence/g1-always-on-read-2026-09-28.json b/docs/evidence/g1-always-on-read-2026-09-28.json
+new file mode 100644
+index 000000000..6a2951d3a
+--- /dev/null
++++ b/docs/evidence/g1-always-on-read-2026-09-28.json
+@@ -0,0 +1,298 @@
++{
++ "schema": "uor-r4.lab2.g1-always-on-read-evidence/1",
++ "preregistration": "https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5876711862",
++ "code_commit": "d8a11080",
++ "executable_sha256": "71dbdd6de07a8715e706a507bc54d299ff2872668a49df59bb3aa8e87efb0b43",
++ "supervision": {
++  "receipt": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1.supervision.json",
++  "started_utc": "2026-09-28T19:27:54Z",
++  "finished_utc": "2026-09-28T22:53:41Z",
++  "wall_seconds": 12347,
++  "hard_caps": "",
++  "seeds": {
++   "1": {
++    "manifest_sha256": "8f918ac0502bdb63bcf8894470d99c886238db67f3d600aad50314128b3762cc",
++    "runs": [
++     "aerm-s1.json",
++     "control-s1.json"
++    ]
++   },
++   "2": {
++    "manifest_sha256": "9861149b83fb4391824b56790a13a475a62a6952f4f2293bb33574e0b32a837d",
++    "runs": [
++     "aerm-s2.json",
++     "control-s2.json"
++    ]
++   },
++   "3": {
++    "manifest_sha256": "55730477d9ca88e458f9d34038bc94452fbb987b641e0ede38062c1f5e90f328",
++    "runs": [
++     "aerm-s3.json",
++     "control-s3.json"
++    ]
++   }
++  }
++ },
++ "gate": {
++  "outcome": "FAIL",
++  "gates": {
++   "every_seed": true,
++   "held_out_updated_accuracy_at_least": 0.9,
++   "parameter_relative_tolerance": 0.0005,
++   "text_nll_delta_at_most": 0.05
++  },
++  "seeds": [
++   {
++    "aerm_text_nll": 2.3738267198204994,
++    "aerm_total_parameters": 1428816.0,
++    "complete": true,
++    "control_held_out_updated": 0.4652014652014652,
++    "control_text_nll": 2.390003204345703,
++    "control_total_parameters": 1428556.0,
++    "control_updated": 0.8979591836734694,
++    "held_out_first": 0.2152777777777778,
++    "held_out_pass": false,
++    "held_out_updated": 0.1575091575091575,
++    "in_distribution_updated": 1.0,
++    "margin": 0.10204081632653061,
++    "parameters_pass": true,
++    "pass": false,
++    "read_events": 2294,
++    "seed": 1,
++    "text_delta": -0.016176484525203705,
++    "text_pass": true,
++    "trace": {
++     "Emission": 1,
++     "NotSelected": 175,
++     "Unavailable": 460
++    }
++   },
++   {
++    "aerm_text_nll": 2.384031631052494,
++    "aerm_total_parameters": 1428816.0,
++    "complete": true,
++    "control_held_out_updated": 0.7728937728937729,
++    "control_text_nll": 2.3958400264382362,
++    "control_total_parameters": 1428556.0,
++    "control_updated": 0.8950437317784257,
++    "held_out_first": 0.1875,
++    "held_out_pass": false,
++    "held_out_updated": 0.07326007326007326,
++    "in_distribution_updated": 1.0,
++    "margin": 0.10495626822157433,
++    "parameters_pass": true,
++    "pass": false,
++    "read_events": 2574,
++    "seed": 2,
++    "text_delta": -0.011808395385742188,
++    "text_pass": true,
++    "trace": {
++     "Emission": 15,
++     "NotSelected": 172,
++     "Unavailable": 484
++    }
++   },
++   {
++    "aerm_text_nll": 2.3647860661149025,
++    "aerm_total_parameters": 1428816.0,
++    "complete": true,
++    "control_held_out_updated": 0.8131868131868132,
++    "control_text_nll": 2.3982851281762123,
++    "control_total_parameters": 1428556.0,
++    "control_updated": 0.8979591836734694,
++    "held_out_first": 0.3680555555555556,
++    "held_out_pass": false,
++    "held_out_updated": 0.029304029304029304,
++    "in_distribution_updated": 1.0,
++    "margin": 0.10204081632653061,
++    "parameters_pass": true,
++    "pass": false,
++    "read_events": 2706,
++    "seed": 3,
++    "text_delta": -0.033499062061309814,
++    "text_pass": true,
++    "trace": {
++     "Emission": 20,
++     "NotSelected": 59,
++     "Unavailable": 519
++    }
++   }
++  ]
++ },
++ "roots": [
++  {
++   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1-s1",
++   "manifest_sha256": "8f918ac0502bdb63bcf8894470d99c886238db67f3d600aad50314128b3762cc",
++   "files": [
++    {
++     "blake3": "168113b9d397556ecd0e4d232f18efa1cd7967a8e2a731647f4639bcde2ef7de",
++     "bytes": 637,
++     "path": "attempt.json"
++    },
++    {
++     "blake3": "eb570a9a14b447521a578a4c9763214d69f4ea41f455c5a0e942b1730dfc9360",
++     "bytes": 46396,
++     "path": "runs/aerm-s1.json"
++    },
++    {
++     "blake3": "472f866d4e2babd35a94eb86b2f5cecd10ed61608a7e3f11ff0bc43b0c12cd11",
++     "bytes": 46361,
++     "path": "runs/control-s1.json"
++    },
++    {
++     "blake3": "3f311d73c600d416e1133ae5149f4a34e6bfc81531f5d6e807970787db1f1527",
++     "bytes": 8029,
++     "path": "summary.json"
++    }
++   ],
++   "runs": {
++    "aerm-s1": {
++     "parameters_total": 1428816,
++     "read_policy": "always_on_address_driven",
++     "held_out_updated": {
++      "correct": 43,
++      "oracle_correct": 221,
++      "queries": 273,
++      "whole_answer_correct": 41
++     },
++     "held_out_trace": {
++      "Emission": 1,
++      "NotSelected": 175,
++      "Unavailable": 460
++     },
++     "read_events": 2294,
++     "text_dev_nll": 2.3738267198204994
++    },
++    "control-s1": {
++     "parameters_total": 1428556,
++     "read_policy": "always_on_address_driven",
++     "held_out_updated": {
++      "correct": 127,
++      "oracle_correct": 0,
++      "queries": 273,
++      "whole_answer_correct": 99
++     },
++     "held_out_trace": {},
++     "read_events": 2692,
++     "text_dev_nll": 2.390003204345703
++    }
++   }
++  },
++  {
++   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1-s2",
++   "manifest_sha256": "9861149b83fb4391824b56790a13a475a62a6952f4f2293bb33574e0b32a837d",
++   "files": [
++    {
++     "blake3": "9f59dcb4063271fce9d534286660294d7f04e7d4961f1315913d58d1d8d1fa90",
++     "bytes": 637,
++     "path": "attempt.json"
++    },
++    {
++     "blake3": "6a2eb4f32919d51c21ba7a73e58a5f033835c22d0acd06d79eababc538a64eb1",
++     "bytes": 46350,
++     "path": "runs/aerm-s2.json"
++    },
++    {
++     "blake3": "0a2e35e836a10dede85e10f2ad1571b1155ea5a250e7c4c738388885fc70449f",
++     "bytes": 46374,
++     "path": "runs/control-s2.json"
++    },
++    {
++     "blake3": "5aaa35e650665df5af7588b263a66fea9b5d819205218acf9bebfd9b6be1baf0",
++     "bytes": 8029,
++     "path": "summary.json"
++    }
++   ],
++   "runs": {
++    "aerm-s2": {
++     "parameters_total": 1428816,
++     "read_policy": "always_on_address_driven",
++     "held_out_updated": {
++      "correct": 20,
++      "oracle_correct": 228,
++      "queries": 273,
++      "whole_answer_correct": 15
++     },
++     "held_out_trace": {
++      "Emission": 15,
++      "NotSelected": 172,
++      "Unavailable": 484
++     },
++     "read_events": 2574,
++     "text_dev_nll": 2.384031631052494
++    },
++    "control-s2": {
++     "parameters_total": 1428556,
++     "read_policy": "always_on_address_driven",
++     "held_out_updated": {
++      "correct": 211,
++      "oracle_correct": 0,
++      "queries": 273,
++      "whole_answer_correct": 189
++     },
++     "held_out_trace": {},
++     "read_events": 3332,
++     "text_dev_nll": 2.3958400264382362
++    }
++   }
++  },
++  {
++   "root": "/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/g1-s3",
++   "manifest_sha256": "55730477d9ca88e458f9d34038bc94452fbb987b641e0ede38062c1f5e90f328",
++   "files": [
++    {
++     "blake3": "3c16e06489516d22f52895473897842d317e4e86eb91f7a327176de9b74f225c",
++     "bytes": 637,
++     "path": "attempt.json"
++    },
++    {
++     "blake3": "8882a755c79cf86a9ba91e13ae10bd8e4137f942e3691aa8f09a8781becacf31",
++     "bytes": 46388,
++     "path": "runs/aerm-s3.json"
++    },
++    {
++     "blake3": "3eb0043205f4254b9d8e2470b939c62ac66fe74877ff5432c18088ce580b54e4",
++     "bytes": 46376,
++     "path": "runs/control-s3.json"
++    },
++    {
++     "blake3": "2524cb4b2fbd7b4ffcd124d099ae585c2cbeb74091f6a17aa9927872e2521886",
++     "bytes": 8029,
++     "path": "summary.json"
++    }
++   ],
++   "runs": {
++    "aerm-s3": {
++     "parameters_total": 1428816,
++     "read_policy": "always_on_address_driven",
++     "held_out_updated": {
++      "correct": 8,
++      "oracle_correct": 185,
++      "queries": 273,
++      "whole_answer_correct": 7
++     },
++     "held_out_trace": {
++      "Emission": 20,
++      "NotSelected": 59,
++      "Unavailable": 519
++     },
++     "read_events": 2706,
++     "text_dev_nll": 2.3647860661149025
++    },
++    "control-s3": {
++     "parameters_total": 1428556,
++     "read_policy": "always_on_address_driven",
++     "held_out_updated": {
++      "correct": 222,
++      "oracle_correct": 0,
++      "queries": 273,
++      "whole_answer_correct": 144
++     },
++     "held_out_trace": {},
++     "read_events": 2866,
++     "text_dev_nll": 2.3982851281762123
++    }
++   }
++  }
++ ]
++}
+\ No newline at end of file
+diff --git a/docs/integration/g1-always-on-read-result-2026-09-28.md b/docs/integration/g1-always-on-read-result-2026-09-28.md
+new file mode 100644
+index 000000000..985c46ee1
+--- /dev/null
++++ b/docs/integration/g1-always-on-read-result-2026-09-28.md
+@@ -0,0 +1,64 @@
++# G v1: the always-on address-driven read — result
++
++September 28, 2026. References #973 and #820.
++- **Lab:** Lab 2 (OpenCode), code commit `d8a11080` ([#1469](https://github.com/UOR-Foundation/uor-r4/pull/1469)).
++- **Pre-registration:** [#973 comment 5876711862](https://github.com/UOR-Foundation/uor-r4/issues/973#issuecomment-5876711862), posted before any fit.
++- **Evidence:** [g1-always-on-read-2026-09-28.json](../evidence/g1-always-on-read-2026-09-28.json), assembled from the sealed roots; supervision receipt `g1.supervision.json` beside them.
++
++**Status.** Complete, three seeds, six runs, all roots sealed with manifests and no error. **The frozen gate FAILS in every seed.** Under [D12](DECISIONS.md#d12--gates-promote-never-kill-reopen-geometric-candidates-port-the-native-engines-mechanisms-keep-a-geometric-toolbox) (gates promote, never kill), this is **not yet promoted at this scope**: the exact store and G stay active, and the diagnosed next step is recorded below. No seed, dose or codebook sweep follows.
++
++## What was tested
++
++D2's failure was the **read**: a learned per-token trigger placed on the last user-turn token fired 0 of 826 gold reads on held-out query phrasing, giving held-out Updated accuracy 0.000/0.000/0.015 (with a gold register, 1.000). G v1 changes exactly one policy: an entity or relation tag with a defined address reads the exact store **always** — both the current and the previous register — at the token that completes the address; reads no longer close the clause, and the trigger head, its gold labels and its loss are unchanged. The memory branch carries a full sub-branch per register. Everything else (world, data, schedule, seeds, evaluation, control) is D2's.
++
++## The gate
++
++Applied mechanically by `aerm-probe summarize … gates=g1`; the registered gate is held-out-template Updated accuracy ≥ 0.90 in every seed, with an equal-parameter control and development text NLL within 0.05.
++
++| Seed | Memory arm, held-out Updated | Control, held-out Updated | Text NLL memory − control | Parameters memory / control |
++|---:|---:|---:|---:|---:|
++| 1 | **0.1575** (43/273) | 0.4652 (127/273) | −0.0162 | 1,428,816 / 1,428,556 |
++| 2 | **0.0733** (20/273) | 0.7729 (211/273) | −0.0118 | 1,428,816 / 1,428,556 |
++| 3 | **0.0293** (8/273) | 0.8132 (222/273) | −0.0335 | 1,428,816 / 1,428,556 |
++
++**Outcome: FAIL.** Held-out Updated misses 0.90 in every seed; the text gate (≤ 0.05) and parameter parity (0.018 %) pass.
++
++## Measured beside the gate (reported, not gated)
++
++**Held-out templates and names** (correct/total):
++
++| Class | Memory, seeds 1/2/3 | Control, seeds 1/2/3 |
++|---|---|---|
++| First | 31/144, 27/144, 53/144 | 41/144, 57/144, 75/144 |
++| **Updated** | **43/273, 20/273, 8/273** | **127/273, 211/273, 222/273** |
++| Reasserted | 10/31, 7/31, 15/31 | 14/31, 22/31, 22/31 |
++| Previous | 60/195, 41/195, 39/195 | 43/195, 44/195, 54/195 |
++| PreviousAbsent | 141/157, 149/157, 135/157 | 39/157, 100/157, 79/157 |
++| Absent | 257/378, 263/378, 330/378 | 3/378, 107/378, 90/378 |
++| Updated recency trap | 7/24, 3/24, 1/24 | 7/24, 13/24, 10/24 |
++
++**In-distribution, fresh dialogues:** the memory arm is **perfect on every non-abstaining class** (138/138 First, 343/343 Updated, 26/26 Reasserted, 159/159 Previous, 168/168 PreviousAbsent) and free-running exact **32/32** in every seed. The control's seed-1 figures are 71/138, 308/343, 19/26, 88/159, 67/168 with free-running 21/14/24 (seeds 2–3: 307/343, 97/159 and 308/343, 95/159).
++
++**Read diagnostics.** `read_events` 2,294 / 2,574 / 2,706 — the always-on read **does fire** (D2's trigger fired ~0). Failure trace: `Unavailable` 460 / 484 / 519, `NotSelected` 175 / 172 / 59, `Emission` 1 / 15 / 20, `WrongValue` absent (no key). Tag accuracy 0.975 / 0.974 / 0.977.
++
++## Reading
++
++1. **The always-on read removed the measured trigger failure and did not recover held-out accuracy.** Reads fire whenever the model's own tags define an address, yet held-out Updated improves only from 0.000/0.000/0.015 to 0.158/0.073/0.029 — nowhere near 0.90.
++2. **The dominant held-out failure is now `Unavailable`:** the model's own store diverges from the gold store at the query key on held-out episodes. In D2 the dominant failure was a read that never fired (`NotSelected`); with reads always on, the surviving failures are on the **write/key side** — role-tag or address-key formation under unseen names and phrasings, not the read decision. The trace is coarse and does not separate a missed write from a wrong key from an eviction.
++3. **The exact-store arm is more overfit to the training phrasings than the equal-parameter dense control on this world.** In distribution it is perfect where the control is not; held out, the control's recency-like policy answers Updated 0.47–0.81 while the store arm answers 0.03–0.16. Abstention (`Absent`, `PreviousAbsent`) still generalises far better in the memory arm.
++4. **The always-on read is not yet promoted at this scope.** It is necessary for reads to fire but **not sufficient** for language-to-address generalisation at 1.4M probe scale. D12 keeps the exact store and G active; the failing seam is recorded as this mechanism's next diagnosed step.
++
++**Next unit (recommendation, for the shared-model blocker).** A bounded diagnostic on the same world and roots that separates the `Unavailable` cause — role-tag/address-key errors by slot and class, missed writes, and eviction. If the split is address-key formation, the next intervention targets held-out-name/phrasing tag generalisation with the same control; if it is writes, the write path. This is the recorded step under D12 item 1 and the D2/G reopening (D12 item 2, "I1's store, with G's learned read aimed at held-out phrasing"), together with the reopened geometric candidates that belong to G: the geometric sparse index with magnitude carried, and 2I/E8 read codes trained in rather than snapped post hoc. No store rewrite follows from this negative.
++
++## Scope and limits
++
++- One parent (D2's world and schedule), one read policy, three seeds, a 1.4M-parameter probe on synthetic single-token slots with five template families; evaluation on 512 fresh and 512 held-out episodes plus 32 free-running answers.
++- The trace is a four-class diagnostic, not a decomposition of the store divergence.
++- No trained weights are saved by this runner; the sealed roots hold reports only.
++- This audits the **probe's** exact-store interface, not the stack's Lorentz read, and establishes no serving, dialogue or general-language claim.
++
++## Resources
++
++- **Run:** 19:27:54Z → 22:53:41Z, **12,347 s wall**; three processes × 2 Rayon threads; per-process 12,305–12,315 s; peak sampled RSS 1.54 / 1.70 / 1.68 GiB (3 GiB guard never approached); ~100 MB under `/Volumes/UOR-Workspace/uor-r4-lab/opencode-g1-gread/`.
++- **Guard history:** the pre-registered 9,000 s wall guard was extended twice (to 12,000 s then a 14,500 s hard ceiling) because the owner-authorized merge review's `rustc`/`cargo test` ran concurrently (load average 18–35); both extensions are recorded prospectively on #973 before use. The monitor loop was handed to the lead before the first guard; the run completed with no guard kill. All fixed conditions and the gate are unchanged.
++- **Preparation/build/check:** ~1,100 s plus a 6.6-minute focused test build; the independent review and its two lead-run checks are linked from #1469.

@@ -1,0 +1,420 @@
+diff --git a/crates/uor-r4-core/src/transformerless/score_runtime.rs b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+index 8b69cf49f..971f56efd 100644
+--- a/crates/uor-r4-core/src/transformerless/score_runtime.rs
++++ b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+@@ -988,6 +988,222 @@ impl GraphScorer {
+             witness,
+         })
+     }
++
++    /// The pre-redesign Σ-over-cloud scoring formula retained for Gate C
++    /// side-by-side comparison (issue #64). Unlike [`score_candidates`],
++    /// this applies emission residuals from **all** active regions and all
++    /// predicted regions regardless of their refinement relationship; EXCT
++    /// evidence is added on top of the graph score without precedence. This
++    /// is the formula that produced 0.3% top-1 agreement in the measured
++    /// M.V.G. checkpoint (graph scorer without EXCT: 70.47 bits/token; one
++    /// token received +91.7 nats from 13 stacked sibling-subtree lists).
++    /// Not the shipping semantics — [`score_candidates`] is.
++    pub fn score_candidates_legacy(&self, sig: &[u8; SIG_BYTES]) -> Result<ScoreOutcome, String> {
++        let mut k = OpKernel::default();
++
++        // Active cloud A: top-M memberships at each depth (same selection
++        // as Rule 1 — the difference is only in how the evidence is applied).
++        let mut active: Vec<ActiveRegion> = Vec::new();
++        for depth in 1..=self.max_depth {
++            for (region, dist) in binary_memberships(&mut k, &self.pop, &self.regions, depth, sig) {
++                let radius = u32::from(self.regions[region as usize].radius);
++                if dist > radius {
++                    continue;
++                }
++                let margin = radius as i64 - dist as i64;
++                active.push(ActiveRegion {
++                    region,
++                    depth: depth as u8,
++                    distance: dist as u16,
++                    margin: margin.clamp(i16::MIN as i64, i16::MAX as i64) as i16,
++                });
++            }
++        }
++        active.sort_by_key(|a| a.region);
++
++        // Predicted cloud F: same construction as Rule 1.
++        let active_nodes: BTreeSet<u32> = active.iter().map(|a| a.region + 1).collect();
++        let mut best_edge: BTreeMap<u32, EdgeUse> = BTreeMap::new();
++        for &node in &active_nodes {
++            if let Some(edges) = self.forward_by_src.get(&node) {
++                for edge in edges {
++                    k.table_reads += 1;
++                    let better = match best_edge.get(&edge.dst) {
++                        None => true,
++                        Some(current) => {
++                            k.compares += 1;
++                            (edge.score_q, std::cmp::Reverse(edge.edge_id))
++                                > (current.score_q, std::cmp::Reverse(current.edge_id))
++                        }
++                    };
++                    if better {
++                        best_edge.insert(edge.dst, *edge);
++                    }
++                }
++            }
++        }
++        let predicted: Vec<u32> = best_edge.keys().copied().collect();
++        let edges_applied: Vec<EdgeUse> = best_edge.values().copied().collect();
++        let mut transition_offset = ScoreQ::ZERO;
++        for edge in &edges_applied {
++            transition_offset = transition_offset.saturating_add(edge.score_q);
++            k.adds += 1;
++        }
++
++        // OLD FORMULA (the bug): ALL active AND predicted nodes contribute
++        // emission residuals — no chain selection, no sibling-stacking
++        // prevention. Correlated sibling distributions stack here.
++        let mut candidates: BTreeMap<u32, (ScoreQ, Vec<Contribution>)> = BTreeMap::new();
++        let mut contributing: BTreeSet<u32> = active_nodes.clone();
++        for &node in &predicted {
++            contributing.insert(node);
++        }
++        for &node in &contributing {
++            let emissions = &self.emissions[(node - 1) as usize];
++            for (&token, &value) in emissions {
++                k.candidate_scans += 1;
++                k.table_reads += 1;
++                let entry = candidates
++                    .entry(token)
++                    .or_insert_with(|| (ScoreQ::ZERO, Vec::new()));
++                if entry.1.is_empty() {
++                    entry.1.push(Contribution {
++                        id: ContributionId::RootPrior { token },
++                        value: self.root_score(token),
++                    });
++                }
++                // No chain-node filter: every contributing node applies its
++                // emission residual, stacking sibling evidence.
++                entry.0 = entry.0.saturating_add(value);
++                k.adds += 1;
++                entry.1.push(Contribution {
++                    id: ContributionId::Emission { node, token },
++                    value,
++                });
++            }
++        }
++        // Root prior top-B tokens join the candidate set.
++        for &token in &self.root_top {
++            k.table_reads += 1;
++            let entry = candidates
++                .entry(token)
++                .or_insert_with(|| (ScoreQ::ZERO, Vec::new()));
++            if entry.1.is_empty() {
++                entry.1.push(Contribution {
++                    id: ContributionId::RootPrior { token },
++                    value: self.root_score(token),
++                });
++            }
++        }
++
++        // EXCT: added on top of the graph score without D4 precedence —
++        // the exact-context signal is simply another addend, so an
++        // unrelated stacked graph branch can still dominate.
++        let mut exct_probe: Option<ExctProbe> = None;
++        if let (Some(store), Some(art)) = (&self.store, &self.artifacts) {
++            let code = runtime::assign_plain(art, sig);
++            for level in (0..=STAGES).rev() {
++                if let Some(dist) = store[level].get(&code[..level]) {
++                    let total: u32 = dist.values().sum();
++                    let mut ranked: Vec<(u32, u32)> = dist.iter().map(|(&t, &c)| (t, c)).collect();
++                    ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
++                    let supported = total >= EXCT_SUPPORT_MIN;
++                    let mut admitted = 0u32;
++                    if supported {
++                        for &(token, count) in ranked.iter().take(self.exct_top_x) {
++                            k.table_reads += 1;
++                            let value = quantize_exct(count, total, self.vocab)
++                                .saturating_sub(self.root_score(token));
++                            let entry = candidates
++                                .entry(token)
++                                .or_insert_with(|| (ScoreQ::ZERO, Vec::new()));
++                            if entry.1.is_empty() {
++                                entry.1.push(Contribution {
++                                    id: ContributionId::RootPrior { token },
++                                    value: self.root_score(token),
++                                });
++                            }
++                            entry.0 = entry.0.saturating_add(value);
++                            k.adds += 1;
++                            entry.1.push(Contribution {
++                                id: ContributionId::ExactContext { token },
++                                value,
++                            });
++                            admitted += 1;
++                        }
++                    }
++                    exct_probe = Some(ExctProbe {
++                        level: level as u8,
++                        key: code[..level].to_vec(),
++                        total,
++                        admitted,
++                    });
++                    break;
++                }
++            }
++        }
++
++        // Final per-candidate scores: apply the baked root prior and the
++        // folded token-independent transition edge weight.
++        let mut ranked_candidates: Vec<(u32, ScoreQ, Vec<Contribution>)> =
++            Vec::with_capacity(candidates.len());
++        for (token, (residual, mut contributions)) in candidates {
++            let with_offset = residual.saturating_add(transition_offset);
++            k.adds += 1;
++            let base = self.root_score(token);
++            let score = base.saturating_add(with_offset);
++            k.adds += 1;
++            contributions.sort_by_key(|c| c.id);
++            ranked_candidates.push((token, score, contributions));
++        }
++        if ranked_candidates.is_empty() {
++            return Err("legacy scoring produced an empty candidate set".to_owned());
++        }
++
++        // Canonical argmax: highest score, then the lowest token id.
++        let mut best_index = 0usize;
++        for (index, &(_, score, _)) in ranked_candidates.iter().enumerate() {
++            k.candidate_scans += 1;
++            k.compares += 1;
++            if score > ranked_candidates[best_index].1 {
++                best_index = index;
++            }
++        }
++        let (selected, selected_score, _) = ranked_candidates[best_index];
++        let selected_contributions = ranked_candidates[best_index].2.clone();
++        let candidate_count = ranked_candidates.len() as u32;
++        let candidates_out: Vec<(u32, ScoreQ)> = ranked_candidates
++            .into_iter()
++            .map(|(token, score, _)| (token, score))
++            .collect();
++
++        let witness = ScoreWitness {
++            graph_cid: self.graph_cid,
++            input_sig: *sig,
++            status: if active.is_empty() {
++                ScoreStatus::Novel
++            } else {
++                ScoreStatus::Graph
++            },
++            active,
++            chain: Vec::new(), // no chain selection in the legacy formula
++            predicted,
++            edges_applied,
++            transition_offset,
++            exct: exct_probe,
++            selected,
++            selected_score,
++            selected_contributions,
++            candidate_count,
++            census: k,
++        };
++        Ok(ScoreOutcome {
++            selected,
++            selected_score,
++            candidates: candidates_out,
++            witness,
++        })
++    }
+ }
+ 
+ /// Rejection reasons of the independent witness-replay verifier
+diff --git a/crates/uor-r4-core/tests/score.rs b/crates/uor-r4-core/tests/score.rs
+index 52b9c9e3f..c1a0dc3d9 100644
+--- a/crates/uor-r4-core/tests/score.rs
++++ b/crates/uor-r4-core/tests/score.rs
+@@ -604,6 +604,188 @@ fn theorem_10_overlapping_active_and_predicted_counts_emission_once() {
+     verify_witness_replay(&bytes, None, &outcome.witness, 64, 64).expect("replay");
+ }
+ 
++// ------------------------------------------------ sibling stacking fix --
++
++/// The chain-telescoped redesign (issue #64): when two sibling regions at
++/// the same depth share a refinement parent and BOTH are within range
++/// (both are active), only ONE region's covered chain applies emission
++/// residuals. The legacy Σ-over-cloud formula stacks both, producing an
++/// inflated score; the new formula applies exactly one chain.
++#[test]
++fn sibling_stacking_is_prevented_by_chain_selection() {
++    // Three-region artifact: one depth-1 parent region and two sibling
++    // depth-2 children (same parent — same refinement subtree).
++    //
++    //   root (node 0)
++    //     └─ parent (node 1): depth 1, sig ≈ 0x00…
++    //          ├─ sibling A (node 2): depth 2, sig = 0x00… (very close)
++    //          └─ sibling B (node 3): depth 2, sig = 0x0f… (also in range)
++    //
++    // Context = 0x00…: sibling A is the nearest (distance 0), sibling B is
++    // further but still within its radius. Both are active. The old formula
++    // would apply A's AND B's emissions; the new formula picks A's chain
++    // (depth 2 > depth 1; A is closer so higher margin) and applies only it.
++    let regions = vec![
++        RegionParams {
++            // parent region: depth 1
++            node: 1,
++            depth: 1,
++            radius: 100, // very wide: always covered
++            sig: [0x00; SIG_BYTES],
++            parent: None,
++        },
++        RegionParams {
++            // sibling A: depth 2, very close to all-zeros context
++            node: 2,
++            depth: 2,
++            radius: 4,
++            sig: [0x00; SIG_BYTES],
++            parent: Some(0), // parent = region 0 (node 1)
++        },
++        RegionParams {
++            // sibling B: depth 2, also in range (distance 4 ≤ radius 8)
++            node: 3,
++            depth: 2,
++            radius: 8,
++            sig: {
++                let mut s = [0x00u8; SIG_BYTES];
++                s[0] = 0x0F; // flip 4 bits → distance 4, within radius 8
++                s
++            },
++            parent: Some(0), // same parent = region 0 (node 1)
++        },
++    ];
++    let structural = vec![
++        StructuralEdge {
++            src: 0,
++            kind: 0,
++            dst: 1,
++            score_q: ScoreQ::ZERO,
++        }, // root→parent
++        StructuralEdge {
++            src: 1,
++            kind: 0,
++            dst: 2,
++            score_q: ScoreQ::ZERO,
++        }, // parent→A
++        StructuralEdge {
++            src: 1,
++            kind: 0,
++            dst: 3,
++            score_q: ScoreQ::ZERO,
++        }, // parent→B
++    ];
++    let transitions: Vec<score::TransitionEdge> = Vec::new();
++    // Token 99 appears in BOTH sibling lists with positive residuals.
++    // Under the old formula, both stack and inflate the score.
++    // Under the new formula, only sibling A's chain applies.
++    let emissions = EmissionTables {
++        root_prior: [(99u32, 10i32)]
++            .into_iter()
++            .map(|(t, s)| (t, ScoreQ::from_raw(s)))
++            .collect(),
++        root_floor: ScoreQ::from_raw(-7000),
++        root_total: 1000,
++        region_lists: vec![
++            // parent (region 0 / node 1): token 99 not in list
++            vec![],
++            // sibling A (region 1 / node 2): ΔE(A, 99) = +1000
++            vec![(99, ScoreQ::from_raw(1000))],
++            // sibling B (region 2 / node 3): ΔE(B, 99) = +2000
++            vec![(99, ScoreQ::from_raw(2000))],
++        ],
++    };
++    let artifacts = synthetic_compiled();
++    let artifact_container = compiler::artifact_bytes(&artifacts);
++    let store: Store = (0..=STAGES).map(|_| BTreeMap::new()).collect();
++    let tls1 = runtime::store_bytes(&store);
++    let (bytes, _) = score::emit_scored_r4g1(
++        &artifact_container,
++        (b"sib-meta", b"sib-recs"),
++        128,
++        &score::ScoredGraphSections {
++            regions: &regions,
++            structural: &structural,
++            transitions: &transitions,
++            emissions: &emissions,
++            exct_tls1: &tls1,
++        },
++    )
++    .expect("sibling artifact emits");
++
++    let scorer = GraphScorer::from_artifact(&bytes, None, 64, 64).expect("scorer builds");
++    let sig = [0x00u8; SIG_BYTES];
++    let outcome = scorer.score_candidates(&sig).expect("scores");
++
++    // Both siblings should be active (both within range).
++    assert!(
++        outcome.witness.active.len() >= 2,
++        "both sibling regions are active (distances 0 and 4 are both within-radius): {:?}",
++        outcome.witness.active
++    );
++
++    // The redesigned scorer selects exactly ONE chain. The parent (node 1)
++    // and sibling A (node 2) form the deepest chain (depth 2). Sibling B is
++    // also active but its chain (parent + B) is the same depth — A has
++    // higher margin (radius 4 − distance 0 = 4) over B (radius 8 − 4 = 4);
++    // ties break by lower region id, so A wins.
++    let chain = &outcome.witness.chain;
++    assert!(
++        chain.contains(&2),
++        "chain includes sibling A (node 2): {chain:?}"
++    );
++    assert!(
++        !chain.contains(&3),
++        "chain must NOT include sibling B (node 3): {chain:?}"
++    );
++
++    // The emission contribution list for token 99 must contain exactly ONE
++    // emission entry (from sibling A) — no stacking from sibling B.
++    let token_99 = outcome
++        .candidates
++        .iter()
++        .find(|&&(t, _)| t == 99)
++        .expect("token 99 in candidates");
++    let _ = token_99; // score value is checked next
++    let emission_count = outcome
++        .witness
++        .selected_contributions
++        .iter()
++        .filter(|c| matches!(c.id, ContributionId::Emission { .. }))
++        .count();
++    // selected is 99 (highest residual chain A gives it B(99)+ΔE(A,99)=1010)
++    assert_eq!(outcome.selected, 99, "sibling A's token 99 is selected");
++    // S(99) = B(99) + ΔE(parent,99) + ΔE(A,99) = 10 + 0 + 1000 = 1010
++    // (parent's list is empty so only A contributes)
++    assert_eq!(
++        outcome.selected_score,
++        ScoreQ::from_raw(1010),
++        "only the selected chain's residuals apply (no B stacking)"
++    );
++    assert_eq!(
++        emission_count, 1,
++        "exactly one emission contribution for the selected token (no sibling stacking)"
++    );
++
++    // The legacy formula DOES stack both siblings — token 99 should score
++    // B(99) + ΔE(A,99) + ΔE(B,99) = 10 + 1000 + 2000 = 3010.
++    let legacy = scorer.score_candidates_legacy(&sig).expect("legacy scores");
++    let legacy_99 = legacy
++        .candidates
++        .iter()
++        .find(|&&(t, _)| t == 99)
++        .expect("token 99 in legacy candidates");
++    assert_eq!(
++        legacy_99.1,
++        ScoreQ::from_raw(3010),
++        "legacy formula stacks both sibling residuals"
++    );
++    assert!(
++        legacy_99.1 > token_99.1,
++        "legacy inflates token 99 vs the chain-telescoped score"
++    );
++}
++
+ // ------------------------------------------------------------ Theorem 6 --
+ 
+ #[test]

@@ -1,0 +1,241 @@
+diff --git a/crates/uor-r4-training/examples/m-world.rs b/crates/uor-r4-training/examples/m-world.rs
+index 987af48c6..dbd613856 100644
+--- a/crates/uor-r4-training/examples/m-world.rs
++++ b/crates/uor-r4-training/examples/m-world.rs
+@@ -4362,6 +4362,11 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+         panel_block = Some(json!({
+             "panel": panel_name, "panel_sha256": panel_sha,
+             "panel_expected": expected_name, "panel_expected_sha256": expected_sha,
++            // The stored-value location rule. Widening a located value to word spans
++            // changed which spans a turn stores WITHOUT changing the compiler
++            // identity, so a re-run of an older sealed report would silently yield
++            // different values. Recording the rule makes that visible.
++            "value_location": "word-aligned/1",
+             "rows_total": total, "correct": correct,
+             // Storage is measured UNCONDITIONALLY and must be identical between the
+             // off and sieve arms: the compiler sees only the current user turn.
+diff --git a/crates/uor-r4-training/src/relation_compiler.rs b/crates/uor-r4-training/src/relation_compiler.rs
+index 419b78498..58858e42b 100644
+--- a/crates/uor-r4-training/src/relation_compiler.rs
++++ b/crates/uor-r4-training/src/relation_compiler.rs
+@@ -1156,6 +1156,85 @@ pub fn op_text(example: &Example) -> Option<String> {
+     }
+ }
+ 
++/// The first occurrence of `value` in `source` that starts at a WORD boundary, exact
++/// first then ignoring ASCII case.
++///
++/// A plain substring search is wrong here. The generated value may match inside a
++/// longer word -- "pen" occurs within "spend" -- and because the located range is then
++/// widened to word spans, such a match would be stored as a DIFFERENT, whole word
++/// ("spend") rather than as a truncation of the intended one. Requiring the match to
++/// begin where a word begins keeps widening honest: the widened range is then always
++/// the word the compiler meant.
++fn match_at_word_start(source: &str, value: &str) -> Option<usize> {
++    if value.is_empty() {
++        return None;
++    }
++    let starts: Vec<usize> = word_spans(source).iter().map(|w| w.start).collect();
++    let at_word_start = |idx: usize| idx == 0 || starts.contains(&idx);
++    let search = |hay: &str, needle: &str| -> Option<usize> {
++        let mut from = 0usize;
++        while let Some(rel) = hay[from..].find(needle) {
++            let idx = from + rel;
++            if at_word_start(idx) {
++                return Some(idx);
++            }
++            from = idx + needle.len().max(1);
++            if from >= hay.len() {
++                break;
++            }
++        }
++        None
++    };
++    search(source, value).or_else(|| {
++        let lower = source.to_ascii_lowercase();
++        search(&lower, &value.to_ascii_lowercase())
++    })
++}
++
++/// Widen `[start, end)` to the union of the source's word spans it overlaps.
++///
++/// The compiler's contract is that a value is the world's own words cut from the
++/// unchanged source (`word_spans`, and the test
++/// `word_spans_are_the_worlds_words_cut_from_the_source`). The op-model generates the
++/// value first, so a generation that stops early yields a prefix of a word; widening
++/// to word boundaries restores the whole word without inventing content, because every
++/// byte of the result is still cut from the source.
++///
++/// A range that touches no word span, or an inverted/empty range, is returned with the
++/// same offsets clamped to the source.
++fn align_to_words(source: &str, start: usize, end: usize) -> (usize, usize) {
++    // Clamp first, then normalise an inverted range, so the returned offsets always
++    // satisfy lo <= hi and can be sliced without a guard at every call site.
++    let (mut start, mut end) = (start.min(source.len()), end.min(source.len()));
++    if start > end {
++        std::mem::swap(&mut start, &mut end);
++    }
++    if start == end {
++        return (start, end);
++    }
++    let (mut lo, mut hi) = (start, end);
++    let mut touched = false;
++    for w in word_spans(source) {
++        if w.end <= start || w.start >= end {
++            continue;
++        }
++        touched = true;
++        lo = lo.min(w.start);
++        hi = hi.max(w.end);
++    }
++    if !touched {
++        return (start, end);
++    }
++    (lo, hi)
++}
++
++/// The action of a generated op for `source`. A statement's value must occur
++/// in the source (exactly, else ignoring ASCII case), and its span is that
++/// occurrence; a statement whose value does not occur is a query of its
++/// relation (the turn holds no value to store); anything else is unresolved
++/// with a reason. `relation_id` maps a relation name to its store ID.
++
++/// a relation name to its store ID.
+ /// The action of a generated op for `source`. A statement's value must occur
+ /// in the source (exactly, else ignoring ASCII case), and its span is that
+ /// occurrence; a statement whose value does not occur is a query of its
+@@ -1191,21 +1270,20 @@ pub fn parse_op(
+             if value.is_empty() {
+                 return unresolved("the op has an empty value");
+             }
+-            let start = source.find(value).or_else(|| {
+-                source
+-                    .to_ascii_lowercase()
+-                    .find(&value.to_ascii_lowercase())
+-            });
++            let start = match_at_word_start(source, value);
+             // A turn that names a relation but holds no value for it cannot
+             // be stored; it asks for the stored one ("Remind me what my job
+             // is." generated as an assert with an invented value).
+             let Some(start) = start else {
+                 return CompiledAction::QueryCurrent { relation };
+             };
+-            let span = SourceSpan {
+-                start,
+-                end: start + value.len(),
+-            };
++            // The op-model GENERATES the value and this locates it, so a generated
++            // prefix ("penic" for "penicillin", "seven zer" for "seven zero six")
++            // would otherwise be stored as a truncated value. Align the located range
++            // to the source's WORD spans, so the span is always whole words cut from
++            // the source rather than a generation boundary.
++            let (start, end) = align_to_words(source, start, start + value.len());
++            let span = SourceSpan { start, end };
+             if act == "assert" {
+                 CompiledAction::Assert { relation, span }
+             } else {
+@@ -2872,4 +2950,104 @@ mod tests {
+         let features = lexicon.features("My buddy is Tam.");
+         assert_eq!(features.iter().filter(|&&v| v == 1.0).count(), 2);
+     }
++    #[test]
++    fn a_generated_prefix_is_widened_to_the_whole_word() {
++        let src = "I react badly to penicillin.";
++        let at = src.find("penic").unwrap();
++        let (a, b) = align_to_words(src, at, at + "penic".len());
++        assert_eq!(&src[a..b], "penicillin");
++    }
++    #[test]
++    fn a_value_missing_its_last_character_is_widened() {
++        for (src, gen, want) in [
++            ("I react badly to latex.", "late", "latex"),
++            ("My bank is HSBC.", "HSB", "HSBC"),
++            ("I take my cat to Rossi.", "Ross", "Rossi"),
++        ] {
++            let at = src.find(gen).unwrap();
++            let (a, b) = align_to_words(src, at, at + gen.len());
++            assert_eq!(&src[a..b], want, "{src}");
++        }
++    }
++    #[test]
++    fn multi_word_values_widen_per_word() {
++        let src = "The last digits of my landline are six three zero.";
++        let at = src.find("six three zer").unwrap();
++        let (a, b) = align_to_words(src, at, at + "six three zer".len());
++        assert_eq!(&src[a..b], "six three zero");
++    }
++    #[test]
++    fn alignment_does_not_swallow_the_following_word() {
++        let src = "I am allergic to pollen and dust.";
++        let at = src.find("pollen").unwrap();
++        let (a, b) = align_to_words(src, at, at + "pollen".len());
++        assert_eq!(&src[a..b], "pollen", "must not include 'and'");
++    }
++    #[test]
++    fn alignment_is_char_boundary_safe() {
++        let src = "naïve café";
++        for (a, b) in [(1, 2), (0, 1), (5, 6), (99, 120), (4, 2)] {
++            let (x, y) = align_to_words(src, a, b);
++            assert!(x <= y && y <= src.len(), "{a}..{b} -> {x}..{y}");
++            assert!(src.is_char_boundary(x) && src.is_char_boundary(y));
++        }
++        let at = src.find("naïve").unwrap();
++        let (x, y) = align_to_words(src, at, at + "naïv".len());
++        assert_eq!(&src[x..y], "naïve");
++    }
++    use crate::stack_grounded_session::CompiledAction;
++
++    /// A generated value that occurs INSIDE a longer word must not be located there.
++    /// With widening, "pen" inside "spend" would otherwise be stored as "spend".
++    #[test]
++    fn a_value_matching_inside_a_word_is_not_located_there() {
++        let ids = |_: &str| Some(1u32);
++        let action = parse_op("Op: assert user_name pen", "I spend a lot.", ids);
++        // "pen" occurs inside "spend" but not at a word start, so the value does not
++        // occur as a word: the turn holds no value and becomes a query.
++        assert!(
++            matches!(action, CompiledAction::QueryCurrent { .. }),
++            "got {action:?}"
++        );
++        // and the same value DOES locate when it starts a word
++        let action = parse_op("Op: assert user_name pen", "my pen is here", ids);
++        match action {
++            CompiledAction::Assert { span, .. } => {
++                assert_eq!(&"my pen is here"[span.start..span.end], "pen");
++            }
++            other => panic!("expected an assert, got {other:?}"),
++        }
++    }
++
++    /// The class-1 FLOOR, pinned: alignment widens to whole words but cannot restore a
++    /// word the match never touched, so "seven zer" yields "seven zero" and NOT
++    /// "seven zero six". If a later change makes this pass, the floor has moved.
++    #[test]
++    fn alignment_floor_cannot_restore_an_untouched_word() {
++        let ids = |_: &str| Some(1u32);
++        let src = "My landline number ends in seven zero six.";
++        let action = parse_op("Op: assert user_name seven zer", src, ids);
++        match action {
++            CompiledAction::Assert { span, .. } => {
++                assert_eq!(&src[span.start..span.end], "seven zero");
++                assert_ne!(&src[span.start..span.end], "seven zero six");
++            }
++            other => panic!("expected an assert, got {other:?}"),
++        }
++    }
++
++    /// parse_op end to end: a whole generated value locates and aligns to its word.
++    #[test]
++    fn parse_op_locates_a_whole_value() {
++        let ids = |_: &str| Some(7u32);
++        let src = "I react badly to penicillin.";
++        let action = parse_op("Op: assert job penicillin", src, ids);
++        match action {
++            CompiledAction::Assert { relation, span } => {
++                assert_eq!(relation, 7);
++                assert_eq!(&src[span.start..span.end], "penicillin");
++            }
++            other => panic!("expected an assert, got {other:?}"),
++        }
++    }
+ }

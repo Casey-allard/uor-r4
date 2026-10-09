@@ -1,0 +1,303 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index d1e3b0a66..44b9e8de6 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -11,6 +11,11 @@ name: ci
+ # logprobs); on Linux it is expected to skip (checkpoint download is best-effort)
+ # or fail on platform drift — the canonical deterministic compile mode (Phase 2)
+ # is what makes it a true cross-platform gate.
++#
++# GATE C REGRESSION: The Gate C trend is tracked per commit on a small corpus
++# slice. It fails if top-1 drops > 2 points or bits/token worsens > 0.1 vs the
++# pinned record in `scripts/check_gate_c_regression.py`. The trend JSON is
++# uploaded as a `gate-c-trend` artifact.
+ 
+ on:
+   push:
+@@ -88,6 +93,22 @@ jobs:
+         run: TLESS_CHECKPOINT=/tmp/ref/out/model.bin cargo test -p uor-r4-core --release --test kappa_reproduction -- --ignored
+         continue-on-error: true
+ 
++      - name: Gate C trend tracking (Issue #77)
++        run: |
++          cargo run --release --bin r4 -- transformerless score \
++            --corpus-meta crates/uor-r4-core/tests/fixtures/c_meta.bin \
++            --corpus-recs crates/uor-r4-core/tests/fixtures/c_recs.bin \
++            --artifacts crates/uor-r4-core/tests/fixtures/tless_artifacts.bin \
++            --out trend_output
++          ./scripts/check_gate_c_regression.py trend_output/score_report.json
++
++      - name: Upload Gate C trend JSON
++        uses: actions/upload-artifact@v4
++        if: always()
++        with:
++          name: gate-c-trend
++          path: trend_output/score_report.json
++
+   wasm:
+     name: wasm-pack build (dashboard facade, deploy.yml parity)
+     runs-on: ubuntu-latest
+diff --git a/.gitignore b/.gitignore
+index e9f465b56..833f62e74 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -8,3 +8,4 @@ manifold_cache_rust.json
+ uor_standards/
+ crates/uor-r4-graph-format/fuzz/target/
+ pkg/
++trend_output/
+diff --git a/crates/uor-r4-core/src/transformerless/resolution_status.rs b/crates/uor-r4-core/src/transformerless/resolution_status.rs
+index d9bac553d..da91f21b1 100644
+--- a/crates/uor-r4-core/src/transformerless/resolution_status.rs
++++ b/crates/uor-r4-core/src/transformerless/resolution_status.rs
+@@ -59,6 +59,21 @@ pub struct FallbackPolicy {
+     pub contradictory_action: FallbackAction,
+ }
+ 
++impl FallbackAction {
++    pub fn from_u8(val: u8) -> Self {
++        match val {
++            0 => FallbackAction::Continue,
++            1 => FallbackAction::Widen,
++            2 => FallbackAction::ConsultExact,
++            3 => FallbackAction::CertifiedFallback,
++            4 => FallbackAction::Abstain,
++            5 => FallbackAction::BasePrior,
++            _ => FallbackAction::Abstain,
++        }
++    }
++}
++
++
+ impl Default for FallbackPolicy {
+     /// Default policy per Decision D4: consult EXCT for Supported/Boundary, and abstain on BackedOff/Novel/Contradictory.
+     fn default() -> Self {
+@@ -82,4 +97,14 @@ impl FallbackPolicy {
+             ResolutionStatus::Contradictory => self.contradictory_action.clone(),
+         }
+     }
++
++    pub fn from_bytes(bytes: [u8; 5]) -> Self {
++        FallbackPolicy {
++            supported_action: FallbackAction::from_u8(bytes[0]),
++            boundary_action: FallbackAction::from_u8(bytes[1]),
++            backed_off_action: FallbackAction::from_u8(bytes[2]),
++            novel_action: FallbackAction::from_u8(bytes[3]),
++            contradictory_action: FallbackAction::from_u8(bytes[4]),
++        }
++    }
+ }
+diff --git a/crates/uor-r4-core/src/transformerless/score_runtime.rs b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+index 16b188702..077e6e31b 100644
+--- a/crates/uor-r4-core/src/transformerless/score_runtime.rs
++++ b/crates/uor-r4-core/src/transformerless/score_runtime.rs
+@@ -633,6 +633,7 @@ pub struct GraphScorer {
+     /// 71.52 → 17.73 with ΔT off) and the EXCT-precedence path is
+     /// F-invariant. Re-enable only with a measured per-token ΔT design.
+     f_emissions: bool,
++    pub fallback_policy: crate::transformerless::resolution_status::FallbackPolicy,
+ }
+ 
+ impl GraphScorer {
+@@ -660,6 +661,7 @@ impl GraphScorer {
+         let view = GraphView::parse(r4g1).map_err(|e| format!("invalid R4G1: {e}"))?;
+         view.verify_cids().map_err(|e| format!("bad CIDs: {e}"))?;
+         let head = view.head().ok_or("artifact carries no HEAD section")?;
++        let fallback_policy = crate::transformerless::resolution_status::FallbackPolicy::from_bytes(head.fallback_policies());
+         let graph_cid = view.header().artifact_cid.0;
+         let regions = regions_from_view(&view)?;
+         let max_depth = regions.iter().map(|r| r.depth as usize).max().unwrap_or(0);
+@@ -791,6 +793,7 @@ impl GraphScorer {
+             exct_top_x,
+             pop: runtime::derive_popcount_table(),
+             f_emissions: false,
++            fallback_policy,
+         })
+     }
+ 
+diff --git a/scripts/check_gate_c_regression.py b/scripts/check_gate_c_regression.py
+new file mode 100755
+index 000000000..cb61e57c6
+--- /dev/null
++++ b/scripts/check_gate_c_regression.py
+@@ -0,0 +1,54 @@
++#!/usr/bin/env python3
++import sys
++import json
++
++# Pinned previous record (Gate C Rule 1+2 on the small corpus test fixture)
++# Determined from trend_output/score_report.json on main.
++PINNED_TOP1_AGREEMENT = 0.317  # ~31.7%
++PINNED_BITS_PER_TOKEN = 9.86   # 9.86 bits/token
++
++# Regression Thresholds
++MAX_TOP1_DROP = 0.02           # fail if top-1 drops > 2 points (0.02)
++MAX_BPT_WORSEN = 0.1           # fail if bits/token worsens (increases) > 0.1
++
++def main():
++    if len(sys.argv) < 2:
++        print("Usage: check_gate_c_regression.py <path/to/score_report.json>")
++        sys.exit(1)
++
++    report_path = sys.argv[1]
++    with open(report_path, 'r') as f:
++        report = json.load(f)
++    
++    rule12 = report.get('gate_c', {}).get('rule12_precedence')
++    if not rule12:
++        print("Error: 'rule12_precedence' metrics not found in the report.")
++        sys.exit(1)
++        
++    top1 = rule12.get('top1_agreement', 0.0)
++    bpt = rule12.get('bits_per_token', 0.0)
++    
++    print(f"Gate C (Rule 1+2) Current: top-1={top1:.4f} ({top1*100:.1f}%), bits/token={bpt:.4f}")
++    print(f"Gate C (Rule 1+2) Pinned : top-1={PINNED_TOP1_AGREEMENT:.4f} ({PINNED_TOP1_AGREEMENT*100:.1f}%), bits/token={PINNED_BITS_PER_TOKEN:.4f}")
++    
++    failed = False
++    
++    if top1 < (PINNED_TOP1_AGREEMENT - MAX_TOP1_DROP):
++        print(f"🚨 REGRESSION ALARM: top-1 agreement dropped by more than {MAX_TOP1_DROP*100:.1f} points!")
++        print(f"   Delta: {(top1 - PINNED_TOP1_AGREEMENT)*100:.2f} points")
++        failed = True
++        
++    if bpt > (PINNED_BITS_PER_TOKEN + MAX_BPT_WORSEN):
++        print(f"🚨 REGRESSION ALARM: bits/token worsened by more than {MAX_BPT_WORSEN:.2f}!")
++        print(f"   Delta: {bpt - PINNED_BITS_PER_TOKEN:+.4f} bits/token")
++        failed = True
++        
++    if failed:
++        print("Gate C regression check FAILED.")
++        sys.exit(1)
++    else:
++        print("Gate C regression check PASSED.")
++        sys.exit(0)
++
++if __name__ == '__main__':
++    main()
+diff --git a/src/r4g1.rs b/src/r4g1.rs
+index 34175cedb..e78ec7742 100644
+--- a/src/r4g1.rs
++++ b/src/r4g1.rs
+@@ -90,28 +90,43 @@ impl R4g1State {
+     }
+ 
+     /// Score one token window using the validated graph artifact.
+-    pub fn predict_window(&self, window: &[u32]) -> Result<u32, String> {
++    pub fn predict_window(&self, window: &[u32]) -> Result<(u32, uor_r4_core::transformerless::resolution_status::FallbackAction, uor_r4_core::transformerless::resolution_status::ResolutionStatus), String> {
++        use uor_r4_core::transformerless::resolution_status::ResolutionStatus;
+         let bundle = runtime::bundle_window_plain(&self.artifacts, &self.rotations, window);
+         let signature = runtime::sig_plain(&self.artifacts, &bundle);
+-        self.scorer
+-            .score_candidates(&signature)
+-            .map(|outcome| outcome.selected)
++        let outcome = self.scorer.score_candidates(&signature)?;
++        let status = match outcome.witness.status {
++            uor_r4_core::transformerless::score_runtime::ScoreStatus::ExactContext => ResolutionStatus::Supported,
++            uor_r4_core::transformerless::score_runtime::ScoreStatus::Graph => ResolutionStatus::Supported,
++            uor_r4_core::transformerless::score_runtime::ScoreStatus::Novel => ResolutionStatus::Novel,
++        };
++        let action = self.scorer.fallback_policy.action_for(status);
++        Ok((outcome.selected, action, status))
+     }
+ 
+     /// Generate a greedy continuation from a token seed. This mirrors the
+     /// legacy runtime's fixed-width window behavior while replacing its
+     /// graded-store lookup with R4G1 graph scoring.
+-    pub fn generate_into(&self, seed: &[u32], out: &mut [u32]) -> Result<usize, String> {
++    pub fn generate_into(&self, seed: &[u32], out: &mut [u32]) -> Result<(usize, uor_r4_core::transformerless::resolution_status::ResolutionStatus), String> {
+         let mut window = [0u32; WINDOW];
+         let seed = &seed[seed.len().saturating_sub(WINDOW)..];
+         let mut window_len = seed.len();
+         window[..window_len].copy_from_slice(seed);
+ 
+         for (generated, token) in out.iter_mut().enumerate() {
+-            let next = self.predict_window(&window[..window_len])?;
++            let (next, action, status) = self.predict_window(&window[..window_len])?;
++            
++            use uor_r4_core::transformerless::resolution_status::FallbackAction;
++            match action {
++                FallbackAction::Abstain | FallbackAction::Widen => {
++                    return Ok((generated, status));
++                }
++                _ => {}
++            }
++            
+             *token = next;
+             if next == 1 || next == 2 {
+-                return Ok(generated);
++                return Ok((generated, status));
+             }
+             if window_len < WINDOW {
+                 window[window_len] = next;
+@@ -121,7 +136,7 @@ impl R4g1State {
+                 window[WINDOW - 1] = next;
+             }
+         }
+-        Ok(out.len())
++        Ok((out.len(), uor_r4_core::transformerless::resolution_status::ResolutionStatus::Supported))
+     }
+ }
+ 
+diff --git a/src/server.rs b/src/server.rs
+index b5e5ed5cf..af19ced15 100644
+--- a/src/server.rs
++++ b/src/server.rs
+@@ -449,7 +449,7 @@ fn generate_r4g1_text(
+     slot: &Arc<Mutex<Option<R4g1State>>>,
+     prompt: &str,
+     max_tokens: usize,
+-) -> Option<String> {
++) -> Option<(String, uor_r4_core::transformerless::resolution_status::ResolutionStatus)> {
+     const MAX_SERVER_TOKENS: usize = 256;
+     const MAX_SERVER_TEXT_BYTES: usize = 16 * 1024;
+     let mut seed = [0u32; 4096];
+@@ -464,20 +464,21 @@ fn generate_r4g1_text(
+         if seed_len == 0 {
+             return None;
+         }
+-        let count = state
++        let (count, status) = state
+             .generate_into(
+                 &seed[..seed_len],
+                 &mut generated[..max_tokens.min(MAX_SERVER_TOKENS)],
+             )
+             .ok()?;
+-        state
++        let bytes_written = state
+             .decode_into(&generated[..count], &mut bytes)
+-            .or_else(|| tless_uor::tless_detokenize_into(&generated[..count], &mut bytes))?
++            .or_else(|| tless_uor::tless_detokenize_into(&generated[..count], &mut bytes))?;
++        (bytes_written, status)
+     };
+-    let text = String::from_utf8_lossy(&bytes[..byte_count])
++    let text = String::from_utf8_lossy(&bytes[..byte_count.0])
+         .trim()
+         .to_owned();
+-    (!text.is_empty()).then_some(text)
++    (!text.is_empty()).then_some((text, byte_count.1))
+ }
+ 
+ fn generate_attention_text(
+@@ -1434,11 +1435,19 @@ fn handle_connection(
+         {
+             let prompt = payload.text.clone();
+             if engine_mode != "transformerless-legacy" {
+-                if let Some(text) = generate_r4g1_text(&r4g1, &prompt, max_tokens.max(32)) {
++                if let Some((text, status)) = generate_r4g1_text(&r4g1, &prompt, max_tokens.max(32)) {
+                     if is_usable_generated_text(&text) {
+                         final_response_text = text;
+                         llm_connected = true;
+-                        generation_mode = "r4g1".to_string();
++                        
++                        // Surface abstention status if present
++                        generation_mode = match status {
++                            uor_r4_core::transformerless::resolution_status::ResolutionStatus::Novel => "r4g1-abstained-novel".to_string(),
++                            uor_r4_core::transformerless::resolution_status::ResolutionStatus::BackedOff => "r4g1-abstained-backedoff".to_string(),
++                            uor_r4_core::transformerless::resolution_status::ResolutionStatus::Contradictory => "r4g1-abstained-contradictory".to_string(),
++                            _ => "r4g1".to_string(),
++                        };
++                        
+                         tokens_generated = final_response_text.split_whitespace().count();
+                     } else {
+                         generation_mode = "r4g1-rejected".to_string();

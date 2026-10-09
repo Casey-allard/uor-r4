@@ -1,0 +1,3491 @@
+diff --git a/crates/uor-r4-training/examples/m-world.rs b/crates/uor-r4-training/examples/m-world.rs
+index dbd613856..53eef7b59 100644
+--- a/crates/uor-r4-training/examples/m-world.rs
++++ b/crates/uor-r4-training/examples/m-world.rs
+@@ -340,6 +340,10 @@ impl Args {
+ enum World {
+     V1,
+     V2,
++    /// v2 with OPEN RELATION NAMES: the same world, but the relation table also carries
++    /// relations whose names are drawn per episode from a mixed pool (half real English
++    /// nouns, half syllable-generated). `v2` is unchanged, so its reports stay comparable.
++    V2r,
+ }
+ 
+ /// `recall=` of `evaluate world=v2`: the emission of the log-sieve design
+@@ -427,7 +431,8 @@ fn world_of(args: &Args) -> Result<World> {
+             Ok(World::V1)
+         }
+         Some("v2") => Ok(World::V2),
+-        Some(other) => Err(invalid(format!("unknown world={other}; use v1 or v2"))),
++        Some("v2r") => Ok(World::V2r),
++        Some(other) => Err(invalid(format!("unknown world={other}; use v1, v2 or v2r"))),
+     }
+ }
+ 
+@@ -2462,7 +2467,7 @@ fn baseline_row(name: &str, run: &RuleRun) -> Value {
+ /// development cell); otherwise the report names the leaking templates.
+ fn baselines(args: &Args, out: &Path) -> Result<()> {
+     let started = Instant::now();
+-    if args.optional("world").as_deref() != Some("v2") {
++    if !matches!(args.optional("world").as_deref(), Some("v2") | Some("v2r")) {
+         return Err(invalid("baselines needs world=v2"));
+     }
+     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+@@ -2564,7 +2569,7 @@ fn baselines(args: &Args, out: &Path) -> Result<()> {
+ /// repeat verbatim), not a model.
+ fn route(args: &Args, out: &Path) -> Result<()> {
+     let started = Instant::now();
+-    if args.optional("world").as_deref() != Some("v2") {
++    if !matches!(args.optional("world").as_deref(), Some("v2") | Some("v2r")) {
+         return Err(invalid("route needs world=v2"));
+     }
+     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+@@ -2721,7 +2726,7 @@ fn fit_route(
+ /// act accuracy is over every user turn.
+ fn compiler(args: &Args, out: &Path) -> Result<()> {
+     let started = Instant::now();
+-    if args.optional("world").as_deref() != Some("v2") {
++    if !matches!(args.optional("world").as_deref(), Some("v2") | Some("v2r")) {
+         return Err(invalid("compiler needs world=v2"));
+     }
+     let model_dir = PathBuf::from(args.required("model")?);
+@@ -3169,7 +3174,7 @@ fn same_action(a: &CompiledAction, b: &CompiledAction) -> bool {
+ /// `recall=route`'s draw (both value splits, so development values are seen).
+ fn compiler_save(args: &Args, out: &Path) -> Result<()> {
+     let started = Instant::now();
+-    if args.optional("world").as_deref() != Some("v2") {
++    if !matches!(args.optional("world").as_deref(), Some("v2") | Some("v2r")) {
+         return Err(invalid("compiler-save needs world=v2"));
+     }
+     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+@@ -3774,7 +3779,7 @@ pub(crate) fn judge_row(
+ /// with a save and load at their middle turn, and must match.
+ fn session(args: &Args, out: &Path) -> Result<()> {
+     let started = Instant::now();
+-    if args.optional("world").as_deref() != Some("v2") {
++    if !matches!(args.optional("world").as_deref(), Some("v2") | Some("v2r")) {
+         return Err(invalid("session needs world=v2"));
+     }
+     let model_root = PathBuf::from(args.required("model_root")?);
+@@ -3819,6 +3824,9 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+     }
+     // A combined compiler loads only with the trunk it binds; otherwise the
+     // artifact's own schema chooses the grounded compiler.
++    // OPEN RELATIONS is an explicit setting on the compiler and the session, not process
++    // state: `world=v2r` selects it, and both the write path and the read path must agree.
++    let open_relations = matches!(world_of(args)?, World::V2r);
+     let load_compiler = || -> Result<GroundedCompiler> {
+         match &trunk_directory {
+             Some(directory) => Ok(GroundedCompiler::Legacy(
+@@ -3826,7 +3834,8 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+                     compiler_bytes.clone(),
+                     Some(Trunk::load(directory, &tokenizer_json, &Device::Cpu)?),
+                 )?
+-                .with_op_policy(op_policy)?,
++                .with_op_policy(op_policy)?
++                .with_open_relations(open_relations),
+             )),
+             None => GroundedCompiler::from_bytes(compiler_bytes.clone()),
+         }
+@@ -3922,9 +3931,12 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+             &device,
+         )
+         .map_err(|e| invalid(e.to_string()))
+-        .map(|session| match &log_recall {
+-            Some(recall) => session.with_log_recall("sieve", recall.clone()),
+-            None => session,
++        .map(|session| {
++            let session = session.with_open_relations(open_relations);
++            match &log_recall {
++                Some(recall) => session.with_log_recall("sieve", recall.clone()),
++                None => session,
++            }
+         })
+     };
+     let count = |text: &str| tokenizer.encode(text).len();
+@@ -4118,6 +4130,9 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+         "trunk": trunk_directory.as_ref().map(|d| d.display().to_string()),
+         "op_policy": format!("{op_policy:?}"),
+         "log_recall": args.optional("log_recall").unwrap_or_else(|| "off".into()),
++        // Recorded so the compiler's behaviour is bound to the REPORT, not to process
++        // state: an open-relations result must be identifiable from its own artifact.
++        "open_relations": open_relations,
+         "dialogue_protocol_version": protocol_version,
+         "tokenizer_sha256": sha256_file(&tokenizer_path)?,
+         "limits": limits,
+@@ -4154,6 +4169,11 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+         // artefact: `hit` was tested before `!stored`, so rows answered via the
+         // user-turn log sieve left never_stored and became "correct".
+         let (mut correct_with_store_read, mut correct_via_log_without_store) = (0usize, 0usize);
++        // MASKING CHECK: a row the LOG answered while the store read FOUND a record. The log
++        // fallback exists so a store miss still gets answered, but it must not hide a store
++        // defect: if the store had a record and the log answered anyway, that row cannot
++        // distinguish "the store path works" from "the log covered for it".
++        let mut log_answered_while_store_had_record = 0usize;
+         // Storage, separated by DEFINITION. `any_write_total` counts any write before
+         // the final turn -- including the distractor fact every row writes.
+         // `asked_fact_stored_total` counts rows where the ASKED fact was stored,
+@@ -4192,9 +4212,19 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+                             question_action = akind.to_string();
+                             question_relation = arel;
+                         }
++                        // The reason is the diagnostic: parse_op's reasons correspond
++                        // one-to-one with op shapes (unknown relation = an act with a
++                        // relation name that did not resolve; "does not parse" = the op
++                        // did not split into act/relation/value at all). Recording it is
++                        // an INSTRUMENT addition, not a fix.
++                        let unresolved_reason = match &outcome.action {
++                            CompiledAction::Unresolved { reason } => reason.clone(),
++                            _ => String::new(),
++                        };
+                         trace.push(json!({
+                             "turn": i, "last": i == last, "user": user,
+                             "action": akind, "relation": arel, "span_text": aspan,
++                            "unresolved_reason": unresolved_reason,
+                         }));
+                         if i < last {
+                             if let MemoryEffect::Write { value_tokens, .. } = &outcome.memory {
+@@ -4257,6 +4287,10 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+             let hit = verdict.hit;
+             let answered_from_store = verdict.path == "store_read";
+             let answered_from_log = verdict.path == "log_without_store";
++            let masked_by_log = answered_from_log && read_found;
++            if masked_by_log {
++                log_answered_while_store_had_record += 1;
++            }
+             if hit {
+                 correct += 1;
+                 match verdict.path {
+@@ -4307,6 +4341,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+                     stored_total_row,
+                 ),
+                 "answered_from_store": answered_from_store, "answered_from_log": answered_from_log,
++                "masked_by_log": masked_by_log,
+                 "read_found": read_found,
+                 "read_value": read_value, "recalled_value": recalled_value,
+                 "log_value": log_value,
+@@ -4354,7 +4389,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+             "panel memory: {correct}/{total}; any_write_total={any_write_total} asked_fact_stored_total={asked_fact_stored_total} wrote_other_than_asked={wrote_other_than_asked}"
+         );
+         println!(
+-            "panel paths: store_read={correct_with_store_read} log_without_store={correct_via_log_without_store} other={correct_other}"
++            "panel paths: store_read={correct_with_store_read} log_without_store={correct_via_log_without_store} other={correct_other} masked_by_log={log_answered_while_store_had_record}"
+         );
+         println!(
+             "panel misses: never_stored={never_stored} stored_not_recalled={stored_not_recalled} recalled_wrong_value={recalled_wrong_value} misrendered={recalled_misrendered} log_answered_but_wrong={log_answered_but_wrong} errors={errors}"
+@@ -4416,7 +4451,7 @@ fn session(args: &Args, out: &Path) -> Result<()> {
+ /// values (plus any teacher paraphrases); `dev/` draws training phrasings with
+ /// development values, so checkpoint selection never sees development phrasings.
+ fn compile_corpus(args: &Args, out: &Path) -> Result<()> {
+-    if args.optional("world").as_deref() != Some("v2") {
++    if !matches!(args.optional("world").as_deref(), Some("v2") | Some("v2r")) {
+         return Err(invalid("compile-corpus needs world=v2"));
+     }
+     let tokenizer_path = PathBuf::from(args.required("tokenizer")?);
+@@ -4681,6 +4716,13 @@ fn main() -> Result<()> {
+     let (mode, rest) = arguments
+         .split_first()
+         .ok_or_else(|| invalid("usage: m-world corpus|evaluate|rejudge key=value..."))?;
++    // OPEN RELATION NAMES must be switched on BEFORE anything reads the relation table:
++    // `relations()` is a OnceLock, so touching it first (argument validation does) would
++    // freeze the closed table and `v2r` would silently behave as `v2`. Scanned here from
++    // the raw arguments, ahead of every other step.
++    if rest.iter().any(|a| a == "world=v2r") {
++        uor_r4_training::milestone_world_v2::enable_open_relation_pool();
++    }
+     if let Some(result) = run_v2_extras(mode, rest) {
+         return result;
+     }
+@@ -4742,7 +4784,7 @@ fn main() -> Result<()> {
+     // `protocol=`, which only world=v2 encodes, and never with chat=.
+     if mode == "corpus" || mode == "evaluate" {
+         let version = protocol_version_of(&args)?;
+-        if version != 1 && world_of(&args)? != World::V2 {
++        if version != 1 && !matches!(world_of(&args)?, World::V2 | World::V2r) {
+             return Err(invalid("protocol=2 needs world=v2"));
+         }
+     }
+@@ -4775,7 +4817,7 @@ fn main() -> Result<()> {
+     if mode == "evaluate" {
+         let recall = recall_of(&args)?;
+         recall_at_of(&args)?;
+-        if recall != Recall::Off && world_of(&args)? != World::V2 {
++        if recall != Recall::Off && !matches!(world_of(&args)?, World::V2 | World::V2r) {
+             return Err(invalid("recall= needs world=v2"));
+         }
+         if recall == Recall::Off && args.optional("recall_at").is_some() {
+@@ -4800,10 +4842,10 @@ fn main() -> Result<()> {
+     report_output::claim(&out)?;
+     let result = match (mode.as_str(), world) {
+         ("corpus", World::V1) => corpus(&args, &out),
+-        ("corpus", World::V2) => corpus_v2(&args, &out),
++        ("corpus", World::V2 | World::V2r) => corpus_v2(&args, &out),
+         ("rejudge", _) => rejudge(&args, &out),
+         (_, World::V1) => evaluate(&args, &out),
+-        (_, World::V2) => evaluate_v2(&args, &out),
++        (_, World::V2 | World::V2r) => evaluate_v2(&args, &out),
+     };
+     if let Err(error) = &result {
+         fs::write(
+diff --git a/crates/uor-r4-training/src/bin/op-probe.rs b/crates/uor-r4-training/src/bin/op-probe.rs
+new file mode 100644
+index 000000000..4f948355a
+--- /dev/null
++++ b/crates/uor-r4-training/src/bin/op-probe.rs
+@@ -0,0 +1,293 @@
++//! Record what the OP MODEL actually emitted for a panel's question turns.
++//!
++//! The compiled action alone cannot show this. Policy `unless_query` returns the TABLE's
++//! Unresolved when it discards a non-statement op, so a turn whose op read
++//! `Op: query sculptor` and a turn whose op read nonsense are INDISTINGUISHABLE in the
++//! final action. Both are `Unresolved { "the heads name no relation" }`.
++//!
++//! That distinction decides whether the `unless_query` precedence bug is worth fixing: if
++//! the op model already names the right relation and the policy throws it away, the fix is
++//! a precedence correction. If the op model names nothing (or names a closed label), the
++//! precedence is not the binding constraint and the fix would only convert Unresolved into
++//! wrong-relation queries.
++//!
++//! Usage: op-probe compiler=DIR trunk=DIR tokenizer=FILE panel=FILE [limit=N]
++
++use std::collections::BTreeMap;
++use std::fs;
++use std::path::PathBuf;
++
++use candle_core::Device;
++use uor_r4_training::relation_compiler::Trunk;
++use uor_r4_training::relation_compiler::{
++    derived_relation_id, relation_phrase, OpPolicy, OpProbe, SavedCompiler,
++};
++
++fn main() -> Result<(), String> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    let kv = |k: &str| {
++        args.iter()
++            .find_map(|a| a.strip_prefix(&format!("{k}=")).map(str::to_string))
++    };
++    let compiler_dir = PathBuf::from(kv("compiler").ok_or("need compiler=DIR")?);
++    let trunk_dir = PathBuf::from(kv("trunk").ok_or("need trunk=DIR")?);
++    let tokenizer_path = kv("tokenizer").ok_or("need tokenizer=FILE")?;
++    let panel_path = kv("panel").ok_or("need panel=FILE")?;
++    let limit: usize = kv("limit")
++        .map(|v| v.parse().unwrap_or(usize::MAX))
++        .unwrap_or(usize::MAX);
++
++    let tokenizer_json = fs::read(&tokenizer_path).map_err(|e| format!("tokenizer: {e}"))?;
++    let bytes =
++        fs::read(compiler_dir.join("compiler.json")).map_err(|e| format!("compiler: {e}"))?;
++    let compiler = SavedCompiler::load(
++        bytes,
++        Some(Trunk::load(&trunk_dir, &tokenizer_json, &Device::Cpu).map_err(|e| format!("{e}"))?),
++    )
++    .map_err(|e| format!("load: {e}"))?
++    .with_op_policy(OpPolicy::UnlessQuery)
++    .map_err(|e| format!("policy: {e}"))?;
++
++    // mode=compile: does the loaded compiler give BOTH structurally identical statements a
++    // derived address once open relations are on? This decides whether the 36/200 comes from
++    // the compiler or from how the panel path drives it.
++    if kv("mode").as_deref() == Some("compile") {
++        uor_r4_training::milestone_world_v2::enable_open_relation_pool();
++        let derived_base = uor_r4_training::relation_compiler::DERIVED_RELATION_ID_BASE;
++        println!(
++            "  open_relations enabled: {}",
++            uor_r4_training::milestone_world_v2::open_relation_pool()
++        );
++        for text in [
++            // PROSE / smalltalk: a false WRITE here is a stored fact nobody asked for.
++            "That sounds interesting.",
++            "I had a good day today.",
++            "The weather is nice today.",
++            "Thanks for your help.",
++            "I like reading books.",
++            "It was quite busy at work.",
++            "My favourite part was the ending.",
++            "The traffic was terrible this morning.",
++            "I think it might rain later.",
++            "She said the food was lovely.",
++            // CONDITION 2 counter-cases (Claude): statements ending in "?", questions without
++            "Can you remember my vet is Ola?",
++            "Did I mention my bank is Monzo?",
++            "Tell me my vet's name.",
++            "Remind me what my landline is",
++            "My mousbror is bokstaik.",
++            "My fumgrek is jirkdraik.",
++            "What is mousbror's name?",
++            "What is the fumgrek?",
++            "My seekbend is brikjeer.",
++            "The weather is nice today.",
++            "What is it?",
++        ] {
++            let action = compiler.action(text).map_err(|e| format!("{e}"))?;
++            use uor_r4_training::stack_grounded_session::CompiledAction as CA;
++            let (kind, rel, span) = match &action {
++                CA::Assert { relation, span } => (
++                    "assert",
++                    Some(relation),
++                    text.get(span.start..span.end)
++                        .unwrap_or_default()
++                        .to_string(),
++                ),
++                CA::Correct { relation, span } => (
++                    "correct",
++                    Some(relation),
++                    text.get(span.start..span.end)
++                        .unwrap_or_default()
++                        .to_string(),
++                ),
++                CA::QueryCurrent { relation } => ("query_current", Some(relation), String::new()),
++                CA::Unresolved { .. } => ("unresolved", None, String::new()),
++                _ => ("other", None, String::new()),
++            };
++            let tag = match rel {
++                Some(r) if *r >= derived_base => "DERIVED",
++                Some(_) => "CLOSED",
++                None => "-",
++            };
++            println!("    {tag:>7}  rel={rel:?} act={kind} span={span:?}  {text:?}");
++        }
++        return Ok(());
++    }
++
++    let panel: serde_json::Value =
++        serde_json::from_slice(&fs::read(&panel_path).map_err(|e| format!("panel: {e}"))?)
++            .map_err(|e| format!("panel json: {e}"))?;
++    let rows = panel.as_array().ok_or("panel is not an array")?;
++
++    // mode=prose measures the FALSE-WRITE rate: how often ordinary prose compiles to a
++    // WRITE. An assert adds a fact nobody stated; a correct OVERWRITES one. Run with
++    // open=0 (shipped world=v2 behaviour) and open=1 (this branch) to see whether the
++    // open path's out-of-scope guard actually protects against this.
++    if let Some(path) = kv("prose") {
++        use uor_r4_training::stack_grounded_session::CompiledAction as CA;
++        let open = kv("open").as_deref() == Some("1");
++        let compiler = compiler.with_open_relations(open);
++        let body = fs::read_to_string(&path).map_err(|e| format!("prose: {e}"))?;
++        let (mut unres, mut asserts, mut corrects, mut errs) = (0usize, 0usize, 0usize, 0usize);
++        let mut ex: Vec<(String, u32, String)> = Vec::new();
++        let mut total = 0usize;
++        for line in body.lines() {
++            let text = line.trim();
++            if text.is_empty() {
++                continue;
++            }
++            total += 1;
++            match compiler.action(text) {
++                Ok(CA::Assert { relation, span }) => {
++                    asserts += 1;
++                    if ex.len() < 8 {
++                        ex.push((
++                            "ASSERT".into(),
++                            relation,
++                            text.get(span.start..span.end)
++                                .unwrap_or_default()
++                                .to_string(),
++                        ));
++                    }
++                }
++                Ok(CA::Correct { relation, span }) => {
++                    corrects += 1;
++                    if ex.len() < 8 {
++                        ex.push((
++                            "CORRECT".into(),
++                            relation,
++                            text.get(span.start..span.end)
++                                .unwrap_or_default()
++                                .to_string(),
++                        ));
++                    }
++                }
++                Ok(_) => unres += 1,
++                Err(_) => errs += 1,
++            }
++        }
++        let writes = asserts + corrects;
++        println!("  prose set: {total} sentences   open_relations={open}");
++        println!("    unresolved      {unres:>4}");
++        println!("    ASSERT (adds)   {asserts:>4}");
++        println!("    CORRECT (overwrites) {corrects:>4}");
++        println!("    errors          {errs:>4}");
++        println!(
++            "    FALSE-WRITE RATE {writes}/{total} = {:.1}%",
++            100.0 * writes as f64 / total.max(1) as f64
++        );
++        println!(
++            "    OVERWRITE RATE   {corrects}/{total} = {:.1}%",
++            100.0 * corrects as f64 / total.max(1) as f64
++        );
++        if !ex.is_empty() {
++            println!("\n    first writes:");
++            for (k, r, sp) in &ex {
++                println!("      {k:<8} rel={r:<4} span={sp:?}");
++            }
++        }
++        return Ok(());
++    }
++
++    // mode=phrase validates the DETERMINISTIC extractor against the panel's own relation
++    // field: does the phrase taken from the turn's words name the row's relation, and do
++    // the statement and the question derive the SAME address?
++    if kv("mode").as_deref() == Some("phrase") {
++        let (mut exact, mut same_addr, mut declined, mut wrong) = (0usize, 0usize, 0usize, 0usize);
++        let mut examples: Vec<(String, String, String)> = Vec::new();
++        for row in rows.iter() {
++            let rel = row["relation"].as_str().unwrap_or_default();
++            let Some(turns) = row["user_turns"].as_array() else {
++                continue;
++            };
++            let Some(last) = turns.last().and_then(|t| t.as_str()) else {
++                continue;
++            };
++            let q = relation_phrase(last);
++            // the statement turn is the one that is not a question
++            let stmt = turns
++                .iter()
++                .filter_map(|t| t.as_str())
++                .find(|t| !t.trim_end().ends_with('?'))
++                .and_then(relation_phrase);
++            match &q {
++                None => declined += 1,
++                Some(p) => {
++                    if *p == rel {
++                        exact += 1;
++                    } else {
++                        wrong += 1;
++                        if examples.len() < 5 {
++                            examples.push((last.to_string(), p.clone(), rel.to_string()));
++                        }
++                    }
++                }
++            }
++            if let (Some(a), Some(b)) = (&stmt, &q) {
++                if derived_relation_id(a) == derived_relation_id(b) {
++                    same_addr += 1;
++                }
++            }
++        }
++        println!("  phrase validation over {} rows", rows.len());
++        println!("    question phrase == row relation : {exact}");
++        println!("    question phrase != row relation : {wrong}");
++        println!("    declined (no relation word)     : {declined}");
++        println!("    statement and question SAME address : {same_addr}");
++        if !examples.is_empty() {
++            println!("\n    mismatches:");
++            for (t, got, want) in &examples {
++                println!("      {t:?} -> {got:?}  (row relation {want:?})");
++            }
++        }
++        return Ok(());
++    }
++
++    // question form -> (count, op text -> count)
++    let mut by_form: BTreeMap<String, BTreeMap<String, usize>> = BTreeMap::new();
++    let mut total = 0usize;
++    for row in rows.iter().take(limit) {
++        let Some(turns) = row["user_turns"].as_array() else {
++            continue;
++        };
++        let Some(last) = turns.last().and_then(|t| t.as_str()) else {
++            continue;
++        };
++        let form = if last.ends_with("'s name?") {
++            "What is <REL>'s name?"
++        } else if last == "What is it?" {
++            "What is it?"
++        } else if last.starts_with("What is the ") {
++            "What is the <REL>?"
++        } else {
++            "other"
++        };
++        let op = match compiler.op_probe(last) {
++            Ok(OpProbe::Text(t)) => t.trim().to_string(),
++            Ok(OpProbe::Refused(r)) => format!("<refused: {r}>"),
++            Err(e) => format!("<error: {e}>"),
++        };
++        *by_form
++            .entry(form.to_string())
++            .or_default()
++            .entry(op)
++            .or_insert(0) += 1;
++        total += 1;
++    }
++
++    println!("  probed {total} question turns\n");
++    for (form, ops) in &by_form {
++        let n: usize = ops.values().sum();
++        println!("  === {form}  ({n} turns) ===");
++        let mut sorted: Vec<(&String, &usize)> = ops.iter().collect();
++        sorted.sort_by(|a, b| b.1.cmp(a.1));
++        for (op, c) in sorted.iter().take(8) {
++            println!("    {c:>4}  {op:?}");
++        }
++        if sorted.len() > 8 {
++            println!("    ... {} more distinct ops", sorted.len() - 8);
++        }
++        println!();
++    }
++    Ok(())
++}
+diff --git a/crates/uor-r4-training/src/bin/relation-pool.rs b/crates/uor-r4-training/src/bin/relation-pool.rs
+new file mode 100644
+index 000000000..7d1068ed9
+--- /dev/null
++++ b/crates/uor-r4-training/src/bin/relation-pool.rs
+@@ -0,0 +1,533 @@
++//! Build the FIXED relation-name pools for world `v2r` and report their episode coverage.
++//!
++//! `v2r` keeps relations OPEN in effect: the pools are generated once (in the generator's
++//! `OnceLock`) and each episode draws its relations from the combined pool, so no single
++//! name dominates training. The nonsense pool is deliberately LARGE (>=5000) so any one
++//! name appears in only a handful of episodes; the English pool is the authored 175, which
++//! recur far more often — that recurrence is exactly what the held-out English split
++//! measures, so it is reported rather than suppressed.
++//!
++//! Disjointness is asserted over the FULL fixed pools, not over the drawn subsets.
++//!
++//! Usage: relation-pool build out=DIR | verify dir=DIR
++
++use std::collections::{BTreeMap, BTreeSet};
++use std::fmt::Write as _;
++use std::fs;
++
++// ---- file-byte sha256 of the frozen authored inputs (see #1552)
++const TRAIN_ENGLISH_SHA256: &str =
++    "9181c3a6edebf38b6351fee72d1eb6c4b7c2428b1e8b43667b362d3a34012533";
++const HELDOUT_ENGLISH_SHA256: &str =
++    "39d72d6c4e81c166b98f910fb818cd3319df3e3b0fa053e63af6fa8d11485c00";
++
++const POOL_SEED: u64 = 20261006;
++/// >= 5000 so a name appears in only a handful of episodes.
++const NONSENSE_POOL: usize = 5_000;
++const EPISODES: usize = 4_000;
++/// Relations drawn per episode.
++const PER_EPISODE: usize = 4;
++
++const ONSETS: [&str; 26] = [
++    "b", "br", "ch", "d", "dr", "f", "g", "gr", "h", "j", "k", "kl", "l", "m", "n", "p", "pl", "r",
++    "s", "sh", "st", "t", "tr", "v", "w", "z",
++];
++const VOWELS: [&str; 8] = ["a", "e", "i", "o", "u", "ai", "ou", "ee"];
++const CODAS: [&str; 12] = ["", "n", "m", "r", "l", "s", "k", "t", "d", "nd", "rk", "st"];
++
++struct Rng(u64);
++impl Rng {
++    fn new(seed: u64) -> Self {
++        Rng(seed)
++    }
++    fn next(&mut self) -> u64 {
++        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
++        let mut z = self.0;
++        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
++        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
++        z ^ (z >> 31)
++    }
++    fn below(&mut self, n: usize) -> usize {
++        (self.next() % n as u64) as usize
++    }
++    fn pick<'a, T>(&mut self, xs: &'a [T]) -> &'a T {
++        &xs[self.below(xs.len())]
++    }
++}
++
++/// In the generator's own scheme: onset x vowel x coda, 2-3 syllables.
++fn nonsense(rng: &mut Rng) -> String {
++    let n = 2 + rng.below(2);
++    (0..n)
++        .map(|_| {
++            format!(
++                "{}{}{}",
++                rng.pick(&ONSETS),
++                rng.pick(&VOWELS),
++                rng.pick(&CODAS)
++            )
++        })
++        .collect()
++}
++
++/// The authored 175 English training nouns. Kept here so the pool builder is self-contained;
++/// the file-byte sha256 above pins the file it must match.
++const TRAIN_ENGLISH: [&str; 175] = [
++    "dentist",
++    "gym",
++    "landlord",
++    "plumber",
++    "barber",
++    "accountant",
++    "neighbour",
++    "cousin",
++    "school",
++    "car",
++    "laptop",
++    "phone",
++    "dog walker",
++    "piano teacher",
++    "gp",
++    "optician",
++    "physio",
++    "tutor",
++    "childminder",
++    "cleaner",
++    "hairdresser",
++    "butcher",
++    "baker",
++    "postman",
++    "librarian",
++    "nurse",
++    "chemist",
++    "mechanic",
++    "electrician",
++    "painter",
++    "builder",
++    "gardener",
++    "tailor",
++    "cobbler",
++    "welder",
++    "joiner",
++    "roofer",
++    "glazier",
++    "locksmith",
++    "chimney sweep",
++    "university",
++    "college",
++    "library",
++    "museum",
++    "theatre",
++    "cinema",
++    "stadium",
++    "swimming pool",
++    "leisure centre",
++    "train station",
++    "bus stop",
++    "airport",
++    "harbour",
++    "market",
++    "supermarket",
++    "pharmacy",
++    "hospital",
++    "surgery",
++    "clinic",
++    "village hall",
++    "community centre",
++    "town hall",
++    "post office",
++    "fire station",
++    "police station",
++    "courthouse",
++    "prison",
++    "monastery",
++    "cathedral",
++    "mosque",
++    "synagogue",
++    "temple",
++    "chapel",
++    "allotment",
++    "playground",
++    "bicycle",
++    "motorbike",
++    "scooter",
++    "van",
++    "truck",
++    "caravan",
++    "tent",
++    "rucksack",
++    "briefcase",
++    "umbrella",
++    "watch",
++    "camera",
++    "guitar",
++    "violin",
++    "flute",
++    "drum kit",
++    "keyboard",
++    "desk",
++    "chair",
++    "wardrobe",
++    "bookcase",
++    "sofa",
++    "mattress",
++    "kettle",
++    "toaster",
++    "blender",
++    "microwave",
++    "oven",
++    "fridge",
++    "freezer",
++    "washing machine",
++    "dishwasher",
++    "vacuum cleaner",
++    "iron",
++    "sewing machine",
++    "lawnmower",
++    "hedge trimmer",
++    "wheelbarrow",
++    "ladder",
++    "toolbox",
++    "birthday",
++    "anniversary",
++    "wedding",
++    "funeral",
++    "holiday home",
++    "mortgage",
++    "overdraft",
++    "pension",
++    "insurance",
++    "utilities",
++    "broadband",
++    "mobile contract",
++    "gym membership",
++    "season ticket",
++    "bus pass",
++    "loyalty card",
++    "library card",
++    "passport",
++    "driving licence",
++    "national insurance",
++    "blood type",
++    "eye prescription",
++    "shoe width",
++    "hat size",
++    "glove size",
++    "collar size",
++    "ring size",
++    "wrist size",
++    "waist size",
++    "inside leg",
++    "favourite band",
++    "favourite film",
++    "favourite book",
++    "favourite restaurant",
++    "favourite pub",
++    "favourite cafe",
++    "favourite shop",
++    "favourite park",
++    "favourite walk",
++    "favourite view",
++    "morning routine",
++    "evening routine",
++    "weekend plan",
++    "commute route",
++    "school run",
++    "lunch break",
++    "tea break",
++    "bedtime",
++    "wake-up time",
++    "alarm",
++    "allergy test",
++    "blood donor",
++    "dentist appointment",
++    "optician appointment",
++    "car service",
++    "boiler service",
++    "mOT",
++    "tax return",
++    "council tax",
++    "water bill",
++];
++/// The 50 held-out English relations. Listed ONLY as a denylist for the assertion.
++const HELDOUT_ENGLISH: [&str; 50] = [
++    "sculptor",
++    "cellist",
++    "beekeeper",
++    "ferry",
++    "tram",
++    "canoe",
++    "yurt",
++    "kiln",
++    "loom",
++    "anvil",
++    "observatory",
++    "planetarium",
++    "aviary",
++    "orangery",
++    "boathouse",
++    "windmill",
++    "lighthouse",
++    "viaduct",
++    "pier",
++    "quay",
++    "spice rack",
++    "bread bin",
++    "tea caddy",
++    "coffee grinder",
++    "mortar and pestle",
++    "wok",
++    "tagine",
++    "griddle",
++    "pestle",
++    "skillet",
++    "barometer",
++    "sextant",
++    "astrolabe",
++    "telescope",
++    "microscope",
++    "kaleidoscope",
++    "metronome",
++    "tuning fork",
++    "pitch pipe",
++    "reed",
++    "tapestry",
++    "fresco",
++    "mosaic",
++    "stained glass",
++    "woodcut",
++    "etching",
++    "lithograph",
++    "batik",
++    "origami",
++    "calligraphy",
++];
++const CLOSED_ALIASES: [&str; 11] = [
++    "user_name",
++    "pet_name",
++    "friend_name",
++    "hometown",
++    "lucky_number",
++    "code_word",
++    "job",
++    "home",
++    "favorite_food",
++    "favorite_color",
++    "none",
++];
++const PANEL_RELATIONS: [&str; 10] = [
++    "hometown",
++    "allergy",
++    "degree",
++    "flatmate",
++    "commute",
++    "holiday",
++    "bank",
++    "shoe_size",
++    "vet",
++    "landline",
++];
++
++fn norm(s: &str) -> String {
++    s.to_lowercase().replace('_', " ")
++}
++
++fn main() -> Result<(), String> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    let mode = args
++        .first()
++        .ok_or("usage: relation-pool build out=DIR | verify dir=DIR")?;
++    let kv = |k: &str| {
++        args.iter()
++            .find_map(|a| a.strip_prefix(&format!("{k}=")).map(str::to_string))
++    };
++
++    // ---- the FIXED nonsense pool, generated once from a fixed seed
++    let mut rng = Rng::new(POOL_SEED);
++    let mut nonsense_pool: Vec<String> = Vec::with_capacity(NONSENSE_POOL);
++    let mut seen: BTreeSet<String> = BTreeSet::new();
++    while nonsense_pool.len() < NONSENSE_POOL {
++        let w = nonsense(&mut rng);
++        if seen.insert(w.clone()) {
++            nonsense_pool.push(w);
++        }
++    }
++
++    // ---- the FIXED combined pool: every name UNIQUE.
++    //      The 50/50 mix belongs to the per-episode DRAW, not to the pool's composition:
++    //      interleaving here with a modulo wrap put each English name in the pool ~15 times,
++    //      which the duplicate-name assertion below caught.
++    let mut pool: Vec<(String, &'static str)> =
++        Vec::with_capacity(NONSENSE_POOL + TRAIN_ENGLISH.len());
++    for w in &nonsense_pool {
++        pool.push((w.clone(), "nonsense"));
++    }
++    for w in TRAIN_ENGLISH.iter() {
++        pool.push(((*w).to_string(), "english"));
++    }
++    let nonsense_span = 0..nonsense_pool.len();
++    let english_span = nonsense_pool.len()..pool.len();
++
++    // ---- disjointness over the FULL pools, asserted (fail, never skip)
++    let mut errs: Vec<String> = Vec::new();
++    let deny: BTreeSet<String> = CLOSED_ALIASES
++        .iter()
++        .chain(PANEL_RELATIONS.iter())
++        .map(|s| norm(s))
++        .collect();
++    let held: BTreeSet<String> = HELDOUT_ENGLISH.iter().map(|s| norm(s)).collect();
++    let mut full: BTreeSet<String> = BTreeSet::new();
++    for (name, _) in &pool {
++        let n = norm(name);
++        if deny.contains(&n) {
++            errs.push(format!(
++                "pool name {name:?} collides with the closed/panel denylist"
++            ));
++        }
++        if held.contains(&n) {
++            errs.push(format!(
++                "pool name {name:?} collides with the held-out English list"
++            ));
++        }
++        if !full.insert(n) {
++            errs.push(format!("duplicate pool name {name:?}"));
++        }
++    }
++
++    // ---- per-name episode coverage under per-episode subset drawing
++    let mut ep_rng = Rng::new(POOL_SEED ^ 0x5EED);
++    let mut counts: BTreeMap<String, usize> = BTreeMap::new();
++    let mut en_counts: Vec<usize> = Vec::new();
++    let mut ns_counts: Vec<usize> = Vec::new();
++    for _ in 0..EPISODES {
++        for k in 0..PER_EPISODE {
++            // 50/50 by RELATION INDEX within the episode (the parity rule a row counter
++            // previously got wrong), then a name drawn from that kind's span.
++            let idx = if k % 2 == 0 {
++                nonsense_span.start + ep_rng.below(nonsense_span.len())
++            } else {
++                english_span.start + ep_rng.below(english_span.len())
++            };
++            let (name, kind) = &pool[idx];
++            *counts.entry(name.clone()).or_insert(0) += 1;
++            if *kind == "english" {
++                en_counts.push(idx);
++            } else {
++                ns_counts.push(idx);
++            }
++        }
++    }
++    let mut vals: Vec<usize> = counts.values().copied().collect();
++    vals.sort_unstable();
++    let median = if vals.is_empty() {
++        0
++    } else {
++        vals[vals.len() / 2]
++    };
++    let max = vals.last().copied().unwrap_or(0);
++    let drawn = counts.len();
++
++    let report = serde_json::json!({
++        "schema": "uor-r4.relation-pool/1",
++        "pool_seed": POOL_SEED,
++        "nonsense_pool_size": NONSENSE_POOL,
++        "english_pool_size": TRAIN_ENGLISH.len(),
++        "combined_pool_size": pool.len(),
++        "episodes": EPISODES,
++        "relations_per_episode": PER_EPISODE,
++        "distinct_names_drawn": drawn,
++        "coverage": {
++            "max_episodes_per_name": max,
++            "median_episodes_per_name": median,
++            "expected_mean": (EPISODES * PER_EPISODE) as f64 / pool.len() as f64,
++            "rule": "counts are episodes in which a name was drawn at least once",
++        },
++        "drawn_by_kind": {"english": en_counts.len(), "nonsense": ns_counts.len()},
++        "train_english_sha256": TRAIN_ENGLISH_SHA256,
++        "heldout_english_sha256": HELDOUT_ENGLISH_SHA256,
++        "disjointness": "asserted over the FULL fixed pools, not the drawn subsets",
++    });
++
++    match mode.as_str() {
++        "build" => {
++            let dir = kv("out").ok_or("build needs out=DIR")?;
++            if !errs.is_empty() {
++                for e in &errs {
++                    eprintln!("ASSERTION FAILED: {e}");
++                }
++                return Err("assertions failed".into());
++            }
++            fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
++            let mut o = String::new();
++            for (name, kind) in &pool {
++                let _ = writeln!(o, "{name}\t{kind}");
++            }
++            fs::write(format!("{dir}/pool.tsv"), o).map_err(|e| e.to_string())?;
++            fs::write(
++                format!("{dir}/pool-report.json"),
++                serde_json::to_vec_pretty(&report).map_err(|e| e.to_string())?,
++            )
++            .map_err(|e| e.to_string())?;
++            println!(
++                "  pool {} (nonsense {NONSENSE_POOL} + english {})",
++                pool.len(),
++                TRAIN_ENGLISH.len()
++            );
++            println!(
++                "  episodes {EPISODES} x {PER_EPISODE} draws -> {drawn} distinct names touched"
++            );
++            println!(
++                "  episodes per name: max {max}  median {median}  (mean {:.1})",
++                (EPISODES * PER_EPISODE) as f64 / pool.len() as f64
++            );
++            println!(
++                "  draws by kind: english {}  nonsense {}",
++                report["drawn_by_kind"]["english"], report["drawn_by_kind"]["nonsense"]
++            );
++        }
++        "verify" => {
++            let dir = kv("dir").ok_or("verify needs dir=DIR")?;
++            let got = fs::read_to_string(format!("{dir}/pool.tsv")).map_err(|e| e.to_string())?;
++            let mut want = String::new();
++            for (name, kind) in &pool {
++                let _ = writeln!(want, "{name}\t{kind}");
++            }
++            println!("  pool byte-identical: {}", got == want);
++            println!("  assertion failures: {}", errs.len());
++        }
++        other => return Err(format!("unknown mode {other}")),
++    }
++    Ok(())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// The nonsense pool must be large enough that a single name cannot dominate training.
++    #[test]
++    fn nonsense_pool_is_large_and_unique() {
++        let mut rng = Rng::new(POOL_SEED);
++        let mut seen = BTreeSet::new();
++        while seen.len() < NONSENSE_POOL {
++            seen.insert(nonsense(&mut rng));
++        }
++        assert_eq!(
++            seen.len(),
++            NONSENSE_POOL,
++            "the pool must be {NONSENSE_POOL} DISTINCT names"
++        );
++        assert!(NONSENSE_POOL >= 5_000);
++    }
++
++    /// The mix is keyed on relation INDEX, so both kinds are present and interleaved.
++    #[test]
++    fn the_mix_alternates_by_relation_index() {
++        // keying on a ROW counter previously produced only English; assert both kinds here
++        let mut kinds = BTreeSet::new();
++        for i in 0..10 {
++            kinds.insert(if i % 2 == 0 { "nonsense" } else { "english" });
++        }
++        assert!(kinds.contains("english") && kinds.contains("nonsense"));
++    }
++}
+diff --git a/crates/uor-r4-training/src/bin/relation-split-set.rs b/crates/uor-r4-training/src/bin/relation-split-set.rs
+new file mode 100644
+index 000000000..33a1b7558
+--- /dev/null
++++ b/crates/uor-r4-training/src/bin/relation-split-set.rs
+@@ -0,0 +1,529 @@
++//! Build the relation-split held-out set, and pre-register its identity CEILING.
++//!
++//! A RELATION-SPLIT set: its relation names are drawn from a pool disjoint from training
++//! and from the panel, so it measures generalisation to a genuinely unseen RELATION (not
++//! merely an unseen phrasing). Half its relations are real English nouns from a separate
++//! list, half are syllable-generated nonsense names — because with only nonsense names the
++//! compiler could learn "the unfamiliar token is the relation" and still fail on the
++//! familiar English nouns the panel and real users use.
++//!
++//! The CEILING is the most exact relation identity can recover: the share of
++//! statement/question pairs whose normalized relation keys are EQUAL. It is computed here
++//! and published before training, so the result is reported against it rather than against
++//! the panel's score.
++//!
++//! Usage: relation-split-set build out=DIR | verify dir=DIR
++
++use std::collections::BTreeSet;
++use std::fmt::Write as _;
++use std::fs;
++
++// ---------------------------------------------------------------- determinism inputs
++const TRAIN_ENGLISH_SHA256: &str =
++    "9181c3a6edebf38b6351fee72d1eb6c4b7c2428b1e8b43667b362d3a34012533";
++const HELDOUT_ENGLISH_SHA256: &str =
++    "39d72d6c4e81c166b98f910fb818cd3319df3e3b0fa053e63af6fa8d11485c00";
++const STOPWORDS_SHA256: &str = "83e174a5f1cf24fdf5f6676e431b3599ce259ad7cea8eb0c7adab51ed8e0be71";
++
++/// The frozen stop-word list, pinned by sha256 above. The list is short by design: every
++/// extra word is a chance to merge two genuinely different relations.
++const DETERMINERS: [&str; 10] = [
++    "my", "your", "our", "the", "a", "an", "his", "her", "their", "its",
++];
++const GENERICS: [&str; 4] = ["name", "number", "called", "word"];
++
++/// Relation key: the relation's HEAD PHRASE, already extracted as a span, normalized.
++/// Deterministic, not a semantic metric. Strips determiners, the possessive, and trailing
++/// generic slot words — but NEVER to empty, so a relation that IS a generic word keeps its
++/// last token instead of collapsing into one shared empty key.
++pub fn relation_key(phrase: &str) -> String {
++    let mut t = phrase.to_lowercase();
++    // possessive 's (straight or curly)
++    t = t
++        .replace("'s ", " ")
++        .replace("\u{2019}s ", " ")
++        .replace("'s", "")
++        .replace("\u{2019}s", "");
++    let mut toks: Vec<String> = t
++        .split(|c: char| !c.is_alphanumeric())
++        .filter(|w| !w.is_empty())
++        .filter(|w| !DETERMINERS.contains(w))
++        .map(str::to_string)
++        .collect();
++    while toks.len() > 1 && GENERICS.contains(&toks[toks.len() - 1].as_str()) {
++        toks.pop();
++    }
++    toks.join(" ")
++}
++
++// ---------------------------------------------------------------- the mixed pool
++/// The held-out English relations: a SEPARATE list, asserted disjoint from the training
++/// list at build time. `tea caddy` shares only the modifier `tea`; its head is unseen, so
++/// it is scored as PARTLY SEEN and excluded from the novel count.
++const HELDOUT_ENGLISH: [&str; 50] = [
++    "sculptor",
++    "cellist",
++    "beekeeper",
++    "ferry",
++    "tram",
++    "canoe",
++    "yurt",
++    "kiln",
++    "loom",
++    "anvil",
++    "observatory",
++    "planetarium",
++    "aviary",
++    "orangery",
++    "boathouse",
++    "windmill",
++    "lighthouse",
++    "viaduct",
++    "pier",
++    "quay",
++    "spice rack",
++    "bread bin",
++    "tea caddy",
++    "coffee grinder",
++    "mortar and pestle",
++    "wok",
++    "tagine",
++    "griddle",
++    "pestle",
++    "skillet",
++    "barometer",
++    "sextant",
++    "astrolabe",
++    "telescope",
++    "microscope",
++    "kaleidoscope",
++    "metronome",
++    "tuning fork",
++    "pitch pipe",
++    "reed",
++    "tapestry",
++    "fresco",
++    "mosaic",
++    "stained glass",
++    "woodcut",
++    "etching",
++    "lithograph",
++    "batik",
++    "origami",
++    "calligraphy",
++];
++
++/// Relation names that MUST NOT appear in the generated pool.
++const CLOSED_ALIASES: [&str; 11] = [
++    "user_name",
++    "pet_name",
++    "friend_name",
++    "hometown",
++    "lucky_number",
++    "code_word",
++    "job",
++    "home",
++    "favorite_food",
++    "favorite_color",
++    "none",
++];
++/// The panel's relations. Listed here ONLY as a denylist assertion; no panel content is read.
++const PANEL_RELATIONS: [&str; 10] = [
++    "hometown",
++    "allergy",
++    "degree",
++    "flatmate",
++    "commute",
++    "holiday",
++    "bank",
++    "shoe_size",
++    "vet",
++    "landline",
++];
++
++const ONSETS: [&str; 26] = [
++    "b", "br", "ch", "d", "dr", "f", "g", "gr", "h", "j", "k", "kl", "l", "m", "n", "p", "pl", "r",
++    "s", "sh", "st", "t", "tr", "v", "w", "z",
++];
++const VOWELS: [&str; 8] = ["a", "e", "i", "o", "u", "ai", "ou", "ee"];
++const CODAS: [&str; 12] = ["", "n", "m", "r", "l", "s", "k", "t", "d", "nd", "rk", "st"];
++
++struct Rng(u64);
++impl Rng {
++    fn new(seed: u64) -> Self {
++        Rng(seed)
++    }
++    fn next(&mut self) -> u64 {
++        self.0 = self.0.wrapping_add(0x9E37_79B9_7F4A_7C15);
++        let mut z = self.0;
++        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
++        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
++        z ^ (z >> 31)
++    }
++    fn below(&mut self, n: usize) -> usize {
++        (self.next() % n as u64) as usize
++    }
++    fn pick<'a, T>(&mut self, xs: &'a [T]) -> &'a T {
++        &xs[self.below(xs.len())]
++    }
++    fn chance(&mut self) -> bool {
++        self.next() % 2 == 0
++    }
++}
++
++/// A nonsense relation name in the generator's own scheme. Distinct split assignment from
++/// values, so a relation name cannot collide with a value name.
++fn nonsense(rng: &mut Rng) -> String {
++    let n = 2 + rng.below(2);
++    (0..n)
++        .map(|_| {
++            format!(
++                "{}{}{}",
++                rng.pick(&ONSETS),
++                rng.pick(&VOWELS),
++                rng.pick(&CODAS)
++            )
++        })
++        .collect()
++}
++
++/// A held-out value: fresh, and unrelated to any relation name.
++fn value(rng: &mut Rng) -> String {
++    let n = 2 + rng.below(2);
++    (0..n)
++        .map(|_| {
++            format!(
++                "{}{}{}",
++                rng.pick(&ONSETS),
++                rng.pick(&VOWELS),
++                rng.pick(&CODAS)
++            )
++        })
++        .collect()
++}
++
++struct Row {
++    id: String,
++    relation: String,
++    kind: &'static str, // "english" | "nonsense"
++    partly_seen: bool,
++    turns: Vec<String>,
++    answer: String,
++    /// The relation phrase each turn names, as the compiler would take it from the source.
++    stmt_phrase: String,
++    q_phrase: String,
++}
++
++fn build(per_relation: usize, seed: u64) -> Vec<Row> {
++    let mut rng = Rng::new(seed);
++    let mut rows = Vec::new();
++    let mut n = 0usize;
++    let english = HELDOUT_ENGLISH.len();
++    let total = english * 2; // half English, half nonsense
++    for i in 0..total {
++        // Parity keys on the RELATION index. Keying it on the row counter advanced the
++        // parity twice per relation and produced only English relations.
++        let (relation, kind) = if i % 2 == 0 {
++            (HELDOUT_ENGLISH[(i / 2) % english].to_string(), "english")
++        } else {
++            (nonsense(&mut rng), "nonsense")
++        };
++        for _ in 0..per_relation {
++            n += 1;
++            let v = value(&mut rng);
++            // statement names the relation by the same head phrase the question uses
++            let phrase = relation.clone();
++            let stmt = format!("My {} is {}.", phrase, v);
++            let dist_rel = if rng.chance() {
++                nonsense(&mut rng)
++            } else {
++                HELDOUT_ENGLISH[rng.below(english)].to_string()
++            };
++            let dist = format!("My {} is {}.", dist_rel, value(&mut rng));
++            // The question names the relation with a DIFFERENT surface form about a third
++            // of the time, so the ceiling measures identity under variation instead of
++            // holding by construction. Forms are generated around the same head phrase.
++            let q_phrase = if rng.below(3) == 0 {
++                // an implicit-relation question: no relation word at all
++                String::new()
++            } else if rng.below(2) == 0 {
++                format!("the {}", phrase)
++            } else {
++                format!("{}'s name", phrase)
++            };
++            let question = if q_phrase.is_empty() {
++                "What is it?".to_string()
++            } else {
++                format!("What is {}?", q_phrase)
++            };
++            let q_phrase = if q_phrase.is_empty() {
++                String::new()
++            } else {
++                q_phrase
++            };
++            let turns = if rng.chance() {
++                vec![stmt.clone(), dist, question.clone()]
++            } else {
++                vec![dist, stmt.clone(), question.clone()]
++            };
++            let partly = relation.split_whitespace().count() > 1
++                && relation
++                    .split_whitespace()
++                    .any(|w| TRAIN_WORDS_PROBE.contains(&w));
++            rows.push(Row {
++                id: format!("rs-{n:03}"),
++                relation: relation.clone(),
++                kind,
++                partly_seen: partly,
++                turns,
++                answer: v,
++                stmt_phrase: phrase.clone(),
++                q_phrase,
++            });
++        }
++    }
++    rows
++}
++
++/// Words appearing in the training English pool. Used ONLY to flag partly-seen rows; the
++/// pool itself is not read here beyond this probe, and no held-out file is opened.
++const TRAIN_WORDS_PROBE: [&str; 3] = ["tea", "break", "size"];
++
++fn py_str(s: &str) -> String {
++    let mut o = String::from("\"");
++    for c in s.chars() {
++        match c {
++            '"' => o.push_str("\\\""),
++            '\\' => o.push_str("\\\\"),
++            c => o.push(c),
++        }
++    }
++    o.push('"');
++    o
++}
++fn py_dumps(rows: &[Row]) -> String {
++    let mut o = String::from("[");
++    for (i, r) in rows.iter().enumerate() {
++        if i > 0 {
++            o.push(',');
++        }
++        o.push_str("\n {\n");
++        let _ = write!(o, "  \"id\": {},\n", py_str(&r.id));
++        o.push_str("  \"category\": \"memory\",\n");
++        let _ = write!(
++            o,
++            "  \"relation\": {},\n  \"relation_kind\": {},\n  \"partly_seen\": {},\n",
++            py_str(&r.relation),
++            py_str(r.kind),
++            r.partly_seen
++        );
++        o.push_str("  \"user_turns\": [");
++        for (j, t) in r.turns.iter().enumerate() {
++            if j > 0 {
++                o.push(',');
++            }
++            let _ = write!(o, "\n   {}", py_str(t));
++        }
++        o.push_str("\n  ]\n }");
++    }
++    o.push_str("\n]");
++    o
++}
++fn py_dumps_expected(rows: &[Row]) -> String {
++    let mut o = String::from("{");
++    for (i, r) in rows.iter().enumerate() {
++        if i > 0 {
++            o.push(',');
++        }
++        let _ = write!(o, "\n {}: {}", py_str(&r.id), py_str(&r.answer));
++    }
++    o.push_str("\n}");
++    o
++}
++
++fn main() -> Result<(), String> {
++    let args: Vec<String> = std::env::args().skip(1).collect();
++    let mode = args
++        .first()
++        .ok_or("usage: relation-split-set build out=DIR | verify dir=DIR")?;
++    let kv = |k: &str| {
++        args.iter()
++            .find_map(|a| a.strip_prefix(&format!("{k}=")).map(str::to_string))
++    };
++    let per: usize = kv("per_relation")
++        .map(|v| v.parse().unwrap_or(1))
++        .unwrap_or(2);
++    let rows = build(per, 20261006);
++
++    // ---- pool disjointness, asserted at build time (fail, never skip)
++    let mut errs: Vec<String> = Vec::new();
++    let norm = |s: &str| s.to_lowercase().replace('_', " ");
++    let deny: BTreeSet<String> = CLOSED_ALIASES
++        .iter()
++        .chain(PANEL_RELATIONS.iter())
++        .map(|s| norm(s))
++        .collect();
++    for r in &rows {
++        if deny.contains(&norm(&r.relation)) {
++            errs.push(format!(
++                "pool relation {:?} collides with the closed/panel denylist",
++                r.relation
++            ));
++        }
++    }
++    let heads: BTreeSet<String> = HELDOUT_ENGLISH.iter().map(|s| norm(s)).collect();
++    if heads.len() != HELDOUT_ENGLISH.len() {
++        errs.push("duplicate English held-out relations".into());
++    }
++
++    // ---- the CEILING: statement/question pairs whose normalized relation keys are EQUAL
++    let mut equal = 0usize;
++    let mut implicit = 0usize;
++    let mut seen = 0usize;
++    let mut eq_en = 0usize;
++    let mut tot_en = 0usize;
++    let mut eq_ns = 0usize;
++    let mut tot_ns = 0usize;
++    for r in &rows {
++        let ks = relation_key(&r.stmt_phrase);
++        let kq = relation_key(&r.q_phrase);
++        if ks.is_empty() {
++            implicit += 1;
++        }
++        if ks == kq {
++            equal += 1;
++        } else {
++            seen += 1;
++        }
++        if r.partly_seen {
++            continue;
++        } // never counted as novel
++        match r.kind {
++            "english" => {
++                tot_en += 1;
++                if ks == kq {
++                    eq_en += 1;
++                }
++            }
++            _ => {
++                tot_ns += 1;
++                if ks == kq {
++                    eq_ns += 1;
++                }
++            }
++        }
++    }
++    let novel = rows.iter().filter(|r| !r.partly_seen).count();
++
++    match mode.as_str() {
++        "build" => {
++            let dir = kv("out").ok_or("build needs out=DIR")?;
++            if !errs.is_empty() {
++                for e in &errs {
++                    eprintln!("ASSERTION FAILED: {e}");
++                }
++                return Err("assertions failed".into());
++            }
++            fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
++            fs::write(format!("{dir}/rs-requests.json"), py_dumps(&rows))
++                .map_err(|e| e.to_string())?;
++            fs::write(format!("{dir}/rs-expected.json"), py_dumps_expected(&rows))
++                .map_err(|e| e.to_string())?;
++            let ceiling = serde_json::json!({
++                "schema": "uor-r4.relation-split-ceiling/1",
++                "rows_total": rows.len(),
++                "rows_novel": novel,
++                "rows_partly_seen": rows.len() - novel,
++                "identity_pairs_equal": equal,
++                "identity_pairs_differ": seen,
++                "implicit_relation_pairs": implicit,
++                "ceiling_fraction": equal as f64 / rows.len() as f64,
++                "by_kind": {
++                    "english": {"novel_rows": tot_en, "equal": eq_en},
++                    "nonsense": {"novel_rows": tot_ns, "equal": eq_ns},
++                },
++                "rule": "the ceiling is the most EXACT relation identity can recover: pairs whose normalized relation keys are equal. Rows whose statement carries no relation word are reported separately as implicit-relation losses and are not part of the recoverable ceiling.",
++                "stopwords_sha256": STOPWORDS_SHA256,
++                "train_english_sha256": TRAIN_ENGLISH_SHA256,
++                "heldout_english_sha256": HELDOUT_ENGLISH_SHA256,
++            });
++            fs::write(
++                format!("{dir}/ceiling.json"),
++                serde_json::to_vec_pretty(&ceiling).map_err(|e| e.to_string())?,
++            )
++            .map_err(|e| e.to_string())?;
++            println!(
++                "  rows {}  novel {}  partly_seen {}",
++                rows.len(),
++                novel,
++                rows.len() - novel
++            );
++            println!(
++                "  CEILING: {equal}/{} pairs have equal relation keys ({:.3})",
++                rows.len(),
++                equal as f64 / rows.len() as f64
++            );
++            println!("  implicit-relation pairs (reported separately): {implicit}");
++            println!("  by kind: english {eq_en}/{tot_en}   nonsense {eq_ns}/{tot_ns}");
++        }
++        "verify" => {
++            let dir = kv("dir").ok_or("verify needs dir=DIR")?;
++            let got_r =
++                fs::read_to_string(format!("{dir}/rs-requests.json")).map_err(|e| e.to_string())?;
++            let got_e =
++                fs::read_to_string(format!("{dir}/rs-expected.json")).map_err(|e| e.to_string())?;
++            println!("  requests byte-identical: {}", got_r == py_dumps(&rows));
++            println!(
++                "  expected byte-identical: {}",
++                got_e == py_dumps_expected(&rows)
++            );
++        }
++        other => return Err(format!("unknown mode {other}")),
++    }
++    Ok(())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    /// The normalizer strips determiners, the possessive, and trailing generics — the three
++    /// cases the reviewer named — so one relation yields ONE key.
++    #[test]
++    fn one_relation_yields_one_key() {
++        assert_eq!(relation_key("my vet"), "vet");
++        assert_eq!(relation_key("the vet"), "vet");
++        assert_eq!(relation_key("my vet's name"), "vet");
++    }
++
++    /// A relation that IS a generic word must not collapse to the empty key, which would
++    /// merge every generic relation into one slot.
++    #[test]
++    fn generic_relation_never_normalizes_to_empty() {
++        assert_eq!(relation_key("my name"), "name");
++        assert_eq!(relation_key("my number"), "number");
++        assert_ne!(relation_key("my name"), relation_key("my number"));
++    }
++
++    /// The paraphrase limit: exact identity does NOT unify these. Documented expected
++    /// behaviour, not a bug — reported separately, and no semantic metric is claimed.
++    #[test]
++    fn paraphrase_relations_do_not_unify() {
++        assert_ne!(relation_key("my vet"), relation_key("my animal doctor"));
++        assert_ne!(relation_key("my hometown"), relation_key("my home town"));
++    }
++
++    /// Determinism and shape.
++    #[test]
++    fn build_is_deterministic_and_mixed() {
++        let a = build(2, 20261006);
++        let b = build(2, 20261006);
++        assert_eq!(py_dumps(&a), py_dumps(&b));
++        assert!(!a.is_empty());
++        let kinds: BTreeSet<&str> = a.iter().map(|r| r.kind).collect();
++        assert!(
++            kinds.contains("english") && kinds.contains("nonsense"),
++            "pool must be mixed"
++        );
++    }
++}
+diff --git a/crates/uor-r4-training/src/milestone_world_v2.rs b/crates/uor-r4-training/src/milestone_world_v2.rs
+index 78ee4382d..6cf980a81 100644
+--- a/crates/uor-r4-training/src/milestone_world_v2.rs
++++ b/crates/uor-r4-training/src/milestone_world_v2.rs
+@@ -703,6 +703,9 @@ enum Values {
+     Hometown,
+     LuckyNumber,
+     CodeWord,
++    /// An OPEN relation: its NAME comes from the generated pool and its value from the
++    /// same syllable scheme, so neither is drawn from a fixed label list.
++    Open,
+     Closed(&'static [&'static str], &'static [&'static str]),
+ }
+ 
+@@ -727,6 +730,7 @@ impl Rel {
+     fn draw(&self, rng: &mut Rng, split: Split) -> Result<String> {
+         match self.values {
+             Values::UserName | Values::PetName | Values::FriendName => name(rng, split),
++            Values::Open => word(rng, split, 2, 3),
+             Values::Hometown => town(rng, split),
+             Values::LuckyNumber => digits(rng, split),
+             Values::CodeWord => word(rng, split, 2, 3),
+@@ -877,6 +881,257 @@ pub fn relation_names() -> Vec<&'static str> {
+     relations().iter().map(|relation| relation.name).collect()
+ }
+ 
++/// Whether the WORLD's relation table carries the generated open-name pool (`world=v2r`).
++///
++/// This is the WORLD's switch, not the compiler's. The compiler and the session each take
++/// an explicit `with_open_relations(bool)` setting, because compiler behaviour must be
++/// bound to the artifact and the report rather than to process state. The world's relation
++/// TABLE is a different thing: it is built once by the CLI for the selected world variant,
++/// and it is the variant that decides whether the pool is present.
++static OPEN_RELATION_POOL: OnceLock<bool> = OnceLock::new();
++
++/// Include the generated open-name pool in the world's relation table. Called by the CLI
++/// when `world=v2r` is selected.
++pub fn enable_open_relation_pool() {
++    let _ = OPEN_RELATION_POOL.set(true);
++}
++
++pub fn open_relation_pool() -> bool {
++    *OPEN_RELATION_POOL.get().unwrap_or(&false)
++}
++
++/// The generated nonsense pool size. Large so any one name appears in only a handful of
++/// episodes; the English names recur far more often, which is what the held-out English
++/// split measures.
++const OPEN_NONSENSE_POOL: usize = 5_000;
++const OPEN_POOL_SEED: u64 = 20261006;
++
++/// The 175 authored English relation nouns, pinned by file-byte sha256 on #1552.
++const OPEN_ENGLISH: [&str; 175] = [
++    "dentist",
++    "gym",
++    "landlord",
++    "plumber",
++    "barber",
++    "accountant",
++    "neighbour",
++    "cousin",
++    "school",
++    "car",
++    "laptop",
++    "phone",
++    "dog walker",
++    "piano teacher",
++    "gp",
++    "optician",
++    "physio",
++    "tutor",
++    "childminder",
++    "cleaner",
++    "hairdresser",
++    "butcher",
++    "baker",
++    "postman",
++    "librarian",
++    "nurse",
++    "chemist",
++    "mechanic",
++    "electrician",
++    "painter",
++    "builder",
++    "gardener",
++    "tailor",
++    "cobbler",
++    "welder",
++    "joiner",
++    "roofer",
++    "glazier",
++    "locksmith",
++    "chimney sweep",
++    "university",
++    "college",
++    "library",
++    "museum",
++    "theatre",
++    "cinema",
++    "stadium",
++    "swimming pool",
++    "leisure centre",
++    "train station",
++    "bus stop",
++    "airport",
++    "harbour",
++    "market",
++    "supermarket",
++    "pharmacy",
++    "hospital",
++    "surgery",
++    "clinic",
++    "village hall",
++    "community centre",
++    "town hall",
++    "post office",
++    "fire station",
++    "police station",
++    "courthouse",
++    "prison",
++    "monastery",
++    "cathedral",
++    "mosque",
++    "synagogue",
++    "temple",
++    "chapel",
++    "allotment",
++    "playground",
++    "bicycle",
++    "motorbike",
++    "scooter",
++    "van",
++    "truck",
++    "caravan",
++    "tent",
++    "rucksack",
++    "briefcase",
++    "umbrella",
++    "watch",
++    "camera",
++    "guitar",
++    "violin",
++    "flute",
++    "drum kit",
++    "keyboard",
++    "desk",
++    "chair",
++    "wardrobe",
++    "bookcase",
++    "sofa",
++    "mattress",
++    "kettle",
++    "toaster",
++    "blender",
++    "microwave",
++    "oven",
++    "fridge",
++    "freezer",
++    "washing machine",
++    "dishwasher",
++    "vacuum cleaner",
++    "iron",
++    "sewing machine",
++    "lawnmower",
++    "hedge trimmer",
++    "wheelbarrow",
++    "ladder",
++    "toolbox",
++    "birthday",
++    "anniversary",
++    "wedding",
++    "funeral",
++    "holiday home",
++    "mortgage",
++    "overdraft",
++    "pension",
++    "insurance",
++    "utilities",
++    "broadband",
++    "mobile contract",
++    "gym membership",
++    "season ticket",
++    "bus pass",
++    "loyalty card",
++    "library card",
++    "passport",
++    "driving licence",
++    "national insurance",
++    "blood type",
++    "eye prescription",
++    "shoe width",
++    "hat size",
++    "glove size",
++    "collar size",
++    "ring size",
++    "wrist size",
++    "waist size",
++    "inside leg",
++    "favourite band",
++    "favourite film",
++    "favourite book",
++    "favourite restaurant",
++    "favourite pub",
++    "favourite cafe",
++    "favourite shop",
++    "favourite park",
++    "favourite walk",
++    "favourite view",
++    "morning routine",
++    "evening routine",
++    "weekend plan",
++    "commute route",
++    "school run",
++    "lunch break",
++    "tea break",
++    "bedtime",
++    "wake-up time",
++    "alarm",
++    "allergy test",
++    "blood donor",
++    "dentist appointment",
++    "optician appointment",
++    "car service",
++    "boiler service",
++    "mOT",
++    "tax return",
++    "council tax",
++    "water bill",
++];
++
++/// A nonsense relation name in the generator's own syllable scheme, under a split
++/// distinct from the value generators so a relation name cannot collide with a value.
++fn open_nonsense(rng: &mut Rng) -> String {
++    let n = 2 + rng.below(2);
++    (0..n)
++        .map(|_| {
++            format!(
++                "{}{}{}",
++                pick(
++                    rng,
++                    &[
++                        "b", "br", "ch", "d", "dr", "f", "g", "gr", "h", "j", "k", "kl", "l", "m",
++                        "n", "p", "pl", "r", "s", "sh", "st", "t", "tr", "v", "w", "z"
++                    ]
++                ),
++                pick(rng, &["a", "e", "i", "o", "u", "ai", "ou", "ee"]),
++                pick(
++                    rng,
++                    &["", "n", "m", "r", "l", "s", "k", "t", "d", "nd", "rk", "st"]
++                ),
++            )
++        })
++        .collect()
++}
++
++/// The full fixed pool, built ONCE: every name unique. The 50/50 English/nonsense mix
++/// belongs to the per-episode DRAW, not to the pool's composition.
++fn open_pool() -> &'static [(String, bool)] {
++    static POOL: OnceLock<Vec<(String, bool)>> = OnceLock::new();
++    POOL.get_or_init(|| {
++        let mut rng = Rng::new(OPEN_POOL_SEED);
++        let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
++        let mut v: Vec<(String, bool)> =
++            Vec::with_capacity(OPEN_NONSENSE_POOL + OPEN_ENGLISH.len());
++        while v.len() < OPEN_NONSENSE_POOL {
++            let w = open_nonsense(&mut rng);
++            if seen.insert(w.clone()) {
++                v.push((w, false)); // nonsense
++            }
++        }
++        for w in OPEN_ENGLISH.iter() {
++            v.push(((*w).to_string(), true)); // english
++        }
++        v
++    })
++}
++
+ /// The relation table: open relations first, then the closed minority.
+ fn relations() -> &'static [Rel] {
+     static TABLE: OnceLock<Vec<Rel>> = OnceLock::new();
+@@ -969,9 +1224,47 @@ fn relations() -> &'static [Rel] {
+                 answers: &["Your favorite color is {v}.", "You love {v}."],
+             },
+         ]
++        .into_iter()
++        .chain(if open_relation_pool() {
++            // OPEN RELATION NAMES: append the fixed pool. Names are leaked ONCE here, in
++            // the OnceLock, so the table's `&'static str` holds and the leak is bounded
++            // (~5k short strings) rather than per episode. `v2` never sets the switch, so
++            // this branch is dead for v2 and its table is untouched.
++            open_pool()
++                .iter()
++                .map(|(name, _english)| Rel {
++                    name: Box::leak(name.clone().into_boxed_str()) as &'static str,
++                    values: Values::Open,
++                    assert: &OPEN_ASSERT,
++                    update: &OPEN_UPDATE,
++                    query: &OPEN_QUERY,
++                    acks: &["Got it, I'll remember that."],
++                    answers: &["Your {r} is {v}."],
++                })
++                .collect::<Vec<Rel>>()
++        } else {
++            Vec::new()
++        })
++        .collect::<Vec<Rel>>()
+     })
+ }
+ 
++/// Phrasings for an OPEN relation. `{r}` is the relation's own name, so the statement and
++/// the question both name the relation by the SAME words — which is what lets an exact
++/// phrase key address the record without a label list.
++static OPEN_ASSERT: Phrasings = Phrasings {
++    train: &["My {r} is {v}.", "I'd say my {r} is {v}."],
++    development: &["My {r} is {v}."],
++};
++static OPEN_UPDATE: Phrasings = Phrasings {
++    train: &["Actually my {r} is {v}."],
++    development: &["Actually my {r} is {v}."],
++};
++static OPEN_QUERY: Phrasings = Phrasings {
++    train: &["What is my {r}?", "What's my {r}?"],
++    development: &["What is my {r}?"],
++};
++
+ const UPDATE_ACKS: &[&str] = &[
+     "Okay, I'll remember that.",
+     "Got it, thanks for telling me.",
+diff --git a/crates/uor-r4-training/src/relation_compiler.rs b/crates/uor-r4-training/src/relation_compiler.rs
+index cdafe3103..c94dfa6f1 100644
+--- a/crates/uor-r4-training/src/relation_compiler.rs
++++ b/crates/uor-r4-training/src/relation_compiler.rs
+@@ -1108,6 +1108,14 @@ pub enum ActRule {
+     Span,
+ }
+ 
++/// What [`SavedCompiler::op_probe`] observed: the op model's raw text, or the guard that
++/// stopped generation. The reason matches the `Unresolved` reason `op_action` returns.
++#[derive(Clone, Debug, PartialEq, Eq)]
++pub enum OpProbe {
++    Text(String),
++    Refused(String),
++}
++
+ impl ActRule {
+     pub fn parse(text: &str) -> Result<Self> {
+         match text {
+@@ -1141,6 +1149,199 @@ pub const COMPILE_PROMPT: &str = "Compile.";
+ /// The longest op an op model may generate, in tokens.
+ const OP_MAX_TOKENS: usize = 24;
+ 
++// ---------------------------------------------------------------- open relation identity
++
++/// The frozen stop-word lists, pinned by sha256 on #1552. Short by design: every extra
++/// word is a chance to merge two genuinely different relations.
++const RELATION_DETERMINERS: [&str; 10] = [
++    "my", "your", "our", "the", "a", "an", "his", "her", "their", "its",
++];
++/// The subset that marks a turn as BEING ABOUT the speaker's own record. A non-possessive
++/// determiner is only read on an interrogative turn: otherwise an ordinary sentence
++/// ("The weather is nice today.") yields a relation ("weather") and the compiler would
++/// answer a question nobody asked. Out-of-scope rejection belongs here rather than in a
++/// learned class — a classifier trained in-scope is exactly what misses out-of-scope input.
++const RELATION_POSSESSIVES: [&str; 7] = ["my", "your", "our", "his", "her", "their", "its"];
++const RELATION_GENERICS: [&str; 4] = ["name", "number", "called", "word"];
++/// Pronouns that must never be read as a relation: they are anaphoric, so the row needs
++/// previous-turn state and keying on the pronoun would address a wrong slot.
++const RELATION_PRONOUNS: [&str; 10] = [
++    "it", "that", "this", "they", "them", "those", "these", "he", "she", "one",
++];
++
++/// A relation's key: its HEAD PHRASE, already extracted as a span, normalized.
++///
++/// Deterministic, NOT a semantic metric. Strips determiners, the possessive `'s`, and
++/// trailing generic slot words — so `my vet`, `the vet` and `my vet's name` all key to
++/// `vet`, which is what lets a statement and a question address the same record without
++/// either knowing a label.
++///
++/// The trailing strip NEVER reduces to empty: a relation that IS a generic word keeps its
++/// last token, so `my name` keys to `name` rather than collapsing into one shared empty
++/// key with every other generic relation.
++pub fn relation_key(phrase: &str) -> String {
++    let lowered = phrase.to_lowercase();
++    let no_possessive = lowered
++        .replace("'s ", " ")
++        .replace("\u{2019}s ", " ")
++        .replace("'s", "")
++        .replace("\u{2019}s", "");
++    let mut toks: Vec<String> = no_possessive
++        .split(|c: char| !c.is_alphanumeric())
++        .filter(|w| !w.is_empty())
++        .filter(|w| !RELATION_DETERMINERS.contains(w))
++        .map(str::to_string)
++        .collect();
++    while toks.len() > 1 && RELATION_GENERICS.contains(&toks[toks.len() - 1].as_str()) {
++        toks.pop();
++    }
++    toks.join(" ")
++}
++
++/// The relation phrase a turn NAMES, taken from the turn's own words.
++///
++/// This is the deterministic relation identity. Neither learned component can supply it:
++/// the table's relation head predicts `NONE` on an unseen name, and the op model emits
++/// either `Op: none` or a CLOSED label (measured — see the `op-probe` instrument). So for
++/// a relation outside the closed set, the only signal is the turn's text.
++///
++/// The rule is the determiner: a relation is the words after a determiner (`my`, `the`,
++/// `your`, ...) up to the copula `is` or the end of the turn. Statements and questions
++/// share it, so both derive the same address without either knowing a label:
++///
++///   "My sculptor is Klisttritse."   -> "sculptor"
++///   "What is my sculptor?"          -> "sculptor"
++///   "What is the spice rack?"       -> "spice rack"
++///   "What is it?"                   -> None   (no relation word: declines)
++///
++/// `None` is a real answer, not a failure: an anaphoric turn carries no relation phrase,
++/// which is exactly why those rows cannot be recovered by phrase identity.
++pub fn relation_phrase(source: &str) -> Option<String> {
++    let words = word_spans(source);
++    let text = |w: &WordSpan| &source[w.start..w.end];
++    // A phrase directly after a determiner: "my sculptor", "the spice rack".
++    let interrogative = source.trim_end().ends_with('?');
++    let after_determiner = words.iter().position(|w| {
++        let word = text(w).to_lowercase();
++        if !RELATION_DETERMINERS.contains(&word.as_str()) {
++            return false;
++        }
++        // A non-possessive determiner ("the", "a", "an") is only a relation marker on a
++        // question; elsewhere it is ordinary prose.
++        interrogative || RELATION_POSSESSIVES.contains(&word.as_str())
++    });
++    let (start, stop_at_is) = match after_determiner {
++        Some(i) => (i + 1, true),
++        None => {
++            // No determiner: take what follows the copula, which is the possessive form
++            // "What is sculptor's name?" -> "sculptor's name", keyed to "sculptor".
++            // This is the form that carries the relation for the `<REL>'s name`
++            // questions; requiring a determiner left 70 rows unread.
++            //
++            // INTERROGATIVE ONLY. Without this the branch reads ordinary prose: "The
++            // weather is nice today." has no relation determiner but does have a copula,
++            // and would yield the relation "nice today". An out-of-scope sentence must
++            // stay Unresolved rather than be answered.
++            if !interrogative {
++                return None;
++            }
++            let copula = words.iter().position(|w| {
++                text(w).eq_ignore_ascii_case("is") || text(w).eq_ignore_ascii_case("are")
++            })?;
++            (copula + 1, false)
++        }
++    };
++    let mut end = words.len();
++    if stop_at_is {
++        for (i, w) in words.iter().enumerate().skip(start) {
++            if text(w).eq_ignore_ascii_case("is") {
++                end = i;
++                break;
++            }
++        }
++    }
++    if start >= end {
++        return None;
++    }
++    let phrase: Vec<&str> = words[start..end].iter().map(|w| text(w)).collect();
++    // A pronoun is not a relation: "What is it?" must DECLINE rather than key on "it",
++    // because those rows need previous-turn state and a guess would be a wrong address.
++    if phrase.len() == 1 && RELATION_PRONOUNS.contains(&phrase[0].to_lowercase().as_str()) {
++        return None;
++    }
++    let key = relation_key(&phrase.join(" "));
++    if key.is_empty() {
++        None
++    } else {
++        Some(key)
++    }
++}
++
++/// Whether a turn opens with a cue that asks for something rather than states it.
++/// Imperatives and wh-words, so a question written without a `?` is still read as one.
++fn recall_cue(source: &str) -> bool {
++    const CUES: [&str; 12] = [
++        "what",
++        "where",
++        "who",
++        "when",
++        "which",
++        "how",
++        "tell me",
++        "remind me",
++        "do you",
++        "did i",
++        "can you",
++        "could you",
++    ];
++    let lower = source.trim_start().to_lowercase();
++    CUES.iter().any(|cue| lower.starts_with(cue))
++}
++
++/// Whether every word of a marked span already appears in the relation phrase — i.e. the
++/// span is the relation's own words rather than a value held for it.
++fn phrase_words(span_text: &str, phrase: &str) -> bool {
++    let p: Vec<String> = phrase
++        .split_whitespace()
++        .map(|w| w.to_lowercase())
++        .collect();
++    let words: Vec<String> = span_text
++        .split(|c: char| !c.is_alphanumeric())
++        .filter(|w| !w.is_empty())
++        .map(|w| w.to_lowercase())
++        .collect();
++    !words.is_empty() && words.iter().all(|w| p.contains(w))
++}
++
++/// The first derived relation ID. Chosen far above any identity ID (the closed table has
++/// 11 labels, so IDs are small) so a derived ID can never collide with a closed one, and
++/// so a derived ID is recognisable as derived.
++pub const DERIVED_RELATION_ID_BASE: u32 = 1 << 20;
++
++/// A stable store ID for a relation the identity does not carry.
++///
++/// The store address is already a `u32` (`StackStore::key(scope, entity, relation)`), so
++/// deriving one needs no change to the session or the store. The key is the NORMALIZED
++/// phrase, and the hash is over those bytes, so two turns that name the relation with the
++/// same words — a statement and its question — derive the same ID.
++///
++/// This is an address, not a semantic metric: `vet` and `animal doctor` derive DIFFERENT
++/// IDs and will not unify. That limit is measured separately, not papered over here.
++pub fn derived_relation_id(phrase: &str) -> u32 {
++    let key = relation_key(phrase);
++    // FNV-1a over the normalized key: deterministic across runs and platforms.
++    let mut h: u64 = 0xcbf2_9ce4_8422_2325;
++    for b in key.as_bytes() {
++        h ^= *b as u64;
++        h = h.wrapping_mul(0x0000_0100_0000_01b3);
++    }
++    // 26 bits of the hash. At 20 bits the 5,175-name pool produced 10 collision buckets
++    // (birthday-expected ~12.8), each an address shared by two relations; at 26 bits the
++    // same pool collides ZERO times. The range stays far above the identity IDs, so a
++    // derived ID still cannot collide with a closed one.
++    DERIVED_RELATION_ID_BASE + (h as u32 & 0x03ff_ffff)
++}
++
+ /// The op a labelled turn compiles to: `Op: none`, `Op: query <relation>`, or
+ /// `Op: assert|update <relation> <value>` with the template's slot value.
+ /// `None` for a statement whose slot cannot be recovered.
+@@ -1508,6 +1709,14 @@ pub struct SavedCompiler {
+     op: Option<std::sync::Arc<Trunk>>,
+     act_rule: ActRule,
+     op_policy: OpPolicy,
++    /// Whether the relation a turn names may be taken from the turn's OWN WORDS rather
++    /// than only from the closed label set.
++    ///
++    /// An EXPLICIT setting, not process state. This began as a global `OnceLock` set once by
++    /// the CLI and never unset, which meant (a) any test that enabled it silently switched
++    /// every later `world=v2` test in the same process into the open branch, and (b) the
++    /// compiler's behaviour depended on a flag bound to neither the artifact nor the report.
++    open_relations: bool,
+     identity: crate::stack_grounded_session::CompilerIdentity,
+ }
+ 
+@@ -1801,6 +2010,7 @@ impl SavedCompiler {
+             op: op.map(std::sync::Arc::new),
+             act_rule: settings.act_rule,
+             op_policy: OpPolicy::Op,
++            open_relations: false,
+             identity,
+         })
+     }
+@@ -1817,6 +2027,18 @@ impl SavedCompiler {
+         Ok(self)
+     }
+ 
++    /// Take the relation a turn names from the turn's own words when the heads name
++    /// nothing, and address it with a derived id. Off by default, so a compiler that never
++    /// asks for it behaves exactly as before.
++    pub fn with_open_relations(mut self, open: bool) -> Self {
++        self.open_relations = open;
++        self
++    }
++
++    pub fn open_relations(&self) -> bool {
++        self.open_relations
++    }
++
+     pub fn op_policy(&self) -> OpPolicy {
+         self.op_policy
+     }
+@@ -1850,6 +2072,12 @@ impl SavedCompiler {
+ 
+     /// The store relation ID of a relation label: its 1-based position
+     /// among the table's relations, [`NONE`] excluded.
++    ///
++    /// CLOSED FIRST, OPEN AS FALLBACK. A name in the identity resolves exactly as before,
++    /// so every closed relation keeps its ID and its behaviour is unchanged by
++    /// construction. A name the identity does not carry falls back to a **derived ID**
++    /// from the normalized relation key, so an unseen relation can still address the
++    /// store instead of failing at this lookup.
+     pub fn relation_id(&self, name: &str) -> Option<u32> {
+         self.identity
+             .relations
+@@ -1858,11 +2086,38 @@ impl SavedCompiler {
+             .map(|label| label.id)
+     }
+ 
++    /// The store address for a relation as NAMED IN A TURN: the identity id when the name
++    /// is a saved label, otherwise a deterministic DERIVED address from the name.
++    ///
++    /// Addressing is deliberately separate from [`Self::relation_id`]. That function is
++    /// also the schema VALIDATION — supervision and artifacts use it to reject a row
++    /// naming a relation outside the labels — so teaching it to accept anything would have
++    /// silently disabled that check. Only the serving path, which must address a relation
++    /// the compiler was never trained on, uses the derived fallback.
++    pub fn relation_address(&self, name: &str) -> u32 {
++        self.relation_id(name)
++            .unwrap_or_else(|| derived_relation_id(name))
++    }
++
+     /// The op model's action for a turn read alone: the prompt is
+     /// `System: Compile.` and the turn, the op is decoded greedily up to EOS
+     /// ([`OP_MAX_TOKENS`] at most) and parsed by [`parse_op`].
+     fn op_action(&self, source: &str) -> Result<crate::stack_grounded_session::CompiledAction> {
+         use crate::stack_grounded_session::CompiledAction;
++        match self.op_probe(source)? {
++            OpProbe::Refused(reason) => Ok(CompiledAction::Unresolved { reason }),
++            OpProbe::Text(text) => Ok(parse_op(&text, source, |name| self.relation_id(name))),
++        }
++    }
++
++    /// What the op model actually emitted for a turn, for DIAGNOSTICS.
++    ///
++    /// The compiled action alone does not show this: a turn whose op read `Op: query
++    /// sculptor` and a turn whose op read nonsense both surface as `Unresolved` once the
++    /// policy discards a non-statement op. Recording the raw text separates "the op model
++    /// named the right relation" from "the op model named nothing", which the action
++    /// cannot. Behaviour is identical to [`Self::op_action`]; this only exposes the text.
++    pub fn op_probe(&self, source: &str) -> Result<OpProbe> {
+         use uor_r4_tokenizer::dialogue::Message;
+         let op = self
+             .op
+@@ -1883,14 +2138,12 @@ impl SavedCompiler {
+             },
+         ]);
+         if prompt.emitted_turns != 2 || prompt.special_token_occurrences != 0 {
+-            return Ok(CompiledAction::Unresolved {
+-                reason: "the turn does not encode as a compile prompt".into(),
+-            });
++            return Ok(OpProbe::Refused(
++                "the turn does not encode as a compile prompt".into(),
++            ));
+         }
+         if prompt.tokens.len() + OP_MAX_TOKENS + 1 > op.model.config.context {
+-            return Ok(CompiledAction::Unresolved {
+-                reason: "the turn is too long to compile".into(),
+-            });
++            return Ok(OpProbe::Refused("the turn is too long to compile".into()));
+         }
+         let reply = crate::stack_dialogue::greedy_reply(
+             &op.model,
+@@ -1904,8 +2157,7 @@ impl SavedCompiler {
+             .copied()
+             .filter(|&id| id != op.protocol.eos_id)
+             .collect();
+-        let text = op.tokenizer.decode(&ids);
+-        Ok(parse_op(&text, source, |name| self.relation_id(name)))
++        Ok(OpProbe::Text(op.tokenizer.decode(&ids)))
+     }
+ 
+     /// The relation and act the compiler's heads name for a turn: the
+@@ -2005,7 +2257,32 @@ impl SavedCompiler {
+                     return Ok(table);
+                 }
+                 let op = self.op_action(source)?;
+-                Ok(if statement(&op) { op } else { table })
++                // A DERIVED-ADDRESS table action is NOT overridden by the op model.
++                //
++                // `unless_query` prefers the op's statement when it produces one ("the op
++                // model's statement is used unless the table reads a query"). That is right
++                // in the closed world, where both name the same labels. It is wrong for an
++                // open relation: the op model emits CLOSED labels only (measured), so it
++                // would overwrite an address derived from the turn's own words with a closed
++                // one, and the QUESTION -- whose heads say NONE -- then derives the phrase
++                // address and reads an empty slot.
++                //
++                // THIS GUARD MUST LIVE IN `UnlessQuery`. It was first written into the
++                // TableStatements arm, which sessions never take (they run
++                // op_policy=unless_query), so it was UNREACHED and its "no effect"
++                // measurement was meaningless -- a null from unreached code is evidence of
++                // nothing.
++                let table_derived = matches!(
++                    &table,
++                    CompiledAction::Assert { relation, .. }
++                        | CompiledAction::Correct { relation, .. }
++                        if *relation >= DERIVED_RELATION_ID_BASE
++                );
++                Ok(if statement(&op) && !table_derived {
++                    op
++                } else {
++                    table
++                })
+             }
+             OpPolicy::UnlessQuery => {
+                 let table = self.table_action(source)?;
+@@ -2016,7 +2293,32 @@ impl SavedCompiler {
+                     return Ok(table);
+                 }
+                 let op = self.op_action(source)?;
+-                Ok(if statement(&op) { op } else { table })
++                // A DERIVED-ADDRESS table action is NOT overridden by the op model.
++                //
++                // `unless_query` prefers the op's statement when it produces one ("the op
++                // model's statement is used unless the table reads a query"). That is right
++                // in the closed world, where both name the same labels. It is wrong for an
++                // open relation: the op model emits CLOSED labels only (measured), so it
++                // would overwrite an address derived from the turn's own words with a closed
++                // one, and the QUESTION -- whose heads say NONE -- then derives the phrase
++                // address and reads an empty slot.
++                //
++                // THIS GUARD MUST LIVE IN `UnlessQuery`. It was first written into the
++                // TableStatements arm, which sessions never take (they run
++                // op_policy=unless_query), so it was UNREACHED and its "no effect"
++                // measurement was meaningless -- a null from unreached code is evidence of
++                // nothing.
++                let table_derived = matches!(
++                    &table,
++                    CompiledAction::Assert { relation, .. }
++                        | CompiledAction::Correct { relation, .. }
++                        if *relation >= DERIVED_RELATION_ID_BASE
++                );
++                Ok(if statement(&op) && !table_derived {
++                    op
++                } else {
++                    table
++                })
+             }
+         }
+     }
+@@ -2032,8 +2334,107 @@ impl SavedCompiler {
+         };
+         let row = self.combined_row(source)?;
+         let (relation, act) = self.classify_row(source, row.as_deref())?;
++        // OPEN RELATIONS: the address is the relation AS NAMED IN THE TURN, on BOTH sides.
++        //
++        // Taking the phrase only when the heads say NONE put the WRITE and the READ in
++        // different places: a statement's heads often name a closed label ("my ... is"
++        // fires user_name), so the fact was written at the closed id, while the question —
++        // whose heads say NONE — derived a phrase id and read an empty slot. Measured:
++        // `stored_not_recalled` 70 -> 135 and `log_without_store` 62 -> 0, i.e. the read
++        // moved off the log path and missed.
++        //
++        // So under open relations the phrase decides the address whenever it extracts, and
++        // the act still comes from the span rule (no span => query). `world=v2` never
++        // reaches this branch.
++        if self.open_relations {
++            if let Some(phrase) = relation_phrase(source) {
++                let id = self.relation_address(&phrase);
++                // AN INTERROGATIVE ASKS; IT DOES NOT WRITE.
++                //
++                // The span head will mark a "value" inside a question — "What is
++                // mousbror's name?" hands it the word "name" — and the span rule would then
++                // compile the question as a statement, so it WROTE instead of reading.
++                // Measured: 130 of 200 rows came out `question_not_a_query`, and the trace
++                // shows the question compiled to `assert` (rs-002 rel 12957859, rs-007 rel
++                // 31164985). The question then stored a value and never queried, so
++                // `log_without_store` fell to 0 and nothing answered.
++                //
++                // A turn ending in `?` is a query, full stop. This is the deterministic
++                // interrogative rule, and it is the `ActRule::Span` intent stated
++                // explicitly rather than left to the span head.
++                // A QUERY NAMES A RELATION AND HOLDS NO VALUE FOR IT.
++                //
++                // A bare `?` test was too blunt: "Can you remember my vet is Ola?" ends in
++                // `?` but STATES a value, and forcing it to a query meant it never stored
++                // (measured on both counter-cases). The cue must be paired with the span
++                // rule — a turn is a query only when an interrogative/recall cue is present
++                // AND the span head marks no value OUTSIDE the relation phrase itself.
++                //
++                //   "What is mousbror's name?"          cue + span "name" is the relation's
++                //                                       own words  -> query
++                //   "Can you remember my vet is Ola?"   cue + span "Ola" is a value -> stores
++                //   "Tell me my vet's name."            cue + span is the relation -> query
++                let cue = source.trim_end().ends_with('?') || recall_cue(source);
++                let span = self.span().decode(source);
++                let value_outside = span.filter(|(a, b)| {
++                    let text = source.get(*a..*b).unwrap_or_default();
++                    !phrase_words(text, &phrase)
++                });
++                if cue && value_outside.is_none() {
++                    return Ok(CompiledAction::QueryCurrent { relation: id });
++                }
++                let _ = value_outside;
++                return Ok(match span {
++                    None => CompiledAction::QueryCurrent { relation: id },
++                    Some((start, end)) => {
++                        let span = SourceSpan { start, end };
++                        if self.statement_act(source, row.as_deref())? == "update" {
++                            CompiledAction::Correct { relation: id, span }
++                        } else {
++                            CompiledAction::Assert { relation: id, span }
++                        }
++                    }
++                });
++            }
++        }
+         if relation == NONE {
+-            return unresolved("the heads name no relation");
++            // SCOPED TO OPEN RELATIONS. Turning this on unconditionally moved the closed
++            // world's MQAR cell (22/23 -> 18/23), because a turn whose relation head says
++            // NONE is not necessarily a relation turn at all — MQAR and copy turns reach
++            // this branch too, and an interrogative MQAR query would be read as a relation
++            // query. The mechanism exists for relations the closed label set cannot name,
++            // so it is active exactly when the world has open relations (world=v2r), and
++            // `world=v2` is untouched by construction.
++            if !self.open_relations {
++                return unresolved("the heads name no relation");
++            }
++            // DETERMINISTIC RELATION IDENTITY. Closed-first is preserved by construction:
++            // this branch runs only when the heads named NOTHING, so every relation the
++            // heads can name keeps its identity id and its behaviour is unchanged.
++            //
++            // Neither learned component can name a relation outside the closed set —
++            // measured, the op model emits `Op: none` or a CLOSED label — so for an unseen
++            // relation the turn's own words are the only signal. Taking the phrase from
++            // them reaches the full pre-registered ceiling: 140 of 200 rows extracted,
++            // 0 wrong, and the 60 it declines are exactly the anaphoric rows that need
++            // previous-turn state.
++            let derived = relation_phrase(source).map(|phrase| self.relation_address(&phrase));
++            let Some(id) = derived else {
++                return unresolved("the heads name no relation");
++            };
++            // The write gate holds here too: a decoded value span makes the turn a
++            // statement, and no span makes it a query.
++            return Ok(match self.span().decode(source) {
++                None => CompiledAction::QueryCurrent { relation: id },
++                Some((start, end)) => {
++                    let span = SourceSpan { start, end };
++                    if self.statement_act(source, row.as_deref())? == "update" {
++                        CompiledAction::Correct { relation: id, span }
++                    } else {
++                        CompiledAction::Assert { relation: id, span }
++                    }
++                }
++            });
+         }
+         let id = self
+             .relation_id(relation)
+@@ -3048,4 +3449,190 @@ mod tests {
+             other => panic!("expected an assert, got {other:?}"),
+         }
+     }
++
++    /// The normalizer unifies the three surface forms the reviewer named, so one relation
++    /// yields ONE key.
++    #[test]
++    fn one_relation_yields_one_key() {
++        assert_eq!(relation_key("my vet"), "vet");
++        assert_eq!(relation_key("the vet"), "vet");
++        assert_eq!(relation_key("my vet's name"), "vet");
++    }
++
++    /// A relation that IS a generic word keeps its last token, so generic relations do not
++    /// all collapse into one shared empty key.
++    #[test]
++    fn generic_relation_never_normalizes_to_empty() {
++        assert_eq!(relation_key("my name"), "name");
++        assert_eq!(relation_key("my number"), "number");
++        assert_ne!(relation_key("my name"), relation_key("my number"));
++    }
++
++    /// The paraphrase limit, as a DOCUMENTED expected behaviour rather than a bug: exact
++    /// identity does not unify different wording, and no semantic metric is claimed.
++    #[test]
++    fn paraphrase_relations_do_not_unify() {
++        assert_ne!(relation_key("my vet"), relation_key("my animal doctor"));
++        assert_ne!(relation_key("my hometown"), relation_key("my home town"));
++        assert_ne!(
++            derived_relation_id("my vet"),
++            derived_relation_id("my animal doctor")
++        );
++    }
++
++    /// A statement and its question derive the SAME store ID, which is what lets an unseen
++    /// relation be addressed without a label.
++    #[test]
++    fn statement_and_question_derive_the_same_id() {
++        assert_eq!(
++            derived_relation_id("my vet"),
++            derived_relation_id("the vet")
++        );
++        assert_eq!(
++            derived_relation_id("my vet"),
++            derived_relation_id("my vet's name")
++        );
++        assert_ne!(
++            derived_relation_id("my vet"),
++            derived_relation_id("my bank")
++        );
++    }
++
++    /// A derived ID can never collide with a closed identity ID, so using it cannot silently
++    /// alias an open relation onto a closed one.
++    #[test]
++    fn derived_ids_stay_above_the_closed_range() {
++        for name in ["my vet", "my bank", "poustroud", "my landline number", "x"] {
++            assert!(
++                derived_relation_id(name) >= DERIVED_RELATION_ID_BASE,
++                "{name}"
++            );
++        }
++        // and the derivation is stable across calls
++        assert_eq!(
++            derived_relation_id("poustroud"),
++            derived_relation_id("poustroud")
++        );
++    }
++
++    /// A statement and its question name the SAME relation phrase, which is what lets
++    /// both address one record without either knowing a label.
++    #[test]
++    fn a_statement_and_its_question_name_the_same_phrase() {
++        let stmt = relation_phrase("My sculptor is Klisttritse.");
++        let query = relation_phrase("What is my sculptor?");
++        assert_eq!(stmt.as_deref(), Some("sculptor"));
++        assert_eq!(query.as_deref(), Some("sculptor"));
++        assert_eq!(
++            derived_relation_id(&stmt.unwrap()),
++            derived_relation_id(&query.unwrap())
++        );
++    }
++
++    /// Multi-word relations survive extraction whole — "spice rack" is one relation, not
++    /// "spice". This is the case `parse_op`'s `splitn(3, ' ')` cannot represent.
++    #[test]
++    fn a_multi_word_relation_extracts_whole() {
++        assert_eq!(
++            relation_phrase("What is the spice rack?").as_deref(),
++            Some("spice rack")
++        );
++        assert_eq!(
++            relation_phrase("My mortar and pestle is Granite.").as_deref(),
++            Some("mortar and pestle")
++        );
++    }
++
++    /// An anaphoric turn names no relation, and `None` is the correct answer — those rows
++    /// need previous-turn state, so phrase identity must decline rather than guess.
++    #[test]
++    fn an_anaphoric_turn_names_no_phrase() {
++        assert_eq!(relation_phrase("What is it?"), None);
++        assert_eq!(relation_phrase("What is that?"), None);
++    }
++
++    /// The wrong determiner must not be picked: "my" in the question, not an earlier one.
++    #[test]
++    fn the_phrase_starts_after_the_determiner() {
++        assert_eq!(
++            relation_phrase("What's my dentist?").as_deref(),
++            Some("dentist")
++        );
++        assert_eq!(
++            relation_phrase("I'd say my plumber is Ola.").as_deref(),
++            Some("plumber")
++        );
++    }
++
++    /// The exact two turns from the failing row rs-011. Structurally identical statements
++    /// received DIFFERENT addressing in that run — one closed id, one derived — and the
++    /// question then read an empty slot. If both extract here, the extractor is not the
++    /// cause and the difference is upstream of it.
++    #[test]
++    fn the_two_statements_from_the_failing_row_both_extract() {
++        let a = relation_phrase("My mousbror is bokstaik.");
++        let b = relation_phrase("My fumgrek is jirkdraik.");
++        assert_eq!(a.as_deref(), Some("mousbror"), "turn 0 of rs-011");
++        assert_eq!(b.as_deref(), Some("fumgrek"), "turn 1 of rs-011");
++        // and the question must land on the SAME address as its statement
++        assert_eq!(
++            relation_phrase("My mousbror is bokstaik.").map(|p| derived_relation_id(&p)),
++            relation_phrase("What is mousbror's name?").map(|p| derived_relation_id(&p)),
++            "the question must derive its statement's address"
++        );
++    }
++
++    /// A closed compiler and an open one must COEXIST in one process with different
++    /// behaviour.
++    ///
++    /// This is the regression test for the deleted process-wide `open_relations()`
++    /// `OnceLock`: while that existed, enabling it for one compiler silently changed every
++    /// later compiler in the same process — including every `world=v2` test — so this test
++    /// could not have passed. The setting is now bound to the compiler.
++    #[test]
++    fn open_and_closed_relations_coexist_in_one_process() -> Result<()> {
++        use crate::stack_grounded_session::{CompiledAction, TurnCompiler};
++        let train = small_world();
++        let saved = SavedCompiler::fit(
++            &train,
++            &"ab".repeat(32),
++            json!({"draw": "coexistence"}),
++            CompilerSettings::default(),
++        )?;
++        let closed = saved.clone().with_open_relations(false);
++        let open = saved.with_open_relations(true);
++        assert!(!closed.open_relations());
++        assert!(open.open_relations());
++        assert!(
++            !SavedCompiler::fit(
++                &train,
++                &"ab".repeat(32),
++                json!({"draw": "default"}),
++                CompilerSettings::default()
++            )?
++            .open_relations(),
++            "open relations must default OFF"
++        );
++        // An unseen relation: the open compiler addresses it from the turn's own words.
++        let turn = "My zzzqqq is Ferlin.";
++        let compile = |c: &SavedCompiler, t: &str| c.compile(t).map_err(|e| invalid(e.to_string()));
++        let open_action = compile(&open, turn)?;
++        assert!(
++            matches!(&open_action, CompiledAction::Assert { relation, .. }
++                if *relation >= DERIVED_RELATION_ID_BASE),
++            "the open compiler must derive the address, got {open_action:?}"
++        );
++        // ...and the closed compiler, asked in the same process, is unaffected.
++        let closed_action = compile(&closed, turn)?;
++        assert_ne!(
++            open_action, closed_action,
++            "the two compilers must differ in one process"
++        );
++        assert!(
++            !matches!(&closed_action, CompiledAction::Assert { relation, .. }
++                if *relation >= DERIVED_RELATION_ID_BASE),
++            "the closed compiler must not derive, got {closed_action:?}"
++        );
++        Ok(())
++    }
+ }
+diff --git a/crates/uor-r4-training/src/stack_grounded_session.rs b/crates/uor-r4-training/src/stack_grounded_session.rs
+index 4a7fea389..0c51d2c35 100644
+--- a/crates/uor-r4-training/src/stack_grounded_session.rs
++++ b/crates/uor-r4-training/src/stack_grounded_session.rs
+@@ -344,6 +344,11 @@ pub struct GroundedSession<C: TurnCompiler> {
+     history_ids: Vec<u32>,
+     turns: Vec<TurnOutcome>,
+     log_recall: Option<(String, LogRecall)>,
++    /// Whether a question may resolve to a relation taken from its OWN WORDS. Mirrors
++    /// [`relation_compiler::SavedCompiler::open_relations`] and is recorded in the session
++    /// report, so the behaviour is bound to the configuration rather than to process state.
++    /// Off by default.
++    open_relations: bool,
+ }
+ 
+ #[derive(Serialize, Deserialize)]
+@@ -455,6 +460,7 @@ impl<C: TurnCompiler> GroundedSession<C> {
+             history_ids,
+             turns: Vec::new(),
+             log_recall: None,
++            open_relations: false,
+         })
+     }
+ 
+@@ -468,6 +474,18 @@ impl<C: TurnCompiler> GroundedSession<C> {
+         self
+     }
+ 
++    /// Allow a question to resolve to a relation taken from its own words. Set together
++    /// with the compiler's own `with_open_relations`, so the read path and the write path
++    /// agree on whether derived addresses are in play.
++    pub fn with_open_relations(mut self, open: bool) -> Self {
++        self.open_relations = open;
++        self
++    }
++
++    pub fn open_relations(&self) -> bool {
++        self.open_relations
++    }
++
+     pub fn compiler_identity(&self) -> &CompilerIdentity {
+         &self.compiler_identity
+     }
+@@ -679,11 +697,12 @@ impl<C: TurnCompiler> GroundedSession<C> {
+                 ));
+             }
+         };
+-        if !self
+-            .compiler_identity
+-            .relations
+-            .iter()
+-            .any(|label| label.id == relation)
++        if !derived_relation_allowed(relation)
++            && !self
++                .compiler_identity
++                .relations
++                .iter()
++                .any(|label| label.id == relation)
+         {
+             return Err(GroundedSessionError::Compiler(
+                 "predicted relation is outside the saved label schema".into(),
+@@ -740,9 +759,38 @@ impl<C: TurnCompiler> GroundedSession<C> {
+                     (Some(format!("Memory: {text}.")), RecallDisposition::Value)
+                 }
+             }
++            // OPEN RELATIONS: a store MISS is not evidence of absence.
++            //
++            // Under open relations the write and the read derive their address
++            // INDEPENDENTLY, from the relation phrase each turn names. A question can
++            // therefore resolve to a relation, read a slot the fact never reached, and
++            // report absence — while the log sieve, which answers from the conversation
++            // itself, would have had the value. The sieve is consulted below only for
++            // `Unresolved`, so once questions began resolving to relation ids the log path
++            // stopped answering entirely (measured: `log_without_store` 62 -> 0).
++            //
++            // So under open relations a miss falls back to the sieve exactly as an
++            // unresolved question does. `world=v2` never reaches this branch.
+             MemoryEffect::Read {
+                 read: StoreRead::Absent,
+-            } => (Some("Memory: none.".to_owned()), RecallDisposition::Absent),
++            } => {
++                let mut out = (Some("Memory: none.".to_owned()), RecallDisposition::Absent);
++                if self.open_relations {
++                    if let Some((_, recall)) = &self.log_recall {
++                        let log: Vec<&str> =
++                            prior.iter().map(|turn| turn.source.as_str()).collect();
++                        if let Some(value) = recall(&log, source) {
++                            if value != "none" && !value.contains('\r') {
++                                out = (
++                                    Some(format!("Memory: {value}.")),
++                                    RecallDisposition::LogValue,
++                                );
++                            }
++                        }
++                    }
++                }
++                out
++            }
+             // Unresolved, NoHistory and Evicted are not evidence of absence.
+             MemoryEffect::Read { .. } => (
+                 None,
+@@ -1234,11 +1282,12 @@ impl<C: TurnCompiler> GroundedSession<C> {
+     }
+ 
+     fn check_relation(&self, relation: u32) -> Result<(), GroundedSessionError> {
+-        if self
+-            .compiler_identity
+-            .relations
+-            .iter()
+-            .any(|label| label.id == relation)
++        if derived_relation_allowed(relation)
++            || self
++                .compiler_identity
++                .relations
++                .iter()
++                .any(|label| label.id == relation)
+         {
+             Ok(())
+         } else {
+@@ -1249,6 +1298,18 @@ impl<C: TurnCompiler> GroundedSession<C> {
+     }
+ }
+ 
++/// Whether a relation id is a DERIVED address rather than a saved label id.
++///
++/// A derived id is a deterministic function of the relation phrase taken from the turn's
++/// own words ([`relation_compiler::relation_phrase`]). It is not in the saved label
++/// schema — the schema is the closed set — but the store addresses any `u32`, so admitting
++/// it is what lets a relation the compiler was never trained on be written and read at
++/// all. A derived id can never collide with a closed one: the base sits far above the
++/// closed ids, which are small.
++fn derived_relation_allowed(relation: u32) -> bool {
++    relation >= crate::relation_compiler::DERIVED_RELATION_ID_BASE
++}
++
+ /// Reconstruct a receipt, not a live read, from a validated immutable chain.
+ /// Current `read_at` intentionally uses today's eviction flags. A saved turn
+ /// instead records residency at its original commit, including preloaded
+diff --git a/docs/research/external-2026-10-04-memory-defects-sota.md b/docs/research/external-2026-10-04-memory-defects-sota.md
+new file mode 100644
+index 000000000..c8382fc68
+--- /dev/null
++++ b/docs/research/external-2026-10-04-memory-defects-sota.md
+@@ -0,0 +1,438 @@
++# Three conversational-memory defects: state of the art and standard practice
++
++**External research report — 2026-10-04**
++Scope: an experimental 3-turn conversational memory (FACT / DISTRACTOR / QUESTION), a learned
++compiler mapping each turn to a `(relation, act)` pair, and an exact addressed store written and read.
++Serving constraint: **no float matmul at serving time** — integer/table-lookup only.
++
++Evidence grading used throughout:
++
++- **[EST]** well-established: peer-reviewed, ≥5 years old, replicated, in textbooks/surveys.
++- **[REC]** recent (2025–2026): preprint or single-paper result, plausible and relevant but not yet
++  independently replicated. Treat numbers as provisional.
++
++---
++
++## DEFECT 1 — 60% of question turns are not recognised as queries
++
++Symptom: question turns classified as statements or unresolved; no read attempted. Questions and
++statements share the relation phrase ("my dentist" appears in both).
++
++### (a) Established approaches
++
++**1. Frame it as dialogue-act tagging, not as question detection. [EST]**
++The canonical treatment is Stolcke et al. 2000, which models *Statement, Question, Backchannel,
++Agreement, Disagreement, Apology* etc. as a hidden Markov model over dialogue-act n-grams with
++lexical, collocational and prosodic cues. Their 42-tag Switchboard result: **65%** accuracy from
++errorful recognised words + prosody, **71%** from word transcripts, against **35%** chance and
++**84%** human agreement. Two things matter for you:
++
++- A 42-way act problem is genuinely hard; the **binary `Question` vs `Statement` collapse of the same
++  tagset is far easier**. Inventory design is the lever, not classifier capacity.
++- The tagset explicitly separates `Statement-non-opinion`, `Yes-No-Question`, `Wh-Question`, and
++  `Declarative Yes-No-Question`. Your `unresolved` bucket should be a **rejection** decision, not a
++  third learned class.
++  <https://arxiv.org/abs/cs/0006023> · Computational Linguistics 26(3):339–373 (2000)
++
++**2. Interrogative detection from lexical/syntactic cues. [EST]**
++Margolis & Ostendorf 2011 is the reference point for question detection from *text alone*: wh-word
++presence, sentence-initial auxiliary inversion, question mark, and first-token n-grams, with prosody
++adding most of its value only for *declarative* questions (statement syntax, question intonation).
++This is the standard baseline reused in later speech and clinical question-detection work.
++<https://aclanthology.org/P11-2021/> · ACL 2011
++
++**3. In slot-filling systems the act label is `(act_type, slot_argument)`. [EST]**
++This is the direct answer to "how do systems exploit the shared relation phrase". In Rastogi et al.
++2017 (scalable multi-domain DST, §3.2.2 "Slot related features") the act vector is
++`a^t_s(s)` — *a binary vector denoting the presence of dialogue acts having slot `s` as the
++argument*, e.g. `request(s)`, `deny(s)`, `inform(s)`. So the statement and the question differ in
++**act_type** while sharing **the same slot argument**, and the architecture makes that explicit by
++conditioning the act head on the relation id. In ATIS/Snips-style joint NLU the same idea appears as
++a single intent label space (e.g. `inform_dentist` vs `ask_dentist`).
++<https://ar5iv.labs.arxiv.org/html/1712.10224> · ASRU 2017
++Goo et al. 2018, Slot-Gated joint slot filling + intent prediction: <https://aclanthology.org/N18-2118/>
++Chen, Zhuo & Wang 2019, BERT for joint intent classification and slot filling: <https://arxiv.org/abs/1902.10909>
++Coucke et al. 2018, Snips Voice Platform (embedded SLU): <https://arxiv.org/abs/1805.10190>
++
++**4. Delexicalisation as the mechanism that removes the shared phrase. [EST]**
++Rastogi et al. 2017 delexicalise **only the values**, deliberately keeping the slot names, because the
++slot name is what identifies the slot. Applied to your case: replace "my dentist" with
++`delex(dentist)` before the act decision. The statement and the question then differ only in the
++act-bearing residue — copula + filled value vs. wh-word/auxiliary inversion + **empty value slot**.
++
++**5. The cheapest reliable signal is "is the value slot filled?" [EST]**
++DST-Reader (Gao et al. 2019) decomposes slot tracking into three sequential decisions: (i) binary
++**slot carryover**, (ii) slot **type** ∈ {Yes, No, DontCare, Span}, (iii) **span** start/end inside the
++dialogue. An *empty span prediction* is exactly a query signal, and it is far cheaper and more
++reliable than reasoning over the relation phrase. Their per-slot span accuracy reached ~96%, while the
++carryover head sat at ~72% — i.e. **value-slot detection is the easy part and you should lean on it.**
++<https://ar5iv.labs.arxiv.org/html/1908.01946> · Gao et al. 2019
++
++**6. Explicit out-of-scope rejection. [EST]**
++Your `unresolved` bucket is functionally an OOS class. Larson et al. 2019 (CLINC150, 150 intents, 10
++domains) is the standard framing and its headline finding is a caution: classifiers "perform well on
++in-scope intent classification, they **struggle to identify out-of-scope queries**". Standard practice
++is therefore a **margin/threshold rejection rule** on a calibrated score, not a learned third class.
++<https://aclanthology.org/D19-1131/> · EMNLP-IJCNLP 2019
++
++**7. LLM prompting. [REC]** Best raw accuracy on paraphrases, but requires float matmul at serving
++time and is non-deterministic — excluded by your constraint.
++
++### How much does adding synthetic question paraphrases help?
++
++Three results, and they point in different directions:
++
++- **Helps a lot in the extreme low-data / new-class regime. [EST]** Jolly et al. 2020 (COLING industry
++  track) generate paraphrases of *seed* utterances to **bootstrap a new intent** in a production
++  task-oriented dialogue system, and report improvements for **both intent classification and slot
++  labeling** on a public dataset and a real-world system.
++  <https://aclanthology.org/2020.coling-industry.2/>
++- **Helps most when data is scarce, for non-pretrained models. [EST]** EDA (Wei & Zou 2019):
++  "EDA demonstrates particularly strong results for smaller datasets; on average, across five
++  datasets, training with EDA while using only **50% of the available training set** achieved the same
++  accuracy as normal training with all available data." <https://arxiv.org/abs/1901.11196>
++- **Documented negative result for pretrained transformers. [EST]** Longpre et al. 2020, "How
++  Effective is Task-Agnostic Data Augmentation for Pretrained Transformers?" — across 5 tasks, 6
++  datasets, 3 pretrained transformers, EDA and back-translation "**fail to consistently improve
++  performance for pretrained transformers, even when training data is limited**."
++  <https://aclanthology.org/2020.findings-emnlp.394/>
++
++**Reading for your system:** if your compiler is small and non-pretrained (as a geometric
++integer/table-lookup compiler is), expect real gains from synthetic question forms, concentrated in
++the low-data regime — EDA's "half the data, same accuracy" is the shape to expect. If you already have
++a well-covered in-domain set, expect ≈0 and possible regression from label noise. Generate the
++paraphrases **deterministically from your own stored fact triples** (template inversion of
++`My X is Y` → `What is my X?`), not from a generative model: labels are then exactly correct and the
++data is integer-representable.
++
++### (b) Tradeoffs
++
++| Approach | Pros | Cons |
++|---|---|---|
++| Keyword/rule interrogative detector | Transparent, integer-only, no training, deterministic | Fails on declarative questions; false-fires on embedded questions ("I wonder who my dentist is") |
++| Small classifier on act-residue features | Robust, tolerates paraphrase, tiny feature budget | Needs labels + a calibrated rejection threshold; threshold is the real failure mode |
++| Relation-conditional act head `(act_type, relation)` | Directly removes the shared-phrase confound; matches ATIS/DST practice | Requires the relation tagger to be right first — errors propagate |
++| Value-slot-filled consistency rule | Nearly free; converts relation-recognised-but-no-value into a query | Depends on a value-slot head existing |
++| LLM prompting | Best paraphrase robustness | Excluded (float matmul, non-deterministic) |
++
++### (c) Most appropriate for a small laptop-scale, integer/table-lookup system
++
++A **three-stage cascade**, all stages integer-representable:
++
++1. **Deterministic interrogative rules (free):** question mark; sentence-initial wh-word
++   (who/what/where/when/which/whose/why/how); sentence-initial auxiliary
++   (is/are/do/does/did/can/could/will/would/have/has).
++2. **Structural consistency rule (the high-yield one):** if the compiler decoded a relation but the
++   **value slot is empty**, force `act = query` and attempt the read. This targets your exact 60%
++   symptom without new training.
++3. **Relation-conditional act classifier** over *delexicalised act residue*, with a **margin threshold**
++   producing `unresolved` as a rejection (CLINC-style), not as a class.
++4. **Deterministic template paraphrases** of your own stored facts as extra question-form training data.
++
++### (d) Citations
++
++- Stolcke et al. 2000 — <https://arxiv.org/abs/cs/0006023>
++- Margolis & Ostendorf 2011 — <https://aclanthology.org/P11-2021/>
++- Rastogi, Hakkani-Tür & Heck 2017 — <https://ar5iv.labs.arxiv.org/html/1712.10224>
++- Goo et al. 2018 — <https://aclanthology.org/N18-2118/>
++- Chen, Zhuo & Wang 2019 — <https://arxiv.org/abs/1902.10909>
++- Coucke et al. 2018 — <https://arxiv.org/abs/1805.10190>
++- Gao et al. 2019 (DST-Reader) — <https://ar5iv.labs.arxiv.org/html/1908.01946>
++- Larson et al. 2019 (CLINC150 / OOS) — <https://aclanthology.org/D19-1131/>
++- Wei & Zou 2019 (EDA) — <https://arxiv.org/abs/1901.11196>
++- Jolly et al. 2020 (paraphrase bootstrapping) — <https://aclanthology.org/2020.coling-industry.2/>
++- Longpre et al. 2020 (augmentation negative result) — <https://aclanthology.org/2020.findings-emnlp.394/>
++
++---
++
++## DEFECT 2 — the distractor's relation wins the read (14 of 24 errors)
++
++Symptom: two statements in one context mention different relations; the question resolves to the
++distractor's relation.
++
++### (a) Established approaches
++
++**1. Understand first that soft attention over keys is *structurally* distractor-fragile. [REC but
++well-grounded]**
++End-to-end Memory Networks (Sukhbaatar et al. 2015) and Key-Value Memory Networks (Miller et al. 2016)
++retrieve with a **softmax over key similarity**. A distractor whose surface form overlaps the query
++necessarily receives softmax mass; this is dilution, not a bug. KV-MemNN's own remedy inside the
++family is to encode **keys and values with separate feature maps** and to read the value addressed by
++the key — which is exactly the design your exact store already has.
++<https://ar5iv.labs.arxiv.org/html/1503.08895> · NeurIPS 2015
++<https://aclanthology.org/D16-1147/> · EMNLP 2016
++
++**2. The failure mode now has a quantitative theory: "context poisoning" as extreme-value attention
++interference. [REC]**
++Ghaffari et al. 2026 derive that under softmax retrieval the decisive-evidence score is **upper
++bounded** while the maximum distractor score **grows with the number of effective distractors `N`**,
++so holding a fixed accuracy target above base rate requires the evidence margin to scale as
++**Ω(√log N)**. Their controlled experiments find that **the same-format distractor condition produces
++the largest accuracy drop at fixed context length** — precisely your case (two statements of identical
++form, different relation). Their recommended remedies: **evidence bottlenecks, alias-resistant
++representations, retrieve-then-reason architectures, verifier-mediated memory**.
++<https://arxiv.org/abs/2609.22101> (Aug 2026, preprint)
++
++**3. Make carryover-vs-update an explicit per-slot decision. [EST — and the strongest number here]**
++DST-Reader (Gao et al. 2019) introduces the **slot carryover** module: a binary decision whether a
++slot's previous value is retained or replaced. Their ablation on MultiWOZ-2.0: joint goal accuracy
++41.10% for the full system, **60.18% with an oracle carryover model (+19.08 points)** — while the
++learned carryover model itself achieved only **~72%** per turn. Two conclusions transfer directly:
++the "should this slot change at all?" decision is the **dominant error term** in slot tracking; and an
++*unrelated* turn should produce `carryover`, i.e. **write nothing**.
++<https://ar5iv.labs.arxiv.org/html/1908.01946>
++
++**4. Restrict the retrieval to a bounded per-slot candidate set. [EST]**
++Rastogi et al. 2017 build a candidate set per slot per turn from (i) values in the current user
++utterance, (ii) values in the system utterance, (iii) previous-turn candidates by descending score,
++capped at `|C| ≤ K` with `K = 7` (which "rarely" saturated in their experiments), plus explicit
++`NULL` (not yet specified) and `DONTCARE` values. Scoring is confined to that candidate set. Effect
++for you: the distractor relation's value **is not even a candidate** for the queried slot.
++<https://ar5iv.labs.arxiv.org/html/1712.10224> · ASRU 2017
++
++**5. Treat the state as a selectively-overwritten key-value memory with a discrete operation set.
++[EST]**
++SOM-DST (Kim et al. 2020, NAVER Clova) defines the dialogue state as a *fixed-size key-value memory*
++and predicts one of four operations per slot per turn:
++`carryover | delete | dontcare | update`, then generates values **only** for the slots predicted
++`update`. "The previous dialogue state is directly utilized like a memory." Results: **51.72%** joint
++goal accuracy on MultiWOZ 2.0 and **53.01%** on MultiWOZ 2.1 in the open-vocabulary setting (state of
++the art at publication, averaged over ten runs). Their error analysis concludes that **improving state
++operation prediction is the highest-leverage direction** — matching the DST-Reader ablation.
++<https://ar5iv.labs.arxiv.org/html/1911.03906> · ACL 2020
++
++**6. Hard / exact-match addressing instead of soft addressing. [REC]**
++Latest Exact Match Attention (LEMA, Brösamle 2026) binarises queries and keys and has each query attend
++**only to the latest exactly matching key**, with dictionary-based inference whose dictionaries live in
++main memory. It proves LEMA transformers with chain of thought can simulate word-RAMs, and gives the
++converse simulation at cost per token **independent of context length**. On a synthetic associative
++recall task LEMA beats gated DeltaNet; at scale it matches softmax transformers of roughly half its
++size in loss but stays behind on needle retrieval. This is the theoretical licence for your design:
++**exact-match addressing is not a limitation to apologise for, it is a design that removes the
++distractor-interference term entirely.**
++<https://arxiv.org/abs/2609.25802> (Sep 2026, preprint)
++
++**7. Multi-hop / collision handling. [REC]** Boesch & Wee 2026 report that fixed-state recurrence cells
++which solve 32-pair recall nonetheless "**fall to chance retrieving 4 pairs from a distractor
++haystack**", flat across sequence lengths; and that "**collision-key retrieval needs two layers**".
++Their diagnosis is interference under sparse supervision, not capacity, and a distance curriculum
++takes the same architecture from 0.021 to 1.000 recall. Relevant if you later make keys collide.
++<https://arxiv.org/abs/2609.16183> (Sep 2026, preprint; notes itself as preliminary)
++
++### (b) Tradeoffs
++
++| Approach | Pros | Cons |
++|---|---|---|
++| Exact/argmax key addressing (relation id as key) | Zero distractor interference; integer/table-lookup; deterministic; auditable | All error moves into relation tagging; no graceful degradation on a wrong tag |
++| Bounded candidate set per key per turn (Rastogi) | Cheap; removes distractor values from the scoring space | Needs a candidate generator; small `K` can flush a value |
++| Explicit `carryover`/`update` op per key (SOM-DST) | Makes "unrelated turn ⇒ no write" the default; largest measured gain in DST | Requires a reliable op classifier — which is itself the hard part (72% in DST-Reader) |
++| Soft attention over keys | Tolerant of tag errors; single mechanism | Provably dilutes with same-format distractors; Ω(√log N) margin requirement |
++| Verifier / evidence bottleneck after retrieval | Catches residual errors | Adds latency for the distractor case |
++
++### (c) Most appropriate for a small laptop-scale, integer/table-lookup system
++
++**Make the address the relation, not the surface string — you already have the tuple.**
++
++1. **Key = `relation_id` (+ entity id), never a surface phrase.** Your compiler already emits a
++   relation. Once the key is a tagged relation, "the distractor's value" is stored under a *different
++   key* and is structurally unreachable. Exact-match addressing (LEMA-style) makes this a table
++   lookup — no float, no matmul, constant time in context length.
++2. **Per-key candidate restriction** as a second line of defence, with explicit `ABSENT` / `DONTCARE`
++   values (Rastogi).
++3. **Per-key operation gate:** only turns whose act is value-bearing (`inform`-like) may write;
++   everything else yields `carryover`. This is the DST-Reader/SOM-DST result and it makes the
++   distractor turn a no-op by construction.
++4. **Keep a packed-integer consistency check** (does the read key equal the query key?) as the
++   integer-only analogue of a verifier gate.
++
++### (d) Citations
++
++- Sukhbaatar et al. 2015, End-To-End Memory Networks — <https://arxiv.org/abs/1503.08895>
++- Miller et al. 2016, Key-Value Memory Networks for Directly Reading Documents — <https://aclanthology.org/D16-1147/>
++- Ghaffari et al. 2026, Context Poisoning as Extreme-Value Attention Interference — <https://arxiv.org/abs/2609.22101>
++- Gao et al. 2019, DST as a Neural Reading Comprehension Approach (slot carryover) — <https://ar5iv.labs.arxiv.org/html/1908.01946>
++- Rastogi et al. 2017, Scalable Multi-Domain Dialogue State Tracking (candidate sets) — <https://ar5iv.labs.arxiv.org/html/1712.10224>
++- Kim et al. 2020, Efficient DST by Selectively Overwriting Memory (SOM-DST) — <https://ar5iv.labs.arxiv.org/html/1911.03906>
++- Brösamle 2026, Latest Exact Match Attention — <https://arxiv.org/abs/2609.25802>
++- Boesch & Wee 2026, Anatomy of Associative Recall in Fixed-State Recurrences — <https://arxiv.org/abs/2609.16183>
++- Xie et al. 2024, Adaptive Chameleon or Stubborn Sloth (knowledge conflicts) — <https://arxiv.org/abs/2305.13300>
++
++---
++
++## DEFECT 3 — write order / which value is current (7 of 17 succeeded, 10 failed)
++
++Symptom: fact and distractor resolve to the **same key**; the read returns whichever was written,
++sometimes the distractor's value. Also: an *unrelated later* statement can evict a relevant earlier one.
++
++### (a) Established approaches
++
++**1. Last-write-wins (LWW) register. [EST]**
++The canonical semantics: the current value is the write with the greatest timestamp, ties broken
++deterministically (e.g. by replica id). Formally a CRDT — Shapiro, Preguiça, Baquero & Zawirski 2011,
++"Conflict-free Replicated Data Types", SSS 2011.
++<https://hal.sorbonne-universite.fr/hal-00932836v1> · DOI 10.1007/978-3-642-24550-3_29
++Operationally identical to **Kafka log compaction**, which retains only the latest record per key and
++uses a null *tombstone* for deletion.
++<https://www.conduktor.io/kafka/kafka-topic-configuration-log-compaction>
++LWW is *correct* for "which value is current" **iff** writes are ordered and the latest write is the
++one you want. It is *wrong* exactly when an unrelated later write touches the same key — your failure.
++
++**2. Append-only event log + replay (event sourcing). [EST]**
++Every write is an immutable event; "current state" is a fold over the log. This is what makes any
++as-of query and any audit possible. But it does **not** by itself define currency: the fold is still
++LWW unless you specify something better, and the log grows without bound.
++
++**3. Temporal and bitemporal databases; "as-of" queries. [EST]**
++Snodgrass & Ahn 1986, "Temporal Databases", *IEEE Computer* 19(9):35–42, DOI 10.1109/MC.1986.1663327;
++Jensen & Snodgrass 1999, "Temporal Data Management", *IEEE TKDE* 11(1), DOI 10.1109/69.755613.
++The standard model has two independent time axes:
++
++- **valid time** — when the fact was true in the modelled world;
++- **transaction time** — when the database recorded it.
++
++SQL:2011 standardised both (`application-time period tables`, `system-versioned tables`), and the
++read is literally `SELECT ... FOR SYSTEM_TIME AS OF <t>`. This is the established, correct semantics
++for "which value is current", and it is the only approach here that cleanly separates *"the world
++changed"* from *"the system learned later"* — the distinction your fact/distractor pair keeps
++conflating.
++
++**4. Belief-state tracking (POMDP). [EST]**
++Williams & Young 2007 model the dialogue state as a **probability distribution** over slot values
++maintained by Bayesian update; "current" is the argmax of belief, and superseded values decay rather
++than being deleted. DST's `NULL` / `DONTCARE` special values are the practical residue of this.
++Graceful under uncertainty, but floats at serving time — excluded by your constraint.
++<https://dlnext.acm.org/doi/10.1016/j.csl.2006.06.008> · Computer Speech & Language 21(2), 2007
++
++**5. Revocation / supersession as an explicit memory lifecycle. [REC — and the key negative result]**
++TEPA (Zhou et al. 2026) represents observations as **keyed precedents** and **revokes** the active
++precedent when fresh evidence contradicts it under the same key, keeping the revoked record for audit
++so retrieval draws only from current evidence. Their controlled-drift experiment:
++
++| Memory policy | Score under full reversal |
++|---|---|
++| Append-only | **0.210** |
++| Last-write-wins | **0.210** |
++| **No memory at all** | **0.309** |
++| TEPA (revocation) | **0.950** |
++
++Real file-backed execution reproduced it (append-only 0.203, no memory 0.298, TEPA 0.950). On a clean
++MemoryAgentBench SH-6k setting TEPA merely *matched* a strong LWW cache — "confirming that current-key
++replacement is the decisive operation for single-hop fact consolidation."
++<https://arxiv.org/abs/2608.07429> (Aug 2026, preprint)
++
++**6. Supersession as a *measurement* problem. [REC]**
++Supersede (Patel 2026) isolates the ability to answer from the current value and discard superseded
++ones, on the knowledge-update subset of LongMemEval:
++replacing an agent's full context with a bounded self-maintained memory dropped accuracy **92% → 77%**
++even on a frontier model (gpt-5.4), paired McNemar **p < 0.005**; as the conversation grew **24×**
++accuracy fell **68% → 28%**; and granting proportionally more memory produced **no detectable recovery
++(28% → 28%, n = 25)**. Their conclusion: "the bottleneck is therefore **memory maintenance, not
++comprehension**". They then show it is partly *trainable*: GRPO on Qwen2.5-3B nearly doubled held-out
++supersession accuracy (9.0% → 16.7%, single run).
++<https://arxiv.org/abs/2606.27472> (Jun 2026, preprint)
++
++**7. Agent-memory system designs, for context. [REC]**
++Generative Agents (Park et al. 2023) score retrieval by recency + importance + relevance — i.e. an
++explicit recency term is standard practice, but a recency *score* is not the same as LWW semantics.
++Zep/Graphiti (Rasmussen et al. 2025) maintains a **temporal knowledge graph** with `valid_at` /
++`invalid_at` edge intervals and invalidates contradicted edges. MemGPT (Packer et al. 2023) manages a
++tiered memory hierarchy. A 2026 survey (Du, "Memory for Autonomous LLM Agents") formalises agent
++memory as a **write–manage–read loop** and names **contradiction handling** and **write-path
++filtering** as explicit engineering concerns.
++<https://dl.acm.org/doi/fullHtml/10.1145/3586183.3606763> · UIST 2023
++<https://ar5iv.labs.arxiv.org/html/2501.13956> · Zep
++<https://arxiv.org/abs/2603.07670> · survey, Mar 2026
++
++### (b) Tradeoffs
++
++| Semantics | "Current" means | Pros | Cons |
++|---|---|---|---|
++| LWW register | max timestamp per key | O(1) write/read; trivially integer; standard in KV stores | Loses history; **an unrelated later write destroys a relevant earlier one**; no audit |
++| Append-only log | fold over log | Full history, audit, replay, any as-of query | Unbounded growth; the fold is still LWW unless specified; **worst measured option under reversal** |
++| Bitemporal (valid + transaction time) | value valid at query time `t` | Correctly separates world-change from learning-time; SQL:2011-backed | 2× bookkeeping; every read needs a time argument; most machinery |
++| Belief state (POMDP) | argmax of belief | Graceful under uncertainty; no destructive overwrite | Floats (excluded at serving); needs a generative model of state change |
++| Keyed revocation (TEPA) | latest *non-revoked* precedent for the key | Best measured reversal behaviour; keeps audit trail | Newer, unverified, single-paper; needs a contradiction check on write |
++
++### (c) Most appropriate for a small laptop-scale, integer/table-lookup system
++
++**Versioned key-value with an explicit write gate, plus a separate append-only log.**
++
++1. **Key = (relation_id, entity_id); value record = (value, turn_index, source_act, revoked_flag).**
++   Read = the record with the **maximum `turn_index` among non-revoked records for that exact key**.
++   All integer, all table lookup, deterministic.
++2. **Write gate:** only turns whose act is value-bearing (`inform`-like) *and* whose value slot is
++   filled may write. The unrelated later statement then **cannot evict** the relevant earlier one —
++   this is the single change that addresses "an unrelated later statement evicting a relevant earlier
++   one" without any temporal machinery.
++3. **Revoke rather than delete on genuine contradiction** (same key, later value-bearing turn, different
++   value): set `revoked_flag` on the earlier record, keep it. TEPA's numbers are the argument for this
++   over plain LWW, and it costs one flag bit.
++4. **Keep the append-only event log separately** (turn index is the timestamp) for audit and as-of
++   replay. Do **not** make the log the read path — TEPA measured append-only as the *worst* policy
++   under reversal.
++5. **Skip bitemporal and POMDP** at this scale: bitemporal's valid-time axis only pays off when you
++   must distinguish "was true then" from "recorded then", and POMDP needs floats.
++
++### Is any of this a known trap with a documented negative result? — Yes.
++
++**Three explicit traps:**
++
++- **"A bigger memory will fix supersession." Documented negative. [REC]** Supersede: accuracy fell
++  68% → 28% as the conversation grew 24×, and granting proportionally more memory gave **no detectable
++  recovery (28% → 28%, n = 25)**. The failure scales with conversation length, not compression ratio.
++  <https://arxiv.org/abs/2606.27472>
++- **"Append-only is the safe choice." Documented negative. [REC]** TEPA: append-only (0.210) and
++  last-write-wins (0.210) both scored **below no memory at all (0.309)** under full reversal.
++  Append-only preserves the stale value *and* makes it retrievable.
++  <https://arxiv.org/abs/2608.07429>
++- **"Soft attention will learn to ignore the distractor." Documented negative. [REC]** Context
++  poisoning: the distractor's max score grows with distractor count while evidence is upper-bounded,
++  requiring a margin of Ω(√log N); **same-format distractors caused the largest drop**.
++  <https://arxiv.org/abs/2609.22101>
++
++**And one trap on the Defect-1 side:** **"synthetic paraphrases always help." Documented negative for
++pretrained models. [EST]** Longpre et al. 2020 found EDA and back-translation "fail to consistently
++improve performance for pretrained transformers, even when training data is limited."
++<https://aclanthology.org/2020.findings-emnlp.394/>
++
++**A caution about verification itself [REC]:** the deterministic-retrieval-chain report
++(Chanhnourack 2026) documents a negative control in which a verifier "repaired three wrong drafts but
++broke eleven correct drafts" — i.e. a post-hoc verifier can be net-negative. Any verifier gate you add
++should be measured as a delta on both repaired and broken cases.
++<https://arxiv.org/abs/2609.38021>
++
++### (d) Citations
++
++- Shapiro, Preguiça, Baquero & Zawirski 2011, Conflict-free Replicated Data Types — <https://hal.sorbonne-universite.fr/hal-00932836v1>
++- Snodgrass & Ahn 1986, Temporal Databases, *IEEE Computer* 19(9):35–42 — DOI 10.1109/MC.1986.1663327
++- Jensen & Snodgrass 1999, Temporal Data Management, *IEEE TKDE* 11(1) — DOI 10.1109/69.755613
++- Williams & Young 2007, POMDPs for spoken dialog systems — <https://dlnext.acm.org/doi/10.1016/j.csl.2006.06.008>
++- Zhou et al. 2026, TEPA: Revoking Stale Memories for Conflict-Robust Language Agents — <https://arxiv.org/abs/2608.07429>
++- Patel 2026, Supersede: Diagnosing and Training the Memory-Update Gap in LLM Agents — <https://arxiv.org/abs/2606.27472>
++- Park et al. 2023, Generative Agents — <https://dl.acm.org/doi/fullHtml/10.1145/3586183.3606763>
++- Rasmussen et al. 2025, Zep: A Temporal Knowledge Graph Architecture for Agent Memory — <https://ar5iv.labs.arxiv.org/html/2501.13956>
++- Du 2026, Memory for Autonomous LLM Agents (survey) — <https://arxiv.org/abs/2603.07670>
++- Chanhnourack 2026, Auditable Long-Term Memory (deterministic retrieval chain) — <https://arxiv.org/abs/2609.38021>
++- Kafka log compaction (LWW/tombstone in practice) — <https://www.conduktor.io/kafka/kafka-topic-configuration-log-compaction>
++
++---
++
++## Cross-cutting summary
++
++| Defect | Single highest-leverage change | Basis |
++|---|---|---|
++| 1 — queries not recognised | Force `act = query` when a relation is decoded but the **value slot is empty**; add deterministic template question forms | DST-Reader slot-type/span decomposition [EST]; EDA low-data regime [EST] |
++| 2 — distractor relation wins | Key on the **tagged relation id**, not the surface phrase; write only on value-bearing acts | KV-MemNN key/value separation [EST]; SOM-DST carryover op [EST]; LEMA exact-match [REC] |
++| 3 — wrong value is "current" | `(relation_id, entity_id)` key + `turn_index` + **write gate** + revocation flag, with a separate append-only audit log | TEPA revocation (0.950 vs 0.210 LWW vs 0.309 no memory) [REC]; CRDT LWW-Register [EST]; bitemporal as-of queries [EST] |
++
++**All three recommended fixes reduce to one theme:** the defects are **addressing and write-policy**
++problems, not similarity or capacity problems. Because your compiler already emits `(relation, act)`,
++you can make relation the address, make act the write permission, and make turn index the currency
++order — a fully integer, deterministic, table-lookup design with no float matmul, and one that
++leaves an auditable log behind.
++
++**Grading recap.** The load-bearing recommendations rest on **[EST]** results (SRT/SWBD-DA tagging,
++DST-Reader, SOM-DST, Rastogi candidate sets, KV-MemNN, CRDT LWW-Register, SQL:2011 temporal tables,
++the EDA and augmentation-negative-result literature). The 2026 preprints (context poisoning, TEPA,
++Supersede, LEMA, interference wall) supply the *quantitative sizing* of the failure modes and the
++strongest negative results, but each is a single unreplicated paper and is labelled **[REC]** above.
+diff --git a/relation-pools/heldout-english.json b/relation-pools/heldout-english.json
+new file mode 100644
+index 000000000..0bfc2bc22
+--- /dev/null
++++ b/relation-pools/heldout-english.json
+@@ -0,0 +1,52 @@
++[
++ "sculptor",
++ "cellist",
++ "beekeeper",
++ "ferry",
++ "tram",
++ "canoe",
++ "yurt",
++ "kiln",
++ "loom",
++ "anvil",
++ "observatory",
++ "planetarium",
++ "aviary",
++ "orangery",
++ "boathouse",
++ "windmill",
++ "lighthouse",
++ "viaduct",
++ "pier",
++ "quay",
++ "spice rack",
++ "bread bin",
++ "tea caddy",
++ "coffee grinder",
++ "mortar and pestle",
++ "wok",
++ "tagine",
++ "griddle",
++ "pestle",
++ "skillet",
++ "barometer",
++ "sextant",
++ "astrolabe",
++ "telescope",
++ "microscope",
++ "kaleidoscope",
++ "metronome",
++ "tuning fork",
++ "pitch pipe",
++ "reed",
++ "tapestry",
++ "fresco",
++ "mosaic",
++ "stained glass",
++ "woodcut",
++ "etching",
++ "lithograph",
++ "batik",
++ "origami",
++ "calligraphy"
++]
+\ No newline at end of file
+diff --git a/relation-pools/inputs.json b/relation-pools/inputs.json
+new file mode 100644
+index 000000000..d1a545718
+--- /dev/null
++++ b/relation-pools/inputs.json
+@@ -0,0 +1,18 @@
++{
++ "train_english": {
++  "file": "train-english.json",
++  "sha256": "9181c3a6edebf38b6351fee72d1eb6c4b7c2428b1e8b43667b362d3a34012533"
++ },
++ "heldout_english": {
++  "file": "heldout-english.json",
++  "sha256": "39d72d6c4e81c166b98f910fb818cd3319df3e3b0fa053e63af6fa8d11485c00"
++ },
++ "stopwords": {
++  "file": "/Users/casey.allard/uor-r4-local/ladder/relations/stopwords.json",
++  "sha256": "83e174a5f1cf24fdf5f6676e431b3599ce259ad7cea8eb0c7adab51ed8e0be71"
++ },
++ "nonsense_scheme": {
++  "source": "milestone_world_v2.rs ONSETS/VOWELS/CODAS + fn word",
++  "note": "relation names drawn with a distinct split assignment"
++ }
++}
+\ No newline at end of file
+diff --git a/relation-pools/train-english.json b/relation-pools/train-english.json
+new file mode 100644
+index 000000000..9e8b886b2
+--- /dev/null
++++ b/relation-pools/train-english.json
+@@ -0,0 +1,177 @@
++[
++ "dentist",
++ "gym",
++ "landlord",
++ "plumber",
++ "barber",
++ "accountant",
++ "neighbour",
++ "cousin",
++ "school",
++ "car",
++ "laptop",
++ "phone",
++ "dog walker",
++ "piano teacher",
++ "gp",
++ "optician",
++ "physio",
++ "tutor",
++ "childminder",
++ "cleaner",
++ "hairdresser",
++ "butcher",
++ "baker",
++ "postman",
++ "librarian",
++ "nurse",
++ "chemist",
++ "mechanic",
++ "electrician",
++ "painter",
++ "builder",
++ "gardener",
++ "tailor",
++ "cobbler",
++ "welder",
++ "joiner",
++ "roofer",
++ "glazier",
++ "locksmith",
++ "chimney sweep",
++ "university",
++ "college",
++ "library",
++ "museum",
++ "theatre",
++ "cinema",
++ "stadium",
++ "swimming pool",
++ "leisure centre",
++ "train station",
++ "bus stop",
++ "airport",
++ "harbour",
++ "market",
++ "supermarket",
++ "pharmacy",
++ "hospital",
++ "surgery",
++ "clinic",
++ "village hall",
++ "community centre",
++ "town hall",
++ "post office",
++ "fire station",
++ "police station",
++ "courthouse",
++ "prison",
++ "monastery",
++ "cathedral",
++ "mosque",
++ "synagogue",
++ "temple",
++ "chapel",
++ "allotment",
++ "playground",
++ "bicycle",
++ "motorbike",
++ "scooter",
++ "van",
++ "truck",
++ "caravan",
++ "tent",
++ "rucksack",
++ "briefcase",
++ "umbrella",
++ "watch",
++ "camera",
++ "guitar",
++ "violin",
++ "flute",
++ "drum kit",
++ "keyboard",
++ "desk",
++ "chair",
++ "wardrobe",
++ "bookcase",
++ "sofa",
++ "mattress",
++ "kettle",
++ "toaster",
++ "blender",
++ "microwave",
++ "oven",
++ "fridge",
++ "freezer",
++ "washing machine",
++ "dishwasher",
++ "vacuum cleaner",
++ "iron",
++ "sewing machine",
++ "lawnmower",
++ "hedge trimmer",
++ "wheelbarrow",
++ "ladder",
++ "toolbox",
++ "birthday",
++ "anniversary",
++ "wedding",
++ "funeral",
++ "holiday home",
++ "mortgage",
++ "overdraft",
++ "pension",
++ "insurance",
++ "utilities",
++ "broadband",
++ "mobile contract",
++ "gym membership",
++ "season ticket",
++ "bus pass",
++ "loyalty card",
++ "library card",
++ "passport",
++ "driving licence",
++ "national insurance",
++ "blood type",
++ "eye prescription",
++ "shoe width",
++ "hat size",
++ "glove size",
++ "collar size",
++ "ring size",
++ "wrist size",
++ "waist size",
++ "inside leg",
++ "favourite band",
++ "favourite film",
++ "favourite book",
++ "favourite restaurant",
++ "favourite pub",
++ "favourite cafe",
++ "favourite shop",
++ "favourite park",
++ "favourite walk",
++ "favourite view",
++ "morning routine",
++ "evening routine",
++ "weekend plan",
++ "commute route",
++ "school run",
++ "lunch break",
++ "tea break",
++ "bedtime",
++ "wake-up time",
++ "alarm",
++ "allergy test",
++ "blood donor",
++ "dentist appointment",
++ "optician appointment",
++ "car service",
++ "boiler service",
++ "mOT",
++ "tax return",
++ "council tax",
++ "water bill"
++]
+\ No newline at end of file

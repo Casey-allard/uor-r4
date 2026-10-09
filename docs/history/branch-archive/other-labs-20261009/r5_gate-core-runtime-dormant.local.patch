@@ -1,0 +1,50 @@
+diff --git a/crates/uor-r4-core/Cargo.toml b/crates/uor-r4-core/Cargo.toml
+index 823c8a9a4..f041cb011 100644
+--- a/crates/uor-r4-core/Cargo.toml
++++ b/crates/uor-r4-core/Cargo.toml
+@@ -20,6 +20,8 @@ tracing = { version = "0.1", default-features = false, features = ["std"] }
+ libm = "0.2"
+ 
+ [features]
++endomorphism = []
++lie-jordan = ["endomorphism"]
+ # Measurement-only surface for the #330 isolated dot-scan microbenchmark.
+ # Off by default: it exposes no deployed prediction-path behavior, only a
+ # read-only handle onto the already-built SIMD dot tables.
+diff --git a/crates/uor-r4-core/src/transformerless/mod.rs b/crates/uor-r4-core/src/transformerless/mod.rs
+index 7c3a5387e..4c90149ab 100644
+--- a/crates/uor-r4-core/src/transformerless/mod.rs
++++ b/crates/uor-r4-core/src/transformerless/mod.rs
+@@ -23,7 +23,9 @@
+ // fs-dependent functions are cfg-gated per item (see those files).
+ pub mod bott_fock;
+ pub mod cd_space;
++#[cfg(feature = "endomorphism")]
+ pub mod endomorphism;
++#[cfg(feature = "lie-jordan")]
+ pub mod lie_jordan;
+ pub mod region_store;
+ 
+diff --git a/crates/uor-r4-graph-runtime/Cargo.toml b/crates/uor-r4-graph-runtime/Cargo.toml
+index d888d6d97..36b9c96da 100644
+--- a/crates/uor-r4-graph-runtime/Cargo.toml
++++ b/crates/uor-r4-graph-runtime/Cargo.toml
+@@ -19,3 +19,6 @@ harness = false
+ [[bench]]
+ name = "session_signature"
+ harness = false
++
++[features]
++packed-routing = []
+diff --git a/crates/uor-r4-graph-runtime/src/lib.rs b/crates/uor-r4-graph-runtime/src/lib.rs
+index b7f5cff5e..c720d1289 100644
+--- a/crates/uor-r4-graph-runtime/src/lib.rs
++++ b/crates/uor-r4-graph-runtime/src/lib.rs
+@@ -4,6 +4,7 @@
+ extern crate alloc;
+ 
+ pub mod engine;
++#[cfg(feature = "packed-routing")]
+ pub mod packed_kernels;
+ pub mod patch_chain;
+ pub mod routing;

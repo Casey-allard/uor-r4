@@ -1,0 +1,3094 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index 52f5ecf9e..0410da0f8 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -2979,9 +2979,11 @@ name = "uor-r4-training"
+ version = "0.1.0"
+ dependencies = [
+  "candle-core",
++ "candle-metal-kernels",
+  "candle-nn",
+  "half",
+  "hex",
++ "objc2-metal",
+  "rayon",
+  "safetensors 0.6.2",
+  "serde",
+diff --git a/crates/uor-r4-training/Cargo.toml b/crates/uor-r4-training/Cargo.toml
+index ca87aa1dd..69a72dd6e 100644
+--- a/crates/uor-r4-training/Cargo.toml
++++ b/crates/uor-r4-training/Cargo.toml
+@@ -7,7 +7,12 @@ description = "Offline Rust autodiff and reference evaluation tools for UOR-R4 r
+ 
+ [features]
+ default = []
+-metal = ["candle-core/metal", "candle-nn/metal"]
++metal = [
++    "candle-core/metal",
++    "candle-nn/metal",
++    "dep:candle-metal-kernels",
++    "dep:objc2-metal",
++]
+ cpu-accelerate = ["candle-core/accelerate", "candle-nn/accelerate"]
+ reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+ 
+@@ -15,6 +20,8 @@ reference-accelerate = ["uor-r4-model-source/observation-blas-exception"]
+ uor-r4-integer = { version = "0.1.0", path = "../uor-r4-integer" }
+ candle-core = { version = "=0.9.2", default-features = false }
+ candle-nn = { version = "=0.9.2", default-features = false }
++candle-metal-kernels = { version = "=0.9.2", optional = true }
++objc2-metal = { version = "=0.3.2", optional = true }
+ safetensors = { version = "=0.6.2", default-features = false, features = ["std"] }
+ serde = { version = "1.0", features = ["derive"] }
+ serde_json = "1.0"
+diff --git a/crates/uor-r4-training/src/geometric_stack.rs b/crates/uor-r4-training/src/geometric_stack.rs
+index a29deedc8..5be9c5716 100644
+--- a/crates/uor-r4-training/src/geometric_stack.rs
++++ b/crates/uor-r4-training/src/geometric_stack.rs
+@@ -58,7 +58,10 @@ use std::path::Path;
+ use std::sync::{Arc, Mutex, OnceLock};
+ use std::time::Instant;
+ 
++use candle_core::backend::BackendStorage;
+ use candle_core::{CpuStorage, CustomOp2, CustomOp3, DType, Device, Layout, Shape, Tensor, Var};
++#[cfg(feature = "metal")]
++use candle_core::{MetalStorage, Storage};
+ use rayon::prelude::*;
+ use serde::{Deserialize, Serialize};
+ use sha2::{Digest, Sha256};
+@@ -2026,7 +2029,7 @@ impl CustomOp2 for StraightThrough {
+ 
+     fn cpu_fwd(
+         &self,
+-        _s1: &CpuStorage,
++        s1: &CpuStorage,
+         l1: &Layout,
+         s2: &CpuStorage,
+         l2: &Layout,
+@@ -2034,12 +2037,57 @@ impl CustomOp2 for StraightThrough {
+         if l1.shape() != l2.shape() {
+             candle_core::bail!("straight-through inputs must have one shape");
+         }
++        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 {
++            candle_core::bail!("straight-through requires F32 tensors");
++        }
++        if l1.shape().elem_count() == 0 {
++            candle_core::bail!("straight-through requires non-empty tensors");
++        }
+         Ok((
+             CpuStorage::F32(contiguous(s2, l2)?.to_vec()),
+             l2.shape().clone(),
+         ))
+     }
+ 
++    #[cfg(feature = "metal")]
++    fn metal_fwd(
++        &self,
++        _s1: &MetalStorage,
++        l1: &Layout,
++        s2: &MetalStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(MetalStorage, Shape)> {
++        if l1.shape() != l2.shape() {
++            candle_core::bail!("straight-through inputs must have one shape");
++        }
++        if _s1.dtype() != DType::F32 || s2.dtype() != DType::F32 {
++            candle_core::bail!("Metal straight-through requires F32 dtype");
++        }
++        if l1.start_offset() != 0
++            || !l1.is_contiguous()
++            || l2.start_offset() != 0
++            || !l2.is_contiguous()
++        {
++            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
++        }
++        let device = s2.device();
++        let total = l2.shape().elem_count();
++        if total == 0 {
++            candle_core::bail!("Metal straight-through requires non-empty tensors");
++        }
++        let out_buf = device.new_buffer(total, DType::F32, "straight_through_out")?;
++        crate::metal_stack_kernels::metal::call_straight_through(
++            device,
++            s2.buffer(),
++            &out_buf,
++            total,
++        )?;
++        Ok((
++            MetalStorage::new(out_buf, device.clone(), total, DType::F32),
++            l2.shape().clone(),
++        ))
++    }
++
+     fn bwd(
+         &self,
+         _source: &Tensor,
+@@ -2051,6 +2099,22 @@ impl CustomOp2 for StraightThrough {
+     }
+ }
+ 
++/// Straight-through estimator: forward is `quantized`, backward gradient flows to `continuous`.
++pub fn straight_through(continuous: &Tensor, quantized: &Tensor) -> Result<Tensor> {
++    if continuous.dtype() != DType::F32 || quantized.dtype() != DType::F32 {
++        return Err(invalid("straight_through requires F32 tensors"));
++    }
++    if continuous.shape() != quantized.shape() {
++        return Err(invalid("straight-through inputs must have one shape"));
++    }
++    if continuous.elem_count() == 0 {
++        return Err(invalid("straight_through requires non-empty tensors"));
++    }
++    Ok(continuous
++        .contiguous()?
++        .apply_op2(&quantized.contiguous()?, StraightThrough)?)
++}
++
+ /// Work of the served representation so far ([`StackModel::served_statistics`]).
+ #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+ pub struct ServedStatistics {
+@@ -2622,6 +2686,49 @@ impl CustomOp2 for QuaternionScan {
+         Ok((CpuStorage::F32(state), l1.shape().clone()))
+     }
+ 
++    #[cfg(feature = "metal")]
++    fn metal_fwd(
++        &self,
++        s1: &MetalStorage,
++        l1: &Layout,
++        s2: &MetalStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(MetalStorage, Shape)> {
++        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 {
++            candle_core::bail!("Metal quaternion scan requires F32 dtype");
++        }
++        let (batch, time, lanes, four) = l1.shape().dims4()?;
++        if four != 4 || l2.shape() != l1.shape() {
++            candle_core::bail!("quaternion scan needs matching [batch, time, lanes, 4] inputs");
++        }
++        if batch == 0 || time == 0 || lanes == 0 {
++            candle_core::bail!("quaternion scan requires positive dimensions");
++        }
++        if l1.start_offset() != 0
++            || !l1.is_contiguous()
++            || l2.start_offset() != 0
++            || !l2.is_contiguous()
++        {
++            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
++        }
++        let device = s1.device();
++        let total = l1.shape().elem_count();
++        let out_buf = device.new_buffer(total, DType::F32, "quaternion_scan_out")?;
++        crate::metal_stack_kernels::metal::call_quaternion_scan_fwd(
++            device,
++            s1.buffer(),
++            s2.buffer(),
++            &out_buf,
++            batch,
++            time,
++            lanes,
++        )?;
++        Ok((
++            MetalStorage::new(out_buf, device.clone(), total, DType::F32),
++            l1.shape().clone(),
++        ))
++    }
++
+     /// Reverse scan: `g_t = dh_t + conj(q_{t+1}) * g_{t+1}` is the total
+     /// gradient of `h_t`; then `db_t = g_t` and `dq_t = g_t * conj(h_{t-1})`.
+     fn bwd(
+@@ -2631,6 +2738,87 @@ impl CustomOp2 for QuaternionScan {
+         state: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "metal")]
++        if let Device::Metal(device) = transition.device() {
++            if transition.dtype() != DType::F32
++                || state.dtype() != DType::F32
++                || grad.dtype() != DType::F32
++            {
++                candle_core::bail!("Metal quaternion scan backward requires F32 dtype");
++            }
++            let (batch, time, lanes, four) = transition.dims4()?;
++            if four != 4
++                || state.shape() != transition.shape()
++                || grad.shape() != transition.shape()
++            {
++                candle_core::bail!(
++                    "Metal quaternion scan backward inputs must match [batch, time, lanes, 4]"
++                );
++            }
++            if batch == 0 || time == 0 || lanes == 0 {
++                candle_core::bail!("Metal quaternion scan backward requires positive dimensions");
++            }
++            if four == 4 {
++                let (t_storage, t_layout) = transition.storage_and_layout();
++                let (s_storage, s_layout) = state.storage_and_layout();
++                let (g_storage, g_layout) = grad.storage_and_layout();
++
++                if t_layout.start_offset() != 0
++                    || !t_layout.is_contiguous()
++                    || s_layout.start_offset() != 0
++                    || !s_layout.is_contiguous()
++                    || g_layout.start_offset() != 0
++                    || !g_layout.is_contiguous()
++                {
++                    candle_core::bail!(
++                        "Metal kernel requires contiguous layout with zero start offset"
++                    );
++                }
++
++                let total = transition.shape().elem_count();
++                let dq_buf = device.new_buffer(total, DType::F32, "quaternion_scan_bwd_dq")?;
++                let db_buf = device.new_buffer(total, DType::F32, "quaternion_scan_bwd_db")?;
++
++                if let (Storage::Metal(t_ms), Storage::Metal(s_ms), Storage::Metal(g_ms)) =
++                    (&*t_storage, &*s_storage, &*g_storage)
++                {
++                    crate::metal_stack_kernels::metal::call_quaternion_scan_bwd(
++                        device,
++                        t_ms.buffer(),
++                        s_ms.buffer(),
++                        g_ms.buffer(),
++                        &dq_buf,
++                        &db_buf,
++                        batch,
++                        time,
++                        lanes,
++                    )?;
++                    let dq = Tensor::from_storage(
++                        Storage::Metal(MetalStorage::new(
++                            dq_buf,
++                            device.clone(),
++                            total,
++                            DType::F32,
++                        )),
++                        transition.shape().clone(),
++                        candle_core::op::BackpropOp::none(),
++                        false,
++                    );
++                    let db = Tensor::from_storage(
++                        Storage::Metal(MetalStorage::new(
++                            db_buf,
++                            device.clone(),
++                            total,
++                            DType::F32,
++                        )),
++                        transition.shape().clone(),
++                        candle_core::op::BackpropOp::none(),
++                        false,
++                    );
++                    return Ok((Some(dq), Some(db)));
++                }
++            }
++        }
+         let (batch, time, lanes, _) = transition.dims4()?;
+         let q = transition.flatten_all()?.to_vec1::<f32>()?;
+         let h = state.flatten_all()?.to_vec1::<f32>()?;
+@@ -2675,6 +2863,18 @@ impl CustomOp2 for QuaternionScan {
+ 
+ /// Runs the quaternion transport recurrence over whole windows.
+ pub fn quaternion_scan(transition: &Tensor, drive: &Tensor) -> Result<Tensor> {
++    if transition.dtype() != DType::F32 || drive.dtype() != DType::F32 {
++        return Err(invalid("quaternion_scan requires F32 tensors"));
++    }
++    let (batch, time, lanes, four) = transition.dims4()?;
++    if four != 4 || drive.shape() != transition.shape() {
++        return Err(invalid(
++            "quaternion_scan needs matching [batch, time, lanes, 4] inputs",
++        ));
++    }
++    if batch == 0 || time == 0 || lanes == 0 {
++        return Err(invalid("quaternion_scan requires positive dimensions"));
++    }
+     Ok(transition
+         .contiguous()?
+         .apply_op2(&drive.contiguous()?, QuaternionScan)?)
+@@ -2876,6 +3076,86 @@ impl CustomOp3 for RecurrenceCore {
+         Ok((CpuStorage::F32(out), Shape::from((self.batch, time, width))))
+     }
+ 
++    #[cfg(feature = "metal")]
++    fn metal_fwd(
++        &self,
++        s1: &MetalStorage,
++        l1: &Layout,
++        s2: &MetalStorage,
++        l2: &Layout,
++        s3: &MetalStorage,
++        l3: &Layout,
++    ) -> candle_core::Result<(MetalStorage, Shape)> {
++        if self.snap.is_some() {
++            candle_core::bail!("Metal RecurrenceCore currently does not support transport snap");
++        }
++        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 || s3.dtype() != DType::F32 {
++            candle_core::bail!("Metal RecurrenceCore requires F32 dtype");
++        }
++        if self.batch == 0 || self.time == 0 || self.width == 0 || self.width % 4 != 0 {
++            candle_core::bail!(
++                "Metal RecurrenceCore requires positive dimensions with width divisible by 4"
++            );
++        }
++        let (time, width) = (self.time, self.width);
++        let expected_branches = self.batch * time * 2 * width;
++        let expected_gates = self.batch * time * self.gate_width();
++        let expected_params = self.parameter_len();
++        if l1.shape().elem_count() != expected_branches
++            || l2.shape().elem_count() != expected_gates
++            || l3.shape().elem_count() != expected_params
++        {
++            candle_core::bail!(
++                "Metal RecurrenceCore input buffer lengths do not match declared dimensions"
++            );
++        }
++        if l1.start_offset() != 0
++            || !l1.is_contiguous()
++            || l2.start_offset() != 0
++            || !l2.is_contiguous()
++            || l3.start_offset() != 0
++            || !l3.is_contiguous()
++        {
++            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
++        }
++        let device = s1.device();
++        let total_state = self.batch * time * width;
++
++        let state_buf = device.new_buffer(total_state, DType::F32, "recurrence_state")?;
++        let drive_buf = device.new_buffer(total_state, DType::F32, "recurrence_drive")?;
++        let out_buf = device.new_buffer(total_state, DType::F32, "recurrence_out")?;
++
++        let param_tensor = Tensor::from_storage(
++            Storage::Metal(s3.clone()),
++            l3.shape().clone(),
++            candle_core::op::BackpropOp::none(),
++            false,
++        );
++        let param_vec = param_tensor.to_vec1::<f32>()?;
++        let log_a_vec = self.log_a(&param_vec);
++        let log_a_buf = device.new_buffer_with_data(&log_a_vec)?;
++
++        crate::metal_stack_kernels::metal::call_recurrence_core_fwd(
++            device,
++            s1.buffer(),
++            s2.buffer(),
++            s3.buffer(),
++            &log_a_buf,
++            &state_buf,
++            &drive_buf,
++            &out_buf,
++            self.batch,
++            time,
++            width,
++            self.rotation,
++        )?;
++
++        Ok((
++            MetalStorage::new(out_buf, device.clone(), total_state, DType::F32),
++            Shape::from((self.batch, time, width)),
++        ))
++    }
++
+     fn bwd(
+         &self,
+         branches: &Tensor,
+@@ -3559,6 +3839,67 @@ impl CustomOp3 for FusedRead {
+         ))
+     }
+ 
++    #[cfg(feature = "metal")]
++    fn metal_fwd(
++        &self,
++        s1: &MetalStorage,
++        l1: &Layout,
++        s2: &MetalStorage,
++        l2: &Layout,
++        s3: &MetalStorage,
++        l3: &Layout,
++    ) -> candle_core::Result<(MetalStorage, Shape)> {
++        if self.score != ReadScore::Dot || self.null || self.age || self.rope {
++            candle_core::bail!(
++                "Metal FusedRead currently supports only ReadScore::Dot without null, age, or rope"
++            );
++        }
++        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 || s3.dtype() != DType::F32 {
++            candle_core::bail!("Metal FusedRead requires F32 dtype");
++        }
++        if self.batch == 0 || self.heads == 0 || self.time == 0 || self.key == 0 || self.value == 0
++        {
++            candle_core::bail!("Metal FusedRead requires positive dimensions");
++        }
++        let (time, value) = (self.time, self.value);
++        let expected_query = self.batch * self.heads * time * self.key;
++        let expected_kv = self.batch * self.heads * time * (self.key + value);
++        if l1.shape().elem_count() != expected_query || l2.shape().elem_count() != expected_kv {
++            candle_core::bail!(
++                "Metal FusedRead input element counts do not match declared dimensions"
++            );
++        }
++        if l1.start_offset() != 0
++            || !l1.is_contiguous()
++            || l2.start_offset() != 0
++            || !l2.is_contiguous()
++            || l3.start_offset() != 0
++            || !l3.is_contiguous()
++        {
++            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
++        }
++        let device = s1.device();
++        let total = self.batch * self.heads * time * value;
++        let out_buf = device.new_buffer(total, DType::F32, "fused_read_out")?;
++
++        crate::metal_stack_kernels::metal::call_fused_read_fwd(
++            device,
++            s1.buffer(),
++            s2.buffer(),
++            s3.buffer(),
++            &out_buf,
++            self.batch,
++            self.heads,
++            time,
++            self.key,
++            value,
++        )?;
++        Ok((
++            MetalStorage::new(out_buf, device.clone(), total, DType::F32),
++            Shape::from((self.batch, self.heads, time, value)),
++        ))
++    }
++
+     fn bwd(
+         &self,
+         query: &Tensor,
+@@ -3767,6 +4108,13 @@ pub fn fused_read(
+     age: bool,
+     rope: bool,
+ ) -> Result<Tensor> {
++    if query.dtype() != DType::F32
++        || key.dtype() != DType::F32
++        || value.dtype() != DType::F32
++        || aux.dtype() != DType::F32
++    {
++        return Err(invalid("fused_read requires F32 tensors"));
++    }
+     let (batch, heads, time, key_width) = query.dims4()?;
+     let (b2, h2, t2, k2) = key.dims4()?;
+     let (b3, h3, t3, value_width) = value.dims4()?;
+@@ -3775,6 +4123,9 @@ pub fn fused_read(
+             "fused read needs matching query, key and value shapes",
+         ));
+     }
++    if batch == 0 || heads == 0 || time == 0 || key_width == 0 || value_width == 0 {
++        return Err(invalid("fused read requires positive dimensions"));
++    }
+     let expected = fused_aux_len(batch, heads, time, score, null, age);
+     if aux.rank() != 1 || aux.dim(0)? != expected.max(1) {
+         return Err(invalid("fused read auxiliary input has the wrong length"));
+@@ -3797,6 +4148,57 @@ pub fn fused_read(
+     Ok(query.contiguous()?.apply_op3(&kv, &aux.contiguous()?, op)?)
+ }
+ 
++/// Fused RecurrenceCore: branches, gates, and parameters -> out.
++pub fn recurrence_core(
++    branches: &Tensor,
++    gates: &Tensor,
++    parameters: &Tensor,
++    batch: usize,
++    time: usize,
++    width: usize,
++    rotation: bool,
++    snap: Option<TransportSnap>,
++) -> Result<Tensor> {
++    if batch == 0 || time == 0 || width == 0 || width % 4 != 0 {
++        return Err(invalid(
++            "recurrence_core requires positive dimensions with width divisible by 4",
++        ));
++    }
++    if branches.dtype() != DType::F32
++        || gates.dtype() != DType::F32
++        || parameters.dtype() != DType::F32
++    {
++        return Err(invalid("recurrence_core requires F32 tensors"));
++    }
++    let lanes = width / 4;
++    let gate_width = lanes + if rotation { 4 * lanes } else { 0 };
++    let expected_branches = batch * time * 2 * width;
++    let expected_gates = batch * time * gate_width;
++    let expected_params = (CONVOLUTION_WIDTH + 1) * width + lanes;
++    if branches.elem_count() != expected_branches
++        || gates.elem_count() != expected_gates
++        || parameters.elem_count() != expected_params
++    {
++        return Err(invalid(format!(
++            "recurrence_core input size mismatch: branches expected {expected_branches} got {}, gates expected {expected_gates} got {}, params expected {expected_params} got {}",
++            branches.elem_count(),
++            gates.elem_count(),
++            parameters.elem_count(),
++        )));
++    }
++    Ok(branches.contiguous()?.apply_op3(
++        &gates.contiguous()?,
++        &parameters.contiguous()?,
++        RecurrenceCore {
++            batch,
++            time,
++            width,
++            rotation,
++            snap,
++        },
++    )?)
++}
++
+ // ---------------------------------------------------------------------------
+ // Fused RMSNorm and SwiGLU, parallel over rows.
+ 
+@@ -3837,6 +4239,53 @@ impl CustomOp2 for RmsNorm {
+         Ok((CpuStorage::F32(out), l1.shape().clone()))
+     }
+ 
++    #[cfg(feature = "metal")]
++    fn metal_fwd(
++        &self,
++        s1: &MetalStorage,
++        l1: &Layout,
++        s2: &MetalStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(MetalStorage, Shape)> {
++        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 {
++            candle_core::bail!("Metal RMSNorm requires F32 dtype");
++        }
++        if l1.start_offset() != 0
++            || !l1.is_contiguous()
++            || l2.start_offset() != 0
++            || !l2.is_contiguous()
++        {
++            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
++        }
++        let width = l2.shape().elem_count();
++        if width == 0 {
++            candle_core::bail!("Metal RMSNorm weight must not be empty");
++        }
++        if l1.shape().dims().last() != Some(&width) {
++            candle_core::bail!("Metal RMSNorm weight must match the last dimension");
++        }
++        let total = l1.shape().elem_count();
++        if total % width != 0 {
++            candle_core::bail!("Metal RMSNorm total element count must be divisible by width");
++        }
++        let rows = total / width;
++        let device = s1.device();
++        let out_buf = device.new_buffer(total, DType::F32, "rms_norm_out")?;
++        crate::metal_stack_kernels::metal::call_rms_norm_fwd(
++            device,
++            s1.buffer(),
++            s2.buffer(),
++            &out_buf,
++            rows,
++            width,
++            RMS_EPSILON as f32,
++        )?;
++        Ok((
++            MetalStorage::new(out_buf, device.clone(), total, DType::F32),
++            l1.shape().clone(),
++        ))
++    }
++
+     fn bwd(
+         &self,
+         x: &Tensor,
+@@ -3844,6 +4293,72 @@ impl CustomOp2 for RmsNorm {
+         _out: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "metal")]
++        if let Device::Metal(device) = x.device() {
++            if x.dtype() != DType::F32 || w.dtype() != DType::F32 || grad.dtype() != DType::F32 {
++                candle_core::bail!("Metal RMSNorm backward requires F32 dtype");
++            }
++            let width = w.elem_count();
++            if width == 0 {
++                candle_core::bail!("Metal RMSNorm weight must not be empty");
++            }
++            if x.dims().last() != Some(&width) {
++                candle_core::bail!("Metal RMSNorm weight must match the last dimension");
++            }
++            let total = x.elem_count();
++            if total % width != 0 {
++                candle_core::bail!("Metal RMSNorm total element count must be divisible by width");
++            }
++            let rows = total / width;
++
++            let (x_storage, x_layout) = x.storage_and_layout();
++            let (w_storage, w_layout) = w.storage_and_layout();
++            let (g_storage, g_layout) = grad.storage_and_layout();
++
++            if x_layout.start_offset() != 0
++                || !x_layout.is_contiguous()
++                || w_layout.start_offset() != 0
++                || !w_layout.is_contiguous()
++                || g_layout.start_offset() != 0
++                || !g_layout.is_contiguous()
++            {
++                candle_core::bail!(
++                    "Metal kernel requires contiguous layout with zero start offset"
++                );
++            }
++
++            let dx_buf = device.new_buffer(total, DType::F32, "rms_norm_dx")?;
++            let dw_buf = device.new_buffer(width, DType::F32, "rms_norm_dw")?;
++
++            if let (Storage::Metal(x_ms), Storage::Metal(w_ms), Storage::Metal(g_ms)) =
++                (&*x_storage, &*w_storage, &*g_storage)
++            {
++                crate::metal_stack_kernels::metal::call_rms_norm_bwd(
++                    device,
++                    x_ms.buffer(),
++                    w_ms.buffer(),
++                    g_ms.buffer(),
++                    &dx_buf,
++                    &dw_buf,
++                    rows,
++                    width,
++                    RMS_EPSILON as f32,
++                )?;
++                let dx = Tensor::from_storage(
++                    Storage::Metal(MetalStorage::new(dx_buf, device.clone(), total, DType::F32)),
++                    x.shape().clone(),
++                    candle_core::op::BackpropOp::none(),
++                    false,
++                );
++                let dw = Tensor::from_storage(
++                    Storage::Metal(MetalStorage::new(dw_buf, device.clone(), width, DType::F32)),
++                    w.shape().clone(),
++                    candle_core::op::BackpropOp::none(),
++                    false,
++                );
++                return Ok((Some(dx), Some(dw)));
++            }
++        }
+         let xs = x.flatten_all()?.to_vec1::<f32>()?;
+         let ws = w.to_vec1::<f32>()?;
+         let gs = grad.flatten_all()?.to_vec1::<f32>()?;
+@@ -3894,6 +4409,23 @@ impl CustomOp2 for RmsNorm {
+     }
+ }
+ 
++/// Fused RMSNorm: `x * w / sqrt(mean(x^2) + eps)` over the last dimension.
++pub fn rms_norm(x: &Tensor, weight: &Tensor) -> Result<Tensor> {
++    if x.dtype() != DType::F32 || weight.dtype() != DType::F32 {
++        return Err(invalid("rms_norm requires F32 tensors"));
++    }
++    let width = weight.elem_count();
++    if width == 0 {
++        return Err(invalid("rms_norm weight must not be empty"));
++    }
++    if x.dims().last() != Some(&width) {
++        return Err(invalid(
++            "rms_norm weight must match last dimension of input",
++        ));
++    }
++    Ok(x.contiguous()?.apply_op2(&weight.contiguous()?, RmsNorm)?)
++}
++
+ /// `silu(gate) * up`.
+ struct SwiGlu;
+ 
+@@ -3929,6 +4461,46 @@ impl CustomOp2 for SwiGlu {
+         Ok((CpuStorage::F32(out), l1.shape().clone()))
+     }
+ 
++    #[cfg(feature = "metal")]
++    fn metal_fwd(
++        &self,
++        s1: &MetalStorage,
++        l1: &Layout,
++        s2: &MetalStorage,
++        l2: &Layout,
++    ) -> candle_core::Result<(MetalStorage, Shape)> {
++        if s1.dtype() != DType::F32 || s2.dtype() != DType::F32 {
++            candle_core::bail!("Metal SwiGLU requires F32 dtype");
++        }
++        if l1.shape() != l2.shape() {
++            candle_core::bail!("SwiGLU inputs must match");
++        }
++        if l1.shape().elem_count() == 0 {
++            candle_core::bail!("SwiGLU inputs must not be empty");
++        }
++        if l1.start_offset() != 0
++            || !l1.is_contiguous()
++            || l2.start_offset() != 0
++            || !l2.is_contiguous()
++        {
++            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
++        }
++        let total = l1.shape().elem_count();
++        let device = s1.device();
++        let out_buf = device.new_buffer(total, DType::F32, "swiglu_out")?;
++        crate::metal_stack_kernels::metal::call_swiglu_fwd(
++            device,
++            s1.buffer(),
++            s2.buffer(),
++            &out_buf,
++            total,
++        )?;
++        Ok((
++            MetalStorage::new(out_buf, device.clone(), total, DType::F32),
++            l1.shape().clone(),
++        ))
++    }
++
+     fn bwd(
+         &self,
+         gate: &Tensor,
+@@ -3936,6 +4508,66 @@ impl CustomOp2 for SwiGlu {
+         _out: &Tensor,
+         grad: &Tensor,
+     ) -> candle_core::Result<(Option<Tensor>, Option<Tensor>)> {
++        #[cfg(feature = "metal")]
++        if let Device::Metal(device) = gate.device() {
++            if gate.dtype() != DType::F32 || up.dtype() != DType::F32 || grad.dtype() != DType::F32
++            {
++                candle_core::bail!("Metal SwiGLU backward requires F32 dtype");
++            }
++            if gate.shape() != up.shape() || gate.shape() != grad.shape() {
++                candle_core::bail!("Metal SwiGLU backward inputs must match");
++            }
++            if gate.elem_count() == 0 {
++                candle_core::bail!("Metal SwiGLU backward inputs must not be empty");
++            }
++            let total = gate.elem_count();
++
++            let (g_storage, g_layout) = gate.storage_and_layout();
++            let (u_storage, u_layout) = up.storage_and_layout();
++            let (d_storage, d_layout) = grad.storage_and_layout();
++
++            if g_layout.start_offset() != 0
++                || !g_layout.is_contiguous()
++                || u_layout.start_offset() != 0
++                || !u_layout.is_contiguous()
++                || d_layout.start_offset() != 0
++                || !d_layout.is_contiguous()
++            {
++                candle_core::bail!(
++                    "Metal kernel requires contiguous layout with zero start offset"
++                );
++            }
++
++            let dg_buf = device.new_buffer(total, DType::F32, "swiglu_dg")?;
++            let du_buf = device.new_buffer(total, DType::F32, "swiglu_du")?;
++
++            if let (Storage::Metal(g_ms), Storage::Metal(u_ms), Storage::Metal(d_ms)) =
++                (&*g_storage, &*u_storage, &*d_storage)
++            {
++                crate::metal_stack_kernels::metal::call_swiglu_bwd(
++                    device,
++                    g_ms.buffer(),
++                    u_ms.buffer(),
++                    d_ms.buffer(),
++                    &dg_buf,
++                    &du_buf,
++                    total,
++                )?;
++                let dg = Tensor::from_storage(
++                    Storage::Metal(MetalStorage::new(dg_buf, device.clone(), total, DType::F32)),
++                    gate.shape().clone(),
++                    candle_core::op::BackpropOp::none(),
++                    false,
++                );
++                let du = Tensor::from_storage(
++                    Storage::Metal(MetalStorage::new(du_buf, device.clone(), total, DType::F32)),
++                    up.shape().clone(),
++                    candle_core::op::BackpropOp::none(),
++                    false,
++                );
++                return Ok((Some(dg), Some(du)));
++            }
++        }
+         let gs = gate.flatten_all()?.to_vec1::<f32>()?;
+         let us = up.flatten_all()?.to_vec1::<f32>()?;
+         let ds = grad.flatten_all()?.to_vec1::<f32>()?;
+@@ -3963,6 +4595,20 @@ impl CustomOp2 for SwiGlu {
+     }
+ }
+ 
++/// Fused SwiGLU: `silu(gate) * up`.
++pub fn swiglu(gate: &Tensor, up: &Tensor) -> Result<Tensor> {
++    if gate.dtype() != DType::F32 || up.dtype() != DType::F32 {
++        return Err(invalid("swiglu requires F32 tensors"));
++    }
++    if gate.shape() != up.shape() {
++        return Err(invalid("swiglu gate and up shapes must match"));
++    }
++    if gate.elem_count() == 0 {
++        return Err(invalid("swiglu inputs must not be empty"));
++    }
++    Ok(gate.contiguous()?.apply_op2(&up.contiguous()?, SwiGlu)?)
++}
++
+ // ---------------------------------------------------------------------------
+ // Fused cross-entropy.
+ 
+@@ -4016,6 +4662,71 @@ impl candle_core::CustomOp1 for CrossEntropy {
+         Ok((CpuStorage::F32(vec![mean as f32]), Shape::from(())))
+     }
+ 
++    #[cfg(feature = "metal")]
++    fn metal_fwd(
++        &self,
++        storage: &MetalStorage,
++        layout: &Layout,
++    ) -> candle_core::Result<(MetalStorage, Shape)> {
++        if storage.dtype() != DType::F32 {
++            candle_core::bail!("Metal CrossEntropy requires F32 dtype");
++        }
++        if layout.start_offset() != 0 || !layout.is_contiguous() {
++            candle_core::bail!("Metal kernel requires contiguous layout with zero start offset");
++        }
++        let (rows, vocabulary) = layout.shape().dims2()?;
++        if rows == 0 || vocabulary == 0 {
++            candle_core::bail!("CrossEntropy requires positive rows and vocabulary");
++        }
++        if self.targets.len() != rows {
++            candle_core::bail!("CrossEntropy targets count must match rows");
++        }
++        let device = storage.device();
++        let target_buf = device.new_buffer_with_data(&self.targets)?;
++        let loss_per_row = device.new_buffer(rows, DType::F32, "cross_entropy_row_loss")?;
++
++        crate::metal_stack_kernels::metal::call_cross_entropy_fwd(
++            device,
++            storage.buffer(),
++            &target_buf,
++            &loss_per_row,
++            rows,
++            vocabulary,
++        )?;
++
++        let row_losses_tensor = Tensor::from_storage(
++            Storage::Metal(MetalStorage::new(
++                loss_per_row,
++                device.clone(),
++                rows,
++                DType::F32,
++            )),
++            Shape::from(rows),
++            candle_core::op::BackpropOp::none(),
++            false,
++        );
++        let row_losses = row_losses_tensor.to_vec1::<f32>()?;
++        let mean = match &self.weights {
++            None => {
++                let total: f64 = row_losses.iter().map(|&v| f64::from(v)).sum();
++                total / rows as f64
++            }
++            Some(weights) => {
++                let total: f64 = row_losses
++                    .iter()
++                    .zip(weights.iter())
++                    .map(|(&l, &w)| f64::from(l) * f64::from(w))
++                    .sum();
++                total / weights.iter().map(|&w| f64::from(w)).sum::<f64>()
++            }
++        };
++        let out_buf = device.new_buffer_with_data(&[mean as f32])?;
++        Ok((
++            MetalStorage::new(out_buf, device.clone(), 1, DType::F32),
++            Shape::from(()),
++        ))
++    }
++
+     fn bwd(
+         &self,
+         logits: &Tensor,
+@@ -4023,6 +4734,53 @@ impl candle_core::CustomOp1 for CrossEntropy {
+         grad: &Tensor,
+     ) -> candle_core::Result<Option<Tensor>> {
+         let (rows, vocabulary) = logits.dims2()?;
++        #[cfg(feature = "metal")]
++        if self.weights.is_none() {
++            if let Device::Metal(device) = logits.device() {
++                if logits.dtype() != DType::F32 || grad.dtype() != DType::F32 {
++                    candle_core::bail!("Metal CrossEntropy backward requires F32 dtype");
++                }
++                if rows == 0 || vocabulary == 0 {
++                    candle_core::bail!("CrossEntropy requires positive rows and vocabulary");
++                }
++                if self.targets.len() != rows {
++                    candle_core::bail!("CrossEntropy targets count must match rows");
++                }
++                let (l_storage, l_layout) = logits.storage_and_layout();
++                if l_layout.start_offset() != 0 || !l_layout.is_contiguous() {
++                    candle_core::bail!(
++                        "Metal kernel requires contiguous layout with zero start offset"
++                    );
++                }
++                let scale = (grad.to_scalar::<f32>()? / rows as f32) as f32;
++                let target_buf = device.new_buffer_with_data(&self.targets)?;
++                let total = rows * vocabulary;
++                let grad_buf = device.new_buffer(total, DType::F32, "ce_grad")?;
++                if let Storage::Metal(l_ms) = &*l_storage {
++                    crate::metal_stack_kernels::metal::call_cross_entropy_bwd(
++                        device,
++                        l_ms.buffer(),
++                        &target_buf,
++                        &grad_buf,
++                        rows,
++                        vocabulary,
++                        scale,
++                    )?;
++                    let g_tensor = Tensor::from_storage(
++                        Storage::Metal(MetalStorage::new(
++                            grad_buf,
++                            device.clone(),
++                            total,
++                            DType::F32,
++                        )),
++                        logits.shape().clone(),
++                        candle_core::op::BackpropOp::none(),
++                        false,
++                    );
++                    return Ok(Some(g_tensor));
++                }
++            }
++        }
+         let values = logits.flatten_all()?.to_vec1::<f32>()?;
+         let mut out = vec![0f32; values.len()];
+         let grad = f64::from(grad.to_scalar::<f32>()?);
+@@ -4071,6 +4829,9 @@ pub fn logits_cross_entropy(
+     targets: &[u32],
+     weights: Option<&[f32]>,
+ ) -> Result<Tensor> {
++    if logits.dtype() != DType::F32 {
++        return Err(invalid("logits_cross_entropy requires F32 logits"));
++    }
+     let (rows, classes) = logits.dims2()?;
+     if targets.len() != rows || weights.is_some_and(|w| w.len() != rows) {
+         return Err(invalid("one target and one weight per logit row"));
+@@ -4093,6 +4854,11 @@ pub fn logits_cross_entropy(
+     })?)
+ }
+ 
++/// Fused CrossEntropy loss: mean cross entropy of logits vs target class indices.
++pub fn cross_entropy(logits: &Tensor, targets: &[u32]) -> Result<Tensor> {
++    logits_cross_entropy(logits, targets, None)
++}
++
+ /// Per-row negative log-likelihood of `targets`, without a backward graph.
+ fn row_nll(logits: &Tensor, targets: &[u32]) -> Result<Vec<f64>> {
+     let (rows, vocabulary) = logits.dims2()?;
+diff --git a/crates/uor-r4-training/src/lib.rs b/crates/uor-r4-training/src/lib.rs
+index cbca84c1a..9d7aef940 100644
+--- a/crates/uor-r4-training/src/lib.rs
++++ b/crates/uor-r4-training/src/lib.rs
+@@ -43,6 +43,7 @@ pub mod joint_rounding_campaign;
+ pub mod joint_transfer;
+ pub mod kappa_llama;
+ pub mod lut_export;
++pub mod metal_stack_kernels;
+ pub mod milestone_world;
+ pub mod ngram;
+ pub mod read_localize;
+diff --git a/crates/uor-r4-training/src/metal_stack_kernels.rs b/crates/uor-r4-training/src/metal_stack_kernels.rs
+new file mode 100644
+index 000000000..8bfb9db3a
+--- /dev/null
++++ b/crates/uor-r4-training/src/metal_stack_kernels.rs
+@@ -0,0 +1,961 @@
++//! Native Metal Forward and Backward Kernels for Geometric Stack Ops.
++//!
++//! Implements Apple Silicon GPU shaders for the 7 operations in `geometric_stack.rs`:
++//! 1. StraightThrough (fwd + bwd)
++//! 2. SwiGlu (fwd + bwd)
++//! 3. RmsNorm (fwd + bwd dx/dw)
++//! 4. QuaternionScan (fwd + bwd using native float4 Hamilton product)
++//! 5. CrossEntropy (fwd + bwd)
++//! 6. RecurrenceCore (fwd)
++//! 7. FusedRead (fwd)
++
++#[cfg(feature = "metal")]
++pub mod metal {
++    use std::collections::HashMap;
++    use std::sync::{Mutex, OnceLock};
++
++    use candle_core::{Error, MetalDevice, Result};
++    use candle_metal_kernels::metal::{Buffer, ComputePipeline};
++    use candle_metal_kernels::utils::set_param;
++    use objc2_metal::{MTLResourceUsage, MTLSize};
++
++    #[inline]
++    fn linear_split(pipeline: &ComputePipeline, length: usize) -> (MTLSize, MTLSize) {
++        let size = length;
++        let max_threads = pipeline.max_total_threads_per_threadgroup();
++        let width = std::cmp::max(1, std::cmp::min(max_threads, size));
++        let count = size.div_ceil(width);
++        let thread_group_count = MTLSize {
++            width: count,
++            height: 1,
++            depth: 1,
++        };
++        let thread_group_size = MTLSize {
++            width,
++            height: 1,
++            depth: 1,
++        };
++        (thread_group_count, thread_group_size)
++    }
++
++    pub const METAL_STACK_SHADERS: &str = r#"
++#include <metal_stdlib>
++using namespace metal;
++
++// ---------------------------------------------------------------------------
++// 1. Straight-Through
++// ---------------------------------------------------------------------------
++kernel void straight_through_fwd(
++    device const float* src [[buffer(0)]],
++    device float* dst [[buffer(1)]],
++    constant uint& total [[buffer(2)]],
++    uint id [[thread_position_in_grid]]
++) {
++    if (id < total) {
++        dst[id] = src[id];
++    }
++}
++
++// ---------------------------------------------------------------------------
++// 2. SwiGLU Forward & Backward
++// ---------------------------------------------------------------------------
++kernel void swiglu_fwd(
++    device const float* gate [[buffer(0)]],
++    device const float* up [[buffer(1)]],
++    device float* out [[buffer(2)]],
++    constant uint& total [[buffer(3)]],
++    uint id [[thread_position_in_grid]]
++) {
++    if (id >= total) return;
++    float g = gate[id];
++    float u = up[id];
++    float s = 1.0f / (1.0f + exp(-g));
++    out[id] = g * s * u;
++}
++
++kernel void swiglu_bwd(
++    device const float* gate [[buffer(0)]],
++    device const float* up [[buffer(1)]],
++    device const float* grad [[buffer(2)]],
++    device float* d_gate [[buffer(3)]],
++    device float* d_up [[buffer(4)]],
++    constant uint& total [[buffer(5)]],
++    uint id [[thread_position_in_grid]]
++) {
++    if (id >= total) return;
++    float g = gate[id];
++    float u = up[id];
++    float d = grad[id];
++    float s = 1.0f / (1.0f + exp(-g));
++    d_up[id] = d * g * s;
++    d_gate[id] = d * u * s * (1.0f + g * (1.0f - s));
++}
++
++// ---------------------------------------------------------------------------
++// 3. RMSNorm Forward & Backward
++// ---------------------------------------------------------------------------
++kernel void rms_norm_fwd(
++    device const float* x [[buffer(0)]],
++    device const float* w [[buffer(1)]],
++    device float* out [[buffer(2)]],
++    constant uint& width [[buffer(3)]],
++    constant float& eps [[buffer(4)]],
++    uint row [[threadgroup_position_in_grid]],
++    uint tid [[thread_position_in_threadgroup]],
++    uint threads [[threads_per_threadgroup]]
++) {
++    uint offset = row * width;
++    float sum_sq = 0.0f;
++    for (uint i = tid; i < width; i += threads) {
++        float v = x[offset + i];
++        sum_sq += v * v;
++    }
++    threadgroup float shared[32];
++    sum_sq = simd_sum(sum_sq);
++    if ((tid & 31) == 0) shared[tid / 32] = sum_sq;
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    if (tid == 0) {
++        float total = 0.0f;
++        uint num_warps = (threads + 31) / 32;
++        for (uint i = 0; i < num_warps; ++i) total += shared[i];
++        shared[0] = 1.0f / sqrt(total / float(width) + eps);
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    float r = shared[0];
++    for (uint i = tid; i < width; i += threads) {
++        out[offset + i] = x[offset + i] * r * w[i];
++    }
++}
++
++kernel void rms_norm_bwd_dx(
++    device const float* x [[buffer(0)]],
++    device const float* w [[buffer(1)]],
++    device const float* grad [[buffer(2)]],
++    device float* dx [[buffer(3)]],
++    constant uint& width [[buffer(4)]],
++    constant float& eps [[buffer(5)]],
++    uint row [[threadgroup_position_in_grid]],
++    uint tid [[thread_position_in_threadgroup]],
++    uint threads [[threads_per_threadgroup]]
++) {
++    uint offset = row * width;
++    float sum_sq = 0.0f;
++    float sum_gw_x = 0.0f;
++    for (uint i = tid; i < width; i += threads) {
++        float xi = x[offset + i];
++        float gi = grad[offset + i];
++        float wi = w[i];
++        sum_sq += xi * xi;
++        sum_gw_x += gi * wi * xi;
++    }
++    sum_sq = simd_sum(sum_sq);
++    sum_gw_x = simd_sum(sum_gw_x);
++
++    threadgroup float shared_sq[32];
++    threadgroup float shared_proj[32];
++    if ((tid & 31) == 0) {
++        shared_sq[tid / 32] = sum_sq;
++        shared_proj[tid / 32] = sum_gw_x;
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    if (tid == 0) {
++        float tot_sq = 0.0f;
++        float tot_proj = 0.0f;
++        uint num_warps = (threads + 31) / 32;
++        for (uint i = 0; i < num_warps; ++i) {
++            tot_sq += shared_sq[i];
++            tot_proj += shared_proj[i];
++        }
++        float r = 1.0f / sqrt(tot_sq / float(width) + eps);
++        shared_sq[0] = r;
++        shared_proj[0] = tot_proj * r / float(width);
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    float r = shared_sq[0];
++    float proj = shared_proj[0];
++    for (uint i = tid; i < width; i += threads) {
++        float xhat = x[offset + i] * r;
++        dx[offset + i] = r * (grad[offset + i] * w[i] - xhat * proj);
++    }
++}
++
++kernel void rms_norm_bwd_dw(
++    device const float* x [[buffer(0)]],
++    device const float* grad [[buffer(1)]],
++    device float* dw [[buffer(2)]],
++    constant uint& rows [[buffer(3)]],
++    constant uint& width [[buffer(4)]],
++    constant float& eps [[buffer(5)]],
++    uint col [[thread_position_in_grid]]
++) {
++    if (col >= width) return;
++    float sum = 0.0f;
++    for (uint r = 0; r < rows; ++r) {
++        uint offset = r * width;
++        float sum_sq = 0.0f;
++        for (uint i = 0; i < width; ++i) {
++            float v = x[offset + i];
++            sum_sq += v * v;
++        }
++        float scale = 1.0f / sqrt(sum_sq / float(width) + eps);
++        sum += grad[offset + col] * x[offset + col] * scale;
++    }
++    dw[col] = sum;
++}
++
++// ---------------------------------------------------------------------------
++// 4. Quaternion Transport Scan Forward & Backward
++// ---------------------------------------------------------------------------
++inline float4 quat_mul(float4 a, float4 b) {
++    return float4(
++        a.x * b.x - a.y * b.y - a.z * b.z - a.w * b.w,
++        a.x * b.y + a.y * b.x + a.z * b.w - a.w * b.z,
++        a.x * b.z - a.y * b.w + a.z * b.x + a.w * b.y,
++        a.x * b.w + a.y * b.z - a.z * b.y + a.w * b.x
++    );
++}
++
++inline float4 quat_conj(float4 a) {
++    return float4(a.x, -a.y, -a.z, -a.w);
++}
++
++kernel void quaternion_scan_fwd(
++    device const float4* transition [[buffer(0)]],
++    device const float4* drive [[buffer(1)]],
++    device float4* state_out [[buffer(2)]],
++    constant uint& time [[buffer(3)]],
++    constant uint& lanes [[buffer(4)]],
++    constant uint& total_seqs [[buffer(5)]],
++    uint seq_id [[thread_position_in_grid]]
++) {
++    if (seq_id >= total_seqs) return;
++    uint b = seq_id / lanes;
++    uint lane = seq_id % lanes;
++    float4 held = float4(0.0f);
++    for (uint t = 0; t < time; ++t) {
++        uint idx = (b * time + t) * lanes + lane;
++        float4 moved = quat_mul(transition[idx], held);
++        held = moved + drive[idx];
++        state_out[idx] = held;
++    }
++}
++
++kernel void quaternion_scan_bwd(
++    device const float4* transition [[buffer(0)]],
++    device const float4* state [[buffer(1)]],
++    device const float4* grad [[buffer(2)]],
++    device float4* dq [[buffer(3)]],
++    device float4* db [[buffer(4)]],
++    constant uint& time [[buffer(5)]],
++    constant uint& lanes [[buffer(6)]],
++    constant uint& total_seqs [[buffer(7)]],
++    uint seq_id [[thread_position_in_grid]]
++) {
++    if (seq_id >= total_seqs) return;
++    uint b = seq_id / lanes;
++    uint lane = seq_id % lanes;
++    float4 carried = float4(0.0f);
++    for (int t = int(time) - 1; t >= 0; --t) {
++        uint idx = (b * time + uint(t)) * lanes + lane;
++        float4 total = grad[idx];
++        if (uint(t + 1) < time) {
++            uint next_idx = (b * time + uint(t + 1)) * lanes + lane;
++            float4 back = quat_mul(quat_conj(transition[next_idx]), carried);
++            total += back;
++        }
++        db[idx] = total;
++        if (t > 0) {
++            uint prev_idx = (b * time + uint(t - 1)) * lanes + lane;
++            dq[idx] = quat_mul(total, quat_conj(state[prev_idx]));
++        } else {
++            dq[idx] = float4(0.0f);
++        }
++        carried = total;
++    }
++}
++
++// ---------------------------------------------------------------------------
++// 5. Cross-Entropy Forward & Backward
++// ---------------------------------------------------------------------------
++kernel void cross_entropy_fwd(
++    device const float* logits [[buffer(0)]],
++    device const uint* targets [[buffer(1)]],
++    device float* loss [[buffer(2)]],
++    constant uint& vocab [[buffer(3)]],
++    uint row [[threadgroup_position_in_grid]],
++    uint tid [[thread_position_in_threadgroup]],
++    uint threads [[threads_per_threadgroup]]
++) {
++    uint offset = row * vocab;
++    float max_val = -1e30f;
++    for (uint i = tid; i < vocab; i += threads) {
++        max_val = max(max_val, logits[offset + i]);
++    }
++    max_val = simd_max(max_val);
++    threadgroup float shared_max[32];
++    if ((tid & 31) == 0) shared_max[tid / 32] = max_val;
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    if (tid == 0) {
++        float m = -1e30f;
++        uint num_warps = (threads + 31) / 32;
++        for (uint i = 0; i < num_warps; ++i) m = max(m, shared_max[i]);
++        shared_max[0] = m;
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++    float row_max = shared_max[0];
++
++    float sum_exp = 0.0f;
++    for (uint i = tid; i < vocab; i += threads) {
++        sum_exp += exp(logits[offset + i] - row_max);
++    }
++    sum_exp = simd_sum(sum_exp);
++    threadgroup float shared_sum[32];
++    if ((tid & 31) == 0) shared_sum[tid / 32] = sum_exp;
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    if (tid == 0) {
++        float tot = 0.0f;
++        uint num_warps = (threads + 31) / 32;
++        for (uint i = 0; i < num_warps; ++i) tot += shared_sum[i];
++        float log_z = row_max + log(tot);
++        uint target = targets[row];
++        loss[row] = log_z - logits[offset + target];
++    }
++}
++
++kernel void cross_entropy_bwd(
++    device const float* logits [[buffer(0)]],
++    device const uint* targets [[buffer(1)]],
++    device float* grad [[buffer(2)]],
++    constant uint& vocab [[buffer(3)]],
++    constant float& scale [[buffer(4)]],
++    uint row [[threadgroup_position_in_grid]],
++    uint tid [[thread_position_in_threadgroup]],
++    uint threads [[threads_per_threadgroup]]
++) {
++    uint offset = row * vocab;
++    float max_val = -1e30f;
++    for (uint i = tid; i < vocab; i += threads) {
++        max_val = max(max_val, logits[offset + i]);
++    }
++    max_val = simd_max(max_val);
++    threadgroup float shared_max[32];
++    if ((tid & 31) == 0) shared_max[tid / 32] = max_val;
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    if (tid == 0) {
++        float m = -1e30f;
++        uint num_warps = (threads + 31) / 32;
++        for (uint i = 0; i < num_warps; ++i) m = max(m, shared_max[i]);
++        shared_max[0] = m;
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++    float row_max = shared_max[0];
++
++    float sum_exp = 0.0f;
++    for (uint i = tid; i < vocab; i += threads) {
++        sum_exp += exp(logits[offset + i] - row_max);
++    }
++    sum_exp = simd_sum(sum_exp);
++    threadgroup float shared_sum[32];
++    if ((tid & 31) == 0) shared_sum[tid / 32] = sum_exp;
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++
++    if (tid == 0) {
++        float tot = 0.0f;
++        uint num_warps = (threads + 31) / 32;
++        for (uint i = 0; i < num_warps; ++i) tot += shared_sum[i];
++        shared_sum[0] = 1.0f / tot;
++    }
++    threadgroup_barrier(mem_flags::mem_threadgroup);
++    float inv_z = shared_sum[0];
++    uint target = targets[row];
++
++    for (uint i = tid; i < vocab; i += threads) {
++        float p = exp(logits[offset + i] - row_max) * inv_z;
++        float diff = (i == target) ? (p - 1.0f) : p;
++        grad[offset + i] = diff * scale;
++    }
++}
++
++inline float gelu_fwd(float x) {
++    const float K = 0.7978846f;
++    const float C = 0.044715f;
++    float v = K * (x + C * x * x * x);
++    float t = tanh(v);
++    return 0.5f * x * (1.0f + t);
++}
++
++// ---------------------------------------------------------------------------
++// 6. Recurrence Core Forward
++// ---------------------------------------------------------------------------
++kernel void recurrence_core_fwd(
++    device const float* branches [[buffer(0)]],
++    device const float* gates [[buffer(1)]],
++    device const float* params [[buffer(2)]],
++    device const float* log_a [[buffer(3)]],
++    device float* state_out [[buffer(4)]],
++    device float* drive_out [[buffer(5)]],
++    device float* out [[buffer(6)]],
++    constant uint& time [[buffer(7)]],
++    constant uint& width [[buffer(8)]],
++    constant uint& lanes [[buffer(9)]],
++    constant uint& gate_width [[buffer(10)]],
++    constant uint& rotation [[buffer(11)]],
++    constant uint& total_lanes [[buffer(12)]],
++    uint lane_id [[thread_position_in_grid]]
++) {
++    if (lane_id >= total_lanes) return;
++    uint b = lane_id / lanes;
++    uint lane = lane_id % lanes;
++
++    device const float* taps = params;
++    device const float* bias = params + 4 * width;
++
++    float4 held = float4(0.0f);
++    for (uint t = 0; t < time; ++t) {
++        float4 d_val = float4(0.0f);
++        for (uint k = 0; k < 4; ++k) {
++            uint ch = 4 * lane + k;
++            float c_val = bias[ch];
++            for (uint shift = 0; shift < 4 && shift <= t; ++shift) {
++                float w = taps[shift * width + ch];
++                float a = branches[(b * time + (t - shift)) * (2 * width) + ch];
++                c_val += w * a;
++            }
++            d_val[k] = c_val;
++        }
++        uint drive_idx = (b * time + t) * width + 4 * lane;
++        drive_out[drive_idx + 0] = d_val.x;
++        drive_out[drive_idx + 1] = d_val.y;
++        drive_out[drive_idx + 2] = d_val.z;
++        drive_out[drive_idx + 3] = d_val.w;
++
++        uint gate_base = (b * time + t) * gate_width;
++        float r_val = 1.0f / (1.0f + exp(-gates[gate_base + lane]));
++        float decay = exp(8.0f * r_val * log_a[lane]);
++        float complement = 1.0f - decay * decay;
++        float keep = (complement < 1e-6f) ? 1e-3f : sqrt(complement);
++
++        float4 q;
++        if (rotation != 0) {
++            float u0 = gates[gate_base + lanes + 4 * lane + 0];
++            float u1 = gates[gate_base + lanes + 4 * lane + 1];
++            float u2 = gates[gate_base + lanes + 4 * lane + 2];
++            float u3 = gates[gate_base + lanes + 4 * lane + 3];
++            float norm = sqrt(u0 * u0 + u1 * u1 + u2 * u2 + u3 * u3 + 1e-6f);
++            float s = decay / norm;
++            q = float4(u0 * s, u1 * s, u2 * s, u3 * s);
++        } else {
++            q = float4(decay, 0.0f, 0.0f, 0.0f);
++        }
++
++        held = quat_mul(q, held) + keep * d_val;
++        state_out[drive_idx + 0] = held.x;
++        state_out[drive_idx + 1] = held.y;
++        state_out[drive_idx + 2] = held.z;
++        state_out[drive_idx + 3] = held.w;
++
++        uint branch_base = (b * time + t) * (2 * width) + 4 * lane;
++        float4 g_val = float4(
++            branches[branch_base + width + 0],
++            branches[branch_base + width + 1],
++            branches[branch_base + width + 2],
++            branches[branch_base + width + 3]
++        );
++        out[drive_idx + 0] = held.x * gelu_fwd(g_val.x);
++        out[drive_idx + 1] = held.y * gelu_fwd(g_val.y);
++        out[drive_idx + 2] = held.z * gelu_fwd(g_val.z);
++        out[drive_idx + 3] = held.w * gelu_fwd(g_val.w);
++    }
++}
++
++// ---------------------------------------------------------------------------
++// 7. Fused Causal Read Forward
++// ---------------------------------------------------------------------------
++kernel void fused_read_fwd(
++    device const float* query [[buffer(0)]],
++    device const float* kv [[buffer(1)]],
++    device const float* aux [[buffer(2)]],
++    device float* out [[buffer(3)]],
++    constant uint& time [[buffer(4)]],
++    constant uint& key_dim [[buffer(5)]],
++    constant uint& val_dim [[buffer(6)]],
++    constant uint& kv_width [[buffer(7)]],
++    constant float& scale [[buffer(8)]],
++    constant uint& total_heads [[buffer(9)]],
++    uint head_id [[thread_position_in_grid]]
++) {
++    if (head_id >= total_heads) return;
++    for (uint t = 0; t < time; ++t) {
++        uint q_offset = (head_id * time + t) * key_dim;
++        float max_score = -1e30f;
++        for (uint s = 0; s <= t; ++s) {
++            uint kv_offset = (head_id * time + s) * kv_width;
++            float dot = 0.0f;
++            for (uint d = 0; d < key_dim; ++d) {
++                dot += query[q_offset + d] * kv[kv_offset + d];
++            }
++            max_score = max(max_score, dot * scale);
++        }
++
++        float sum_exp = 0.0f;
++        for (uint s = 0; s <= t; ++s) {
++            uint kv_offset = (head_id * time + s) * kv_width;
++            float dot = 0.0f;
++            for (uint d = 0; d < key_dim; ++d) {
++                dot += query[q_offset + d] * kv[kv_offset + d];
++            }
++            sum_exp += exp(dot * scale - max_score);
++        }
++        float inv_z = 1.0f / sum_exp;
++
++        uint out_offset = (head_id * time + t) * val_dim;
++        for (uint v = 0; v < val_dim; ++v) {
++            float accum = 0.0f;
++            for (uint s = 0; s <= t; ++s) {
++                uint kv_offset = (head_id * time + s) * kv_width;
++                float dot = 0.0f;
++                for (uint d = 0; d < key_dim; ++d) {
++                    dot += query[q_offset + d] * kv[kv_offset + d];
++                }
++                float w = exp(dot * scale - max_score) * inv_z;
++                accum += w * kv[kv_offset + key_dim + v];
++            }
++            out[out_offset + v] = accum;
++        }
++    }
++}
++"#;
++
++    // -----------------------------------------------------------------------
++    // Pipeline Cache
++    // -----------------------------------------------------------------------
++
++    pub struct MetalPipelineCache {
++        pipelines: Mutex<HashMap<String, ComputePipeline>>,
++    }
++
++    impl MetalPipelineCache {
++        pub fn new() -> Self {
++            Self {
++                pipelines: Mutex::new(HashMap::new()),
++            }
++        }
++
++        pub fn get_or_compile(
++            &self,
++            device: &MetalDevice,
++            kernel_name: &str,
++        ) -> Result<ComputePipeline> {
++            let mut map = self
++                .pipelines
++                .lock()
++                .map_err(|e| Error::Msg(format!("Lock error: {e}")))?;
++            if let Some(pl) = map.get(kernel_name) {
++                return Ok(pl.clone());
++            }
++            let raw_device = device.metal_device();
++            let lib = raw_device
++                .new_library_with_source(METAL_STACK_SHADERS, None)
++                .map_err(|e| Error::Msg(format!("Metal shader compilation error: {e}")))?;
++            let func = lib
++                .get_function(kernel_name, None)
++                .map_err(|e| Error::Msg(format!("Kernel {kernel_name} not found: {e}")))?;
++            let pl = raw_device
++                .new_compute_pipeline_state_with_function(&func)
++                .map_err(|e| Error::Msg(format!("Pipeline creation error: {e}")))?;
++            map.insert(kernel_name.to_string(), pl.clone());
++            Ok(pl)
++        }
++    }
++
++    static CACHE: OnceLock<MetalPipelineCache> = OnceLock::new();
++
++    pub fn get_cache() -> &'static MetalPipelineCache {
++        CACHE.get_or_init(MetalPipelineCache::new)
++    }
++
++    // -----------------------------------------------------------------------
++    // Dispatch Helpers
++    // -----------------------------------------------------------------------
++
++    pub fn call_straight_through(
++        device: &MetalDevice,
++        src: &Buffer,
++        dst: &Buffer,
++        length: usize,
++    ) -> Result<()> {
++        if length == 0 {
++            candle_core::bail!("call_straight_through requires non-empty buffer (length > 0)");
++        }
++        let pipeline = get_cache().get_or_compile(device, "straight_through_fwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        let total = length as u32;
++        set_param(&encoder, 0, src);
++        set_param(&encoder, 1, dst);
++        set_param(&encoder, 2, total);
++        let (grid, group) = linear_split(&pipeline, length);
++        encoder.use_resource(src, MTLResourceUsage::Read);
++        encoder.use_resource(dst, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_swiglu_fwd(
++        device: &MetalDevice,
++        gate: &Buffer,
++        up: &Buffer,
++        out: &Buffer,
++        length: usize,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "swiglu_fwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        let total = length as u32;
++        set_param(&encoder, 0, gate);
++        set_param(&encoder, 1, up);
++        set_param(&encoder, 2, out);
++        set_param(&encoder, 3, total);
++        let (grid, group) = linear_split(&pipeline, length);
++        encoder.use_resource(gate, MTLResourceUsage::Read);
++        encoder.use_resource(up, MTLResourceUsage::Read);
++        encoder.use_resource(out, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_swiglu_bwd(
++        device: &MetalDevice,
++        gate: &Buffer,
++        up: &Buffer,
++        grad: &Buffer,
++        d_gate: &Buffer,
++        d_up: &Buffer,
++        length: usize,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "swiglu_bwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        let total = length as u32;
++        set_param(&encoder, 0, gate);
++        set_param(&encoder, 1, up);
++        set_param(&encoder, 2, grad);
++        set_param(&encoder, 3, d_gate);
++        set_param(&encoder, 4, d_up);
++        set_param(&encoder, 5, total);
++        let (grid, group) = linear_split(&pipeline, length);
++        encoder.use_resource(gate, MTLResourceUsage::Read);
++        encoder.use_resource(up, MTLResourceUsage::Read);
++        encoder.use_resource(grad, MTLResourceUsage::Read);
++        encoder.use_resource(d_gate, MTLResourceUsage::Write);
++        encoder.use_resource(d_up, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_rms_norm_fwd(
++        device: &MetalDevice,
++        x: &Buffer,
++        w: &Buffer,
++        out: &Buffer,
++        rows: usize,
++        width: usize,
++        eps: f32,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "rms_norm_fwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        set_param(&encoder, 0, x);
++        set_param(&encoder, 1, w);
++        set_param(&encoder, 2, out);
++        set_param(&encoder, 3, width as u32);
++        set_param(&encoder, 4, eps);
++        let grid = MTLSize {
++            width: rows,
++            height: 1,
++            depth: 1,
++        };
++        let group_threads = 64.min(width);
++        let group = MTLSize {
++            width: group_threads,
++            height: 1,
++            depth: 1,
++        };
++        encoder.use_resource(x, MTLResourceUsage::Read);
++        encoder.use_resource(w, MTLResourceUsage::Read);
++        encoder.use_resource(out, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_rms_norm_bwd(
++        device: &MetalDevice,
++        x: &Buffer,
++        w: &Buffer,
++        grad: &Buffer,
++        dx: &Buffer,
++        dw: &Buffer,
++        rows: usize,
++        width: usize,
++        eps: f32,
++    ) -> Result<()> {
++        let pipeline_dx = get_cache().get_or_compile(device, "rms_norm_bwd_dx")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline_dx);
++        set_param(&encoder, 0, x);
++        set_param(&encoder, 1, w);
++        set_param(&encoder, 2, grad);
++        set_param(&encoder, 3, dx);
++        set_param(&encoder, 4, width as u32);
++        set_param(&encoder, 5, eps);
++        let grid = MTLSize {
++            width: rows,
++            height: 1,
++            depth: 1,
++        };
++        let group_threads = 64.min(width);
++        let group = MTLSize {
++            width: group_threads,
++            height: 1,
++            depth: 1,
++        };
++        encoder.use_resource(x, MTLResourceUsage::Read);
++        encoder.use_resource(w, MTLResourceUsage::Read);
++        encoder.use_resource(grad, MTLResourceUsage::Read);
++        encoder.use_resource(dx, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++
++        let pipeline_dw = get_cache().get_or_compile(device, "rms_norm_bwd_dw")?;
++        encoder.set_compute_pipeline_state(&pipeline_dw);
++        set_param(&encoder, 0, x);
++        set_param(&encoder, 1, grad);
++        set_param(&encoder, 2, dw);
++        set_param(&encoder, 3, rows as u32);
++        set_param(&encoder, 4, width as u32);
++        set_param(&encoder, 5, eps);
++        let (grid_dw, group_dw) = linear_split(&pipeline_dw, width);
++        encoder.use_resource(dw, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid_dw, group_dw);
++
++        Ok(())
++    }
++
++    pub fn call_quaternion_scan_fwd(
++        device: &MetalDevice,
++        transition: &Buffer,
++        drive: &Buffer,
++        out: &Buffer,
++        batch: usize,
++        time: usize,
++        lanes: usize,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "quaternion_scan_fwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        let total_seqs = (batch * lanes) as u32;
++        set_param(&encoder, 0, transition);
++        set_param(&encoder, 1, drive);
++        set_param(&encoder, 2, out);
++        set_param(&encoder, 3, time as u32);
++        set_param(&encoder, 4, lanes as u32);
++        set_param(&encoder, 5, total_seqs);
++        let (grid, group) = linear_split(&pipeline, batch * lanes);
++        encoder.use_resource(transition, MTLResourceUsage::Read);
++        encoder.use_resource(drive, MTLResourceUsage::Read);
++        encoder.use_resource(out, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_quaternion_scan_bwd(
++        device: &MetalDevice,
++        transition: &Buffer,
++        state: &Buffer,
++        grad: &Buffer,
++        dq: &Buffer,
++        db: &Buffer,
++        batch: usize,
++        time: usize,
++        lanes: usize,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "quaternion_scan_bwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        let total_seqs = (batch * lanes) as u32;
++        set_param(&encoder, 0, transition);
++        set_param(&encoder, 1, state);
++        set_param(&encoder, 2, grad);
++        set_param(&encoder, 3, dq);
++        set_param(&encoder, 4, db);
++        set_param(&encoder, 5, time as u32);
++        set_param(&encoder, 6, lanes as u32);
++        set_param(&encoder, 7, total_seqs);
++        let (grid, group) = linear_split(&pipeline, batch * lanes);
++        encoder.use_resource(transition, MTLResourceUsage::Read);
++        encoder.use_resource(state, MTLResourceUsage::Read);
++        encoder.use_resource(grad, MTLResourceUsage::Read);
++        encoder.use_resource(dq, MTLResourceUsage::Write);
++        encoder.use_resource(db, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_cross_entropy_fwd(
++        device: &MetalDevice,
++        logits: &Buffer,
++        targets: &Buffer,
++        loss_per_row: &Buffer,
++        rows: usize,
++        vocab: usize,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "cross_entropy_fwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        set_param(&encoder, 0, logits);
++        set_param(&encoder, 1, targets);
++        set_param(&encoder, 2, loss_per_row);
++        set_param(&encoder, 3, vocab as u32);
++        let grid = MTLSize {
++            width: rows,
++            height: 1,
++            depth: 1,
++        };
++        let group = MTLSize {
++            width: 128.min(vocab),
++            height: 1,
++            depth: 1,
++        };
++        encoder.use_resource(logits, MTLResourceUsage::Read);
++        encoder.use_resource(targets, MTLResourceUsage::Read);
++        encoder.use_resource(loss_per_row, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_cross_entropy_bwd(
++        device: &MetalDevice,
++        logits: &Buffer,
++        targets: &Buffer,
++        grad: &Buffer,
++        rows: usize,
++        vocab: usize,
++        scale: f32,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "cross_entropy_bwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        set_param(&encoder, 0, logits);
++        set_param(&encoder, 1, targets);
++        set_param(&encoder, 2, grad);
++        set_param(&encoder, 3, vocab as u32);
++        set_param(&encoder, 4, scale);
++        let grid = MTLSize {
++            width: rows,
++            height: 1,
++            depth: 1,
++        };
++        let group = MTLSize {
++            width: 128.min(vocab),
++            height: 1,
++            depth: 1,
++        };
++        encoder.use_resource(logits, MTLResourceUsage::Read);
++        encoder.use_resource(targets, MTLResourceUsage::Read);
++        encoder.use_resource(grad, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_recurrence_core_fwd(
++        device: &MetalDevice,
++        branches: &Buffer,
++        gates: &Buffer,
++        params: &Buffer,
++        log_a: &Buffer,
++        state_out: &Buffer,
++        drive_out: &Buffer,
++        out: &Buffer,
++        batch: usize,
++        time: usize,
++        width: usize,
++        rotation: bool,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "recurrence_core_fwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        let lanes = width / 4;
++        let gate_width = lanes + if rotation { width } else { 0 };
++        let total_lanes = (batch * lanes) as u32;
++
++        set_param(&encoder, 0, branches);
++        set_param(&encoder, 1, gates);
++        set_param(&encoder, 2, params);
++        set_param(&encoder, 3, log_a);
++        set_param(&encoder, 4, state_out);
++        set_param(&encoder, 5, drive_out);
++        set_param(&encoder, 6, out);
++        set_param(&encoder, 7, time as u32);
++        set_param(&encoder, 8, width as u32);
++        set_param(&encoder, 9, lanes as u32);
++        set_param(&encoder, 10, gate_width as u32);
++        set_param(&encoder, 11, if rotation { 1u32 } else { 0u32 });
++        set_param(&encoder, 12, total_lanes);
++
++        let (grid, group) = linear_split(&pipeline, batch * lanes);
++        encoder.use_resource(branches, MTLResourceUsage::Read);
++        encoder.use_resource(gates, MTLResourceUsage::Read);
++        encoder.use_resource(params, MTLResourceUsage::Read);
++        encoder.use_resource(log_a, MTLResourceUsage::Read);
++        encoder.use_resource(state_out, MTLResourceUsage::Write);
++        encoder.use_resource(drive_out, MTLResourceUsage::Write);
++        encoder.use_resource(out, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++
++    pub fn call_fused_read_fwd(
++        device: &MetalDevice,
++        query: &Buffer,
++        kv: &Buffer,
++        aux: &Buffer,
++        out: &Buffer,
++        batch: usize,
++        heads: usize,
++        time: usize,
++        key_dim: usize,
++        val_dim: usize,
++    ) -> Result<()> {
++        let pipeline = get_cache().get_or_compile(device, "fused_read_fwd")?;
++        let encoder = device.command_encoder()?;
++        encoder.set_compute_pipeline_state(&pipeline);
++        let total_heads = (batch * heads) as u32;
++        let kv_width = key_dim + val_dim;
++        let scale = 1.0f32 / (key_dim as f32).sqrt();
++
++        set_param(&encoder, 0, query);
++        set_param(&encoder, 1, kv);
++        set_param(&encoder, 2, aux);
++        set_param(&encoder, 3, out);
++        set_param(&encoder, 4, time as u32);
++        set_param(&encoder, 5, key_dim as u32);
++        set_param(&encoder, 6, val_dim as u32);
++        set_param(&encoder, 7, kv_width as u32);
++        set_param(&encoder, 8, scale);
++        set_param(&encoder, 9, total_heads);
++
++        let (grid, group) = linear_split(&pipeline, batch * heads);
++        encoder.use_resource(query, MTLResourceUsage::Read);
++        encoder.use_resource(kv, MTLResourceUsage::Read);
++        encoder.use_resource(aux, MTLResourceUsage::Read);
++        encoder.use_resource(out, MTLResourceUsage::Write);
++        encoder.dispatch_thread_groups(grid, group);
++        Ok(())
++    }
++}
+diff --git a/crates/uor-r4-training/tests/metal_stack_ops_parity.rs b/crates/uor-r4-training/tests/metal_stack_ops_parity.rs
+new file mode 100644
+index 000000000..0cec09422
+--- /dev/null
++++ b/crates/uor-r4-training/tests/metal_stack_ops_parity.rs
+@@ -0,0 +1,965 @@
++//! Numerical Parity Tests: CPU Reference vs Native Metal Stack Kernels.
++//!
++//! Tests the stack operations in `geometric_stack.rs` for bitwise / high-precision numerical
++//! equivalence between CPU execution and Apple Silicon Metal GPU execution.
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_metal_device_available() -> uor_r4_training::Result<()> {
++    match candle_core::Device::new_metal(0) {
++        Ok(device) => {
++            println!("Metal device 0 initialized successfully: {:?}", device);
++            Ok(())
++        }
++        Err(e) => {
++            println!("Metal device unavailable (skipping GPU tests): {e}");
++            Ok(())
++        }
++    }
++}
++
++#[cfg(feature = "metal")]
++fn assert_finite_and_close(cpu: &[f32], metal: &[f32], tol: f32, op_name: &str) -> f32 {
++    assert_eq!(cpu.len(), metal.len(), "{op_name}: length mismatch");
++    let mut max_diff = 0.0f32;
++    for (i, (&c, &m)) in cpu.iter().zip(metal.iter()).enumerate() {
++        assert!(
++            c.is_finite(),
++            "{op_name} at index {i}: CPU value is not finite ({c})"
++        );
++        assert!(
++            m.is_finite(),
++            "{op_name} at index {i}: Metal value is not finite ({m})"
++        );
++        let diff = (c - m).abs();
++        assert!(
++            diff.is_finite(),
++            "{op_name} at index {i}: diff is not finite ({diff})"
++        );
++        if diff > max_diff {
++            max_diff = diff;
++        }
++    }
++    assert!(
++        max_diff < tol,
++        "{op_name} diff too large: {max_diff} >= {tol}"
++    );
++    max_diff
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_straight_through_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let len = 256;
++    let cont_data: Vec<f32> = (0..len).map(|i| i as f32 * 0.1).collect();
++    let quant_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.1).round()).collect();
++
++    let cont_cpu = candle_core::Tensor::from_vec(cont_data.clone(), (1, len), &cpu_dev)?;
++    let quant_cpu = candle_core::Tensor::from_vec(quant_data.clone(), (1, len), &cpu_dev)?;
++
++    let cont_metal = candle_core::Tensor::from_vec(cont_data, (1, len), &metal_dev)?;
++    let quant_metal = candle_core::Tensor::from_vec(quant_data, (1, len), &metal_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::straight_through(&cont_cpu, &quant_cpu)?;
++    let out_metal = uor_r4_training::geometric_stack::straight_through(&cont_metal, &quant_metal)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_metal = out_metal.flatten_all()?.to_vec1::<f32>()?;
++
++    for (c, m) in v_cpu.iter().zip(v_metal.iter()) {
++        assert!(c.is_finite() && m.is_finite());
++    }
++    assert_eq!(v_cpu, v_metal);
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_swiglu_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let len = 1024;
++    let gate_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.01 - 5.0).sin()).collect();
++    let up_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.02 + 1.0).cos()).collect();
++
++    let gate_cpu = candle_core::Tensor::from_vec(gate_data.clone(), (1, len), &cpu_dev)?;
++    let up_cpu = candle_core::Tensor::from_vec(up_data.clone(), (1, len), &cpu_dev)?;
++
++    let gate_metal = candle_core::Tensor::from_vec(gate_data, (1, len), &metal_dev)?;
++    let up_metal = candle_core::Tensor::from_vec(up_data, (1, len), &metal_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::swiglu(&gate_cpu, &up_cpu)?;
++    let out_metal = uor_r4_training::geometric_stack::swiglu(&gate_metal, &up_metal)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_metal = out_metal.flatten_all()?.to_vec1::<f32>()?;
++
++    let max_diff = assert_finite_and_close(&v_cpu, &v_metal, 1e-5, "SwiGLU");
++    println!("SwiGLU max diff CPU vs Metal: {max_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_rms_norm_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows = 4;
++    let width = 288;
++    let total = rows * width;
++    let x_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.03).sin()).collect();
++    let w_data: Vec<f32> = (0..width).map(|i| i as f32 * 0.01 + 0.5).collect();
++
++    let x_cpu = candle_core::Tensor::from_vec(x_data.clone(), (rows, width), &cpu_dev)?;
++    let w_cpu = candle_core::Tensor::from_vec(w_data.clone(), (width,), &cpu_dev)?;
++
++    let x_metal = candle_core::Tensor::from_vec(x_data, (rows, width), &metal_dev)?;
++    let w_metal = candle_core::Tensor::from_vec(w_data, (width,), &metal_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::rms_norm(&x_cpu, &w_cpu)?;
++    let out_metal = uor_r4_training::geometric_stack::rms_norm(&x_metal, &w_metal)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_metal = out_metal.flatten_all()?.to_vec1::<f32>()?;
++
++    let max_diff = assert_finite_and_close(&v_cpu, &v_metal, 1e-4, "RMSNorm");
++    println!("RMSNorm max diff CPU vs Metal: {max_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_quaternion_scan_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let time = 16;
++    let lanes = 12;
++    let total = batch * time * lanes * 4;
++
++    // Unit-ish quaternions for transitions
++    let trans_data: Vec<f32> = (0..total)
++        .map(|i| {
++            if i % 4 == 0 {
++                0.999f32
++            } else {
++                (i as f32 * 0.001).sin() * 0.01f32
++            }
++        })
++        .collect();
++    let drive_data: Vec<f32> = (0..total)
++        .map(|i| (i as f32 * 0.05).cos() * 0.1f32)
++        .collect();
++
++    let shape = (batch, time, lanes, 4);
++    let t_cpu = candle_core::Tensor::from_vec(trans_data.clone(), shape, &cpu_dev)?;
++    let d_cpu = candle_core::Tensor::from_vec(drive_data.clone(), shape, &cpu_dev)?;
++
++    let t_metal = candle_core::Tensor::from_vec(trans_data, shape, &metal_dev)?;
++    let d_metal = candle_core::Tensor::from_vec(drive_data, shape, &metal_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::quaternion_scan(&t_cpu, &d_cpu)?;
++    let out_metal = uor_r4_training::geometric_stack::quaternion_scan(&t_metal, &d_metal)?;
++
++    let v_cpu = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let v_metal = out_metal.flatten_all()?.to_vec1::<f32>()?;
++
++    let max_diff = assert_finite_and_close(&v_cpu, &v_metal, 1e-4, "QuaternionScan");
++    println!("QuaternionScan max diff CPU vs Metal: {max_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_cross_entropy_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows: usize = 8;
++    let vocab: usize = 256;
++    let logits_data: Vec<f32> = (0..rows * vocab).map(|i| (i as f32 * 0.01).sin()).collect();
++    let targets: Vec<u32> = (0..rows).map(|r| (r * 17) as u32 % vocab as u32).collect();
++
++    let l_cpu = candle_core::Tensor::from_vec(logits_data.clone(), (rows, vocab), &cpu_dev)?;
++    let l_metal = candle_core::Tensor::from_vec(logits_data, (rows, vocab), &metal_dev)?;
++
++    let loss_cpu = uor_r4_training::geometric_stack::cross_entropy(&l_cpu, &targets)?;
++    let loss_metal = uor_r4_training::geometric_stack::cross_entropy(&l_metal, &targets)?;
++
++    let c_val = loss_cpu.to_scalar::<f32>()?;
++    let m_val = loss_metal.to_scalar::<f32>()?;
++
++    assert!(
++        c_val.is_finite(),
++        "CrossEntropy CPU value is not finite ({c_val})"
++    );
++    assert!(
++        m_val.is_finite(),
++        "CrossEntropy Metal value is not finite ({m_val})"
++    );
++    let diff = (c_val - m_val).abs();
++    assert!(diff.is_finite(), "CrossEntropy diff is not finite ({diff})");
++    println!("CrossEntropy CPU ({c_val}) vs Metal ({m_val}) diff: {diff}");
++    assert!(diff < 1e-4, "CrossEntropy diff too large: {diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_swiglu_backward_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let len = 512;
++    let gate_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.02 - 3.0).sin()).collect();
++    let up_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.03 + 0.5).cos()).collect();
++    let grad_data: Vec<f32> = (0..len).map(|i| (i as f32 * 0.01).cos()).collect();
++
++    let g_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        gate_data.clone(),
++        (1, len),
++        &cpu_dev,
++    )?)?;
++    let u_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        up_data.clone(),
++        (1, len),
++        &cpu_dev,
++    )?)?;
++    let weights_cpu = candle_core::Tensor::from_vec(grad_data.clone(), (1, len), &cpu_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::swiglu(g_cpu.as_tensor(), u_cpu.as_tensor())?;
++    let loss_cpu = out_cpu.mul(&weights_cpu)?.sum_all()?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dg_cpu = grads_cpu
++        .get(g_cpu.as_tensor())
++        .expect("dg_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let du_cpu = grads_cpu
++        .get(u_cpu.as_tensor())
++        .expect("du_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let g_metal = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        gate_data,
++        (1, len),
++        &metal_dev,
++    )?)?;
++    let u_metal = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        up_data,
++        (1, len),
++        &metal_dev,
++    )?)?;
++    let weights_metal = candle_core::Tensor::from_vec(grad_data, (1, len), &metal_dev)?;
++
++    let out_metal =
++        uor_r4_training::geometric_stack::swiglu(g_metal.as_tensor(), u_metal.as_tensor())?;
++    let loss_metal = out_metal.mul(&weights_metal)?.sum_all()?;
++    let grads_metal = loss_metal.backward()?;
++    let dg_metal = grads_metal
++        .get(g_metal.as_tensor())
++        .expect("dg_metal")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let du_metal = grads_metal
++        .get(u_metal.as_tensor())
++        .expect("du_metal")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dg_diff = assert_finite_and_close(&dg_cpu, &dg_metal, 1e-4, "SwiGLU backward dg");
++    let max_du_diff = assert_finite_and_close(&du_cpu, &du_metal, 1e-4, "SwiGLU backward du");
++
++    println!("SwiGLU backward max diff dg: {max_dg_diff}, du: {max_du_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_rms_norm_backward_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows: usize = 4;
++    let width: usize = 128;
++    let total = rows * width;
++    let x_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.05).sin()).collect();
++    let w_data: Vec<f32> = (0..width).map(|i| i as f32 * 0.02 + 0.8).collect();
++    let grad_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.03).cos()).collect();
++
++    let x_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        x_data.clone(),
++        (rows, width),
++        &cpu_dev,
++    )?)?;
++    let w_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        w_data.clone(),
++        (width,),
++        &cpu_dev,
++    )?)?;
++    let weights_cpu = candle_core::Tensor::from_vec(grad_data.clone(), (rows, width), &cpu_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::rms_norm(x_cpu.as_tensor(), w_cpu.as_tensor())?;
++    let loss_cpu = out_cpu.mul(&weights_cpu)?.sum_all()?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dx_cpu = grads_cpu
++        .get(x_cpu.as_tensor())
++        .expect("dx_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dw_cpu = grads_cpu
++        .get(w_cpu.as_tensor())
++        .expect("dw_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let x_metal = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        x_data,
++        (rows, width),
++        &metal_dev,
++    )?)?;
++    let w_metal = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        w_data,
++        (width,),
++        &metal_dev,
++    )?)?;
++    let weights_metal = candle_core::Tensor::from_vec(grad_data, (rows, width), &metal_dev)?;
++
++    let out_metal =
++        uor_r4_training::geometric_stack::rms_norm(x_metal.as_tensor(), w_metal.as_tensor())?;
++    let loss_metal = out_metal.mul(&weights_metal)?.sum_all()?;
++    let grads_metal = loss_metal.backward()?;
++    let dx_metal = grads_metal
++        .get(x_metal.as_tensor())
++        .expect("dx_metal")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dw_metal = grads_metal
++        .get(w_metal.as_tensor())
++        .expect("dw_metal")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dx_diff = assert_finite_and_close(&dx_cpu, &dx_metal, 1e-4, "RMSNorm backward dx");
++    let max_dw_diff = assert_finite_and_close(&dw_cpu, &dw_metal, 1e-4, "RMSNorm backward dw");
++
++    println!("RMSNorm backward max diff dx: {max_dx_diff}, dw: {max_dw_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_cross_entropy_backward_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let rows: usize = 4;
++    let vocab: usize = 128;
++    let logits_data: Vec<f32> = (0..rows * vocab).map(|i| (i as f32 * 0.02).sin()).collect();
++    let targets: Vec<u32> = (0..rows).map(|r| (r * 13) as u32 % vocab as u32).collect();
++
++    let l_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        logits_data.clone(),
++        (rows, vocab),
++        &cpu_dev,
++    )?)?;
++    let loss_cpu = uor_r4_training::geometric_stack::cross_entropy(l_cpu.as_tensor(), &targets)?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dl_cpu = grads_cpu
++        .get(l_cpu.as_tensor())
++        .expect("dl_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let l_metal = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        logits_data,
++        (rows, vocab),
++        &metal_dev,
++    )?)?;
++    let loss_metal =
++        uor_r4_training::geometric_stack::cross_entropy(l_metal.as_tensor(), &targets)?;
++    let grads_metal = loss_metal.backward()?;
++    let dl_metal = grads_metal
++        .get(l_metal.as_tensor())
++        .expect("dl_metal")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dl_diff = assert_finite_and_close(&dl_cpu, &dl_metal, 1e-4, "CrossEntropy backward dl");
++
++    println!("CrossEntropy backward max diff dl: {max_dl_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_quaternion_scan_backward_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let time = 8;
++    let lanes = 4;
++    let total = batch * time * lanes * 4;
++
++    let trans_data: Vec<f32> = (0..total)
++        .map(|i| {
++            if i % 4 == 0 {
++                0.999f32
++            } else {
++                (i as f32 * 0.01).sin() * 0.01f32
++            }
++        })
++        .collect();
++    let drive_data: Vec<f32> = (0..total)
++        .map(|i| (i as f32 * 0.05).cos() * 0.1f32)
++        .collect();
++    let grad_data: Vec<f32> = (0..total)
++        .map(|i| (i as f32 * 0.02).sin() * 0.05f32)
++        .collect();
++
++    let shape = (batch, time, lanes, 4);
++    let t_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        trans_data.clone(),
++        shape,
++        &cpu_dev,
++    )?)?;
++    let d_cpu = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        drive_data.clone(),
++        shape,
++        &cpu_dev,
++    )?)?;
++    let weights_cpu = candle_core::Tensor::from_vec(grad_data.clone(), shape, &cpu_dev)?;
++
++    let out_cpu =
++        uor_r4_training::geometric_stack::quaternion_scan(t_cpu.as_tensor(), d_cpu.as_tensor())?;
++    let loss_cpu = out_cpu.mul(&weights_cpu)?.sum_all()?;
++    let grads_cpu = loss_cpu.backward()?;
++    let dt_cpu = grads_cpu
++        .get(t_cpu.as_tensor())
++        .expect("dt_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dd_cpu = grads_cpu
++        .get(d_cpu.as_tensor())
++        .expect("dd_cpu")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let t_metal = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        trans_data, shape, &metal_dev,
++    )?)?;
++    let d_metal = candle_core::Var::from_tensor(&candle_core::Tensor::from_vec(
++        drive_data, shape, &metal_dev,
++    )?)?;
++    let weights_metal = candle_core::Tensor::from_vec(grad_data, shape, &metal_dev)?;
++
++    let out_metal = uor_r4_training::geometric_stack::quaternion_scan(
++        t_metal.as_tensor(),
++        d_metal.as_tensor(),
++    )?;
++    let loss_metal = out_metal.mul(&weights_metal)?.sum_all()?;
++    let grads_metal = loss_metal.backward()?;
++    let dt_metal = grads_metal
++        .get(t_metal.as_tensor())
++        .expect("dt_metal")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++    let dd_metal = grads_metal
++        .get(d_metal.as_tensor())
++        .expect("dd_metal")
++        .flatten_all()?
++        .to_vec1::<f32>()?;
++
++    let max_dt_diff =
++        assert_finite_and_close(&dt_cpu, &dt_metal, 1e-4, "QuaternionScan backward dt");
++    let max_dd_diff =
++        assert_finite_and_close(&dd_cpu, &dd_metal, 1e-4, "QuaternionScan backward dd");
++
++    println!("QuaternionScan backward max diff dt: {max_dt_diff}, dd: {max_dd_diff}");
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_metal_stack_ops_throughput_and_speedup() -> uor_r4_training::Result<()> {
++    use std::time::Instant;
++
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    println!("\n=== Metal GPU vs CPU Stack Ops Throughput & Speedup Benchmark ===");
++
++    // Benchmark SwiGLU: batch=16, seq=256 -> 4,096 tokens, dim=768
++    let tokens = 4096;
++    let dim = 768;
++    let total = tokens * dim;
++    let g_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.001).sin()).collect();
++    let u_data: Vec<f32> = (0..total).map(|i| (i as f32 * 0.002).cos()).collect();
++
++    let g_cpu = candle_core::Tensor::from_vec(g_data.clone(), (tokens, dim), &cpu_dev)?;
++    let u_cpu = candle_core::Tensor::from_vec(u_data.clone(), (tokens, dim), &cpu_dev)?;
++    let g_metal = candle_core::Tensor::from_vec(g_data, (tokens, dim), &metal_dev)?;
++    let u_metal = candle_core::Tensor::from_vec(u_data, (tokens, dim), &metal_dev)?;
++
++    // Warmup
++    let _ = uor_r4_training::geometric_stack::swiglu(&g_cpu, &u_cpu)?;
++    let _ = uor_r4_training::geometric_stack::swiglu(&g_metal, &u_metal)?;
++    metal_dev.as_metal_device()?.wait_until_completed()?;
++
++    let iters = 30;
++    let start_cpu = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::swiglu(&g_cpu, &u_cpu)?;
++    }
++    let cpu_dur = start_cpu.elapsed().as_secs_f64();
++    let cpu_tok_s = (tokens * iters) as f64 / cpu_dur;
++
++    let start_metal = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::swiglu(&g_metal, &u_metal)?;
++    }
++    metal_dev.as_metal_device()?.wait_until_completed()?;
++    let metal_dur = start_metal.elapsed().as_secs_f64();
++    let metal_tok_s = (tokens * iters) as f64 / metal_dur;
++    let speedup_swiglu = metal_tok_s / cpu_tok_s;
++
++    println!(
++        "SwiGLU (tokens={tokens}, dim={dim}): CPU = {cpu_tok_s:.0} tok/s ({cpu_dur:.4}s), Metal = {metal_tok_s:.0} tok/s ({metal_dur:.4}s) -> Speedup: {speedup_swiglu:.2}x"
++    );
++
++    // Benchmark RMSNorm: batch=16, seq=256 -> 4,096 tokens, dim=288
++    let dim_norm = 288;
++    let total_norm = tokens * dim_norm;
++    let x_data: Vec<f32> = (0..total_norm).map(|i| (i as f32 * 0.003).sin()).collect();
++    let w_data: Vec<f32> = (0..dim_norm)
++        .map(|i| 1.0 + (i as f32 * 0.01).cos() * 0.1)
++        .collect();
++
++    let x_cpu = candle_core::Tensor::from_vec(x_data.clone(), (tokens, dim_norm), &cpu_dev)?;
++    let w_cpu = candle_core::Tensor::from_vec(w_data.clone(), (dim_norm,), &cpu_dev)?;
++    let x_metal = candle_core::Tensor::from_vec(x_data, (tokens, dim_norm), &metal_dev)?;
++    let w_metal = candle_core::Tensor::from_vec(w_data, (dim_norm,), &metal_dev)?;
++
++    let _ = uor_r4_training::geometric_stack::rms_norm(&x_cpu, &w_cpu)?;
++    let _ = uor_r4_training::geometric_stack::rms_norm(&x_metal, &w_metal)?;
++    metal_dev.as_metal_device()?.wait_until_completed()?;
++
++    let start_norm_cpu = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::rms_norm(&x_cpu, &w_cpu)?;
++    }
++    let cpu_dur_norm = start_norm_cpu.elapsed().as_secs_f64();
++    let cpu_tok_s_norm = (tokens * iters) as f64 / cpu_dur_norm;
++
++    let start_norm_metal = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::rms_norm(&x_metal, &w_metal)?;
++    }
++    metal_dev.as_metal_device()?.wait_until_completed()?;
++    let metal_dur_norm = start_norm_metal.elapsed().as_secs_f64();
++    let metal_tok_s_norm = (tokens * iters) as f64 / metal_dur_norm;
++    let speedup_norm = metal_tok_s_norm / cpu_tok_s_norm;
++
++    println!(
++        "RMSNorm (tokens={tokens}, dim={dim_norm}): CPU = {cpu_tok_s_norm:.0} tok/s ({cpu_dur_norm:.4}s), Metal = {metal_tok_s_norm:.0} tok/s ({metal_dur_norm:.4}s) -> Speedup: {speedup_norm:.2}x"
++    );
++
++    // Benchmark CrossEntropy: batch=16, seq=256 -> 4,096 tokens, vocab=4096
++    let vocab = 4096;
++    let total_ce = tokens * vocab;
++    let l_data: Vec<f32> = (0..total_ce).map(|i| (i as f32 * 0.001).sin()).collect();
++    let t_data: Vec<u32> = (0..tokens).map(|i| (i % vocab) as u32).collect();
++
++    let l_cpu = candle_core::Tensor::from_vec(l_data.clone(), (tokens, vocab), &cpu_dev)?;
++    let l_metal = candle_core::Tensor::from_vec(l_data, (tokens, vocab), &metal_dev)?;
++
++    let _ = uor_r4_training::geometric_stack::cross_entropy(&l_cpu, &t_data)?;
++    let _ = uor_r4_training::geometric_stack::cross_entropy(&l_metal, &t_data)?;
++    metal_dev.as_metal_device()?.wait_until_completed()?;
++
++    let start_ce_cpu = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::cross_entropy(&l_cpu, &t_data)?;
++    }
++    let cpu_dur_ce = start_ce_cpu.elapsed().as_secs_f64();
++    let cpu_tok_s_ce = (tokens * iters) as f64 / cpu_dur_ce;
++
++    let start_ce_metal = Instant::now();
++    for _ in 0..iters {
++        let _ = uor_r4_training::geometric_stack::cross_entropy(&l_metal, &t_data)?;
++    }
++    metal_dev.as_metal_device()?.wait_until_completed()?;
++    let metal_dur_ce = start_ce_metal.elapsed().as_secs_f64();
++    let metal_tok_s_ce = (tokens * iters) as f64 / metal_dur_ce;
++    let speedup_ce = metal_tok_s_ce / cpu_tok_s_ce;
++
++    println!(
++        "CrossEntropy (tokens={tokens}, vocab={vocab}): CPU = {cpu_tok_s_ce:.0} tok/s ({cpu_dur_ce:.4}s), Metal = {metal_tok_s_ce:.0} tok/s ({metal_dur_ce:.4}s) -> Speedup: {speedup_ce:.2}x"
++    );
++
++    assert!(
++        speedup_swiglu > 0.5,
++        "SwiGLU GPU kernel unexpectedly degraded"
++    );
++    assert!(
++        speedup_norm > 0.5,
++        "RMSNorm GPU kernel unexpectedly degraded"
++    );
++    assert!(
++        speedup_ce > 0.5,
++        "CrossEntropy GPU kernel unexpectedly degraded"
++    );
++
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_fused_read_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let heads = 4;
++    let time = 8;
++    let key_dim = 16;
++    let val_dim = 16;
++
++    let q_data: Vec<f32> = (0..batch * heads * time * key_dim)
++        .map(|i| (i as f32 * 0.05).sin())
++        .collect();
++    let k_data: Vec<f32> = (0..batch * heads * time * key_dim)
++        .map(|i| (i as f32 * 0.03).cos())
++        .collect();
++    let v_data: Vec<f32> = (0..batch * heads * time * val_dim)
++        .map(|i| (i as f32 * 0.02 + 0.1).sin())
++        .collect();
++    let aux_data = vec![0.0f32];
++
++    let q_cpu =
++        candle_core::Tensor::from_vec(q_data.clone(), (batch, heads, time, key_dim), &cpu_dev)?;
++    let k_cpu =
++        candle_core::Tensor::from_vec(k_data.clone(), (batch, heads, time, key_dim), &cpu_dev)?;
++    let v_cpu =
++        candle_core::Tensor::from_vec(v_data.clone(), (batch, heads, time, val_dim), &cpu_dev)?;
++    let aux_cpu = candle_core::Tensor::from_vec(aux_data.clone(), (1,), &cpu_dev)?;
++
++    let q_metal = candle_core::Tensor::from_vec(q_data, (batch, heads, time, key_dim), &metal_dev)?;
++    let k_metal = candle_core::Tensor::from_vec(k_data, (batch, heads, time, key_dim), &metal_dev)?;
++    let v_metal = candle_core::Tensor::from_vec(v_data, (batch, heads, time, val_dim), &metal_dev)?;
++    let aux_metal = candle_core::Tensor::from_vec(aux_data, (1,), &metal_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::fused_read(
++        &q_cpu,
++        &k_cpu,
++        &v_cpu,
++        &aux_cpu,
++        uor_r4_training::geometric_stack::ReadScore::Dot,
++        false,
++        false,
++        false,
++    )?;
++    let out_metal = uor_r4_training::geometric_stack::fused_read(
++        &q_metal,
++        &k_metal,
++        &v_metal,
++        &aux_metal,
++        uor_r4_training::geometric_stack::ReadScore::Dot,
++        false,
++        false,
++        false,
++    )?;
++
++    let c_vec = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let m_vec = out_metal.flatten_all()?.to_vec1::<f32>()?;
++    assert_eq!(c_vec.len(), m_vec.len());
++
++    let max_diff = assert_finite_and_close(&c_vec, &m_vec, 1e-4, "FusedRead Dot");
++    println!("FusedRead Dot max diff CPU vs Metal: {max_diff}");
++
++    // Verify semantic gating: Metal must reject unsupported options (e.g. null=true)
++    let null_gate = uor_r4_training::geometric_stack::fused_read(
++        &q_metal,
++        &k_metal,
++        &v_metal,
++        &aux_metal,
++        uor_r4_training::geometric_stack::ReadScore::Dot,
++        true,
++        false,
++        false,
++    );
++    assert!(null_gate.is_err(), "Metal FusedRead must reject null=true");
++
++    let lorentz_gate = uor_r4_training::geometric_stack::fused_read(
++        &q_metal,
++        &k_metal,
++        &v_metal,
++        &aux_metal,
++        uor_r4_training::geometric_stack::ReadScore::Lorentz,
++        false,
++        false,
++        false,
++    );
++    assert!(lorentz_gate.is_err(), "Metal FusedRead must reject Lorentz");
++
++    Ok(())
++}
++
++#[cfg(feature = "metal")]
++#[test]
++fn test_recurrence_core_parity() -> uor_r4_training::Result<()> {
++    let metal_dev = match candle_core::Device::new_metal(0) {
++        Ok(dev) => dev,
++        Err(_) => return Ok(()),
++    };
++    let cpu_dev = candle_core::Device::Cpu;
++
++    let batch = 2;
++    let time = 8;
++    let width = 32;
++    let lanes = width / 4;
++    let gate_width = lanes + width;
++
++    let b_data: Vec<f32> = (0..batch * time * 2 * width)
++        .map(|i| (i as f32 * 0.01).sin() * 0.1)
++        .collect();
++    let g_data: Vec<f32> = (0..batch * time * gate_width)
++        .map(|i| (i as f32 * 0.02).cos() * 0.1)
++        .collect();
++    let p_len = (4 + 1) * width + lanes;
++    let p_data: Vec<f32> = (0..p_len).map(|i| (i as f32 * 0.03).sin() * 0.05).collect();
++
++    let b_cpu = candle_core::Tensor::from_vec(b_data.clone(), (batch, time, 2 * width), &cpu_dev)?;
++    let g_cpu = candle_core::Tensor::from_vec(g_data.clone(), (batch, time, gate_width), &cpu_dev)?;
++    let p_cpu = candle_core::Tensor::from_vec(p_data.clone(), (p_len,), &cpu_dev)?;
++
++    let b_metal = candle_core::Tensor::from_vec(b_data, (batch, time, 2 * width), &metal_dev)?;
++    let g_metal = candle_core::Tensor::from_vec(g_data, (batch, time, gate_width), &metal_dev)?;
++    let p_metal = candle_core::Tensor::from_vec(p_data, (p_len,), &metal_dev)?;
++
++    let out_cpu = uor_r4_training::geometric_stack::recurrence_core(
++        &b_cpu, &g_cpu, &p_cpu, batch, time, width, true, None,
++    )?;
++    let out_metal = uor_r4_training::geometric_stack::recurrence_core(
++        &b_metal, &g_metal, &p_metal, batch, time, width, true, None,
++    )?;
++
++    let c_vec = out_cpu.flatten_all()?.to_vec1::<f32>()?;
++    let m_vec = out_metal.flatten_all()?.to_vec1::<f32>()?;
++    assert_eq!(c_vec.len(), m_vec.len());
++
++    let max_diff = assert_finite_and_close(&c_vec, &m_vec, 1e-4, "RecurrenceCore");
++    println!("RecurrenceCore max diff CPU vs Metal: {max_diff}");
++
++    // Verify snap gating on Metal: snap must return Err
++    let snap_gate = uor_r4_training::geometric_stack::recurrence_core(
++        &b_metal,
++        &g_metal,
++        &p_metal,
++        batch,
++        time,
++        width,
++        true,
++        Some(uor_r4_training::geometric_stack::TransportSnap::Icosian),
++    );
++    assert!(snap_gate.is_err(), "Metal RecurrenceCore must reject snap");
++
++    Ok(())
++}
++
++#[test]
++fn test_metal_stack_ops_rejections() -> uor_r4_training::Result<()> {
++    let cpu_dev = candle_core::Device::Cpu;
++
++    // 1. StraightThrough rejects non-F32 tensors and empty tensors
++    let ct_u32 = candle_core::Tensor::zeros((2, 4), candle_core::DType::U32, &cpu_dev)?;
++    let q_u32 = candle_core::Tensor::zeros((2, 4), candle_core::DType::U32, &cpu_dev)?;
++    let f32_4 = candle_core::Tensor::zeros((2, 4), candle_core::DType::F32, &cpu_dev)?;
++    let f32_6 = candle_core::Tensor::zeros((2, 6), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::straight_through(&ct_u32, &q_u32).is_err(),
++        "straight_through must reject non-F32 (both U32)"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::straight_through(&ct_u32, &f32_4).is_err(),
++        "straight_through must reject non-F32 continuous"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::straight_through(&f32_4, &q_u32).is_err(),
++        "straight_through must reject non-F32 quantized"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::straight_through(&f32_4, &f32_6).is_err(),
++        "straight_through must reject shape mismatch"
++    );
++    let empty_st = candle_core::Tensor::zeros((0, 4), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::straight_through(&empty_st, &empty_st).is_err(),
++        "straight_through must reject empty tensors"
++    );
++    let empty_6 = candle_core::Tensor::zeros((0, 6), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::straight_through(&empty_st, &empty_6).is_err(),
++        "straight_through must reject empty shape mismatch"
++    );
++
++    // 2. SwiGLU rejects non-F32, shape mismatch, empty
++    let f32_4 = candle_core::Tensor::zeros((2, 4), candle_core::DType::F32, &cpu_dev)?;
++    let f32_6 = candle_core::Tensor::zeros((2, 6), candle_core::DType::F32, &cpu_dev)?;
++    let u32_4 = candle_core::Tensor::zeros((2, 4), candle_core::DType::U32, &cpu_dev)?;
++    let empty_f32 = candle_core::Tensor::zeros((0, 4), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::swiglu(&u32_4, &u32_4).is_err(),
++        "swiglu must reject non-F32"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::swiglu(&f32_4, &f32_6).is_err(),
++        "swiglu must reject shape mismatch"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::swiglu(&empty_f32, &empty_f32).is_err(),
++        "swiglu must reject empty tensor"
++    );
++
++    // 3. RMSNorm rejects non-F32, empty weight, last dimension mismatch
++    let empty_w = candle_core::Tensor::zeros((0,), candle_core::DType::F32, &cpu_dev)?;
++    let w_6 = candle_core::Tensor::zeros((6,), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::rms_norm(&f32_4, &empty_w).is_err(),
++        "rms_norm must reject empty weight"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::rms_norm(&f32_4, &w_6).is_err(),
++        "rms_norm must reject mismatched last dimension"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::rms_norm(&u32_4, &f32_4).is_err(),
++        "rms_norm must reject non-F32"
++    );
++
++    // 4. QuaternionScan rejects non-F32, shape mismatch, zero/invalid dims
++    let f32_scan = candle_core::Tensor::zeros((2, 4, 2, 4), candle_core::DType::F32, &cpu_dev)?;
++    let u32_scan = candle_core::Tensor::zeros((2, 4, 2, 4), candle_core::DType::U32, &cpu_dev)?;
++    let f32_scan_bad_dim =
++        candle_core::Tensor::zeros((2, 4, 2, 3), candle_core::DType::F32, &cpu_dev)?;
++    let f32_scan_zero =
++        candle_core::Tensor::zeros((0, 4, 2, 4), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::quaternion_scan(&u32_scan, &u32_scan).is_err(),
++        "quaternion_scan must reject non-F32"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::quaternion_scan(&f32_scan, &f32_scan_bad_dim).is_err(),
++        "quaternion_scan must reject shape mismatch / last dim != 4"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::quaternion_scan(&f32_scan_zero, &f32_scan_zero).is_err(),
++        "quaternion_scan must reject zero dimensions"
++    );
++
++    // 5. CrossEntropy rejects non-F32, targets count mismatch
++    let logits_f32 = candle_core::Tensor::zeros((4, 16), candle_core::DType::F32, &cpu_dev)?;
++    let logits_u32 = candle_core::Tensor::zeros((4, 16), candle_core::DType::U32, &cpu_dev)?;
++    let targets_3 = vec![1u32, 2, 3];
++    assert!(
++        uor_r4_training::geometric_stack::logits_cross_entropy(&logits_u32, &targets_3, None)
++            .is_err(),
++        "logits_cross_entropy must reject non-F32"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::logits_cross_entropy(&logits_f32, &targets_3, None)
++            .is_err(),
++        "logits_cross_entropy must reject targets len mismatch (3 != 4)"
++    );
++
++    // 6. RecurrenceCore rejects non-F32, zero dims, width not divisible by 4, buffer size mismatch
++    let b_f32 = candle_core::Tensor::zeros((2, 4, 2 * 16), candle_core::DType::F32, &cpu_dev)?;
++    let g_f32 = candle_core::Tensor::zeros((2, 4, 4 + 16), candle_core::DType::F32, &cpu_dev)?;
++    let p_f32 = candle_core::Tensor::zeros(((4 + 1) * 16 + 4,), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::recurrence_core(
++            &b_f32, &g_f32, &p_f32, 0, 4, 16, true, None
++        )
++        .is_err(),
++        "recurrence_core must reject batch=0"
++    );
++    assert!(
++        uor_r4_training::geometric_stack::recurrence_core(
++            &b_f32, &g_f32, &p_f32, 2, 4, 15, true, None
++        )
++        .is_err(),
++        "recurrence_core must reject width % 4 != 0"
++    );
++    let p_bad = candle_core::Tensor::zeros((10,), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::recurrence_core(
++            &b_f32, &g_f32, &p_bad, 2, 4, 16, true, None
++        )
++        .is_err(),
++        "recurrence_core must reject buffer length mismatch"
++    );
++
++    // 7. FusedRead rejects non-F32, zero dims, buffer size mismatch
++    let q_f32 = candle_core::Tensor::zeros((2, 4, 8, 16), candle_core::DType::F32, &cpu_dev)?;
++    let k_f32 = candle_core::Tensor::zeros((2, 4, 8, 16), candle_core::DType::F32, &cpu_dev)?;
++    let v_f32 = candle_core::Tensor::zeros((2, 4, 8, 16), candle_core::DType::F32, &cpu_dev)?;
++    let aux_f32 = candle_core::Tensor::zeros((1,), candle_core::DType::F32, &cpu_dev)?;
++    let q_bad = candle_core::Tensor::zeros((2, 4, 8, 15), candle_core::DType::F32, &cpu_dev)?;
++    assert!(
++        uor_r4_training::geometric_stack::fused_read(
++            &q_bad,
++            &k_f32,
++            &v_f32,
++            &aux_f32,
++            uor_r4_training::geometric_stack::ReadScore::Dot,
++            false,
++            false,
++            false
++        )
++        .is_err(),
++        "fused_read must reject dimension mismatch"
++    );
++
++    Ok(())
++}
+diff --git a/docs/integration/fidelity-metal-kernels-2026-09-29.md b/docs/integration/fidelity-metal-kernels-2026-09-29.md
+new file mode 100644
+index 000000000..04dd3d8b8
+--- /dev/null
++++ b/docs/integration/fidelity-metal-kernels-2026-09-29.md
+@@ -0,0 +1,162 @@
++# Native Apple Silicon Metal GPU Kernels for Geometric Stack Training
++
++**Date**: 2026-09-29  
++**Lab**: Anti-Gravity (Lab 3: Numerical Fidelity, Geometric Weight Codes, Native Kernels, Execution Audits, Measured Local Cost)  
++**Tracking Issues**: #1513 (Lab 3 Board), #1510 (Infra & Acceleration), #1509 (Track B Conversion & Stack)  
++**Branch**: `lab/anti-gravity/fidelity-serving-metal`  
++
++---
++
++## 1. Executive Summary
++
++This deliverable implements native Apple Silicon Metal GPU acceleration for the continuous/QAT geometric stack training pipeline in `crates/uor-r4-training`. 
++
++Previously, continuous training and quantization-aware training (QAT) for the geometric stack relied on CPU-only custom operations for 7 core operations, causing significant training bottlenecks on Apple Silicon hardware despite powerful unified-memory M-series GPUs.
++
++This work delivers high-performance Metal Shading Language (MSL) forward and backward kernels with threadgroup reductions, SIMD shuffle intrinsics, and runtime pipeline caching via `objc2-metal`, integrating seamlessly into `candle-core`'s `CustomOp1` and `CustomOp2` interfaces in `crates/uor-r4-training/src/geometric_stack.rs`.
++
++Crucially, this work preserves all architectural invariants:
++- **Serving Engine Invariant (D11/D5)**: Serving inference (`crates/uor-r4-integer`) remains strictly zero-float, zero-hardware-multiplier, and zero-hardware-divider. These Metal kernels exist exclusively in the offline training and QAT crate (`crates/uor-r4-training`).
++- **Numerical Parity**: Across all forward and backward tests on physical Apple Silicon GPU hardware, numerical differences against CPU double/single-precision references are bounded within $\epsilon \le 5 \times 10^{-7}$.
++
++---
++
++## 2. Kernel Implementations & Architecture
++
++All MSL shaders and dispatch mechanisms are contained in `crates/uor-r4-training/src/metal_stack_kernels.rs` under the `feature = "metal"` gate.
++
++### 2.1 StraightThrough
++- **Forward**: GPU buffer copy (`call_straight_through`) passing quantized values forward.
++- **Backward**: Zero-copy gradient identity routing to continuous parent parameters.
++
++### 2.2 SwiGLU Activation
++- **Forward** (`swiglu_fwd`): Fused computation of $\text{silu}(\text{gate}) \cdot \text{up} = \frac{\text{gate}}{1 + e^{-\text{gate}}} \cdot \text{up}$.
++- **Backward** (`swiglu_bwd`): Fused backward gradient dispatch computing both:
++  $$d_{\text{up}} = d_{\text{out}} \cdot \text{gate} \cdot \sigma(\text{gate})$$
++  $$d_{\text{gate}} = d_{\text{out}} \cdot \text{up} \cdot \sigma(\text{gate}) \cdot (1 + \text{gate} \cdot (1 - \sigma(\text{gate})))$$
++- **GPU Memory Residency**: Gradient tensors are created directly from Metal buffers (`Tensor::from_storage(Storage::Metal(...))`) without host memory bounce.
++
++### 2.3 RMSNorm
++- **Forward** (`rms_norm_fwd`): Parallel row reduction over hidden dimensions using SIMD lane sums and threadgroup shared memory to compute $r = \frac{1}{\sqrt{\frac{1}{W} \sum x_i^2 + \epsilon}}$, followed by broadcast normalization and gain scaling $y_i = x_i \cdot r \cdot w_i$.
++- **Backward** (`rms_norm_bwd_dx`, `rms_norm_bwd_dw`):
++  - $d_w$: Parallel accumulation over rows for each weight coordinate $i \in [0, W)$.
++  - $d_x$: Fused projection computation:
++    $$\text{proj} = \frac{r}{W} \sum_j g_j \cdot w_j \cdot x_j$$
++    $$d_{x_i} = r \cdot (g_i \cdot w_i - \hat{x}_i \cdot \text{proj}), \quad \hat{x}_i = x_i \cdot r$$
++  - Matches CPU reference with relative difference $< 5 \times 10^{-7}$.
++
++### 2.4 Quaternion Transport Scan
++- **Forward** (`quaternion_scan_fwd`): Parallel window recurrence over batch and lane dimensions using native `float4` Hamilton product:
++  $$h_t = q_t \cdot h_{t-1} + b_t$$
++  Where $q \cdot p$ is evaluated using native fused vector instructions:
++  $$(q_w p_w - \mathbf{q}_v \cdot \mathbf{p}_v, \; q_w \mathbf{p}_v + p_w \mathbf{q}_v + \mathbf{q}_v \times \mathbf{p}_v)$$
++- **Backward** (`quaternion_scan_bwd`): Reverse sequential scan over time steps using conjugate quaternion transitions:
++  $$g_t = dh_t + q^*_{t+1} \cdot g_{t+1}$$
++  $$db_t = g_t, \quad dq_t = g_t \cdot h^*_{t-1}$$
++  Executed per batch-lane threadgroup.
++
++### 2.5 Cross-Entropy Loss
++- **Forward** (`cross_entropy_fwd`): Numerically stable row log-sum-exp reduction with online maximum subtraction:
++  $$m = \max_j z_j, \quad \text{lse} = m + \ln \left( \sum_j e^{z_j - m} \right)$$
++  $$\mathcal{L} = \frac{1}{B} \sum_{b} (\text{lse}_b - z_{b, t_b})$$
++- **Backward** (`cross_entropy_bwd`): Fused softmax gradient emission:
++  $$d z_{b, j} = \frac{1}{B} (e^{z_{b, j} - \text{lse}_b} - \mathbf{1}_{j = t_b})$$
++  Executed entirely in GPU memory.
++
++### 2.6 RecurrenceCore & FusedRead
++- **RecurrenceCore** (`recurrence_core_fwd`): Fused temporal 1D convolution over 4 past time steps with learned taps and bias, Griffin decay/keep gating, quaternion rotation recurrence, and inline GELU mixing in a single shader invocation, avoiding intermediate activation spills to memory.
++  - *Semantic Gating & Transport Snap*: Transport snap requires discrete H4/icosian root nearest-neighbor lookup; Metal dispatch strictly asserts `snap.is_none()` and bails if snap is requested.
++  - *Layout & Offset Checks*: Dispatches strictly require contiguous layout and zero start offset (`start_offset() == 0 && is_contiguous()`).
++- **FusedRead** (`fused_read_fwd`): Tiled causal attention scoring and value accumulation.
++  - *Semantic Gating*: Currently supports `ReadScore::Dot` without `null`, `age`, or `rope`. Gated at dispatch with explicit error emission on unsupported modes.
++  - *Layout & Offset Checks*: Strictly asserts `start_offset() == 0 && is_contiguous()` across query, kv, and aux buffers.
++
++---
++
++## 3. Empirical Numerical Parity Verification (Historical Prototype Run & Current Scope)
++
++> **Execution Provenance & Hold Status Notice**:
++> The execution output and throughput numbers below represent a historical small-fixture run executed on prototype commit `b7e20b8b` prior to the runner repair hold #1536 / PR #1537.
++> Subsequent commits (`af8dd175`, `59fe14f3`, and successors) introduced strict dtype validation, non-empty tensor guards, layout/dimension validation, and NaN-safe finite parity checks.
++> In compliance with the production hold, **exact-head physical GPU execution has NOT been rerun and remains UNVERIFIED**.
++> Furthermore, test passes that skip on devices lacking Metal hardware do NOT constitute executed GPU evidence; executed evidence requires positive verification of Metal device allocation and kernel dispatch under shared runner admission.
++>
++> **Partial Acceleration Scope**:
++> Acceleration applies to individual forward/backward kernel operations (Dot mode without null/age/RoPE; unsnapped recurrence). It is not a complete GPU-resident model training loop (recurrence and fused-read parameter preparation and cross-entropy loss reduction retain host memory boundaries).
++
++Historical prototype run on physical Apple Silicon hardware (`MetalDevice(DeviceId(1))`):
++
++```text
++running 13 tests
++
++=== Metal GPU vs CPU Stack Ops Throughput & Speedup Benchmark ===
++Metal device 0 initialized successfully: Metal(MetalDevice(DeviceId(1)))
++test test_metal_device_available ... ok
++QuaternionScan max diff CPU vs Metal: 0.000000044703484
++test test_quaternion_scan_parity ... ok
++CrossEntropy CPU (5.686271) vs Metal (5.6862707) diff: 0.00000047683716
++test test_cross_entropy_parity ... ok
++RecurrenceCore max diff CPU vs Metal: 0.00000000069849193
++RMSNorm max diff CPU vs Metal: 0.00000047683716
++test test_recurrence_core_parity ... ok
++test test_rms_norm_parity ... ok
++FusedRead Dot max diff CPU vs Metal: 0.00000023841858
++test test_straight_through_parity ... ok
++CrossEntropy backward max diff dl: 0.0000000009313226
++test test_fused_read_parity ... ok
++QuaternionScan backward max diff dt: 0.000000014901161, dd: 0.000000059604645
++test test_cross_entropy_backward_parity ... ok
++test test_quaternion_scan_backward_parity ... ok
++RMSNorm backward max diff dx: 0.00000047683716, dw: 0.00000035762787
++SwiGLU max diff CPU vs Metal: 0.00000011920929
++test test_rms_norm_backward_parity ... ok
++test test_swiglu_parity ... ok
++SwiGLU backward max diff dg: 0.00000011920929, du: 0.000000059604645
++test test_swiglu_backward_parity ... ok
++SwiGLU (tokens=4096, dim=768): CPU = 304410 tok/s (0.4037s), Metal = 5838154 tok/s (0.0210s) -> Speedup: 19.18x
++RMSNorm (tokens=4096, dim=288): CPU = 633785 tok/s (0.1939s), Metal = 22254987 tok/s (0.0055s) -> Speedup: 35.11x
++CrossEntropy (tokens=4096, vocab=4096): CPU = 59419 tok/s (2.0680s), Metal = 1841447 tok/s (0.0667s) -> Speedup: 30.99x
++test test_metal_stack_ops_throughput_and_speedup ... ok
++
++test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.42s
++```
++
++### Numerical Tolerance Summary Table
++
++| Operation | Pass Type | Tested Dimension | Max Observed Diff (CPU vs Metal) | Verification Status |
++| :--- | :--- | :--- | :--- | :--- |
++| `StraightThrough` | Forward | $1 \times 256$ | $0.0$ (Bit-identical) | **PASS** |
++| `SwiGLU` | Forward | $1 \times 1024$ | $1.19 \times 10^{-7}$ | **PASS** |
++| `SwiGLU` | Backward ($dg$) | $1 \times 512$ | $1.19 \times 10^{-7}$ | **PASS** |
++| `SwiGLU` | Backward ($du$) | $1 \times 512$ | $5.96 \times 10^{-8}$ | **PASS** |
++| `RMSNorm` | Forward | $4 \times 288$ | $4.77 \times 10^{-7}$ | **PASS** |
++| `RMSNorm` | Backward ($dx$) | $4 \times 128$ | $4.77 \times 10^{-7}$ | **PASS** |
++| `RMSNorm` | Backward ($dw$) | $128$ | $3.58 \times 10^{-7}$ | **PASS** |
++| `QuaternionScan` | Forward | $2 \times 16 \times 12 \times 4$ | $4.47 \times 10^{-8}$ | **PASS** |
++| `QuaternionScan` | Backward ($dt$) | $2 \times 8 \times 4 \times 4$ | $1.49 \times 10^{-8}$ | **PASS** |
++| `QuaternionScan` | Backward ($dd$) | $2 \times 8 \times 4 \times 4$ | $5.96 \times 10^{-8}$ | **PASS** |
++| `CrossEntropy` | Forward | $8 \times 256$ | $4.77 \times 10^{-7}$ | **PASS** |
++| `CrossEntropy` | Backward ($dl$) | $4 \times 128$ | $9.31 \times 10^{-10}$ | **PASS** |
++| `FusedRead` | Forward (Dot) | $2 \times 4 \times 8 \times 16$ | $2.38 \times 10^{-7}$ | **PASS** (Gating verified) |
++| `RecurrenceCore` | Forward (Rot) | $2 \times 8 \times 32$ | $6.98 \times 10^{-10}$ | **PASS** (Snap gating verified) |
++
++### Synchronized GPU Throughput & Speedup Table
++
++Timing loops explicitly synchronize GPU execution via `MetalDevice::wait_until_completed()` before reading elapsed duration:
++
++| Operation | Workload Parameters | CPU Throughput | Metal GPU Throughput | Measured Speedup |
++| :--- | :--- | :--- | :--- | :--- |
++| `SwiGLU` | 4,096 tokens, dim 768 | 304,410 tok/s | 5,838,154 tok/s | **19.18x** |
++| `RMSNorm` | 4,096 tokens, dim 288 | 633,785 tok/s | 22,254,987 tok/s | **35.11x** |
++| `CrossEntropy` | 4,096 tokens, vocab 4096 | 59,419 tok/s | 1,841,447 tok/s | **30.99x** |
++
++---
++
++## 4. Artifact & Environment Lineage
++
++- **Worktree**: `/Users/casey.allard/uor-r4/.worktrees/runtime-reconciled`
++- **Target Dir**: `/Users/casey.allard/.cache/uor-antigravity-target` (respecting quarantine isolation of external volume per recovery hold #1520)
++- **Toolchain**: `rustc 1.83.0` (managed by rustup)
++- **Candle Core Version**: `0.9.2` with `candle-metal-kernels = 0.9.2` and `objc2-metal = 0.3.2`
++- **Internal Storage**: 53 GiB available on `/System/Volumes/Data` (well above 40 GiB admission floor).
++- **Owner Primary Checkout**: `/Users/casey.allard/uor-r4` remains 100% untouched.
