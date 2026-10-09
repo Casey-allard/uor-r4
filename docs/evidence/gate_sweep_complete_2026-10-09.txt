@@ -1,0 +1,45 @@
+UOR-R4 — Gate-supervision sweep completed: four points, monotone gate, and 0.3 the most informative supervised weight
+Date: 2026-10-09 (overnight round 178). DeepSeek session. References #820.
+Addendum to gate_supervision_route_closed_2026-10-09.txt, which reported weights 0.0, 0.1 and 1.0 and
+explicitly EXCLUDED the 0.3 arm because it was still training. It has now finished, so the sweep is
+complete and the exclusion is lifted.
+
+FOUR POINTS, ONE CONFIGURATION, ONLY pointer_gate_supervision CHANGED
+
+    weight  mean gate   panel
+    0.0     0.2644      value-driven copying on out-of-family values (" Zorba.", " Quillon.", " Anvil.",
+                        " Ben."); yes/no complying with correct facts; numerics in form; "run, walk."
+    0.1     0.2959      worst of the four: "Fect is", "Collaboration make", "Youmagular for", one "I do",
+                        only two numerals in form
+    0.3     0.3559      two "I do"; but "Yes, the" complies with the correct fact, "grass is" is on-topic,
+                        "Ingredient, separated," has list structure, and the cats retention turn returns
+                        a responsive "You have" - the pattern of the session's earlier working multi-turn
+                        answers ("You have two cats")
+    1.0     0.4164      collapsed: "I do" on six of fifteen and "The sky" returning for the item that had
+                        been complying
+
+WHAT THE COMPLETED SWEEP SHOWS
+  1. THE GATE IS MONOTONE IN THE SUPERVISION WEIGHT: 0.2644, 0.2959, 0.3559, 0.4164. The lever does
+     exactly what it is asked to do, across the whole range.
+  2. THE PANEL DOES NOT FOLLOW IT. 0.1 is the worst of the four, 0.3 is intermediate with some responsive
+     behaviour, and 1.0 collapses; NONE of the three supervised weights matches the ungated arm's
+     combination of value-driven out-of-family copying and partial compliance. So the supervision term
+     is not a tuning problem with a good setting hiding in the range - it is a term that competes with
+     the response loss across the range, which is consistent with the closure already recorded.
+  3. 0.3 IS THE MOST INFORMATIVE SUPERVISED POINT and is worth preserving as such: it is the only gate
+     weight at which the retention turn is RESPONSIVE ("You have") and the yes/no class is correct
+     simultaneously. That does not make it better than 0.0 on the emitted-value criterion, but it does
+     mean the interaction is not a simple "more supervision is worse" - there is structure in the middle
+     that a future mechanism could exploit, and the checkpoint is kept rather than deleted.
+
+POSITION UNCHANGED: the ungated pointer arm remains the best configuration on both axes (value-driven
+copying of values absent from every store family or chat prior, pointer mass 0.90-1.00 on the value span
+in 9 of 21 cells, value-paired DELTA +3.85 to +10.39 nats, with partial form compliance including correct
+yes/no facts). The next levers remain, in evidence order: read-binding supervision (present in the
+trainer, never run on this path), a token-identity pointer key instead of a hidden-state key, and a
+constrained decoder that draws the answer from the span.
+
+SCOPE
+  Four gate weights, one mixture, one shape, single seed each, greedy decoding, one panel per arm read as
+  the first two content tokens. Exact for these panels; no probe rows were run on the gate-supervised
+  checkpoints, so the emitted-value criterion has not been applied to them and is not claimed.
