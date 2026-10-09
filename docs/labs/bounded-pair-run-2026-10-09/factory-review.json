@@ -1,0 +1,15 @@
+{
+  "reviewer": "emission_adversarial",
+  "status": "PASS_SOURCE_ONLY",
+  "file": "prepare-pair-actual9.py",
+  "sha256": "27078b90849e9af53a27d40fd4173c0a89b09e130b8445616ee41793a9a18fda",
+  "scope": [
+    "complete model and observation roots",
+    "exact config/runtime/binary/launch/PID identity",
+    "31 backwards,32roles,391reload,380guards,pair57600/top960",
+    "negative creates no qualification config",
+    "positive15/17/380 gate and actual pair master pins",
+    "frozen inputs and current raw external config serialization"
+  ],
+  "execution": "NOT_RUN_BY_REVIEWER"
+}

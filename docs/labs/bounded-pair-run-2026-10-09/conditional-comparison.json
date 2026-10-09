@@ -1,0 +1,162 @@
+{
+  "original": 5,
+  "pair": 6,
+  "coupled": 9,
+  "rows": [
+    {
+      "position": 0,
+      "target": 617,
+      "original_chosen": 617,
+      "pair_chosen": 617,
+      "coupled_chosen": 617,
+      "original_correct": true,
+      "pair_correct": true,
+      "coupled_correct": true
+    },
+    {
+      "position": 1,
+      "target": 2097,
+      "original_chosen": 2097,
+      "pair_chosen": 2097,
+      "coupled_chosen": 2097,
+      "original_correct": true,
+      "pair_correct": true,
+      "coupled_correct": true
+    },
+    {
+      "position": 2,
+      "target": 315,
+      "original_chosen": 315,
+      "pair_chosen": 315,
+      "coupled_chosen": 315,
+      "original_correct": true,
+      "pair_correct": true,
+      "coupled_correct": true
+    },
+    {
+      "position": 3,
+      "target": 1057,
+      "original_chosen": 1057,
+      "pair_chosen": 1057,
+      "coupled_chosen": 1057,
+      "original_correct": true,
+      "pair_correct": true,
+      "coupled_correct": true
+    },
+    {
+      "position": 4,
+      "target": 267,
+      "original_chosen": 307,
+      "pair_chosen": 307,
+      "coupled_chosen": 267,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": true
+    },
+    {
+      "position": 5,
+      "target": 307,
+      "original_chosen": 91,
+      "pair_chosen": 91,
+      "coupled_chosen": 307,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": true
+    },
+    {
+      "position": 6,
+      "target": 397,
+      "original_chosen": 1717,
+      "pair_chosen": 1717,
+      "coupled_chosen": 397,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": true
+    },
+    {
+      "position": 7,
+      "target": 324,
+      "original_chosen": 307,
+      "pair_chosen": 307,
+      "coupled_chosen": 307,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": false
+    },
+    {
+      "position": 8,
+      "target": 91,
+      "original_chosen": 307,
+      "pair_chosen": 307,
+      "coupled_chosen": 471,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": false
+    },
+    {
+      "position": 9,
+      "target": 2795,
+      "original_chosen": 397,
+      "pair_chosen": 397,
+      "coupled_chosen": 397,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": false
+    },
+    {
+      "position": 10,
+      "target": 770,
+      "original_chosen": 397,
+      "pair_chosen": 397,
+      "coupled_chosen": 397,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": false
+    },
+    {
+      "position": 11,
+      "target": 397,
+      "original_chosen": 397,
+      "pair_chosen": 397,
+      "coupled_chosen": 397,
+      "original_correct": true,
+      "pair_correct": true,
+      "coupled_correct": true
+    },
+    {
+      "position": 12,
+      "target": 471,
+      "original_chosen": 307,
+      "pair_chosen": 307,
+      "coupled_chosen": 471,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": true
+    },
+    {
+      "position": 13,
+      "target": 16,
+      "original_chosen": 2795,
+      "pair_chosen": 2795,
+      "coupled_chosen": 2795,
+      "original_correct": false,
+      "pair_correct": false,
+      "coupled_correct": false
+    },
+    {
+      "position": 14,
+      "target": 1,
+      "original_chosen": 3329,
+      "pair_chosen": 1,
+      "coupled_chosen": 3329,
+      "original_correct": false,
+      "pair_correct": true,
+      "coupled_correct": false
+    }
+  ],
+  "original_ce": 5.111520730202647,
+  "pair_ce": 4.042881582765773,
+  "old_report_sha256": "0aa9b3c0c2d1defaaa6d93611a78fb348be0016aefe5d7548563250b9a687b8c",
+  "new_report_sha256": "a4d9f86ed218494b6aedafb13a32fc7b7c923224686722e10545bb78fd4f3b1f",
+  "scope": "matched conditional positions only; pair starts from original, not coupled candidate. No whole-answer comparison."
+}

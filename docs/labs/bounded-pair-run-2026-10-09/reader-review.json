@@ -1,0 +1,14 @@
+{
+  "reader_sha256": "f757f7c809eac385eadff7b0141eb13306f2aac92c03f2f9e6a47de6809764b1",
+  "reviewer": "emission_adversarial",
+  "status": "PASS_SOURCE_ONLY",
+  "scope": [
+    "31 raw weighted pair terms and f32 aggregate",
+    "57600 fractional masters and full-family signed-zero ranking to explicit bound",
+    "all14 incumbent alternatives, strict CE,17references,380guards,atomic commits",
+    "padded native pair packing,other families and actual frozen U f32",
+    "full391 raw Generate/Copy vectors,aliases,donor,U,pools",
+    "actual source uses raw config bytes at main6659"
+  ],
+  "execution": "NOT_RUN"
+}

@@ -1,0 +1,9 @@
+{
+  "status": "MODEL_AND_CONDITIONAL_QUALIFICATION_FINISHED",
+  "started_utc": "2026-10-09T16:27:40.642810+00:00",
+  "seconds": 264.72581830620766,
+  "construction_report_sha256": "a4d9f86ed218494b6aedafb13a32fc7b7c923224686722e10545bb78fd4f3b1f",
+  "construction_manifest_sha256": "e2028f55f68c0fb061fc604356f5524ea42cc8c3f5bd51f8d739e23b3b93463e",
+  "actual9": "NOT_RUN_CONSTRUCTION_NEGATIVE",
+  "independent_saved_audit": "NOT_RUN"
+}

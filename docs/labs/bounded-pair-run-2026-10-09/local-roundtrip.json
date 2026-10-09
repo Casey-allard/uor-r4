@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "files_verified": 546,
+  "archive_sha256": "50f7bfbf5b3b0462e49de97e8843ef110e59b91c8569a26bb72276a5eaa9d54d",
+  "audit_result_sha256": "a0c96fc4506f84e5c4c0a9128211e1ab3582840a43a3913c6fcb193ac335f9e6",
+  "audit_manifest_sha256": "45c768a0ffaf21f85890f99531c6d5b747fdabcdb35bf299c908ceb30f505e3a",
+  "uncompressed_bytes": 347258134
+}

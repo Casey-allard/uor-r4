@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "revision": "82382054708fe6930c01c482bdcd65ea16e66bed",
+  "prefix": "codex/sol-bounded-pair-20261009/runtime-a66ecef50-attempt1",
+  "all_fresh_download_verified": true,
+  "source_commit": "a66ecef50848cc11160fc0c5a1f188355731ff98",
+  "binary_sha256": "f37b39134e865f6892c8cf0e5229376d1bcd9440ff3b6b89405b2ba73f702d63",
+  "config_sha256": "7c15dd4956770c0f008644f8ac4b99d60b6b2bf085847377d0fadbfa41c45740",
+  "payload_bytes": 43598667,
+  "seconds": 13.357372971251607
+}

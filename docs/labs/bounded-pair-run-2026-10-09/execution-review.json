@@ -1,0 +1,8 @@
+{
+  "scope": "Parent source-only launch/admission review",
+  "run_driver_sha256": "361c217cd745cdcfc77c1f3117cb4945865c2cac05c067b2c1063e5146ba754c",
+  "audit_driver_sha256": "40a61a7ffefc3a76eab668b0eed608cde7f26bfe7755e9f9e15ccd172e24758a",
+  "runtime_persistence": "PASS fresh HF download at pinned revision 82382054708fe6930c01c482bdcd65ea16e66bed",
+  "supervisor": "Existing unchanged393532 SHA; owned CUDA0; CPUaffinity0,1 verified allowed; telemetry retainsRSS/GPU/free space and terminalexit; claim/seal/verify immutabletools restored",
+  "scope_limits": "No time-based stop added; audit driver is not invoked until terminal model/conditional qualification and parent admission. No new source model arithmetic or serving behavior."
+}

@@ -1,0 +1,12 @@
+{
+  "revision": "759f9fe2eb5b6f6e17057afde9d9101cd35755f6",
+  "prefix": "codex/sol-coupled-episode-learning/runtime-a6be8f69-export-attempt3",
+  "verified_files": [
+    "runtime-identity.json",
+    "runtime-preserve.py",
+    "inherited-learning/config.json",
+    "configs/coupled-export-completion-0001-attempt3.json"
+  ],
+  "status": "ALL_DOWNLOADED_METADATA_MATCHES_PUBLISHED_SHA256_SIZE_INVENTORY",
+  "scope": "metadata/config recovery only, actual model roots not yet checked"
+}

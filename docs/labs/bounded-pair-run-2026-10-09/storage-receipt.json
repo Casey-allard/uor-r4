@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "object": "codex-bounded-pair-outcome-20261009",
+  "bytes": 61535232,
+  "md5": "518b6446bd4e6cd438fccf88993db842",
+  "remote": "results/codex/codex-bounded-pair-outcome-20261009.tar",
+  "uploaded_utc": "2026-10-09T16:41:01Z",
+  "lab": "codex",
+  "method": "cloud-store put: fresh MD5 download round-trip, verified index; local exact SHA256 archive inventory independently checked",
+  "source_receipt": "outcome-upload.json",
+  "local_verification": "local-roundtrip.json"
+}

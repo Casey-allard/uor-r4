@@ -1,0 +1,33 @@
+{
+  "status": "DELETED",
+  "pod": "2g3n5a9casels1",
+  "lab": "codex",
+  "session": "sol-pair-20261009",
+  "preservation_before_release": [
+    "runtime-upload.json",
+    "outcome-upload.json",
+    "local-roundtrip.json",
+    "storage-receipt.json"
+  ],
+  "closeout_events": [
+    {
+      "ts": "2026-10-09T16:42:29Z",
+      "event": "release",
+      "lab": "codex",
+      "session": "sol-pair-20261009",
+      "pod": "2g3n5a9casels1",
+      "by": "casey.allard@Caseys-MacBook-Pro"
+    },
+    {
+      "ts": "2026-10-09T16:42:40Z",
+      "event": "down",
+      "lab": "codex",
+      "session": "sol-pair-20261009",
+      "pod": "2g3n5a9casels1",
+      "by": "casey.allard@Caseys-MacBook-Pro",
+      "usd_per_h": 1.19,
+      "uptime_s": 1995
+    }
+  ],
+  "other_labs": "No other session lease or model job was modified; uor-pod enforced ownership and idle guards."
+}

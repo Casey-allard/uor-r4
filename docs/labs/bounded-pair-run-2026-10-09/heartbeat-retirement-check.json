@@ -1,0 +1,17 @@
+{
+  "checked_utc": "2026-10-09T16:10:02.010227+00:00",
+  "sessions": [
+    "codex-durable-20260929-root",
+    "codex-astra"
+  ],
+  "live_named_processes": 0,
+  "matching_launch_agents": 0,
+  "codex_continuity_automation": "PAUSED",
+  "last_named_log_timestamps": [
+    "2026-10-07T22:16:40Z",
+    "2026-10-08T05:03:36Z"
+  ],
+  "coord_invocations": 0,
+  "standing_branch_recreated": false,
+  "scope": "Named Codex heartbeat loops already inactive; no other lab process stopped. Owner retirement direction retained. Claims M2/M3; leases uor-pod #2037."
+}
