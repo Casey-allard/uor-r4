@@ -60,6 +60,7 @@ enum EndpointKind {
     SelectedReachedU,
     SelectedReadoutIntermediate,
     UnselectedPrefixFragment,
+    UnselectedPrefixTrajectory,
     SelectedOriginalTrajectorySupplement,
 }
 #[derive(Clone, Copy, Deserialize, serde::Serialize, PartialEq, Eq)]
@@ -82,6 +83,69 @@ struct FrameRequest {
     expected_actual_prefix_ids: Vec<u32>,
     role: FrameRole,
 }
+fn is_prefix_candidate(kind: EndpointKind) -> bool {
+    matches!(
+        kind,
+        EndpointKind::UnselectedPrefixFragment | EndpointKind::UnselectedPrefixTrajectory
+    )
+}
+fn qualification_pins(kind: EndpointKind) -> (&'static str, &'static str) {
+    if kind == EndpointKind::UnselectedPrefixTrajectory {
+        (
+            "8a4dbd8c13488df2397a8e01a6af885851ca87d8d0edc62cb18e7257b5b5732d",
+            "ec0235c3e357c4dd5bbdf609602436aa8627e8e8192ca40cd515120ccc583379",
+        )
+    } else {
+        (
+            "d120dd6948e440abadf66ac47c0e5e01f3a90069d5691f49159fa7100bae89c9",
+            "3ddfc9d701b38da86d933ba2e50459940d6b7a2e7f11d0c09305d360fd6a5f15",
+        )
+    }
+}
+fn qualification_row<'a>(q: &'a Value, id: &str) -> Result<&'a Value> {
+    let mut matches = q["evaluation"]["rows"]
+        .as_array()
+        .ok_or_else(|| bad("qualification rows absent"))?
+        .iter()
+        .filter(|r| r["id"] == id);
+    let row = matches.next().ok_or_else(|| bad("qualified row absent"))?;
+    require(matches.next().is_none(), "duplicate qualified row identity")?;
+    Ok(row)
+}
+fn safe_row_leaf(row: &Value) -> Result<&str> {
+    let leaf = text(&row["row_file"])?;
+    require(
+        Path::new(leaf).components().count() == 1
+            && matches!(
+                Path::new(leaf).components().next(),
+                Some(std::path::Component::Normal(_))
+            ),
+        "qualification row leaf invalid",
+    )?;
+    Ok(leaf)
+}
+// This function accesses canonical labels only AFTER every target-free capture.
+fn authorize_first_divergence(saved: &Value, request: &FrameRequest) -> Result<Value> {
+    let actual: Vec<u32> = serde_json::from_value(saved["generated_ids"].clone())?;
+    let targets: Vec<u32> =
+        serde_json::from_value(saved["canonical_target_ids_labels_only"].clone())?;
+    let first = actual
+        .iter()
+        .zip(&targets)
+        .position(|(a, t)| a != t)
+        .ok_or_else(|| bad("requested row has no actual token divergence"))?;
+    require(
+        first == request.position
+            && saved["id"] == request.expected_id
+            && actual.get(..first) == Some(request.expected_actual_prefix_ids.as_slice()),
+        "postcapture requested frame is not first actual divergence",
+    )?;
+    Ok(
+        json!({"position":first,"actual_prefix_ids":request.expected_actual_prefix_ids,
+        "actual_token":actual[first],"canonical_target_label_only":targets[first],
+        "derived_after_all_captures":true,"scope":"offline canonical-token boundary; typed wholeanswer qualification remains distinct"}),
+    )
+}
 fn validate_frames(frames: &[FrameRequest], kind: EndpointKind) -> Result<()> {
     let mut seen = std::collections::BTreeSet::new();
     for f in frames {
@@ -95,7 +159,21 @@ fn validate_frames(frames: &[FrameRequest], kind: EndpointKind) -> Result<()> {
             "illegal/duplicate frame request",
         )?;
     }
-    if kind == EndpointKind::SelectedReachedU {
+    if kind == EndpointKind::UnselectedPrefixTrajectory {
+        require(
+            frames.len() == 1,
+            "trajectory first-divergence capture requires exactly one frame",
+        )?;
+        for f in frames {
+            require(
+                f.role == FrameRole::FactualFailure
+                    && f.expected_saved_row_sha256
+                        .as_ref()
+                        .is_some_and(|h| h.len() == 64 && h.bytes().all(|x| x.is_ascii_hexdigit())),
+                "trajectory prospective actual frame hash/role differs",
+            )?;
+        }
+    } else if kind == EndpointKind::SelectedReachedU {
         let expected = [
             (97, 3),
             (156, 3),
@@ -396,8 +474,7 @@ fn admit_paths(c: &mut Config) -> Result<()> {
         )?;
     }
     require(
-        (c.endpoint_kind == EndpointKind::UnselectedPrefixFragment)
-            == c.qualification_root.is_some(),
+        is_prefix_candidate(c.endpoint_kind) == c.qualification_root.is_some(),
         "qualification authority exclusive to Prefix endpoint",
     )?;
     if let Some(root) = &c.qualification_root {
@@ -409,7 +486,9 @@ fn admit_paths(c: &mut Config) -> Result<()> {
             "qualification path invalid",
         )?;
     }
-    let (cache_cap, report_cap) = if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate {
+    let (cache_cap, report_cap) = if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+        (64 * 1024 * 1024, 64 * 1024 * 1024)
+    } else if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate {
         (256 * 1024 * 1024, 128 * 1024 * 1024)
     } else {
         (128 * 1024 * 1024, 128 * 1024 * 1024)
@@ -538,7 +617,7 @@ fn check_saved(
 fn report_schema(kind: EndpointKind) -> &'static str {
     if kind == EndpointKind::SelectedReadoutIntermediate
         || kind == EndpointKind::SelectedOriginalTrajectorySupplement
-        || kind == EndpointKind::UnselectedPrefixFragment
+        || is_prefix_candidate(kind)
     {
         "uor-r4.native-reached-prefix-attribution/3"
     } else {
@@ -549,10 +628,20 @@ fn compact_factor_layout() -> Value {
     json!({"format":"token_ordered_tuples/1","tokens":4096,"generate_columns":["relative_codes","logical_factor_keys","unary_codes","pair_codes","bias_code","total_q24","u_total_q24"],"u_columns":["relative_codes","coefficient_codes","total_q24"],"generate_score_shift":20,"u_score_shift":22,"prototype_codes":"bound immutable Generate artifact; token row index"})
 }
 fn authenticate_endpoint(report: &Value, receipt: &Value, kind: EndpointKind) -> Result<()> {
-    if kind == EndpointKind::UnselectedPrefixFragment {
+    if is_prefix_candidate(kind) {
         return require(
             report["status"] == "COMPLETED"
-                && report["mode"] == "prefix_fragment_learning"
+                && report["mode"]
+                    == if kind == EndpointKind::UnselectedPrefixTrajectory {
+                        "prefix_trajectory_learning"
+                    } else {
+                        "prefix_fragment_learning"
+                    }
+                && (kind != EndpointKind::UnselectedPrefixTrajectory
+                    || (report["all_original380_preserved"] == true
+                        && report["protected_population"] == 380
+                        && report["new_prefix_gradients"] == 0
+                        && report["selected_model"] == false))
                 && report["candidate_receipt"] == *receipt
                 && receipt["step"] == 1
                 && report["finite_prefix_positive"] == true
@@ -643,36 +732,44 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             "recovered intermediate report/seal differs",
         )?;
     }
-    let qualification = if c.endpoint_kind == EndpointKind::UnselectedPrefixFragment {
+    let qualification = if is_prefix_candidate(c.endpoint_kind) {
+        let (report_pin, seal_pin, packed_pin, metadata_pin, master_pin) =
+            if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+                (
+                    "77227984640fc55e29067bb6dae935068c7a9faf2bf8c8f0b296b5f0b9c05355",
+                    "c1309528bcf45f7ceac54643e35657eedac679ff9b682deec3b93cffcf483442",
+                    "9cd7eff1af78cdc9f9ae032cf26b46630208e027fcdf5b76a16f30bd7606ff96",
+                    "31c31b31da847ce79d913d713edb36bb45b78b0cebf727a11d0da54fd05d7116",
+                    "a2d0ec5b2b6957afba4c311d2ce2eeb8c4836fe00c20c7c9551f503c2aa28d30",
+                )
+            } else {
+                (
+                    "71301b77d9d4606dda1501385e43f8e114c4e72af9a502b799f363b604b14cfe",
+                    "12c1412d049724e6dd7ba1e1cd8fc0383be65f7a3c9f43251a206fc23ba76d32",
+                    "a6ea6299cec8b5739b2e20002488989f932392054ec28c24dde5057eb2de2b86",
+                    "d8820c74192cee59c397c6708bbab2fdf69105d8623f4fad4146638cc81dea68",
+                    "900f1e23d31369fc0a7f78d6db23cf7777f95226b06ae4ebce6685111075ad36",
+                )
+            };
         require(
-            c.expected_report_sha256
-                == "71301b77d9d4606dda1501385e43f8e114c4e72af9a502b799f363b604b14cfe"
-                && c.expected_manifest_sha256
-                    == "12c1412d049724e6dd7ba1e1cd8fc0383be65f7a3c9f43251a206fc23ba76d32",
+            c.expected_report_sha256 == report_pin && c.expected_manifest_sha256 == seal_pin,
             "Prefix learning report/seal differs",
         )?;
         require(
-            file_hash(&cp.join("prefix/prefix-q4.bin"))?
-                == "a6ea6299cec8b5739b2e20002488989f932392054ec28c24dde5057eb2de2b86",
-            "Prefix candidate packed identity differs",
-        )?;
-        require(
-            file_hash(&cp.join("prefix/native-metadata.json"))?
-                == "d8820c74192cee59c397c6708bbab2fdf69105d8623f4fad4146638cc81dea68"
-                && file_hash(&cp.join("prefix/prefix-source-f32.bin"))?
-                    == "900f1e23d31369fc0a7f78d6db23cf7777f95226b06ae4ebce6685111075ad36",
-            "Prefix candidate metadata/master identity differs",
+            file_hash(&cp.join("prefix/prefix-q4.bin"))? == packed_pin
+                && file_hash(&cp.join("prefix/native-metadata.json"))? == metadata_pin
+                && file_hash(&cp.join("prefix/prefix-source-f32.bin"))? == master_pin,
+            "Prefix candidate payload/metadata/master identity differs",
         )?;
         let root = c
             .qualification_root
             .as_ref()
             .ok_or_else(|| bad("qualification root absent"))?;
         report_output::verify(root)?;
+        let (q_report, q_manifest) = qualification_pins(c.endpoint_kind);
         require(
-            file_hash(&root.join("report.json"))?
-                == "d120dd6948e440abadf66ac47c0e5e01f3a90069d5691f49159fa7100bae89c9"
-                && file_hash(&root.join("manifest.json"))?
-                    == "3ddfc9d701b38da86d933ba2e50459940d6b7a2e7f11d0c09305d360fd6a5f15",
+            file_hash(&root.join("report.json"))? == q_report
+                && file_hash(&root.join("manifest.json"))? == q_manifest,
             "cheap actual report/seal differs",
         )?;
         let q = read(&root.join("report.json"))?;
@@ -681,7 +778,11 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 && q["status"] == "COMPLETED"
                 && q["candidate_report_sha256"] == c.expected_report_sha256
                 && q["candidate_manifest_sha256"] == c.expected_manifest_sha256
-                && q["qualification_positive"] == false,
+                && q["qualification_positive"] == false
+                && (c.endpoint_kind != EndpointKind::UnselectedPrefixTrajectory
+                    || (q["selected_model"] == false
+                        && q["retained_original8"] == true
+                        && q["actual_ownprefix_rows"] == 9)),
             "unselected cheap qualification authority differs",
         )?;
         Some(q)
@@ -796,12 +897,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         let position = request.position;
         let packet = &panel.cases[index];
         let row = if let Some(q) = &qualification {
-            q["evaluation"]["rows"]
-                .as_array()
-                .ok_or_else(|| bad("qualification rows absent"))?
-                .iter()
-                .find(|r| r["id"] == packet.id)
-                .ok_or_else(|| bad("requested actual candidate row absent"))?
+            qualification_row(q, &packet.id)?
         } else {
             &report["final_evaluation"]["rows"][index]
         };
@@ -815,7 +911,9 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         )?;
         let row_name = text(&row["row_file"])?;
         require(
-            if qualification.is_some() {
+            if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+                safe_row_leaf(row)? == row_name
+            } else if qualification.is_some() {
                 row_name
                     == if index == 245 {
                         "cheap-ownprefix-row-0008.json"
@@ -839,7 +937,8 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         let saved: Value = serde_json::from_slice(&saved_bytes)?;
         require(
             saved["id"] == packet.id
-                && (qualification.is_some() || saved["generated_ids"] == row["generated_ids"])
+                && (c.endpoint_kind == EndpointKind::UnselectedPrefixFragment
+                    || saved["generated_ids"] == row["generated_ids"])
                 && saved["complete"] == row["complete"]
                 && saved["continuation_sha256"] == c.expected_continuation_sha256,
             "saved actual row/report binding differs",
@@ -855,7 +954,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             &step,
             &saved,
             position,
-            c.endpoint_kind == EndpointKind::UnselectedPrefixFragment,
+            is_prefix_candidate(c.endpoint_kind),
         )?;
         let replay = reducer.reduce_trace(
             &step.generate_raw_scores_q24,
@@ -970,7 +1069,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             )?;
             if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
                 || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
-                || c.endpoint_kind == EndpointKind::UnselectedPrefixFragment
+                || is_prefix_candidate(c.endpoint_kind)
             {
                 u_factors.push(json!([u_relative, u_coefficients, u_total]));
                 factors.push(json!([relative, keys, unary, pairs, bias, total, u_total]));
@@ -1009,7 +1108,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
           "saved_actual":saved["generation"][position],"saved_canonical_native":saved["canonical"][position]["native"],"controls":{"generate_only":generate_only,"copy_u_removed":undo_u_copy},"control_scope":"savedvector reducer diagnostics; not servingoptions or generatedcounterfactuals","expected_record_query_role":"NOT_LOADED: separately authenticated reference joined posthoc by reader; never inferred from ID/target/bridge donor"});
         if c.endpoint_kind == EndpointKind::SelectedReadoutIntermediate
             || c.endpoint_kind == EndpointKind::SelectedOriginalTrajectorySupplement
-            || c.endpoint_kind == EndpointKind::UnselectedPrefixFragment
+            || is_prefix_candidate(c.endpoint_kind)
         {
             frame["schema"] = json!("uor-r4.native-reached-prefix-frame/3");
             frame["factor_layout"] = compact_factor_layout();
@@ -1017,6 +1116,8 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
                 == EndpointKind::SelectedOriginalTrajectorySupplement
             {
                 "two authenticated original correct-prefix supplements; labels attached separately after both captures"
+            } else if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+                "one authenticated actual-prefix frame; first-divergence label comparison validated postcapture; offline only"
             } else if qualification.is_some() {
                 "two authenticated actual first-divergence frames; labels attached separately after both captures"
             } else {
@@ -1057,7 +1158,18 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
     )?;
     let mut posthoc = Vec::new();
     for request in &frames {
-        let saved = if qualification.is_some() {
+        let saved = if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+            let q = qualification
+                .as_ref()
+                .ok_or_else(|| bad("qualification missing"))?;
+            let row = qualification_row(q, &request.expected_id)?;
+            read(
+                &c.qualification_root
+                    .as_ref()
+                    .ok_or_else(|| bad("qualification root missing"))?
+                    .join(safe_row_leaf(row)?),
+            )?
+        } else if qualification.is_some() {
             read(
                 &c.qualification_root
                     .as_ref()
@@ -1078,7 +1190,11 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
             labels["cases"][request.input_index]["id"] == request.expected_id,
             "posthoclabel ID differs",
         )?;
-        posthoc.push(json!({"input_index":request.input_index,"position":request.position,"request":request,"authority":labels["cases"][request.input_index],"saved_canonical_target_ids":saved["canonical_target_ids_labels_only"],"current_target_label_only":if qualification.is_some(){saved["canonical_target_ids_labels_only"][request.position].clone()} else {saved["canonical"][request.position]["target_label_only"].clone()},"attached_after_all_captures":true,"expected_record_query_role":"NOT_LOADED: external authenticated posthoc authority"}));
+        let mut annotation = json!({"input_index":request.input_index,"position":request.position,"request":request,"authority":labels["cases"][request.input_index],"saved_canonical_target_ids":saved["canonical_target_ids_labels_only"],"current_target_label_only":if qualification.is_some(){saved["canonical_target_ids_labels_only"][request.position].clone()} else {saved["canonical"][request.position]["target_label_only"].clone()},"attached_after_all_captures":true,"expected_record_query_role":"NOT_LOADED: external authenticated posthoc authority"});
+        if c.endpoint_kind == EndpointKind::UnselectedPrefixTrajectory {
+            annotation["actual_first_divergence"] = authorize_first_divergence(&saved, request)?;
+        }
+        posthoc.push(annotation);
     }
     write(
         c,
@@ -1087,7 +1203,7 @@ fn run(c: &Config, written: &mut u64) -> Result<Value> {
         written,
     )?;
     Ok(
-        json!({"schema":report_schema(c.endpoint_kind),"status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":"production native bank generator; exact admittedframes at authenticated saved actualprefixes; full Copy+Generate reducer","source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"endpoint_kind":c.endpoint_kind,"qualification_authority":if qualification.is_some(){json!({"root":c.qualification_root,"report_sha256":"d120dd6948e440abadf66ac47c0e5e01f3a90069d5691f49159fa7100bae89c9","manifest_sha256":"3ddfc9d701b38da86d933ba2e50459940d6b7a2e7f11d0c09305d360fd6a5f15","candidate_selected":false,"controls":"NOT_RUN"})}else{Value::Null},"frame_count":frames.len(),"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role authority joined separately posthoc; no generated counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
+        json!({"schema":report_schema(c.endpoint_kind),"status":"COMPLETED","source_commit":option_env!("UOR_BUILD_SOURCE_COMMIT"),"runtime":"production native bank generator; exact admittedframes at authenticated saved actualprefixes; full Copy+Generate reducer","source_binding":binding,"generate_sha256":c.expected_generate_sha256,"continuation_sha256":c.expected_continuation_sha256,"compensation_report_sha256":c.expected_report_sha256,"compensation_manifest_sha256":c.expected_manifest_sha256,"inputs_sha256":c.expected_inputs_sha256,"labels_sha256":c.expected_labels_sha256,"categorical_sha256":receipt["categorical_sha256"],"exp_sha256":exp_hash,"endpoint_kind":c.endpoint_kind,"qualification_authority":if qualification.is_some(){json!({"root":c.qualification_root,"report_sha256":qualification_pins(c.endpoint_kind).0,"manifest_sha256":qualification_pins(c.endpoint_kind).1,"candidate_selected":false,"controls":"NOT_RUN"})}else{Value::Null},"frame_count":frames.len(),"frames":summaries,"elapsed_seconds":clock.elapsed().as_secs_f64(),"scope":"exposed reached-prefix attribution; source role authority joined separately posthoc; no generated counterfactual, fit, gradient, model promotion, transfer or chat claim"}),
     )
 }
 fn earliest_physical_max(scores: &[i64]) -> Result<usize> {
@@ -1443,6 +1559,54 @@ mod tests {
         cohort[15].position = 3;
         cohort[15].expected_actual_prefix_ids.push(315);
         assert!(validate_frames(&cohort, EndpointKind::SelectedReachedU).is_err());
+        Ok(())
+    }
+    #[test]
+    fn trajectory_first_divergence_is_generic_and_postcapture_authorized() -> Result<()> {
+        let mut request = FrameRequest {
+            input_index: 42,
+            position: 2,
+            expected_id: "arbitrary-case".into(),
+            expected_saved_row_sha256: Some("a".repeat(64)),
+            expected_actual_prefix_ids: vec![8, 9],
+            role: FrameRole::FactualFailure,
+        };
+        validate_frames(&[request.clone()], EndpointKind::UnselectedPrefixTrajectory)?;
+        let saved = json!({"id":"arbitrary-case","generated_ids":[8,9,11,12],
+            "canonical_target_ids_labels_only":[8,9,10,12]});
+        let witness = authorize_first_divergence(&saved, &request)?;
+        assert_eq!(witness["position"], 2);
+        assert_eq!(witness["derived_after_all_captures"], true);
+        request.position = 3;
+        request.expected_actual_prefix_ids.push(11);
+        assert!(authorize_first_divergence(&saved, &request).is_err());
+        request.position = 2;
+        request.expected_actual_prefix_ids = vec![8, 10];
+        assert!(authorize_first_divergence(&saved, &request).is_err());
+        assert!(validate_frames(
+            &[request.clone(), request],
+            EndpointKind::UnselectedPrefixTrajectory
+        )
+        .is_err());
+        Ok(())
+    }
+    #[test]
+    fn trajectory_epoch_and_saved_row_identity_fail_closed() -> Result<()> {
+        let receipt = json!({"step":1});
+        let mut report = json!({"status":"COMPLETED","mode":"prefix_trajectory_learning",
+            "candidate_receipt":receipt,"finite_prefix_positive":true,"qualified_fragment":true,
+            "all_original380_preserved":true,"protected_population":380,"new_prefix_gradients":0,
+            "selected_model":false});
+        authenticate_endpoint(&report, &receipt, EndpointKind::UnselectedPrefixTrajectory)?;
+        report["selected_model"] = json!(true);
+        assert!(
+            authenticate_endpoint(&report, &receipt, EndpointKind::UnselectedPrefixTrajectory)
+                .is_err()
+        );
+        let q = json!({"evaluation":{"rows":[{"id":"one","row_file":"../foreign.json"}]}});
+        assert!(safe_row_leaf(qualification_row(&q, "one")?).is_err());
+        let duplicate = json!({"evaluation":{"rows":[{"id":"one"},{"id":"one"}]}});
+        assert!(qualification_row(&duplicate, "one").is_err());
         Ok(())
     }
 }

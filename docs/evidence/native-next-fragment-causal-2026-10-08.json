@@ -1,0 +1,527 @@
+{
+  "schema": "uor-r4.native-next-fragment-causal-evidence/1",
+  "date": "2026-10-08",
+  "status": "COMPLETED_SCOPED_CAUSAL_DIAGNOSTIC",
+  "card_comment": 6072391365,
+  "delivery": {
+    "protected_merge": "PENDING_PARENT_DELIVERY",
+    "complete_private_preservation": {
+      "revision": "5bd47c9c69c4ee2df43925ff6f212d45c925229d",
+      "prefix": "codex/sol-next-fragment-causal/next-fragment-0001-7feebe2765",
+      "all_fresh_download_verified": true,
+      "files": {
+        "SHA256-manifest.json": {
+          "sha256": "71e85c86c276fcd8242bb62b11969abf64596a10587112b7e470f843ed758cd0",
+          "bytes": 1287
+        },
+        "next-fragment-0001-7feebe2765.tar.gz": {
+          "sha256": "ca1ee2f23556063fdb26d1378f02124e64f0fab3046134e7d9e8df519d9bc594",
+          "bytes": 446482
+        }
+      },
+      "manifest": {
+        "source_commit": "7feebe2765ae0248ea59b5388692234451228df8",
+        "runtime_hf_revision": "e007ebcbe6e34798efd24813ff387ad4fd2ec260",
+        "runtime_manifest_sha256": "4793be5bf274bdbc7dac19d0ccb5c6f965c54145c7973946b6ece37b0f17b585",
+        "binary_sha256": "5c5742660f8b9d01eb27da2a9fa89a30ecd8b3e4fa5f2476296e5da851b683c5",
+        "config_sha256": "a29cb97183d01e7bd3a210f71da1f2bc208176589ecc3d97f329cfb67edd9a53",
+        "report_sha256": "166d286646411902257e5bb543cfc254248044e99d3290067e0cb6ce39b3d490",
+        "report_manifest_sha256": "68a71b01c5543f8b22d70e5abe2fc671b5dc867fff78e971219ed2fdd8389eff",
+        "audit_sha256": "b13ad1cdbeb0aa6b3472374c0cf58357e2b18de49702451598220aa1a5b675b9",
+        "files": {
+          "next-fragment-0001-7feebe2765.tar.gz": {
+            "sha256": "ca1ee2f23556063fdb26d1378f02124e64f0fab3046134e7d9e8df519d9bc594",
+            "bytes": 446482
+          }
+        },
+        "scope": "One targetfree actualcandidatep5 capture, exactoriginal canonical reconstructed from8-key Prefixdeltas/frozendonordependentG/U/fullpool. Original/candidate/mixed91; noU770; Generateonly1888; candidate unselected. No gradient, fit, originalcapture orAR replay. Preserved source/runtime/config/capture/arithmetic/reviews/failedwrapper/ledger; causalorderedfragment hypothesis remains unadmitted pendingprotectedactualmerge."
+      },
+      "seconds": 6.563716430217028,
+      "completed_utc": "2026-10-09T01:52:07.044312+00:00"
+    },
+    "result_math_review": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/result-math-review.json",
+      "sha256": "248aba13b3e0501b067c20c65c97cde07cf88626f3ef064ddd0dd03893fcba63",
+      "status": "PASS_SAVED_RESULT_REVIEW"
+    },
+    "result_adversarial_review": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/result-adversarial-review.json",
+      "sha256": "b1cd0064788655a0d92557b9b98fba02c2a1dd3a204fa85db95c2720c6fa8fd7",
+      "status": "PASS_SAVED_RESULT_REVIEW"
+    }
+  },
+  "source": {
+    "commit": "7feebe2765ae0248ea59b5388692234451228df8",
+    "example_sha256": "57638dc7ae1d14157b771e5257cd5c766686de023574942a5c994e9da2698918",
+    "binary_sha256": "5c5742660f8b9d01eb27da2a9fa89a30ecd8b3e4fa5f2476296e5da851b683c5",
+    "config_sha256": "a29cb97183d01e7bd3a210f71da1f2bc208176589ecc3d97f329cfb67edd9a53",
+    "engineering_packet_sha256": "35bff0870d78e7241f9dbf4ed8e6dcd1c580510e2ab7bfaa3c30921e45f1888f",
+    "checks": {
+      "status": "PASS",
+      "head": "7feebe2765ae0248ea59b5388692234451228df8",
+      "tests": 15,
+      "command_real_times": [
+        "0m0.934s",
+        "0m2.273s"
+      ],
+      "binary_sha256": "5c5742660f8b9d01eb27da2a9fa89a30ecd8b3e4fa5f2476296e5da851b683c5",
+      "job": "20261009T013548Z-sol-prototype-20261008-gpu0.log",
+      "log_sha256": "6b0c2c026a4d4e2eb5202855136e2a4adeede5c8d09880c78e00a0b13eef436d"
+    },
+    "path": "crates/uor-r4-core/examples/native-reached-prefix-attribution.rs",
+    "runtime_private": {
+      "revision": "e007ebcbe6e34798efd24813ff387ad4fd2ec260",
+      "receipt_sha256": "2e83b87bfd5024f6e02feeceae93ad7ddd1f6a46c9ffa78e5615695ebb6e5150",
+      "all_fresh_download_verified": true
+    },
+    "reader_runtime_private": {
+      "revision": "a69db79c6edc77876092a4cd5da7e4e762ab3ff9",
+      "receipt_sha256": "60aed3796a3ef5c03fc9a973a559b5f9606cd4aecfec8e127a7361dd88de1434",
+      "all_fresh_download_verified": true
+    }
+  },
+  "capture": {
+    "root": "/workspace/uor-r4/codex/sol-next-fragment-causal/runs/candidate-next-fragment-0001-attempt1",
+    "report_sha256": "166d286646411902257e5bb543cfc254248044e99d3290067e0cb6ce39b3d490",
+    "manifest_sha256": "68a71b01c5543f8b22d70e5abe2fc671b5dc867fff78e971219ed2fdd8389eff",
+    "frames": 1,
+    "native_calls": 1,
+    "report_frames": [
+      {
+        "file": "frame-0245-position-05.json",
+        "id": "development-diverse-length4-07-swap0-q0-forward-home",
+        "input_index": 245,
+        "position": 5,
+        "post_state": [
+          32,
+          20,
+          37,
+          8,
+          73,
+          103,
+          13,
+          35
+        ],
+        "role": "factual_failure",
+        "sha256": "1bf1ee03e934616d98f5efda1e06ee4de06a5e19119eadcd6f72bb06bbd3b378",
+        "winner": 91
+      }
+    ],
+    "source_binding": {
+      "identity": {
+        "parent_checkpoint_manifest_sha256": "07f26ea0aa8de692a7792c914c5c43c882be6cbbdb25764b3594b05d9004c60a",
+        "parent_config_sha256": "0b4041fdedeabc40eb5a5aecabacf49d74561de2145b1e5515c8b5014a549fae",
+        "parent_model_sha256": "47f41ed4cc18b1263735a004512fb488d25b65c949cece5a58e548ea831e0aef",
+        "tokenizer_sha256": "d36d3e8700a123e620012df77de195f244fbdb4d05d9e1aa7e77fa9407590f89"
+      },
+      "metadata_sha256": "9f0b272e7852a47bbbad0f549e8157a44ff3212af86905907501ec11f3e7989b"
+    },
+    "generate_sha256": "4248245471db609b1fc19482e8f180380b292c5832fc90c81ce69947bc4b7737",
+    "continuation_sha256": "82ae9daeb402b288e64492d5b299110b36849907019c952609a1cae6612673ee",
+    "candidate_report_sha256": "77227984640fc55e29067bb6dae935068c7a9faf2bf8c8f0b296b5f0b9c05355",
+    "candidate_manifest_sha256": "c1309528bcf45f7ceac54643e35657eedac679ff9b682deec3b93cffcf483442",
+    "qualification_authority": {
+      "candidate_selected": false,
+      "controls": "NOT_RUN",
+      "manifest_sha256": "ec0235c3e357c4dd5bbdf609602436aa8627e8e8192ca40cd515120ccc583379",
+      "report_sha256": "8a4dbd8c13488df2397a8e01a6af885851ca87d8d0edc62cb18e7257b5b5732d",
+      "root": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/qualifications/ownfeedback-0001-attempt1"
+    },
+    "native_seconds": 5.893221415,
+    "execution": {
+      "exit_code": 0,
+      "started_utc": "2026-10-09T01:40:42.030663+00:00",
+      "ended_utc": "2026-10-09T01:40:52.094945+00:00",
+      "elapsed_seconds": 10.0643052123487,
+      "children_max_rss_kib": 134696,
+      "binary_sha256": "5c5742660f8b9d01eb27da2a9fa89a30ecd8b3e4fa5f2476296e5da851b683c5",
+      "config_sha256": "a29cb97183d01e7bd3a210f71da1f2bc208176589ecc3d97f329cfb67edd9a53"
+    },
+    "rust_fullverify": {
+      "status": "PASS",
+      "seconds": 0.04340381920337677,
+      "report_sha256": "166d286646411902257e5bb543cfc254248044e99d3290067e0cb6ce39b3d490",
+      "manifest_sha256": "68a71b01c5543f8b22d70e5abe2fc671b5dc867fff78e971219ed2fdd8389eff",
+      "verifier_sha256": "d90411116c702dc4149fc055706f34c276c1ead29c5b0ec95600c30cc976326d"
+    },
+    "label_boundary": "Sole modelstep consumes authenticated actualprefix/input/artifacts only; canonicalfirstdivergence comparison is derived postcapture in separate posthoc-labels.json",
+    "historical_ablations": "NOT_RUN by producer; matched saved-vector controls belong independent reader",
+    "source_role_authority": "UNRESOLVED_NOT_ASSUMED"
+  },
+  "matched_authority": {
+    "input_index": 245,
+    "position": 5,
+    "actual_candidate_prefix": [
+      617,
+      2097,
+      315,
+      1057,
+      267
+    ],
+    "desired_posthoc": 307,
+    "rival_posthoc": 91,
+    "original_condition": "Canonical conditional prefix, not original ownfeedback p5; original actual firsterror wasp4. Both originalconditional and newlyreached candidateactual choose91.",
+    "original_saved_row": {
+      "path": "/workspace/uor-r4/codex/sol-readout-intermediate-candidate/runs/intermediate-0001-attempt1/development-0001-row-0245.json",
+      "sha256": "19a333bb095bce39f135a3d1869912907f35759933d98f195be8758492d3748a"
+    },
+    "candidate_saved_row": {
+      "path": "/workspace/uor-r4/codex/sol-prefix-trajectory-learning/qualifications/ownfeedback-0001-attempt1/cheap-ownprefix-row-0008.json",
+      "sha256": "4478c88265533d5222059c35cd2e36fd6133734eebb19abc43627eebda7c5314"
+    },
+    "original_reconstruction": "EXACT_FULL_SAVED_PARITY",
+    "candidate_parity": "EXACT_FULL_VECTORS_FACTORS_POOL_AND_ACTUAL_RECEIPT",
+    "original_encoder_recapture": 0,
+    "candidate_targetfree_capture": 1,
+    "new_gradients": 0,
+    "learning": 0,
+    "autoregressive_repeats": 0,
+    "new_full512": "NOT_RUN",
+    "candidate_selected": false
+  },
+  "mechanism": {
+    "original_BASE_donor": 13,
+    "candidate_BASE_donor": 13,
+    "donor_identity": {
+      "bank_index": 13,
+      "context_position": 46,
+      "event": 1,
+      "occurrence": {
+        "commit": 2,
+        "record": 2,
+        "token_id": 770,
+        "token_offset": 7
+      },
+      "segment_index": 3
+    },
+    "original_post": [
+      32,
+      20,
+      37,
+      8,
+      73,
+      103,
+      13,
+      35
+    ],
+    "candidate_post": [
+      32,
+      20,
+      37,
+      8,
+      73,
+      103,
+      13,
+      35
+    ],
+    "raw_Generate_competition": {
+      "original_BASE_desired_q24": -76546048,
+      "original_BASE_rival_q24": -54525952,
+      "candidate_BASE_desired_q24": -76546048,
+      "candidate_BASE_rival_q24": -54525952,
+      "original_BASE_gap_q24": -22020096,
+      "candidate_BASE_gap_q24": -22020096,
+      "original_combined_gap_q24": -22020096,
+      "candidate_combined_gap_q24": -22020096,
+      "shared_U_desired_q24": -16777216,
+      "shared_U_rival_q24": -16777216,
+      "shared_U_gap_q24": 0
+    },
+    "physical_desired_and_rival": [
+      {
+        "ordinal": 8,
+        "token_id": 307,
+        "identity": {
+          "bank_index": 8,
+          "context_position": 41,
+          "event": 1,
+          "occurrence": {
+            "commit": 2,
+            "record": 2,
+            "token_id": 307,
+            "token_offset": 2
+          },
+          "segment_index": 3
+        },
+        "prefix_keys": [
+          106,
+          221,
+          355,
+          403,
+          486,
+          603,
+          763,
+          959
+        ],
+        "original_codes": [
+          0,
+          -1,
+          -1,
+          0,
+          -1,
+          -1,
+          0,
+          -1
+        ],
+        "candidate_codes": [
+          1,
+          -1,
+          -1,
+          0,
+          -1,
+          -2,
+          0,
+          -1
+        ],
+        "direct_Prefix_delta_q24": 0,
+        "original_BASECopy_q24": 16471246,
+        "candidate_BASECopy_q24": 16471246,
+        "fixed_U_q24": -16777216
+      },
+      {
+        "ordinal": 11,
+        "token_id": 91,
+        "identity": {
+          "bank_index": 11,
+          "context_position": 44,
+          "event": 1,
+          "occurrence": {
+            "commit": 2,
+            "record": 2,
+            "token_id": 91,
+            "token_offset": 5
+          },
+          "segment_index": 3
+        },
+        "prefix_keys": [
+          10,
+          197,
+          335,
+          449,
+          578,
+          602,
+          793,
+          912
+        ],
+        "original_codes": [
+          -1,
+          -1,
+          0,
+          -1,
+          -1,
+          0,
+          -1,
+          -1
+        ],
+        "candidate_codes": [
+          -2,
+          -1,
+          0,
+          0,
+          -1,
+          0,
+          -1,
+          -2
+        ],
+        "direct_Prefix_delta_q24": -4194304,
+        "original_BASECopy_q24": 42015270,
+        "candidate_BASECopy_q24": 37820966,
+        "fixed_U_q24": -16777216
+      }
+    ],
+    "desired_rival_incidence_contrasts": [
+      {
+        "desired_ordinal": 8,
+        "rival_ordinal": 11,
+        "distinct_lane_keys": 8,
+        "original_BASE_gap_q24": -25544024,
+        "candidate_BASE_gap_q24": -21349720,
+        "fixed_U_gap_q24": 0,
+        "scope": "Exact physical score/incidence contrast only; not semantic distance, global feasibility or pooled capacity."
+      }
+    ],
+    "controls": {
+      "original": {
+        "winner": 91,
+        "target_mass": 470319905,
+        "denominator": 33816314662,
+        "rival_mass": 2154289260,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "candidate": {
+        "winner": 91,
+        "target_mass": 603902712,
+        "denominator": 39075786041,
+        "rival_mass": 2156222226,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "mixed_originalG_candidateCopy": {
+        "winner": 91,
+        "target_mass": 603902712,
+        "denominator": 39075786041,
+        "rival_mass": 2156222226,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "mixed_candidateG_originalCopy": {
+        "winner": 91,
+        "target_mass": 470319905,
+        "denominator": 33816314662,
+        "rival_mass": 2154289260,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "original_no_U": {
+        "winner": 770,
+        "target_mass": 374635784,
+        "denominator": 32277792196,
+        "rival_mass": 1716014999,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "candidate_no_U": {
+        "winner": 770,
+        "target_mass": 374635784,
+        "denominator": 29329647482,
+        "rival_mass": 1337632959,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "original_U_removed_Copy_only": {
+        "winner": 770,
+        "target_mass": 373713483,
+        "denominator": 16285448685,
+        "rival_mass": 1712588237,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "candidate_U_removed_Copy_only": {
+        "winner": 770,
+        "target_mass": 373713483,
+        "denominator": 13337303971,
+        "rival_mass": 1334206197,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "original_Generate_only": {
+        "winner": 1888,
+        "target_mass": 14469631,
+        "denominator": 188106137978,
+        "rival_mass": 53761201,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      },
+      "candidate_Generate_only": {
+        "winner": 1888,
+        "target_mass": 14469631,
+        "denominator": 188106137978,
+        "rival_mass": 53761201,
+        "target_is_winner": false,
+        "clipped_low": 0,
+        "clipped_high": 0,
+        "clip_changed_winner": false
+      }
+    },
+    "reductions": 10,
+    "classification": "Preexisting conditional competition newly reached; no loss of an originally correct winner. Controls report restoration or persistent obstruction and changed margins only.",
+    "limits": "Eight different lane keys establish existing feature distinction only; no semanticdistance/globalfeasibility/aliascapacity claim. Measured occurrence/version/offset identities are distinct from expectedsource role."
+  },
+  "audit": {
+    "root": "/workspace/uor-r4/codex/sol-next-fragment-causal/audits/attempt1",
+    "status": "PASS",
+    "result_sha256": "b13ad1cdbeb0aa6b3472374c0cf58357e2b18de49702451598220aa1a5b675b9",
+    "manifest_sha256": "77bb1eaf5a64eeaa20ebdc1054a33e496dd6f2a7c5de079a467cb7cf2111e14b",
+    "reader_sha256": "0e8914bf334efdc9664784769ffaac474864f4e760888222fd8067dcf2896c3a",
+    "arithmetic_module_sha256": "c8681bfc7e7847cae29be2dd2198bb01f64711821584e27949fa06ed2a298c8a",
+    "execution": {
+      "seconds": 19.516165144741535,
+      "peak_rss_kib": 50124
+    },
+    "rust_fullverify": {
+      "status": "PASS",
+      "seconds": 0.06594207137823105,
+      "result_sha256": "b13ad1cdbeb0aa6b3472374c0cf58357e2b18de49702451598220aa1a5b675b9",
+      "manifest_sha256": "77bb1eaf5a64eeaa20ebdc1054a33e496dd6f2a7c5de079a467cb7cf2111e14b"
+    },
+    "scope": "Independent saved packed finitealgebra/fullpool reductions and original reconstruction parity; no independent encoder, gradient, proposal or autoregressive execution."
+  },
+  "reviews": {
+    "prospective-math-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/prospective-math-review.json",
+      "sha256": "7e06ef8053eabebaf2fa954f2b2d048cb3854f23590c11d34ac9024b6f9f6129",
+      "status": "PROSPECTIVE_PASS_CONDITIONAL_ON_EXACT_SOURCE_AND_CAPTURE_PARITY"
+    },
+    "prospective-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/prospective-adversarial-review.json",
+      "sha256": "dde9f99b423ca920a639e81e5ee2cbaf4e7fa05eba772e02b750eaed5d87324c",
+      "status": "PASS_PROSPECTIVE_WITH_EXACT_SOURCE_AND_RECOVERY_GATES"
+    },
+    "source-math-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/source-math-review.json",
+      "sha256": "264d2b0434a1048ac193b68ec6525c884b7141a99e8d57f9cbe0d79f00377481",
+      "status": "PASS_SOURCE_ONLY"
+    },
+    "source-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/source-adversarial-review.json",
+      "sha256": "7460d9e77a8a402c67835f04a7284b1338ebbbb86c250425f8ddd3c76990837c",
+      "status": "PASS_SOURCE_ONLY_PENDING_PARENT_COMMIT_CHECKS_AND_ADMISSION"
+    },
+    "reader-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/reader-adversarial-review.json",
+      "sha256": "4af16b029f664fc3b9b40e1ce922946247d3a7c7c6fdd43a21840c5fc1fd8a17",
+      "status": "PASS_SOURCE_ONLY"
+    },
+    "result-math-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/result-math-review.json",
+      "sha256": "248aba13b3e0501b067c20c65c97cde07cf88626f3ef064ddd0dd03893fcba63",
+      "status": "PASS_SAVED_RESULT_REVIEW"
+    },
+    "result-adversarial-review.json": {
+      "path": "/workspace/uor-r4/codex/sol-next-fragment-causal/result-adversarial-review.json",
+      "sha256": "b1cd0064788655a0d92557b9b98fba02c2a1dd3a204fa85db95c2720c6fa8fd7",
+      "status": "PASS_SAVED_RESULT_REVIEW"
+    }
+  },
+  "retained_setup_failure": {
+    "status": "FAILED_BEFORE_PUBLICATION_OR_MODEL",
+    "fault": "Parent wrapper assumed generic PASS instead of actual PASS_SOURCE_ONLY_PENDING_PARENT_COMMIT_CHECKS_AND_ADMISSION source-only verdict",
+    "log_sha256": "f55517bcb74bb9d8177cdee47da1021c49eb092dec609f08272dd6b0bb58815c",
+    "repair": "Require exact authentic source-only verdict and sourceSHA; no alteration of reviewer receipt, model or source"
+  },
+  "resources": {
+    "cpu_threads": 2,
+    "process_ram_cap": 2147483648,
+    "report_cap": 67108864,
+    "temporary_cap": 67108864,
+    "retained_cap": 402653184,
+    "cumulative_projected_seconds": 558870,
+    "task_projection_seconds": 3600,
+    "cost_scope": "Source/checks/runtime-wrapper repair/capture/readeraudit/reviews/preservation/delivery charged to same cumulativeledger; no newlearning"
+  },
+  "interpretation": {
+    "measured": "Prefixconstruction narrows p5 directCopy competition but doesnotrestore307. BASEdonor andGenerate unchanged; equal U307/91 delta cannot alter their pairwise gap here.",
+    "preexisting": "This p5 conditionalfailure was absentfromold18 objective and was newly reached aftercorrect267; it isnotloss ofanoriginallycorrect winner.",
+    "negative_limits": "No clippingexplanation orsimple Uremoved/Generateonly restoration atthismatchedprefix; no wholefamilyerasure/globalobstruction claim. Candidate remains unselected; original8 actualcompletes retained inpreviousqualification, notnewfull512 measurement.",
+    "next_prospective": "After actual protecteddelivery and completed reviews, define a falsifiable joint word/span prediction question across ordered fragments using retainedphysicaloccurrence identity and completeparenttrajectory guards. No unchangedpass/dose/rerank/cursor/servingifcases; no successorcurrentlyadmitted."
+  }
+}
